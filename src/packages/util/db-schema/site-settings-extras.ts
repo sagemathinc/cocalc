@@ -922,12 +922,12 @@ export const EXTRAS: SettingsExtras = {
   },
   nebius_subnet_id: {
     name: "Project Hosts: Nebius - Subnet ID",
-    desc: "Optional Nebius subnet id to attach instances to. Leave empty to use the default network.",
+    desc: "Required Nebius subnet id to attach instances to.  It looks something like vpcsubnet-xxxx and you can find it in the network tab on the console.",
     default: "",
     to_val: to_trimmed_str,
     show: project_hosts_nebius_enabled,
     tags: ["Project Hosts", "Cloud", "Nebius"],
-    valid: () => true,
+    valid: (x) => !!x,
   },
   project_hosts_nebius_prefix: {
     name: "Project Hosts: Nebius - Resource Prefix",

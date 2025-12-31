@@ -182,7 +182,10 @@ function normalizeRecommendation(input: any): HostRecommendation | null {
   const provider = normalizeString(input.provider) as HostProvider | undefined;
   if (
     !provider ||
-    (provider !== "gcp" && provider !== "hyperstack" && provider !== "lambda")
+    (provider !== "gcp" &&
+      provider !== "hyperstack" &&
+      provider !== "lambda" &&
+      provider !== "nebius")
   ) {
     return null;
   }
@@ -503,7 +506,7 @@ export const HostsPage: React.FC = () => {
   const hyperstackRegionOptions = catalog?.hyperstack_regions?.length
     ? catalog.hyperstack_regions.map((r) => ({
         value: r.name,
-        label: r.description ? `${r.name} — ${r.description}` : r.name,
+        label: r.name,
       }))
     : [];
 
@@ -538,6 +541,30 @@ export const HostsPage: React.FC = () => {
           })
       : [];
 
+  const nebiusInstanceTypeOptions =
+    selectedProvider === "nebius" && catalog?.nebius_instance_types?.length
+      ? catalog.nebius_instance_types
+          .filter((entry) => !!entry?.name)
+          .map((entry) => {
+            const cpuLabel = entry.vcpus != null ? String(entry.vcpus) : "?";
+            const ramLabel =
+              entry.memory_gib != null ? String(entry.memory_gib) : "?";
+            const gpuLabel =
+              entry.gpus && entry.gpus > 0
+                ? ` · ${entry.gpus}x ${entry.gpu_label ?? "GPU"}`
+                : "";
+            const platformLabel = entry.platform_label
+              ? ` · ${entry.platform_label}`
+              : "";
+            return {
+              value: entry.name,
+              label: `${entry.name} (${cpuLabel} vCPU / ${ramLabel} GB${gpuLabel}${platformLabel})`,
+              entry,
+            };
+          })
+          .sort((a, b) => a.value.localeCompare(b.value))
+      : [];
+
   const selectedLambdaInstanceType =
     selectedProvider === "lambda"
       ? lambdaInstanceTypeOptions.find(
@@ -567,22 +594,28 @@ export const HostsPage: React.FC = () => {
         ).map((name) => ({ value: name, label: name }))
       : [];
 
+  const nebiusRegionOptions = catalog?.nebius_regions?.length
+    ? catalog.nebius_regions.map((r) => ({ value: r.name, label: r.name }))
+    : [];
+
   const regionOptions =
     selectedProvider === "hyperstack" && hyperstackRegionOptions.length
       ? hyperstackRegionOptions
       : selectedProvider === "lambda"
         ? lambdaRegionOptions
-        : selectedProvider === "gcp" && catalog?.regions?.length
-          ? catalog.regions.map((r) => {
-              const zoneWithMeta = catalog.zones?.find(
-                (z) => z.region === r.name && (z.location || z.lowC02),
-              );
-              const location = zoneWithMeta?.location;
-              const lowC02 = zoneWithMeta?.lowC02 ? " (low CO₂)" : "";
-              const suffix = location ? ` — ${location}${lowC02}` : "";
-              return { value: r.name, label: `${r.name}${suffix}` };
-            })
-          : REGIONS;
+        : selectedProvider === "nebius" && nebiusRegionOptions.length
+          ? nebiusRegionOptions
+          : selectedProvider === "gcp" && catalog?.regions?.length
+            ? catalog.regions.map((r) => {
+                const zoneWithMeta = catalog.zones?.find(
+                  (z) => z.region === r.name && (z.location || z.lowC02),
+                );
+                const location = zoneWithMeta?.location;
+                const lowC02 = zoneWithMeta?.lowC02 ? " (low CO₂)" : "";
+                const suffix = location ? ` — ${location}${lowC02}` : "";
+                return { value: r.name, label: `${r.name}${suffix}` };
+              })
+            : REGIONS;
 
   useEffect(() => {
     if (!selectedProvider || selectedProvider === "none") return;
@@ -772,6 +805,27 @@ export const HostsPage: React.FC = () => {
       architecture: img.architecture,
       region: img.region,
     }));
+    const nebiusRegions = catalog.nebius_regions ?? [];
+    const nebiusInstanceTypes = limit(
+      catalog.nebius_instance_types ?? [],
+      25,
+    ).map((entry) => ({
+      name: entry.name,
+      platform: entry.platform,
+      platform_label: entry.platform_label,
+      vcpus: entry.vcpus,
+      memory_gib: entry.memory_gib,
+      gpus: entry.gpus,
+      gpu_label: entry.gpu_label,
+    }));
+    const nebiusImages = limit(catalog.nebius_images ?? [], 10).map((img) => ({
+      id: img.id,
+      name: img.name,
+      family: img.family,
+      version: img.version,
+      architecture: img.architecture,
+      recommended_platforms: img.recommended_platforms,
+    }));
     return {
       gcp: {
         regions: gcpRegions,
@@ -788,6 +842,15 @@ export const HostsPage: React.FC = () => {
               regions: lambdaRegions,
               instance_types: lambdaInstanceTypes,
               images: lambdaImages,
+            },
+          }
+        : {}),
+      ...(catalog.nebius_regions?.length || catalog.nebius_instance_types?.length
+        ? {
+            nebius: {
+              regions: nebiusRegions,
+              instance_types: nebiusInstanceTypes,
+              images: nebiusImages,
             },
           }
         : {}),
@@ -831,6 +894,14 @@ export const HostsPage: React.FC = () => {
   }, [selectedProvider, lambdaInstanceTypeOptions, selectedMachineType, form]);
 
   useEffect(() => {
+    if (selectedProvider !== "nebius") return;
+    if (!nebiusInstanceTypeOptions.length) return;
+    const values = new Set(nebiusInstanceTypeOptions.map((opt) => opt.value));
+    if (selectedMachineType && values.has(selectedMachineType)) return;
+    form.setFieldsValue({ machine_type: nebiusInstanceTypeOptions[0].value });
+  }, [selectedProvider, nebiusInstanceTypeOptions, selectedMachineType, form]);
+
+  useEffect(() => {
     if (selectedProvider !== "gcp") return;
     if (!machineTypeOptions.length) return;
     if (
@@ -871,6 +942,9 @@ export const HostsPage: React.FC = () => {
     } else if (rec.provider === "lambda") {
       if (rec.region) next.region = rec.region;
       if (rec.machine_type) next.machine_type = rec.machine_type;
+    } else if (rec.provider === "nebius") {
+      if (rec.region) next.region = rec.region;
+      if (rec.machine_type) next.machine_type = rec.machine_type;
     }
     if (rec.disk_gb) next.disk = rec.disk_gb;
     form.setFieldsValue(next);
@@ -903,7 +977,7 @@ export const HostsPage: React.FC = () => {
           options: [
             {
               title: "string",
-              provider: "gcp|hyperstack|lambda",
+              provider: "gcp|hyperstack|lambda|nebius",
               region: "string",
               zone: "string?",
               machine_type: "string?",
@@ -965,6 +1039,10 @@ export const HostsPage: React.FC = () => {
         (opt) => opt.value === vals.machine_type,
       )?.entry;
       const lambdaGpuCount = lambdaInstanceType?.gpus ?? 0;
+      const nebiusInstanceType = nebiusInstanceTypeOptions.find(
+        (opt) => opt.value === vals.machine_type,
+      )?.entry;
+      const nebiusGpuCount = nebiusInstanceType?.gpus ?? 0;
       const genericGpuType =
         vals.gpu && vals.gpu !== "none" ? vals.gpu : undefined;
       const wantsGpu =
@@ -974,6 +1052,8 @@ export const HostsPage: React.FC = () => {
             ? !!gpu_type
             : vals.provider === "lambda"
               ? lambdaGpuCount > 0
+              : vals.provider === "nebius"
+                ? nebiusGpuCount > 0
               : !!genericGpuType;
       const storage_mode =
         vals.provider === "lambda"
@@ -984,6 +1064,8 @@ export const HostsPage: React.FC = () => {
           ? hyperstackRegionOptions[0]?.value
           : vals.provider === "lambda"
             ? (lambdaRegionOptions[0]?.value ?? LAMBDA_REGIONS[0]?.value)
+            : vals.provider === "nebius"
+              ? nebiusRegionOptions[0]?.value
             : "us-east1";
       await hub.hosts.createHost({
         name: vals.name ?? "My Host",
@@ -995,7 +1077,9 @@ export const HostsPage: React.FC = () => {
           machine_type:
             vals.provider === "hyperstack"
               ? hyperstackFlavor?.name
-              : machine_type,
+              : vals.provider === "nebius"
+                ? nebiusInstanceType?.name
+                : machine_type,
           gpu_type:
             vals.provider === "hyperstack"
               ? hyperstackGpuType
@@ -1003,6 +1087,8 @@ export const HostsPage: React.FC = () => {
                 ? gpu_type
                 : vals.provider === "lambda"
                   ? undefined
+                  : vals.provider === "nebius"
+                    ? nebiusInstanceType?.gpu_label
                   : genericGpuType,
           gpu_count:
             vals.provider === "hyperstack"
@@ -1013,6 +1099,8 @@ export const HostsPage: React.FC = () => {
                   : undefined
                 : vals.provider === "lambda"
                   ? lambdaGpuCount || undefined
+                  : vals.provider === "nebius"
+                    ? nebiusGpuCount || undefined
                   : genericGpuType
                     ? 1
                     : undefined,
@@ -1371,7 +1459,9 @@ export const HostsPage: React.FC = () => {
               >
                 <Select options={providerOptions} />
               </Form.Item>
-              {selectedProvider === "lambda" ? null : regionField}
+              {selectedProvider === "lambda" || selectedProvider === "nebius"
+                ? null
+                : regionField}
               {selectedProvider === "none" && (
                 <Form.Item
                   name="size"
@@ -1398,6 +1488,18 @@ export const HostsPage: React.FC = () => {
                     initialValue={lambdaInstanceTypeOptions[0]?.value}
                   >
                     <Select options={lambdaInstanceTypeOptions} />
+                  </Form.Item>
+                  {regionField}
+                </>
+              )}
+              {selectedProvider === "nebius" && (
+                <>
+                  <Form.Item
+                    name="machine_type"
+                    label="Instance type"
+                    initialValue={nebiusInstanceTypeOptions[0]?.value}
+                  >
+                    <Select options={nebiusInstanceTypeOptions} />
                   </Form.Item>
                   {regionField}
                 </>
@@ -1469,7 +1571,9 @@ export const HostsPage: React.FC = () => {
                       </>
                     )}
                     {selectedProvider !== "gcp" &&
-                      selectedProvider !== "lambda" && (
+                      selectedProvider !== "lambda" &&
+                      selectedProvider !== "hyperstack" &&
+                      selectedProvider !== "nebius" && (
                         <Col span={24}>
                           <Form.Item
                             name="gpu"

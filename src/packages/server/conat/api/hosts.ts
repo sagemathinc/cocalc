@@ -265,6 +265,9 @@ export async function getCatalog({
     lambda_regions: [],
     lambda_instance_types: [],
     lambda_images: [],
+    nebius_regions: [],
+    nebius_instance_types: [],
+    nebius_images: [],
     provider_capabilities: Object.fromEntries(
       listProviderEntries().map((entry) => [
         entry.id,
@@ -279,6 +282,8 @@ export async function getCatalog({
         catalog.hyperstack_regions = row.payload ?? [];
       } else if (cloud === "lambda") {
         catalog.lambda_regions = row.payload ?? [];
+      } else if (cloud === "nebius") {
+        catalog.nebius_regions = row.payload ?? [];
       } else {
         catalog.regions = row.payload ?? [];
       }
@@ -295,11 +300,17 @@ export async function getCatalog({
         catalog.hyperstack_images = row.payload ?? [];
       } else if (cloud === "lambda") {
         catalog.lambda_images = row.payload ?? [];
+      } else if (cloud === "nebius") {
+        catalog.nebius_images = row.payload ?? [];
       } else {
         catalog.images = row.payload ?? [];
       }
     } else if (row.kind === "instance_types" && row.scope === "global") {
-      catalog.lambda_instance_types = row.payload ?? [];
+      if (cloud === "nebius") {
+        catalog.nebius_instance_types = row.payload ?? [];
+      } else {
+        catalog.lambda_instance_types = row.payload ?? [];
+      }
     } else if (row.kind === "flavors" && row.scope === "global") {
       const payload = row.payload ?? [];
       const flat: HostCatalog["hyperstack_flavors"] = [];

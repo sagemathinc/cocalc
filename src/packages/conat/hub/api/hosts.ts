@@ -125,6 +125,26 @@ export interface HostCatalog {
     architecture?: string | null;
     region?: string | null;
   }[];
+  nebius_regions?: {
+    name: string;
+  }[];
+  nebius_instance_types?: {
+    name: string;
+    platform?: string | null;
+    platform_label?: string | null;
+    vcpus?: number | null;
+    memory_gib?: number | null;
+    gpus?: number | null;
+    gpu_label?: string | null;
+  }[];
+  nebius_images?: {
+    id: string;
+    name?: string | null;
+    family?: string | null;
+    version?: string | null;
+    architecture?: string | null;
+    recommended_platforms?: string[];
+  }[];
 }
 
 export interface Host {
