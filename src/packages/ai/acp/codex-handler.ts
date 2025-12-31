@@ -2,7 +2,7 @@
 Codex ACP client handler (tools, terminals, file I/O).
 
 This file implements the ACP-side handlers for terminal commands,
-file reads/writes, approvals, and live diff/file events. It is used by
+file reads/writes, and live diff/file events. It is used by
 the session wrapper in codex.ts and is where adapter logic (local vs
 container) will be plugged in. Session orchestration lives in codex.ts;
 all tool/file plumbing is here to keep responsibilities clear.
@@ -24,8 +24,6 @@ import type {
   ReadTextFileResponse,
   ReleaseTerminalRequest,
   ReleaseTerminalResponse,
-  RequestPermissionRequest,
-  RequestPermissionResponse,
   SessionNotification,
   TerminalExitStatus,
   TerminalOutputRequest,
@@ -44,12 +42,7 @@ import type {
   AcpStreamHandler,
   CommandOutput,
   CustomCommandHandler,
-  ApprovalDecision,
 } from "./types";
-import type {
-  AcpApprovalOptionKind,
-  AcpApprovalStatus,
-} from "@cocalc/conat/ai/acp/types";
 import type {
   FileAdapter,
   TerminalAdapter,
@@ -60,7 +53,6 @@ import type {
 
 const logger = getLogger("ai:acp:codex-handler");
 const MAX_TERMINAL_STREAM_CHARS = 4000;
-const APPROVAL_TIMEOUT_MS = 1000 * 60 * 60 * 8; // 8 hours
 
 interface TerminalClient extends Client {
   readTextFile(args: ReadTextFileRequest): Promise<ReadTextFileResponse>;
@@ -97,17 +89,8 @@ type CodexClientHandlerOptions = {
   displayPathRewriter?: (text: string) => string;
 };
 
-type AcpApprovalEvent = Extract<AcpStreamEvent, { type: "approval" }>;
 type AcpTerminalEvent = Extract<AcpStreamEvent, { type: "terminal" }>;
 type AcpFileEvent = Extract<AcpStreamEvent, { type: "file" }>;
-
-type PendingApproval = {
-  approvalId: string;
-  event: AcpApprovalEvent;
-  resolve: (response: RequestPermissionResponse) => void;
-  reject: (err: Error) => void;
-  timer: NodeJS.Timeout;
-};
 
 export class CodexClientHandler implements TerminalClient {
   private stream?: AcpStreamHandler;
@@ -116,7 +99,6 @@ export class CodexClientHandler implements TerminalClient {
   private fileSnapshots = new Map<string, string>();
   private terminals = new Map<string, TerminalState>();
   private readonly commandHandlers?: Map<string, CustomCommandHandler>;
-  private pendingApprovals = new Map<string, PendingApproval>();
   private callToTerminal = new Map<string, string>();
   private terminalBuffers = new Map<string, string>();
   private readonly captureToolCalls: boolean;
@@ -160,73 +142,12 @@ export class CodexClientHandler implements TerminalClient {
     return this.lastResponse.trim() || "(no response)";
   }
 
-  async requestPermission(
-    params: RequestPermissionRequest,
-  ): Promise<RequestPermissionResponse> {
-    const option = params.options[0];
-    if (!option) {
-      return {
-        outcome: {
-          outcome: "cancelled",
-        },
-      };
-    }
-    if (!this.stream) {
-      logger.warn("requestPermission without active stream, auto-cancelling", {
-        toolCallId: params.toolCall.toolCallId,
-      });
-      return {
-        outcome: {
-          outcome: "cancelled",
-        },
-      };
-    }
-    const approvalId = `${params.toolCall.toolCallId}-${randomUUID()}`;
-    const event = this.buildApprovalEvent(approvalId, params);
-    try {
-      await this.emitApprovalEvent(event);
-    } catch (err) {
-      logger.warn("failed to emit approval request, auto-cancelling", err);
-      return {
-        outcome: {
-          outcome: "cancelled",
-        },
-      };
-    }
-    return await new Promise<RequestPermissionResponse>((resolve, reject) => {
-      const timer = setTimeout(() => {
-        this.pendingApprovals.delete(approvalId);
-        const timeoutEvent: AcpApprovalEvent = {
-          ...event,
-          status: "timeout",
-          decidedAt: new Date().toISOString(),
-          decidedBy: "system",
-          note: "Timed out waiting for approval",
-        };
-        void this.emitApprovalEvent(timeoutEvent);
-        resolve({
-          outcome: {
-            outcome: "cancelled",
-          },
-        });
-      }, APPROVAL_TIMEOUT_MS);
-
-      this.pendingApprovals.set(approvalId, {
-        approvalId,
-        event,
-        timer,
-        resolve: (response) => {
-          clearTimeout(timer);
-          this.pendingApprovals.delete(approvalId);
-          resolve(response);
-        },
-        reject: (err) => {
-          clearTimeout(timer);
-          this.pendingApprovals.delete(approvalId);
-          reject(err);
-        },
-      });
-    });
+  async requestPermission(): Promise<{ outcome: { outcome: "cancelled" } }> {
+    return {
+      outcome: {
+        outcome: "cancelled",
+      },
+    };
   }
 
   async sessionUpdate(params: SessionNotification): Promise<void> {
@@ -624,109 +545,6 @@ export class CodexClientHandler implements TerminalClient {
       });
     }
     return {};
-  }
-
-  resolveApprovalDecision(decision: ApprovalDecision): boolean {
-    const pending = this.pendingApprovals.get(decision.approvalId);
-    if (!pending) {
-      return false;
-    }
-    clearTimeout(pending.timer);
-    this.pendingApprovals.delete(decision.approvalId);
-    const decidedAt = new Date().toISOString();
-    const status: AcpApprovalStatus =
-      decision.status ?? (decision.optionId ? "selected" : "cancelled");
-    const updated: AcpApprovalEvent = {
-      ...pending.event,
-      status,
-      decidedAt,
-      decidedBy: decision.decidedBy,
-      note: decision.note,
-      selectedOptionId: decision.optionId,
-    };
-    void this.emitApprovalEvent(updated);
-    if (decision.optionId) {
-      pending.resolve({
-        outcome: {
-          outcome: "selected",
-          optionId: decision.optionId,
-        },
-      });
-    } else {
-      pending.resolve({
-        outcome: {
-          outcome: "cancelled",
-        },
-      });
-    }
-    return true;
-  }
-
-  private async emitApprovalEvent(event: AcpApprovalEvent): Promise<void> {
-    if (!this.stream) return;
-    await this.stream({
-      type: "event",
-      event,
-    });
-  }
-
-  private buildApprovalEvent(
-    approvalId: string,
-    params: RequestPermissionRequest,
-    overrides?: Partial<AcpApprovalEvent>,
-  ): AcpApprovalEvent {
-    const timeoutAt =
-      overrides?.timeoutAt ??
-      new Date(Date.now() + APPROVAL_TIMEOUT_MS).toISOString();
-    const requestedAt = overrides?.requestedAt ?? new Date().toISOString();
-    const options = params.options.map((opt) => ({
-      optionId: opt.optionId,
-      name: opt.name,
-      kind: opt.kind as AcpApprovalOptionKind,
-    }));
-    return {
-      type: "approval",
-      approvalId,
-      status: overrides?.status ?? "pending",
-      requestedAt,
-      timeoutAt,
-      title: overrides?.title ?? params.toolCall.title ?? "Permission required",
-      description:
-        overrides?.description ?? this.describeToolCall(params.toolCall),
-      toolCallId: params.toolCall.toolCallId,
-      toolKind: (params.toolCall as any)?.kind ?? undefined,
-      options,
-      selectedOptionId: overrides?.selectedOptionId,
-      decidedAt: overrides?.decidedAt,
-      decidedBy: overrides?.decidedBy,
-      note: overrides?.note,
-    };
-  }
-
-  private describeToolCall(
-    toolCall: RequestPermissionRequest["toolCall"],
-  ): string | undefined {
-    const content = (toolCall as any)?.content;
-    if (Array.isArray(content)) {
-      const texts: string[] = [];
-      for (const entry of content) {
-        if (entry && typeof entry === "object") {
-          if (typeof (entry as any).text === "string") {
-            texts.push((entry as any).text);
-          } else if (typeof (entry as any).title === "string") {
-            texts.push((entry as any).title);
-          }
-        }
-      }
-      if (texts.length) {
-        return texts.join("\n");
-      }
-    }
-    const rawInput = (toolCall as any)?.rawInput;
-    if (typeof rawInput === "string" && rawInput.trim()) {
-      return rawInput;
-    }
-    return undefined;
   }
 
   async createTerminal({

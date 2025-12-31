@@ -3,7 +3,6 @@ import type { Subscription } from "@cocalc/conat/core/client";
 import { getLogger } from "@cocalc/conat/client";
 import { isValidUUID } from "@cocalc/util/misc";
 import type {
-  AcpApprovalDecisionRequest,
   AcpForkSessionRequest,
   AcpInterruptRequest,
   AcpRequest,
@@ -38,13 +37,6 @@ export function acpSubject(opts: {
   return `${buildSubjectPrefix(opts)}.api`;
 }
 
-export function acpApprovalSubject(opts: {
-  account_id?: string;
-  project_id?: string;
-}): string {
-  return `${buildSubjectPrefix(opts)}.approval`;
-}
-
 export function acpInterruptSubject(opts: {
   account_id?: string;
   project_id?: string;
@@ -77,7 +69,6 @@ function getProjectId(subject: string): string | undefined {
 }
 
 let apiSub: Subscription | null = null;
-let approvalSub: Subscription | null = null;
 let interruptSub: Subscription | null = null;
 let forkSub: Subscription | null = null;
 const MAX_CONCURRENCY = Number(process.env.COCALC_ACP_MAX_CONCURRENCY ?? 64);
@@ -102,7 +93,6 @@ type EvaluateHandler = (
   options: AcpRequest & { stream: StreamHandler },
 ) => Promise<void>;
 
-type ApprovalHandler = (options: AcpApprovalDecisionRequest) => Promise<void>;
 type InterruptHandler = (options: AcpInterruptRequest) => Promise<void>;
 type ForkHandler = (
   options: AcpForkSessionRequest,
@@ -111,7 +101,6 @@ type ForkHandler = (
 export async function init(
   handlers: {
     evaluate: EvaluateHandler;
-    approval?: ApprovalHandler;
     interrupt?: InterruptHandler;
     forkSession?: ForkHandler;
   },
@@ -120,12 +109,6 @@ export async function init(
   client ??= await conat();
   apiSub = await client.subscribe(`${SUBJECT}.*.api`, { queue: "acp-q" });
   listenApi(handlers.evaluate);
-  if (handlers.approval) {
-    approvalSub = await client.subscribe(`${SUBJECT}.*.approval`, {
-      queue: "acp-approval-q",
-    });
-    listenApprovals(handlers.approval);
-  }
   if (handlers.interrupt) {
     interruptSub = await client.subscribe(`${SUBJECT}.*.interrupt`, {
       queue: "acp-interrupt-q",
@@ -145,10 +128,6 @@ export async function close(): Promise<void> {
     apiSub.close();
     apiSub = null;
   }
-  if (approvalSub != null) {
-    approvalSub.close();
-    approvalSub = null;
-  }
   if (interruptSub != null) {
     interruptSub.close();
     interruptSub = null;
@@ -167,19 +146,6 @@ function listenApi(evaluate: EvaluateHandler): void {
     }
   })().catch((err) => {
     logger.warn("acp api listener stopped", err);
-  });
-}
-
-function listenApprovals(approvalHandler: ApprovalHandler): void {
-  if (approvalSub == null) return;
-  (async () => {
-    for await (const mesg of approvalSub!) {
-      void runLimited("approval", () =>
-        handleApprovalMessage(mesg, approvalHandler),
-      );
-    }
-  })().catch((err) => {
-    logger.warn("acp approval listener stopped", err);
   });
 }
 
@@ -253,9 +219,8 @@ async function handleMessage(mesg, evaluate: EvaluateHandler) {
 
   try {
     // TODO: the account_id is not actually used for anything yet; it should
-    // be added somewhere for attribution.  The authentication is by the
+    // be added somewhere for attribution. The authentication is by the
     // fact they could write to the subject, which determines the project_id.
-    // TODO: Actually, the account_id might be used for approvals as well (?)
     if (!isValidUUID(options.account_id)) {
       throw Error("account_id must be a valid uuid");
     }
@@ -293,28 +258,6 @@ function validateOptions(options, subject) {
       throw Error("chat.project_id does not match subject");
     }
     options.chat.project_id = project_id;
-  }
-}
-
-async function handleApprovalMessage(
-  mesg,
-  approval: ApprovalHandler,
-): Promise<void> {
-  const options = mesg.data ?? {};
-  const respond = async (payload?: any, error?: string) => {
-    const data: any = payload ?? {};
-    if (error) {
-      data.error = error;
-    }
-    await mesg.respond(data, { noThrow: true });
-  };
-  validateOptions(options, mesg.subject);
-
-  try {
-    await approval(options);
-    await respond({ status: "ok" });
-  } catch (err) {
-    await respond(undefined, `${err}`);
   }
 }
 

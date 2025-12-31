@@ -6,12 +6,8 @@
 import { Badge, Button, Drawer } from "antd";
 import { useState } from "@cocalc/frontend/app-framework";
 import { COLORS } from "@cocalc/util/theme";
-import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
-import { field, dateValue } from "./access";
 import CodexLogPanel from "./codex-log-panel";
-import type { ChatActions } from "./actions";
 import type { ActivityLogContext } from "./actions/activity-logs";
-import type { ChatMessageTyped } from "./types";
 
 type LogRefs = {
   store?: string;
@@ -29,10 +25,6 @@ interface AgentMessageStatusProps {
   date: number;
   fallbackLogRefs: LogRefs;
   activityContext: ActivityLogContext;
-  message: ChatMessageTyped;
-  account_id: string;
-  is_viewers_message: boolean;
-  actions?: ChatActions;
 }
 
 export function AgentMessageStatus({
@@ -45,10 +37,6 @@ export function AgentMessageStatus({
   date,
   fallbackLogRefs,
   activityContext,
-  message,
-  account_id,
-  is_viewers_message,
-  actions,
 }: AgentMessageStatusProps) {
   const [showDrawer, setShowDrawer] = useState(false);
   const [activitySize, setActivitySize0] = useState<number>(
@@ -62,11 +50,6 @@ export function AgentMessageStatus({
   };
 
   if (!show) return null;
-
-  const canResolveApproval =
-    field<string>(message, "acp_account_id") === account_id ||
-    isLanguageModelService(field<string>(message, "sender_id") ?? "") ||
-    is_viewers_message;
 
   return (
     <>
@@ -114,21 +97,8 @@ export function AgentMessageStatus({
           logProjectId={project_id}
           logEnabled={showDrawer}
           activityContext={activityContext}
-          durationLabel={
-            generating === true ? durationLabel : durationLabel
-          }
-          canResolveApproval={canResolveApproval}
+          durationLabel={generating === true ? durationLabel : durationLabel}
           projectId={project_id}
-          onResolveApproval={
-            actions && typeof actions.resolveAcpApproval === "function"
-              ? ({ approvalId, optionId }) =>
-                  actions.resolveAcpApproval({
-                    date: dateValue(message) ?? new Date(date),
-                    approvalId,
-                    optionId,
-                  })
-              : undefined
-          }
         />
       </Drawer>
     </>

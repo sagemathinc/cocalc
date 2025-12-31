@@ -9,7 +9,6 @@ export type {
   CustomCommandHandler,
   AcpEvaluateRequest,
   AcpAgent,
-  ApprovalDecision,
 } from "./types";
 export type {
   FileAdapter,

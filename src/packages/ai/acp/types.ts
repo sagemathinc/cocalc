@@ -3,7 +3,6 @@ import type {
   AcpStreamEvent as SharedAcpStreamEvent,
   AcpStreamPayload as SharedAcpStreamPayload,
   AcpChatContext,
-  AcpApprovalStatus,
 } from "@cocalc/conat/ai/acp/types";
 import type { CodexSessionConfig } from "@cocalc/util/ai/codex";
 
@@ -48,11 +47,3 @@ export interface AcpAgent {
   evaluate(request: AcpEvaluateRequest): Promise<void>;
   dispose?(): Promise<void>;
 }
-
-export type ApprovalDecision = {
-  approvalId: string;
-  optionId?: string;
-  decidedBy?: string;
-  note?: string;
-  status?: Exclude<AcpApprovalStatus, "pending">;
-};

@@ -12,8 +12,6 @@ import { Icon } from "@cocalc/frontend/components";
 import type {
   AcpStreamEvent,
   AcpStreamMessage,
-  AcpApprovalStatus,
-  AcpApprovalOptionKind,
 } from "@cocalc/conat/ai/acp/types";
 import {
   React,
@@ -91,27 +89,7 @@ type ActivityEntry =
       line?: number;
       limit?: number;
       existed?: boolean;
-    }
-  | {
-      kind: "approval";
-      id: string;
-      seq: number;
-      approvalId: string;
-      title?: string | null;
-      description?: string | null;
-      status: AcpApprovalStatus;
-      options: ApprovalOption[];
-      selectedOptionId?: string | null;
-      decidedAt?: string;
-      decidedBy?: string;
-      timeoutAt?: string;
     };
-
-type ApprovalOption = {
-  optionId: string;
-  name: string;
-  kind: AcpApprovalOptionKind;
-};
 
 export interface CodexActivityProps {
   events?: AcpStreamMessage[];
@@ -119,11 +97,6 @@ export interface CodexActivityProps {
   fontSize?: number;
   durationLabel?: string;
   persistKey?: string;
-  canResolveApproval?: boolean;
-  onResolveApproval?: (args: {
-    approvalId: string;
-    optionId?: string;
-  }) => Promise<void> | void;
   projectId?: string;
   basePath?: string;
   onDeleteEvents?: () => void;
@@ -140,8 +113,6 @@ export const CodexActivity: React.FC<CodexActivityProps> = ({
   fontSize,
   durationLabel,
   persistKey,
-  canResolveApproval,
-  onResolveApproval,
   projectId,
   basePath,
   onDeleteEvents,
@@ -149,17 +120,12 @@ export const CodexActivity: React.FC<CodexActivityProps> = ({
   expanded: initExpanded,
 }): React.ReactElement | null => {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
-  const hasPendingApproval = useMemo(
-    () => entries.some((e) => e.kind === "approval" && e.status === "pending"),
-    [entries],
-  );
   const [expanded, setExpanded] = useState<boolean>(() => {
     if (persistKey) {
       const persisted = expandedState.get(persistKey);
       if (persisted != null) return persisted;
     }
-    // Default closed unless generating or an approval is pending.
-    return hasPendingApproval || !!initExpanded;
+    return !!initExpanded;
   });
   const [hovered, setHovered] = useState(false);
 
@@ -171,12 +137,11 @@ export const CodexActivity: React.FC<CodexActivityProps> = ({
   useEffect(() => {
     if (!persistKey) return;
     const persisted = expandedState.get(persistKey);
-    const next =
-      persisted ?? (generating || hasPendingApproval ? true : expanded);
+    const next = persisted ?? (generating || expanded);
     if (next !== expanded) {
       setExpanded(next);
     }
-  }, [persistKey, generating, hasPendingApproval]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [persistKey, generating]); // eslint-disable-line react-hooks/exhaustive-deps
 
   if (!entries.length) return null;
 
@@ -309,8 +274,6 @@ export const CodexActivity: React.FC<CodexActivityProps> = ({
             key={entry.id}
             entry={entry}
             fontSize={baseFontSize}
-            canResolveApproval={canResolveApproval}
-            onResolveApproval={onResolveApproval}
             projectId={projectId}
             basePath={basePath}
           />
@@ -324,18 +287,11 @@ export const CodexActivity: React.FC<CodexActivityProps> = ({
 function ActivityRow({
   entry,
   fontSize,
-  canResolveApproval,
-  onResolveApproval,
   projectId,
   basePath,
 }: {
   entry: ActivityEntry;
   fontSize: number;
-  canResolveApproval?: boolean;
-  onResolveApproval?: (args: {
-    approvalId: string;
-    optionId?: string;
-  }) => Promise<void> | void;
   projectId?: string;
   basePath?: string;
 }) {
@@ -401,15 +357,6 @@ function ActivityRow({
           fontSize={fontSize}
           projectId={projectId}
           basePath={basePath}
-        />
-      );
-    case "approval":
-      return (
-        <ApprovalRow
-          entry={entry}
-          fontSize={fontSize}
-          canResolveApproval={canResolveApproval}
-          onResolveApproval={onResolveApproval}
         />
       );
     case "status":
@@ -579,29 +526,6 @@ function createEventEntry({
       line: event.line,
       limit: event.limit,
       existed: event.existed,
-    };
-  }
-  if (event?.type === "approval") {
-    return {
-      kind: "approval",
-      id: `approval-${event.approvalId}`,
-      seq,
-      approvalId: event.approvalId,
-      title: event.title,
-      description: event.description,
-      status: event.status,
-      options: (event.options ?? []).map((option) => ({
-        optionId: option.optionId,
-        name: option.name,
-        kind: option.kind,
-      })),
-      selectedOptionId:
-        event.selectedOptionId === undefined
-          ? undefined
-          : (event.selectedOptionId as string | null),
-      decidedAt: event.decidedAt ?? undefined,
-      decidedBy: event.decidedBy ?? undefined,
-      timeoutAt: event.timeoutAt ?? undefined,
     };
   }
   if (event?.type === "thinking") {
@@ -1151,70 +1075,6 @@ function shortenPath(path?: string): string {
   return path;
 }
 
-function approvalStatusColor(status: AcpApprovalStatus): string {
-  switch (status) {
-    case "selected":
-      return "green";
-    case "cancelled":
-      return "default";
-    case "timeout":
-      return "red";
-    case "pending":
-    default:
-      return "gold";
-  }
-}
-
-function formatApprovalStatus(
-  status: AcpApprovalStatus,
-  option?: ApprovalOption,
-): string {
-  if (status === "selected" && option) {
-    return option.name;
-  }
-  switch (status) {
-    case "pending":
-      return "Pending";
-    case "cancelled":
-      return "Cancelled";
-    case "timeout":
-      return "Timed out";
-    default:
-      return "Approved";
-  }
-}
-
-function formatApprovalDecision(
-  entry: Extract<ActivityEntry, { kind: "approval" }>,
-  option?: ApprovalOption,
-): string {
-  const decidedBy = entry.decidedBy ? ` by ${entry.decidedBy}` : "";
-  const decidedAt = entry.decidedAt
-    ? ` at ${formatTimestamp(entry.decidedAt)}`
-    : "";
-  switch (entry.status) {
-    case "selected":
-      return option
-        ? `${option.name}${decidedBy}${decidedAt}`
-        : `Approved${decidedBy}${decidedAt}`;
-    case "cancelled":
-      return `Cancelled${decidedBy}${decidedAt}`;
-    case "timeout":
-      return `Timed out${decidedAt}`;
-    default:
-      return "";
-  }
-}
-
-function formatTimestamp(value?: string | null): string {
-  if (!value) return "";
-  try {
-    return new Date(value).toLocaleString();
-  } catch {
-    return value;
-  }
-}
-
 function FileRow({
   entry,
   fontSize,
@@ -1274,107 +1134,6 @@ function FileRow({
           </Tag>
         ) : null}
       </Space>
-    </div>
-  );
-}
-
-function ApprovalRow({
-  entry,
-  fontSize,
-  canResolveApproval,
-  onResolveApproval,
-}: {
-  entry: Extract<ActivityEntry, { kind: "approval" }>;
-  fontSize: number;
-  canResolveApproval?: boolean;
-  onResolveApproval?: (args: {
-    approvalId: string;
-    optionId?: string;
-  }) => Promise<void> | void;
-}) {
-  const pending = entry.status === "pending";
-  const selectedOption = entry.options.find(
-    (opt) => opt.optionId === entry.selectedOptionId,
-  );
-  const statusLabel = formatApprovalStatus(entry.status, selectedOption);
-  const timeoutInfo =
-    pending && entry.timeoutAt
-      ? `Expires ${formatTimestamp(entry.timeoutAt)}`
-      : undefined;
-  const [submitting, setSubmitting] = useState(false);
-  const disableActions =
-    !canResolveApproval || !onResolveApproval || !pending || submitting;
-
-  const resolve = async (optionId?: string) => {
-    if (!onResolveApproval) return;
-    try {
-      setSubmitting(true);
-      await onResolveApproval({
-        approvalId: entry.approvalId,
-        optionId,
-      });
-    } catch (err) {
-      console.warn("failed to resolve approval", err);
-      message.error("Failed to resolve approval");
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  return (
-    <div>
-      <Space size={6} align="center" wrap style={{ marginBottom: 6 }}>
-        <Tag color="gold">Approval</Tag>
-        {entry.title ? (
-          <Text strong style={{ fontSize }}>
-            {entry.title}
-          </Text>
-        ) : null}
-        <Tag color={approvalStatusColor(entry.status)}>{statusLabel}</Tag>
-        {timeoutInfo ? (
-          <Text
-            type="secondary"
-            style={{ fontSize: Math.max(11, fontSize - 2) }}
-          >
-            {timeoutInfo}
-          </Text>
-        ) : null}
-      </Space>
-      {entry.description ? (
-        <StaticMarkdown
-          value={entry.description}
-          style={{ fontSize, marginBottom: 6 }}
-        />
-      ) : null}
-      {pending ? (
-        <Space size={8} style={{ marginLeft: "10px" }} wrap>
-          {entry.options.map((option) => (
-            <Button
-              key={option.optionId}
-              size="small"
-              type={option.kind?.startsWith("allow") ? "primary" : "default"}
-              disabled={disableActions}
-              loading={submitting}
-              onClick={() => resolve(option.optionId)}
-            >
-              {option.name}
-            </Button>
-          ))}
-          <Button
-            size="small"
-            danger
-            disabled={disableActions}
-            loading={submitting}
-            onClick={() => resolve()}
-          >
-            Cancel
-          </Button>
-        </Space>
-      ) : (
-        <Text type="secondary" style={{ fontSize: Math.max(11, fontSize - 2) }}>
-          {formatApprovalDecision(entry, selectedOption)}
-        </Text>
-      )}
     </div>
   );
 }
@@ -1549,16 +1308,6 @@ export function codexEventsToMarkdown(events: AcpStreamMessage[]): string {
           parts.push("(output truncated)");
         }
         lines.push(parts.join(" "));
-        break;
-      }
-      case "approval": {
-        const selectedOption = entry.options?.find(
-          (o) => o.optionId === entry.selectedOptionId,
-        );
-        const status = formatApprovalStatus(entry.status, selectedOption);
-        const detail = formatApprovalDecision(entry, selectedOption);
-        const summary = detail ? `${status} — ${detail}` : status;
-        lines.push(`- Approval: ${summary}`);
         break;
       }
       default:

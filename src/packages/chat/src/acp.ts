@@ -46,20 +46,6 @@ export function appendStreamMessage(
     };
     return [...events.slice(0, -1), merged];
   }
-  if (message.type === "event" && isApprovalEvent(message.event)) {
-    const approvalEvent = message.event;
-    const idx = events.findIndex(
-      (evt) =>
-        evt.type === "event" &&
-        isApprovalEvent(evt.event) &&
-        evt.event.approvalId === approvalEvent.approvalId,
-    );
-    if (idx >= 0) {
-      const updated = [...events];
-      updated[idx] = message;
-      return updated;
-    }
-  }
   return [...events, message];
 }
 
@@ -74,10 +60,4 @@ export function eventHasText(
   event?: AcpStreamEvent,
 ): event is Extract<AcpStreamEvent, { text: string }> {
   return event?.type === "thinking" || event?.type === "message";
-}
-
-function isApprovalEvent(
-  event?: AcpStreamEvent,
-): event is Extract<AcpStreamEvent, { type: "approval" }> {
-  return event?.type === "approval";
 }

@@ -1134,28 +1134,6 @@ export class ChatActions extends Actions<ChatState> {
     }
   }
 
-  resolveAcpApproval = async ({
-    date,
-    approvalId,
-    optionId,
-  }: {
-    date: Date;
-    approvalId: string;
-    optionId?: string;
-  }) => {
-    void date;
-    if (!approvalId) return;
-    try {
-      await webapp_client.conat_client.respondAcpApproval({
-        approvalId,
-        optionId,
-      });
-    } catch (err) {
-      console.warn("failed to resolve ACP approval", err);
-      throw err;
-    }
-  };
-
   summarizeThread = async ({
     model,
     reply_to,

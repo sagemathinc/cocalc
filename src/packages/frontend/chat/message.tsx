@@ -6,12 +6,7 @@
 // cSpell:ignore blankcolumn
 
 import { Badge, Button, Col, Divider, Row, Tag, Tooltip } from "antd";
-import {
-  CSSProperties,
-  ReactNode,
-  useEffect,
-  useLayoutEffect,
-} from "react";
+import { CSSProperties, ReactNode, useEffect, useLayoutEffect } from "react";
 import { useIntl } from "react-intl";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import {
@@ -135,7 +130,6 @@ interface Props {
   is_thread?: boolean; // if true, there is a thread starting in a reply_to message
   is_folded?: boolean; // if true, only show the reply_to root message
   is_thread_body: boolean;
-
 
   selected?: boolean;
 
@@ -894,10 +888,6 @@ export default function Message({
           date={date}
           fallbackLogRefs={fallbackLogRefs}
           activityContext={activityContext}
-          message={message}
-          account_id={account_id}
-          is_viewers_message={is_viewers_message}
-          actions={actions}
         />
         <StaticMarkdown
           style={MARKDOWN_STYLE}
@@ -986,9 +976,7 @@ export default function Message({
     const rootKey = toMsString(rootDate);
     const latestDate = forkedLatest ? new Date(forkedLatest) : undefined;
     const latestKey =
-      latestDate && !Number.isNaN(latestDate.valueOf())
-        ? latestDate
-        : rootDate;
+      latestDate && !Number.isNaN(latestDate.valueOf()) ? latestDate : rootDate;
     const latestFragment = toMsString(latestKey);
     return (
       <div style={{ marginBottom: 6 }}>

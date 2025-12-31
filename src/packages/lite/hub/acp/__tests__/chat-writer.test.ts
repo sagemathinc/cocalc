@@ -304,39 +304,6 @@ describe("ChatStreamWriter", () => {
     (writer as any).dispose?.(true);
   });
 
-  it("auto-approves pending approval events", async () => {
-    const autoApprove = jest.fn();
-    const { syncdb } = makeFakeSyncDB();
-    const writer: any = new ChatStreamWriter({
-      metadata: baseMetadata,
-      client: makeFakeClient(),
-      approverAccountId: "u",
-      autoApprove,
-      syncdbOverride: syncdb as any,
-      logStoreFactory: () =>
-        ({
-          set: async () => {},
-        }) as any,
-    });
-
-    await (writer as any).handle({
-      type: "event",
-      event: {
-        type: "approval",
-        status: "pending",
-        approvalId: "a1",
-        options: [{ optionId: "opt1", name: "Allow", kind: "allow" as any }],
-        requestedAt: new Date().toISOString(),
-        requestedBy: "u",
-      },
-      seq: 0,
-    } as unknown as AcpStreamMessage);
-    await flush(writer);
-
-    expect(autoApprove).toHaveBeenCalled();
-    (writer as any).dispose?.(true);
-  });
-
   it("uses interrupted text when summary arrives", async () => {
     const { syncdb, sets } = makeFakeSyncDB();
     const writer: any = new ChatStreamWriter({

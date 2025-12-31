@@ -14,8 +14,6 @@ interface Props {
   persistKey: string;
   basePath?: string;
   durationLabel?: string;
-  canResolveApproval?: boolean;
-  onResolveApproval?: (args: { approvalId: string; optionId?: string }) => any;
   projectId?: string;
   logStore?: string;
   logKey?: string;
@@ -33,8 +31,6 @@ export function CodexLogPanel({
   persistKey,
   basePath,
   durationLabel,
-  canResolveApproval,
-  onResolveApproval,
   projectId,
   logStore,
   logKey,
@@ -96,8 +92,6 @@ export function CodexLogPanel({
       persistKey={persistKey}
       basePath={basePath}
       durationLabel={durationLabel}
-      canResolveApproval={canResolveApproval}
-      onResolveApproval={onResolveApproval}
       projectId={projectId}
       onDeleteEvents={handleDeleteEvents}
       onDeleteAllEvents={handleDeleteAllEvents}
