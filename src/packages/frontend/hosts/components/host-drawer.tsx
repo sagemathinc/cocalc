@@ -3,16 +3,8 @@ import { React } from "@cocalc/frontend/app-framework";
 import Bootlog from "@cocalc/frontend/project/bootlog";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
+import type { HostLogEntry } from "../hooks/use-host-log";
 import { STATUS_COLOR } from "../constants";
-
-type HostLogEntry = {
-  id: string;
-  ts?: string | null;
-  action: string;
-  status: string;
-  provider?: string | null;
-  error?: string | null;
-};
 
 type HostDrawerViewModel = {
   open: boolean;

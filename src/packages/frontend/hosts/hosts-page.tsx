@@ -9,9 +9,11 @@ import { useHostAi } from "./hooks/use-host-ai";
 import { useHostCatalog } from "./hooks/use-host-catalog";
 import { useHostCreate } from "./hooks/use-host-create";
 import { useHostCreateViewModel } from "./hooks/use-host-create-view-model";
+import { useHostDrawerViewModel } from "./hooks/use-host-drawer-view-model";
 import { useHostFeatureFlags } from "./hooks/use-host-feature-flags";
 import { useHostForm } from "./hooks/use-host-form";
 import { useHostFormValues } from "./hooks/use-host-form-values";
+import { useHostListViewModel } from "./hooks/use-host-list-view-model";
 import { useHosts } from "./hooks/use-hosts";
 import { useHostLog } from "./hooks/use-host-log";
 import { useHostProviders } from "./hooks/use-host-providers";
@@ -175,20 +177,20 @@ export const HostsPage: React.FC = () => {
       applyRecommendation,
     },
   });
-  const hostListVm = {
+  const hostListVm = useHostListViewModel({
     hosts,
     onStart: (id: string) => setStatus(id, "start"),
     onStop: (id: string) => setStatus(id, "stop"),
     onDelete: removeHost,
     onDetails: openDetails,
-  };
-  const hostDrawerVm = {
+  });
+  const hostDrawerVm = useHostDrawerViewModel({
     open: drawerOpen,
     host: selected,
     onClose: closeDetails,
     hostLog,
     loadingLog,
-  };
+  });
 
   return (
     <div className="smc-vfill" style={WRAP_STYLE}>

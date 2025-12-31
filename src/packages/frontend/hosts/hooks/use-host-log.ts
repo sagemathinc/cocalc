@@ -1,6 +1,6 @@
 import { useEffect, useState } from "@cocalc/frontend/app-framework";
 
-type HostLogEntry = {
+export type HostLogEntry = {
   id: string;
   ts?: string | null;
   action: string;

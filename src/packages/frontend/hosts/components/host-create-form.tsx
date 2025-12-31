@@ -1,9 +1,9 @@
-import { Alert, Collapse, Form, Input, Select } from "antd";
+import { Collapse, Form, Input } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { FormInstance } from "antd/es/form";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
-import { SIZES } from "../constants";
 import { HostCreateAdvancedFields } from "./host-create-advanced-fields";
+import { HostCreateProviderFields } from "./host-create-provider-fields";
 
 type HostCreateFormProps = {
   form: FormInstance;
@@ -18,21 +18,6 @@ export const HostCreateForm: React.FC<HostCreateFormProps> = ({
   provider,
   onCreate,
 }) => {
-  const {
-    providerOptions,
-    selectedProvider,
-    regionOptions,
-    hyperstackFlavorOptions,
-    lambdaInstanceTypeOptions,
-    nebiusInstanceTypeOptions,
-    catalogError,
-  } = provider;
-  const regionField = (
-    <Form.Item name="region" label="Region" initialValue={regionOptions[0]?.value}>
-      <Select options={regionOptions} disabled={selectedProvider === "none"} />
-    </Form.Item>
-  );
-
   return (
     <Form
       layout="vertical"
@@ -43,63 +28,7 @@ export const HostCreateForm: React.FC<HostCreateFormProps> = ({
       <Form.Item name="name" label="Name" initialValue="My host">
         <Input placeholder="My host" />
       </Form.Item>
-      <Form.Item
-        name="provider"
-        label="Provider"
-        initialValue={providerOptions[0]?.value ?? "gcp"}
-      >
-        <Select options={providerOptions} />
-      </Form.Item>
-      {selectedProvider === "lambda" || selectedProvider === "nebius"
-        ? null
-        : regionField}
-      {selectedProvider === "none" && (
-        <Form.Item name="size" label="Size" initialValue={SIZES[0].value}>
-          <Select options={SIZES} />
-        </Form.Item>
-      )}
-      {selectedProvider === "hyperstack" && (
-        <Form.Item
-          name="size"
-          label="Size"
-          initialValue={hyperstackFlavorOptions[0]?.value}
-        >
-          <Select options={hyperstackFlavorOptions} />
-        </Form.Item>
-      )}
-      {selectedProvider === "lambda" && (
-        <>
-          <Form.Item
-            name="machine_type"
-            label="Instance type"
-            initialValue={lambdaInstanceTypeOptions[0]?.value}
-          >
-            <Select options={lambdaInstanceTypeOptions} />
-          </Form.Item>
-          {regionField}
-        </>
-      )}
-      {selectedProvider === "nebius" && (
-        <>
-          <Form.Item
-            name="machine_type"
-            label="Instance type"
-            initialValue={nebiusInstanceTypeOptions[0]?.value}
-          >
-            <Select options={nebiusInstanceTypeOptions} />
-          </Form.Item>
-          {regionField}
-        </>
-      )}
-      {catalogError && selectedProvider === "gcp" && (
-        <Alert
-          type="warning"
-          showIcon
-          style={{ marginBottom: 12 }}
-          message="Cloud catalog unavailable"
-          description={catalogError}
-        />
-      )}
+      <HostCreateProviderFields provider={provider} />
       <Collapse ghost style={{ marginBottom: 8 }}>
         <Collapse.Panel header="Advanced options" key="adv">
           <HostCreateAdvancedFields provider={provider} />

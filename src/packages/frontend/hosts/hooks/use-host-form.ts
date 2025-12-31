@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from "@cocalc/frontend/app-framework";
+import { useEffect, useMemo, useRef } from "@cocalc/frontend/app-framework";
 import type { FormInstance } from "antd";
 import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import type { HostProvider, HostRecommendation } from "../types";
@@ -18,6 +18,8 @@ import {
   getNebiusRegionOptions,
 } from "../providers/registry";
 
+type SelectOption = { value: string };
+
 type UseHostFormArgs = {
   form: FormInstance;
   catalog?: HostCatalog;
@@ -32,6 +34,11 @@ type UseHostFormArgs = {
   lambdaEnabled: boolean;
 };
 
+const inOptions = (value: string | undefined, options?: SelectOption[]) =>
+  !!value && !!options?.some((opt) => opt.value === value);
+
+const firstValue = (options?: SelectOption[]) => options?.[0]?.value;
+
 export const useHostForm = ({
   form,
   catalog,
@@ -45,6 +52,7 @@ export const useHostForm = ({
   selectedStorageMode,
   lambdaEnabled,
 }: UseHostFormArgs) => {
+  const prevProviderRef = useRef<HostProvider | undefined>(undefined);
   const providerCaps = useMemo(() => {
     if (!selectedProvider || !catalog?.provider_capabilities) return undefined;
     return catalog.provider_capabilities[selectedProvider];
@@ -67,67 +75,98 @@ export const useHostForm = ({
   const showDiskFields =
     supportsPersistentStorage && selectedStorageMode !== "ephemeral";
 
-  const hyperstackRegionOptions = getHyperstackRegionOptions(catalog);
+  const hyperstackRegionOptions = useMemo(
+    () => getHyperstackRegionOptions(catalog),
+    [catalog],
+  );
 
-  const lambdaInstanceTypeOptions =
-    selectedProvider === "lambda"
-      ? getLambdaInstanceTypeOptions(catalog)
-      : [];
+  const lambdaInstanceTypeOptions = useMemo(
+    () => (selectedProvider === "lambda" ? getLambdaInstanceTypeOptions(catalog) : []),
+    [catalog, selectedProvider],
+  );
 
-  const nebiusInstanceTypeOptions =
-    selectedProvider === "nebius"
-      ? getNebiusInstanceTypeOptions(catalog)
-      : [];
+  const nebiusInstanceTypeOptions = useMemo(
+    () => (selectedProvider === "nebius" ? getNebiusInstanceTypeOptions(catalog) : []),
+    [catalog, selectedProvider],
+  );
 
-  const selectedLambdaInstanceType =
-    selectedProvider === "lambda"
-      ? lambdaInstanceTypeOptions.find(
-          (opt) => opt.value === selectedMachineType,
-        )?.entry
-      : undefined;
+  const selectedLambdaInstanceType = useMemo(() => {
+    if (selectedProvider !== "lambda") return undefined;
+    return lambdaInstanceTypeOptions.find(
+      (opt) => opt.value === selectedMachineType,
+    )?.entry;
+  }, [lambdaInstanceTypeOptions, selectedMachineType, selectedProvider]);
 
-  const lambdaRegionsFromCatalog = getLambdaRegionsFromCatalog(catalog);
+  const lambdaRegionsFromCatalog = useMemo(
+    () => getLambdaRegionsFromCatalog(catalog),
+    [catalog],
+  );
 
-  const lambdaRegionOptions =
-    selectedProvider === "lambda"
-      ? getLambdaRegionOptions(catalog, selectedLambdaInstanceType)
-      : [];
+  const lambdaRegionOptions = useMemo(
+    () =>
+      selectedProvider === "lambda"
+        ? getLambdaRegionOptions(catalog, selectedLambdaInstanceType)
+        : [],
+    [catalog, selectedLambdaInstanceType, selectedProvider],
+  );
 
-  const nebiusRegionOptions = getNebiusRegionOptions(catalog);
+  const nebiusRegionOptions = useMemo(
+    () => getNebiusRegionOptions(catalog),
+    [catalog],
+  );
 
-  const regionOptions =
-    selectedProvider === "hyperstack"
-      ? hyperstackRegionOptions
-      : selectedProvider === "lambda"
-        ? lambdaRegionOptions
-        : selectedProvider === "nebius"
-          ? nebiusRegionOptions
-          : getGcpRegionOptions(catalog);
+  const regionOptions = useMemo(() => {
+    if (selectedProvider === "hyperstack") return hyperstackRegionOptions;
+    if (selectedProvider === "lambda") return lambdaRegionOptions;
+    if (selectedProvider === "nebius") return nebiusRegionOptions;
+    return getGcpRegionOptions(catalog);
+  }, [
+    catalog,
+    hyperstackRegionOptions,
+    lambdaRegionOptions,
+    nebiusRegionOptions,
+    selectedProvider,
+  ]);
 
-  const zoneOptions =
-    selectedProvider === "gcp"
-      ? getGcpZoneOptions(catalog, selectedRegion)
-      : [];
+  const zoneOptions = useMemo(
+    () =>
+      selectedProvider === "gcp"
+        ? getGcpZoneOptions(catalog, selectedRegion)
+        : [],
+    [catalog, selectedProvider, selectedRegion],
+  );
 
-  const machineTypeOptions =
-    selectedProvider === "gcp"
-      ? getGcpMachineTypeOptions(catalog, selectedZone)
-      : [];
+  const machineTypeOptions = useMemo(
+    () =>
+      selectedProvider === "gcp"
+        ? getGcpMachineTypeOptions(catalog, selectedZone)
+        : [],
+    [catalog, selectedProvider, selectedZone],
+  );
 
-  const hyperstackFlavorOptions =
-    selectedProvider === "hyperstack"
-      ? getHyperstackFlavorOptions(catalog, selectedRegion)
-      : [];
+  const hyperstackFlavorOptions = useMemo(
+    () =>
+      selectedProvider === "hyperstack"
+        ? getHyperstackFlavorOptions(catalog, selectedRegion)
+        : [],
+    [catalog, selectedProvider, selectedRegion],
+  );
 
-  const gpuTypeOptions =
-    selectedProvider === "gcp"
-      ? getGcpGpuTypeOptions(catalog, selectedZone)
-      : [];
+  const gpuTypeOptions = useMemo(
+    () =>
+      selectedProvider === "gcp"
+        ? getGcpGpuTypeOptions(catalog, selectedZone)
+        : [],
+    [catalog, selectedProvider, selectedZone],
+  );
 
-  const imageOptions =
-    selectedProvider === "gcp"
-      ? getGcpImageOptions(catalog, selectedMachineType, selectedGpuType)
-      : [];
+  const imageOptions = useMemo(
+    () =>
+      selectedProvider === "gcp"
+        ? getGcpImageOptions(catalog, selectedMachineType, selectedGpuType)
+        : [],
+    [catalog, selectedProvider, selectedMachineType, selectedGpuType],
+  );
 
   const catalogSummary = useMemo(
     () =>
@@ -149,80 +188,90 @@ export const useHostForm = ({
 
   useEffect(() => {
     if (!selectedProvider || selectedProvider === "none") return;
-    if (!regionOptions.length) return;
-    const values = new Set(regionOptions.map((r) => r.value));
-    if (selectedRegion && values.has(selectedRegion)) return;
-    form.setFieldsValue({ region: regionOptions[0].value });
-  }, [selectedProvider, regionOptions, selectedRegion, form]);
-
-  useEffect(() => {
-    if (selectedProvider !== "gcp") return;
-    if (!imageOptions.length) return;
-    const values = new Set(imageOptions.map((img) => img.value));
-    if (selectedSourceImage && values.has(selectedSourceImage)) return;
-    form.setFieldsValue({ source_image: imageOptions[0].value });
-  }, [selectedProvider, selectedSourceImage, imageOptions, form]);
-
-  useEffect(() => {
-    if (selectedProvider !== "gcp") return;
-    if (!zoneOptions.length) return;
-    if (selectedZone && zoneOptions.some((z) => z.value === selectedZone)) {
-      return;
+    const updates: Record<string, any> = {};
+    const providerChanged = selectedProvider !== prevProviderRef.current;
+    if (providerChanged) {
+      prevProviderRef.current = selectedProvider;
     }
-    form.setFieldsValue({ zone: zoneOptions[0].value });
-  }, [selectedProvider, selectedRegion, zoneOptions, selectedZone, form]);
 
-  useEffect(() => {
-    if (selectedProvider !== "lambda") return;
-    if (!lambdaInstanceTypeOptions.length) return;
-    const values = new Set(lambdaInstanceTypeOptions.map((opt) => opt.value));
-    if (selectedMachineType && values.has(selectedMachineType)) {
-      const selectedOption = lambdaInstanceTypeOptions.find(
-        (opt) => opt.value === selectedMachineType,
+    if (providerChanged) {
+      if (selectedProvider !== "gcp") {
+        updates.zone = undefined;
+        updates.gpu_type = undefined;
+        updates.source_image = undefined;
+      }
+      if (selectedProvider !== "hyperstack") {
+        updates.size = undefined;
+      }
+      if (selectedProvider !== "lambda" && selectedProvider !== "nebius") {
+        updates.machine_type = updates.machine_type ?? undefined;
+      }
+    }
+
+    const ensureValue = (
+      field: string,
+      value: string | undefined,
+      options?: SelectOption[],
+      fallback?: string,
+    ) => {
+      if (!options?.length) return;
+      if (inOptions(value, options)) return;
+      updates[field] = fallback ?? firstValue(options);
+    };
+
+    if (selectedProvider === "gcp") {
+      ensureValue("region", selectedRegion, regionOptions);
+      ensureValue("zone", selectedZone, zoneOptions);
+      ensureValue("machine_type", selectedMachineType, machineTypeOptions);
+      ensureValue("source_image", selectedSourceImage, imageOptions);
+      if (gpuTypeOptions.length) {
+        if (!inOptions(selectedGpuType, gpuTypeOptions)) {
+          updates.gpu_type = "none";
+        }
+      }
+    } else if (selectedProvider === "hyperstack") {
+      ensureValue("region", selectedRegion, hyperstackRegionOptions);
+      ensureValue("size", selectedSize, hyperstackFlavorOptions);
+    } else if (selectedProvider === "lambda") {
+      const preferredLambda =
+        lambdaInstanceTypeOptions.find((opt) => !opt.disabled)?.value ??
+        firstValue(lambdaInstanceTypeOptions);
+      ensureValue(
+        "machine_type",
+        selectedMachineType,
+        lambdaInstanceTypeOptions,
+        preferredLambda,
       );
-      if (!selectedOption?.disabled) return;
+      ensureValue("region", selectedRegion, lambdaRegionOptions);
+    } else if (selectedProvider === "nebius") {
+      ensureValue("machine_type", selectedMachineType, nebiusInstanceTypeOptions);
+      ensureValue("region", selectedRegion, nebiusRegionOptions);
     }
-    const preferred =
-      lambdaInstanceTypeOptions.find((opt) => !opt.disabled) ??
-      lambdaInstanceTypeOptions[0];
-    if (preferred) {
-      form.setFieldsValue({ machine_type: preferred.value });
-    }
-  }, [selectedProvider, lambdaInstanceTypeOptions, selectedMachineType, form]);
 
-  useEffect(() => {
-    if (selectedProvider !== "nebius") return;
-    if (!nebiusInstanceTypeOptions.length) return;
-    const values = new Set(nebiusInstanceTypeOptions.map((opt) => opt.value));
-    if (selectedMachineType && values.has(selectedMachineType)) return;
-    form.setFieldsValue({ machine_type: nebiusInstanceTypeOptions[0].value });
-  }, [selectedProvider, nebiusInstanceTypeOptions, selectedMachineType, form]);
-
-  useEffect(() => {
-    if (selectedProvider !== "gcp") return;
-    if (!machineTypeOptions.length) return;
-    if (
-      selectedMachineType &&
-      machineTypeOptions.some((mt) => mt.value === selectedMachineType)
-    ) {
-      return;
+    if (Object.keys(updates).length > 0) {
+      form.setFieldsValue(updates);
     }
-    form.setFieldsValue({ machine_type: machineTypeOptions[0].value });
   }, [
-    selectedProvider,
-    selectedZone,
-    machineTypeOptions,
-    selectedMachineType,
     form,
+    selectedProvider,
+    selectedRegion,
+    selectedZone,
+    selectedMachineType,
+    selectedGpuType,
+    selectedSourceImage,
+    selectedSize,
+    regionOptions,
+    zoneOptions,
+    machineTypeOptions,
+    gpuTypeOptions,
+    imageOptions,
+    hyperstackRegionOptions,
+    hyperstackFlavorOptions,
+    lambdaInstanceTypeOptions,
+    lambdaRegionOptions,
+    nebiusInstanceTypeOptions,
+    nebiusRegionOptions,
   ]);
-
-  useEffect(() => {
-    if (selectedProvider !== "hyperstack") return;
-    if (!hyperstackFlavorOptions.length) return;
-    const values = new Set(hyperstackFlavorOptions.map((opt) => opt.value));
-    if (selectedSize && values.has(selectedSize)) return;
-    form.setFieldsValue({ size: hyperstackFlavorOptions[0].value });
-  }, [selectedProvider, hyperstackFlavorOptions, selectedSize, form]);
 
   const applyRecommendation = (rec: HostRecommendation) => {
     if (!rec.provider) return;
