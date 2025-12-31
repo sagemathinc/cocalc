@@ -258,6 +258,10 @@ export const HostsPage: React.FC = () => {
     "customize",
     "compute_servers_lambda_enabled",
   );
+  const nebiusEnabled = useTypedRedux(
+    "customize",
+    "project_hosts_nebius_enabled",
+  );
   const showLocal =
     typeof window !== "undefined" && window.location.hostname === "localhost";
 
@@ -266,10 +270,11 @@ export const HostsPage: React.FC = () => {
       if (opt.value === "gcp") return !!gcpEnabled;
       if (opt.value === "hyperstack") return !!hyperstackEnabled;
       if (opt.value === "lambda") return !!lambdaEnabled;
+      if (opt.value === "nebius") return !!nebiusEnabled;
       if (opt.value === "none") return showLocal;
       return false;
     });
-  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled, showLocal]);
+  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled, nebiusEnabled, showLocal]);
 
   const refreshProviders = useMemo(() => {
     const opts: Array<{ value: HostProvider; label: string }> = [];
@@ -277,8 +282,9 @@ export const HostsPage: React.FC = () => {
     if (hyperstackEnabled)
       opts.push({ value: "hyperstack", label: "Hyperstack" });
     if (lambdaEnabled) opts.push({ value: "lambda", label: "Lambda Cloud" });
+    if (nebiusEnabled) opts.push({ value: "nebius", label: "Nebius" });
     return opts;
-  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled]);
+  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled, nebiusEnabled]);
 
   useEffect(() => {
     const current = form.getFieldValue("provider") as HostProvider | undefined;
@@ -288,10 +294,19 @@ export const HostsPage: React.FC = () => {
       form.setFieldsValue({ provider: "none" });
     } else if (current === "lambda" && !lambdaEnabled) {
       form.setFieldsValue({ provider: "none" });
+    } else if (current === "nebius" && !nebiusEnabled) {
+      form.setFieldsValue({ provider: "none" });
     } else if (!current) {
       form.setFieldsValue({ provider: providerOptions[0]?.value ?? "none" });
     }
-  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled, providerOptions, form]);
+  }, [
+    gcpEnabled,
+    hyperstackEnabled,
+    lambdaEnabled,
+    nebiusEnabled,
+    providerOptions,
+    form,
+  ]);
 
   const selectedProvider = Form.useWatch("provider", form);
   const selectedRegion = Form.useWatch("region", form);
@@ -325,18 +340,52 @@ export const HostsPage: React.FC = () => {
   useEffect(() => {
     if (refreshProvider === "gcp" && !gcpEnabled) {
       setRefreshProvider(
-        hyperstackEnabled ? "hyperstack" : lambdaEnabled ? "lambda" : "gcp",
+        hyperstackEnabled
+          ? "hyperstack"
+          : lambdaEnabled
+            ? "lambda"
+            : nebiusEnabled
+              ? "nebius"
+              : "gcp",
       );
     } else if (refreshProvider === "hyperstack" && !hyperstackEnabled) {
       setRefreshProvider(
-        gcpEnabled ? "gcp" : lambdaEnabled ? "lambda" : "hyperstack",
+        gcpEnabled
+          ? "gcp"
+          : lambdaEnabled
+            ? "lambda"
+            : nebiusEnabled
+              ? "nebius"
+              : "hyperstack",
       );
     } else if (refreshProvider === "lambda" && !lambdaEnabled) {
       setRefreshProvider(
-        gcpEnabled ? "gcp" : hyperstackEnabled ? "hyperstack" : "lambda",
+        gcpEnabled
+          ? "gcp"
+          : hyperstackEnabled
+            ? "hyperstack"
+            : nebiusEnabled
+              ? "nebius"
+              : "lambda",
+      );
+    } else if (refreshProvider === "nebius" && !nebiusEnabled) {
+      setRefreshProvider(
+        gcpEnabled
+          ? "gcp"
+          : hyperstackEnabled
+            ? "hyperstack"
+            : lambdaEnabled
+              ? "lambda"
+              : "nebius",
       );
     }
-  }, [refreshProvider, gcpEnabled, hyperstackEnabled, lambdaEnabled]);
+  }, [
+    refreshProvider,
+    gcpEnabled,
+    hyperstackEnabled,
+    lambdaEnabled,
+    nebiusEnabled,
+  ]);
 
   useEffect(() => {
     if (!supportsPersistentStorage) {
@@ -402,13 +451,17 @@ export const HostsPage: React.FC = () => {
           ? "hyperstack"
           : selectedProvider === "lambda"
             ? "lambda"
-            : gcpEnabled
-              ? "gcp"
-              : hyperstackEnabled
-                ? "hyperstack"
-                : lambdaEnabled
-                  ? "lambda"
-                  : undefined;
+            : selectedProvider === "nebius"
+              ? "nebius"
+              : gcpEnabled
+                ? "gcp"
+                : hyperstackEnabled
+                  ? "hyperstack"
+                  : lambdaEnabled
+                    ? "lambda"
+                    : nebiusEnabled
+                      ? "nebius"
+                      : undefined;
     if (!providerForCatalog) {
       setCatalog(undefined);
       setCatalogError(undefined);
@@ -430,7 +483,14 @@ export const HostsPage: React.FC = () => {
       }
     };
     loadCatalog().catch((err) => console.error("catalog refresh failed", err));
-  }, [selectedProvider, gcpEnabled, hyperstackEnabled, hub.hosts]);
+  }, [
+    selectedProvider,
+    gcpEnabled,
+    hyperstackEnabled,
+    lambdaEnabled,
+    nebiusEnabled,
+    hub.hosts,
+  ]);
 
   useEffect(() => {
     const timer = setInterval(() => {
