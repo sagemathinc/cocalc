@@ -1283,6 +1283,16 @@ export class SyncDoc extends EventEmitter {
     });
     await this.patchflowSession.init();
     dbg("patchflow session initialized");
+
+    // check if file was deleted
+    const v = this.patchflowVersions();
+    if (v?.length) {
+      const mostRecentPatch = this.patchflowSession.getPatch(v[v.length - 1]);
+      if (mostRecentPatch?.meta?.deleted) {
+        this.emitDeleted();
+      }
+    }
+
     this.emit("patchflow-ready");
   });
 
