@@ -1,162 +1,81 @@
+# Refactor Frontend Hosts UI code
 
-# Add Nebius
-Here’s a concrete plan to add Nebius as a first‑class cloud provider, structured around the codebase you already have and the vendor SDK/docs you dropped into `src/scratch/vendor/nebius`. I’m keeping it grounded in the existing registry‑driven pattern we just introduced.
+Below is a concrete, step‑by‑step refactor plan that keeps behavior stable while making [src/packages/frontend/hosts/hosts\-page.tsx](./src/packages/frontend/hosts/hosts-page.tsx) smaller, clearer, and easier to extend.
 
-**Goal**
-Add Nebius with:
+**Phase 0 — Map responsibilities \(no code changes yet\)**
 
-- catalog support \(regions \+ images \+ machine types \+ GPU availability\),
-- provisioning \(create/start/stop/delete, runtime refresh\),
-- SSH key injection \(control‑plane key\),
-- persistent vs ephemeral storage modes.
+- Identify the current logical blocks in the file: data fetching/refresh, catalog normalization, form state/defaults, provider‑specific UI, create/start/stop actions, drawer rendering, LLM assist, and list rendering.
 
----
+**Phase 1 — Extract pure helpers \(safe, no behavior change\)**
 
-## **1\) Core provider plumbing in** **`@cocalc/cloud`**
+- Create [src/packages/frontend/hosts/utils/](./src/packages/frontend/hosts/utils/) for formatting and small pure helpers:
+  - `formatHostLabel`, `formatCpuRam`, `formatGpu`, `formatRegionLabel`, `formatImageLabel`
+  - `sortByAvailability`, `sortByNewest`, `dedupeBy`
+- Move catalog shaping logic into a pure function file:
+  - [src/packages/frontend/hosts/utils/normalize\-catalog.ts](./src/packages/frontend/hosts/utils/normalize-catalog.ts)
+- Keep the original calls in [hosts\-page.tsx](./src/packages/frontend/hosts/hosts-page.tsx) but route through these helpers.
 
-**Files to add**
+**Phase 2 — Introduce a provider UI registry**
 
-- `src/packages/cloud/nebius/client.ts`  
-  Wrap `@nebius/js-sdk` \(instantiate `SDK` with service account credentials\).
-- `src/packages/cloud/nebius/provider.ts`  
-  Implement `CloudProvider` interface for Nebius.
+- Add a provider registry that centralizes UI behavior:
+  - [src/packages/frontend/hosts/providers/registry.ts](./src/packages/frontend/hosts/providers/registry.ts)
+- Each provider entry exposes:
+  - `defaults`, `fields`, `filters`, `labeling`, `supports` \(ephemeral/persistent\), `catalogKinds`
+- Replace scattered `if (provider === ...)` conditionals with registry lookups.
 
-**Provider behavior**
+**Phase 3 — Split into focused components \(still in same folder\)**
 
-- **createHost\(spec, creds\)**
-  - Create boot disk \(`DiskService.create`\) using public image \(by family or image id\).
-  - Create instance \(`InstanceService.create`\) referencing that boot disk.
-  - Inject control‑plane SSH key via `cloud_init_user_data`.
-  - Record runtime: `instance_id`, `public_ip`, `ssh_user`, `region/zone`.
-- **getInstance\(instance\_id\)**
-  - Use `InstanceService.get`.
-- **start/stop**
-  - Use `InstanceService.start/stop` if available \(or `power_state` update / `resume` if that’s what API exposes\).
-- **delete**
-  - `InstanceService.delete` then delete disks if needed.
-- **resizeDisk**
-  - If Nebius supports online resize: call `DiskService.resize`.
+- Create [src/packages/frontend/hosts/components/](./src/packages/frontend/hosts/components/):
+  - `HostList.tsx` \(list rendering \+ selection\)
+  - `HostCard.tsx` \(card summary\)
+  - `HostDrawer.tsx` \(details \+ action log \+ copyable fields\)
+  - `HostCreateForm.tsx` \(provider selection \+ form body\)
+  - `HostAiAssist.tsx` \(LLM panel\)
+  - `HostPicker.tsx` \(move modal\)
+- [hosts\-page.tsx](./src/packages/frontend/hosts/hosts-page.tsx) becomes a composition shell.
 
-**SSH key injection**
+**Phase 4 — Create hooks for data & actions**
 
-- Nebius supports `cloud_init_user_data` on `InstanceSpec`.  
-  Use something like:
-  ```
-  #cloud-config
-  users:
-    - default
-    - name: ubuntu
-      sudo: ALL=(ALL) NOPASSWD:ALL
-      ssh_authorized_keys:
-        - <control-plane public key>
-  ```
+- [src/packages/frontend/hosts/hooks/use\-hosts.ts](./src/packages/frontend/hosts/hooks/use-hosts.ts)
+  - fetch list, polling, refresh
+- [src/packages/frontend/hosts/hooks/use\-host\-actions.ts](./src/packages/frontend/hosts/hooks/use-host-actions.ts)
+  - start/stop/deprovision/create \+ error/last action
+- [src/packages/frontend/hosts/hooks/use\-host\-catalog.ts](./src/packages/frontend/hosts/hooks/use-host-catalog.ts)
+  - pull catalog \+ normalize once
+- [src/packages/frontend/hosts/hooks/use\-host\-form.ts](./src/packages/frontend/hosts/hooks/use-host-form.ts)
+  - provider change resets, defaults, validation, compatibility filtering
 
-  \(Keep `ssh_user = ubuntu` in runtime\).
+**Phase 5 — Reduce state churn & cross‑effects**
 
-**Storage mode**
+- Ensure provider change calls a single `resetFormForProvider()` from the registry defaults.
+- Memoize all computed options to avoid recompute/re\-render loops:
+  - `useMemo` on `regionOptions`, `instanceTypeOptions`, `imageOptions`.
+- Centralize “error \+ busy” UI states in `useHostActions`.
 
-- **persistent**: create a dedicated data disk \(if Nebius supports\), attach it.
-- **ephemeral**: use only local disk, set `ephemeral` in metadata.
+**Phase 6 — Simplify hosts\-page.tsx**
 
----
+- After extraction, [hosts\-page.tsx](./src/packages/frontend/hosts/hosts-page.tsx) should:
+  - assemble hooks
+  - render components
+  - pass props only \(no logic\)
 
-## **2\) Add Nebius provider to registry**
+**Phase 7 — Tests and guardrails**
 
-**File:** `src/packages/cloud/registry.ts`
+- Add lightweight unit tests for:
+  - catalog normalization \(per provider\)
+  - provider registry defaults
+  - form reset behavior
+- If we skip tests, at least add a quick “smoke checklist” \(create → start → stop → deprovision\).
 
-- Add `nebius` to `PROVIDERS` with capabilities:
-  - supports\_gpu: true
-  - supports\_persistent: true
-  - persistent\_disk\_growable: true
-  - supports\_stop: true
+**Incremental refactor order \(lowest risk\)**
 
-**File:** `src/packages/cloud/index.ts`
+1. Phase 1 helpers
+2. Phase 2 registry
+3. Phase 4 hooks \(data/actions\)
+4. Phase 3 components
+5. Phase 6 cleanup
 
-- Export `NebiusProvider` \+ any types needed.
-
----
-
-## **3\) Catalog support \(server \+ cloud\)**
-
-**Cloud side**
-
-- Add `src/packages/cloud/catalog/nebius.ts`
-  - Use SDK to gather:
-    - **regions** \(maybe only 1 region per project\)
-    - **images** \(public ubuntu images\)
-    - **machine\_types / flavors** \(from Nebius platform service\)
-    - **gpu inventory** \(if exposed\)
-
-**Server side**
-
-- Add in `src/packages/server/cloud/catalog.ts`:
-  - `refreshNebiusCatalog`
-  - update `getCatalogFetchOptions` to support nebius
-  - reuse `upsertCatalog`
-
-**Data shape**
-Normalize to our existing `NormalizedCatalog` format so the frontend can consume it with minimal branching.
-
----
-
-## **4\) Settings / credentials**
-
-Add site settings for Nebius in `src/packages/util/db-schema/site-settings-extras.ts`:
-
-- `project_hosts_nebius_enabled`
-- `project_hosts_nebius_prefix`
-- `nebius_service_account_json`
-- `nebius_project_id`
-- `nebius_region`
-- `nebius_subnet_id` \(if required by API\)
-
-These must be read in server `provider-context.ts` and passed to `@cocalc/cloud`.
-
----
-
-## **5\) Frontend wiring**
-
-**Hosts create UI**
-
-- Add provider `"nebius"` to provider dropdown \(gated by `project_hosts_nebius_enabled`\).
-- Use catalog for regions/machine types/images.
-- If region list is only one region for Nebius, render it read‑only.
-
-**Advanced fields**
-
-- Use existing persistent/ephemeral toggle.
-- If persistent: allow disk size; if ephemeral: hide disk size.
-
----
-
-## **6\) Reconcile \+ work queue**
-
-No special changes needed if Nebius implements `listInstances()` and `getInstance()`.
-Just add Nebius to provider registry \+ `listInstances` implementation.
-
----
-
-## **7\) Unit tests**
-
-**Packages:** `src/packages/cloud/test`
-
-- Add `nebius.test.ts` mock the SDK response for:
-  - create → returns instance\_id \+ IP
-  - listInstances → returns list
-  - catalog normalization
-
----
-
-## **Implementation order**
-
-1. Add `@nebius/js-sdk` to `packages/cloud`.
-2. Create provider \+ client wrappers.
-3. Register provider.
-4. Add catalog fetcher \+ normalization.
-5. Add server settings & context mapping.
-6. Wire into frontend provider dropdown.
-7. Add tests.
-
+If you want, I can propose concrete file names and the exact props signature for each component and hook next.
 
 ---
 
