@@ -5,6 +5,36 @@ import {
   InstanceService,
   PlatformService,
 } from "@nebius/js-sdk/api/nebius/compute/v1/index";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("cloud:nebius:client");
+
+let nebiusUnhandledRejectionInstalled = false;
+
+function isNebiusAuthError(reason: unknown): boolean {
+  if (!(reason instanceof Error)) return false;
+  const message = reason.message ?? "";
+  const stack = reason.stack ?? "";
+  return (
+    message.includes("DECODER routines::unsupported") ||
+    stack.includes("@nebius/js-sdk") ||
+    stack.includes("ServiceAccount.getExchangeTokenRequest")
+  );
+}
+
+function installNebiusUnhandledRejectionHandler() {
+  if (nebiusUnhandledRejectionInstalled) return;
+  nebiusUnhandledRejectionInstalled = true;
+  process.on("unhandledRejection", (reason) => {
+    if (isNebiusAuthError(reason)) {
+      // Nebius SDK can reject from a background token renewal; log and keep
+      // running so a bad key doesn't take the whole hub down.
+      logger.warn("nebius auth failure (ignored)", { err: reason });
+      return;
+    }
+    throw reason;
+  });
+}
 export type NebiusCreds = {
   serviceAccountId: string;
   publicKeyId: string;
@@ -20,6 +50,7 @@ export class NebiusClient {
   readonly platforms: PlatformService;
 
   constructor(creds: NebiusCreds) {
+    installNebiusUnhandledRejectionHandler();
     this.sdk = new SDK({
       credentials: {
         serviceAccountId: creds.serviceAccountId,

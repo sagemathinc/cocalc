@@ -913,7 +913,7 @@ export const EXTRAS: SettingsExtras = {
   },
   nebius_private_key_pem: {
     name: "Project Hosts: Nebius - Private Key PEM",
-    desc: "Nebius private key in PEM format.",
+    desc: "Nebius private key in PEM format. This is not just some easy thing you can get from the Nebius website.  You have to install and run software locally on your computer -- see http://docs.nebius.com/cli/quickstart",
     default: "",
     multiline: 5,
     password: true,
