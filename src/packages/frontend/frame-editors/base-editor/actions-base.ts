@@ -112,7 +112,10 @@ import { SettingsObject } from "../settings/types";
 import { Terminal } from "../terminal-editor/connected-terminal";
 import { TerminalManager } from "../terminal-editor/terminal-manager";
 import type { TimeTravelActions } from "../time-travel-editor/actions";
-import { CodeEditor, CodeEditorManager } from "../code-editor/code-editor-manager";
+import {
+  CodeEditor,
+  CodeEditorManager,
+} from "../code-editor/code-editor-manager";
 import { DEFAULT_TERM_ENV } from "../code-editor/const";
 import * as cm_doc_cache from "../code-editor/doc";
 import { SHELLS } from "../code-editor/editor";
@@ -464,10 +467,31 @@ export class BaseEditorActions<
       }
     }
 
-    this._syncstring.once("deleted", () => {
-      // the file was deleted
-      this._syncstring.close();
-      this._get_project_actions().close_file(this.path);
+    const sessionStart = Date.now();
+    this._syncstring.on("deleted", () => {
+      // the file was deleted -- if we get this right when
+      // initializing, we ask user if they want to create file; if
+      // file has been opened file a while, just close it.
+      const close = () => {
+        this._syncstring.close();
+        this._get_project_actions().close_file(this.path);
+      };
+      if (Date.now() - sessionStart >= 10_000) {
+        close();
+      } else {
+        // ask user
+        (async () => {
+          if (
+            !(await this.redux.getActions("page").popconfirm({
+              title: `${this.path} was deleted`,
+              okText: "Open Anyways",
+              cancelText: "Cancel",
+            }))
+          ) {
+            close();
+          }
+        })();
+      }
     });
 
     this._syncstring.once("ready", (err) => {
