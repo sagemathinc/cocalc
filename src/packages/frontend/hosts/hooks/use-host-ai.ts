@@ -6,9 +6,10 @@ import { extractJsonPayload, normalizeRecommendation } from "../utils/recommenda
 
 type UseHostAiOptions = {
   catalogSummary?: Record<string, any>;
+  availableProviders?: HostRecommendation["provider"][];
 };
 
-export const useHostAi = ({ catalogSummary }: UseHostAiOptions) => {
+export const useHostAi = ({ catalogSummary, availableProviders }: UseHostAiOptions) => {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiBudget, setAiBudget] = useState<number | undefined>(undefined);
   const [aiRegionGroup, setAiRegionGroup] = useState<string>("any");
@@ -25,12 +26,25 @@ export const useHostAi = ({ catalogSummary }: UseHostAiOptions) => {
     setAiError(undefined);
     setAiLoading(true);
     try {
+      const providers =
+        availableProviders?.filter((provider) => provider && provider !== "none") ??
+        (Object.keys(catalogSummary ?? {}) as HostRecommendation["provider"][]);
+      if (!providers.length) {
+        throw new Error("No providers available for recommendations");
+      }
+      const providerList = providers.join("|");
+      const hasRegionGroups = Object.values(catalogSummary ?? {}).some(
+        (summary) => summary && typeof summary === "object" && "region_groups" in summary,
+      );
+      const regionGuidance = hasRegionGroups
+        ? "Use the region_group preference to select a region from catalog.<provider>.region_groups when possible. "
+        : "";
       const system =
         "You recommend cloud host configs. Return only valid JSON. " +
         "Always respond with an object that has a single key named options " +
         "whose value is an array of recommendation objects. " +
         "Each option must choose provider/region/machine/flavor/image from the provided catalog. " +
-        "Use the region_group preference to select a region from catalog.gcp.region_groups when possible. " +
+        regionGuidance +
         "If the requested group has no regions, choose the closest available region and explain why. " +
         "Do not claim a region is missing; always pick the best available from the catalog. " +
         "If multiple providers are available, include options for more than one unless the user explicitly requests a single provider.";
@@ -39,12 +53,12 @@ export const useHostAi = ({ catalogSummary }: UseHostAiOptions) => {
         budget_usd_per_hour: aiBudget ?? null,
         region_group: aiRegionGroup,
         catalog: catalogSummary,
-        providers_available: Object.keys(catalogSummary ?? {}),
+        providers_available: providers,
         output_format: {
           options: [
             {
               title: "string",
-              provider: "gcp|hyperstack|lambda|nebius",
+              provider: providerList,
               region: "string",
               zone: "string?",
               machine_type: "string?",

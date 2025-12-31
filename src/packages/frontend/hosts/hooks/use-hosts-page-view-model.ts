@@ -57,6 +57,7 @@ export const useHostsPageViewModel = () => {
     nebiusEnabled: !!nebiusEnabled,
     showLocal,
   });
+  const enabledProviders = providerOptions.map((option) => option.value);
   const {
     selectedRegion,
     selectedZone,
@@ -98,7 +99,7 @@ export const useHostsPageViewModel = () => {
     selectedSourceImage,
     selectedSize,
     selectedStorageMode,
-    lambdaEnabled: !!lambdaEnabled,
+    enabledProviders,
   });
 
   const {
@@ -112,7 +113,7 @@ export const useHostsPageViewModel = () => {
     aiError,
     aiResults,
     runAiRecommendation,
-  } = useHostAi({ catalogSummary });
+  } = useHostAi({ catalogSummary, availableProviders: enabledProviders });
 
   const { creating, onCreate } = useHostCreate({
     hub,

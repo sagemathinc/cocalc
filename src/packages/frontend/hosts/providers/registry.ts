@@ -87,6 +87,13 @@ export type ProviderSupports = {
   genericGpu: boolean;
 };
 
+export type ProviderStorageSupport = {
+  supported: boolean;
+  growable?: boolean;
+};
+
+export type ProviderCatalogSummary = Record<string, any>;
+
 export type HostProviderFlags = {
   gcpEnabled: boolean;
   hyperstackEnabled: boolean;
@@ -99,7 +106,9 @@ export type HostProviderDescriptor = {
   id: HostProvider;
   label: string;
   supports: ProviderSupports;
+  storage?: ProviderStorageSupport;
   fields: ProviderFieldSchema;
+  summarizeCatalog?: (catalog: HostCatalog) => ProviderCatalogSummary | undefined;
   enabled: (flags: HostProviderFlags) => boolean;
   getOptions: (
     catalog: HostCatalog | undefined,
@@ -138,9 +147,7 @@ const findOption = <T>(
 };
 
 const getDefaultRegion = (vals: Record<string, any>, options: FieldOptionsMap) =>
-  vals.region ??
-  optionsFor("region", options)[0]?.value ??
-  (vals.provider === "lambda" ? LAMBDA_REGIONS[0]?.value : "us-east1");
+  vals.region ?? optionsFor("region", options)[0]?.value;
 
 const buildBasePayload = (
   vals: Record<string, any>,
@@ -149,10 +156,7 @@ const buildBasePayload = (
   wantsGpu: boolean,
 ) => {
   const machine_type = vals.machine_type || undefined;
-  const storage_mode =
-    vals.provider === "lambda"
-      ? "ephemeral"
-      : vals.storage_mode || "persistent";
+  const storage_mode = vals.storage_mode || "persistent";
   return {
     name: vals.name ?? "My Host",
     region: getDefaultRegion(vals, options),
@@ -178,6 +182,41 @@ const applyDiskUpdate = (next: Record<string, any>, disk_gb?: number) => {
   if (typeof disk_gb === "number") next.disk = disk_gb;
 };
 
+const limit = <T,>(items: T[], n = 5) => items.slice(0, n);
+
+const shouldIncludeField = (
+  field: HostFieldId,
+  caps?: NonNullable<HostCatalog["provider_capabilities"]>[string],
+) => {
+  if (!caps) return true;
+  switch (field) {
+    case "region":
+      return caps.hasRegions !== false;
+    case "zone":
+      return caps.supportsZones !== false && caps.hasZones !== false;
+    case "source_image":
+      return caps.supportsCustomImage !== false && caps.hasImages !== false;
+    case "gpu_type":
+    case "gpu":
+      return caps.supportsGpu !== false && caps.hasGpus !== false;
+    default:
+      return true;
+  }
+};
+
+export const filterFieldSchemaForCaps = (
+  schema: ProviderFieldSchema,
+  caps?: NonNullable<HostCatalog["provider_capabilities"]>[string],
+): ProviderFieldSchema => {
+  if (!caps) return schema;
+  const filterFields = (fields: HostFieldId[]) =>
+    fields.filter((field) => shouldIncludeField(field, caps));
+  return {
+    ...schema,
+    primary: filterFields(schema.primary),
+    advanced: filterFields(schema.advanced),
+  };
+};
 export const getGcpRegionOptions = (
   catalog?: HostCatalog,
 ): HostFieldOption[] => {
@@ -286,6 +325,59 @@ export const getGcpImageOptions = (
     });
 };
 
+const summarizeGcpCatalog = (catalog: HostCatalog) => {
+  const zonesByName = new Map(catalog.zones?.map((z) => [z.name, z]) ?? []);
+  const regionGroups: Record<string, string[]> = {};
+  const regions = (catalog.regions ?? []).map((r) => {
+    const zone = r.zones?.[0];
+    const zoneDetails = zone ? zonesByName.get(zone) : undefined;
+    const machineTypes = limit(
+      catalog.machine_types_by_zone?.[zone ?? ""] ?? [],
+      5,
+    ).map((m) => ({
+      name: m.name ?? undefined,
+      guestCpus: m.guestCpus ?? undefined,
+      memoryMb: m.memoryMb ?? undefined,
+    }));
+    const gpuTypes = limit(
+      catalog.gpu_types_by_zone?.[zone ?? ""] ?? [],
+      5,
+    ).map((g) => ({
+      name: g.name ?? undefined,
+      description: g.description ?? undefined,
+      maximumCardsPerInstance: g.maximumCardsPerInstance ?? undefined,
+    }));
+    return {
+      name: r.name,
+      location: zoneDetails?.location ?? undefined,
+      lowC02: zoneDetails?.lowC02 ?? undefined,
+      zones: limit(r.zones ?? [], 3),
+      sampleMachineTypes: machineTypes,
+      sampleGpuTypes: gpuTypes,
+    };
+  });
+  for (const r of regions) {
+    const name = r.name || "";
+    let group = "any";
+    if (name.startsWith("us-west")) group = "us-west";
+    else if (name.startsWith("us-east")) group = "us-east";
+    else if (name.startsWith("europe")) group = "eu-west";
+    else if (name.startsWith("asia")) group = "asia";
+    else if (name.startsWith("australia")) group = "australia";
+    else if (name.startsWith("southamerica")) group = "southamerica";
+    regionGroups[group] ??= [];
+    regionGroups[group].push(name);
+  }
+  const images = limit(catalog.images ?? [], 6).map((img) => ({
+    name: img.name ?? undefined,
+    family: img.family ?? undefined,
+    selfLink: img.selfLink ?? undefined,
+    architecture: img.architecture ?? undefined,
+    gpuReady: img.gpuReady ?? undefined,
+  }));
+  return { regions, region_groups: regionGroups, images };
+};
+
 export const getHyperstackRegionOptions = (
   catalog?: HostCatalog,
 ): HostFieldOption[] => {
@@ -313,6 +405,18 @@ export const getHyperstackFlavorOptions = (
       return { value: flavor.name, label, flavor };
     });
 };
+
+const summarizeHyperstackCatalog = (catalog: HostCatalog) => ({
+  regions: catalog.hyperstack_regions ?? [],
+  flavors: limit(catalog.hyperstack_flavors ?? [], 10).map((f) => ({
+    name: f.name,
+    region: f.region_name,
+    cpu: f.cpu,
+    ram: f.ram,
+    gpu: f.gpu,
+    gpu_count: f.gpu_count,
+  })),
+});
 
 export const getLambdaInstanceTypeOptions = (
   catalog: HostCatalog | undefined,
@@ -370,6 +474,31 @@ export const getLambdaRegionsFromCatalog = (catalog?: HostCatalog): string[] => 
   return [];
 };
 
+const summarizeLambdaCatalog = (catalog: HostCatalog) => {
+  const lambdaRegions = catalog.lambda_regions?.length
+    ? catalog.lambda_regions
+    : getLambdaRegionsFromCatalog(catalog).map((name) => ({ name }));
+  return {
+    regions: lambdaRegions,
+    instance_types: limit(catalog.lambda_instance_types ?? [], 25).map(
+      (entry) => ({
+        name: entry.name,
+        vcpus: entry.vcpus ?? undefined,
+        memory_gib: entry.memory_gib ?? undefined,
+        gpus: entry.gpus ?? undefined,
+        regions: entry.regions ?? undefined,
+      }),
+    ),
+    images: limit(catalog.lambda_images ?? [], 10).map((img) => ({
+      id: img.id ?? undefined,
+      name: img.name ?? undefined,
+      family: img.family ?? undefined,
+      architecture: img.architecture ?? undefined,
+      region: img.region ?? undefined,
+    })),
+  };
+};
+
 export const getNebiusRegionOptions = (
   catalog?: HostCatalog,
 ): HostFieldOption[] => {
@@ -398,10 +527,34 @@ export const getNebiusInstanceTypeOptions = (
     .sort((a, b) => a.value.localeCompare(b.value));
 };
 
+const summarizeNebiusCatalog = (catalog: HostCatalog) => ({
+  regions: catalog.nebius_regions ?? [],
+  instance_types: limit(catalog.nebius_instance_types ?? [], 25).map(
+    (entry) => ({
+      name: entry.name,
+      platform: entry.platform ?? undefined,
+      platform_label: entry.platform_label ?? undefined,
+      vcpus: entry.vcpus ?? undefined,
+      memory_gib: entry.memory_gib ?? undefined,
+      gpus: entry.gpus ?? undefined,
+      gpu_label: entry.gpu_label ?? undefined,
+    }),
+  ),
+  images: limit(catalog.nebius_images ?? [], 10).map((img) => ({
+    id: img.id ?? undefined,
+    name: img.name ?? undefined,
+    family: img.family ?? undefined,
+    version: img.version ?? undefined,
+    architecture: img.architecture ?? undefined,
+    recommended_platforms: img.recommended_platforms ?? undefined,
+  })),
+});
+
 export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   gcp: {
     id: "gcp",
     label: "Google Cloud",
+    summarizeCatalog: summarizeGcpCatalog,
     supports: {
       region: true,
       zone: true,
@@ -427,6 +580,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       },
     },
     enabled: (flags) => flags.gcpEnabled,
+    storage: { supported: true, growable: true },
     getOptions: (catalog, selection) => ({
       ...emptyOptions(),
       region: getGcpRegionOptions(catalog),
@@ -475,6 +629,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   hyperstack: {
     id: "hyperstack",
     label: "Hyperstack Cloud",
+    summarizeCatalog: summarizeHyperstackCatalog,
     supports: {
       region: true,
       zone: false,
@@ -494,6 +649,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       },
     },
     enabled: (flags) => flags.hyperstackEnabled,
+    storage: { supported: true, growable: false },
     getOptions: (catalog, selection) => ({
       ...emptyOptions(),
       region: getHyperstackRegionOptions(catalog),
@@ -530,6 +686,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   lambda: {
     id: "lambda",
     label: "Lambda Cloud",
+    summarizeCatalog: summarizeLambdaCatalog,
     supports: {
       region: true,
       zone: false,
@@ -549,6 +706,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       },
     },
     enabled: (flags) => flags.lambdaEnabled,
+    storage: { supported: false },
     getOptions: (catalog, selection) => {
       const instanceTypes = getLambdaInstanceTypeOptions(catalog);
       const instanceEntry = instanceTypes.find(
@@ -594,6 +752,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   nebius: {
     id: "nebius",
     label: "Nebius AI Cloud",
+    summarizeCatalog: summarizeNebiusCatalog,
     supports: {
       region: true,
       zone: false,
@@ -613,6 +772,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       },
     },
     enabled: (flags) => flags.nebiusEnabled,
+    storage: { supported: true, growable: true },
     getOptions: (catalog) => ({
       ...emptyOptions(),
       machine_type: getNebiusInstanceTypeOptions(catalog).map((opt) => ({
@@ -675,6 +835,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       },
     },
     enabled: (flags) => flags.showLocal,
+    storage: { supported: true, growable: true },
     getOptions: () => ({
       ...emptyOptions(),
       size: SIZES,
@@ -705,6 +866,18 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
 
 export const getProviderDescriptor = (provider: HostProvider) =>
   PROVIDER_REGISTRY[provider];
+
+export const isKnownProvider = (value: string): value is HostProvider =>
+  Object.prototype.hasOwnProperty.call(PROVIDER_REGISTRY, value);
+
+export const getProviderStorageSupport = (
+  provider: HostProvider,
+  caps?: HostCatalog["provider_capabilities"],
+): ProviderStorageSupport => {
+  const cap = caps?.[provider]?.persistentStorage;
+  if (cap) return cap;
+  return PROVIDER_REGISTRY[provider].storage ?? { supported: true, growable: true };
+};
 
 export const getProviderOptions = (
   provider: HostProvider,

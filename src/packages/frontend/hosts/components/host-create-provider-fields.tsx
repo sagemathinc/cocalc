@@ -51,7 +51,7 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
       <Form.Item
         name="provider"
         label="Provider"
-        initialValue={providerOptions[0]?.value ?? "gcp"}
+        initialValue={providerOptions[0]?.value ?? "none"}
       >
         <Select options={providerOptions} />
       </Form.Item>

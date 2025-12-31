@@ -7,8 +7,9 @@ import {
   HOST_FIELDS,
   buildRecommendationUpdate,
   getProviderDescriptor,
+  getProviderStorageSupport,
   getProviderOptions,
-  getLambdaRegionsFromCatalog,
+  filterFieldSchemaForCaps,
   type HostFieldId,
   type ProviderSelection,
   type FieldOptionsMap,
@@ -29,7 +30,7 @@ type UseHostFormArgs = {
   selectedSize?: string;
   selectedGpu?: string;
   selectedStorageMode?: string;
-  lambdaEnabled: boolean;
+  enabledProviders: HostProvider[];
 };
 
 const FIELD_LABELS: Record<HostFieldId, string> = {
@@ -60,7 +61,7 @@ export const useHostForm = ({
   selectedSize,
   selectedGpu,
   selectedStorageMode,
-  lambdaEnabled,
+  enabledProviders,
 }: UseHostFormArgs) => {
   const prevProviderRef = useRef<HostProvider | undefined>(undefined);
   const provider = selectedProvider ?? "none";
@@ -69,8 +70,12 @@ export const useHostForm = ({
     return catalog.provider_capabilities[provider];
   }, [catalog, provider]);
   const fieldSchema: ProviderFieldSchema = useMemo(
-    () => getProviderDescriptor(provider).fields,
-    [provider],
+    () =>
+      filterFieldSchemaForCaps(
+        getProviderDescriptor(provider).fields,
+        providerCaps,
+      ),
+    [provider, providerCaps],
   );
   const selection: ProviderSelection = useMemo(
     () => ({
@@ -108,9 +113,12 @@ export const useHostForm = ({
     [fieldSchema],
   );
 
-  const supportsPersistentStorage =
-    providerCaps?.persistentStorage?.supported ?? provider !== "lambda";
-  const persistentGrowable = providerCaps?.persistentStorage?.growable ?? true;
+  const storageSupport = useMemo(
+    () => getProviderStorageSupport(provider, catalog?.provider_capabilities),
+    [provider, catalog],
+  );
+  const supportsPersistentStorage = storageSupport.supported;
+  const persistentGrowable = storageSupport.growable ?? true;
   const storageModeOptions = supportsPersistentStorage
     ? [
         { value: "ephemeral", label: "Ephemeral (local)" },
@@ -125,19 +133,13 @@ export const useHostForm = ({
   const showDiskFields =
     supportsPersistentStorage && selectedStorageMode !== "ephemeral";
 
-  const lambdaRegionsFromCatalog = useMemo(
-    () => getLambdaRegionsFromCatalog(catalog),
-    [catalog],
-  );
-
   const catalogSummary = useMemo(
     () =>
       buildCatalogSummary({
         catalog,
-        lambdaRegionsFromCatalog,
-        lambdaEnabled: !!lambdaEnabled,
+        enabledProviders,
       }),
-    [catalog, lambdaRegionsFromCatalog, lambdaEnabled],
+    [catalog, enabledProviders],
   );
 
   useEffect(() => {

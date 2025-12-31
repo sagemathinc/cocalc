@@ -30,7 +30,7 @@ export const useHostProviders = ({
     nebiusEnabled,
     showLocal,
   };
-  const [refreshProvider, setRefreshProvider] = useState<HostProvider>("gcp");
+  const [refreshProvider, setRefreshProvider] = useState<HostProvider>("none");
   const selectedProvider = Form.useWatch("provider", form) as
     | HostProvider
     | undefined;
@@ -67,7 +67,7 @@ export const useHostProviders = ({
 
   useEffect(() => {
     if (!isProviderEnabled(refreshProvider, flags)) {
-      setRefreshProvider(refreshProviders[0]?.value ?? "gcp");
+      setRefreshProvider(refreshProviders[0]?.value ?? "none");
     }
   }, [refreshProvider, flags, refreshProviders]);
 

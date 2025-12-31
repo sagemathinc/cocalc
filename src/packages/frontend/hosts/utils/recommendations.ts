@@ -1,4 +1,5 @@
 import type { HostRecommendation, HostProvider } from "../types";
+import { isKnownProvider } from "../providers/registry";
 
 function normalizeString(value: any): string | undefined {
   if (typeof value === "string") return value;
@@ -48,13 +49,7 @@ export function extractJsonPayload(reply: string): any | undefined {
 export function normalizeRecommendation(input: any): HostRecommendation | null {
   if (!input || typeof input !== "object") return null;
   const provider = normalizeString(input.provider) as HostProvider | undefined;
-  if (
-    !provider ||
-    (provider !== "gcp" &&
-      provider !== "hyperstack" &&
-      provider !== "lambda" &&
-      provider !== "nebius")
-  ) {
+  if (!provider || provider === "none" || !isKnownProvider(provider)) {
     return null;
   }
   return {
