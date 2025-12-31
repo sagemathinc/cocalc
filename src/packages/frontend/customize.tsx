@@ -172,6 +172,7 @@ export interface CustomizeState {
   ["compute_servers_google-cloud_enabled"]?: boolean;
   compute_servers_hyperstack_enabled?: boolean;
   compute_servers_lambda_enabled?: boolean;
+  project_hosts_nebius_enabled?: boolean;
   compute_servers_dns_enabled?: boolean;
   compute_servers_dns?: string;
   compute_servers_images?: TypedMap<Images> | string | null;

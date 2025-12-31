@@ -102,12 +102,13 @@ const GPU_TYPES = [
   { value: "a10g", label: "NVIDIA A10G" },
 ];
 
-type HostProvider = "gcp" | "hyperstack" | "lambda" | "none";
+type HostProvider = "gcp" | "hyperstack" | "lambda" | "nebius" | "none";
 
 const PROVIDERS: Array<{ value: HostProvider; label: string }> = [
   { value: "gcp", label: "Google Cloud" },
-  { value: "hyperstack", label: "Hyperstack" },
+  { value: "hyperstack", label: "Hyperstack Cloud" },
   { value: "lambda", label: "Lambda Cloud" },
+  { value: "nebius", label: "Nebius AI Cloud" },
   { value: "none", label: "Local (manual setup)" },
 ];
 
@@ -284,7 +285,7 @@ export const HostsPage: React.FC = () => {
     if (lambdaEnabled) opts.push({ value: "lambda", label: "Lambda Cloud" });
     if (nebiusEnabled) opts.push({ value: "nebius", label: "Nebius" });
     return opts;
-  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled, nebiusEnabled]);
+  }, [gcpEnabled, hyperstackEnabled, lambdaEnabled, nebiusEnabled, isAdmin]);
 
   useEffect(() => {
     const current = form.getFieldValue("provider") as HostProvider | undefined;
