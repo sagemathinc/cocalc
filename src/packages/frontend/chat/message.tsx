@@ -29,7 +29,6 @@ import { plural, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { deriveAcpLogRefs } from "@cocalc/chat";
 import { ChatActions } from "./actions";
-import type { ActivityLogContext } from "./actions/activity-logs";
 import { getUserName } from "./chat-log";
 import { codexEventsToMarkdown } from "./codex-activity";
 import { History, HistoryFooter, HistoryTitle } from "./history";
@@ -340,17 +339,6 @@ export default function Message({
     // other kinds of LLM messages.
     return Boolean(field<string>(message, "acp_account_id"));
   }, [message]);
-  const activityContext: ActivityLogContext = useMemo(
-    () => ({
-      actions,
-      message,
-      messages,
-      threadRootMs,
-      project_id,
-      path,
-    }),
-    [actions, message, messages, threadRootMs, project_id, path],
-  );
 
   const threadKeyForSession = useMemo(
     () => (threadRootMs != null ? `${threadRootMs}` : undefined),
@@ -887,7 +875,14 @@ export default function Message({
           path={path}
           date={date}
           fallbackLogRefs={fallbackLogRefs}
-          activityContext={activityContext}
+          activityContext={{
+            actions,
+            message,
+            messages,
+            threadRootMs,
+            project_id,
+            path,
+          }}
         />
         <StaticMarkdown
           style={MARKDOWN_STYLE}
