@@ -18,11 +18,8 @@ import {
 } from "@cocalc/server/cloud";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { isValidUUID } from "@cocalc/util/misc";
-import {
-  listProviderEntries,
-  normalizeProviderId,
-  type ProviderId,
-} from "@cocalc/cloud";
+import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
+import { listServerProviders } from "@cocalc/server/cloud/providers";
 function pool() {
   return getPool();
 }
@@ -269,9 +266,9 @@ export async function getCatalog({
     nebius_instance_types: [],
     nebius_images: [],
     provider_capabilities: Object.fromEntries(
-      listProviderEntries().map((entry) => [
+      listServerProviders().map((entry) => [
         entry.id,
-        entry.capabilities,
+        entry.entry.capabilities,
       ]),
     ),
   };

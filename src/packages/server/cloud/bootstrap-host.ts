@@ -15,6 +15,7 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { enqueueCloudVmWork, logCloudVmEvent } from "./db";
 import { argsJoin } from "@cocalc/util/args";
 import getLogger from "@cocalc/backend/logger";
+import { getServerProvider } from "./providers";
 
 const logger = getLogger("server:cloud:bootstrap-host");
 
@@ -216,12 +217,9 @@ export async function handleBootstrap(row: ProjectHostRow) {
   const spec = await buildHostSpec(row);
   const providerId = normalizeProviderId(machine.cloud);
   const storageMode = machine.storage_mode ?? machine.metadata?.storage_mode;
+  const provider = providerId ? getServerProvider(providerId) : undefined;
   const dataDiskDevices =
-    providerId === "gcp"
-      ? storageMode === "ephemeral"
-        ? "/dev/disk/by-id/google-local-nvme-ssd-0 /dev/disk/by-id/google-local-ssd-0"
-        : `/dev/disk/by-id/google-${spec.name}-data`
-      : "";
+    provider?.getBootstrapDataDiskDevices?.(spec, storageMode) ?? "";
   const imageSizeGb = Math.max(20, Number(spec.disk_gb ?? 100));
   const port = 9002;
   const sshPort = 2222;

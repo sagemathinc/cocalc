@@ -9,9 +9,10 @@
 
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
-import { listProviderEntries, type ProviderId } from "@cocalc/cloud";
+import type { ProviderId } from "@cocalc/cloud";
 import { scheduleBootstrap } from "./bootstrap-host";
 import { getProviderContext } from "./provider-context";
+import { listServerProviders } from "./providers";
 
 const logger = getLogger("server:cloud:reconcile");
 const pool = () => getPool();
@@ -24,8 +25,8 @@ export const DEFAULT_INTERVALS = {
 
 type Intervals = typeof DEFAULT_INTERVALS;
 
-export const PROVIDERS: ProviderId[] = listProviderEntries()
-  .map((entry) => entry.id)
+export const PROVIDERS: ProviderId[] = listServerProviders()
+  .map((provider) => provider.id)
   .filter((id) => id !== "local");
 
 type Provider = ProviderId;

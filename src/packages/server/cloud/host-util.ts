@@ -3,6 +3,7 @@ import { type HostSpec, normalizeProviderId } from "@cocalc/cloud";
 import getLogger from "@cocalc/backend/logger";
 import { getControlPlaneSshKeypair } from "./ssh-key";
 import { getProviderContext, getProviderPrefix } from "./provider-context";
+import { getServerProvider, gcpSafeName } from "./providers";
 
 const logger = getLogger("server:cloud:host-util");
 export type HostRow = {
@@ -57,7 +58,9 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   const baseName = row.id.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
   const providerId = normalizeProviderId(machine.cloud);
   const prefix = providerId ? await getProviderPrefix(providerId) : "cocalc-host";
-  const providerName = providerId ? gcpSafeName(prefix, baseName) : baseName;
+  const provider = providerId ? getServerProvider(providerId) : undefined;
+  const normalizeName = provider?.normalizeName ?? gcpSafeName;
+  const providerName = providerId ? normalizeName(prefix, baseName) : baseName;
   const sourceImage = machine.source_image ?? machine.metadata?.source_image;
   logger.debug("buildHostSpec source_image", {
     host_id: row.id,
@@ -87,29 +90,6 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
     },
   };
   return spec;
-}
-
-export function gcpSafeName(prefix: string, base: string): string {
-  const normalize = (value: string) =>
-    value
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, "-")
-      .replace(/-+/g, "-")
-      .replace(/^-+|-+$/g, "");
-  let safePrefix = normalize(prefix);
-  if (!safePrefix || !/^[a-z]/.test(safePrefix)) {
-    safePrefix = `cocalc-${safePrefix || "host"}`.replace(/^-+/, "");
-  }
-  let safeBase = normalize(base);
-  const maxLen = 63;
-  const room = maxLen - safePrefix.length - 1;
-  if (room > 0) {
-    if (safeBase.length > room) {
-      safeBase = safeBase.slice(0, room);
-    }
-    return `${safePrefix}-${safeBase}`.replace(/-+$/g, "");
-  }
-  return safePrefix.slice(0, maxLen);
 }
 
 export async function provisionIfNeeded(row: HostRow) {

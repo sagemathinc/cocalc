@@ -3,13 +3,14 @@ import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import type { ProviderId } from "@cocalc/cloud";
 import {
-  getProviderEntry,
-  listProviderEntries,
   type CatalogEntry as CloudCatalogEntry,
   type ProviderEntry,
 } from "@cocalc/cloud";
-import { getData as getGcpPricingData } from "@cocalc/gcloud-pricing-calculator";
-import { getNebiusCredentialsFromSettings } from "./nebius-credentials";
+import {
+  getServerProvider,
+  listServerProviders,
+  type ServerProviderEntry,
+} from "./providers";
 
 const logger = getLogger("server:cloud:catalog");
 const pool = () => getPool();
@@ -54,78 +55,6 @@ async function upsertCatalog(entry: CatalogEntry) {
   );
 }
 
-type GcpAuth = { projectId: string; credentials: any };
-
-async function getGcpAuth(): Promise<GcpAuth> {
-  const { google_cloud_service_account_json } = await getServerSettings();
-  if (!google_cloud_service_account_json) {
-    logger.warn(
-      "GCP catalog refresh skipped: missing google_cloud_service_account_json",
-    );
-    throw new Error("google_cloud_service_account_json is not configured");
-  }
-  const parsed = JSON.parse(google_cloud_service_account_json);
-  if (!parsed.project_id) {
-    throw new Error("GCP service account json missing project_id");
-  }
-  return { projectId: parsed.project_id, credentials: parsed };
-}
-
-async function getHyperstackApiKey(): Promise<string> {
-  const { hyperstack_api_key } = await getServerSettings();
-  if (!hyperstack_api_key) {
-    logger.warn("Hyperstack catalog refresh skipped: missing hyperstack_api_key");
-    throw new Error("hyperstack_api_key is not configured");
-  }
-  return hyperstack_api_key;
-}
-
-async function getLambdaApiKey(): Promise<string> {
-  const { lambda_cloud_api_key } = await getServerSettings();
-  if (!lambda_cloud_api_key) {
-    logger.warn("Lambda catalog refresh skipped: missing lambda_cloud_api_key");
-    throw new Error("lambda_cloud_api_key is not configured");
-  }
-  return lambda_cloud_api_key;
-}
-
-async function getCatalogFetchOptions(providerId: string): Promise<any> {
-  if (providerId === "gcp") {
-    return await getGcpAuth();
-  }
-  if (providerId === "hyperstack") {
-    const apiKey = await getHyperstackApiKey();
-    const { project_hosts_hyperstack_prefix } = await getServerSettings();
-    return { apiKey, prefix: project_hosts_hyperstack_prefix };
-  }
-  if (providerId === "lambda") {
-    const apiKey = await getLambdaApiKey();
-    return { apiKey };
-  }
-  if (providerId === "nebius") {
-    const settings = await getServerSettings();
-    const { nebius_parent_id, nebius_regions } = settings;
-    let creds;
-    try {
-      creds = getNebiusCredentialsFromSettings(settings);
-    } catch (err) {
-      logger.warn(
-        "Nebius catalog refresh skipped: invalid nebius_credentials_json",
-        { err },
-      );
-      throw err;
-    }
-    return {
-      ...creds,
-      parentId: nebius_parent_id || undefined,
-      regions: Array.isArray(nebius_regions)
-        ? nebius_regions.filter(Boolean)
-        : undefined,
-    };
-  }
-  return {};
-}
-
 function applyCatalogTtl(
   entry: ProviderEntry,
   entries: CloudCatalogEntry[],
@@ -154,24 +83,20 @@ function requiredCatalogKinds(entry: ProviderEntry): string[] {
   return Object.keys(entry.catalog?.ttlSeconds ?? {});
 }
 
-async function refreshCatalogForProvider(entry: ProviderEntry): Promise<void> {
+async function refreshCatalogForProvider(
+  provider: ServerProviderEntry,
+): Promise<void> {
+  const entry = provider.entry;
   if (!entry.fetchCatalog || !entry.catalog) return;
-  const providerId = entry.id;
-  logger.info("refreshing cloud catalog", { provider: providerId });
-  const fetchOpts = await getCatalogFetchOptions(providerId);
+  logger.info("refreshing cloud catalog", { provider: provider.id });
+  const settings = await getServerSettings();
+  const fetchOpts = provider.getCatalogFetchOptions
+    ? await provider.getCatalogFetchOptions(settings)
+    : {};
   const catalog = await entry.fetchCatalog(fetchOpts);
-
-  if (providerId === "gcp" && Array.isArray(catalog?.zones)) {
-    const pricing = await getGcpPricingData();
-    const zonesMeta = pricing?.zones ?? {};
-    for (const zone of catalog.zones) {
-      const meta = zonesMeta[zone.name ?? ""];
-      if (!meta) continue;
-      zone.location = meta.location;
-      zone.lowC02 = meta.lowC02;
-    }
+  if (provider.postProcessCatalog) {
+    await provider.postProcessCatalog(catalog);
   }
-
   const entries = applyCatalogTtl(entry, entry.catalog.toEntries(catalog));
   for (const catalogEntry of entries) {
     await upsertCatalog(catalogEntry);
@@ -229,15 +154,15 @@ export async function refreshCloudCatalogNow(opts: {
   provider?: ProviderId;
 } = {}) {
   const providers = opts.provider
-    ? [getProviderEntry(opts.provider)].filter(
-        (entry): entry is ProviderEntry => !!entry,
+    ? [getServerProvider(opts.provider)].filter(
+        (entry): entry is ServerProviderEntry => !!entry,
       )
-    : listProviderEntries();
+    : listServerProviders();
 
-  for (const entry of providers) {
-    if (!entry.fetchCatalog || !entry.catalog) continue;
-    await withCatalogLock(entry.id, async () => {
-      await refreshCatalogForProvider(entry);
+  for (const provider of providers) {
+    if (!provider.entry.fetchCatalog || !provider.entry.catalog) continue;
+    await withCatalogLock(provider.id, async () => {
+      await refreshCatalogForProvider(provider);
     });
   }
 }
@@ -247,25 +172,25 @@ export function startCloudCatalogWorker(opts: { interval_ms?: number } = {}) {
   const interval_ms = opts.interval_ms ?? 1000 * 60 * 60 * 24;
   const tick = async () => {
     try {
-      const entries = listProviderEntries().filter(
-        (entry) => entry.fetchCatalog && entry.catalog,
+      const providers = listServerProviders().filter(
+        (provider) => provider.entry.fetchCatalog && provider.entry.catalog,
       );
       const needs = await Promise.all(
-        entries.map(async (entry) => ({
-          entry,
-          needs: await shouldRefreshCatalog(entry),
+        providers.map(async (provider) => ({
+          provider,
+          needs: await shouldRefreshCatalog(provider.entry),
         })),
       );
       logger.info("startCloudCatalogWorker.tick", {
         needs: needs.reduce<Record<string, boolean>>((acc, row) => {
-          acc[row.entry.id] = row.needs;
+          acc[row.provider.id] = row.needs;
           return acc;
         }, {}),
       });
       for (const row of needs) {
         if (!row.needs) continue;
-        await withCatalogLock(row.entry.id, async () => {
-          await refreshCatalogForProvider(row.entry);
+        await withCatalogLock(row.provider.id, async () => {
+          await refreshCatalogForProvider(row.provider);
         });
       }
     } catch (err) {
