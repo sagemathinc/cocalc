@@ -18,10 +18,17 @@ type HubClient = {
 type UseHostsOptions = {
   onError?: (err: unknown) => void;
   pollMs?: number;
+  adminView?: boolean;
+  includeDeleted?: boolean;
 };
 
 export const useHosts = (hub: HubClient, options: UseHostsOptions = {}) => {
-  const { onError, pollMs = 15_000 } = options;
+  const {
+    onError,
+    pollMs = 15_000,
+    adminView = false,
+    includeDeleted = false,
+  } = options;
   const [hosts, setHosts] = useState<Host[]>([]);
   const [canCreateHosts, setCanCreateHosts] = useState<boolean>(true);
   const onErrorRef = useRef(onError);
@@ -32,7 +39,10 @@ export const useHosts = (hub: HubClient, options: UseHostsOptions = {}) => {
 
   const refresh = useCallback(async () => {
     const [list, membership] = await Promise.all([
-      hub.hosts.listHosts({}),
+      hub.hosts.listHosts({
+        admin_view: adminView ? true : undefined,
+        include_deleted: includeDeleted ? true : undefined,
+      }),
       hub.purchases.getMembership({}),
     ]);
     setHosts(list);
@@ -40,7 +50,7 @@ export const useHosts = (hub: HubClient, options: UseHostsOptions = {}) => {
       membership?.entitlements?.features?.create_hosts === true,
     );
     return list;
-  }, [hub]);
+  }, [hub, adminView, includeDeleted]);
 
   useEffect(() => {
     refresh().catch((err) => {

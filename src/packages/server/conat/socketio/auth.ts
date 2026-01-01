@@ -263,7 +263,7 @@ async function isHostOwnerOrCollaborator({
   host_id: string;
 }): Promise<boolean> {
   const { rows } = await getPool().query(
-    "SELECT metadata FROM project_hosts WHERE id=$1",
+    "SELECT metadata FROM project_hosts WHERE id=$1 AND deleted IS NULL",
     [host_id],
   );
   if (!rows[0]) return false;

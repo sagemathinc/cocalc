@@ -9,7 +9,7 @@ Table({
   name: "project_hosts",
   rules: {
     primary_key: "id",
-    pg_indexes: ["region", "status", "last_seen"],
+    pg_indexes: ["region", "status", "last_seen", "deleted"],
   },
   fields: {
     id: {
@@ -67,6 +67,10 @@ Table({
     updated: {
       type: "timestamp",
       desc: "When this host record was last updated.",
+    },
+    deleted: {
+      type: "timestamp",
+      desc: "When this host was soft-deleted.",
     },
   },
 });

@@ -24,16 +24,32 @@ export const HostCard: React.FC<HostCardProps> = ({
   onDetails,
   onEdit,
 }) => {
+  const isDeleted = !!host.deleted;
   const startDisabled =
-    host.status === "running" || host.status === "starting";
+    isDeleted || host.status === "running" || host.status === "starting";
   const startLabel = host.status === "starting" ? "Starting" : "Start";
   const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
-  const allowStop = host.status === "running" || host.status === "error";
+  const allowStop =
+    !isDeleted && (host.status === "running" || host.status === "error");
+  const deleteLabel = isDeleted
+    ? "Deleted"
+    : host.status === "deprovisioned"
+      ? "Delete"
+      : "Deprovision";
+  const deleteTitle =
+    host.status === "deprovisioned"
+      ? "Delete this host?"
+      : "Deprovision this host?";
+  const deleteOkText = host.status === "deprovisioned" ? "Delete" : "Deprovision";
 
   return (
     <Card
       title={host.name}
-      extra={<Tag color={STATUS_COLOR[host.status]}>{host.status}</Tag>}
+      extra={
+        <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
+          {host.deleted ? "deleted" : host.status}
+        </Tag>
+      }
       actions={[
         <Button
           key="start"
@@ -58,7 +74,12 @@ export const HostCard: React.FC<HostCardProps> = ({
             {stopLabel}
           </Button>
         ),
-        <Button key="edit" type="link" onClick={() => onEdit(host)}>
+        <Button
+          key="edit"
+          type="link"
+          disabled={isDeleted}
+          onClick={() => onEdit(host)}
+        >
           Edit
         </Button>,
         <Button key="details" type="link" onClick={() => onDetails(host)}>
@@ -66,14 +87,15 @@ export const HostCard: React.FC<HostCardProps> = ({
         </Button>,
         <Popconfirm
           key="delete"
-          title="Delete this host?"
-          okText="Delete"
+          title={deleteTitle}
+          okText={deleteOkText}
           cancelText="Cancel"
           okButtonProps={{ danger: true }}
           onConfirm={() => onDelete(host.id)}
+          disabled={isDeleted}
         >
-          <Button type="link" danger>
-            Delete
+          <Button type="link" danger disabled={isDeleted}>
+            {deleteLabel}
           </Button>
         </Popconfirm>,
       ]}

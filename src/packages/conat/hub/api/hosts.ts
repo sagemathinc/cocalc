@@ -110,6 +110,7 @@ export interface Host {
   last_action_at?: string;
   last_action_status?: string;
   last_action_error?: string;
+  deleted?: string;
 }
 
 export interface HostLogEntry {
@@ -139,6 +140,7 @@ export interface Hosts {
   listHosts: (opts: {
     account_id?: string;
     admin_view?: boolean;
+    include_deleted?: boolean;
     catalog?: boolean;
   }) => Promise<Host[]>;
   getCatalog: (opts: {

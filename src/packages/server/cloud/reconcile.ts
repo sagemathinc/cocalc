@@ -60,6 +60,7 @@ async function loadHosts(provider: Provider): Promise<HostRow[]> {
       SELECT id, name, status, metadata, public_url, internal_url
       FROM project_hosts
       WHERE metadata->'machine'->>'cloud' = $1
+        AND deleted IS NULL
     `,
     [provider],
   );
@@ -76,6 +77,7 @@ async function countHosts(provider: Provider): Promise<{
              COUNT(*) FILTER (WHERE status='running')::int AS running
       FROM project_hosts
       WHERE metadata->'machine'->>'cloud' = $1
+        AND deleted IS NULL
     `,
     [provider],
   );
@@ -214,7 +216,7 @@ async function updateHost(
   }
   if (!sets.length) return;
   await pool().query(
-    `UPDATE project_hosts SET ${sets.join(", ")}, updated=NOW() WHERE id=$1`,
+    `UPDATE project_hosts SET ${sets.join(", ")}, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     params,
   );
 }

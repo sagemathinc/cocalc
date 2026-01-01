@@ -67,13 +67,14 @@ function parseRow(
     last_action_at: metadata.last_action_at,
     last_action_status: metadata.last_action_status,
     last_action_error: metadata.last_action_error,
+    deleted: row.deleted ? new Date(row.deleted).toISOString() : undefined,
   };
 }
 
 async function loadOwnedHost(id: string, account_id?: string): Promise<any> {
   const owner = requireAccount(account_id);
   const { rows } = await pool().query(
-    `SELECT * FROM project_hosts WHERE id=$1`,
+    `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
     [id],
   );
   const row = rows[0];
@@ -92,7 +93,7 @@ async function loadHostForStartStop(
 ): Promise<any> {
   const owner = requireAccount(account_id);
   const { rows } = await pool().query(
-    `SELECT * FROM project_hosts WHERE id=$1`,
+    `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
     [id],
   );
   const row = rows[0];
@@ -171,18 +172,31 @@ const DEFAULT_BACKUP_ROOT = "rustic";
 export async function listHosts({
   account_id,
   admin_view,
+  include_deleted,
   catalog,
 }: {
   account_id?: string;
   admin_view?: boolean;
+  include_deleted?: boolean;
   catalog?: boolean;
 }): Promise<Host[]> {
   const owner = requireAccount(account_id);
+  if (admin_view && !(await isAdmin(owner))) {
+    throw new Error("not authorized");
+  }
+  const filters: string[] = [];
+  const params: any[] = [];
+  if (!admin_view) {
+    filters.push(`(metadata->>'owner' = $${params.length + 1} OR tier IS NOT NULL)`);
+    params.push(owner);
+  }
+  if (!include_deleted) {
+    filters.push("deleted IS NULL");
+  }
+  const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
   const { rows } = await pool().query(
-    admin_view
-      ? `SELECT * FROM project_hosts ORDER BY updated DESC NULLS LAST, created DESC NULLS LAST`
-      : `SELECT * FROM project_hosts WHERE (metadata->>'owner' = $1) OR tier IS NOT NULL ORDER BY updated DESC NULLS LAST, created DESC NULLS LAST`,
-    admin_view ? [] : [owner],
+    `SELECT * FROM project_hosts ${whereClause} ORDER BY updated DESC NULLS LAST, created DESC NULLS LAST`,
+    params,
   );
 
   const membership = await loadMembership(owner);
@@ -215,8 +229,9 @@ export async function listHosts({
 
     const can_start = isOwner || (isCollab && !!metadata.host_collab_control);
 
+    const showAll = admin_view || catalog;
     // If catalog=false, filter out what user cannot place
-    if (!catalog && !can_place) {
+    if (!showAll && !can_place) {
       continue;
     }
 
@@ -329,7 +344,9 @@ export async function getBackupConfig({
   }
   const { rows } = await pool().query<{
     region: string | null;
-  }>("SELECT region FROM project_hosts WHERE id=$1", [host_id]);
+  }>("SELECT region FROM project_hosts WHERE id=$1 AND deleted IS NULL", [
+    host_id,
+  ]);
   if (!rows[0]) {
     throw new Error("host not found");
   }
@@ -414,7 +431,7 @@ export async function createHost({
     });
   }
   const { rows } = await pool().query(
-    `SELECT * FROM project_hosts WHERE id=$1`,
+    `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
     [id],
   );
   const row = rows[0];
@@ -438,12 +455,12 @@ export async function startHost({
   const machine: HostMachine = metadata.machine ?? {};
   const machineCloud = normalizeProviderId(machine.cloud);
   await pool().query(
-    `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
+    `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, "starting", new Date()],
   );
   if (!machineCloud) {
     await pool().query(
-      `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
+      `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [id, "running", new Date()],
     );
   } else {
@@ -454,7 +471,7 @@ export async function startHost({
     });
   }
   const { rows } = await pool().query(
-    `SELECT * FROM project_hosts WHERE id=$1`,
+    `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
     [id],
   );
   if (!rows[0]) throw new Error("host not found");
@@ -473,12 +490,12 @@ export async function stopHost({
   const machine: HostMachine = metadata.machine ?? {};
   const machineCloud = normalizeProviderId(machine.cloud);
   await pool().query(
-    `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
+    `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, "stopping", new Date()],
   );
   if (!machineCloud) {
     await pool().query(
-      `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1`,
+      `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [id, "off", new Date()],
     );
   } else {
@@ -489,7 +506,7 @@ export async function stopHost({
     });
   }
   const { rows } = await pool().query(
-    `SELECT * FROM project_hosts WHERE id=$1`,
+    `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
     [id],
   );
   if (!rows[0]) throw new Error("host not found");
@@ -511,11 +528,11 @@ export async function renameHost({
     throw new Error("name must be provided");
   }
   await pool().query(
-    `UPDATE project_hosts SET name=$2, updated=NOW() WHERE id=$1`,
+    `UPDATE project_hosts SET name=$2, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, cleaned],
   );
   const { rows } = await pool().query(
-    `SELECT * FROM project_hosts WHERE id=$1`,
+    `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
     [id],
   );
   if (!rows[0]) throw new Error("host not found");
@@ -530,6 +547,13 @@ export async function deleteHost({
   id: string;
 }): Promise<void> {
   const row = await loadOwnedHost(id, account_id);
+  if (row.status === "deprovisioned") {
+    await pool().query(
+      `UPDATE project_hosts SET deleted=NOW(), updated=NOW() WHERE id=$1 AND deleted IS NULL`,
+      [id],
+    );
+    return;
+  }
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
   const machineCloud = normalizeProviderId(machine.cloud);
@@ -540,10 +564,13 @@ export async function deleteHost({
       payload: { provider: machineCloud },
     });
     await pool().query(
-      `UPDATE project_hosts SET status=$2, updated=NOW() WHERE id=$1`,
+      `UPDATE project_hosts SET status=$2, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [id, "stopping"],
     );
     return;
   }
-  await pool().query(`DELETE FROM project_hosts WHERE id=$1`, [id]);
+  await pool().query(
+    `UPDATE project_hosts SET status=$2, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
+    [id, "deprovisioned"],
+  );
 }

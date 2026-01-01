@@ -43,11 +43,15 @@ function persistHostViewMode(mode: HostListViewMode) {
 export const useHostsPageViewModel = () => {
   const hub = webapp_client.conat_client.hub;
   const [form] = Form.useForm();
-  const isAdmin = useTypedRedux("account", "is_admin");
+  const isAdmin = !!useTypedRedux("account", "is_admin");
   const flags = useHostFeatureFlags();
+  const [showAdmin, setShowAdmin] = React.useState(false);
+  const [showDeleted, setShowDeleted] = React.useState(false);
 
   const { hosts, setHosts, refresh, canCreateHosts } = useHosts(hub, {
     onError: () => message.error("Unable to load hosts"),
+    adminView: isAdmin && showAdmin,
+    includeDeleted: showDeleted,
   });
   const { setStatus, removeHost, renameHost } = useHostActions({
     hub,
@@ -210,6 +214,11 @@ export const useHostsPageViewModel = () => {
     onEdit: openEdit,
     viewMode: hostViewMode,
     setViewMode: setHostViewMode,
+    isAdmin,
+    showAdmin,
+    setShowAdmin,
+    showDeleted,
+    setShowDeleted,
   });
   const hostDrawerVm = useHostDrawerViewModel({
     open: drawerOpen,

@@ -15,7 +15,7 @@ const pool = () => getPool();
 
 async function loadHostRow(id: string) {
   const { rows } = await pool().query(
-    "SELECT * FROM project_hosts WHERE id=$1",
+    "SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL",
     [id],
   );
   return rows[0];
@@ -28,7 +28,7 @@ async function updateHostRow(id: string, updates: Record<string, any>) {
   if (!keys.length) return;
   const sets = keys.map((key, idx) => `${key}=$${idx + 2}`);
   await pool().query(
-    `UPDATE project_hosts SET ${sets.join(", ")}, updated=NOW() WHERE id=$1`,
+    `UPDATE project_hosts SET ${sets.join(", ")}, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, ...keys.map((key) => updates[key])],
   );
 }

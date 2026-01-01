@@ -138,6 +138,7 @@ export async function enqueueMissingRuntimeRefresh(opts: { limit?: number }) {
       FROM project_hosts
       WHERE metadata->'runtime'->>'instance_id' IS NOT NULL
         AND (metadata->'runtime'->>'public_ip' IS NULL OR metadata->'runtime'->>'public_ip' = '')
+        AND deleted IS NULL
       LIMIT $1
     `,
     [limit],

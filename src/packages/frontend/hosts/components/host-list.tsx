@@ -1,4 +1,4 @@
-import { Button, Card, Col, Popconfirm, Radio, Row, Space, Table, Tag, Typography } from "antd";
+import { Button, Card, Col, Popconfirm, Radio, Row, Space, Switch, Table, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
@@ -19,6 +19,11 @@ type HostListViewModel = {
   onEdit: (host: Host) => void;
   viewMode: HostListViewMode;
   setViewMode: (mode: HostListViewMode) => void;
+  isAdmin: boolean;
+  showAdmin: boolean;
+  setShowAdmin: (value: boolean) => void;
+  showDeleted: boolean;
+  setShowDeleted: (value: boolean) => void;
 };
 
 export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
@@ -31,25 +36,12 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     onEdit,
     viewMode,
     setViewMode,
+    isAdmin,
+    showAdmin,
+    setShowAdmin,
+    showDeleted,
+    setShowDeleted,
   } = vm;
-  if (hosts.length === 0) {
-    return (
-      <Card
-        style={{ maxWidth: 720, margin: "0 auto" }}
-        title={
-          <span>
-            <Icon name="server" /> Project Hosts
-          </span>
-        }
-      >
-        <Typography.Paragraph>
-          Dedicated project hosts let you run and share normal CoCalc projects
-          on your own VMs (e.g. GPU or large-memory machines). Create one below
-          to get started.
-        </Typography.Paragraph>
-      </Card>
-    );
-  }
 
   const columns = [
     {
@@ -91,18 +83,33 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       title: "Status",
       key: "status",
       render: (_: string, host: Host) => (
-        <Tag color={STATUS_COLOR[host.status]}>{host.status}</Tag>
+        <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
+          {host.deleted ? "deleted" : host.status}
+        </Tag>
       ),
     },
     {
       title: "Actions",
       key: "actions",
       render: (_: string, host: Host) => {
+        const isDeleted = !!host.deleted;
         const startDisabled =
-          host.status === "running" || host.status === "starting";
+          isDeleted || host.status === "running" || host.status === "starting";
         const startLabel = host.status === "starting" ? "Starting" : "Start";
         const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
-        const allowStop = host.status === "running" || host.status === "error";
+        const allowStop =
+          !isDeleted && (host.status === "running" || host.status === "error");
+        const deleteLabel = isDeleted
+          ? "Deleted"
+          : host.status === "deprovisioned"
+            ? "Delete"
+            : "Deprovision";
+        const deleteTitle =
+          host.status === "deprovisioned"
+            ? "Delete this host?"
+            : "Deprovision this host?";
+        const deleteOkText =
+          host.status === "deprovisioned" ? "Delete" : "Deprovision";
 
         return (
           <Space size="small">
@@ -130,18 +137,24 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
                 {stopLabel}
               </Button>
             )}
-            <Button size="small" type="link" onClick={() => onEdit(host)}>
+            <Button
+              size="small"
+              type="link"
+              disabled={isDeleted}
+              onClick={() => onEdit(host)}
+            >
               Edit
             </Button>
             <Popconfirm
-              title="Delete this host?"
-              okText="Delete"
+              title={deleteTitle}
+              okText={deleteOkText}
               cancelText="Cancel"
               okButtonProps={{ danger: true }}
               onConfirm={() => onDelete(host.id)}
+              disabled={isDeleted}
             >
-              <Button size="small" type="link" danger>
-                Delete
+              <Button size="small" type="link" danger disabled={isDeleted}>
+                {deleteLabel}
               </Button>
             </Popconfirm>
           </Space>
@@ -150,24 +163,64 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     },
   ];
 
-  return (
-    <div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+  const header = (
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
+      <Space size="large" align="center">
         <Typography.Title level={5} style={{ margin: 0 }}>
           Project Hosts
         </Typography.Title>
-        <Radio.Group
-          value={viewMode}
-          onChange={(event) =>
-            setViewMode(event.target.value as HostListViewMode)
+        <Space size="middle" align="center">
+          {isAdmin && (
+            <Space size="small" align="center">
+              <Switch size="small" checked={showAdmin} onChange={setShowAdmin} />
+              <Typography.Text>All (Admin)</Typography.Text>
+            </Space>
+          )}
+          <Space size="small" align="center">
+            <Switch size="small" checked={showDeleted} onChange={setShowDeleted} />
+            <Typography.Text>Deleted</Typography.Text>
+          </Space>
+        </Space>
+      </Space>
+      <Radio.Group
+        value={viewMode}
+        onChange={(event) =>
+          setViewMode(event.target.value as HostListViewMode)
+        }
+        optionType="button"
+        buttonStyle="solid"
+      >
+        <Radio.Button value="grid">Cards</Radio.Button>
+        <Radio.Button value="list">List</Radio.Button>
+      </Radio.Group>
+    </div>
+  );
+
+  if (hosts.length === 0) {
+    return (
+      <div>
+        {header}
+        <Card
+          style={{ maxWidth: 720, margin: "0 auto" }}
+          title={
+            <span>
+              <Icon name="server" /> Project Hosts
+            </span>
           }
-          optionType="button"
-          buttonStyle="solid"
         >
-          <Radio.Button value="grid">Cards</Radio.Button>
-          <Radio.Button value="list">List</Radio.Button>
-        </Radio.Group>
+          <Typography.Paragraph>
+            Dedicated project hosts let you run and share normal CoCalc projects
+            on your own VMs (e.g. GPU or large-memory machines). Create one below
+            to get started.
+          </Typography.Paragraph>
+        </Card>
       </div>
+    );
+  }
+
+  return (
+    <div>
+      {header}
       {viewMode === "list" ? (
         <Table
           rowKey={(host) => host.id}

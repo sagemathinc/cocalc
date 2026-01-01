@@ -10,6 +10,11 @@ type UseHostListViewModelArgs = {
   onEdit: (host: Host) => void;
   viewMode: HostListViewMode;
   setViewMode: (mode: HostListViewMode) => void;
+  isAdmin: boolean;
+  showAdmin: boolean;
+  setShowAdmin: (value: boolean) => void;
+  showDeleted: boolean;
+  setShowDeleted: (value: boolean) => void;
 };
 
 export const useHostListViewModel = ({
@@ -21,6 +26,11 @@ export const useHostListViewModel = ({
   onEdit,
   viewMode,
   setViewMode,
+  isAdmin,
+  showAdmin,
+  setShowAdmin,
+  showDeleted,
+  setShowDeleted,
 }: UseHostListViewModelArgs) => {
   return {
     hosts,
@@ -31,5 +41,10 @@ export const useHostListViewModel = ({
     onEdit,
     viewMode,
     setViewMode,
+    isAdmin,
+    showAdmin,
+    setShowAdmin,
+    showDeleted,
+    setShowDeleted,
   };
 };

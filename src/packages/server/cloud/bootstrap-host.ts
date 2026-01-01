@@ -48,7 +48,7 @@ async function updateHostRow(id: string, updates: Record<string, any>) {
   if (!keys.length) return;
   const sets = keys.map((key, idx) => `${key}=$${idx + 2}`);
   await getPool().query(
-    `UPDATE project_hosts SET ${sets.join(", ")}, updated=NOW() WHERE id=$1`,
+    `UPDATE project_hosts SET ${sets.join(", ")}, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, ...keys.map((key) => updates[key])],
   );
 }
@@ -139,16 +139,31 @@ async function runSshScript(opts: {
   keyPath: string;
   knownHosts: string;
   script: string;
+  scriptPath: string;
 }) {
   const base = sshBaseArgs({
     keyPath: opts.keyPath,
     knownHosts: opts.knownHosts,
   });
+  const token = `COCALC_BOOTSTRAP_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 10)}`;
+  const scriptPath = opts.scriptPath.replace(/"/g, '\\"');
+  const wrapper = `set -euo pipefail
+script_path="${scriptPath}"
+script_dir=$(dirname "$script_path")
+mkdir -p "$script_dir"
+cat <<'${token}' > "$script_path"
+${opts.script.trim()}
+${token}
+chmod +x "$script_path"
+bash "$script_path"
+`;
   return await runCmd(
     "ssh",
     [...base, `${opts.user}@${opts.host}`, "bash", "-s"],
     {
-      stdin: opts.script,
+      stdin: wrapper,
     },
   );
 }
@@ -260,8 +275,7 @@ export async function handleBootstrap(row: ProjectHostRow) {
     `HOST=0.0.0.0`,
     `PORT=${port}`,
     `DEBUG=cocalc:*`,
-    `DEBUG_CONSOLE=no`,
-    `DEBUG_FILE=${dataDir}/log`,
+    `DEBUG_CONSOLE=yes`,
     `COCALC_SSH_SERVER=0.0.0.0:${sshPort}`,
   ];
   const envToken = "EOF_COCALC_ENV";
@@ -272,7 +286,7 @@ export async function handleBootstrap(row: ProjectHostRow) {
   const bootstrapScript = `
 set -euo pipefail
 sudo apt-get update -y
-sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils
+sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils rsync vim
 sudo sysctl -w kernel.unprivileged_userns_clone=1 || true
 sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 ${sshUser} || true
 sudo mkdir -p /opt/cocalc /var/lib/cocalc /etc/cocalc
@@ -307,6 +321,10 @@ fi
 sudo chown ${sshUser}:${sshUser} /btrfs || true
 ${envBlock}
 sudo systemctl daemon-reload || true
+
+echo 'sudo journalctl -u cocalc-project-host.service' > $HOME/bootstrap/logs
+echo 'sudo systemctl \${1-status} cocalc-project-host' > $HOME/bootstrap/ctl
+chmod +x $HOME/bootstrap/ctl $HOME/bootstrap/logs
 `;
 
   const serviceUnit = `
@@ -331,10 +349,8 @@ WantedBy=multi-user.target
 set -euo pipefail
 sudo rm -rf /opt/cocalc/project-host
 sudo mkdir -p /opt/cocalc/project-host
-sudo tar -xJf ${seaRemote} -C /opt/cocalc/project-host
+sudo tar -xJf ${seaRemote}  --strip-components=2 -C /opt/cocalc/project-host
 cd /opt/cocalc/project-host
-dir=$(ls -1d cocalc-project-host-* | head -n1)
-sudo ln -sfn "$dir" /opt/cocalc/project-host
 cat <<'${serviceToken}' | sudo tee /etc/systemd/system/cocalc-project-host.service >/dev/null
 ${serviceUnit}
 ${serviceToken}
@@ -356,6 +372,7 @@ sudo systemctl enable --now cocalc-project-host
       keyPath,
       knownHosts,
       script: bootstrapScript,
+      scriptPath: "$HOME/bootstrap/install.sh",
     });
     if (seaPath) {
       await scpFile({
@@ -373,6 +390,7 @@ sudo systemctl enable --now cocalc-project-host
         keyPath,
         knownHosts,
         script: `set -euo pipefail\ncurl -L "${seaUrl}" -o ${seaRemote}\n`,
+        scriptPath: "$HOME/bootstrap/fetch-sea.sh",
       });
     }
     await runSshScript({
@@ -381,6 +399,7 @@ sudo systemctl enable --now cocalc-project-host
       keyPath,
       knownHosts,
       script: installService,
+      scriptPath: "$HOME/bootstrap/install-service.sh",
     });
   });
 

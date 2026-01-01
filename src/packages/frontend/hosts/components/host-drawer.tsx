@@ -27,10 +27,17 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
       <Space>
         <Icon name="server" /> {host?.name ?? "Host details"}
         {host && (
-          <Tag color={STATUS_COLOR[host.status]}>{host.status}</Tag>
+          <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
+            {host.deleted ? "deleted" : host.status}
+          </Tag>
         )}
         {host && (
-          <Button type="link" size="small" onClick={() => onEdit(host)}>
+          <Button
+            type="link"
+            size="small"
+            disabled={!!host.deleted}
+            onClick={() => onEdit(host)}
+          >
             Edit
           </Button>
         )}

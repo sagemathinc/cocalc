@@ -78,7 +78,7 @@ export default async function createProject(opts: CreateProjectOptions) {
       throw Error("must be signed in to place a project on a host");
     }
     const { rows } = await pool.query(
-      "SELECT * FROM project_hosts WHERE id=$1",
+      "SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL",
       [host_id],
     );
     const row = rows[0];

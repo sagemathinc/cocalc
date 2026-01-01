@@ -54,7 +54,7 @@ export async function loadProject(project_id: string): Promise<ProjectMeta> {
 
 export async function loadHostFromRegistry(host_id: string) {
   const { rows } = await pool().query(
-    "SELECT name, region, public_url, internal_url, ssh_server, tier FROM project_hosts WHERE id=$1",
+    "SELECT name, region, public_url, internal_url, ssh_server, tier FROM project_hosts WHERE id=$1 AND deleted IS NULL",
     [host_id],
   );
   if (!rows[0]) return undefined;
@@ -68,6 +68,7 @@ export async function selectActiveHost(exclude_host_id?: string) {
       SELECT id, name, region, public_url, internal_url, ssh_server, tier
       FROM project_hosts
       WHERE status='active'
+        AND deleted IS NULL
         AND last_seen > NOW() - interval '2 minutes'
         ${exclude_host_id ? "AND id != $1" : ""}
       ORDER BY random()
