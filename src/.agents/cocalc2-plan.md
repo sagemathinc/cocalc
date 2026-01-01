@@ -1,3 +1,34 @@
+# Finish Nebius integration
+
+**Root causes & fixes**
+
+1. **Double prefix \(****`lite-lite-…`****\)**
+   - `spec.name` is already prefixed by the server registry; `nebius/provider.ts` is adding the prefix again.
+   - Fix: in [src/packages/cloud/nebius/provider.ts](./src/packages/cloud/nebius/provider.ts), use `spec.name` directly \(sanitize/shorten only\), and remove any re‑prefixing there.
+
+2. **Disk create ALREADY\_EXISTS**
+   - Nebius disk creation is not idempotent on name; a retry after a partial failure hits `ALREADY_EXISTS`.
+   - Fix: in [src/packages/cloud/nebius/provider.ts](./src/packages/cloud/nebius/provider.ts), wrap disk create with “get\-or\-create”:
+     - If create fails with ALREADY\_EXISTS, list disks under `parentId` and match by name, then use that disk id.
+     - Same for data disk.
+
+3. **“no platform found with name = cpu”**
+   - We are defaulting `ResourcesSpec.platform` to `"cpu"`. Nebius expects a platform name from catalog \(e.g., `cpu-d3` / `gpu-h100-sxm`\).
+   - Fix: ensure `spec.metadata.platform` is set in [src/packages/server/cloud/host\-util.ts](./src/packages/server/cloud/host-util.ts) based on the selected Nebius flavor \(from catalog\) and pass that into provider.
+
+4. **Missing** **`source_image`** **/ invalid family**
+   - We’re not selecting a Nebius image in `buildHostSpec`; log confirms it’s undefined.
+   - Fix in [src/packages/server/cloud/host\-util.ts](./src/packages/server/cloud/host-util.ts):
+     - For Nebius, choose image family from catalog:
+       - **GPU** → newest `ubuntu24.04-cuda12` \(or whichever family actually exists\)
+       - **CPU** → newest `ubuntu24.04-driverless`
+     - Store `source_image_family` \(or `source_image` id\) in `spec.metadata`.
+   - In [src/packages/cloud/nebius/provider.ts](./src/packages/cloud/nebius/provider.ts), use `source_image_family` if provided; avoid hardcoded `ubuntu24.04-cuda13.0` \(the API says it doesn’t exist in your account\).
+
+5. **Catalog selection logic**
+   - Ensure the catalog actually exposes the latest families and versions; pick the newest by version or timestamp in [src/packages/cloud/catalog/nebius.ts](./src/packages/cloud/catalog/nebius.ts) \(already in DB\).
+   - Make sure UI selection is using catalog‑derived values only.
+
 # Implement Project Hosts (replaces compute servers)
 
 ---
@@ -459,3 +490,4 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.\* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
+

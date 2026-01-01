@@ -44,26 +44,19 @@ type NebiusRuntimeMeta = {
   subnetId?: string;
 };
 
-function normalizePrefix(prefix?: string): string {
-  const value = (prefix ?? "cocalc").toLowerCase().replace(/[^a-z0-9-]/g, "-");
-  return value.replace(/-+/g, "-").replace(/^-+|-+$/g, "") || "cocalc";
-}
-
-function safeName(prefix: string, base: string, maxLen = 63): string {
+function sanitizeName(base: string, maxLen = 63): string {
   const clean = (value: string) =>
     value
       .toLowerCase()
       .replace(/[^a-z0-9-]/g, "-")
       .replace(/-+/g, "-")
       .replace(/^-+|-+$/g, "");
-  const safePrefix = clean(prefix);
   let safeBase = clean(base);
-  const room = maxLen - safePrefix.length - 1;
-  if (room > 0) {
-    if (safeBase.length > room) safeBase = safeBase.slice(0, room);
-    return `${safePrefix}-${safeBase}`.replace(/-+$/g, "");
+  if (!safeBase) return "cocalc";
+  if (safeBase.length > maxLen) {
+    safeBase = safeBase.slice(0, maxLen).replace(/-+$/g, "");
   }
-  return safePrefix.slice(0, maxLen);
+  return safeBase || "cocalc";
 }
 
 function diskTypeFor(spec: HostSpec): DiskSpec_DiskType {
@@ -117,8 +110,7 @@ export class NebiusProvider implements CloudProvider {
     if (!parentId) {
       throw new Error("nebius parentId is required");
     }
-    const prefix = normalizePrefix(creds.prefix);
-    const name = safeName(prefix, spec.name, 63);
+    const name = sanitizeName(spec.name, 63);
     const subnetId =
       spec.metadata?.subnet_id ??
       spec.metadata?.nebius_subnet_id ??
