@@ -2,11 +2,11 @@
 
 **Root causes & fixes**
 
-1. **Double prefix \(****`lite-lite-…`****\)**
+1. **\(done\) Double prefix \(****`lite-lite-…`****\)**
    - `spec.name` is already prefixed by the server registry; `nebius/provider.ts` is adding the prefix again.
    - Fix: in [src/packages/cloud/nebius/provider.ts](./src/packages/cloud/nebius/provider.ts), use `spec.name` directly \(sanitize/shorten only\), and remove any re‑prefixing there.
 
-2. **Disk create ALREADY\_EXISTS**
+2. **\(done\) Disk create ALREADY\_EXISTS**
    - Nebius disk creation is not idempotent on name; a retry after a partial failure hits `ALREADY_EXISTS`.
    - Fix: in [src/packages/cloud/nebius/provider.ts](./src/packages/cloud/nebius/provider.ts), wrap disk create with “get\-or\-create”:
      - If create fails with ALREADY\_EXISTS, list disks under `parentId` and match by name, then use that disk id.

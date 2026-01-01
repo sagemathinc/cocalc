@@ -74,6 +74,14 @@ function diskTypeFromCode(code?: number): DiskSpec_DiskType {
   return DiskSpec_DiskType.fromNumber(code);
 }
 
+function normalizeIp(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const [ip] = trimmed.split("/");
+  return ip || undefined;
+}
+
 function isAlreadyExistsError(err: unknown): boolean {
   const message = String((err as any)?.message ?? err);
   const code = (err as any)?.code;
@@ -185,7 +193,10 @@ export class NebiusProvider implements CloudProvider {
     if (!subnetId) {
       throw new Error("nebius subnetId is required");
     }
-    const serviceAccountId = creds.serviceAccountId;
+    const serviceAccountId =
+      spec.metadata?.service_account_id ??
+      spec.metadata?.serviceAccountId ??
+      spec.metadata?.nebius_service_account_id;
     const sourceImage =
       spec.metadata?.source_image ??
       spec.metadata?.image_id ??
@@ -290,6 +301,10 @@ export class NebiusProvider implements CloudProvider {
     if (!machineType) {
       throw new Error("nebius machine_type is required");
     }
+    const platform = spec.metadata?.platform;
+    if (!platform) {
+      throw new Error("nebius platform is required");
+    }
 
     const createOp = await client.instances.create(
       CreateInstanceRequest.create({
@@ -298,9 +313,9 @@ export class NebiusProvider implements CloudProvider {
           name,
         }),
         spec: InstanceSpec.create({
-          serviceAccountId,
+          ...(serviceAccountId ? { serviceAccountId } : {}),
           resources: ResourcesSpec.create({
-            platform: spec.metadata?.platform ?? "cpu",
+            platform,
             size: { $case: "preset", preset: machineType },
           }),
           networkInterfaces: [
@@ -429,8 +444,9 @@ export class NebiusProvider implements CloudProvider {
       GetInstanceRequest.create({ id: runtime.instance_id }),
     );
     const status = instance.status?.state?.name;
-    const publicIp =
-      instance.status?.networkInterfaces?.[0]?.publicIpAddress?.address ?? undefined;
+    const publicIp = normalizeIp(
+      instance.status?.networkInterfaces?.[0]?.publicIpAddress?.address,
+    );
     return {
       instance_id: runtime.instance_id,
       name: instance.metadata?.name,
@@ -475,7 +491,9 @@ export class NebiusProvider implements CloudProvider {
         instance_id: item.metadata?.id ?? "",
         name: item.metadata?.name ?? "",
         status: item.status?.state?.toString(),
-        public_ip: item.status?.networkInterfaces?.[0]?.publicIpAddress?.address,
+        public_ip: normalizeIp(
+          item.status?.networkInterfaces?.[0]?.publicIpAddress?.address,
+        ),
       }))
       .filter((item) => !!item.instance_id);
   }

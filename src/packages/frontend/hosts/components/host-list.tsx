@@ -1,4 +1,4 @@
-import { Button, Card, Col, Radio, Row, Space, Table, Tag, Typography } from "antd";
+import { Button, Card, Col, Popconfirm, Radio, Row, Space, Table, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
@@ -97,37 +97,56 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     {
       title: "Actions",
       key: "actions",
-      render: (_: string, host: Host) => (
-        <Space size="small">
-          <Button
-            size="small"
-            type="link"
-            disabled={host.status === "running"}
-            onClick={() => onStart(host.id)}
-          >
-            Start
-          </Button>
-          <Button
-            size="small"
-            type="link"
-            disabled={host.status !== "running"}
-            onClick={() => onStop(host.id)}
-          >
-            Stop
-          </Button>
-          <Button size="small" type="link" onClick={() => onEdit(host)}>
-            Edit
-          </Button>
-          <Button
-            size="small"
-            type="link"
-            danger
-            onClick={() => onDelete(host.id)}
-          >
-            Delete
-          </Button>
-        </Space>
-      ),
+      render: (_: string, host: Host) => {
+        const startDisabled =
+          host.status === "running" || host.status === "starting";
+        const startLabel = host.status === "starting" ? "Starting" : "Start";
+        const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
+        const allowStop = host.status === "running" || host.status === "error";
+
+        return (
+          <Space size="small">
+            <Button
+              size="small"
+              type="link"
+              disabled={startDisabled}
+              onClick={() => onStart(host.id)}
+            >
+              {startLabel}
+            </Button>
+            {allowStop ? (
+              <Popconfirm
+                title="Stop this host?"
+                okText="Stop"
+                cancelText="Cancel"
+                onConfirm={() => onStop(host.id)}
+              >
+                <Button size="small" type="link">
+                  {stopLabel}
+                </Button>
+              </Popconfirm>
+            ) : (
+              <Button size="small" type="link" disabled>
+                {stopLabel}
+              </Button>
+            )}
+            <Button size="small" type="link" onClick={() => onEdit(host)}>
+              Edit
+            </Button>
+            <Popconfirm
+              title="Delete this host?"
+              okText="Delete"
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => onDelete(host.id)}
+            >
+              <Button size="small" type="link" danger>
+                Delete
+              </Button>
+            </Popconfirm>
+          </Space>
+        );
+      },
     },
   ];
 

@@ -1,5 +1,10 @@
-import { listProviderEntries, type ProviderEntry, type ProviderId } from "@cocalc/cloud";
-import type { HostSpec } from "@cocalc/cloud";
+import {
+  listProviderEntries,
+  type ProviderEntry,
+  type ProviderId,
+  type HostSpec,
+  type NebiusInstanceType,
+} from "@cocalc/cloud";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { getNebiusCredentialsFromSettings } from "./nebius-credentials";
@@ -53,6 +58,19 @@ export async function loadHyperstackCatalog(): Promise<{
     }
   }
   return { flavors, images };
+}
+
+export async function loadNebiusInstanceTypes(): Promise<NebiusInstanceType[]> {
+  const { rows } = await pool().query(
+    `SELECT scope, payload
+       FROM cloud_catalog_cache
+      WHERE provider=$1 AND kind=$2`,
+    ["nebius", "instance_types"],
+  );
+  if (!rows.length) return [];
+  const preferred = rows.find((row) => row.scope === "global") ?? rows[0];
+  const payload = preferred?.payload;
+  return Array.isArray(payload) ? payload : [];
 }
 
 export function gcpSafeName(prefix: string, base: string): string {

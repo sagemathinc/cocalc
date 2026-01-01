@@ -3,7 +3,7 @@ import { type HostSpec, normalizeProviderId } from "@cocalc/cloud";
 import getLogger from "@cocalc/backend/logger";
 import { getControlPlaneSshKeypair } from "./ssh-key";
 import { getProviderContext, getProviderPrefix } from "./provider-context";
-import { getServerProvider, gcpSafeName } from "./providers";
+import { getServerProvider, gcpSafeName, loadNebiusInstanceTypes } from "./providers";
 
 const logger = getLogger("server:cloud:host-util");
 export type HostRow = {
@@ -28,6 +28,15 @@ function sizeToResources(size?: string): { cpu: number; ram_gb: number } {
     default:
       return { cpu: 2, ram_gb: 8 };
   }
+}
+
+async function resolveNebiusPlatform(
+  machineType?: string,
+): Promise<string | undefined> {
+  if (!machineType) return undefined;
+  const types = await loadNebiusInstanceTypes();
+  const match = types.find((entry) => entry.name === machineType);
+  return match?.platform;
 }
 
 export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
@@ -64,6 +73,22 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   const sourceImage = machine.source_image ?? machine.metadata?.source_image;
   const sourceImageFamily =
     machine.metadata?.source_image_family ?? machine.metadata?.image_family;
+  let platform = machine.metadata?.platform;
+  if (!platform && providerId === "nebius") {
+    platform = await resolveNebiusPlatform(machine.machine_type);
+    if (platform) {
+      logger.debug("buildHostSpec: resolved nebius platform", {
+        host_id: row.id,
+        machine_type: machine.machine_type,
+        platform,
+      });
+    } else if (machine.machine_type) {
+      logger.warn("buildHostSpec: nebius platform not found", {
+        host_id: row.id,
+        machine_type: machine.machine_type,
+      });
+    }
+  }
   logger.debug("buildHostSpec source_image", {
     host_id: row.id,
     machine_source_image: machine.source_image,
@@ -85,6 +110,7 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
     gpu,
     metadata: {
       ...machine.metadata,
+      ...(platform ? { platform } : {}),
       machine_type: machine.machine_type,
       source_image: sourceImage,
       source_image_family: sourceImageFamily,

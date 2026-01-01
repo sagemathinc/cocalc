@@ -1,4 +1,4 @@
-import { Button, Card, Space, Tag, Typography } from "antd";
+import { Button, Card, Popconfirm, Space, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { STATUS_COLOR } from "../constants";
@@ -23,38 +23,61 @@ export const HostCard: React.FC<HostCardProps> = ({
   onDelete,
   onDetails,
   onEdit,
-}) => (
-  <Card
-    title={host.name}
-    extra={<Tag color={STATUS_COLOR[host.status]}>{host.status}</Tag>}
-    actions={[
-      <Button
-        key="start"
-        type="link"
-        disabled={host.status === "running"}
-        onClick={() => onStart(host.id)}
-      >
-        Start
-      </Button>,
-      <Button
-        key="stop"
-        type="link"
-        disabled={host.status !== "running"}
-        onClick={() => onStop(host.id)}
-      >
-        Stop
-      </Button>,
-      <Button key="edit" type="link" onClick={() => onEdit(host)}>
-        Edit
-      </Button>,
-      <Button key="details" type="link" onClick={() => onDetails(host)}>
-        Details
-      </Button>,
-      <Button key="delete" type="link" danger onClick={() => onDelete(host.id)}>
-        Delete
-      </Button>,
-    ]}
-  >
+}) => {
+  const startDisabled =
+    host.status === "running" || host.status === "starting";
+  const startLabel = host.status === "starting" ? "Starting" : "Start";
+  const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
+  const allowStop = host.status === "running" || host.status === "error";
+
+  return (
+    <Card
+      title={host.name}
+      extra={<Tag color={STATUS_COLOR[host.status]}>{host.status}</Tag>}
+      actions={[
+        <Button
+          key="start"
+          type="link"
+          disabled={startDisabled}
+          onClick={() => onStart(host.id)}
+        >
+          {startLabel}
+        </Button>,
+        allowStop ? (
+          <Popconfirm
+            key="stop"
+            title="Stop this host?"
+            okText="Stop"
+            cancelText="Cancel"
+            onConfirm={() => onStop(host.id)}
+          >
+            <Button type="link">{stopLabel}</Button>
+          </Popconfirm>
+        ) : (
+          <Button key="stop" type="link" disabled>
+            {stopLabel}
+          </Button>
+        ),
+        <Button key="edit" type="link" onClick={() => onEdit(host)}>
+          Edit
+        </Button>,
+        <Button key="details" type="link" onClick={() => onDetails(host)}>
+          Details
+        </Button>,
+        <Popconfirm
+          key="delete"
+          title="Delete this host?"
+          okText="Delete"
+          cancelText="Cancel"
+          okButtonProps={{ danger: true }}
+          onConfirm={() => onDelete(host.id)}
+        >
+          <Button type="link" danger>
+            Delete
+          </Button>
+        </Popconfirm>,
+      ]}
+    >
     <Space direction="vertical" size="small">
       <Typography.Text>
         Provider:{" "}
@@ -81,5 +104,6 @@ export const HostCard: React.FC<HostCardProps> = ({
         <Typography.Text type="danger">{host.last_error}</Typography.Text>
       )}
     </Space>
-  </Card>
-);
+    </Card>
+  );
+};
