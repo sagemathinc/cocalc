@@ -19,6 +19,27 @@ import { useHostSelection } from "./use-host-selection";
 import { buildRegionGroupOptions } from "../utils/normalize-catalog";
 import type { HostListViewMode } from "../types";
 
+const HOSTS_VIEW_MODE_STORAGE_KEY = "cocalc:hosts:viewMode";
+const DEFAULT_HOSTS_VIEW_MODE: HostListViewMode = "grid";
+
+function readHostViewMode(): HostListViewMode {
+  if (typeof window === "undefined") {
+    return DEFAULT_HOSTS_VIEW_MODE;
+  }
+  const raw = window.localStorage.getItem(HOSTS_VIEW_MODE_STORAGE_KEY);
+  if (raw === "grid" || raw === "list") {
+    return raw;
+  }
+  return DEFAULT_HOSTS_VIEW_MODE;
+}
+
+function persistHostViewMode(mode: HostListViewMode) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(HOSTS_VIEW_MODE_STORAGE_KEY, mode);
+}
+
 export const useHostsPageViewModel = () => {
   const hub = webapp_client.conat_client.hub;
   const [form] = Form.useForm();
@@ -49,8 +70,12 @@ export const useHostsPageViewModel = () => {
     enabled: drawerOpen,
     limit: 50,
   });
-  const [hostViewMode, setHostViewMode] =
-    React.useState<HostListViewMode>("grid");
+  const [hostViewMode, setHostViewMode] = React.useState<HostListViewMode>(
+    readHostViewMode,
+  );
+  React.useEffect(() => {
+    persistHostViewMode(hostViewMode);
+  }, [hostViewMode]);
 
   const {
     providerOptions,

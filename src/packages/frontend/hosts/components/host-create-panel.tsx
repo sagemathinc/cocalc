@@ -16,6 +16,7 @@ const PANEL_STYLE: React.CSSProperties = {
   height: "100%",
   minHeight: 0,
   overflow: "auto",
+  transition: "none",
 };
 
 export function HostCreatePanel({ width, setWidth, children }: HostCreatePanelProps) {
