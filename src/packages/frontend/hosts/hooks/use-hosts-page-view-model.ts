@@ -17,6 +17,7 @@ import { useHostLog } from "./use-host-log";
 import { useHostProviders } from "./use-host-providers";
 import { useHostSelection } from "./use-host-selection";
 import { buildRegionGroupOptions } from "../utils/normalize-catalog";
+import type { HostListViewMode } from "../types";
 
 export const useHostsPageViewModel = () => {
   const hub = webapp_client.conat_client.hub;
@@ -48,6 +49,8 @@ export const useHostsPageViewModel = () => {
     enabled: drawerOpen,
     limit: 50,
   });
+  const [hostViewMode, setHostViewMode] =
+    React.useState<HostListViewMode>("grid");
 
   const {
     providerOptions,
@@ -179,6 +182,8 @@ export const useHostsPageViewModel = () => {
     onDelete: removeHost,
     onDetails: openDetails,
     onEdit: openEdit,
+    viewMode: hostViewMode,
+    setViewMode: setHostViewMode,
   });
   const hostDrawerVm = useHostDrawerViewModel({
     open: drawerOpen,

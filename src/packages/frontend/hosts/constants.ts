@@ -1,7 +1,7 @@
 import type { CSS } from "@cocalc/frontend/app-framework";
 
 export const WRAP_STYLE: CSS = {
-  padding: "24px",
+  padding: "10px 0",
   width: "100%",
   height: "100%",
   overflow: "auto",

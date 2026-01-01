@@ -38,27 +38,6 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({ vm }) => {
           <Icon name="plus" /> Create host
         </span>
       }
-      extra={
-        isAdmin ? (
-          <Space size="small">
-            <Select
-              size="small"
-              value={refreshProvider}
-              onChange={(value) => value && setRefreshProvider(value)}
-              options={refreshProviders}
-              style={{ width: 140 }}
-            />
-            <Button
-              size="small"
-              onClick={refreshCatalogAndNotify}
-              loading={catalogRefreshing}
-              disabled={!refreshProviders.length}
-            >
-              Refresh catalog
-            </Button>
-          </Space>
-        ) : undefined
-      }
     >
       {!canCreateHosts && (
         <Alert
@@ -90,6 +69,31 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({ vm }) => {
           Create host
         </Button>
       </Space>
+      {isAdmin && (
+        <>
+          <Divider style={{ margin: "12px 0" }} />
+          <Space direction="vertical" style={{ width: "100%" }} size="small">
+            <Typography.Text type="secondary">Admin tools</Typography.Text>
+            <Space size="small" wrap>
+              <Select
+                size="small"
+                value={refreshProvider}
+                onChange={(value) => value && setRefreshProvider(value)}
+                options={refreshProviders}
+                style={{ width: 160 }}
+              />
+              <Button
+                size="small"
+                onClick={refreshCatalogAndNotify}
+                loading={catalogRefreshing}
+                disabled={!refreshProviders.length}
+              >
+                Refresh catalog
+              </Button>
+            </Space>
+          </Space>
+        </>
+      )}
     </Card>
   );
 };
