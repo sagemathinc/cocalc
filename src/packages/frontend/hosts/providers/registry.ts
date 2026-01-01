@@ -1509,7 +1509,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       genericGpu: false,
     },
     fields: {
-      primary: ["machine_type", "region"],
+      primary: ["region", "machine_type"],
       advanced: [],
       labels: {
         machine_type: "Instance type",
