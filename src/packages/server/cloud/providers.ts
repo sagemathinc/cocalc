@@ -1,4 +1,4 @@
-import { getProviderEntry, type ProviderEntry, type ProviderId } from "@cocalc/cloud";
+import { listProviderEntries, type ProviderEntry, type ProviderId } from "@cocalc/cloud";
 import type { HostSpec } from "@cocalc/cloud";
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -78,22 +78,24 @@ export function gcpSafeName(prefix: string, base: string): string {
   return safePrefix.slice(0, maxLen);
 }
 
+const DEFAULT_PREFIX = "cocalc-host";
+const PROVIDER_PREFIX_SETTING: Record<
+  ProviderId,
+  keyof ProviderCredsContext["settings"] | undefined
+> = {
+  gcp: "project_hosts_google_prefix",
+  hyperstack: "project_hosts_hyperstack_prefix",
+  lambda: "project_hosts_lambda_prefix",
+  nebius: "project_hosts_nebius_prefix",
+  local: undefined,
+};
+
 export function getProviderPrefix(
   providerId: ProviderId,
   settings: ProviderCredsContext["settings"],
 ): string {
-  switch (providerId) {
-    case "gcp":
-      return settings.project_hosts_google_prefix ?? "cocalc-host";
-    case "hyperstack":
-      return settings.project_hosts_hyperstack_prefix ?? "cocalc-host";
-    case "lambda":
-      return settings.project_hosts_lambda_prefix ?? "cocalc-host";
-    case "nebius":
-      return settings.project_hosts_nebius_prefix ?? "cocalc-host";
-    default:
-      return "cocalc-host";
-  }
+  const key = PROVIDER_PREFIX_SETTING[providerId];
+  return (key && settings[key]) || DEFAULT_PREFIX;
 }
 
 function getGcpCatalogFetchOptions(
@@ -155,104 +157,95 @@ async function postProcessGcpCatalog(catalog: any) {
   }
 }
 
-const gcpEntry = getProviderEntry("gcp");
-const hyperstackEntry = getProviderEntry("hyperstack");
-const lambdaEntry = getProviderEntry("lambda");
-const nebiusEntry = getProviderEntry("nebius");
-const localEntry = getProviderEntry("local");
-
-export const SERVER_PROVIDERS: Record<ProviderId, ServerProviderEntry | undefined> = {
-  gcp: gcpEntry
-    ? {
-        id: "gcp",
-        entry: gcpEntry,
-        getPrefix: (settings) => getProviderPrefix("gcp", settings),
-        getCreds: ({ settings, controlPlanePublicKey, prefix }) => ({
-          service_account_json: settings.google_cloud_service_account_json,
-          ssh_public_key: controlPlanePublicKey,
-          prefix,
-        }),
-        getCatalogFetchOptions: getGcpCatalogFetchOptions,
-        postProcessCatalog: postProcessGcpCatalog,
-        normalizeName: gcpSafeName,
-        getBootstrapDataDiskDevices: (spec, storageMode) =>
-          storageMode === "ephemeral"
-            ? "/dev/disk/by-id/google-local-nvme-ssd-0 /dev/disk/by-id/google-local-ssd-0"
-            : `/dev/disk/by-id/google-${spec.name}-data`,
-      }
-    : undefined,
-  hyperstack: hyperstackEntry
-    ? {
-        id: "hyperstack",
-        entry: hyperstackEntry,
-        getPrefix: (settings) => getProviderPrefix("hyperstack", settings),
-        getCreds: async ({ settings, controlPlanePublicKey, prefix }) => {
-          const { hyperstack_api_key } = settings;
-          if (!hyperstack_api_key) {
-            throw new Error("hyperstack_api_key is not configured");
-          }
-          const catalog = await loadHyperstackCatalog();
-          return {
-            apiKey: hyperstack_api_key,
-            sshPublicKey: controlPlanePublicKey,
-            prefix,
-            catalog,
-          };
-        },
-        getCatalogFetchOptions: getHyperstackCatalogFetchOptions,
-        normalizeName: gcpSafeName,
-      }
-    : undefined,
-  lambda: lambdaEntry
-    ? {
-        id: "lambda",
-        entry: lambdaEntry,
-        getPrefix: (settings) => getProviderPrefix("lambda", settings),
-        getCreds: ({ settings, controlPlanePublicKey, prefix }) => {
-          const { lambda_cloud_api_key } = settings;
-          if (!lambda_cloud_api_key) {
-            throw new Error("lambda_cloud_api_key is not configured");
-          }
-          return {
-            apiKey: lambda_cloud_api_key,
-            sshPublicKey: controlPlanePublicKey,
-            prefix,
-          };
-        },
-        getCatalogFetchOptions: getLambdaCatalogFetchOptions,
-        normalizeName: gcpSafeName,
-      }
-    : undefined,
-  nebius: nebiusEntry
-    ? {
-        id: "nebius",
-        entry: nebiusEntry,
-        getPrefix: (settings) => getProviderPrefix("nebius", settings),
-        getCreds: ({ settings, controlPlanePublicKey, prefix }) => {
-          const { nebius_parent_id, nebius_subnet_id } = settings;
-          const creds = getNebiusCredentialsFromSettings(settings);
-          return {
-            ...creds,
-            parentId: nebius_parent_id || undefined,
-            subnetId: nebius_subnet_id,
-            sshPublicKey: controlPlanePublicKey,
-            prefix,
-          };
-        },
-        getCatalogFetchOptions: getNebiusCatalogFetchOptions,
-        normalizeName: gcpSafeName,
-      }
-    : undefined,
-  local: localEntry
-    ? {
-        id: "local",
-        entry: localEntry,
-        getPrefix: () => "cocalc-host",
-        getCreds: () => ({}),
-        normalizeName: gcpSafeName,
-      }
-    : undefined,
+type ServerProviderOverrides = Omit<
+  ServerProviderEntry,
+  "id" | "entry" | "getPrefix"
+> & {
+  getPrefix?: ServerProviderEntry["getPrefix"];
 };
+
+const SERVER_PROVIDER_OVERRIDES: Record<ProviderId, ServerProviderOverrides> = {
+  gcp: {
+    getCreds: ({ settings, controlPlanePublicKey, prefix }) => ({
+      service_account_json: settings.google_cloud_service_account_json,
+      ssh_public_key: controlPlanePublicKey,
+      prefix,
+    }),
+    getCatalogFetchOptions: getGcpCatalogFetchOptions,
+    postProcessCatalog: postProcessGcpCatalog,
+    getBootstrapDataDiskDevices: (spec, storageMode) =>
+      storageMode === "ephemeral"
+        ? "/dev/disk/by-id/google-local-nvme-ssd-0 /dev/disk/by-id/google-local-ssd-0"
+        : `/dev/disk/by-id/google-${spec.name}-data`,
+  },
+  hyperstack: {
+    getCreds: async ({ settings, controlPlanePublicKey, prefix }) => {
+      const { hyperstack_api_key } = settings;
+      if (!hyperstack_api_key) {
+        throw new Error("hyperstack_api_key is not configured");
+      }
+      const catalog = await loadHyperstackCatalog();
+      return {
+        apiKey: hyperstack_api_key,
+        sshPublicKey: controlPlanePublicKey,
+        prefix,
+        catalog,
+      };
+    },
+    getCatalogFetchOptions: getHyperstackCatalogFetchOptions,
+  },
+  lambda: {
+    getCreds: ({ settings, controlPlanePublicKey, prefix }) => {
+      const { lambda_cloud_api_key } = settings;
+      if (!lambda_cloud_api_key) {
+        throw new Error("lambda_cloud_api_key is not configured");
+      }
+      return {
+        apiKey: lambda_cloud_api_key,
+        sshPublicKey: controlPlanePublicKey,
+        prefix,
+      };
+    },
+    getCatalogFetchOptions: getLambdaCatalogFetchOptions,
+  },
+  nebius: {
+    getCreds: ({ settings, controlPlanePublicKey, prefix }) => {
+      const { nebius_parent_id, nebius_subnet_id } = settings;
+      const creds = getNebiusCredentialsFromSettings(settings);
+      return {
+        ...creds,
+        parentId: nebius_parent_id || undefined,
+        subnetId: nebius_subnet_id,
+        sshPublicKey: controlPlanePublicKey,
+        prefix,
+      };
+    },
+    getCatalogFetchOptions: getNebiusCatalogFetchOptions,
+  },
+  local: {
+    getCreds: () => ({}),
+  },
+};
+
+function buildServerProvider(
+  entry: ProviderEntry,
+): ServerProviderEntry {
+  const overrides = SERVER_PROVIDER_OVERRIDES[entry.id];
+  return {
+    id: entry.id,
+    entry,
+    getPrefix:
+      overrides.getPrefix ??
+      ((settings) => getProviderPrefix(entry.id, settings)),
+    normalizeName: overrides.normalizeName ?? gcpSafeName,
+    ...overrides,
+  };
+}
+
+export const SERVER_PROVIDERS: Record<ProviderId, ServerProviderEntry | undefined> =
+  Object.fromEntries(
+    listProviderEntries().map((entry) => [entry.id, buildServerProvider(entry)]),
+  ) as Record<ProviderId, ServerProviderEntry | undefined>;
 
 export function getServerProvider(
   providerId: ProviderId,

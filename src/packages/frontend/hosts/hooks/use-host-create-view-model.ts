@@ -52,6 +52,7 @@ export type HostCreateViewModel = {
     aiLoading: boolean;
     aiError?: string;
     aiResults: HostRecommendation[];
+    regionOptions: Array<{ value: string; label: string }>;
     canRecommend: boolean;
     runAiRecommendation: () => void;
     applyRecommendation: (rec: HostRecommendation) => void;

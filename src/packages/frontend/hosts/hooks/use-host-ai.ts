@@ -7,9 +7,14 @@ import { extractJsonPayload, normalizeRecommendation } from "../utils/recommenda
 type UseHostAiOptions = {
   catalogSummary?: Record<string, any>;
   availableProviders?: HostRecommendation["provider"][];
+  regionOptions?: Array<{ value: string; label: string }>;
 };
 
-export const useHostAi = ({ catalogSummary, availableProviders }: UseHostAiOptions) => {
+export const useHostAi = ({
+  catalogSummary,
+  availableProviders,
+  regionOptions,
+}: UseHostAiOptions) => {
   const [aiPrompt, setAiPrompt] = useState("");
   const [aiBudget, setAiBudget] = useState<number | undefined>(undefined);
   const [aiRegionGroup, setAiRegionGroup] = useState<string>("any");
@@ -112,5 +117,6 @@ export const useHostAi = ({ catalogSummary, availableProviders }: UseHostAiOptio
     aiError,
     aiResults,
     runAiRecommendation,
+    regionOptions,
   };
 };

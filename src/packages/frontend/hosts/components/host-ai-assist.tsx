@@ -1,7 +1,6 @@
 import { Button, Card, Col, Input, Row, Select, Space, Typography, Alert } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
-import { REGIONS } from "../constants";
 
 type HostAiAssistProps = {
   ai: HostCreateViewModel["ai"];
@@ -18,6 +17,7 @@ export const HostAiAssist: React.FC<HostAiAssistProps> = ({ ai }) => {
     aiLoading,
     aiError,
     aiResults,
+    regionOptions,
     canRecommend,
     runAiRecommendation,
     applyRecommendation,
@@ -59,10 +59,7 @@ export const HostAiAssist: React.FC<HostAiAssistProps> = ({ ai }) => {
           <Select
             value={aiRegionGroup}
             onChange={setAiRegionGroup}
-            options={[
-              { value: "any", label: "Any region" },
-              ...REGIONS,
-            ]}
+            options={regionOptions}
           />
         </Col>
       </Row>

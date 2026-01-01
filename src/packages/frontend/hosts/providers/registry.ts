@@ -14,7 +14,7 @@ import {
   formatRegionsLabel,
 } from "../utils/format";
 import type { HostProvider } from "../types";
-import { GPU_TYPES, LAMBDA_REGIONS, REGIONS, SIZES } from "../constants";
+import { GPU_TYPES, SIZES } from "../constants";
 
 export type HostFieldId =
   | "region"
@@ -272,7 +272,7 @@ export const getGcpRegionOptions = (
     "zones",
     "global",
   );
-  if (!regions?.length) return REGIONS;
+  if (!regions?.length) return [];
   return regions.map((r) => {
     const zoneWithMeta = zones?.find(
       (z) => z.region === r.name && (z.location || z.lowC02),
@@ -609,9 +609,7 @@ export const getLambdaRegionOptions = (
   const regionsFromCatalog = getLambdaRegionsFromCatalog(catalog);
   const regions = selectedLambdaInstanceType?.regions?.length
     ? selectedLambdaInstanceType.regions
-    : regionsFromCatalog.length
-      ? regionsFromCatalog
-      : LAMBDA_REGIONS.map((r) => r.value);
+    : regionsFromCatalog;
   return regions.map((name) => ({ value: name, label: name }));
 };
 

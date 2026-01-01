@@ -15,6 +15,7 @@ import { useHosts } from "./use-hosts";
 import { useHostLog } from "./use-host-log";
 import { useHostProviders } from "./use-host-providers";
 import { useHostSelection } from "./use-host-selection";
+import { buildRegionGroupOptions } from "../utils/normalize-catalog";
 
 export const useHostsPageViewModel = () => {
   const hub = webapp_client.conat_client.hub;
@@ -91,6 +92,7 @@ export const useHostsPageViewModel = () => {
     selectedStorageMode,
     enabledProviders,
   });
+  const regionOptions = buildRegionGroupOptions(catalogSummary);
 
   const {
     aiPrompt,
@@ -103,7 +105,11 @@ export const useHostsPageViewModel = () => {
     aiError,
     aiResults,
     runAiRecommendation,
-  } = useHostAi({ catalogSummary, availableProviders: enabledProviders });
+  } = useHostAi({
+    catalogSummary,
+    availableProviders: enabledProviders,
+    regionOptions,
+  });
 
   const { creating, onCreate } = useHostCreate({
     hub,
@@ -151,6 +157,7 @@ export const useHostsPageViewModel = () => {
       canRecommend: !!catalogSummary,
       runAiRecommendation,
       applyRecommendation,
+      regionOptions,
     },
   });
   const hostListVm = useHostListViewModel({
