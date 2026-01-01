@@ -130,6 +130,7 @@ export const hosts = {
   createHost: authFirstRequireAccount,
   startHost: authFirstRequireAccount,
   stopHost: authFirstRequireAccount,
+  renameHost: authFirstRequireAccount,
   deleteHost: authFirstRequireAccount,
   getBackupConfig: noAuth,
 };
@@ -167,5 +168,10 @@ export interface Hosts {
   }) => Promise<Host>;
   startHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
   stopHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
+  renameHost: (opts: {
+    account_id?: string;
+    id: string;
+    name: string;
+  }) => Promise<Host>;
   deleteHost: (opts: { account_id?: string; id: string }) => Promise<void>;
 }

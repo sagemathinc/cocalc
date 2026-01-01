@@ -496,6 +496,32 @@ export async function stopHost({
   return parseRow(rows[0]);
 }
 
+export async function renameHost({
+  account_id,
+  id,
+  name,
+}: {
+  account_id?: string;
+  id: string;
+  name: string;
+}): Promise<Host> {
+  await loadOwnedHost(id, account_id);
+  const cleaned = name?.trim();
+  if (!cleaned) {
+    throw new Error("name must be provided");
+  }
+  await pool().query(
+    `UPDATE project_hosts SET name=$2, updated=NOW() WHERE id=$1`,
+    [id, cleaned],
+  );
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE id=$1`,
+    [id],
+  );
+  if (!rows[0]) throw new Error("host not found");
+  return parseRow(rows[0]);
+}
+
 export async function deleteHost({
   account_id,
   id,
