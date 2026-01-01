@@ -1,4 +1,5 @@
 import { Form, message } from "antd";
+import { React } from "@cocalc/frontend/app-framework";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useHostActions } from "./use-host-actions";
@@ -26,12 +27,23 @@ export const useHostsPageViewModel = () => {
   const { hosts, setHosts, refresh, canCreateHosts } = useHosts(hub, {
     onError: () => message.error("Unable to load hosts"),
   });
-  const { setStatus, removeHost } = useHostActions({
+  const { setStatus, removeHost, renameHost } = useHostActions({
     hub,
     setHosts,
     refresh,
   });
+  const [editingHost, setEditingHost] = React.useState<typeof hosts[number]>();
+  const [editOpen, setEditOpen] = React.useState(false);
+  const [savingEdit, setSavingEdit] = React.useState(false);
   const { drawerOpen, selected, openDetails, closeDetails } = useHostSelection(hosts);
+  const openEdit = (host: typeof hosts[number]) => {
+    setEditingHost(host);
+    setEditOpen(true);
+  };
+  const closeEdit = () => {
+    setEditOpen(false);
+    setEditingHost(undefined);
+  };
   const { hostLog, loadingLog } = useHostLog(hub, selected?.id, {
     enabled: drawerOpen,
     limit: 50,
@@ -166,14 +178,29 @@ export const useHostsPageViewModel = () => {
     onStop: (id: string) => setStatus(id, "stop"),
     onDelete: removeHost,
     onDetails: openDetails,
+    onEdit: openEdit,
   });
   const hostDrawerVm = useHostDrawerViewModel({
     open: drawerOpen,
     host: selected,
     onClose: closeDetails,
+    onEdit: openEdit,
     hostLog,
     loadingLog,
   });
 
-  return { createVm, hostListVm, hostDrawerVm };
+  const editVm = {
+    open: editOpen,
+    host: editingHost,
+    saving: savingEdit,
+    onCancel: closeEdit,
+    onSave: async (id: string, name: string) => {
+      setSavingEdit(true);
+      await renameHost(id, name);
+      setSavingEdit(false);
+      closeEdit();
+    },
+  };
+
+  return { createVm, hostListVm, hostDrawerVm, editVm };
 };

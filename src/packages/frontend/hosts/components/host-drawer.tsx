@@ -1,21 +1,26 @@
-import { Alert, Card, Divider, Drawer, Space, Tag, Typography } from "antd";
+import { Alert, Button, Card, Divider, Drawer, Space, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import Bootlog from "@cocalc/frontend/project/bootlog";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import type { HostLogEntry } from "../hooks/use-host-log";
 import { STATUS_COLOR } from "../constants";
+import {
+  getProviderDescriptor,
+  isKnownProvider,
+} from "../providers/registry";
 
 type HostDrawerViewModel = {
   open: boolean;
   host?: Host;
   onClose: () => void;
+  onEdit: (host: Host) => void;
   hostLog: HostLogEntry[];
   loadingLog: boolean;
 };
 
 export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
-  const { open, host, onClose, hostLog, loadingLog } = vm;
+  const { open, host, onClose, onEdit, hostLog, loadingLog } = vm;
   return (
   <Drawer
     title={
@@ -23,6 +28,11 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
         <Icon name="server" /> {host?.name ?? "Host details"}
         {host && (
           <Tag color={STATUS_COLOR[host.status]}>{host.status}</Tag>
+        )}
+        {host && (
+          <Button type="link" size="small" onClick={() => onEdit(host)}>
+            Edit
+          </Button>
         )}
       </Space>
     }
@@ -33,6 +43,13 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
     {host ? (
       <Space direction="vertical" style={{ width: "100%" }} size="middle">
         <Space size="small">
+          <Tag>
+            {host.machine?.cloud
+              ? isKnownProvider(host.machine.cloud)
+                ? getProviderDescriptor(host.machine.cloud).label
+                : host.machine.cloud
+              : "provider: n/a"}
+          </Tag>
           <Tag>{host.region}</Tag>
           <Tag>{host.size}</Tag>
           {host.gpu && <Tag color="purple">GPU</Tag>}
@@ -72,12 +89,12 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
         <Typography.Text type="secondary">
           Last seen: {host.last_seen ?? "n/a"}
         </Typography.Text>
-        {host.status === "error" && host.error && (
+        {host.status === "error" && host.last_error && (
           <Alert
             type="error"
             showIcon
             message="Provisioning error"
-            description={host.error}
+            description={host.last_error}
           />
         )}
         <Divider />

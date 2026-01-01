@@ -6,6 +6,7 @@ type UseHostListViewModelArgs = {
   onStop: (id: string) => void;
   onDelete: (id: string) => void;
   onDetails: (host: Host) => void;
+  onEdit: (host: Host) => void;
 };
 
 export const useHostListViewModel = ({
@@ -14,6 +15,7 @@ export const useHostListViewModel = ({
   onStop,
   onDelete,
   onDetails,
+  onEdit,
 }: UseHostListViewModelArgs) => {
   return {
     hosts,
@@ -21,5 +23,6 @@ export const useHostListViewModel = ({
     onStop,
     onDelete,
     onDetails,
+    onEdit,
   };
 };

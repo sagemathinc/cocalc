@@ -6,6 +6,7 @@ type HubClient = {
     startHost: (opts: { id: string }) => Promise<unknown>;
     stopHost: (opts: { id: string }) => Promise<unknown>;
     deleteHost: (opts: { id: string }) => Promise<unknown>;
+    renameHost?: (opts: { id: string; name: string }) => Promise<unknown>;
   };
 };
 
@@ -56,5 +57,27 @@ export const useHostActions = ({
     }
   };
 
-  return { setStatus, removeHost };
+  const renameHost = async (id: string, name: string) => {
+    const cleaned = name?.trim();
+    if (!cleaned) {
+      message.error("Host name cannot be empty");
+      return;
+    }
+    try {
+      if (!hub.hosts.renameHost) {
+        message.error("Host rename not available");
+        return;
+      }
+      await hub.hosts.renameHost({ id, name: cleaned });
+      setHosts((prev) =>
+        prev.map((host) => (host.id === id ? { ...host, name: cleaned } : host)),
+      );
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to rename host");
+    }
+  };
+
+  return { setStatus, removeHost, renameHost };
 };

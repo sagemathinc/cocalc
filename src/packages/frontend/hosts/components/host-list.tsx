@@ -10,10 +10,11 @@ type HostListViewModel = {
   onStop: (id: string) => void;
   onDelete: (id: string) => void;
   onDetails: (host: Host) => void;
+  onEdit: (host: Host) => void;
 };
 
 export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
-  const { hosts, onStart, onStop, onDelete, onDetails } = vm;
+  const { hosts, onStart, onStop, onDelete, onDetails, onEdit } = vm;
   if (hosts.length === 0) {
     return (
       <Card
@@ -43,6 +44,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             onStop={onStop}
             onDelete={onDelete}
             onDetails={onDetails}
+            onEdit={onEdit}
           />
         </Col>
       ))}

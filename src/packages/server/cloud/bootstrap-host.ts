@@ -39,6 +39,7 @@ type ProjectHostRow = {
   public_url?: string;
   internal_url?: string;
   ssh_server?: string;
+  status?: string;
   metadata?: HostMetadata;
 };
 
@@ -172,6 +173,19 @@ async function scpFile(opts: {
 }
 
 export async function scheduleBootstrap(row: ProjectHostRow) {
+  const { project_hosts_sea_path, project_hosts_sea_url } =
+    await getServerSettings();
+  const seaPath =
+    project_hosts_sea_path || process.env.COCALC_PROJECT_HOST_SEA_PATH || "";
+  const seaUrl =
+    project_hosts_sea_url || process.env.COCALC_PROJECT_HOST_SEA_URL || "";
+  const masterAddress =
+    process.env.MASTER_CONAT_SERVER ??
+    process.env.COCALC_MASTER_CONAT_SERVER ??
+    "";
+  if (!seaPath && !seaUrl) return;
+  if (!masterAddress) return;
+  if (row.status && row.status !== "running") return;
   const runtime = row.metadata?.runtime;
   if (!runtime?.public_ip) return;
   const bootstrapStatus = row.metadata?.bootstrap?.status;

@@ -97,8 +97,8 @@ export interface Host {
   status: HostStatus;
   machine?: HostMachine;
   public_ip?: string;
-  error?: string;
-  error_at?: string;
+  last_error?: string;
+  last_error_at?: string;
   projects?: number;
   last_seen?: string;
   tier?: number;

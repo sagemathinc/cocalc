@@ -1,5 +1,7 @@
 export type HostProvider = "gcp" | "hyperstack" | "lambda" | "nebius" | "none";
 
+export type HostListViewMode = "grid" | "list";
+
 export type HostRecommendation = {
   title?: string;
   provider: HostProvider;

@@ -52,8 +52,8 @@ function parseRow(
     status: (row.status as HostStatus) ?? "off",
     machine,
     public_ip: metadata.runtime?.public_ip,
-    error: metadata.last_error,
-    error_at: metadata.last_error_at,
+    last_error: metadata.last_error,
+    last_error_at: metadata.last_error_at,
     projects: row.capacity?.projects ?? 0,
     last_seen: row.last_seen
       ? new Date(row.last_seen).toISOString()

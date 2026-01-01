@@ -2,6 +2,10 @@ import { Button, Card, Space, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { STATUS_COLOR } from "../constants";
+import {
+  getProviderDescriptor,
+  isKnownProvider,
+} from "../providers/registry";
 
 type HostCardProps = {
   host: Host;
@@ -9,6 +13,7 @@ type HostCardProps = {
   onStop: (id: string) => void;
   onDelete: (id: string) => void;
   onDetails: (host: Host) => void;
+  onEdit: (host: Host) => void;
 };
 
 export const HostCard: React.FC<HostCardProps> = ({
@@ -17,6 +22,7 @@ export const HostCard: React.FC<HostCardProps> = ({
   onStop,
   onDelete,
   onDetails,
+  onEdit,
 }) => (
   <Card
     title={host.name}
@@ -38,6 +44,9 @@ export const HostCard: React.FC<HostCardProps> = ({
       >
         Stop
       </Button>,
+      <Button key="edit" type="link" onClick={() => onEdit(host)}>
+        Edit
+      </Button>,
       <Button key="details" type="link" onClick={() => onDetails(host)}>
         Details
       </Button>,
@@ -47,6 +56,14 @@ export const HostCard: React.FC<HostCardProps> = ({
     ]}
   >
     <Space direction="vertical" size="small">
+      <Typography.Text>
+        Provider:{" "}
+        {host.machine?.cloud
+          ? isKnownProvider(host.machine.cloud)
+            ? getProviderDescriptor(host.machine.cloud).label
+            : host.machine.cloud
+          : "n/a"}
+      </Typography.Text>
       <Typography.Text>Region: {host.region}</Typography.Text>
       <Typography.Text>Size: {host.size}</Typography.Text>
       <Typography.Text>GPU: {host.gpu ? "Yes" : "No"}</Typography.Text>
@@ -60,8 +77,8 @@ export const HostCard: React.FC<HostCardProps> = ({
             : ""}
         </Typography.Text>
       )}
-      {host.status === "error" && host.error && (
-        <Typography.Text type="danger">{host.error}</Typography.Text>
+      {host.status === "error" && host.last_error && (
+        <Typography.Text type="danger">{host.last_error}</Typography.Text>
       )}
     </Space>
   </Card>
