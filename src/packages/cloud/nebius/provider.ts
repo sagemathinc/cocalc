@@ -21,6 +21,7 @@ import {
   InstanceSpec,
   InstanceStatus_InstanceState,
   IPAddress,
+  ListDisksRequest,
   ListInstancesRequest,
   NetworkInterfaceSpec,
   PublicIPAddress,
@@ -71,6 +72,72 @@ function blockSizeBytes(): Long {
 function diskTypeFromCode(code?: number): DiskSpec_DiskType {
   if (code == null) return DiskSpec_DiskType.NETWORK_SSD;
   return DiskSpec_DiskType.fromNumber(code);
+}
+
+function isAlreadyExistsError(err: unknown): boolean {
+  const message = String((err as any)?.message ?? err);
+  const code = (err as any)?.code;
+  return (
+    message.includes("ALREADY_EXISTS") ||
+    message.toLowerCase().includes("already exists") ||
+    code === "ALREADY_EXISTS" ||
+    code === 6
+  );
+}
+
+async function findDiskIdByName(
+  client: NebiusClient,
+  parentId: string,
+  name: string,
+): Promise<string | undefined> {
+  let pageToken = "";
+  for (;;) {
+    const res = await client.disks.list(
+      ListDisksRequest.create({
+        parentId,
+        pageSize: Long.fromNumber(999),
+        pageToken,
+      }),
+    );
+    const match = (res.items ?? []).find(
+      (disk) => (disk.metadata?.name ?? "").toLowerCase() === name.toLowerCase(),
+    );
+    if (match?.metadata?.id) return match.metadata.id;
+    const nextToken = res.nextPageToken ?? "";
+    if (!nextToken) return undefined;
+    pageToken = nextToken;
+  }
+}
+
+async function createDiskOrReuse(
+  client: NebiusClient,
+  parentId: string,
+  name: string,
+  spec: DiskSpec,
+): Promise<string> {
+  try {
+    const op = await client.disks.create(
+      CreateDiskRequest.create({
+        metadata: ResourceMetadata.create({ parentId, name }),
+        spec,
+      }),
+    );
+    await op.wait();
+    return op.resourceId();
+  } catch (err) {
+    if (!isAlreadyExistsError(err)) throw err;
+    const existingId = await findDiskIdByName(client, parentId, name);
+    if (!existingId) {
+      logger.warn("nebius: disk already exists but not found", {
+        name,
+        parentId,
+        err,
+      });
+      throw err;
+    }
+    logger.info("nebius: reusing existing disk", { name, diskId: existingId });
+    return existingId;
+  }
 }
 
 function buildUserData(spec: HostSpec): string | undefined {
@@ -151,33 +218,29 @@ export class NebiusProvider implements CloudProvider {
       size_gb: bootDiskGb,
       type: diskType,
     });
-    const bootOp = await client.disks.create(
-      CreateDiskRequest.create({
-        metadata: ResourceMetadata.create({
-          parentId,
-          name: `${name}-boot`,
-        }),
-        spec: DiskSpec.create({
-          type: diskType,
-          blockSizeBytes: blockSizeBytes(),
-          size: {
-            $case: "sizeGibibytes",
-            sizeGibibytes: Long.fromNumber(bootDiskGb),
-          },
-          source: sourceImage
-            ? { $case: "sourceImageId", sourceImageId: sourceImage }
-            : {
-                $case: "sourceImageFamily",
-                sourceImageFamily: SourceImageFamily.create({
-                  imageFamily: sourceImageFamily!,
-                  parentId,
-                }),
-              },
-        }),
+    const bootDiskName = `${name}-boot`;
+    diskIds.boot = await createDiskOrReuse(
+      client,
+      parentId,
+      bootDiskName,
+      DiskSpec.create({
+        type: diskType,
+        blockSizeBytes: blockSizeBytes(),
+        size: {
+          $case: "sizeGibibytes",
+          sizeGibibytes: Long.fromNumber(bootDiskGb),
+        },
+        source: sourceImage
+          ? { $case: "sourceImageId", sourceImageId: sourceImage }
+          : {
+              $case: "sourceImageFamily",
+              sourceImageFamily: SourceImageFamily.create({
+                imageFamily: sourceImageFamily!,
+                parentId,
+              }),
+            },
       }),
     );
-    await bootOp.wait();
-    diskIds.boot = bootOp.resourceId();
 
     const storageMode = spec.metadata?.storage_mode;
     if (storageMode === "persistent") {
@@ -186,24 +249,20 @@ export class NebiusProvider implements CloudProvider {
         size_gb: spec.disk_gb,
         type: diskType,
       });
-      const dataOp = await client.disks.create(
-        CreateDiskRequest.create({
-          metadata: ResourceMetadata.create({
-            parentId,
-            name: `${name}-data`,
-          }),
-          spec: DiskSpec.create({
-            type: diskType,
-            blockSizeBytes: blockSizeBytes(),
-            size: {
-              $case: "sizeGibibytes",
-              sizeGibibytes: Long.fromNumber(spec.disk_gb),
-            },
-          }),
+      const dataDiskName = `${name}-data`;
+      diskIds.data = await createDiskOrReuse(
+        client,
+        parentId,
+        dataDiskName,
+        DiskSpec.create({
+          type: diskType,
+          blockSizeBytes: blockSizeBytes(),
+          size: {
+            $case: "sizeGibibytes",
+            sizeGibibytes: Long.fromNumber(spec.disk_gb),
+          },
         }),
       );
-      await dataOp.wait();
-      diskIds.data = dataOp.resourceId();
     }
 
     const userData = buildUserData(spec) ?? "";
