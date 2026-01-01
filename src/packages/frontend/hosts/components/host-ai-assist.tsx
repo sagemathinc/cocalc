@@ -1,5 +1,6 @@
 import { Button, Card, Col, Input, Row, Select, Space, Typography, Alert } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
+import { getProviderDescriptor, isKnownProvider } from "../providers/registry";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
 
 type HostAiAssistProps = {
@@ -73,12 +74,21 @@ export const HostAiAssist: React.FC<HostAiAssistProps> = ({ ai }) => {
       {aiError && <Alert type="error" message={aiError} />}
       {aiResults.length > 0 && (
         <Space direction="vertical" style={{ width: "100%" }} size="small">
-          {aiResults.map((rec, idx) => (
-            <Card
-              key={`${rec.provider}-${rec.region}-${idx}`}
-              size="small"
-              bodyStyle={{ padding: "10px 12px" }}
-            >
+          {aiResults.map((rec, idx) => {
+            const providerLabel = isKnownProvider(rec.provider)
+              ? getProviderDescriptor(rec.provider).label
+              : rec.provider;
+            const regionLabel =
+              rec.region != null
+                ? regionOptions.find((opt) => opt.value === rec.region)?.label ??
+                  rec.region
+                : "Any region";
+            return (
+              <Card
+                key={`${rec.provider}-${rec.region}-${idx}`}
+                size="small"
+                bodyStyle={{ padding: "10px 12px" }}
+              >
               <Space direction="vertical" style={{ width: "100%" }} size={2}>
                 <Space align="start" style={{ justifyContent: "space-between" }}>
                   <div>
@@ -99,7 +109,7 @@ export const HostAiAssist: React.FC<HostAiAssistProps> = ({ ai }) => {
                 </Space>
                 <Space direction="vertical" size={0}>
                   <Typography.Text type="secondary">
-                    {rec.provider} · {rec.region ?? "any"}
+                    {providerLabel} · {regionLabel}
                   </Typography.Text>
                   {rec.machine_type && (
                     <Typography.Text type="secondary">
@@ -116,8 +126,9 @@ export const HostAiAssist: React.FC<HostAiAssistProps> = ({ ai }) => {
                   )}
                 </Space>
               </Space>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </Space>
       )}
     </Space>
