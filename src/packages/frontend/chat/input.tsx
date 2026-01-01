@@ -281,6 +281,7 @@ export default function ChatInput({
         position: "relative",
         marginBottom: "-5px",
       }}
+      autoGrow
     />
   );
 }

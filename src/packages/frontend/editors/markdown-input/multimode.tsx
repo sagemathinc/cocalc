@@ -490,13 +490,23 @@ export default function MultiMarkdownInput({
             }
             style={
               minimal
-                ? { background: undefined, backgroundColor: undefined }
+                ? {
+                    background: undefined,
+                    backgroundColor: undefined,
+                  }
                 : undefined
             }
             pageStyle={
               minimal
-                ? { background: undefined, padding: 0 }
-                : { padding: "5px 15px" }
+                ? {
+                    background: undefined,
+                    padding: 0,
+                    minHeight: isAutoGrow ? `${MIN_INPUT_HEIGHT}px` : undefined,
+                  }
+                : {
+                    padding: "5px 15px",
+                    minHeight: isAutoGrow ? `${MIN_INPUT_HEIGHT}px` : undefined,
+                  }
             }
             minimal={minimal}
             height={height}
