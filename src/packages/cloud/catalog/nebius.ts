@@ -7,6 +7,7 @@ import type {
 } from "@nebius/js-sdk/api/nebius/compute/v1/index";
 import {
   ListImagesRequest,
+  ListPublicRequest,
   ListPlatformsRequest,
 } from "@nebius/js-sdk/api/nebius/compute/v1/index";
 import { Long } from "@nebius/js-sdk/runtime/protos/index";
@@ -60,13 +61,39 @@ async function listAllImages(client: NebiusClient): Promise<Image[]> {
   return items;
 }
 
+async function listPublicImagesForRegion(
+  client: NebiusClient,
+  region: string,
+): Promise<Image[]> {
+  const items: Image[] = [];
+  let pageToken = "";
+  while (true) {
+    const response = await client.images.listPublic(
+      ListPublicRequest.create({
+        region,
+        pageSize: Long.fromNumber(100),
+        pageToken,
+      }),
+    );
+    if (response.items?.length) items.push(...response.items);
+    pageToken = response.nextPageToken ?? "";
+    if (!pageToken) break;
+  }
+  return items;
+}
+
 export async function fetchNebiusCatalog(
   opts: NebiusCatalogOpts,
 ): Promise<NebiusCatalog> {
   const client = new NebiusClient(opts);
+  const regions = (opts.regions ?? []).filter(Boolean);
   const [platforms, images] = await Promise.all([
     listAllPlatforms(client),
-    listAllImages(client),
+    regions.length
+      ? Promise.all(
+          regions.map((region) => listPublicImagesForRegion(client, region)),
+        ).then((lists) => lists.flat())
+      : listAllImages(client),
   ]);
 
   const instance_types: NebiusInstanceType[] = [];
@@ -96,18 +123,20 @@ export async function fetchNebiusCatalog(
     }
   }
 
-  const normalizedImages: NebiusImage[] = images
-    .map((image) => ({
-      id: image.metadata?.id ?? "",
+  const imageMap = new Map<string, NebiusImage>();
+  for (const image of images) {
+    const id = image.metadata?.id ?? "";
+    if (!id) continue;
+    imageMap.set(id, {
+      id,
       name: image.metadata?.name ?? null,
       family: image.spec?.imageFamily ?? null,
       version: image.spec?.version ?? null,
       architecture: image.spec?.cpuArchitecture?.name ?? null,
       recommended_platforms: image.spec?.recommendedPlatforms ?? [],
-    }))
-    .filter((img) => !!img.id);
-
-  const regions = (opts.regions ?? []).filter(Boolean);
+    });
+  }
+  const normalizedImages: NebiusImage[] = Array.from(imageMap.values());
 
   logger.info("fetchNebiusCatalog", {
     regions: regions.length,

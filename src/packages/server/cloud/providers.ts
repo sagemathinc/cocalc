@@ -133,15 +133,22 @@ function getLambdaCatalogFetchOptions(
   return { apiKey: lambda_cloud_api_key };
 }
 
+const NEBIUS_DEFAULT_REGIONS = [
+  "eu-north1",
+  "eu-west1",
+  "me-west1",
+  "us-central1",
+];
+
 function getNebiusCatalogFetchOptions(
   settings: ProviderCredsContext["settings"],
 ) {
-  const { nebius_parent_id, nebius_regions } = settings;
+  const { nebius_parent_id } = settings;
   const creds = getNebiusCredentialsFromSettings(settings);
   return {
     ...creds,
     parentId: nebius_parent_id || undefined,
-    regions: Array.isArray(nebius_regions) ? nebius_regions.filter(Boolean) : undefined,
+    regions: NEBIUS_DEFAULT_REGIONS,
   };
 }
 

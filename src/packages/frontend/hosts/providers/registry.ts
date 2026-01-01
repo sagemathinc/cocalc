@@ -69,6 +69,14 @@ type NebiusInstance = {
   gpus?: number | null;
   gpu_label?: string | null;
 };
+type NebiusImage = {
+  id: string;
+  name?: string | null;
+  family?: string | null;
+  version?: string | null;
+  architecture?: string | null;
+  recommended_platforms?: string[];
+};
 
 export type LambdaInstanceOption = HostFieldOption<LambdaInstance> & {
   entry: LambdaInstance;
@@ -141,7 +149,7 @@ export type HostProviderDescriptor = {
   ) => FieldOptionsMap;
   buildCreatePayload: (
     vals: Record<string, any>,
-    ctx: { fieldOptions: FieldOptionsMap },
+    ctx: { fieldOptions: FieldOptionsMap; catalog?: HostCatalog },
   ) => Record<string, any>;
   applyRecommendation?: (rec: {
     provider?: HostProvider;
@@ -182,6 +190,13 @@ const buildBasePayload = (
 ) => {
   const machine_type = vals.machine_type || undefined;
   const storage_mode = vals.storage_mode || "persistent";
+  const baseMetadata = {
+    shared: vals.shared,
+    bucket: vals.bucket,
+    boot_disk_gb: vals.boot_disk_gb,
+  };
+  const mergedMetadata = { ...baseMetadata, ...(machine.metadata ?? {}) };
+  const source_image = machine.source_image ?? vals.source_image;
   return {
     name: vals.name ?? "My Host",
     region: getDefaultRegion(vals, options),
@@ -192,13 +207,9 @@ const buildBasePayload = (
       storage_mode,
       disk_gb: vals.disk,
       disk_type: vals.disk_type,
-      source_image: vals.source_image || undefined,
-      metadata: {
-        shared: vals.shared,
-        bucket: vals.bucket,
-        boot_disk_gb: vals.boot_disk_gb,
-      },
       ...machine,
+      source_image: source_image || undefined,
+      metadata: mergedMetadata,
     },
   };
 };
@@ -740,6 +751,48 @@ const summarizeNebiusCatalog = (catalog: HostCatalog) => ({
     >(catalog, "images", "global") ?? [],
 });
 
+const parseUbuntuVersion = (value?: string | null): number | undefined => {
+  if (!value) return undefined;
+  const match = value.match(/ubuntu(\d{2})\.(\d{2})/);
+  if (!match) return undefined;
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  if (!Number.isFinite(major) || !Number.isFinite(minor)) return undefined;
+  return major * 100 + minor;
+};
+
+const isNebiusGpuFamily = (family?: string | null) =>
+  !!family && /cuda|nvidia/i.test(family);
+
+const pickNebiusImageFamily = (
+  catalog: HostCatalog | undefined,
+  wantsGpu: boolean,
+): string | undefined => {
+  const images =
+    getCatalogEntryPayload<NebiusImage[]>(catalog, "images", "global") ?? [];
+  const ubuntuImages = images.filter((img) =>
+    (img.family ?? "").toLowerCase().includes("ubuntu"),
+  );
+  const candidates = ubuntuImages.filter((img) =>
+    wantsGpu ? isNebiusGpuFamily(img.family) : !isNebiusGpuFamily(img.family),
+  );
+  const pool = candidates.length ? candidates : ubuntuImages;
+  if (!pool.length) return undefined;
+  const scored = pool
+    .map((img) => {
+      const version = parseUbuntuVersion(img.family) ?? 0;
+      const bump =
+        wantsGpu && isNebiusGpuFamily(img.family)
+          ? 1
+          : !wantsGpu && /driverless/i.test(img.family ?? "")
+            ? 1
+            : 0;
+      return { img, score: version * 10 + bump };
+    })
+    .sort((a, b) => b.score - a.score);
+  return scored[0]?.img.family ?? scored[0]?.img.name ?? undefined;
+};
+
 export const getNebiusImageOptions = (
   catalog: HostCatalog | undefined,
 ): HostFieldOption[] => {
@@ -1265,6 +1318,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       );
       const gpuCount = instance?.gpus ?? 0;
       const wantsGpu = gpuCount > 0;
+      const sourceImageFamily = pickNebiusImageFamily(ctx.catalog, wantsGpu);
       return buildBasePayload(
         vals,
         ctx.fieldOptions,
@@ -1272,6 +1326,9 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
           machine_type: vals.machine_type || undefined,
           gpu_type: instance?.gpu_label,
           gpu_count: gpuCount || undefined,
+          metadata: {
+            source_image_family: sourceImageFamily,
+          },
         },
         wantsGpu,
       );
@@ -1387,7 +1444,7 @@ export const getProviderOptions = (
 
 export const buildCreateHostPayload = (
   vals: Record<string, any>,
-  ctx: { fieldOptions: FieldOptionsMap },
+  ctx: { fieldOptions: FieldOptionsMap; catalog?: HostCatalog },
 ) => {
   const provider = (vals.provider ?? "none") as HostProvider;
   return getProviderDescriptor(provider).buildCreatePayload(vals, ctx);

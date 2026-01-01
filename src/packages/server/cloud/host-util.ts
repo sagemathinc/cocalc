@@ -62,6 +62,8 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   const normalizeName = provider?.normalizeName ?? gcpSafeName;
   const providerName = providerId ? normalizeName(prefix, baseName) : baseName;
   const sourceImage = machine.source_image ?? machine.metadata?.source_image;
+  const sourceImageFamily =
+    machine.metadata?.source_image_family ?? machine.metadata?.image_family;
   logger.debug("buildHostSpec source_image", {
     host_id: row.id,
     machine_source_image: machine.source_image,
@@ -82,6 +84,7 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
       ...machine.metadata,
       machine_type: machine.machine_type,
       source_image: sourceImage,
+      source_image_family: sourceImageFamily,
       bootstrap_url: machine.bootstrap_url,
       startup_script: machine.startup_script,
       storage_mode,

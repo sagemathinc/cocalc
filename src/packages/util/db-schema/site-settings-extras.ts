@@ -253,7 +253,6 @@ export type SiteSettingsExtrasKeys =
   | "project_hosts_lambda_prefix"
   | "nebius_credentials_json"
   | "nebius_parent_id"
-  | "nebius_regions"
   | "nebius_subnet_id"
   | "project_hosts_nebius_prefix"
   | "hyperstack_api_key"
@@ -910,15 +909,6 @@ export const EXTRAS: SettingsExtras = {
     show: project_hosts_nebius_enabled,
     tags: ["Project Hosts", "Cloud", "Nebius"],
     valid: (x) => !!x,
-  },
-  nebius_regions: {
-    name: "Project Hosts: Nebius - Regions",
-    desc: "Optional array of allowed Nebius regions (JSON array of strings). Leave empty to allow all catalog regions.",
-    default: "[]",
-    to_val: from_json,
-    show: project_hosts_nebius_enabled,
-    tags: ["Project Hosts", "Cloud", "Nebius"],
-    valid: () => true,
   },
   nebius_subnet_id: {
     name: "Project Hosts: Nebius - Subnet ID",

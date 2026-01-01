@@ -24,6 +24,7 @@ import {
   NetworkInterfaceSpec,
   PublicIPAddress,
   ResourcesSpec,
+  SourceImageFamily,
   StartInstanceRequest,
   StopInstanceRequest,
   UpdateDiskRequest,
@@ -129,8 +130,10 @@ export class NebiusProvider implements CloudProvider {
       spec.metadata?.source_image ??
       spec.metadata?.image_id ??
       spec.metadata?.image;
-    if (!sourceImage) {
-      throw new Error("nebius source_image is required");
+    const sourceImageFamily =
+      spec.metadata?.source_image_family ?? spec.metadata?.image_family;
+    if (!sourceImage && !sourceImageFamily) {
+      throw new Error("nebius source_image or source_image_family is required");
     }
 
     const bootDiskGb =
@@ -159,7 +162,15 @@ export class NebiusProvider implements CloudProvider {
             $case: "sizeGibibytes",
             sizeGibibytes: Long.fromNumber(bootDiskGb),
           },
-          source: { $case: "sourceImageId", sourceImageId: sourceImage },
+          source: sourceImage
+            ? { $case: "sourceImageId", sourceImageId: sourceImage }
+            : {
+                $case: "sourceImageFamily",
+                sourceImageFamily: SourceImageFamily.create({
+                  imageFamily: sourceImageFamily!,
+                  parentId,
+                }),
+              },
         }),
       }),
     );

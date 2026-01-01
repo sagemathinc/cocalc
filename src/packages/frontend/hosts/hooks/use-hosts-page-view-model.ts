@@ -155,6 +155,7 @@ export const useHostsPageViewModel = () => {
     hub,
     refresh,
     fieldOptions,
+    catalog,
   });
 
   const createVm = useHostCreateViewModel({

@@ -4,6 +4,7 @@ import {
   buildCreateHostPayload,
   type FieldOptionsMap,
 } from "../providers/registry";
+import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
 
 type HubClient = {
   hosts: {
@@ -15,12 +16,14 @@ type UseHostCreateOptions = {
   hub: HubClient;
   refresh: () => Promise<unknown>;
   fieldOptions: FieldOptionsMap;
+  catalog?: HostCatalog;
 };
 
 export const useHostCreate = ({
   hub,
   refresh,
   fieldOptions,
+  catalog,
 }: UseHostCreateOptions) => {
   const [creating, setCreating] = useState(false);
 
@@ -28,7 +31,7 @@ export const useHostCreate = ({
     if (creating) return;
     setCreating(true);
     try {
-      const payload = buildCreateHostPayload(vals, { fieldOptions });
+      const payload = buildCreateHostPayload(vals, { fieldOptions, catalog });
       await hub.hosts.createHost(payload);
       await refresh();
       message.success("Host created");
