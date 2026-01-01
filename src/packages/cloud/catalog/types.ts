@@ -71,4 +71,16 @@ export type NebiusImage = {
   version?: string | null;
   architecture?: string | null;
   recommended_platforms?: string[];
+  region?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+
+export type NebiusPriceItem = {
+  service: string;
+  product: string;
+  region: string;
+  price_usd: string;
+  unit: string;
+  valid_from: string;
 };

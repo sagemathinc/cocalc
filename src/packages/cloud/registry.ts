@@ -77,6 +77,7 @@ const NEBIUS_TTLS: Record<string, number> = {
   regions: 60 * 60 * 24 * 30,
   instance_types: 60 * 60 * 24 * 7,
   images: 60 * 60 * 24 * 7,
+  prices: 60 * 60 * 24 * 30,
 };
 
 const gcpProvider = new GcpProvider();

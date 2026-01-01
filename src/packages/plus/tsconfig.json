@@ -9,8 +9,6 @@
       "@cocalc/lite/*": ["../lite/*"]
     }
   },
-  "exclude": ["dist", "node_modules"],
-  "references": [
-    { "path": "../lite" }
-  ]
+  "exclude": ["dist", "node_modules", "build"],
+  "references": [{ "path": "../lite" }]
 }

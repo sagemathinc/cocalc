@@ -76,6 +76,17 @@ type NebiusImage = {
   version?: string | null;
   architecture?: string | null;
   recommended_platforms?: string[];
+  region?: string | null;
+  created_at?: string | null;
+  updated_at?: string | null;
+};
+type NebiusPriceItem = {
+  service: string;
+  product: string;
+  region: string;
+  price_usd?: string | null;
+  unit?: string | null;
+  valid_from?: string | null;
 };
 
 export type LambdaInstanceOption = HostFieldOption<LambdaInstance> & {
@@ -699,12 +710,95 @@ export const getNebiusRegionOptions = (
     "regions",
     "global",
   );
-  if (!regions?.length) return [];
-  return regions.map((r) => ({ value: r.name, label: r.name }));
+  if (regions?.length) {
+    return regions.map((r) => ({ value: r.name, label: r.name }));
+  }
+  const images =
+    getCatalogEntryPayload<NebiusImage[]>(catalog, "images", "global") ?? [];
+  const regionSet = new Set(
+    images
+      .map((img) => img.region ?? undefined)
+      .filter((value): value is string => !!value),
+  );
+  return Array.from(regionSet).map((name) => ({ value: name, label: name }));
+};
+
+const normalizeNebiusPricingToken = (value: string) =>
+  value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+
+const normalizeNebiusPricingProduct = (value: string) => {
+  let normalized = value.trim();
+  normalized = normalized.replace(/^preemptible\s+/i, "");
+  normalized = normalized.replace(/\.\s*(cpu|ram|gpu)$/i, "");
+  return normalizeNebiusPricingToken(normalized);
+};
+
+const getNebiusPricingProductsByRegion = (
+  catalog: HostCatalog | undefined,
+  region: string | undefined,
+) => {
+  const gpuProducts = new Set<string>();
+  const cpuProducts = new Set<string>();
+  if (!region) return { gpu: gpuProducts, cpu: cpuProducts };
+  const prices =
+    getCatalogEntryPayload<NebiusPriceItem[]>(catalog, "prices", "global") ?? [];
+  for (const item of prices) {
+    if (!item?.product || item.region !== region) continue;
+    if (!/^(preemptible\s+)?(nvidia|non-gpu)\b/i.test(item.product)) continue;
+    const normalized = normalizeNebiusPricingProduct(item.product);
+    if (!normalized) continue;
+    if (/^non-gpu\b/i.test(item.product)) {
+      cpuProducts.add(normalized);
+    } else {
+      gpuProducts.add(normalized);
+    }
+  }
+  return { gpu: gpuProducts, cpu: cpuProducts };
+};
+
+const getNebiusPlatformAliases = (platform?: string | null): string[] => {
+  if (!platform) return [];
+  const aliases: string[] = [];
+  const value = platform.toLowerCase();
+  if (value.includes("h100")) aliases.push("h100 nvlink");
+  if (value.includes("h200")) aliases.push("h200 nvlink");
+  if (value.includes("b200")) aliases.push("b200 nvlink");
+  if (value.includes("b300")) aliases.push("b300 nvlink");
+  if (value.includes("l40s")) aliases.push("l40s pcie");
+  return aliases;
+};
+
+const matchesNebiusPricing = (
+  entry: NebiusInstance,
+  products: Set<string>,
+): boolean => {
+  if (!products.size) return false;
+  const candidates = [
+    entry.platform_label,
+    entry.platform,
+    ...getNebiusPlatformAliases(entry.platform),
+  ]
+    .filter(Boolean)
+    .map((value) => normalizeNebiusPricingToken(String(value)))
+    .filter(Boolean);
+  if (!candidates.length) return false;
+  for (const candidate of candidates) {
+    for (const product of products) {
+      if (product.includes(candidate) || candidate.includes(product)) {
+        return true;
+      }
+    }
+  }
+  return false;
 };
 
 export const getNebiusInstanceTypeOptions = (
   catalog?: HostCatalog,
+  region?: string,
 ): NebiusInstanceOption[] => {
   const instances = getCatalogEntryPayload<NebiusInstance[]>(
     catalog,
@@ -712,20 +806,83 @@ export const getNebiusInstanceTypeOptions = (
     "global",
   );
   if (!instances?.length) return [];
-  return instances
+  const images =
+    getCatalogEntryPayload<NebiusImage[]>(catalog, "images", "global") ?? [];
+  const pricingProducts = getNebiusPricingProductsByRegion(catalog, region);
+  const platformFilters = (() => {
+    if (!region) return undefined;
+    const gpuPlatforms = new Set<string>();
+    const cpuPlatforms = new Set<string>();
+    let hasGpuPlatforms = false;
+    let hasCpuPlatforms = false;
+    for (const image of images) {
+      if (image.region && image.region !== region) continue;
+      const recommended = image.recommended_platforms ?? [];
+      if (!recommended.length) continue;
+      const isGpu = isNebiusGpuFamily(image.family);
+      for (const platform of recommended) {
+        if (!platform) continue;
+        if (isGpu) {
+          hasGpuPlatforms = true;
+          gpuPlatforms.add(platform);
+        } else {
+          hasCpuPlatforms = true;
+          cpuPlatforms.add(platform);
+        }
+      }
+    }
+    return {
+      gpu: hasGpuPlatforms ? gpuPlatforms : undefined,
+      cpu: hasCpuPlatforms ? cpuPlatforms : undefined,
+    };
+  })();
+  let filtered = instances
     .filter((entry) => !!entry?.name)
-    .map((entry) => {
-      const platformLabel = entry.platform_label
-        ? ` · ${entry.platform_label}`
-        : "";
-      const cpuRamLabel = formatCpuRamLabel(entry.vcpus, entry.memory_gib);
-      const gpuLabel = formatGpuLabel(entry.gpus, entry.gpu_label);
-      return {
-        value: entry.name,
-        label: `${entry.name} (${cpuRamLabel}${gpuLabel}${platformLabel})`,
-        entry,
-      };
+    .filter((entry) => {
+      if (!platformFilters || !entry.platform) return true;
+      const isGpuType = (entry.gpus ?? 0) > 0;
+      const filter = isGpuType ? platformFilters.gpu : platformFilters.cpu;
+      if (!filter) return true;
+      return filter.has(entry.platform);
     });
+  if (region && (pricingProducts.gpu.size || pricingProducts.cpu.size)) {
+    const gpuMatchesExist = pricingProducts.gpu.size
+      ? filtered.some(
+          (entry) =>
+            (entry.gpus ?? 0) > 0 &&
+            matchesNebiusPricing(entry, pricingProducts.gpu),
+        )
+      : false;
+    const cpuMatchesExist = pricingProducts.cpu.size
+      ? filtered.some(
+          (entry) =>
+            (entry.gpus ?? 0) <= 0 &&
+            matchesNebiusPricing(entry, pricingProducts.cpu),
+        )
+      : false;
+    filtered = filtered.filter((entry) => {
+      const isGpuType = (entry.gpus ?? 0) > 0;
+      if (isGpuType && gpuMatchesExist) {
+        return matchesNebiusPricing(entry, pricingProducts.gpu);
+      }
+      if (!isGpuType && cpuMatchesExist) {
+        return matchesNebiusPricing(entry, pricingProducts.cpu);
+      }
+      return true;
+    });
+  }
+  return filtered.map((entry) => {
+    const platformLabel = entry.platform_label
+      ? ` · ${entry.platform_label}`
+      : "";
+    const cpuRamLabel = formatCpuRamLabel(entry.vcpus, entry.memory_gib);
+    const gpuLabel = formatGpuLabel(entry.gpus, entry.gpu_label);
+    return {
+      value: entry.name,
+      label: `${entry.name} (${cpuRamLabel}${gpuLabel}${platformLabel})`,
+      entry,
+    };
+  });
 };
 
 const summarizeNebiusCatalog = (catalog: HostCatalog) => ({
@@ -747,6 +904,9 @@ const summarizeNebiusCatalog = (catalog: HostCatalog) => ({
         version?: string | null;
         architecture?: string | null;
         recommended_platforms?: string[];
+        region?: string | null;
+        created_at?: string | null;
+        updated_at?: string | null;
       }[]
     >(catalog, "images", "global") ?? [],
 });
@@ -764,33 +924,82 @@ const parseUbuntuVersion = (value?: string | null): number | undefined => {
 const isNebiusGpuFamily = (family?: string | null) =>
   !!family && /cuda|nvidia/i.test(family);
 
+const parseVersionParts = (value?: string | null): number[] | undefined => {
+  if (!value) return undefined;
+  const parts = value.match(/\d+/g);
+  if (!parts?.length) return undefined;
+  const nums = parts.map((part) => Number(part)).filter(Number.isFinite);
+  return nums.length ? nums : undefined;
+};
+
+const compareVersionParts = (
+  a?: number[],
+  b?: number[],
+): number => {
+  if (!a && !b) return 0;
+  if (!a) return -1;
+  if (!b) return 1;
+  const maxLen = Math.max(a.length, b.length);
+  for (let i = 0; i < maxLen; i += 1) {
+    const left = a[i] ?? 0;
+    const right = b[i] ?? 0;
+    if (left !== right) return left - right;
+  }
+  return 0;
+};
+
+const imageTimestamp = (img: NebiusImage): number => {
+  const value = img.updated_at ?? img.created_at;
+  if (!value) return 0;
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
 const pickNebiusImage = (
   catalog: HostCatalog | undefined,
   wantsGpu: boolean,
+  opts: { region?: string; platform?: string | null } = {},
 ): NebiusImage | undefined => {
   const images =
     getCatalogEntryPayload<NebiusImage[]>(catalog, "images", "global") ?? [];
-  const ubuntuImages = images.filter((img) =>
+  const regionImages = opts.region
+    ? images.filter((img) => !img.region || img.region === opts.region)
+    : images;
+  const ubuntuImages = regionImages.filter((img) =>
     (img.family ?? "").toLowerCase().includes("ubuntu"),
   );
-  const candidates = ubuntuImages.filter((img) =>
+  const platformImages = opts.platform
+    ? ubuntuImages.filter((img) => {
+        const recommended = img.recommended_platforms ?? [];
+        if (!recommended.length) return true;
+        return recommended.includes(opts.platform ?? "");
+      })
+    : ubuntuImages;
+  const candidates = platformImages.filter((img) =>
     wantsGpu ? isNebiusGpuFamily(img.family) : !isNebiusGpuFamily(img.family),
   );
-  const pool = candidates.length ? candidates : ubuntuImages;
+  const pool = candidates.length ? candidates : platformImages;
   if (!pool.length) return undefined;
-  const scored = pool
-    .map((img) => {
-      const version = parseUbuntuVersion(img.family) ?? 0;
-      const bump =
-        wantsGpu && isNebiusGpuFamily(img.family)
-          ? 1
-          : !wantsGpu && /driverless/i.test(img.family ?? "")
-            ? 1
-            : 0;
-      return { img, score: version * 10 + bump };
-    })
-    .sort((a, b) => b.score - a.score);
-  return scored[0]?.img;
+  const sorted = [...pool].sort((a, b) => {
+    const driverlessA = /driverless/i.test(a.family ?? "");
+    const driverlessB = /driverless/i.test(b.family ?? "");
+    if (!wantsGpu && driverlessA !== driverlessB) {
+      return driverlessA ? -1 : 1;
+    }
+    const ubuntuA = parseUbuntuVersion(a.family) ?? 0;
+    const ubuntuB = parseUbuntuVersion(b.family) ?? 0;
+    if (ubuntuA !== ubuntuB) return ubuntuB - ubuntuA;
+    const versionCmp = compareVersionParts(
+      parseVersionParts(a.version),
+      parseVersionParts(b.version),
+    );
+    if (versionCmp !== 0) return versionCmp < 0 ? 1 : -1;
+    const timeA = imageTimestamp(a);
+    const timeB = imageTimestamp(b);
+    if (timeA !== timeB) return timeB - timeA;
+    return 0;
+  });
+  return sorted[0];
 };
 
 export const getNebiusImageOptions = (
@@ -804,6 +1013,9 @@ export const getNebiusImageOptions = (
       version?: string | null;
       architecture?: string | null;
       recommended_platforms?: string[];
+      region?: string | null;
+      created_at?: string | null;
+      updated_at?: string | null;
     }[]
   >(catalog, "images", "global");
   if (!images?.length) return [];
@@ -957,6 +1169,9 @@ export const getNebiusImageSummary = (catalog: HostCatalog) =>
       version?: string | null;
       architecture?: string | null;
       recommended_platforms?: string[];
+      region?: string | null;
+      created_at?: string | null;
+      updated_at?: string | null;
     }[]
   >(catalog, "images", "global") ?? [];
 
@@ -1228,7 +1443,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       genericGpu: false,
     },
     fields: {
-      primary: ["machine_type", "region"],
+      primary: ["region", "machine_type"],
       advanced: [],
       labels: {
         machine_type: "Instance type",
@@ -1301,9 +1516,12 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       },
     },
     storage: { supported: true, growable: true },
-    getOptions: (catalog) => ({
+    getOptions: (catalog, selection) => ({
       ...emptyOptions(),
-      machine_type: getNebiusInstanceTypeOptions(catalog).map((opt) => ({
+      machine_type: getNebiusInstanceTypeOptions(
+        catalog,
+        selection.region,
+      ).map((opt) => ({
         value: opt.value,
         label: opt.label,
         meta: opt.entry,
@@ -1318,7 +1536,11 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       );
       const gpuCount = instance?.gpus ?? 0;
       const wantsGpu = gpuCount > 0;
-      const image = pickNebiusImage(ctx.catalog, wantsGpu);
+      const region = getDefaultRegion(vals, ctx.fieldOptions);
+      const image = pickNebiusImage(ctx.catalog, wantsGpu, {
+        region,
+        platform: instance?.platform,
+      });
       return buildBasePayload(
         vals,
         ctx.fieldOptions,
