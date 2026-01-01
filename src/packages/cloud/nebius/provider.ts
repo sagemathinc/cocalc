@@ -20,6 +20,7 @@ import {
   InstanceRecoveryPolicy,
   InstanceSpec,
   InstanceStatus_InstanceState,
+  IPAddress,
   ListInstancesRequest,
   NetworkInterfaceSpec,
   PublicIPAddress,
@@ -132,6 +133,15 @@ export class NebiusProvider implements CloudProvider {
       spec.metadata?.image;
     const sourceImageFamily =
       spec.metadata?.source_image_family ?? spec.metadata?.image_family;
+    logger.debug("nebius: source image selection", {
+      source_image: sourceImage,
+      source_image_family: sourceImageFamily,
+      metadata_source_image: spec.metadata?.source_image,
+      metadata_image_id: spec.metadata?.image_id,
+      metadata_image: spec.metadata?.image,
+      metadata_source_image_family: spec.metadata?.source_image_family,
+      metadata_image_family: spec.metadata?.image_family,
+    });
     if (!sourceImage && !sourceImageFamily) {
       throw new Error("nebius source_image or source_image_family is required");
     }
@@ -220,6 +230,11 @@ export class NebiusProvider implements CloudProvider {
       .join("\n");
 
     logger.info("nebius: creating instance", { name, subnetId });
+    logger.debug("nebius: network interface", {
+      subnetId,
+      privateIp: "auto",
+      publicIp: true,
+    });
     const machineType = spec.metadata?.machine_type;
     if (!machineType) {
       throw new Error("nebius machine_type is required");
@@ -241,6 +256,8 @@ export class NebiusProvider implements CloudProvider {
             NetworkInterfaceSpec.create({
               subnetId,
               name: "eth0",
+              // Nebius requires ipAddress to be present even when auto-assigning.
+              ipAddress: IPAddress.create({}),
               publicIpAddress: PublicIPAddress.create({ static: true }),
               aliases: [],
             }),

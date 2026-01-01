@@ -68,7 +68,10 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
     host_id: row.id,
     machine_source_image: machine.source_image,
     metadata_source_image: machine.metadata?.source_image,
+    metadata_source_image_family: machine.metadata?.source_image_family,
+    metadata_image_family: machine.metadata?.image_family,
     selected: sourceImage,
+    selected_family: sourceImageFamily,
   });
 
   const spec: HostSpec = {

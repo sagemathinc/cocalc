@@ -764,10 +764,10 @@ const parseUbuntuVersion = (value?: string | null): number | undefined => {
 const isNebiusGpuFamily = (family?: string | null) =>
   !!family && /cuda|nvidia/i.test(family);
 
-const pickNebiusImageFamily = (
+const pickNebiusImage = (
   catalog: HostCatalog | undefined,
   wantsGpu: boolean,
-): string | undefined => {
+): NebiusImage | undefined => {
   const images =
     getCatalogEntryPayload<NebiusImage[]>(catalog, "images", "global") ?? [];
   const ubuntuImages = images.filter((img) =>
@@ -790,7 +790,7 @@ const pickNebiusImageFamily = (
       return { img, score: version * 10 + bump };
     })
     .sort((a, b) => b.score - a.score);
-  return scored[0]?.img.family ?? scored[0]?.img.name ?? undefined;
+  return scored[0]?.img;
 };
 
 export const getNebiusImageOptions = (
@@ -1318,7 +1318,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       );
       const gpuCount = instance?.gpus ?? 0;
       const wantsGpu = gpuCount > 0;
-      const sourceImageFamily = pickNebiusImageFamily(ctx.catalog, wantsGpu);
+      const image = pickNebiusImage(ctx.catalog, wantsGpu);
       return buildBasePayload(
         vals,
         ctx.fieldOptions,
@@ -1327,7 +1327,8 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
           gpu_type: instance?.gpu_label,
           gpu_count: gpuCount || undefined,
           metadata: {
-            source_image_family: sourceImageFamily,
+            source_image: image?.id,
+            source_image_family: image?.family,
           },
         },
         wantsGpu,
