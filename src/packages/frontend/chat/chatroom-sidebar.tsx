@@ -177,9 +177,9 @@ export function ChatRoomSidebarContent({
   confirmDeleteThread,
 }: ChatRoomSidebarContentProps) {
   const [hoveredThread, setHoveredThread] = React.useState<string | null>(null);
-  const [openThreadMenuKey, setOpenThreadMenuKey] = React.useState<string | null>(
-    null,
-  );
+  const [openThreadMenuKey, setOpenThreadMenuKey] = React.useState<
+    string | null
+  >(null);
   const [activityNow, setActivityNow] = React.useState<number>(Date.now());
   React.useEffect(() => {
     const id = setInterval(() => setActivityNow(Date.now()), 30 * 1000);
@@ -288,6 +288,7 @@ export function ChatRoomSidebarContent({
             gap: "8px",
             width: "100%",
             position: "relative",
+            paddingLeft: "15px",
           }}
           onMouseEnter={() => setHoveredThread(key)}
           onMouseLeave={() =>
@@ -308,7 +309,7 @@ export function ChatRoomSidebarContent({
                   borderRadius: "50%",
                   background: dotColor,
                   position: "absolute",
-                  right: 28,
+                  left: 0,
                   top: "50%",
                   transform: "translateY(-50%)",
                 }}
@@ -425,7 +426,6 @@ export function ChatRoomSidebarContent({
           style={{
             border: "none",
             background: "transparent",
-            padding: "0 10px",
           }}
         />
       </div>
@@ -494,7 +494,6 @@ export function ChatRoomSidebarContent({
             style={{
               border: "none",
               background: "transparent",
-              padding: "0 10px",
             }}
           />
         </div>
