@@ -806,7 +806,6 @@ function TerminalRow({
     >
       <TerminalPreview
         text={terminalText}
-        maxHeight={500}
         fontSize={fontSize}
         placeholder={!hasOutput}
         placeholderText={placeholderText}
@@ -860,7 +859,6 @@ function TerminalRow({
 
 function TerminalPreview({
   text,
-  maxHeight,
   fontSize,
   placeholder = false,
   placeholderText,
@@ -868,7 +866,6 @@ function TerminalPreview({
   rawMode = false,
 }: {
   text: string;
-  maxHeight: number;
   fontSize: number;
   placeholder?: boolean;
   placeholderText?: string;
@@ -877,6 +874,7 @@ function TerminalPreview({
 }) {
   const containerRef = React.useRef<HTMLDivElement | null>(null);
   const termRef = React.useRef<XTerm | null>(null);
+  const [showAll, setShowAll] = React.useState(false);
   const terminalPrefs =
     useTypedRedux("account", "terminal")?.toJS() ?? undefined;
   const colorScheme = terminalPrefs?.color_scheme ?? "default";
@@ -888,17 +886,42 @@ function TerminalPreview({
   const background = background_color(colorScheme);
   const foreground = theme?.colors?.[16] ?? "#e2e8f0";
   const normalizedText = (text ?? "").trimEnd();
-  const lineCount = Math.max(
-    1,
-    placeholder ? 1 : normalizedText.split(/\r?\n/).length,
-  );
+  const allLines = normalizedText.length ? normalizedText.split(/\r?\n/) : [""];
+  const collapsedLines = 5;
+  const hasOverflow = !placeholder && allLines.length > collapsedLines;
+  const visibleLines =
+    showAll || !hasOverflow ? allLines : allLines.slice(0, collapsedLines);
+  const visibleText = visibleLines.join("\n");
+  const lineCount = Math.max(1, visibleLines.length);
   const lineHeight = (fontSizePref || 13) * 1.45;
-  const maxRows =
-    maxHeight && maxHeight > 0
-      ? Math.max(1, Math.floor(maxHeight / lineHeight))
-      : 20;
-  const rows = Math.min(maxRows, lineCount);
+  const rows = Math.max(1, lineCount);
   const containerHeight = rows * lineHeight + 8;
+  const showExpandButton = hasOverflow && !showAll;
+  const expandButton = showExpandButton ? (
+    <Button
+      size="small"
+      type="text"
+      onClick={() => setShowAll(true)}
+      style={{
+        position: "absolute",
+        bottom: 4,
+        left: "50%",
+        transform: "translateX(-50%)",
+        fontSize: Math.max(10, fontSize - 3),
+        padding: "0 6px",
+        height: 20,
+        lineHeight: "18px",
+        border: `1px solid ${COLORS.GRAY_L}`,
+        borderRadius: 10,
+        background: COLORS.GRAY_LLL,
+        color: COLORS.GRAY_D,
+        zIndex: 1,
+      }}
+      aria-label="Show all terminal output"
+    >
+      Show all
+    </Button>
+  ) : null;
 
   React.useEffect(() => {
     // Tear down when entering raw mode.
@@ -930,7 +953,7 @@ function TerminalPreview({
       disableStdin: true,
       fontFamily,
       fontSize: fontSizePref,
-      scrollback: 5000,
+      scrollback: 0,
       rows,
       cols: 100,
     });
@@ -986,7 +1009,7 @@ function TerminalPreview({
       host.style.height = `${containerHeight}px`;
       host.style.userSelect = "text";
     }
-    const rendered = normalizedText.replace(/\r?\n/g, "\r\n");
+    const rendered = visibleText.replace(/\r?\n/g, "\r\n");
     if (rendered.length) {
       term.write(rendered);
     }
@@ -1002,25 +1025,34 @@ function TerminalPreview({
     return () => {
       if (scrollTimer) clearTimeout(scrollTimer);
     };
-  }, [normalizedText, colorScheme, placeholder, rawMode, containerHeight]);
+  }, [visibleText, colorScheme, placeholder, rawMode, containerHeight]);
 
   return rawMode ? (
-    <pre
+    <div
       style={{
         border: `1px solid ${COLORS.GRAY_L}`,
         borderRadius: 6,
         background: COLORS.GRAY_LLL,
         color: COLORS.GRAY_D,
-        padding: "8px",
+        padding: showExpandButton ? "8px 8px 26px" : "8px",
         fontFamily: "monospace",
         fontSize,
-        maxHeight,
-        overflow: "auto",
-        whiteSpace: "pre-wrap",
+        position: "relative",
       }}
     >
-      {text || placeholderText || ""}
-    </pre>
+      <pre
+        style={{
+          margin: 0,
+          fontFamily: "inherit",
+          fontSize: "inherit",
+          color: "inherit",
+          whiteSpace: "pre-wrap",
+        }}
+      >
+        {visibleText || placeholderText || ""}
+      </pre>
+      {expandButton}
+    </div>
   ) : (
     <div
       style={{
@@ -1029,9 +1061,10 @@ function TerminalPreview({
         background,
         color: foreground,
         overflow: "hidden",
-        padding: "4px 6px",
+        padding: showExpandButton ? "4px 6px 26px" : "4px 6px",
         fontFamily,
         fontSize: Math.max(11, fontSize - 1),
+        position: "relative",
       }}
       onKeyDown={(e) => {
         if (
@@ -1055,6 +1088,7 @@ function TerminalPreview({
           {placeholderText ?? text}
         </Text>
       ) : null}
+      {expandButton}
     </div>
   );
 }
