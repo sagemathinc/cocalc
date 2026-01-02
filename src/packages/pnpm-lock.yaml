@@ -859,9 +859,6 @@ importers:
       '@cocalc/next':
         specifier: workspace:*
         version: link:../next
-      '@cocalc/project-host':
-        specifier: workspace:*
-        version: link:../project-host
       '@cocalc/server':
         specifier: workspace:*
         version: link:../server
@@ -871,9 +868,6 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
-      '@isaacs/ttlcache':
-        specifier: ^1.4.1
-        version: 1.4.1
       '@types/formidable':
         specifier: ^3.4.5
         version: 3.4.6
@@ -889,9 +883,6 @@ importers:
       commander:
         specifier: ^7.2.0
         version: 7.2.0
-      compression:
-        specifier: ^1.8.1
-        version: 1.8.1
       cookie-parser:
         specifier: ^1.4.3
         version: 1.4.7
@@ -924,7 +915,7 @@ importers:
         version: 2.1.2
       next:
         specifier: 15.5.9
-        version: 15.5.9(@babel/core@7.28.5)(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.93.3)
+        version: 15.5.9(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.93.3)
       parse-domain:
         specifier: ^5.0.0
         version: 5.0.0(encoding@0.1.13)
@@ -937,12 +928,6 @@ importers:
       uglify-js:
         specifier: ^3.14.1
         version: 3.19.3
-      underscore:
-        specifier: ^1.12.1
-        version: 1.13.7
-      uuid:
-        specifier: ^8.3.2
-        version: 8.3.2
       validator:
         specifier: '>=13.15.22'
         version: 13.15.23
@@ -1581,9 +1566,6 @@ importers:
       base64-js:
         specifier: ^1.5.1
         version: 1.5.1
-      cloudflare:
-        specifier: ^2.9.1
-        version: 2.9.1
       cookie:
         specifier: ^1.0.0
         version: 1.0.2
@@ -1699,9 +1681,6 @@ importers:
       '@types/async':
         specifier: ^2.0.43
         version: 2.4.2
-      '@types/cloudflare':
-        specifier: ^2.7.11
-        version: 2.7.15
       '@types/dot-object':
         specifier: ^2.1.6
         version: 2.1.6
@@ -4950,9 +4929,6 @@ packages:
   '@types/caseless@0.12.5':
     resolution: {integrity: sha512-hWtVTC2q7hc7xZ/RLbxapMvDMgUnDvKvMOpKal4DrMyfGBUfB1oKaZlIRr6mJL+If3bAP6sV/QneGzF6tJjZDg==}
 
-  '@types/cloudflare@2.7.15':
-    resolution: {integrity: sha512-DfJa5h84Vl9LdTFYzpeG8KLgcqJfywNfbIyr+ktFxYB6fOWWHbunu0W7pDH1fy4vzP4/RgQ6TZL62pxP8pv9GQ==}
-
   '@types/codemirror@5.60.17':
     resolution: {integrity: sha512-AZq2FIsUHVMlp7VSe2hTfl5w4pcUkoFkM3zVsRKsn1ca8CXRDYvnin04+HP2REkwsxemuHqvDofdlhUWNpbwfw==}
 
@@ -5917,9 +5893,6 @@ packages:
     resolution: {integrity: sha512-yj9C819u3ED3/OyRd9mLKMXGy8wsElaf6bkkv6OqZEKrNAT461TjiznS4IfPBy8Mmh6DWaXCQCVYSq3+VHkpjQ==}
     engines: {node: '>=0.10.0'}
 
-  autocreate@1.2.0:
-    resolution: {integrity: sha512-69hVJ14Nm6rP5b4fd5TQGbBCPxH3M4L+/eDrCePoa3dCyNHWFS/HhE8mY6DG5q6LMscjMcjpSwEsX8G+8jT5ZA==}
-
   available-typed-arrays@1.0.7:
     resolution: {integrity: sha512-wvUjBtSGN7+7SjNpq/9M2Tg350UZD3q62IFZLbRAR1bSMlCo1ZaeW+BJ+D090e4hIIZLBcTDWe4Mh4jvUDajzQ==}
     engines: {node: '>= 0.4'}
@@ -6352,9 +6325,6 @@ packages:
   clone@1.0.4:
     resolution: {integrity: sha512-JQHZ2QMW6l3aH/j6xCqQThY/9OH4D/9ls34cgkUBiEeocRTU04tHfKPBsUK1PqZCUQM7GiA0IIXJSuXHI64Kbg==}
     engines: {node: '>=0.8'}
-
-  cloudflare@2.9.1:
-    resolution: {integrity: sha512-x8yXPPoloy7xQ9GCKnsvQ3U1nwvcLndA2B3nxwSjIWxgLTUJOyakeEDsrqxZO8Dr6FkGdaXwy554fQVMpOabiw==}
 
   clsx@2.1.1:
     resolution: {integrity: sha512-eYm0QWBtUrBWZWG0d386OGAw16Z995PiOVo2B7bjWSbHedGl5e0ZWaq65kOGgUSNesEIDkB9ISbTg/JK9dhCZA==}
@@ -7361,9 +7331,6 @@ packages:
   es-abstract@1.24.0:
     resolution: {integrity: sha512-WSzPgsdLtTcQwm4CROfS5ju2Wa1QQcVeT37jFjYzdFz1r9ahadC8B8/a4qxJxM+09F18iumCdRmlr96ZYkQvEg==}
     engines: {node: '>= 0.4'}
-
-  es-class@2.1.1:
-    resolution: {integrity: sha512-loFNtCIGY81XvaHMzsxPocOgwZW71p+d/iES+zDSWeK9D4JaxrR/AoO0sZnWbV39D/ESppKbHrApxMi+Vbl8rg==}
 
   es-define-property@1.0.1:
     resolution: {integrity: sha512-e3nRfgfUZ4rNGL232gUgX06QNyyez04KdjFrF+LTRoOXmrOgFKDg4BCdsjW8EnT69eqdYGmRpJwiPVYNrCaW3g==}
@@ -11317,9 +11284,6 @@ packages:
     resolution: {integrity: sha512-ObmnIF4hXNg1BqhnHmgbDETF8dLPCggZWBjkQfhZpbszZnYur5DUljTcCHii5LC3J5E0yeO/1LIMyH+UvHQgyw==}
     engines: {node: '>= 0.4'}
 
-  should-proxy@1.0.4:
-    resolution: {integrity: sha512-RPQhIndEIVUCjkfkQ6rs6sOR6pkxJWCNdxtfG5pP0RVgUYbK5911kLTF0TNcCC0G3YCGd492rMollFT2aTd9iQ==}
-
   side-channel-list@1.0.0:
     resolution: {integrity: sha512-FCLHtRD/gnpCiCHEiJLOwdmFP+wzCmDEkc9y7NsYxeF4u7Btsn1ZuwgwJGxImImHicJArLP4R0yX4c2KCrMrTA==}
     engines: {node: '>= 0.4'}
@@ -12147,10 +12111,6 @@ packages:
 
   url-parse@1.5.10:
     resolution: {integrity: sha512-WypcfiRhfeUP9vvF0j6rw0J3hrWrw6iZv3+22h6iRMJ/8z1Tj6XfLP4DsUix5MhMPnXpiHDoKyoZ/bdCkwBCiQ==}
-
-  url-pattern@1.0.3:
-    resolution: {integrity: sha512-uQcEj/2puA4aq1R3A2+VNVBgaWYR24FdWjl7VNW83rnWftlhyzOZ/tBjezRiC2UkIzuxC8Top3IekN3vUf1WxA==}
-    engines: {node: '>=0.12.0'}
 
   url-template@2.0.8:
     resolution: {integrity: sha512-XdVKMF4SJ0nP/O7XIPB0JwAEuT9lDIYnNsK8yGVe43y0AWoKeJNdv3ZNWh7ksJ6KqQFjOO6ox/VEitLnaVNufw==}
@@ -16434,8 +16394,6 @@ snapshots:
 
   '@types/caseless@0.12.5': {}
 
-  '@types/cloudflare@2.7.15': {}
-
   '@types/codemirror@5.60.17':
     dependencies:
       '@types/tern': 0.23.9
@@ -17531,8 +17489,6 @@ snapshots:
 
   audio-extensions@0.0.0: {}
 
-  autocreate@1.2.0: {}
-
   available-typed-arrays@1.0.7:
     dependencies:
       possible-typed-array-names: 1.1.0
@@ -17549,7 +17505,7 @@ snapshots:
 
   axios@1.13.2:
     dependencies:
-      follow-redirects: 1.15.11(debug@4.4.3)
+      follow-redirects: 1.15.11
       form-data: 4.0.5
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -18059,18 +18015,6 @@ snapshots:
       mimic-response: 1.0.1
 
   clone@1.0.4: {}
-
-  cloudflare@2.9.1:
-    dependencies:
-      autocreate: 1.2.0
-      es-class: 2.1.1
-      got: 11.8.6
-      https-proxy-agent: 5.0.1
-      object-assign: 4.1.1
-      should-proxy: 1.0.4
-      url-pattern: 1.0.3
-    transitivePeerDependencies:
-      - supports-color
 
   clsx@2.1.1: {}
 
@@ -19211,8 +19155,6 @@ snapshots:
       unbox-primitive: 1.1.0
       which-typed-array: 1.1.19
 
-  es-class@2.1.1: {}
-
   es-define-property@1.0.1: {}
 
   es-errors@1.3.0: {}
@@ -19760,6 +19702,8 @@ snapshots:
   flatten-vertex-data@1.0.2:
     dependencies:
       dtype: 2.0.0
+
+  follow-redirects@1.15.11: {}
 
   follow-redirects@1.15.11(debug@4.4.3):
     optionalDependencies:
@@ -22674,6 +22618,31 @@ snapshots:
       - '@babel/core'
       - babel-plugin-macros
 
+  next@15.5.9(@opentelemetry/api@1.9.0)(react-dom@19.2.1(react@19.2.1))(react@19.2.1)(sass@1.93.3):
+    dependencies:
+      '@next/env': 15.5.9
+      '@swc/helpers': 0.5.15
+      caniuse-lite: 1.0.30001759
+      postcss: 8.4.31
+      react: 19.2.1
+      react-dom: 19.2.1(react@19.2.1)
+      styled-jsx: 5.1.6(react@19.2.1)
+    optionalDependencies:
+      '@next/swc-darwin-arm64': 15.5.7
+      '@next/swc-darwin-x64': 15.5.7
+      '@next/swc-linux-arm64-gnu': 15.5.7
+      '@next/swc-linux-arm64-musl': 15.5.7
+      '@next/swc-linux-x64-gnu': 15.5.7
+      '@next/swc-linux-x64-musl': 15.5.7
+      '@next/swc-win32-arm64-msvc': 15.5.7
+      '@next/swc-win32-x64-msvc': 15.5.7
+      '@opentelemetry/api': 1.9.0
+      sass: 1.93.3
+      sharp: 0.34.4
+    transitivePeerDependencies:
+      - '@babel/core'
+      - babel-plugin-macros
+
   no-case@3.0.4:
     dependencies:
       lower-case: 2.0.2
@@ -24406,8 +24375,6 @@ snapshots:
 
   shell-quote@1.8.3: {}
 
-  should-proxy@1.0.4: {}
-
   side-channel-list@1.0.0:
     dependencies:
       es-errors: 1.3.0
@@ -24779,6 +24746,11 @@ snapshots:
       react: 19.2.1
     optionalDependencies:
       '@babel/core': 7.28.5
+
+  styled-jsx@5.1.6(react@19.2.1):
+    dependencies:
+      client-only: 0.0.1
+      react: 19.2.1
 
   stylis@4.3.6: {}
 
@@ -25390,8 +25362,6 @@ snapshots:
     dependencies:
       querystringify: 2.2.0
       requires-port: 1.0.0
-
-  url-pattern@1.0.3: {}
 
   url-template@2.0.8: {}
 
