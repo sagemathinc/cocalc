@@ -1,4 +1,4 @@
-import { Button, Card, Col, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Typography } from "antd";
+import { Button, Card, Col, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
@@ -150,9 +150,23 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     setAutoResort,
   } = vm;
 
+  const [selectedRowKeys, setSelectedRowKeys] = React.useState<string[]>([]);
+
   const [dynamicOrder, setDynamicOrder] = React.useState<string[]>([]);
   const sortKeyRef = React.useRef<string>("");
   const isDynamicSort = sortField === "status" || sortField === "changed";
+
+  React.useEffect(() => {
+    if (viewMode !== "list" && selectedRowKeys.length) {
+      setSelectedRowKeys([]);
+    }
+  }, [viewMode, selectedRowKeys.length]);
+
+  React.useEffect(() => {
+    if (!selectedRowKeys.length) return;
+    const hostIds = new Set(hosts.map((host) => host.id));
+    setSelectedRowKeys((prev) => prev.filter((id) => hostIds.has(id)));
+  }, [hosts, selectedRowKeys.length]);
 
   React.useEffect(() => {
     if (!isDynamicSort) {
@@ -211,6 +225,89 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       return arraysEqual(prev, next) ? prev : next;
     });
   }, [hosts, sortField, sortDirection, isDynamicSort]);
+
+  const selectedHosts = React.useMemo(() => {
+    if (!selectedRowKeys.length) return [] as Host[];
+    const hostMap = new Map(hosts.map((host) => [host.id, host]));
+    return selectedRowKeys
+      .map((id) => hostMap.get(id))
+      .filter((host): host is Host => !!host);
+  }, [hosts, selectedRowKeys]);
+
+  const startTargets = React.useMemo(
+    () =>
+      selectedHosts.filter(
+        (host) =>
+          !host.deleted &&
+          host.status !== "running" &&
+          host.status !== "starting",
+      ),
+    [selectedHosts],
+  );
+  const stopTargets = React.useMemo(
+    () =>
+      selectedHosts.filter(
+        (host) =>
+          !host.deleted &&
+          (host.status === "running" ||
+            (host.status as Host["status"] | "active") === "active" ||
+            host.status === "error"),
+      ),
+    [selectedHosts],
+  );
+  const deprovisionTargets = React.useMemo(
+    () =>
+      selectedHosts.filter(
+        (host) => !host.deleted && host.status !== "deprovisioned",
+      ),
+    [selectedHosts],
+  );
+  const deleteTargets = React.useMemo(
+    () =>
+      selectedHosts.filter(
+        (host) => !host.deleted && host.status === "deprovisioned",
+      ),
+    [selectedHosts],
+  );
+
+  const runBulkAction = React.useCallback(
+    async (
+      actionLabel: string,
+      targets: Host[],
+      handler: (id: string) => Promise<void> | void,
+      opts?: { danger?: boolean },
+    ) => {
+      if (!targets.length) return;
+      Modal.confirm({
+        title: `${actionLabel} ${targets.length} host${
+          targets.length === 1 ? "" : "s"
+        }?`,
+        content: (
+          <div>
+            <Typography.Text type="secondary">
+              This will apply to:
+            </Typography.Text>
+            <ul style={{ maxHeight: 240, overflowY: "auto", marginTop: 8 }}>
+              {targets.map((host) => (
+                <li key={host.id}>
+                  {host.name} ({getProviderLabel(host)})
+                </li>
+              ))}
+            </ul>
+          </div>
+        ),
+        okText: actionLabel,
+        okButtonProps: opts?.danger ? { danger: true } : undefined,
+        onOk: async () => {
+          for (const host of targets) {
+            await handler(host.id);
+          }
+          setSelectedRowKeys([]);
+        },
+      });
+    },
+    [],
+  );
 
   const columns: ColumnsType<Host> = [
     {
@@ -410,6 +507,59 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     setSortDirection(sortDirection === "asc" ? "desc" : "asc");
   };
 
+  const bulkActions =
+    viewMode === "list" && selectedRowKeys.length ? (
+      <div style={{ marginBottom: 12 }}>
+        <Space wrap size="small">
+          <Typography.Text>
+            Selected: {selectedRowKeys.length}
+          </Typography.Text>
+          <Button
+            size="small"
+            onClick={() =>
+              runBulkAction("Start", startTargets, onStart)
+            }
+            disabled={!startTargets.length}
+          >
+            Start ({startTargets.length})
+          </Button>
+          <Button
+            size="small"
+            onClick={() =>
+              runBulkAction("Stop", stopTargets, onStop)
+            }
+            disabled={!stopTargets.length}
+          >
+            Stop ({stopTargets.length})
+          </Button>
+          <Button
+            size="small"
+            danger
+            onClick={() =>
+              runBulkAction("Deprovision", deprovisionTargets, onDelete, {
+                danger: true,
+              })
+            }
+            disabled={!deprovisionTargets.length}
+          >
+            Deprovision ({deprovisionTargets.length})
+          </Button>
+          <Button
+            size="small"
+            danger
+            onClick={() =>
+              runBulkAction("Delete", deleteTargets, onDelete, {
+                danger: true,
+              })
+            }
+            disabled={!deleteTargets.length}
+          >
+            Delete ({deleteTargets.length})
+          </Button>
+        </Space>
+      </div>
+    ) : null;
+
   const header = (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
       <Space size="large" align="center">
@@ -495,12 +645,20 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
   return (
     <div>
       {header}
+      {bulkActions}
       {viewMode === "list" ? (
         <Table
           rowKey={(host) => host.id}
           columns={columns}
           dataSource={sortedHosts}
           pagination={false}
+          rowSelection={{
+            selectedRowKeys,
+            onChange: (keys) => setSelectedRowKeys(keys as string[]),
+            getCheckboxProps: (record) => ({
+              disabled: !!record.deleted,
+            }),
+          }}
           onChange={(_pagination, _filters, sorter) => {
             const nextSorter = Array.isArray(sorter) ? sorter[0] : sorter;
             const nextKey =
