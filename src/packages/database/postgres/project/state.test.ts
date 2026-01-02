@@ -233,7 +233,7 @@ describe("project state and storage request methods", () => {
           project_id: projectId,
           state: 123 as any, // Invalid: number instead of string
         }),
-      ).rejects.toThrow("invalid state type");
+      ).rejects.toMatch("invalid state type");
     });
 
     it("rejects invalid state value", async () => {
@@ -249,7 +249,7 @@ describe("project state and storage request methods", () => {
           project_id: projectId,
           state: "invalid_state_name",
         }),
-      ).rejects.toThrow("not a valid state");
+      ).rejects.toMatch("not a valid state");
     });
 
     it("handles multiple state transitions", async () => {

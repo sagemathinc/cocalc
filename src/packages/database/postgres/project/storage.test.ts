@@ -141,7 +141,7 @@ describe("project storage methods", () => {
           project_id: projectId,
           host: "storage-02",
         }),
-      ).rejects.toThrow(/change storage not implemented yet/);
+      ).rejects.toMatch(/change storage not implemented yet/);
 
       // Verify original storage unchanged
       const result = await callback_opts(

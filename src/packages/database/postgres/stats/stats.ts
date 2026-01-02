@@ -40,7 +40,7 @@ interface HubServerRow {
 }
 
 // TODO type this to fit with fields defined in db-schema/stats.ts
-interface Stats {
+export interface Stats {
   id: string;
   time: Date;
   accounts: number;

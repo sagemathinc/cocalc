@@ -12,10 +12,12 @@ export interface RecentProjectsOptions {
   pluck?: string[]; // if not given, returns list of project_id's; if given, returns objects with these fields
 }
 
+export type RecentProjectsResult = Array<Record<string, unknown>> | string[];
+
 export async function recentProjects(
   db: PostgreSQL,
   opts: RecentProjectsOptions,
-): Promise<any> {
+): Promise<RecentProjectsResult> {
   const min_age_m = opts.min_age_m ?? 0;
   const columns = opts.pluck ? opts.pluck.join(",") : "project_id";
 

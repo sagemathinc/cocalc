@@ -6,8 +6,9 @@
 import { EventEmitter } from "events";
 import { Client } from "pg";
 
+import { SSLConfig } from "@cocalc/backend/data";
 import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
-import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
+import { ProjectStatus } from "@cocalc/util/db-schema/projects";
 import {
   CB,
   CBDB,
@@ -19,9 +20,14 @@ import {
 import type { SyncTable } from "../synctable/synctable";
 import type { Changes } from "./changefeed/changefeed";
 import type { ProjectAndUserTracker } from "./project/project-and-user-tracker";
-import { SSLConfig } from "@cocalc/backend/data";
+import type {
+  RecentProjectsOptions,
+  RecentProjectsResult,
+} from "./project/recent";
+import type { UserQueryQueue } from "../user-query/queue";
 
 export type { QueryResult };
+export type PostgreSQL = import("../postgres").PostgreSQL & PostgreSQLMethods;
 
 export type QuerySelect = object;
 
@@ -78,6 +84,43 @@ export interface SyncstringPatchInput extends Omit<
 > {
   is_snapshot?: boolean;
 }
+
+export interface VerifyEmailCreateTokenResult {
+  email_address: string;
+  token: string;
+  old_challenge?: any;
+}
+
+export interface PostgreSQLOptions {
+  host?: string;
+  database?: string;
+  user?: string;
+  ssl?: SSLConfig;
+  debug?: boolean;
+  connect?: boolean;
+  password?: string;
+  cache_expiry?: number;
+  cache_size?: number;
+  concurrent_warn?: number;
+  concurrent_heavily_loaded?: number;
+  ensure_exists?: boolean;
+  timeout_ms?: number;
+  timeout_delay_ms?: number;
+}
+
+export type ProjectActionRequest = Record<string, any> & {
+  action: string;
+  time?: any;
+  started?: Date;
+  finished?: Date;
+  err?: any;
+};
+
+export type ProjectActionOptions = {
+  project_id: string;
+  action_request: ProjectActionRequest;
+  cb: CB;
+};
 
 export interface LegacySyncstringPatch {
   id: [string, string];
@@ -243,10 +286,10 @@ export interface UserQueryOptions {
   priority?: number; // (NOT IMPLEMENTED) priority for this query (an integer [-10,...,19] like in UNIX)
   account_id?: string;
   project_id?: string;
-  query?: object;
-  options?: object[];
-  changes?: undefined; // id of change feed
-  cb?: CB<{ action?: "close" }>;
+  query?: unknown;
+  options?: Record<string, unknown>[];
+  changes?: string; // id of change feed
+  cb?: CB<any>;
 }
 
 export interface ChangefeedOptions {
@@ -322,12 +365,12 @@ export interface CreateSsoAccountOpts {
   usage_intent?: string;
 }
 
-export interface PostgreSQL extends EventEmitter {
-  _dbg(desc: string): Function;
+export interface PostgreSQLMethods extends EventEmitter {
+  _dbg(desc: string): (...args: unknown[]) => void;
   _database: string;
   _host: string;
   _port: number;
-  _password: string;
+  _password: string | undefined;
   _ssl: SSLConfig;
   _user: string;
   _concurrent_queries?: number;
@@ -335,6 +378,9 @@ export interface PostgreSQL extends EventEmitter {
   _timeout_delay_ms?: number; // Delay before timeout enforcement after connect
   _test_query?: NodeJS.Timeout; // Interval timer for periodic health check queries
   _stats_cached?: any; // Internal cache for statistics
+  _listening?: Record<string, number>;
+  _project_and_user_tracker?: ProjectAndUserTracker;
+  _project_and_user_tracker_cbs?: Array<CB<ProjectAndUserTracker>>;
 
   _primary_key(table: string): string;
   _primary_keys(table: string): string[];
@@ -360,6 +406,11 @@ export interface PostgreSQL extends EventEmitter {
   __do_query(opts: QueryOptions): void; // Internal query execution
 
   user_query(opts: UserQueryOptions): void;
+  project_action(opts: ProjectActionOptions): void;
+  _user_query_queue?: UserQueryQueue;
+  _user_get_changefeed_counts?: Record<string, number>;
+  _user_get_changefeed_id_to_user?: Record<string, string>;
+  _changefeeds?: Record<string, Changes>;
 
   _client(): Client | undefined;
   _clients: Client[] | undefined;
@@ -462,12 +513,9 @@ export interface PostgreSQL extends EventEmitter {
 
   get_project_extra_env(opts: { project_id: string; cb: CB<any> }): void;
 
-  recent_projects(opts: {
-    age_m: number;
-    min_age_m?: number;
-    pluck?: string[];
-    cb: CB<any>;
-  }): void;
+  recent_projects(
+    opts: RecentProjectsOptions & { cb: CB<RecentProjectsResult> },
+  ): void;
 
   set_run_quota(
     project_id: string,
@@ -509,27 +557,24 @@ export interface PostgreSQL extends EventEmitter {
 
   verify_email_create_token(opts: {
     account_id: string;
-    cb?: (
-      err,
-      result?: { email_address: string; token: string; old_challenge?: any },
-    ) => void;
-  }): void;
+    cb?: CB<VerifyEmailCreateTokenResult>;
+  }): Promise<VerifyEmailCreateTokenResult | undefined>;
 
   verify_email_check_token(opts: {
     email_address: string;
     token: string;
     cb?: CB;
-  }): void;
+  }): Promise<void>;
 
   verify_email_get(opts: {
     account_id: string;
-    cb?: (err, result?: any) => void;
-  }): void;
+    cb?: CB<any>;
+  }): Promise<any | undefined>;
 
   is_verified_email(opts: {
     email_address: string;
-    cb: (err, verified?: boolean) => void;
-  }): void;
+    cb?: CB<boolean>;
+  }): Promise<boolean | undefined>;
 
   account_creation_actions(opts: {
     email_address: string;
@@ -630,7 +675,7 @@ export interface PostgreSQL extends EventEmitter {
   get_server_setting(opts: { name: string; cb: CB }): void;
   get_server_settings_cached(opts: { cb: CB }): void;
   set_server_setting(opts: { name: string; value: string; cb: CB }): void;
-  server_settings_synctable(): any; // returns a table
+  server_settings_synctable(opts?: Record<string, unknown>): any; // returns a table
 
   create_sso_account(opts: CreateSsoAccountOpts & { cb: CB<string> }): void;
 
@@ -640,7 +685,7 @@ export interface PostgreSQL extends EventEmitter {
     cb: CB;
   });
 
-  log(opts: { event: string; value: any; cb?: Function }): void;
+  log(opts: { event: string; value: any; cb?: CB }): void;
 
   user_is_in_group(opts: { account_id: string; group: string; cb: CB }): void;
 
@@ -673,16 +718,11 @@ export interface PostgreSQL extends EventEmitter {
 
   create_passport(opts: CreatePassportOpts): Promise<void>;
 
-  delete_passport(opts: DeletePassportOpts): Promise<void>;
-
-  set_passport_settings(
-    db: PostgreSQL,
-    opts: PassportStrategyDB & { cb?: CB },
-  ): Promise<void>;
+  set_passport_settings(opts: PassportStrategyDB & { cb?: CB }): Promise<void>;
 
   get_passport_settings(opts: {
     strategy: string;
-    cb?: CB;
+    cb?: (data: object) => void;
   }): Promise<PassportStrategyDB>;
   get_all_passport_settings(): Promise<PassportStrategyDB[]>;
   get_all_passport_settings_cached(): Promise<PassportStrategyDB[]>;
@@ -726,9 +766,9 @@ export interface PostgreSQL extends EventEmitter {
   change_email_address(opts: {
     account_id: string;
     email_address: string;
-    cb: CB;
+    stripe: any;
+    cb?: CB;
   }): void;
-  verify_email_check_token(opts: { email_address: string; token: string });
   reset_server_settings_cache(): void;
 
   update_coupon_history(opts: {
@@ -823,28 +863,15 @@ export interface PostgreSQL extends EventEmitter {
   is_connected(): boolean;
   close(): void;
 
-  verify_email_create_token(opts: {
-    account_id: string;
-    cb: CB<{
-      token: string;
-      email_address: string;
-    }>;
-  }): Promise<void>;
-
   user_query_cancel_changefeed(opts: { id: any; cb?: CB }): void;
 
   save_blob(opts: SaveBlobOpts): void;
 
-  set_project_state(opts: {
+  set_project_status(opts: {
     project_id: string;
-    state: ProjectState;
-    time?: Date;
-    error?: any;
-    ip?: string;
-    cb: CB;
+    status: ProjectStatus;
+    cb?: CB;
   }): void;
-
-  set_project_status(opts: { project_id: string; status: ProjectStatus }): void;
 
   touch_project(opts: { project_id: string; cb?: CB }): void;
 
@@ -916,7 +943,7 @@ export interface PostgreSQL extends EventEmitter {
     cb?: CB;
   });
 
-  webapp_error(opts: object);
+  webapp_error(opts: Record<string, unknown> & { cb?: CB }): void;
 
   set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
 
@@ -977,5 +1004,3 @@ type Project = EventEmitter & {
   restart: () => Promise<void>;
   setAllQuotas?: () => Promise<void>;
 };
-
-export type PostgreSQLConstructor = new (...args: any[]) => PostgreSQL;

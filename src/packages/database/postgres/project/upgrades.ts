@@ -13,28 +13,28 @@ import {
 } from "@cocalc/util/misc";
 import type { PostgreSQL } from "../types";
 
-interface GetProjectQuotasOptions {
+export interface GetProjectQuotasOptions {
   project_id: string;
 }
 
-interface GetUserProjectUpgradesOptions {
+export interface GetUserProjectUpgradesOptions {
   account_id: string;
 }
 
-interface EnsureUserProjectUpgradesAreValidOptions {
+export interface EnsureUserProjectUpgradesAreValidOptions {
   account_id: string;
   fix?: boolean; // default: true
 }
 
-interface EnsureAllUserProjectUpgradesAreValidOptions {
+export interface EnsureAllUserProjectUpgradesAreValidOptions {
   limit?: number; // default: 1
 }
 
-interface GetProjectUpgradesOptions {
+export interface GetProjectUpgradesOptions {
   project_id: string;
 }
 
-interface RemoveAllUserProjectUpgradesOptions {
+export interface RemoveAllUserProjectUpgradesOptions {
   account_id: string;
   projects?: string[];
 }

@@ -8,12 +8,9 @@
 
 import type { CB } from "@cocalc/util/types/callback";
 
-import type {
-  ChangefeedSelect,
-  PostgreSQL,
-  PostgreSQLConstructor,
-} from "../postgres/types";
+import type { ChangefeedSelect, PostgreSQL } from "../postgres/types";
 import type { ProjectAndUserTracker } from "../postgres/project/project-and-user-tracker";
+import { PostgreSQL as PostgreSQLClass } from "../postgres";
 
 let projectTrackerInit: jest.Mock;
 let projectTrackerOnce: jest.Mock;
@@ -45,27 +42,12 @@ describe("PostgreSQL Synctable Methods", () => {
     _project_and_user_tracker_cbs?: Array<CB<ProjectAndUserTracker>>;
   };
 
-  let PostgreSQL: PostgreSQLConstructor;
-  let extend_PostgreSQL: typeof import("./methods").extend_PostgreSQL;
   let db: SynctablePostgreSQL;
-
-  beforeAll(() => {
-    // Load base PostgreSQL class
-    const base = require("../dist/postgres-base") as {
-      PostgreSQL: PostgreSQLConstructor;
-    };
-    // Load synctable extension from TypeScript
-    const synctable = require("./methods");
-    extend_PostgreSQL = synctable.extend_PostgreSQL;
-
-    // Create extended class
-    PostgreSQL = extend_PostgreSQL(base.PostgreSQL);
-  });
 
   beforeEach(() => {
     // Create a PostgreSQL instance for testing
     // We won't actually connect to a database, just test method existence
-    db = new PostgreSQL({
+    db = new PostgreSQLClass({
       connect: false,
       database: process.env.PGDATABASE ?? "smc_ephemeral_testing_database",
     }) as SynctablePostgreSQL;

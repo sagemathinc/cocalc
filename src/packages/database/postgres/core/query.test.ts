@@ -51,6 +51,13 @@ describe("Query Engine - Group 6", () => {
         });
       }
     });
+
+    const dbAny = database as any;
+    if (dbAny._clients?.length > 1) {
+      // Keep TEMP tables visible across queries by pinning a single client.
+      dbAny._clients = [dbAny._clients[0]];
+      dbAny._client_index = 0;
+    }
   }, 30000);
 
   afterAll(async () => {
@@ -1511,10 +1518,14 @@ describe("Query Engine - Group 6", () => {
             expect(result!.rows[0].result).toBe(1);
           }
 
-          // Restore or reconnect
-          if (!(database as any)._clients) {
-            (database as any)._clients = originalClients;
+          const currentClients = (database as any)._clients;
+          if (currentClients && currentClients !== originalClients) {
+            for (const client of currentClients) {
+              client.end?.();
+            }
           }
+          (database as any)._clients = originalClients;
+          (database as any)._client_index = 0;
           done();
         },
       });

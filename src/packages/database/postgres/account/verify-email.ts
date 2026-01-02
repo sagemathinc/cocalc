@@ -3,18 +3,15 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import type { PostgreSQL } from "../types";
+import type {
+  PostgreSQL,
+  VerifyEmailCreateTokenResult,
+} from "../types";
 import randomKey from "random-key";
 import { hours_ago } from "@cocalc/util/misc";
 
 interface VerifyEmailCreateTokenOptions {
   account_id: string;
-}
-
-interface VerifyEmailCreateTokenResult {
-  email_address: string;
-  token: string;
-  old_challenge?: any;
 }
 
 interface VerifyEmailCheckTokenOptions {

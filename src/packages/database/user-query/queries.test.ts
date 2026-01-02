@@ -25,12 +25,7 @@ import { initEphemeralDatabase } from "@cocalc/database/pool";
 import { testCleanup } from "@cocalc/database/test-utils";
 import { SCHEMA } from "@cocalc/util/schema";
 
-import { PostgreSQL as BasePostgreSQL } from "../postgres-base";
-
-// Import from TypeScript implementation
-import { extend_PostgreSQL } from "./queries";
-
-const PostgreSQL = extend_PostgreSQL(BasePostgreSQL);
+import { PostgreSQL as PostgreSQLClass } from "../postgres";
 
 const setSchema = (table: string, schema: any) => {
   const previous = SCHEMA[table];
@@ -56,7 +51,7 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
   });
 
   beforeEach(() => {
-    db = new PostgreSQL({ connect: false, timeout_ms: 0 });
+    db = new PostgreSQLClass({ connect: false, timeout_ms: 0 });
 
     // Reset all mocks
     jest.clearAllMocks();
@@ -1906,7 +1901,7 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
         const table = "projects";
         const query = { users: {} }; // users field is JSONB in projects table
 
-        const json_fields = PostgreSQL.prototype._json_fields.call(
+        const json_fields = PostgreSQLClass.prototype._json_fields.call(
           db,
           table,
           query,

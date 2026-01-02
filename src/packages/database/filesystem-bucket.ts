@@ -26,7 +26,14 @@ type DeleteOptions = {
   cb?: CB;
 };
 
-export function filesystem_bucket(opts: BucketOptions): FilesystemBucket {
+export interface BlobStore {
+  blob_path(name: string): string;
+  write(opts: WriteOptions): Promise<void>;
+  read(opts: ReadOptions): Promise<Buffer>;
+  delete(opts: DeleteOptions): Promise<void>;
+}
+
+export function filesystem_bucket(opts: BucketOptions): BlobStore {
   const { name } = opts;
   if (!name) {
     throw Error("bucket name must be specified");
@@ -34,7 +41,7 @@ export function filesystem_bucket(opts: BucketOptions): FilesystemBucket {
   return new FilesystemBucket(name);
 }
 
-class FilesystemBucket {
+class FilesystemBucket implements BlobStore {
   constructor(private path: string) {}
 
   blob_path(name: string): string {
