@@ -12,6 +12,7 @@ export type CloudflareTunnel = {
   tunnel_secret: string;
   account_id: string;
   record_id?: string;
+  token?: string;
 };
 
 type TunnelConfig = {
@@ -389,6 +390,21 @@ async function deleteTunnel(
   );
 }
 
+async function getTunnelToken(
+  accountId: string,
+  token: string,
+  tunnelId: string,
+): Promise<string | undefined> {
+  const response = await cloudflareRequest<any>(
+    token,
+    "POST",
+    `accounts/${accountId}/cfd_tunnel/${tunnelId}/token`,
+  );
+  if (typeof response === "string") return response;
+  if (response && typeof response.token === "string") return response.token;
+  return undefined;
+}
+
 export async function ensureCloudflareTunnelForHost(opts: {
   host_id: string;
   existing?: CloudflareTunnel;
@@ -479,6 +495,12 @@ export async function ensureCloudflareTunnelForHost(opts: {
     target: `${tunnelId}.cfargotunnel.com`,
     record_id: opts.existing?.record_id,
   });
+  let token: string | undefined;
+  try {
+    token = await getTunnelToken(config.accountId, config.token, tunnelId);
+  } catch (err) {
+    logger.warn("cloudflare tunnel token fetch failed", { err });
+  }
 
   return {
     id: tunnelId,
@@ -487,6 +509,7 @@ export async function ensureCloudflareTunnelForHost(opts: {
     tunnel_secret: tunnelSecret,
     account_id: config.accountId,
     record_id,
+    token,
   };
 }
 

@@ -470,14 +470,16 @@ chmod +x $HOME/bootstrap/ctl $HOME/bootstrap/logs
   let cloudflaredScript = "";
   let cloudflaredServiceUnit = "";
   if (tunnel && tunnelEnabled) {
+    const configToken = "EOF_CLOUDFLARE_CONFIG";
+    const tokenEnvToken = "EOF_CLOUDFLARE_TOKEN";
+    const useToken = !!tunnel.token;
+    const credsToken = "EOF_CLOUDFLARE_CREDS";
     const creds = JSON.stringify({
       AccountTag: tunnel.account_id,
       TunnelID: tunnel.id,
       TunnelName: tunnel.name,
       TunnelSecret: tunnel.tunnel_secret,
     });
-    const credsToken = "EOF_CLOUDFLARE_CREDS";
-    const configToken = "EOF_CLOUDFLARE_CONFIG";
     cloudflaredScript = `
 echo "bootstrap: installing cloudflared"
 if ! command -v cloudflared >/dev/null 2>&1; then
@@ -485,18 +487,23 @@ if ! command -v cloudflared >/dev/null 2>&1; then
   sudo dpkg -i /tmp/cloudflared.deb
 fi
 sudo mkdir -p /etc/cloudflared
-cat <<'${credsToken}' | sudo tee /etc/cloudflared/${tunnel.id}.json >/dev/null
+${useToken ? `cat <<'${tokenEnvToken}' | sudo tee /etc/cloudflared/token.env >/dev/null
+CLOUDFLARED_TOKEN=${tunnel.token}
+${tokenEnvToken}
+sudo chmod 600 /etc/cloudflared/token.env
+` : `cat <<'${credsToken}' | sudo tee /etc/cloudflared/${tunnel.id}.json >/dev/null
 ${creds}
 ${credsToken}
+sudo chmod 600 /etc/cloudflared/${tunnel.id}.json
+`}
 cat <<'${configToken}' | sudo tee /etc/cloudflared/config.yml >/dev/null
 tunnel: ${tunnel.id}
-credentials-file: /etc/cloudflared/${tunnel.id}.json
+${useToken ? "" : `credentials-file: /etc/cloudflared/${tunnel.id}.json`}
 ingress:
   - hostname: ${tunnel.hostname}
     service: http://localhost:${port}
   - service: http_status:404
 ${configToken}
-sudo chmod 600 /etc/cloudflared/${tunnel.id}.json
 `;
     cloudflaredServiceUnit = `
 [Unit]
@@ -506,7 +513,8 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=/usr/bin/cloudflared --config /etc/cloudflared/config.yml tunnel run
+${useToken ? "EnvironmentFile=/etc/cloudflared/token.env" : ""}
+ExecStart=/usr/bin/cloudflared --config /etc/cloudflared/config.yml tunnel run${useToken ? " --token $CLOUDFLARED_TOKEN" : ""}
 Restart=always
 RestartSec=5
 
