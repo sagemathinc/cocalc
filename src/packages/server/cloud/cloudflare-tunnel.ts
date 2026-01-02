@@ -1,4 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
+import crypto from "node:crypto";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const logger = getLogger("server:cloud:cloudflare-tunnel");
@@ -94,8 +95,26 @@ async function cloudflareRequest<T>(
     },
   );
   if (!response.ok) {
+    let details = "";
+    try {
+      const text = await response.text();
+      if (text) {
+        try {
+          const data = JSON.parse(text) as CloudflareResponse<any>;
+          details =
+            data?.errors?.map((err) => err.message).filter(Boolean).join(", ") ||
+            data?.result?.message ||
+            text;
+        } catch {
+          details = text;
+        }
+      }
+    } catch {
+      details = "";
+    }
+    const suffix = details ? `: ${details}` : "";
     throw new Error(
-      `cloudflare api failed: ${response.status} ${response.statusText}`,
+      `cloudflare api failed: ${method} ${path} -> ${response.status} ${response.statusText}${suffix}`,
     );
   }
   const data = (await response.json()) as CloudflareResponse<T>;
@@ -114,6 +133,11 @@ async function cloudflareRequest<T>(
 function isNotFoundError(err: unknown): boolean {
   const message = String((err as Error)?.message ?? err).toLowerCase();
   return message.includes("not found") || message.includes("404");
+}
+
+function isConflictError(err: unknown): boolean {
+  const message = String((err as Error)?.message ?? err).toLowerCase();
+  return message.includes("409") || message.includes("conflict");
 }
 
 let zoneId = "";
@@ -326,6 +350,7 @@ async function createTunnel(
   accountId: string,
   token: string,
   name: string,
+  tunnelSecret: string,
 ): Promise<TunnelResponse> {
   return await cloudflareRequest<TunnelResponse>(
     token,
@@ -333,8 +358,34 @@ async function createTunnel(
     `accounts/${accountId}/cfd_tunnel`,
     {
       name,
-      config_src: "cloudflared",
+      config_src: "local",
+      tunnel_secret: tunnelSecret,
     },
+  );
+}
+
+async function listTunnelsByName(
+  accountId: string,
+  token: string,
+  name: string,
+): Promise<TunnelResponse[]> {
+  const qs = new URLSearchParams({ name });
+  return await cloudflareRequest<TunnelResponse[]>(
+    token,
+    "GET",
+    `accounts/${accountId}/cfd_tunnel?${qs.toString()}`,
+  );
+}
+
+async function deleteTunnel(
+  accountId: string,
+  token: string,
+  tunnelId: string,
+): Promise<void> {
+  await cloudflareRequest(
+    token,
+    "DELETE",
+    `accounts/${accountId}/cfd_tunnel/${tunnelId}`,
   );
 }
 
@@ -370,17 +421,50 @@ export async function ensureCloudflareTunnelForHost(opts: {
   }
 
   if (!tunnelId || !tunnelSecret) {
-    const created = await createTunnel(
-      config.accountId,
-      config.token,
-      tunnelName || `host-${opts.host_id}`,
-    );
+    const generatedSecret = crypto.randomBytes(32).toString("base64");
+    let created: TunnelResponse | undefined;
+    try {
+      created = await createTunnel(
+        config.accountId,
+        config.token,
+        tunnelName || `host-${opts.host_id}`,
+        generatedSecret,
+      );
+    } catch (err) {
+      if (!isConflictError(err)) {
+        throw err;
+      }
+      const name = tunnelName || `host-${opts.host_id}`;
+      const existing = await listTunnelsByName(
+        config.accountId,
+        config.token,
+        name,
+      );
+      for (const tunnel of existing) {
+        if (!tunnel.id) continue;
+        try {
+          await deleteTunnel(config.accountId, config.token, tunnel.id);
+        } catch (deleteErr) {
+          if (!isNotFoundError(deleteErr)) {
+            throw deleteErr;
+          }
+        }
+      }
+      created = await createTunnel(
+        config.accountId,
+        config.token,
+        name,
+        generatedSecret,
+      );
+    }
     if (!created?.id || !created?.tunnel_secret) {
-      throw new Error("cloudflare tunnel create returned no id/secret");
+      if (!created?.id) {
+        throw new Error("cloudflare tunnel create returned no id");
+      }
     }
     tunnelId = created.id;
     tunnelName = created.name ?? tunnelName ?? `host-${opts.host_id}`;
-    tunnelSecret = created.tunnel_secret;
+    tunnelSecret = created.tunnel_secret ?? generatedSecret;
     logger.info("cloudflare tunnel created", {
       host_id: opts.host_id,
       tunnel_id: tunnelId,

@@ -66,6 +66,13 @@ function resolveTlsConfig(host: string, port: number): TlsConfig {
   let hostname = "";
   const explicitlyDisabled =
     !!httpsEnv && ["0", "false", "no"].includes(httpsEnv.toLowerCase());
+  const overrideHostname = process.env.COCALC_PROJECT_HOST_HTTPS_HOSTNAME;
+  if (explicitlyDisabled) {
+    return {
+      enabled: false,
+      hostname: overrideHostname || host,
+    };
+  }
   if (publicUrl) {
     try {
       const parsed = new URL(publicUrl);
@@ -83,7 +90,6 @@ function resolveTlsConfig(host: string, port: number): TlsConfig {
   if (!enabled && !explicitlyDisabled && port === 443) {
     enabled = true;
   }
-  const overrideHostname = process.env.COCALC_PROJECT_HOST_HTTPS_HOSTNAME;
   if (overrideHostname) {
     hostname = overrideHostname;
   }
