@@ -1,7 +1,7 @@
-let browseMock: jest.Mock;
 let addMock: jest.Mock;
 let editMock: jest.Mock;
 let delMock: jest.Mock;
+let fetchMock: jest.Mock;
 
 jest.mock("@cocalc/database/settings/server-settings", () => ({
   getServerSettings: jest.fn(async () => ({
@@ -11,9 +11,6 @@ jest.mock("@cocalc/database/settings/server-settings", () => ({
 }));
 
 jest.mock("cloudflare", () => {
-  browseMock = jest.fn(async () => ({
-    result: [{ name: "example.com", id: "zone-1" }],
-  }));
   addMock = jest.fn(async () => ({
     result: { id: "record-1" },
   }));
@@ -21,7 +18,6 @@ jest.mock("cloudflare", () => {
   delMock = jest.fn(async () => ({}));
 
   return class CloudFlare {
-    zones = { browse: browseMock };
     dnsRecords = {
       add: addMock,
       edit: editMock,
@@ -35,6 +31,14 @@ jest.mock("cloudflare", () => {
 describe("cloud dns", () => {
   beforeEach(() => {
     jest.resetModules();
+    fetchMock = jest.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        success: true,
+        result: [{ name: "example.com", id: "zone-1" }],
+      }),
+    }));
+    (global as any).fetch = fetchMock;
   });
 
   it("creates a proxied A record for the host", async () => {

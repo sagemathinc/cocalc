@@ -29,13 +29,19 @@ interface Client extends CloudFlare {
   zoneId: string;
 }
 
+type ZoneResponse = {
+  success?: boolean;
+  errors?: Array<{ message?: string }>;
+  result?: Array<{ name?: string; id?: string }>;
+};
+
 export async function getClient() {
   const { token, dns } = await getConfig();
   if (!dns || !token) {
     throw Error("compute server DNS not configured");
   }
   const cf = new CloudFlare({ token }) as Client;
-  cf.zoneId = await getZoneId(cf, dns);
+  cf.zoneId = await getZoneId(token, dns);
   return cf;
 }
 
@@ -45,20 +51,37 @@ export async function hasDNS(): Promise<boolean> {
 }
 
 let zoneId: string = "";
-async function getZoneId(cf: Client, dns: string) {
+async function getZoneId(token: string, dns: string) {
   if (zoneId) {
     return zoneId;
   }
-  // This returns only 100 responses, but the API token *should* only
-  // grant access to one zone (for security reasons), in which case
-  // this will only return one response.
-  const response = await cf.zones.browse();
-  for (const { name, id } of response["result"]) {
-    if (name == dns) {
-      zoneId = id;
-      return id;
-    }
+  const url = new URL("https://api.cloudflare.com/client/v4/zones");
+  url.searchParams.set("name", dns);
+  const response = await fetch(url.toString(), {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!response.ok) {
+    throw new Error(
+      `cloudflare zones lookup failed: ${response.status} ${response.statusText}`,
+    );
   }
+  const data = (await response.json()) as ZoneResponse;
+  if (!data?.success) {
+    const details =
+      data?.errors?.map((err) => err.message).filter(Boolean).join(", ") ||
+      "unknown error";
+    throw new Error(`cloudflare zones lookup failed: ${details}`);
+  }
+  const match = data.result?.find((zone) => zone.name === dns);
+  if (match?.id) {
+    zoneId = match.id;
+    return match.id;
+  }
+  throw Error(`cloudflare zone not found for ${dns}`);
 }
 
 // Returns the id of the DNS record, which you can use later
