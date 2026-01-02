@@ -470,9 +470,14 @@ chmod +x $HOME/bootstrap/ctl $HOME/bootstrap/logs
   let cloudflaredScript = "";
   let cloudflaredServiceUnit = "";
   if (tunnel && tunnelEnabled) {
+    if (!tunnel.token) {
+      throw new Error(
+        "cloudflare tunnel token is missing; check Cloudflare API token permissions (Account:Cloudflare Tunnel:Edit, Zone:DNS:Edit)",
+      );
+    }
     const configToken = "EOF_CLOUDFLARE_CONFIG";
     const tokenEnvToken = "EOF_CLOUDFLARE_TOKEN";
-    const useToken = !!tunnel.token;
+    const useToken = true;
     const credsToken = "EOF_CLOUDFLARE_CREDS";
     const creds = JSON.stringify({
       AccountTag: tunnel.account_id,
@@ -497,8 +502,8 @@ ${credsToken}
 sudo chmod 600 /etc/cloudflared/${tunnel.id}.json
 `}
 cat <<'${configToken}' | sudo tee /etc/cloudflared/config.yml >/dev/null
-tunnel: ${tunnel.id}
-${useToken ? "" : `credentials-file: /etc/cloudflared/${tunnel.id}.json`}
+${useToken ? "" : `tunnel: ${tunnel.id}
+credentials-file: /etc/cloudflared/${tunnel.id}.json`}
 ingress:
   - hostname: ${tunnel.hostname}
     service: http://localhost:${port}
