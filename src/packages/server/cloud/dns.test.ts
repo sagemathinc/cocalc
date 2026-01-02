@@ -33,6 +33,9 @@ describe("cloud dns", () => {
       if (url.includes("/zones?")) {
         return zoneResponse;
       }
+      if (init?.method === "GET" && url.includes("/dns_records?")) {
+        return responseWith([]);
+      }
       if (init?.method === "POST" && url.includes("/dns_records")) {
         return responseWith({ id: "record-1" });
       }
@@ -86,11 +89,44 @@ describe("cloud dns", () => {
     expect(payload.proxied).toBe(true);
   });
 
+  it("dedupes existing A records for the same name", async () => {
+    fetchMock.mockImplementation(async (input: any, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/zones?")) {
+        return zoneResponse;
+      }
+      if (init?.method === "GET" && url.includes("/dns_records?")) {
+        return responseWith([
+          { id: "record-a", name: "host-abc.example.com" },
+          { id: "record-b", name: "host-abc.example.com" },
+        ]);
+      }
+      if (init?.method === "PUT" && url.includes("/dns_records/record-a")) {
+        return responseWith({ id: "record-a" });
+      }
+      if (init?.method === "DELETE" && url.includes("/dns_records/record-b")) {
+        return responseWith({ id: "record-b" });
+      }
+      return responseWith({});
+    });
+    const { ensureHostDns } = await import("./dns");
+    await ensureHostDns({ host_id: "abc", ipAddress: "203.0.113.7" });
+    const deleteCall = fetchMock.mock.calls.find(
+      ([url, init]) =>
+        String(url).includes("/dns_records/record-b") &&
+        init?.method === "DELETE",
+    );
+    expect(deleteCall).toBeTruthy();
+  });
+
   it("ignores deletion when record is not found", async () => {
     fetchMock.mockImplementation(async (input: any, init?: RequestInit) => {
       const url = String(input);
       if (url.includes("/zones?")) {
         return zoneResponse;
+      }
+      if (init?.method === "GET" && url.includes("/dns_records?")) {
+        return responseWith([]);
       }
       if (init?.method === "DELETE" && url.includes("/dns_records/record-1")) {
         return {
