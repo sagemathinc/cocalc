@@ -1,4 +1,3 @@
-import CloudFlare from "cloudflare";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
@@ -6,10 +5,6 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 const TTL = 120;
 
 const logger = getLogger("server:cloud:dns");
-
-interface Client extends CloudFlare {
-  zoneId: string;
-}
 
 async function getConfig(): Promise<{ token?: string; dns?: string }> {
   const {
@@ -30,6 +25,47 @@ type ZoneResponse = {
   errors?: Array<{ message?: string }>;
   result?: Array<{ name?: string; id?: string }>;
 };
+
+type CloudflareResponse<T> = {
+  success?: boolean;
+  errors?: Array<{ message?: string }>;
+  result?: T;
+};
+
+async function cloudflareRequest<T>(
+  token: string,
+  method: "GET" | "POST" | "PUT" | "DELETE",
+  path: string,
+  body?: Record<string, any>,
+): Promise<T> {
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/${path}`,
+    {
+      method,
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+      body: body ? JSON.stringify(body) : undefined,
+    },
+  );
+  if (!response.ok) {
+    throw new Error(
+      `cloudflare api failed: ${response.status} ${response.statusText}`,
+    );
+  }
+  const data = (await response.json()) as CloudflareResponse<T>;
+  if (!data?.success) {
+    const details =
+      data?.errors?.map((err) => err.message).filter(Boolean).join(", ") ||
+      "unknown error";
+    throw new Error(`cloudflare api failed: ${details}`);
+  }
+  if (data.result === undefined) {
+    throw new Error("cloudflare api returned no result");
+  }
+  return data.result;
+}
 
 async function getZoneId(token: string, dns: string) {
   if (zoneId) return zoneId;
@@ -62,14 +98,13 @@ async function getZoneId(token: string, dns: string) {
   throw new Error(`cloudflare zone not found for ${dns}`);
 }
 
-async function getClient(): Promise<{ cf: Client; dns: string }> {
+async function getClient(): Promise<{ token: string; dns: string; zoneId: string }> {
   const { token, dns } = await getConfig();
   if (!dns || !token) {
     throw new Error("cloudflare DNS not configured");
   }
-  const cf = new CloudFlare({ token }) as Client;
-  cf.zoneId = await getZoneId(token, dns);
-  return { cf, dns };
+  const zoneId = await getZoneId(token, dns);
+  return { token, dns, zoneId };
 }
 
 export async function ensureHostDns(opts: {
@@ -80,7 +115,7 @@ export async function ensureHostDns(opts: {
   if (!opts.host_id) throw new Error("host_id required for DNS");
   if (!opts.ipAddress) throw new Error("ipAddress required for DNS");
 
-  const { cf, dns } = await getClient();
+  const { token, dns, zoneId } = await getClient();
   const name = `host-${opts.host_id}.${dns}`;
 
   if (opts.record_id) {
@@ -91,7 +126,12 @@ export async function ensureHostDns(opts: {
       ttl: TTL,
       proxied: true,
     } as const;
-    await cf.dnsRecords.edit(cf.zoneId, opts.record_id, newData);
+    await cloudflareRequest(
+      token,
+      "PUT",
+      `zones/${zoneId}/dns_records/${opts.record_id}`,
+      newData,
+    );
     return { name, record_id: opts.record_id };
   }
 
@@ -102,10 +142,13 @@ export async function ensureHostDns(opts: {
     ttl: TTL,
     proxied: true,
   } as const;
-  const response = (await cf.dnsRecords.add(cf.zoneId, record)) as {
-    result?: { id?: string };
-  };
-  const record_id = response.result?.id;
+  const response = await cloudflareRequest<{ id?: string }>(
+    token,
+    "POST",
+    `zones/${zoneId}/dns_records`,
+    record,
+  );
+  const record_id = response?.id;
   if (!record_id) {
     throw new Error("cloudflare did not return record id");
   }
@@ -115,9 +158,13 @@ export async function ensureHostDns(opts: {
 
 export async function deleteHostDns(opts: { record_id?: string }) {
   if (!opts.record_id) return;
-  const { cf } = await getClient();
+  const { token, zoneId } = await getClient();
   try {
-    await cf.dnsRecords.del(cf.zoneId, opts.record_id);
+    await cloudflareRequest(
+      token,
+      "DELETE",
+      `zones/${zoneId}/dns_records/${opts.record_id}`,
+    );
   } catch (err: any) {
     if (String(err?.message ?? "").toLowerCase().includes("not found")) {
       return;
