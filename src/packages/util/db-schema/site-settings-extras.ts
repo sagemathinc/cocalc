@@ -268,6 +268,9 @@ export type SiteSettingsExtrasKeys =
   | "project_hosts_google_prefix"
   | "project_hosts_sea_path"
   | "project_hosts_sea_url"
+  | "project_hosts_cloudflare_tunnel_enabled"
+  | "project_hosts_cloudflare_tunnel_account_id"
+  | "project_hosts_cloudflare_tunnel_api_token"
   | "google_cloud_compute_servers_image_prefix"
   | "compute_servers_cloudflare_api_key"
   | "compute_servers_images_spec_url"
@@ -987,6 +990,30 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_trimmed_str,
     tags: ["Project Hosts", "Cloud"],
     valid: () => true,
+  },
+  project_hosts_cloudflare_tunnel_enabled: {
+    name: "Project Hosts: Cloudflare Tunnel - Enable",
+    desc: "Enable Cloudflare Tunnel for project hosts. This lets project-hosts be reachable via Cloudflare without inbound firewall rules.",
+    default: "no",
+    to_val: to_bool,
+    valid: only_booleans,
+    tags: ["Project Hosts", "Cloud"],
+  },
+  project_hosts_cloudflare_tunnel_account_id: {
+    name: "Project Hosts: Cloudflare Tunnel - Account ID",
+    desc: "Cloudflare account ID that owns the tunnel.",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Project Hosts", "Cloud"],
+    valid: () => true,
+  },
+  project_hosts_cloudflare_tunnel_api_token: {
+    name: "Project Hosts: Cloudflare Tunnel - API Token",
+    desc: 'Cloudflare API token with permissions for Cloudflare Tunnel and DNS (Account:Cloudflare Tunnel:Edit, Zone:DNS:Edit).',
+    default: "",
+    password: true,
+    to_val: to_trimmed_str,
+    tags: ["Project Hosts", "Cloud"],
   },
   google_cloud_compute_servers_image_prefix: {
     name: "Compute Servers: Google Cloud - Image Prefix",

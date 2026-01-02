@@ -18,6 +18,10 @@ import { argsJoin } from "@cocalc/util/args";
 import getLogger from "@cocalc/backend/logger";
 import { getServerProvider } from "./providers";
 import { conatPasswordPath } from "@cocalc/backend/data";
+import {
+  ensureCloudflareTunnelForHost,
+  type CloudflareTunnel,
+} from "./cloudflare-tunnel";
 
 const logger = getLogger("server:cloud:bootstrap-host");
 
@@ -31,6 +35,7 @@ type HostMetadata = {
   machine?: HostMachine;
   runtime?: HostRuntime;
   bootstrap?: HostBootstrapState;
+  cloudflare_tunnel?: CloudflareTunnel;
   [key: string]: any;
 };
 
@@ -309,6 +314,12 @@ export async function handleBootstrap(row: ProjectHostRow) {
     throw new Error("MASTER_CONAT_SERVER is not configured");
   }
 
+  const tunnel = await ensureCloudflareTunnelForHost({
+    host_id: row.id,
+    existing: metadata.cloudflare_tunnel,
+  });
+  const tunnelEnabled = !!tunnel;
+
   const spec = await buildHostSpec(row);
   const providerId = normalizeProviderId(machine.cloud);
   const storageMode = machine.storage_mode ?? machine.metadata?.storage_mode;
@@ -316,20 +327,25 @@ export async function handleBootstrap(row: ProjectHostRow) {
   const dataDiskDevices =
     provider?.getBootstrapDataDiskDevices?.(spec, storageMode) ?? "";
   const imageSizeGb = Math.max(20, Number(spec.disk_gb ?? 100));
-  const port = 443;
+  const port = tunnelEnabled ? 9002 : 443;
   const sshPort = 2222;
-  const publicUrl = row.public_url
-    ? row.public_url.replace(/^http:\/\//, "https://")
-    : `https://${publicIp}`;
-  const internalUrl = row.internal_url
-    ? row.internal_url.replace(/^http:\/\//, "https://")
-    : `https://${publicIp}`;
+  const publicUrl = tunnel?.hostname
+    ? `https://${tunnel.hostname}`
+    : row.public_url
+      ? row.public_url.replace(/^http:\/\//, "https://")
+      : `https://${publicIp}`;
+  const internalUrl = tunnel?.hostname
+    ? `https://${tunnel.hostname}`
+    : row.internal_url
+      ? row.internal_url.replace(/^http:\/\//, "https://")
+      : `https://${publicIp}`;
   const sshServer = row.ssh_server ?? `${publicIp}:${sshPort}`;
   const dataDir = "/btrfs/data";
   const envFile = "/etc/cocalc/project-host.env";
   const seaRemote = "/opt/cocalc/project-host.tar.xz";
   const dataDiskCandidates = dataDiskDevices || "none";
   let tlsHostname = publicIp;
+  const tlsEnabled = !tunnelEnabled;
   try {
     tlsHostname = new URL(publicUrl).hostname || publicIp;
   } catch {
@@ -349,20 +365,22 @@ export async function handleBootstrap(row: ProjectHostRow) {
     `DATA=${dataDir}`,
     `COCALC_DATA=${dataDir}`,
     `COCALC_LITE_SQLITE_FILENAME=${dataDir}/sqlite.db`,
-    `COCALC_PROJECT_HOST_HTTPS=1`,
-    `COCALC_PROJECT_HOST_HTTPS_HOSTNAME=${tlsHostname}`,
+    `COCALC_PROJECT_HOST_HTTPS=${tlsEnabled ? "1" : "0"}`,
     `HOST=0.0.0.0`,
     `PORT=${port}`,
     `DEBUG=cocalc:*`,
     `DEBUG_CONSOLE=yes`,
     `COCALC_SSH_SERVER=0.0.0.0:${sshPort}`,
   ];
+  if (tlsEnabled) {
+    envLines.push(`COCALC_PROJECT_HOST_HTTPS_HOSTNAME=${tlsHostname}`);
+  }
   const envToken = "EOF_COCALC_ENV";
   const envBlock = `cat <<'${envToken}' | sudo tee ${envFile} >/dev/null\n${envLines.join(
     "\n",
   )}\n${envToken}\n`;
 
-  const bootstrapScript = `
+  let bootstrapScript = `
 set -euo pipefail
 echo "bootstrap: updating apt package lists"
 sudo apt-get update -y
@@ -449,6 +467,53 @@ echo 'sudo journalctl -u cocalc-project-host.service' > $HOME/bootstrap/logs
 echo 'sudo systemctl \${1-status} cocalc-project-host' > $HOME/bootstrap/ctl
 chmod +x $HOME/bootstrap/ctl $HOME/bootstrap/logs
 `;
+  let cloudflaredScript = "";
+  let cloudflaredServiceUnit = "";
+  if (tunnel && tunnelEnabled) {
+    const creds = JSON.stringify({
+      AccountTag: tunnel.account_id,
+      TunnelID: tunnel.id,
+      TunnelName: tunnel.name,
+      TunnelSecret: tunnel.tunnel_secret,
+    });
+    const credsToken = "EOF_CLOUDFLARE_CREDS";
+    const configToken = "EOF_CLOUDFLARE_CONFIG";
+    cloudflaredScript = `
+echo "bootstrap: installing cloudflared"
+if ! command -v cloudflared >/dev/null 2>&1; then
+  curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+  sudo dpkg -i /tmp/cloudflared.deb
+fi
+sudo mkdir -p /etc/cloudflared
+cat <<'${credsToken}' | sudo tee /etc/cloudflared/${tunnel.id}.json >/dev/null
+${creds}
+${credsToken}
+cat <<'${configToken}' | sudo tee /etc/cloudflared/config.yml >/dev/null
+tunnel: ${tunnel.id}
+credentials-file: /etc/cloudflared/${tunnel.id}.json
+ingress:
+  - hostname: ${tunnel.hostname}
+    service: http://localhost:${port}
+  - service: http_status:404
+${configToken}
+sudo chmod 600 /etc/cloudflared/${tunnel.id}.json
+`;
+    cloudflaredServiceUnit = `
+[Unit]
+Description=Cloudflare Tunnel for CoCalc Project Host
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/cloudflared --config /etc/cloudflared/config.yml tunnel run
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+`;
+  }
 
   const serviceUnit = `
 [Unit]
@@ -458,7 +523,7 @@ After=network-online.target
 [Service]
 Type=simple
 User=${sshUser}
-AmbientCapabilities=CAP_NET_BIND_SERVICE
+${tlsEnabled ? "AmbientCapabilities=CAP_NET_BIND_SERVICE" : ""}
 EnvironmentFile=${envFile}
 WorkingDirectory=/opt/cocalc/project-host
 ExecStart=/opt/cocalc/project-host/cocalc-project-host
@@ -478,13 +543,23 @@ cd /opt/cocalc/project-host
 cat <<'${serviceToken}' | sudo tee /etc/systemd/system/cocalc-project-host.service >/dev/null
 ${serviceUnit}
 ${serviceToken}
+${cloudflaredServiceUnit ? `cat <<'EOF_CLOUDFLARED_SERVICE' | sudo tee /etc/systemd/system/cocalc-cloudflared.service >/dev/null
+${cloudflaredServiceUnit}
+EOF_CLOUDFLARED_SERVICE
+` : ""}
 sudo systemctl daemon-reload
 sudo systemctl enable --now cocalc-project-host
+${cloudflaredServiceUnit ? "sudo systemctl enable --now cocalc-cloudflared" : ""}
 `;
+
+  if (cloudflaredScript) {
+    bootstrapScript += cloudflaredScript;
+  }
 
   await updateHostRow(row.id, {
     metadata: {
       ...metadata,
+      ...(tunnel ? { cloudflare_tunnel: tunnel } : {}),
       bootstrap: { status: "running", started_at: new Date().toISOString() },
     },
   });
@@ -540,9 +615,12 @@ sudo systemctl enable --now cocalc-project-host
   await updateHostRow(row.id, {
     metadata: {
       ...metadata,
+      ...(tunnel ? { cloudflare_tunnel: tunnel } : {}),
       bootstrap: { status: "done", finished_at: new Date().toISOString() },
     },
     status: row.status === "starting" ? "running" : row.status,
+    public_url: publicUrl,
+    internal_url: internalUrl,
   });
   await logCloudVmEvent({
     vm_id: row.id,

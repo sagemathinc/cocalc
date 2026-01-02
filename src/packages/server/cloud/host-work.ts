@@ -1,6 +1,10 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { deleteHostDns, ensureHostDns, hasDns } from "./dns";
+import {
+  deleteCloudflareTunnel,
+  hasCloudflareTunnel,
+} from "./cloudflare-tunnel";
 import { enqueueCloudVmWorkOnce, logCloudVmEvent } from "./db";
 import { provisionIfNeeded } from "./host-util";
 import type { CloudVmWorkHandlers } from "./worker";
@@ -32,6 +36,7 @@ async function updateHostRow(id: string, updates: Record<string, any>) {
 }
 
 async function ensureDnsForHost(row: any) {
+  if (await hasCloudflareTunnel()) return;
   if (!row?.metadata?.runtime?.public_ip) return;
   if (!(await hasDns())) return;
   try {
@@ -222,7 +227,7 @@ async function handleStop(row: any) {
     await entry.provider.stopHost(runtime, creds);
   }
   if (providerId === "hyperstack") {
-    if (await hasDns()) {
+    if (!(await hasCloudflareTunnel()) && (await hasDns())) {
       await deleteHostDns({ record_id: row.metadata?.dns?.record_id });
     }
     const nextMetadata = {
@@ -273,7 +278,12 @@ async function handleDelete(row: any) {
     const { entry, creds } = await getProviderContext(providerId);
     await entry.provider.deleteHost(runtime, creds);
   }
-  if (await hasDns()) {
+  if (await hasCloudflareTunnel()) {
+    await deleteCloudflareTunnel({
+      host_id: row.id,
+      tunnel: row.metadata?.cloudflare_tunnel,
+    });
+  } else if (await hasDns()) {
     await deleteHostDns({ record_id: row.metadata?.dns?.record_id });
   }
   await logCloudVmEvent({
