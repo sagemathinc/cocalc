@@ -5,7 +5,9 @@
  * Security: intentionally insecure for now. No auth, no TLS.
  */
 import { createServer as createHttpServer } from "http";
+import { createServer as createHttpsServer } from "https";
 import { once } from "node:events";
+import { URL } from "node:url";
 import express from "express";
 import getPort from "@cocalc/backend/get-port";
 import getLogger from "@cocalc/backend/logger";
@@ -37,6 +39,7 @@ import {
   DEFAULT_CODEX_ACP_IMAGE,
   ensureCodexContainerImage,
 } from "@cocalc/ai/acp/containers/codex";
+import { getOrCreateSelfSigned } from "@cocalc/lite/tls";
 
 const logger = getLogger("project-host:main");
 
@@ -51,15 +54,60 @@ export interface ProjectHostContext {
   host: string;
 }
 
-async function startHttpServer(port: number, host: string) {
+type TlsConfig = {
+  enabled: boolean;
+  hostname: string;
+};
+
+function resolveTlsConfig(host: string): TlsConfig {
+  const httpsEnv = process.env.COCALC_PROJECT_HOST_HTTPS;
+  const publicUrl = process.env.PROJECT_HOST_PUBLIC_URL ?? "";
+  let enabled = false;
+  let hostname = "";
+  if (publicUrl) {
+    try {
+      const parsed = new URL(publicUrl);
+      hostname = parsed.hostname;
+      if (parsed.protocol === "https:") {
+        enabled = true;
+      }
+    } catch {
+      // ignore invalid URL
+    }
+  }
+  if (httpsEnv && !["0", "false", "no"].includes(httpsEnv.toLowerCase())) {
+    enabled = true;
+  }
+  const overrideHostname = process.env.COCALC_PROJECT_HOST_HTTPS_HOSTNAME;
+  if (overrideHostname) {
+    hostname = overrideHostname;
+  }
+  if (!hostname) {
+    hostname = host;
+  }
+  return { enabled, hostname };
+}
+
+async function startHttpServer(
+  port: number,
+  host: string,
+  tls: TlsConfig,
+) {
   const app = express();
   app.use(express.json());
 
-  const httpServer = createHttpServer(app);
+  let httpServer: ReturnType<typeof createHttpServer> | ReturnType<typeof createHttpsServer>;
+  if (tls.enabled) {
+    const { key, cert, keyPath, certPath } = getOrCreateSelfSigned(tls.hostname);
+    httpServer = createHttpsServer({ key, cert }, app);
+    logger.info(`TLS enabled (key=${keyPath}, cert=${certPath})`);
+  } else {
+    httpServer = createHttpServer(app);
+  }
   httpServer.listen(port, host);
   await once(httpServer, "listening");
 
-  return { app, httpServer };
+  return { app, httpServer, isHttps: tls.enabled };
 }
 
 export async function main(
@@ -68,14 +116,18 @@ export async function main(
   const runnerId = process.env.PROJECT_RUNNER_NAME || "project-host";
   const host = _config.host ?? process.env.HOST ?? "0.0.0.0";
   const port = _config.port ?? (Number(process.env.PORT) || (await getPort()));
+  const tls = resolveTlsConfig(host);
 
-  logger.info(`starting project-host on ${host}:${port} (runner=${runnerId})`);
+  const scheme = tls.enabled ? "https" : "http";
+  logger.info(
+    `starting project-host on ${scheme}://${host}:${port} (runner=${runnerId})`,
+  );
 
   // 1) HTTP + conat server
-  const { app, httpServer } = await startHttpServer(port, host);
+  const { app, httpServer, isHttps } = await startHttpServer(port, host, tls);
   const conatServer: ConatServer = createConatServer({
     httpServer,
-    ssl: false,
+    ssl: isHttps,
     port,
     getUser: async () => ({ account_id }),
   });

@@ -23,12 +23,11 @@ import {
   FALLBACK_PROJECT_UUID,
   FALLBACK_ACCOUNT_UUID,
 } from "@cocalc/util/misc";
-import selfsigned from "selfsigned";
 import fs from "node:fs";
-import os from "node:os";
 import { initAuth } from "./auth-token";
 import { hasRemote } from "./remote";
 import { getCustomizePayload } from "./hub/settings";
+import { getOrCreateSelfSigned } from "./tls";
 
 const logger = getLogger("lite:static");
 
@@ -156,33 +155,6 @@ export async function initApp({ app, conatClient, AUTH_TOKEN, isHttps }) {
   });
 }
 
-function resolveCertDir(): string {
-  if (process.env.SSL_DIR) {
-    return process.env.SSL_DIR;
-  }
-  const home = os.homedir();
-  // const platform = process.platform;
-  //   if (platform === "win32") {
-  //     const base = process.env.LOCALAPPDATA || join(home, "AppData", "Local");
-  //     return join(base, "CoCalcLite", "devcert");
-  //   }
-  // Linux/macOS (+others): prefer XDG config if set.
-  const xdg = process.env.XDG_CONFIG_HOME || join(home, ".config");
-  return join(xdg, "cocalc-lite", "devcert");
-}
-
-function ensureDir(p: string) {
-  fs.mkdirSync(p, { recursive: true });
-}
-
-function readIfExists(p: string): string | undefined {
-  try {
-    return fs.readFileSync(p, "utf8");
-  } catch {
-    return undefined;
-  }
-}
-
 function sanitizeHost(rawHost: string): { isHttps: boolean; hostname: string } {
   // Accept: "localhost", "0.0.0.0", "https://localhost", etc.
   const trimmed = rawHost.trim();
@@ -195,57 +167,6 @@ function sanitizeHost(rawHost: string): { isHttps: boolean; hostname: string } {
     return { isHttps: false, hostname: u.hostname };
   }
   return { isHttps: false, hostname: trimmed };
-}
-
-function getCertPaths(certDir: string, hostname: string) {
-  const base = join(certDir, hostname);
-  return {
-    keyPath: base + ".key.pem",
-    certPath: base + ".cert.pem",
-  };
-}
-
-function getOrCreateSelfSigned(hostname: string) {
-  const certDir = resolveCertDir();
-  ensureDir(certDir);
-  const { keyPath, certPath } = getCertPaths(certDir, hostname);
-
-  let key = readIfExists(keyPath);
-  let cert = readIfExists(certPath);
-
-  if (!key || !cert) {
-    // Generate a fresh self-signed cert; include SANs for common localhost usage.
-    const attrs = [{ name: "commonName", value: hostname }];
-    const pems = selfsigned.generate(attrs, {
-      days: 365,
-      keySize: 2048,
-      algorithm: "sha256",
-      extensions: [
-        {
-          name: "subjectAltName",
-          altNames: [
-            { type: 2, value: hostname }, // DNS
-            { type: 2, value: "localhost" },
-            { type: 7, ip: "127.0.0.1" },
-            { type: 7, ip: "::1" },
-          ],
-        },
-      ],
-    });
-
-    key = pems.private; // PEM string
-    cert = pems.cert; // PEM string
-
-    // Persist so we reuse next time.
-    fs.writeFileSync(keyPath, key, { mode: 0o600 });
-    fs.writeFileSync(certPath, cert, { mode: 0o644 });
-
-    logger.info(`Generated new self-signed cert for ${hostname}`);
-    logger.info(`Saved key:  ${keyPath}`);
-    logger.info(`Saved cert: ${certPath}`);
-  }
-
-  return { key, cert, keyPath, certPath, certDir };
 }
 
 function showURL({ url, AUTH_TOKEN }) {
