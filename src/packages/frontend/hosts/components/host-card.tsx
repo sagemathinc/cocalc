@@ -30,7 +30,10 @@ export const HostCard: React.FC<HostCardProps> = ({
   const startLabel = host.status === "starting" ? "Starting" : "Start";
   const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
   const allowStop =
-    !isDeleted && (host.status === "running" || host.status === "error");
+    !isDeleted &&
+    (host.status === "running" ||
+      host.status === "active" ||
+      host.status === "error");
   const deleteLabel = isDeleted
     ? "Deleted"
     : host.status === "deprovisioned"
