@@ -65,7 +65,7 @@ export function normalizeGcpCatalog(opts: {
         .filter((img) => !img.deprecated?.state)
         .filter((img) => {
           const version = ubuntuVersionCode(img.family ?? img.name ?? "");
-          return version != null && version >= 2204;
+          return version != null && version >= 2404;
         })
     : [];
 
@@ -298,7 +298,7 @@ export async function fetchGcpCatalog(opts: GcpCatalogOptions): Promise<GcpCatal
     .filter((img) => !img.deprecated?.state)
     .filter((img) => {
       const version = ubuntuVersionCode(img.family ?? img.name ?? "");
-      return version != null && version >= 2204;
+      return version != null && version >= 2404;
     });
 
   const catalog = normalizeGcpCatalog({

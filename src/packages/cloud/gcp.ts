@@ -1,4 +1,8 @@
-import { InstancesClient, ZoneOperationsClient } from "@google-cloud/compute";
+import {
+  ImagesClient,
+  InstancesClient,
+  ZoneOperationsClient,
+} from "@google-cloud/compute";
 import logger from "./logger";
 import type { CloudProvider, HostRuntime, HostSpec, RemoteInstance } from "./types";
 
@@ -76,6 +80,100 @@ function sshUserFor(spec: HostSpec): string {
   return spec.metadata?.ssh_user ?? "ubuntu";
 }
 
+function normalizeSourceImage(value?: string | null): string | undefined {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  return trimmed;
+}
+
+function defaultImageFamilies(): string[] {
+  return [
+    "ubuntu-2404-lts-amd64",
+    "ubuntu-2404-lts",
+    "ubuntu-minimal-2404-lts-amd64",
+    "ubuntu-minimal-2404-lts",
+  ];
+}
+
+async function resolveSourceImage({
+  spec,
+  credentials,
+}: {
+  spec: HostSpec;
+  credentials: { projectId: string; credentials: any };
+}): Promise<string> {
+  const imagesClient = new ImagesClient(credentials);
+  const gpuPreferred = !!spec.gpu;
+  const projectOverride = normalizeSourceImage(
+    spec.metadata?.source_image_project,
+  );
+  const projectCandidates = projectOverride
+    ? [projectOverride]
+    : gpuPreferred
+      ? ["ubuntu-os-accelerator-images", "ubuntu-os-cloud"]
+      : ["ubuntu-os-cloud", "ubuntu-os-accelerator-images"];
+
+  const direct = normalizeSourceImage(spec.metadata?.source_image);
+  if (direct) {
+    if (
+      direct.startsWith("http://") ||
+      direct.startsWith("https://") ||
+      direct.startsWith("projects/") ||
+      direct.includes("/global/images/")
+    ) {
+      return direct;
+    }
+    for (const project of projectCandidates) {
+      try {
+        const [img] = await imagesClient.get({
+          project,
+          image: direct,
+        });
+        if (img?.selfLink) {
+          return img.selfLink;
+        }
+      } catch (err) {
+        logger.warn("gcp source_image lookup failed", {
+          image: direct,
+          project,
+          err: String(err),
+        });
+      }
+    }
+  }
+
+  const familyOverride =
+    normalizeSourceImage(spec.metadata?.source_image_family) ??
+    normalizeSourceImage(spec.metadata?.image_family);
+  const familyCandidates = familyOverride
+    ? [familyOverride]
+    : defaultImageFamilies();
+  for (const project of projectCandidates) {
+    for (const family of familyCandidates) {
+      try {
+        const [img] = await imagesClient.getFromFamily({
+          project,
+          family,
+        });
+        if (img?.selfLink) {
+          return img.selfLink;
+        }
+      } catch (err) {
+        logger.warn("gcp image family lookup failed", {
+          family,
+          project,
+          err: String(err),
+        });
+      }
+    }
+  }
+
+  throw new Error(
+    `unable to resolve gcp source image (family=${familyOverride ?? "default"})`,
+  );
+}
+
 async function waitUntilOperationComplete({
   response,
   zone,
@@ -130,9 +228,7 @@ export class GcpProvider implements CloudProvider {
     const diskType = `projects/${credentials.projectId}/zones/${zone}/diskTypes/${diskTypeFor(
       spec,
     )}`;
-    const sourceImage =
-      spec.metadata?.source_image ??
-      "projects/ubuntu-os-cloud/global/images/family/ubuntu-2404-lts";
+    const sourceImage = await resolveSourceImage({ spec, credentials });
     const bootDiskGb = spec.metadata?.boot_disk_gb ?? 20;
 
     const storageMode = spec.metadata?.storage_mode;
