@@ -94,7 +94,10 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
         </Space>
         <Typography.Text>Projects: {host.projects ?? 0}</Typography.Text>
         <Typography.Text type="secondary">
-          Last seen: {host.last_seen ?? "n/a"}
+          Last seen:{" "}
+          {host.last_seen
+            ? new Date(host.last_seen).toLocaleString()
+            : "n/a"}
         </Typography.Text>
         {host.status === "error" && host.last_error && (
           <Alert

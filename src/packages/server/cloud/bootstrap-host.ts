@@ -465,6 +465,7 @@ sudo systemctl enable --now cocalc-project-host
       ...metadata,
       bootstrap: { status: "done", finished_at: new Date().toISOString() },
     },
+    status: row.status === "starting" ? "running" : row.status,
   });
   await logCloudVmEvent({
     vm_id: row.id,

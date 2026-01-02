@@ -189,6 +189,16 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     return sortHosts(hosts, sortField, sortDirection);
   }, [hosts, sortField, sortDirection, autoResort, statusOrder]);
 
+  const resortNow = React.useCallback(() => {
+    if (sortField !== "status") return;
+    setStatusOrder((prev) => {
+      const next = sortHosts(hosts, sortField, sortDirection).map(
+        (host) => host.id,
+      );
+      return arraysEqual(prev, next) ? prev : next;
+    });
+  }, [hosts, sortField, sortDirection]);
+
   const columns: ColumnsType<Host> = [
     {
       title: "Name",
@@ -384,7 +394,13 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           {sortField === "status" && (
             <Space size="small" align="center">
               <Switch size="small" checked={autoResort} onChange={setAutoResort} />
-              <Typography.Text>Auto-resort</Typography.Text>
+              {autoResort ? (
+                <Typography.Text>Auto-resort</Typography.Text>
+              ) : (
+                <Button size="small" type="link" onClick={resortNow}>
+                  Auto-resort
+                </Button>
+              )}
             </Space>
           )}
         </Space>

@@ -1,11 +1,7 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { deleteHostDns, ensureHostDns, hasDns } from "./dns";
-import {
-  enqueueCloudVmWork,
-  enqueueCloudVmWorkOnce,
-  logCloudVmEvent,
-} from "./db";
+import { enqueueCloudVmWorkOnce, logCloudVmEvent } from "./db";
 import { provisionIfNeeded } from "./host-util";
 import type { CloudVmWorkHandlers } from "./worker";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
@@ -26,9 +22,7 @@ async function loadHostRow(id: string) {
 }
 
 async function updateHostRow(id: string, updates: Record<string, any>) {
-  const keys = Object.keys(updates).filter(
-    (key) => updates[key] !== undefined,
-  );
+  const keys = Object.keys(updates).filter((key) => updates[key] !== undefined);
   if (!keys.length) return;
   const sets = keys.map((key, idx) => `${key}=$${idx + 2}`);
   await pool().query(
@@ -106,7 +100,10 @@ async function scheduleRuntimeRefresh(row: any) {
   const enqueued = await enqueueCloudVmWorkOnce({
     vm_id: row.id,
     action: "refresh_runtime",
-    payload: { provider: providerId ?? row.metadata?.machine?.cloud, attempt: 0 },
+    payload: {
+      provider: providerId ?? row.metadata?.machine?.cloud,
+      attempt: 0,
+    },
   });
   if (enqueued) {
     logger.info("scheduleRuntimeRefresh: enqueue", {
@@ -153,7 +150,11 @@ async function handleProvision(row: any) {
     public_url: publicUrl,
     internal_url: internalUrl,
   });
-  await ensureDnsForHost({ ...provisioned, public_url: publicUrl, internal_url: internalUrl });
+  await ensureDnsForHost({
+    ...provisioned,
+    public_url: publicUrl,
+    internal_url: internalUrl,
+  });
   await scheduleRuntimeRefresh(provisioned);
   await scheduleBootstrap(provisioned);
   await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
@@ -336,22 +337,28 @@ async function handleRefreshRuntime(row: any) {
   };
   const publicUrl = host.public_url ?? `http://${public_ip}`;
   const internalUrl = host.internal_url ?? `http://${public_ip}`;
+  const nextStatus = host.status === "starting" ? "running" : host.status;
   await updateHostRow(host.id, {
     metadata: nextMetadata,
     public_url: publicUrl,
     internal_url: internalUrl,
+    status: nextStatus,
   });
-  await ensureDnsForHost({
+  const nextHost = {
     ...host,
+    status: nextStatus,
     metadata: nextMetadata,
     public_url: publicUrl,
     internal_url: internalUrl,
-  });
-  await scheduleBootstrap({
-    ...host,
-    metadata: nextMetadata,
-    public_url: publicUrl,
-    internal_url: internalUrl,
+  };
+  await ensureDnsForHost(nextHost);
+  await scheduleBootstrap(nextHost);
+  await logCloudVmEvent({
+    vm_id: host.id,
+    action: "refresh_runtime",
+    status: "success",
+    provider: providerId ?? host.metadata?.machine?.cloud,
+    runtime: { ...runtime, public_ip },
   });
 }
 

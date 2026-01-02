@@ -55,14 +55,6 @@ function safeName(prefix: string, base: string, maxLen = 64): string {
   return safePrefix.slice(0, maxLen);
 }
 
-function safeHostname(prefix: string, base: string): string {
-  const raw = safeName(prefix, base, 63);
-  if (!/^[a-z0-9]/.test(raw)) {
-    return `host-${raw}`.slice(0, 63);
-  }
-  return raw;
-}
-
 async function ensureSshKey(
   client: LambdaClient,
   name: string,
@@ -196,8 +188,11 @@ export class LambdaProvider implements CloudProvider {
   async createHost(spec: HostSpec, creds: LambdaCreds): Promise<HostRuntime> {
     const client = new LambdaClient({ apiKey: creds.apiKey });
     const prefix = normalizePrefix(creds.prefix);
-    const resourceName = safeName(prefix, spec.name, 64);
-    const hostname = safeHostname(prefix, spec.name);
+    const normalizedSpecName = spec.name.toLowerCase();
+    const hasPrefix =
+      normalizedSpecName === prefix || normalizedSpecName.startsWith(`${prefix}-`);
+    const resourceName = hasPrefix ? spec.name : safeName(prefix, spec.name, 64);
+    const hostname = resourceName;
 
     const types = await client.listInstanceTypes();
     const entries = Object.values(types) as InstanceTypeEntry[];
@@ -265,7 +260,7 @@ export class LambdaProvider implements CloudProvider {
       ssh_key_names: [sshName],
       ...(image ? { image } : {}),
       hostname,
-      name: spec.name,
+      name: resourceName,
       user_data,
       file_system_names,
       file_system_mounts,

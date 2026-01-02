@@ -26,9 +26,11 @@ import type {
 const HOSTS_VIEW_MODE_STORAGE_KEY = "cocalc:hosts:viewMode";
 const HOSTS_SORT_FIELD_STORAGE_KEY = "cocalc:hosts:sortField";
 const HOSTS_SORT_DIRECTION_STORAGE_KEY = "cocalc:hosts:sortDirection";
+const HOSTS_AUTO_RESORT_STORAGE_KEY = "cocalc:hosts:autoResort";
 const DEFAULT_HOSTS_VIEW_MODE: HostListViewMode = "grid";
 const DEFAULT_SORT_FIELD: HostSortField = "name";
 const DEFAULT_SORT_DIRECTION: HostSortDirection = "asc";
+const DEFAULT_AUTO_RESORT = false;
 
 function readHostViewMode(): HostListViewMode {
   if (typeof window === "undefined") {
@@ -94,6 +96,26 @@ function persistHostSortDirection(direction: HostSortDirection) {
   window.localStorage.setItem(HOSTS_SORT_DIRECTION_STORAGE_KEY, direction);
 }
 
+function readHostAutoResort(): boolean {
+  if (typeof window === "undefined") {
+    return DEFAULT_AUTO_RESORT;
+  }
+  const raw = window.localStorage.getItem(HOSTS_AUTO_RESORT_STORAGE_KEY);
+  if (raw === "true") return true;
+  if (raw === "false") return false;
+  return DEFAULT_AUTO_RESORT;
+}
+
+function persistHostAutoResort(value: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(
+    HOSTS_AUTO_RESORT_STORAGE_KEY,
+    value ? "true" : "false",
+  );
+}
+
 export const useHostsPageViewModel = () => {
   const hub = webapp_client.conat_client.hub;
   const [form] = Form.useForm();
@@ -135,7 +157,8 @@ export const useHostsPageViewModel = () => {
     React.useState<HostSortField>(readHostSortField);
   const [sortDirection, setSortDirection] =
     React.useState<HostSortDirection>(readHostSortDirection);
-  const [autoResort, setAutoResort] = React.useState(false);
+  const [autoResort, setAutoResort] =
+    React.useState<boolean>(readHostAutoResort);
   React.useEffect(() => {
     persistHostViewMode(hostViewMode);
   }, [hostViewMode]);
@@ -146,10 +169,8 @@ export const useHostsPageViewModel = () => {
     persistHostSortDirection(sortDirection);
   }, [sortDirection]);
   React.useEffect(() => {
-    if (sortField === "status") {
-      setAutoResort(false);
-    }
-  }, [sortField]);
+    persistHostAutoResort(autoResort);
+  }, [autoResort]);
 
   const {
     providerOptions,

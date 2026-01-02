@@ -452,11 +452,16 @@ export async function startHost({
 }): Promise<Host> {
   const row = await loadHostForStartStop(id, account_id);
   const metadata = row.metadata ?? {};
+  const nextMetadata = { ...metadata };
+  if (nextMetadata.bootstrap) {
+    // bootstrap should be idempotent and we bootstrap on EVERY start
+    delete nextMetadata.bootstrap;
+  }
   const machine: HostMachine = metadata.machine ?? {};
   const machineCloud = normalizeProviderId(machine.cloud);
   await pool().query(
-    `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
-    [id, "starting", new Date()],
+    `UPDATE project_hosts SET status=$2, last_seen=$3, metadata=$4, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
+    [id, "starting", new Date(), nextMetadata],
   );
   if (!machineCloud) {
     await pool().query(

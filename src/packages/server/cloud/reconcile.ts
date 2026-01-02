@@ -254,6 +254,9 @@ async function reconcileProvider(provider: Provider) {
     }
     const desiredStatus =
       entry.provider.mapStatus?.(remote.status) ?? row.status;
+    const bootstrapDone = row.metadata?.bootstrap?.status === "done";
+    const nextStatus =
+      desiredStatus === "starting" && bootstrapDone ? "running" : desiredStatus;
     const nextRuntime = {
       ...runtime,
       public_ip: remote.public_ip ?? runtime.public_ip,
@@ -266,7 +269,7 @@ async function reconcileProvider(provider: Provider) {
       row.internal_url ??
       (nextRuntime.public_ip ? `http://${nextRuntime.public_ip}` : undefined);
     await updateHost(row, {
-      status: desiredStatus,
+      status: nextStatus,
       runtime: nextRuntime,
       public_url: publicUrl,
       internal_url: internalUrl,
@@ -274,6 +277,7 @@ async function reconcileProvider(provider: Provider) {
     if (remote.public_ip && !runtime.public_ip) {
       await scheduleBootstrap({
         ...row,
+        status: nextStatus,
         metadata: { ...(row.metadata ?? {}), runtime: nextRuntime },
         public_url: row.public_url ?? `http://${remote.public_ip}`,
         internal_url: row.internal_url ?? `http://${remote.public_ip}`,
