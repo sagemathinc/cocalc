@@ -7,7 +7,8 @@
 
 import { callback } from "awaiting";
 
-const { one_result, all_results } = require("../postgres-base");
+import { one_result } from "./utils/one-result";
+import { all_results } from "./utils/all-results";
 
 import { PostgreSQL, QueryWhere } from "./types";
 
@@ -41,7 +42,7 @@ export async function query(opts: QueryOpts): Promise<any> {
     opts.order_by,
     opts.limit,
     opts.params,
-    opts.timeout_s
+    opts.timeout_s,
   );
 }
 
@@ -58,7 +59,7 @@ function all_query(
   limit,
   params,
   timeout_s,
-  cb
+  cb,
 ): void {
   db._query({
     select,
@@ -89,7 +90,7 @@ function one_query(
   limit,
   params,
   timeout_s,
-  cb
+  cb,
 ): void {
   db._query({
     select,

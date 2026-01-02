@@ -16,8 +16,8 @@ import {
 import getLogger from "@cocalc/backend/logger";
 import { send_invite_email } from "@cocalc/server/hub/email";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
-import { is_paying_customer } from "@cocalc/database/postgres/account-queries";
-import { project_has_network_access } from "@cocalc/database/postgres/project-queries";
+import { is_paying_customer } from "@cocalc/database/postgres/account/queries";
+import { project_has_network_access } from "@cocalc/database/postgres/project/queries";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 
 const logger = getLogger("project:collaborators");

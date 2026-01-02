@@ -23,7 +23,7 @@ import {
 } from "@cocalc/backend/data";
 import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
-import { init_start_always_running_projects } from "@cocalc/database/postgres/always-running";
+import { init_start_always_running_projects } from "@cocalc/database/postgres/project/always-running";
 import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
 import {
   initConatApi,
@@ -478,7 +478,7 @@ async function main(): Promise<void> {
       });
       process.exit();
     } else if (program.blobMaintenance) {
-      await callback2(database.blob_maintenance);
+      await database.blob_maintenance({});
       process.exit();
     } else if (program.updateStats) {
       await callback2(database.get_stats);
