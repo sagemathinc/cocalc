@@ -1,6 +1,7 @@
 import { authFirstRequireAccount, noAuth } from "./util";
 
 export type HostStatus =
+  | "active"
   | "deprovisioned"
   | "off"
   | "error"

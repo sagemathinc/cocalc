@@ -11,6 +11,7 @@ export const WRAP_STYLE: CSS = {
 export const STATUS_COLOR = {
   stopped: "red",
   running: "green",
+  active: "green",
   provisioning: "blue",
   starting: "blue",
   stopping: "orange",

@@ -29,11 +29,12 @@ export const HostCard: React.FC<HostCardProps> = ({
     isDeleted || host.status === "running" || host.status === "starting";
   const startLabel = host.status === "starting" ? "Starting" : "Start";
   const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
+  const statusValue = host.status as Host["status"] | "active";
   const allowStop =
     !isDeleted &&
-    (host.status === "running" ||
-      host.status === "active" ||
-      host.status === "error");
+    (statusValue === "running" ||
+      statusValue === "active" ||
+      statusValue === "error");
   const deleteLabel = isDeleted
     ? "Deleted"
     : host.status === "deprovisioned"

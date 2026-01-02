@@ -17,6 +17,7 @@ import type {
 
 const STATUS_ORDER = [
   "running",
+  "active",
   "starting",
   "off",
   "stopping",
@@ -83,6 +84,17 @@ function sortHosts(
         result = compareNumber(aRank, bRank);
         break;
       }
+      case "changed": {
+        const aRaw = a.last_action_at ?? a.last_seen ?? "";
+        const bRaw = b.last_action_at ?? b.last_seen ?? "";
+        const aTs = aRaw ? Date.parse(aRaw) : 0;
+        const bTs = bRaw ? Date.parse(bRaw) : 0;
+        result = compareNumber(
+          Number.isNaN(aTs) ? 0 : aTs,
+          Number.isNaN(bTs) ? 0 : bTs,
+        );
+        break;
+      }
       default:
         result = 0;
     }
@@ -138,19 +150,20 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     setAutoResort,
   } = vm;
 
-  const [statusOrder, setStatusOrder] = React.useState<string[]>([]);
+  const [dynamicOrder, setDynamicOrder] = React.useState<string[]>([]);
   const sortKeyRef = React.useRef<string>("");
+  const isDynamicSort = sortField === "status" || sortField === "changed";
 
   React.useEffect(() => {
-    if (sortField !== "status") {
-      setStatusOrder((prev) => (prev.length ? [] : prev));
+    if (!isDynamicSort) {
+      setDynamicOrder((prev) => (prev.length ? [] : prev));
       sortKeyRef.current = `${sortField}:${sortDirection}`;
       return;
     }
     const sortKey = `${sortField}:${sortDirection}`;
     const sortChanged = sortKeyRef.current !== sortKey;
     sortKeyRef.current = sortKey;
-    setStatusOrder((prev) => {
+    setDynamicOrder((prev) => {
       if (autoResort || prev.length === 0 || sortChanged) {
         const next = sortHosts(hosts, sortField, sortDirection).map(
           (host) => host.id,
@@ -170,12 +183,12 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       const next = [...current, ...sortedMissing];
       return arraysEqual(prev, next) ? prev : next;
     });
-  }, [hosts, sortField, sortDirection, autoResort]);
+  }, [hosts, sortField, sortDirection, autoResort, isDynamicSort]);
 
   const sortedHosts = React.useMemo(() => {
-    if (sortField === "status" && !autoResort && statusOrder.length) {
+    if (isDynamicSort && !autoResort && dynamicOrder.length) {
       const hostMap = new Map(hosts.map((host) => [host.id, host]));
-      const ordered = statusOrder
+      const ordered = dynamicOrder
         .map((id) => hostMap.get(id))
         .filter((host): host is Host => !!host);
       const orderedIds = new Set(ordered.map((host) => host.id));
@@ -187,17 +200,17 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       return ordered.concat(sortHosts(missing, sortField, sortDirection));
     }
     return sortHosts(hosts, sortField, sortDirection);
-  }, [hosts, sortField, sortDirection, autoResort, statusOrder]);
+  }, [hosts, sortField, sortDirection, autoResort, dynamicOrder, isDynamicSort]);
 
   const resortNow = React.useCallback(() => {
-    if (sortField !== "status") return;
-    setStatusOrder((prev) => {
+    if (!isDynamicSort) return;
+    setDynamicOrder((prev) => {
       const next = sortHosts(hosts, sortField, sortDirection).map(
         (host) => host.id,
       );
       return arraysEqual(prev, next) ? prev : next;
     });
-  }, [hosts, sortField, sortDirection]);
+  }, [hosts, sortField, sortDirection, isDynamicSort]);
 
   const columns: ColumnsType<Host> = [
     {
@@ -314,11 +327,12 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           isDeleted || host.status === "running" || host.status === "starting";
         const startLabel = host.status === "starting" ? "Starting" : "Start";
         const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
+        const statusValue = host.status as Host["status"] | "active";
         const allowStop =
           !isDeleted &&
-          (host.status === "running" ||
-            host.status === "active" ||
-            host.status === "error");
+          (statusValue === "running" ||
+            statusValue === "active" ||
+            statusValue === "error");
         const deleteLabel = isDeleted
           ? "Deleted"
           : host.status === "deprovisioned"
@@ -389,6 +403,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     { value: "region", label: "Region" },
     { value: "size", label: "Size" },
     { value: "status", label: "Status" },
+    { value: "changed", label: "Changed" },
   ] satisfies { value: HostSortField; label: string }[];
 
   const toggleDirection = () => {
@@ -415,7 +430,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               {sortDirection === "asc" ? "Asc" : "Desc"}
             </Button>
           </Space>
-          {sortField === "status" && (
+          {isDynamicSort && (
             <Space size="small" align="center">
               <Switch size="small" checked={autoResort} onChange={setAutoResort} />
               {autoResort ? (

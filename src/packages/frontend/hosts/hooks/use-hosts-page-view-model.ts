@@ -60,7 +60,8 @@ function readHostSortField(): HostSortField {
     raw === "provider" ||
     raw === "region" ||
     raw === "size" ||
-    raw === "status"
+    raw === "status" ||
+    raw === "changed"
   ) {
     return raw;
   }
