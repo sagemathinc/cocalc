@@ -13,7 +13,7 @@ import {
 } from "./db";
 import { logCloudVmEvent } from "./db";
 import getPool from "@cocalc/database/pool";
-import { enqueueCloudVmWork } from "./db";
+import { enqueueCloudVmWorkOnce } from "./db";
 
 const logger = getLogger("server:cloud:worker");
 const pool = () => getPool();
@@ -146,7 +146,7 @@ export async function enqueueMissingRuntimeRefresh(opts: { limit?: number }) {
   if (!rows.length) return 0;
   for (const row of rows) {
     const cloud = row.metadata?.machine?.cloud;
-    await enqueueCloudVmWork({
+    await enqueueCloudVmWorkOnce({
       vm_id: row.id,
       action: "refresh_runtime",
       payload: { provider: cloud, attempt: 0 },
@@ -164,6 +164,8 @@ export function startCloudVmWorker(opts: {
   max_per_provider?: number;
 }) {
   const interval_ms = opts.interval_ms ?? 2000;
+  const refreshScanIntervalMs = 30_000;
+  let lastRefreshScan = 0;
   let stopped = false;
 
   const tick = async () => {
@@ -176,9 +178,12 @@ export function startCloudVmWorker(opts: {
         max_concurrency: opts.max_concurrency ?? DEFAULT_MAX_CONCURRENCY,
         max_per_provider: opts.max_per_provider ?? DEFAULT_PER_PROVIDER,
       });
-      const refreshed = await enqueueMissingRuntimeRefresh({ limit: 50 });
-      if (refreshed) {
-        logger.debug("refresh_runtime enqueue scan", { refreshed });
+      if (Date.now() - lastRefreshScan >= refreshScanIntervalMs) {
+        lastRefreshScan = Date.now();
+        const refreshed = await enqueueMissingRuntimeRefresh({ limit: 50 });
+        if (refreshed) {
+          logger.debug("refresh_runtime enqueue scan", { refreshed });
+        }
       }
     } catch (err) {
       logger.warn("cloud worker tick failed", { err });

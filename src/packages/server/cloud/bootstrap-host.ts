@@ -130,7 +130,52 @@ function sshBaseArgs(opts: { keyPath: string; knownHosts: string }) {
     `UserKnownHostsFile=${opts.knownHosts}`,
     "-o",
     "IdentitiesOnly=yes",
+    "-o",
+    "ConnectTimeout=15",
   ];
+}
+
+const BOOTSTRAP_SSH_WAIT_MS = 10 * 60 * 1000;
+const BOOTSTRAP_SSH_RETRY_MS = 15 * 1000;
+
+function shouldRetrySsh(err: unknown): boolean {
+  const msg = String((err as any)?.message ?? err);
+  const lowered = msg.toLowerCase();
+  return (
+    lowered.includes("exited with code 255") ||
+    lowered.includes("connection timed out") ||
+    lowered.includes("operation timed out") ||
+    lowered.includes("no route to host") ||
+    lowered.includes("connection refused") ||
+    lowered.includes("connection closed") ||
+    lowered.includes("could not resolve hostname")
+  );
+}
+
+async function retrySsh<T>(label: string, fn: () => Promise<T>): Promise<T> {
+  const deadline = Date.now() + BOOTSTRAP_SSH_WAIT_MS;
+  let attempt = 0;
+  let lastErr: unknown;
+  while (Date.now() < deadline) {
+    attempt += 1;
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      if (!shouldRetrySsh(err)) {
+        throw err;
+      }
+      logger.info("bootstrap: ssh not ready, retrying", {
+        label,
+        attempt,
+        err: String(err),
+      });
+      await new Promise((resolve) => setTimeout(resolve, BOOTSTRAP_SSH_RETRY_MS));
+    }
+  }
+  throw new Error(
+    `ssh not reachable after ${Math.round(BOOTSTRAP_SSH_WAIT_MS / 60000)} minutes: ${String(lastErr)}`,
+  );
 }
 
 async function runSshScript(opts: {
@@ -145,27 +190,37 @@ async function runSshScript(opts: {
     keyPath: opts.keyPath,
     knownHosts: opts.knownHosts,
   });
+  const logPath = opts.scriptPath.endsWith(".sh")
+    ? `${opts.scriptPath.slice(0, -3)}.log`
+    : `${opts.scriptPath}.log`;
   const token = `COCALC_BOOTSTRAP_${Date.now()}_${Math.random()
     .toString(36)
     .slice(2, 10)}`;
   const scriptPath = opts.scriptPath.replace(/"/g, '\\"');
+  const logPathEscaped = logPath.replace(/"/g, '\\"');
   const wrapper = `set -euo pipefail
 script_path="${scriptPath}"
+log_path="${logPathEscaped}"
 script_dir=$(dirname "$script_path")
 mkdir -p "$script_dir"
 cat <<'${token}' > "$script_path"
 ${opts.script.trim()}
 ${token}
 chmod +x "$script_path"
-bash "$script_path"
+if [ "$log_path" = "$script_path" ]; then
+  log_path="\${script_path}.log"
+fi
+bash "$script_path" 2>&1 | tee "$log_path"
 `;
-  return await runCmd(
-    "ssh",
-    [...base, `${opts.user}@${opts.host}`, "bash", "-s"],
-    {
-      stdin: wrapper,
-    },
-  );
+  return await retrySsh(`ssh ${opts.host}`, async () => {
+    return await runCmd(
+      "ssh",
+      [...base, `${opts.user}@${opts.host}`, "bash", "-s"],
+      {
+        stdin: wrapper,
+      },
+    );
+  });
 }
 
 async function scpFile(opts: {
@@ -180,11 +235,13 @@ async function scpFile(opts: {
     keyPath: opts.keyPath,
     knownHosts: opts.knownHosts,
   });
-  await runCmd("scp", [
-    ...base,
-    opts.localPath,
-    `${opts.user}@${opts.host}:${opts.remotePath}`,
-  ]);
+  await retrySsh(`scp ${opts.host}`, async () => {
+    await runCmd("scp", [
+      ...base,
+      opts.localPath,
+      `${opts.user}@${opts.host}:${opts.remotePath}`,
+    ]);
+  });
 }
 
 export async function scheduleBootstrap(row: ProjectHostRow) {

@@ -1,7 +1,11 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { deleteHostDns, ensureHostDns, hasDns } from "./dns";
-import { enqueueCloudVmWork, logCloudVmEvent } from "./db";
+import {
+  enqueueCloudVmWork,
+  enqueueCloudVmWorkOnce,
+  logCloudVmEvent,
+} from "./db";
 import { provisionIfNeeded } from "./host-util";
 import type { CloudVmWorkHandlers } from "./worker";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
@@ -99,16 +103,24 @@ async function scheduleRuntimeRefresh(row: any) {
     provider: providerId ?? row.metadata?.machine?.cloud,
     instance_id: runtime.instance_id,
   });
-  logger.info("scheduleRuntimeRefresh: enqueue", {
-    host_id: row.id,
-    provider: providerId ?? row.metadata?.machine?.cloud,
-    instance_id: runtime.instance_id,
-  });
-  await enqueueCloudVmWork({
+  const enqueued = await enqueueCloudVmWorkOnce({
     vm_id: row.id,
     action: "refresh_runtime",
     payload: { provider: providerId ?? row.metadata?.machine?.cloud, attempt: 0 },
   });
+  if (enqueued) {
+    logger.info("scheduleRuntimeRefresh: enqueue", {
+      host_id: row.id,
+      provider: providerId ?? row.metadata?.machine?.cloud,
+      instance_id: runtime.instance_id,
+    });
+  } else {
+    logger.debug("scheduleRuntimeRefresh: already queued", {
+      host_id: row.id,
+      provider: providerId ?? row.metadata?.machine?.cloud,
+      instance_id: runtime.instance_id,
+    });
+  }
 }
 
 async function handleProvision(row: any) {
@@ -298,7 +310,7 @@ async function handleRefreshRuntime(row: any) {
     });
     if (attempt < 12) {
       setTimeout(() => {
-        enqueueCloudVmWork({
+        enqueueCloudVmWorkOnce({
           vm_id: host.id,
           action: "refresh_runtime",
           payload: {

@@ -114,6 +114,29 @@ export async function enqueueCloudVmWork(row: {
   return id;
 }
 
+export async function enqueueCloudVmWorkOnce(row: {
+  vm_id: string;
+  action: string;
+  payload?: Record<string, any>;
+}): Promise<string | undefined> {
+  const id = randomUUID();
+  const { rowCount } = await pool().query(
+    `
+      INSERT INTO cloud_vm_work (id, vm_id, action, payload, state)
+      SELECT $1,$2,$3,$4,'queued'
+      WHERE NOT EXISTS (
+        SELECT 1
+        FROM cloud_vm_work
+        WHERE vm_id=$2
+          AND action=$3
+          AND state IN ('queued','in_progress')
+      )
+    `,
+    [id, row.vm_id, row.action, row.payload ?? {}],
+  );
+  return rowCount ? id : undefined;
+}
+
 export async function claimCloudVmWork(opts: {
   limit?: number;
   worker_id: string;

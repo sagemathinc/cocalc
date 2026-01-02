@@ -13,16 +13,25 @@ import {
   stopVirtualMachine,
   importKeyPair,
   createEnvironment,
+  addFirewallRule,
 } from "./client";
 import { getHyperstackConfig, setHyperstackConfig } from "./config";
 import type {
   Region,
   FlavorRegionData,
   Image,
+  Protocol,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { delay } from "awaiting";
 
 const logger = getLogger("cloud:hyperstack:provider");
+
+const SECURITY_RULES = [
+  { port_range_min: 22, port_range_max: 22, protocol: "tcp" as Protocol }, // ssh bootstrap
+  { port_range_min: 2222, port_range_max: 2222, protocol: "tcp" as Protocol }, // project-host ssh server
+  { port_range_min: 443, port_range_max: 443, protocol: "tcp" as Protocol }, // https
+  { port_range_min: 9002, port_range_max: 9002, protocol: "tcp" as Protocol }, // project-host http
+];
 
 export type HyperstackCreds = {
   apiKey: string;
@@ -231,11 +240,28 @@ export class HyperstackProvider implements CloudProvider {
       image_name,
       assign_floating_ip: true,
       create_bootable_volume: storageMode !== "ephemeral",
+      security_rules: SECURITY_RULES,
       user_data,
     });
     const instance = instances[0];
     if (!instance) {
       throw new Error("Hyperstack did not return a VM instance");
+    }
+    for (const rule of SECURITY_RULES) {
+      try {
+        await addFirewallRule({
+          virtual_machine_id: Number(instance.id),
+          ...rule,
+        });
+      } catch (err) {
+        if (!isAlreadyExists(err)) {
+          logger.warn("Hyperstack addFirewallRule failed", {
+            instance_id: instance.id,
+            rule,
+            err: String(err),
+          });
+        }
+      }
     }
     const runtime: HostRuntime = {
       provider: "hyperstack",

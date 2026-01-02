@@ -24,7 +24,11 @@ import type {
 } from "../types";
 
 const HOSTS_VIEW_MODE_STORAGE_KEY = "cocalc:hosts:viewMode";
+const HOSTS_SORT_FIELD_STORAGE_KEY = "cocalc:hosts:sortField";
+const HOSTS_SORT_DIRECTION_STORAGE_KEY = "cocalc:hosts:sortDirection";
 const DEFAULT_HOSTS_VIEW_MODE: HostListViewMode = "grid";
+const DEFAULT_SORT_FIELD: HostSortField = "name";
+const DEFAULT_SORT_DIRECTION: HostSortDirection = "asc";
 
 function readHostViewMode(): HostListViewMode {
   if (typeof window === "undefined") {
@@ -42,6 +46,52 @@ function persistHostViewMode(mode: HostListViewMode) {
     return;
   }
   window.localStorage.setItem(HOSTS_VIEW_MODE_STORAGE_KEY, mode);
+}
+
+function readHostSortField(): HostSortField {
+  if (typeof window === "undefined") {
+    return DEFAULT_SORT_FIELD;
+  }
+  const raw = window.localStorage.getItem(HOSTS_SORT_FIELD_STORAGE_KEY);
+  if (
+    raw === "name" ||
+    raw === "provider" ||
+    raw === "region" ||
+    raw === "size" ||
+    raw === "status"
+  ) {
+    return raw;
+  }
+  return DEFAULT_SORT_FIELD;
+}
+
+function persistHostSortField(field: HostSortField) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(HOSTS_SORT_FIELD_STORAGE_KEY, field);
+}
+
+function readHostSortDirection(): HostSortDirection {
+  if (typeof window === "undefined") {
+    return DEFAULT_SORT_DIRECTION;
+  }
+  const raw = window.localStorage.getItem(
+    HOSTS_SORT_DIRECTION_STORAGE_KEY,
+  );
+  if (raw === "asc" || raw === "desc") {
+    return raw;
+  }
+  if (raw === "ascend") return "asc";
+  if (raw === "descend") return "desc";
+  return DEFAULT_SORT_DIRECTION;
+}
+
+function persistHostSortDirection(direction: HostSortDirection) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(HOSTS_SORT_DIRECTION_STORAGE_KEY, direction);
 }
 
 export const useHostsPageViewModel = () => {
@@ -82,13 +132,19 @@ export const useHostsPageViewModel = () => {
     readHostViewMode,
   );
   const [sortField, setSortField] =
-    React.useState<HostSortField>("name");
+    React.useState<HostSortField>(readHostSortField);
   const [sortDirection, setSortDirection] =
-    React.useState<HostSortDirection>("asc");
+    React.useState<HostSortDirection>(readHostSortDirection);
   const [autoResort, setAutoResort] = React.useState(false);
   React.useEffect(() => {
     persistHostViewMode(hostViewMode);
   }, [hostViewMode]);
+  React.useEffect(() => {
+    persistHostSortField(sortField);
+  }, [sortField]);
+  React.useEffect(() => {
+    persistHostSortDirection(sortDirection);
+  }, [sortDirection]);
   React.useEffect(() => {
     if (sortField === "status") {
       setAutoResort(false);
