@@ -40,6 +40,7 @@ export default function getPool(cacheTime?: CacheTime): Pool {
   }
   if (isPgliteEnabled()) {
     if (pglitePool == null) {
+      //console.log("creating pglite pool");
       pglitePool = getPglitePool();
     }
     return pglitePool as unknown as Pool;
