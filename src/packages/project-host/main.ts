@@ -59,11 +59,13 @@ type TlsConfig = {
   hostname: string;
 };
 
-function resolveTlsConfig(host: string): TlsConfig {
+function resolveTlsConfig(host: string, port: number): TlsConfig {
   const httpsEnv = process.env.COCALC_PROJECT_HOST_HTTPS;
   const publicUrl = process.env.PROJECT_HOST_PUBLIC_URL ?? "";
   let enabled = false;
   let hostname = "";
+  const explicitlyDisabled =
+    !!httpsEnv && ["0", "false", "no"].includes(httpsEnv.toLowerCase());
   if (publicUrl) {
     try {
       const parsed = new URL(publicUrl);
@@ -75,7 +77,10 @@ function resolveTlsConfig(host: string): TlsConfig {
       // ignore invalid URL
     }
   }
-  if (httpsEnv && !["0", "false", "no"].includes(httpsEnv.toLowerCase())) {
+  if (httpsEnv && !explicitlyDisabled) {
+    enabled = true;
+  }
+  if (!enabled && !explicitlyDisabled && port === 443) {
     enabled = true;
   }
   const overrideHostname = process.env.COCALC_PROJECT_HOST_HTTPS_HOSTNAME;
@@ -116,7 +121,7 @@ export async function main(
   const runnerId = process.env.PROJECT_RUNNER_NAME || "project-host";
   const host = _config.host ?? process.env.HOST ?? "0.0.0.0";
   const port = _config.port ?? (Number(process.env.PORT) || (await getPort()));
-  const tls = resolveTlsConfig(host);
+  const tls = resolveTlsConfig(host, port);
 
   const scheme = tls.enabled ? "https" : "http";
   logger.info(
