@@ -1,4 +1,4 @@
-import { Button, Card, Col, Popconfirm, Radio, Row, Select, Space, Switch, Table, Tag, Typography } from "antd";
+import { Button, Card, Col, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
@@ -213,9 +213,30 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             : "descend"
           : undefined,
       render: (_: string, host: Host) => (
-        <Button type="link" onClick={() => onDetails(host)}>
-          {host.name}
-        </Button>
+        <Space direction="vertical" size={0}>
+          <Button type="link" onClick={() => onDetails(host)}>
+            {host.name}
+          </Button>
+          {host.status === "error" && host.last_error && (
+            <Popover
+              title="Error"
+              content={
+                <div style={{ maxWidth: 360, whiteSpace: "pre-wrap" }}>
+                  {host.last_error}
+                </div>
+              }
+            >
+              <Button
+                size="small"
+                type="link"
+                danger
+                style={{ padding: 0, height: "auto" }}
+              >
+                Error
+              </Button>
+            </Popover>
+          )}
+        </Space>
       ),
     },
     {

@@ -123,7 +123,19 @@ export const HostCard: React.FC<HostCardProps> = ({
         </Typography.Text>
       )}
       {host.status === "error" && host.last_error && (
-        <Typography.Text type="danger">{host.last_error}</Typography.Text>
+        <div
+          style={{
+            maxHeight: "4.8em",
+            overflowY: "auto",
+            color: "#c00",
+            fontSize: 12,
+            lineHeight: 1.2,
+            whiteSpace: "pre-wrap",
+            paddingRight: 4,
+          }}
+        >
+          {host.last_error}
+        </div>
       )}
     </Space>
     </Card>

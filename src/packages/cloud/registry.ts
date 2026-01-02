@@ -119,7 +119,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
     id: "hyperstack",
     provider: hyperstackProvider,
     capabilities: {
-      supportsStop: true,
+      supportsStop: false,
       supportsDiskType: false,
       supportsDiskResize: false,
       supportsCustomImage: true,

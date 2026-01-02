@@ -10,10 +10,12 @@ import {
   getVirtualMachine,
   getVirtualMachines,
   startVirtualMachine,
-  stopVirtualMachine,
   importKeyPair,
   createEnvironment,
   addFirewallRule,
+  createVolume,
+  getVolumes,
+  attachVolume,
 } from "./client";
 import { getHyperstackConfig, setHyperstackConfig } from "./config";
 import type {
@@ -21,6 +23,7 @@ import type {
   FlavorRegionData,
   Image,
   Protocol,
+  VolumeDetails,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { delay } from "awaiting";
 
@@ -201,6 +204,67 @@ function parseInstanceId(value: string): number {
   return num;
 }
 
+function dataVolumeName(spec: HostSpec): string {
+  return `${spec.name}-data`;
+}
+
+async function findDataVolume(
+  environment_name: string,
+  name: string,
+): Promise<VolumeDetails | undefined> {
+  const volumes = await getVolumes();
+  return volumes.find(
+    (volume) =>
+      volume.name === name && volume.environment?.name === environment_name,
+  );
+}
+
+async function ensureDataVolume(
+  environment_name: string,
+  spec: HostSpec,
+): Promise<VolumeDetails> {
+  const name = dataVolumeName(spec);
+  const existing = await findDataVolume(environment_name, name);
+  if (existing) return existing;
+  const sizeGb = Math.max(1, Math.ceil(spec.disk_gb));
+  try {
+    return await createVolume({ name, size: sizeGb, environment_name });
+  } catch (err) {
+    if (!isAlreadyExists(err)) {
+      throw err;
+    }
+  }
+  const retry = await findDataVolume(environment_name, name);
+  if (retry) return retry;
+  throw new Error(`Hyperstack volume "${name}" not found after create`);
+}
+
+async function attachDataVolume(
+  instanceId: number,
+  volumeId: number,
+): Promise<void> {
+  const deadline = Date.now() + 10 * 60 * 1000;
+  let wait = 3000;
+  while (Date.now() < deadline) {
+    try {
+      await attachVolume({
+        virtual_machine_id: instanceId,
+        volume_ids: [volumeId],
+      });
+      return;
+    } catch (err) {
+      if (String((err as Error)?.message ?? err).includes("not_found")) {
+        throw err;
+      }
+    }
+    await delay(wait);
+    wait = Math.min(Math.floor(wait * 1.3), 10000);
+  }
+  throw new Error(
+    `Hyperstack volume ${volumeId} failed to attach to VM ${instanceId}`,
+  );
+}
+
 export class HyperstackProvider implements CloudProvider {
   mapStatus(status?: string): string | undefined {
     if (!status) return undefined;
@@ -226,6 +290,7 @@ export class HyperstackProvider implements CloudProvider {
       creds.catalog?.flavors,
     );
     const image_name = await selectImage(region, spec, creds.catalog?.images);
+    const dataVolume = await ensureDataVolume(environment_name, spec);
     const user_data =
       typeof spec.metadata?.startup_script === "string"
         ? spec.metadata.startup_script
@@ -247,6 +312,7 @@ export class HyperstackProvider implements CloudProvider {
     if (!instance) {
       throw new Error("Hyperstack did not return a VM instance");
     }
+    await attachDataVolume(Number(instance.id), dataVolume.id);
     for (const rule of SECURITY_RULES) {
       try {
         await addFirewallRule({
@@ -269,7 +335,13 @@ export class HyperstackProvider implements CloudProvider {
       public_ip: instance.floating_ip ?? undefined,
       ssh_user: "ubuntu",
       zone: region,
-      metadata: { environment_name, flavor_name, image_name },
+      metadata: {
+        environment_name,
+        flavor_name,
+        image_name,
+        data_volume_id: dataVolume.id,
+        data_volume_name: dataVolume.name,
+      },
     };
     logger.info("Hyperstack createHost", { region, flavor_name, image_name });
     return runtime;
@@ -284,7 +356,7 @@ export class HyperstackProvider implements CloudProvider {
   async stopHost(runtime: HostRuntime, creds: HyperstackCreds): Promise<void> {
     logger.debug("HyperstackProvider: stopHost", runtime);
     ensureHyperstackConfig(creds);
-    await stopVirtualMachine(parseInstanceId(runtime.instance_id));
+    await deleteVirtualMachine(parseInstanceId(runtime.instance_id));
   }
 
   async deleteHost(

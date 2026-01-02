@@ -312,7 +312,7 @@ export async function handleBootstrap(row: ProjectHostRow) {
   const publicUrl = row.public_url ?? `http://${publicIp}:${port}`;
   const internalUrl = row.internal_url ?? `http://${publicIp}:${port}`;
   const sshServer = row.ssh_server ?? `${publicIp}:${sshPort}`;
-  const dataDir = "/var/lib/cocalc/project-host";
+  const dataDir = "/btrfs/data";
   const envFile = "/etc/cocalc/project-host.env";
   const seaRemote = "/opt/cocalc/project-host.tar.xz";
 
@@ -353,6 +353,14 @@ DATA_DISK_DEV=""
 if [ -n "${dataDiskDevices}" ]; then
   for dev in ${dataDiskDevices}; do
     if [ -b "$dev" ]; then
+      mountpoints="$(lsblk -nr -o MOUNTPOINT "$dev" 2>/dev/null | grep -v '^$' || true)"
+      if [ -n "$mountpoints" ]; then
+        if echo "$mountpoints" | grep -qx "/btrfs"; then
+          DATA_DISK_DEV="$dev"
+          break
+        fi
+        continue
+      fi
       DATA_DISK_DEV="$dev"
       break
     fi
@@ -376,6 +384,12 @@ else
   fi
 fi
 sudo chown ${sshUser}:${sshUser} /btrfs || true
+if ! sudo btrfs subvolume show /btrfs/data >/dev/null 2>&1; then
+  if ! sudo btrfs subvolume create /btrfs/data >/dev/null 2>&1; then
+    sudo mkdir -p /btrfs/data
+  fi
+fi
+sudo chown ${sshUser}:${sshUser} /btrfs/data || true
 ${envBlock}
 sudo systemctl daemon-reload || true
 
