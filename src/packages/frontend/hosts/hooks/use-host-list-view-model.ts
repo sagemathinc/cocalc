@@ -1,5 +1,9 @@
 import type { Host } from "@cocalc/conat/hub/api/hosts";
-import type { HostListViewMode } from "../types";
+import type {
+  HostListViewMode,
+  HostSortDirection,
+  HostSortField,
+} from "../types";
 
 type UseHostListViewModelArgs = {
   hosts: Host[];
@@ -15,6 +19,12 @@ type UseHostListViewModelArgs = {
   setShowAdmin: (value: boolean) => void;
   showDeleted: boolean;
   setShowDeleted: (value: boolean) => void;
+  sortField: HostSortField;
+  setSortField: (value: HostSortField) => void;
+  sortDirection: HostSortDirection;
+  setSortDirection: (value: HostSortDirection) => void;
+  autoResort: boolean;
+  setAutoResort: (value: boolean) => void;
 };
 
 export const useHostListViewModel = ({
@@ -31,6 +41,12 @@ export const useHostListViewModel = ({
   setShowAdmin,
   showDeleted,
   setShowDeleted,
+  sortField,
+  setSortField,
+  sortDirection,
+  setSortDirection,
+  autoResort,
+  setAutoResort,
 }: UseHostListViewModelArgs) => {
   return {
     hosts,
@@ -46,5 +62,11 @@ export const useHostListViewModel = ({
     setShowAdmin,
     showDeleted,
     setShowDeleted,
+    sortField,
+    setSortField,
+    sortDirection,
+    setSortDirection,
+    autoResort,
+    setAutoResort,
   };
 };

@@ -2,6 +2,10 @@ export type HostProvider = "gcp" | "hyperstack" | "lambda" | "nebius" | "none";
 
 export type HostListViewMode = "grid" | "list";
 
+export type HostSortField = "name" | "provider" | "region" | "size" | "status";
+
+export type HostSortDirection = "asc" | "desc";
+
 export type HostRecommendation = {
   title?: string;
   provider: HostProvider;

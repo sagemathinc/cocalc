@@ -17,7 +17,11 @@ import { useHostLog } from "./use-host-log";
 import { useHostProviders } from "./use-host-providers";
 import { useHostSelection } from "./use-host-selection";
 import { buildRegionGroupOptions } from "../utils/normalize-catalog";
-import type { HostListViewMode } from "../types";
+import type {
+  HostListViewMode,
+  HostSortDirection,
+  HostSortField,
+} from "../types";
 
 const HOSTS_VIEW_MODE_STORAGE_KEY = "cocalc:hosts:viewMode";
 const DEFAULT_HOSTS_VIEW_MODE: HostListViewMode = "grid";
@@ -77,9 +81,19 @@ export const useHostsPageViewModel = () => {
   const [hostViewMode, setHostViewMode] = React.useState<HostListViewMode>(
     readHostViewMode,
   );
+  const [sortField, setSortField] =
+    React.useState<HostSortField>("name");
+  const [sortDirection, setSortDirection] =
+    React.useState<HostSortDirection>("asc");
+  const [autoResort, setAutoResort] = React.useState(false);
   React.useEffect(() => {
     persistHostViewMode(hostViewMode);
   }, [hostViewMode]);
+  React.useEffect(() => {
+    if (sortField === "status") {
+      setAutoResort(false);
+    }
+  }, [sortField]);
 
   const {
     providerOptions,
@@ -219,6 +233,12 @@ export const useHostsPageViewModel = () => {
     setShowAdmin,
     showDeleted,
     setShowDeleted,
+    sortField,
+    setSortField,
+    sortDirection,
+    setSortDirection,
+    autoResort,
+    setAutoResort,
   });
   const hostDrawerVm = useHostDrawerViewModel({
     open: drawerOpen,
