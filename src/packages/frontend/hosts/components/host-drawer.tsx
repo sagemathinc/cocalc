@@ -131,7 +131,17 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
                       : "unknown time"}
                   </div>
                   {entry.error && (
-                    <div style={{ color: "#c00", fontSize: 12 }}>
+                    <div
+                      style={{
+                        maxHeight: "4.8em",
+                        overflowY: "auto",
+                        color: "#c00",
+                        fontSize: 12,
+                        lineHeight: 1.2,
+                        whiteSpace: "pre-wrap",
+                        paddingRight: 4,
+                      }}
+                    >
                       {entry.error}
                     </div>
                   )}
