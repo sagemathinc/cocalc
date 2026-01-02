@@ -16,6 +16,7 @@ import { enqueueCloudVmWork, logCloudVmEvent } from "./db";
 import { argsJoin } from "@cocalc/util/args";
 import getLogger from "@cocalc/backend/logger";
 import { getServerProvider } from "./providers";
+import { conatPasswordPath } from "@cocalc/backend/data";
 
 const logger = getLogger("server:cloud:bootstrap-host");
 
@@ -170,7 +171,9 @@ async function retrySsh<T>(label: string, fn: () => Promise<T>): Promise<T> {
         attempt,
         err: String(err),
       });
-      await new Promise((resolve) => setTimeout(resolve, BOOTSTRAP_SSH_RETRY_MS));
+      await new Promise((resolve) =>
+        setTimeout(resolve, BOOTSTRAP_SSH_RETRY_MS),
+      );
     }
   }
   throw new Error(
@@ -474,6 +477,16 @@ sudo systemctl enable --now cocalc-project-host
       knownHosts,
       script: bootstrapScript,
       scriptPath: "$HOME/bootstrap/install.sh",
+    });
+    // [ ] TODO: obviously we should generate distinct conat accounts
+    //     for each project-host instead of reusing the master password!
+    await scpFile({
+      user: sshUser,
+      host: publicIp,
+      keyPath,
+      knownHosts,
+      localPath: conatPasswordPath,
+      remotePath: "/btrfs/data/secrets/conat-password",
     });
     if (seaPath) {
       await scpFile({
