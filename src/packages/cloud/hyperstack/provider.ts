@@ -32,8 +32,6 @@ const logger = getLogger("cloud:hyperstack:provider");
 const SECURITY_RULES = [
   { port_range_min: 22, port_range_max: 22, protocol: "tcp" as Protocol }, // ssh bootstrap
   { port_range_min: 2222, port_range_max: 2222, protocol: "tcp" as Protocol }, // project-host ssh server
-  { port_range_min: 443, port_range_max: 443, protocol: "tcp" as Protocol }, // https
-  { port_range_min: 9002, port_range_max: 9002, protocol: "tcp" as Protocol }, // project-host http
 ];
 
 export type HyperstackCreds = {
