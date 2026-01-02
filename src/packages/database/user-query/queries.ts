@@ -3,13 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-`\
-User (and project) client queries
-
-COPYRIGHT : (c) 2017 SageMath, Inc.
-LICENSE   : MS-RSL\
-`;
-
 const MAX_CHANGEFEEDS_PER_CLIENT = 2000;
 
 // Reject all patches that have timestamp that is more than 3 minutes in the future.
@@ -18,7 +11,7 @@ const MAX_PATCH_FUTURE_MS = 1000 * 60 * 3;
 import async from "async";
 import lodash from "lodash";
 
-import { callback2 } from "@cocalc/util/async-utils";
+import { callback2, callback_opts } from "@cocalc/util/async-utils";
 import { checkProjectName } from "@cocalc/util/db-schema/name-rules";
 import * as misc from "@cocalc/util/misc";
 import { PROJECT_UPGRADES, SCHEMA } from "@cocalc/util/schema";
@@ -34,14 +27,11 @@ import { UserQueryQueue } from "./queue";
 import { queryIsCmp, userGetQueryFilter } from "./user-get-query";
 
 // Import utility functions from their modules
-import { one_result } from "../postgres/utils/one-result";
-import { all_results } from "../postgres/utils/all-results";
-import { count_result } from "../postgres/utils/count-result";
-import { pg_type } from "../postgres/utils/pg-type";
-import { quote_field } from "../postgres/utils/quote-field";
-
-const { defaults } = misc;
-const { required } = defaults;
+import { all_results } from "@cocalc/database/postgres/utils/all-results";
+import { count_result } from "@cocalc/database/postgres/utils/count-result";
+import { one_result } from "@cocalc/database/postgres/utils/one-result";
+import { pg_type } from "@cocalc/database/postgres/utils/pg-type";
+import { quote_field } from "@cocalc/database/postgres/utils/quote-field";
 
 type AnyRecord = Record<string, any>;
 type QueryOption = Record<string, any>;
@@ -170,6 +160,21 @@ type LegacyTableSchema = {
 
 const schema = SCHEMA as Record<string, LegacyTableSchema>;
 
+const callWithCb = <T = void>(
+  fn: (...args: any[]) => void,
+  ...args: any[]
+): Promise<T> => {
+  return new Promise<T>((resolve, reject) => {
+    fn(...args, (err: any, result: T) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve(result);
+    });
+  });
+};
+
 export function extend_PostgreSQL(ext) {
   return class PostgreSQL extends ext {
     // Cancel all queued up queries by the given client
@@ -184,16 +189,16 @@ export function extend_PostgreSQL(ext) {
     }
 
     user_query(opts: UserQueryOptions) {
-      opts = defaults(opts, {
-        client_id: undefined, // if given, uses to control number of queries at once by one client.
-        priority: undefined, // (NOT IMPLEMENTED) priority for this query (an integer [-10,...,19] like in UNIX)
-        account_id: undefined,
-        project_id: undefined,
-        query: required,
-        options: [],
-        changes: undefined,
-        cb: undefined,
-      });
+      opts = {
+        client_id: opts.client_id ?? undefined, // if given, uses to control number of queries at once by one client.
+        priority: opts.priority ?? undefined, // (NOT IMPLEMENTED) priority for this query (an integer [-10,...,19] like in UNIX)
+        account_id: opts.account_id ?? undefined,
+        project_id: opts.project_id ?? undefined,
+        query: opts.query,
+        options: opts.options ?? [],
+        changes: opts.changes ?? undefined,
+        cb: opts.cb ?? undefined,
+      };
       opts.options ??= [];
 
       if (opts.account_id != null) {
@@ -263,18 +268,19 @@ export function extend_PostgreSQL(ext) {
       let multi: boolean;
       let options: QueryOption[] = [];
       let x: QueryOption;
-      opts = defaults(opts, {
-        account_id: undefined,
-        project_id: undefined,
-        query: required,
-        options: [], // used for initial query; **IGNORED** by changefeed!;
+      opts = {
+        account_id: opts.account_id ?? undefined,
+        project_id: opts.project_id ?? undefined,
+        query: opts.query,
+        // used for initial query; **IGNORED** by changefeed!
         //  - Use [{set:true}] or [{set:false}] to force get or set query
         //  - For a set query, use {delete:true} to delete instead of set.  This is the only way
         //    to delete a record, and won't work unless delete:true is set in the schema
         //    for the table to explicitly allow deleting.
-        changes: undefined, // id of change feed
-        cb: undefined,
-      }); // cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
+        options: opts.options ?? [],
+        changes: opts.changes ?? undefined, // id of change feed
+        cb: opts.cb ?? undefined,
+      }; // cb(err, result)  # WARNING -- this *will* get called multiple times when changes is true!
       opts.options ??= [];
       const id = misc.uuid().slice(0, 6);
       const dbg = this._dbg(`_user_query(id=${id})`);
@@ -529,22 +535,20 @@ export function extend_PostgreSQL(ext) {
     }
 
     user_query_cancel_changefeed(opts: { id: string; cb?: CB }) {
-      opts = defaults(opts, {
-        id: required,
-        cb: undefined,
-      }); // not really asynchronous
-      const dbg = this._dbg(`user_query_cancel_changefeed(id='${opts.id}')`);
+      const id = opts.id;
+      const cb = opts.cb;
+      const dbg = this._dbg(`user_query_cancel_changefeed(id='${id}')`);
       const feed =
-        this._changefeeds != null ? this._changefeeds[opts.id] : undefined;
+        this._changefeeds != null ? this._changefeeds[id] : undefined;
       if (feed != null) {
         dbg("actually canceling feed");
-        this._dec_changefeed_count(opts.id);
-        delete this._changefeeds[opts.id];
+        this._dec_changefeed_count(id);
+        delete this._changefeeds[id];
         feed.close();
       } else {
         dbg("already canceled before (no such feed)");
       }
-      return typeof opts.cb === "function" ? opts.cb() : undefined;
+      return typeof cb === "function" ? cb() : undefined;
     }
 
     _user_get_query_columns(query, remove_from_query) {
@@ -883,54 +887,71 @@ export function extend_PostgreSQL(ext) {
       return r;
     }
 
-    _user_set_query_enforce_requirements(r: ParsedSetQueryOptions, cb: CB) {
-      return async.parallel(
-        [
-          (cb: CB) => {
+    async _user_set_query_enforce_requirements(
+      r: ParsedSetQueryOptions,
+      cb?: CB,
+    ): Promise<void> {
+      try {
+        await Promise.all([
+          // Check admin requirement
+          (async () => {
             if (r.require_admin) {
-              return this._require_is_admin(r.account_id, cb);
-            } else {
-              return cb();
+              await new Promise<void>((resolve, reject) => {
+                this._require_is_admin(r.account_id, (err) => {
+                  if (err) reject(err);
+                  else resolve();
+                });
+              });
             }
-          },
-          (cb: CB) => {
+          })(),
+
+          // Check write access requirement
+          (async () => {
             if (r.require_project_ids_write_access != null) {
               if (r.project_id != null) {
-                let err: string | undefined = undefined;
-                for (var x of r.require_project_ids_write_access) {
+                for (const x of r.require_project_ids_write_access) {
                   if (x !== r.project_id) {
-                    err = "FATAL: can only query same project";
-                    break;
+                    throw "FATAL: can only query same project";
                   }
                 }
-                return cb(err);
               } else {
-                return this._require_project_ids_in_groups(
-                  r.account_id as string,
-                  r.require_project_ids_write_access,
-                  ["owner", "collaborator"],
-                  cb,
-                );
+                await new Promise<void>((resolve, reject) => {
+                  this._require_project_ids_in_groups(
+                    r.account_id as string,
+                    r.require_project_ids_write_access!,
+                    ["owner", "collaborator"],
+                    (err) => {
+                      if (err) reject(err);
+                      else resolve();
+                    },
+                  );
+                });
               }
-            } else {
-              return cb();
             }
-          },
-          (cb: CB) => {
+          })(),
+
+          // Check owner requirement
+          (async () => {
             if (r.require_project_ids_owner != null) {
-              return this._require_project_ids_in_groups(
-                r.account_id as string,
-                r.require_project_ids_owner,
-                ["owner"],
-                cb,
-              );
-            } else {
-              return cb();
+              await new Promise<void>((resolve, reject) => {
+                this._require_project_ids_in_groups(
+                  r.account_id as string,
+                  r.require_project_ids_owner!,
+                  ["owner"],
+                  (err) => {
+                    if (err) reject(err);
+                    else resolve();
+                  },
+                );
+              });
             }
-          },
-        ],
-        cb,
-      );
+          })(),
+        ]);
+
+        cb?.();
+      } catch (err) {
+        cb?.(err);
+      }
     }
 
     _user_set_query_where(r: ParsedSetQueryOptions) {
@@ -1072,7 +1093,10 @@ export function extend_PostgreSQL(ext) {
       });
     }
 
-    _user_set_query_main_query(r: ParsedSetQueryOptions, cb: CB) {
+    async _user_set_query_main_query(
+      r: ParsedSetQueryOptions,
+      cb?: CB,
+    ): Promise<void> {
       const dbg = r.dbg ?? (() => {});
       dbg("_user_set_query_main_query");
       const query = r.query as AnyRecord;
@@ -1080,90 +1104,124 @@ export function extend_PostgreSQL(ext) {
       const options = r.options ?? {};
       const primary_keys = r.primary_keys ?? [];
 
-      if (!client_query.set.allow_field_deletes) {
-        // allow_field_deletes not set, so remove any null/undefined
-        // fields from the query
-        for (var key in query) {
-          if (query[key] == null) {
-            delete query[key];
+      try {
+        if (!client_query.set.allow_field_deletes) {
+          // allow_field_deletes not set, so remove any null/undefined
+          // fields from the query
+          for (var key in query) {
+            if (query[key] == null) {
+              delete query[key];
+            }
           }
         }
-      }
 
-      if (options.delete) {
-        for (var primary_key of primary_keys) {
-          if (query[primary_key] == null) {
-            cb("FATAL: delete query must set primary key");
-            return;
+        if (options.delete) {
+          for (var primary_key of primary_keys) {
+            if (query[primary_key] == null) {
+              cb?.("FATAL: delete query must set primary key");
+              return;
+            }
           }
-        }
-        dbg("delete based on primary key");
-        this._user_query_set_delete(r, cb);
-        return;
-      }
-      if (r.instead_of_change_hook != null) {
-        return r.instead_of_change_hook(
-          this,
-          r.old_val,
-          query,
-          r.account_id,
-          cb,
-        );
-      } else {
-        if (misc.len(r.json_fields) === 0) {
-          // easy case -- there are no jsonb merge fields; just do an upsert.
-          this._user_query_set_upsert(r, cb);
+          dbg("delete based on primary key");
+          await new Promise<void>((resolve, reject) => {
+            this._user_query_set_delete(r, (err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+          cb?.();
           return;
         }
+
+        if (r.instead_of_change_hook != null) {
+          await new Promise<void>((resolve, reject) => {
+            r.instead_of_change_hook!(
+              this,
+              r.old_val,
+              query,
+              r.account_id,
+              (err) => {
+                if (err) reject(err);
+                else resolve();
+              },
+            );
+          });
+          cb?.();
+          return;
+        }
+
+        if (misc.len(r.json_fields) === 0) {
+          // easy case -- there are no jsonb merge fields; just do an upsert.
+          await new Promise<void>((resolve, reject) => {
+            this._user_query_set_upsert(r, (err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+          cb?.();
+          return;
+        }
+
         // HARD CASE -- there are json_fields... so we are doing an insert
         // if the object isn't already in the database, and an update
         // if it is.  This is ugly because I don't know how to do both
         // a JSON merge as an upsert.
-        let cnt = undefined; // will equal number of records having the primary key (so 0 or 1)
-        return async.series(
-          [
-            (cb: CB) => {
-              return this._user_query_set_count(r, (err, n) => {
-                cnt = n;
-                return cb(err);
-              });
-            },
-            (cb: CB) => {
-              dbg("do the set query");
-              if (cnt === 0) {
-                // Just insert (do as upsert to avoid error in case of race)
-                return this._user_query_set_upsert(r, cb);
-              } else {
-                // Do as an update -- record is definitely already in db since cnt > 0.
-                // This would fail in the unlikely (but possible) case that somebody deletes
-                // the record between the above count and when we do the UPDATE.
-                // Using a transaction could avoid this.
-                // Maybe such an error is reasonable and it's good to report it as such.
-                return this._user_query_set_upsert_and_jsonb_merge(r, cb);
-              }
-            },
-          ],
-          cb,
-        );
+
+        // Get count of records with this primary key (will be 0 or 1)
+        const cnt = await new Promise<number>((resolve, reject) => {
+          this._user_query_set_count(r, (err, n) => {
+            if (err) reject(err);
+            else resolve(n);
+          });
+        });
+
+        // Do the set query based on count
+        dbg("do the set query");
+        if (cnt === 0) {
+          // Just insert (do as upsert to avoid error in case of race)
+          await new Promise<void>((resolve, reject) => {
+            this._user_query_set_upsert(r, (err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+        } else {
+          // Do as an update -- record is definitely already in db since cnt > 0.
+          // This would fail in the unlikely (but possible) case that somebody deletes
+          // the record between the above count and when we do the UPDATE.
+          // Using a transaction could avoid this.
+          // Maybe such an error is reasonable and it's good to report it as such.
+          await new Promise<void>((resolve, reject) => {
+            this._user_query_set_upsert_and_jsonb_merge(r, (err) => {
+              if (err) reject(err);
+              else resolve();
+            });
+          });
+        }
+
+        cb?.();
+      } catch (err) {
+        cb?.(err);
       }
     }
 
-    user_set_query(opts: UserSetQueryOptions) {
-      opts = defaults(opts, {
-        account_id: undefined,
-        project_id: undefined,
-        table: required,
-        query: required,
-        options: undefined, // options=[{delete:true}] is the only supported nontrivial option here.
-        cb: required,
-      }); // cb(err)
+    async user_set_query(opts: UserSetQueryOptions): Promise<void> {
+      opts = {
+        account_id: opts.account_id ?? undefined,
+        project_id: opts.project_id ?? undefined,
+        table: opts.table,
+        query: opts.query,
+        options: opts.options ?? undefined, // options=[{delete:true}] is the only supported nontrivial option here.
+        cb: opts.cb,
+      }; // cb(err)
+      const cb = opts.cb;
 
       // TODO: it would be nice to return the primary key part of the created object on creation.
       // That's not implemented and will be somewhat nontrivial, and will use the RETURNING clause
       // of postgres's INSERT - https://www.postgresql.org/docs/current/sql-insert.html
 
       if (this.is_standby) {
-        opts.cb("set queries against standby not allowed");
+        cb?.("set queries against standby not allowed");
         return;
       }
       const r = this._parse_set_query_opts(opts);
@@ -1173,76 +1231,60 @@ export function extend_PostgreSQL(ext) {
 
       if (r == null) {
         // nothing to do
-        opts.cb();
+        cb?.();
         return;
       }
       if (r.err) {
-        opts.cb(r.err);
+        cb?.(r.err);
         return;
       }
       const query = r.query as AnyRecord;
 
-      return async.series(
-        [
-          (cb: CB) => {
-            return this._user_set_query_enforce_requirements(r, cb);
-          },
-          (cb: CB) => {
-            if (r.check_hook != null) {
-              const check_hook = r.check_hook;
-              return check_hook(this, query, r.account_id, r.project_id, cb);
-            } else {
-              return cb();
-            }
-          },
-          (cb: CB) => {
-            return this._user_set_query_hooks_prepare(r, cb);
-          },
-          (cb: CB) => {
-            if (r.before_change_hook != null) {
-              const before_change_hook = r.before_change_hook;
-              return before_change_hook(
-                this,
-                r.old_val,
-                query,
-                r.account_id,
-                (err, stop) => {
-                  r.done = stop;
-                  return cb(err);
-                },
-              );
-            } else {
-              return cb();
-            }
-          },
-          (cb: CB) => {
-            if (r.done) {
-              cb();
-              return;
-            }
-            if (r.instead_of_query != null) {
-              const opts1 = misc.copy_without(opts, ["cb", "changes", "table"]);
-              const instead_of_query = r.instead_of_query;
-              return instead_of_query(this, opts1, cb);
-            } else {
-              return this._user_set_query_main_query(r, cb);
-            }
-          },
-          (cb: CB) => {
-            if (r.done) {
-              cb();
-              return;
-            }
-            if (r.on_change_hook != null) {
-              const on_change_hook = r.on_change_hook;
-              return on_change_hook(this, r.old_val, query, r.account_id, cb);
-            } else {
-              return cb();
-            }
-          },
-        ],
-        (err) => opts.cb(err),
-      );
+      try {
+        await callWithCb(
+          this._user_set_query_enforce_requirements.bind(this),
+          r,
+        );
+        if (r.check_hook != null) {
+          await callWithCb(
+            r.check_hook,
+            this,
+            query,
+            r.account_id,
+            r.project_id,
+          );
+        }
+        await callWithCb(this._user_set_query_hooks_prepare.bind(this), r);
+        if (r.before_change_hook != null) {
+          r.done = await callWithCb<boolean | undefined>(
+            r.before_change_hook,
+            this,
+            r.old_val,
+            query,
+            r.account_id,
+          );
+        }
+        if (!r.done) {
+          if (r.instead_of_query != null) {
+            const opts1 = misc.copy_without(opts, ["cb", "changes", "table"]);
+            await callWithCb(r.instead_of_query, this, opts1);
+          } else {
+            await callWithCb(this._user_set_query_main_query.bind(this), r);
+          }
+        }
+        if (!r.done && r.on_change_hook != null) {
+          await callWithCb(
+            r.on_change_hook,
+            this,
+            r.old_val,
+            query,
+            r.account_id,
+          );
+        }
+        cb?.();
+      } catch (err) {
+        cb?.(err);
+      }
     }
 
     // mod_fields counts the fields in query that might actually get modified
@@ -1426,15 +1468,16 @@ export function extend_PostgreSQL(ext) {
       return users;
     }
 
-    project_action(opts: ProjectActionOptions) {
-      opts = defaults(opts, {
-        project_id: required,
-        action_request: required, // action is object {action:?, time:?}
-        cb: required,
-      });
+    async project_action(opts: ProjectActionOptions): Promise<void> {
+      opts = {
+        project_id: opts.project_id,
+        action_request: opts.action_request, // action is object {action:?, time:?}
+        cb: opts.cb,
+      };
+      const cb = opts.cb;
       if (opts.action_request.action === "test") {
         // used for testing -- shouldn't trigger anything to happen.
-        opts.cb();
+        cb?.();
         return;
       }
       const dbg = this._dbg(
@@ -1447,66 +1490,53 @@ export function extend_PostgreSQL(ext) {
       const action_request = misc.copy(
         opts.action_request,
       ) as ProjectActionRequest;
-      const set_action_request = (cb: CB) => {
+      const set_action_request = async () => {
         dbg(`set action_request to ${misc.to_json(action_request)}`);
-        return this._query({
+        await callback_opts(this._query.bind(this))({
           query: "UPDATE projects",
           where: { "project_id = $::UUID": opts.project_id },
           jsonb_set: { action_request },
-          cb,
         });
       };
-      return async.series(
-        [
-          (cb: CB) => {
-            action_request.started = new Date();
-            return set_action_request(cb);
-          },
-          async (cb: CB) => {
-            dbg("get project");
-            try {
-              project = await this.projectControl(opts.project_id);
-              return cb();
-            } catch (err) {
-              return cb(err);
-            }
-          },
-          async (cb: CB) => {
-            dbg("doing action");
-            try {
-              if (project == null) {
-                return cb("project not loaded");
-              }
-              switch (action_request.action) {
-                case "restart":
-                  await project.restart();
-                  break;
-                case "stop":
-                  await project.stop();
-                  break;
-                case "start":
-                  await project.start();
-                  break;
-                default:
-                  throw Error(
-                    `FATAL: action '${opts.action_request.action}' not implemented`,
-                  );
-              }
-              return cb();
-            } catch (err) {
-              return cb(err);
-            }
-          },
-        ],
-        (err) => {
-          if (err) {
-            action_request.err = err;
-          }
-          action_request.finished = new Date();
-          dbg("finished!");
-          return set_action_request(opts.cb);
-        },
-      );
+      let err: unknown;
+      try {
+        action_request.started = new Date();
+        await set_action_request();
+        dbg("get project");
+        project = await this.projectControl(opts.project_id);
+        dbg("doing action");
+        if (project == null) {
+          throw Error("project not loaded");
+        }
+        switch (action_request.action) {
+          case "restart":
+            await project.restart();
+            break;
+          case "stop":
+            await project.stop();
+            break;
+          case "start":
+            await project.start();
+            break;
+          default:
+            throw Error(
+              `FATAL: action '${opts.action_request.action}' not implemented`,
+            );
+        }
+      } catch (error) {
+        err = error;
+      }
+      if (err) {
+        action_request.err = err;
+      }
+      action_request.finished = new Date();
+      dbg("finished!");
+      try {
+        await set_action_request();
+        cb?.();
+      } catch (error) {
+        cb?.(error);
+      }
     }
 
     // This hook is called *before* the user commits a change to a project in the database
@@ -1670,46 +1700,26 @@ export function extend_PostgreSQL(ext) {
           )} to ${misc.to_json(new_upgrades)}`,
         );
         let project: ProjectControl | undefined;
-        return async.series(
-          [
-            (cb: CB) => {
-              return this.ensure_user_project_upgrades_are_valid({
-                account_id,
-                cb,
-              });
-            },
-            async (cb: CB) => {
-              if (this.projectControl == null) {
-                return cb();
-              } else {
-                dbg("get project");
-                try {
-                  project = await this.projectControl(new_val.project_id);
-                  return cb();
-                } catch (err) {
-                  return cb(err);
-                }
-              }
-            },
-            async (cb: CB) => {
-              if (project == null) {
-                return cb();
-              } else {
-                dbg("determine total quotas and apply");
-                try {
-                  if (project.setAllQuotas == null) {
-                    return cb();
-                  }
-                  await project.setAllQuotas();
-                  return cb();
-                } catch (err) {
-                  return cb(err);
-                }
-              }
-            },
-          ],
-          cb,
-        );
+        try {
+          await callback_opts(
+            this.ensure_user_project_upgrades_are_valid.bind(this),
+          )({
+            account_id,
+          });
+          if (this.projectControl != null) {
+            dbg("get project");
+            project = await this.projectControl(new_val.project_id);
+          }
+          if (project != null) {
+            dbg("determine total quotas and apply");
+            if (project.setAllQuotas != null) {
+              await project.setAllQuotas();
+            }
+          }
+          return cb();
+        } catch (err) {
+          return cb(err);
+        }
       } else {
         return cb();
       }
@@ -2209,7 +2219,7 @@ export function extend_PostgreSQL(ext) {
       })();
     }
 
-    _user_get_query_changefeed(
+    async _user_get_query_changefeed(
       changes: UserQueryChanges,
       table: string,
       primary_keys: string[],
@@ -2220,7 +2230,7 @@ export function extend_PostgreSQL(ext) {
       client_query: AnyRecord,
       orig_table: string,
       cb: CB,
-    ) {
+    ): Promise<void> {
       let free_tracker: ((tracker: any) => void) | undefined;
       let left: string[] | undefined;
       let process: (x: AnyRecord) => void;
@@ -2344,262 +2354,230 @@ export function extend_PostgreSQL(ext) {
         };
       }
 
-      return async.series(
-        [
-          (cb: CB) => {
-            // check for alternative where test for changefeed.
-            let tracker_add, tracker_error, tracker_remove;
-            let pg_changefeed = client_query?.get?.pg_changefeed;
-            if (pg_changefeed == null) {
-              cb();
+      try {
+        // check for alternative where test for changefeed.
+        let tracker_add, tracker_error, tracker_remove;
+        let pg_changefeed = client_query?.get?.pg_changefeed;
+        if (pg_changefeed != null) {
+          if (pg_changefeed === "projects") {
+            tracker_add = (project_id) => feed?.insert({ project_id });
+            tracker_remove = (project_id) => feed?.delete({ project_id });
+
+            // Any tracker error means this changefeed is now broken and
+            // has to be recreated.
+            tracker_error = () => changes_cb("tracker error - ${err}");
+
+            pg_changefeed = (db, account_id) => {
+              return {
+                where: (obj) => {
+                  // Check that this is a project we have read access to
+                  if (
+                    !(db._project_and_user_tracker != null
+                      ? db._project_and_user_tracker.get_projects(account_id)[
+                          obj.project_id
+                        ]
+                      : undefined)
+                  ) {
+                    return false;
+                  }
+                  // Now check our actual query conditions on the object.
+                  // This would normally be done by the changefeed, but since
+                  // we are passing in a custom where, we have to do it.
+                  if (
+                    !this._user_get_query_satisfied_by_obj(
+                      user_query,
+                      obj,
+                      possible_time_fields,
+                    )
+                  ) {
+                    return false;
+                  }
+                  return true;
+                },
+
+                select: { project_id: "UUID" },
+
+                init_tracker: (tracker) => {
+                  tracker.on(`add_user_to_project-${account_id}`, tracker_add);
+                  tracker.on(
+                    `remove_user_from_project-${account_id}`,
+                    tracker_remove,
+                  );
+                  return tracker.once("error", tracker_error);
+                },
+
+                free_tracker: (tracker) => {
+                  dbg("freeing project tracker events");
+                  tracker.removeListener(
+                    `add_user_to_project-${account_id}`,
+                    tracker_add,
+                  );
+                  tracker.removeListener(
+                    `remove_user_from_project-${account_id}`,
+                    tracker_remove,
+                  );
+                  return tracker.removeListener("error", tracker_error);
+                },
+              };
+            };
+          } else if (pg_changefeed === "news") {
+            pg_changefeed = () => ({
+              where(obj) {
+                if (obj.date != null) {
+                  const date_obj = new Date(obj.date);
+                  // we send future news items to the frontend, but filter it based on the server time
+                  return date_obj >= misc.months_ago(3);
+                } else {
+                  return true;
+                }
+              },
+
+              select: { id: "SERIAL UNIQUE", date: "TIMESTAMP" },
+            });
+          } else if (pg_changefeed === "one-hour") {
+            pg_changefeed = () => ({
+              where(obj) {
+                if (obj.time != null) {
+                  return new Date(obj.time) >= misc.hours_ago(1);
+                } else {
+                  return true;
+                }
+              },
+
+              select: { id: "UUID", time: "TIMESTAMP" },
+            });
+          } else if (pg_changefeed === "five-minutes") {
+            pg_changefeed = () => ({
+              where(obj) {
+                if (obj.time != null) {
+                  return new Date(obj.time) >= misc.minutes_ago(5);
+                } else {
+                  return true;
+                }
+              },
+
+              select: { id: "UUID", time: "TIMESTAMP" },
+            });
+          } else if (pg_changefeed === "collaborators") {
+            if (account_id == null) {
+              cb("FATAL: account_id must be given");
               return;
             }
-
-            if (pg_changefeed === "projects") {
-              tracker_add = (project_id) => feed?.insert({ project_id });
-              tracker_remove = (project_id) => feed?.delete({ project_id });
-
-              // Any tracker error means this changefeed is now broken and
-              // has to be recreated.
-              tracker_error = () => changes_cb("tracker error - ${err}");
-
-              pg_changefeed = (db, account_id) => {
-                return {
-                  where: (obj) => {
-                    // Check that this is a project we have read access to
-                    if (
-                      !(db._project_and_user_tracker != null
-                        ? db._project_and_user_tracker.get_projects(account_id)[
-                            obj.project_id
-                          ]
-                        : undefined)
-                    ) {
-                      return false;
-                    }
-                    // Now check our actual query conditions on the object.
-                    // This would normally be done by the changefeed, but since
-                    // we are passing in a custom where, we have to do it.
-                    if (
-                      !this._user_get_query_satisfied_by_obj(
-                        user_query,
-                        obj,
-                        possible_time_fields,
-                      )
-                    ) {
-                      return false;
-                    }
-                    return true;
-                  },
-
-                  select: { project_id: "UUID" },
-
-                  init_tracker: (tracker) => {
-                    tracker.on(
-                      `add_user_to_project-${account_id}`,
-                      tracker_add,
-                    );
-                    tracker.on(
-                      `remove_user_from_project-${account_id}`,
-                      tracker_remove,
-                    );
-                    return tracker.once("error", tracker_error);
-                  },
-
-                  free_tracker: (tracker) => {
-                    dbg("freeing project tracker events");
-                    tracker.removeListener(
-                      `add_user_to_project-${account_id}`,
-                      tracker_add,
-                    );
-                    tracker.removeListener(
-                      `remove_user_from_project-${account_id}`,
-                      tracker_remove,
-                    );
-                    return tracker.removeListener("error", tracker_error);
-                  },
-                };
+            tracker_add = (collab_id) =>
+              feed?.insert({ account_id: collab_id });
+            tracker_remove = (collab_id) =>
+              feed?.delete({ account_id: collab_id });
+            tracker_error = () => changes_cb("tracker error - ${err}");
+            pg_changefeed = function (_db, account_id) {
+              let shared_tracker: any;
+              return {
+                where(obj) {
+                  // test of "is a collab with me"
+                  return shared_tracker?.get_collabs(account_id)?.[
+                    obj.account_id
+                  ];
+                },
+                init_tracker: (tracker) => {
+                  shared_tracker = tracker;
+                  tracker.on(`add_collaborator-${account_id}`, tracker_add);
+                  tracker.on(
+                    `remove_collaborator-${account_id}`,
+                    tracker_remove,
+                  );
+                  return tracker.once("error", tracker_error);
+                },
+                free_tracker: (tracker) => {
+                  dbg("freeing collab tracker events");
+                  tracker.removeListener(
+                    `add_collaborator-${account_id}`,
+                    tracker_add,
+                  );
+                  tracker.removeListener(
+                    `remove_collaborator-${account_id}`,
+                    tracker_remove,
+                  );
+                  return tracker.removeListener("error", tracker_error);
+                },
               };
-            } else if (pg_changefeed === "news") {
-              pg_changefeed = () => ({
-                where(obj) {
-                  if (obj.date != null) {
-                    const date_obj = new Date(obj.date);
-                    // we send future news items to the frontend, but filter it based on the server time
-                    return date_obj >= misc.months_ago(3);
-                  } else {
-                    return true;
-                  }
-                },
+            };
+          }
 
-                select: { id: "SERIAL UNIQUE", date: "TIMESTAMP" },
-              });
-            } else if (pg_changefeed === "one-hour") {
-              pg_changefeed = () => ({
-                where(obj) {
-                  if (obj.time != null) {
-                    return new Date(obj.time) >= misc.hours_ago(1);
-                  } else {
-                    return true;
-                  }
-                },
-
-                select: { id: "UUID", time: "TIMESTAMP" },
-              });
-            } else if (pg_changefeed === "five-minutes") {
-              pg_changefeed = () => ({
-                where(obj) {
-                  if (obj.time != null) {
-                    return new Date(obj.time) >= misc.minutes_ago(5);
-                  } else {
-                    return true;
-                  }
-                },
-
-                select: { id: "UUID", time: "TIMESTAMP" },
-              });
-            } else if (pg_changefeed === "collaborators") {
-              if (account_id == null) {
-                cb("FATAL: account_id must be given");
-                return;
-              }
-              tracker_add = (collab_id) =>
-                feed?.insert({ account_id: collab_id });
-              tracker_remove = (collab_id) =>
-                feed?.delete({ account_id: collab_id });
-              tracker_error = () => changes_cb("tracker error - ${err}");
-              pg_changefeed = function (_db, account_id) {
-                let shared_tracker: any;
-                return {
-                  where(obj) {
-                    // test of "is a collab with me"
-                    return shared_tracker?.get_collabs(account_id)?.[
-                      obj.account_id
-                    ];
-                  },
-                  init_tracker: (tracker) => {
-                    shared_tracker = tracker;
-                    tracker.on(`add_collaborator-${account_id}`, tracker_add);
-                    tracker.on(
-                      `remove_collaborator-${account_id}`,
-                      tracker_remove,
-                    );
-                    return tracker.once("error", tracker_error);
-                  },
-                  free_tracker: (tracker) => {
-                    dbg("freeing collab tracker events");
-                    tracker.removeListener(
-                      `add_collaborator-${account_id}`,
-                      tracker_add,
-                    );
-                    tracker.removeListener(
-                      `remove_collaborator-${account_id}`,
-                      tracker_remove,
-                    );
-                    return tracker.removeListener("error", tracker_error);
-                  },
-                };
-              };
+          const x = pg_changefeed(this, account_id);
+          if (x.init_tracker != null) {
+            ({ init_tracker } = x);
+          }
+          if (x.free_tracker != null) {
+            ({ free_tracker } = x);
+          }
+          if (x.select != null) {
+            for (var k in x.select) {
+              var v = x.select[k];
+              select[k] = v;
             }
+          }
 
-            const x = pg_changefeed(this, account_id);
-            if (x.init_tracker != null) {
-              ({ init_tracker } = x);
-            }
-            if (x.free_tracker != null) {
-              ({ free_tracker } = x);
-            }
-            if (x.select != null) {
-              for (var k in x.select) {
-                var v = x.select[k];
-                select[k] = v;
-              }
-            }
-
-            if (x.where != null || x.init_tracker != null) {
-              ({ where } = x);
-              if (account_id == null) {
-                cb();
-                return;
-              }
+          if (x.where != null || x.init_tracker != null) {
+            ({ where } = x);
+            if (account_id != null) {
               // initialize user tracker is needed for where tests...
-              return this.project_and_user_tracker({
-                cb: async (err, _tracker) => {
-                  if (err) {
-                    return cb(err);
-                  } else {
-                    tracker = _tracker;
-                    try {
-                      await tracker.register(account_id);
-                      return cb();
-                    } catch (error) {
-                      err = error;
-                      return cb(err);
-                    }
-                  }
-                },
-              });
-            } else {
-              return cb();
+              tracker = await callback_opts(
+                this.project_and_user_tracker.bind(this),
+              )();
+              await tracker.register(account_id);
             }
-          },
-          (cb: CB) => {
-            return this.changefeed({
-              table,
-              select,
-              where,
-              watch,
-              cb: (err, _feed) => {
-                // there *is* a glboal variable feed that we set here:
-                feed = _feed;
-                if (err) {
-                  cb(err);
-                  return;
-                }
-                feed.on("change", function (x) {
-                  process(x);
-                  return changes_cb(undefined, x);
-                });
-                feed.on("close", function () {
-                  changes_cb(undefined, { action: "close" });
-                  dbg("feed close");
-                  if (tracker != null && free_tracker != null) {
-                    dbg("free_tracker");
-                    return free_tracker(tracker);
-                  } else {
-                    return dbg("do NOT free_tracker");
-                  }
-                });
-                feed.on("error", (err) => changes_cb(`feed error - ${err}`));
-                this._changefeeds ??= {};
-                this._changefeeds[changes.id] = feed;
-                if (typeof init_tracker === "function") {
-                  init_tracker(tracker);
-                }
-                return cb();
-              },
-            });
-          },
-        ],
-        cb,
-      );
+          }
+        }
+
+        feed = await callback_opts(this.changefeed.bind(this))({
+          table,
+          select,
+          where,
+          watch,
+        });
+        feed.on("change", function (x) {
+          process(x);
+          return changes_cb(undefined, x);
+        });
+        feed.on("close", function () {
+          changes_cb(undefined, { action: "close" });
+          dbg("feed close");
+          if (tracker != null && free_tracker != null) {
+            dbg("free_tracker");
+            return free_tracker(tracker);
+          } else {
+            return dbg("do NOT free_tracker");
+          }
+        });
+        feed.on("error", (err) => changes_cb(`feed error - ${err}`));
+        this._changefeeds ??= {};
+        this._changefeeds[changes.id] = feed;
+        if (typeof init_tracker === "function") {
+          init_tracker(tracker);
+        }
+        cb();
+      } catch (err) {
+        cb(err);
+      }
     }
 
-    user_get_query(opts: UserGetQueryOptions) {
-      opts = defaults(opts, {
-        account_id: undefined,
-        project_id: undefined,
-        table: required,
-        query: required,
-        multi: required,
-        options: required, // used for initial query; **IGNORED** by changefeed,
+    async user_get_query(opts: UserGetQueryOptions): Promise<void> {
+      opts = {
+        account_id: opts.account_id ?? undefined,
+        project_id: opts.project_id ?? undefined,
+        table: opts.table,
+        query: opts.query,
+        multi: opts.multi,
+        // used for initial query; **IGNORED** by changefeed,
         // which ensures that *something* is sent every n minutes, in case no
         // changes are coming out of the changefeed. This is an additional
         // measure in case the client somehow doesn't get a "this changefeed died" message.
         // Use [{delete:true}] to instead delete the selected records (must
         // have delete:true in schema).
-        changes: undefined, // {id:?, cb:?}
-        cb: required,
-      }); // cb(err, result)
+        options: opts.options ?? [],
+        changes: opts.changes ?? undefined, // {id:?, cb:?}
+        cb: opts.cb,
+      }; // cb(err, result)
+      const cb = opts.cb;
       /*
         The general idea is that user get queries are of the form
 
@@ -2632,190 +2610,151 @@ export function extend_PostgreSQL(ext) {
 
       if (err) {
         dbg(`error parsing query opts -- ${err}`);
-        opts.cb(err);
+        cb?.(err);
         return;
       }
       if (client_query == null || table == null) {
-        opts.cb("FATAL: invalid get query options");
+        cb?.("FATAL: invalid get query options");
         return;
       }
 
       const _query_opts: AnyRecord = {}; // this will be the input to the @_query command.
       const locals: ChangefeedLocals = {};
 
-      return async.series(
-        [
-          (cb: CB) => {
-            if (client_query.get.check_hook != null) {
-              dbg("do check hook");
-              return client_query.get.check_hook(
-                this,
-                opts.query,
-                opts.account_id,
-                opts.project_id,
-                cb,
-              );
-            } else {
-              return cb();
-            }
-          },
-          (cb: CB) => {
-            if (require_admin) {
-              dbg("require admin");
-              return this._require_is_admin(opts.account_id, cb);
-            } else {
-              return cb();
-            }
-          },
-          (cb: CB) => {
-            // NOTE: _user_get_query_where may mutate opts.query (for 'null' params)
-            // so it is important that this is called before @_user_get_query_query below.
-            // See the TODO in userGetQueryFilter.
-            dbg("get_query_where");
-            return this._user_get_query_where(
-              client_query,
-              opts.account_id,
-              opts.project_id,
-              opts.query,
-              opts.table,
-              (err, where) => {
-                _query_opts.where = where;
-                return cb(err);
-              },
-            );
-          },
-          (cb: CB) => {
-            let val;
-            if (client_query.get.instead_of_query != null) {
-              cb();
-              return;
-            }
-            _query_opts.query = this._user_get_query_query(
-              table,
-              opts.query,
-              client_query.get.remove_from_query,
-            );
-            const x = this._user_get_query_options(
-              opts.options,
-              opts.multi,
-              client_query.options,
-            );
-            if (x.err) {
-              dbg(`error in get_query_options, ${x.err}`);
-              cb(x.err);
-              return;
-            }
-            misc.merge(_query_opts, x);
+      try {
+        if (client_query.get.check_hook != null) {
+          dbg("do check hook");
+          await callWithCb(
+            client_query.get.check_hook,
+            this,
+            opts.query,
+            opts.account_id,
+            opts.project_id,
+          );
+        }
+        if (require_admin) {
+          dbg("require admin");
+          await callWithCb(this._require_is_admin.bind(this), opts.account_id);
+        }
 
-            const nestloop =
-              schema[opts.table] != null
-                ? schema[opts.table].pg_nestloop
-                : undefined; // true, false or undefined
-            if (typeof nestloop === "boolean") {
-              val = nestloop ? "on" : "off";
-              _query_opts.pg_params = { enable_nestloop: val };
-            }
+        // NOTE: _user_get_query_where may mutate opts.query (for 'null' params)
+        // so it is important that this is called before @_user_get_query_query below.
+        // See the TODO in userGetQueryFilter.
+        dbg("get_query_where");
+        _query_opts.where = await callWithCb(
+          this._user_get_query_where.bind(this),
+          client_query,
+          opts.account_id,
+          opts.project_id,
+          opts.query,
+          opts.table,
+        );
 
-            const indexscan =
-              schema[opts.table] != null
-                ? schema[opts.table].pg_indexscan
-                : undefined; // true, false or undefined
-            if (typeof indexscan === "boolean") {
-              val = indexscan ? "on" : "off";
-              _query_opts.pg_params = { enable_indexscan: val };
-            }
-
-            if (opts.changes != null) {
-              locals.changes_cb = opts.changes.cb;
-              locals.changes_queue = [];
-              // see note about why we do the following at the bottom of this file
-              opts.changes.cb = (err, obj) =>
-                locals.changes_queue?.push({ err, obj });
-              dbg("getting changefeed");
-              return this._user_get_query_changefeed(
-                opts.changes,
-                table,
-                primary_keys,
-                opts.query,
-                _query_opts.where,
-                json_fields,
-                opts.account_id,
-                client_query,
-                opts.table,
-                cb,
-              );
-            } else {
-              return cb();
-            }
-          },
-
-          (cb: CB) => {
-            if (client_query.get.instead_of_query != null) {
-              if (opts.changes != null) {
-                cb("changefeeds are not supported for querying this table");
-                return;
-              }
-              // Custom version: instead of doing a full query, we instead
-              // call a function and that's it.
-              dbg("do instead_of_query instead");
-              const opts1 = misc.copy_without(opts, ["cb", "changes", "table"]);
-              client_query.get.instead_of_query(this, opts1, (err, result) => {
-                locals.result = result;
-                return cb(err);
-              });
-              return;
-            }
-
-            if (_query_opts.only_changes) {
-              dbg("skipping query");
-              locals.result = undefined;
-              return cb();
-            } else {
-              dbg("finally doing query");
-              return this._user_get_query_do_query(
-                _query_opts,
-                client_query,
-                opts.query,
-                opts.multi,
-                json_fields,
-                (err, result) => {
-                  if (err) {
-                    cb(err);
-                    return;
-                  }
-                  locals.result = result;
-                  return cb();
-                },
-              );
-            }
-          },
-        ],
-        (err) => {
-          if (err) {
-            dbg(`series failed -- err=${err}`);
-            opts.cb(err);
-            return;
+        if (client_query.get.instead_of_query == null) {
+          let val;
+          _query_opts.query = this._user_get_query_query(
+            table,
+            opts.query,
+            client_query.get.remove_from_query,
+          );
+          const x = this._user_get_query_options(
+            opts.options,
+            opts.multi,
+            client_query.options,
+          );
+          if (x.err) {
+            dbg(`error in get_query_options, ${x.err}`);
+            throw x.err;
           }
-          dbg("series succeeded");
-          opts.cb(undefined, locals.result);
+          misc.merge(_query_opts, x);
+
+          const nestloop =
+            schema[opts.table] != null
+              ? schema[opts.table].pg_nestloop
+              : undefined; // true, false or undefined
+          if (typeof nestloop === "boolean") {
+            val = nestloop ? "on" : "off";
+            _query_opts.pg_params = { enable_nestloop: val };
+          }
+
+          const indexscan =
+            schema[opts.table] != null
+              ? schema[opts.table].pg_indexscan
+              : undefined; // true, false or undefined
+          if (typeof indexscan === "boolean") {
+            val = indexscan ? "on" : "off";
+            _query_opts.pg_params = { enable_indexscan: val };
+          }
+
           if (opts.changes != null) {
-            dbg("sending change queue");
-            if (locals.changes_cb != null) {
-              opts.changes.cb = locals.changes_cb;
-            }
-            //#dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
-            return (() => {
-              let obj;
-              const result: any[] = [];
-              for ({ err, obj } of locals.changes_queue ?? []) {
-                //#dbg("sending queued changes #{JSON.stringify([err, obj])}")
-                result.push(opts.changes.cb?.(err, obj));
-              }
-              return result;
-            })();
+            locals.changes_cb = opts.changes.cb;
+            locals.changes_queue = [];
+            // see note about why we do the following at the bottom of this file
+            opts.changes.cb = (err, obj) =>
+              locals.changes_queue?.push({ err, obj });
+            dbg("getting changefeed");
+            await callWithCb(
+              this._user_get_query_changefeed.bind(this),
+              opts.changes,
+              table,
+              primary_keys,
+              opts.query,
+              _query_opts.where,
+              json_fields,
+              opts.account_id,
+              client_query,
+              opts.table,
+            );
           }
-        },
-      );
+        }
+
+        if (client_query.get.instead_of_query != null) {
+          if (opts.changes != null) {
+            throw "changefeeds are not supported for querying this table";
+          }
+          // Custom version: instead of doing a full query, we instead
+          // call a function and that's it.
+          dbg("do instead_of_query instead");
+          const opts1 = misc.copy_without(opts, ["cb", "changes", "table"]);
+          locals.result = await callWithCb(
+            client_query.get.instead_of_query,
+            this,
+            opts1,
+          );
+        } else if (_query_opts.only_changes) {
+          dbg("skipping query");
+          locals.result = undefined;
+        } else {
+          dbg("finally doing query");
+          locals.result = await callWithCb(
+            this._user_get_query_do_query.bind(this),
+            _query_opts,
+            client_query,
+            opts.query,
+            opts.multi,
+            json_fields,
+          );
+        }
+      } catch (err) {
+        dbg(`series failed -- err=${err}`);
+        cb?.(err);
+        return;
+      }
+
+      dbg("series succeeded");
+      cb?.(undefined, locals.result);
+      if (opts.changes != null) {
+        dbg("sending change queue");
+        if (locals.changes_cb != null) {
+          opts.changes.cb = locals.changes_cb;
+        }
+        //#dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
+        for (const { err, obj } of locals.changes_queue ?? []) {
+          //#dbg("sending queued changes #{JSON.stringify([err, obj])}")
+          opts.changes.cb?.(err, obj);
+        }
+        return;
+      }
     }
 
     /*
