@@ -9,20 +9,24 @@
 
 - [ ] when implementing starting remote project host, be sure to do set all secrets via safe 0600 files and not env variables. e.g., cloudflare r2.
 
-### Cloud VM control layer.
+- [ ] running project hosts that are behind a firewall/tunnel, e.g., on a user's private resources.  Cloudflare tunnels can do this for https (not ssh) and it is easy to fully automate: http://localhost:7000/projects/00000000-1000-4000-8000-000000000000/files/build/cocalc-lite/a.chat#chat=1767334270037
+
+- [ ] hyperstack deprovision doesn't seem to work -- the disk isn't deleted.
+
+### (done) Cloud VM control layer.
 
 Goal: a provider‑agnostic control plane in `@cocalc/cloud` that can provision, start/stop, and meter project‑host VMs via cloud APIs, with concurrency handled in Postgres (no singletons), and costs/usage recorded as immutable log events. The hub owns orchestration and billing, while providers expose clean, testable adapters.
 
 **Remote project-host bring-up checklist (current code):**
 
-- [ ] **GCP end‑to‑end boot**: VM provisions with boot+data PD, injects SSH key, runs startup script to install podman+btrfs, mounts PD at `/btrfs`, copies SEA, starts project‑host, registers with hub, and DNS is created.
-- [ ] **Hyperstack end‑to‑end boot**: create environment (idempotent), create VM from catalog, inject SSH key, run bootstrap, register with hub, DNS set.
-- [ ] **Lambda provider**: adapter + catalog + create/start/stop/delete wired into work queue.
-- [ ] **Bootstrap inputs**: define minimal config files for hub URL, conat secret, host_id, and backup config (no env secrets); install via SCP/metadata.
-- [ ] **SSH connectivity**: ensure cloud provider injects host SSH public key and we can `ssh` in as the service user.
-- [ ] **Runtime reconciliation**: periodic status check to reconcile provider state → `project_hosts.status` (avoid “running” UI on failed boot).
-- [ ] **Error surfacing**: show last action + error from `cloud_vm_log` in host card + drawer; confirm failure states update.
-- [ ] **DNS**: ensure Cloudflare record is created (or fallback proxy), and public_url uses DNS name not raw IP.
+- [x] **GCP end‑to‑end boot**: VM provisions with boot+data PD, injects SSH key, runs startup script to install podman+btrfs, mounts PD at `/btrfs`, copies SEA, starts project‑host, registers with hub, and DNS is created.
+- [x] **Hyperstack end‑to‑end boot**: create environment (idempotent), create VM from catalog, inject SSH key, run bootstrap, register with hub, DNS set.
+- [x] **Lambda provider**: adapter + catalog + create/start/stop/delete wired into work queue.
+- [x] **Bootstrap inputs**: define minimal config files for hub URL, conat secret, host_id, and backup config (no env secrets); install via SCP/metadata.
+- [x] **SSH connectivity**: ensure cloud provider injects host SSH public key and we can `ssh` in as the service user.
+- [x] **Runtime reconciliation**: periodic status check to reconcile provider state → `project_hosts.status` (avoid “running” UI on failed boot).
+- [x] **Error surfacing**: show last action + error from `cloud_vm_log` in host card + drawer; confirm failure states update.
+- [x] **DNS**: ensure Cloudflare record is created (or fallback proxy), and public_url uses DNS name not raw IP.
 
 **Minimal provider interface + simple mode (v1):**
 
@@ -128,9 +132,7 @@ Dedicated project-hosts replace “compute servers”: users provision a VM (oft
 
 **Compute Servers → Dedicated Project Hosts (Todo)**
 
-- [ ] Data model: drop compute_servers concept; extend `project_hosts` with owner_account_id, type=dedicated, metadata (region/size/GPU, billing ref), allowed collaborators list/policy, public/internal URLs, ssh_server.
-
-- [ ] Provisioning: reuse `packages/servers/compute` to create VMs; install/start project-host with owner credentials + master endpoint; ensure host registers on boot/shutdown and marks type=dedicated.
+- [x] Data model: drop compute_servers concept; extend `project_hosts` with owner_account_id, type=dedicated, metadata (region/size/GPU, billing ref), allowed collaborators list/policy, public/internal URLs, ssh_server.
 
 - [ ] Auth/ACL: owner always allowed; collaborators allowed to create/use projects on that host; enforce via host-side checks pulled from master; no root on VM (only podman).
 

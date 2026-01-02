@@ -261,7 +261,12 @@ export async function scheduleBootstrap(row: ProjectHostRow) {
     "";
   if (!seaPath && !seaUrl) return;
   if (!masterAddress) return;
-  if (row.status && row.status !== "running") return;
+  if (
+    row.status &&
+    row.status !== "running" &&
+    row.status !== "starting"
+  )
+    return;
   const runtime = row.metadata?.runtime;
   if (!runtime?.public_ip) return;
   const bootstrapStatus = row.metadata?.bootstrap?.status;
@@ -434,7 +439,8 @@ if ! sudo btrfs subvolume show /btrfs/data >/dev/null 2>&1; then
     sudo mkdir -p /btrfs/data
   fi
 fi
-sudo chown ${sshUser}:${sshUser} /btrfs/data || true
+sudo mkdir -p /btrfs/data/secrets
+sudo chown -R ${sshUser}:${sshUser} /btrfs/data || true
 echo "bootstrap: writing project-host env to ${envFile}"
 ${envBlock}
 sudo systemctl daemon-reload || true

@@ -194,9 +194,10 @@ async function handleStart(row: any) {
     await entry.provider.startHost(runtime, creds);
   }
   await updateHostRow(row.id, { status: "running", last_seen: new Date() });
-  await ensureDnsForHost(row);
-  await scheduleRuntimeRefresh(row);
-  await scheduleBootstrap(row);
+  const nextRow = { ...row, status: "running" };
+  await ensureDnsForHost(nextRow);
+  await scheduleRuntimeRefresh(nextRow);
+  await scheduleBootstrap(nextRow);
   if (providerId) {
     await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
   }
