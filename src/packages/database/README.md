@@ -7,3 +7,7 @@ This package connects the hub and nextjs servers to the PostgreSQL database, and
 ## Notes
 
 **WARNING**: This is the single scariest chunk of CoffeeScript left in CoCalc! 
+
+## Experimental PGlite
+
+There is an opt-in PGlite smoke test helper under [src/packages/database/pglite](./src/packages/database/pglite). It is not wired into the default DB path; use it only for local experiments.
