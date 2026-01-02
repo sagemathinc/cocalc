@@ -5,6 +5,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import { URL } from "node:url";
 import getPool from "@cocalc/database/pool";
 import { buildHostSpec } from "./host-util";
 import { normalizeProviderId } from "@cocalc/cloud";
@@ -310,15 +311,25 @@ export async function handleBootstrap(row: ProjectHostRow) {
   const dataDiskDevices =
     provider?.getBootstrapDataDiskDevices?.(spec, storageMode) ?? "";
   const imageSizeGb = Math.max(20, Number(spec.disk_gb ?? 100));
-  const port = 9002;
+  const port = 443;
   const sshPort = 2222;
-  const publicUrl = row.public_url ?? `http://${publicIp}:${port}`;
-  const internalUrl = row.internal_url ?? `http://${publicIp}:${port}`;
+  const publicUrl = row.public_url
+    ? row.public_url.replace(/^http:\/\//, "https://")
+    : `https://${publicIp}`;
+  const internalUrl = row.internal_url
+    ? row.internal_url.replace(/^http:\/\//, "https://")
+    : `https://${publicIp}`;
   const sshServer = row.ssh_server ?? `${publicIp}:${sshPort}`;
   const dataDir = "/btrfs/data";
   const envFile = "/etc/cocalc/project-host.env";
   const seaRemote = "/opt/cocalc/project-host.tar.xz";
   const dataDiskCandidates = dataDiskDevices || "none";
+  let tlsHostname = publicIp;
+  try {
+    tlsHostname = new URL(publicUrl).hostname || publicIp;
+  } catch {
+    tlsHostname = publicIp;
+  }
 
   const envLines = [
     `MASTER_CONAT_SERVER=${masterAddress}`,
@@ -333,6 +344,8 @@ export async function handleBootstrap(row: ProjectHostRow) {
     `DATA=${dataDir}`,
     `COCALC_DATA=${dataDir}`,
     `COCALC_LITE_SQLITE_FILENAME=${dataDir}/sqlite.db`,
+    `COCALC_PROJECT_HOST_HTTPS=1`,
+    `COCALC_PROJECT_HOST_HTTPS_HOSTNAME=${tlsHostname}`,
     `HOST=0.0.0.0`,
     `PORT=${port}`,
     `DEBUG=cocalc:*`,
@@ -439,6 +452,9 @@ After=network-online.target
 [Service]
 Type=simple
 User=${sshUser}
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
 EnvironmentFile=${envFile}
 WorkingDirectory=/opt/cocalc/project-host
 ExecStart=/opt/cocalc/project-host/cocalc-project-host
