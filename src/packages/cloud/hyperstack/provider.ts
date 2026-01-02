@@ -251,11 +251,25 @@ async function attachDataVolume(
         virtual_machine_id: instanceId,
         volume_ids: [volumeId],
       });
+      logger.debug("attachDataVolume: attached", { instanceId, volumeId });
       return;
     } catch (err) {
-      if (String((err as Error)?.message ?? err).includes("not_found")) {
+      const message = String((err as Error)?.message ?? err).toLowerCase();
+      if (message.includes("already") && message.includes("attach")) {
+        logger.debug("attachDataVolume: already attached", {
+          instanceId,
+          volumeId,
+        });
+        return;
+      }
+      if (message.includes("not_found")) {
         throw err;
       }
+      logger.debug("attachDataVolume: retrying", {
+        instanceId,
+        volumeId,
+        err: String((err as Error)?.message ?? err),
+      });
     }
     await delay(wait);
     wait = Math.min(Math.floor(wait * 1.3), 10000);
@@ -310,7 +324,13 @@ export class HyperstackProvider implements CloudProvider {
     if (!instance) {
       throw new Error("Hyperstack did not return a VM instance");
     }
-    await attachDataVolume(Number(instance.id), dataVolume.id);
+    void attachDataVolume(Number(instance.id), dataVolume.id).catch((err) => {
+      logger.warn("Hyperstack attachDataVolume failed", {
+        instanceId: instance.id,
+        volumeId: dataVolume.id,
+        err: String(err),
+      });
+    });
     for (const rule of SECURITY_RULES) {
       try {
         await addFirewallRule({

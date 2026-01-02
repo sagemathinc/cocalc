@@ -315,6 +315,7 @@ export async function handleBootstrap(row: ProjectHostRow) {
   const dataDir = "/btrfs/data";
   const envFile = "/etc/cocalc/project-host.env";
   const seaRemote = "/opt/cocalc/project-host.tar.xz";
+  const dataDiskCandidates = dataDiskDevices || "none";
 
   const envLines = [
     `MASTER_CONAT_SERVER=${masterAddress}`,
@@ -342,54 +343,83 @@ export async function handleBootstrap(row: ProjectHostRow) {
 
   const bootstrapScript = `
 set -euo pipefail
+echo "bootstrap: updating apt package lists"
 sudo apt-get update -y
+echo "bootstrap: installing base packages"
 sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils rsync vim
+echo "bootstrap: enabling unprivileged user namespaces"
 sudo sysctl -w kernel.unprivileged_userns_clone=1 || true
+echo "bootstrap: ensuring subuid/subgid ranges for ${sshUser}"
 sudo usermod --add-subuids 100000-165535 --add-subgids 100000-165535 ${sshUser} || true
+echo "bootstrap: preparing cocalc directories"
 sudo mkdir -p /opt/cocalc /var/lib/cocalc /etc/cocalc
 sudo chown -R ${sshUser}:${sshUser} /opt/cocalc /var/lib/cocalc
 sudo mkdir -p /btrfs
+echo "bootstrap: data disk candidates: ${dataDiskCandidates}"
 DATA_DISK_DEV=""
 if [ -n "${dataDiskDevices}" ]; then
-  for dev in ${dataDiskDevices}; do
-    if [ -b "$dev" ]; then
-      mountpoints="$(lsblk -nr -o MOUNTPOINT "$dev" 2>/dev/null | grep -v '^$' || true)"
-      if [ -n "$mountpoints" ]; then
-        if echo "$mountpoints" | grep -qx "/btrfs"; then
-          DATA_DISK_DEV="$dev"
-          break
+  pick_data_disk() {
+    for dev in ${dataDiskDevices}; do
+      if [ -b "$dev" ]; then
+        mountpoints="$(lsblk -nr -o MOUNTPOINT "$dev" 2>/dev/null | grep -v '^$' || true)"
+        if [ -n "$mountpoints" ]; then
+          if echo "$mountpoints" | grep -qx "/btrfs"; then
+            echo "$dev"
+            return 0
+          fi
+          echo "bootstrap: skipping $dev (mounted at $mountpoints)"
+          continue
         fi
-        continue
+        echo "$dev"
+        return 0
       fi
-      DATA_DISK_DEV="$dev"
+    done
+    return 1
+  }
+  echo "bootstrap: waiting for data disk (up to 600s)"
+  for attempt in $(seq 1 60); do
+    DATA_DISK_DEV="$(pick_data_disk || true)"
+    if [ -n "$DATA_DISK_DEV" ]; then
       break
     fi
+    echo "bootstrap: data disk not ready (attempt $attempt/60)"
+    sleep 10
   done
 fi
 if [ -n "$DATA_DISK_DEV" ]; then
+  echo "bootstrap: using data disk $DATA_DISK_DEV"
   if ! sudo blkid "$DATA_DISK_DEV" | grep -q btrfs; then
+    echo "bootstrap: formatting $DATA_DISK_DEV as btrfs"
     sudo mkfs.btrfs -f "$DATA_DISK_DEV"
   fi
   if ! mountpoint -q /btrfs; then
+    echo "bootstrap: mounting $DATA_DISK_DEV at /btrfs"
     sudo mount "$DATA_DISK_DEV" /btrfs
   fi
 else
+  echo "bootstrap: no data disk found; using loopback image"
   sudo mkdir -p /var/lib/cocalc
   if [ ! -f /var/lib/cocalc/btrfs.img ]; then
+    echo "bootstrap: creating /var/lib/cocalc/btrfs.img (${imageSizeGb}G)"
     sudo truncate -s ${imageSizeGb}G /var/lib/cocalc/btrfs.img
+    echo "bootstrap: formatting /var/lib/cocalc/btrfs.img as btrfs"
     sudo mkfs.btrfs -f /var/lib/cocalc/btrfs.img
   fi
   if ! mountpoint -q /btrfs; then
+    echo "bootstrap: mounting loopback btrfs image at /btrfs"
     sudo mount -o loop /var/lib/cocalc/btrfs.img /btrfs
   fi
 fi
 sudo chown ${sshUser}:${sshUser} /btrfs || true
+echo "bootstrap: ensuring /btrfs/data subvolume"
 if ! sudo btrfs subvolume show /btrfs/data >/dev/null 2>&1; then
   if ! sudo btrfs subvolume create /btrfs/data >/dev/null 2>&1; then
+    echo "bootstrap: btrfs subvolume create failed; using directory"
     sudo mkdir -p /btrfs/data
   fi
 fi
 sudo chown ${sshUser}:${sshUser} /btrfs/data || true
+echo "bootstrap: writing project-host env to ${envFile}"
 ${envBlock}
 sudo systemctl daemon-reload || true
 

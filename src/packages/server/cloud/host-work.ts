@@ -220,7 +220,23 @@ async function handleStop(row: any) {
     supportsStop = entry.capabilities.supportsStop;
     await entry.provider.stopHost(runtime, creds);
   }
-  if (providerId && !supportsStop) {
+  if (providerId === "hyperstack") {
+    if (await hasDns()) {
+      await deleteHostDns({ record_id: row.metadata?.dns?.record_id });
+    }
+    const nextMetadata = {
+      ...(row.metadata ?? {}),
+    };
+    delete nextMetadata.runtime;
+    delete nextMetadata.dns;
+    await updateHostRow(row.id, {
+      metadata: nextMetadata,
+      status: "off",
+      public_url: null,
+      internal_url: null,
+      last_seen: new Date(),
+    });
+  } else if (providerId && !supportsStop) {
     // Providers without a stop state (e.g., Lambda) should be treated as
     // deprovisioned when "stop" is requested.
     const nextMetadata = {
