@@ -385,7 +385,7 @@ set -euo pipefail
 echo "bootstrap: updating apt package lists"
 sudo apt-get update -y
 echo "bootstrap: installing base packages"
-sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils rsync vim
+sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils rsync vim crun
 echo "bootstrap: enabling unprivileged user namespaces"
 sudo sysctl -w kernel.unprivileged_userns_clone=1 || true
 echo "bootstrap: ensuring subuid/subgid ranges for ${sshUser}"
@@ -524,6 +524,9 @@ After=network-online.target
 Type=simple
 User=${sshUser}
 ${tlsEnabled ? "AmbientCapabilities=CAP_NET_BIND_SERVICE" : ""}
+RuntimeDirectory=cocalc-project-host
+RuntimeDirectoryMode=0700
+Environment=XDG_RUNTIME_DIR=/run/cocalc-project-host
 EnvironmentFile=${envFile}
 WorkingDirectory=/opt/cocalc/project-host
 ExecStart=/opt/cocalc/project-host/cocalc-project-host
