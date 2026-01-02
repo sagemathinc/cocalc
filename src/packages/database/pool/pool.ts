@@ -18,10 +18,17 @@ import dbPassword from "./password";
 import { types } from "pg";
 export * from "./util";
 import { patchPoolForUtc } from "./pg-utc-normalize";
+import {
+  getPgliteClient,
+  getPglitePool,
+  isPgliteEnabled,
+  PglitePool,
+} from "./pglite";
 
 const L = getLogger("db:pool");
 
 let pool: Pool | undefined = undefined;
+let pglitePool: PglitePool | undefined = undefined;
 
 // This makes it so when we read dates out, if they are in a "timestamp with no timezone" field in the
 // database, then they are interpreted as having been UTC, which is always what we do.
@@ -30,6 +37,12 @@ types.setTypeParser(1114, (str: string) => new Date(str + " UTC"));
 export default function getPool(cacheTime?: CacheTime): Pool {
   if (cacheTime != null) {
     return getCachedPool(cacheTime);
+  }
+  if (isPgliteEnabled()) {
+    if (pglitePool == null) {
+      pglitePool = getPglitePool();
+    }
+    return pglitePool as unknown as Pool;
   }
   if (pool == null) {
     L.debug(
@@ -87,6 +100,9 @@ export async function getPoolClient(): Promise<PoolClient> {
 }
 
 export function getClient(): Client {
+  if (isPgliteEnabled()) {
+    return getPgliteClient() as unknown as Client;
+  }
   return new Client({ password: dbPassword(), user, host, database, ssl });
 }
 
@@ -102,6 +118,13 @@ const TEST = "smc_ephemeral_testing_database";
 export async function initEphemeralDatabase({
   reset,
 }: { reset?: boolean } = {}) {
+  if (isPgliteEnabled()) {
+    await syncSchema();
+    if (reset) {
+      await dropAllDataPglite();
+    }
+    return;
+  }
   if (database != TEST) {
     throw Error(
       `You can't use initEphemeralDatabase() and test using the database if the env variabe PGDATABASE is not set to ${TEST}!`,
@@ -168,6 +191,23 @@ async function dropAllData() {
     await client.query(`TRUNCATE ${tableNames.join(",")}`);
   } catch (err) {
     throw err;
+  } finally {
+    client.release();
+  }
+}
+
+async function dropAllDataPglite() {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    const result = await client.query(
+      "SELECT tablename FROM pg_tables WHERE schemaname='public'",
+    );
+    const tableNames = result.rows.map((row) => row.tablename);
+    if (tableNames.length > 0) {
+      await client.query(`TRUNCATE ${tableNames.join(",")}`);
+    }
   } finally {
     client.release();
   }
