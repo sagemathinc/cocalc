@@ -40,6 +40,10 @@ export async function getPglite(
     parsers: {
       // Match pg's default behavior of returning int8 as strings.
       20: (value: string) => value,
+      // Match pg's default bytea parsing (Buffer).
+      17: (value: string) => Buffer.from(value.slice(2), "hex"),
+      // Match pg's UTC interpretation for timestamp without timezone.
+      1114: (value: string) => new Date(`${value.replace(" ", "T")}Z`),
     },
   });
   instance = pg;
