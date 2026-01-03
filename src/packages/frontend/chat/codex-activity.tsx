@@ -423,7 +423,7 @@ function normalizeEvents(events: AcpStreamMessage[]): ActivityEntry[] {
     }
   }
   const sorted = rows.sort((a, b) => a.seq - b.seq);
-  return coalesceFileReads(sorted);
+  return coalesceTextEntries(coalesceFileReads(sorted));
 }
 
 function coalesceFileReads(entries: ActivityEntry[]): ActivityEntry[] {
@@ -451,6 +451,31 @@ function coalesceFileReads(entries: ActivityEntry[]): ActivityEntry[] {
           // Multiple read slices: clear scope so we don't mislead with a line range.
           line: undefined,
           limit: undefined,
+        };
+        continue;
+      }
+    }
+    merged.push(entry);
+  }
+  return merged;
+}
+
+// Codex "exec" emits separate reasoning/agent items that are often meant to be read
+// as one block, but adjacent fragments sometimes lose blank lines (e.g., bold headers
+// run into the previous paragraph). Coalescing adjacent text entries with \n\n keeps
+// the original content while restoring readable paragraph breaks.
+function coalesceTextEntries(entries: ActivityEntry[]): ActivityEntry[] {
+  const merged: ActivityEntry[] = [];
+  for (const entry of entries) {
+    if ((entry.kind === "reasoning" || entry.kind === "agent") && merged.length > 0) {
+      const last = merged[merged.length - 1];
+      if (last.kind === entry.kind) {
+        const lastText = last.text ?? "";
+        const nextText = entry.text ?? "";
+        merged[merged.length - 1] = {
+          ...last,
+          text:
+            lastText && nextText ? `${lastText}\n\n${nextText}` : lastText || nextText,
         };
         continue;
       }
