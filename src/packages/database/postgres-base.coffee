@@ -45,6 +45,7 @@ winston      = require('@cocalc/backend/logger').getLogger('postgres')
 
 misc_node = require('@cocalc/backend/misc_node')
 { sslConfigToPsqlEnv, pghost, pgdatabase, pguser, pgssl } = require("@cocalc/backend/data")
+{ isPgliteEnabled, getPglitePgClient } = require('@cocalc/database/pool/pglite')
 
 { recordConnected, recordDisconnected } = require("./postgres/record-connect-error")
 
@@ -103,6 +104,9 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
         @_database = opts.database
         @_ssl = opts.ssl
         @_password = opts.password ? dbPassword()
+        @_use_pglite = isPgliteEnabled()
+        if @_use_pglite
+            @_ensure_exists = false
         @_init_metrics()
 
         if opts.cache_expiry and opts.cache_size
@@ -209,6 +213,17 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
     _connect: (cb) =>
         dbg = @_dbg("_connect")
         dbg("connect to #{@_host}")
+        if @_use_pglite
+            dbg("using pglite adapter")
+            @_clear_listening_state()
+            @_clients = [getPglitePgClient()]
+            if @_notification?
+                @_clients[0].on('notification', @_notification)
+            @_concurrent_queries = 0
+            @_connect_time = new Date()
+            @is_standby = false
+            cb?()
+            return
         @_clear_listening_state()   # definitely not listening
         if @_clients?
             @disconnect()
