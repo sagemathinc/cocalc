@@ -29,6 +29,21 @@ function parseDaemonArgs(args: string[]): DaemonCommand | null {
     return null;
   }
   const [first, second, third] = args;
+  if (first === "start" || first === "stop") {
+    return { action: first, index: parseIndex(second) };
+  }
+  const daemonIndex = args.indexOf("daemon");
+  if (daemonIndex >= 0) {
+    const action = args[daemonIndex + 1];
+    const indexArg = args[daemonIndex + 2];
+    if (action === "start" || action === "stop") {
+      return { action, index: parseIndex(indexArg) };
+    }
+    if (action != null) {
+      return { action: "start", index: parseIndex(action) };
+    }
+    return { action: "start", index: 0 };
+  }
   if (first === "daemon") {
     if (second == null) {
       return { action: "start", index: 0 };

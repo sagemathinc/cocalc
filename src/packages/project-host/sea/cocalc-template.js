@@ -92,7 +92,11 @@ if (path.basename(process.argv[1]) == "node") {
   }
 
   process.chdir(path.dirname(script));
-  process.argv = [process.execPath, script, ...process.argv.slice(2)];
+  const argv = process.argv.slice(1);
+  if (argv[0] === process.argv[0]) {
+    argv.shift();
+  }
+  process.argv = [process.execPath, script, ...argv];
   process.env.COCALC_BIN_PATH = path.join(destDir, `src/packages/${name}/bin/`);
   console.log(process.env.COCALC_BIN_PATH);
 
