@@ -39,8 +39,7 @@ afterAll(async () => {
 });
 
 describe("pool basic queries", () => {
-  // this mysteriously hangs!
-  it.skip("supports parameterized queries and query configs", async () => {
+  it("supports basic parameterized queries", async () => {
     const pool = getPool();
     const id = uuid();
 
@@ -49,15 +48,15 @@ describe("pool basic queries", () => {
       [id, new Date(), 42],
     );
 
-    const { rows } = await pool.query({
-      text: `SELECT value FROM ${TABLE} WHERE id=$1`,
-      values: [id],
-    });
+    const { rows } = await pool.query(
+      `SELECT value FROM ${TABLE} WHERE id=$1`,
+      [id],
+    );
 
     expect(rows).toHaveLength(1);
     expect(rows[0].value).toBe(42);
 
-    const { rows: rows2 } = await pool.query({ text: "SELECT 1 AS n" });
+    const { rows: rows2 } = await pool.query("SELECT 1 AS n");
     expect(rows2[0].n).toBe(1);
   });
 
