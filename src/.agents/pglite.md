@@ -23,8 +23,10 @@
 ## Current Baseline (already done)
 
 - PGlite adapter for pool layer (serialized queries)
+- PGlite pg-style client (LISTEN/UNLISTEN + notification bridge) for legacy db._query usage
 - Smoke test for PGlite helper
 - Basic pool test with PGlite enabled
+- Database test runner now uses NODE_OPTIONS=--experimental-vm-modules
 
 ## Phase 1: DB Access Unification (core prep)
 
@@ -49,10 +51,17 @@ Goal: ensure all database access flows through a single adapter so PGlite is via
   - query(text, params)
   - single shared instance
   - rowCount compatibility for code that reads it
+  - LISTEN/UNLISTEN support to feed changefeed notifications
 
 Deliverable
 
 - A single code path that can flip from Postgres to PGlite with COCALC_DB=pglite.
+
+## Phase 1 Status (in progress)
+
+- CoffeeScript wrapper now routes through a PGlite pg-style client when COCALC_DB=pglite: [src/packages/database/postgres-base.coffee](./src/packages/database/postgres-base.coffee)
+- PGlite pg-style client implemented here: [src/packages/database/pool/pglite.ts](./src/packages/database/pool/pglite.ts)
+- Pool test query-config form hangs; test uses string+params for now: [src/packages/database/pool/pool.test.ts](./src/packages/database/pool/pool.test.ts)
 
 ## Phase 2: LISTEN/NOTIFY and Changefeeds
 
@@ -161,4 +170,3 @@ Goal: allow an easy upgrade path to Postgres later.
 - Tests running under PGlite for key slices
 - SEA build includes PGlite assets
 - Simple migration/export path documented
-
