@@ -312,6 +312,18 @@ async function ensureTunnelDns(opts: {
     }
   }
 
+  if (record_id) {
+    try {
+      await updateRecord(record_id);
+    } catch (err) {
+      if (isNotFoundError(err)) {
+        record_id = await createRecord();
+      } else {
+        throw err;
+      }
+    }
+  }
+
   return record_id;
 }
 
