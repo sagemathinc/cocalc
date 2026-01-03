@@ -83,10 +83,18 @@ export default function getPool(cacheTime?: CacheTime): Pool {
 // that is returned from getTransactionClient()!  E.g., for unit testing
 // if you don't do this  you exhaust the limit of 2 on the pool size,
 // (see above) and everything hangs!
-export async function getTransactionClient(): Promise<PoolClient> {
+export type IsolationLevel = "READ COMMITTED" | "REPEATABLE READ" | "SERIALIZABLE";
+
+export async function getTransactionClient(
+  options: { isolationLevel?: IsolationLevel } = {},
+): Promise<PoolClient> {
   const client = await getPoolClient();
+  const { isolationLevel } = options;
+  const beginSql = isolationLevel
+    ? `BEGIN ISOLATION LEVEL ${isolationLevel}`
+    : "BEGIN";
   try {
-    await client.query("BEGIN");
+    await client.query(beginSql);
   } catch (err) {
     await client.query("ROLLBACK");
     client.release();

@@ -156,13 +156,11 @@ export default async function getPurchases({
     }
   }
 
-  // get all the purchases and the user balance in a single transaction:
-  const client = await getTransactionClient();
+  // get all the purchases and the user balance in a single repeatable-read txn:
+  const client = await getTransactionClient({
+    isolationLevel: "REPEATABLE READ",
+  });
   try {
-    // This line is needed so that even if somebody writes to the database
-    // between grabbing purchases and getting balance, we see the balance without
-    // that purchase:
-    client.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ;");
     const { rows: purchases } = await client.query(query, params);
     const balance = await getBalance({ account_id, client, noSave: true });
     return { purchases: purchases as unknown as PurchaseData[], balance };
