@@ -181,12 +181,26 @@ function selectImage(
   const candidates = images.filter(
     (img) => (img.architecture ?? "").toLowerCase() === "x86_64",
   );
-  const ubuntu = candidates
+  const regionCandidates = spec.region
+    ? candidates.filter((img) => {
+        const region = img.region?.name;
+        return !region || region === spec.region;
+      })
+    : candidates;
+  if (
+    spec.region &&
+    candidates.some((img) => !!img.region?.name) &&
+    !regionCandidates.length
+  ) {
+    throw new Error(`no Lambda images available for region ${spec.region}`);
+  }
+  const poolCandidates = regionCandidates.length ? regionCandidates : candidates;
+  const ubuntu = poolCandidates
     .filter(isUbuntuImage)
     .filter((img) => imageUbuntuVersion(img) >= MIN_UBUNTU_VERSION);
   if (!ubuntu.length) {
     throw new Error(
-      `no Lambda Ubuntu ${MIN_UBUNTU_VERSION / 100}+ images available for ${spec.region}`,
+      `no Lambda Ubuntu ${MIN_UBUNTU_VERSION / 100}+ images available for ${spec.region ?? "unknown region"}`,
     );
   }
   const wantsGpu = !!spec.gpu;
@@ -199,7 +213,8 @@ function selectImage(
     if (versionDelta !== 0) return versionDelta;
     return (b.name ?? "").localeCompare(a.name ?? "");
   });
-  const selected = sorted[0]?.id ?? candidates[0]?.id ?? images[0]?.id;
+  const selected =
+    sorted[0]?.id ?? poolCandidates[0]?.id ?? candidates[0]?.id ?? images[0]?.id;
   if (!selected) {
     throw new Error("no Lambda images available");
   }
