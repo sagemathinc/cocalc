@@ -249,7 +249,10 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   return spec;
 }
 
-export async function provisionIfNeeded(row: HostRow) {
+export async function provisionIfNeeded(
+  row: HostRow,
+  opts: { startupScript?: string } = {},
+) {
   const metadata = row.metadata ?? {};
   const runtime = metadata.runtime;
   const machine: HostMachine = metadata.machine ?? {};
@@ -259,6 +262,12 @@ export async function provisionIfNeeded(row: HostRow) {
   }
   if (runtime?.instance_id) return row;
   const spec = await buildHostSpec(row);
+  if (opts.startupScript) {
+    spec.metadata = {
+      ...(spec.metadata ?? {}),
+      startup_script: opts.startupScript,
+    };
+  }
   const { entry, creds } = await getProviderContext(providerId);
   const runtimeCreated = await entry.provider.createHost(spec, creds);
   return {

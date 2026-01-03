@@ -32,16 +32,14 @@
     "./test": "./dist/test/index.js",
     "./test/*": "./dist/test/*.js"
   },
-  "keywords": [
-    "utilities",
-    "cocalc"
-  ],
+  "keywords": ["utilities", "cocalc"],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo",
     "build": "../node_modules/.bin/tsc --build",
-    "test": "NODE_OPTIONS='--experimental-vm-modules' TZ=UTC jest --forceExit --maxWorkers=1",
-    "test:pglite": "COCALC_TEST_USE_PGLITE=1 pnpm test",
+    "test": "TZ=UTC jest --forceExit --maxWorkers=1",
+    "test:pglite": "COCALC_TEST_USE_PGLITE=1 NODE_OPTIONS='--experimental-vm-modules' TZ=UTC jest --forceExit",
+    "test:all": "pnpm test:pglite && pnpm test postgresql",
     "depcheck": "pnpx depcheck",
     "prepublishOnly": "test"
   },

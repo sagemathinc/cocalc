@@ -209,13 +209,17 @@ export class GcpProvider implements CloudProvider {
   }
 
   async createHost(spec: HostSpec, creds: any): Promise<HostRuntime> {
+    const logMetadata = { ...(spec.metadata ?? {}) } as Record<string, unknown>;
+    delete logMetadata.startup_script;
+    delete logMetadata.bootstrap_url;
+    delete logMetadata.user_data;
     logger.info("gcp.createHost", {
       name: spec.name,
       region: spec.region,
       zone: spec.zone,
       disk_gb: spec.disk_gb,
       gpu: spec.gpu?.type ?? "none",
-      metadata: spec.metadata,
+      metadata: logMetadata,
     });
     const credentials = parseCredentials(creds ?? {});
     const client = new InstancesClient(credentials) as InstancesClient & {

@@ -326,7 +326,15 @@ export class HyperstackProvider implements CloudProvider {
     spec: HostSpec,
     creds: HyperstackCreds,
   ): Promise<HostRuntime> {
-    logger.debug("HyperstackProvider: createHost", spec);
+    logger.debug("HyperstackProvider: createHost", {
+      name: spec.name,
+      region: spec.region,
+      zone: spec.zone,
+      cpu: spec.cpu,
+      ram_gb: spec.ram_gb,
+      disk_gb: spec.disk_gb,
+      gpu: spec.gpu,
+    });
     ensureHyperstackConfig(creds);
     const region = spec.region;
     const environment_name = await ensureEnvironment(region);

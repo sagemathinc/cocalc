@@ -24,6 +24,7 @@ import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
 import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
 import initNext from "./app/next";
+import initProjectHostBootstrap from "./app/project-host-bootstrap";
 import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
@@ -129,6 +130,7 @@ export default async function init(opts: Options): Promise<{
   initCustomize(router, opts.isPersonal);
   initStats(router);
   initAppRedirect(router);
+  initProjectHostBootstrap(router);
 
   if (basePath !== "/") {
     app.use(basePath, router);

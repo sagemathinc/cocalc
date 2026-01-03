@@ -10,10 +10,19 @@ import { enqueueCloudVmWorkOnce, logCloudVmEvent } from "./db";
 import { provisionIfNeeded } from "./host-util";
 import type { CloudVmWorkHandlers } from "./worker";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
-import { handleBootstrap, scheduleBootstrap } from "./bootstrap-host";
+import {
+  buildCloudInitStartupScript,
+  handleBootstrap,
+  scheduleBootstrap,
+} from "./bootstrap-host";
 import { bumpReconcile, DEFAULT_INTERVALS } from "./reconcile";
 import { normalizeProviderId } from "@cocalc/cloud";
 import { getProviderContext } from "./provider-context";
+import siteURL from "@cocalc/database/settings/site-url";
+import {
+  createBootstrapToken,
+  revokeBootstrapTokensForHost,
+} from "@cocalc/server/project-host/bootstrap-token";
 
 const logger = getLogger("server:cloud:host-work");
 const pool = () => getPool();
@@ -176,7 +185,38 @@ async function handleProvision(row: any) {
     host_id: row.id,
     provider: providerId,
   });
-  const provisioned = await provisionIfNeeded(row);
+  let startupScript: string | undefined;
+  if (providerId) {
+    try {
+      const baseUrl = await siteURL();
+      const token = await createBootstrapToken(row.id, {
+        purpose: "bootstrap",
+      });
+      startupScript = await buildCloudInitStartupScript(
+        row,
+        token.token,
+        baseUrl,
+      );
+      const nextMetadata = {
+        ...(row.metadata ?? {}),
+        bootstrap: {
+          ...(row.metadata?.bootstrap ?? {}),
+          status: "pending",
+          pending_at: new Date().toISOString(),
+          source: "cloud-init",
+        },
+      };
+      row.metadata = nextMetadata;
+      await updateHostRow(row.id, { metadata: nextMetadata });
+    } catch (err) {
+      logger.warn("cloud-init bootstrap preparation failed", {
+        host_id: row.id,
+        provider: providerId,
+        err,
+      });
+    }
+  }
+  const provisioned = await provisionIfNeeded(row, { startupScript });
   const runtime = provisioned.metadata?.runtime;
   logger.debug("handleProvision: runtime", {
     host_id: row.id,
@@ -260,6 +300,7 @@ async function handleStop(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
   const providerId = normalizeProviderId(machine.cloud);
+  await revokeBootstrapTokensForHost(row.id, { purpose: "bootstrap" });
   let supportsStop = true;
   if (providerId && runtime?.instance_id) {
     const { entry, creds } = await getProviderContext(providerId);
@@ -316,6 +357,7 @@ async function handleDelete(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
   const providerId = normalizeProviderId(machine.cloud);
+  await revokeBootstrapTokensForHost(row.id, { purpose: "bootstrap" });
   if (providerId && runtime?.instance_id) {
     const { entry, creds } = await getProviderContext(providerId);
     await entry.provider.deleteHost(runtime, creds);
