@@ -1,15 +1,12 @@
 /** @type {import('ts-jest').JestConfigWithTsJest} */
 module.exports = {
-  preset: "ts-jest/presets/default-esm",
+  preset: "ts-jest",
   testEnvironment: "node",
   setupFiles: ["./test/setup.js"], // Path to your setup file
   testMatch: ["**/?(*.)+(spec|test).ts?(x)"],
   transformIgnorePatterns: [
     "/node_modules/(?!micro-key-producer|@noble/curves|@noble/hashes)",
   ],
-  transform: {
-    "^.+\\.(ts|tsx)$": ["ts-jest", { useESM: true }],
-  },
   // Ignore compiled output so Jest does not see duplicate mocks in dist/.
   modulePathIgnorePatterns: ["<rootDir>/dist/"],
   moduleNameMapper: {

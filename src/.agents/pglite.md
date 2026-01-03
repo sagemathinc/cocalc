@@ -137,6 +137,7 @@ Goal: have a minimal but meaningful test set that runs under PGlite.
 
 - Added an env-gated test harness and a `test:pglite` script for this package: [src/packages/database/test/setup.js](./src/packages/database/test/setup.js), [src/packages/database/package.json](./src/packages/database/package.json)
 - Documented the PGlite test flow in the database README: [src/packages/database/README.md](./src/packages/database/README.md)
+- Wired the same env-gated toggle for server tests and added `test:pglite`: [src/packages/server/test/setup.js](./src/packages/server/test/setup.js), [src/packages/server/package.json](./src/packages/server/package.json)
 
 ## Phase 5: SEA Packaging
 
@@ -186,4 +187,3 @@ Goal: allow an easy upgrade path to Postgres later.
 - Tests running under PGlite for key slices
 - SEA build includes PGlite assets
 - Simple migration/export path documented
-

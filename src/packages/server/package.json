@@ -40,7 +40,8 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo",
     "build": "../node_modules/.bin/tsc --build",
-    "test": "TZ=UTC jest --forceExit --maxWorkers=1",
+    "test": "NODE_OPTIONS='--experimental-vm-modules' TZ=UTC jest --forceExit --maxWorkers=1",
+    "test:pglite": "COCALC_TEST_USE_PGLITE=1 pnpm test",
     "depcheck": "pnpx depcheck",
     "prepublishOnly": "test"
   },
