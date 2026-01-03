@@ -5,6 +5,7 @@ import { basename, join } from "node:path";
 import { tmpdir } from "node:os";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getLogger from "@cocalc/backend/logger";
+import { podmanEnv } from "./env";
 
 const logger = getLogger("file-server:ssh:build-container");
 
@@ -27,6 +28,7 @@ async function hasImage(name: string, sudo = false): Promise<boolean> {
       "--format",
       "json",
     ],
+    { env: podmanEnv() },
   );
   if (JSON.parse(stdout).length > 0) {
     images.add(key);
@@ -75,6 +77,7 @@ export const build = reuseInFlight(
         [...(sudo ? ["podman"] : []), "build", "-t", name, "."],
         {
           cwd: path,
+          env: podmanEnv(),
         },
       );
       if (!(await hasImage(name, sudo))) {

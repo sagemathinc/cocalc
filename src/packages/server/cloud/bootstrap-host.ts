@@ -625,6 +625,8 @@ ${tlsEnabled ? "AmbientCapabilities=CAP_NET_BIND_SERVICE" : ""}
 RuntimeDirectory=cocalc-project-host
 RuntimeDirectoryMode=0700
 Environment=XDG_RUNTIME_DIR=/run/cocalc-project-host
+Environment=COCALC_PODMAN_RUNTIME_DIR=/run/cocalc-project-host
+Environment=CONTAINERS_CGROUP_MANAGER=cgroupfs
 EnvironmentFile=${envFile}
 WorkingDirectory=/opt/cocalc/project-host
 ExecStart=/opt/cocalc/project-host/cocalc-project-host

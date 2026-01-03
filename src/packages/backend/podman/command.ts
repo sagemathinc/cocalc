@@ -1,5 +1,6 @@
 import { executeCode } from "@cocalc/backend/execute-code";
 import getLogger from "@cocalc/backend/logger";
+import { podmanEnv } from "./env";
 
 const logger = getLogger("podman");
 
@@ -22,6 +23,7 @@ export default async function podman(args: string[], opts: PodmanOpts = {}) {
       verbose: false,
       command,
       args: cmdArgs,
+      env: podmanEnv(),
       err_on_exit: true,
       timeout: timeout ?? 30 * 60 * 1000,
     });
