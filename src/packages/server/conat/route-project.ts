@@ -121,7 +121,7 @@ export async function listenForUpdates() {
     const cleanup = () => {
       if (cleaned) return;
       cleaned = true;
-      client?.removeAllListeners();
+      client?.removeAllListeners?.();
       // release is safe to call once; ignore errors if connection is already gone
       try {
         client?.release();
