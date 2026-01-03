@@ -4,6 +4,7 @@ import { deleteHostDns, ensureHostDns, hasDns } from "./dns";
 import {
   deleteCloudflareTunnel,
   hasCloudflareTunnel,
+  ensureCloudflareTunnelForHost,
 } from "./cloudflare-tunnel";
 import { enqueueCloudVmWorkOnce, logCloudVmEvent } from "./db";
 import { provisionIfNeeded } from "./host-util";
@@ -36,7 +37,46 @@ async function updateHostRow(id: string, updates: Record<string, any>) {
 }
 
 async function ensureDnsForHost(row: any) {
-  if (await hasCloudflareTunnel()) return;
+  if (await hasCloudflareTunnel()) {
+    try {
+      const existing = row.metadata?.cloudflare_tunnel;
+      const tunnel = await ensureCloudflareTunnelForHost({
+        host_id: row.id,
+        existing,
+      });
+      if (!tunnel) return;
+      const tunnelChanged =
+        !existing ||
+        existing.id !== tunnel.id ||
+        existing.hostname !== tunnel.hostname ||
+        existing.record_id !== tunnel.record_id ||
+        existing.token !== tunnel.token;
+      const nextMetadata = {
+        ...(row.metadata ?? {}),
+        cloudflare_tunnel: tunnel,
+        ...(tunnelChanged
+          ? {
+              bootstrap: {
+                ...(row.metadata?.bootstrap ?? {}),
+                status: "pending",
+              },
+            }
+          : {}),
+      };
+      row.metadata = nextMetadata;
+      await updateHostRow(row.id, {
+        metadata: nextMetadata,
+        public_url: `https://${tunnel.hostname}`,
+        internal_url: `https://${tunnel.hostname}`,
+      });
+    } catch (err) {
+      logger.warn("cloudflare tunnel ensure failed", {
+        host_id: row.id,
+        err,
+      });
+    }
+    return;
+  }
   if (!row?.metadata?.runtime?.public_ip) return;
   if (!(await hasDns())) return;
   try {
