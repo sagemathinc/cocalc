@@ -92,6 +92,38 @@ This plan covers:
 - Consumers verify sha256 before use.
 - Optional future step: sign manifests with a server key.
 
+## Optional: OCI Registry Backed by R2
+
+### Why
+- Avoid DockerHub throttling and unpredictability.
+- Lower storage/egress cost than GCR.
+- Faster pulls via Cloudflare caching on a custom domain.
+
+### Approach
+- Run a standard OCI registry (e.g., `registry:2`) with S3-compatible storage.
+- Use R2 as the registry storage backend (S3 API compatible).
+- Put the registry behind Cloudflare on a custom hostname (e.g., `registry.cocalc.ai`).
+
+### Storage config (registry)
+- Configure `REGISTRY_STORAGE=s3` and point at R2 endpoint.
+- Set bucket + access/secret keys for R2.
+- Use a distinct prefix for registry objects (e.g., `oci/`).
+
+### Access model
+- For alpha: allow public pulls (read-only), push requires auth.
+- For later: token auth (simple auth service) or Cloudflare Access.
+
+### Usage in project-host
+- Prefer pulling a prebuilt image from the registry.
+  - Example: `podman pull registry.cocalc.ai/cocalc/file-server:0.6.5`
+  - Then tag locally: `podman tag ... localhost/file-server:0.6.5`
+- Keep current local build as a fallback if registry is unreachable.
+
+### Rollout
+- Build + push file-server image on release.
+- Update bootstrap to try pull/tag first, then build if missing.
+- Extend to other small base images as needed (project-runner, etc.).
+
 ## Rollout Plan
 
 1) Implement software artifact publishing + download verification.

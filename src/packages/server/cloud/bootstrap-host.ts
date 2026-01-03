@@ -541,11 +541,38 @@ sudo mkdir -p /btrfs/data/secrets
 sudo chown -R ${sshUser}:${sshUser} /btrfs/data || true
 echo "bootstrap: writing project-host env to ${envFile}"
 ${envBlock}
-sudo systemctl daemon-reload || true
 
-echo 'sudo journalctl -u cocalc-project-host.service' > $HOME/bootstrap/logs
-echo 'sudo systemctl \${1-status} cocalc-project-host' > $HOME/bootstrap/ctl
-chmod +x $HOME/bootstrap/ctl $HOME/bootstrap/logs
+cat <<'EOF_COCALC_CTL' > $HOME/bootstrap/ctl
+#!/usr/bin/env bash
+set -euo pipefail
+cmd="\${1:-status}"
+bin="/opt/cocalc/project-host/cocalc-project-host"
+pid_file="/btrfs/data/daemon.pid"
+case "\${cmd}" in
+  start|stop)
+    "\${bin}" daemon "\${cmd}"
+    ;;
+  restart)
+    "\${bin}" daemon stop || true
+    "\${bin}" daemon start
+    ;;
+  status)
+    if [ -f "\${pid_file}" ] && kill -0 "\$(cat "\${pid_file}")" 2>/dev/null; then
+      echo "project-host running (pid \$(cat "\${pid_file}"))"
+    else
+      echo "project-host not running"
+      exit 1
+    fi
+    ;;
+  *)
+    echo "usage: \${0} {start|stop|restart|status}" >&2
+    exit 2
+    ;;
+esac
+EOF_COCALC_CTL
+chmod +x $HOME/bootstrap/ctl
+echo 'tail -n 200 /btrfs/data/log' > $HOME/bootstrap/logs
+chmod +x $HOME/bootstrap/logs
 
 echo 'sudo journalctl -u cocalc-cloudflared.service' > $HOME/bootstrap/logs-cf
 echo 'sudo systemctl \${1-status} cocalc-cloudflared' > $HOME/bootstrap/ctl-cf
@@ -613,46 +640,24 @@ WantedBy=multi-user.target
 `;
   }
 
-  const serviceUnit = `
-[Unit]
-Description=CoCalc Project Host
-After=network-online.target
-
-[Service]
-Type=simple
-User=${sshUser}
-${tlsEnabled ? "AmbientCapabilities=CAP_NET_BIND_SERVICE" : ""}
-RuntimeDirectory=cocalc-project-host
-RuntimeDirectoryMode=0700
-Environment=XDG_RUNTIME_DIR=/run/cocalc-project-host
-Environment=COCALC_PODMAN_RUNTIME_DIR=/run/cocalc-project-host
-Environment=CONTAINERS_CGROUP_MANAGER=cgroupfs
-EnvironmentFile=${envFile}
-WorkingDirectory=/opt/cocalc/project-host
-ExecStart=/opt/cocalc/project-host/cocalc-project-host
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-`;
-  const serviceToken = "EOF_COCALC_SERVICE";
   const installService = `
 set -euo pipefail
+if [ -x /opt/cocalc/project-host/cocalc-project-host ]; then
+  /opt/cocalc/project-host/cocalc-project-host daemon stop || true
+fi
+sudo systemctl disable --now cocalc-project-host >/dev/null 2>&1 || true
+sudo rm -f /etc/systemd/system/cocalc-project-host.service || true
 sudo rm -rf /opt/cocalc/project-host
 sudo mkdir -p /opt/cocalc/project-host
 sudo tar -xJf ${seaRemote}  --strip-components=2 -C /opt/cocalc/project-host
 cd /opt/cocalc/project-host
-cat <<'${serviceToken}' | sudo tee /etc/systemd/system/cocalc-project-host.service >/dev/null
-${serviceUnit}
-${serviceToken}
 ${cloudflaredServiceUnit ? `cat <<'EOF_CLOUDFLARED_SERVICE' | sudo tee /etc/systemd/system/cocalc-cloudflared.service >/dev/null
 ${cloudflaredServiceUnit}
 EOF_CLOUDFLARED_SERVICE
-` : ""}
 sudo systemctl daemon-reload
-sudo systemctl enable --now cocalc-project-host
-${cloudflaredServiceUnit ? "sudo systemctl enable --now cocalc-cloudflared" : ""}
+sudo systemctl enable --now cocalc-cloudflared
+` : ""}
+/opt/cocalc/project-host/cocalc-project-host daemon start
 `;
 
   if (cloudflaredScript) {

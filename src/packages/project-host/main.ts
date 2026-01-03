@@ -40,6 +40,7 @@ import {
   ensureCodexContainerImage,
 } from "@cocalc/ai/acp/containers/codex";
 import { getOrCreateSelfSigned } from "@cocalc/lite/tls";
+import { handleDaemonCli } from "./daemon";
 
 const logger = getLogger("project-host:main");
 
@@ -258,6 +259,14 @@ export async function main(
 
 // Allow running directly via `node dist/main.js`.
 if (require.main === module) {
+  try {
+    if (handleDaemonCli(process.argv.slice(2))) {
+      process.exit(0);
+    }
+  } catch (err) {
+    console.error(`${err}`);
+    process.exit(1);
+  }
   main().catch((err) => {
     console.error("project-host failed to start:", err);
     process.exitCode = 1;
