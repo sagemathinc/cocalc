@@ -102,7 +102,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         query  : "INSERT INTO blobs"
                         values :
                             id         : opts.uuid
-                            blob       : '\\x'+opts.blob.toString('hex')
+                            blob       : opts.blob
                             project_id : opts.project_id
                             account_id : opts.account_id
                             count      : 0
@@ -756,5 +756,4 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     where : "id = $::UUID" : opts.uuid
                     cb    : cb
         ], (err) => opts.cb?(err))
-
 

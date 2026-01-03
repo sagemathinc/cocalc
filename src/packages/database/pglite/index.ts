@@ -35,7 +35,13 @@ export async function getPglite(
   }
   const dataDir = resolveDataDir(options.dataDir);
   L.info(`initializing PGlite (dataDir=${dataDir})`);
-  const pg = new PGlite(dataDir);
+  const pg = new PGlite({
+    dataDir,
+    parsers: {
+      // Match pg's default behavior of returning int8 as strings.
+      20: (value: string) => value,
+    },
+  });
   instance = pg;
   return pg;
 }
