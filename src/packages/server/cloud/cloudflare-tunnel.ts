@@ -44,6 +44,7 @@ type TunnelResponse = {
   id?: string;
   name?: string;
   tunnel_secret?: string;
+  token?: string;
 };
 
 function clean(value: unknown): string | undefined {
@@ -397,7 +398,7 @@ async function getTunnelToken(
 ): Promise<string | undefined> {
   const response = await cloudflareRequest<any>(
     token,
-    "POST",
+    "GET",
     `accounts/${accountId}/cfd_tunnel/${tunnelId}/token`,
   );
   if (typeof response === "string") return response;
@@ -415,6 +416,7 @@ export async function ensureCloudflareTunnelForHost(opts: {
   let tunnelId = opts.existing?.id;
   let tunnelName = opts.existing?.name;
   let tunnelSecret = opts.existing?.tunnel_secret;
+  let created: TunnelResponse | undefined;
 
   if (tunnelId) {
     try {
@@ -438,7 +440,6 @@ export async function ensureCloudflareTunnelForHost(opts: {
 
   if (!tunnelId || !tunnelSecret) {
     const generatedSecret = crypto.randomBytes(32).toString("base64");
-    let created: TunnelResponse | undefined;
     try {
       created = await createTunnel(
         config.accountId,
@@ -495,11 +496,14 @@ export async function ensureCloudflareTunnelForHost(opts: {
     target: `${tunnelId}.cfargotunnel.com`,
     record_id: opts.existing?.record_id,
   });
-  let token: string | undefined;
-  try {
-    token = await getTunnelToken(config.accountId, config.token, tunnelId);
-  } catch (err) {
-    logger.warn("cloudflare tunnel token fetch failed", { err });
+  let token: string | undefined =
+    (typeof created?.token === "string" ? created.token : undefined) ?? undefined;
+  if (!token) {
+    try {
+      token = await getTunnelToken(config.accountId, config.token, tunnelId);
+    } catch (err) {
+      logger.warn("cloudflare tunnel token fetch failed", { err });
+    }
   }
 
   return {

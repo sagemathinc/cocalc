@@ -470,14 +470,15 @@ chmod +x $HOME/bootstrap/ctl $HOME/bootstrap/logs
   let cloudflaredScript = "";
   let cloudflaredServiceUnit = "";
   if (tunnel && tunnelEnabled) {
-    if (!tunnel.token) {
-      throw new Error(
-        "cloudflare tunnel token is missing; check Cloudflare API token permissions (Account:Cloudflare Tunnel:Edit, Zone:DNS:Edit)",
-      );
+    const useToken = Boolean(tunnel.token);
+    if (!useToken) {
+      logger.warn("cloudflare tunnel token missing; using credentials file", {
+        host_id: row.id,
+        tunnel_id: tunnel.id,
+      });
     }
     const configToken = "EOF_CLOUDFLARE_CONFIG";
     const tokenEnvToken = "EOF_CLOUDFLARE_TOKEN";
-    const useToken = true;
     const credsToken = "EOF_CLOUDFLARE_CREDS";
     const creds = JSON.stringify({
       AccountTag: tunnel.account_id,
