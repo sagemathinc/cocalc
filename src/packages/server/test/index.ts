@@ -40,7 +40,7 @@ export async function before({
 
 export async function after() {
   const { noConat, noDatabase } = opts;
-  if (!noDatabase) {
+  if (!noDatabase && process.env.COCALC_DB !== "pglite") {
     await getPool().end();
   }
 
