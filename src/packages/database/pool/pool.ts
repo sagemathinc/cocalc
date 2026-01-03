@@ -20,6 +20,7 @@ export * from "./util";
 import { patchPoolForUtc } from "./pg-utc-normalize";
 import {
   getPgliteClient,
+  getPglitePgClient,
   getPglitePool,
   isPgliteEnabled,
   PglitePool,
@@ -114,6 +115,8 @@ export function getClient(): Client {
   }
   return new Client({ password: dbPassword(), user, host, database, ssl });
 }
+
+export { getPglitePgClient, isPgliteEnabled };
 
 // This is used for testing.  It ensures the schema is loaded and
 // test database is defined.

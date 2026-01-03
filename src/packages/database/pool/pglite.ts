@@ -274,6 +274,11 @@ class PglitePgClient extends EventEmitter {
     void this.cleanupListeners();
   }
 
+  release(): void {
+    this.removeAllListeners();
+    void this.cleanupListeners();
+  }
+
   private async runQuery(
     text: string,
     values?: any[],

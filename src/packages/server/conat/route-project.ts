@@ -1,5 +1,8 @@
 import getLogger from "@cocalc/backend/logger";
-import getPool from "@cocalc/database/pool";
+import getPool, {
+  getPglitePgClient,
+  isPgliteEnabled,
+} from "@cocalc/database/pool";
 import LRU from "lru-cache";
 import { isValidUUID } from "@cocalc/util/misc";
 
@@ -130,7 +133,11 @@ export async function listenForUpdates() {
       }
     };
     try {
-      client = await pool.connect();
+      if (isPgliteEnabled()) {
+        client = getPglitePgClient();
+      } else {
+        client = await pool.connect();
+      }
       client.on("notification", handleNotification);
       client.on("error", (err) => {
         log.warn("project_host_update listener error", err);

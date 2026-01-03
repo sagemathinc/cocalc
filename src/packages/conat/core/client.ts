@@ -529,10 +529,9 @@ export class Client extends EventEmitter {
         this.setState("connected");
       }
     });
-    this.conn.io.on("error", (...args) => {
+    this.conn.io.on("error", (err) => {
       logger.debug(
-        `Conat: Error connecting to ${this.options.address} -- `,
-        ...args,
+        `Conat: Error connecting to ${this.options.address} -- ${err}`,
       );
     });
     this.conn.on("disconnect", async () => {

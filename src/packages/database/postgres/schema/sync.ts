@@ -91,7 +91,7 @@ async function syncTableSchemaColumns(
   db: Client,
   schema: TableSchema,
 ): Promise<void> {
-  log.debug("syncTableSchemaColumns", "table = ", schema.name);
+  // log.debug("syncTableSchemaColumns", "table = ", schema.name);
   const columnTypeInfo = await getColumnTypeInfo(db, schema.name);
 
   for (const column in schema.fields) {
@@ -152,7 +152,9 @@ async function updateIndex(
   log.debug("updateIndex", { table, action, name });
   if (action == "create") {
     // ATTN if you consider adding CONCURRENTLY to create index, read the note earlier above about this
-    await db.query(`CREATE ${unique ? "UNIQUE" : ""} INDEX ${name} ON ${table} ${query}`);
+    await db.query(
+      `CREATE ${unique ? "UNIQUE" : ""} INDEX ${name} ON ${table} ${query}`,
+    );
   } else if (action == "delete") {
     await db.query(`DROP INDEX ${name}`);
   } else {
@@ -165,17 +167,17 @@ async function syncTableSchemaIndexes(
   db: Client,
   schema: TableSchema,
 ): Promise<void> {
-  const dbg = (...args) =>
-    log.debug("syncTableSchemaIndexes", "table = ", schema.name, ...args);
-  dbg();
+  //   const dbg = (...args) =>
+  //     log.debug("syncTableSchemaIndexes", "table = ", schema.name, ...args);
+  //   dbg();
 
   const curIndexes = await getCurrentIndexes(db, schema.name);
-  dbg("curIndexes", curIndexes);
+  //dbg("curIndexes", curIndexes);
 
   // these are the indexes we are supposed to have
 
   const goalIndexes = createIndexesQueries(schema);
-  dbg("goalIndexes", goalIndexes);
+  // dbg("goalIndexes", goalIndexes);
   const goalIndexNames = new Set<string>();
   for (const x of goalIndexes) {
     goalIndexNames.add(x.name);
@@ -245,7 +247,7 @@ export async function syncSchema(
     await dropDeprecatedTables(db);
 
     const allTables = await getAllTables(db);
-    dbg("allTables", allTables);
+    // dbg("allTables", allTables);
 
     // Create from scratch any missing tables -- usually this creates all tables and
     // indexes the first time around.
@@ -273,7 +275,7 @@ export async function syncSchema(
         continue;
       }
       // not newly created and in the schema so check if anything changed
-      dbg("sync existing table", table);
+      //dbg("sync existing table", table);
       await syncTableSchema(db, schema);
     }
   } catch (err) {
@@ -288,16 +290,16 @@ async function syncTableSchemaPrimaryKeys(
   db: Client,
   schema: TableSchema,
 ): Promise<void> {
-  log.debug("syncTableSchemaPrimaryKeys", "table = ", schema.name);
+  // log.debug("syncTableSchemaPrimaryKeys", "table = ", schema.name);
   const actualPrimaryKeys = (await getPrimaryKeys(db, schema.name)).sort();
   const goalPrimaryKeys = primaryKeys(schema.name).sort();
   if (isEqual(actualPrimaryKeys, goalPrimaryKeys)) {
     return;
   }
-  log.debug("syncTableSchemaPrimaryKeys", "table = ", schema.name, {
-    actualPrimaryKeys,
-    goalPrimaryKeys,
-  });
+  //   log.debug("syncTableSchemaPrimaryKeys", "table = ", schema.name, {
+  //     actualPrimaryKeys,
+  //     goalPrimaryKeys,
+  //   });
   for (const key of goalPrimaryKeys) {
     if (!actualPrimaryKeys.includes(key)) {
       const defaultValue = schema.default_primary_key_value?.[key];
