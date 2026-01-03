@@ -23,6 +23,17 @@ type PgLikeResult = {
   rowCount?: number;
 };
 
+type AdvisoryWaiter = {
+  sessionId: string;
+  resolve: () => void;
+};
+
+type AdvisoryLock = {
+  owner: string;
+  count: number;
+  waiters: AdvisoryWaiter[];
+};
+
 type QueryArgs =
   | [string]
   | [string, any[]]
@@ -112,10 +123,12 @@ function toPgResult(result: PgliteQueryResult): PgLikeResult {
 }
 
 class PglitePoolClient {
+  private readonly sessionId = makeSessionId("client");
+
   constructor(private readonly pool: PglitePool) {}
 
   async query(...args: QueryArgs): Promise<PgLikeResult> {
-    return await this.pool.query(...args);
+    return await this.pool.queryForSession(this.sessionId, ...args);
   }
 
   release(): void {
@@ -134,8 +147,105 @@ class PglitePoolClient {
 const listenRegex = /^\s*listen\s+(.+?)\s*;?\s*$/i;
 const unlistenRegex = /^\s*unlisten\s+(.+?)\s*;?\s*$/i;
 
+// Advisory locks in pglite are emulated in-process, keyed by the
+// hashtext argument and scoped per "session" (pool client or
+// pg client). We track ownership + re-entrancy counts and a FIFO
+// waitlist to approximate pg_advisory_lock / pg_try_advisory_lock
+// / pg_advisory_unlock behavior for tests.
+const advisoryLocks = new Map<string, AdvisoryLock>();
+let nextSessionId = 1;
+
+function makeSessionId(prefix: string): string {
+  const id = nextSessionId;
+  nextSessionId += 1;
+  return `${prefix}-${id}`;
+}
+
+function extractLockKey(text: string, values?: any[]): string | null {
+  if (values && values.length > 0) {
+    return String(values[0]);
+  }
+  const match = text.match(/hashtext\(\s*'([^']+)'\s*\)/i);
+  return match ? match[1] : null;
+}
+
+async function advisoryLock(sessionId: string, key: string): Promise<void> {
+  const entry = advisoryLocks.get(key);
+  if (!entry) {
+    advisoryLocks.set(key, { owner: sessionId, count: 1, waiters: [] });
+    return;
+  }
+  if (entry.owner === sessionId) {
+    entry.count += 1;
+    return;
+  }
+  await new Promise<void>((resolve) => {
+    entry.waiters.push({ sessionId, resolve });
+  });
+}
+
+function tryAdvisoryLock(sessionId: string, key: string): boolean {
+  const entry = advisoryLocks.get(key);
+  if (!entry) {
+    advisoryLocks.set(key, { owner: sessionId, count: 1, waiters: [] });
+    return true;
+  }
+  if (entry.owner === sessionId) {
+    entry.count += 1;
+    return true;
+  }
+  return false;
+}
+
+function advisoryUnlock(sessionId: string, key: string): boolean {
+  const entry = advisoryLocks.get(key);
+  if (!entry || entry.owner !== sessionId) {
+    return false;
+  }
+  entry.count -= 1;
+  if (entry.count > 0) {
+    return true;
+  }
+  const next = entry.waiters.shift();
+  if (next) {
+    entry.owner = next.sessionId;
+    entry.count = 1;
+    next.resolve();
+    return true;
+  }
+  advisoryLocks.delete(key);
+  return true;
+}
+
+async function handleAdvisoryQuery(
+  sessionId: string,
+  text: string,
+  values?: any[],
+): Promise<PgLikeResult | null> {
+  const normalized = text.toLowerCase();
+  if (normalized.includes("pg_try_advisory_lock")) {
+    const key = extractLockKey(text, values);
+    const locked = key ? tryAdvisoryLock(sessionId, key) : false;
+    return { rows: [{ locked }], rowCount: 1 };
+  }
+  if (normalized.includes("pg_advisory_unlock")) {
+    const key = extractLockKey(text, values);
+    const unlocked = key ? advisoryUnlock(sessionId, key) : false;
+    return { rows: [{ pg_advisory_unlock: unlocked }], rowCount: 1 };
+  }
+  if (normalized.includes("pg_advisory_lock")) {
+    const key = extractLockKey(text, values);
+    if (key) {
+      await advisoryLock(sessionId, key);
+    }
+    return { rows: [], rowCount: 0 };
+  }
+  return null;
+}
+
 class PglitePgClient extends EventEmitter {
   private readonly pool = getPglitePool();
+  private readonly sessionId = makeSessionId("pg");
   private readonly subscriptions = new Map<string, () => Promise<void>>();
 
   async query(
@@ -168,6 +278,10 @@ class PglitePgClient extends EventEmitter {
     text: string,
     values?: any[],
   ): Promise<PgLikeResult> {
+    const advisory = await handleAdvisoryQuery(this.sessionId, text, values);
+    if (advisory) {
+      return advisory;
+    }
     const trimmed = text.trim();
     const listenMatch = trimmed.match(listenRegex);
     if (listenMatch) {
@@ -239,8 +353,19 @@ export class PglitePool {
   private queue: Promise<unknown> = Promise.resolve();
 
   async query(...args: QueryArgs): Promise<PgLikeResult> {
+    return await this.queryForSession("pool", ...args);
+  }
+
+  async queryForSession(
+    sessionId: string,
+    ...args: QueryArgs
+  ): Promise<PgLikeResult> {
     const { text, values } = normalizeQueryArgs(args);
     return await this.enqueue(async () => {
+      const advisory = await handleAdvisoryQuery(sessionId, text, values);
+      if (advisory) {
+        return advisory;
+      }
       const pg = await getPglite();
       const result =
         values == null ? await pg.query(text) : await pg.query(text, values);
