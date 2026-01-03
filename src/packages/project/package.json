@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project",
-  "version": "1.40.0",
+  "version": "1.41.0",
   "description": "CoCalc: project daemon",
   "exports": {
     "./conat": "./dist/conat/index.js",
@@ -67,6 +67,8 @@
     "build:tarball": "pnpm run build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
     "run:bundle": "node ./build/bundle/bundle/index.js",
     "sea": "pnpm build:tarball && cd sea && ./build-sea.sh",
+    "publish:sea": "cd sea && ./publish-sea.sh",
+    "promote:sea": "cd sea && ./promote-sea.sh",
     "build:all": "pnpm build && pnpm build:tarball && pnpm build:sea"
   },
   "author": "SageMath, Inc.",

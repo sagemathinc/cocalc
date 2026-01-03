@@ -5,6 +5,8 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
+import http from "node:http";
+import https from "node:https";
 import { URL } from "node:url";
 import getPool from "@cocalc/database/pool";
 import { buildHostSpec } from "./host-util";
@@ -104,6 +106,77 @@ async function runCmd(
       child.stdin?.end();
     }
   });
+}
+
+async function fetchJson(url: string, redirects = 3): Promise<any> {
+  const target = new URL(url);
+  const client = target.protocol === "http:" ? http : https;
+  return await new Promise((resolve, reject) => {
+    const req = client.request(
+      {
+        method: "GET",
+        hostname: target.hostname,
+        port: target.port,
+        path: `${target.pathname}${target.search}`,
+        headers: { Accept: "application/json" },
+      },
+      (res) => {
+        const status = res.statusCode ?? 0;
+        const chunks: Buffer[] = [];
+        res.on("data", (chunk) => chunks.push(chunk));
+        res.on("end", async () => {
+          const body = Buffer.concat(chunks).toString("utf8");
+          if (status >= 300 && status < 400 && res.headers.location) {
+            if (redirects <= 0) {
+              reject(new Error(`SEA manifest redirect limit exceeded: ${url}`));
+              return;
+            }
+            try {
+              resolve(await fetchJson(res.headers.location, redirects - 1));
+            } catch (err) {
+              reject(err);
+            }
+            return;
+          }
+          if (status < 200 || status >= 300) {
+            reject(
+              new Error(
+                `SEA manifest fetch failed (${status}): ${body.slice(0, 200)}`,
+              ),
+            );
+            return;
+          }
+          try {
+            resolve(JSON.parse(body));
+          } catch (err) {
+            reject(
+              new Error(
+                `SEA manifest parse failed: ${(err as Error).message}`,
+              ),
+            );
+          }
+        });
+      },
+    );
+    req.on("error", reject);
+    req.end();
+  });
+}
+
+async function resolveSeaArtifact(seaUrl: string): Promise<{
+  url: string;
+  sha256?: string;
+}> {
+  if (!seaUrl) return { url: "" };
+  if (!seaUrl.endsWith(".json")) return { url: seaUrl };
+  const manifest = await fetchJson(seaUrl);
+  const url = typeof manifest?.url === "string" ? manifest.url : "";
+  const sha256 =
+    typeof manifest?.sha256 === "string" ? manifest.sha256 : undefined;
+  if (!url) {
+    throw new Error("SEA manifest missing url");
+  }
+  return { url, sha256 };
 }
 
 async function withTempSshKey<T>(
@@ -301,6 +374,13 @@ export async function handleBootstrap(row: ProjectHostRow) {
     project_hosts_sea_url || process.env.COCALC_PROJECT_HOST_SEA_URL || "";
   if (!seaPath && !seaUrl) {
     throw new Error("project host SEA source is not configured");
+  }
+  let resolvedSeaUrl = seaUrl;
+  let seaSha256 = "";
+  if (!seaPath && seaUrl) {
+    const resolved = await resolveSeaArtifact(seaUrl);
+    resolvedSeaUrl = resolved.url;
+    seaSha256 = (resolved.sha256 ?? "").replace(/[^a-f0-9]/gi, "");
   }
 
   const machine: HostMachine = metadata.machine ?? {};
@@ -614,12 +694,32 @@ ${cloudflaredServiceUnit ? "sudo systemctl enable --now cocalc-cloudflared" : ""
         remotePath: seaRemote,
       });
     } else {
+      const escapedSeaUrl = resolvedSeaUrl.replace(/"/g, '\\"');
+      const sanitizedSha = seaSha256;
       await runSshScript({
         user: sshUser,
         host: publicIp,
         keyPath,
         knownHosts,
-        script: `set -euo pipefail\ncurl -L "${seaUrl}" -o ${seaRemote}\n`,
+        script: `set -euo pipefail
+SEA_URL="${escapedSeaUrl}"
+SEA_SHA256="${sanitizedSha}"
+echo "bootstrap: downloading SEA from ${escapedSeaUrl}"
+curl -fL "$SEA_URL" -o ${seaRemote}
+if [ -n "$SEA_SHA256" ]; then
+  if command -v sha256sum >/dev/null 2>&1; then
+    echo "$SEA_SHA256  ${seaRemote}" | sha256sum -c -
+  else
+    echo "bootstrap: sha256sum not available; skipping checksum"
+  fi
+else
+  if command -v sha256sum >/dev/null 2>&1; then
+    if curl -fsSL "$SEA_URL.sha256" -o ${seaRemote}.sha256; then
+      sha256sum -c ${seaRemote}.sha256 || true
+    fi
+  fi
+fi
+`,
         scriptPath: "$HOME/bootstrap/fetch-sea.sh",
       });
     }

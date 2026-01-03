@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project-host",
-  "version": "0.1.7",
+  "version": "0.1.8",
   "description": "Multi-project host built on CoCalc Lite with embedded runner/file-server/proxy",
   "exports": {
     ".": "./dist/index.js",
@@ -21,6 +21,8 @@
     "build:tarball": "pnpm run build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
     "run:bundle": "node ./build/bundle/bundle/index.js",
     "sea": "pnpm run build:tarball && cd sea && ./build-sea.sh",
+    "publish:sea": "cd sea && ./publish-sea.sh",
+    "promote:sea": "cd sea && ./promote-sea.sh",
     "build:all": "pnpm run build && pnpm run build:tarball && pnpm run sea"
   },
   "files": [
