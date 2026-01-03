@@ -275,6 +275,7 @@ async function handleStop(row: any) {
     };
     delete nextMetadata.runtime;
     delete nextMetadata.dns;
+    delete nextMetadata.cloudflare_tunnel;
     await updateHostRow(row.id, {
       metadata: nextMetadata,
       status: "off",
@@ -290,6 +291,7 @@ async function handleStop(row: any) {
     };
     delete nextMetadata.runtime;
     delete nextMetadata.dns;
+    delete nextMetadata.cloudflare_tunnel;
     await updateHostRow(row.id, {
       metadata: nextMetadata,
       status: "deprovisioned",
@@ -341,6 +343,7 @@ async function handleDelete(row: any) {
   };
   delete nextMetadata.runtime;
   delete nextMetadata.dns;
+  delete nextMetadata.cloudflare_tunnel;
   await updateHostRow(row.id, {
     metadata: nextMetadata,
     status: "deprovisioned",
