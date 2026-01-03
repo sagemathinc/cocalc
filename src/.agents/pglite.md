@@ -58,7 +58,7 @@ Deliverable
 
 - A single code path that can flip from Postgres to PGlite with COCALC_DB=pglite.
 
-## Phase 1 Status (in progress)
+## \(done\) Phase 1 Status
 
 - CoffeeScript wrapper now routes through a PGlite pg-style client when COCALC_DB=pglite: [src/packages/database/postgres-base.coffee](./src/packages/database/postgres-base.coffee)
 - PGlite pg-style client implemented here: [src/packages/database/pool/pglite.ts](./src/packages/database/pool/pglite.ts)
@@ -66,7 +66,7 @@ Deliverable
 - Direct pg usage audit: no non-database code instantiates pg clients; remaining pg usage is either types or centralized in database layer.
 - Single connection policy: PGlite is a singleton instance behind a shared pool; getPool/getClient route to PGlite when enabled, and cached pools still call the underlying PGlite pool. No other Pool/Client creation paths remain.
 
-## Phase 2: LISTEN/NOTIFY and Changefeeds
+## \(done\) Phase 2: LISTEN/NOTIFY and Changefeeds
 
 Goal: ensure real-time subscriptions and sync logic work in-process.
 
@@ -86,11 +86,11 @@ Key usage points
 - Changefeeds for user/project updates
 - Project host state updates
 
-## Phase 2 Status (in progress)
+## Phase 2 Status
 
 - Added a focused changefeed test that validates insert/update events via db.changefeed: [src/packages/database/postgres/changefeed.test.ts](./src/packages/database/postgres/changefeed.test.ts)
 
-## Phase 3: Schema Sync and SQL Compatibility
+## \(done\) Phase 3: Schema Sync and SQL Compatibility
 
 Goal: ensure schema sync works and DDL is PGlite-safe.
 
@@ -107,6 +107,10 @@ Goal: ensure schema sync works and DDL is PGlite-safe.
 Deliverable
 
 - Syncing schema with COCALC_DB=pglite is reliable and repeatable.
+
+## Phase 3 Status
+
+- Added a syncSchema test that verifies all managed tables exist after sync: [src/packages/database/postgres/schema/sync.test.ts](./src/packages/database/postgres/schema/sync.test.ts)
 
 ## Phase 4: Testing Strategy
 
@@ -128,6 +132,11 @@ Goal: have a minimal but meaningful test set that runs under PGlite.
 
 - Provide a simple script or doc to run tests with PGlite.
 - Decide whether PGlite is default for a subset of tests.
+
+## Phase 4 Status (in progress)
+
+- Added an env-gated test harness and a `test:pglite` script for this package: [src/packages/database/test/setup.js](./src/packages/database/test/setup.js), [src/packages/database/package.json](./src/packages/database/package.json)
+- Documented the PGlite test flow in the database README: [src/packages/database/README.md](./src/packages/database/README.md)
 
 ## Phase 5: SEA Packaging
 

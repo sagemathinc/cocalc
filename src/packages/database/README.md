@@ -10,4 +10,10 @@ This package connects the hub and nextjs servers to the PostgreSQL database, and
 
 ## Experimental PGlite
 
-There is an opt-in PGlite smoke test helper under [src/packages/database/pglite](./src/packages/database/pglite). It is not wired into the default DB path; use it only for local experiments.
+PGlite is opt-in via `COCALC_DB=pglite`. For local tests in this package:
+
+```sh
+COCALC_TEST_USE_PGLITE=1 pnpm test
+```
+
+Optionally set `COCALC_PGLITE_DATA_DIR` to a directory (or `memory://`) for storage.
