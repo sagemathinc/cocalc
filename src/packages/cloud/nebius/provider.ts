@@ -268,7 +268,6 @@ export class NebiusProvider implements CloudProvider {
               $case: "sourceImageFamily",
               sourceImageFamily: SourceImageFamily.create({
                 imageFamily: sourceImageFamily!,
-                parentId,
               }),
             },
       }),
