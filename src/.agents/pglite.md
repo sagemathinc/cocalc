@@ -33,7 +33,7 @@
 
 Goal: ensure all database access flows through a single adapter so PGlite is viable.
 
-1) Inventory DB access paths
+1. \(done\) Inventory DB access paths
 
 - Confirm every write/query path uses @cocalc/database/pool or @cocalc/database db() wrapper.
 - Identify any direct pg Client usage outside pool.
@@ -64,6 +64,7 @@ Deliverable
 - PGlite pg-style client implemented here: [src/packages/database/pool/pglite.ts](./src/packages/database/pool/pglite.ts)
 - Pool test query-config form hangs; test uses string+params for now: [src/packages/database/pool/pool.test.ts](./src/packages/database/pool/pool.test.ts)
 - Direct pg usage audit: no non-database code instantiates pg clients; remaining pg usage is either types or centralized in database layer.
+- Single connection policy: PGlite is a singleton instance behind a shared pool; getPool/getClient route to PGlite when enabled, and cached pools still call the underlying PGlite pool. No other Pool/Client creation paths remain.
 
 ## Phase 2: LISTEN/NOTIFY and Changefeeds
 
@@ -84,6 +85,10 @@ Key usage points
 
 - Changefeeds for user/project updates
 - Project host state updates
+
+## Phase 2 Status (in progress)
+
+- Added a focused changefeed test that validates insert/update events via db.changefeed: [src/packages/database/postgres/changefeed.test.ts](./src/packages/database/postgres/changefeed.test.ts)
 
 ## Phase 3: Schema Sync and SQL Compatibility
 
@@ -172,3 +177,4 @@ Goal: allow an easy upgrade path to Postgres later.
 - Tests running under PGlite for key slices
 - SEA build includes PGlite assets
 - Simple migration/export path documented
+
