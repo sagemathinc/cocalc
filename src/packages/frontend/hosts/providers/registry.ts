@@ -902,96 +902,8 @@ const summarizeNebiusCatalog = (catalog: HostCatalog) => ({
     >(catalog, "images", "global") ?? [],
 });
 
-const parseUbuntuVersion = (value?: string | null): number | undefined => {
-  if (!value) return undefined;
-  const match = value.match(/ubuntu(\d{2})\.(\d{2})/);
-  if (!match) return undefined;
-  const major = Number(match[1]);
-  const minor = Number(match[2]);
-  if (!Number.isFinite(major) || !Number.isFinite(minor)) return undefined;
-  return major * 100 + minor;
-};
-
 const isNebiusGpuFamily = (family?: string | null) =>
   !!family && /cuda|nvidia/i.test(family);
-
-const parseVersionParts = (value?: string | null): number[] | undefined => {
-  if (!value) return undefined;
-  const parts = value.match(/\d+/g);
-  if (!parts?.length) return undefined;
-  const nums = parts.map((part) => Number(part)).filter(Number.isFinite);
-  return nums.length ? nums : undefined;
-};
-
-const compareVersionParts = (
-  a?: number[],
-  b?: number[],
-): number => {
-  if (!a && !b) return 0;
-  if (!a) return -1;
-  if (!b) return 1;
-  const maxLen = Math.max(a.length, b.length);
-  for (let i = 0; i < maxLen; i += 1) {
-    const left = a[i] ?? 0;
-    const right = b[i] ?? 0;
-    if (left !== right) return left - right;
-  }
-  return 0;
-};
-
-const imageTimestamp = (img: NebiusImage): number => {
-  const value = img.updated_at ?? img.created_at;
-  if (!value) return 0;
-  const parsed = Date.parse(value);
-  return Number.isFinite(parsed) ? parsed : 0;
-};
-
-const pickNebiusImage = (
-  catalog: HostCatalog | undefined,
-  wantsGpu: boolean,
-  opts: { region?: string; platform?: string | null } = {},
-): NebiusImage | undefined => {
-  const images =
-    getCatalogEntryPayload<NebiusImage[]>(catalog, "images", "global") ?? [];
-  const regionImages = opts.region
-    ? images.filter((img) => !img.region || img.region === opts.region)
-    : images;
-  const ubuntuImages = regionImages.filter((img) =>
-    (img.family ?? "").toLowerCase().includes("ubuntu"),
-  );
-  const platformImages = opts.platform
-    ? ubuntuImages.filter((img) => {
-        const recommended = img.recommended_platforms ?? [];
-        if (!recommended.length) return true;
-        return recommended.includes(opts.platform ?? "");
-      })
-    : ubuntuImages;
-  const candidates = platformImages.filter((img) =>
-    wantsGpu ? isNebiusGpuFamily(img.family) : !isNebiusGpuFamily(img.family),
-  );
-  const pool = candidates.length ? candidates : platformImages;
-  if (!pool.length) return undefined;
-  const sorted = [...pool].sort((a, b) => {
-    const driverlessA = /driverless/i.test(a.family ?? "");
-    const driverlessB = /driverless/i.test(b.family ?? "");
-    if (!wantsGpu && driverlessA !== driverlessB) {
-      return driverlessA ? -1 : 1;
-    }
-    const ubuntuA = parseUbuntuVersion(a.family) ?? 0;
-    const ubuntuB = parseUbuntuVersion(b.family) ?? 0;
-    if (ubuntuA !== ubuntuB) return ubuntuB - ubuntuA;
-    const versionCmp = compareVersionParts(
-      parseVersionParts(a.version),
-      parseVersionParts(b.version),
-    );
-    if (versionCmp !== 0) return versionCmp < 0 ? 1 : -1;
-    const timeA = imageTimestamp(a);
-    const timeB = imageTimestamp(b);
-    if (timeA !== timeB) return timeB - timeA;
-    return 0;
-  });
-  return sorted[0];
-};
 
 export const getNebiusImageOptions = (
   catalog: HostCatalog | undefined,
@@ -1512,7 +1424,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       );
       const gpuCount = instance?.gpus ?? 0;
       const wantsGpu = gpuCount > 0;
-      const region = getDefaultRegion(vals, ctx.fieldOptions);
       return buildBasePayload(
         vals,
         ctx.fieldOptions,

@@ -35,6 +35,7 @@ const SECURITY_RULES = [
 ];
 
 const MIN_UBUNTU_VERSION = 2404;
+type HyperstackImageEntry = Image["images"][number];
 
 function parseUbuntuVersion(value?: string | null): number | undefined {
   if (!value) return undefined;
@@ -46,11 +47,11 @@ function parseUbuntuVersion(value?: string | null): number | undefined {
   return major * 100 + minor;
 }
 
-function imageUbuntuVersion(img: Image): number {
+function imageUbuntuVersion(img: HyperstackImageEntry): number {
   return parseUbuntuVersion(img.version) ?? 0;
 }
 
-function isCudaImage(img: Image): boolean {
+function isCudaImage(img: HyperstackImageEntry): boolean {
   return /cuda/i.test(img.version ?? "");
 }
 
