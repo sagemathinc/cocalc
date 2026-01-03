@@ -760,8 +760,9 @@ function TerminalRow({
   const coloredCwd = `\u001b[01;34m${cwdPrompt}\u001b[0m`;
   const promptLine = `${coloredCwd}$${commandLine ? " " + commandLine : ""}`;
   const truncatedNote = entry.truncated ? "\n[output truncated]" : "";
+  const outputText = (entry.output ?? "").trimEnd();
   const terminalText = hasOutput
-    ? `${promptLine}\n${(entry.output ?? "").trimEnd()}${truncatedNote}`
+    ? `${promptLine}\n${outputText}${truncatedNote}`
     : `${promptLine}${truncatedNote}`;
   const placeholderText = entry.exitStatus
     ? "No output."

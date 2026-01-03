@@ -22,7 +22,6 @@ export type HostRecommendation = {
   gpu_type?: string;
   gpu_count?: number;
   disk_gb?: number;
-  source_image?: string;
   rationale?: string;
   est_cost_per_hour?: number;
 };

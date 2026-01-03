@@ -165,6 +165,12 @@ export type NebiusProviderCreds = NebiusCreds & {
 };
 
 export class NebiusProvider implements CloudProvider {
+  private routingCodeFromId(id?: string): string | undefined {
+    if (!id) return undefined;
+    const match = id.match(/^[a-z]+-([a-z0-9]{3})/i);
+    return match?.[1];
+  }
+
   mapStatus(status?: string): string | undefined {
     if (!status) return undefined;
     const normalized = status.toLowerCase();
@@ -197,12 +203,27 @@ export class NebiusProvider implements CloudProvider {
       spec.metadata?.service_account_id ??
       spec.metadata?.serviceAccountId ??
       spec.metadata?.nebius_service_account_id;
-    const sourceImage =
+    let sourceImage =
       spec.metadata?.source_image ??
       spec.metadata?.image_id ??
       spec.metadata?.image;
     const sourceImageFamily =
       spec.metadata?.source_image_family ?? spec.metadata?.image_family;
+    const routingCode =
+      this.routingCodeFromId(subnetId) ??
+      this.routingCodeFromId(parentId);
+    const imageRouting = this.routingCodeFromId(sourceImage);
+    if (sourceImage && routingCode && imageRouting && routingCode !== imageRouting) {
+      logger.warn("nebius: source image routing code mismatch; using family", {
+        source_image: sourceImage,
+        source_image_family: sourceImageFamily,
+        routing_code: routingCode,
+        image_routing: imageRouting,
+        parentId,
+        subnetId,
+      });
+      sourceImage = undefined;
+    }
     logger.debug("nebius: source image selection", {
       source_image: sourceImage,
       source_image_family: sourceImageFamily,

@@ -21,7 +21,6 @@ export type HostFieldId =
   | "zone"
   | "machine_type"
   | "gpu_type"
-  | "source_image"
   | "size"
   | "gpu";
 
@@ -30,7 +29,6 @@ export const HOST_FIELDS: HostFieldId[] = [
   "zone",
   "machine_type",
   "gpu_type",
-  "source_image",
   "size",
   "gpu",
 ];
@@ -108,7 +106,6 @@ export type ProviderSelection = {
   zone?: string;
   machine_type?: string;
   gpu_type?: string;
-  source_image?: string;
   size?: string;
   gpu?: string;
 };
@@ -128,7 +125,6 @@ export type ProviderSupports = {
   machineType: boolean;
   flavor: boolean;
   instanceType: boolean;
-  image: boolean;
   gpuType: boolean;
   size: boolean;
   genericGpu: boolean;
@@ -171,7 +167,6 @@ export type HostProviderDescriptor = {
     gpu_type?: string;
     gpu_count?: number;
     disk_gb?: number;
-    source_image?: string;
   }) => Record<string, any>;
 };
 
@@ -207,7 +202,6 @@ const buildBasePayload = (
     boot_disk_gb: vals.boot_disk_gb,
   };
   const mergedMetadata = { ...baseMetadata, ...(machine.metadata ?? {}) };
-  const source_image = machine.source_image ?? vals.source_image;
   return {
     name: vals.name ?? "My Host",
     region: getDefaultRegion(vals, options),
@@ -219,7 +213,6 @@ const buildBasePayload = (
       disk_gb: vals.disk,
       disk_type: vals.disk_type,
       ...machine,
-      source_image: source_image || undefined,
       metadata: mergedMetadata,
     },
   };
@@ -258,8 +251,6 @@ const shouldIncludeField = (
       return caps.hasRegions !== false;
     case "zone":
       return caps.supportsZones !== false && caps.hasZones !== false;
-    case "source_image":
-      return caps.supportsCustomImage !== false && caps.hasImages !== false;
     case "gpu_type":
     case "gpu":
       return caps.supportsGpu !== false && caps.hasGpus !== false;
@@ -1305,22 +1296,19 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       machineType: true,
       flavor: false,
       instanceType: false,
-      image: true,
       gpuType: true,
       size: false,
       genericGpu: false,
     },
     fields: {
       primary: ["region", "zone", "machine_type", "gpu_type"],
-      advanced: ["source_image"],
+      advanced: [],
       labels: {
         machine_type: "Machine type",
         gpu_type: "GPU",
-        source_image: "Base image",
       },
       tooltips: {
         zone: "Zones are derived from the selected region.",
-        source_image: "Optional override; leave blank for the default Ubuntu image.",
       },
     },
     storage: { supported: true, growable: true },
@@ -1332,14 +1320,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       gpu_type: [
         { value: "none", label: "No GPU" },
         ...getGcpGpuTypeOptions(catalog, selection.zone),
-      ],
-      source_image: [
-        { value: "", label: "Default (Ubuntu LTS)" },
-        ...getGcpImageOptions(
-          catalog,
-          selection.machine_type,
-          selection.gpu_type,
-        ),
       ],
     }),
     buildCreatePayload: (vals, ctx) => {
@@ -1364,7 +1344,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       if (rec.zone) next.zone = rec.zone;
       if (rec.machine_type) next.machine_type = rec.machine_type;
       if (rec.gpu_type) next.gpu_type = rec.gpu_type;
-      if (rec.source_image) next.source_image = rec.source_image;
       applyDiskUpdate(next, rec.disk_gb);
       return next;
     },
@@ -1380,7 +1359,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       machineType: false,
       flavor: true,
       instanceType: false,
-      image: false,
       gpuType: false,
       size: false,
       genericGpu: false,
@@ -1437,7 +1415,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       machineType: false,
       flavor: false,
       instanceType: true,
-      image: false,
       gpuType: false,
       size: false,
       genericGpu: false,
@@ -1503,7 +1480,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       machineType: false,
       flavor: false,
       instanceType: true,
-      image: false,
       gpuType: false,
       size: false,
       genericGpu: false,
@@ -1537,10 +1513,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       const gpuCount = instance?.gpus ?? 0;
       const wantsGpu = gpuCount > 0;
       const region = getDefaultRegion(vals, ctx.fieldOptions);
-      const image = pickNebiusImage(ctx.catalog, wantsGpu, {
-        region,
-        platform: instance?.platform,
-      });
       return buildBasePayload(
         vals,
         ctx.fieldOptions,
@@ -1548,10 +1520,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
           machine_type: vals.machine_type || undefined,
           gpu_type: instance?.gpu_label,
           gpu_count: gpuCount || undefined,
-          metadata: {
-            source_image: image?.id,
-            source_image_family: image?.family,
-          },
         },
         wantsGpu,
       );
@@ -1574,7 +1542,6 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       machineType: false,
       flavor: false,
       instanceType: false,
-      image: false,
       gpuType: false,
       size: true,
       genericGpu: true,
@@ -1682,7 +1649,6 @@ export const buildRecommendationUpdate = (rec: {
   gpu_type?: string;
   gpu_count?: number;
   disk_gb?: number;
-  source_image?: string;
 }) => {
   if (!rec.provider) return {};
   const descriptor = getProviderDescriptor(rec.provider);

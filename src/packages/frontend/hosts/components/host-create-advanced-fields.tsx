@@ -33,7 +33,6 @@ export const HostCreateAdvancedFields: React.FC<HostCreateAdvancedFieldsProps> =
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
     const tooltip = tooltips[field];
-    const isSourceImage = field === "source_image";
     return (
       <Col span={24} key={field}>
         <Form.Item
@@ -45,9 +44,6 @@ export const HostCreateAdvancedFields: React.FC<HostCreateAdvancedFieldsProps> =
           <Select
             options={fieldOptions}
             disabled={!fieldOptions.length}
-            showSearch={isSourceImage}
-            optionFilterProp="label"
-            allowClear={isSourceImage}
           />
         </Form.Item>
       </Col>

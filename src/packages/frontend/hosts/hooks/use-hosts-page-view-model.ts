@@ -191,7 +191,6 @@ export const useHostsPageViewModel = () => {
     selectedMachineType,
     selectedGpuType,
     selectedGpu,
-    selectedSourceImage,
     selectedSize,
     selectedStorageMode,
   } = useHostFormValues(form);
@@ -223,7 +222,6 @@ export const useHostsPageViewModel = () => {
     selectedMachineType,
     selectedGpuType,
     selectedGpu,
-    selectedSourceImage,
     selectedSize,
     selectedStorageMode,
     enabledProviders,

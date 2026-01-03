@@ -83,14 +83,6 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               GPU type: {host.machine.gpu_type}
             </Typography.Text>
           )}
-          {(host.machine?.source_image ||
-            host.machine?.metadata?.source_image) && (
-            <Typography.Text>
-              Image:{" "}
-              {host.machine?.source_image ??
-                host.machine?.metadata?.source_image}
-            </Typography.Text>
-          )}
         </Space>
         <Typography.Text>Projects: {host.projects ?? 0}</Typography.Text>
         <Typography.Text type="secondary">

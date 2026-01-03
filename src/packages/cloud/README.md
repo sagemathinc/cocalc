@@ -34,6 +34,8 @@ offerings.
 
 - **No custom image management**: use vendor\-provided base images and bootstrap
   at first boot (cloud\-init / startup scripts).
+- **Ubuntu 24.04+ required**: providers must select an Ubuntu 24.04 (or newer)
+  image; provisioning fails if only older Ubuntu images are available.
 - **No bucket or storage management**: object storage configuration and mounts
   are handled elsewhere (project\-host or user configuration).
 - **No long\-lived orchestration**: once a VM is created, ongoing host logic is
@@ -92,4 +94,3 @@ flowchart TD
 The server supplies credentials, handles locking and persistence, and exposes
 catalog data to the frontend. The cloud package owns provider logic and catalog
 generation only.
-

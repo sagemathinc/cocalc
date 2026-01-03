@@ -63,7 +63,6 @@ export function normalizeRecommendation(input: any): HostRecommendation | null {
     gpu_count:
       typeof input.gpu_count === "number" ? input.gpu_count : undefined,
     disk_gb: typeof input.disk_gb === "number" ? input.disk_gb : undefined,
-    source_image: normalizeString(input.source_image ?? input.image),
     rationale: normalizeString(input.rationale ?? input.reason),
     est_cost_per_hour:
       typeof input.est_cost_per_hour === "number"

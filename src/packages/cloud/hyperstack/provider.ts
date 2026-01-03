@@ -34,6 +34,26 @@ const SECURITY_RULES = [
   { port_range_min: 2222, port_range_max: 2222, protocol: "tcp" as Protocol }, // project-host ssh server
 ];
 
+const MIN_UBUNTU_VERSION = 2404;
+
+function parseUbuntuVersion(value?: string | null): number | undefined {
+  if (!value) return undefined;
+  const match = value.match(/([0-9]{2})[._-]?([0-9]{2})/);
+  if (!match) return undefined;
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  if (!Number.isFinite(major) || !Number.isFinite(minor)) return undefined;
+  return major * 100 + minor;
+}
+
+function imageUbuntuVersion(img: Image): number {
+  return parseUbuntuVersion(img.version) ?? 0;
+}
+
+function isCudaImage(img: Image): boolean {
+  return /cuda/i.test(img.version ?? "");
+}
+
 export type HyperstackCreds = {
   apiKey: string;
   sshPublicKey: string;
@@ -183,14 +203,28 @@ async function selectImage(
     (i) => i.type === "Ubuntu" && i.region_name === region,
   );
   const list = ubuntu?.images ?? [];
+  const versioned = list.filter(
+    (img) => imageUbuntuVersion(img) >= MIN_UBUNTU_VERSION,
+  );
+  if (!versioned.length) {
+    throw new Error(`no Hyperstack Ubuntu ${MIN_UBUNTU_VERSION / 100}+ images for ${region}`);
+  }
   const wantsGpu = !!spec.gpu;
-  const preferred = list
-    .filter((img) => (wantsGpu ? img.version.includes("CUDA") : true))
-    .filter(
-      (img) => img.version.includes("22.04") || img.version.includes("24.04"),
-    );
-  if (preferred.length) return preferred[0].name;
-  if (list.length) return list[0].name;
+  const cpuPreferred = versioned.filter((img) => !isCudaImage(img));
+  const gpuPreferred = versioned.filter(isCudaImage);
+  const pool = wantsGpu
+    ? gpuPreferred.length
+      ? gpuPreferred
+      : versioned
+    : cpuPreferred.length
+      ? cpuPreferred
+      : versioned;
+  const sorted = [...pool].sort((a, b) => {
+    const versionDelta = imageUbuntuVersion(b) - imageUbuntuVersion(a);
+    if (versionDelta !== 0) return versionDelta;
+    return (b.version ?? "").localeCompare(a.version ?? "");
+  });
+  if (sorted.length) return sorted[0].name;
   throw new Error(`no Hyperstack Ubuntu images for ${region}`);
 }
 

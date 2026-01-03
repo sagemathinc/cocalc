@@ -466,6 +466,10 @@ sudo systemctl daemon-reload || true
 echo 'sudo journalctl -u cocalc-project-host.service' > $HOME/bootstrap/logs
 echo 'sudo systemctl \${1-status} cocalc-project-host' > $HOME/bootstrap/ctl
 chmod +x $HOME/bootstrap/ctl $HOME/bootstrap/logs
+
+echo 'sudo journalctl -u cocalc-cloudflared.service' > $HOME/bootstrap/logs-cf
+echo 'sudo systemctl \${1-status} cocalc-cloudflared' > $HOME/bootstrap/ctl-cf
+chmod +x $HOME/bootstrap/ctl-cf $HOME/bootstrap/logs-cf
 `;
   let cloudflaredScript = "";
   let cloudflaredServiceUnit = "";

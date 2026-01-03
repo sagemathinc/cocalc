@@ -31,6 +31,37 @@ type ImageEntry = {
   region?: { name?: string };
 };
 
+const MIN_UBUNTU_VERSION = 2404;
+
+function parseUbuntuVersion(value?: string | null): number | undefined {
+  if (!value) return undefined;
+  const match = value.toLowerCase().match(/ubuntu[^0-9]*([0-9]{2})[._-]?([0-9]{2})/);
+  if (!match) return undefined;
+  const major = Number(match[1]);
+  const minor = Number(match[2]);
+  if (!Number.isFinite(major) || !Number.isFinite(minor)) return undefined;
+  return major * 100 + minor;
+}
+
+function imageUbuntuVersion(img: ImageEntry): number {
+  return (
+    parseUbuntuVersion(img.family) ??
+    parseUbuntuVersion(img.name) ??
+    0
+  );
+}
+
+function isUbuntuImage(img: ImageEntry): boolean {
+  return (
+    (img.family ?? "").toLowerCase().includes("ubuntu") ||
+    (img.name ?? "").toLowerCase().includes("ubuntu")
+  );
+}
+
+function isCudaImage(img: ImageEntry): boolean {
+  return /cuda|nvidia|gpu/i.test(img.family ?? "") || /cuda|nvidia|gpu/i.test(img.name ?? "");
+}
+
 function normalizePrefix(prefix?: string): string {
   const value = (prefix ?? "cocalc").toLowerCase().replace(/[^a-z0-9-]/g, "-");
   return value.replace(/-+/g, "-").replace(/^-+|-+$/g, "") || "cocalc";
@@ -131,7 +162,10 @@ function selectInstanceType(
   return chosen;
 }
 
-function selectImage(images: ImageEntry[], spec: HostSpec): { id?: string } | { family?: string } {
+function selectImage(
+  images: ImageEntry[],
+  spec: HostSpec,
+): { id?: string } | { family?: string } {
   const directId =
     spec.metadata?.image_id ??
     spec.metadata?.source_image_id ??
@@ -147,17 +181,29 @@ function selectImage(images: ImageEntry[], spec: HostSpec): { id?: string } | { 
   const candidates = images.filter(
     (img) => (img.architecture ?? "").toLowerCase() === "x86_64",
   );
-  const ubuntu = candidates.find((img) =>
-    (img.family ?? "").toLowerCase().includes("ubuntu"),
-  );
-  if (ubuntu?.id) {
-    return { id: ubuntu.id };
+  const ubuntu = candidates
+    .filter(isUbuntuImage)
+    .filter((img) => imageUbuntuVersion(img) >= MIN_UBUNTU_VERSION);
+  if (!ubuntu.length) {
+    throw new Error(
+      `no Lambda Ubuntu ${MIN_UBUNTU_VERSION / 100}+ images available for ${spec.region}`,
+    );
   }
-  const first = candidates[0]?.id ?? images[0]?.id;
-  if (!first) {
+  const wantsGpu = !!spec.gpu;
+  const preferred = wantsGpu
+    ? ubuntu.filter(isCudaImage)
+    : ubuntu.filter((img) => !isCudaImage(img));
+  const pool = preferred.length ? preferred : ubuntu;
+  const sorted = [...pool].sort((a, b) => {
+    const versionDelta = imageUbuntuVersion(b) - imageUbuntuVersion(a);
+    if (versionDelta !== 0) return versionDelta;
+    return (b.name ?? "").localeCompare(a.name ?? "");
+  });
+  const selected = sorted[0]?.id ?? candidates[0]?.id ?? images[0]?.id;
+  if (!selected) {
     throw new Error("no Lambda images available");
   }
-  return { id: first };
+  return { id: selected };
 }
 
 function buildUserData(spec: HostSpec): string | undefined {
@@ -223,18 +269,8 @@ export class LambdaProvider implements CloudProvider {
       instance_type_name = selectInstanceType(entries, spec.region, spec);
     }
 
-    // Lambda defaults to Ubuntu 22.04 when no image is specified, so only set
-    // an explicit image if the user chose one via metadata.
-    let image: { id?: string; family?: string } | undefined;
-    if (
-      spec.metadata?.source_image_id ||
-      spec.metadata?.source_image ||
-      spec.metadata?.image_family ||
-      spec.metadata?.source_image_family
-    ) {
-      const images = (await client.listImages()) as ImageEntry[];
-      image = selectImage(images, spec);
-    }
+    const images = (await client.listImages()) as ImageEntry[];
+    const image = selectImage(images, spec);
 
     const sshName = await ensureSshKey(
       client,

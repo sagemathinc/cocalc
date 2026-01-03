@@ -48,7 +48,7 @@ export const useHostAi = ({
         "You recommend cloud host configs. Return only valid JSON. " +
         "Always respond with an object that has a single key named options " +
         "whose value is an array of recommendation objects. " +
-        "Each option must choose provider/region/machine/flavor/image from the provided catalog. " +
+        "Each option must choose provider/region/machine/flavor from the provided catalog. " +
         regionGuidance +
         "If the requested group has no regions, choose the closest available region and explain why. " +
         "Do not claim a region is missing; always pick the best available from the catalog. " +
@@ -71,7 +71,6 @@ export const useHostAi = ({
               gpu_type: "string?",
               gpu_count: "number?",
               disk_gb: "number?",
-              source_image: "string?",
               rationale: "string",
               est_cost_per_hour: "number?",
             },

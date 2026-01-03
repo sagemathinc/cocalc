@@ -26,7 +26,6 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
     const tooltip = tooltips[field];
-    const isSourceImage = field === "source_image";
     return (
       <Form.Item
         key={field}
@@ -38,9 +37,6 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
         <Select
           options={fieldOptions}
           disabled={!fieldOptions.length}
-          showSearch={isSourceImage}
-          optionFilterProp="label"
-          allowClear={isSourceImage}
         />
       </Form.Item>
     );
