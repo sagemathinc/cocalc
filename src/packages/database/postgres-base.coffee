@@ -218,7 +218,7 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             @_clear_listening_state()
             @_clients = [getPglitePgClient()]
             if @_notification?
-                @_clients[0].on('notification', @_notification)
+                @_clients[0].on('notification', (mesg) => @_notification(mesg))
             @_concurrent_queries = 0
             @_connect_time = new Date()
             @is_standby = false

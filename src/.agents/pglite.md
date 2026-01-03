@@ -26,6 +26,7 @@
 - PGlite pg-style client (LISTEN/UNLISTEN + notification bridge) for legacy db._query usage
 - Smoke test for PGlite helper
 - Basic pool test with PGlite enabled
+- LISTEN/NOTIFY smoke test via db.async_query
 - Database test runner now uses NODE_OPTIONS=--experimental-vm-modules
 
 ## Phase 1: DB Access Unification (core prep)
@@ -62,6 +63,7 @@ Deliverable
 - CoffeeScript wrapper now routes through a PGlite pg-style client when COCALC_DB=pglite: [src/packages/database/postgres-base.coffee](./src/packages/database/postgres-base.coffee)
 - PGlite pg-style client implemented here: [src/packages/database/pool/pglite.ts](./src/packages/database/pool/pglite.ts)
 - Pool test query-config form hangs; test uses string+params for now: [src/packages/database/pool/pool.test.ts](./src/packages/database/pool/pool.test.ts)
+- Direct pg usage audit: no non-database code instantiates pg clients; remaining pg usage is either types or centralized in database layer.
 
 ## Phase 2: LISTEN/NOTIFY and Changefeeds
 
