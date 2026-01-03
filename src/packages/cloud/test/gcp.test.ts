@@ -9,6 +9,11 @@ const deleteMock = jest.fn();
 const waitMock = jest.fn();
 
 jest.mock("@google-cloud/compute", () => {
+  class ImagesClient {
+    get = getMock;
+    getFromFamily = () => [{ selfLink: "/my/image" }];
+    constructor(_opts?: any) {}
+  }
   class InstancesClient {
     insert = insertMock;
     get = getMock;
@@ -21,7 +26,7 @@ jest.mock("@google-cloud/compute", () => {
     wait = waitMock;
     constructor(_opts?: any) {}
   }
-  return { InstancesClient, ZoneOperationsClient };
+  return { InstancesClient, ZoneOperationsClient, ImagesClient };
 });
 
 function buildSpec(overrides: Partial<HostSpec> = {}): HostSpec {
@@ -53,9 +58,7 @@ describe("GcpProvider", () => {
     waitMock.mockResolvedValueOnce([{ status: "DONE" }]);
     getMock.mockResolvedValueOnce([
       {
-        networkInterfaces: [
-          { accessConfigs: [{ natIP: "203.0.113.10" }] },
-        ],
+        networkInterfaces: [{ accessConfigs: [{ natIP: "203.0.113.10" }] }],
       },
     ]);
 
