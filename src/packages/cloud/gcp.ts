@@ -43,6 +43,15 @@ function parseCredentials(creds: GcpCredentials) {
   throw new Error("missing GCP credentials");
 }
 
+function isNotFoundError(err: unknown): boolean {
+  if (!err || typeof err !== "object") return false;
+  const anyErr = err as { code?: number; status?: number; statusCode?: number; message?: string; details?: string };
+  const code = anyErr.code ?? anyErr.status ?? anyErr.statusCode;
+  if (code === 404 || code === 5) return true;
+  const msg = String(anyErr.message ?? anyErr.details ?? "");
+  return /not found/i.test(msg);
+}
+
 function diskTypeFor(spec: HostSpec): string {
   switch (spec.disk_type) {
     case "ssd":
@@ -401,11 +410,22 @@ export class GcpProvider implements CloudProvider {
   async deleteHost(runtime: HostRuntime, creds: any): Promise<void> {
     const credentials = parseCredentials(creds ?? {});
     const client = new InstancesClient(credentials);
-    await client.delete({
-      project: credentials.projectId,
-      zone: runtime.zone,
-      instance: runtime.instance_id,
-    });
+    try {
+      await client.delete({
+        project: credentials.projectId,
+        zone: runtime.zone,
+        instance: runtime.instance_id,
+      });
+    } catch (err) {
+      if (isNotFoundError(err)) {
+        logger.info("gcp.deleteHost: instance already gone", {
+          instance_id: runtime.instance_id,
+          zone: runtime.zone,
+        });
+        return;
+      }
+      throw err;
+    }
   }
 
   async resizeDisk(
