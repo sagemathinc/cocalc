@@ -56,7 +56,7 @@ fs.writeFileSync(
 );
 NODE
 
-# Copy zeromq native manifest/build artefacts expected at runtime (via @cocalc/jupyter)
+# Copy zeromq native manifest/build artifacts expected at runtime (via @cocalc/jupyter)
 ZEROMQ_BUILD=$(find packages -path "*node_modules/zeromq/build" -type d -print -quit || true)
 if [ -n "$ZEROMQ_BUILD" ]; then
   echo "- Copy zeromq native build artefacts"
@@ -129,14 +129,5 @@ fi
 echo "- Copy project bin scripts"
 mkdir -p "$OUT"/src/packages/project
 cp -r packages/project/bin "$OUT"/src/packages/project/
-
-echo "- Copy backend tool binaries"
-BACKEND_BIN="packages/backend/node_modules/.bin"
-if [ -d "$BACKEND_BIN" ]; then
-  mkdir -p "$OUT"/bin
-  cp -a "$BACKEND_BIN"/. "$OUT"/bin/
-else
-  echo "  (backend .bin directory not found; skipping)"
-fi
 
 echo "- Bundle created at $OUT"

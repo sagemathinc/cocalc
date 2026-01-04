@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project",
-  "version": "1.41.1",
+  "version": "1.41.3",
   "description": "CoCalc: project daemon",
   "exports": {
     "./conat": "./dist/conat/index.js",
@@ -63,11 +63,12 @@
     "depcheck": "pnpx depcheck --ignores=@vercel/ncc",
     "prepublishOnly": "pnpm test",
     "clean": "rm -rf dist build tsconfig.tsbuildinfo",
-    "build:bundle": "cd sea && ./build-bundle.sh",
-    "build:tarball": "pnpm run build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
+    "build:bundle": "cd sea && ./build-bundle.sh && cd ../build && tar Jcvf bundle.tar.xz bundle",
+    "build:tools": "cd sea && ./build-tools.sh",
     "run:bundle": "node ./build/bundle/bundle/index.js",
     "sea": "pnpm build:tarball && cd sea && ./build-sea.sh",
     "publish:bundle": "cd sea && ./publish-bundle.sh",
+    "publish:tools": "cd sea && ./publish-tools.sh",
     "publish:sea": "cd sea && ./publish-sea.sh",
     "promote:sea": "cd sea && ./promote-sea.sh",
     "build:all": "pnpm build && pnpm build:tarball && pnpm build:sea"

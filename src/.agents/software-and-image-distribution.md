@@ -17,12 +17,14 @@ This plan covers:
 - Use a single public R2 bucket for software artifacts.
 - Key layout (versioned):
   - `software/project-host/<version>/cocalc-project-host-<version>-<arch>-<os>.tar.xz`
-  - `software/project/<version>/cocalc-project-<version>-<arch>-<os>.tar.xz`
+  - `software/project/<version>/bundle.tar.xz`
+  - `software/tools/<version>/tools.tar.xz`
 - Metadata per artifact:
   - `<artifact>.sha256` (sha256 + filename)
 - Small "latest" manifests:
   - `software/project-host/latest.json`
   - `software/project/latest.json`
+  - `software/tools/latest.json`
   - Example fields: `version`, `url`, `sha256`, `size_bytes`, `built_at`, `arch`, `os`.
 
 ### Publishing workflow

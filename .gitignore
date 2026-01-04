@@ -202,5 +202,5 @@ patchflow
 data-0
 data-1
 
-src/packages/project-host/publish-sea.sh
-src/packages/project/publish-bundle.sh
+src/packages/project-host/publish.sh
+src/packages/project/publish.sh

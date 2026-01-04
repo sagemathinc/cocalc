@@ -71,7 +71,7 @@ function normalizeSoftwareBaseUrl(raw: string): string {
 
 function extractArtifactVersion(
   url: string,
-  artifact: "project-host" | "project",
+  artifact: "project-host" | "project" | "tools",
 ): string | undefined {
   if (!url) return undefined;
   try {
@@ -97,6 +97,7 @@ export type BootstrapScripts = {
   bootstrapScript: string;
   fetchSeaScript: string;
   fetchProjectBundleScript: string;
+  fetchToolsScript: string;
   installServiceScript: string;
   publicUrl: string;
   internalUrl: string;
@@ -110,6 +111,11 @@ export type BootstrapScripts = {
   projectBundlesRoot: string;
   projectBundleDir: string;
   projectBundleRemote: string;
+  toolsUrl: string;
+  toolsSha256: string;
+  toolsRoot: string;
+  toolsDir: string;
+  toolsRemote: string;
   tunnel?: CloudflareTunnel;
 };
 
@@ -142,6 +148,7 @@ export async function buildBootstrapScripts(
   }
   const projectHostManifestUrl = `${softwareBaseUrl}/project-host/latest.json`;
   const projectManifestUrl = `${softwareBaseUrl}/project/latest.json`;
+  const toolsManifestUrl = `${softwareBaseUrl}/tools/latest.json`;
   const resolvedHostSea = await resolveSoftwareArtifact(projectHostManifestUrl);
   const resolvedSeaUrl = resolvedHostSea.url;
   const seaSha256 = (resolvedHostSea.sha256 ?? "").replace(/[^a-f0-9]/gi, "");
@@ -152,16 +159,27 @@ export async function buildBootstrapScripts(
     /[^a-f0-9]/gi,
     "",
   );
+  const resolvedTools = await resolveSoftwareArtifact(toolsManifestUrl);
+  const toolsUrl = resolvedTools.url;
+  const toolsSha256 = (resolvedTools.sha256 ?? "").replace(/[^a-f0-9]/gi, "");
   const projectBundleVersion =
     extractArtifactVersion(projectBundleUrl, "project") || "latest";
   const projectBundlesRoot = "/opt/cocalc/project-bundles";
   const projectBundleDir = `${projectBundlesRoot}/${projectBundleVersion}`;
   const projectBundleRemote = "/opt/cocalc/project-bundle.tar.xz";
+  const toolsVersion =
+    extractArtifactVersion(toolsUrl, "tools") || "latest";
+  const toolsRoot = "/opt/cocalc/tools";
+  const toolsDir = `${toolsRoot}/${toolsVersion}`;
+  const toolsRemote = "/opt/cocalc/tools.tar.xz";
   if (!resolvedSeaUrl) {
     throw new Error("project host SEA URL could not be resolved");
   }
   if (!projectBundleUrl) {
     throw new Error("project bundle URL could not be resolved");
+  }
+  if (!toolsUrl) {
+    throw new Error("project tools URL could not be resolved");
   }
 
   const masterAddress =
@@ -230,6 +248,7 @@ export async function buildBootstrapScripts(
     `COCALC_DATA=${dataDir}`,
     `COCALC_LITE_SQLITE_FILENAME=${dataDir}/sqlite.db`,
     `COCALC_PROJECT_BUNDLES=${projectBundlesRoot}`,
+    `COCALC_PROJECT_TOOLS=${toolsRoot}/current/bin`,
     `COCALC_PROJECT_HOST_HTTPS=${tlsEnabled ? "1" : "0"}`,
     `HOST=0.0.0.0`,
     `PORT=${port}`,
@@ -513,6 +532,34 @@ WantedBy=multi-user.target
   sudo tar -xJf "$BUNDLE_REMOTE" --strip-components=1 -C "$BUNDLE_DIR"
   sudo ln -sfn "$BUNDLE_DIR" "$BUNDLE_CURRENT"
 `;
+  const fetchToolsScript = `set -euo pipefail
+  TOOLS_URL="${toolsUrl.replace(/"/g, '\\"')}"
+  TOOLS_SHA256="${toolsSha256}"
+  TOOLS_REMOTE="${toolsRemote}"
+  TOOLS_DIR="${toolsDir}"
+  TOOLS_ROOT="${toolsRoot}"
+  TOOLS_CURRENT="${toolsRoot}/current"
+  echo "bootstrap: downloading tools bundle from ${toolsUrl.replace(/"/g, '\\"')}"
+  curl -fL "$TOOLS_URL" -o "$TOOLS_REMOTE"
+  if [ -n "$TOOLS_SHA256" ]; then
+    if command -v sha256sum >/dev/null 2>&1; then
+      echo "$TOOLS_SHA256  $TOOLS_REMOTE" | sha256sum -c -
+    else
+      echo "bootstrap: sha256sum not available; skipping tools checksum"
+    fi
+  else
+    if command -v sha256sum >/dev/null 2>&1; then
+      if curl -fsSL "$TOOLS_URL.sha256" -o "$TOOLS_REMOTE.sha256"; then
+        sha256sum -c "$TOOLS_REMOTE.sha256" || true
+      fi
+    fi
+  fi
+  sudo mkdir -p "$TOOLS_ROOT"
+  sudo rm -rf "$TOOLS_DIR"
+  sudo mkdir -p "$TOOLS_DIR"
+  sudo tar -xJf "$TOOLS_REMOTE" --strip-components=1 -C "$TOOLS_DIR"
+  sudo ln -sfn "$TOOLS_DIR" "$TOOLS_CURRENT"
+`;
 
   const installServiceScript = `
 set -euo pipefail
@@ -539,6 +586,7 @@ sudo -u ${sshUser} -H /opt/cocalc/project-host/cocalc-project-host daemon start
     bootstrapScript,
     fetchSeaScript,
     fetchProjectBundleScript,
+    fetchToolsScript,
     installServiceScript,
     publicUrl,
     internalUrl,
@@ -552,6 +600,11 @@ sudo -u ${sshUser} -H /opt/cocalc/project-host/cocalc-project-host daemon start
     projectBundlesRoot,
     projectBundleDir,
     projectBundleRemote,
+    toolsUrl,
+    toolsSha256,
+    toolsRoot,
+    toolsDir,
+    toolsRemote,
     tunnel,
   };
 }
@@ -599,6 +652,7 @@ report_status "running"
 ${scripts.bootstrapScript}
 ${scripts.fetchSeaScript}
 ${scripts.fetchProjectBundleScript}
+${scripts.fetchToolsScript}
 ${scripts.installServiceScript}
 sudo touch /btrfs/data/.bootstrap_done
 report_status "done"
@@ -948,6 +1002,7 @@ export async function handleBootstrap(row: ProjectHostRow) {
     bootstrapScript,
     fetchSeaScript,
     fetchProjectBundleScript,
+    fetchToolsScript,
     installServiceScript,
     sshUser,
     publicUrl,
@@ -997,6 +1052,14 @@ export async function handleBootstrap(row: ProjectHostRow) {
       knownHosts,
       script: fetchProjectBundleScript,
       scriptPath: "$HOME/bootstrap/fetch-project-bundle.sh",
+    });
+    await runSshScript({
+      user: sshUser,
+      host: publicIp,
+      keyPath,
+      knownHosts,
+      script: fetchToolsScript,
+      scriptPath: "$HOME/bootstrap/fetch-tools.sh",
     });
     await runSshScript({
       user: sshUser,
