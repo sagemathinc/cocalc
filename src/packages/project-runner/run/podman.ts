@@ -58,7 +58,11 @@ const DEFAULT_PROJECT_SCRIPT = join(
   COCALC_SRC,
   "packages/project/bin/cocalc-project.js",
 );
-const PROJECT_BUNDLE_ENTRY = ["bundle", "index.js"] as const;
+const PROJECT_BUNDLE_ENTRY_CANDIDATES = [
+  ["bundle", "index.js"],
+  // Legacy layout: bundle/bundle/index.js from older tarball structure.
+  ["bundle", "bundle", "index.js"],
+] as const;
 const PROJECT_BUNDLE_MOUNT_POINT = "/opt/cocalc/project-bundle";
 const PROJECT_BUNDLE_BIN_PATH = join(PROJECT_BUNDLE_MOUNT_POINT, "bin");
 
@@ -237,27 +241,37 @@ async function resolveProjectScript(): Promise<ScriptResolution> {
     return { script: DEFAULT_PROJECT_SCRIPT };
   }
 
-  const hostScriptPath = join(bundleDir, ...PROJECT_BUNDLE_ENTRY);
-  try {
-    const info = await stat(hostScriptPath);
-    if (!info.isFile()) {
-      logger.warn("bundle entry is not a file; falling back", {
+  let entry: string[] | undefined;
+  for (const candidate of PROJECT_BUNDLE_ENTRY_CANDIDATES) {
+    const hostScriptPath = join(bundleDir, ...candidate);
+    try {
+      const info = await stat(hostScriptPath);
+      if (info.isFile()) {
+        entry = candidate;
+        break;
+      }
+      logger.warn("bundle entry is not a file; skipping", {
         entry: hostScriptPath,
       });
-      return { script: DEFAULT_PROJECT_SCRIPT };
+    } catch (err) {
+      const code = getErrorCode(err);
+      if (code !== "ENOENT") {
+        logger.warn("failed to stat bundle entry; skipping", {
+          entry: hostScriptPath,
+          error: `${err}`,
+        });
+      }
     }
-  } catch (err) {
-    logger.warn("failed to stat bundle entry; falling back", {
-      entry: hostScriptPath,
-      error: `${err}`,
+  }
+
+  if (!entry) {
+    logger.warn("no usable bundle entry found; falling back", {
+      bundleDir,
     });
     return { script: DEFAULT_PROJECT_SCRIPT };
   }
 
-  const containerScript = join(
-    PROJECT_BUNDLE_MOUNT_POINT,
-    ...PROJECT_BUNDLE_ENTRY,
-  );
+  const containerScript = join(PROJECT_BUNDLE_MOUNT_POINT, ...entry);
 
   logger.info("using project bundle", {
     source: bundleDir,

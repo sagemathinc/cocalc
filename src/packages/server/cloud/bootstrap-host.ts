@@ -510,7 +510,7 @@ WantedBy=multi-user.target
   sudo mkdir -p "$BUNDLE_ROOT"
   sudo rm -rf "$BUNDLE_DIR"
   sudo mkdir -p "$BUNDLE_DIR"
-  sudo tar -xJf "$BUNDLE_REMOTE" -C "$BUNDLE_DIR"
+  sudo tar -xJf "$BUNDLE_REMOTE" --strip-components=1 -C "$BUNDLE_DIR"
   sudo ln -sfn "$BUNDLE_DIR" "$BUNDLE_CURRENT"
 `;
 
