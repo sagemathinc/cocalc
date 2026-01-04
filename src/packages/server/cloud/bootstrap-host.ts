@@ -236,6 +236,7 @@ export async function buildBootstrapScripts(
     `COCALC_LITE_SQLITE_FILENAME=${dataDir}/sqlite.db`,
     `COCALC_PROJECT_BUNDLES=${projectBundlesRoot}`,
     `COCALC_PROJECT_TOOLS=${toolsRoot}/current`,
+    `COCALC_BIN_PATH=${toolsRoot}/current`,
     `COCALC_PROJECT_HOST_SOFTWARE_BASE_URL=${softwareBaseUrl}`,
     `COCALC_PROJECT_HOST_HTTPS=${tlsEnabled ? "1" : "0"}`,
     `HOST=0.0.0.0`,
@@ -472,7 +473,8 @@ WantedBy=multi-user.target
     bootstrapScript += cloudflaredScript;
   }
 
-  const fetchSeaScript = `set -euo pipefail
+  const fetchSeaScript = `#!/usr/bin/env bash
+set -euo pipefail
   SEA_URL="${resolvedSeaUrl.replace(/"/g, '\\"')}"
   SEA_SHA256="${seaSha256}"
   echo "bootstrap: downloading SEA from ${resolvedSeaUrl.replace(/"/g, '\\"')}"
@@ -492,7 +494,8 @@ WantedBy=multi-user.target
   fi
 `;
 
-  const fetchProjectBundleScript = `set -euo pipefail
+  const fetchProjectBundleScript = `#!/usr/bin/env bash
+set -euo pipefail
   BUNDLE_URL="${projectBundleUrl.replace(/"/g, '\\"')}"
   BUNDLE_SHA256="${projectBundleSha256}"
   BUNDLE_REMOTE="${projectBundleRemote}"
@@ -514,13 +517,14 @@ WantedBy=multi-user.target
       fi
     fi
   fi
-  sudo mkdir -p "$BUNDLE_ROOT"
-  sudo rm -rf "$BUNDLE_DIR"
-  sudo mkdir -p "$BUNDLE_DIR"
-  sudo tar -xJf "$BUNDLE_REMOTE" --strip-components=1 -C "$BUNDLE_DIR"
-  sudo ln -sfn "$BUNDLE_DIR" "$BUNDLE_CURRENT"
+  mkdir -p "$BUNDLE_ROOT"
+  rm -rf "$BUNDLE_DIR"
+  mkdir -p "$BUNDLE_DIR"
+  tar -xJf "$BUNDLE_REMOTE" --strip-components=1 -C "$BUNDLE_DIR"
+  ln -sfn "$BUNDLE_DIR" "$BUNDLE_CURRENT"
 `;
-  const fetchToolsScript = `set -euo pipefail
+  const fetchToolsScript = `#!/usr/bin/env bash
+set -euo pipefail
   TOOLS_URL="${toolsUrl.replace(/"/g, '\\"')}"
   TOOLS_SHA256="${toolsSha256}"
   TOOLS_REMOTE="${toolsRemote}"
@@ -542,11 +546,11 @@ WantedBy=multi-user.target
       fi
     fi
   fi
-  sudo mkdir -p "$TOOLS_ROOT"
-  sudo rm -rf "$TOOLS_DIR"
-  sudo mkdir -p "$TOOLS_DIR"
-  sudo tar -xJf "$TOOLS_REMOTE" --strip-components=1 -C "$TOOLS_DIR"
-  sudo ln -sfn "$TOOLS_DIR" "$TOOLS_CURRENT"
+  mkdir -p "$TOOLS_ROOT"
+  rm -rf "$TOOLS_DIR"
+  mkdir -p "$TOOLS_DIR"
+  tar -xJf "$TOOLS_REMOTE" --strip-components=1 -C "$TOOLS_DIR"
+  ln -sfn "$TOOLS_DIR" "$TOOLS_CURRENT"
 `;
 
   bootstrapScript += `
@@ -572,10 +576,11 @@ fi
 sudo systemctl disable --now cocalc-project-host >/dev/null 2>&1 || true
 sudo rm -f /etc/systemd/system/cocalc-project-host.service || true
 sudo mkdir -p ${projectHostRoot}/versions
-sudo rm -rf ${projectHostDir}
-sudo mkdir -p ${projectHostDir}
-sudo tar -xJf ${seaRemote}  --strip-components=2 -C ${projectHostDir}
-sudo ln -sfn ${projectHostDir} ${projectHostCurrent}
+sudo chown -R ${sshUser}:${sshUser} ${projectHostRoot}
+sudo -u ${sshUser} -H rm -rf ${projectHostDir}
+sudo -u ${sshUser} -H mkdir -p ${projectHostDir}
+sudo -u ${sshUser} -H tar -xJf ${seaRemote}  --strip-components=2 -C ${projectHostDir}
+sudo -u ${sshUser} -H ln -sfn ${projectHostDir} ${projectHostCurrent}
 sudo chown -R ${sshUser}:${sshUser} /btrfs/data || true
 cd ${projectHostDir}
 ${cloudflaredServiceUnit ? `cat <<'EOF_CLOUDFLARED_SERVICE' | sudo tee /etc/systemd/system/cocalc-cloudflared.service >/dev/null
@@ -655,9 +660,9 @@ report_status() {
 
 report_status "running"
 ${scripts.bootstrapScript}
-${scripts.fetchSeaScript}
-${scripts.fetchProjectBundleScript}
-${scripts.fetchToolsScript}
+sudo -u ${scripts.sshUser} -H "$BOOTSTRAP_DIR/fetch-sea.sh"
+sudo -u ${scripts.sshUser} -H "$BOOTSTRAP_DIR/fetch-project-bundle.sh"
+sudo -u ${scripts.sshUser} -H "$BOOTSTRAP_DIR/fetch-tools.sh"
 ${scripts.installServiceScript}
 sudo touch /btrfs/data/.bootstrap_done
 report_status "done"

@@ -165,6 +165,9 @@ function resolveEnv(index: number): {
   }
   env.COCALC_DATA = env.COCALC_DATA ?? dataDir;
   env.DATA = env.DATA ?? dataDir;
+  if (!env.COCALC_BIN_PATH && env.COCALC_PROJECT_TOOLS) {
+    env.COCALC_BIN_PATH = env.COCALC_PROJECT_TOOLS;
+  }
   if (env.COCALC_RUSTIC && !env.COCALC_RUSTIC_REPO) {
     env.COCALC_RUSTIC_REPO = path.join(env.COCALC_RUSTIC, "rustic");
   }

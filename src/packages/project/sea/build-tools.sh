@@ -26,6 +26,11 @@ if [ ! -d "$BIN_SRC" ]; then
   exit 1
 fi
 
+if [ ! -x "$BIN_SRC/sshpiperd" ]; then
+  echo "sshpiperd not found; installing via @cocalc/backend/sandbox/install"
+  node -e 'require("@cocalc/backend/sandbox/install").install("sshpiper")'
+fi
+
 rm -rf "$WORK_DIR"
 mkdir -p "$WORK_DIR"
 cp -a "$BIN_SRC" "$WORK_DIR"/bin
