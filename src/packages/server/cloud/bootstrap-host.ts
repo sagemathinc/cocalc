@@ -248,7 +248,7 @@ export async function buildBootstrapScripts(
     `COCALC_DATA=${dataDir}`,
     `COCALC_LITE_SQLITE_FILENAME=${dataDir}/sqlite.db`,
     `COCALC_PROJECT_BUNDLES=${projectBundlesRoot}`,
-    `COCALC_PROJECT_TOOLS=${toolsRoot}/current/bin`,
+    `COCALC_PROJECT_TOOLS=${toolsRoot}/current`,
     `COCALC_PROJECT_HOST_HTTPS=${tlsEnabled ? "1" : "0"}`,
     `HOST=0.0.0.0`,
     `PORT=${port}`,
@@ -559,6 +559,21 @@ WantedBy=multi-user.target
   sudo mkdir -p "$TOOLS_DIR"
   sudo tar -xJf "$TOOLS_REMOTE" --strip-components=1 -C "$TOOLS_DIR"
   sudo ln -sfn "$TOOLS_DIR" "$TOOLS_CURRENT"
+`;
+
+  bootstrapScript += `
+echo "bootstrap: writing fetch scripts"
+cat <<'EOF_COCALC_FETCH_SEA' > "$BOOTSTRAP_DIR/fetch-sea.sh"
+${fetchSeaScript.trim()}
+EOF_COCALC_FETCH_SEA
+cat <<'EOF_COCALC_FETCH_BUNDLE' > "$BOOTSTRAP_DIR/fetch-project-bundle.sh"
+${fetchProjectBundleScript.trim()}
+EOF_COCALC_FETCH_BUNDLE
+cat <<'EOF_COCALC_FETCH_TOOLS' > "$BOOTSTRAP_DIR/fetch-tools.sh"
+${fetchToolsScript.trim()}
+EOF_COCALC_FETCH_TOOLS
+chmod +x "$BOOTSTRAP_DIR"/fetch-sea.sh "$BOOTSTRAP_DIR"/fetch-project-bundle.sh "$BOOTSTRAP_DIR"/fetch-tools.sh
+sudo chown ${sshUser}:${sshUser} "$BOOTSTRAP_DIR"/fetch-sea.sh "$BOOTSTRAP_DIR"/fetch-project-bundle.sh "$BOOTSTRAP_DIR"/fetch-tools.sh || true
 `;
 
   const installServiceScript = `
@@ -947,6 +962,9 @@ async function scpFile(opts: {
 }
 
 export async function scheduleBootstrap(row: ProjectHostRow) {
+  if (row.metadata?.bootstrap?.source !== "ssh") {
+    return;
+  }
   const { project_hosts_software_base_url } = await getServerSettings();
   const softwareBaseUrl = normalizeSoftwareBaseUrl(
     project_hosts_software_base_url ||
@@ -989,6 +1007,12 @@ export async function scheduleBootstrap(row: ProjectHostRow) {
 
 export async function handleBootstrap(row: ProjectHostRow) {
   logger.debug("handleBootstrap", { host_id: row.id });
+  if (row.metadata?.bootstrap?.source !== "ssh") {
+    logger.info("handleBootstrap: skipped (cloud-init only)", {
+      host_id: row.id,
+    });
+    return;
+  }
   const runtime = row.metadata?.runtime;
   if (!runtime?.public_ip) {
     throw new Error("bootstrap requires public_ip");
