@@ -1,5 +1,13 @@
-// Bootstrap remote project-host VMs over SSH: install deps, setup btrfs,
-// transfer the SEA bundle, and register a systemd service to run the host.
+/*
+ * Project-host bootstrap lifecycle
+ * - Cloud-init runs once on first boot using a short-lived token to fetch
+ *   the bootstrap scripts + conat password from the hub.
+ * - Bootstrap installs deps, prepares /btrfs, downloads the SEA, and starts
+ *   the project-host daemon. It also installs a cron @reboot hook so the
+ *   daemon restarts on every VM reboot without re-running bootstrap.
+ * - SSH bootstrap remains as a fallback if cloud-init did not complete.
+ * - cloudflared (if enabled) is managed by systemd and restarts on reboot.
+ */
 
 import { promises as fs } from "node:fs";
 import os from "node:os";
@@ -205,13 +213,15 @@ if [ -z "$PUBLIC_IP" ]; then
 fi
 `
     : "";
+  const bootstrapDir =
+    sshUser === "root" ? "/root/bootstrap" : `/home/${sshUser}/bootstrap`;
 
   let bootstrapScript = `
 set -euo pipefail
 echo "bootstrap: updating apt package lists"
 sudo apt-get update -y
 echo "bootstrap: installing base packages"
-sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils rsync vim crun
+sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils rsync vim crun cron
 ${publicIpLookup}
 echo "bootstrap: enabling unprivileged user namespaces"
 sudo sysctl -w kernel.unprivileged_userns_clone=1 || true
@@ -221,6 +231,10 @@ echo "bootstrap: preparing cocalc directories"
 sudo mkdir -p /opt/cocalc /var/lib/cocalc /etc/cocalc
 sudo chown -R ${sshUser}:${sshUser} /opt/cocalc /var/lib/cocalc
 sudo mkdir -p /btrfs
+echo "bootstrap: preparing bootstrap scripts"
+BOOTSTRAP_DIR="${bootstrapDir}"
+sudo mkdir -p "$BOOTSTRAP_DIR"
+sudo chown -R ${sshUser}:${sshUser} "$BOOTSTRAP_DIR" || true
 echo "bootstrap: data disk candidates: ${dataDiskCandidates}"
 DATA_DISK_DEV=""
 if [ -n "${dataDiskDevices}" ]; then
@@ -295,7 +309,7 @@ ${envBlock}
   }
 
   bootstrapScript += `
-cat <<'EOF_COCALC_CTL' > $HOME/bootstrap/ctl
+cat <<'EOF_COCALC_CTL' > "$BOOTSTRAP_DIR/ctl"
 #!/usr/bin/env bash
 set -euo pipefail
 cmd="\${1:-status}"
@@ -323,13 +337,22 @@ case "\${cmd}" in
     ;;
 esac
 EOF_COCALC_CTL
-chmod +x $HOME/bootstrap/ctl
-echo 'tail -n 200 /btrfs/data/log' > $HOME/bootstrap/logs
-chmod +x $HOME/bootstrap/logs
+chmod +x "$BOOTSTRAP_DIR/ctl"
+echo 'tail -n 200 /btrfs/data/log' > "$BOOTSTRAP_DIR/logs"
+chmod +x "$BOOTSTRAP_DIR/logs"
 
-echo 'sudo journalctl -u cocalc-cloudflared.service' > $HOME/bootstrap/logs-cf
-echo 'sudo systemctl \${1-status} cocalc-cloudflared' > $HOME/bootstrap/ctl-cf
-chmod +x $HOME/bootstrap/ctl-cf $HOME/bootstrap/logs-cf
+echo 'sudo journalctl -u cocalc-cloudflared.service' > "$BOOTSTRAP_DIR/logs-cf"
+echo 'sudo systemctl \${1-status} cocalc-cloudflared' > "$BOOTSTRAP_DIR/ctl-cf"
+chmod +x "$BOOTSTRAP_DIR/ctl-cf" "$BOOTSTRAP_DIR/logs-cf"
+
+echo "bootstrap: configuring project-host autostart"
+sudo tee /etc/cron.d/cocalc-project-host >/dev/null <<'EOF_COCALC_CRON'
+@reboot ${sshUser} ${bootstrapDir}/ctl start
+EOF_COCALC_CRON
+sudo chmod 644 /etc/cron.d/cocalc-project-host
+if command -v systemctl >/dev/null 2>&1; then
+  sudo systemctl enable --now cron || true
+fi
 `;
 
   let cloudflaredScript = "";
@@ -462,9 +485,13 @@ export async function buildCloudInitStartupScript(
   const statusUrl = `${baseUrl}/project-host/bootstrap/status`;
   const conatUrl = `${baseUrl}/project-host/bootstrap/conat`;
   const conatPasswordCommand = `
-echo "bootstrap: fetching conat password"
-curl -fsSL -H "Authorization: Bearer $BOOTSTRAP_TOKEN" "$CONAT_URL" | sudo tee /btrfs/data/secrets/conat-password >/dev/null
-sudo chmod 600 /btrfs/data/secrets/conat-password
+if [ -f /btrfs/data/secrets/conat-password ]; then
+  echo "bootstrap: conat password already present"
+else
+  echo "bootstrap: fetching conat password"
+  curl -fsSL -H "Authorization: Bearer $BOOTSTRAP_TOKEN" "$CONAT_URL" | sudo tee /btrfs/data/secrets/conat-password >/dev/null
+  sudo chmod 600 /btrfs/data/secrets/conat-password
+fi
 `;
   const scripts = await buildBootstrapScripts(row, {
     conatPasswordCommand,
@@ -498,6 +525,7 @@ report_status "running"
 ${scripts.bootstrapScript}
 ${scripts.fetchSeaScript}
 ${scripts.installServiceScript}
+sudo touch /btrfs/data/.bootstrap_done
 report_status "done"
 `;
 }
