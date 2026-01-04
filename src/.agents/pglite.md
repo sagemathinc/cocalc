@@ -244,3 +244,65 @@ when Next.js is disabled, using api/v2 endpoints and registration tokens.
 - Add a short note in [src/README.md](./src/README.md) describing that
   /auth/sign-in, /auth/sign-up, and /auth/password-reset are available in
   nextless mode (COCALC_DISABLE_NEXT=1).
+
+## Phase 7.5: Bootstrap Admin Token (pglite-only)
+
+Goal: make first-time setup usable without psql by printing a one-time
+"create admin" link when there are no accounts.
+
+1) Create bootstrap token at startup
+
+- On hub startup (after schema update) detect pglite mode and zero accounts.
+- Create a short-lived registration token with limit=1 and a customize flag:
+  { make_admin: true, bootstrap: true }.
+- Store the token in registration_tokens so it survives restarts.
+- Print a prominent console message with a full link to /auth/sign-up that
+  includes the token (and bootstrap=1 for UI messaging).
+
+2) Promote to admin on sign-up
+
+- In [src/packages/next/pages/api/v2/auth/sign-up.ts](./src/packages/next/pages/api/v2/auth/sign-up.ts),
+  if tokenInfo.customize.make_admin is set, promote the newly created account
+  to admin.
+- If tokenInfo.customize.bootstrap is set, invalidate that token after use
+  (disable or delete it) so it cannot be reused.
+
+3) Minimal UI hint
+
+- In the new SPA sign-up UI, show a short banner when bootstrap=1 is present
+  so the user knows they are creating the initial admin account.
+
+## Phase 7.6: Auth/onboarding polish (pglite-only)
+
+Goal: smooth out first-run UX and remove confusing flows in the
+control-plane-only product.
+
+1) Bootstrap admin when no admins exist
+
+- If there are zero admin accounts, always offer a bootstrap token URL.
+- If a user follows the bootstrap URL while already signed in:
+  - promote their existing account to admin after confirming intent.
+- Otherwise, the bootstrap URL leads to a sign-up flow that creates
+  a new admin account.
+- Keep the rule: admin status is only possible via the bootstrap token.
+
+2) No-hosts onboarding for admins
+
+- When a new admin signs up and there are no project hosts:
+  - replace the default project landing with a first-host setup screen
+    (or a call-to-action panel) that guides creating the first project host.
+- This avoids creating a project that cannot run yet.
+
+3) Auth gating and routing polish
+
+- If user is unauthenticated, redirect any non-auth route to /auth/sign-in
+  (or /auth/sign-up for bootstrap link cases).
+- Remove/disable the "You must sign in" toast on auth routes to avoid
+  spurious warnings.
+
+4) Licensing flow (future)
+
+- Add an admin-only licensing setup step:
+  - admin enters a license code that cryptographically unlocks features
+    (public key verification; optional network lookup).
+  - support multiple tiers/levels of functionality via license claims.

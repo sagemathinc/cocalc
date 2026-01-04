@@ -22,6 +22,7 @@ import { ProjectPage } from "@cocalc/frontend/project/page/page";
 import { ProjectsPage } from "@cocalc/frontend/projects/projects-page";
 import { KioskModeBanner } from "./kiosk-mode-banner";
 import { HostsPage } from "@cocalc/frontend/hosts/hosts-page";
+import { AuthPage } from "@cocalc/frontend/auth";
 
 const STYLE_SIGNIN_WARNING: CSS = {
   textAlign: "center",
@@ -122,6 +123,9 @@ export const ActiveContent: React.FC = React.memo(() => {
         break;
       case "hosts":
         v.push(<HostsPage key={"hosts"} />);
+        break;
+      case "auth":
+        v.push(<AuthPage key={"auth"} />);
         break;
       case "notifications":
         v.push(<NotificationPage key={"notifications"} />);

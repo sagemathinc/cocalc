@@ -202,6 +202,21 @@ export class PageActions extends Actions<PageState> {
         }
         set_window_title(intl.formatMessage(labels.messages_title));
         return;
+      case "auth": {
+        if (change_history) {
+          const auth_view =
+            this.redux.getStore("page").get("auth_view") ?? "sign-in";
+          const auth_path =
+            auth_view === "sign-up"
+              ? "/auth/sign-up"
+              : auth_view === "password-reset"
+                ? "/auth/password-reset"
+                : "/auth/sign-in";
+          set_url(auth_path);
+        }
+        set_window_title("Sign in");
+        return;
+      }
       case undefined:
         return;
       default:

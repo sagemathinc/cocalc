@@ -130,7 +130,7 @@ export default async function init(opts: Options): Promise<{
   initUpload(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);
-  initAppRedirect(router);
+  initAppRedirect(router, { includeAuth: !opts.nextServer });
   initProjectHostBootstrap(router);
 
   if (!opts.nextServer) {

@@ -156,7 +156,7 @@ That will ensure the latest version of the hub Typescript and Coffeescript gets 
 
 The hub itself is running two copies of webpack along with two separate "Hot Module Replacement" servers, etc. One is for the `/static` endpoint \(see packages/static and packages/frontend\) and the other is for the nextjs server \(see packages/next\).
 
-If you want a lightweight dev server without Next.js, you can run the hub with `COCALC_DISABLE_NEXT=1`. This skips Next entirely, but still serves all `/api/v2` endpoints via an Express router that loads the compiled handlers, which is useful for fast local dev and lightweight control-plane deployments.
+If you want a lightweight dev server without Next.js, you can run the hub with `COCALC_DISABLE_NEXT=1`. This skips Next entirely, but still serves all `/api/v2` endpoints via an Express router that loads the compiled handlers, which is useful for fast local dev and lightweight control-plane deployments. In this mode, the SPA also handles `/auth/sign-in`, `/auth/sign-up`, and `/auth/password-reset`.
 
 ### 3. Building only what has changed
 

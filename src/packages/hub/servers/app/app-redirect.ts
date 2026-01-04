@@ -10,10 +10,17 @@ import basePath from "@cocalc/backend/base-path";
 import { getLogger } from "@cocalc/hub/logger";
 import { APP_ROUTES } from "@cocalc/util/routing/app";
 
-export default function init(router: Router) {
+export default function init(
+  router: Router,
+  opts: { includeAuth?: boolean } = {},
+) {
   const winston = getLogger("app-redirect");
   const v: string[] = [];
-  for (const path of APP_ROUTES) {
+  const routes = new Set(APP_ROUTES);
+  if (opts.includeAuth) {
+    routes.add("auth");
+  }
+  for (const path of routes) {
     v.push(`/${path}*`);
   }
   router.get(v, (req, res) => {

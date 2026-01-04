@@ -107,6 +107,7 @@ export const Page: React.FC = () => {
   }, []);
 
   const active_top_tab = useTypedRedux("page", "active_top_tab");
+  const isAuthView = active_top_tab === "auth";
   const show_mentions = active_top_tab === "notifications";
   const show_connection = useTypedRedux("page", "show_connection");
   const show_file_use = useTypedRedux("page", "show_file_use");
@@ -390,7 +391,7 @@ export const Page: React.FC = () => {
       {local_storage_warning && <LocalStorageWarning />}
       {show_i18n && <I18NBanner />}
       <VerifyEmail />
-      {!lite && !fullscreen && (
+      {!lite && !fullscreen && !isAuthView && (
         <nav className="smc-top-bar" style={topBarStyle}>
           <AppLogo size={pageStyle.height} />
           {is_logged_in && render_project_nav_button()}
@@ -404,8 +405,8 @@ export const Page: React.FC = () => {
           {render_right_nav()}
         </nav>
       )}
-      {fullscreen && render_fullscreen()}
-      {!lite && isNarrow && (
+      {fullscreen && !isAuthView && render_fullscreen()}
+      {!lite && isNarrow && !isAuthView && (
         <ProjectsNav height={pageStyle.height} style={projectsNavStyle} />
       )}
       <ActiveContent />

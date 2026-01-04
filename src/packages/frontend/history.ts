@@ -55,6 +55,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { IS_EMBEDDED } from "@cocalc/frontend/client/handle-target";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
+import type { AuthView } from "@cocalc/frontend/auth/types";
 import {
   type PreferencesSubTabKey,
   type PreferencesSubTabType,
@@ -89,6 +90,18 @@ function params(): string {
     }
   }
   return u.search;
+}
+
+function parseAuthView(value?: string): AuthView {
+  switch (value) {
+    case "sign-up":
+      return "sign-up";
+    case "password-reset":
+      return "password-reset";
+    case "sign-in":
+    default:
+      return "sign-in";
+  }
 }
 
 // The last explicitly set url.
@@ -143,13 +156,15 @@ export function load_target(
   if (!target) {
     return;
   }
-  if (!redux.getStore("account").get("is_logged_in")) {
+  const segments = target.split("/");
+  if (
+    !redux.getStore("account").get("is_logged_in") &&
+    segments[0] !== "auth"
+  ) {
     // this will redirect to the sign in page after a brief pause
     redux.getActions("page").set_active_tab("account", false);
     return;
   }
-
-  const segments = target.split("/");
   switch (segments[0]) {
     case "help":
       redux.getActions("page").set_active_tab("about", change_history);
@@ -225,6 +240,13 @@ export function load_target(
       redux.getActions("page").set_active_tab("hosts", change_history);
       break;
 
+    case "auth":
+      redux.getActions("page").setState({
+        active_top_tab: "auth",
+        auth_view: parseAuthView(segments[1]),
+      });
+      break;
+
     case "file-use":
       // not implemented
       break;
@@ -270,6 +292,10 @@ export function parse_target(target?: string):
   | {
       page: "notifications";
       tab: "mentions";
+    }
+  | {
+      page: "auth";
+      view: AuthView;
     } {
   if (target == undefined) {
     return { page: "profile" };
@@ -322,6 +348,8 @@ export function parse_target(target?: string):
       return { page: "admin" };
     case "hosts":
       return { page: "hosts" };
+    case "auth":
+      return { page: "auth", view: parseAuthView(segments[1]) };
     default:
       return { page: "profile" };
   }

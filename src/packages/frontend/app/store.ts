@@ -6,11 +6,13 @@
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import target from "@cocalc/frontend/client/handle-target";
 import { parse_target } from "../history";
+import type { AuthView } from "@cocalc/frontend/auth/types";
 import type { ConatConnectionStatus } from "@cocalc/frontend/conat/client";
 
 type TopTab =
   | "about" // the "/help" page
   | "account"
+  | "auth"
   | "admin"
   | "hosts"
   | "help" // i.e., the support dialog that makes a ZenDesk ticket....
@@ -23,6 +25,7 @@ export type ConnectionStatus = "disconnected" | "connecting" | "connected";
 
 export interface PageState {
   active_top_tab: TopTab; // key of the active tab
+  auth_view?: AuthView;
   show_connection: boolean;
   ping?: number;
   avgping?: number;
@@ -60,8 +63,10 @@ export interface PageState {
 export class PageStore extends Store<PageState> {}
 
 export function init_store() {
+  const parsed = parse_target(target);
   const DEFAULT_STATE: PageState = {
-    active_top_tab: parse_target(target).page as TopTab,
+    active_top_tab: parsed.page as TopTab,
+    auth_view: parsed.page === "auth" ? parsed.view : undefined,
     show_connection: false,
     connection_status: "connecting",
     connection_quality: "good",
