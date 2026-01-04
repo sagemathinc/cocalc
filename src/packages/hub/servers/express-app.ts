@@ -12,7 +12,6 @@ import { path as WEBAPP_PATH } from "@cocalc/assets";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
 import { path as STATIC_PATH } from "@cocalc/static";
-import { initAnalytics } from "../analytics";
 import { setup_health_checks as setupHealthChecks } from "../health-checks";
 import { getLogger } from "../logger";
 import initProxy from "../proxy";
@@ -95,8 +94,18 @@ export default async function init(opts: Options): Promise<{
 
   router.use("/robots.txt", initRobots());
 
-  // setup the analytics.js endpoint
-  await initAnalytics(router, database);
+  // setup the analytics.js endpoint (skip for launchpad/minimal modes)
+  if (
+    process.env.COCALC_MODE !== "launchpad" &&
+    !process.env.COCALC_DISABLE_ANALYTICS
+  ) {
+    const analyticsModule = lazyRequire(join(__dirname, "..", "analytics")) as {
+      initAnalytics?: (router: express.Router, db: any) => Promise<void>;
+    };
+    if (analyticsModule?.initAnalytics) {
+      await analyticsModule.initAnalytics(router, database);
+    }
+  }
 
   // The /static content, used by docker, development, etc.
   // This is the stuff that's packaged up via webpack in packages/static.
