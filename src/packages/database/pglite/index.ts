@@ -17,7 +17,10 @@ export type PgliteOptions = {
 };
 
 let instance: PGlite | undefined;
-type PgliteBundle = { fsBundle?: Blob; wasmModule?: unknown };
+type PgliteBundle = {
+  fsBundle?: { arrayBuffer: () => Promise<ArrayBuffer> };
+  wasmModule?: unknown;
+};
 
 let bundlePromise: Promise<PgliteBundle> | undefined;
 
@@ -36,12 +39,20 @@ async function loadPgliteBundle(): Promise<PgliteBundle> {
           readFile(path.join(distDir, "pglite.data")),
           readFile(path.join(distDir, "pglite.wasm")),
         ]);
-        const BlobCtor =
-          globalThis.Blob ?? require("buffer").Blob;
-        const fsBundle = new BlobCtor([data]);
-        const wasmModule = await (globalThis as any).WebAssembly?.compile?.(
-          wasm,
-        );
+        const fsBundle = {
+          arrayBuffer: async () =>
+            data.buffer.slice(
+              data.byteOffset,
+              data.byteOffset + data.byteLength,
+            ),
+        };
+        const wasmApi = (globalThis as any).WebAssembly;
+        let wasmModule: unknown;
+        if (typeof wasmApi?.compile === "function") {
+          wasmModule = await wasmApi.compile(wasm);
+        } else if (typeof wasmApi?.Module === "function") {
+          wasmModule = new wasmApi.Module(wasm);
+        }
         return { fsBundle, wasmModule };
       } catch (err) {
         L.warn("failed to load pglite bundle assets", err);
@@ -49,7 +60,7 @@ async function loadPgliteBundle(): Promise<PgliteBundle> {
       }
     })();
   }
-  return await bundlePromise;
+  return (await bundlePromise) ?? {};
 }
 
 function resolvePgliteDistDir(): string | undefined {
@@ -59,10 +70,9 @@ function resolvePgliteDistDir(): string | undefined {
     candidates.push(envDir);
   }
   try {
-    const resolved = require.resolve(
-      "@electric-sql/pglite/dist/pglite.data",
-    );
-    candidates.push(path.dirname(resolved));
+    const resolved = require.resolve("@electric-sql/pglite");
+    const resolvedDir = path.dirname(resolved);
+    candidates.push(resolvedDir, path.join(resolvedDir, "dist"));
   } catch {}
   candidates.push(
     path.join(
@@ -114,9 +124,12 @@ export async function getPglite(
   const dataDir = resolveDataDir(options.dataDir);
   L.info(`initializing PGlite (dataDir=${dataDir})`);
   const bundle = await loadPgliteBundle();
+  const fsBundle = bundle.fsBundle as unknown as Blob | undefined;
+  const wasmModule = bundle.wasmModule as unknown;
   const pg = new PGlite({
     dataDir,
-    ...bundle,
+    fsBundle,
+    wasmModule,
     parsers: {
       // Match pg's default behavior of returning int8 as strings.
       20: (value: string) => value,
