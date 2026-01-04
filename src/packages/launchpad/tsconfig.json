@@ -1,0 +1,14 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@cocalc/hub": ["../hub"],
+      "@cocalc/hub/*": ["../hub/*"]
+    }
+  },
+  "exclude": ["dist", "node_modules", "build"],
+  "references": [{ "path": "../hub" }]
+}

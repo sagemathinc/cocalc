@@ -52,6 +52,9 @@ export default function createApiV2Router(
 }
 
 function resolveApiRoot(override?: string): string {
+  if (process.env.COCALC_API_V2_ROOT) {
+    return process.env.COCALC_API_V2_ROOT;
+  }
   if (override) {
     return override;
   }

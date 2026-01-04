@@ -1,0 +1,51 @@
+{
+  "name": "@cocalc/launchpad",
+  "version": "0.1.0",
+  "description": "CoCalc Launchpad: lightweight control-plane bundle for small teams",
+  "main": "./electron.js",
+  "exports": {
+    ".": "./dist/index.js",
+    "./*": "./dist/*.js"
+  },
+  "bin": {
+    "cocalc-launchpad": "./bin/start.js"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "build": "pnpm exec tsc --build",
+    "test": "exit 0",
+    "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo sea/sea-prep.blob build",
+    "build:static": "cd ../static && pnpm clean && pnpm install && pnpm build",
+    "build:bundle": "pnpm build:static && cd sea && ./build-bundle.sh",
+    "build:tarball": "pnpm build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
+    "run:bundle": "node ./build/bundle/bundle/index.js",
+    "sea": "pnpm build:tarball && cd sea && ./build-sea.sh",
+    "build:all": "pnpm build && pnpm build:tarball && pnpm sea",
+    "app": "pnpm run build && node bin/start.js",
+    "app-electron": "pnpm electron-rebuild && electron ."
+  },
+  "files": [
+    "dist/**",
+    "bin/**",
+    "sea/**",
+    "electron.js",
+    "README.md",
+    "package.json"
+  ],
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/hub": "workspace:*"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.1",
+    "@types/node": "^22.10.10",
+    "@vercel/ncc": "^0.38.4",
+    "electron": "^37.3.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/launchpad"
+}

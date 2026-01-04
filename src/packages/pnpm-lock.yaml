@@ -1027,6 +1027,25 @@ importers:
         specifier: ^2.1.2
         version: 2.1.5
 
+  launchpad:
+    dependencies:
+      '@cocalc/hub':
+        specifier: workspace:*
+        version: link:../hub
+    devDependencies:
+      '@electron/rebuild':
+        specifier: ^4.0.1
+        version: 4.0.1
+      '@types/node':
+        specifier: ^22.10.10
+        version: 22.19.1
+      '@vercel/ncc':
+        specifier: ^0.38.4
+        version: 0.38.4
+      electron:
+        specifier: ^37.3.1
+        version: 37.8.0
+
   lite:
     dependencies:
       '@cocalc/ai':
@@ -1468,6 +1487,8 @@ importers:
       '@types/node':
         specifier: ^22.10.10
         version: 22.19.1
+
+  project/build/bundle/bundle: {}
 
   server:
     dependencies:
