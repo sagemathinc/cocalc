@@ -33,6 +33,7 @@ TIP: If you want to pass in an email like jd+1@example.com, use '%2B' in place o
 import { v4 } from "uuid";
 
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import getPool from "@cocalc/database/pool";
 import createAccount from "@cocalc/server/accounts/create-account";
 import isAccountAvailable from "@cocalc/server/auth/is-account-available";
 import isDomainExclusiveSSO from "@cocalc/server/auth/is-domain-exclusive-sso";
@@ -220,6 +221,38 @@ export async function signUp(req, res) {
       ephemeral: tokenInfo?.ephemeral,
       customize: tokenInfo?.customize,
     });
+
+    const tokenCustomize = tokenInfo?.customize;
+    const wantsAdmin =
+      tokenCustomize != null &&
+      typeof tokenCustomize === "object" &&
+      (tokenCustomize as { make_admin?: boolean }).make_admin === true;
+    const isBootstrap =
+      tokenCustomize != null &&
+      typeof tokenCustomize === "object" &&
+      (tokenCustomize as { bootstrap?: boolean }).bootstrap === true;
+
+    if (wantsAdmin) {
+      const pool = getPool();
+      await pool.query(
+        `UPDATE accounts
+            SET groups = CASE
+              WHEN groups IS NULL THEN ARRAY['admin']::TEXT[]
+              WHEN NOT ('admin' = ANY(groups)) THEN array_append(groups, 'admin')
+              ELSE groups
+            END
+          WHERE account_id=$1`,
+        [account_id],
+      );
+    }
+
+    if (isBootstrap && registrationToken) {
+      const pool = getPool();
+      await pool.query(
+        "UPDATE registration_tokens SET disabled=true WHERE token=$1",
+        [registrationToken],
+      );
+    }
 
     if (email) {
       try {

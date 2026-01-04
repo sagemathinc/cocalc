@@ -11,6 +11,9 @@ export const TRUST_ERROR_MESSAGE = `Please contact support and request a minimum
 )} to access this API endpoint.`;
 
 export default async function assertTrusted(account_id: string): Promise<void> {
+  if (process.env.COCALC_DB === "pglite") {
+    return;
+  }
   const { kucalc } = await getServerSettings();
 
   if (kucalc === KUCALC_COCALC_COM) {

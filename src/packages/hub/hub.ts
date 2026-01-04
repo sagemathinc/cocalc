@@ -26,6 +26,7 @@ import { init_start_always_running_projects } from "@cocalc/database/postgres/al
 import { load_server_settings_from_env } from "@cocalc/database/settings/server-settings";
 import { init_passport } from "@cocalc/server/hub/auth";
 import { initialOnPremSetup } from "@cocalc/server/initial-onprem-setup";
+import { ensureBootstrapAdminToken } from "@cocalc/server/auth/bootstrap-admin";
 import initHandleMentions from "@cocalc/server/mentions/handle";
 import initMessageMaintenance from "@cocalc/server/messages/maintenance";
 import initProjectControl from "@cocalc/server/projects/control";
@@ -309,7 +310,9 @@ async function startServer(): Promise<void> {
     const protocol = program.httpsKey ? "https" : "http";
     const target = `${protocol}://${program.hostname}:${port}${basePath}`;
 
-    const msg = `Started HUB!\n\n-----------\n\n The following URL *might* work: ${target}\n\n\nPORT=${port}\nBASE_PATH=${basePath}\nPROTOCOL=${protocol}\n\n${
+    const bootstrapUrl = await ensureBootstrapAdminToken({ baseUrl: target });
+    const displayUrl = bootstrapUrl ?? target;
+    const msg = `Started HUB!\n\n-----------\n\n The following URL *might* work: ${displayUrl}\n\n\nPORT=${port}\nBASE_PATH=${basePath}\nPROTOCOL=${protocol}\n\n${
       basePath.length <= 1
         ? ""
         : "If you are developing cocalc inside of cocalc, take the URL of the host cocalc\nand append " +
