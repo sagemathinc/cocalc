@@ -50,6 +50,46 @@ This plan covers:
 - Roll forward by updating `latest.json`.
 - Roll back by pointing `latest.json` back to a prior version.
 
+## Upgrade Strategy
+
+### Objectives
+- Admin can see the running project-host version and project bundle version per host.
+- Admin can trigger upgrade to latest or choose a specific version.
+- Rollback is fast and safe.
+- Upgrading project-host does not restart running project containers.
+- Upgrading bundles only affects new project starts.
+
+### Model
+- Keep immutable versions on each host and use atomic symlinks.
+  - `/opt/cocalc/project-host/versions/<ver>/...`
+  - `/opt/cocalc/project-host/current -> versions/<ver>`
+  - `/opt/cocalc/project-bundles/<ver>/...`
+  - `/opt/cocalc/project-bundles/current -> <ver>`
+- When starting a project, resolve the real bundle path (not the symlink) so
+  running containers keep using the old bundle if `current` changes.
+
+### Version reporting
+- Project-host reports `project_host_version` and `project_bundle_version`
+  to the master (store in host metadata and show in UI).
+
+### Upgrade flow (project-host)
+1) Master resolves a concrete version from `latest.json` (or user-specified).
+2) Host downloads and verifies sha256 into a staging directory.
+3) Extract to `/opt/cocalc/project-host/versions/<ver>/`.
+4) Atomically flip `/opt/cocalc/project-host/current` to the new version.
+5) Restart only the project-host process.
+6) Health check; on failure, flip back and restart.
+
+### Upgrade flow (project bundle)
+1) Master resolves version from `software/project/latest.json` (or specified).
+2) Host downloads and verifies into `/opt/cocalc/project-bundles/<ver>/`.
+3) Atomically flip `/opt/cocalc/project-bundles/current`.
+4) No container restarts; new projects use the new bundle.
+
+### Rollback and retention
+- Keep at least one prior version (e.g., `previous` symlink or keep last 2).
+- Provide a "prune old versions" action with a max retention cap.
+
 ## RootFS Distribution (btrfs subvolumes)
 
 ### Current model
