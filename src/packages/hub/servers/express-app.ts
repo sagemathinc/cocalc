@@ -32,6 +32,7 @@ import initRobots from "./robots";
 import basePath from "@cocalc/backend/base-path";
 import { initConatServer } from "@cocalc/server/conat/socketio";
 import { conatSocketioCount, root } from "@cocalc/backend/data";
+import createApiV2Router from "@cocalc/next/lib/api-v2-router";
 
 const PYTHON_API_PATH = join(root, "python", "cocalc-api", "site");
 
@@ -131,6 +132,11 @@ export default async function init(opts: Options): Promise<{
   initStats(router);
   initAppRedirect(router);
   initProjectHostBootstrap(router);
+
+  if (!opts.nextServer) {
+    winston.info("enabling api/v2 express router (nextjs disabled)");
+    router.use("/api/v2", createApiV2Router());
+  }
 
   if (basePath !== "/") {
     app.use(basePath, router);
