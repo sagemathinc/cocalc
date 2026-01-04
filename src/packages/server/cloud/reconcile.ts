@@ -10,7 +10,6 @@
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import type { ProviderId } from "@cocalc/cloud";
-import { scheduleBootstrap } from "./bootstrap-host";
 import { getProviderContext } from "./provider-context";
 import { listServerProviders } from "./providers";
 
@@ -274,15 +273,7 @@ async function reconcileProvider(provider: Provider) {
       public_url: publicUrl,
       internal_url: internalUrl,
     });
-    if (remote.public_ip && !runtime.public_ip) {
-      await scheduleBootstrap({
-        ...row,
-        status: nextStatus,
-        metadata: { ...(row.metadata ?? {}), runtime: nextRuntime },
-        public_url: row.public_url ?? `http://${remote.public_ip}`,
-        internal_url: row.internal_url ?? `http://${remote.public_ip}`,
-      });
-    }
+    // cloud-init handles bootstrap; no queue-based bootstrap scheduling.
   }
 }
 

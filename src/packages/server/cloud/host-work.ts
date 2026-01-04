@@ -10,11 +10,7 @@ import { enqueueCloudVmWorkOnce, logCloudVmEvent } from "./db";
 import { provisionIfNeeded } from "./host-util";
 import type { CloudVmWorkHandlers } from "./worker";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
-import {
-  buildCloudInitStartupScript,
-  handleBootstrap,
-  scheduleBootstrap,
-} from "./bootstrap-host";
+import { buildCloudInitStartupScript, handleBootstrap } from "./bootstrap-host";
 import { bumpReconcile, DEFAULT_INTERVALS } from "./reconcile";
 import { normalizeProviderId } from "@cocalc/cloud";
 import { getProviderContext } from "./provider-context";
@@ -241,7 +237,6 @@ async function handleProvision(row: any) {
     internal_url: internalUrl,
   });
   await scheduleRuntimeRefresh(provisioned);
-  await scheduleBootstrap(provisioned);
   await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
   await logCloudVmEvent({
     vm_id: row.id,
@@ -282,7 +277,6 @@ async function handleStart(row: any) {
   const nextRow = { ...row, status: "running" };
   await ensureDnsForHost(nextRow);
   await scheduleRuntimeRefresh(nextRow);
-  await scheduleBootstrap(nextRow);
   if (providerId) {
     await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
   }
@@ -464,7 +458,6 @@ async function handleRefreshRuntime(row: any) {
     internal_url: internalUrl,
   };
   await ensureDnsForHost(nextHost);
-  await scheduleBootstrap(nextHost);
   await logCloudVmEvent({
     vm_id: host.id,
     action: "refresh_runtime",

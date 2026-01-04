@@ -5,29 +5,20 @@
  * - Bootstrap installs deps, prepares /btrfs, downloads the SEA, and starts
  *   the project-host daemon. It also installs a cron @reboot hook so the
  *   daemon restarts on every VM reboot without re-running bootstrap.
- * - SSH bootstrap remains as a fallback if cloud-init did not complete.
+ * - SSH bootstrap is disabled; cloud-init is the sole bootstrap path.
  * - cloudflared (if enabled) is managed by systemd and restarts on reboot.
  */
 
-import { promises as fs } from "node:fs";
-import os from "node:os";
-import path from "node:path";
-import { spawn } from "node:child_process";
 import http from "node:http";
 import https from "node:https";
 import { URL } from "node:url";
-import getPool from "@cocalc/database/pool";
 import { buildHostSpec } from "./host-util";
 import { normalizeProviderId } from "@cocalc/cloud";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
 import type { HostRuntime } from "@cocalc/cloud/types";
-import { getControlPlaneSshKeypair } from "./ssh-key";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { enqueueCloudVmWork, logCloudVmEvent } from "./db";
-import { argsJoin } from "@cocalc/util/args";
 import getLogger from "@cocalc/backend/logger";
 import { getServerProvider } from "./providers";
-import { conatPasswordPath } from "@cocalc/backend/data";
 import {
   ensureCloudflareTunnelForHost,
   type CloudflareTunnel,
@@ -81,16 +72,6 @@ function extractArtifactVersion(
   } catch {
     return undefined;
   }
-}
-
-async function updateHostRow(id: string, updates: Record<string, any>) {
-  const keys = Object.keys(updates).filter((key) => updates[key] !== undefined);
-  if (!keys.length) return;
-  const sets = keys.map((key, idx) => `${key}=$${idx + 2}`);
-  await getPool().query(
-    `UPDATE project_hosts SET ${sets.join(", ")}, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
-    [id, ...keys.map((key) => updates[key])],
-  );
 }
 
 export type BootstrapScripts = {
@@ -697,52 +678,6 @@ bash "$BOOTSTRAP_DIR/bootstrap.sh" 2>&1 | tee "$BOOTSTRAP_DIR/bootstrap.log"
 `;
 }
 
-async function runCmd(
-  cmd: string,
-  args: string[],
-  opts: { cwd?: string; env?: NodeJS.ProcessEnv; stdin?: string } = {},
-) {
-  logger.debug(`${cmd} ${argsJoin(args)}`);
-  return await new Promise<{
-    stdout: string;
-    stderr: string;
-  }>((resolve, reject) => {
-    const child = spawn(cmd, args, {
-      cwd: opts.cwd,
-      env: opts.env,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
-    const stdoutChunks: string[] = [];
-    const stderrChunks: string[] = [];
-    const limit = 20000;
-    child.stdout?.on("data", (d) => {
-      if (stdoutChunks.join("").length < limit) {
-        stdoutChunks.push(d.toString());
-      }
-    });
-    child.stderr?.on("data", (d) => {
-      if (stderrChunks.join("").length < limit) {
-        stderrChunks.push(d.toString());
-      }
-    });
-    child.on("error", reject);
-    child.on("exit", (code) => {
-      const stdout = stdoutChunks.join("");
-      const stderr = stderrChunks.join("");
-      if (code === 0) return resolve({ stdout, stderr });
-      const e = `${cmd} exited with code ${code}: ${stderr.trim() || stdout.trim()}`;
-      logger.debug(e);
-      reject(new Error(e));
-    });
-    if (opts.stdin) {
-      child.stdin?.write(opts.stdin);
-      child.stdin?.end();
-    } else {
-      child.stdin?.end();
-    }
-  });
-}
-
 async function fetchJson(url: string, redirects = 3): Promise<any> {
   const target = new URL(url);
   const client = target.protocol === "http:" ? http : https;
@@ -814,303 +749,10 @@ async function resolveSoftwareArtifact(seaUrl: string): Promise<{
   return { url, sha256 };
 }
 
-async function withTempSshKey<T>(
-  fn: (opts: { keyPath: string; knownHosts: string }) => Promise<T>,
-) {
-  const { privateKey } = await getControlPlaneSshKeypair();
-  if (!privateKey) {
-    throw new Error("control plane ssh private key is not configured");
-  }
-  const tempDir = await fs.mkdtemp(
-    path.join(os.tmpdir(), "cocalc-control-ssh-"),
-  );
-  const keyPath = path.join(tempDir, "id_ed25519");
-  const knownHosts = path.join(tempDir, "known_hosts");
-  await fs.writeFile(keyPath, privateKey, { mode: 0o600 });
-  await fs.writeFile(knownHosts, "", { mode: 0o600 });
-  try {
-    return await fn({ keyPath, knownHosts });
-  } finally {
-    await fs.rm(tempDir, { recursive: true, force: true });
-  }
-}
-
-function sshBaseArgs(opts: { keyPath: string; knownHosts: string }) {
-  return [
-    "-i",
-    opts.keyPath,
-    "-o",
-    "StrictHostKeyChecking=accept-new",
-    "-o",
-    `UserKnownHostsFile=${opts.knownHosts}`,
-    "-o",
-    "IdentitiesOnly=yes",
-    "-o",
-    "ConnectTimeout=15",
-  ];
-}
-
-const BOOTSTRAP_SSH_WAIT_MS = 10 * 60 * 1000;
-const BOOTSTRAP_SSH_RETRY_MS = 15 * 1000;
-
-function shouldRetrySsh(err: unknown): boolean {
-  const msg = String((err as any)?.message ?? err);
-  const lowered = msg.toLowerCase();
-  return (
-    lowered.includes("exited with code 255") ||
-    lowered.includes("connection timed out") ||
-    lowered.includes("operation timed out") ||
-    lowered.includes("no route to host") ||
-    lowered.includes("connection refused") ||
-    lowered.includes("connection closed") ||
-    lowered.includes("could not resolve hostname")
-  );
-}
-
-async function retrySsh<T>(label: string, fn: () => Promise<T>): Promise<T> {
-  const deadline = Date.now() + BOOTSTRAP_SSH_WAIT_MS;
-  let attempt = 0;
-  let lastErr: unknown;
-  while (Date.now() < deadline) {
-    attempt += 1;
-    try {
-      return await fn();
-    } catch (err) {
-      lastErr = err;
-      if (!shouldRetrySsh(err)) {
-        throw err;
-      }
-      logger.info("bootstrap: ssh not ready, retrying", {
-        label,
-        attempt,
-        err: String(err),
-      });
-      await new Promise((resolve) =>
-        setTimeout(resolve, BOOTSTRAP_SSH_RETRY_MS),
-      );
-    }
-  }
-  throw new Error(
-    `ssh not reachable after ${Math.round(BOOTSTRAP_SSH_WAIT_MS / 60000)} minutes: ${String(lastErr)}`,
-  );
-}
-
-async function runSshScript(opts: {
-  user: string;
-  host: string;
-  keyPath: string;
-  knownHosts: string;
-  script: string;
-  scriptPath: string;
-}) {
-  const base = sshBaseArgs({
-    keyPath: opts.keyPath,
-    knownHosts: opts.knownHosts,
-  });
-  const logPath = opts.scriptPath.endsWith(".sh")
-    ? `${opts.scriptPath.slice(0, -3)}.log`
-    : `${opts.scriptPath}.log`;
-  const token = `COCALC_BOOTSTRAP_${Date.now()}_${Math.random()
-    .toString(36)
-    .slice(2, 10)}`;
-  const scriptPath = opts.scriptPath.replace(/"/g, '\\"');
-  const logPathEscaped = logPath.replace(/"/g, '\\"');
-  const wrapper = `set -euo pipefail
-script_path="${scriptPath}"
-log_path="${logPathEscaped}"
-script_dir=$(dirname "$script_path")
-mkdir -p "$script_dir"
-cat <<'${token}' > "$script_path"
-${opts.script.trim()}
-${token}
-chmod +x "$script_path"
-if [ "$log_path" = "$script_path" ]; then
-  log_path="\${script_path}.log"
-fi
-bash "$script_path" 2>&1 | tee "$log_path"
-`;
-  return await retrySsh(`ssh ${opts.host}`, async () => {
-    return await runCmd(
-      "ssh",
-      [...base, `${opts.user}@${opts.host}`, "bash", "-s"],
-      {
-        stdin: wrapper,
-      },
-    );
-  });
-}
-
-async function scpFile(opts: {
-  user: string;
-  host: string;
-  keyPath: string;
-  knownHosts: string;
-  localPath: string;
-  remotePath: string;
-}) {
-  const base = sshBaseArgs({
-    keyPath: opts.keyPath,
-    knownHosts: opts.knownHosts,
-  });
-  await retrySsh(`scp ${opts.host}`, async () => {
-    await runCmd("scp", [
-      ...base,
-      opts.localPath,
-      `${opts.user}@${opts.host}:${opts.remotePath}`,
-    ]);
-  });
-}
-
-export async function scheduleBootstrap(row: ProjectHostRow) {
-  if (row.metadata?.bootstrap?.source !== "ssh") {
-    return;
-  }
-  const { project_hosts_software_base_url } = await getServerSettings();
-  const softwareBaseUrl = normalizeSoftwareBaseUrl(
-    project_hosts_software_base_url ||
-      process.env.COCALC_PROJECT_HOST_SOFTWARE_BASE_URL ||
-      "",
-  );
-  const masterAddress =
-    process.env.MASTER_CONAT_SERVER ??
-    process.env.COCALC_MASTER_CONAT_SERVER ??
-    "";
-  if (!softwareBaseUrl) return;
-  if (!masterAddress) return;
-  if (
-    row.status &&
-    row.status !== "running" &&
-    row.status !== "starting"
-  )
-    return;
-  const runtime = row.metadata?.runtime;
-  if (!runtime?.public_ip) return;
-  const bootstrapStatus = row.metadata?.bootstrap?.status;
-  if (bootstrapStatus === "pending") {
-    const pendingAtRaw = row.metadata?.bootstrap?.pending_at;
-    const pendingAt = pendingAtRaw ? Date.parse(pendingAtRaw) : NaN;
-    const ageMs = Number.isFinite(pendingAt)
-      ? Date.now() - pendingAt
-      : 0;
-    if (!Number.isFinite(pendingAt) || ageMs < 10 * 60 * 1000) {
-      return;
-    }
-  }
-  if (bootstrapStatus === "done" || bootstrapStatus === "running") return;
-  const providerId = normalizeProviderId(row.metadata?.machine?.cloud);
-  await enqueueCloudVmWork({
-    vm_id: row.id,
-    action: "bootstrap",
-    payload: { provider: providerId ?? row.metadata?.machine?.cloud },
-  });
-}
-
 export async function handleBootstrap(row: ProjectHostRow) {
   logger.debug("handleBootstrap", { host_id: row.id });
-  if (row.metadata?.bootstrap?.source !== "ssh") {
-    logger.info("handleBootstrap: skipped (cloud-init only)", {
-      host_id: row.id,
-    });
-    return;
-  }
-  const runtime = row.metadata?.runtime;
-  if (!runtime?.public_ip) {
-    throw new Error("bootstrap requires public_ip");
-  }
-  const metadata = row.metadata ?? {};
-  if (metadata.bootstrap?.status === "done") return;
-  const machine: HostMachine = metadata.machine ?? {};
-  const providerId = normalizeProviderId(machine.cloud);
-  const publicIp = runtime.public_ip;
-  const {
-    bootstrapScript,
-    fetchSeaScript,
-    fetchProjectBundleScript,
-    fetchToolsScript,
-    installServiceScript,
-    sshUser,
-    publicUrl,
-    internalUrl,
-    tunnel,
-  } = await buildBootstrapScripts(row);
-
-  await updateHostRow(row.id, {
-    metadata: {
-      ...metadata,
-      ...(tunnel ? { cloudflare_tunnel: tunnel } : {}),
-      bootstrap: { status: "running", started_at: new Date().toISOString() },
-    },
+  logger.info("handleBootstrap: skipped (cloud-init only)", {
+    host_id: row.id,
   });
-
-  await withTempSshKey(async ({ keyPath, knownHosts }) => {
-    await runSshScript({
-      user: sshUser,
-      host: publicIp,
-      keyPath,
-      knownHosts,
-      script: bootstrapScript,
-      scriptPath: "$HOME/bootstrap/install.sh",
-    });
-    // [ ] TODO: obviously we should generate distinct conat accounts
-    //     for each project-host instead of reusing the master password!
-    await scpFile({
-      user: sshUser,
-      host: publicIp,
-      keyPath,
-      knownHosts,
-      localPath: conatPasswordPath,
-      remotePath: "/btrfs/data/secrets/conat-password",
-    });
-    await runSshScript({
-      user: sshUser,
-      host: publicIp,
-      keyPath,
-      knownHosts,
-      script: fetchSeaScript,
-      scriptPath: "$HOME/bootstrap/fetch-sea.sh",
-    });
-    await runSshScript({
-      user: sshUser,
-      host: publicIp,
-      keyPath,
-      knownHosts,
-      script: fetchProjectBundleScript,
-      scriptPath: "$HOME/bootstrap/fetch-project-bundle.sh",
-    });
-    await runSshScript({
-      user: sshUser,
-      host: publicIp,
-      keyPath,
-      knownHosts,
-      script: fetchToolsScript,
-      scriptPath: "$HOME/bootstrap/fetch-tools.sh",
-    });
-    await runSshScript({
-      user: sshUser,
-      host: publicIp,
-      keyPath,
-      knownHosts,
-      script: installServiceScript,
-      scriptPath: "$HOME/bootstrap/install-service.sh",
-    });
-  });
-
-  await updateHostRow(row.id, {
-    metadata: {
-      ...metadata,
-      ...(tunnel ? { cloudflare_tunnel: tunnel } : {}),
-      bootstrap: { status: "done", finished_at: new Date().toISOString() },
-    },
-    status: row.status === "starting" ? "running" : row.status,
-    public_url: publicUrl,
-    internal_url: internalUrl,
-  });
-  await logCloudVmEvent({
-    vm_id: row.id,
-    action: "bootstrap",
-    status: "success",
-    provider: providerId ?? machine.cloud,
-    spec: machine,
-    runtime,
-  });
+  return;
 }
