@@ -3,7 +3,7 @@ import getPool from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/hub/logger";
 import basePath from "@cocalc/backend/base-path";
 import { conatPassword } from "@cocalc/backend/data";
-import { buildCloudInitStartupScript } from "@cocalc/server/cloud/bootstrap-host";
+import { buildBootstrapScriptWithStatus } from "@cocalc/server/cloud/bootstrap-host";
 import { verifyBootstrapToken } from "@cocalc/server/project-host/bootstrap-token";
 import siteURL from "@cocalc/database/settings/site-url";
 
@@ -81,7 +81,7 @@ export default function init(router: Router) {
         const base = basePath === "/" ? "" : basePath;
         baseUrl = `${proto}://${hostHeader}${base}`;
       }
-      const script = await buildCloudInitStartupScript(
+      const script = await buildBootstrapScriptWithStatus(
         hostRow,
         token,
         baseUrl,

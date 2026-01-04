@@ -477,7 +477,7 @@ sudo systemctl enable --now cocalc-cloudflared
   };
 }
 
-export async function buildCloudInitStartupScript(
+export async function buildBootstrapScriptWithStatus(
   row: ProjectHostRow,
   token: string,
   baseUrl: string,
@@ -509,16 +509,11 @@ CONAT_URL="${conatUrl}"
 
 report_status() {
   local status="$1"
-  local message="$2"
-  if [ -n "$message" ]; then
-    curl -fsSL -X POST -H "Authorization: Bearer $BOOTSTRAP_TOKEN" -H "Content-Type: application/json" \
-      --data "{\"status\":\"\${status}\",\"message\":\"\${message}\"}" \
-      "$STATUS_URL" >/dev/null || true
-  else
-    curl -fsSL -X POST -H "Authorization: Bearer $BOOTSTRAP_TOKEN" -H "Content-Type: application/json" \
-      --data "{\"status\":\"\${status}\"}" \
-      "$STATUS_URL" >/dev/null || true
-  fi
+  local payload
+  printf -v payload '{"status":"%s"}' "$status"
+  curl -fsSL -X POST -H "Authorization: Bearer $BOOTSTRAP_TOKEN" -H "Content-Type: application/json" \
+    --data "$payload" \
+    "$STATUS_URL" >/dev/null || true
 }
 
 report_status "running"
@@ -527,6 +522,29 @@ ${scripts.fetchSeaScript}
 ${scripts.installServiceScript}
 sudo touch /btrfs/data/.bootstrap_done
 report_status "done"
+`;
+}
+
+export async function buildCloudInitStartupScript(
+  _row: ProjectHostRow,
+  token: string,
+  baseUrl: string,
+): Promise<string> {
+  const bootstrapUrl = `${baseUrl}/project-host/bootstrap`;
+  return `#!/bin/bash
+set -euo pipefail
+BOOTSTRAP_TOKEN="${token}"
+BOOTSTRAP_URL="${bootstrapUrl}"
+BOOTSTRAP_DIR="/root/bootstrap"
+
+if ! command -v curl >/dev/null 2>&1; then
+  apt-get update -y
+  apt-get install -y curl
+fi
+
+mkdir -p "$BOOTSTRAP_DIR"
+curl -fsSL -H "Authorization: Bearer $BOOTSTRAP_TOKEN" "$BOOTSTRAP_URL" > "$BOOTSTRAP_DIR/bootstrap.sh"
+bash "$BOOTSTRAP_DIR/bootstrap.sh" 2>&1 | tee "$BOOTSTRAP_DIR/bootstrap.log"
 `;
 }
 
