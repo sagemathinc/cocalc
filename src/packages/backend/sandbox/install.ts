@@ -115,10 +115,10 @@ export const SPEC = {
     stripComponents: 0,
     pathInArchive: () => "rustic",
   },
-  // sshpiper -- used by the core
+  // sshpiper -- used by the project-host
   // See https://github.com/sagemathinc/sshpiper-binaries/releases
   sshpiper: {
-    optional: true,
+    optional: false,
     desc: "sshpiper reverse proxy for sshd",
     path: join(binPath, "sshpiperd"),
     // this is what --version outputs and is the sha hash of HEAD:
@@ -137,7 +137,19 @@ export const SPEC = {
     },
     BASE: "https://github.com/sagemathinc/sshpiper-binaries/releases",
   },
-
+  codex: {
+    optional: false,
+    desc: "codex",
+    path: join(binPath, "codex"),
+    getVersion: "codex --version | awk '{print $2}'",
+    VERSION: "0.78.0-alpha.10",
+    script: () => {
+      const VERSION = SPEC.codex.VERSION;
+      const a = arch() == "x64" ? "x86_64" : "aarch64";
+      return `curl -L https://github.com/openai/codex/releases/download/rust-v${VERSION}/codex-${a}-unknown-linux-musl.tar.gz | tar -xz -C "${binPath}" && mv ${join(binPath, "codex-" + a + "-unknown-linux-musl")} ${join(binPath, "codex")}`;
+    },
+    BASE: "https://github.com/openai/codex/releases",
+  },
   btm: {
     optional: true,
     // See https://github.com/ClementTsang/bottom/releases
