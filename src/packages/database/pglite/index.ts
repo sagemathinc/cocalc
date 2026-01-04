@@ -59,9 +59,7 @@ function resolvePgliteDistDir(): string | undefined {
     candidates.push(envDir);
   }
   try {
-    const resolved = require.resolve(
-      "@electric-sql/pglite/dist/pglite.data",
-    );
+    const resolved = require.resolve("@electric-sql/pglite");
     candidates.push(path.dirname(resolved));
   } catch {}
   candidates.push(
