@@ -38,7 +38,7 @@ export function recordDisconnected() {
 
 // ATTN: do not move/rename this function, since it is referenced in postgres-base.coffee
 export function recordConnected() {
-  L.debug("connected");
+  // L.debug("connected");
   try {
     getStatusGauge().labels("connected").set(Date.now());
   } catch (err) {

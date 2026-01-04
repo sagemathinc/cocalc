@@ -135,7 +135,7 @@ function getGcpCatalogFetchOptions(
 ) {
   const { google_cloud_service_account_json } = settings;
   if (!google_cloud_service_account_json) {
-    throw new Error("google_cloud_service_account_json is not configured");
+    return undefined;
   }
   const parsed = JSON.parse(google_cloud_service_account_json);
   if (!parsed.project_id) {
@@ -149,7 +149,7 @@ function getHyperstackCatalogFetchOptions(
 ) {
   const { hyperstack_api_key } = settings;
   if (!hyperstack_api_key) {
-    throw new Error("hyperstack_api_key is not configured");
+    return undefined;
   }
   const prefix = getProviderPrefix("hyperstack", settings);
   return { apiKey: hyperstack_api_key, prefix };
@@ -160,7 +160,7 @@ function getLambdaCatalogFetchOptions(
 ) {
   const { lambda_cloud_api_key } = settings;
   if (!lambda_cloud_api_key) {
-    throw new Error("lambda_cloud_api_key is not configured");
+    return undefined;
   }
   return { apiKey: lambda_cloud_api_key };
 }
@@ -176,6 +176,9 @@ function getNebiusCatalogFetchOptions(
   settings: ProviderCredsContext["settings"],
 ) {
   const { nebius_parent_id } = settings;
+  if (!settings.nebius_credentials_json) {
+    return undefined;
+  }
   const creds = getNebiusCredentialsFromSettings(settings);
   return {
     ...creds,

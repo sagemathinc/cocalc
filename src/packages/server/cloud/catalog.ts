@@ -93,6 +93,12 @@ async function refreshCatalogForProvider(
   const fetchOpts = provider.getCatalogFetchOptions
     ? await provider.getCatalogFetchOptions(settings)
     : {};
+  if (fetchOpts == null) {
+    logger.debug("cloud catalog skipped (provider not configured)", {
+      provider: provider.id,
+    });
+    return;
+  }
   const catalog = await entry.fetchCatalog(fetchOpts);
   if (provider.postProcessCatalog) {
     await provider.postProcessCatalog(catalog);
