@@ -47,8 +47,9 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc  --build && coffee -c -o dist/ ./",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
-    "test": "NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest --forceExit --maxWorkers=1",
-    "test:pglite": "COCALC_TEST_USE_PGLITE=1 pnpm test",
+    "test": "pnpm test:psql && pnpm test:pglite",
+    "test:psql": "pnpm exec jest --forceExit --maxWorkers=1",
+    "test:pglite": "COCALC_TEST_USE_PGLITE=1 NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest  --forceExit",
     "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "pnpm test"
   },
@@ -57,10 +58,7 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": [
-    "postgresql",
-    "cocalc"
-  ],
+  "keywords": ["postgresql", "cocalc"],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {

@@ -19,6 +19,8 @@ const config = {
   basePath,
   env: { BASE_PATH },
   eslint: { ignoreDuringBuilds: true },
+  // Keep pglite in node_modules so its .data/.wasm assets resolve at runtime.
+  serverExternalPackages: ["@electric-sql/pglite"],
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
     // Webpack breaks without this pg-native alias, even though it's dead code,
     // due to how the pg module does package detection internally.

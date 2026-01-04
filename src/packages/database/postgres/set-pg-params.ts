@@ -24,6 +24,17 @@ interface Opts {
 // used by __do_query in postgres-base
 export async function do_query_with_pg_params(opts: Opts): Promise<void> {
   const { client, query, params, pg_params, cb } = opts;
+  if (process.env.COCALC_DB === "pglite") {
+    // PGlite doesn't support SET LOCAL/transaction-scoped params, and the
+    // statement_timeout guard is only relevant for multi-user postgres.
+    try {
+      const res = await client.query(query, normalizeValues(params));
+      cb(undefined, res);
+    } catch (err) {
+      cb(err);
+    }
+    return;
+  }
 
   try {
     await client.query("BEGIN");
