@@ -44,7 +44,7 @@ export default function initUpgrade(
             continue;
           }
           const source = `${f}`;
-          logger.debug(`found extra listener`, { f, source });
+          //logger.debug(`found extra listener`, { f, source });
           if (source.includes("destroyUpgrade")) {
             // WARNING/BRITTLE! the socketio source code for the upgrade handler has a destroyUpgrade
             // option it checks for, whereas the nextjs one doesn't.
@@ -68,7 +68,7 @@ export default function initUpgrade(
           }
           logger.debug(
             `found extra listener -- detected, saved and removed 'upgrade' listener`,
-            source,
+            //source,
           );
           httpServer.removeListener("upgrade", f);
         }
