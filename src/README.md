@@ -156,6 +156,8 @@ That will ensure the latest version of the hub Typescript and Coffeescript gets 
 
 The hub itself is running two copies of webpack along with two separate "Hot Module Replacement" servers, etc. One is for the `/static` endpoint \(see packages/static and packages/frontend\) and the other is for the nextjs server \(see packages/next\).
 
+If you want a lightweight dev server without Next.js, you can run the hub with `COCALC_DISABLE_NEXT=1`. This skips Next entirely, but still serves all `/api/v2` endpoints via an Express router that loads the compiled handlers, which is useful for fast local dev and lightweight control-plane deployments.
+
 ### 3. Building only what has changed
 
 The command `pnpm build (or build-dev)`, when run from the src directory, caches the fact that there was a successful build by touching a file `src/packages/package-name/.successful_build` . This caching _only_ does anything if you explicitly use the `pnpm build` command from the src/ directory, and is ignored when directly building in a subdirectory. You can do `pnpm build --exclude=static` periodically to rebuild precisely what needs to be built, except what is built using webpack \(e.g., via `pnpm static` as explained above\):

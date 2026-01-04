@@ -61,6 +61,28 @@ type ProjectHostRow = {
   metadata?: HostMetadata;
 };
 
+const DEFAULT_SOFTWARE_BASE_URL = "https://software.cocalc.ai/software";
+
+function normalizeSoftwareBaseUrl(raw: string): string {
+  const trimmed = (raw || "").trim();
+  const base = trimmed || DEFAULT_SOFTWARE_BASE_URL;
+  return base.replace(/\/+$/, "");
+}
+
+function extractArtifactVersion(
+  url: string,
+  artifact: "project-host" | "project",
+): string | undefined {
+  if (!url) return undefined;
+  try {
+    const pathname = new URL(url).pathname;
+    const match = pathname.match(new RegExp(`/${artifact}/([^/]+)/`));
+    return match?.[1];
+  } catch {
+    return undefined;
+  }
+}
+
 async function updateHostRow(id: string, updates: Record<string, any>) {
   const keys = Object.keys(updates).filter((key) => updates[key] !== undefined);
   if (!keys.length) return;
@@ -74,15 +96,20 @@ async function updateHostRow(id: string, updates: Record<string, any>) {
 export type BootstrapScripts = {
   bootstrapScript: string;
   fetchSeaScript: string;
+  fetchProjectBundleScript: string;
   installServiceScript: string;
   publicUrl: string;
   internalUrl: string;
   sshServer: string;
   sshUser: string;
   seaRemote: string;
-  seaPath: string;
   resolvedSeaUrl: string;
   seaSha256: string;
+  projectBundleUrl: string;
+  projectBundleSha256: string;
+  projectBundlesRoot: string;
+  projectBundleDir: string;
+  projectBundleRemote: string;
   tunnel?: CloudflareTunnel;
 };
 
@@ -104,21 +131,37 @@ export async function buildBootstrapScripts(
     throw new Error("bootstrap requires public_ip");
   }
 
-  const { project_hosts_sea_path, project_hosts_sea_url } =
-    await getServerSettings();
-  const seaPath =
-    project_hosts_sea_path || process.env.COCALC_PROJECT_HOST_SEA_PATH || "";
-  const seaUrl =
-    project_hosts_sea_url || process.env.COCALC_PROJECT_HOST_SEA_URL || "";
-  if (!seaPath && !seaUrl) {
-    throw new Error("project host SEA source is not configured");
+  const { project_hosts_software_base_url } = await getServerSettings();
+  const softwareBaseUrl = normalizeSoftwareBaseUrl(
+    project_hosts_software_base_url ||
+      process.env.COCALC_PROJECT_HOST_SOFTWARE_BASE_URL ||
+      "",
+  );
+  if (!softwareBaseUrl) {
+    throw new Error("project host software base URL is not configured");
   }
-  let resolvedSeaUrl = seaUrl;
-  let seaSha256 = "";
-  if (!seaPath && seaUrl) {
-    const resolved = await resolveSeaArtifact(seaUrl);
-    resolvedSeaUrl = resolved.url;
-    seaSha256 = (resolved.sha256 ?? "").replace(/[^a-f0-9]/gi, "");
+  const projectHostManifestUrl = `${softwareBaseUrl}/project-host/latest.json`;
+  const projectManifestUrl = `${softwareBaseUrl}/project/latest.json`;
+  const resolvedHostSea = await resolveSoftwareArtifact(projectHostManifestUrl);
+  const resolvedSeaUrl = resolvedHostSea.url;
+  const seaSha256 = (resolvedHostSea.sha256 ?? "").replace(/[^a-f0-9]/gi, "");
+  const resolvedProjectBundle =
+    await resolveSoftwareArtifact(projectManifestUrl);
+  const projectBundleUrl = resolvedProjectBundle.url;
+  const projectBundleSha256 = (resolvedProjectBundle.sha256 ?? "").replace(
+    /[^a-f0-9]/gi,
+    "",
+  );
+  const projectBundleVersion =
+    extractArtifactVersion(projectBundleUrl, "project") || "latest";
+  const projectBundlesRoot = "/opt/cocalc/project-bundles";
+  const projectBundleDir = `${projectBundlesRoot}/${projectBundleVersion}`;
+  const projectBundleRemote = "/opt/cocalc/project-bundle.tar.xz";
+  if (!resolvedSeaUrl) {
+    throw new Error("project host SEA URL could not be resolved");
+  }
+  if (!projectBundleUrl) {
+    throw new Error("project bundle URL could not be resolved");
   }
 
   const masterAddress =
@@ -186,6 +229,7 @@ export async function buildBootstrapScripts(
     `DATA=${dataDir}`,
     `COCALC_DATA=${dataDir}`,
     `COCALC_LITE_SQLITE_FILENAME=${dataDir}/sqlite.db`,
+    `COCALC_PROJECT_BUNDLES=${projectBundlesRoot}`,
     `COCALC_PROJECT_HOST_HTTPS=${tlsEnabled ? "1" : "0"}`,
     `HOST=0.0.0.0`,
     `PORT=${port}`,
@@ -441,6 +485,35 @@ WantedBy=multi-user.target
   fi
 `;
 
+  const fetchProjectBundleScript = `set -euo pipefail
+  BUNDLE_URL="${projectBundleUrl.replace(/"/g, '\\"')}"
+  BUNDLE_SHA256="${projectBundleSha256}"
+  BUNDLE_REMOTE="${projectBundleRemote}"
+  BUNDLE_DIR="${projectBundleDir}"
+  BUNDLE_ROOT="${projectBundlesRoot}"
+  BUNDLE_CURRENT="${projectBundlesRoot}/current"
+  echo "bootstrap: downloading project bundle from ${projectBundleUrl.replace(/"/g, '\\"')}"
+  curl -fL "$BUNDLE_URL" -o "$BUNDLE_REMOTE"
+  if [ -n "$BUNDLE_SHA256" ]; then
+    if command -v sha256sum >/dev/null 2>&1; then
+      echo "$BUNDLE_SHA256  $BUNDLE_REMOTE" | sha256sum -c -
+    else
+      echo "bootstrap: sha256sum not available; skipping bundle checksum"
+    fi
+  else
+    if command -v sha256sum >/dev/null 2>&1; then
+      if curl -fsSL "$BUNDLE_URL.sha256" -o "$BUNDLE_REMOTE.sha256"; then
+        sha256sum -c "$BUNDLE_REMOTE.sha256" || true
+      fi
+    fi
+  fi
+  sudo mkdir -p "$BUNDLE_ROOT"
+  sudo rm -rf "$BUNDLE_DIR"
+  sudo mkdir -p "$BUNDLE_DIR"
+  sudo tar -xJf "$BUNDLE_REMOTE" -C "$BUNDLE_DIR"
+  sudo ln -sfn "$BUNDLE_DIR" "$BUNDLE_CURRENT"
+`;
+
   const installServiceScript = `
 set -euo pipefail
 if [ -x /opt/cocalc/project-host/cocalc-project-host ]; then
@@ -464,15 +537,20 @@ sudo systemctl enable --now cocalc-cloudflared
   return {
     bootstrapScript,
     fetchSeaScript,
+    fetchProjectBundleScript,
     installServiceScript,
     publicUrl,
     internalUrl,
     sshServer,
     sshUser,
     seaRemote,
-    seaPath,
     resolvedSeaUrl,
     seaSha256,
+    projectBundleUrl,
+    projectBundleSha256,
+    projectBundlesRoot,
+    projectBundleDir,
+    projectBundleRemote,
     tunnel,
   };
 }
@@ -519,6 +597,7 @@ report_status() {
 report_status "running"
 ${scripts.bootstrapScript}
 ${scripts.fetchSeaScript}
+${scripts.fetchProjectBundleScript}
 ${scripts.installServiceScript}
 sudo touch /btrfs/data/.bootstrap_done
 report_status "done"
@@ -649,7 +728,7 @@ async function fetchJson(url: string, redirects = 3): Promise<any> {
   });
 }
 
-async function resolveSeaArtifact(seaUrl: string): Promise<{
+async function resolveSoftwareArtifact(seaUrl: string): Promise<{
   url: string;
   sha256?: string;
 }> {
@@ -813,17 +892,17 @@ async function scpFile(opts: {
 }
 
 export async function scheduleBootstrap(row: ProjectHostRow) {
-  const { project_hosts_sea_path, project_hosts_sea_url } =
-    await getServerSettings();
-  const seaPath =
-    project_hosts_sea_path || process.env.COCALC_PROJECT_HOST_SEA_PATH || "";
-  const seaUrl =
-    project_hosts_sea_url || process.env.COCALC_PROJECT_HOST_SEA_URL || "";
+  const { project_hosts_software_base_url } = await getServerSettings();
+  const softwareBaseUrl = normalizeSoftwareBaseUrl(
+    project_hosts_software_base_url ||
+      process.env.COCALC_PROJECT_HOST_SOFTWARE_BASE_URL ||
+      "",
+  );
   const masterAddress =
     process.env.MASTER_CONAT_SERVER ??
     process.env.COCALC_MASTER_CONAT_SERVER ??
     "";
-  if (!seaPath && !seaUrl) return;
+  if (!softwareBaseUrl) return;
   if (!masterAddress) return;
   if (
     row.status &&
@@ -867,10 +946,9 @@ export async function handleBootstrap(row: ProjectHostRow) {
   const {
     bootstrapScript,
     fetchSeaScript,
+    fetchProjectBundleScript,
     installServiceScript,
     sshUser,
-    seaRemote,
-    seaPath,
     publicUrl,
     internalUrl,
     tunnel,
@@ -903,25 +981,22 @@ export async function handleBootstrap(row: ProjectHostRow) {
       localPath: conatPasswordPath,
       remotePath: "/btrfs/data/secrets/conat-password",
     });
-    if (seaPath) {
-      await scpFile({
-        user: sshUser,
-        host: publicIp,
-        keyPath,
-        knownHosts,
-        localPath: seaPath,
-        remotePath: seaRemote,
-      });
-    } else {
-      await runSshScript({
-        user: sshUser,
-        host: publicIp,
-        keyPath,
-        knownHosts,
-        script: fetchSeaScript,
-        scriptPath: "$HOME/bootstrap/fetch-sea.sh",
-      });
-    }
+    await runSshScript({
+      user: sshUser,
+      host: publicIp,
+      keyPath,
+      knownHosts,
+      script: fetchSeaScript,
+      scriptPath: "$HOME/bootstrap/fetch-sea.sh",
+    });
+    await runSshScript({
+      user: sshUser,
+      host: publicIp,
+      keyPath,
+      knownHosts,
+      script: fetchProjectBundleScript,
+      scriptPath: "$HOME/bootstrap/fetch-project-bundle.sh",
+    });
     await runSshScript({
       user: sshUser,
       host: publicIp,

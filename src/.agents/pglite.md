@@ -187,3 +187,60 @@ Goal: allow an easy upgrade path to Postgres later.
 - Tests running under PGlite for key slices
 - SEA build includes PGlite assets
 - Simple migration/export path documented
+
+
+## Phase 7: Nextless Auth UI (Option 2)
+
+Goal: provide minimal sign-in, sign-up, and password reset screens in the SPA
+when Next.js is disabled, using api/v2 endpoints and registration tokens.
+
+1) Minimal auth components (frontend)
+
+- Create small, self-contained components under [src/packages/frontend/auth](./src/packages/frontend/auth):
+  - sign-in (email, password)
+  - sign-up (email, password, first/last name, registration token if required)
+  - password reset (email only)
+- Use the existing API client [src/packages/frontend/client/api.ts](./src/packages/frontend/client/api.ts)
+  and call:
+  - /api/v2/auth/sign-in
+  - /api/v2/auth/sign-up
+  - /api/v2/auth/password-reset
+  - /api/v2/auth/requires-token (only if requirement unknown)
+- Keep it minimal: no SSO, no captcha, no tags. Only basic validation
+  (email format, password length).
+- Use the site name from the customize store (site_name) for copy.
+- On success, redirect to /app?sign-in to reuse the existing sign-in action flow.
+
+2) SPA routing for /auth/*
+
+- Add a new auth view in the SPA:
+  - Extend page state in [src/packages/frontend/app/store.ts](./src/packages/frontend/app/store.ts)
+    with an auth view (e.g., active_top_tab="auth" + auth_view).
+  - Update routing in [src/packages/frontend/history.ts](./src/packages/frontend/history.ts)
+    to parse /auth/sign-in, /auth/sign-up, /auth/password-reset and set auth_view.
+  - Render the auth page in [src/packages/frontend/app/active-content.tsx](./src/packages/frontend/app/active-content.tsx).
+- Make the auth view clean:
+  - When auth view is active, hide the normal top navigation in
+    [src/packages/frontend/app/page.tsx](./src/packages/frontend/app/page.tsx)
+    (so it feels like a dedicated auth screen).
+
+3) Server redirect for /auth/* when Next is off
+
+- Update [src/packages/hub/servers/app/app-redirect.ts](./src/packages/hub/servers/app/app-redirect.ts)
+  to optionally include /auth/* in the SPA redirect list when Next.js is disabled.
+- Pass that option from [src/packages/hub/servers/express-app.ts](./src/packages/hub/servers/express-app.ts)
+  based on opts.nextServer.
+- Keep existing Next behavior unchanged when Next is enabled.
+
+4) Registration token handling
+
+- The customize loader already sets the account store "token" flag in
+  [src/packages/frontend/customize.tsx](./src/packages/frontend/customize.tsx).
+  Use it if available, otherwise call /api/v2/auth/requires-token.
+- Show the token field only when required.
+
+5) Small doc note
+
+- Add a short note in [src/README.md](./src/README.md) describing that
+  /auth/sign-in, /auth/sign-up, and /auth/password-reset are available in
+  nextless mode (COCALC_DISABLE_NEXT=1).

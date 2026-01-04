@@ -266,8 +266,7 @@ export type SiteSettingsExtrasKeys =
   | "google_cloud_bigquery_billing_service_account_json"
   | "google_cloud_bigquery_detailed_billing_table"
   | "project_hosts_google_prefix"
-  | "project_hosts_sea_path"
-  | "project_hosts_sea_url"
+  | "project_hosts_software_base_url"
   | "project_hosts_cloudflare_tunnel_enabled"
   | "project_hosts_cloudflare_tunnel_account_id"
   | "project_hosts_cloudflare_tunnel_api_token"
@@ -975,18 +974,10 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Project Hosts", "Google Cloud"],
     valid: () => true,
   },
-  project_hosts_sea_path: {
-    name: "Project Hosts: SEA Path",
-    desc: "Local filesystem path to the project-host SEA tarball (e.g., cocalc-project-host-<version>-<arch>-<os>.tar.xz). Used by the hub to SCP the binary to remote hosts.",
-    default: "",
-    to_val: to_trimmed_str,
-    tags: ["Project Hosts", "Cloud"],
-    valid: () => true,
-  },
-  project_hosts_sea_url: {
-    name: "Project Hosts: SEA URL",
-    desc: "URL to a project-host SEA tarball. If set, remote hosts will fetch it via curl instead of SCP. Overrides the local SEA path if present.",
-    default: "",
+  project_hosts_software_base_url: {
+    name: "Project Hosts: Software Base URL",
+    desc: "Base URL for project-host software artifacts. This must contain `project-host/latest.json` and `project/latest.json` (e.g., https://software.cocalc.ai/software).",
+    default: "https://software.cocalc.ai/software",
     to_val: to_trimmed_str,
     tags: ["Project Hosts", "Cloud"],
     valid: () => true,
