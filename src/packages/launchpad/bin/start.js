@@ -3,6 +3,31 @@
 // pglite + nextless mode with lightweight defaults.
 const { dirname, join } = require("path");
 const { existsSync } = require("fs");
+const { createServer } = require("http");
+
+async function getPort() {
+  const port = await new Promise((resolve, reject) => {
+    const server = createServer();
+    server.listen(0, () => {
+      const address = server.address();
+      if (typeof address === "object" && address !== null) {
+        const { port } = address;
+        server.close(() => resolve(port));
+      } else {
+        reject(new Error("Failed to get port"));
+      }
+    });
+    server.on("error", reject);
+  });
+  return port;
+}
+
+function prependPath(dir) {
+  if (!dir || !existsSync(dir)) {
+    return;
+  }
+  process.env.PATH = `${dir}:${process.env.PATH ?? ""}`;
+}
 
 (async () => {
   try {
@@ -10,7 +35,7 @@ const { existsSync } = require("fs");
     process.env.COCALC_DISABLE_NEXT ??= "1";
     process.env.COCALC_MODE ??= "launchpad";
 
-    process.env.PORT ??= await require("@cocalc/backend/get-port").default();
+    process.env.PORT ??= await getPort();
     process.env.DATA ??= join(
       process.env.HOME ?? process.cwd(),
       ".local",
@@ -23,6 +48,7 @@ const { existsSync } = require("fs");
     );
 
     const bundleDir = process.env.COCALC_BUNDLE_DIR ?? process.cwd();
+    process.env.COCALC_BUNDLE_DIR ??= bundleDir;
     const pgliteBundleDir = join(bundleDir, "pglite");
     if (!process.env.COCALC_PGLITE_BUNDLE_DIR && existsSync(pgliteBundleDir)) {
       process.env.COCALC_PGLITE_BUNDLE_DIR = pgliteBundleDir;
@@ -32,9 +58,11 @@ const { existsSync } = require("fs");
       process.env.COCALC_API_V2_ROOT = apiRoot;
     }
 
-    // put path to special node binaries:
-    const { bin } = require("@cocalc/backend/data");
-    process.env.PATH = `${bin}:${dirname(process.execPath)}:${process.env.PATH}`;
+    // put path to special node binaries if available
+    prependPath(join(bundleDir, "node_modules", ".bin"));
+    prependPath(join(bundleDir, "bundle", "node_modules", ".bin"));
+    prependPath(join(process.cwd(), "node_modules", ".bin"));
+    prependPath(dirname(process.execPath));
 
     if (!process.argv.includes("--all")) {
       process.argv.push("--all");

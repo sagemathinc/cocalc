@@ -7,8 +7,7 @@ import express from "express";
 import ms from "ms";
 import { join } from "path";
 import { parse as parseURL } from "url";
-import webpackDevMiddleware from "webpack-dev-middleware";
-import webpackHotMiddleware from "webpack-hot-middleware";
+import * as Module from "module";
 import { path as WEBAPP_PATH } from "@cocalc/assets";
 import { path as CDN_PATH } from "@cocalc/cdn";
 import vhostShare from "@cocalc/next/lib/share/virtual-hosts";
@@ -23,7 +22,6 @@ import initUpload from "./app/upload";
 import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
 import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
-import initNext from "./app/next";
 import initProjectHostBootstrap from "./app/project-host-bootstrap";
 import initStats from "./app/stats";
 import { database } from "./database";
@@ -185,6 +183,10 @@ export default async function init(opts: Options): Promise<{
   // all routes not otherwise handled above.
   if (opts.nextServer) {
     // The Next.js server
+    const initNextModule = lazyRequire("./app/next") as {
+      default?: (app: express.Application) => Promise<void>;
+    };
+    const initNext = initNextModule.default ?? (initNextModule as any);
     await initNext(app);
   }
   return { httpServer, router };
@@ -224,8 +226,14 @@ async function initStatic(router) {
     // It might not be installed at all, e.g., in production, and there
     // @cocalc/static can't even be imported.
     try {
-      const { rspackCompiler } = require("@cocalc/static/rspack-compiler");
-      compiler = rspackCompiler();
+      const rspackCompiler = (
+        lazyRequire("@cocalc/static/rspack-compiler") as {
+          rspackCompiler?: () => any;
+        }
+      ).rspackCompiler;
+      if (typeof rspackCompiler === "function") {
+        compiler = rspackCompiler();
+      }
     } catch (err) {
       console.warn("rspack is not available", err);
     }
@@ -235,6 +243,8 @@ async function initStatic(router) {
     console.warn(
       "\n-----------\n| RSPACK: Running rspack dev server for frontend /static app.\n| Set env variable NO_RSPACK_DEV_SERVER to disable.\n-----------\n",
     );
+    const webpackDevMiddleware = lazyRequire("webpack-dev-middleware") as any;
+    const webpackHotMiddleware = lazyRequire("webpack-hot-middleware") as any;
     router.use("/static", webpackDevMiddleware(compiler, {}));
     router.use("/static", webpackHotMiddleware(compiler, {}));
   } else {
@@ -253,4 +263,22 @@ async function initStatic(router) {
   // Also, immediately 404 if anything else under static is requested
   // which isn't handled above, rather than passing this on to the next app
   router.use("/static", (_, res) => res.status(404).end());
+}
+
+const moduleRequire: NodeRequire | undefined =
+  typeof require === "function"
+    ? require
+    : typeof (Module as { createRequire?: (path: string) => NodeRequire })
+          .createRequire === "function"
+      ? (Module as { createRequire: (path: string) => NodeRequire }).createRequire(
+          join(process.cwd(), "noop.js"),
+        )
+      : undefined;
+
+function lazyRequire<T = any>(moduleName: string): T {
+  // Avoid static require so ncc doesn't try to bundle dev-only deps.
+  if (!moduleRequire) {
+    throw new Error("require is not available in this runtime");
+  }
+  return moduleRequire(moduleName) as T;
 }
