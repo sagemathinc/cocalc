@@ -203,4 +203,4 @@ data-0
 data-1
 
 src/packages/project-host/publish-sea.sh
-src/packages/project/publish-sea.sh
+src/packages/project/publish-bundle.sh
