@@ -524,6 +524,7 @@ sudo rm -f /etc/systemd/system/cocalc-project-host.service || true
 sudo rm -rf /opt/cocalc/project-host
 sudo mkdir -p /opt/cocalc/project-host
 sudo tar -xJf ${seaRemote}  --strip-components=2 -C /opt/cocalc/project-host
+sudo chown -R ${sshUser}:${sshUser} /btrfs/data || true
 cd /opt/cocalc/project-host
 ${cloudflaredServiceUnit ? `cat <<'EOF_CLOUDFLARED_SERVICE' | sudo tee /etc/systemd/system/cocalc-cloudflared.service >/dev/null
 ${cloudflaredServiceUnit}
@@ -531,7 +532,7 @@ EOF_CLOUDFLARED_SERVICE
 sudo systemctl daemon-reload
 sudo systemctl enable --now cocalc-cloudflared
 ` : ""}
-/opt/cocalc/project-host/cocalc-project-host daemon start
+sudo -u ${sshUser} -H /opt/cocalc/project-host/cocalc-project-host daemon start
 `;
 
   return {
