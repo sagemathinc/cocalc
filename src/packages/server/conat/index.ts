@@ -11,8 +11,7 @@ import {
   projectRunnerCount,
   conatChangefeedServerCount,
 } from "@cocalc/backend/data";
-import { init as initProjectRunner } from "./project/run";
-import { init as initProjectRunnerLoadBalancer } from "./project/load-balancer";
+import * as Module from "module";
 import { conat } from "@cocalc/backend/conat";
 import { initHostRegistryService } from "./host-registry";
 import { initHostStatusService } from "./host-status";
@@ -44,10 +43,24 @@ export async function initConatApi() {
     initAPI();
   }
   initLLM();
-  for (let i = 0; i < projectRunnerCount; i++) {
-    initProjectRunner();
+  if (process.env.COCALC_MODE !== "launchpad") {
+    const { init: initProjectRunner } = lazyRequire(
+      "./project/run",
+    ) as {
+      init: () => Promise<void>;
+    };
+    for (let i = 0; i < projectRunnerCount; i++) {
+      initProjectRunner();
+    }
+    const { init: initProjectRunnerLoadBalancer } = lazyRequire(
+      "./project/load-balancer",
+    ) as {
+      init: () => Promise<void>;
+    };
+    initProjectRunnerLoadBalancer();
+  } else {
+    logger.info("launchpad mode: skipping project runner services");
   }
-  initProjectRunnerLoadBalancer();
   createTimeService();
 }
 
@@ -57,4 +70,21 @@ export async function initConatHostRegistry() {
   await initHostRegistryService();
   await initHostStatusService();
   listenForProjectHostUpdates();
+}
+
+const moduleRequire: NodeRequire | undefined =
+  typeof require === "function"
+    ? require
+    : typeof (Module as { createRequire?: (path: string) => NodeRequire })
+          .createRequire === "function"
+      ? (Module as { createRequire: (path: string) => NodeRequire }).createRequire(
+          __filename,
+        )
+      : undefined;
+
+function lazyRequire<T = any>(moduleName: string): T {
+  if (!moduleRequire) {
+    throw new Error("require is not available in this runtime");
+  }
+  return moduleRequire(moduleName) as T;
 }

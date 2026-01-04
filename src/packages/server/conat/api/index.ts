@@ -58,8 +58,7 @@ import { conat } from "@cocalc/backend/conat";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import { close as terminateChangefeedServer } from "@cocalc/database/conat/changefeed-api";
 import { close as terminatePersistServer } from "@cocalc/backend/conat/persist";
-import { close as terminateProjectRunner } from "@cocalc/server/conat/project/run";
-import { close as terminateProjectRunnerLoadBalancer } from "@cocalc/server/conat/project/load-balancer";
+import * as Module from "module";
 import { delay } from "awaiting";
 
 export const hubApi: HubApi = {
@@ -146,10 +145,18 @@ async function handleMessage({ api, subject, mesg }) {
       mesg.respond({ status: "terminated", service }, { noThrow: true });
       return;
     } else if (service == "project-runner") {
+      const terminateProjectRunner = lazyTerminate(
+        "@cocalc/server/conat/project/run",
+        "close",
+      );
       terminateProjectRunner();
       mesg.respond({ status: "terminated", service }, { noThrow: true });
       return;
     } else if (service == "project-runner-load-balancer") {
+      const terminateProjectRunnerLoadBalancer = lazyTerminate(
+        "@cocalc/server/conat/project/load-balancer",
+        "close",
+      );
       terminateProjectRunnerLoadBalancer();
       mesg.respond({ status: "terminated", service }, { noThrow: true });
       return;
@@ -168,6 +175,28 @@ async function handleMessage({ api, subject, mesg }) {
     // we explicitly do NOT await this, since we want this hub server to handle
     // potentially many messages at once, not one at a time!
     handleApiRequest({ request, mesg });
+  }
+}
+
+const moduleRequire: NodeRequire | undefined =
+  typeof require === "function"
+    ? require
+    : typeof (Module as { createRequire?: (path: string) => NodeRequire })
+          .createRequire === "function"
+      ? (Module as { createRequire: (path: string) => NodeRequire }).createRequire(
+          __filename,
+        )
+      : undefined;
+
+function lazyTerminate(moduleName: string, exportName: string): () => void {
+  if (!moduleRequire) {
+    return () => undefined;
+  }
+  try {
+    const mod = moduleRequire(moduleName) as Record<string, () => void>;
+    return mod?.[exportName] ?? (() => undefined);
+  } catch {
+    return () => undefined;
   }
 }
 
