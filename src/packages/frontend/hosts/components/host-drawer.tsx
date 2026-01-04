@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Divider, Drawer, Space, Tag, Typography } from "antd";
+import { Alert, Button, Card, Divider, Drawer, Popconfirm, Space, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import Bootlog from "@cocalc/frontend/project/bootlog";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -15,12 +15,14 @@ type HostDrawerViewModel = {
   host?: Host;
   onClose: () => void;
   onEdit: (host: Host) => void;
+  onUpgrade?: (host: Host) => void;
+  canUpgrade?: boolean;
   hostLog: HostLogEntry[];
   loadingLog: boolean;
 };
 
 export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
-  const { open, host, onClose, onEdit, hostLog, loadingLog } = vm;
+  const { open, host, onClose, onEdit, onUpgrade, canUpgrade, hostLog, loadingLog } = vm;
   return (
   <Drawer
     title={
@@ -85,6 +87,32 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
           )}
         </Space>
         <Typography.Text>Projects: {host.projects ?? 0}</Typography.Text>
+        {(host.version || host.project_bundle_version || host.tools_version) && (
+          <Space direction="vertical" size="small">
+            <Typography.Text strong>Software</Typography.Text>
+            {host.version && (
+              <Typography.Text>Project host: {host.version}</Typography.Text>
+            )}
+            {host.project_bundle_version && (
+              <Typography.Text>
+                Project bundle: {host.project_bundle_version}
+              </Typography.Text>
+            )}
+            {host.tools_version && (
+              <Typography.Text>Tools: {host.tools_version}</Typography.Text>
+            )}
+          </Space>
+        )}
+        {canUpgrade && host && !host.deleted && onUpgrade && (
+          <Popconfirm
+            title="Upgrade host software to latest?"
+            okText="Upgrade"
+            cancelText="Cancel"
+            onConfirm={() => onUpgrade(host)}
+          >
+            <Button size="small">Upgrade software</Button>
+          </Popconfirm>
+        )}
         <Typography.Text type="secondary">
           Last seen:{" "}
           {host.last_seen

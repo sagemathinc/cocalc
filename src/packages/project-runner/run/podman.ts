@@ -241,7 +241,7 @@ async function resolveProjectScript(): Promise<ScriptResolution> {
     return { script: DEFAULT_PROJECT_SCRIPT };
   }
 
-  let entry: string[] | undefined;
+  let entry: readonly string[] | undefined;
   for (const candidate of PROJECT_BUNDLE_ENTRY_CANDIDATES) {
     const hostScriptPath = join(bundleDir, ...candidate);
     try {

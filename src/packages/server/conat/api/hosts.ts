@@ -4,6 +4,7 @@ import type {
   HostMachine,
   HostStatus,
   HostCatalog,
+  HostSoftwareUpgradeTarget,
 } from "@cocalc/conat/hub/api/hosts";
 import getPool from "@cocalc/database/pool";
 import {
@@ -20,6 +21,9 @@ import isAdmin from "@cocalc/server/accounts/is-admin";
 import { isValidUUID } from "@cocalc/util/misc";
 import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
 import { listServerProviders } from "@cocalc/server/cloud/providers";
+import { createHostControlClient } from "@cocalc/conat/project-host/api";
+import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 function pool() {
   return getPool();
 }
@@ -41,6 +45,7 @@ function parseRow(
   } = {},
 ): Host {
   const metadata = row.metadata ?? {};
+  const software = metadata.software ?? {};
   const machine: HostMachine | undefined = metadata.machine;
   return {
     id: row.id,
@@ -50,6 +55,9 @@ function parseRow(
     size: metadata.size ?? "",
     gpu: !!metadata.gpu,
     status: (row.status as HostStatus) ?? "off",
+    version: row.version ?? software.project_host,
+    project_bundle_version: software.project_bundle,
+    tools_version: software.tools,
     machine,
     public_ip: metadata.runtime?.public_ip,
     last_error: metadata.last_error,
@@ -542,6 +550,34 @@ export async function renameHost({
   );
   if (!rows[0]) throw new Error("host not found");
   return parseRow(rows[0]);
+}
+
+export async function upgradeHostSoftware({
+  account_id,
+  id,
+  targets,
+  base_url,
+}: {
+  account_id?: string;
+  id: string;
+  targets: HostSoftwareUpgradeTarget[];
+  base_url?: string;
+}) {
+  await loadHostForStartStop(id, account_id);
+  const { project_hosts_software_base_url } = await getServerSettings();
+  const resolvedBaseUrl =
+    base_url ??
+    project_hosts_software_base_url ??
+    process.env.COCALC_PROJECT_HOST_SOFTWARE_BASE_URL ??
+    undefined;
+  const client = createHostControlClient({
+    host_id: id,
+    client: conatWithProjectRouting(),
+  });
+  return await client.upgradeSoftware({
+    targets,
+    base_url: resolvedBaseUrl,
+  });
 }
 
 export async function deleteHost({

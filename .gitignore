@@ -145,6 +145,7 @@ src/packages/next/public/openapi.json
 src/compute/compute/dev/conf*
 src/g
 src/go
+src/g-pglite
 
 # Python virtual environment
 venv
@@ -183,6 +184,7 @@ src/packages/plus/build/
 src/packages/project/build/
 src/packages/project-runner/build/
 src/packages/project-host/build/
+src/packages/launchpad/build/
 
 
 codex.sh

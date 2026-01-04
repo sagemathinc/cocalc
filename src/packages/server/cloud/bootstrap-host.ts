@@ -148,6 +148,12 @@ export async function buildBootstrapScripts(
   const projectBundlesRoot = "/opt/cocalc/project-bundles";
   const projectBundleDir = `${projectBundlesRoot}/${projectBundleVersion}`;
   const projectBundleRemote = "/opt/cocalc/project-bundle.tar.xz";
+  const projectHostVersion =
+    extractArtifactVersion(resolvedSeaUrl, "project-host") || "latest";
+  const projectHostRoot = "/opt/cocalc/project-host";
+  const projectHostDir = `${projectHostRoot}/versions/${projectHostVersion}`;
+  const projectHostCurrent = `${projectHostRoot}/current`;
+  const projectHostBin = `${projectHostCurrent}/cocalc-project-host`;
   const toolsVersion =
     extractArtifactVersion(toolsUrl, "tools") || "latest";
   const toolsRoot = "/opt/cocalc/tools";
@@ -230,6 +236,7 @@ export async function buildBootstrapScripts(
     `COCALC_LITE_SQLITE_FILENAME=${dataDir}/sqlite.db`,
     `COCALC_PROJECT_BUNDLES=${projectBundlesRoot}`,
     `COCALC_PROJECT_TOOLS=${toolsRoot}/current`,
+    `COCALC_PROJECT_HOST_SOFTWARE_BASE_URL=${softwareBaseUrl}`,
     `COCALC_PROJECT_HOST_HTTPS=${tlsEnabled ? "1" : "0"}`,
     `HOST=0.0.0.0`,
     `PORT=${port}`,
@@ -357,7 +364,7 @@ cat <<'EOF_COCALC_CTL' > "$BOOTSTRAP_DIR/ctl"
 #!/usr/bin/env bash
 set -euo pipefail
 cmd="\${1:-status}"
-bin="/opt/cocalc/project-host/cocalc-project-host"
+bin="${projectHostBin}"
 pid_file="/btrfs/data/daemon.pid"
 case "\${cmd}" in
   start|stop)
@@ -559,23 +566,25 @@ sudo chown ${sshUser}:${sshUser} "$BOOTSTRAP_DIR"/fetch-sea.sh "$BOOTSTRAP_DIR"/
 
   const installServiceScript = `
 set -euo pipefail
-if [ -x /opt/cocalc/project-host/cocalc-project-host ]; then
-  /opt/cocalc/project-host/cocalc-project-host daemon stop || true
+if [ -x ${projectHostBin} ]; then
+  ${projectHostBin} daemon stop || true
 fi
 sudo systemctl disable --now cocalc-project-host >/dev/null 2>&1 || true
 sudo rm -f /etc/systemd/system/cocalc-project-host.service || true
-sudo rm -rf /opt/cocalc/project-host
-sudo mkdir -p /opt/cocalc/project-host
-sudo tar -xJf ${seaRemote}  --strip-components=2 -C /opt/cocalc/project-host
+sudo mkdir -p ${projectHostRoot}/versions
+sudo rm -rf ${projectHostDir}
+sudo mkdir -p ${projectHostDir}
+sudo tar -xJf ${seaRemote}  --strip-components=2 -C ${projectHostDir}
+sudo ln -sfn ${projectHostDir} ${projectHostCurrent}
 sudo chown -R ${sshUser}:${sshUser} /btrfs/data || true
-cd /opt/cocalc/project-host
+cd ${projectHostDir}
 ${cloudflaredServiceUnit ? `cat <<'EOF_CLOUDFLARED_SERVICE' | sudo tee /etc/systemd/system/cocalc-cloudflared.service >/dev/null
 ${cloudflaredServiceUnit}
 EOF_CLOUDFLARED_SERVICE
 sudo systemctl daemon-reload
 sudo systemctl enable --now cocalc-cloudflared
 ` : ""}
-sudo -u ${sshUser} -H /opt/cocalc/project-host/cocalc-project-host daemon start
+sudo -u ${sshUser} -H ${projectHostBin} daemon start
 `;
 
   return {

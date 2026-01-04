@@ -70,6 +70,7 @@ export interface HostControlApi {
     delete_original?: boolean;
   }) => Promise<void>;
   prepareMove: (opts: { project_id: string }) => Promise<void>;
+  upgradeSoftware: (opts: UpgradeSoftwareRequest) => Promise<UpgradeSoftwareResponse>;
   // Later: updateProject to adjust title/users/etc.
 }
 
@@ -105,6 +106,35 @@ export interface HostProjectStatus {
     internal_url?: string;
     ssh_server?: string;
   };
+}
+
+export type SoftwareArtifact =
+  | "project-host"
+  | "project"
+  | "project-bundle"
+  | "tools";
+
+export type SoftwareChannel = "latest" | "staging";
+
+export interface SoftwareUpgradeTarget {
+  artifact: SoftwareArtifact;
+  channel?: SoftwareChannel;
+  version?: string;
+}
+
+export interface UpgradeSoftwareRequest {
+  targets: SoftwareUpgradeTarget[];
+  base_url?: string;
+}
+
+export interface UpgradeSoftwareResult {
+  artifact: SoftwareArtifact;
+  version: string;
+  status: "updated" | "noop";
+}
+
+export interface UpgradeSoftwareResponse {
+  results: UpgradeSoftwareResult[];
 }
 
 export interface HostStatusApi {

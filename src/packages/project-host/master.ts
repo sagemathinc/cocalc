@@ -21,6 +21,8 @@ import {
   cleanupAfterMove,
   prepareMove,
 } from "./hub/move";
+import { getSoftwareVersions } from "./software";
+import { upgradeSoftware } from "./upgrade";
 
 const logger = getLogger("project-host:master");
 
@@ -150,10 +152,11 @@ export async function startMasterRegistration({
       sendProject,
       receiveProject: finalizeReceiveProject,
       cleanupAfterMove,
+      upgradeSoftware,
     },
   });
 
-  const payload: HostRegistration = {
+  const basePayload: HostRegistration = {
     id,
     name,
     region,
@@ -178,9 +181,21 @@ export async function startMasterRegistration({
     },
   });
 
+  const buildPayload = (): HostRegistration => {
+    const versions = getSoftwareVersions();
+    return {
+      ...basePayload,
+      version: versions.project_host ?? basePayload.version,
+      metadata: {
+        ...(basePayload.metadata ?? {}),
+        software: versions,
+      },
+    };
+  };
+
   const send = async (fn: "register" | "heartbeat") => {
     try {
-      await registry[fn](payload);
+      await registry[fn](buildPayload());
     } catch (err) {
       logger.warn(`failed to ${fn} host`, { err });
     }

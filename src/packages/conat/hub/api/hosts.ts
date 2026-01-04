@@ -96,6 +96,9 @@ export interface Host {
   size: string; // ui preset label/key
   gpu: boolean;
   status: HostStatus;
+  version?: string;
+  project_bundle_version?: string;
+  tools_version?: string;
   machine?: HostMachine;
   public_ip?: string;
   last_error?: string;
@@ -124,6 +127,34 @@ export interface HostLogEntry {
   error?: string | null;
 }
 
+export type HostSoftwareArtifact =
+  | "project-host"
+  | "project"
+  | "project-bundle"
+  | "tools";
+
+export type HostSoftwareChannel = "latest" | "staging";
+
+export interface HostSoftwareUpgradeTarget {
+  artifact: HostSoftwareArtifact;
+  channel?: HostSoftwareChannel;
+  version?: string;
+}
+
+export interface HostSoftwareUpgradeRequest {
+  id: string;
+  targets: HostSoftwareUpgradeTarget[];
+  base_url?: string;
+}
+
+export interface HostSoftwareUpgradeResponse {
+  results: Array<{
+    artifact: HostSoftwareArtifact;
+    version: string;
+    status: "updated" | "noop";
+  }>;
+}
+
 export const hosts = {
   listHosts: authFirstRequireAccount,
   getCatalog: authFirstRequireAccount,
@@ -134,6 +165,7 @@ export const hosts = {
   stopHost: authFirstRequireAccount,
   renameHost: authFirstRequireAccount,
   deleteHost: authFirstRequireAccount,
+  upgradeHostSoftware: authFirstRequireAccount,
   getBackupConfig: noAuth,
 };
 
@@ -176,5 +208,11 @@ export interface Hosts {
     id: string;
     name: string;
   }) => Promise<Host>;
+  upgradeHostSoftware: (opts: {
+    account_id?: string;
+    id: string;
+    targets: HostSoftwareUpgradeTarget[];
+    base_url?: string;
+  }) => Promise<HostSoftwareUpgradeResponse>;
   deleteHost: (opts: { account_id?: string; id: string }) => Promise<void>;
 }

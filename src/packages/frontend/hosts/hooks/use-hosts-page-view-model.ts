@@ -22,6 +22,7 @@ import type {
   HostSortDirection,
   HostSortField,
 } from "../types";
+import type { Host } from "@cocalc/conat/hub/api/hosts";
 
 const HOSTS_VIEW_MODE_STORAGE_KEY = "cocalc:hosts:viewMode";
 const HOSTS_SORT_FIELD_STORAGE_KEY = "cocalc:hosts:sortField";
@@ -135,6 +136,30 @@ export const useHostsPageViewModel = () => {
     setHosts,
     refresh,
   });
+  const upgradeHostSoftware = React.useCallback(
+    async (host: Host) => {
+      if (!hub.hosts.upgradeHostSoftware) {
+        message.error("Host upgrades are not available");
+        return;
+      }
+      try {
+        await hub.hosts.upgradeHostSoftware({
+          id: host.id,
+          targets: [
+            { artifact: "project-host", channel: "latest" },
+            { artifact: "project", channel: "latest" },
+            { artifact: "tools", channel: "latest" },
+          ],
+        });
+        message.success("Upgrade requested");
+        await refresh();
+      } catch (err) {
+        console.error(err);
+        message.error("Failed to upgrade host software");
+      }
+    },
+    [hub, refresh],
+  );
   const [editingHost, setEditingHost] = React.useState<typeof hosts[number]>();
   const [editOpen, setEditOpen] = React.useState(false);
   const [savingEdit, setSavingEdit] = React.useState(false);
@@ -321,6 +346,8 @@ export const useHostsPageViewModel = () => {
     host: selected,
     onClose: closeDetails,
     onEdit: openEdit,
+    onUpgrade: isAdmin ? upgradeHostSoftware : undefined,
+    canUpgrade: isAdmin,
     hostLog,
     loadingLog,
   });
