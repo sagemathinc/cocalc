@@ -247,7 +247,7 @@ async function resolveProjectScript(): Promise<ScriptResolution> {
     try {
       const info = await stat(hostScriptPath);
       if (info.isFile()) {
-        entry = candidate;
+        entry = [...candidate];
         break;
       }
       logger.warn("bundle entry is not a file; skipping", {
