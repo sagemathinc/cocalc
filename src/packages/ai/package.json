@@ -20,11 +20,6 @@
       "require": "./dist/acp/index.js",
       "types": "./dist/acp/index.d.ts"
     },
-    "./acp/containers/codex": {
-      "import": "./dist/acp/containers/codex.js",
-      "require": "./dist/acp/containers/codex.js",
-      "types": "./dist/acp/containers/codex.d.ts"
-    },
     "./package.json": "./package.json"
   },
   "scripts": {
