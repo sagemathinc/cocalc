@@ -4,6 +4,7 @@ The main hub express app.
 
 import cookieParser from "cookie-parser";
 import express from "express";
+import { existsSync } from "fs";
 import ms from "ms";
 import { join } from "path";
 import { parse as parseURL } from "url";
@@ -227,7 +228,35 @@ function cacheLongTerm(res) {
   );
 }
 
+function resolveStaticPath(): string {
+  const candidates: string[] = [];
+  if (process.env.COCALC_STATIC_PATH) {
+    candidates.push(process.env.COCALC_STATIC_PATH);
+  }
+  if (process.env.COCALC_BUNDLE_DIR) {
+    candidates.push(join(process.env.COCALC_BUNDLE_DIR, "static"));
+  }
+  candidates.push(
+    STATIC_PATH,
+    join(process.cwd(), "static"),
+    join(__dirname, "..", "static"),
+  );
+  for (const candidate of candidates) {
+    if (existsSync(join(candidate, "app.html"))) {
+      return candidate;
+    }
+  }
+  return STATIC_PATH;
+}
+
 async function initStatic(router) {
+  const staticPath = resolveStaticPath();
+  const staticLogger = getLogger("express-app:static");
+  if (!existsSync(join(staticPath, "app.html"))) {
+    staticLogger.warn("static assets not found", { staticPath });
+  } else {
+    staticLogger.info("serving static assets", { staticPath });
+  }
   let compiler: any = null;
   if (
     process.env.NODE_ENV != "production" &&
@@ -260,14 +289,14 @@ async function initStatic(router) {
     router.use("/static", webpackHotMiddleware(compiler, {}));
   } else {
     router.use(
-      join("/static", STATIC_PATH, "app.html"),
-      express.static(join(STATIC_PATH, "app.html"), {
+      "/static/app.html",
+      express.static(join(staticPath, "app.html"), {
         setHeaders: cacheShortTerm,
       }),
     );
     router.use(
       "/static",
-      express.static(STATIC_PATH, { setHeaders: cacheLongTerm }),
+      express.static(staticPath, { setHeaders: cacheLongTerm }),
     );
   }
 
