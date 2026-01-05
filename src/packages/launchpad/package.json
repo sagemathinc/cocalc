@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/launchpad",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "CoCalc Launchpad: lightweight control-plane bundle for small teams",
   "main": "./electron.js",
   "exports": {
