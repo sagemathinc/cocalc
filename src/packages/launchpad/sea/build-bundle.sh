@@ -34,9 +34,11 @@ pnpm --filter @cocalc/hub run build
 pnpm --filter @cocalc/next run ts-build
 
 echo "- Bundle entry point with @vercel/ncc"
+NODE_PATH="${NODE_PATH:+$NODE_PATH:}$ROOT/packages/next/dist" \
 ncc build packages/launchpad/bin/start.js \
   -o "$OUT"/bundle \
   --source-map \
+  --external @electric-sql/pglite \
   --external bufferutil \
   --external utf-8-validate
 
@@ -55,6 +57,21 @@ copy_native_pkg() {
 
 copy_native_pkg "bufferutil"
 copy_native_pkg "utf-8-validate"
+
+copy_js_pkg() {
+  local pkg="$1"
+  local dir
+  dir=$(find packages -path "*node_modules/${pkg}" -type d -print -quit || true)
+  if [ -n "$dir" ]; then
+    echo "- Copy package ${pkg}"
+    mkdir -p "$OUT"/bundle/node_modules/"$pkg"
+    cp -r "$dir"/. "$OUT"/bundle/node_modules/"$pkg"/
+  else
+    echo "  (skipping ${pkg}; not found)"
+  fi
+}
+
+copy_js_pkg "@electric-sql/pglite"
 
 echo "- Copy static frontend assets"
 mkdir -p "$OUT"/static

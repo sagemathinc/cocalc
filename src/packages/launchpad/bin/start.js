@@ -47,7 +47,13 @@ function prependPath(dir) {
       "pglite",
     );
 
-    const bundleDir = process.env.COCALC_BUNDLE_DIR ?? process.cwd();
+    const bundledRootCandidate = join(__dirname, "..", "..", "..");
+    const bundleDir =
+      process.env.COCALC_BUNDLE_DIR ??
+      (existsSync(join(bundledRootCandidate, "pglite")) ||
+      existsSync(join(bundledRootCandidate, "next-dist"))
+        ? bundledRootCandidate
+        : process.cwd());
     process.env.COCALC_BUNDLE_DIR ??= bundleDir;
     const pgliteBundleDir = join(bundleDir, "pglite");
     if (!process.env.COCALC_PGLITE_BUNDLE_DIR && existsSync(pgliteBundleDir)) {

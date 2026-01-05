@@ -26,8 +26,8 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "NEXT_TELEMETRY_DISABLED=1 pnpm patch-openapi && rm -rf .next && pnpm build-dev && NEXT_TELEMETRY_DISABLED=1 NODE_OPTIONS='--max_old_space_size=8000' next build && pnpm generate-openapi",
-    "build-dev": "pnpm patch-openapi && pnpm exec next telemetry disable && rm -rf dist && pnpm software && ../node_modules/.bin/tsc --build tsconfig-dist.json && pnpm generate-openapi",
-    "ts-build": "../node_modules/.bin/tsc --build tsconfig-dist.json",
+    "build-dev": "pnpm patch-openapi && pnpm exec next telemetry disable && rm -rf dist && pnpm software && pnpm generate-api-v2-manifest && ../node_modules/.bin/tsc --build tsconfig-dist.json && pnpm generate-openapi",
+    "ts-build": "pnpm generate-api-v2-manifest && ../node_modules/.bin/tsc --build tsconfig-dist.json",
     "software": "bash ./software-inventory/setup.sh",
     "build-deps": "cd ../backend && pnpm build && cd ../util && pnpm build",
     "build-project": "pnpm build-deps && npx next telemetry disable && pnpm build-dev && NODE_OPTIONS='--max_old_space_size=8000' BASE_PATH=/$COCALC_PROJECT_ID/port/5000 next build",
@@ -40,6 +40,7 @@
     "prepublishOnly": "pnpm test",
     "patch-openapi": "sed '/^interface NrfOasData {/s/^interface/export interface/' node_modules/next-rest-framework/dist/index.d.ts > node_modules/next-rest-framework/dist/index.d.ts.temp && mv node_modules/next-rest-framework/dist/index.d.ts.temp node_modules/next-rest-framework/dist/index.d.ts",
     "generate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework generate",
+    "generate-api-v2-manifest": "node ./scripts/generate-api-v2-manifest.js",
     "validate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework validate",
     "i18n:upload": "bash ./locales/upload.sh",
     "i18n:download": "bash ./locales/download.sh"

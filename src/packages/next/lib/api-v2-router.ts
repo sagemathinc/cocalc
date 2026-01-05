@@ -14,6 +14,10 @@ import { existsSync, readdirSync, statSync } from "fs";
 import { delimiter, join, sep } from "path";
 import * as Module from "module";
 import { getLogger } from "@cocalc/backend/logger";
+import {
+  apiV2Manifest,
+  type ApiV2ManifestEntry,
+} from "./api-v2-manifest";
 
 export interface ApiV2RouterOptions {
   includeDocs?: boolean;
@@ -32,6 +36,20 @@ export default function createApiV2Router(
 
   const apiRoot = resolveApiRoot(opts.rootDir);
   ensureNextLibAlias(apiRoot, logger);
+  const useManifest = shouldUseManifest();
+  if (useManifest && apiV2Manifest.length > 0) {
+    for (const entry of apiV2Manifest) {
+      if (!opts.includeDocs && entry.path === "/") {
+        continue;
+      }
+      const handler = loadManifestHandler(entry, apiRoot, logger);
+      if (!handler) {
+        continue;
+      }
+      router.all(entry.path, wrapHandler(handler, logger, entry.path));
+    }
+    return router;
+  }
   const ext = pickExtension(apiRoot);
   const files = collectApiFiles(apiRoot, ext);
 
@@ -51,6 +69,14 @@ export default function createApiV2Router(
   return router;
 }
 
+function shouldUseManifest(): boolean {
+  if (process.env.COCALC_USE_API_V2_MANIFEST) {
+    return true;
+  }
+  const disabled = process.env.COCALC_DISABLE_NEXT;
+  return disabled === "1" || disabled === "true";
+}
+
 function resolveApiRoot(override?: string): string {
   if (process.env.COCALC_API_V2_ROOT) {
     return process.env.COCALC_API_V2_ROOT;
@@ -58,7 +84,22 @@ function resolveApiRoot(override?: string): string {
   if (override) {
     return override;
   }
-  return join(__dirname, "..", "pages", "api", "v2");
+  const bundleDir = process.env.COCALC_BUNDLE_DIR;
+  if (bundleDir) {
+    const bundled = join(bundleDir, "next-dist", "pages", "api", "v2");
+    if (existsSync(bundled)) {
+      return bundled;
+    }
+  }
+  const distRoot = join(__dirname, "..", "pages", "api", "v2");
+  if (existsSync(distRoot)) {
+    return distRoot;
+  }
+  const bundleRoot = join(__dirname, "..", "next-dist", "pages", "api", "v2");
+  if (existsSync(bundleRoot)) {
+    return bundleRoot;
+  }
+  return distRoot;
 }
 
 function ensureNextLibAlias(
@@ -158,6 +199,34 @@ function loadHandler(
     return handler;
   } catch (err) {
     logger.warn("api v2 handler load failed", { file, err });
+    return null;
+  }
+}
+
+function loadManifestHandler(
+  entry: ApiV2ManifestEntry,
+  apiRoot: string,
+  logger: ReturnType<typeof getLogger>,
+): ((req: Request, res: Response) => any) | null {
+  const filePath = join(apiRoot, entry.file);
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require(filePath);
+    const handler = mod?.default ?? mod;
+    if (typeof handler !== "function") {
+      logger.warn("api v2 manifest handler is not a function", {
+        entry,
+        filePath,
+      });
+      return null;
+    }
+    return handler;
+  } catch (err) {
+    logger.warn("api v2 manifest handler load failed", {
+      entry,
+      filePath,
+      err,
+    });
     return null;
   }
 }
