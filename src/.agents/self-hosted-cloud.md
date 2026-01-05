@@ -14,6 +14,7 @@ commands manually while keeping the local machine isolated and auditable.
 - Support NAT/firewalled environments (outbound-only connectivity).
 - Reuse existing bootstrap flow (token + cloud-init fetch).
 - Make operations idempotent and resilient to reconnects.
+- Make installation easy (one command + auto-start).
 
 ## Non-Goals
 
@@ -29,6 +30,15 @@ commands manually while keeping the local machine isolated and auditable.
 4) Connector executes the action via multipass and reports results.
 5) VMs run cloud-init with a short-lived bootstrap token that fetches the
    full bootstrap script from the hub.
+
+## Code Location + Distribution
+
+- **Code location**: `src/packages/cloud/self-host` (connector daemon + publish script).
+- **Distribution**: prefer SEA binary (single-file, minimal deps).
+  - `build-sea.sh` produces `cocalc-self-host-connector-<version>-<arch>-<os>.tar.xz`.
+  - `publish-sea.sh` uploads to `software.cocalc.ai/software/self-host/`.
+- **Install UX**: user installs multipass manually; we provide a one-command
+  install for the connector (downloads SEA + sets up service).
 
 ## Trust and Security Model
 
@@ -55,6 +65,33 @@ Messages over websocket:
 - `vm.create` -> region, size, gpu flag, cloud-init script.
 - `vm.start`, `vm.stop`, `vm.delete`.
 - `vm.status` -> status, instance id, public IP (if any), errors.
+
+## Control Channel Options (Websocket vs Polling)
+
+### Option A: Persistent websocket (conat/socket.io)
+
+Pros:
+- Low latency, instant commands (start/stop).
+- Matches existing hub networking patterns.
+
+Cons:
+- More moving parts to audit (client + server protocol).
+- Harder to debug locally (websocket reliability, reconnect edge cases).
+
+### Option B: Simple polling (recommended MVP)
+
+Pros:
+- Extremely simple and auditable.
+- Uses basic HTTP requests only (easy to inspect).
+- Resilient to intermittent connectivity.
+
+Cons:
+- Command latency equals poll interval (5-10s typical).
+- Requires idempotent request handling.
+
+Recommendation:
+- **Start with polling** for MVP (lowest complexity), keep message envelope
+  compatible with websocket design so we can upgrade later.
 
 ## VM Lifecycle Flows
 
@@ -144,6 +181,43 @@ Notes:
 - This is TCP over Access (not raw public SSH), so no inbound ports needed.
 - Only project-hosts need the Access tokens; users do not.
 
+## Multipass Connector Details
+
+### CLI mapping (expected)
+
+- Create VM: `multipass launch --name <name> --cpus <n> --mem <size> --disk <size> --cloud-init <file>`
+- Start VM: `multipass start <name>`
+- Stop VM: `multipass stop <name>`
+- Delete VM: `multipass delete --purge <name>` (or delete + purge)
+- Status/IP: `multipass info <name> --format json` (fallback `multipass list --format json`)
+
+### Naming + local state
+
+- Use a strict prefix, e.g. `cocalc-<host_id>` to avoid touching other VMs.
+- Store a local state file with host_id → multipass name, image, disk, etc.
+  (e.g. `~/.config/cocalc-connector/state.json`).
+- Only act on names in the state file (plus optional prefix allowlist).
+
+### Cloud-init injection
+
+- Connector writes a small user-data file (bootstrap token + fetch script URL).
+- Pass that file to `multipass launch --cloud-init`.
+- Token is short-lived; only used to fetch the real bootstrap script.
+
+### Security + isolation
+
+- Avoid `multipass mount` to keep host FS isolated.
+- Do not run arbitrary commands on the host.
+- Use `multipass exec` only for debugging, not for lifecycle operations.
+
+### Installation UX
+
+- Provide a one-command install for the connector (curl | bash) that:
+  - installs dependencies (if needed),
+  - writes config (pairing token),
+  - registers a user-level service (systemd/launchd).
+- Connector should run as the user (not root) unless multipass requires it.
+
 ## Operational Idempotency
 
 - All lifecycle operations should be safe to repeat.
@@ -186,3 +260,66 @@ Notes:
    - Publish connector as standalone installable package.
    - Collect feedback from self-hosted users.
    - Iterate on auth + UX.
+
+## Simplest Viable Connector (Polling-Based)
+
+### Minimal API surface
+
+Hub endpoints (new):
+- `POST /self-host/pair` -> exchange one-time token for long-lived connector token.
+- `GET /self-host/next` -> returns next command (or `204` if none).
+- `POST /self-host/ack` -> acknowledges command completion + result payload.
+
+### Hub API sketch (express app)
+
+Location: `src/packages/hub/servers/app/self-host-connector.ts`
+
+Routes:
+- `POST /self-host/pair`
+  - Input: `{ pairing_token: string, connector_info: { version, os, arch, capabilities } }`
+  - Output: `{ connector_id, connector_token, poll_interval_seconds }`
+- `GET /self-host/next`
+  - Auth: `Authorization: Bearer <connector_token>`
+  - Output (200): `{ id, action, payload, issued_at }`
+  - Output (204): no command available
+- `POST /self-host/ack`
+  - Auth: `Authorization: Bearer <connector_token>`
+  - Input: `{ id, status: "ok" | "error", result?, error? }`
+  - Output: `{ ok: true }`
+
+Persistence (new table):
+- `self_host_connectors` (id, account_id, token_hash, metadata, last_seen, created, revoked)
+- `self_host_commands` (id, connector_id, action, payload, state, result, created, updated)
+
+Auth rules:
+- Pairing token is single-use; rotate to long-lived connector token.
+- Connector token validates to a connector_id + account_id.
+- Only hub/admin can enqueue commands for a given connector.
+
+Command envelope:
+```
+{
+  "id": "cmd-uuid",
+  "action": "create|start|stop|delete|status",
+  "payload": {...},
+  "issued_at": "timestamp"
+}
+```
+
+### Connector loop (pseudo)
+
+1) Load token + state file.
+2) Poll `/self-host/next` with backoff.
+3) Execute command via multipass CLI.
+4) POST `/self-host/ack` with result (ok/error).
+
+### State + audit
+
+- State file under `~/.config/cocalc-connector/state.json`.
+- Always log actions + CLI output to `~/.config/cocalc-connector/logs/`.
+- Only allow operations on VMs created by connector.
+
+### Upgrade path
+
+- Keep command envelope unchanged so websocket transport can be swapped in later.
+- Add websocket client later for lower latency.

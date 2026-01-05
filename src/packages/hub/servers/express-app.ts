@@ -22,6 +22,7 @@ import initBlobs from "./app/blobs";
 import initCustomize from "./app/customize";
 import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
 import initProjectHostBootstrap from "./app/project-host-bootstrap";
+import initSelfHostConnector from "./app/self-host-connector";
 import initStats from "./app/stats";
 import { database } from "./database";
 import initHttpServer from "./http";
@@ -139,6 +140,7 @@ export default async function init(opts: Options): Promise<{
   initStats(router);
   initAppRedirect(router, { includeAuth: !opts.nextServer });
   initProjectHostBootstrap(router);
+  initSelfHostConnector(router);
 
   if (!opts.nextServer) {
     winston.info("enabling api/v2 express router (nextjs disabled)");
