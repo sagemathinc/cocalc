@@ -144,9 +144,21 @@ export const SPEC = {
     getVersion: "codex --version | awk '{print $2}'",
     VERSION: "0.78.0-alpha.10",
     script: () => {
+      // https://github.com/openai/codex/releases/download/rust-v0.78.0-alpha.10/codex-aarch64-apple-darwin.tar.gz
+      let p;
+      switch (platform()) {
+        case "darwin":
+          p = "apple-darwin";
+          break;
+        case "linux":
+          p = "unknown-linux-musl";
+          break;
+        default:
+          throw Error(`unsupported platform ${platform()}`);
+      }
       const VERSION = SPEC.codex.VERSION;
       const a = arch() == "x64" ? "x86_64" : "aarch64";
-      return `curl -L https://github.com/openai/codex/releases/download/rust-v${VERSION}/codex-${a}-unknown-linux-musl.tar.gz | tar -xz -C "${binPath}" && mv ${join(binPath, "codex-" + a + "-unknown-linux-musl")} ${join(binPath, "codex")}`;
+      return `curl -L https://github.com/openai/codex/releases/download/rust-v${VERSION}/codex-${a}-${p}.tar.gz | tar -xz -C "${binPath}" && mv ${join(binPath, "codex-" + a + "-" + p)} ${join(binPath, "codex")}`;
     },
     BASE: "https://github.com/openai/codex/releases",
   },
