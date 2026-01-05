@@ -358,6 +358,34 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
+  function render_terminal_button() {
+    const terminalsDisabled = !!student_project_functionality.disableTerminals;
+    if (terminalsDisabled) {
+      return null;
+    }
+    const tooltip = intl.formatMessage({
+      id: "frame_editors.frame_tree.title_bar.terminal",
+      defaultMessage: "Open a terminal",
+      description: "Terminal button tooltip in the frame title bar",
+    });
+    return (
+      <Tooltip title={tooltip}>
+        <Button
+          key={"terminal-button"}
+          size="small"
+          type="text"
+          disabled={terminalsDisabled}
+          onClick={() => {
+            track("terminal");
+            props.actions.terminal(props.id);
+          }}
+        >
+          <Icon name={"terminal"} />
+        </Button>
+      </Tooltip>
+    );
+  }
+
   function renderFrameControls(): Rendered {
     return (
       <div
@@ -377,6 +405,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           key={"control-buttons"}
         >
           <span style={is_active ? undefined : { opacity: 0.3 }}>
+            {render_terminal_button()}
             {!props.is_full ? render_split_row() : undefined}
             {!props.is_full ? render_split_col() : undefined}
             {!props.is_only ? render_full() : undefined}
