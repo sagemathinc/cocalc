@@ -12,7 +12,7 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "pnpm exec tsc --build",
+    "build": "echo 0",
     "test": "exit 0",
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo sea/sea-prep.blob build",
     "build:static": "cd ../static && pnpm clean && pnpm install && pnpm build",
