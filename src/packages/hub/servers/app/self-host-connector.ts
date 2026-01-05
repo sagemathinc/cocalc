@@ -1,12 +1,19 @@
+// Self-host connector endpoints for user-managed project-host VMs.
+// These routes support pairing a local connector daemon, polling for
+// VM lifecycle commands, and acknowledging results, all without inbound
+// access to the user’s machine.
 import express, { Router, type Request } from "express";
 import getPool from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/hub/logger";
 import {
   createConnector,
+  createPairingToken,
   revokePairingToken,
   verifyConnectorToken,
   verifyPairingToken,
 } from "@cocalc/server/self-host/connector-tokens";
+import getAccount from "@cocalc/server/auth/get-account";
+import isAdmin from "@cocalc/server/accounts/is-admin";
 
 const logger = getLogger("hub:servers:app:self-host-connector");
 
@@ -23,6 +30,29 @@ function extractToken(req: Request): string | undefined {
 
 export default function init(router: Router) {
   const jsonParser = express.json({ limit: "256kb" });
+
+  router.post("/self-host/pairing-token", jsonParser, async (req, res) => {
+    try {
+      const account_id = await getAccount(req);
+      if (!account_id) {
+        res.status(401).send("user must be signed in");
+        return;
+      }
+      const ttlSecondsRaw = req.body?.ttl_seconds;
+      const ttlSeconds =
+        typeof ttlSecondsRaw === "number" && ttlSecondsRaw > 0
+          ? ttlSecondsRaw
+          : undefined;
+      const tokenInfo = await createPairingToken({
+        account_id,
+        ttlMs: ttlSeconds ? ttlSeconds * 1000 : undefined,
+      });
+      res.json({ pairing_token: tokenInfo.token, expires: tokenInfo.expires });
+    } catch (err) {
+      logger.warn("pairing token creation failed", err);
+      res.status(500).send("pairing token creation failed");
+    }
+  });
 
   router.post("/self-host/pair", jsonParser, async (req, res) => {
     try {
@@ -99,6 +129,56 @@ export default function init(router: Router) {
     } catch (err) {
       logger.warn("self-host next failed", err);
       res.status(500).send("self-host next failed");
+    }
+  });
+
+  router.post("/self-host/commands", jsonParser, async (req, res) => {
+    try {
+      const account_id = await getAccount(req);
+      if (!account_id) {
+        res.status(401).send("user must be signed in");
+        return;
+      }
+      const connectorId = String(req.body?.connector_id ?? "");
+      if (!connectorId) {
+        res.status(400).send("missing connector_id");
+        return;
+      }
+      const action = String(req.body?.action ?? "");
+      const allowed = new Set(["create", "start", "stop", "delete", "status"]);
+      if (!allowed.has(action)) {
+        res.status(400).send("invalid action");
+        return;
+      }
+      const { rows } = await pool().query(
+        `SELECT account_id FROM self_host_connectors
+         WHERE connector_id=$1 AND revoked IS NOT TRUE`,
+        [connectorId],
+      );
+      const connectorAccount = rows[0]?.account_id;
+      if (!connectorAccount) {
+        res.status(404).send("connector not found");
+        return;
+      }
+      if (
+        connectorAccount !== account_id &&
+        !(await isAdmin(account_id))
+      ) {
+        res.status(403).send("not authorized");
+        return;
+      }
+      const payload = req.body?.payload ?? {};
+      const { rows: inserted } = await pool().query(
+        `INSERT INTO self_host_commands
+           (command_id, connector_id, action, payload, state, created, updated)
+         VALUES (gen_random_uuid(), $1, $2, $3, 'pending', NOW(), NOW())
+         RETURNING command_id`,
+        [connectorId, action, payload],
+      );
+      res.json({ ok: true, command_id: inserted[0]?.command_id });
+    } catch (err) {
+      logger.warn("self-host command enqueue failed", err);
+      res.status(500).send("self-host command enqueue failed");
     }
   });
 
