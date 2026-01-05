@@ -47,8 +47,10 @@ export async function loadConatConfiguration() {
 
 async function initConatPassword() {
   logger.debug("initConatPassword");
+  const password = await secureRandomString(32);
+  setConatPassword(password);
   try {
-    await writeFile(conatPasswordPath, await secureRandomString(32));
+    await writeFile(conatPasswordPath, password);
   } catch (err) {
     logger.debug("initConatPassword: WARNING -- failed -- ", err);
   }
