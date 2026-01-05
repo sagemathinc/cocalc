@@ -59,7 +59,6 @@ import { initConatServer } from "@cocalc/server/conat/socketio";
 import initHttpRedirect from "./servers/http-redirect";
 import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
 import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
-import { migrateBookmarksToConat } from "./migrate-bookmarks";
 import { setConatClient } from "@cocalc/conat/client";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { createProjectHostProxyHandlers } from "./proxy/project-host";
@@ -333,10 +332,6 @@ async function startServer(): Promise<void> {
     initPurchasesMaintenanceLoop();
     initEphemeralMaintenance();
     initSalesloftMaintenance();
-    // Migrate bookmarks from database to conat (runs once at startup)
-    migrateBookmarksToConat().catch((err) => {
-      logger.error("Failed to migrate bookmarks to conat:", err);
-    });
     setInterval(trimLogFileSize, 1000 * 60 * 3);
   }
 
