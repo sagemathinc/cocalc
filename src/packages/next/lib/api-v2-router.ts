@@ -14,7 +14,7 @@ import { existsSync, readdirSync, statSync } from "fs";
 import { delimiter, join, sep } from "path";
 import * as Module from "module";
 import { getLogger } from "@cocalc/backend/logger";
-import { apiV2Manifest } from "./api-v2-manifest";
+import type { ApiV2ManifestEntry } from "./api-v2-manifest";
 
 export interface ApiV2RouterOptions {
   includeDocs?: boolean;
@@ -34,17 +34,20 @@ export default function createApiV2Router(
   const apiRoot = resolveApiRoot(opts.rootDir);
   ensureNextLibAlias(apiRoot, logger);
   const useManifest = shouldUseManifest();
-  if (useManifest && apiV2Manifest.length > 0) {
-    for (const entry of apiV2Manifest) {
-      if (!opts.includeDocs && entry.path === "/") {
-        continue;
+  if (useManifest) {
+    const manifest = loadManifest(logger);
+    if (manifest.length > 0) {
+      for (const entry of manifest) {
+        if (!opts.includeDocs && entry.path === "/") {
+          continue;
+        }
+        router.all(
+          entry.path,
+          wrapHandler(entry.handler, logger, entry.path),
+        );
       }
-      router.all(
-        entry.path,
-        wrapHandler(entry.handler, logger, entry.path),
-      );
+      return router;
     }
-    return router;
   }
   const ext = pickExtension(apiRoot);
   const files = collectApiFiles(apiRoot, ext);
@@ -122,6 +125,21 @@ function ensureNextLibAlias(
   }
   moduleImpl._cocalcNextLibPatched = true;
   logger.info("api v2 configured NODE_PATH for lib/*", { distRoot });
+}
+
+function loadManifest(
+  logger: ReturnType<typeof getLogger>,
+): ApiV2ManifestEntry[] {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const mod = require("./api-v2-manifest") as {
+      apiV2Manifest?: ApiV2ManifestEntry[];
+    };
+    return mod?.apiV2Manifest ?? [];
+  } catch (err) {
+    logger.warn("api v2 manifest load failed", { err });
+    return [];
+  }
 }
 
 function pickExtension(apiRoot: string): ".js" | ".ts" {

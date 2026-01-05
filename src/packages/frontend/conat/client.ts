@@ -278,11 +278,13 @@ export class ConatClient extends EventEmitter {
       } else {
         console.log("Sign in failed -- ", client.info);
         this.signInFailed(client.info?.user?.error ?? "Failed to sign in.");
-        this.client.alert_message({
-          type: "error",
-          message: "You must sign in.",
-          block: true,
-        });
+        if (!this.isAuthPage()) {
+          this.client.alert_message({
+            type: "error",
+            message: "You must sign in.",
+            block: true,
+          });
+        }
         this.standby();
       }
     });
@@ -299,6 +301,14 @@ export class ConatClient extends EventEmitter {
   private signInFailed = (error) => {
     deleteRememberMe(appBasePath);
     this.client.emit("remember_me_failed", { error });
+  };
+
+  private isAuthPage = (): boolean => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+    const base = appBasePath === "/" ? "" : appBasePath;
+    return window.location.pathname.startsWith(`${base}/auth`);
   };
 
   reconnect = () => {

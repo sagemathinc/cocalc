@@ -31,7 +31,10 @@ import initRobots from "./robots";
 import basePath from "@cocalc/backend/base-path";
 import { initConatServer } from "@cocalc/server/conat/socketio";
 import { conatSocketioCount, root } from "@cocalc/backend/data";
+import { ACCOUNT_ID_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import createApiV2Router from "@cocalc/next/lib/api-v2-router";
+
+const logger = getLogger("hub:servers:express-app");
 
 const PYTHON_API_PATH = join(root, "python", "cocalc-api", "site");
 
@@ -57,8 +60,7 @@ export default async function init(opts: Options): Promise<{
   httpServer;
   router: express.Router;
 }> {
-  const winston = getLogger("express-app");
-  winston.info("creating express app");
+  logger.info("creating express app");
 
   // Create an express application
   const app = express();
@@ -139,12 +141,15 @@ export default async function init(opts: Options): Promise<{
   initUpload(router);
   initCustomize(router, opts.isPersonal);
   initStats(router);
+  if (!opts.nextServer) {
+    initLanding(router);
+  }
   initAppRedirect(router, { includeAuth: !opts.nextServer });
   initProjectHostBootstrap(router);
   initSelfHostConnector(router);
 
   if (!opts.nextServer) {
-    winston.info("enabling api/v2 express router (nextjs disabled)");
+    logger.info("enabling api/v2 express router (nextjs disabled)");
     router.use("/api/v2", createApiV2Router());
   }
 
@@ -161,7 +166,7 @@ export default async function init(opts: Options): Promise<{
   });
 
   if (opts.conatServer) {
-    winston.info(`initializing the Conat Server`);
+    logger.info(`initializing the Conat Server`);
     initConatServer({
       httpServer,
       ssl: !!opts.cert,
@@ -171,7 +176,7 @@ export default async function init(opts: Options): Promise<{
   // This must be second to the last, since it will prevent any
   // other upgrade handlers from being added to httpServer.
   if (opts.proxyServer) {
-    winston.info(`initializing the http proxy server`, {
+    logger.info(`initializing the http proxy server`, {
       conatSocketioCount,
       conatServer: !!opts.conatServer,
       isPersonal: opts.isPersonal,
@@ -305,14 +310,117 @@ async function initStatic(router) {
   router.use("/static", (_, res) => res.status(404).end());
 }
 
+function initLanding(router: express.Router) {
+  logger.info("initLanding");
+  router.get("/", (req, res) => {
+    const base = basePath === "/" ? "" : basePath;
+    const signedIn = Boolean(req.cookies?.[ACCOUNT_ID_COOKIE_NAME]);
+    const links: Array<{ href: string; label: string }> = [
+      { href: `${base}/auth/sign-in`, label: "Sign in" },
+      { href: `${base}/auth/sign-up`, label: "Sign up" },
+    ];
+    if (signedIn) {
+      links.unshift({ href: `${base}/projects`, label: "Projects" });
+    }
+    res.type("html").send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CoCalc Launchpad</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f7f6f1;
+        --fg: #1f1f1f;
+        --muted: #6a6a6a;
+        --card: #ffffff;
+        --accent: #2f6f6d;
+        --border: #e5e1d8;
+      }
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+        background: radial-gradient(1200px 600px at 20% -10%, #e9f0ea, transparent),
+                    radial-gradient(800px 400px at 120% 20%, #f6efe6, transparent),
+                    var(--bg);
+        color: var(--fg);
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 10vh auto;
+        padding: 24px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+      }
+      h1 {
+        font-size: 28px;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0 0 16px;
+        color: var(--muted);
+      }
+      .links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      a {
+        text-decoration: none;
+        color: var(--accent);
+        border: 1px solid var(--accent);
+        padding: 8px 14px;
+        border-radius: 999px;
+        font-weight: 600;
+      }
+      a.primary {
+        background: var(--accent);
+        color: #fff;
+      }
+      .hint {
+        margin-top: 16px;
+        font-size: 13px;
+        color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>CoCalc Launchpad</h1>
+        <p>Lightweight control plane for managing project hosts and accounts.</p>
+        <div class="links">
+          ${links
+            .map((link, index) => {
+              const cls = index === 0 ? "primary" : "";
+              return `<a class="${cls}" href="${link.href}">${link.label}</a>`;
+            })
+            .join("")}
+        </div>
+        <div class="hint">
+          ${signedIn ? "You're signed in." : "Sign in to continue."}
+        </div>
+      </div>
+    </div>
+  </body>
+</html>`);
+  });
+}
+
 const moduleRequire: NodeRequire | undefined =
   typeof require === "function"
     ? require
     : typeof (Module as { createRequire?: (path: string) => NodeRequire })
           .createRequire === "function"
-      ? (Module as { createRequire: (path: string) => NodeRequire }).createRequire(
-          join(process.cwd(), "noop.js"),
-        )
+      ? (
+          Module as { createRequire: (path: string) => NodeRequire }
+        ).createRequire(join(process.cwd(), "noop.js"))
       : undefined;
 
 function lazyRequire<T = any>(moduleName: string): T {
