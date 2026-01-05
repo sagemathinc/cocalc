@@ -36,8 +36,7 @@ async function loadPgliteBundle(): Promise<PgliteBundle> {
           readFile(path.join(distDir, "pglite.data")),
           readFile(path.join(distDir, "pglite.wasm")),
         ]);
-        const BlobCtor =
-          globalThis.Blob ?? require("buffer").Blob;
+        const BlobCtor = globalThis.Blob ?? require("buffer").Blob;
         const fsBundle = new BlobCtor([data]);
         const wasmModule = await (globalThis as any).WebAssembly?.compile?.(
           wasm,
@@ -103,9 +102,7 @@ function resolveDataDir(dataDir?: string): string {
   return resolved;
 }
 
-export async function getPglite(
-  options: PgliteOptions = {},
-): Promise<PGlite> {
+export async function getPglite(options: PgliteOptions = {}): Promise<PGlite> {
   if (instance != null) {
     return instance;
   }
@@ -123,7 +120,7 @@ export async function getPglite(
       // Match pg's UTC interpretation for timestamp without timezone.
       1114: (value: string) => new Date(`${value.replace(" ", "T")}Z`),
     },
-  });
+  } as any);
   instance = pg;
   return pg;
 }
