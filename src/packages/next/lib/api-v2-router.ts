@@ -14,10 +14,7 @@ import { existsSync, readdirSync, statSync } from "fs";
 import { delimiter, join, sep } from "path";
 import * as Module from "module";
 import { getLogger } from "@cocalc/backend/logger";
-import {
-  apiV2Manifest,
-  type ApiV2ManifestEntry,
-} from "./api-v2-manifest";
+import { apiV2Manifest } from "./api-v2-manifest";
 
 export interface ApiV2RouterOptions {
   includeDocs?: boolean;
@@ -42,11 +39,10 @@ export default function createApiV2Router(
       if (!opts.includeDocs && entry.path === "/") {
         continue;
       }
-      const handler = loadManifestHandler(entry, apiRoot, logger);
-      if (!handler) {
-        continue;
-      }
-      router.all(entry.path, wrapHandler(handler, logger, entry.path));
+      router.all(
+        entry.path,
+        wrapHandler(entry.handler, logger, entry.path),
+      );
     }
     return router;
   }
@@ -199,34 +195,6 @@ function loadHandler(
     return handler;
   } catch (err) {
     logger.warn("api v2 handler load failed", { file, err });
-    return null;
-  }
-}
-
-function loadManifestHandler(
-  entry: ApiV2ManifestEntry,
-  apiRoot: string,
-  logger: ReturnType<typeof getLogger>,
-): ((req: Request, res: Response) => any) | null {
-  const filePath = join(apiRoot, entry.file);
-  try {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const mod = require(filePath);
-    const handler = mod?.default ?? mod;
-    if (typeof handler !== "function") {
-      logger.warn("api v2 manifest handler is not a function", {
-        entry,
-        filePath,
-      });
-      return null;
-    }
-    return handler;
-  } catch (err) {
-    logger.warn("api v2 manifest handler load failed", {
-      entry,
-      filePath,
-      err,
-    });
     return null;
   }
 }
