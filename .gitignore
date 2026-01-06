@@ -22,7 +22,6 @@ node_modules
 err
 log
 out
-go
 
 src/cocalc-testcafe/package-lock.json
 
@@ -207,4 +206,4 @@ data-1
 src/packages/project-host/publish.sh
 src/packages/project/publish.sh
 
-src/packages/next/lib/api-v2-manifest.ts 
+src/packages/next/lib/api-v2-manifest.ts

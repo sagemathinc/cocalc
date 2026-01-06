@@ -564,7 +564,6 @@ async function runLoop(
   });
   while (true) {
     try {
-      log("polling...");
       const hadCommand = await pollOnce(config, state, statePath);
       if (hadCommand) {
         idlePolls = 0;

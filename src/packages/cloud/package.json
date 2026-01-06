@@ -24,6 +24,7 @@
   "scripts": {
     "build": "pnpm exec tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
+    "sea": "pnpm run build && cd sea && ./build-sea.sh",
     "test": "pnpm exec jest"
   },
   "dependencies": {
