@@ -390,10 +390,10 @@ case "\${cmd}" in
 esac
 EOF_COCALC_CTL
 chmod +x "$BOOTSTRAP_DIR/ctl"
-echo 'tail -n 200 /btrfs/data/log' > "$BOOTSTRAP_DIR/logs"
+echo 'tail -n 200 /btrfs/data/log -f' > "$BOOTSTRAP_DIR/logs"
 chmod +x "$BOOTSTRAP_DIR/logs"
 
-echo 'sudo journalctl -u cocalc-cloudflared.service' > "$BOOTSTRAP_DIR/logs-cf"
+echo 'sudo journalctl -u cocalc-cloudflared.service -o cat -f -n 200' > "$BOOTSTRAP_DIR/logs-cf"
 echo 'sudo systemctl \${1-status} cocalc-cloudflared' > "$BOOTSTRAP_DIR/ctl-cf"
 chmod +x "$BOOTSTRAP_DIR/ctl-cf" "$BOOTSTRAP_DIR/logs-cf"
 

@@ -230,6 +230,7 @@ export const useHostsPageViewModel = () => {
     });
   const { catalog: selfHostCatalog } = useHostCatalog(hub, {
     provider: "self-host",
+    pollMs: 5000,
   });
   const selfHostConnectors = React.useMemo(
     () => getSelfHostConnectors(selfHostCatalog),

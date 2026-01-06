@@ -71,25 +71,30 @@ Messages over websocket:
 ### Option A: Persistent websocket (conat/socket.io)
 
 Pros:
+
 - Low latency, instant commands (start/stop).
 - Matches existing hub networking patterns.
 
 Cons:
+
 - More moving parts to audit (client + server protocol).
 - Harder to debug locally (websocket reliability, reconnect edge cases).
 
 ### Option B: Simple polling (recommended MVP)
 
 Pros:
+
 - Extremely simple and auditable.
 - Uses basic HTTP requests only (easy to inspect).
 - Resilient to intermittent connectivity.
 
 Cons:
+
 - Command latency equals poll interval (5-10s typical).
 - Requires idempotent request handling.
 
 Recommendation:
+
 - **Start with polling** for MVP (lowest complexity), keep message envelope
   compatible with websocket design so we can upgrade later.
 
@@ -159,6 +164,7 @@ Fallback (no direct host-to-host traffic):
   and no clear GPU path.
 
 GPU note:
+
 - For GPU needs on self-hosted setups, the likely path is **run project-host
   directly on the GPU server** (no nested VM) or offer a Linux-only libvirt
   backend later.
@@ -169,6 +175,7 @@ Goal: allow project-hosts to SSH/rsync/btrfs-send to each other without
 maintaining our own VPN or jump nodes.
 
 Plan:
+
 - Use the existing cloudflared daemon on each host and add a second ingress
   hostname for SSH (e.g. `ssh-<host_id>.cocalc.ai` → `ssh://localhost:2222`).
 - Enable Cloudflare Access for the SSH hostname.
@@ -178,6 +185,7 @@ Plan:
   `ssh -o ProxyCommand='cloudflared access ssh --hostname %h' ...`
 
 Notes:
+
 - This is TCP over Access (not raw public SSH), so no inbound ports needed.
 - Only project-hosts need the Access tokens; users do not.
 
@@ -266,6 +274,7 @@ Notes:
 ### Minimal API surface
 
 Hub endpoints (new):
+
 - `POST /self-host/pair` -> exchange one-time token for long-lived connector token.
 - `GET /self-host/next` -> returns next command (or `204` if none).
 - `POST /self-host/ack` -> acknowledges command completion + result payload.
@@ -275,6 +284,7 @@ Hub endpoints (new):
 Location: `src/packages/hub/servers/app/self-host-connector.ts`
 
 Routes:
+
 - `POST /self-host/pair`
   - Input: `{ pairing_token: string, connector_info: { version, os, arch, capabilities } }`
   - Output: `{ connector_id, connector_token, poll_interval_seconds }`
@@ -288,15 +298,18 @@ Routes:
   - Output: `{ ok: true }`
 
 Persistence (new table):
+
 - `self_host_connectors` (id, account_id, token_hash, metadata, last_seen, created, revoked)
 - `self_host_commands` (id, connector_id, action, payload, state, result, created, updated)
 
 Auth rules:
+
 - Pairing token is single-use; rotate to long-lived connector token.
 - Connector token validates to a connector_id + account_id.
 - Only hub/admin can enqueue commands for a given connector.
 
 Command envelope:
+
 ```
 {
   "id": "cmd-uuid",
@@ -323,3 +336,19 @@ Command envelope:
 
 - Keep command envelope unchanged so websocket transport can be swapped in later.
 - Add websocket client later for lower latency.
+
+## Phase 2: Post MVP Details
+
+- **Auto\-start \+ autostarted connector**: 
+  - \(done\) once the connector comes online, auto\-start its single VM without requiring a browser refresh; 
+  - \(not done\) ideally the connector launches into daemon mode immediately after pairing so the user runs one command, not two. 
+  - \(not working\) Provide clear “connector online” status and automatically attempt the first start.
+- **Connector daemon packaging**: ship a SEA binary via `software.cocalc.ai` and provide a one\-line curl install \+ run command; include version reporting and a simple self\-update path.
+- **Long\-poll tuning**: keep long\-poll for simplicity, but use adaptive intervals \(fast during initial setup or when VM is off; slower when stable\).
+- **Multipass VM sizing**: allow users to edit CPU/RAM and grow disk post\-create; surface safe limits and show current settings in the UI.
+- **ARM support**: publish ARM64 variants for connector, project\-host, project bundle, tools, and cloudflared; detect arch and refuse to run wrong binaries with a clear message.
+- **Bootstrap failure reporting**: if the cloud\-init bootstrap script fails, attempt to report a failure status \+ reason back to the control plane using the bootstrap token.
+- **Btrfs remount**: ensure the btrfs image is remounted on reboot \(fstab or systemd mount\), and block project\-host start until mount is ready.
+- **Cloud\-init path policy**: use a non\-hidden, per\-launch cloud\-init directory under `$HOME/cocalc-connector`, clean it up after success, and remove parent dir if empty.
+- **UI live refresh**: refresh connector status without manual reload \(SSE, polling, or catalog refresh timer\) and enable Start immediately when the connector checks in.
+

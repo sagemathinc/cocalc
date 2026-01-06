@@ -1,4 +1,9 @@
-import { useEffect, useRef, useState } from "@cocalc/frontend/app-framework";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import type { HostProvider } from "../types";
 
@@ -13,11 +18,12 @@ type UseHostCatalogOptions = {
   provider?: HostProvider;
   refreshProvider?: HostProvider;
   onError?: (message: string) => void;
+  pollMs?: number;
 };
 
 export const useHostCatalog = (
   hub: HubClient,
-  { provider, refreshProvider, onError }: UseHostCatalogOptions,
+  { provider, refreshProvider, onError, pollMs }: UseHostCatalogOptions,
 ) => {
   const [catalog, setCatalog] = useState<HostCatalog | undefined>(undefined);
   const [catalogError, setCatalogError] = useState<string | undefined>(
@@ -30,33 +36,40 @@ export const useHostCatalog = (
     onErrorRef.current = onError;
   }, [onError]);
 
-  useEffect(() => {
+  const fetchCatalog = useCallback(async () => {
     if (!provider) {
       setCatalog(undefined);
       setCatalogError(undefined);
       return;
     }
-    let cancelled = false;
-    (async () => {
-      try {
-        const data = await hub.hosts.getCatalog({ provider });
-        if (cancelled) return;
-        setCatalog(data);
-        setCatalogError(undefined);
-      } catch (err: any) {
-        if (cancelled) return;
-        console.error("failed to load cloud catalog", err);
-        const message =
-          err?.message ?? "Unable to load cloud catalog (regions/zones).";
-        setCatalog(undefined);
-        setCatalogError(message);
-        onErrorRef.current?.(message);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
+    try {
+      const data = await hub.hosts.getCatalog({ provider });
+      setCatalog(data);
+      setCatalogError(undefined);
+    } catch (err: any) {
+      console.error("failed to load cloud catalog", err);
+      const message =
+        err?.message ?? "Unable to load cloud catalog (regions/zones).";
+      setCatalog(undefined);
+      setCatalogError(message);
+      onErrorRef.current?.(message);
+    }
   }, [provider, hub]);
+
+  useEffect(() => {
+    (async () => {
+      await fetchCatalog();
+    })();
+    return () => undefined;
+  }, [fetchCatalog]);
+
+  useEffect(() => {
+    if (!pollMs || !provider) return;
+    const timer = setInterval(() => {
+      fetchCatalog().catch(() => undefined);
+    }, pollMs);
+    return () => clearInterval(timer);
+  }, [pollMs, provider, fetchCatalog]);
 
   const refreshCatalog = async (): Promise<boolean> => {
     if (!refreshProvider || catalogRefreshing) return false;

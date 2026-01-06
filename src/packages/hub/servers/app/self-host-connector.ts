@@ -15,6 +15,7 @@ import {
 } from "@cocalc/server/self-host/connector-tokens";
 import getAccount from "@cocalc/server/auth/get-account";
 import isAdmin from "@cocalc/server/accounts/is-admin";
+import { enqueueCloudVmWorkOnce } from "@cocalc/server/cloud/db";
 
 const logger = getLogger("hub:servers:app:self-host-connector");
 
@@ -27,6 +28,48 @@ function extractToken(req: Request): string | undefined {
   if (!header) return undefined;
   const match = header.match(/^Bearer\s+(.+)$/i);
   return match?.[1]?.trim();
+}
+
+async function maybeAutoStartHost(connector: {
+  connector_id: string;
+  account_id: string;
+}) {
+  const { rows } = await pool().query<{
+    id: string;
+    status: string | null;
+    metadata: any;
+  }>(
+    `SELECT id, status, metadata
+     FROM project_hosts
+     WHERE region=$1
+       AND deleted IS NULL
+       AND metadata->>'owner' = $2`,
+    [connector.connector_id, connector.account_id],
+  );
+  if (!rows.length) return;
+  const host = rows.find(
+    (row) => row.metadata?.machine?.cloud === "self-host",
+  );
+  if (!host || host.status !== "off") return;
+  const nextMetadata = { ...(host.metadata ?? {}) };
+  if (nextMetadata.bootstrap) {
+    delete nextMetadata.bootstrap;
+  }
+  await pool().query(
+    `UPDATE project_hosts
+     SET status=$2, last_seen=$3, metadata=$4, updated=NOW()
+     WHERE id=$1 AND deleted IS NULL`,
+    [host.id, "starting", new Date(), nextMetadata],
+  );
+  await enqueueCloudVmWorkOnce({
+    vm_id: host.id,
+    action: "start",
+    payload: { provider: "self-host" },
+  });
+  logger.debug("self-host auto-start queued", {
+    host_id: host.id,
+    connector_id: connector.connector_id,
+  });
 }
 
 export default function init(router: Router) {
@@ -224,6 +267,7 @@ export default function init(router: Router) {
         res.status(401).send("invalid connector token");
         return;
       }
+      await maybeAutoStartHost(connector);
       const { rows } = await pool().query(
         `SELECT command_id, action, payload, created
          FROM self_host_commands
