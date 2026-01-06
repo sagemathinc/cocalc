@@ -204,7 +204,6 @@ patchflow
 data-0
 data-1
 
-src/packages/project-host/publish.sh
-src/packages/project/publish.sh
+publish.sh
 
 src/packages/next/lib/api-v2-manifest.ts
