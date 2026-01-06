@@ -147,7 +147,7 @@ describe("AgentTimeTravelRecorder", () => {
 
     await recorder.recordRead("src/file.txt", turnDate);
 
-    const key = `agent-tt:${threadRootDate}:file:src/file.txt`;
+    const key = `agent-tt:${threadRootDate}:file:project/src/file.txt`;
     expect(map.get(key)?.patchId).toBe("p1");
     await recorder.dispose();
   });
@@ -171,7 +171,7 @@ describe("AgentTimeTravelRecorder", () => {
     syncDoc.addVersion("p1", "seeded");
     await readPromise;
 
-    const key = `agent-tt:${threadRootDate}:file:src/file.txt`;
+    const key = `agent-tt:${threadRootDate}:file:project/src/file.txt`;
     expect(map.get(key)?.patchId).toBe("p1");
     await recorder.dispose();
   });

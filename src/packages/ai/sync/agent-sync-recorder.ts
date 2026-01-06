@@ -267,7 +267,9 @@ export class AgentTimeTravelRecorder {
       if (this.homeRoot && !this.isUnderRoot(candidate, this.homeRoot)) {
         continue;
       }
-      const relativePath = path.relative(this.workspaceRoot, candidate);
+      // relativePath is HOME-relative (project root) for syncdoc usage.
+      const baseRoot = this.homeRoot ?? this.workspaceRoot;
+      const relativePath = path.relative(baseRoot, candidate);
       if (!relativePath || relativePath.startsWith("..")) continue;
       return { absolutePath: candidate, relativePath };
     }
