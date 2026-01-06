@@ -256,6 +256,7 @@ After=network-online.target
 
 [Service]
 ExecStart=$BIN_PATH run${CHECK:+ --check}
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin
 Restart=always
 RestartSec=5
 
@@ -286,6 +287,11 @@ setup_service_darwin() {
     <string>run</string>
     ${CHECK:+<string>--check</string>}
   </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
   <key>RunAtLoad</key>
   <true/>
   <key>KeepAlive</key>
