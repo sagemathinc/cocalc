@@ -6,6 +6,8 @@ type HubClient = {
     startHost: (opts: { id: string }) => Promise<unknown>;
     stopHost: (opts: { id: string }) => Promise<unknown>;
     deleteHost: (opts: { id: string }) => Promise<unknown>;
+    forceDeprovisionHost?: (opts: { id: string }) => Promise<unknown>;
+    removeSelfHostConnector?: (opts: { id: string }) => Promise<unknown>;
     renameHost?: (opts: { id: string; name: string }) => Promise<unknown>;
   };
 };
@@ -79,5 +81,33 @@ export const useHostActions = ({
     }
   };
 
-  return { setStatus, removeHost, renameHost };
+  const forceDeprovision = async (id: string) => {
+    if (!hub.hosts.forceDeprovisionHost) {
+      message.error("Force deprovision not available");
+      return;
+    }
+    try {
+      await hub.hosts.forceDeprovisionHost({ id });
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to force deprovision host");
+    }
+  };
+
+  const removeSelfHostConnector = async (id: string) => {
+    if (!hub.hosts.removeSelfHostConnector) {
+      message.error("Remove connector not available");
+      return;
+    }
+    try {
+      await hub.hosts.removeSelfHostConnector({ id });
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to remove connector");
+    }
+  };
+
+  return { setStatus, removeHost, renameHost, forceDeprovision, removeSelfHostConnector };
 };

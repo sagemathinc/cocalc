@@ -163,6 +163,8 @@ export const hosts = {
   createHost: authFirstRequireAccount,
   startHost: authFirstRequireAccount,
   stopHost: authFirstRequireAccount,
+  forceDeprovisionHost: authFirstRequireAccount,
+  removeSelfHostConnector: authFirstRequireAccount,
   renameHost: authFirstRequireAccount,
   deleteHost: authFirstRequireAccount,
   upgradeHostSoftware: authFirstRequireAccount,
@@ -203,6 +205,8 @@ export interface Hosts {
   }) => Promise<Host>;
   startHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
   stopHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
+  forceDeprovisionHost: (opts: { account_id?: string; id: string }) => Promise<void>;
+  removeSelfHostConnector: (opts: { account_id?: string; id: string }) => Promise<void>;
   renameHost: (opts: {
     account_id?: string;
     id: string;

@@ -133,7 +133,13 @@ export const useHostsPageViewModel = () => {
     adminView: isAdmin && showAdmin,
     includeDeleted: showDeleted,
   });
-  const { setStatus, removeHost, renameHost } = useHostActions({
+  const {
+    setStatus,
+    removeHost,
+    renameHost,
+    forceDeprovision,
+    removeSelfHostConnector,
+  } = useHostActions({
     hub,
     setHosts,
     refresh,
@@ -264,6 +270,8 @@ export const useHostsPageViewModel = () => {
   const [setupError, setSetupError] = React.useState<string | undefined>();
   const [setupLoading, setSetupLoading] = React.useState(false);
   const setupRequestRef = React.useRef(0);
+  const [removeHostTarget, setRemoveHostTarget] = React.useState<Host | undefined>();
+  const [removeOpen, setRemoveOpen] = React.useState(false);
   const requestPairingToken = React.useCallback(
     async (host: Host) => {
       if (!baseUrl) throw new Error("missing base url");
@@ -329,6 +337,14 @@ export const useHostsPageViewModel = () => {
     setSetupToken(undefined);
     setSetupExpires(undefined);
     setSetupError(undefined);
+  }, []);
+  const openRemove = React.useCallback((host: Host) => {
+    setRemoveHostTarget(host);
+    setRemoveOpen(true);
+  }, []);
+  const closeRemove = React.useCallback(() => {
+    setRemoveOpen(false);
+    setRemoveHostTarget(undefined);
   }, []);
   const refreshSetup = React.useCallback(() => {
     if (!setupHost) return;
@@ -467,6 +483,8 @@ export const useHostsPageViewModel = () => {
       connectorMap: selfHostConnectorMap,
       isConnectorOnline: isSelfHostConnectorOnline,
       onSetup: openSetup,
+      onRemove: openRemove,
+      onForceDeprovision: (host: Host) => forceDeprovision(host.id),
     },
   });
 
@@ -499,5 +517,16 @@ export const useHostsPageViewModel = () => {
     onRefresh: refreshSetup,
   };
 
-  return { createVm, hostListVm, hostDrawerVm, editVm, setupVm };
+  const removeVm = {
+    open: removeOpen,
+    host: removeHostTarget,
+    onCancel: closeRemove,
+    onRemove: async () => {
+      if (!removeHostTarget) return;
+      await removeSelfHostConnector(removeHostTarget.id);
+      closeRemove();
+    },
+  };
+
+  return { createVm, hostListVm, hostDrawerVm, editVm, setupVm, removeVm };
 };

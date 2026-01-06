@@ -11,6 +11,7 @@ Options:
   --replace                    Allow replacing an existing connector config.
   --check                      Run multipass sanity check before polling.
   --no-daemon                  Run in foreground (default is daemon).
+  --no-service                 Skip installing an auto-start service.
   --software-base-url <url>    Defaults to https://software.cocalc.ai/software
   --install-dir <path>         Linux install dir (default /usr/local/bin).
   -h, --help                   Show this help.
