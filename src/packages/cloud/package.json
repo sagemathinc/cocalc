@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/cloud",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "Provider-agnostic cloud VM provisioning for project-hosts.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -16,16 +16,13 @@
     "./logger": "./dist/logger.js",
     "./*": "./dist/*.js"
   },
-  "files": [
-    "dist/**",
-    "README.md",
-    "package.json"
-  ],
+  "files": ["dist/**", "README.md", "package.json"],
   "scripts": {
     "build": "pnpm exec tsc --build",
     "clean": "rm -rf dist tsconfig.tsbuildinfo",
     "sea": "pnpm run build && cd sea && ./build-sea.sh",
-    "test": "pnpm exec jest"
+    "test": "pnpm exec jest",
+    "build:connector": "cd self-host/go && ./build-connector.sh"
   },
   "dependencies": {
     "@cocalc/backend": "workspace:*",

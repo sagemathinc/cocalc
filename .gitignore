@@ -184,6 +184,7 @@ src/packages/project/build/
 src/packages/project-runner/build/
 src/packages/project-host/build/
 src/packages/launchpad/build/
+src/packages/cloud/build/
 
 
 codex.sh
