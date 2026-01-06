@@ -4,6 +4,8 @@ for this type of account, etc. -- that is assumed to have been
 done before calling this.
 */
 
+import { omit } from "lodash";
+
 import getPool from "@cocalc/database/pool";
 import passwordHash from "@cocalc/backend/auth/password-hash";
 import accountCreationActions, {
@@ -11,6 +13,7 @@ import accountCreationActions, {
 } from "./account-creation-actions";
 import { getLogger } from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import type { RegistrationTokenCustomize } from "@cocalc/util/types/registration-token";
 
 const log = getLogger("server:accounts:create");
 
@@ -30,7 +33,15 @@ interface Params {
   // if set, create the first project but do not start it. Only applies if noFirstProject is false.
   dontStartProject?: boolean;
   ephemeral?: number;
-  customize?: any;
+  customize?: RegistrationTokenCustomize;
+}
+
+function customizeWithoutLicense(
+  customize?: RegistrationTokenCustomize,
+): RegistrationTokenCustomize | null {
+  if (!customize) return null;
+  const trimmed = omit(customize, "license");
+  return Object.keys(trimmed).length > 0 ? trimmed : null;
 }
 
 export default async function createAccount({
@@ -70,7 +81,7 @@ export default async function createAccount({
         signupReason,
         owner_id,
         ephemeral ?? null,
-        customize ?? null,
+        customizeWithoutLicense(customize),
       ],
     );
     const { insecure_test_mode } = await getServerSettings();
@@ -89,6 +100,7 @@ export default async function createAccount({
       noFirstProject,
       dontStartProject,
       ephemeral,
+      customize,
     });
     await creationActionsDone(account_id);
   } catch (error) {

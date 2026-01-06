@@ -14,7 +14,7 @@ import { type AutoBalance } from "@cocalc/util/db-schema/accounts";
 import {
   NEW_FILENAMES,
   NewFilenameTypes,
-  OTHER_SETTINGS_USERDEFINED_LLM,
+  OTHER_SETTINGS_USER_DEFINED_LLM,
 } from "@cocalc/util/db-schema/defaults";
 import { LanguageModel } from "@cocalc/util/db-schema/llm-utils";
 import { OTHER_SETTINGS_REPLY_ENGLISH_KEY } from "@cocalc/util/i18n/const";
@@ -62,7 +62,7 @@ export interface AccountState {
     dark_mode_contrast: number;
     dark_mode_sepia: number;
     news_read_until: number; // JavaScript timestamp in milliseconds
-    [OTHER_SETTINGS_USERDEFINED_LLM]: string; // string is JSON: CustomLLM[]
+    [OTHER_SETTINGS_USER_DEFINED_LLM]: string; // string is JSON: CustomLLM[]
     [OTHER_SETTINGS_LOCALE_KEY]?: string;
     [OTHER_SETTINGS_REPLY_ENGLISH_KEY]?: string;
     no_email_new_messages?: boolean;
