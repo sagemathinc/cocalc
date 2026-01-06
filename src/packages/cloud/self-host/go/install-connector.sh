@@ -11,6 +11,7 @@ Options:
   --replace                    Allow replacing an existing connector config.
   --check                      Run multipass sanity check before polling.
   --no-daemon                  Run in foreground (default is daemon).
+  --no-service                 Skip installing an auto-start service.
   --software-base-url <url>    Defaults to https://software.cocalc.ai/software
   --install-dir <path>         Linux install dir (default /usr/local/bin).
   -h, --help                   Show this help.
@@ -27,8 +28,9 @@ NAME_ARG=""
 REPLACE="0"
 CHECK="0"
 DAEMON="1"
+INSTALL_SERVICE="1"
 SOFTWARE_BASE_URL="https://software.cocalc.ai/software"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -54,6 +56,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-daemon)
       DAEMON="0"
+      shift
+      ;;
+    --no-service)
+      INSTALL_SERVICE="0"
       shift
       ;;
     --software-base-url)
@@ -105,6 +111,9 @@ esac
 
 case "$OS" in
   linux)
+    if [[ -z "$INSTALL_DIR" ]]; then
+      INSTALL_DIR="/usr/local/bin"
+    fi
     ;;
   darwin)
     if [[ "$ARCH" != "arm64" ]]; then
@@ -120,6 +129,41 @@ esac
 
 SOFTWARE_BASE_URL="${SOFTWARE_BASE_URL%/}"
 LATEST_URL="${SOFTWARE_BASE_URL}/self-host/latest-${OS}-${ARCH}.json"
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/cocalc-connector"
+CONFIG_PATH="${CONFIG_DIR}/config.json"
+
+if [[ -f "$CONFIG_PATH" && "$REPLACE" != "1" ]]; then
+  if [[ -t 0 ]]; then
+    echo "Connector config already exists at $CONFIG_PATH."
+    read -r -p "Replace it? [y/N] " reply
+    case "$reply" in
+      [Yy]*)
+        REPLACE="1"
+        ;;
+      *)
+        echo "Aborting. Re-run with --replace to overwrite."
+        exit 2
+        ;;
+    esac
+  elif [[ -r /dev/tty ]]; then
+    echo "Connector config already exists at $CONFIG_PATH." > /dev/tty
+    read -r -p "Replace it? [y/N] " reply < /dev/tty
+    case "$reply" in
+      [Yy]*)
+        REPLACE="1"
+        ;;
+      *)
+        echo "Aborting. Re-run with --replace to overwrite." > /dev/tty
+        exit 2
+        ;;
+    esac
+  else
+    echo "Connector config already exists at $CONFIG_PATH." >&2
+    echo "Re-run with --replace to overwrite it." >&2
+    exit 2
+  fi
+fi
 
 json="$(curl -fsSL "$LATEST_URL")"
 url="$(printf '%s' "$json" | sed -n 's/.*"url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
@@ -165,6 +209,8 @@ if [[ "$OS" == "darwin" ]]; then
     echo "Expected pkg for macOS but got $artifact" >&2
     exit 2
   fi
+  echo "This step uses sudo to install the connector into /usr/local/bin."
+  echo "The connector will run as your user and store config in $CONFIG_PATH."
   if ! command -v sudo >/dev/null 2>&1; then
     echo "sudo is required to install the pkg on macOS." >&2
     exit 2
@@ -172,14 +218,15 @@ if [[ "$OS" == "darwin" ]]; then
   sudo installer -pkg "$artifact" -target /
   BIN_PATH="/usr/local/bin/${BIN_NAME}"
 else
-  if [[ -w "$INSTALL_DIR" ]]; then
+  echo "This step uses sudo to install the connector into ${INSTALL_DIR}."
+  echo "The connector will run as your user and store config in $CONFIG_PATH."
+  if [[ "$(id -u)" == "0" ]]; then
     SUDO=""
   elif command -v sudo >/dev/null 2>&1; then
     SUDO="sudo"
   else
-    INSTALL_DIR="$HOME/.local/bin"
-    mkdir -p "$INSTALL_DIR"
-    SUDO=""
+    echo "sudo is required to install to ${INSTALL_DIR}." >&2
+    exit 2
   fi
   $SUDO mkdir -p "$INSTALL_DIR"
   $SUDO install -m 0755 "$artifact" "$INSTALL_DIR/${BIN_NAME}"
@@ -195,6 +242,74 @@ if [[ -z "$BIN_PATH" || ! -x "$BIN_PATH" ]]; then
   exit 2
 fi
 
+setup_service_linux() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    return 1
+  fi
+  local unit_dir="$HOME/.config/systemd/user"
+  local unit_file="$unit_dir/cocalc-self-host-connector.service"
+  mkdir -p "$unit_dir"
+  cat > "$unit_file" <<EOF
+[Unit]
+Description=CoCalc Self-Host Connector
+After=network-online.target
+
+[Service]
+ExecStart=$BIN_PATH run${CHECK:+ --check}
+Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+  systemctl --user daemon-reload
+  if ! systemctl --user enable --now cocalc-self-host-connector.service; then
+    return 1
+  fi
+  return 0
+}
+
+setup_service_darwin() {
+  local plist_dir="$HOME/Library/LaunchAgents"
+  local plist_file="$plist_dir/com.cocalc.self-host-connector.plist"
+  mkdir -p "$plist_dir"
+  cat > "$plist_file" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.cocalc.self-host-connector</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$BIN_PATH</string>
+    <string>run</string>
+    ${CHECK:+<string>--check</string>}
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>PATH</key>
+    <string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+  </dict>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>$HOME/Library/Logs/cocalc-self-host-connector.log</string>
+  <key>StandardErrorPath</key>
+  <string>$HOME/Library/Logs/cocalc-self-host-connector.log</string>
+</dict>
+</plist>
+EOF
+  launchctl unload "$plist_file" >/dev/null 2>&1 || true
+  if ! launchctl load "$plist_file"; then
+    return 1
+  fi
+  return 0
+}
+
 pair_args=("$BIN_PATH" "pair" "--base-url" "$BASE_URL" "--token" "$TOKEN")
 if [[ -n "$NAME_ARG" ]]; then
   pair_args+=("--name" "$NAME_ARG")
@@ -203,6 +318,41 @@ if [[ "$REPLACE" == "1" ]]; then
   pair_args+=("--replace")
 fi
 "${pair_args[@]}"
+
+STARTED="0"
+SERVICE_STATUS=""
+if [[ "$INSTALL_SERVICE" == "1" ]]; then
+  if [[ "$OS" == "linux" ]]; then
+    if setup_service_linux; then
+      STARTED="1"
+    else
+      SERVICE_STATUS="systemd user service failed; auto-start disabled. If you want auto-start, run: loginctl enable-linger $USER"
+    fi
+  elif [[ "$OS" == "darwin" ]]; then
+    if setup_service_darwin; then
+      STARTED="1"
+    else
+      SERVICE_STATUS="launchd setup failed; auto-start disabled."
+    fi
+  fi
+fi
+
+if [[ "$STARTED" == "1" ]]; then
+  echo "Connector installed and started (auto-start enabled)."
+  if [[ "$OS" == "linux" ]]; then
+    echo "Logs: journalctl --user -u cocalc-self-host-connector.service -f"
+    echo "Disable: systemctl --user disable --now cocalc-self-host-connector.service"
+    echo "If auto-start fails on reboot, run: loginctl enable-linger $USER"
+  else
+    echo "Logs: ~/Library/Logs/cocalc-self-host-connector.log"
+    echo "Disable: launchctl unload ~/Library/LaunchAgents/com.cocalc.self-host-connector.plist"
+  fi
+  exit 0
+fi
+
+if [[ -n "$SERVICE_STATUS" ]]; then
+  echo "$SERVICE_STATUS"
+fi
 
 run_args=("$BIN_PATH" "run")
 if [[ "$CHECK" == "1" ]]; then
@@ -214,3 +364,5 @@ fi
 "${run_args[@]}"
 
 echo "Connector installed and running."
+echo "Logs: ${CONFIG_DIR}/daemon.log"
+echo "Stop: ${BIN_NAME} stop"

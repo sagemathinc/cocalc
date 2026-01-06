@@ -202,6 +202,26 @@ export async function createConnector(opts: {
   return { connector_id, token };
 }
 
+export async function revokeConnector(opts: {
+  connector_id: string;
+  account_id?: string;
+}): Promise<void> {
+  const { connector_id, account_id } = opts;
+  const { rows } = await pool().query(
+    `UPDATE self_host_connectors
+     SET revoked=TRUE,
+         token_hash=NULL,
+         host_id=NULL
+     WHERE connector_id=$1
+       ${account_id ? "AND account_id=$2" : "" }
+     RETURNING connector_id`,
+    account_id ? [connector_id, account_id] : [connector_id],
+  );
+  if (!rows[0]?.connector_id) {
+    throw new Error("connector not found");
+  }
+}
+
 export async function activateConnector(opts: {
   connector_id: string;
   account_id: string;

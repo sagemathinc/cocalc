@@ -15,7 +15,10 @@ import { resolveMembershipForAccount } from "@cocalc/server/membership/resolve";
 import {
   enqueueCloudVmWork,
   listCloudVmLog,
+  logCloudVmEvent,
   refreshCloudCatalogNow,
+  deleteHostDns,
+  hasDns,
 } from "@cocalc/server/cloud";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { isValidUUID } from "@cocalc/util/misc";
@@ -24,10 +27,16 @@ import { listServerProviders } from "@cocalc/server/cloud/providers";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { revokeBootstrapTokensForHost } from "@cocalc/server/project-host/bootstrap-token";
 import {
   createConnectorRecord,
   ensureConnectorRecord,
+  revokeConnector,
 } from "@cocalc/server/self-host/connector-tokens";
+import {
+  deleteCloudflareTunnel,
+  hasCloudflareTunnel,
+} from "@cocalc/server/cloud/cloudflare-tunnel";
 function pool() {
   return getPool();
 }
@@ -121,6 +130,50 @@ async function loadHostForStartStop(
     return row;
   }
   throw new Error("not authorized");
+}
+
+async function markHostDeprovisioned(row: any, action: string) {
+  const machine: HostMachine = row.metadata?.machine ?? {};
+  const runtime = row.metadata?.runtime;
+  const nextMetadata = { ...(row.metadata ?? {}) };
+  delete nextMetadata.runtime;
+  delete nextMetadata.dns;
+  delete nextMetadata.cloudflare_tunnel;
+
+  await revokeBootstrapTokensForHost(row.id, { purpose: "bootstrap" });
+  try {
+    if (await hasCloudflareTunnel()) {
+      await deleteCloudflareTunnel({
+        host_id: row.id,
+        tunnel: row.metadata?.cloudflare_tunnel,
+      });
+    } else if (await hasDns()) {
+      await deleteHostDns({ record_id: row.metadata?.dns?.record_id });
+    }
+  } catch (err) {
+    console.warn("force deprovision cleanup failed", err);
+  }
+
+  await pool().query(
+    `UPDATE project_hosts
+       SET status=$2,
+           public_url=NULL,
+           internal_url=NULL,
+           ssh_server=NULL,
+           last_seen=$3,
+           metadata=$4,
+           updated=NOW()
+     WHERE id=$1 AND deleted IS NULL`,
+    [row.id, "deprovisioned", new Date(), nextMetadata],
+  );
+  await logCloudVmEvent({
+    vm_id: row.id,
+    action,
+    status: "success",
+    provider: normalizeProviderId(machine.cloud) ?? machine.cloud,
+    spec: machine,
+    runtime,
+  });
 }
 
 async function loadHostForView(
@@ -591,6 +644,46 @@ export async function stopHost({
   );
   if (!rows[0]) throw new Error("host not found");
   return parseRow(rows[0]);
+}
+
+export async function forceDeprovisionHost({
+  account_id,
+  id,
+}: {
+  account_id?: string;
+  id: string;
+}): Promise<void> {
+  const row = await loadOwnedHost(id, account_id);
+  const machineCloud = normalizeProviderId(row.metadata?.machine?.cloud);
+  if (machineCloud !== "self-host") {
+    throw new Error("force deprovision is only supported for self-hosted VMs");
+  }
+  await markHostDeprovisioned(row, "force_deprovision");
+}
+
+export async function removeSelfHostConnector({
+  account_id,
+  id,
+}: {
+  account_id?: string;
+  id: string;
+}): Promise<void> {
+  const row = await loadOwnedHost(id, account_id);
+  const machineCloud = normalizeProviderId(row.metadata?.machine?.cloud);
+  if (machineCloud !== "self-host") {
+    throw new Error("host is not self-hosted");
+  }
+  await markHostDeprovisioned(row, "remove_connector");
+  const connectorId =
+    row.region ??
+    row.metadata?.machine?.metadata?.connector_id ??
+    row.metadata?.machine?.metadata?.connectorId;
+  if (typeof connectorId === "string" && connectorId) {
+    await revokeConnector({
+      connector_id: connectorId,
+      account_id,
+    });
+  }
 }
 
 export async function renameHost({

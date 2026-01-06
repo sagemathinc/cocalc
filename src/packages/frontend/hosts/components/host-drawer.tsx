@@ -33,6 +33,8 @@ type HostDrawerViewModel = {
     >;
     isConnectorOnline: (connectorId?: string) => boolean;
     onSetup: (host: Host) => void;
+    onRemove: (host: Host) => void;
+    onForceDeprovision: (host: Host) => void;
   };
 };
 
@@ -63,6 +65,11 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
       {connectorOnline ? "Connector online" : "Connector offline"}
     </Tag>
   ) : null;
+  const canForceDeprovision =
+    !!host &&
+    isSelfHost &&
+    !host.deleted &&
+    host.status !== "deprovisioned";
   return (
     <Drawer
       resizable
@@ -162,6 +169,30 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
                 </Button>
               }
             />
+          )}
+          {isSelfHost && selfHost && !host.deleted && (
+            <Space direction="vertical" size="small">
+              <Typography.Text strong>Connector actions</Typography.Text>
+              <Space wrap>
+                <Button size="small" onClick={() => selfHost.onSetup(host)}>
+                  Setup or reconnect
+                </Button>
+                <Button size="small" danger onClick={() => selfHost.onRemove(host)}>
+                  Remove connector
+                </Button>
+                {canForceDeprovision && (
+                  <Popconfirm
+                    title="Force deprovision this host without contacting your machine?"
+                    okText="Force deprovision"
+                    cancelText="Cancel"
+                    onConfirm={() => selfHost.onForceDeprovision(host)}
+                    okButtonProps={{ danger: true }}
+                  >
+                    <Button size="small">Force deprovision</Button>
+                  </Popconfirm>
+                )}
+              </Space>
+            </Space>
           )}
           {canUpgrade && host && !host.deleted && onUpgrade && (
             <Popconfirm
