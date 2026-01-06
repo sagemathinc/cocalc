@@ -22,6 +22,9 @@ export const STEP_NAMES = [
 
 export type Steps = (typeof STEP_NAMES)[number];
 
+// Relative width for the Grade column when using flex layouts.
+export const GRADE_FLEX = "1.5";
+
 export const STEPS_INTL = defineMessage({
   id: "course.student-assignment-info.steps",
   // string as select match does not work, this is the index in the STEPS array
