@@ -11,15 +11,21 @@ import { ServerSettings } from "@cocalc/database/settings/server-settings";
 import {
   ANTHROPIC_VERSION,
   AnthropicModel,
+  FALLBACK_MAX_TOKENS,
   fromCustomOpenAIModel,
   GOOGLE_MODEL_TO_ID,
   GoogleModel,
   isAnthropicModel,
   isCustomOpenAI,
   isGoogleModel,
+  isGoogleThinkingModel,
   isMistralModel,
   isOpenAIModel,
+  isXaiModel,
+  toXaiProviderModel,
+  UserDefinedLLMService,
 } from "@cocalc/util/db-schema/llm-utils";
+import { unreachable } from "@cocalc/util/misc";
 import type { ChatOutput, History, Stream } from "@cocalc/util/types/llm";
 import { ChatAnthropic } from "@langchain/anthropic";
 import { AIMessageChunk } from "@langchain/core/messages";
@@ -32,6 +38,7 @@ import { concat } from "@langchain/core/utils/stream";
 import { ChatGoogleGenerativeAI } from "@langchain/google-genai";
 import { ChatMistralAI } from "@langchain/mistralai";
 import { ChatOpenAI } from "@langchain/openai";
+import { ChatXAI } from "@langchain/xai";
 import { transformHistoryToMessages } from "./chat-history";
 import { numTokens } from "./chatgpt-numtokens";
 import { getCustomOpenAI } from "./client";
@@ -48,6 +55,8 @@ export interface LLMEvaluationOptions {
   stream?: Stream;
   maxTokens?: number;
   apiKey?: string;
+  endpoint?: string;
+  service?: UserDefinedLLMService;
 }
 
 // Provider-specific client configuration
@@ -62,7 +71,11 @@ export interface LLMProviderConfig {
     mode: "cocalc" | "user",
   ) => Promise<any>;
 
-  // Model processing
+  // Mode === "cocalc" only: validate provider availability and return an API key (if applicable).
+  // evaluateWithLangChain calls this before createClient for platform models.
+  checkEnabled?: (settings: ServerSettings) => string | void;
+
+  // Model processing for platform defined internal namings. Only called when mode === "cocalc".
   canonicalModel?: (model: string) => string;
 
   // Special handling flags
@@ -78,31 +91,47 @@ export interface LLMProviderConfig {
   ) => Promise<{ prompt_tokens: number; completion_tokens: number }>;
 }
 
-function isO1Model(normalizedModel) {
-  return normalizedModel === "o1" || normalizedModel === "o1-mini";
+function isO1Model(model: string) {
+  return /^o1(-|$)/.test(model);
 }
 
 // Provider configurations
 export const PROVIDER_CONFIGS = {
   openai: {
     name: "OpenAI",
-    createClient: async (options, settings) => {
-      const { openai_api_key: apiKey } = settings;
-      const normalizedModel = normalizeOpenAIModel(options.model);
+    checkEnabled: (settings) => {
+      const { openai_enabled, openai_api_key } = settings;
+      if (!openai_enabled) {
+        throw new Error("OpenAI is not enabled.");
+      }
+      if (!openai_api_key) {
+        throw new Error("OpenAI API key is not configured.");
+      }
+      return openai_api_key;
+    },
+    createClient: async (options, settings, mode) => {
+      const resolvedApiKey =
+        mode === "cocalc" ? settings.openai_api_key : options.apiKey;
+      if (!resolvedApiKey) {
+        throw new Error("OpenAI API key is not configured.");
+      }
+      const normalizedModel =
+        mode === "user" ? options.model : normalizeOpenAIModel(options.model);
 
       log.debug(
         `OpenAI createClient: original=${options.model}, normalized=${normalizedModel}`,
       );
 
-      // Check if it's O1 model (doesn't support streaming)
-      const isO1 = isO1Model(normalizedModel);
       return new ChatOpenAI({
         model: normalizedModel,
-        apiKey: options.apiKey || apiKey,
+        apiKey: resolvedApiKey,
         maxTokens: options.maxTokens,
-        streaming: options.stream != null && !isO1,
+        configuration: options.endpoint
+          ? { baseURL: options.endpoint }
+          : undefined,
+        streaming: options.stream != null,
         streamUsage: true,
-        ...(options.stream != null && !isO1
+        ...(options.stream != null
           ? { streamOptions: { includeUsage: true } }
           : {}),
       });
@@ -117,12 +146,25 @@ export const PROVIDER_CONFIGS = {
 
   google: {
     name: "Google GenAI",
+    checkEnabled: (settings) => {
+      const { google_vertexai_enabled, google_vertexai_key } = settings;
+      if (!google_vertexai_enabled) {
+        throw new Error("Google GenAI is not enabled.");
+      }
+      if (!google_vertexai_key) {
+        throw new Error("Google GenAI API key is not configured.");
+      }
+      return google_vertexai_key;
+    },
     createClient: async (options, settings, mode) => {
       const apiKey =
         mode === "cocalc" ? settings.google_vertexai_key : options.apiKey;
+      if (!apiKey) {
+        throw new Error("Google GenAI API key is not configured.");
+      }
       const modelName =
         mode === "cocalc"
-          ? GOOGLE_MODEL_TO_ID[options.model as GoogleModel] ?? options.model
+          ? (GOOGLE_MODEL_TO_ID[options.model as GoogleModel] ?? options.model)
           : options.model;
 
       log.debug(
@@ -131,13 +173,13 @@ export const PROVIDER_CONFIGS = {
 
       return new ChatGoogleGenerativeAI({
         model: modelName,
-        apiKey: options.apiKey || apiKey,
+        apiKey,
         maxOutputTokens: options.maxTokens,
-        // Only enable thinking tokens for Gemini 2.5 models
-        ...(modelName === "gemini-2.5-flash" || modelName === "gemini-2.5-pro"
-          ? { maxReasoningTokens: 1024 }
+        // Enable thinking tokens for Gemini 2.5+ models
+        ...(isGoogleThinkingModel(modelName)
+          ? { maxReasoningTokens: FALLBACK_MAX_TOKENS }
           : {}),
-        streaming: true,
+        streaming: options.stream != null,
       });
     },
     canonicalModel: (model) =>
@@ -150,9 +192,22 @@ export const PROVIDER_CONFIGS = {
 
   anthropic: {
     name: "Anthropic",
+    checkEnabled: (settings) => {
+      const { anthropic_enabled, anthropic_api_key } = settings;
+      if (!anthropic_enabled) {
+        throw new Error("Anthropic is not enabled.");
+      }
+      if (!anthropic_api_key) {
+        throw new Error("Anthropic API key is not configured.");
+      }
+      return anthropic_api_key;
+    },
     createClient: async (options, settings, mode) => {
       const apiKey =
         mode === "cocalc" ? settings.anthropic_api_key : options.apiKey;
+      if (!apiKey) {
+        throw new Error("Anthropic API key is not configured.");
+      }
       const modelName =
         mode === "cocalc"
           ? ANTHROPIC_VERSION[options.model as AnthropicModel]
@@ -189,9 +244,22 @@ export const PROVIDER_CONFIGS = {
 
   mistral: {
     name: "Mistral",
+    checkEnabled: (settings) => {
+      const { mistral_enabled, mistral_api_key } = settings;
+      if (!mistral_enabled) {
+        throw new Error("Mistral is not enabled.");
+      }
+      if (!mistral_api_key) {
+        throw new Error("Mistral API key is not configured.");
+      }
+      return mistral_api_key;
+    },
     createClient: async (options, settings, mode) => {
       const apiKey =
         mode === "cocalc" ? settings.mistral_api_key : options.apiKey;
+      if (!apiKey) {
+        throw new Error("Mistral API key is not configured.");
+      }
 
       log.debug(`Mistral createClient: model=${options.model}`);
 
@@ -206,14 +274,84 @@ export const PROVIDER_CONFIGS = {
     }),
   },
 
+  xai: {
+    name: "xAI",
+    checkEnabled: (settings) => {
+      const { xai_enabled, xai_api_key } = settings;
+      if (!xai_enabled) {
+        throw new Error("xAI is not enabled.");
+      }
+      if (!xai_api_key) {
+        throw new Error("xAI API key is not configured.");
+      }
+      return xai_api_key;
+    },
+    createClient: async (options, settings, mode) => {
+      const apiKey = mode === "cocalc" ? settings.xai_api_key : options.apiKey;
+      if (!apiKey) {
+        throw new Error("xAI API key is not configured.");
+      }
+      const modelName =
+        mode === "cocalc" ? toXaiProviderModel(options.model) : options.model;
+
+      log.debug(
+        `xAI createClient: original=${options.model}, modelName=${modelName}`,
+      );
+
+      return new ChatXAI({
+        model: modelName,
+        apiKey,
+        maxTokens: options.maxTokens,
+        streaming: true,
+      });
+    },
+    canonicalModel: (model) => toXaiProviderModel(model),
+    getTokenCountFallback: async (input, output, historyTokens) => ({
+      prompt_tokens: numTokens(input) + historyTokens,
+      completion_tokens: numTokens(output),
+    }),
+  },
+
   "custom-openai": {
     name: "Custom OpenAI",
-    createClient: async (options, _settings) => {
-      const transformedModel = fromCustomOpenAIModel(options.model);
-      log.debug(
-        `Custom OpenAI createClient: original=${options.model}, transformed=${transformedModel}`,
-      );
-      return await getCustomOpenAI(transformedModel);
+    checkEnabled: (settings) => {
+      if (!settings.custom_openai_enabled) {
+        throw new Error("Custom OpenAI is not enabled.");
+      }
+    },
+    createClient: async (options, _settings, mode) => {
+      // user-defined custom OpenAI provides endpoint/apiKey directly; platform uses server config
+      switch (mode) {
+        case "user": {
+          log.debug("Custom OpenAI createClient (user)", {
+            model: options.model,
+            endpoint: options.endpoint,
+          });
+          return new ChatOpenAI({
+            model: options.model,
+            apiKey: options.apiKey,
+            configuration: options.endpoint
+              ? { baseURL: options.endpoint }
+              : undefined,
+            maxTokens: options.maxTokens,
+            streaming: options.stream != null,
+            streamUsage: true,
+            ...(options.stream != null
+              ? { streamOptions: { includeUsage: true } }
+              : {}),
+          });
+        }
+        case "cocalc": {
+          const transformedModel = fromCustomOpenAIModel(options.model);
+          log.debug(
+            `Custom OpenAI createClient: original=${options.model}, transformed=${transformedModel}`,
+          );
+          return await getCustomOpenAI(transformedModel);
+        }
+        default:
+          unreachable(mode);
+          throw new Error(`Invalid LLM mode: ${mode}`);
+      }
     },
     canonicalModel: (model) => fromCustomOpenAIModel(model),
     getTokenCountFallback: async (input, output, historyTokens) => ({
@@ -224,7 +362,31 @@ export const PROVIDER_CONFIGS = {
 } as const satisfies Record<string, LLMProviderConfig>;
 
 // Get provider config based on model
-export function getProviderConfig(model: string): LLMProviderConfig {
+export function getProviderConfig(
+  model: string,
+  service?: UserDefinedLLMService,
+): LLMProviderConfig {
+  if (service) {
+    switch (service) {
+      case "openai":
+        return PROVIDER_CONFIGS.openai;
+      case "google":
+        return PROVIDER_CONFIGS.google;
+      case "anthropic":
+        return PROVIDER_CONFIGS.anthropic;
+      case "mistralai":
+        return PROVIDER_CONFIGS.mistral;
+      case "xai":
+        return PROVIDER_CONFIGS.xai;
+      case "custom_openai":
+        return PROVIDER_CONFIGS["custom-openai"];
+      case "ollama":
+        throw new Error("Ollama handled separately");
+      default:
+        throw new Error(`Unknown service for provider config: ${service}`);
+    }
+  }
+
   if (isOpenAIModel(model)) {
     return PROVIDER_CONFIGS.openai;
   } else if (isGoogleModel(model)) {
@@ -233,11 +395,13 @@ export function getProviderConfig(model: string): LLMProviderConfig {
     return PROVIDER_CONFIGS.anthropic;
   } else if (isMistralModel(model)) {
     return PROVIDER_CONFIGS.mistral;
+  } else if (isXaiModel(model)) {
+    return PROVIDER_CONFIGS.xai;
   } else if (isCustomOpenAI(model)) {
     return PROVIDER_CONFIGS["custom-openai"];
-  } else {
-    throw new Error(`Unknown model provider for: ${model}`);
   }
+
+  throw new Error(`Unknown model provider for: ${model}`);
 }
 
 // Content processing helper
@@ -260,7 +424,15 @@ export async function evaluateWithLangChain(
   options: LLMEvaluationOptions,
   mode: "cocalc" | "user" = "cocalc",
 ): Promise<ChatOutput> {
-  const { input, system, history = [], model, stream, maxTokens } = options;
+  const {
+    input,
+    system,
+    history = [],
+    model,
+    stream,
+    maxTokens,
+    service,
+  } = options;
 
   log.debug("evaluateWithLangChain", {
     input,
@@ -272,18 +444,22 @@ export async function evaluateWithLangChain(
   });
 
   // Get provider configuration
-  const config = getProviderConfig(model);
+  const config = getProviderConfig(model, service);
 
   // Get server settings
   const settings = await getServerSettings();
+  if (mode === "cocalc") {
+    config.checkEnabled?.(settings);
+  }
 
   // Create LangChain client
   const client = await config.createClient(options, settings, mode);
 
   // Canonical model name
-  const canonicalModel = config.canonicalModel
-    ? config.canonicalModel(model)
-    : model;
+  const canonicalModel =
+    mode === "cocalc" && config.canonicalModel
+      ? config.canonicalModel(model)
+      : model;
 
   // Determine system role (always use "history" for historyKey)
   const systemRole = config.getSystemRole
@@ -317,9 +493,8 @@ export async function evaluateWithLangChain(
     inputMessagesKey: "input",
     historyMessagesKey,
     getMessageHistory: async () => {
-      const { messageHistory, tokens } = await transformHistoryToMessages(
-        history,
-      );
+      const { messageHistory, tokens } =
+        await transformHistoryToMessages(history);
       historyTokens = tokens;
       return messageHistory;
     },

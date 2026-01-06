@@ -7,88 +7,11 @@ You do not have to worry too much about throwing an exception, because they're c
 import { Ollama } from "@langchain/ollama";
 import { ChatOpenAI as ChatOpenAILC } from "@langchain/openai";
 import { omit } from "lodash";
-import OpenAI from "openai";
-
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import {
-  LanguageModel,
-  isCustomOpenAI,
-  isGoogleModel,
-  isOllamaLLM,
-  model2vendor,
-} from "@cocalc/util/db-schema/llm-utils";
-import { unreachable } from "@cocalc/util/misc";
-import { GoogleGenAIClient } from "./google-genai-client";
+import { isCustomOpenAI, isOllamaLLM } from "@cocalc/util/db-schema/llm-utils";
 
 const log = getLogger("llm:client");
-
-const clientCache: { [key: string]: OpenAI | GoogleGenAIClient } = {};
-
-export async function getClient(
-  model?: LanguageModel,
-): Promise<OpenAI | GoogleGenAIClient> {
-  if (model == null) {
-    throw new Error("llm: model not specified");
-  }
-
-  const vendorName = model2vendor(model).name;
-
-  switch (vendorName) {
-    case "openai": {
-      const { openai_api_key: apiKey } = await getServerSettings();
-      if (clientCache[apiKey]) {
-        return clientCache[apiKey];
-      }
-      if (!apiKey) {
-        log.warn("requested openai api key, but it's not configured");
-        throw Error("openai not configured");
-      }
-
-      log.debug("creating openai client...");
-      const client = new OpenAI({ apiKey });
-      clientCache[apiKey] = client;
-      return client;
-    }
-
-    case "google": {
-      // This is a GenAI API key
-      const { google_vertexai_key: apiKey } = await getServerSettings();
-      if (!apiKey) {
-        log.warn("requested google vertexai key, but it's not configured");
-        throw Error("google vertexai not configured");
-      }
-
-      if (!isGoogleModel(model)) {
-        throw Error("this should never happen");
-      }
-
-      // ATTN: do not cache the instance. I saw suspicious errors, better to clean up the memory each time.
-      return new GoogleGenAIClient({ apiKey }, model);
-    }
-
-    case "ollama":
-      throw new Error("Use the getOllama function instead");
-
-    case "custom_openai":
-      throw new Error("Use the getCustomOpenAI function instead");
-
-    case "mistralai":
-      throw new Error("Use the evaluateMistral function instead");
-
-    case "anthropic":
-      throw new Error("Use the evaluateAnthropic function instead");
-
-    case "user":
-      throw new Error(
-        "This should never happen, user defined LLMs must be unpacked.",
-      );
-
-    default:
-      unreachable(vendorName);
-      throw new Error(`unknown vendor: ${vendorName}`);
-  }
-}
 
 /**
  * The idea here is: the ollama config contains all available endpoints and their configuration.
