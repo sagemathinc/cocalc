@@ -35,7 +35,6 @@ rm -f ~/.config/systemd/user/cocalc-self-host-connector.service
 rm -rf ~/.config/cocalc-connector
 
 # remove the binary
-rm -f ~/.local/bin/cocalc-self-host-connector
 sudo rm -f /usr/local/bin/cocalc-self-host-connector
 
 # optional: delete the VM

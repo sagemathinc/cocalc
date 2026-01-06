@@ -131,6 +131,25 @@ export const SelfHostSetupModal: React.FC<SelfHostSetupModalProps> = ({
                 Token expires: {new Date(expires).toLocaleString()}
               </Typography.Paragraph>
             )}
+            <Typography.Paragraph type="secondary">
+              Logs:
+              <br />
+              Linux:{" "}
+              <Typography.Text code>
+                journalctl --user -u cocalc-self-host-connector.service -f
+              </Typography.Text>
+              <br />
+              macOS:{" "}
+              <Typography.Text code>
+                ~/Library/Logs/cocalc-self-host-connector.log
+              </Typography.Text>
+            </Typography.Paragraph>
+            <Typography.Paragraph type="secondary">
+              Manual start/stop (if needed):{" "}
+              <Typography.Text code>cocalc-self-host-connector run --daemon</Typography.Text>
+              {" / "}
+              <Typography.Text code>cocalc-self-host-connector stop</Typography.Text>
+            </Typography.Paragraph>
           </>
         )}
         <Typography.Paragraph type="secondary">

@@ -112,7 +112,7 @@ esac
 case "$OS" in
   linux)
     if [[ -z "$INSTALL_DIR" ]]; then
-      INSTALL_DIR="$HOME/.local/bin"
+      INSTALL_DIR="/usr/local/bin"
     fi
     ;;
   darwin)
@@ -129,6 +129,29 @@ esac
 
 SOFTWARE_BASE_URL="${SOFTWARE_BASE_URL%/}"
 LATEST_URL="${SOFTWARE_BASE_URL}/self-host/latest-${OS}-${ARCH}.json"
+
+CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/cocalc-connector"
+CONFIG_PATH="${CONFIG_DIR}/config.json"
+
+if [[ -f "$CONFIG_PATH" && "$REPLACE" != "1" ]]; then
+  if [[ -t 0 ]]; then
+    echo "Connector config already exists at $CONFIG_PATH."
+    read -r -p "Replace it? [y/N] " reply
+    case "$reply" in
+      [Yy]*)
+        REPLACE="1"
+        ;;
+      *)
+        echo "Aborting. Re-run with --replace to overwrite."
+        exit 2
+        ;;
+    esac
+  else
+    echo "Connector config already exists at $CONFIG_PATH." >&2
+    echo "Re-run with --replace to overwrite it." >&2
+    exit 2
+  fi
+fi
 
 json="$(curl -fsSL "$LATEST_URL")"
 url="$(printf '%s' "$json" | sed -n 's/.*"url"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p')"
@@ -174,6 +197,8 @@ if [[ "$OS" == "darwin" ]]; then
     echo "Expected pkg for macOS but got $artifact" >&2
     exit 2
   fi
+  echo "This step uses sudo to install the connector into /usr/local/bin."
+  echo "The connector will run as your user and store config in $CONFIG_PATH."
   if ! command -v sudo >/dev/null 2>&1; then
     echo "sudo is required to install the pkg on macOS." >&2
     exit 2
@@ -181,12 +206,14 @@ if [[ "$OS" == "darwin" ]]; then
   sudo installer -pkg "$artifact" -target /
   BIN_PATH="/usr/local/bin/${BIN_NAME}"
 else
-  if [[ -w "$INSTALL_DIR" ]]; then
+  echo "This step uses sudo to install the connector into ${INSTALL_DIR}."
+  echo "The connector will run as your user and store config in $CONFIG_PATH."
+  if [[ "$(id -u)" == "0" ]]; then
     SUDO=""
   elif command -v sudo >/dev/null 2>&1; then
     SUDO="sudo"
   else
-    echo "Install dir not writable and sudo not available: $INSTALL_DIR" >&2
+    echo "sudo is required to install to ${INSTALL_DIR}." >&2
     exit 2
   fi
   $SUDO mkdir -p "$INSTALL_DIR"
@@ -224,7 +251,10 @@ RestartSec=5
 WantedBy=default.target
 EOF
   systemctl --user daemon-reload
-  systemctl --user enable --now cocalc-self-host-connector.service
+  if ! systemctl --user enable --now cocalc-self-host-connector.service; then
+    return 1
+  fi
+  return 0
 }
 
 setup_service_darwin() {
@@ -256,7 +286,10 @@ setup_service_darwin() {
 </plist>
 EOF
   launchctl unload "$plist_file" >/dev/null 2>&1 || true
-  launchctl load "$plist_file"
+  if ! launchctl load "$plist_file"; then
+    return 1
+  fi
+  return 0
 }
 
 pair_args=("$BIN_PATH" "pair" "--base-url" "$BASE_URL" "--token" "$TOKEN")
@@ -269,21 +302,38 @@ fi
 "${pair_args[@]}"
 
 STARTED="0"
+SERVICE_STATUS=""
 if [[ "$INSTALL_SERVICE" == "1" ]]; then
   if [[ "$OS" == "linux" ]]; then
     if setup_service_linux; then
       STARTED="1"
+    else
+      SERVICE_STATUS="systemd user service failed; auto-start disabled. If you want auto-start, run: loginctl enable-linger $USER"
     fi
   elif [[ "$OS" == "darwin" ]]; then
     if setup_service_darwin; then
       STARTED="1"
+    else
+      SERVICE_STATUS="launchd setup failed; auto-start disabled."
     fi
   fi
 fi
 
 if [[ "$STARTED" == "1" ]]; then
   echo "Connector installed and started (auto-start enabled)."
+  if [[ "$OS" == "linux" ]]; then
+    echo "Logs: journalctl --user -u cocalc-self-host-connector.service -f"
+    echo "Disable: systemctl --user disable --now cocalc-self-host-connector.service"
+    echo "If auto-start fails on reboot, run: loginctl enable-linger $USER"
+  else
+    echo "Logs: ~/Library/Logs/cocalc-self-host-connector.log"
+    echo "Disable: launchctl unload ~/Library/LaunchAgents/com.cocalc.self-host-connector.plist"
+  fi
   exit 0
+fi
+
+if [[ -n "$SERVICE_STATUS" ]]; then
+  echo "$SERVICE_STATUS"
 fi
 
 run_args=("$BIN_PATH" "run")
@@ -296,3 +346,5 @@ fi
 "${run_args[@]}"
 
 echo "Connector installed and running."
+echo "Logs: ${CONFIG_DIR}/daemon.log"
+echo "Stop: ${BIN_NAME} stop"
