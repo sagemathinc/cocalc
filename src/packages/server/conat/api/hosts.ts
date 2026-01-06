@@ -24,6 +24,7 @@ import { listServerProviders } from "@cocalc/server/cloud/providers";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { createConnectorRecord } from "@cocalc/server/self-host/connector-tokens";
 function pool() {
   return getPool();
 }
@@ -444,14 +445,26 @@ export async function createHost({
   const id = randomUUID();
   const now = new Date();
   const machineCloud = normalizeProviderId(machine?.cloud);
-  const initialStatus = machineCloud ? "starting" : "off";
+  const isSelfHost = machineCloud === "self-host";
+  const initialStatus = machineCloud && !isSelfHost ? "starting" : "off";
+  let resolvedRegion = region;
+  let connectorId: string | undefined;
+  if (isSelfHost) {
+    const connector = await createConnectorRecord({
+      account_id: owner,
+      host_id: id,
+      name,
+    });
+    connectorId = connector.connector_id;
+    resolvedRegion = connectorId;
+  }
   await pool().query(
     `INSERT INTO project_hosts (id, name, region, status, metadata, created, updated, last_seen)
      VALUES ($1,$2,$3,$4,$5,NOW(),NOW(),$6)`,
     [
       id,
       name,
-      region,
+      resolvedRegion,
       initialStatus,
       {
         owner,
@@ -460,12 +473,20 @@ export async function createHost({
         machine: {
           ...(machine ?? {}),
           ...(machineCloud ? { cloud: machineCloud } : {}),
+          ...(connectorId
+            ? {
+                metadata: {
+                  ...(machine?.metadata ?? {}),
+                  connector_id: connectorId,
+                },
+              }
+            : {}),
         },
       },
       now,
     ],
   );
-  if (machineCloud) {
+  if (machineCloud && !isSelfHost) {
     await enqueueCloudVmWork({
       vm_id: id,
       action: "provision",

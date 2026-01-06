@@ -266,6 +266,15 @@ export const getSelfHostConnectorOptions = (
   }));
 };
 
+export const getSelfHostConnectors = (
+  catalog?: HostCatalog,
+): SelfHostConnector[] =>
+  getCatalogEntryPayload<SelfHostConnector[]>(
+    catalog,
+    "connectors",
+    "account",
+  ) ?? [];
+
 const shouldIncludeField = (
   field: HostFieldId,
   caps?: NonNullable<HostCatalog["provider_capabilities"]>[string],
@@ -1472,49 +1481,49 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
     id: "self-host",
     label: "Self-hosted (Multipass)",
     supports: {
-      region: true,
+      region: false,
       zone: false,
       machineType: false,
       flavor: false,
       instanceType: false,
       gpuType: false,
-      size: true,
+      size: false,
       genericGpu: false,
     },
     fields: {
-      primary: ["region", "size"],
+      primary: [],
       advanced: [],
       labels: {
-        region: "Connector",
         size: "Size",
       },
     },
     storage: { supported: true, growable: false },
-    getOptions: (catalog) => ({
+    getOptions: () => ({
       ...emptyOptions(),
-      region: getSelfHostConnectorOptions(catalog),
-      size: SIZES,
     }),
-    buildCreatePayload: (vals, ctx) => {
-      return buildBasePayload(
-        vals,
-        ctx.fieldOptions,
-        {
-          machine_type: vals.machine_type || undefined,
-          metadata: {
-            connector_name: findOption<SelfHostConnector>(
-              "region",
-              vals.region,
-              ctx.fieldOptions,
-            )?.name,
-          },
+    buildCreatePayload: (vals, _ctx) => {
+      const cpu = Number(vals.cpu);
+      const ram_gb = Number(vals.ram_gb);
+      const metadata: Record<string, any> = {};
+      if (Number.isFinite(cpu) && cpu > 0) metadata.cpu = cpu;
+      if (Number.isFinite(ram_gb) && ram_gb > 0) metadata.ram_gb = ram_gb;
+      const storage_mode = vals.storage_mode || "persistent";
+      return {
+        name: vals.name ?? "My Host",
+        region: "pending",
+        size: "custom",
+        gpu: false,
+        machine: {
+          cloud: "self-host",
+          storage_mode,
+          disk_gb: vals.disk,
+          disk_type: vals.disk_type,
+          metadata,
         },
-        false,
-      );
+      };
     },
     applyRecommendation: (rec) => {
       const next: Record<string, any> = { provider: "self-host" };
-      if (rec.region) next.region = rec.region;
       applyDiskUpdate(next, rec.disk_gb);
       return next;
     },

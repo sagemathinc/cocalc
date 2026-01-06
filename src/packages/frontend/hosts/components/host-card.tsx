@@ -14,6 +14,10 @@ type HostCardProps = {
   onDelete: (id: string) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
+  selfHost?: {
+    isConnectorOnline: (connectorId?: string) => boolean;
+    onSetup: (host: Host) => void;
+  };
 };
 
 export const HostCard: React.FC<HostCardProps> = ({
@@ -23,10 +27,19 @@ export const HostCard: React.FC<HostCardProps> = ({
   onDelete,
   onDetails,
   onEdit,
+  selfHost,
 }) => {
   const isDeleted = !!host.deleted;
+  const isSelfHost = host.machine?.cloud === "self-host";
+  const connectorOnline =
+    !isSelfHost ||
+    !selfHost?.isConnectorOnline ||
+    selfHost.isConnectorOnline(host.region);
   const startDisabled =
-    isDeleted || host.status === "running" || host.status === "starting";
+    isDeleted ||
+    host.status === "running" ||
+    host.status === "starting" ||
+    !connectorOnline;
   const startLabel = host.status === "starting" ? "Starting" : "Start";
   const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
   const statusValue = host.status as Host["status"] | "active";
@@ -45,6 +58,64 @@ export const HostCard: React.FC<HostCardProps> = ({
       ? "Delete this host?"
       : "Deprovision this host?";
   const deleteOkText = host.status === "deprovisioned" ? "Delete" : "Deprovision";
+  const actions = [
+    <Button
+      key="start"
+      type="link"
+      disabled={startDisabled}
+      onClick={() => onStart(host.id)}
+    >
+      {startLabel}
+    </Button>,
+    isSelfHost && !connectorOnline && selfHost ? (
+      <Button
+        key="setup"
+        type="link"
+        onClick={() => selfHost.onSetup(host)}
+      >
+        Setup
+      </Button>
+    ) : null,
+    allowStop ? (
+      <Popconfirm
+        key="stop"
+        title="Stop this host?"
+        okText="Stop"
+        cancelText="Cancel"
+        onConfirm={() => onStop(host.id)}
+      >
+        <Button type="link">{stopLabel}</Button>
+      </Popconfirm>
+    ) : (
+      <Button key="stop" type="link" disabled>
+        {stopLabel}
+      </Button>
+    ),
+    <Button
+      key="edit"
+      type="link"
+      disabled={isDeleted}
+      onClick={() => onEdit(host)}
+    >
+      Edit
+    </Button>,
+    <Button key="details" type="link" onClick={() => onDetails(host)}>
+      Details
+    </Button>,
+    <Popconfirm
+      key="delete"
+      title={deleteTitle}
+      okText={deleteOkText}
+      cancelText="Cancel"
+      okButtonProps={{ danger: true }}
+      onConfirm={() => onDelete(host.id)}
+      disabled={isDeleted}
+    >
+      <Button type="link" danger disabled={isDeleted}>
+        {deleteLabel}
+      </Button>
+    </Popconfirm>,
+  ];
 
   return (
     <Card
@@ -54,55 +125,7 @@ export const HostCard: React.FC<HostCardProps> = ({
           {host.deleted ? "deleted" : host.status}
         </Tag>
       }
-      actions={[
-        <Button
-          key="start"
-          type="link"
-          disabled={startDisabled}
-          onClick={() => onStart(host.id)}
-        >
-          {startLabel}
-        </Button>,
-        allowStop ? (
-          <Popconfirm
-            key="stop"
-            title="Stop this host?"
-            okText="Stop"
-            cancelText="Cancel"
-            onConfirm={() => onStop(host.id)}
-          >
-            <Button type="link">{stopLabel}</Button>
-          </Popconfirm>
-        ) : (
-          <Button key="stop" type="link" disabled>
-            {stopLabel}
-          </Button>
-        ),
-        <Button
-          key="edit"
-          type="link"
-          disabled={isDeleted}
-          onClick={() => onEdit(host)}
-        >
-          Edit
-        </Button>,
-        <Button key="details" type="link" onClick={() => onDetails(host)}>
-          Details
-        </Button>,
-        <Popconfirm
-          key="delete"
-          title={deleteTitle}
-          okText={deleteOkText}
-          cancelText="Cancel"
-          okButtonProps={{ danger: true }}
-          onConfirm={() => onDelete(host.id)}
-          disabled={isDeleted}
-        >
-          <Button type="link" danger disabled={isDeleted}>
-            {deleteLabel}
-          </Button>
-        </Popconfirm>,
-      ]}
+      actions={actions.filter(Boolean) as React.ReactNode[]}
     >
     <Space direction="vertical" size="small">
       <Typography.Text>
@@ -113,7 +136,9 @@ export const HostCard: React.FC<HostCardProps> = ({
             : host.machine.cloud
           : "n/a"}
       </Typography.Text>
-      <Typography.Text>Region: {host.region}</Typography.Text>
+      <Typography.Text>
+        {isSelfHost ? "Connector" : "Region"}: {host.region}
+      </Typography.Text>
       <Typography.Text>Size: {host.size}</Typography.Text>
       <Typography.Text>GPU: {host.gpu ? "Yes" : "No"}</Typography.Text>
       <Typography.Text>Projects: {host.projects ?? 0}</Typography.Text>

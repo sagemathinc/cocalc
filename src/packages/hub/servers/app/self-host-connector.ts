@@ -6,6 +6,7 @@ import express, { Router, type Request } from "express";
 import getPool from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/hub/logger";
 import {
+  activateConnector,
   createConnector,
   createPairingToken,
   revokePairingToken,
@@ -38,6 +39,107 @@ export default function init(router: Router) {
         res.status(401).send("user must be signed in");
         return;
       }
+      const hostId = String(req.body?.host_id ?? "");
+      if (!hostId) {
+        res.status(400).send("missing host_id");
+        return;
+      }
+      const { rows } = await pool().query<{
+        id: string;
+        name: string | null;
+        region: string | null;
+        metadata: any;
+      }>(
+        `SELECT id, name, region, metadata
+         FROM project_hosts
+         WHERE id=$1 AND deleted IS NULL`,
+        [hostId],
+      );
+      const host = rows[0];
+      const owner = host?.metadata?.owner ?? "";
+      if (!host || owner !== account_id) {
+        res.status(404).send("host not found");
+        return;
+      }
+      const machineCloud = host.metadata?.machine?.cloud;
+      if (machineCloud !== "self-host") {
+        res.status(400).send("host is not self-hosted");
+        return;
+      }
+      let connectorId = host.region;
+      const attachConnector = async (id: string) => {
+        const machine = host.metadata?.machine ?? {};
+        const machineMetadata = {
+          ...(machine.metadata ?? {}),
+          connector_id: id,
+        };
+        const nextMetadata = {
+          ...(host.metadata ?? {}),
+          machine: { ...machine, metadata: machineMetadata },
+        };
+        await pool().query(
+          `UPDATE project_hosts
+           SET region=$2, metadata=$3, updated=NOW()
+           WHERE id=$1 AND deleted IS NULL`,
+          [hostId, id, nextMetadata],
+        );
+      };
+      if (!connectorId) {
+        const { rows: created } = await pool().query<{
+          connector_id: string;
+        }>(
+          `INSERT INTO self_host_connectors
+             (connector_id, account_id, host_id, token_hash, name, metadata, created, last_seen, revoked)
+           VALUES (gen_random_uuid(), $1, $2, NULL, $3, $4, NOW(), NULL, FALSE)
+           RETURNING connector_id`,
+          [account_id, hostId, host.name ?? null, host.metadata ?? {}],
+        );
+        connectorId = created[0]?.connector_id;
+        if (!connectorId) {
+          res.status(500).send("failed to allocate connector");
+          return;
+        }
+        await attachConnector(connectorId);
+      } else {
+        const { rows: connectors } = await pool().query<{
+          connector_id: string;
+          host_id: string | null;
+        }>(
+          `SELECT connector_id, host_id
+             FROM self_host_connectors
+            WHERE connector_id=$1 AND revoked IS NOT TRUE`,
+          [connectorId],
+        );
+        const connector = connectors[0];
+        if (!connector) {
+          const { rows: created } = await pool().query<{
+            connector_id: string;
+          }>(
+            `INSERT INTO self_host_connectors
+               (connector_id, account_id, host_id, token_hash, name, metadata, created, last_seen, revoked)
+             VALUES (gen_random_uuid(), $1, $2, NULL, $3, $4, NOW(), NULL, FALSE)
+             RETURNING connector_id`,
+            [account_id, hostId, host.name ?? null, host.metadata ?? {}],
+          );
+          connectorId = created[0]?.connector_id;
+          if (!connectorId) {
+            res.status(500).send("failed to allocate connector");
+            return;
+          }
+          await attachConnector(connectorId);
+        } else if (connector.host_id && connector.host_id !== hostId) {
+          res.status(409).send("connector already assigned to another host");
+          return;
+        } else if (!connector.host_id) {
+          await pool().query(
+            `UPDATE self_host_connectors
+             SET host_id=$2
+             WHERE connector_id=$1`,
+            [connector.connector_id, hostId],
+          );
+          await attachConnector(connector.connector_id);
+        }
+      }
       const ttlSecondsRaw = req.body?.ttl_seconds;
       const ttlSeconds =
         typeof ttlSecondsRaw === "number" && ttlSecondsRaw > 0
@@ -46,8 +148,14 @@ export default function init(router: Router) {
       const tokenInfo = await createPairingToken({
         account_id,
         ttlMs: ttlSeconds ? ttlSeconds * 1000 : undefined,
+        connector_id: connectorId,
+        host_id: hostId,
       });
-      res.json({ pairing_token: tokenInfo.token, expires: tokenInfo.expires });
+      res.json({
+        pairing_token: tokenInfo.token,
+        expires: tokenInfo.expires,
+        connector_id: connectorId,
+      });
     } catch (err) {
       logger.warn("pairing token creation failed", err);
       res.status(500).send("pairing token creation failed");
@@ -71,11 +179,27 @@ export default function init(router: Router) {
         any
       >;
       const name = connectorInfo?.name ? String(connectorInfo.name) : undefined;
-      const { connector_id, token } = await createConnector({
-        account_id: tokenInfo.account_id,
-        name,
-        metadata: connectorInfo,
-      });
+      let connector_id: string;
+      let token: string;
+      if (tokenInfo.connector_id) {
+        const activated = await activateConnector({
+          connector_id: tokenInfo.connector_id,
+          account_id: tokenInfo.account_id,
+          name,
+          metadata: connectorInfo,
+        });
+        connector_id = activated.connector_id;
+        token = activated.token;
+      } else {
+        const created = await createConnector({
+          account_id: tokenInfo.account_id,
+          name,
+          metadata: connectorInfo,
+          host_id: tokenInfo.host_id ?? undefined,
+        });
+        connector_id = created.connector_id;
+        token = created.token;
+      }
       await revokePairingToken(tokenInfo.token_id);
       res.json({
         connector_id,

@@ -9,7 +9,13 @@ Table({
   name: "self_host_connector_tokens",
   rules: {
     primary_key: "token_id",
-    pg_indexes: ["account_id", "expires", "created"],
+    pg_indexes: [
+      "account_id",
+      "connector_id",
+      "host_id",
+      "expires",
+      "created",
+    ],
   },
   fields: {
     token_id: {
@@ -19,6 +25,14 @@ Table({
     account_id: {
       type: "uuid",
       desc: "Owner account for this pairing token.",
+    },
+    connector_id: {
+      type: "uuid",
+      desc: "Connector id this token is scoped to (if any).",
+    },
+    host_id: {
+      type: "uuid",
+      desc: "Project host id this token is scoped to (if any).",
     },
     token_hash: {
       type: "string",

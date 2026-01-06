@@ -10,6 +10,11 @@ type UseHostDrawerViewModelArgs = {
   canUpgrade?: boolean;
   hostLog: HostLogEntry[];
   loadingLog: boolean;
+  selfHost?: {
+    connectorMap: Map<string, { id: string; name?: string; last_seen?: string }>;
+    isConnectorOnline: (connectorId?: string) => boolean;
+    onSetup: (host: Host) => void;
+  };
 };
 
 export const useHostDrawerViewModel = ({
@@ -21,6 +26,7 @@ export const useHostDrawerViewModel = ({
   canUpgrade,
   hostLog,
   loadingLog,
+  selfHost,
 }: UseHostDrawerViewModelArgs) => {
   return {
     open,
@@ -31,5 +37,6 @@ export const useHostDrawerViewModel = ({
     canUpgrade,
     hostLog,
     loadingLog,
+    selfHost,
   };
 };

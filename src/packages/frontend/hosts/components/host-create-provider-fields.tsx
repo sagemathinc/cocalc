@@ -1,4 +1,4 @@
-import { Alert, Form, Select } from "antd";
+import { Alert, Form, InputNumber, Select } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
 import type { HostFieldId } from "../providers/registry";
@@ -52,6 +52,26 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
         <Select options={providerOptions} />
       </Form.Item>
       {schema.primary.map(renderField)}
+      {selectedProvider === "self-host" && (
+        <>
+          <Form.Item
+            name="cpu"
+            label="vCPU"
+            tooltip="Number of virtual CPUs for this VM."
+            initialValue={4}
+          >
+            <InputNumber min={1} max={128} style={{ width: "100%" }} />
+          </Form.Item>
+          <Form.Item
+            name="ram_gb"
+            label="Memory (GB)"
+            tooltip="RAM to allocate to this VM."
+            initialValue={16}
+          >
+            <InputNumber min={1} max={512} style={{ width: "100%" }} />
+          </Form.Item>
+        </>
+      )}
       {catalogError && selectedProvider !== "none" && (
         <Alert
           type="warning"

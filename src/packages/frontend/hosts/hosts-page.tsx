@@ -6,6 +6,7 @@ import { HostCreatePanel } from "./components/host-create-panel";
 import { HostDrawer } from "./components/host-drawer";
 import { HostEditModal } from "./components/host-edit-modal";
 import { HostList } from "./components/host-list";
+import { SelfHostSetupModal } from "./components/self-host-setup-modal";
 import { WRAP_STYLE } from "./constants";
 import { useHostsPageViewModel } from "./hooks/use-hosts-page-view-model";
 
@@ -44,7 +45,7 @@ function persistCreatePanelWidth(width: number) {
 }
 
 export const HostsPage: React.FC = () => {
-  const { createVm, hostListVm, hostDrawerVm, editVm } =
+  const { createVm, hostListVm, hostDrawerVm, editVm, setupVm } =
     useHostsPageViewModel();
   const [createPanelWidth, setCreatePanelWidth] =
     React.useState(readCreatePanelWidth);
@@ -61,6 +62,7 @@ export const HostsPage: React.FC = () => {
         </div>
         <HostDrawer vm={hostDrawerVm} />
         <HostEditModal {...editVm} />
+        <SelfHostSetupModal {...setupVm} />
       </div>
     );
   }
@@ -98,6 +100,7 @@ export const HostsPage: React.FC = () => {
       </Layout>
       <HostDrawer vm={hostDrawerVm} />
       <HostEditModal {...editVm} />
+      <SelfHostSetupModal {...setupVm} />
     </div>
   );
 };

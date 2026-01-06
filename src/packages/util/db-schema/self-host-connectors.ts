@@ -9,7 +9,7 @@ Table({
   name: "self_host_connectors",
   rules: {
     primary_key: "connector_id",
-    pg_indexes: ["account_id", "created", "last_seen"],
+    pg_indexes: ["account_id", "host_id", "created", "last_seen"],
   },
   fields: {
     connector_id: {
@@ -19,6 +19,10 @@ Table({
     account_id: {
       type: "uuid",
       desc: "Owner account for this connector.",
+    },
+    host_id: {
+      type: "uuid",
+      desc: "Project host id this connector is attached to (if any).",
     },
     token_hash: {
       type: "string",

@@ -12,6 +12,11 @@ type UseHostListViewModelArgs = {
   onDelete: (id: string) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
+  selfHost?: {
+    connectorMap: Map<string, { id: string; name?: string; last_seen?: string }>;
+    isConnectorOnline: (connectorId?: string) => boolean;
+    onSetup: (host: Host) => void;
+  };
   viewMode: HostListViewMode;
   setViewMode: (mode: HostListViewMode) => void;
   isAdmin: boolean;
@@ -34,6 +39,7 @@ export const useHostListViewModel = ({
   onDelete,
   onDetails,
   onEdit,
+  selfHost,
   viewMode,
   setViewMode,
   isAdmin,
@@ -55,6 +61,7 @@ export const useHostListViewModel = ({
     onDelete,
     onDetails,
     onEdit,
+    selfHost,
     viewMode,
     setViewMode,
     isAdmin,

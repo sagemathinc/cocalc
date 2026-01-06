@@ -19,10 +19,21 @@ type HostDrawerViewModel = {
   canUpgrade?: boolean;
   hostLog: HostLogEntry[];
   loadingLog: boolean;
+  selfHost?: {
+    connectorMap: Map<string, { id: string; name?: string; last_seen?: string }>;
+    isConnectorOnline: (connectorId?: string) => boolean;
+    onSetup: (host: Host) => void;
+  };
 };
 
 export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
-  const { open, host, onClose, onEdit, onUpgrade, canUpgrade, hostLog, loadingLog } = vm;
+  const { open, host, onClose, onEdit, onUpgrade, canUpgrade, hostLog, loadingLog, selfHost } = vm;
+  const isSelfHost = host?.machine?.cloud === "self-host";
+  const connectorOnline =
+    !isSelfHost ||
+    !selfHost?.isConnectorOnline ||
+    selfHost.isConnectorOnline(host?.region);
+  const connectorLabel = isSelfHost ? `Connector: ${host?.region ?? "n/a"}` : host?.region;
   return (
   <Drawer
     title={
@@ -59,13 +70,18 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
                 : host.machine.cloud
               : "provider: n/a"}
           </Tag>
-          <Tag>{host.region}</Tag>
+          <Tag>{connectorLabel}</Tag>
           <Tag>{host.size}</Tag>
           {host.gpu && <Tag color="purple">GPU</Tag>}
         </Space>
         <Typography.Text copyable={{ text: host.id }}>
           Host ID: {host.id}
         </Typography.Text>
+        {isSelfHost && host.region && (
+          <Typography.Text copyable={{ text: host.region }}>
+            Connector ID: {host.region}
+          </Typography.Text>
+        )}
         <Space direction="vertical" size="small">
           {host.machine?.cloud && host.public_ip && (
             <Typography.Text copyable={{ text: host.public_ip }}>
@@ -102,6 +118,18 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               <Typography.Text>Tools: {host.tools_version}</Typography.Text>
             )}
           </Space>
+        )}
+        {isSelfHost && host && selfHost && !connectorOnline && (
+          <Alert
+            type="warning"
+            showIcon
+            message="Connector offline"
+            description={
+              <Button size="small" onClick={() => selfHost.onSetup(host)}>
+                Set up connector
+              </Button>
+            }
+          />
         )}
         {canUpgrade && host && !host.deleted && onUpgrade && (
           <Popconfirm

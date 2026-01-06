@@ -17,6 +17,8 @@ import { useHostLog } from "./use-host-log";
 import { useHostProviders } from "./use-host-providers";
 import { useHostSelection } from "./use-host-selection";
 import { buildRegionGroupOptions } from "../utils/normalize-catalog";
+import { getSelfHostConnectors } from "../providers/registry";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import type {
   HostListViewMode,
   HostSortDirection,
@@ -226,6 +228,111 @@ export const useHostsPageViewModel = () => {
       refreshProvider,
       onError: (text) => message.error(text),
     });
+  const { catalog: selfHostCatalog } = useHostCatalog(hub, {
+    provider: "self-host",
+  });
+  const selfHostConnectors = React.useMemo(
+    () => getSelfHostConnectors(selfHostCatalog),
+    [selfHostCatalog],
+  );
+  const selfHostConnectorMap = React.useMemo(
+    () => new Map(selfHostConnectors.map((connector) => [connector.id, connector])),
+    [selfHostConnectors],
+  );
+  const isSelfHostConnectorOnline = React.useCallback(
+    (connectorId?: string) => {
+      if (!connectorId) return false;
+      const lastSeen = selfHostConnectorMap.get(connectorId)?.last_seen;
+      if (!lastSeen) return false;
+      const ts = Date.parse(lastSeen);
+      if (!Number.isFinite(ts)) return false;
+      return Date.now() - ts < 2 * 60 * 1000;
+    },
+    [selfHostConnectorMap],
+  );
+  const baseUrl = React.useMemo(() => {
+    if (typeof window === "undefined") return "";
+    const basePath = appBasePath && appBasePath !== "/" ? appBasePath : "";
+    const raw = `${window.location.origin}${basePath}`;
+    return raw.replace(/\/$/, "");
+  }, []);
+  const [setupHost, setSetupHost] = React.useState<Host | undefined>();
+  const [setupOpen, setSetupOpen] = React.useState(false);
+  const [setupToken, setSetupToken] = React.useState<string | undefined>();
+  const [setupExpires, setSetupExpires] = React.useState<string | undefined>();
+  const [setupError, setSetupError] = React.useState<string | undefined>();
+  const [setupLoading, setSetupLoading] = React.useState(false);
+  const setupRequestRef = React.useRef(0);
+  const requestPairingToken = React.useCallback(
+    async (host: Host) => {
+      if (!baseUrl) throw new Error("missing base url");
+      const tokenUrl = `${baseUrl}/self-host/pairing-token`;
+      const resp = await fetch(tokenUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ host_id: host.id }),
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        throw new Error(text || "pairing token request failed");
+      }
+      return (await resp.json()) as {
+        pairing_token: string;
+        expires?: string;
+        connector_id?: string;
+      };
+    },
+    [baseUrl],
+  );
+  const loadSetupToken = React.useCallback(
+    async (host: Host) => {
+      const requestId = ++setupRequestRef.current;
+      setSetupLoading(true);
+      setSetupError(undefined);
+      try {
+        const data = await requestPairingToken(host);
+        if (setupRequestRef.current !== requestId) return;
+        setSetupToken(data.pairing_token);
+        setSetupExpires(data.expires);
+      } catch (err) {
+        if (setupRequestRef.current !== requestId) return;
+        console.error(err);
+        setSetupError(
+          err instanceof Error && err.message
+            ? err.message
+            : "Failed to create pairing token",
+        );
+      } finally {
+        if (setupRequestRef.current === requestId) {
+          setSetupLoading(false);
+        }
+      }
+    },
+    [requestPairingToken],
+  );
+  const openSetup = React.useCallback(
+    (host: Host) => {
+      setSetupHost(host);
+      setSetupOpen(true);
+      setSetupToken(undefined);
+      setSetupExpires(undefined);
+      setSetupError(undefined);
+      void loadSetupToken(host);
+    },
+    [loadSetupToken],
+  );
+  const closeSetup = React.useCallback(() => {
+    setSetupOpen(false);
+    setSetupHost(undefined);
+    setSetupToken(undefined);
+    setSetupExpires(undefined);
+    setSetupError(undefined);
+  }, []);
+  const refreshSetup = React.useCallback(() => {
+    if (!setupHost) return;
+    void loadSetupToken(setupHost);
+  }, [loadSetupToken, setupHost]);
 
   const {
     fieldSchema,
@@ -327,6 +434,11 @@ export const useHostsPageViewModel = () => {
     onDelete: removeHost,
     onDetails: openDetails,
     onEdit: openEdit,
+    selfHost: {
+      connectorMap: selfHostConnectorMap,
+      isConnectorOnline: isSelfHostConnectorOnline,
+      onSetup: openSetup,
+    },
     viewMode: hostViewMode,
     setViewMode: setHostViewMode,
     isAdmin,
@@ -350,6 +462,11 @@ export const useHostsPageViewModel = () => {
     canUpgrade: isAdmin,
     hostLog,
     loadingLog,
+    selfHost: {
+      connectorMap: selfHostConnectorMap,
+      isConnectorOnline: isSelfHostConnectorOnline,
+      onSetup: openSetup,
+    },
   });
 
   const editVm = {
@@ -365,5 +482,21 @@ export const useHostsPageViewModel = () => {
     },
   };
 
-  return { createVm, hostListVm, hostDrawerVm, editVm };
+  const setupVm = {
+    open: setupOpen,
+    host: setupHost,
+    loading: setupLoading,
+    error: setupError,
+    token: setupToken,
+    expires: setupExpires,
+    baseUrl,
+    connector:
+      setupHost && setupHost.region
+        ? selfHostConnectorMap.get(setupHost.region)
+        : undefined,
+    onCancel: closeSetup,
+    onRefresh: refreshSetup,
+  };
+
+  return { createVm, hostListVm, hostDrawerVm, editVm, setupVm };
 };

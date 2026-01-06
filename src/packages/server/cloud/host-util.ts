@@ -143,7 +143,21 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
   const size = metadata.size ?? (row as any).size ?? "small";
-  const { cpu, ram_gb } = sizeToResources(size);
+  let { cpu, ram_gb } = sizeToResources(size);
+  const cpuOverride = Number(
+    machine.metadata?.cpu ?? machine.metadata?.cpus ?? machine.metadata?.vcpus,
+  );
+  if (Number.isFinite(cpuOverride) && cpuOverride > 0) {
+    cpu = cpuOverride;
+  }
+  const ramOverride = Number(
+    machine.metadata?.ram_gb ??
+      machine.metadata?.memory_gb ??
+      machine.metadata?.memory,
+  );
+  if (Number.isFinite(ramOverride) && ramOverride > 0) {
+    ram_gb = ramOverride;
+  }
   const disk_gb = machine.disk_gb ?? 100;
   const disk_type =
     machine.disk_type === "ssd"

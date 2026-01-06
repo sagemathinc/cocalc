@@ -112,6 +112,11 @@ type HostListViewModel = {
   onDelete: (id: string) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
+  selfHost?: {
+    connectorMap: Map<string, { id: string; name?: string; last_seen?: string }>;
+    isConnectorOnline: (connectorId?: string) => boolean;
+    onSetup: (host: Host) => void;
+  };
   viewMode: HostListViewMode;
   setViewMode: (mode: HostListViewMode) => void;
   isAdmin: boolean;
@@ -135,6 +140,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     onDelete,
     onDetails,
     onEdit,
+    selfHost,
     viewMode,
     setViewMode,
     isAdmin,
@@ -240,9 +246,12 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
         (host) =>
           !host.deleted &&
           host.status !== "running" &&
-          host.status !== "starting",
+          host.status !== "starting" &&
+          (!selfHost?.isConnectorOnline ||
+            host.machine?.cloud !== "self-host" ||
+            selfHost.isConnectorOnline(host.region)),
       ),
-    [selectedHosts],
+    [selectedHosts, selfHost],
   );
   const stopTargets = React.useMemo(
     () =>
@@ -379,6 +388,8 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             ? "ascend"
             : "descend"
           : undefined,
+      render: (_: string, host: Host) =>
+        host.machine?.cloud === "self-host" ? `Connector: ${host.region}` : host.region,
     },
     {
       title: "Size",
@@ -420,8 +431,16 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       key: "actions",
       render: (_: string, host: Host) => {
         const isDeleted = !!host.deleted;
+        const isSelfHost = host.machine?.cloud === "self-host";
+        const connectorOnline =
+          !isSelfHost ||
+          !selfHost?.isConnectorOnline ||
+          selfHost.isConnectorOnline(host.region);
         const startDisabled =
-          isDeleted || host.status === "running" || host.status === "starting";
+          isDeleted ||
+          host.status === "running" ||
+          host.status === "starting" ||
+          !connectorOnline;
         const startLabel = host.status === "starting" ? "Starting" : "Start";
         const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
         const statusValue = host.status as Host["status"] | "active";
@@ -442,52 +461,70 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
         const deleteOkText =
           host.status === "deprovisioned" ? "Delete" : "Deprovision";
 
-        return (
-          <Space size="small">
+        const actions = [
+          <Button
+            key="start"
+            size="small"
+            type="link"
+            disabled={startDisabled}
+            onClick={() => onStart(host.id)}
+          >
+            {startLabel}
+          </Button>,
+          isSelfHost && !connectorOnline && selfHost ? (
             <Button
+              key="setup"
               size="small"
               type="link"
-              disabled={startDisabled}
-              onClick={() => onStart(host.id)}
+              onClick={() => selfHost.onSetup(host)}
             >
-              {startLabel}
+              Setup
             </Button>
-            {allowStop ? (
-              <Popconfirm
-                title="Stop this host?"
-                okText="Stop"
-                cancelText="Cancel"
-                onConfirm={() => onStop(host.id)}
-              >
-                <Button size="small" type="link">
-                  {stopLabel}
-                </Button>
-              </Popconfirm>
-            ) : (
-              <Button size="small" type="link" disabled>
+          ) : null,
+          allowStop ? (
+            <Popconfirm
+              key="stop"
+              title="Stop this host?"
+              okText="Stop"
+              cancelText="Cancel"
+              onConfirm={() => onStop(host.id)}
+            >
+              <Button size="small" type="link">
                 {stopLabel}
               </Button>
-            )}
-            <Button
-              size="small"
-              type="link"
-              disabled={isDeleted}
-              onClick={() => onEdit(host)}
-            >
-              Edit
-            </Button>
-            <Popconfirm
-              title={deleteTitle}
-              okText={deleteOkText}
-              cancelText="Cancel"
-              okButtonProps={{ danger: true }}
-              onConfirm={() => onDelete(host.id)}
-              disabled={isDeleted}
-            >
-              <Button size="small" type="link" danger disabled={isDeleted}>
-                {deleteLabel}
-              </Button>
             </Popconfirm>
+          ) : (
+            <Button key="stop" size="small" type="link" disabled>
+              {stopLabel}
+            </Button>
+          ),
+          <Button
+            key="edit"
+            size="small"
+            type="link"
+            disabled={isDeleted}
+            onClick={() => onEdit(host)}
+          >
+            Edit
+          </Button>,
+          <Popconfirm
+            key="delete"
+            title={deleteTitle}
+            okText={deleteOkText}
+            cancelText="Cancel"
+            okButtonProps={{ danger: true }}
+            onConfirm={() => onDelete(host.id)}
+            disabled={isDeleted}
+          >
+            <Button size="small" type="link" danger disabled={isDeleted}>
+              {deleteLabel}
+            </Button>
+          </Popconfirm>,
+        ];
+
+        return (
+          <Space size="small">
+            {actions.filter(Boolean) as React.ReactNode[]}
           </Space>
         );
       },
@@ -685,6 +722,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
                 onDelete={onDelete}
                 onDetails={onDetails}
                 onEdit={onEdit}
+                selfHost={selfHost}
               />
             </Col>
           ))}
