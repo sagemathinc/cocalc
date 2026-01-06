@@ -169,8 +169,91 @@ function formatSize(value?: unknown, fallbackGb?: number): string | undefined {
   return undefined;
 }
 
-function cloudInitPath(dir: string, hostId: string): string {
-  return path.join(dir, "cloud-init", `${hostId}.yml`);
+function cloudInitBaseDir(): string {
+  const override = process.env.COCALC_CONNECTOR_CLOUD_INIT_DIR;
+  if (override) return override;
+  const home = os.homedir();
+  return path.join(home, "cocalc-connector", "cloud-init");
+}
+
+function createCloudInitPaths(hostId: string): {
+  initDir: string;
+  initPath: string;
+  baseDir: string;
+  rootDir?: string;
+} {
+  const baseDir = cloudInitBaseDir();
+  const suffix = `${hostId}-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+  const initDir = path.join(baseDir, suffix);
+  const initPath = path.join(initDir, "cloud-init.yml");
+  const rootDir = process.env.COCALC_CONNECTOR_CLOUD_INIT_DIR
+    ? undefined
+    : path.dirname(baseDir);
+  return { initDir, initPath, baseDir, rootDir };
+}
+
+function cleanupCloudInit(opts: {
+  initPath: string;
+  baseDir: string;
+  rootDir?: string;
+}) {
+  try {
+    fs.unlinkSync(opts.initPath);
+  } catch (err) {
+    if ((err as NodeJS.ErrnoException).code !== "ENOENT") {
+      log("cloud-init cleanup failed", {
+        path: opts.initPath,
+        error: String(err),
+      });
+    }
+  }
+  try {
+    fs.rmSync(path.dirname(opts.initPath), { recursive: true, force: true });
+    log("cloud-init cleaned", { path: opts.initPath });
+  } catch (err) {
+    log("cloud-init cleanup failed", {
+      path: opts.initPath,
+      error: String(err),
+    });
+  }
+  try {
+    fs.rmdirSync(opts.baseDir);
+  } catch {
+    // directory not empty
+  }
+  if (opts.rootDir) {
+    try {
+      fs.rmdirSync(opts.rootDir);
+    } catch {
+      // directory not empty
+    }
+  }
+}
+
+function indentBlock(text: string, spaces: number): string {
+  const prefix = " ".repeat(spaces);
+  return text
+    .replace(/\r\n/g, "\n")
+    .split("\n")
+    .map((line) => `${prefix}${line}`)
+    .join("\n");
+}
+
+function wrapCloudInitScript(script: string): string {
+  const trimmed = script.replace(/\s+$/g, "");
+  const content = indentBlock(trimmed, 6);
+  return `#cloud-config
+write_files:
+  - path: /root/cocalc-bootstrap.sh
+    permissions: "0700"
+    owner: root:root
+    content: |
+${content}
+runcmd:
+  - [ "/bin/bash", "/root/cocalc-bootstrap.sh" ]
+`;
 }
 
 async function ensureMultipassAvailable() {
@@ -182,11 +265,48 @@ async function ensureMultipassAvailable() {
   }
 }
 
+async function ensureMultipassHealthy() {
+  if (process.env.COCALC_CONNECTOR_SKIP_HEALTH_CHECK === "1") {
+    log("multipass health check skipped");
+    return;
+  }
+  const name = `cocalc-connector-check-${Date.now().toString(36)}-${Math.random()
+    .toString(36)
+    .slice(2, 8)}`;
+  log("multipass health check: launching", { name });
+  const launch = await runMultipass([
+    "launch",
+    "--name",
+    name,
+    "--cpus",
+    "1",
+    "--memory",
+    "1G",
+    "--disk",
+    "5G",
+    DEFAULT_IMAGE,
+  ]);
+  if (launch.code !== 0) {
+    throw new Error(
+      `multipass health check failed: ${launch.stderr.trim() || "launch failed"}`,
+    );
+  }
+  await runMultipass(["stop", name]);
+  const del = await runMultipass(["delete", "--purge", name]);
+  if (del.code !== 0) {
+    log("multipass health check cleanup failed", {
+      name,
+      error: del.stderr.trim() || "delete failed",
+    });
+    return;
+  }
+  log("multipass health check ok", { name });
+}
+
 async function handleCreate(
   payload: Record<string, any>,
   state: State,
   statePath: string,
-  cfgDir: string,
 ) {
   const hostId = String(payload.host_id ?? "");
   if (!hostId) throw new Error("create requires host_id");
@@ -218,21 +338,45 @@ async function handleCreate(
   if (cpus) args.push("--cpus", String(cpus));
   if (mem) args.push("--memory", mem);
   if (disk) args.push("--disk", disk);
+  let initPath: string | undefined;
+  let initBaseDir: string | undefined;
+  let initRootDir: string | undefined;
   if (cloudInit) {
-    const initPath = cloudInitPath(cfgDir, hostId);
-    fs.mkdirSync(path.dirname(initPath), { recursive: true });
-    fs.writeFileSync(initPath, String(cloudInit), { mode: 0o600 });
+    const paths = createCloudInitPaths(hostId);
+    initPath = paths.initPath;
+    initBaseDir = paths.baseDir;
+    initRootDir = paths.rootDir;
+    fs.mkdirSync(paths.initDir, { recursive: true });
+    const rawInit = String(cloudInit);
+    const trimmed = rawInit.trimStart();
+    let initKind = "raw";
+    let initContents = rawInit;
+    if (!/^#cloud-config\b/.test(trimmed)) {
+      initKind = trimmed.startsWith("#!") ? "wrapped-script" : "wrapped";
+      initContents = wrapCloudInitScript(rawInit);
+    } else {
+      initKind = "cloud-config";
+    }
+    fs.writeFileSync(initPath, initContents, { mode: 0o600 });
     const stats = fs.statSync(initPath);
     log("cloud-init written", {
       path: initPath,
       size: stats.size,
       mode: (stats.mode & 0o777).toString(8),
+      kind: initKind,
     });
     args.push("--cloud-init", initPath);
   }
   args.push(image);
 
   const result = await runMultipass(args);
+  if (initPath && result.code === 0 && initBaseDir) {
+    cleanupCloudInit({
+      initPath,
+      baseDir: initBaseDir,
+      rootDir: initRootDir,
+    });
+  }
   if (result.code !== 0) {
     throw new Error(result.stderr.trim() || "multipass launch failed");
   }
@@ -334,11 +478,10 @@ async function executeCommand(
   cmd: CommandEnvelope,
   state: State,
   statePath: string,
-  cfgDir: string,
 ) {
   switch (cmd.action) {
     case "create":
-      return await handleCreate(cmd.payload, state, statePath, cfgDir);
+      return await handleCreate(cmd.payload, state, statePath);
     case "start":
       return await handleStart(cmd.payload, state);
     case "stop":
@@ -356,7 +499,6 @@ async function pollOnce(
   config: Config,
   state: State,
   statePath: string,
-  cfgDir: string,
 ): Promise<boolean> {
   const base = normalizeBaseUrl(config.base_url);
   const token = config.connector_token;
@@ -374,7 +516,7 @@ async function pollOnce(
   let result: any = null;
   let error: string | undefined;
   try {
-    result = await executeCommand(cmd, state, statePath, cfgDir);
+    result = await executeCommand(cmd, state, statePath);
   } catch (err) {
     status = "error";
     error = err instanceof Error ? err.message : String(err);
@@ -399,12 +541,18 @@ async function pollOnce(
   return true;
 }
 
-async function runLoop(config: Config, cfgPath: string) {
+async function runLoop(
+  config: Config,
+  cfgPath: string,
+  opts: { checkHealth?: boolean } = {},
+) {
   if (!config.base_url) throw new Error("base_url missing in config");
   if (!config.connector_token)
     throw new Error("connector_token missing in config");
   await ensureMultipassAvailable();
-  const cfgDir = path.dirname(cfgPath);
+  if (opts.checkHealth) {
+    await ensureMultipassHealthy();
+  }
   const statePath = statePathFromConfig(cfgPath);
   const state = loadJsonFile<State>(statePath, { instances: {} });
   const pollSeconds = config.poll_interval_seconds ?? DEFAULT_POLL_SECONDS;
@@ -417,7 +565,7 @@ async function runLoop(config: Config, cfgPath: string) {
   while (true) {
     try {
       log("polling...");
-      const hadCommand = await pollOnce(config, state, statePath, cfgDir);
+      const hadCommand = await pollOnce(config, state, statePath);
       if (hadCommand) {
         idlePolls = 0;
       } else {
@@ -479,7 +627,7 @@ async function pairConnector(args: Record<string, string>, cfgPath: string) {
 function printHelp() {
   console.log(`Usage:
   cocalc-self-host-connector pair --base-url <url> --token <pairing_token> [--name <name>]
-  cocalc-self-host-connector run [--config <path>]
+  cocalc-self-host-connector run [--config <path>] [--check]
 `);
 }
 
@@ -496,14 +644,14 @@ async function main() {
   }
   const config = loadJsonFile<Config>(cfgPath, { base_url: "" });
   if (command === "run") {
-    await runLoop(config, cfgPath);
+    const checkHealth = args["check"] === "true";
+    await runLoop(config, cfgPath, { checkHealth });
     return;
   }
   if (command === "once") {
-    const cfgDir = path.dirname(cfgPath);
     const statePath = statePathFromConfig(cfgPath);
     const state = loadJsonFile<State>(statePath, { instances: {} });
-    await pollOnce(config, state, statePath, cfgDir);
+    await pollOnce(config, state, statePath);
     return;
   }
   printHelp();
