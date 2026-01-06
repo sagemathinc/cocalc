@@ -142,3 +142,5 @@ export async function releaseChatSyncDB(
   if (!release) return;
   await release();
 }
+
+export { AgentTimeTravelRecorder } from "./agent-sync-recorder";

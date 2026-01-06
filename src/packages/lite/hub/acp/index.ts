@@ -40,6 +40,7 @@ import {
   deriveAcpLogRefs,
   type MessageHistory,
 } from "@cocalc/chat";
+import { AgentTimeTravelRecorder } from "@cocalc/chat/server";
 import { acquireChatSyncDB, releaseChatSyncDB } from "@cocalc/chat/server";
 import { appendStreamMessage, extractEventText } from "@cocalc/chat";
 import type { SyncDB } from "@cocalc/conat/sync-doc/syncdb";
@@ -63,13 +64,15 @@ let blobStore: AKV | null = null;
 const agents = new Map<string, AcpAgent>();
 let conatClient: ConatClient | null = null;
 
-const INTERRUPT_STATUS_TEXT =
-  "Conversation interrupted.";
+const INTERRUPT_STATUS_TEXT = "Conversation interrupted.";
 
 const chatWritersByChatKey = new Map<string, ChatStreamWriter>();
 const chatWritersByThreadId = new Map<string, ChatStreamWriter>();
 
-function logWriterCounts(reason: string, extra?: Record<string, unknown>): void {
+function logWriterCounts(
+  reason: string,
+  extra?: Record<string, unknown>,
+): void {
   logger.debug("chat writers map size", {
     reason,
     byChatKey: chatWritersByChatKey.size,
@@ -128,6 +131,7 @@ export class ChatStreamWriter {
   private logKey: string;
   private logSubject: string;
   private client: ConatClient;
+  private timeTravel?: AgentTimeTravelRecorder;
   private persistLogProgress = throttle(
     async () => {
       try {
@@ -155,6 +159,7 @@ export class ChatStreamWriter {
     client,
     approverAccountId,
     sessionKey,
+    workspaceRoot,
     syncdbOverride,
     logStoreFactory,
   }: {
@@ -162,6 +167,7 @@ export class ChatStreamWriter {
     client: ConatClient;
     approverAccountId: string;
     sessionKey?: string;
+    workspaceRoot?: string;
     syncdbOverride?: any;
     logStoreFactory?: () => AKV<AcpStreamMessage[]>;
   }) {
@@ -211,6 +217,27 @@ export class ChatStreamWriter {
     this.waitUntilReady();
     if (logStoreFactory) {
       this.logStore = logStoreFactory();
+    }
+    if (workspaceRoot) {
+      const timeTravelLogger = {
+        debug: (...args: unknown[]) => logger.debug(...args),
+        info: (...args: unknown[]) => logger.info?.(...args),
+        warn: (...args: unknown[]) => logger.warn?.(...args),
+        error: (...args: unknown[]) => logger.error?.(...args),
+      };
+      this.timeTravel = new AgentTimeTravelRecorder({
+        project_id: metadata.project_id,
+        chat_path: metadata.path,
+        thread_root_date: thread_root_date,
+        turn_date: turn_date,
+        log_store: refs.store,
+        log_key: refs.key,
+        log_subject: refs.subject,
+        client,
+        workspaceRoot,
+        sessionId: sessionKey,
+        logger: timeTravelLogger,
+      });
     }
   }
 
@@ -329,6 +356,7 @@ export class ChatStreamWriter {
     this.publishLog(payload);
     this.persistLogProgress();
     if (payload.type === "event") {
+      this.handleAgentEvent(payload.event);
       const text = extractEventText(payload.event);
       if (text) {
         const last = this.events[this.events.length - 1];
@@ -368,9 +396,11 @@ export class ChatStreamWriter {
       if (payload.threadId != null) {
         this.threadId = payload.threadId;
         this.registerThreadKey(payload.threadId);
+        this.timeTravel?.setThreadId(payload.threadId);
       }
       clearAcpPayloads(this.metadata);
       this.finished = true;
+      void this.timeTravel?.finalizeTurn(this.metadata.message_date);
       void this.persistLog();
       return;
     }
@@ -378,6 +408,7 @@ export class ChatStreamWriter {
       this.content = `\n\n<span style='color:#b71c1c'>${payload.error}</span>\n\n`;
       clearAcpPayloads(this.metadata);
       this.finished = true;
+      void this.timeTravel?.finalizeTurn(this.metadata.message_date);
       void this.persistLog();
     }
   }
@@ -438,6 +469,7 @@ export class ChatStreamWriter {
     this.commit(false);
     this.commit.flush();
     this.closed = true;
+    void this.timeTravel?.dispose();
     chatWritersByChatKey.delete(this.chatKey);
     logWriterCounts("dispose", { chatKey: this.chatKey });
     for (const key of this.threadKeys) {
@@ -489,6 +521,22 @@ export class ChatStreamWriter {
       this.processPayload(message, { persist: true });
       this.commit(true);
     })();
+  }
+
+  private handleAgentEvent(event: AcpStreamEvent): void {
+    if (!this.timeTravel) return;
+    const turnId = this.metadata.message_date;
+    if (event.type === "file") {
+      if (event.operation === "read") {
+        void this.timeTravel.recordRead(event.path, turnId);
+      } else {
+        void this.timeTravel.recordWrite(event.path, turnId);
+      }
+      return;
+    }
+    if (event.type === "diff") {
+      void this.timeTravel.recordWrite(event.path, turnId);
+    }
   }
 
   notifyInterrupted(text: string): void {
@@ -815,11 +863,12 @@ export async function evaluate({
   }
   const chatWriter = request.chat
     ? new ChatStreamWriter({
-      metadata: request.chat,
-      client: conatClient,
-      approverAccountId: request.account_id,
-      sessionKey: request.session_id,
-    })
+        metadata: request.chat,
+        client: conatClient,
+        approverAccountId: request.account_id,
+        sessionKey: request.session_id,
+        workspaceRoot,
+      })
     : null;
 
   let wrappedStream;
@@ -1086,7 +1135,10 @@ async function handleForkSessionRequest(
 
 async function interruptCodexSession(threadId: string): Promise<boolean> {
   for (const agent of agents.values()) {
-    if ("interrupt" in agent && typeof (agent as any).interrupt === "function") {
+    if (
+      "interrupt" in agent &&
+      typeof (agent as any).interrupt === "function"
+    ) {
       try {
         if (await (agent as any).interrupt(threadId)) {
           return true;
