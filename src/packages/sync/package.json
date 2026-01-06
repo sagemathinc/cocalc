@@ -10,7 +10,8 @@
     "./patchflow": "./dist/patchflow.js",
     "./listings": "./dist/listings/index.js",
     "./editor/db": "./dist/editor/db/index.js",
-    "./editor/immer-db": "./dist/editor/immer-db/index.js"
+    "./editor/immer-db": "./dist/editor/immer-db/index.js",
+    "./editor/doctypes": "./dist/editor/doctypes.js"
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",

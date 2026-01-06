@@ -11,7 +11,9 @@
     "paths": {
       "@langchain/core/*": ["node_modules/@langchain/core/dist/*"],
       "@cocalc/conat/*": ["../conat/dist/*"],
-      "@cocalc/conat": ["../conat/dist/index"]
+      "@cocalc/conat": ["../conat/dist/index"],
+      "@cocalc/sync/*": ["../sync/dist/*"],
+      "@cocalc/sync": ["../sync/dist/index"]
     }
   },
   "include": ["./**/*.ts"],
@@ -19,6 +21,7 @@
   "references": [
     { "path": "../backend" },
     { "path": "../conat" },
+    { "path": "../sync" },
     { "path": "../util" }
   ]
 }
