@@ -264,6 +264,40 @@ export async function getCatalog({
 }): Promise<HostCatalog> {
   requireAccount(account_id);
   const cloud = provider ?? "gcp";
+  if (cloud === "self-host") {
+    const { rows } = await pool().query<{
+      connector_id: string;
+      name: string | null;
+      last_seen: Date | null;
+    }>(
+      `SELECT connector_id, name, last_seen
+         FROM self_host_connectors
+        WHERE account_id=$1 AND revoked IS NOT TRUE
+        ORDER BY created DESC`,
+      [account_id],
+    );
+    const connectors = rows.map((row) => ({
+      id: row.connector_id,
+      name: row.name ?? undefined,
+      last_seen: row.last_seen ? row.last_seen.toISOString() : undefined,
+    }));
+    return {
+      provider: cloud,
+      entries: [
+        {
+          kind: "connectors",
+          scope: "account",
+          payload: connectors,
+        },
+      ],
+      provider_capabilities: Object.fromEntries(
+        listServerProviders().map((entry) => [
+          entry.id,
+          entry.entry.capabilities,
+        ]),
+      ),
+    };
+  }
   const { rows } = await pool().query(
     `SELECT kind, scope, payload
        FROM cloud_catalog_cache

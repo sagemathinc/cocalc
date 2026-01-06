@@ -241,6 +241,31 @@ const getCatalogEntryPayload = <T,>(
   return (entry?.payload as T | undefined) ?? undefined;
 };
 
+type SelfHostConnector = {
+  id: string;
+  name?: string;
+  last_seen?: string;
+};
+
+const formatConnectorLabel = (connector: SelfHostConnector) =>
+  connector.name || connector.id;
+
+export const getSelfHostConnectorOptions = (
+  catalog?: HostCatalog,
+): HostFieldOption[] => {
+  const connectors = getCatalogEntryPayload<SelfHostConnector[]>(
+    catalog,
+    "connectors",
+    "account",
+  );
+  if (!connectors?.length) return [];
+  return connectors.map((connector) => ({
+    value: connector.id,
+    label: formatConnectorLabel(connector),
+    meta: connector,
+  }));
+};
+
 const shouldIncludeField = (
   field: HostFieldId,
   caps?: NonNullable<HostCatalog["provider_capabilities"]>[string],
@@ -1439,6 +1464,57 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       const next: Record<string, any> = { provider: "nebius" };
       if (rec.region) next.region = rec.region;
       if (rec.machine_type) next.machine_type = rec.machine_type;
+      applyDiskUpdate(next, rec.disk_gb);
+      return next;
+    },
+  },
+  "self-host": {
+    id: "self-host",
+    label: "Self-hosted (Multipass)",
+    supports: {
+      region: true,
+      zone: false,
+      machineType: false,
+      flavor: false,
+      instanceType: false,
+      gpuType: false,
+      size: true,
+      genericGpu: false,
+    },
+    fields: {
+      primary: ["region", "size"],
+      advanced: [],
+      labels: {
+        region: "Connector",
+        size: "Size",
+      },
+    },
+    storage: { supported: true, growable: false },
+    getOptions: (catalog) => ({
+      ...emptyOptions(),
+      region: getSelfHostConnectorOptions(catalog),
+      size: SIZES,
+    }),
+    buildCreatePayload: (vals, ctx) => {
+      return buildBasePayload(
+        vals,
+        ctx.fieldOptions,
+        {
+          machine_type: vals.machine_type || undefined,
+          metadata: {
+            connector_name: findOption<SelfHostConnector>(
+              "region",
+              vals.region,
+              ctx.fieldOptions,
+            )?.name,
+          },
+        },
+        false,
+      );
+    },
+    applyRecommendation: (rec) => {
+      const next: Record<string, any> = { provider: "self-host" };
+      if (rec.region) next.region = rec.region;
       applyDiskUpdate(next, rec.disk_gb);
       return next;
     },

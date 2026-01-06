@@ -14,6 +14,7 @@ import type {
   FlavorRegionData,
   Image as HyperstackImage,
 } from "@cocalc/util/compute/cloud/hyperstack/api-types";
+import { sendSelfHostCommand } from "@cocalc/server/self-host/commands";
 
 export type ProviderCredsContext = {
   settings: Awaited<ReturnType<typeof getServerSettings>>;
@@ -120,6 +121,7 @@ const PROVIDER_PREFIX_SETTING: Record<
   lambda: "project_hosts_lambda_prefix",
   nebius: "project_hosts_nebius_prefix",
   local: undefined,
+  "self-host": undefined,
 };
 
 export function getProviderPrefix(
@@ -268,6 +270,11 @@ const SERVER_PROVIDER_OVERRIDES: Record<ProviderId, ServerProviderOverrides> = {
   },
   local: {
     getCreds: () => ({}),
+  },
+  "self-host": {
+    getCreds: () => ({
+      sendCommand: sendSelfHostCommand,
+    }),
   },
 };
 

@@ -1,4 +1,10 @@
-export type HostProvider = "gcp" | "hyperstack" | "lambda" | "nebius" | "none";
+export type HostProvider =
+  | "gcp"
+  | "hyperstack"
+  | "lambda"
+  | "nebius"
+  | "self-host"
+  | "none";
 
 export type HostListViewMode = "grid" | "list";
 

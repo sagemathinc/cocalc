@@ -166,6 +166,9 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   const ssh_user = machine.metadata?.ssh_user ?? "ubuntu";
   const baseName = row.id.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
   const providerId = normalizeProviderId(machine.cloud);
+  if (providerId === "self-host" && !row.region) {
+    throw new Error("self-host requires connector id in region");
+  }
   const prefix = providerId ? await getProviderPrefix(providerId) : "cocalc-host";
   const provider = providerId ? getServerProvider(providerId) : undefined;
   const normalizeName = provider?.normalizeName ?? gcpSafeName;
@@ -235,6 +238,7 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
     disk_type,
     gpu,
     metadata: {
+      host_id: row.id,
       ...sanitizedMetadata,
       ...imageMetadata,
       ...(platform ? { platform } : {}),

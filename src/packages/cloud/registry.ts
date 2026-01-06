@@ -3,6 +3,7 @@ import { HyperstackProvider } from "./hyperstack/provider";
 import { LambdaProvider } from "./lambda/provider";
 import { LocalProvider } from "./local";
 import { NebiusProvider } from "./nebius/provider";
+import { SelfHostProvider } from "./self-host/provider";
 import type { CloudProvider, ProviderId } from "./types";
 import {
   fetchGcpCatalog,
@@ -85,6 +86,7 @@ const hyperstackProvider = new HyperstackProvider();
 const lambdaProvider = new LambdaProvider();
 const localProvider = new LocalProvider();
 const nebiusProvider = new NebiusProvider();
+const selfHostProvider = new SelfHostProvider();
 
 export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
   gcp: {
@@ -220,6 +222,29 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
     catalog: {
       ttlSeconds: NEBIUS_TTLS,
       toEntries: nebiusCatalogEntries,
+    },
+  },
+  "self-host": {
+    id: "self-host",
+    provider: selfHostProvider,
+    capabilities: {
+      supportsStop: true,
+      supportsDiskType: false,
+      supportsDiskResize: false,
+      supportsCustomImage: false,
+      supportsGpu: false,
+      supportsZones: false,
+      persistentStorage: { supported: true, growable: false },
+      hasRegions: true,
+      hasZones: false,
+      hasImages: false,
+      hasGpus: false,
+      supportsPersistentStorage: true,
+      supportsEphemeral: false,
+      supportsLocalDisk: true,
+      supportsGpuImages: false,
+      requiresRegion: true,
+      requiresZone: false,
     },
   },
 };

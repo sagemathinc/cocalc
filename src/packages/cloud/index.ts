@@ -1,6 +1,7 @@
 export * from "./types";
 export { GcpProvider } from "./gcp";
 export { LocalProvider } from "./local";
+export { SelfHostProvider } from "./self-host/provider";
 export * as Hyperstack from "./hyperstack";
 export {
   setHyperstackConfig,

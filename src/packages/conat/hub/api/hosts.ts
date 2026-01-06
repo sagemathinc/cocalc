@@ -10,7 +10,7 @@ export type HostStatus =
   | "stopping";
 
 export interface HostMachine {
-  cloud?: string; // e.g., gcp, aws, hyperstack, local
+  cloud?: string; // e.g., gcp, hyperstack, lambda, nebius, self-host, local
   machine_type?: string; // e.g., n2-standard-4, custom specs
   gpu_type?: string;
   gpu_count?: number;
