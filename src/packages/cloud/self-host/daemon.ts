@@ -49,13 +49,23 @@ function log(message: string, data?: Record<string, any>) {
   }
 }
 
+function shellEscape(value: string): string {
+  if (/^[A-Za-z0-9_./:=,@+-]+$/.test(value)) return value;
+  return `'${value.replace(/'/g, `'\\''`)}'`;
+}
+
+function formatCommand(cmd: string, args: string[]): string {
+  return [cmd, ...args].map(shellEscape).join(" ");
+}
+
 function fail(message: string): never {
   console.error(message);
   process.exit(1);
 }
 
 function configDir(): string {
-  const base = process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), ".config");
+  const base =
+    process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), ".config");
   return path.join(base, "cocalc-connector");
 }
 
@@ -85,7 +95,10 @@ function saveJsonFile(filePath: string, data: any) {
   });
 }
 
-function parseArgs(argv: string[]): { command: string; args: Record<string, string> } {
+function parseArgs(argv: string[]): {
+  command: string;
+  args: Record<string, string>;
+} {
   const [command = "run", ...rest] = argv;
   const args: Record<string, string> = {};
   for (let i = 0; i < rest.length; i += 1) {
@@ -118,9 +131,12 @@ async function fetchWithTimeout(url: string, options: RequestInit = {}) {
 }
 
 async function runMultipass(args: string[]) {
+  log("multipass exec", { command: formatCommand("multipass", args) });
   return await new Promise<{ stdout: string; stderr: string; code: number }>(
     (resolve) => {
-      const proc = spawn("multipass", args, { stdio: ["ignore", "pipe", "pipe"] });
+      const proc = spawn("multipass", args, {
+        stdio: ["ignore", "pipe", "pipe"],
+      });
       let stdout = "";
       let stderr = "";
       proc.stdout.on("data", (chunk) => (stdout += chunk.toString()));
@@ -160,7 +176,9 @@ function cloudInitPath(dir: string, hostId: string): string {
 async function ensureMultipassAvailable() {
   const result = await runMultipass(["version"]);
   if (result.code !== 0) {
-    fail("Ubuntu Multipass not found or not working; install multipass first:\n\n    https://canonical.com/multipass\n\n");
+    fail(
+      "Ubuntu Multipass not found or not working; install multipass first:\n\n    https://canonical.com/multipass\n\n",
+    );
   }
 }
 
@@ -189,17 +207,27 @@ async function handleCreate(
       last_ipv4: existing.info?.ipv4 ?? [],
     };
     saveJsonFile(statePath, state);
-    return { name, state: existing.info?.state, ipv4: existing.info?.ipv4 ?? [] };
+    return {
+      name,
+      state: existing.info?.state,
+      ipv4: existing.info?.ipv4 ?? [],
+    };
   }
 
   const args = ["launch", "--name", name];
   if (cpus) args.push("--cpus", String(cpus));
-  if (mem) args.push("--mem", mem);
+  if (mem) args.push("--memory", mem);
   if (disk) args.push("--disk", disk);
   if (cloudInit) {
     const initPath = cloudInitPath(cfgDir, hostId);
     fs.mkdirSync(path.dirname(initPath), { recursive: true });
     fs.writeFileSync(initPath, String(cloudInit), { mode: 0o600 });
+    const stats = fs.statSync(initPath);
+    log("cloud-init written", {
+      path: initPath,
+      size: stats.size,
+      mode: (stats.mode & 0o777).toString(8),
+    });
     args.push("--cloud-init", initPath);
   }
   args.push(image);
@@ -234,7 +262,11 @@ async function handleStart(payload: Record<string, any>, state: State) {
     throw new Error(result.stderr.trim() || "multipass start failed");
   }
   const refreshed = await multipassInfo(name);
-  return { name, state: refreshed.info?.state, ipv4: refreshed.info?.ipv4 ?? [] };
+  return {
+    name,
+    state: refreshed.info?.state,
+    ipv4: refreshed.info?.ipv4 ?? [],
+  };
 }
 
 async function handleStop(payload: Record<string, any>, state: State) {
@@ -250,10 +282,18 @@ async function handleStop(payload: Record<string, any>, state: State) {
     throw new Error(result.stderr.trim() || "multipass stop failed");
   }
   const refreshed = await multipassInfo(name);
-  return { name, state: refreshed.info?.state, ipv4: refreshed.info?.ipv4 ?? [] };
+  return {
+    name,
+    state: refreshed.info?.state,
+    ipv4: refreshed.info?.ipv4 ?? [],
+  };
 }
 
-async function handleDelete(payload: Record<string, any>, state: State, statePath: string) {
+async function handleDelete(
+  payload: Record<string, any>,
+  state: State,
+  statePath: string,
+) {
   const hostId = String(payload.host_id ?? "");
   const name = String(payload.name ?? state.instances[hostId]?.name ?? "");
   if (!name) throw new Error("delete requires host_id or name");
@@ -266,7 +306,11 @@ async function handleDelete(payload: Record<string, any>, state: State, statePat
   return { name, state: "deleted" };
 }
 
-async function handleStatus(payload: Record<string, any>, state: State, statePath: string) {
+async function handleStatus(
+  payload: Record<string, any>,
+  state: State,
+  statePath: string,
+) {
   const hostId = String(payload.host_id ?? "");
   const name = String(payload.name ?? state.instances[hostId]?.name ?? "");
   if (!name) throw new Error("status requires host_id or name");
@@ -308,18 +352,24 @@ async function executeCommand(
   }
 }
 
-async function pollOnce(config: Config, state: State, statePath: string, cfgDir: string) {
+async function pollOnce(
+  config: Config,
+  state: State,
+  statePath: string,
+  cfgDir: string,
+): Promise<boolean> {
   const base = normalizeBaseUrl(config.base_url);
   const token = config.connector_token;
   if (!token) throw new Error("missing connector token");
   const nextRes = await fetchWithTimeout(`${base}/self-host/next`, {
     headers: { Authorization: `Bearer ${token}` },
   });
-  if (nextRes.status === 204) return;
+  if (nextRes.status === 204) return false;
   if (!nextRes.ok) {
     throw new Error(`poll failed (${nextRes.status})`);
   }
   const cmd = (await nextRes.json()) as CommandEnvelope;
+  log("command received", { id: cmd.id, action: cmd.action });
   let status: "ok" | "error" = "ok";
   let result: any = null;
   let error: string | undefined;
@@ -329,7 +379,8 @@ async function pollOnce(config: Config, state: State, statePath: string, cfgDir:
     status = "error";
     error = err instanceof Error ? err.message : String(err);
   }
-  await fetchWithTimeout(`${base}/self-host/ack`, {
+  log("command finished", { id: cmd.id, action: cmd.action, status, error });
+  const ackRes = await fetchWithTimeout(`${base}/self-host/ack`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${token}`,
@@ -342,20 +393,39 @@ async function pollOnce(config: Config, state: State, statePath: string, cfgDir:
       error,
     }),
   });
+  if (!ackRes.ok) {
+    log("ack failed", { id: cmd.id, status: ackRes.status });
+  }
+  return true;
 }
 
 async function runLoop(config: Config, cfgPath: string) {
   if (!config.base_url) throw new Error("base_url missing in config");
-  if (!config.connector_token) throw new Error("connector_token missing in config");
+  if (!config.connector_token)
+    throw new Error("connector_token missing in config");
   await ensureMultipassAvailable();
   const cfgDir = path.dirname(cfgPath);
   const statePath = statePathFromConfig(cfgPath);
   const state = loadJsonFile<State>(statePath, { instances: {} });
   const pollSeconds = config.poll_interval_seconds ?? DEFAULT_POLL_SECONDS;
-  log("connector started", { base_url: config.base_url, poll_seconds: pollSeconds });
+  const logEvery = Math.max(1, Math.round(60 / pollSeconds));
+  let idlePolls = 0;
+  log("connector started", {
+    base_url: config.base_url,
+    poll_seconds: pollSeconds,
+  });
   while (true) {
     try {
-      await pollOnce(config, state, statePath, cfgDir);
+      log("polling...");
+      const hadCommand = await pollOnce(config, state, statePath, cfgDir);
+      if (hadCommand) {
+        idlePolls = 0;
+      } else {
+        idlePolls += 1;
+        if (idlePolls % logEvery === 0) {
+          log("poll ok (no commands)");
+        }
+      }
     } catch (err) {
       log("poll error", { error: String(err) });
     }
@@ -376,11 +446,17 @@ async function pairConnector(args: Record<string, string>, cfgPath: string) {
     arch: process.arch,
     capabilities: { multipass: true },
   };
-  const res = await fetchWithTimeout(`${normalizeBaseUrl(baseUrl)}/self-host/pair`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ pairing_token: token, connector_info: connectorInfo }),
-  });
+  const res = await fetchWithTimeout(
+    `${normalizeBaseUrl(baseUrl)}/self-host/pair`,
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        pairing_token: token,
+        connector_info: connectorInfo,
+      }),
+    },
+  );
   if (!res.ok) {
     fail(`pair failed (${res.status})`);
   }
@@ -389,11 +465,15 @@ async function pairConnector(args: Record<string, string>, cfgPath: string) {
     base_url: baseUrl,
     connector_id: payload.connector_id,
     connector_token: payload.connector_token,
-    poll_interval_seconds: payload.poll_interval_seconds ?? DEFAULT_POLL_SECONDS,
+    poll_interval_seconds:
+      payload.poll_interval_seconds ?? DEFAULT_POLL_SECONDS,
     name: connectorInfo.name,
   };
   saveJsonFile(cfgPath, config);
-  log("paired connector", { connector_id: payload.connector_id, config: cfgPath });
+  log("paired connector", {
+    connector_id: payload.connector_id,
+    config: cfgPath,
+  });
 }
 
 function printHelp() {

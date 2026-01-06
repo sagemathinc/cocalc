@@ -273,7 +273,18 @@ const SERVER_PROVIDER_OVERRIDES: Record<ProviderId, ServerProviderOverrides> = {
   },
   "self-host": {
     getCreds: () => ({
-      sendCommand: sendSelfHostCommand,
+      sendCommand: (
+        connectorId: string,
+        action: "create" | "start" | "stop" | "delete" | "status",
+        payload: Record<string, any>,
+        opts?: { timeoutMs?: number },
+      ) =>
+        sendSelfHostCommand({
+          connector_id: connectorId,
+          action,
+          payload,
+          timeoutMs: opts?.timeoutMs,
+        }),
     }),
   },
 };

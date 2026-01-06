@@ -129,6 +129,51 @@ export async function createConnectorRecord(opts: {
   return { connector_id };
 }
 
+export async function ensureConnectorRecord(opts: {
+  connector_id: string;
+  account_id: string;
+  host_id: string;
+  name?: string;
+  metadata?: Record<string, any>;
+}): Promise<void> {
+  const { rows } = await pool().query<{
+    connector_id: string;
+    host_id: string | null;
+  }>(
+    `SELECT connector_id, host_id
+     FROM self_host_connectors
+     WHERE connector_id=$1 AND revoked IS NOT TRUE`,
+    [opts.connector_id],
+  );
+  const row = rows[0];
+  if (row) {
+    if (row.host_id && row.host_id !== opts.host_id) {
+      throw new Error("connector already assigned to another host");
+    }
+    if (!row.host_id) {
+      await pool().query(
+        `UPDATE self_host_connectors
+         SET host_id=$2
+         WHERE connector_id=$1`,
+        [opts.connector_id, opts.host_id],
+      );
+    }
+    return;
+  }
+  await pool().query(
+    `INSERT INTO self_host_connectors
+       (connector_id, account_id, host_id, token_hash, name, metadata, created, last_seen, revoked)
+     VALUES ($1,$2,$3,NULL,$4,$5,NOW(),NULL,FALSE)`,
+    [
+      opts.connector_id,
+      opts.account_id,
+      opts.host_id,
+      opts.name ?? null,
+      opts.metadata ?? {},
+    ],
+  );
+}
+
 export async function createConnector(opts: {
   account_id: string;
   name?: string;

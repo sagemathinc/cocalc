@@ -24,7 +24,10 @@ import { listServerProviders } from "@cocalc/server/cloud/providers";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { createConnectorRecord } from "@cocalc/server/self-host/connector-tokens";
+import {
+  createConnectorRecord,
+  ensureConnectorRecord,
+} from "@cocalc/server/self-host/connector-tokens";
 function pool() {
   return getPool();
 }
@@ -515,6 +518,7 @@ export async function startHost({
 }): Promise<Host> {
   const row = await loadHostForStartStop(id, account_id);
   const metadata = row.metadata ?? {};
+  const owner = metadata.owner ?? account_id;
   const nextMetadata = { ...metadata };
   if (nextMetadata.bootstrap) {
     // bootstrap should be idempotent and we bootstrap on EVERY start
@@ -522,6 +526,14 @@ export async function startHost({
   }
   const machine: HostMachine = metadata.machine ?? {};
   const machineCloud = normalizeProviderId(machine.cloud);
+  if (machineCloud === "self-host" && row.region && owner) {
+    await ensureConnectorRecord({
+      connector_id: row.region,
+      account_id: owner,
+      host_id: row.id,
+      name: row.name ?? undefined,
+    });
+  }
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, metadata=$4, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, "starting", new Date(), nextMetadata],
