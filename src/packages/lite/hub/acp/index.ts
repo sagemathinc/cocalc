@@ -230,7 +230,6 @@ export class ChatStreamWriter {
         client,
         workspaceRoot,
         sessionId: sessionKey,
-        allowWriteWithoutRead: true,
       });
       logger.debug("agent-tt enabled", {
         chatKey: this.chatKey,

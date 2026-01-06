@@ -48,7 +48,16 @@ class FakeSyncDoc extends EventEmitter {
   commit({ meta }: { meta?: { [key: string]: JSONValue } } = {}) {
     this.commitCalls.push({ content: this.content, meta });
     this.versionList.push(`patch-${this.versionList.length + 1}`);
+    this.emit("change");
     return true;
+  }
+
+  addVersion(patchId: string, content?: string) {
+    this.versionList.push(patchId);
+    if (content !== undefined) {
+      this.versionMap.set(patchId, content);
+    }
+    this.emit("change");
   }
 
   versions() {
@@ -68,7 +77,10 @@ class FakeSyncDoc extends EventEmitter {
     return { to_str: () => content };
   }
 
-  override once(event: "ready" | "error", handler: (arg?: unknown) => void) {
+  override once(
+    event: "ready" | "error" | "change",
+    handler: (arg?: unknown) => void,
+  ) {
     return super.once(event, handler);
   }
 
@@ -140,86 +152,65 @@ describe("AgentTimeTravelRecorder", () => {
     await recorder.dispose();
   });
 
-  it("seeds the syncdoc from disk when no patch id exists", async () => {
+  it("waits for a patch id when none exists", async () => {
     const syncDoc = new FakeSyncDoc({
       content: "stale",
       versions: [],
       versionMap: new Map(),
     });
-    const { store } = makeStore();
+    const { map, store } = makeStore();
     const recorder = new AgentTimeTravelRecorder({
       ...baseOptions,
       readStateStore: store,
       syncFactory: async () => syncDoc,
-      readFile: async () => "seeded",
+      writeCommitWaitMs: 50,
     });
 
-    await recorder.recordRead("src/file.txt", turnDate);
+    const readPromise = recorder.recordRead("src/file.txt", turnDate);
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+    syncDoc.addVersion("p1", "seeded");
+    await readPromise;
 
-    expect(syncDoc.to_str()).toBe("seeded");
+    const key = `agent-tt:${threadRootDate}:file:src/file.txt`;
+    expect(map.get(key)?.patchId).toBe("p1");
     await recorder.dispose();
   });
 
-  it("commits without a read state when allowed", async () => {
-    const syncDoc = new FakeSyncDoc({
-      content: "before",
-      versions: [],
-      versionMap: new Map(),
-    });
-    const { store } = makeStore();
-    const recorder = new AgentTimeTravelRecorder({
-      ...baseOptions,
-      readStateStore: store,
-      syncFactory: async () => syncDoc,
-      readFile: async () => "after",
-      allowWriteWithoutRead: true,
-    });
-
-    await recorder.recordWrite("src/file.txt", turnDate);
-
-    expect(syncDoc.commitCalls).toHaveLength(1);
-    await recorder.dispose();
-  });
-
-  it("commits a patch with metadata on write", async () => {
+  it("waits for a new patch id on write", async () => {
     const syncDoc = new FakeSyncDoc({
       content: "before",
       versions: ["p1"],
       versionMap: new Map([["p1", "before"]]),
     });
-    const { map, store } = makeStore();
-    const key = `agent-tt:${threadRootDate}:file:src/file.txt`;
-    map.set(key, { patchId: "p1", atMs: Date.now() });
-
+    const { store } = makeStore();
     const recorder = new AgentTimeTravelRecorder({
       ...baseOptions,
       readStateStore: store,
       syncFactory: async () => syncDoc,
-      readFile: async () => "after",
+      writeCommitWaitMs: 50,
     });
 
-    await recorder.recordWrite("src/file.txt", turnDate);
+    const writePromise = recorder.recordWrite("src/file.txt", turnDate);
+    await new Promise<void>((resolve) => setTimeout(resolve, 10));
+    syncDoc.addVersion("p2");
+    await writePromise;
 
-    expect(syncDoc.commitCalls).toHaveLength(1);
-    expect(syncDoc.commitCalls[0].meta?.source).toBe("agent");
+    expect(syncDoc.commitCalls).toHaveLength(0);
     await recorder.dispose();
   });
 
-  it("skips writes when the head already matches disk", async () => {
+  it("returns when no commit is observed", async () => {
     const syncDoc = new FakeSyncDoc({
       content: "same",
       versions: ["p1"],
       versionMap: new Map([["p1", "same"]]),
     });
-    const { map, store } = makeStore();
-    const key = `agent-tt:${threadRootDate}:file:src/file.txt`;
-    map.set(key, { patchId: "p1", atMs: Date.now() });
-
+    const { store } = makeStore();
     const recorder = new AgentTimeTravelRecorder({
       ...baseOptions,
       readStateStore: store,
       syncFactory: async () => syncDoc,
-      readFile: async () => "same",
+      writeCommitWaitMs: 20,
     });
 
     await recorder.recordWrite("src/file.txt", turnDate);

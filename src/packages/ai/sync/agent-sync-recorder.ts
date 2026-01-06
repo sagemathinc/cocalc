@@ -15,14 +15,18 @@ type PatchId = string;
 export type AgentSyncDoc = {
   isReady: () => boolean;
   to_str: () => string;
-  from_str: (value: string) => void;
   commit: (options?: { meta?: { [key: string]: JSONValue } }) => boolean;
   versions: () => PatchId[];
   newestVersion?: () => PatchId | undefined;
   hasVersion?: (patchId: PatchId) => boolean;
   version: (patchId: PatchId) => { to_str?: () => string };
   close: () => Promise<void>;
-  once: (event: "ready" | "error", handler: (arg?: unknown) => void) => void;
+  on: (event: "change", handler: (arg?: unknown) => void) => void;
+  off: (event: "change", handler: (arg?: unknown) => void) => void;
+  once: (
+    event: "ready" | "error" | "change",
+    handler: (arg?: unknown) => void,
+  ) => void;
 };
 
 type ReadState = {
@@ -55,16 +59,16 @@ type AgentTimeTravelRecorderOptions = {
   workspaceRoot: string;
   sessionId?: string;
   threadId?: string;
-  allowWriteWithoutRead?: boolean;
+  writeCommitWaitMs?: number;
   readStateStore?: ReadStateStore;
   syncFactory?: (relativePath: string) => Promise<AgentSyncDoc | undefined>;
-  readFile?: (absolutePath: string) => Promise<string>;
   now?: () => number;
 };
 
 const DEFAULT_SYNC_DOC_TTL_MS = 5 * 60 * 1000;
 const DEFAULT_SYNC_DOC_CACHE_MAX = 32;
-const DEFAULT_READ_STATE_TTL_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_WRITE_COMMIT_WAIT_MS = 5000;
+const MAX_FILE_SIZE_B = 4_000_000;
 
 export class AgentTimeTravelRecorder {
   // Record best-effort agent edits into patchflow without caching file contents.
@@ -78,12 +82,11 @@ export class AgentTimeTravelRecorder {
   private readonly client: ConatClient;
   private readonly workspaceRoot: string;
   private readonly homeRoot: string | undefined;
-  private readonly allowWriteWithoutRead: boolean;
   private readonly logger: Logger;
   private readonly store: ReadStateStore;
   private readonly syncDocCacheTtlMs: number;
   private readonly syncDocCacheMax: number;
-  private readonly readStateTtlMs: number;
+  private readonly writeCommitWaitMs: number;
   private readonly syncDocs = new Map<string, SyncDocEntry>();
   private readonly syncDocLoads = new Map<
     string,
@@ -97,7 +100,6 @@ export class AgentTimeTravelRecorder {
   private readonly syncFactory?: (
     relativePath: string,
   ) => Promise<AgentSyncDoc | undefined>;
-  private readonly readFile: (absolutePath: string) => Promise<string>;
   private readonly now: () => number;
   private pruneTimer?: NodeJS.Timeout;
   private sessionId?: string;
@@ -114,13 +116,12 @@ export class AgentTimeTravelRecorder {
     this.client = options.client;
     this.workspaceRoot = path.normalize(options.workspaceRoot ?? "");
     this.homeRoot = process.env.HOME;
-    this.allowWriteWithoutRead = options.allowWriteWithoutRead ?? false;
     this.logger = getLogger("chat:agent-time-travel");
     this.sessionId = options.sessionId;
     this.threadId = options.threadId;
+    this.writeCommitWaitMs =
+      options.writeCommitWaitMs ?? DEFAULT_WRITE_COMMIT_WAIT_MS;
     this.syncFactory = options.syncFactory;
-    this.readFile =
-      options.readFile ?? ((absolutePath) => fs.readFile(absolutePath, "utf8"));
     this.now = options.now ?? (() => Date.now());
     this.store =
       options.readStateStore ??
@@ -131,7 +132,6 @@ export class AgentTimeTravelRecorder {
       });
     this.syncDocCacheTtlMs = DEFAULT_SYNC_DOC_TTL_MS;
     this.syncDocCacheMax = DEFAULT_SYNC_DOC_CACHE_MAX;
-    this.readStateTtlMs = DEFAULT_READ_STATE_TTL_MS;
     this.startPruneTimer();
   }
 
@@ -147,15 +147,24 @@ export class AgentTimeTravelRecorder {
     const resolved = this.resolvePath(filePath);
     if (!resolved) return;
     const { relativePath, absolutePath } = resolved;
+    if (await this.isFileTooLarge(absolutePath, relativePath)) {
+      return;
+    }
     const syncdoc = await this.getSyncDoc(relativePath);
     if (!syncdoc) {
       this.logger.debug("agent-tt skip read (no syncdoc)", { relativePath });
       return;
     }
-    const patchId = this.getLatestPatchId(syncdoc);
+    let patchId = this.getLatestPatchId(syncdoc);
     if (!patchId) {
-      await this.seedSyncDocFromDisk(syncdoc, absolutePath, relativePath);
-      return;
+      patchId = await this.waitForCommit(syncdoc, patchId);
+      if (!patchId) {
+        this.logger.debug("agent-tt skip read (no patch id)", {
+          relativePath,
+          waitMs: this.writeCommitWaitMs,
+        });
+        return;
+      }
     }
     const readState: ReadState = {
       patchId,
@@ -171,96 +180,34 @@ export class AgentTimeTravelRecorder {
   async recordWrite(filePath: string, turnId?: string): Promise<void> {
     const resolved = this.resolvePath(filePath);
     if (!resolved) return;
-    const { absolutePath, relativePath } = resolved;
+    const { relativePath, absolutePath } = resolved;
+    if (await this.isFileTooLarge(absolutePath, relativePath)) {
+      return;
+    }
     const syncdoc = await this.getSyncDoc(relativePath);
     if (!syncdoc) {
       this.logger.debug("agent-tt skip write (no syncdoc)", { relativePath });
       return;
     }
 
-    let currentDisk: string | undefined;
-    try {
-      currentDisk = await this.readFile(absolutePath);
-    } catch (err) {
-      this.logger.debug("agent-tt skip write (disk read failed)", {
+    const startPatchId = this.getLatestPatchId(syncdoc);
+    const patchId = await this.waitForCommit(syncdoc, startPatchId);
+    if (!patchId) {
+      this.logger.debug("agent-tt skip write (no commit observed)", {
         relativePath,
-        err,
+        waitMs: this.writeCommitWaitMs,
       });
       return;
     }
-
-    const headContent = syncdoc.to_str();
-    if (headContent === currentDisk) {
-      this.logger.debug("agent-tt skip write (already committed)", {
-        relativePath,
-      });
-      return;
-    }
-
-    const readState = await this.getReadState(relativePath);
-    if (!readState && !this.allowWriteWithoutRead) {
-      this.logger.debug("agent-tt skip write (no read state)", {
-        relativePath,
-      });
-      return;
-    }
-
-    if (readState) {
-      const patchId = readState.patchId;
-      if (!this.hasPatch(syncdoc, patchId)) {
-        this.logger.debug("agent-tt skip write (missing patch id)", {
-          relativePath,
-          patchId,
-        });
-        return;
-      }
-      let baseContent: string | undefined;
-      try {
-        const docAtPatch = syncdoc.version(patchId);
-        baseContent = docAtPatch?.to_str?.();
-        if (baseContent == null) {
-          this.logger.debug("agent-tt skip write (missing base content)", {
-            relativePath,
-            patchId,
-          });
-          return;
-        }
-      } catch (err) {
-        this.logger.debug("agent-tt skip write (version lookup failed)", {
-          relativePath,
-          patchId,
-          err,
-        });
-        return;
-      }
-      if (baseContent === currentDisk) {
-        this.logger.debug("agent-tt skip write (no diff from read)", {
-          relativePath,
-          patchId,
-        });
-        return;
-      }
-      if (headContent !== baseContent && !this.allowWriteWithoutRead) {
-        this.logger.debug("agent-tt skip write (head diverged)", {
-          relativePath,
-          patchId,
-        });
-        return;
-      }
-    }
-
-    syncdoc.from_str(currentDisk);
     const meta = this.buildMeta({
       relativePath,
       turnId: turnId ?? this.turnDate,
     });
-    const committed = syncdoc.commit({ meta });
-    if (!committed) {
-      this.logger.debug("agent-tt skip write (no commit)", { relativePath });
-      return;
-    }
-    const newPatchId = this.getLatestPatchId(syncdoc);
-    this.logger.debug("agent-tt commit", { relativePath, patchId: newPatchId });
+    this.logger.debug("agent-tt commit metadata pending", {
+      relativePath,
+      patchId,
+      meta,
+    });
   }
 
   async finalizeTurn(_turnId?: string): Promise<void> {
@@ -346,55 +293,6 @@ export class AgentTimeTravelRecorder {
     return `agent-tt:${this.threadRootDate}:file:${relativePath}`;
   }
 
-  private async seedSyncDocFromDisk(
-    syncdoc: AgentSyncDoc,
-    absolutePath: string,
-    relativePath: string,
-  ): Promise<void> {
-    let diskContent: string | undefined;
-    try {
-      diskContent = await this.readFile(absolutePath);
-    } catch (err) {
-      this.logger.debug("agent-tt seed read failed", { relativePath, err });
-      return;
-    }
-    if (diskContent == null) return;
-    const current = syncdoc.to_str();
-    if (current === diskContent) {
-      this.logger.debug("agent-tt seed skip (already matches)", {
-        relativePath,
-      });
-      return;
-    }
-    try {
-      syncdoc.from_str(diskContent);
-    } catch (err) {
-      this.logger.debug("agent-tt seed failed", { relativePath, err });
-      return;
-    }
-    this.logger.debug("agent-tt seed from disk", { relativePath });
-  }
-
-  private async getReadState(
-    relativePath: string,
-  ): Promise<ReadState | undefined> {
-    const key = this.readKey(relativePath);
-    const cached = this.readCache.get(key);
-    if (cached && !this.isReadStateExpired(cached)) {
-      return cached;
-    }
-    const stored = await this.store.get(key);
-    if (!stored || this.isReadStateExpired(stored)) {
-      return undefined;
-    }
-    this.readCache.set(key, stored);
-    return stored;
-  }
-
-  private isReadStateExpired(state: ReadState): boolean {
-    return this.now() - state.atMs > this.readStateTtlMs;
-  }
-
   private getLatestPatchId(syncdoc: AgentSyncDoc): PatchId | undefined {
     try {
       if (typeof syncdoc.newestVersion === "function") {
@@ -408,20 +306,6 @@ export class AgentTimeTravelRecorder {
       this.logger.debug("agent-tt latest patch lookup failed", err);
     }
     return undefined;
-  }
-
-  private hasPatch(syncdoc: AgentSyncDoc, patchId: PatchId): boolean {
-    try {
-      if (typeof syncdoc.hasVersion === "function") {
-        return syncdoc.hasVersion(patchId);
-      }
-      if (typeof syncdoc.versions === "function") {
-        return syncdoc.versions().includes(patchId);
-      }
-    } catch (err) {
-      this.logger.debug("agent-tt patch lookup failed", err);
-    }
-    return false;
   }
 
   private buildMeta({
@@ -529,7 +413,6 @@ export class AgentTimeTravelRecorder {
       const options = {
         project_id: this.projectId,
         path: relativePath,
-        noSaveToDisk: true,
         firstReadLockTimeout: 1,
       };
       if (descriptor.doctype === "syncdb" || descriptor.doctype === "immer") {
@@ -605,5 +488,59 @@ export class AgentTimeTravelRecorder {
     const entry = getSyncDocDescriptor(relativePath);
     this.docTypeCache.set(relativePath, { entry, atMs: this.now() });
     return entry;
+  }
+
+  private async isFileTooLarge(
+    absolutePath: string,
+    relativePath: string,
+  ): Promise<boolean> {
+    try {
+      const stats = await fs.stat(absolutePath);
+      if (!stats.isFile()) {
+        this.logger.debug("agent-tt skip (not a file)", { relativePath });
+        return true;
+      }
+      if (stats.size > MAX_FILE_SIZE_B) {
+        this.logger.debug("agent-tt skip (file too large)", {
+          relativePath,
+          size: stats.size,
+          maxSize: MAX_FILE_SIZE_B,
+        });
+        return true;
+      }
+    } catch (err) {
+      this.logger.debug("agent-tt size check failed", { relativePath, err });
+    }
+    return false;
+  }
+
+  private async waitForCommit(
+    syncdoc: AgentSyncDoc,
+    startPatchId: PatchId | undefined,
+  ): Promise<PatchId | undefined> {
+    if (this.writeCommitWaitMs <= 0) return;
+    return await new Promise<PatchId | undefined>((resolve) => {
+      let settled = false;
+      const finish = (patchId?: PatchId) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        syncdoc.off("change", onChange);
+        resolve(patchId);
+      };
+      const checkForCommit = () => {
+        const patchId = this.getLatestPatchId(syncdoc);
+        if (patchId && patchId !== startPatchId) {
+          finish(patchId);
+        }
+      };
+      const onChange = () => {
+        checkForCommit();
+      };
+      const timer = setTimeout(() => finish(undefined), this.writeCommitWaitMs);
+      timer.unref?.();
+      syncdoc.on("change", onChange);
+      checkForCommit();
+    });
   }
 }
