@@ -149,17 +149,18 @@ When entries expire, close syncdoc handles to avoid leak.
 
 ## Implementation Checklist
 
-- [ ] Implement AgentTimeTravelRecorder in backend (ai/acp or lite hub).
-- [ ] Only track files under HOME; ignore paths outside HOME (syncdoc limitation).
-- [ ] Hook read-detection events -> syncdoc open -> PatchId record.
-- [ ] Hook write-detection events -> compute diff -> commit patch with meta.
+- [ ] \(see plan below\) Implement AgentTimeTravelRecorder in backend
+  - see detailed plan below in the section "Plan to Implement AgentTimeTravelRecorder"
+- [ ] Only track files under HOME; ignore paths outside HOME \(syncdoc limitation\).
+- [ ] Hook read\-detection events \-&gt; syncdoc open \-&gt; PatchId record.
+- [ ] Hook write\-detection events \-&gt; compute diff \-&gt; commit patch with meta.
 - [ ] Introduce AgentEventAdapter interface for ACP vs exec backends.
-- [ ] Add LRU/TTL for lastReadPatchId and syncdoc handles (consider refcount/lease).
+- [ ] Add LRU/TTL for lastReadPatchId and syncdoc handles \(consider refcount/lease\).
 - [ ] Expose commit metadata in frontend TimeTravel view.
-- [ ] Add deep-link support for specific patchid or patchid range (see notes on new anchor notation).
-- [ ] Surface best-effort caveats in UI (tooltip or help text).
-- [ ] Add tests for read->write correlation and commit metadata.
-- [ ] Add debug logs (counts of tracked files, cache size, commit counts).
+- [ ] Add deep\-link support for specific patchid or patchid range \(see notes on new anchor notation\).
+- [ ] Surface best\-effort caveats in UI \(tooltip or help text\).
+- [ ] Add tests for read\-&gt;write correlation and commit metadata.
+- [ ] Add debug logs \(counts of tracked files, cache size, commit counts\).
 
 ## Notes
 
@@ -167,4 +168,74 @@ If Codex \(or other agents\) eventually emit pre\-contents or diffs, we can repl
 the read/write heuristics with exact data, but the overall architecture stays
 the same. The main value is the Patchflow commit with metadata, not the exact
 diffing mechanism.
+
+---
+
+## Plan to Implement AgentTimeTravelRecorder
+
+Here’s a concrete, step‑by‑step plan (no code) for implementing the AgentTimeTravelRecorder in [src/packages/chat/src/agent-sync-recorder.ts](./src/packages/chat/src/agent-sync-recorder.ts). I’ve baked in your constraints: reuse the existing AKV, skip/record cases where metadata can’t be attached yet, and log those skips.
+
+**Plan: AgentTimeTravelRecorder (backend)**
+
+- **Define purpose + boundaries (docstring at top of class)**
+  - Record best‑effort agent→patchflow linkage without retaining file contents in RAM.
+  - Persist lightweight “last known patchId” per file in AKV.
+  - Skip annotations when a file is already open/committed and metadata mutation doesn’t exist yet; log.
+
+- **Choose AKV namespace**
+  - Reuse the existing ACP log AKV store (same DB), new key prefix to avoid collision.
+  - Key scheme (example): `agent-tt:<threadId>:file:<path>` → `{ patchId, atMs, lastReadTurnId }`.
+  - Also store per-turn “touched files” if needed: `agent-tt:<threadId>:turn:<turnId>` → `{ files: [...] }`.
+
+- **Recorder class surface (backend)**
+  - `constructor({ project_id, path, threadId, logStore, logKey, logSubject, logger, syncFactory })`
+  - `recordRead(filePath, patchId, turnId)` → store patchId in AKV.
+  - `recordWrite(filePath, turnId)` → attempt to compute agent commit; if blocked, log.
+  - `finalizeTurn(turnId)` → flush any pending writes; log skipped files.
+  - Keep no file contents in memory; only store patchId + metadata.
+
+- **Integration points**
+  - Hook into codex-exec event handling in the ACP hub (on “read_file” and “file_change”/write events).
+  - When codex exec reports a read, call `recordRead`.
+  - When codex exec reports a write, call `recordWrite`.
+  - On turn end, call `finalizeTurn`.
+
+- **How `recordWrite` should work (best effort)**
+  - Open a syncdoc for the file in “no filesystem watcher” mode (important to avoid auto-commit).
+  - Load state (snapshot-based) to get current patch id.
+  - If we have a cached patchId from `recordRead`, compute diff between that state and current disk, then commit with metadata.
+  - If the file is already open by frontend and already committed: **skip** and **log** “skip: already committed; metadata mutation not available”.
+  - If no prior read patchId: either skip or use current patchId (best effort) to commit; prefer logging skip unless `allowWriteWithoutRead` is true.
+
+- **Metadata payload**
+  - Attach metadata on the new patch commit:
+    - `agent: { threadId, rootDate, turnId, messageDate, model, sessionId }`
+    - `source: "codex-exec"`
+    - `filePath`
+  - Ensure this metadata schema is centralized (e.g., helper in [src/packages/chat/src/agent-sync-recorder.ts](./src/packages/chat/src/agent-sync-recorder.ts)).
+
+- **Logging**
+  - Log on:
+    - Read cached patchId.
+    - Write commit success with patchId.
+    - Skip (file open / no cached read / syncdoc init fail).
+  - Include filePath, threadId, turnId.
+
+- **Testing (unit/integration)**
+  - Unit test recorder logic with a mocked syncdoc + akv store:
+    - `recordRead` persists patchId.
+    - `recordWrite` creates commit when patchId is present.
+    - `recordWrite` logs skip when “already committed”.
+  - Optional integration test with a small patchflow-backed file to verify metadata in patch.
+
+- **Deferred work**
+  - Metadata mutation support in patchflow sync layer (so we can backfill metadata for already-committed patches).
+
+**Checklist (implementation order)**
+
+- [ ] Create [src/packages/chat/src/agent-sync-recorder.ts](./src/packages/chat/src/agent-sync-recorder.ts) skeleton + docstring.
+- [ ] Define AKV key prefix + helpers.
+- [ ] Implement `recordRead`, `recordWrite`, `finalizeTurn` with logging and skip behavior.
+- [ ] Wire into ACP/codex turn processing in the backend.
+- [ ] Add unit tests for recorder.
 
