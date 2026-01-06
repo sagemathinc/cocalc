@@ -58,7 +58,6 @@ type AgentTimeTravelRecorderOptions = {
   sessionId?: string;
   threadId?: string;
   allowWriteWithoutRead?: boolean;
-  logger?: Logger;
   readStateStore?: ReadStateStore;
   syncFactory?: (relativePath: string) => Promise<AgentSyncDoc | undefined>;
   readFile?: (absolutePath: string) => Promise<string>;
@@ -118,7 +117,7 @@ export class AgentTimeTravelRecorder {
     this.workspaceRoot = path.normalize(options.workspaceRoot ?? "");
     this.homeRoot = process.env.HOME;
     this.allowWriteWithoutRead = options.allowWriteWithoutRead ?? false;
-    this.logger = options.logger ?? getLogger("chat:agent-time-travel");
+    this.logger = getLogger("chat:agent-time-travel");
     this.sessionId = options.sessionId;
     this.threadId = options.threadId;
     this.syncFactory = options.syncFactory;
@@ -149,7 +148,7 @@ export class AgentTimeTravelRecorder {
   async recordRead(filePath: string, turnId?: string): Promise<void> {
     const resolved = this.resolvePath(filePath);
     if (!resolved) return;
-    const { relativePath } = resolved;
+    const { relativePath, absolutePath } = resolved;
     const syncdoc = await this.getSyncDoc(relativePath);
     if (!syncdoc) {
       this.logger.debug("agent-tt skip read (no syncdoc)", { relativePath });
@@ -157,7 +156,7 @@ export class AgentTimeTravelRecorder {
     }
     const patchId = this.getLatestPatchId(syncdoc);
     if (!patchId) {
-      this.logger.debug("agent-tt skip read (no patch id)", { relativePath });
+      await this.seedSyncDocFromDisk(syncdoc, absolutePath, relativePath);
       return;
     }
     const readState: ReadState = {
@@ -347,6 +346,35 @@ export class AgentTimeTravelRecorder {
 
   private readKey(relativePath: string): string {
     return `agent-tt:${this.threadRootDate}:file:${relativePath}`;
+  }
+
+  private async seedSyncDocFromDisk(
+    syncdoc: AgentSyncDoc,
+    absolutePath: string,
+    relativePath: string,
+  ): Promise<void> {
+    let diskContent: string | undefined;
+    try {
+      diskContent = await this.readFile(absolutePath);
+    } catch (err) {
+      this.logger.debug("agent-tt seed read failed", { relativePath, err });
+      return;
+    }
+    if (diskContent == null) return;
+    const current = syncdoc.to_str();
+    if (current === diskContent) {
+      this.logger.debug("agent-tt seed skip (already matches)", {
+        relativePath,
+      });
+      return;
+    }
+    try {
+      syncdoc.from_str(diskContent);
+    } catch (err) {
+      this.logger.debug("agent-tt seed failed", { relativePath, err });
+      return;
+    }
+    this.logger.debug("agent-tt seed from disk", { relativePath });
   }
 
   private async getReadState(

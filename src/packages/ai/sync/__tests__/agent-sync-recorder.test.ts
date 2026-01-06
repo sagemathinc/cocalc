@@ -93,15 +93,6 @@ function makeStore() {
   };
 }
 
-function makeLogger() {
-  return {
-    debug: () => {},
-    info: () => {},
-    warn: () => {},
-    error: () => {},
-  };
-}
-
 describe("AgentTimeTravelRecorder", () => {
   const homeRoot = "/home/test";
   const workspaceRoot = "/home/test/project";
@@ -117,7 +108,6 @@ describe("AgentTimeTravelRecorder", () => {
     log_subject: "subject",
     workspaceRoot,
     client: {} as unknown as ConatClient,
-    logger: makeLogger(),
   };
 
   const originalHome = process.env.HOME;
@@ -147,6 +137,47 @@ describe("AgentTimeTravelRecorder", () => {
 
     const key = `agent-tt:${threadRootDate}:file:src/file.txt`;
     expect(map.get(key)?.patchId).toBe("p1");
+    await recorder.dispose();
+  });
+
+  it("seeds the syncdoc from disk when no patch id exists", async () => {
+    const syncDoc = new FakeSyncDoc({
+      content: "stale",
+      versions: [],
+      versionMap: new Map(),
+    });
+    const { store } = makeStore();
+    const recorder = new AgentTimeTravelRecorder({
+      ...baseOptions,
+      readStateStore: store,
+      syncFactory: async () => syncDoc,
+      readFile: async () => "seeded",
+    });
+
+    await recorder.recordRead("src/file.txt", turnDate);
+
+    expect(syncDoc.to_str()).toBe("seeded");
+    await recorder.dispose();
+  });
+
+  it("commits without a read state when allowed", async () => {
+    const syncDoc = new FakeSyncDoc({
+      content: "before",
+      versions: [],
+      versionMap: new Map(),
+    });
+    const { store } = makeStore();
+    const recorder = new AgentTimeTravelRecorder({
+      ...baseOptions,
+      readStateStore: store,
+      syncFactory: async () => syncDoc,
+      readFile: async () => "after",
+      allowWriteWithoutRead: true,
+    });
+
+    await recorder.recordWrite("src/file.txt", turnDate);
+
+    expect(syncDoc.commitCalls).toHaveLength(1);
     await recorder.dispose();
   });
 

@@ -219,12 +219,6 @@ export class ChatStreamWriter {
       this.logStore = logStoreFactory();
     }
     if (workspaceRoot) {
-      const timeTravelLogger = {
-        debug: (...args: unknown[]) => logger.debug(...args),
-        info: (...args: unknown[]) => logger.info?.(...args),
-        warn: (...args: unknown[]) => logger.warn?.(...args),
-        error: (...args: unknown[]) => logger.error?.(...args),
-      };
       this.timeTravel = new AgentTimeTravelRecorder({
         project_id: metadata.project_id,
         chat_path: metadata.path,
@@ -236,7 +230,19 @@ export class ChatStreamWriter {
         client,
         workspaceRoot,
         sessionId: sessionKey,
-        logger: timeTravelLogger,
+        allowWriteWithoutRead: true,
+      });
+      logger.debug("agent-tt enabled", {
+        chatKey: this.chatKey,
+        project_id: metadata.project_id,
+        chat_path: metadata.path,
+        workspaceRoot,
+      });
+    } else {
+      logger.debug("agent-tt disabled (no workspaceRoot)", {
+        chatKey: this.chatKey,
+        project_id: metadata.project_id,
+        chat_path: metadata.path,
       });
     }
   }

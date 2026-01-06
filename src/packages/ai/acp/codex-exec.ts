@@ -215,7 +215,7 @@ export class CodexExecAgent implements AcpAgent {
             cwd,
             preContentCache,
             (resp) => {
-            finalResponse = resp;
+              finalResponse = resp;
             },
           );
           break;
@@ -317,7 +317,10 @@ export class CodexExecAgent implements AcpAgent {
     return { sessionId: newId, cwd: this.opts.cwd ?? process.cwd() };
   }
 
-  private buildArgs(config: CodexSessionConfig | undefined, cwd: string): string[] {
+  private buildArgs(
+    config: CodexSessionConfig | undefined,
+    cwd: string,
+  ): string[] {
     const args: string[] = [
       "exec",
       "--experimental-json",
@@ -445,7 +448,11 @@ export class CodexExecAgent implements AcpAgent {
         }
         break;
       case "command_execution":
-        void this.capturePreContentsFromText(item.command, cwd, preContentCache);
+        void this.capturePreContentsFromText(
+          item.command,
+          cwd,
+          preContentCache,
+        );
         {
           const readInfo = this.parseReadOnlyCommand(item.command, cwd);
           if (readInfo) {
@@ -466,6 +473,20 @@ export class CodexExecAgent implements AcpAgent {
               },
             });
             return;
+          }
+        }
+        {
+          const writePaths = this.parseWriteCommand(item.command, cwd);
+          for (const pathAbs of writePaths) {
+            const pathForEvent = this.toHomeRelative(pathAbs, cwd);
+            await stream({
+              type: "event",
+              event: {
+                type: "file",
+                path: pathForEvent,
+                operation: "write",
+              },
+            });
           }
         }
         await stream({
@@ -495,14 +516,26 @@ export class CodexExecAgent implements AcpAgent {
     cwd: string,
   ): { path: string; line?: number; limit?: number } | null {
     if (!command) return null;
+    if (command.includes("<<")) return null;
     const { cmd, argv } = this.unwrapShellCommand(command);
     const line = argv.length ? [cmd, ...argv].join(" ") : cmd;
     const tokens = this.tokenizeCommand(line);
     if (!tokens.length) return null;
-
-    const head = tokens[0];
-    const tailPath = tokens[tokens.length - 1];
-    if (!tailPath || tailPath.startsWith("-")) return null;
+    const pipeIndex = tokens.indexOf("|");
+    const scanTokens = pipeIndex >= 0 ? tokens.slice(0, pipeIndex) : tokens;
+    if (scanTokens.some((token) => this.isRedirectToken(token))) {
+      return null;
+    }
+    const head = scanTokens[0];
+    const tailPath = this.findTailPath(scanTokens);
+    if (
+      !tailPath ||
+      tailPath.startsWith("-") ||
+      tailPath === head ||
+      tailPath.startsWith("<")
+    ) {
+      return null;
+    }
     const pathAbs = this.resolveCommandPath(cwd, tailPath);
 
     if (head === "sed") {
@@ -553,6 +586,225 @@ export class CodexExecAgent implements AcpAgent {
     return null;
   }
 
+  private parseWriteCommand(
+    command: string | undefined,
+    cwd: string,
+  ): string[] {
+    if (!command) return [];
+    const { cmd, argv } = this.unwrapShellCommand(command);
+    const line = argv.length ? [cmd, ...argv].join(" ") : cmd;
+    const tokens = this.tokenizeCommand(line);
+    if (!tokens.length) return [];
+    const paths = new Set<string>();
+    this.collectRedirectPaths(tokens, cwd, paths);
+    this.collectTeePaths(tokens, cwd, paths);
+    this.collectInPlacePaths(tokens, cwd, paths);
+    this.collectTouchPaths(tokens, cwd, paths);
+    this.collectCopyMovePaths(tokens, cwd, paths);
+    this.collectDdPaths(tokens, cwd, paths);
+    return Array.from(paths);
+  }
+
+  private collectRedirectPaths(
+    tokens: string[],
+    cwd: string,
+    paths: Set<string>,
+  ): void {
+    for (let i = 0; i < tokens.length - 1; i++) {
+      const token = tokens[i];
+      if (!this.isRedirectToken(token)) continue;
+      const candidate = tokens[i + 1];
+      if (!candidate || candidate.startsWith("&")) continue;
+      if (candidate === "/dev/null") continue;
+      const resolved = this.resolveCommandPath(cwd, candidate);
+      paths.add(resolved);
+    }
+  }
+
+  private collectTeePaths(
+    tokens: string[],
+    cwd: string,
+    paths: Set<string>,
+  ): void {
+    const teeIndex = tokens.indexOf("tee");
+    if (teeIndex < 0) return;
+    for (let i = teeIndex + 1; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (!token || token === "|") continue;
+      if (token.startsWith("-")) continue;
+      const resolved = this.resolveCommandPath(cwd, token);
+      paths.add(resolved);
+    }
+  }
+
+  private collectInPlacePaths(
+    tokens: string[],
+    cwd: string,
+    paths: Set<string>,
+  ): void {
+    const head = tokens[0];
+    if (head === "sed") {
+      const inplace = tokens.some((t) => t === "-i" || t.startsWith("-i"));
+      if (!inplace) return;
+      const tailPath = this.findTailPath(tokens);
+      if (tailPath) {
+        paths.add(this.resolveCommandPath(cwd, tailPath));
+      }
+      return;
+    }
+    if (head === "perl") {
+      const inplace =
+        tokens.some((t) => t === "-pi" || t === "-p" || t === "-i") &&
+        tokens.some((t) => t === "-i" || t === "-pi");
+      if (!inplace) return;
+      const tailPath = this.findTailPath(tokens);
+      if (tailPath) {
+        paths.add(this.resolveCommandPath(cwd, tailPath));
+      }
+    }
+  }
+
+  private collectTouchPaths(
+    tokens: string[],
+    cwd: string,
+    paths: Set<string>,
+  ): void {
+    const head = tokens[0];
+    if (head !== "touch" && head !== "truncate") return;
+    const optionsWithValues = new Set([
+      "-t",
+      "-d",
+      "-r",
+      "--date",
+      "--reference",
+      "-s",
+      "--size",
+    ]);
+    let expectValue = false;
+    for (let i = 1; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (!token) continue;
+      if (token === "--") {
+        for (let j = i + 1; j < tokens.length; j++) {
+          const tail = tokens[j];
+          if (!tail) continue;
+          const resolved = this.resolveCommandPath(cwd, tail);
+          paths.add(resolved);
+        }
+        break;
+      }
+      if (expectValue) {
+        expectValue = false;
+        continue;
+      }
+      if (token.startsWith("-")) {
+        if (optionsWithValues.has(token)) {
+          expectValue = true;
+        }
+        continue;
+      }
+      const resolved = this.resolveCommandPath(cwd, token);
+      paths.add(resolved);
+    }
+  }
+
+  private collectCopyMovePaths(
+    tokens: string[],
+    cwd: string,
+    paths: Set<string>,
+  ): void {
+    const head = tokens[0];
+    const supported = new Set(["cp", "mv", "ln", "install"]);
+    if (!supported.has(head)) return;
+    if (
+      tokens.some((token) => token === "-t" || token === "--target-directory")
+    ) {
+      return;
+    }
+    const optsWithValues = new Set([
+      "-t",
+      "--target-directory",
+      "-m",
+      "--mode",
+      "-o",
+      "--owner",
+      "-g",
+      "--group",
+      "-S",
+      "--suffix",
+    ]);
+    const args: string[] = [];
+    let expectValue = false;
+    for (let i = 1; i < tokens.length; i++) {
+      const token = tokens[i];
+      if (!token) continue;
+      if (token === "--") {
+        args.push(...tokens.slice(i + 1).filter((value) => value));
+        break;
+      }
+      if (expectValue) {
+        expectValue = false;
+        continue;
+      }
+      if (token.startsWith("--") && token.includes("=")) {
+        if (token.startsWith("--target-directory=")) {
+          return;
+        }
+        continue;
+      }
+      if (token.startsWith("-")) {
+        if (optsWithValues.has(token)) {
+          expectValue = true;
+        }
+        continue;
+      }
+      args.push(token);
+    }
+    if (args.length === 2) {
+      const dest = this.resolveCommandPath(cwd, args[1]);
+      paths.add(dest);
+    }
+  }
+
+  private collectDdPaths(
+    tokens: string[],
+    cwd: string,
+    paths: Set<string>,
+  ): void {
+    if (tokens[0] !== "dd") return;
+    for (const token of tokens) {
+      if (!token) continue;
+      if (!token.startsWith("of=")) continue;
+      const value = token.slice(3);
+      if (!value) continue;
+      const resolved = this.resolveCommandPath(cwd, value);
+      paths.add(resolved);
+    }
+  }
+
+  private findTailPath(tokens: string[]): string | undefined {
+    for (let i = tokens.length - 1; i >= 0; i--) {
+      const token = tokens[i];
+      if (
+        !token ||
+        token === "|" ||
+        token === "<" ||
+        this.isRedirectToken(token)
+      ) {
+        continue;
+      }
+      if (token.startsWith("-")) continue;
+      return token;
+    }
+    return undefined;
+  }
+
+  private isRedirectToken(token: string): boolean {
+    if (!token) return false;
+    if (token === ">" || token === ">>" || token === ">|") return true;
+    return /^(?:\d+|&)?>>?$/.test(token);
+  }
+
   private unwrapShellCommand(command: string): { cmd: string; argv: string[] } {
     const inline = command.match(
       /^(?:\/usr\/bin\/|\/bin\/)?(?:bash|sh)\s+-l?c\s+([\s\S]+)$/,
@@ -567,7 +819,7 @@ export class CodexExecAgent implements AcpAgent {
   private tokenizeCommand(line: string): string[] {
     const tokens: string[] = [];
     let current = "";
-    let quote: "'" | "\"" | null = null;
+    let quote: "'" | '"' | null = null;
     for (let i = 0; i < line.length; i++) {
       const ch = line[i];
       if (quote) {
@@ -578,8 +830,26 @@ export class CodexExecAgent implements AcpAgent {
         }
         continue;
       }
-      if (ch === "'" || ch === "\"") {
+      if (ch === "'" || ch === '"') {
         quote = ch;
+        continue;
+      }
+      if (ch === ">" || ch === "|" || ch === "<") {
+        if (current) {
+          tokens.push(current);
+          current = "";
+        }
+        if (ch === ">" && line[i + 1] === ">") {
+          tokens.push(">>");
+          i++;
+          continue;
+        }
+        if (ch === ">" && line[i + 1] === "|") {
+          tokens.push(">|");
+          i++;
+          continue;
+        }
+        tokens.push(ch);
         continue;
       }
       if (/\s/.test(ch)) {
@@ -599,7 +869,7 @@ export class CodexExecAgent implements AcpAgent {
     if (value.length < 2) return value;
     const first = value[0];
     const last = value[value.length - 1];
-    if ((first === "\"" && last === "\"") || (first === "'" && last === "'")) {
+    if ((first === '"' && last === '"') || (first === "'" && last === "'")) {
       return value.slice(1, -1);
     }
     return value;
@@ -638,7 +908,8 @@ export class CodexExecAgent implements AcpAgent {
     for (const ch of changes) {
       const pathAbs = ch.path;
       const pathForEvent = this.toHomeRelative(pathAbs, cwd);
-      const before = pre[pathAbs] ?? this.getCachedContent(pathAbs, preContentCache);
+      const before =
+        pre[pathAbs] ?? this.getCachedContent(pathAbs, preContentCache);
       let after: string | undefined;
       try {
         after = await fs.readFile(pathAbs, "utf8");
@@ -764,7 +1035,9 @@ export class CodexExecAgent implements AcpAgent {
         10,
       );
       const maxBytes =
-        (Number.isFinite(maxFileMb) ? maxFileMb : DEFAULT_PRECONTENT_MAX_FILE_MB) *
+        (Number.isFinite(maxFileMb)
+          ? maxFileMb
+          : DEFAULT_PRECONTENT_MAX_FILE_MB) *
         1024 *
         1024;
       if (stat.size > maxBytes) {
