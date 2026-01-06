@@ -146,6 +146,18 @@ if [[ -f "$CONFIG_PATH" && "$REPLACE" != "1" ]]; then
         exit 2
         ;;
     esac
+  elif [[ -r /dev/tty ]]; then
+    echo "Connector config already exists at $CONFIG_PATH." > /dev/tty
+    read -r -p "Replace it? [y/N] " reply < /dev/tty
+    case "$reply" in
+      [Yy]*)
+        REPLACE="1"
+        ;;
+      *)
+        echo "Aborting. Re-run with --replace to overwrite." > /dev/tty
+        exit 2
+        ;;
+    esac
   else
     echo "Connector config already exists at $CONFIG_PATH." >&2
     echo "Re-run with --replace to overwrite it." >&2
