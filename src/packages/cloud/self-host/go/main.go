@@ -28,7 +28,7 @@ const (
 	defaultImage       = "24.04"
 )
 
-var version = getEnv("COCALC_SELF_HOST_CONNECTOR_VERSION", "0.0.0")
+var version = "0.0.0"
 
 type Config struct {
 	BaseURL            string `json:"base_url"`
@@ -64,6 +64,7 @@ type multipassResult struct {
 }
 
 func main() {
+	applyEnvVersion()
 	if len(os.Args) < 2 {
 		printHelp()
 		os.Exit(1)
@@ -90,6 +91,12 @@ func main() {
 	default:
 		printHelp()
 		os.Exit(1)
+	}
+}
+
+func applyEnvVersion() {
+	if v := os.Getenv("COCALC_SELF_HOST_CONNECTOR_VERSION"); v != "" {
+		version = v
 	}
 }
 
@@ -977,13 +984,6 @@ func userHomeDir() string {
 		return home
 	}
 	return "."
-}
-
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
 }
 
 func fail(message string) {

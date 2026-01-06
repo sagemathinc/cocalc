@@ -22,9 +22,13 @@ build_target() {
 
   if [[ "$goos" == "darwin" ]]; then
     if [[ -x "$sign_script" ]]; then
-      "$sign_script" "$target" "$VERSION"
+      "$sign_script" "$target" "$VERSION" "$NAME" || {
+        echo "macOS signing failed; removing unsigned binary $target" >&2
+        rm -f "$target"
+      }
     else
       echo "macos-sign-binary.sh not found; skipping macOS signing for $target" >&2
+      rm -f "$target"
     fi
   fi
 }

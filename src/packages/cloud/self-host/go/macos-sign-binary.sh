@@ -3,9 +3,10 @@ set -Eeuo pipefail
 
 BIN="${1:-}"
 VERSION="${2:-}"
+BASE_NAME="${3:-}"
 
 if [[ -z "$BIN" || -z "$VERSION" ]]; then
-  echo "usage: $0 <binary> <version>" >&2
+  echo "usage: $0 <binary> <version> [base-name]" >&2
   exit 2
 fi
 
@@ -28,10 +29,11 @@ INST_IDENTITY="${COCALC_INSTALLER_ID:-Developer ID Installer: William STEIN (${T
 NOTARY_PROFILE="${COCALC_NOTARY_PROFILE:-notary-profile}"
 
 BIN_NAME="$(basename "$BIN")"
+INSTALL_NAME="${BASE_NAME:-$BIN_NAME}"
 OUT_DIR="$(cd "$(dirname "$BIN")" && pwd)"
 PAYLOAD_DIR="$OUT_DIR/payload"
 PKG_UNSIGNED="$OUT_DIR/unsigned.pkg"
-PKG_SIGNED="$OUT_DIR/${BIN_NAME}-${VERSION}.pkg"
+PKG_SIGNED="$OUT_DIR/${INSTALL_NAME}-${VERSION}.pkg"
 
 echo "Signing $BIN with ${APP_IDENTITY}"
 codesign --force --sign "$APP_IDENTITY" \
@@ -42,10 +44,10 @@ codesign --verify --deep --strict --verbose=2 "$BIN"
 
 rm -rf "$PAYLOAD_DIR" "$PKG_UNSIGNED" "$PKG_SIGNED"
 mkdir -p "$PAYLOAD_DIR/usr/local/bin"
-cp "$BIN" "$PAYLOAD_DIR/usr/local/bin/$BIN_NAME"
+cp "$BIN" "$PAYLOAD_DIR/usr/local/bin/$INSTALL_NAME"
 
 pkgbuild --root "$PAYLOAD_DIR" \
-  --identifier "com.${BIN_NAME}.cli" \
+  --identifier "com.${INSTALL_NAME}.cli" \
   --version "$VERSION" \
   --install-location / \
   "$PKG_UNSIGNED"
