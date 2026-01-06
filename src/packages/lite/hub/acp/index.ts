@@ -11,6 +11,7 @@ import {
   forkSession,
   getSessionsRoot,
 } from "@cocalc/ai/acp";
+import { AgentTimeTravelRecorder } from "@cocalc/ai/sync";
 import { init as initConatAcp } from "@cocalc/conat/ai/acp/server";
 import type {
   AcpRequest,
@@ -40,7 +41,6 @@ import {
   deriveAcpLogRefs,
   type MessageHistory,
 } from "@cocalc/chat";
-import { AgentTimeTravelRecorder } from "@cocalc/chat/server";
 import { acquireChatSyncDB, releaseChatSyncDB } from "@cocalc/chat/server";
 import { appendStreamMessage, extractEventText } from "@cocalc/chat";
 import type { SyncDB } from "@cocalc/conat/sync-doc/syncdb";

@@ -173,7 +173,7 @@ diffing mechanism.
 
 ## Plan to Implement AgentTimeTravelRecorder
 
-Here’s a concrete, step‑by‑step plan (no code) for implementing the AgentTimeTravelRecorder in [src/packages/chat/src/agent-sync-recorder.ts](./src/packages/chat/src/agent-sync-recorder.ts). I’ve baked in your constraints: reuse the existing AKV, skip/record cases where metadata can’t be attached yet, and log those skips.
+Here’s a concrete, step‑by‑step plan (no code) for implementing the AgentTimeTravelRecorder in [src/packages/ai/sync/agent-sync-recorder.ts](./src/packages/ai/sync/agent-sync-recorder.ts). I’ve baked in your constraints: reuse the existing AKV, skip/record cases where metadata can’t be attached yet, and log those skips.
 
 **Plan: AgentTimeTravelRecorder (backend)**
 
@@ -212,7 +212,7 @@ Here’s a concrete, step‑by‑step plan (no code) for implementing the AgentT
     - `agent: { threadId, rootDate, turnId, messageDate, model, sessionId }`
     - `source: "codex-exec"`
     - `filePath`
-  - Ensure this metadata schema is centralized (e.g., helper in [src/packages/chat/src/agent-sync-recorder.ts](./src/packages/chat/src/agent-sync-recorder.ts)).
+  - Ensure this metadata schema is centralized (e.g., helper in [src/packages/ai/sync/agent-sync-recorder.ts](./src/packages/ai/sync/agent-sync-recorder.ts)).
 
 - **Logging**
   - Log on:
@@ -233,7 +233,7 @@ Here’s a concrete, step‑by‑step plan (no code) for implementing the AgentT
 
 **Checklist (implementation order)**
 
-- [x] Create [src/packages/chat/src/agent-sync-recorder.ts](./src/packages/chat/src/agent-sync-recorder.ts) skeleton + docstring.
+- [x] Create [src/packages/ai/sync/agent-sync-recorder.ts](./src/packages/ai/sync/agent-sync-recorder.ts) skeleton + docstring.
 - [x] Define AKV key prefix + helpers.
 - [x] Implement `recordRead`, `recordWrite`, `finalizeTurn` with logging and skip behavior.
 - [x] Wire into ACP/codex turn processing in the backend.
