@@ -343,7 +343,7 @@ Command envelope:
   - \(done\) once the connector comes online, auto\-start its single VM without requiring a browser refresh; 
   - \(done\) ideally the connector launches into daemon mode immediately after pairing so the user runs one command, not two. 
   - \(done\) Provide clear “connector online” status and automatically attempt the first start.
-- **Connector daemon packaging**: ship a SEA binary via `software.cocalc.ai` and provide a one\-line curl install \+ run command; include version reporting and a simple self\-update path.
+- **Connector daemon packaging**: ship a binary via `software.cocalc.ai` and provide a one\-line curl install \+ run command; include version reporting and a simple self\-update path.
 - **Long\-poll tuning**: keep long\-poll for simplicity, but use adaptive intervals \(fast during initial setup or when VM is off; slower when stable\).
 - **Multipass VM sizing**: allow users to edit CPU/RAM and grow disk post\-create; surface safe limits and show current settings in the UI.
 - **ARM support**: publish ARM64 variants for connector, project\-host, project bundle, tools, and cloudflared; detect arch and refuse to run wrong binaries with a clear message.
@@ -351,8 +351,9 @@ Command envelope:
 - **Btrfs remount**: ensure the btrfs image is remounted on reboot \(fstab or systemd mount\), and block project\-host start until mount is ready.
 - **Cloud\-init path policy**: use a non\-hidden, per\-launch cloud\-init directory under `$HOME/cocalc-connector`, clean it up after success, and remove parent dir if empty.
 - **UI live refresh**: refresh connector status without manual reload \(SSE, polling, or catalog refresh timer\) and enable Start immediately when the connector checks in.
-- **Connector UX hardening (single connector per machine)**:
+- **Connector UX hardening \(single connector per machine\)**:
   - On `pair`, refuse if a config already exists unless `--replace` is provided; print a clear message about deleting/replacing the existing connector.
-  - Server-side guard: if the user already has an active connector, block creation of a second self-hosted VM and show a clear error.
+  - Server\-side guard: if the user already has an active connector, block creation of a second self\-hosted VM and show a clear error.
   - Setup modal copy: explain the 1:1 model and that the easiest way to scale is to resize the VM or run another connector on another machine.
   - Provide a simple “delete existing connector” step in the UI so users can recover if they overwrite/lose their config.
+
