@@ -14,16 +14,17 @@ build_target() {
   local goos="$1"
   local goarch="$2"
   local target="$OUT_DIR/${NAME}-${VERSION}-${goos}-${goarch}"
+  local sign_script="$SCRIPT_DIR/macos-sign-binary.sh"
 
   echo "Building $target"
   env CGO_ENABLED=0 GOOS="$goos" GOARCH="$goarch" \
     go build -trimpath -ldflags "-s -w -X main.version=${VERSION}" -o "$target" .
 
   if [[ "$goos" == "darwin" ]]; then
-    if command -v codesign >/dev/null 2>&1; then
-      codesign --force --sign - "$target"
+    if [[ -x "$sign_script" ]]; then
+      "$sign_script" "$target" "$VERSION"
     else
-      echo "codesign not found; skipping macOS signing for $target" >&2
+      echo "macos-sign-binary.sh not found; skipping macOS signing for $target" >&2
     fi
   fi
 }
