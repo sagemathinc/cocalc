@@ -65,6 +65,13 @@ export function LLMServiceStatusCheck({
         </>
       );
 
+    case "xai":
+      return (
+        <>
+          xAI <A href="https://status.x.ai/">status</A>.
+        </>
+      );
+
     case "user":
       return <>{getLLMServiceStatusCheckMD("user")}</>;
 
