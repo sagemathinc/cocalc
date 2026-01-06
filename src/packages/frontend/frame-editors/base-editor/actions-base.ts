@@ -53,6 +53,7 @@ import { ensure_project_running } from "@cocalc/frontend/project/project-start-w
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { type SyncOpts, type PatchId } from "@cocalc/sync";
 import { SyncDB } from "@cocalc/sync/editor/db";
+import { getSyncDocDescriptor } from "@cocalc/sync/editor/doctypes";
 import { apply_patch, make_patch } from "@cocalc/util/patch";
 import type { SyncString } from "@cocalc/sync/editor/string/sync";
 import { once } from "@cocalc/util/async-utils";
@@ -298,6 +299,15 @@ export class BaseEditorActions<
   // multifile support. this will be set to the path of the parent file (master)
   protected parent_file: string | undefined = undefined;
 
+  private applyDoctypeForPath(path: string): void {
+    if (this.doctype !== "syncstring") return;
+    const descriptor = getSyncDocDescriptor(path);
+    if (descriptor.doctype === "syncstring") return;
+    this.doctype = descriptor.doctype;
+    this.primary_keys = descriptor.primary_keys;
+    this.string_cols = descriptor.string_cols;
+  }
+
   _init(
     project_id: string,
     path: string,
@@ -311,6 +321,7 @@ export class BaseEditorActions<
 
     this.project_id = project_id;
     this.path = path;
+    this.applyDoctypeForPath(path);
     this.videoChat = new VideoChat({ project_id, path });
     this.store = store;
     this.is_public = is_public;

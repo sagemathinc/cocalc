@@ -31,9 +31,6 @@ const FRAME_TYPE = "tasks";
 export type Store = BaseStore<TaskEditorState>;
 
 export class Actions extends CodeEditorActions<TaskEditorState> {
-  protected doctype: string = "syncdb";
-  protected primary_keys: string[] = ["task_id"];
-  protected string_cols: string[] = ["desc"];
   protected searchEmbeddings = {
     primaryKey: "task_id",
     textColumn: "desc",

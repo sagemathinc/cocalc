@@ -28,10 +28,6 @@ export function useEditor() {
 }
 
 export class Actions extends CodeEditorActions<CRMEditorState> {
-  protected doctype: string = "syncdb";
-  protected primary_keys: string[] = ["table", "id"];
-  protected string_cols: string[] = [];
-
   _init2(): void {
     this.setState({ selection: fromJS({}) });
   }

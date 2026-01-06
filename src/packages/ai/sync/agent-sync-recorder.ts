@@ -4,7 +4,10 @@ import path from "node:path";
 import { getLogger, type Logger } from "@cocalc/conat/client";
 import type { Client as ConatClient } from "@cocalc/conat/core/client";
 import { akv } from "@cocalc/conat/sync/akv";
-import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
+import {
+  getSyncDocDescriptor,
+  type SyncDocDescriptor,
+} from "@cocalc/sync/editor/doctypes";
 import type { JSONValue } from "@cocalc/util/types";
 
 type PatchId = string;
@@ -38,11 +41,6 @@ type ReadStateStore = {
 type SyncDocEntry = {
   doc: AgentSyncDoc;
   lastUsedMs: number;
-};
-
-type SyncDocDescriptor = {
-  type: "string" | "db";
-  opts?: Record<string, unknown>;
 };
 
 type AgentTimeTravelRecorderOptions = {
@@ -525,7 +523,7 @@ export class AgentTimeTravelRecorder {
         return undefined;
       }
     }
-    const descriptor = await this.resolveDocType(relativePath);
+    const descriptor = this.resolveDocType(relativePath);
     let syncdoc: AgentSyncDoc | undefined;
     try {
       const options = {
@@ -534,24 +532,27 @@ export class AgentTimeTravelRecorder {
         noSaveToDisk: true,
         firstReadLockTimeout: 1,
       };
-      if (descriptor.type === "db") {
-        const primaryKeys = this.readStringArray(
-          descriptor.opts?.primary_keys ?? descriptor.opts?.primaryKeys,
-        );
-        const stringCols = this.readStringArray(
-          descriptor.opts?.string_cols ?? descriptor.opts?.stringCols,
-        );
+      if (descriptor.doctype === "syncdb" || descriptor.doctype === "immer") {
+        const primaryKeys = descriptor.primary_keys ?? [];
+        const stringCols = descriptor.string_cols ?? [];
         if (primaryKeys.length === 0) {
           this.logger.debug("agent-tt fallback to string doc", {
             relativePath,
           });
           syncdoc = this.client.sync.string(options);
         } else {
-          syncdoc = this.client.sync.immer({
-            ...options,
-            primary_keys: primaryKeys,
-            string_cols: stringCols,
-          });
+          syncdoc =
+            descriptor.doctype === "immer"
+              ? this.client.sync.immer({
+                  ...options,
+                  primary_keys: primaryKeys,
+                  string_cols: stringCols,
+                })
+              : this.client.sync.db({
+                  ...options,
+                  primary_keys: primaryKeys,
+                  string_cols: stringCols,
+                });
         }
       } else {
         syncdoc = this.client.sync.string(options);
@@ -596,43 +597,13 @@ export class AgentTimeTravelRecorder {
     }
   }
 
-  private async resolveDocType(
-    relativePath: string,
-  ): Promise<SyncDocDescriptor> {
+  private resolveDocType(relativePath: string): SyncDocDescriptor {
     const cached = this.docTypeCache.get(relativePath);
     if (cached && this.now() - cached.atMs < this.syncDocCacheTtlMs) {
       return cached.entry;
     }
-    try {
-      const raw = (await getSyncDocType({
-        client: this.client,
-        project_id: this.projectId,
-        path: relativePath,
-      })) as SyncDocDescriptor;
-      const entry: SyncDocDescriptor = {
-        type: raw?.type === "db" ? "db" : "string",
-        opts: raw?.opts,
-      };
-      this.docTypeCache.set(relativePath, { entry, atMs: this.now() });
-      return entry;
-    } catch (err) {
-      this.logger.debug("agent-tt doctype lookup failed", {
-        relativePath,
-        err,
-      });
-      return { type: "string" };
-    }
-  }
-
-  private readStringArray(value: unknown): string[] {
-    if (Array.isArray(value)) {
-      return value.filter((item): item is string => typeof item === "string");
-    }
-    if (value instanceof Set) {
-      return Array.from(value).filter(
-        (item): item is string => typeof item === "string",
-      );
-    }
-    return [];
+    const entry = getSyncDocDescriptor(relativePath);
+    this.docTypeCache.set(relativePath, { entry, atMs: this.now() });
+    return entry;
   }
 }

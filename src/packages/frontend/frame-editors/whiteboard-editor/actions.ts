@@ -77,9 +77,6 @@ export interface State extends CodeEditorState {
 }
 
 export class Actions<T extends State = State> extends BaseActions<T | State> {
-  protected doctype: string = "syncdb";
-  protected primary_keys: string[] = ["id"];
-  protected string_cols: string[] = ["str"];
   protected searchEmbeddings = {
     primaryKey: "id",
     textColumn: "str",
