@@ -27,8 +27,9 @@ NAME_ARG=""
 REPLACE="0"
 CHECK="0"
 DAEMON="1"
+INSTALL_SERVICE="1"
 SOFTWARE_BASE_URL="https://software.cocalc.ai/software"
-INSTALL_DIR="/usr/local/bin"
+INSTALL_DIR=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -54,6 +55,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --no-daemon)
       DAEMON="0"
+      shift
+      ;;
+    --no-service)
+      INSTALL_SERVICE="0"
       shift
       ;;
     --software-base-url)
@@ -105,6 +110,9 @@ esac
 
 case "$OS" in
   linux)
+    if [[ -z "$INSTALL_DIR" ]]; then
+      INSTALL_DIR="$HOME/.local/bin"
+    fi
     ;;
   darwin)
     if [[ "$ARCH" != "arm64" ]]; then
@@ -177,9 +185,8 @@ else
   elif command -v sudo >/dev/null 2>&1; then
     SUDO="sudo"
   else
-    INSTALL_DIR="$HOME/.local/bin"
-    mkdir -p "$INSTALL_DIR"
-    SUDO=""
+    echo "Install dir not writable and sudo not available: $INSTALL_DIR" >&2
+    exit 2
   fi
   $SUDO mkdir -p "$INSTALL_DIR"
   $SUDO install -m 0755 "$artifact" "$INSTALL_DIR/${BIN_NAME}"
@@ -195,6 +202,62 @@ if [[ -z "$BIN_PATH" || ! -x "$BIN_PATH" ]]; then
   exit 2
 fi
 
+setup_service_linux() {
+  if ! command -v systemctl >/dev/null 2>&1; then
+    return 1
+  fi
+  local unit_dir="$HOME/.config/systemd/user"
+  local unit_file="$unit_dir/cocalc-self-host-connector.service"
+  mkdir -p "$unit_dir"
+  cat > "$unit_file" <<EOF
+[Unit]
+Description=CoCalc Self-Host Connector
+After=network-online.target
+
+[Service]
+ExecStart=$BIN_PATH run${CHECK:+ --check}
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target
+EOF
+  systemctl --user daemon-reload
+  systemctl --user enable --now cocalc-self-host-connector.service
+}
+
+setup_service_darwin() {
+  local plist_dir="$HOME/Library/LaunchAgents"
+  local plist_file="$plist_dir/com.cocalc.self-host-connector.plist"
+  mkdir -p "$plist_dir"
+  cat > "$plist_file" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>com.cocalc.self-host-connector</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>$BIN_PATH</string>
+    <string>run</string>
+    ${CHECK:+<string>--check</string>}
+  </array>
+  <key>RunAtLoad</key>
+  <true/>
+  <key>KeepAlive</key>
+  <true/>
+  <key>StandardOutPath</key>
+  <string>$HOME/Library/Logs/cocalc-self-host-connector.log</string>
+  <key>StandardErrorPath</key>
+  <string>$HOME/Library/Logs/cocalc-self-host-connector.log</string>
+</dict>
+</plist>
+EOF
+  launchctl unload "$plist_file" >/dev/null 2>&1 || true
+  launchctl load "$plist_file"
+}
+
 pair_args=("$BIN_PATH" "pair" "--base-url" "$BASE_URL" "--token" "$TOKEN")
 if [[ -n "$NAME_ARG" ]]; then
   pair_args+=("--name" "$NAME_ARG")
@@ -203,6 +266,24 @@ if [[ "$REPLACE" == "1" ]]; then
   pair_args+=("--replace")
 fi
 "${pair_args[@]}"
+
+STARTED="0"
+if [[ "$INSTALL_SERVICE" == "1" ]]; then
+  if [[ "$OS" == "linux" ]]; then
+    if setup_service_linux; then
+      STARTED="1"
+    fi
+  elif [[ "$OS" == "darwin" ]]; then
+    if setup_service_darwin; then
+      STARTED="1"
+    fi
+  fi
+fi
+
+if [[ "$STARTED" == "1" ]]; then
+  echo "Connector installed and started (auto-start enabled)."
+  exit 0
+fi
 
 run_args=("$BIN_PATH" "run")
 if [[ "$CHECK" == "1" ]]; then

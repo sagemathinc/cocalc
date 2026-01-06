@@ -39,10 +39,25 @@ export const SelfHostSetupModal: React.FC<SelfHostSetupModalProps> = ({
     ? new Date(connector.last_seen).toLocaleString()
     : undefined;
   const base = baseUrl || "<base-url>";
-  const pairCommand = token
-    ? `cocalc-self-host-connector pair --base-url ${base} --token ${token}`
+  const safeName =
+    connector?.name?.trim() ||
+    host?.name?.trim() ||
+    `connector-${connectorId}`;
+  const quoteShell = (value: string) => `'${value.replace(/'/g, `'\\''`)}'`;
+  const installCommand = token
+    ? `curl -fsSL https://software.cocalc.ai/software/self-host/install.sh | \\\n  bash -s -- --base-url ${base} --token ${token} --name ${quoteShell(safeName)}`
     : undefined;
-  const runCommand = "cocalc-self-host-connector run";
+
+  React.useEffect(() => {
+    if (!open || !expires) return;
+    const ts = Date.parse(expires);
+    if (!Number.isFinite(ts)) return;
+    const delayMs = Math.max(ts - Date.now() - 1000, 0);
+    const timer = window.setTimeout(() => {
+      onRefresh();
+    }, delayMs);
+    return () => window.clearTimeout(timer);
+  }, [open, expires, onRefresh]);
 
   return (
     <Modal
@@ -50,9 +65,6 @@ export const SelfHostSetupModal: React.FC<SelfHostSetupModalProps> = ({
       title="Set up your self-hosted connector"
       onCancel={onCancel}
       footer={[
-        <Button key="refresh" onClick={onRefresh} loading={loading}>
-          Refresh token
-        </Button>,
         <Button key="close" type="primary" onClick={onCancel}>
           Done
         </Button>,
@@ -62,6 +74,9 @@ export const SelfHostSetupModal: React.FC<SelfHostSetupModalProps> = ({
         <Typography.Paragraph>
           This connector manages a dedicated VM on your machine using Multipass
           (free, open-source, and easy to install).
+        </Typography.Paragraph>
+        <Typography.Paragraph type="secondary">
+          Supported on macOS and Linux only (Windows support is planned).
         </Typography.Paragraph>
         <Typography.Paragraph>
           Connector ID: <Typography.Text code>{connectorName}</Typography.Text>
@@ -83,7 +98,7 @@ export const SelfHostSetupModal: React.FC<SelfHostSetupModalProps> = ({
           </Typography.Link>
         </Typography.Paragraph>
         <Typography.Paragraph>
-          2) Pair your connector:
+          2) Copy/paste this command:
         </Typography.Paragraph>
         {loading && (
           <Typography.Text type="secondary">
@@ -91,28 +106,36 @@ export const SelfHostSetupModal: React.FC<SelfHostSetupModalProps> = ({
           </Typography.Text>
         )}
         {error && <Alert type="error" message={error} showIcon />}
-        {token && (
+        {installCommand && (
           <>
-            <Typography.Paragraph copyable={{ text: token }}>
-              Pairing token: <Typography.Text code>{token}</Typography.Text>
+            <Typography.Paragraph copyable={{ text: installCommand }}>
+              <pre
+                style={{
+                  margin: 0,
+                  padding: "10px 12px",
+                  background: "#f5f5f5",
+                  border: "1px solid #e6e6e6",
+                  borderRadius: 6,
+                  fontSize: 12,
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  fontFamily:
+                    "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+                }}
+              >
+                {installCommand}
+              </pre>
             </Typography.Paragraph>
             {expires && (
               <Typography.Paragraph type="secondary">
-                Expires: {new Date(expires).toLocaleString()}
-              </Typography.Paragraph>
-            )}
-            {pairCommand && (
-              <Typography.Paragraph copyable={{ text: pairCommand }}>
-                <Typography.Text code>{pairCommand}</Typography.Text>
+                Token expires: {new Date(expires).toLocaleString()}
               </Typography.Paragraph>
             )}
           </>
         )}
-        <Typography.Paragraph>
-          3) Start the connector daemon:
-        </Typography.Paragraph>
-        <Typography.Paragraph copyable={{ text: runCommand }}>
-          <Typography.Text code>{runCommand}</Typography.Text>
+        <Typography.Paragraph type="secondary">
+          The connector will start immediately and your host will auto-start once it connects.
+          Run only one connector per computer.
         </Typography.Paragraph>
       </Space>
     </Modal>

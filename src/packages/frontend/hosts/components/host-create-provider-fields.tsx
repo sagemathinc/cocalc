@@ -58,7 +58,7 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
             name="cpu"
             label="vCPU"
             tooltip="Number of virtual CPUs for this VM."
-            initialValue={4}
+            initialValue={2}
           >
             <InputNumber min={1} max={128} style={{ width: "100%" }} />
           </Form.Item>
@@ -66,7 +66,7 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
             name="ram_gb"
             label="Memory (GB)"
             tooltip="RAM to allocate to this VM."
-            initialValue={16}
+            initialValue={8}
           >
             <InputNumber min={1} max={512} style={{ width: "100%" }} />
           </Form.Item>
