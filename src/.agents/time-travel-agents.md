@@ -24,6 +24,26 @@ This design does not aim for perfect coverage when Codex writes without any
 read, nor does it aim for a full audit log of Codex's internal reasoning. It is
 best-effort; correctness is prioritized, then coverage.
 
+## Multi-agent / ACP tradeoffs
+
+We plan to support multiple agent backends (Codex, Claude Code, Gemini CLI,
+OpenCode, etc.), some via ACP and some via CLI exec/json. This changes the
+tradeoffs and argues strongly for an adapter layer rather than agent-specific
+logic in the recorder.
+
+- ACP\-capable agents may emit structured events \(read/write/diff\) that are more
+  reliable than CLI heuristics. When available, the recorder should prefer those
+  events over command parsing.
+- CLI\-only agents usually surface command execution and coarse file\-change
+  events. For these, the "read \-&gt; PatchId \-&gt; write \-&gt; diff" heuristic remains
+  best\-effort but is good enough for UX.
+- Forking upstream agents to add diff/pre\-content is expensive and fragile; a hard requirement is to NOT fork. Use adapters to normalize events from multiple
+  sources instead.
+- Convergence goal: a single `AgentEventAdapter` interface that yields
+  { read\(path\), write\(path\), command\(cmd\), file\_change\(path, kind, maybeDiff\) }
+  regardless of agent backend. This lets the recorder stay stable even as we
+  add new agents.
+
 ## Constraints and Observations
 
 Codex exec outputs events such as file changes and command executions, but it
@@ -133,6 +153,7 @@ When entries expire, close syncdoc handles to avoid leak.
 - [ ] Only track files under HOME; ignore paths outside HOME (syncdoc limitation).
 - [ ] Hook read-detection events -> syncdoc open -> PatchId record.
 - [ ] Hook write-detection events -> compute diff -> commit patch with meta.
+- [ ] Introduce AgentEventAdapter interface for ACP vs exec backends.
 - [ ] Add LRU/TTL for lastReadPatchId and syncdoc handles (consider refcount/lease).
 - [ ] Expose commit metadata in frontend TimeTravel view.
 - [ ] Add deep-link support for specific patchid or patchid range (see notes on new anchor notation).
@@ -146,3 +167,4 @@ If Codex \(or other agents\) eventually emit pre\-contents or diffs, we can repl
 the read/write heuristics with exact data, but the overall architecture stays
 the same. The main value is the Patchflow commit with metadata, not the exact
 diffing mechanism.
+
