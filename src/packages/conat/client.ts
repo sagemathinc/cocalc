@@ -23,16 +23,18 @@ interface Client {
 
 type State = "closed" | "connected" | "connecting" | "disconnected";
 
-interface Logger {
-  debug: Function;
-  info: Function;
-  warn: Function;
+export interface Logger {
+  debug: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  error: (...args: unknown[]) => void;
 }
 
 const FALLBACK_LOGGER = {
   debug: () => {},
   info: () => {},
   warn: () => {},
+  error: () => {},
   silly: () => {},
 } as Logger;
 

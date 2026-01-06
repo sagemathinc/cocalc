@@ -1,7 +1,7 @@
 import { promises as fs } from "node:fs";
 import path from "node:path";
 
-import { getLogger } from "@cocalc/conat/client";
+import { getLogger, type Logger } from "@cocalc/conat/client";
 import type { Client as ConatClient } from "@cocalc/conat/core/client";
 import { akv } from "@cocalc/conat/sync/akv";
 import { getSyncDocType } from "@cocalc/conat/sync/syncdoc-info";
@@ -33,13 +33,6 @@ type ReadStateStore = {
   set: (key: string, value: ReadState) => Promise<void>;
   delete?: (key: string) => Promise<void>;
   close?: () => void;
-};
-
-type Logger = {
-  debug: (...args: unknown[]) => void;
-  info?: (...args: unknown[]) => void;
-  warn?: (...args: unknown[]) => void;
-  error?: (...args: unknown[]) => void;
 };
 
 type SyncDocEntry = {

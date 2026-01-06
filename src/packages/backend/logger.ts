@@ -194,13 +194,13 @@ class Logger {
 }
 
 export interface WinstonLogger {
-  error: Function;
-  warn: Function;
-  info: Function;
-  http: Function;
+  error: (...args: unknown[]) => void;
+  warn: (...args: unknown[]) => void;
+  info: (...args: unknown[]) => void;
+  http: (...args: unknown[]) => void;
+  debug: (...args: unknown[]) => void;
+  silly: (...args: unknown[]) => void;
   verbose: Function;
-  debug: Function;
-  silly: Function;
   extend: (name: string) => WinstonLogger;
   isEnabled: (level: Level) => boolean;
 }
