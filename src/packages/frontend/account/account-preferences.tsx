@@ -30,7 +30,7 @@ export const AccountPreferences: React.FC = () => {
   const verify_emails = useTypedRedux("customize", "verify_emails");
 
   return (
-    <div>
+    <div role="region" aria-label="Account preferences">
       <TableError />
       <AccountSettings
         account_id={account_id}

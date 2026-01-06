@@ -76,6 +76,8 @@ export function EditorSettings({}) {
     <>
       <Panel
         size="small"
+        role="region"
+        aria-label="Basic editor settings"
         header={
           <>
             <Icon name="font" />{" "}
@@ -103,6 +105,8 @@ export function EditorSettings({}) {
       />
       <Panel
         size="small"
+        role="region"
+        aria-label="Keyboard settings"
         header={
           <>
             <Icon name="keyboard" />{" "}

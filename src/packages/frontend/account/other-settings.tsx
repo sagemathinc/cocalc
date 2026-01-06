@@ -390,6 +390,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     if (!anyLLMenabled) return <></>;
     return (
       <Panel
+        role="region"
+        aria-label="AI settings"
         header={
           <>
             <AIAvatar size={18} />{" "}
@@ -422,6 +424,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     return (
       <Panel
         size="small"
+        role="region"
+        aria-label="Theme settings"
         header={
           <>
             <Icon name={THEME_ICON_NAME} /> {intl.formatMessage(labels.theme)}
@@ -438,6 +442,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
       <>
         <Panel
           size="small"
+          role="region"
+          aria-label="Browser settings"
           header={
             <>
               <Icon name="desktop" /> {intl.formatMessage(labels.browser)}
@@ -450,6 +456,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
 
         <Panel
           size="small"
+          role="region"
+          aria-label="File explorer settings"
           header={
             <>
               <Icon name="folder-open" />{" "}
@@ -467,6 +475,8 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         {/* Projects */}
         <Panel
           size="small"
+          role="region"
+          aria-label="Projects settings"
           header={
             <>
               <Icon name="edit" /> {intl.formatMessage(labels.projects)}

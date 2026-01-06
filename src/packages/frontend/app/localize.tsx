@@ -53,6 +53,11 @@ export function Localize({ children }: { children: React.ReactNode }) {
     setAntdLoc(await loadAntdLocale(locale));
   }, [locale]);
 
+  // Update HTML lang attribute for screen readers (WCAG AA)
+  useAsyncEffect(async () => {
+    document.documentElement.lang = locale;
+  }, [locale]);
+
   function renderApp() {
     // NOTE: the locale will be set from the other_settings, on the "page".
     // So, for the default (english) we always have to render it, and then, maybe, a locale is set...

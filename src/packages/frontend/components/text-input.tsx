@@ -66,6 +66,7 @@ export const TextInput: React.FC<Props> = React.memo(
               type="primary"
               onClick={saveChange}
               size={size}
+              aria-label="Save changes"
             >
               <Icon name="save" /> Save
             </Button>
@@ -89,6 +90,7 @@ export const TextInput: React.FC<Props> = React.memo(
             onBlur={onBlur}
             disabled={disabled}
             size={size === "small" ? "small" : undefined}
+            aria-label={type === "textarea" ? "Text area" : "Text input"}
           />
         </Form.Item>
       );

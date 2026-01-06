@@ -213,7 +213,7 @@ export function getProjectTableColumns(
             {/* Avatar or placeholder */}
             <div style={{ flexShrink: 0, width: 40, height: 40 }}>
               {record.avatar ? (
-                <Avatar src={record.avatar} size={40} />
+                <Avatar src={record.avatar} size={40} alt="Project avatar" />
               ) : (
                 <div style={{ width: 40, height: 40 }} />
               )}
@@ -277,7 +277,7 @@ export function getProjectTableColumns(
                   }}
                 >
                   {cf.avatar ? (
-                    <Avatar src={cf.avatar} size={20} />
+                    <Avatar src={cf.avatar} size={20} alt={`User ${cf.text}`} />
                   ) : (
                     <Avatar size={20}>{cf.first_name[0]}</Avatar>
                   )}

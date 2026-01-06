@@ -4,7 +4,7 @@
  */
 
 import { Alert, Button, Popover } from "antd";
-import { CSSProperties } from "react";
+
 import { Icon, LabeledRow, Markdown } from "@cocalc/frontend/components";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Config, RowType, Tag } from "@cocalc/util/db-schema/site-defaults";
@@ -12,6 +12,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { Data, IsReadonly } from "./types";
 import { RowEntry } from "./row-entry";
 import { RefreshImagesButton } from "@cocalc/frontend/compute/select-version";
+import { CSS } from "@cocalc/frontend/app-framework";
 
 interface RenderRowProps {
   name: string;
@@ -99,7 +100,7 @@ export function RenderRow({
 
   const hint = <RowHint conf={conf} rawValue={rawValue} />;
 
-  let style = { marginTop: "15px", paddingLeft: "10px" } as CSSProperties;
+  let style: CSS = { marginTop: "15px", paddingLeft: "10px" };
   // indent optional fields
   if (typeof conf.show == "function" && rowType == "setting") {
     style = {
@@ -107,7 +108,7 @@ export function RenderRow({
       borderLeft: `2px solid ${COLORS.GRAY}`,
       marginLeft: "0px",
       marginTop: "0px",
-    } as CSSProperties;
+    };
   }
 
   function renderRowExtra() {

@@ -11,5 +11,9 @@ import { EditorSettings } from "./editor-settings/editor-settings";
 export const EDITOR_ICON_NAME: IconName = "edit";
 
 export function AccountPreferencesEditor() {
-  return <EditorSettings />;
+  return (
+    <div role="region" aria-label="Editor settings">
+      <EditorSettings />
+    </div>
+  );
 }

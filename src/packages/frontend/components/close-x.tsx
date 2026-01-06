@@ -9,6 +9,10 @@ import { Icon } from "./icon";
 const closex_style: React.CSSProperties = {
   float: "right",
   marginLeft: "5px",
+  border: "none",
+  background: "transparent",
+  padding: 0,
+  cursor: "pointer",
 } as const;
 
 interface Props {
@@ -25,8 +29,13 @@ export const CloseX: React.FC<Props> = (props: Props) => {
   }
 
   return (
-    <a href="" style={{ ...closex_style, ...style }} onClick={onClick}>
+    <button
+      type="button"
+      style={{ ...closex_style, ...style }}
+      onClick={onClick}
+      aria-label="Close"
+    >
       <Icon name="times" />
-    </a>
+    </button>
   );
 };

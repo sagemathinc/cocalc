@@ -131,6 +131,16 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
   useEffect(cm_highlight_misspelled_words, [props.misspelled_words]);
   useEffect(cm_refresh, [props.resize]);
   useEffect(update_codemirror, [props.editor_settings]);
+  useEffect(() => {
+    const cm = cmRef.current;
+    if (cm == null) return;
+    if (props.is_current) {
+      cm.focus();
+      return;
+    }
+    const inputField = cm.getInputField();
+    inputField?.blur();
+  }, [props.is_current]);
 
   function cm_refresh(): void {
     if (cmRef.current == null) return;
@@ -483,7 +493,12 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <div className="smc-vfill cocalc-editor-div" ref={divRef}>
+    <div
+      className="smc-vfill cocalc-editor-div"
+      ref={divRef}
+      role="region"
+      aria-label={`Editor: ${props.path}`}
+    >
       <Path
         project_id={props.project_id}
         path={props.path}

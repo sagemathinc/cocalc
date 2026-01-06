@@ -200,7 +200,12 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     }
 
     return (
-      <div className="smc-vfill cc-frame-tree-editor" ref={frameRootRef}>
+      <div
+        className="smc-vfill cc-frame-tree-editor"
+        ref={frameRootRef}
+        role="application"
+        aria-label={`${editor_spec.name || name} editor for ${path}`}
+      >
         {formatError && (
           <FormatError formatError={formatError} formatInput={formatInput} />
         )}
@@ -231,10 +236,15 @@ export interface EditorProps {
 
 // this returns a function that creates a FrameTreeEditor for given Options.
 // memoization happens in FrameTreeEditor
+export interface FrameTreeEditorComponent<T = EditorSpec>
+  extends React.FC<EditorProps> {
+  editor_spec?: T;
+}
+
 export function createEditor<T = EditorSpec>(
   opts: Options<T>,
-): React.FC<EditorProps> {
-  const Editor = (props: EditorProps) => {
+): FrameTreeEditorComponent<T> {
+  const Editor: FrameTreeEditorComponent<T> = (props: EditorProps) => {
     const { actions, name, path, project_id, is_visible } = props;
     return (
       <FrameTreeEditor
@@ -254,5 +264,6 @@ export function createEditor<T = EditorSpec>(
     );
   };
   Editor.displayName = opts.display_name;
+  Editor.editor_spec = opts.editor_spec;
   return Editor;
 }
