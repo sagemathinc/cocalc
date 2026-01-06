@@ -40,7 +40,7 @@ logic in the recorder.
 - Forking upstream agents to add diff/pre\-content is expensive and fragile; a hard requirement is to NOT fork. Use adapters to normalize events from multiple
   sources instead.
 - Convergence goal: a single `AgentEventAdapter` interface that yields
-  { read\(path\), write\(path\), command\(cmd\), file\_change\(path, kind, maybeDiff\) }
+  { read\(path\), write\(path\), command\(cmd\), file_change\(path, kind, maybeDiff\) }
   regardless of agent backend. This lets the recorder stay stable even as we
   add new agents.
 
@@ -125,9 +125,9 @@ user: I do agree that the explicit meta field technically is sufficient for attr
 NOTE: Deep linking to timetravel isn't implemented, i.e., there should be an anchor tag for any document that when clicked
 
 - opens the doc and a timetravel frame at a particular patchid
-- opens  the doc and a timetravel frame showing a diff from one patchid to another
+- opens the doc and a timetravel frame showing a diff from one patchid to another
 
-This could be supported by enhancing the function "  time\_travel\(opts: { path?: string; frame?: boolean }\): void {" in src/packages/frontend/frame\-editors/base\-editor/actions\-base.ts and also coming up with a new anchor tag notation, e.g., \#{something}=...
+This could be supported by enhancing the function " time_travel\(opts: { path?: string; frame?: boolean }\): void {" in src/packages/frontend/frame\-editors/base\-editor/actions\-base.ts and also coming up with a new anchor tag notation, e.g., \#{something}=...
 
 ## Best-Effort Heuristics
 
@@ -136,7 +136,7 @@ This could be supported by enhancing the function "  time\_travel\(opts: { path?
 - If a file read is too large, skip and do not record PatchId (log warning).
 
 These heuristics are adequate for user visibility and UX, but they are not
-guaranteed to capture every edit.  This fact should be mentioned in the UI \(maybe a tooltip\). 
+guaranteed to capture every edit. This fact should be mentioned in the UI \(maybe a tooltip\).
 
 ## Memory and Lifecycle Management
 
@@ -149,17 +149,17 @@ When entries expire, close syncdoc handles to avoid leak.
 
 ## Implementation Checklist
 
-- [ ] \(see plan below\) Implement AgentTimeTravelRecorder in backend
+- [x] \(see plan below\) Implement AgentTimeTravelRecorder in backend
   - see detailed plan below in the section "Plan to Implement AgentTimeTravelRecorder"
-- [ ] Only track files under HOME; ignore paths outside HOME \(syncdoc limitation\).
-- [ ] Hook read\-detection events \-&gt; syncdoc open \-&gt; PatchId record.
-- [ ] Hook write\-detection events \-&gt; compute diff \-&gt; commit patch with meta.
+- [x] Only track files under HOME; ignore paths outside HOME \(syncdoc limitation\).
+- [x] Hook read\-detection events \-&gt; syncdoc open \-&gt; PatchId record.
+- [x] Hook write\-detection events \-&gt; compute diff \-&gt; commit patch with meta.
 - [ ] Introduce AgentEventAdapter interface for ACP vs exec backends.
 - [ ] Add LRU/TTL for lastReadPatchId and syncdoc handles \(consider refcount/lease\).
 - [ ] Expose commit metadata in frontend TimeTravel view.
 - [ ] Add deep\-link support for specific patchid or patchid range \(see notes on new anchor notation\).
 - [ ] Surface best\-effort caveats in UI \(tooltip or help text\).
-- [ ] Add tests for read\-&gt;write correlation and commit metadata.
+- [x] Add tests for read\-&gt;write correlation and commit metadata.
 - [ ] Add debug logs \(counts of tracked files, cache size, commit counts\).
 
 ## Notes
@@ -233,9 +233,8 @@ Here’s a concrete, step‑by‑step plan (no code) for implementing the AgentT
 
 **Checklist (implementation order)**
 
-- [ ] Create [src/packages/chat/src/agent-sync-recorder.ts](./src/packages/chat/src/agent-sync-recorder.ts) skeleton + docstring.
-- [ ] Define AKV key prefix + helpers.
-- [ ] Implement `recordRead`, `recordWrite`, `finalizeTurn` with logging and skip behavior.
-- [ ] Wire into ACP/codex turn processing in the backend.
-- [ ] Add unit tests for recorder.
-
+- [x] Create [src/packages/chat/src/agent-sync-recorder.ts](./src/packages/chat/src/agent-sync-recorder.ts) skeleton + docstring.
+- [x] Define AKV key prefix + helpers.
+- [x] Implement `recordRead`, `recordWrite`, `finalizeTurn` with logging and skip behavior.
+- [x] Wire into ACP/codex turn processing in the backend.
+- [x] Add unit tests for recorder.
