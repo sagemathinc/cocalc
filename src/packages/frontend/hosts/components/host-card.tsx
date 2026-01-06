@@ -35,6 +35,8 @@ export const HostCard: React.FC<HostCardProps> = ({
     !isSelfHost ||
     !selfHost?.isConnectorOnline ||
     selfHost.isConnectorOnline(host.region);
+  const showConnectorSetup =
+    isSelfHost && !connectorOnline && host.status === "off";
   const startDisabled =
     isDeleted ||
     host.status === "running" ||
@@ -67,7 +69,7 @@ export const HostCard: React.FC<HostCardProps> = ({
     >
       {startLabel}
     </Button>,
-    isSelfHost && !connectorOnline && selfHost ? (
+    showConnectorSetup && selfHost ? (
       <Button
         key="setup"
         type="link"

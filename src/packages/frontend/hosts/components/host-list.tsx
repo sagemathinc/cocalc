@@ -436,6 +436,8 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           !isSelfHost ||
           !selfHost?.isConnectorOnline ||
           selfHost.isConnectorOnline(host.region);
+        const showConnectorSetup =
+          isSelfHost && !connectorOnline && host.status === "off";
         const startDisabled =
           isDeleted ||
           host.status === "running" ||
@@ -471,7 +473,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           >
             {startLabel}
           </Button>,
-          isSelfHost && !connectorOnline && selfHost ? (
+          showConnectorSetup && selfHost ? (
             <Button
               key="setup"
               size="small"
