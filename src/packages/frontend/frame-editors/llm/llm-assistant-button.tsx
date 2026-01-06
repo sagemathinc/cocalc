@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -776,11 +776,10 @@ async function updateMessage({
     await createChatMessage(actions, id, options, context);
 
   // compute the number of tokens (this MUST be a lazy import):
-  const { getMaxTokens, numTokensUpperBound } = await import(
-    "@cocalc/frontend/misc/llm"
-  );
+  const { getMaxTokens, numTokensEstimate } =
+    await import("@cocalc/frontend/misc/llm");
 
-  const tokens = numTokensUpperBound(message, getMaxTokens(model));
+  const tokens = numTokensEstimate(message, getMaxTokens(model));
   return { message, tokens, inputOriginalLen, inputTruncatedLen };
 }
 

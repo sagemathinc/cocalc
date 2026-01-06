@@ -12,6 +12,7 @@ import {
   LanguageModel,
   MISTRAL_MODELS,
   MODELS_OPENAI,
+  XAI_MODELS,
   isLLMServiceName,
   toCustomOpenAIModel,
   toOllamaModel,
@@ -77,6 +78,7 @@ export function useAvailableLLMs(project_id: string) {
   if (have.google) add("google", GOOGLE_MODELS);
   if (have.mistralai) add("mistralai", MISTRAL_MODELS);
   if (have.anthropic) add("anthropic", ANTHROPIC_MODELS);
+  if (have.xai) add("xai", XAI_MODELS);
 
   const custom: Model[] = [];
   if (have.ollama && ollama) {

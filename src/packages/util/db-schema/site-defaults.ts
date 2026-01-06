@@ -71,6 +71,7 @@ export type SiteSettingsKeys =
   | "anthropic_enabled"
   | "ollama_enabled"
   | "custom_openai_enabled"
+  | "xai_enabled"
   | "selectable_llms"
   | "default_llm"
   | "user_defined_llm"
@@ -250,6 +251,7 @@ export const to_default_llm: ToValFunc<ToVal> = (val: string, conf) => {
     mistralai: to_bool(conf.mistral_enabled),
     anthropic: to_bool(conf.anthropic_enabled),
     custom_openai: to_bool(conf.custom_openai_enabled),
+    xai: to_bool(conf.xai_enabled),
     user: conf.kucalc !== KUCALC_COCALC_COM,
   } as const;
   const ollama = from_json((conf as any)?.ollama);
@@ -858,6 +860,14 @@ export const site_settings_conf: SiteSettings = {
   custom_openai_enabled: {
     name: "Custom OpenAI LLM UI",
     desc: "Controls visibility of UI elements related to Custom OpenAI integration.  To make this actually work, configure the list of API/model endpoints in the Custom OpenAI configuration.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  xai_enabled: {
+    name: "xAI Grok UI",
+    desc: "Controls visibility of UI elements related to xAI's Grok integration.  You must **also set your xAI API key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

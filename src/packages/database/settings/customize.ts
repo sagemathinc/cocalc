@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -110,6 +110,7 @@ export default async function getCustomize(
       googleVertexaiEnabled: settings.google_vertexai_enabled,
       mistralEnabled: settings.mistral_enabled,
       anthropicEnabled: settings.anthropic_enabled,
+      xaiEnabled: settings.xai_enabled,
       ollamaEnabled: settings.ollama_enabled,
 
       neuralSearchEnabled: settings.neural_search_enabled,
