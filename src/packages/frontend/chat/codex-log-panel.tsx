@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import type { AcpStreamMessage } from "@cocalc/conat/ai/acp/types";
 import CodexActivity from "./codex-activity";
 import {
@@ -21,6 +21,8 @@ interface Props {
   logProjectId?: string;
   logEnabled?: boolean;
   activityContext?: ActivityLogContext;
+  onJumpToBottom?: () => void;
+  onEventsChange?: (eventCount: number) => void;
   onDeleteEvents?: () => void;
   onDeleteAllEvents?: () => void;
 }
@@ -38,6 +40,8 @@ export function CodexLogPanel({
   logProjectId,
   logEnabled,
   activityContext,
+  onJumpToBottom,
+  onEventsChange,
   onDeleteEvents,
   onDeleteAllEvents,
 }: Props) {
@@ -62,6 +66,13 @@ export function CodexLogPanel({
             },
           ]
         : [];
+  const lastEmittedCount = useRef<number | null>(null);
+  useEffect(() => {
+    if (!onEventsChange) return;
+    if (lastEmittedCount.current === activityEvents.length) return;
+    lastEmittedCount.current = activityEvents.length;
+    onEventsChange(activityEvents.length);
+  }, [activityEvents.length, onEventsChange]);
 
   const handleDeleteEvents = useMemo(() => {
     if (onDeleteEvents) return onDeleteEvents;
@@ -93,6 +104,7 @@ export function CodexLogPanel({
       basePath={basePath}
       durationLabel={durationLabel}
       projectId={projectId}
+      onJumpToBottom={onJumpToBottom}
       onDeleteEvents={handleDeleteEvents}
       onDeleteAllEvents={handleDeleteAllEvents}
     />

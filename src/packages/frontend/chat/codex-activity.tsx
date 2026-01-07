@@ -101,6 +101,7 @@ export interface CodexActivityProps {
   basePath?: string;
   onDeleteEvents?: () => void;
   onDeleteAllEvents?: () => void;
+  onJumpToBottom?: () => void;
   expanded?: boolean;
 }
 
@@ -117,6 +118,7 @@ export const CodexActivity: React.FC<CodexActivityProps> = ({
   basePath,
   onDeleteEvents,
   onDeleteAllEvents,
+  onJumpToBottom,
   expanded: initExpanded,
 }): React.ReactElement | null => {
   const entries = useMemo(() => normalizeEvents(events ?? []), [events]);
@@ -186,6 +188,16 @@ export const CodexActivity: React.FC<CodexActivityProps> = ({
 
   const headerActions = (
     <Space size={6} align="center">
+      {onJumpToBottom ? (
+        <Button
+          size="small"
+          type="text"
+          onClick={onJumpToBottom}
+          title="Jump to bottom"
+        >
+          Bottom
+        </Button>
+      ) : null}
       {onDeleteEvents ? (
         <Popconfirm
           title="Delete this activity log?"
@@ -467,7 +479,10 @@ function coalesceFileReads(entries: ActivityEntry[]): ActivityEntry[] {
 function coalesceTextEntries(entries: ActivityEntry[]): ActivityEntry[] {
   const merged: ActivityEntry[] = [];
   for (const entry of entries) {
-    if ((entry.kind === "reasoning" || entry.kind === "agent") && merged.length > 0) {
+    if (
+      (entry.kind === "reasoning" || entry.kind === "agent") &&
+      merged.length > 0
+    ) {
       const last = merged[merged.length - 1];
       if (last.kind === entry.kind) {
         const lastText = last.text ?? "";
@@ -475,7 +490,9 @@ function coalesceTextEntries(entries: ActivityEntry[]): ActivityEntry[] {
         merged[merged.length - 1] = {
           ...last,
           text:
-            lastText && nextText ? `${lastText}\n\n${nextText}` : lastText || nextText,
+            lastText && nextText
+              ? `${lastText}\n\n${nextText}`
+              : lastText || nextText,
         };
         continue;
       }

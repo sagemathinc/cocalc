@@ -247,8 +247,10 @@ to make a binary with that version
     platforms: ["linux"],
     getVersion: "curl --version | head -n 1 | cut -f 2 -d ' '",
     VERSION: "8.11.0",
-    script: () =>
-      `curl -L https://github.com/moparisthebest/static-curl/releases/download/v${SPEC.curl.VERSION}/curl-${arch() == "x64" ? "amd64" : arch()} > ${join(binPath, "curl")} && chmod a+x ${join(binPath, "curl")}`,
+    script: () => {
+      const a = arch() == "x64" ? "amd64" : "aarch64";
+      return `curl -L https://github.com/moparisthebest/static-curl/releases/download/v${SPEC.curl.VERSION}/curl-${a} > ${join(binPath, "curl")} && chmod a+x ${join(binPath, "curl")}`;
+    }
   },
 
   // See https://github.com/sagemathinc/bees-binaries/releases
@@ -259,9 +261,10 @@ to make a binary with that version
     VERSION: "2024-10-04a",
     // https://github.com/sagemathinc/bees-binaries/releases/download/2024-10-04a/bees-2024-10-04a-x86_64-linux-glibc.tar.xz
     script: () => {
-      const name = `bees-${SPEC.bees.VERSION}-${arch() == "x64" ? "x86_64" : arch()}-linux-glibc`;
+      const a = arch() == "x64" ? "amd64" : "aarch64";
+      const name = `bees-${SPEC.bees.VERSION}-${a}-linux-glibc`;
       return `curl -L https://github.com/sagemathinc/bees-binaries/releases/download/${SPEC.bees.VERSION}/${name}.tar.xz | tar -xJ -C ${binPath} --strip-components=2 ${name}/bin/bees`;
-    },
+    }
   },
   //   "reflect-sync": {
   //     optional: true,
