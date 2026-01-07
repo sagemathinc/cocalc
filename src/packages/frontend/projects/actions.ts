@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -644,10 +644,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
         project_id,
         account_id,
       });
-      // Log AFTER successful removal
-      await this.redux
-        .getProjectActions(project_id)
-        .async_log({ event: "remove_collaborator", removed_name });
+      // Logging the removal happens in packages/server/projects/collaborators.ts
     } catch (err) {
       const message = `Error removing ${removed_name} from project ${project_id} -- ${err}`;
       alert_message({ type: "error", message });
@@ -659,22 +656,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
     target_account_id: string,
     new_group: "owner" | "collaborator",
   ): Promise<void> {
-    const old_group = store
-      .getIn(["project_map", project_id, "users", target_account_id, "group"])
-      ?.toString() as "owner" | "collaborator" | undefined;
     const target_name = redux.getStore("users").get_name(target_account_id);
     try {
       await webapp_client.project_collaborators.change_user_type({
         project_id,
         target_account_id,
-        new_group,
-      });
-      // Log AFTER successful change
-      await this.redux.getProjectActions(project_id).async_log({
-        event: "change_collaborator_type",
-        target_account_id,
-        target_name,
-        old_group: (old_group ?? new_group) as "owner" | "collaborator",
         new_group,
       });
     } catch (err) {
@@ -709,11 +695,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
         replyto_name,
         email,
         subject,
-      });
-      // Log AFTER successful invite
-      await this.redux.getProjectActions(project_id).async_log({
-        event: "invite_user",
-        invitee_account_id: account_id,
       });
     } catch (err) {
       if (!silent) {
@@ -751,11 +732,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
         to,
         email,
         subject,
-      });
-      // Log AFTER successful invite
-      await this.redux.getProjectActions(project_id).async_log({
-        event: "invite_nonuser",
-        invitee_email: to,
       });
       if (!silent) {
         alert_message({

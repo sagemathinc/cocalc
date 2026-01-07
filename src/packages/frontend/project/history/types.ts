@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -101,6 +101,7 @@ export type CollaboratorEvent =
       invitee_account_id?: string;
       invitee_email?: string;
       removed_name?: string;
+      removed_account_id?: string;
     }
   | {
       event: "change_collaborator_type";

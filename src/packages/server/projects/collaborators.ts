@@ -2,29 +2,32 @@
 Add, remove and invite collaborators on projects.
 */
 
-import { db } from "@cocalc/database";
-import { callback2 } from "@cocalc/util/async-utils";
-import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import getLogger from "@cocalc/backend/logger";
 import type { AddCollaborator } from "@cocalc/conat/hub/api/projects";
-import { add_collaborators_to_projects } from "./collab";
+import { db, getPool } from "@cocalc/database";
+import { is_paying_customer } from "@cocalc/database/postgres/account-queries";
+import { project_has_network_access } from "@cocalc/database/postgres/project-queries";
+import { query } from "@cocalc/database/postgres/query";
+import getEmailAddress from "@cocalc/server/accounts/get-email-address";
+import getName from "@cocalc/server/accounts/get-name";
+import { send_invite_email } from "@cocalc/server/hub/email";
+import isCollaborator from "@cocalc/server/projects/is-collaborator";
+import { callback2 } from "@cocalc/util/async-utils";
+import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 import {
   days_ago,
   is_array,
   is_valid_email_address,
   lower_email_address,
+  uuid,
 } from "@cocalc/util/misc";
-import getLogger from "@cocalc/backend/logger";
-import { send_invite_email } from "@cocalc/server/hub/email";
-import getEmailAddress from "@cocalc/server/accounts/get-email-address";
-import { is_paying_customer } from "@cocalc/database/postgres/account-queries";
-import { project_has_network_access } from "@cocalc/database/postgres/project-queries";
-import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 import {
+  OwnershipErrorCode,
   type UserGroup,
   validateUserTypeChange,
-  OwnershipErrorCode,
 } from "@cocalc/util/project-ownership";
-import { query } from "@cocalc/database/postgres/query";
+
+import { add_collaborators_to_projects } from "./collab";
 import {
   ensureCanManageCollaborators,
   ensureCanRemoveUser,
@@ -66,6 +69,127 @@ export async function removeCollaborator({
   }
 
   await callback2(db().remove_collaborator_from_project, opts);
+  await logRemoveCollaboratorEvent({
+    project_id: opts.project_id,
+    actor_account_id: account_id,
+    removed_account_id: opts.account_id,
+  });
+}
+
+async function logRemoveCollaboratorEvent({
+  project_id,
+  actor_account_id,
+  removed_account_id,
+}: {
+  project_id: string;
+  actor_account_id: string;
+  removed_account_id: string;
+}): Promise<void> {
+  const removed_name = (await getName(removed_account_id)) ?? "Unknown User";
+  const pool = getPool();
+  try {
+    await pool.query(
+      "INSERT INTO project_log(id,project_id,time,account_id,event) VALUES($1,$2,NOW(),$3,$4)",
+      [
+        uuid(),
+        project_id,
+        actor_account_id,
+        {
+          event: "remove_collaborator",
+          removed_name,
+          removed_account_id,
+        },
+      ],
+    );
+  } catch {
+    // Avoid failing the removal if logging fails.
+  }
+}
+
+async function logInviteCollaboratorEvent({
+  project_id,
+  actor_account_id,
+  invitee_account_id,
+}: {
+  project_id: string;
+  actor_account_id: string;
+  invitee_account_id: string;
+}): Promise<void> {
+  const pool = getPool();
+  try {
+    await pool.query(
+      "INSERT INTO project_log(id,project_id,time,account_id,event) VALUES($1,$2,NOW(),$3,$4)",
+      [
+        uuid(),
+        project_id,
+        actor_account_id,
+        { event: "invite_user", invitee_account_id },
+      ],
+    );
+  } catch {
+    // Avoid failing the invite if logging fails.
+  }
+}
+
+async function logInviteNonuserEvent({
+  project_id,
+  actor_account_id,
+  invitee_email,
+}: {
+  project_id: string;
+  actor_account_id: string;
+  invitee_email: string;
+}): Promise<void> {
+  const pool = getPool();
+  try {
+    await pool.query(
+      "INSERT INTO project_log(id,project_id,time,account_id,event) VALUES($1,$2,NOW(),$3,$4)",
+      [
+        uuid(),
+        project_id,
+        actor_account_id,
+        { event: "invite_nonuser", invitee_email },
+      ],
+    );
+  } catch {
+    // Avoid failing the invite if logging fails.
+  }
+}
+
+async function logChangeCollaboratorTypeEvent({
+  project_id,
+  actor_account_id,
+  target_account_id,
+  old_group,
+  new_group,
+}: {
+  project_id: string;
+  actor_account_id: string;
+  target_account_id: string;
+  old_group: UserGroup;
+  new_group: UserGroup;
+}): Promise<void> {
+  const target_name = (await getName(target_account_id)) ?? "Unknown User";
+  const pool = getPool();
+  try {
+    await pool.query(
+      "INSERT INTO project_log(id,project_id,time,account_id,event) VALUES($1,$2,NOW(),$3,$4)",
+      [
+        uuid(),
+        project_id,
+        actor_account_id,
+        {
+          event: "change_collaborator_type",
+          target_account_id,
+          target_name,
+          old_group,
+          new_group,
+        },
+      ],
+    );
+  } catch {
+    // Avoid failing the change if logging fails.
+  }
 }
 
 export async function addCollaborator({
@@ -188,6 +312,8 @@ export async function changeUserType({
     );
   }
 
+  const old_group = (target_current_group ?? new_group) as UserGroup;
+
   // 6. Perform the change via add_user_to_project
   await callback2(db().add_user_to_project, {
     project_id,
@@ -196,11 +322,18 @@ export async function changeUserType({
   });
 
   // 7. Log the change for audit trail
+  await logChangeCollaboratorTypeEvent({
+    project_id,
+    actor_account_id: account_id,
+    target_account_id,
+    old_group,
+    new_group,
+  });
   logger.info("changeUserType", {
     project_id,
     actor_account_id: account_id,
     target_account_id,
-    old_group: target_current_group,
+    old_group,
     new_group,
   });
 }
@@ -253,14 +386,23 @@ export async function inviteCollaborator({
     group: "collaborator", // in future: "invite_collaborator"
   });
 
+  const logInvite = async () =>
+    await logInviteCollaboratorEvent({
+      project_id: opts.project_id,
+      actor_account_id: account_id,
+      invitee_account_id: opts.account_id,
+    });
+
   // Everything else in this big function is about notifying the user that they
   // were added.
   if (!opts.email) {
+    await logInvite();
     return;
   }
 
   const email_address = await getEmailAddress(opts.account_id);
   if (!email_address) {
+    await logInvite();
     return;
   }
   const when_sent = await callback2(database.when_sent_project_invite, {
@@ -268,10 +410,12 @@ export async function inviteCollaborator({
     to: email_address,
   });
   if (when_sent && when_sent >= days_ago(RESEND_INVITE_INTERVAL_DAYS)) {
+    await logInvite();
     return;
   }
   const settings = await callback2(database.get_server_settings_cached);
   if (!settings) {
+    await logInvite();
     return;
   }
   dbg(`send_email invite to ${email_address}`);
@@ -315,6 +459,8 @@ export async function inviteCollaborator({
     to: email_address,
     error: undefined,
   });
+
+  await logInvite();
 }
 
 export async function inviteCollaboratorWithoutAccount({
@@ -457,4 +603,10 @@ export async function inviteCollaboratorWithoutAccount({
 
   // If any invite_user throws, its an error
   await Promise.all(to.map((email) => invite_user(email)));
+
+  await logInviteNonuserEvent({
+    project_id: opts.project_id,
+    actor_account_id: account_id,
+    invitee_email: opts.to,
+  });
 }

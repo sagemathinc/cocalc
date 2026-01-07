@@ -3,11 +3,14 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { getPool } from "@cocalc/database";
 import { PostgreSQL } from "@cocalc/database/postgres/types";
-import { is_array, is_valid_uuid_string } from "@cocalc/util/misc";
-import { callback2 } from "@cocalc/util/async-utils";
-import isSandbox from "@cocalc/server/projects/is-sandbox";
+import getName from "@cocalc/server/accounts/get-name";
 import idleSandboxUsers from "@cocalc/server/projects/idle-sandbox-users";
+import isSandbox from "@cocalc/server/projects/is-sandbox";
+import { callback2 } from "@cocalc/util/async-utils";
+import { is_array, is_valid_uuid_string, uuid } from "@cocalc/util/misc";
+
 import {
   ensureCanManageCollaborators,
   ensureCanRemoveUser,
@@ -67,19 +70,29 @@ export async function add_collaborators_to_projects(
   // each other.
   for (const i in projects) {
     const project_id: string = projects[i];
-    const account_id: string = accounts[i];
+    const target_account_id: string = accounts[i];
     const token_id: string | undefined = tokens?.[i];
-    if (await callback2(db.user_is_collaborator, { project_id, account_id })) {
+    if (
+      await callback2(db.user_is_collaborator, {
+        project_id,
+        account_id: target_account_id,
+      })
+    ) {
       // nothing to do since user is already on the given project -- won't use up token.
       continue;
     }
     await callback2(db.add_user_to_project, {
       project_id,
-      account_id,
+      account_id: target_account_id,
     });
     if (token_id != null) {
       await increment_project_invite_token_counter(db, token_id);
     }
+    await logInviteCollaboratorEvent({
+      project_id,
+      actor_account_id: account_id,
+      invitee_account_id: target_account_id,
+    });
   }
 }
 
@@ -137,12 +150,72 @@ export async function remove_collaborators_from_projects(
   //
   for (const i in projects) {
     const project_id: string = projects[i];
-    const account_id: string = accounts[i];
+    const target_account_id: string = accounts[i];
 
     await callback2(db.remove_user_from_project, {
       project_id,
-      account_id,
+      account_id: target_account_id,
     });
+    await logRemoveCollaboratorEvent({
+      project_id,
+      actor_account_id: account_id,
+      removed_account_id: target_account_id,
+    });
+  }
+}
+
+async function logInviteCollaboratorEvent({
+  project_id,
+  actor_account_id,
+  invitee_account_id,
+}: {
+  project_id: string;
+  actor_account_id: string;
+  invitee_account_id: string;
+}): Promise<void> {
+  const pool = getPool();
+  try {
+    await pool.query(
+      "INSERT INTO project_log(id,project_id,time,account_id,event) VALUES($1,$2,NOW(),$3,$4)",
+      [
+        uuid(),
+        project_id,
+        actor_account_id,
+        { event: "invite_user", invitee_account_id },
+      ],
+    );
+  } catch {
+    // Avoid failing the add if logging fails.
+  }
+}
+
+async function logRemoveCollaboratorEvent({
+  project_id,
+  actor_account_id,
+  removed_account_id,
+}: {
+  project_id: string;
+  actor_account_id: string;
+  removed_account_id: string;
+}): Promise<void> {
+  const removed_name = (await getName(removed_account_id)) ?? "Unknown User";
+  const pool = getPool();
+  try {
+    await pool.query(
+      "INSERT INTO project_log(id,project_id,time,account_id,event) VALUES($1,$2,NOW(),$3,$4)",
+      [
+        uuid(),
+        project_id,
+        actor_account_id,
+        {
+          event: "remove_collaborator",
+          removed_name,
+          removed_account_id,
+        },
+      ],
+    );
+  } catch {
+    // Avoid failing the removal if logging fails.
   }
 }
 
