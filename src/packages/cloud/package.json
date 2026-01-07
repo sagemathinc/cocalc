@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/cloud",
-  "version": "0.1.12",
+  "version": "0.1.14",
   "description": "Provider-agnostic cloud VM provisioning for project-hosts.",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

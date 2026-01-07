@@ -25,9 +25,11 @@ import (
 )
 
 const (
-	defaultPollSeconds = 10
-	defaultTimeout     = 20 * time.Second
-	defaultImage       = "24.04"
+	defaultPollSeconds      = 10
+	defaultFastPollSeconds  = 3
+	defaultPollBoostSeconds = 60
+	defaultTimeout          = 20 * time.Second
+	defaultImage            = "24.04"
 )
 
 var version = "0.0.0"
@@ -441,32 +443,44 @@ func runLoop(cfg Config, cfgPath string) {
 	}
 	statePath := statePathFromConfig(cfgPath)
 	state := loadState(statePath)
-	interval := cfg.PollIntervalSeconds
-	if interval <= 0 {
-		interval = defaultPollSeconds
+	baseInterval := cfg.PollIntervalSeconds
+	if baseInterval <= 0 {
+		baseInterval = defaultPollSeconds
 	}
-	logEvery := 1
-	if interval > 0 {
-		logEvery = maxInt(1, int(60/interval))
+	fastInterval := min(baseInterval, defaultFastPollSeconds)
+	if fastInterval <= 0 {
+		fastInterval = baseInterval
 	}
+	boostWindow := time.Duration(defaultPollBoostSeconds) * time.Second
+	boostUntil := time.Now().Add(boostWindow)
 	idlePolls := 0
+	lastNoCommandLog := time.Now()
 	logLine("connector started", map[string]interface{}{
-		"base_url":    cfg.BaseURL,
-		"poll_seconds": interval,
+		"base_url":           cfg.BaseURL,
+		"poll_seconds":       baseInterval,
+		"fast_poll_seconds":  fastInterval,
+		"poll_boost_seconds": defaultPollBoostSeconds,
 	})
 	for {
+		interval := baseInterval
+		if time.Now().Before(boostUntil) {
+			interval = fastInterval
+		}
 		hadCommand := false
 		if ok, err := pollOnce(cfg, state, statePath); err != nil {
 			logLine("poll error", map[string]interface{}{"error": err.Error()})
+			boostUntil = time.Now().Add(boostWindow)
 		} else {
 			hadCommand = ok
 		}
 		if hadCommand {
 			idlePolls = 0
+			boostUntil = time.Now().Add(boostWindow)
 		} else {
 			idlePolls++
-			if idlePolls%logEvery == 0 {
+			if time.Since(lastNoCommandLog) >= time.Minute {
 				logLine("poll ok (no commands)", nil)
+				lastNoCommandLog = time.Now()
 			}
 		}
 		time.Sleep(time.Duration(interval) * time.Second)
