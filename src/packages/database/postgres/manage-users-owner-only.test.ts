@@ -5,6 +5,7 @@
 
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { db } from "@cocalc/database";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { uuid } from "@cocalc/util/misc";
 
 let pool: ReturnType<typeof getPool> | undefined;
@@ -15,9 +16,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  if (pool) {
-    await pool.end();
-  }
+  await testCleanup();
 });
 
 async function insertProject(opts: {
