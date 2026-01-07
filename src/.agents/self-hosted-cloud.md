@@ -343,7 +343,7 @@ Command envelope:
   - \(done\) once the connector comes online, auto\-start its single VM without requiring a browser refresh; 
   - \(done\) ideally the connector launches into daemon mode immediately after pairing so the user runs one command, not two. 
   - \(done\) Provide clear “connector online” status and automatically attempt the first start.
-- **Connector daemon packaging**: ship a binary via `software.cocalc.ai` and provide a one\-line curl install \+ run command; include version reporting and a simple self\-update path.
+- **\(done\) Connector daemon packaging**: ship a binary via `software.cocalc.ai` and provide a one\-line curl install \+ run command; include version reporting and a simple self\-update path.
 - **Long\-poll tuning**: keep long\-poll for simplicity, but use adaptive intervals \(fast during initial setup or when VM is off; slower when stable\).
 - **Multipass VM sizing**: allow users to edit CPU/RAM and grow disk post\-create; surface safe limits and show current settings in the UI.
 - **ARM support**: publish ARM64 variants for connector, project\-host, project bundle, tools, and cloudflared; detect arch and refuse to run wrong binaries with a clear message.

@@ -6,10 +6,14 @@ export MAIN="bundle/index.js"
 export VERSION="$npm_package_version"
 
 FUSE="NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"   # must match your sea-config.json
-MACHINE="$(uname -m)"
 OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+ARCH="$(uname -m)"
+case "$ARCH" in
+  x86_64|amd64) ARCH="amd64" ;;
+  aarch64|arm64) ARCH="arm64" ;;
+esac
 
-TARGET="./$NAME-$VERSION-$MACHINE-$OS"
+TARGET="./$NAME-$VERSION-$ARCH-$OS"
 
 NODE_BIN="$(command -v node)"
 

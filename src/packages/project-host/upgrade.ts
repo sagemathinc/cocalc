@@ -49,16 +49,32 @@ function canonicalizeArtifact(artifact: SoftwareArtifact): CanonicalArtifact {
   return artifact;
 }
 
-function normalizeArch(): string {
-  if (process.arch === "x64") return "x86_64";
+function normalizeArch(): "amd64" | "arm64" {
+  if (process.arch === "x64") return "amd64";
   if (process.arch === "arm64") return "arm64";
-  return process.arch;
+  throw new Error(`unsupported architecture: ${process.arch}`);
 }
 
-function normalizeOs(): string {
+function normalizeOs(): "linux" | "darwin" {
   if (process.platform === "linux") return "linux";
   if (process.platform === "darwin") return "darwin";
-  return process.platform;
+  throw new Error(`unsupported platform: ${process.platform}`);
+}
+
+function normalizeArchValue(value?: string): "amd64" | "arm64" | undefined {
+  if (!value) return undefined;
+  const raw = value.toLowerCase();
+  if (raw === "amd64" || raw === "x86_64" || raw === "x64") return "amd64";
+  if (raw === "arm64" || raw === "aarch64") return "arm64";
+  return undefined;
+}
+
+function normalizeOsValue(value?: string): "linux" | "darwin" | undefined {
+  if (!value) return undefined;
+  const raw = value.toLowerCase();
+  if (raw === "linux") return "linux";
+  if (raw === "darwin" || raw === "macos" || raw === "osx") return "darwin";
+  return undefined;
 }
 
 function extractVersionFromUrl(url: string, artifact: CanonicalArtifact) {
@@ -160,8 +176,22 @@ async function resolveArtifact(
   let version = target.version;
   if (!version) {
     const channel: SoftwareChannel = target.channel ?? "latest";
-    const manifestUrl = `${baseUrl}/${canonicalArtifact}/${channel}.json`;
+    const os = normalizeOs();
+    const arch = normalizeArch();
+    const manifestUrl = `${baseUrl}/${canonicalArtifact}/${channel}-${os}-${arch}.json`;
     const manifest = await fetchJson(manifestUrl);
+    const manifestOs = normalizeOsValue(manifest?.os);
+    const manifestArch = normalizeArchValue(manifest?.arch);
+    if (manifestOs && manifestOs !== os) {
+      throw new Error(
+        `manifest OS mismatch (${canonicalArtifact}): expected ${os}, got ${manifestOs}`,
+      );
+    }
+    if (manifestArch && manifestArch !== arch) {
+      throw new Error(
+        `manifest arch mismatch (${canonicalArtifact}): expected ${arch}, got ${manifestArch}`,
+      );
+    }
     url = manifest?.url ?? "";
     sha256 = manifest?.sha256;
     version = extractVersionFromUrl(url, canonicalArtifact);
@@ -171,9 +201,9 @@ async function resolveArtifact(
     if (canonicalArtifact === "project-host") {
       url = `${baseUrl}/project-host/${version}/cocalc-project-host-${version}-${arch}-${os}.tar.xz`;
     } else if (canonicalArtifact === "project") {
-      url = `${baseUrl}/project/${version}/bundle.tar.xz`;
+      url = `${baseUrl}/project/${version}/bundle-${os}-${arch}.tar.xz`;
     } else {
-      url = `${baseUrl}/tools/${version}/tools.tar.xz`;
+      url = `${baseUrl}/tools/${version}/tools-${os}-${arch}.tar.xz`;
     }
   }
   if (!url) {

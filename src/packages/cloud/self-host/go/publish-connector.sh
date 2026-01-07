@@ -40,7 +40,9 @@ publish_target() {
     --bucket "$BUCKET" \
     --prefix "$prefix" \
     --latest-key "$latest_key" \
-    --public-base-url "$PUBLIC_BASE_URL"
+    --public-base-url "$PUBLIC_BASE_URL" \
+    --os "$os" \
+    --arch "$arch"
 }
 
 publish_target linux amd64 "$OUT_DIR/${NAME}-${VERSION}-linux-amd64"
