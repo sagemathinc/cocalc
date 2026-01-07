@@ -256,6 +256,7 @@ export class GcpProvider implements CloudProvider {
         diskType: string;
         diskSizeGb?: string;
         sourceImage?: any;
+        diskName?: string;
       };
     };
     const disks: Disk[] = [
@@ -286,6 +287,7 @@ export class GcpProvider implements CloudProvider {
         boot: false,
         deviceName: `${spec.name}-data`,
         initializeParams: {
+          diskName: `${spec.name}-data`,
           diskSizeGb: `${spec.disk_gb}`,
           diskType,
         },
@@ -438,9 +440,33 @@ export class GcpProvider implements CloudProvider {
     if (!runtime.zone) {
       throw new Error("gcp.resizeDisk requires zone");
     }
-    const diskName = `${runtime.instance_id}-data`;
-    const client = new DisksClient(credentials);
-    const [response] = await client.resize({
+    const diskClient = new DisksClient(credentials);
+    const instanceClient = new InstancesClient(credentials);
+    const runtimeMetadata = runtime.metadata as
+      | { data_disk_name?: string; data_disk_uri?: string }
+      | undefined;
+    let diskName = runtimeMetadata?.data_disk_name;
+    if (!diskName && runtimeMetadata?.data_disk_uri) {
+      diskName = runtimeMetadata.data_disk_uri.split("/").pop();
+    }
+    if (!diskName) {
+      const [instance] = await instanceClient.get({
+        project: credentials.projectId,
+        zone: runtime.zone,
+        instance: runtime.instance_id,
+      });
+      const disks = instance?.disks ?? [];
+      const dataDisk =
+        disks.find((disk) => !disk.boot && disk.type !== "SCRATCH") ??
+        disks.find((disk) => !disk.boot) ??
+        disks[0];
+      const source = dataDisk?.source ?? "";
+      diskName = source.split("/").pop();
+    }
+    if (!diskName) {
+      throw new Error("gcp.resizeDisk could not determine disk name");
+    }
+    const [response] = await diskClient.resize({
       project: credentials.projectId,
       zone: runtime.zone,
       disk: diskName,

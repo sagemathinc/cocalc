@@ -24,7 +24,12 @@ import { sendSelfHostCommand } from "@cocalc/server/self-host/commands";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { isValidUUID } from "@cocalc/util/misc";
 import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
-import { getServerProvider, listServerProviders } from "@cocalc/server/cloud/providers";
+import {
+  gcpSafeName,
+  getProviderPrefix,
+  getServerProvider,
+  listServerProviders,
+} from "@cocalc/server/cloud/providers";
 import { getProviderContext } from "@cocalc/server/cloud/provider-context";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
@@ -874,7 +879,21 @@ export async function updateHostMachine({
     return parseRow(row);
   }
 
-  const runtime = metadata.runtime ?? {};
+  let runtime = metadata.runtime ?? {};
+  if (!runtime.instance_id && machineCloud === "gcp") {
+    const zone = runtime.zone ?? nextMachine.zone ?? machine.zone ?? undefined;
+    if (zone) {
+      const prefix = getProviderPrefix(machineCloud, await getServerSettings());
+      const provider = getServerProvider(machineCloud);
+      const normalizeName = provider?.normalizeName ?? gcpSafeName;
+      const baseName = row.id.replace(/[^a-z0-9-]/gi, "-").toLowerCase();
+      runtime = {
+        ...runtime,
+        instance_id: normalizeName(prefix, baseName),
+        zone,
+      };
+    }
+  }
   const instanceName =
     runtime.metadata?.instance_name ?? runtime.instance_id ?? undefined;
   if (isSelfHost) {
