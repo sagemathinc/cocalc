@@ -24,8 +24,7 @@ scaling for >=10k concurrent users. Project compute remains on external VMs.
 - Publish to a registry accessible by GKE:
   - Use GCR/Artifact Registry or another container registry.
 - Define image tag policy \(e.g., git sha or semver\).
-- TODO: we also need a nextjs server to server our nextjs pages, which include landing/marketing pages, a store, policy pages, news. There is also the public "share server", but we can ignore that for now \-\- it'll likely just be deprecated or rewritten differently, as it adds little value.
-  - Alternative: the ONLY interactive content on the nextjs site is the store, and the store is very simple now \- you can just buy memberships and vouchers.   We could rewrite the store to be in the main SPA static app.  Then the nextjs site is purely static content \-\- the landing pages, policies, etc., and I bet we can just use some modern static react site generator to generate the same content in a way that is easy to host without a separate server. 
+- TODO: we also need a nextjs server \-\- see section "Nextjs site" below.  For the first version we will just use the COCALC\_DISABLE\_NEXT mode.
 
 ## Phase 2: Helm chart hardening
 
@@ -72,6 +71,8 @@ scaling for >=10k concurrent users. Project compute remains on external VMs.
   - Set proxied vs DNS-only records (proxy if desired).
 - Confirm websocket support and timeout settings.
 
+**QUESTION: could we just use cloudflare tunnel or is it not scalable enough?**
+
 ## Phase 6: Deploy on GKE
 
 - Create GKE cluster (regional, autoscaling node pool).
@@ -88,11 +89,12 @@ scaling for >=10k concurrent users. Project compute remains on external VMs.
 
 ## Phase 7: Scaling and performance
 
-- Enable HPA for hub and conat-router:
-  - CPU and request-based metrics.
+- Enable HPA for hub and conat\-router:
+  - CPU and request\-based metrics.
   - Tune websocket idle timeouts on ingress.
-- Confirm conat scaling behavior (router and api):
-  - conat-router scale horizontally; conat-persist remains singleton.
+  - Potential Problem: I think I implemented conat\-router so that you can't change the number of pods \-\- i.e., it efficiently scales to any specific number, but you can't dynamically adjust it at runtime.  I'm not sure. 
+- Confirm conat scaling behavior \(router and api\):
+  - conat\-router scale horizontally; conat\-persist remains singleton.
 - Add cluster autoscaler for node pool.
 - Observe memory and CPU on hub, router, and persist pods.
 
@@ -107,11 +109,13 @@ scaling for >=10k concurrent users. Project compute remains on external VMs.
 
 ## Phase 9: Data migration and validation
 
-- Migration path from Launchpad (pglite) to Cloud SQL:
+- Migration path from Launchpad \(pglite\) to Cloud SQL:
   - Export SQL dump from pglite.
   - Import into Cloud SQL.
+  - Later: move blobs to bucket
 - Validate:
-  - Auth flows (sign up, sign in, password reset).
+  - Auth flows \(sign up, sign in, password reset\).
+    - We also support some SSO \-\- is there a way to offload that to an external provider?
   - Project host management and cloud provisioning.
   - Cloudflare DNS updates for project hosts.
 
@@ -136,13 +140,58 @@ scaling for >=10k concurrent users. Project compute remains on external VMs.
 
 ## Blobs
 
-After the above works, carry out this plan.
+Implement a new, minimal blobstore suitable for greenfield deployments
+(Rocket + Launchpad) with optional Postgres fallback and direct CDN access.
+
+- Scope: only the markdown/chat/file upload blob use case (sha1-addressed data).
+  Drop legacy syncstring archival + legacy timetravel blobs for Launchpad/Rocket.
+- Add a small blobstore abstraction in the hub:
+  - `BlobStore` interface with `put(sha1, buffer, {account_id, project_id})`,
+    `get(sha1)`, and `publicUrl(sha1)` (optional) plus `exists`.
+  - Implement `S3BlobStore` (R2/S3 compatible) and `PostgresBlobStore`.
+- S3/R2 mode (preferred):
+  - Store objects at `blobs/<sha1>`; no per-blob metadata in DB.
+  - Return a public CDN URL on upload; frontend should use that URL directly.
+  - Configure `BLOBS_BASE_URL` (Cloudflare/R2 public URL) for `publicUrl`.
+  - Keep hub `/blobs/*` as a compatibility path, but 302 redirect to CDN URL.
+- Postgres mode (fallback only):
+  - Use the existing `blobs` table but ignore legacy fields; or add a small
+    `blobstore` table if we want to avoid touching the legacy schema.
+  - Keep `/blobs/*` serving directly from DB in this mode.
+- Throttling (abuse control):
+  - Add per-account upload limits (bytes + count) over rolling 5h/7d windows.
+  - Store usage in a tiny table (e.g., `blob_upload_usage`) keyed by account_id
+    and time bucket.
+  - Expose limits in server settings (admin UI), not env vars.
+- Configuration:
+  - New server settings: blob backend (postgres|s3), S3 endpoint/region/bucket,
+    access key + secret, public base URL, and per-account limits.
+  - For Rocket: wire settings via Helm values and K8s secrets.
+- Migration:
+  - Provide a one-shot admin tool to move blobs from DB -> S3, then
+    optionally delete DB rows.
+  - In Launchpad, keep a simple `launchpad blob migrate` helper command.
+- Cleanup:
+  - Remove or disable old maintenance scripts and GCS blob offload:
+    `maintenance-blobs.js`, `maintenance-syncstrings.js`,
+    `database/postgres-blobs.coffee` GCS paths, and legacy blob backup.
+  - Remove legacy blob entry points used for timetravel.
 
 ## Nextjs Site
 
-After the above works, address this.
+Treat Next as a separate, optional front-end service for the public site.
+Do not couple Next to Rocket/Launchpad.
 
-We also need a nextjs server to server our nextjs pages, which include landing/marketing pages, a store, policy pages, news. There is also the public "share server", but we can ignore that for now \-\- it'll likely just be deprecated or rewritten differently, as it adds little value.
-
-- Alternative: the ONLY interactive content on the nextjs site is the store, and the store is very simple now \- you can just buy memberships and vouchers.   We could rewrite the store to be in the main SPA static app.  Then the nextjs site is purely static content \-\- the landing pages, policies, etc., and I bet we can just use some modern static react site generator to generate the same content in a way that is easy to host without a separate server. 
+- Rocket/Launchpad:
+  - Keep COCALC_DISABLE_NEXT enabled.
+  - Serve a minimal landing + auth flow from the hub (already implemented).
+  - All logged-in functionality stays in the SPA/static app.
+- cocalc.ai (public site):
+  - Run Next in its own deployment (marketing/store/SEO) pointing at the same
+    API; keep it optional and isolated from the control plane.
+  - Ignore the legacy share server for now.
+- Alternative path (if we want to drop Next later):
+  - Move the store (memberships/vouchers) into the SPA.
+  - Use a static site generator for landing/policy/news pages and host on
+    Cloudflare Pages or R2 + CDN.
 
