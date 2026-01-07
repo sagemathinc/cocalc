@@ -25,6 +25,8 @@ export default function initUpgrade(
   let socketioUpgrade: undefined | Function = undefined;
 
   async function handleProxyUpgradeRequest(req, socket, head): Promise<void> {
+    let removedSocketioThisCall = false;
+    let removedNextThisCall = false;
     if (LISTENERS_HACK) {
       const v = getEventListeners(httpServer, "upgrade");
       if (v.length > 1) {
@@ -56,6 +58,7 @@ export default function initUpgrade(
                 source,
               );
             }
+            removedSocketioThisCall = true;
           } else {
             if (nextUpgrade === undefined) {
               nextUpgrade = f;
@@ -65,6 +68,7 @@ export default function initUpgrade(
                 source,
               );
             }
+            removedNextThisCall = true;
           }
           logger.debug(
             `found extra listener -- detected, saved and removed 'upgrade' listener`,
@@ -83,10 +87,14 @@ export default function initUpgrade(
     if (!req.url.match(re)) {
       // it's to be handled by socketio or next
       if (socketioUpgrade !== undefined && useSocketio(req.url)) {
-        socketioUpgrade(req, socket, head);
+        if (!removedSocketioThisCall) {
+          socketioUpgrade(req, socket, head);
+        }
         return;
       }
-      nextUpgrade?.(req, socket, head);
+      if (nextUpgrade && !removedNextThisCall) {
+        nextUpgrade(req, socket, head);
+      }
       return;
     }
     const projectProxyHandlers = await projectProxyHandlersPromise;
