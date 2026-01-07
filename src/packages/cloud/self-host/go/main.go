@@ -12,11 +12,13 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"math"
 	"net/http"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -172,12 +174,11 @@ func runPair(args []string) {
 func runLoopCmd(args []string) {
 	fs := flag.NewFlagSet("run", flag.ExitOnError)
 	cfgPath := fs.String("config", "", "Config path")
-	check := fs.Bool("check", false, "Run multipass health check on startup")
 	daemon := fs.Bool("daemon", false, "Run in background (daemon mode)")
 	fs.Parse(args)
 	path := configPath(*cfgPath)
 	if *daemon {
-		if err := startDaemon(path, *check); err != nil {
+		if err := startDaemon(path); err != nil {
 			fail(err.Error())
 		}
 		return
@@ -186,11 +187,6 @@ func runLoopCmd(args []string) {
 
 	if err := ensureMultipassAvailable(); err != nil {
 		fail(err.Error())
-	}
-	if *check {
-		if err := ensureMultipassHealthy(); err != nil {
-			fail(err.Error())
-		}
 	}
 	runLoop(cfg, path)
 }
@@ -219,7 +215,7 @@ func stopDaemonCmd(args []string) {
 func printHelp() {
 	fmt.Println(`Usage:
   cocalc-self-host-connector pair --base-url <url> --token <pairing_token> [--name <name>] [--replace]
-  cocalc-self-host-connector run [--config <path>] [--check] [--daemon]
+  cocalc-self-host-connector run [--config <path>] [--daemon]
   cocalc-self-host-connector stop [--config <path>]
   cocalc-self-host-connector once [--config <path>]
 `)
@@ -240,7 +236,7 @@ func statePathFromConfig(cfgPath string) string {
 	return filepath.Join(filepath.Dir(cfgPath), "state.json")
 }
 
-func startDaemon(cfgPath string, check bool) error {
+func startDaemon(cfgPath string) error {
 	cfgDir := filepath.Dir(cfgPath)
 	if err := os.MkdirAll(cfgDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create config dir: %w", err)
@@ -263,9 +259,6 @@ func startDaemon(cfgPath string, check bool) error {
 		return fmt.Errorf("failed to locate executable: %w", err)
 	}
 	args := []string{"run", "--config", cfgPath}
-	if check {
-		args = append(args, "--check")
-	}
 	cmd := exec.Command(exe, args...)
 	logFile, err := os.OpenFile(logPath, os.O_CREATE|os.O_APPEND|os.O_WRONLY, 0o600)
 	if err != nil {
@@ -701,6 +694,7 @@ func handleResize(payload map[string]interface{}, state State) (interface{}, err
 	cpus := toNumberString(payload["cpus"])
 	mem := formatSize(payload["mem_gb"], payload["memory_gb"], payload["memory"])
 	disk := formatSize(payload["disk_gb"], payload["disk"], nil)
+	diskGB := parseSizeGB(payload["disk_gb"], payload["disk"])
 	if cpus == "" && mem == "" && disk == "" {
 		return map[string]interface{}{"name": name, "state": info.State, "ipv4": info.IPv4}, nil
 	}
@@ -729,8 +723,23 @@ func handleResize(payload map[string]interface{}, state State) (interface{}, err
 			return nil, errors.New(strings.TrimSpace(res.Stderr))
 		}
 	}
-	if wasRunning {
+	needsGrow := diskGB > 0
+	started := false
+	if wasRunning || needsGrow {
 		res := runMultipass([]string{"start", name})
+		if res.Code != 0 {
+			return nil, errors.New(strings.TrimSpace(res.Stderr))
+		}
+		started = true
+	}
+	if needsGrow && started {
+		res := runMultipass([]string{"exec", name, "--", "sudo", "/usr/local/sbin/cocalc-grow-btrfs", fmt.Sprintf("%d", diskGB)})
+		if res.Code != 0 {
+			return nil, errors.New(strings.TrimSpace(res.Stderr))
+		}
+	}
+	if !wasRunning && started {
+		res := runMultipass([]string{"stop", name})
 		if res.Code != 0 {
 			return nil, errors.New(strings.TrimSpace(res.Stderr))
 		}
@@ -809,27 +818,6 @@ func ensureMultipassAvailable() error {
 	if res.Code != 0 {
 		return errors.New("Ubuntu Multipass not found or not working; install multipass first:\n\n    https://canonical.com/multipass\n")
 	}
-	return nil
-}
-
-func ensureMultipassHealthy() error {
-	if os.Getenv("COCALC_CONNECTOR_SKIP_HEALTH_CHECK") == "1" {
-		logLine("multipass health check skipped", nil)
-		return nil
-	}
-	name := fmt.Sprintf("cocalc-connector-check-%s", randomSuffix())
-	logLine("multipass health check: launching", map[string]interface{}{"name": name})
-	launch := runMultipass([]string{"launch", "--name", name, "--cpus", "1", "--memory", "1G", "--disk", "5G", defaultImage})
-	if launch.Code != 0 {
-		return fmt.Errorf("multipass health check failed: %s", strings.TrimSpace(launch.Stderr))
-	}
-	runMultipass([]string{"stop", name})
-	del := runMultipass([]string{"delete", "--purge", name})
-	if del.Code != 0 {
-		logLine("multipass health check cleanup failed", map[string]interface{}{"name": name, "error": strings.TrimSpace(del.Stderr)})
-		return nil
-	}
-	logLine("multipass health check ok", map[string]interface{}{"name": name})
 	return nil
 }
 
@@ -936,6 +924,16 @@ func httpRequest(method, url, token, contentType string, body []byte) ([]byte, i
 	return data, resp.StatusCode, nil
 }
 
+func parseSizeGB(primary, secondary interface{}) int {
+	if v, ok := toInt(primary); ok {
+		return v
+	}
+	if v, ok := toInt(secondary); ok {
+		return v
+	}
+	return 0
+}
+
 func formatSize(primary, secondary, tertiary interface{}) string {
 	if s := toString(primary); s != "" {
 		return s
@@ -947,6 +945,38 @@ func formatSize(primary, secondary, tertiary interface{}) string {
 		return s
 	}
 	return ""
+}
+
+func toInt(val interface{}) (int, bool) {
+	switch v := val.(type) {
+	case int:
+		return v, v > 0
+	case int64:
+		return int(v), v > 0
+	case float64:
+		if v <= 0 {
+			return 0, false
+		}
+		return int(math.Floor(v)), true
+	case float32:
+		if v <= 0 {
+			return 0, false
+		}
+		return int(math.Floor(float64(v))), true
+	case string:
+		s := strings.TrimSpace(strings.ToLower(v))
+		s = strings.TrimSuffix(s, "gb")
+		s = strings.TrimSuffix(s, "g")
+		if s == "" {
+			return 0, false
+		}
+		f, err := strconv.ParseFloat(s, 64)
+		if err != nil || f <= 0 {
+			return 0, false
+		}
+		return int(math.Floor(f)), true
+	}
+	return 0, false
 }
 
 func toString(val interface{}) string {

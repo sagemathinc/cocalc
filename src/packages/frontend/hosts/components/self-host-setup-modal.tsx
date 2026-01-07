@@ -105,7 +105,18 @@ export const SelfHostSetupModal: React.FC<SelfHostSetupModalProps> = ({
             Creating pairing token…
           </Typography.Text>
         )}
-        {error && <Alert type="error" message={error} showIcon />}
+        {error && (
+          <Alert
+            type="error"
+            message={error}
+            showIcon
+            action={
+              <Button size="small" onClick={onRefresh} disabled={loading}>
+                Regenerate token
+              </Button>
+            }
+          />
+        )}
         {installCommand && (
           <>
             <Typography.Paragraph copyable={{ text: installCommand }}>
@@ -151,6 +162,14 @@ export const SelfHostSetupModal: React.FC<SelfHostSetupModalProps> = ({
               <Typography.Text code>cocalc-self-host-connector stop</Typography.Text>
             </Typography.Paragraph>
           </>
+        )}
+        {!loading && !error && !installCommand && (
+          <Button onClick={onRefresh}>Regenerate token</Button>
+        )}
+        {installCommand && (
+          <Button onClick={onRefresh} disabled={loading}>
+            Regenerate token
+          </Button>
         )}
         <Typography.Paragraph type="secondary">
           The connector will start immediately and your host will auto-start once it connects.

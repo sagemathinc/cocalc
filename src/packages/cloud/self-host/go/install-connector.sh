@@ -9,7 +9,6 @@ Usage:
 Options:
   --name <name>                Optional connector name.
   --replace                    Allow replacing an existing connector config.
-  --check                      Run multipass sanity check before polling.
   --no-daemon                  Run in foreground (default is daemon).
   --no-service                 Skip installing an auto-start service.
   --software-base-url <url>    Defaults to https://software.cocalc.ai/software
@@ -26,7 +25,6 @@ BASE_URL=""
 TOKEN=""
 NAME_ARG=""
 REPLACE="0"
-CHECK="0"
 DAEMON="1"
 INSTALL_SERVICE="1"
 SOFTWARE_BASE_URL="https://software.cocalc.ai/software"
@@ -48,10 +46,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     --replace)
       REPLACE="1"
-      shift
-      ;;
-    --check)
-      CHECK="1"
       shift
       ;;
     --no-daemon)
@@ -255,7 +249,7 @@ Description=CoCalc Self-Host Connector
 After=network-online.target
 
 [Service]
-ExecStart=$BIN_PATH run${CHECK:+ --check}
+ExecStart=$BIN_PATH run
 Environment=PATH=/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:/snap/bin
 Restart=always
 RestartSec=5
@@ -267,10 +261,13 @@ EOF
   if ! systemctl --user enable --now cocalc-self-host-connector.service; then
     return 1
   fi
+  systemctl --user restart cocalc-self-host-connector.service >/dev/null 2>&1 || true
   return 0
 }
 
 setup_service_darwin() {
+  local uid
+  uid="$(id -u)"
   local plist_dir="$HOME/Library/LaunchAgents"
   local plist_file="$plist_dir/com.cocalc.self-host-connector.plist"
   mkdir -p "$plist_dir"
@@ -285,7 +282,6 @@ setup_service_darwin() {
   <array>
     <string>$BIN_PATH</string>
     <string>run</string>
-    ${CHECK:+<string>--check</string>}
   </array>
   <key>EnvironmentVariables</key>
   <dict>
@@ -306,6 +302,9 @@ EOF
   launchctl unload "$plist_file" >/dev/null 2>&1 || true
   if ! launchctl load "$plist_file"; then
     return 1
+  fi
+  if launchctl kickstart -k "gui/${uid}/com.cocalc.self-host-connector" >/dev/null 2>&1; then
+    true
   fi
   return 0
 }
@@ -355,9 +354,6 @@ if [[ -n "$SERVICE_STATUS" ]]; then
 fi
 
 run_args=("$BIN_PATH" "run")
-if [[ "$CHECK" == "1" ]]; then
-  run_args+=("--check")
-fi
 if [[ "$DAEMON" == "1" ]]; then
   run_args+=("--daemon")
 fi

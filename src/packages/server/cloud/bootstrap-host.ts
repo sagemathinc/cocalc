@@ -316,6 +316,7 @@ export async function buildBootstrapScripts(
     `COCALC_PROJECT_BUNDLES=${projectBundlesRoot}`,
     `COCALC_PROJECT_TOOLS=${toolsRoot}/current`,
     `COCALC_BIN_PATH=${toolsRoot}/current`,
+    `COCALC_BTRFS_IMAGE_GB=${imageSizeGb}`,
     `COCALC_PROJECT_HOST_SOFTWARE_BASE_URL=${softwareBaseUrl}`,
     `COCALC_PROJECT_HOST_HTTPS=${tlsEnabled ? "1" : "0"}`,
     `HOST=0.0.0.0`,
@@ -458,6 +459,53 @@ else
   sudo sed -i.bak '/cocalc-btrfs/d' /etc/fstab
   echo "/var/lib/cocalc/btrfs.img /btrfs btrfs loop,defaults,nofail 0 0 # cocalc-btrfs" | sudo tee -a /etc/fstab >/dev/null
 fi
+echo "bootstrap: installing btrfs resize helper"
+sudo tee /usr/local/sbin/cocalc-grow-btrfs >/dev/null <<'EOF_COCALC_GROW'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "$(id -u)" -ne 0 ]; then
+  echo "cocalc-grow-btrfs must run as root" >&2
+  exit 1
+fi
+TARGET_GB="\${1:-}"
+IMAGE="/var/lib/cocalc/btrfs.img"
+MOUNTPOINT="/btrfs"
+ENV_FILE="/etc/cocalc/project-host.env"
+if [ -n "$TARGET_GB" ]; then
+  TARGET_GB="\${TARGET_GB%%[!0-9]*}"
+fi
+if [ -n "$TARGET_GB" ] && [ -f "$ENV_FILE" ]; then
+  if grep -q '^COCALC_BTRFS_IMAGE_GB=' "$ENV_FILE"; then
+    sed -i.bak "s/^COCALC_BTRFS_IMAGE_GB=.*/COCALC_BTRFS_IMAGE_GB=\${TARGET_GB}/" "$ENV_FILE"
+  else
+    echo "COCALC_BTRFS_IMAGE_GB=\${TARGET_GB}" >> "$ENV_FILE"
+  fi
+fi
+if [ ! -f "$IMAGE" ]; then
+  exit 0
+fi
+if ! mountpoint -q "$MOUNTPOINT"; then
+  exit 0
+fi
+if [ -z "$TARGET_GB" ] && [ -f "$ENV_FILE" ]; then
+  TARGET_GB="\$(grep -E '^COCALC_BTRFS_IMAGE_GB=' "$ENV_FILE" | tail -n1 | cut -d= -f2 || true)"
+fi
+if [ -z "$TARGET_GB" ] || ! echo "$TARGET_GB" | grep -Eq '^[0-9]+$'; then
+  exit 0
+fi
+CURRENT_BYTES="\$(stat -c %s "$IMAGE" 2>/dev/null || echo 0)"
+TARGET_BYTES="\$((TARGET_GB * 1024 * 1024 * 1024))"
+if [ "$CURRENT_BYTES" -lt "$TARGET_BYTES" ]; then
+  echo "bootstrap: growing btrfs image to \${TARGET_GB}G"
+  truncate -s "\${TARGET_GB}G" "$IMAGE"
+  LOOP_DEV="\$(losetup -j "$IMAGE" | head -n1 | cut -d: -f1 || true)"
+  if [ -n "$LOOP_DEV" ]; then
+    losetup -c "$LOOP_DEV" || true
+  fi
+fi
+btrfs filesystem resize max "$MOUNTPOINT" >/dev/null 2>&1 || true
+EOF_COCALC_GROW
+sudo chmod +x /usr/local/sbin/cocalc-grow-btrfs
 sudo chown ${sshUser}:${sshUser} /btrfs || true
 echo "bootstrap: ensuring /btrfs/data subvolume"
 if ! sudo btrfs subvolume show /btrfs/data >/dev/null 2>&1; then
@@ -513,6 +561,9 @@ BOOTSTRAP_DIR="${bootstrapDir}"
 CTL="$BOOTSTRAP_DIR/ctl"
 for attempt in $(seq 1 60); do
   if mountpoint -q /btrfs; then
+    if [ -x /usr/local/sbin/cocalc-grow-btrfs ]; then
+      sudo /usr/local/sbin/cocalc-grow-btrfs || true
+    fi
     exec "$CTL" start
   fi
   echo "waiting for /btrfs mount (attempt $attempt/60)"
