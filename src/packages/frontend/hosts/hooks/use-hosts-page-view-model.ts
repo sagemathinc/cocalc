@@ -128,10 +128,12 @@ export const useHostsPageViewModel = () => {
   const [showAdmin, setShowAdmin] = React.useState(false);
   const [showDeleted, setShowDeleted] = React.useState(false);
 
+  const [fastPoll, setFastPoll] = React.useState(false);
   const { hosts, setHosts, refresh, canCreateHosts } = useHosts(hub, {
     onError: () => message.error("Unable to load hosts"),
     adminView: isAdmin && showAdmin,
     includeDeleted: showDeleted,
+    pollMs: fastPoll ? 3000 : 15000,
   });
   const {
     setStatus,
@@ -258,6 +260,22 @@ export const useHostsPageViewModel = () => {
     },
     [selfHostConnectorMap],
   );
+  React.useEffect(() => {
+    const hasTransition = hosts.some((host) =>
+      ["starting", "stopping", "pending"].includes(host.status ?? ""),
+    );
+    const hasWaitingConnector = selfHostConnectors.some((connector) => {
+      if (!connector.id) return false;
+      return !isSelfHostConnectorOnline(connector.id);
+    });
+    const needsFast = hasTransition || hasWaitingConnector || setupOpen;
+    setFastPoll(needsFast);
+  }, [
+    hosts,
+    selfHostConnectors,
+    isSelfHostConnectorOnline,
+    setupOpen,
+  ]);
   const baseUrl = React.useMemo(() => {
     if (typeof window === "undefined") return "";
     const basePath = appBasePath && appBasePath !== "/" ? appBasePath : "";
