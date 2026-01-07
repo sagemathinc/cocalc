@@ -126,6 +126,7 @@ test_llm("user")("User-defined LLMs", () => {
         firstName: "Test",
         lastName: "User",
         account_id,
+        noFirstProject: true,
       });
       accountCreated = true;
     }

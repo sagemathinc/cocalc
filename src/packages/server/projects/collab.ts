@@ -1,13 +1,20 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { getPool } from "@cocalc/database";
 import { PostgreSQL } from "@cocalc/database/postgres/types";
-import { is_array, is_valid_uuid_string } from "@cocalc/util/misc";
-import { callback2 } from "@cocalc/util/async-utils";
-import isSandbox from "@cocalc/server/projects/is-sandbox";
+import getName from "@cocalc/server/accounts/get-name";
 import idleSandboxUsers from "@cocalc/server/projects/idle-sandbox-users";
+import isSandbox from "@cocalc/server/projects/is-sandbox";
+import { callback2 } from "@cocalc/util/async-utils";
+import { is_array, is_valid_uuid_string, uuid } from "@cocalc/util/misc";
+
+import {
+  ensureCanManageCollaborators,
+  ensureCanRemoveUser,
+} from "./ownership-checks";
 
 const GROUPS = ["owner", "collaborator"] as const;
 
@@ -40,6 +47,18 @@ export async function add_collaborators_to_projects(
     Also, the input is uuid's, which typescript can't check. */
   verify_types(account_id, accounts, projects);
 
+  // Check strict_collaborator_management setting before database changes
+  // Only check if not using tokens (tokens have their own permission system)
+  if (!tokens) {
+    for (const project_id of new Set(projects)) {
+      if (!project_id) continue; // skip empty strings
+      await ensureCanManageCollaborators({
+        project_id,
+        account_id,
+      });
+    }
+  }
+
   // We now know that account_id is allowed to add users to all of the projects,
   // *OR* at that there are valid tokens to permit adding users.
 
@@ -51,19 +70,29 @@ export async function add_collaborators_to_projects(
   // each other.
   for (const i in projects) {
     const project_id: string = projects[i];
-    const account_id: string = accounts[i];
+    const target_account_id: string = accounts[i];
     const token_id: string | undefined = tokens?.[i];
-    if (await callback2(db.user_is_collaborator, { project_id, account_id })) {
+    if (
+      await callback2(db.user_is_collaborator, {
+        project_id,
+        account_id: target_account_id,
+      })
+    ) {
       // nothing to do since user is already on the given project -- won't use up token.
       continue;
     }
     await callback2(db.add_user_to_project, {
       project_id,
-      account_id,
+      account_id: target_account_id,
     });
     if (token_id != null) {
       await increment_project_invite_token_counter(db, token_id);
     }
+    await logInviteCollaboratorEvent({
+      project_id,
+      actor_account_id: account_id,
+      invitee_account_id: target_account_id,
+    });
   }
 }
 
@@ -71,7 +100,7 @@ export async function remove_collaborators_from_projects(
   db: PostgreSQL,
   account_id: string,
   accounts: string[],
-  projects: string[], // can be empty strings if tokens specified (since they determine project_id)
+  projects: string[],
 ): Promise<void> {
   try {
     // Ensure user is allowed to modify project(s)
@@ -92,16 +121,101 @@ export async function remove_collaborators_from_projects(
     Also, the input is uuid's, which typescript can't check. */
   verify_types(account_id, accounts, projects);
 
+  // Check strict_collaborator_management setting before database changes
+  // Skip check if the user is only removing themselves
+  const is_self_remove_only =
+    accounts.length === 1 && accounts[0] === account_id;
+  if (!is_self_remove_only) {
+    for (const project_id of new Set(projects)) {
+      if (!project_id) continue; // skip empty strings
+      await ensureCanManageCollaborators({
+        project_id,
+        account_id,
+      });
+    }
+  }
+
+  // CRITICAL: Verify that no target users are owners
+  // Owners must be demoted to collaborator first, then removed
+  for (const i in projects) {
+    const project_id: string = projects[i];
+    const target_account_id: string = accounts[i];
+    await ensureCanRemoveUser({
+      project_id,
+      target_account_id,
+    });
+  }
+
   // Remove users from projects
   //
   for (const i in projects) {
     const project_id: string = projects[i];
-    const account_id: string = accounts[i];
+    const target_account_id: string = accounts[i];
 
     await callback2(db.remove_user_from_project, {
       project_id,
-      account_id,
+      account_id: target_account_id,
     });
+    await logRemoveCollaboratorEvent({
+      project_id,
+      actor_account_id: account_id,
+      removed_account_id: target_account_id,
+    });
+  }
+}
+
+async function logInviteCollaboratorEvent({
+  project_id,
+  actor_account_id,
+  invitee_account_id,
+}: {
+  project_id: string;
+  actor_account_id: string;
+  invitee_account_id: string;
+}): Promise<void> {
+  const pool = getPool();
+  try {
+    await pool.query(
+      "INSERT INTO project_log(id,project_id,time,account_id,event) VALUES($1,$2,NOW(),$3,$4)",
+      [
+        uuid(),
+        project_id,
+        actor_account_id,
+        { event: "invite_user", invitee_account_id },
+      ],
+    );
+  } catch {
+    // Avoid failing the add if logging fails.
+  }
+}
+
+async function logRemoveCollaboratorEvent({
+  project_id,
+  actor_account_id,
+  removed_account_id,
+}: {
+  project_id: string;
+  actor_account_id: string;
+  removed_account_id: string;
+}): Promise<void> {
+  const removed_name = (await getName(removed_account_id)) ?? "Unknown User";
+  const pool = getPool();
+  try {
+    await pool.query(
+      "INSERT INTO project_log(id,project_id,time,account_id,event) VALUES($1,$2,NOW(),$3,$4)",
+      [
+        uuid(),
+        project_id,
+        actor_account_id,
+        {
+          event: "remove_collaborator",
+          removed_name,
+          removed_account_id,
+        },
+      ],
+    );
+  } catch {
+    // Avoid failing the removal if logging fails.
   }
 }
 

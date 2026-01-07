@@ -591,6 +591,11 @@ export interface PostgreSQLMethods extends EventEmitter {
     cb: CB;
   }): void;
 
+  _user_set_query_project_users(
+    obj: any,
+    account_id?: string,
+  ): Record<string, unknown> | undefined;
+
   accountIsInOrganization(opts: {
     organization_id: string;
     account_id: string;
@@ -637,18 +642,6 @@ export interface PostgreSQLMethods extends EventEmitter {
     project_id: string,
     cb: CB<unknown | undefined>,
   );
-
-  do_account_creation_actions(opts: {
-    email_address: string;
-    account_id: string;
-    cb: CB;
-  }): void;
-
-  mark_account_deleted(opts: {
-    email_address: string;
-    account_id: string;
-    cb: CB;
-  }): void;
 
   count_accounts_created_by(opts: {
     ip_address: string;
@@ -947,6 +940,7 @@ export interface PostgreSQLMethods extends EventEmitter {
 
   set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
 
+<<<<<<< HEAD
   // Database operations (postgres-ops)
   backup_tables(opts: {
     tables: string[] | "all" | "critical" | string;
@@ -994,6 +988,11 @@ export interface PostgreSQLMethods extends EventEmitter {
   _primary_keys(table: string): string[]; // Get array of primary key column names
   _primary_key(table: string): string; // Get single primary key (throws if composite)
   update_schema(opts: { cb?: (err?: any) => void }): void; // Sync database schema with SCHEMA definition
+
+  _user_set_query_project_manage_users_owner_only(
+    obj: any,
+    account_id: string,
+  ): string | undefined;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts
