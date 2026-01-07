@@ -377,7 +377,16 @@ ARCH="$BOOTSTRAP_ARCH"
 echo "bootstrap: updating apt package lists"
 sudo apt-get update -y
 echo "bootstrap: installing base packages"
-sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils rsync vim crun cron
+sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils rsync vim crun cron chrony
+echo "bootstrap: configuring time sync"
+sudo systemctl disable --now systemd-timesyncd || true
+sudo systemctl enable --now chrony || true
+sudo tee /etc/chrony/chrony.conf >/dev/null <<'EOF_COCALC_CHRONY'
+pool pool.ntp.org iburst maxsources 4
+makestep 1.0 -1
+rtcsync
+EOF_COCALC_CHRONY
+sudo systemctl restart chrony || true
 ${publicIpLookup}
 echo "bootstrap: enabling unprivileged user namespaces"
 sudo sysctl -w kernel.unprivileged_userns_clone=1 || true

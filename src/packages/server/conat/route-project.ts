@@ -53,6 +53,36 @@ function cacheHost(project_id: string, host?: any) {
   cache.set(project_id, address);
 }
 
+async function updateProjectHostSnapshot(
+  project_id: string,
+  host: {
+    public_url?: string | null;
+    internal_url?: string | null;
+    ssh_server?: string | null;
+  },
+) {
+  const params: Array<string | null | undefined> = [project_id];
+  let expr = "coalesce(host, '{}'::jsonb)";
+  let idx = 2;
+  const fields: Array<[string, string | null | undefined]> = [
+    ["public_url", host.public_url],
+    ["internal_url", host.internal_url],
+    ["ssh_server", host.ssh_server],
+  ];
+  for (const [field, value] of fields) {
+    if (value === undefined) continue;
+    expr = `jsonb_set(${expr}, '{${field}}', to_jsonb($${idx++}::text), true)`;
+    params.push(value);
+  }
+  if (idx === 2) return;
+  await getPool().query(
+    `UPDATE projects
+     SET host=${expr}
+     WHERE project_id=$1`,
+    params,
+  );
+}
+
 async function fetchHostAddress(project_id: string): Promise<string | undefined> {
   if (inflight[project_id]) {
     await inflight[project_id];
@@ -60,9 +90,14 @@ async function fetchHostAddress(project_id: string): Promise<string | undefined>
   }
   inflight[project_id] = (async () => {
     try {
-      const { rows } = await getPool().query(
+      const { rows } = await getPool().query<{
+        host_id: string | null;
+        internal_url?: string | null;
+        public_url?: string | null;
+      }>(
         `
-          SELECT host->>'internal_url' AS internal_url,
+          SELECT host_id,
+                 host->>'internal_url' AS internal_url,
                  host->>'public_url'   AS public_url
           FROM projects
           WHERE project_id=$1
@@ -70,7 +105,29 @@ async function fetchHostAddress(project_id: string): Promise<string | undefined>
         [project_id],
       );
       const row = rows[0];
-      cacheHost(project_id, row);
+      if (row?.internal_url || row?.public_url) {
+        cacheHost(project_id, row);
+        return;
+      }
+      if (row?.host_id) {
+        const { rows: hostRows } = await getPool().query<{
+          public_url?: string | null;
+          internal_url?: string | null;
+          ssh_server?: string | null;
+        }>(
+          `
+            SELECT public_url, internal_url, ssh_server
+            FROM project_hosts
+            WHERE id=$1 AND deleted IS NULL
+          `,
+          [row.host_id],
+        );
+        const hostRow = hostRows[0];
+        if (hostRow?.public_url || hostRow?.internal_url) {
+          cacheHost(project_id, hostRow);
+          await updateProjectHostSnapshot(project_id, hostRow);
+        }
+      }
     } catch (err) {
       log.debug("fetchHostAddress failed", { project_id, err });
     } finally {
