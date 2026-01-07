@@ -261,7 +261,7 @@ to make a binary with that version
     VERSION: "2024-10-04a",
     // https://github.com/sagemathinc/bees-binaries/releases/download/2024-10-04a/bees-2024-10-04a-x86_64-linux-glibc.tar.xz
     script: () => {
-      const a = arch() == "x64" ? "amd64" : "aarch64";
+      const a = arch() == "x64" ? "x86_64" : "aarch64";
       const name = `bees-${SPEC.bees.VERSION}-${a}-linux-glibc`;
       return `curl -L https://github.com/sagemathinc/bees-binaries/releases/download/${SPEC.bees.VERSION}/${name}.tar.xz | tar -xJ -C ${binPath} --strip-components=2 ${name}/bin/bees`;
     }
