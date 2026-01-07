@@ -71,6 +71,7 @@ import "./shopping-cart-items";
 import "./site-licenses";
 import "./site-settings";
 import "./site-whitelabeling";
+import "./software-licenses";
 import "./statements";
 import "./stats";
 import "./subscriptions";

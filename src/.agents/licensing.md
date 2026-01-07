@@ -17,6 +17,12 @@ source/binaries; focus on practical enforcement and good UX.
 
 ## Phase 1: Data model and keys
 
+- Naming: prefix all new tables and APIs with "software_" to avoid confusion with
+  existing site licenses (e.g., site_licenses). Example tables:
+  - software_license_tiers
+  - software_licenses
+  - software_license_events
+  - software_license_activations (optional)
 - License payload fields (draft):
   - product: "launchpad" | "rocket"
   - license_id, customer_id
@@ -48,10 +54,18 @@ source/binaries; focus on practical enforcement and good UX.
 
 ## Phase 3: License service endpoints (hub)
 
-- Add internal endpoints:
-  - POST /api/license/activate
-  - POST /api/license/refresh
-  - GET /api/license/status
+- Add RPC endpoints via the hub websocket API:
+  - Define in src/packages/conat/hub/api/index.ts
+  - Implement in src/packages/server/conat/api/index.ts
+  - This gives typed client bindings and is used by the cocalc.ai UI.
+- Add minimal HTTP endpoints for Launchpad boot validation/refresh:
+  - Under src/packages/next/pages/api/v2/software (or a dedicated /api/software
+    router), expose status/refresh as needed for Launchpad startup.
+- Suggested endpoint set:
+  - RPC: software_licenses.list/search, software_licenses.create, update,
+    revoke/restore, tiers.create/update/list, my_licenses.list/create
+  - HTTP: POST /api/v2/software/activate, POST /api/v2/software/refresh,
+    GET /api/v2/software/status
 - Activation flow:
   - client sends license token + instance_pubkey
   - hub verifies token and writes activation record

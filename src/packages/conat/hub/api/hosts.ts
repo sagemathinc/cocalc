@@ -63,6 +63,7 @@ export interface HostProviderCapabilities {
   supportsStop: boolean;
   supportsDiskType: boolean;
   supportsDiskResize: boolean;
+  diskResizeRequiresStop?: boolean;
   supportsCustomImage: boolean;
   supportsGpu: boolean;
   supportsZones: boolean;
@@ -219,6 +220,14 @@ export interface Hosts {
     cpu?: number;
     ram_gb?: number;
     disk_gb?: number;
+    disk_type?: HostMachine["disk_type"];
+    machine_type?: HostMachine["machine_type"];
+    gpu_type?: HostMachine["gpu_type"];
+    gpu_count?: number;
+    storage_mode?: HostMachine["storage_mode"];
+    boot_disk_gb?: number;
+    region?: string;
+    zone?: string;
   }) => Promise<Host>;
   upgradeHostSoftware: (opts: {
     account_id?: string;
