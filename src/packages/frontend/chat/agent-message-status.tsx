@@ -82,6 +82,16 @@ export function AgentMessageStatus({
     activityScrollPositions.set(persistKey, getSavedScrollPosition(node));
     pendingRestoreRef.current = null;
   };
+  const handleJumpToBottom = () => {
+    const node = scrollRef.current;
+    if (!node) return;
+    const maxTop = node.scrollHeight - node.clientHeight;
+    restoringRef.current = true;
+    node.scrollTop = Math.max(0, maxTop);
+    restoringRef.current = false;
+    pendingRestoreRef.current = SCROLL_BOTTOM_SENTINEL;
+    activityScrollPositions.set(persistKey, SCROLL_BOTTOM_SENTINEL);
+  };
 
   useEffect(() => {
     if (!showDrawer) return;
@@ -193,6 +203,7 @@ export function AgentMessageStatus({
             logProjectId={project_id}
             logEnabled={showDrawer}
             activityContext={activityContext}
+            onJumpToBottom={handleJumpToBottom}
             onEventsChange={() => setContentVersion((prev) => prev + 1)}
             durationLabel={generating === true ? durationLabel : durationLabel}
             projectId={project_id}
