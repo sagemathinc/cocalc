@@ -17,6 +17,7 @@ import { normalizeProviderId } from "@cocalc/cloud";
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
 import type { HostRuntime } from "@cocalc/cloud/types";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { getServerProvider } from "./providers";
 import {
@@ -25,6 +26,7 @@ import {
 } from "./cloudflare-tunnel";
 
 const logger = getLogger("server:cloud:bootstrap-host");
+const pool = () => getPool("medium");
 
 type HostBootstrapState = {
   status?: "pending" | "running" | "done";
@@ -58,6 +60,77 @@ function normalizeSoftwareBaseUrl(raw: string): string {
   const trimmed = (raw || "").trim();
   const base = trimmed || DEFAULT_SOFTWARE_BASE_URL;
   return base.replace(/\/+$/, "");
+}
+
+type SoftwareArch = "amd64" | "arm64";
+type SoftwareOs = "linux" | "darwin";
+
+function normalizeArch(raw?: string): SoftwareArch | undefined {
+  if (!raw) return undefined;
+  const value = raw.toLowerCase();
+  if (value === "amd64" || value === "x86_64" || value === "x64") return "amd64";
+  if (value === "arm64" || value === "aarch64") return "arm64";
+  return undefined;
+}
+
+function normalizeOs(raw?: string): SoftwareOs | undefined {
+  if (!raw) return undefined;
+  const value = raw.toLowerCase();
+  if (value === "linux") return "linux";
+  if (value === "darwin" || value === "macos" || value === "osx") return "darwin";
+  return undefined;
+}
+
+async function resolveSelfHostArch(connectorId: string): Promise<{
+  arch?: SoftwareArch;
+  os?: SoftwareOs;
+}> {
+  const { rows } = await pool().query<{
+    metadata: Record<string, any>;
+  }>(
+    `SELECT metadata
+       FROM self_host_connectors
+      WHERE connector_id=$1 AND revoked IS NOT TRUE`,
+    [connectorId],
+  );
+  const metadata = rows[0]?.metadata ?? {};
+  return {
+    arch: normalizeArch(metadata.arch),
+    os: normalizeOs(metadata.os),
+  };
+}
+
+async function resolveTargetPlatform({
+  providerId,
+  row,
+  runtime,
+  machine,
+}: {
+  providerId?: string;
+  row: ProjectHostRow;
+  runtime?: HostRuntime;
+  machine: HostMachine;
+}): Promise<{ os: SoftwareOs; arch: SoftwareArch; source: string }> {
+  const fromMetadata = normalizeArch(
+    runtime?.metadata?.arch ??
+      runtime?.metadata?.architecture ??
+      machine.metadata?.arch ??
+      machine.metadata?.architecture,
+  );
+  if (fromMetadata) {
+    return { os: "linux", arch: fromMetadata, source: "metadata" };
+  }
+  if (providerId === "self-host" && row.region) {
+    const connectorInfo = await resolveSelfHostArch(row.region);
+    if (connectorInfo.arch) {
+      return {
+        os: "linux",
+        arch: connectorInfo.arch,
+        source: "self-host-connector",
+      };
+    }
+  }
+  return { os: "linux", arch: "amd64", source: "default" };
 }
 
 function extractArtifactVersion(
@@ -127,20 +200,27 @@ export async function buildBootstrapScripts(
   if (!softwareBaseUrl) {
     throw new Error("project host software base URL is not configured");
   }
-  const projectHostManifestUrl = `${softwareBaseUrl}/project-host/latest.json`;
-  const projectManifestUrl = `${softwareBaseUrl}/project/latest.json`;
-  const toolsManifestUrl = `${softwareBaseUrl}/tools/latest.json`;
-  const resolvedHostSea = await resolveSoftwareArtifact(projectHostManifestUrl);
+  const providerId = normalizeProviderId(machine.cloud);
+  const targetPlatform = await resolveTargetPlatform({
+    providerId,
+    row,
+    runtime,
+    machine,
+  });
+  const projectHostManifestUrl = `${softwareBaseUrl}/project-host/latest-${targetPlatform.os}-${targetPlatform.arch}.json`;
+  const projectManifestUrl = `${softwareBaseUrl}/project/latest-${targetPlatform.os}-${targetPlatform.arch}.json`;
+  const toolsManifestUrl = `${softwareBaseUrl}/tools/latest-${targetPlatform.os}-${targetPlatform.arch}.json`;
+  const resolvedHostSea = await resolveSoftwareArtifact(projectHostManifestUrl, targetPlatform);
   const resolvedSeaUrl = resolvedHostSea.url;
   const seaSha256 = (resolvedHostSea.sha256 ?? "").replace(/[^a-f0-9]/gi, "");
   const resolvedProjectBundle =
-    await resolveSoftwareArtifact(projectManifestUrl);
+    await resolveSoftwareArtifact(projectManifestUrl, targetPlatform);
   const projectBundleUrl = resolvedProjectBundle.url;
   const projectBundleSha256 = (resolvedProjectBundle.sha256 ?? "").replace(
     /[^a-f0-9]/gi,
     "",
   );
-  const resolvedTools = await resolveSoftwareArtifact(toolsManifestUrl);
+  const resolvedTools = await resolveSoftwareArtifact(toolsManifestUrl, targetPlatform);
   const toolsUrl = resolvedTools.url;
   const toolsSha256 = (resolvedTools.sha256 ?? "").replace(/[^a-f0-9]/gi, "");
   const projectBundleVersion =
@@ -186,7 +266,6 @@ export async function buildBootstrapScripts(
   const tunnelEnabled = !!tunnel;
 
   const spec = await buildHostSpec(row);
-  const providerId = normalizeProviderId(machine.cloud);
   const storageMode = machine.storage_mode ?? machine.metadata?.storage_mode;
   const provider = providerId ? getServerProvider(providerId) : undefined;
   const dataDiskDevices =
@@ -270,6 +349,30 @@ fi
 
   let bootstrapScript = `
 set -euo pipefail
+EXPECTED_OS="${targetPlatform.os}"
+EXPECTED_ARCH="${targetPlatform.arch}"
+BOOTSTRAP_OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+case "$BOOTSTRAP_OS" in
+  linux) ;;
+  *)
+    echo "bootstrap: unsupported OS $BOOTSTRAP_OS (expected $EXPECTED_OS)" >&2
+    exit 1
+    ;;
+esac
+ARCH_RAW="$(uname -m)"
+case "$ARCH_RAW" in
+  x86_64|amd64) BOOTSTRAP_ARCH="amd64" ;;
+  aarch64|arm64) BOOTSTRAP_ARCH="arm64" ;;
+  *)
+    echo "bootstrap: unsupported architecture $ARCH_RAW" >&2
+    exit 1
+    ;;
+esac
+if [ "$BOOTSTRAP_ARCH" != "$EXPECTED_ARCH" ]; then
+  echo "bootstrap: unsupported architecture $BOOTSTRAP_ARCH (expected $EXPECTED_ARCH)" >&2
+  exit 1
+fi
+ARCH="$BOOTSTRAP_ARCH"
 echo "bootstrap: updating apt package lists"
 sudo apt-get update -y
 echo "bootstrap: installing base packages"
@@ -426,10 +529,11 @@ fi
       TunnelName: tunnel.name,
       TunnelSecret: tunnel.tunnel_secret,
     });
-    cloudflaredScript = `
+cloudflaredScript = `
 echo "bootstrap: installing cloudflared"
 if ! command -v cloudflared >/dev/null 2>&1; then
-  curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+  CLOUDFLARED_DEB="cloudflared-linux-\${ARCH}.deb"
+  curl -fsSL -o /tmp/cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/\${CLOUDFLARED_DEB}
   sudo dpkg -i /tmp/cloudflared.deb
 fi
 sudo mkdir -p /etc/cloudflared
@@ -747,13 +851,28 @@ async function fetchJson(url: string, redirects = 3): Promise<any> {
   });
 }
 
-async function resolveSoftwareArtifact(seaUrl: string): Promise<{
+async function resolveSoftwareArtifact(
+  seaUrl: string,
+  expected?: { os?: SoftwareOs; arch?: SoftwareArch },
+): Promise<{
   url: string;
   sha256?: string;
 }> {
   if (!seaUrl) return { url: "" };
   if (!seaUrl.endsWith(".json")) return { url: seaUrl };
   const manifest = await fetchJson(seaUrl);
+  const manifestOs = normalizeOs(manifest?.os);
+  const manifestArch = normalizeArch(manifest?.arch);
+  if (expected?.os && manifestOs && manifestOs !== expected.os) {
+    throw new Error(
+      `SEA manifest OS mismatch: expected ${expected.os}, got ${manifestOs}`,
+    );
+  }
+  if (expected?.arch && manifestArch && manifestArch !== expected.arch) {
+    throw new Error(
+      `SEA manifest arch mismatch: expected ${expected.arch}, got ${manifestArch}`,
+    );
+  }
   const url = typeof manifest?.url === "string" ? manifest.url : "";
   const sha256 =
     typeof manifest?.sha256 === "string" ? manifest.sha256 : undefined;

@@ -6,7 +6,7 @@
  *
  * Uploads a build artifact to Cloudflare R2 (S3-compatible) using SigV4.
  * - Uploads the file and a sibling .sha256 file.
- * - Optionally writes a "latest" manifest JSON (url, sha256, size, built_at).
+ * - Optionally writes a "latest" manifest JSON (url, sha256, size, built_at, os, arch).
  * - Can also copy an existing object (e.g., staging -> latest) without
  *   uploading a new file.
  *
@@ -22,7 +22,8 @@
  *
  * Examples:
  *   node publish-r2.js --file ./artifact.tar.xz --bucket cocalc-artifacts \
- *     --prefix software/project-host/0.1.7 --latest-key software/project-host/latest.json
+ *     --prefix software/project-host/0.1.7 --latest-key software/project-host/latest-linux-amd64.json \
+ *     --os linux --arch amd64
  *   node publish-r2.js --bucket cocalc-artifacts \
  *     --copy-from software/project-host/staging.json \
  *     --copy-to software/project-host/latest.json
@@ -35,7 +36,7 @@ const path = require("node:path");
 
 function usage() {
   console.error(
-    "Usage: publish-r2.js --file <path> --bucket <bucket> [--key <key>] [--prefix <prefix>] [--public-base-url <url>] [--latest-key <key>] [--cache-control <value>] [--latest-cache-control <value>] [--copy-from <key> --copy-to <key>]",
+    "Usage: publish-r2.js --file <path> --bucket <bucket> [--key <key>] [--prefix <prefix>] [--public-base-url <url>] [--latest-key <key>] [--os <os>] [--arch <arch>] [--cache-control <value>] [--latest-cache-control <value>] [--copy-from <key> --copy-to <key>]",
   );
   process.exit(2);
 }
@@ -329,6 +330,8 @@ async function main() {
     process.env.COCALC_R2_LATEST_CACHE_CONTROL ||
     "public, max-age=300";
   const latestKey = args["latest-key"] || process.env.COCALC_R2_LATEST_KEY;
+  const manifestOs = args.os || process.env.COCALC_R2_OS;
+  const manifestArch = args.arch || process.env.COCALC_R2_ARCH;
 
   const host = `${accountId}.r2.cloudflarestorage.com`;
   const filename = path.basename(filePath);
@@ -378,6 +381,12 @@ async function main() {
       size_bytes: fileStat.size,
       built_at: new Date().toISOString(),
     };
+    if (manifestOs) {
+      manifest.os = manifestOs;
+    }
+    if (manifestArch) {
+      manifest.arch = manifestArch;
+    }
     const manifestBody = Buffer.from(JSON.stringify(manifest, null, 2));
     await putObject({
       host,

@@ -8,13 +8,19 @@ set -Eeuo pipefail
 #   ./build-tools.sh [output-directory]
 #
 # The script expects packages/backend/node_modules/.bin to exist and emits
-# packages/project/build/tools.tar.xz by default.
+# packages/project/build/tools-<os>-<arch>.tar.xz by default.
 
 ROOT="$(realpath "$(dirname "$0")/../../..")"
 OUT_DIR="${1:-$ROOT/packages/project/build}"
 BIN_SRC="$ROOT/packages/backend/node_modules/.bin"
 WORK_DIR="$OUT_DIR/tools"
-TARGET="$OUT_DIR/tools.tar.xz"
+ARCH="$(uname -m)"
+OS="$(uname -s | tr '[:upper:]' '[:lower:]')"
+case "$ARCH" in
+  x86_64|amd64) ARCH="amd64" ;;
+  aarch64|arm64) ARCH="arm64" ;;
+esac
+TARGET="$OUT_DIR/tools-${OS}-${ARCH}.tar.xz"
 
 echo "Building CoCalc tools bundle..."
 echo "  root: $ROOT"
