@@ -845,12 +845,36 @@ CONAT_URL="${conatUrl}"
 
 report_status() {
   local status="$1"
+  local message="\${2:-}"
   local payload
-  printf -v payload '{"status":"%s"}' "$status"
+  json_escape() {
+    local s="\$1"
+    s="\${s//\\\\/\\\\\\\\}"
+    s="\${s//\"/\\\\\"}"
+    s="\${s//$'\\n'/\\\\n}"
+    s="\${s//$'\\r'/\\\\r}"
+    s="\${s//$'\\t'/\\\\t}"
+    printf '%s' "\$s"
+  }
+  if [ -n "$message" ]; then
+    local esc
+    esc="$(json_escape "$message")"
+    printf -v payload '{"status":"%s","message":"%s"}' "$status" "$esc"
+  else
+    printf -v payload '{"status":"%s"}' "$status"
+  fi
   curl -fsSL -X POST -H "Authorization: Bearer $BOOTSTRAP_TOKEN" -H "Content-Type: application/json" \
     --data "$payload" \
     "$STATUS_URL" >/dev/null || true
 }
+
+on_error() {
+  local code="$1"
+  local line="$2"
+  local cmd="$3"
+  report_status "error" "bootstrap failed (exit \${code}) at line \${line}: \${cmd}"
+}
+trap 'on_error "$?" "$LINENO" "$BASH_COMMAND"' ERR
 
 report_status "running"
 ${scripts.bootstrapScript}
@@ -869,10 +893,12 @@ export async function buildCloudInitStartupScript(
   baseUrl: string,
 ): Promise<string> {
   const bootstrapUrl = `${baseUrl}/project-host/bootstrap`;
+  const statusUrl = `${baseUrl}/project-host/bootstrap/status`;
   return `#!/bin/bash
 set -euo pipefail
 BOOTSTRAP_TOKEN="${token}"
 BOOTSTRAP_URL="${bootstrapUrl}"
+STATUS_URL="${statusUrl}"
 BOOTSTRAP_DIR="/root/bootstrap"
 
 if ! command -v curl >/dev/null 2>&1; then
@@ -881,8 +907,39 @@ if ! command -v curl >/dev/null 2>&1; then
 fi
 
 mkdir -p "$BOOTSTRAP_DIR"
-curl -fsSL -H "Authorization: Bearer $BOOTSTRAP_TOKEN" "$BOOTSTRAP_URL" > "$BOOTSTRAP_DIR/bootstrap.sh"
-bash "$BOOTSTRAP_DIR/bootstrap.sh" 2>&1 | tee "$BOOTSTRAP_DIR/bootstrap.log"
+report_status() {
+  local status="$1"
+  local message="\${2:-}"
+  local payload
+  json_escape() {
+    local s="\$1"
+    s="\${s//\\\\/\\\\\\\\}"
+    s="\${s//\"/\\\\\"}"
+    s="\${s//$'\\n'/\\\\n}"
+    s="\${s//$'\\r'/\\\\r}"
+    s="\${s//$'\\t'/\\\\t}"
+    printf '%s' "\$s"
+  }
+  if [ -n "$message" ]; then
+    local esc
+    esc="$(json_escape "$message")"
+    printf -v payload '{"status":"%s","message":"%s"}' "$status" "$esc"
+  else
+    printf -v payload '{"status":"%s"}' "$status"
+  fi
+  curl -fsSL -X POST -H "Authorization: Bearer $BOOTSTRAP_TOKEN" -H "Content-Type: application/json" \
+    --data "$payload" \
+    "$STATUS_URL" >/dev/null || true
+}
+
+if ! curl -fsSL -H "Authorization: Bearer $BOOTSTRAP_TOKEN" "$BOOTSTRAP_URL" > "$BOOTSTRAP_DIR/bootstrap.sh"; then
+  report_status "error" "bootstrap download failed"
+  exit 1
+fi
+if ! bash "$BOOTSTRAP_DIR/bootstrap.sh" 2>&1 | tee "$BOOTSTRAP_DIR/bootstrap.log"; then
+  report_status "error" "bootstrap execution failed"
+  exit 1
+fi
 `;
 }
 
