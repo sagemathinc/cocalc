@@ -313,7 +313,7 @@ export default function init(router: Router) {
         return;
       }
       const action = String(req.body?.action ?? "");
-      const allowed = new Set(["create", "start", "stop", "delete", "status"]);
+      const allowed = new Set(["create", "start", "stop", "delete", "status", "resize"]);
       if (!allowed.has(action)) {
         res.status(400).send("invalid action");
         return;

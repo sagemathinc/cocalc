@@ -20,6 +20,7 @@ import {
   deleteHostDns,
   hasDns,
 } from "@cocalc/server/cloud";
+import { sendSelfHostCommand } from "@cocalc/server/self-host/commands";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { isValidUUID } from "@cocalc/util/misc";
 import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
@@ -40,6 +41,8 @@ import {
 function pool() {
   return getPool();
 }
+
+const SELF_HOST_RESIZE_TIMEOUT_MS = 5 * 60 * 1000;
 
 function requireAccount(account_id?: string): string {
   if (!account_id) {
@@ -707,6 +710,105 @@ export async function renameHost({
   const { rows } = await pool().query(
     `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
     [id],
+  );
+  if (!rows[0]) throw new Error("host not found");
+  return parseRow(rows[0]);
+}
+
+export async function updateHostMachine({
+  account_id,
+  id,
+  cpu,
+  ram_gb,
+  disk_gb,
+}: {
+  account_id?: string;
+  id: string;
+  cpu?: number;
+  ram_gb?: number;
+  disk_gb?: number;
+}): Promise<Host> {
+  const row = await loadOwnedHost(id, account_id);
+  const metadata = row.metadata ?? {};
+  const machine: HostMachine = metadata.machine ?? {};
+  const machineCloud = normalizeProviderId(machine.cloud);
+  if (machineCloud !== "self-host") {
+    throw new Error("host is not self-hosted");
+  }
+  const nextMachine: HostMachine = {
+    ...machine,
+    metadata: { ...(machine.metadata ?? {}) },
+  };
+  let changed = false;
+
+  const parsePositiveInt = (value: unknown, label: string) => {
+    if (value == null) return undefined;
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) {
+      throw new Error(`${label} must be a positive number`);
+    }
+    return Math.floor(parsed);
+  };
+
+  const nextCpu = parsePositiveInt(cpu, "cpu");
+  const nextRam = parsePositiveInt(ram_gb, "ram_gb");
+  const nextDisk = parsePositiveInt(disk_gb, "disk_gb");
+
+  if (nextCpu != null && nextCpu !== machine.metadata?.cpu) {
+    nextMachine.metadata = { ...(nextMachine.metadata ?? {}), cpu: nextCpu };
+    changed = true;
+  }
+  if (nextRam != null && nextRam !== machine.metadata?.ram_gb) {
+    nextMachine.metadata = { ...(nextMachine.metadata ?? {}), ram_gb: nextRam };
+    changed = true;
+  }
+  if (nextDisk != null) {
+    const currentDisk = Number(machine.disk_gb);
+    if (Number.isFinite(currentDisk) && currentDisk > 0 && nextDisk < currentDisk) {
+      throw new Error("disk size can only increase");
+    }
+    if (nextDisk !== machine.disk_gb) {
+      nextMachine.disk_gb = nextDisk;
+      changed = true;
+    }
+  }
+
+  if (!changed) {
+    return parseRow(row);
+  }
+
+  const runtime = metadata.runtime ?? {};
+  const instanceName =
+    runtime.metadata?.instance_name ?? runtime.instance_id ?? undefined;
+  const connectorId =
+    row.region ??
+    machine.metadata?.connector_id ??
+    machine.metadata?.connectorId ??
+    undefined;
+  if (connectorId && instanceName) {
+    const payload: Record<string, any> = {
+      host_id: row.id,
+      name: instanceName,
+    };
+    if (nextCpu != null) payload.cpus = nextCpu;
+    if (nextRam != null) payload.mem_gb = nextRam;
+    if (nextDisk != null) payload.disk_gb = nextDisk;
+    await sendSelfHostCommand({
+      connector_id: connectorId,
+      action: "resize",
+      payload,
+      timeoutMs: SELF_HOST_RESIZE_TIMEOUT_MS,
+    });
+  }
+
+  const nextMetadata = { ...metadata, machine: nextMachine };
+  await pool().query(
+    `UPDATE project_hosts SET metadata=$2, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
+    [row.id, nextMetadata],
+  );
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
+    [row.id],
   );
   if (!rows[0]) throw new Error("host not found");
   return parseRow(rows[0]);

@@ -166,6 +166,7 @@ export const hosts = {
   forceDeprovisionHost: authFirstRequireAccount,
   removeSelfHostConnector: authFirstRequireAccount,
   renameHost: authFirstRequireAccount,
+  updateHostMachine: authFirstRequireAccount,
   deleteHost: authFirstRequireAccount,
   upgradeHostSoftware: authFirstRequireAccount,
   getBackupConfig: noAuth,
@@ -211,6 +212,13 @@ export interface Hosts {
     account_id?: string;
     id: string;
     name: string;
+  }) => Promise<Host>;
+  updateHostMachine: (opts: {
+    account_id?: string;
+    id: string;
+    cpu?: number;
+    ram_gb?: number;
+    disk_gb?: number;
   }) => Promise<Host>;
   upgradeHostSoftware: (opts: {
     account_id?: string;

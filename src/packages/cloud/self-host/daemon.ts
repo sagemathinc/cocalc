@@ -22,7 +22,7 @@ type Config = {
 
 type CommandEnvelope = {
   id: string;
-  action: "create" | "start" | "stop" | "delete" | "status";
+  action: "create" | "start" | "stop" | "delete" | "status" | "resize";
   payload: Record<string, any>;
   issued_at?: string;
 };
@@ -474,6 +474,68 @@ async function handleStatus(
   return { name, state: info.info?.state, ipv4: info.info?.ipv4 ?? [] };
 }
 
+async function handleResize(payload: Record<string, any>, state: State) {
+  const hostId = String(payload.host_id ?? "");
+  const name = String(payload.name ?? state.instances[hostId]?.name ?? "");
+  if (!name) throw new Error("resize requires host_id or name");
+  const info = await multipassInfo(name);
+  if (!info.exists) {
+    return { name, state: "not_found" };
+  }
+  const cpus = payload.cpus ?? payload.vcpus;
+  const mem = formatSize(payload.mem_gb ?? payload.memory_gb ?? payload.memory);
+  const disk = formatSize(payload.disk_gb ?? payload.disk);
+  if (!cpus && !mem && !disk) {
+    return { name, state: info.info?.state, ipv4: info.info?.ipv4 ?? [] };
+  }
+  const wasRunning = String(info.info?.state ?? "").toLowerCase() === "running";
+  if (wasRunning) {
+    const stop = await runMultipass(["stop", name]);
+    if (stop.code !== 0) {
+      throw new Error(stop.stderr.trim() || "multipass stop failed");
+    }
+  }
+  if (cpus) {
+    const result = await runMultipass([
+      "set",
+      `local.${name}.cpus=${cpus}`,
+    ]);
+    if (result.code !== 0) {
+      throw new Error(result.stderr.trim() || "multipass set cpus failed");
+    }
+  }
+  if (mem) {
+    const result = await runMultipass([
+      "set",
+      `local.${name}.memory=${mem}`,
+    ]);
+    if (result.code !== 0) {
+      throw new Error(result.stderr.trim() || "multipass set memory failed");
+    }
+  }
+  if (disk) {
+    const result = await runMultipass([
+      "set",
+      `local.${name}.disk=${disk}`,
+    ]);
+    if (result.code !== 0) {
+      throw new Error(result.stderr.trim() || "multipass set disk failed");
+    }
+  }
+  if (wasRunning) {
+    const start = await runMultipass(["start", name]);
+    if (start.code !== 0) {
+      throw new Error(start.stderr.trim() || "multipass start failed");
+    }
+  }
+  const refreshed = await multipassInfo(name);
+  return {
+    name,
+    state: refreshed.info?.state,
+    ipv4: refreshed.info?.ipv4 ?? [],
+  };
+}
+
 async function executeCommand(
   cmd: CommandEnvelope,
   state: State,
@@ -490,6 +552,8 @@ async function executeCommand(
       return await handleDelete(cmd.payload, state, statePath);
     case "status":
       return await handleStatus(cmd.payload, state, statePath);
+    case "resize":
+      return await handleResize(cmd.payload, state);
     default:
       throw new Error(`unknown action ${cmd.action}`);
   }

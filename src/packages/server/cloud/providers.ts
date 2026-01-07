@@ -275,7 +275,7 @@ const SERVER_PROVIDER_OVERRIDES: Record<ProviderId, ServerProviderOverrides> = {
     getCreds: () => ({
       sendCommand: (
         connectorId: string,
-        action: "create" | "start" | "stop" | "delete" | "status",
+        action: "create" | "start" | "stop" | "delete" | "status" | "resize",
         payload: Record<string, any>,
         opts?: { timeoutMs?: number },
       ) =>

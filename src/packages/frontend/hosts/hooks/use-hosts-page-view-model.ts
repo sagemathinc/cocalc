@@ -137,6 +137,7 @@ export const useHostsPageViewModel = () => {
     setStatus,
     removeHost,
     renameHost,
+    updateSelfHostResources,
     forceDeprovision,
     removeSelfHostConnector,
   } = useHostActions({
@@ -493,11 +494,42 @@ export const useHostsPageViewModel = () => {
     host: editingHost,
     saving: savingEdit,
     onCancel: closeEdit,
-    onSave: async (id: string, name: string) => {
+    onSave: async (
+      id: string,
+      values: { name: string; cpu?: number; ram_gb?: number; disk_gb?: number },
+    ) => {
       setSavingEdit(true);
-      await renameHost(id, name);
-      setSavingEdit(false);
-      closeEdit();
+      try {
+        if (!editingHost) return;
+        if (values.name && values.name !== editingHost.name) {
+          await renameHost(id, values.name);
+        }
+        const isSelfHost = editingHost.machine?.cloud === "self-host";
+        if (isSelfHost) {
+          const currentCpu = Number(editingHost.machine?.metadata?.cpu);
+          const currentRam = Number(editingHost.machine?.metadata?.ram_gb);
+          const currentDisk = Number(editingHost.machine?.disk_gb);
+          const nextCpu = Number(values.cpu);
+          const nextRam = Number(values.ram_gb);
+          const nextDisk = Number(values.disk_gb);
+          const cpuChanged =
+            Number.isFinite(nextCpu) && nextCpu > 0 && nextCpu !== currentCpu;
+          const ramChanged =
+            Number.isFinite(nextRam) && nextRam > 0 && nextRam !== currentRam;
+          const diskChanged =
+            Number.isFinite(nextDisk) && nextDisk > 0 && nextDisk !== currentDisk;
+          if (cpuChanged || ramChanged || diskChanged) {
+            await updateSelfHostResources(id, {
+              cpu: cpuChanged ? nextCpu : undefined,
+              ram_gb: ramChanged ? nextRam : undefined,
+              disk_gb: diskChanged ? nextDisk : undefined,
+            });
+          }
+        }
+      } finally {
+        setSavingEdit(false);
+        closeEdit();
+      }
     },
   };
 

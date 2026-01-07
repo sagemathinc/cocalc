@@ -9,7 +9,7 @@ import logger from "../logger";
 type SelfHostCreds = {
   sendCommand: (
     connectorId: string,
-    action: "create" | "start" | "stop" | "delete" | "status",
+    action: "create" | "start" | "stop" | "delete" | "status" | "resize",
     payload: Record<string, any>,
     opts?: { timeoutMs?: number },
   ) => Promise<any>;
@@ -59,7 +59,7 @@ export class SelfHostProvider implements CloudProvider {
   private async send(
     creds: SelfHostCreds,
     connectorId: string,
-    action: "create" | "start" | "stop" | "delete" | "status",
+    action: "create" | "start" | "stop" | "delete" | "status" | "resize",
     payload: Record<string, any>,
     timeoutMs: number,
   ) {
@@ -137,11 +137,18 @@ export class SelfHostProvider implements CloudProvider {
   }
 
   async resizeDisk(
-    _runtime: HostRuntime,
-    _newSizeGb: number,
-    _creds: any,
+    runtime: HostRuntime,
+    newSizeGb: number,
+    creds: any,
   ): Promise<void> {
-    return;
+    const connectorId = connectorFromRuntime(runtime);
+    const payload = {
+      host_id: runtimeHostId(runtime),
+      name: runtime.metadata?.instance_name ?? runtime.instance_id,
+      disk_gb: newSizeGb,
+    };
+    logger.debug("self-host.resizeDisk", { connector_id: connectorId, instance: runtime.instance_id });
+    await this.send(creds, connectorId, "resize", payload, DEFAULT_TIMEOUTS.start);
   }
 
   async getStatus(

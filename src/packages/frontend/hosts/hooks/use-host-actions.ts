@@ -9,6 +9,12 @@ type HubClient = {
     forceDeprovisionHost?: (opts: { id: string }) => Promise<unknown>;
     removeSelfHostConnector?: (opts: { id: string }) => Promise<unknown>;
     renameHost?: (opts: { id: string; name: string }) => Promise<unknown>;
+    updateHostMachine?: (opts: {
+      id: string;
+      cpu?: number;
+      ram_gb?: number;
+      disk_gb?: number;
+    }) => Promise<unknown>;
   };
 };
 
@@ -81,6 +87,24 @@ export const useHostActions = ({
     }
   };
 
+  const updateSelfHostResources = async (id: string, opts: {
+    cpu?: number;
+    ram_gb?: number;
+    disk_gb?: number;
+  }) => {
+    if (!hub.hosts.updateHostMachine) {
+      message.error("Host update not available");
+      return;
+    }
+    try {
+      await hub.hosts.updateHostMachine({ id, ...opts });
+      await refresh();
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to update host resources");
+    }
+  };
+
   const forceDeprovision = async (id: string) => {
     if (!hub.hosts.forceDeprovisionHost) {
       message.error("Force deprovision not available");
@@ -109,5 +133,12 @@ export const useHostActions = ({
     }
   };
 
-  return { setStatus, removeHost, renameHost, forceDeprovision, removeSelfHostConnector };
+  return {
+    setStatus,
+    removeHost,
+    renameHost,
+    updateSelfHostResources,
+    forceDeprovision,
+    removeSelfHostConnector,
+  };
 };

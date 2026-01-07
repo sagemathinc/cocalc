@@ -1316,7 +1316,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
         size: "Size",
       },
     },
-    storage: { supported: true, growable: false },
+    storage: { supported: true, growable: true },
     getOptions: (catalog, selection) => ({
       ...emptyOptions(),
       region: getHyperstackRegionOptions(catalog),

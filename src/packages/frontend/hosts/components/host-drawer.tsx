@@ -51,6 +51,16 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
     selfHost,
   } = vm;
   const isSelfHost = host?.machine?.cloud === "self-host";
+  const readPositive = (value: unknown) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+    return Math.floor(parsed);
+  };
+  const selfHostCpu = readPositive(host?.machine?.metadata?.cpu);
+  const selfHostRam = readPositive(host?.machine?.metadata?.ram_gb);
+  const selfHostDisk = readPositive(host?.machine?.disk_gb);
+  const showSelfHostResources =
+    isSelfHost && (selfHostCpu || selfHostRam || selfHostDisk);
   const connectorOnline =
     !isSelfHost ||
     !selfHost?.isConnectorOnline ||
@@ -136,6 +146,13 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
             {host.machine?.gpu_type && (
               <Typography.Text>
                 GPU type: {host.machine.gpu_type}
+              </Typography.Text>
+            )}
+            {showSelfHostResources && (
+              <Typography.Text>
+                Resources:{" "}
+                {selfHostCpu ?? "?"} vCPU / {selfHostRam ?? "?"} GB RAM /{" "}
+                {selfHostDisk ?? "?"} GB disk
               </Typography.Text>
             )}
           </Space>

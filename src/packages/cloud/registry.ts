@@ -230,11 +230,11 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
     capabilities: {
       supportsStop: true,
       supportsDiskType: false,
-      supportsDiskResize: false,
+      supportsDiskResize: true,
       supportsCustomImage: false,
       supportsGpu: false,
       supportsZones: false,
-      persistentStorage: { supported: true, growable: false },
+      persistentStorage: { supported: true, growable: true },
       hasRegions: true,
       hasZones: false,
       hasImages: false,

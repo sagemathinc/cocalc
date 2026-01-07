@@ -492,6 +492,8 @@ func executeCommand(cmd CommandEnvelope, state State, statePath string) (interfa
 		return handleDelete(cmd.Payload, state, statePath)
 	case "status":
 		return handleStatus(cmd.Payload, state, statePath)
+	case "resize":
+		return handleResize(cmd.Payload, state)
 	default:
 		return nil, fmt.Errorf("unknown action %s", cmd.Action)
 	}
@@ -681,6 +683,60 @@ func handleStatus(payload map[string]interface{}, state State, statePath string)
 		saveState(statePath, state)
 	}
 	return map[string]interface{}{"name": name, "state": info.State, "ipv4": info.IPv4}, nil
+}
+
+func handleResize(payload map[string]interface{}, state State) (interface{}, error) {
+	hostID := toString(payload["host_id"])
+	name := toString(payload["name"])
+	if name == "" && hostID != "" {
+		name = state.Instances[hostID].Name
+	}
+	if name == "" {
+		return nil, errors.New("resize requires host_id or name")
+	}
+	info := multipassInfo(name)
+	if !info.Exists {
+		return map[string]interface{}{"name": name, "state": "not_found"}, nil
+	}
+	cpus := toNumberString(payload["cpus"])
+	mem := formatSize(payload["mem_gb"], payload["memory_gb"], payload["memory"])
+	disk := formatSize(payload["disk_gb"], payload["disk"], nil)
+	if cpus == "" && mem == "" && disk == "" {
+		return map[string]interface{}{"name": name, "state": info.State, "ipv4": info.IPv4}, nil
+	}
+	wasRunning := strings.ToLower(info.State) == "running"
+	if wasRunning {
+		res := runMultipass([]string{"stop", name})
+		if res.Code != 0 {
+			return nil, errors.New(strings.TrimSpace(res.Stderr))
+		}
+	}
+	if cpus != "" {
+		res := runMultipass([]string{"set", fmt.Sprintf("local.%s.cpus=%s", name, cpus)})
+		if res.Code != 0 {
+			return nil, errors.New(strings.TrimSpace(res.Stderr))
+		}
+	}
+	if mem != "" {
+		res := runMultipass([]string{"set", fmt.Sprintf("local.%s.memory=%s", name, mem)})
+		if res.Code != 0 {
+			return nil, errors.New(strings.TrimSpace(res.Stderr))
+		}
+	}
+	if disk != "" {
+		res := runMultipass([]string{"set", fmt.Sprintf("local.%s.disk=%s", name, disk)})
+		if res.Code != 0 {
+			return nil, errors.New(strings.TrimSpace(res.Stderr))
+		}
+	}
+	if wasRunning {
+		res := runMultipass([]string{"start", name})
+		if res.Code != 0 {
+			return nil, errors.New(strings.TrimSpace(res.Stderr))
+		}
+	}
+	ref := multipassInfo(name)
+	return map[string]interface{}{"name": name, "state": ref.State, "ipv4": ref.IPv4}, nil
 }
 
 func runMultipass(args []string) multipassResult {
