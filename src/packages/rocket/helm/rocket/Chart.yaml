@@ -1,0 +1,5 @@
+apiVersion: v2
+name: cocalc-rocket
+description: CoCalc Rocket control-plane chart (hub + conat) for Kubernetes
+version: 0.1.0
+appVersion: "0.1.0"

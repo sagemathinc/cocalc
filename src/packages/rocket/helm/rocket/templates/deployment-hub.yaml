@@ -1,0 +1,108 @@
+{{- if .Values.hub.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cocalc-rocket.fullname" . }}-hub
+  labels:
+    {{- include "cocalc-rocket.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hub
+spec:
+  replicas: {{ .Values.hub.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: hub
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: hub
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hub.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hub.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hub.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: hub
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["cocalc-hub-server"]
+          args:
+            - "--mode={{ .Values.mode }}"
+            - "--conat-api"
+            - "--hostname=0.0.0.0"
+            {{- if .Values.hub.nextServer }}
+            - "--next-server"
+            {{- end }}
+            {{- if .Values.hub.mentions }}
+            - "--mentions"
+            {{- end }}
+            {{- if .Values.hub.updateDatabaseSchema }}
+            - "--update-database-schema"
+            {{- end }}
+          ports:
+            - containerPort: {{ .Values.hub.service.port }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "{{ .Values.hub.service.port }}"
+            - name: DATA
+              value: "{{ .Values.data.path }}"
+            - name: COCALC_MODE
+              value: "{{ .Values.mode }}"
+            - name: PGHOST
+              value: "{{ .Values.postgres.host }}"
+            - name: PGPORT
+              value: "{{ .Values.postgres.port }}"
+            - name: PGUSER
+              value: "{{ .Values.postgres.user }}"
+            - name: PGDATABASE
+              value: "{{ .Values.postgres.database }}"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.passwordSecret.name }}
+                  key: {{ .Values.postgres.passwordSecret.key }}
+            - name: CONAT_SERVER
+              value: "http://{{ include \"cocalc-rocket.fullname\" . }}-conat-router:5000"
+            {{- if not .Values.hub.nextServer }}
+            - name: COCALC_DISABLE_NEXT
+              value: "yes"
+            {{- end }}
+            {{- if .Values.hub.disableAnalytics }}
+            - name: COCALC_DISABLE_ANALYTICS
+              value: "yes"
+            {{- end }}
+            {{- with .Values.hub.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.data.path }}
+            - name: conat-secret
+              mountPath: {{ .Values.data.path }}/secrets
+              readOnly: true
+          resources:
+            {{- toYaml .Values.hub.resources | nindent 12 }}
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: conat-secret
+          secret:
+            secretName: {{ .Values.conat.passwordSecret.name }}
+            items:
+              - key: {{ .Values.conat.passwordSecret.key }}
+                path: conat-password
+{{- end }}

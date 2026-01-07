@@ -1,0 +1,19 @@
+{{- if .Values.hub.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cocalc-rocket.fullname" . }}-hub
+  labels:
+    {{- include "cocalc-rocket.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hub
+spec:
+  type: {{ .Values.hub.service.type }}
+  ports:
+    - port: {{ .Values.hub.service.port }}
+      targetPort: {{ .Values.hub.service.port }}
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: hub
+{{- end }}

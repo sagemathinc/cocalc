@@ -1,0 +1,36 @@
+{{- if and .Values.hub.enabled .Values.hub.ingress.enabled -}}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "cocalc-rocket.fullname" . }}-hub
+  labels:
+    {{- include "cocalc-rocket.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hub
+  {{- with .Values.hub.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if .Values.hub.ingress.className }}
+  ingressClassName: {{ .Values.hub.ingress.className }}
+  {{- end }}
+  rules:
+    {{- range .Values.hub.ingress.hosts }}
+    - host: {{ .host | quote }}
+      http:
+        paths:
+          {{- range .paths }}
+          - path: {{ .path }}
+            pathType: {{ .pathType }}
+            backend:
+              service:
+                name: {{ include "cocalc-rocket.fullname" $ }}-hub
+                port:
+                  number: {{ $.Values.hub.service.port }}
+          {{- end }}
+    {{- end }}
+  {{- with .Values.hub.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

@@ -1,0 +1,95 @@
+{{- if .Values.conat.persist.enabled -}}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "cocalc-rocket.fullname" . }}-conat-persist
+  labels:
+    {{- include "cocalc-rocket.labels" . | nindent 4 }}
+    app.kubernetes.io/component: conat-persist
+spec:
+  serviceName: {{ include "cocalc-rocket.fullname" . }}-conat-persist
+  replicas: {{ .Values.conat.persist.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: conat-persist
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: conat-persist
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.conat.persist.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.conat.persist.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.conat.persist.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: conat-persist
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["cocalc-hub-server"]
+          args:
+            - "--mode={{ .Values.mode }}"
+            - "--conat-persist"
+            - "--hostname=0.0.0.0"
+          env:
+            - name: DATA
+              value: "{{ .Values.data.path }}"
+            - name: COCALC_MODE
+              value: "{{ .Values.mode }}"
+            - name: COCALC_SYNC
+              value: "{{ .Values.data.path }}/sync"
+            - name: PGHOST
+              value: "{{ .Values.postgres.host }}"
+            - name: PGPORT
+              value: "{{ .Values.postgres.port }}"
+            - name: PGUSER
+              value: "{{ .Values.postgres.user }}"
+            - name: PGDATABASE
+              value: "{{ .Values.postgres.database }}"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.passwordSecret.name }}
+                  key: {{ .Values.postgres.passwordSecret.key }}
+            - name: CONAT_SERVER
+              value: "http://{{ include \"cocalc-rocket.fullname\" . }}-conat-router:5000"
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.data.path }}
+            - name: conat-secret
+              mountPath: {{ .Values.data.path }}/secrets
+              readOnly: true
+          resources:
+            {{- toYaml .Values.conat.persist.resources | nindent 12 }}
+      volumes:
+        - name: conat-secret
+          secret:
+            secretName: {{ .Values.conat.passwordSecret.name }}
+            items:
+              - key: {{ .Values.conat.passwordSecret.key }}
+                path: conat-password
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: {{ .Values.conat.persist.storage.size }}
+        {{- if .Values.conat.persist.storage.className }}
+        storageClassName: {{ .Values.conat.persist.storage.className }}
+        {{- end }}
+{{- end }}

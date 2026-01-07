@@ -1,0 +1,19 @@
+{{- if .Values.conat.persist.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cocalc-rocket.fullname" . }}-conat-persist
+  labels:
+    {{- include "cocalc-rocket.labels" . | nindent 4 }}
+    app.kubernetes.io/component: conat-persist
+spec:
+  clusterIP: None
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: conat-persist
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: conat-persist
+{{- end }}

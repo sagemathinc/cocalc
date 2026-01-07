@@ -1,0 +1,94 @@
+{{- if .Values.conat.router.enabled -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "cocalc-rocket.fullname" . }}-conat-router
+  labels:
+    {{- include "cocalc-rocket.labels" . | nindent 4 }}
+    app.kubernetes.io/component: conat-router
+spec:
+  replicas: {{ .Values.conat.router.replicas }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: {{ .Release.Name }}
+      app.kubernetes.io/component: conat-router
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/instance: {{ .Release.Name }}
+        app.kubernetes.io/component: conat-router
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.conat.router.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.conat.router.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.conat.router.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: conat-router
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          command: ["cocalc-hub-server"]
+          args:
+            - "--mode={{ .Values.mode }}"
+            - "--conat-router"
+            - "--hostname=0.0.0.0"
+          ports:
+            - containerPort: 5000
+              protocol: TCP
+            - containerPort: 5001
+              protocol: TCP
+          env:
+            - name: PORT
+              value: "5000"
+            - name: DATA
+              value: "{{ .Values.data.path }}"
+            - name: COCALC_MODE
+              value: "{{ .Values.mode }}"
+            - name: CONAT_CLUSTER_PORT
+              value: "5000"
+            - name: CONAT_CLUSTER_HEALTH_PORT
+              value: "5001"
+            - name: COCALC_CONAT_PEER_DISCOVERY
+              value: "API"
+            - name: PGHOST
+              value: "{{ .Values.postgres.host }}"
+            - name: PGPORT
+              value: "{{ .Values.postgres.port }}"
+            - name: PGUSER
+              value: "{{ .Values.postgres.user }}"
+            - name: PGDATABASE
+              value: "{{ .Values.postgres.database }}"
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.postgres.passwordSecret.name }}
+                  key: {{ .Values.postgres.passwordSecret.key }}
+          volumeMounts:
+            - name: data
+              mountPath: {{ .Values.data.path }}
+            - name: conat-secret
+              mountPath: {{ .Values.data.path }}/secrets
+              readOnly: true
+          resources:
+            {{- toYaml .Values.conat.router.resources | nindent 12 }}
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: conat-secret
+          secret:
+            secretName: {{ .Values.conat.passwordSecret.name }}
+            items:
+              - key: {{ .Values.conat.passwordSecret.key }}
+                path: conat-password
+{{- end }}

@@ -1,0 +1,78 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: cocalc/hub
+  tag: latest
+  pullPolicy: IfNotPresent
+
+imagePullSecrets: []
+
+mode: kucalc
+
+data:
+  path: /data
+
+postgres:
+  host: "postgres"
+  port: 5432
+  database: smc
+  user: smc
+  passwordSecret:
+    name: postgres-password
+    key: password
+
+conat:
+  passwordSecret:
+    name: conat-password
+    key: conat-password
+  router:
+    enabled: true
+    replicas: 2
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+  api:
+    enabled: false
+    replicas: 2
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+  persist:
+    enabled: true
+    replicas: 1
+    resources: {}
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    storage:
+      size: 20Gi
+      className: ""
+
+hub:
+  enabled: true
+  replicas: 2
+  resources: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  nextServer: false
+  updateDatabaseSchema: false
+  mentions: false
+  disableAnalytics: true
+  extraEnv: []
+  service:
+    type: ClusterIP
+    port: 5000
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: rocket.local
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []

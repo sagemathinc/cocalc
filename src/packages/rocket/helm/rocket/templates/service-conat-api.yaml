@@ -1,0 +1,19 @@
+{{- if .Values.conat.api.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cocalc-rocket.fullname" . }}-conat-api
+  labels:
+    {{- include "cocalc-rocket.labels" . | nindent 4 }}
+    app.kubernetes.io/component: conat-api
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: http
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: conat-api
+{{- end }}

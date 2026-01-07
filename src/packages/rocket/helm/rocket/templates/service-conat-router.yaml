@@ -1,0 +1,23 @@
+{{- if .Values.conat.router.enabled -}}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "cocalc-rocket.fullname" . }}-conat-router
+  labels:
+    {{- include "cocalc-rocket.labels" . | nindent 4 }}
+    app.kubernetes.io/component: conat-router
+spec:
+  type: ClusterIP
+  ports:
+    - port: 5000
+      targetPort: 5000
+      protocol: TCP
+      name: conat
+    - port: 5001
+      targetPort: 5001
+      protocol: TCP
+      name: health
+  selector:
+    app.kubernetes.io/instance: {{ .Release.Name }}
+    app.kubernetes.io/component: conat-router
+{{- end }}
