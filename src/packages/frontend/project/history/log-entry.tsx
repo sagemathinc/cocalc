@@ -62,6 +62,10 @@ import type {
 import { isUnknownEvent } from "./types";
 
 const TRUNC = 90;
+type CollaboratorInviteOrRemoveEvent = Extract<
+  CollaboratorEvent,
+  { event: "invite_user" | "invite_nonuser" | "remove_collaborator" }
+>;
 
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { User } = require("@cocalc/frontend/users");
@@ -752,7 +756,9 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_invite_user(event: CollaboratorEvent): React.JSX.Element {
+    function render_invite_user(
+      event: CollaboratorInviteOrRemoveEvent,
+    ): React.JSX.Element {
       return (
         <span>
           <FormattedMessage
@@ -765,7 +771,7 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_invite_nonuser(
-      event: CollaboratorEvent,
+      event: CollaboratorInviteOrRemoveEvent,
     ): React.JSX.Element {
       return (
         <span>
@@ -779,16 +785,46 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_remove_collaborator(
-      event: CollaboratorEvent,
+      event: CollaboratorInviteOrRemoveEvent,
     ): React.JSX.Element {
       return (
         <span>
-          {" "}
           <FormattedMessage
             id="project.history.log-entry.removed_user"
             defaultMessage={"removed user"}
           />{" "}
           {event.removed_name}
+        </span>
+      );
+    }
+
+    function render_change_collaborator_type(
+      event: Extract<CollaboratorEvent, { event: "change_collaborator_type" }>,
+    ): React.JSX.Element {
+      const groupLabel = (group: "owner" | "collaborator") =>
+        intl.formatMessage({
+          id: `project.history.log-entry.group.${group}`,
+          defaultMessage: group,
+        });
+
+      const target =
+        event.target_name != null ? (
+          event.target_name
+        ) : (
+          <User user_map={user_map} account_id={event.target_account_id} />
+        );
+
+      return (
+        <span>
+          <FormattedMessage
+            id="project.history.log-entry.change_collaborator_type"
+            defaultMessage="changed {target} from {old_group} to {new_group}"
+            values={{
+              target,
+              old_group: groupLabel(event.old_group),
+              new_group: groupLabel(event.new_group),
+            }}
+          />
         </span>
       );
     }
@@ -835,11 +871,27 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "pay-as-you-go-upgrade":
           return render_pay_as_you_go(event);
         case "invite_user":
-          return render_invite_user(event);
+          return render_invite_user(
+            event as Extract<CollaboratorEvent, { event: "invite_user" }>,
+          );
         case "invite_nonuser":
-          return render_invite_nonuser(event);
+          return render_invite_nonuser(
+            event as Extract<CollaboratorEvent, { event: "invite_nonuser" }>,
+          );
         case "remove_collaborator":
-          return render_remove_collaborator(event);
+          return render_remove_collaborator(
+            event as Extract<
+              CollaboratorEvent,
+              { event: "remove_collaborator" }
+            >,
+          );
+        case "change_collaborator_type":
+          return render_change_collaborator_type(
+            event as Extract<
+              CollaboratorEvent,
+              { event: "change_collaborator_type" }
+            >,
+          );
         case "open_project": // not used anymore???
           return <span>opened this project</span>;
         case "library":
@@ -917,6 +969,7 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "invite_user":
         case "invite_nonuser":
         case "remove_collaborator":
+        case "change_collaborator_type":
           return "user";
         case "software_environment":
           return SOFTWARE_ENVIRONMENT_ICON;
@@ -940,7 +993,7 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function renderExtra() {
-      // flyout mode only: if colum is wider, add timestamp
+      // flyout mode only: if column is wider, add timestamp
       if (mode === "flyout" && flyoutExtra) {
         return (
           <span style={{ color: COLORS.GRAY_M }}>
