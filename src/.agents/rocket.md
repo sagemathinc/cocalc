@@ -18,12 +18,14 @@ scaling for >=10k concurrent users. Project compute remains on external VMs.
 
 ## Phase 1: image build and registry
 
-- Build the Rocket image from the existing hub package (same as Launchpad):
+- Build the Rocket image from the existing hub package \(same as Launchpad\):
   - Ensure the image includes static assets and api/v2 manifest.
-  - Confirm COCALC_DISABLE_NEXT works in the image.
+  - Confirm COCALC\_DISABLE\_NEXT works in the image.
 - Publish to a registry accessible by GKE:
   - Use GCR/Artifact Registry or another container registry.
-- Define image tag policy (e.g., git sha or semver).
+- Define image tag policy \(e.g., git sha or semver\).
+- TODO: we also need a nextjs server to server our nextjs pages, which include landing/marketing pages, a store, policy pages, news. There is also the public "share server", but we can ignore that for now \-\- it'll likely just be deprecated or rewritten differently, as it adds little value.
+  - Alternative: the ONLY interactive content on the nextjs site is the store, and the store is very simple now \- you can just buy memberships and vouchers.   We could rewrite the store to be in the main SPA static app.  Then the nextjs site is purely static content \-\- the landing pages, policies, etc., and I bet we can just use some modern static react site generator to generate the same content in a way that is easy to host without a separate server. 
 
 ## Phase 2: Helm chart hardening
 
@@ -129,7 +131,18 @@ scaling for >=10k concurrent users. Project compute remains on external VMs.
 
 ## Open items
 
-- Confirm S3/R2 blob store integration path in code.
 - Decide on Cloud SQL connectivity (private IP vs proxy).
 - Decide TLS termination (ingress vs external load balancer).
+
+## Blobs
+
+After the above works, carry out this plan.
+
+## Nextjs Site
+
+After the above works, address this.
+
+We also need a nextjs server to server our nextjs pages, which include landing/marketing pages, a store, policy pages, news. There is also the public "share server", but we can ignore that for now \-\- it'll likely just be deprecated or rewritten differently, as it adds little value.
+
+- Alternative: the ONLY interactive content on the nextjs site is the store, and the store is very simple now \- you can just buy memberships and vouchers.   We could rewrite the store to be in the main SPA static app.  Then the nextjs site is purely static content \-\- the landing pages, policies, etc., and I bet we can just use some modern static react site generator to generate the same content in a way that is easy to host without a separate server. 
 
