@@ -51,7 +51,7 @@ export class Actions extends WhiteboardActions<State> {
   private updateSpeakerNotes(keys) {
     const speakerNotes0 = this.store.get("speakerNotes");
     let speakerNotes = speakerNotes0 ?? ImmutableMap();
-    for (const key of keys) {
+    for (const key of keys ?? []) {
       const id = key.get("id");
       if (!id) continue;
       const element = this._syncstring.get_one(key);
