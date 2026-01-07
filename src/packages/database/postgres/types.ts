@@ -940,7 +940,6 @@ export interface PostgreSQLMethods extends EventEmitter {
 
   set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
 
-<<<<<<< HEAD
   // Database operations (postgres-ops)
   backup_tables(opts: {
     tables: string[] | "all" | "critical" | string;
@@ -991,8 +990,7 @@ export interface PostgreSQLMethods extends EventEmitter {
 
   _user_set_query_project_manage_users_owner_only(
     obj: any,
-    account_id: string,
-  ): string | undefined;
+  ): boolean | undefined;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

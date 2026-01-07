@@ -4,7 +4,7 @@
  */
 
 /**
- * Comprehensive test suite for postgres-user-queries.coffee
+ * Comprehensive test suite for postgres user-queries
  *
  * This file tests ALL methods from postgres-user-queries including:
  * - Public API methods (8)
@@ -23,6 +23,7 @@ import { EventEmitter } from "events";
 
 import { initEphemeralDatabase } from "@cocalc/database/pool";
 import { testCleanup } from "@cocalc/database/test-utils";
+import { uuid } from "@cocalc/util/misc";
 import { SCHEMA } from "@cocalc/util/schema";
 
 import { PostgreSQL as PostgreSQLClass } from "../postgres";
@@ -39,7 +40,7 @@ const setSchema = (table: string, schema: any) => {
   };
 };
 
-describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
+describe("postgres user-queries - Comprehensive Test Suite", () => {
   let db: any;
 
   beforeAll(async () => {
@@ -1056,6 +1057,8 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
    */
   describe("Set Query Methods", () => {
     describe("_parse_set_query_opts", () => {
+      const accountId = uuid();
+
       // Requires SCHEMA - will test with schema integration
       test("should exist", () => {
         expect(db._parse_set_query_opts).toBeDefined();
@@ -1063,7 +1066,7 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
 
       test("should error on unknown table", () => {
         const result = db._parse_set_query_opts({
-          account_id: "test-account",
+          account_id: accountId,
           table: "no_such_table",
           query: { id: "1" },
         });
@@ -1072,7 +1075,7 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
 
       test("should return undefined when no modifiable fields", () => {
         const result = db._parse_set_query_opts({
-          account_id: "test-account",
+          account_id: accountId,
           table: "projects",
           query: { project_id: "project-1" },
         });
@@ -1086,7 +1089,7 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
         db._user_set_query_project_users = jest.fn(() => users);
 
         const result = db._parse_set_query_opts({
-          account_id: "test-account",
+          account_id: accountId,
           table: "projects",
           query: { project_id: "project-1", users: {} },
         });
@@ -1098,7 +1101,7 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
 
       test("should reject delete option when not allowed", () => {
         const result = db._parse_set_query_opts({
-          account_id: "test-account",
+          account_id: accountId,
           table: "projects",
           query: { project_id: "project-1", title: "New Title" },
           options: [{ delete: true }],
@@ -1108,7 +1111,7 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
 
       test("should reject disallowed fields", () => {
         const result = db._parse_set_query_opts({
-          account_id: "test-account",
+          account_id: accountId,
           table: "projects",
           query: { project_id: "project-1", forbidden: true },
         });
@@ -2479,43 +2482,62 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
    */
   describe("Hook Methods", () => {
     describe("_user_set_query_project_users", () => {
+      const accountId = uuid();
+      const otherId = uuid();
+
       test("should validate UUID format", () => {
         expect(() => {
           db._user_set_query_project_users(
             {
               users: {
-                "not-a-uuid": { group: "owner" },
+                "not-a-uuid": { hide: true },
               },
             },
-            "account-id",
+            accountId,
           );
-        }).not.toThrow(); // Non-UUIDs are silently ignored
+        }).toThrow("invalid account_id 'not-a-uuid'");
 
         const result = db._user_set_query_project_users(
           {
             users: {
-              "12345678-1234-1234-1234-123456789012": { group: "owner" },
+              [otherId]: { hide: true },
             },
           },
-          "account-id",
+          accountId,
         );
 
-        expect(result).toHaveProperty("12345678-1234-1234-1234-123456789012");
+        expect(result).toHaveProperty(otherId);
       });
 
-      test("should validate group values", () => {
+      test("should reject group changes for user queries", () => {
         expect(() => {
           db._user_set_query_project_users(
             {
               users: {
-                "12345678-1234-1234-1234-123456789012": {
-                  group: "invalid-group",
+                [accountId]: {
+                  group: "owner",
                 },
               },
             },
-            "account-id",
+            accountId,
           );
-        }).toThrow("invalid value for field 'group'");
+        }).toThrow(
+          "changing collaborator group via user_set_query is not allowed",
+        );
+      });
+
+      test("should validate group values in system operations", () => {
+        expect(() => {
+          db._user_set_query_project_users({
+            users: {
+              [accountId]: {
+                group: "invalid-group",
+              },
+            },
+          });
+        }).toThrow(
+          "invalid group value 'invalid-group' - must be 'owner' or 'collaborator'",
+        );
       });
 
       test("should validate hide field type", () => {
@@ -2523,13 +2545,12 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
           db._user_set_query_project_users(
             {
               users: {
-                "12345678-1234-1234-1234-123456789012": {
-                  group: "owner",
+                [accountId]: {
                   hide: "not-boolean",
                 },
               },
             },
-            "account-id",
+            accountId,
           );
         }).toThrow("invalid type for field 'hide'");
       });
@@ -2539,12 +2560,12 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
           db._user_set_query_project_users(
             {
               users: {
-                "12345678-1234-1234-1234-123456789012": {
+                [accountId]: {
                   upgrades: "not-object",
                 },
               },
             },
-            "account-id",
+            accountId,
           );
         }).toThrow("invalid type for field 'upgrades'");
       });
@@ -2554,12 +2575,12 @@ describe("postgres-user-queries.coffee - Comprehensive Test Suite", () => {
           db._user_set_query_project_users(
             {
               users: {
-                "12345678-1234-1234-1234-123456789012": {
+                [accountId]: {
                   ssh_keys: "not-object",
                 },
               },
             },
-            "account-id",
+            accountId,
           );
         }).toThrow("ssh_keys must be an object");
       });

@@ -1094,6 +1094,15 @@ export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
     return userQuery._user_set_query_project_users.call(this, ...args);
   }
 
+  _user_set_query_project_manage_users_owner_only(
+    ...args: UserQueryMethodArgs<"_user_set_query_project_manage_users_owner_only">
+  ): UserQueryMethodReturn<"_user_set_query_project_manage_users_owner_only"> {
+    return userQuery._user_set_query_project_manage_users_owner_only.call(
+      this,
+      ...args,
+    );
+  }
+
   project_action(
     ...args: UserQueryMethodArgs<"project_action">
   ): UserQueryMethodReturn<"project_action"> {

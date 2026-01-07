@@ -6,6 +6,8 @@
 import async from "async";
 import lodash from "lodash";
 
+import { sanitizeManageUsersOwnerOnly } from "@cocalc/database/postgres/project/manage-users-owner-only";
+import { sanitizeUserSetQueryProjectUsers } from "@cocalc/database/postgres/project/user-set-query-project-users";
 import { all_results } from "@cocalc/database/postgres/utils/all-results";
 import { count_result } from "@cocalc/database/postgres/utils/count-result";
 import { one_result } from "@cocalc/database/postgres/utils/one-result";
@@ -14,7 +16,7 @@ import { quote_field } from "@cocalc/database/postgres/utils/quote-field";
 import { callback2, callback_opts } from "@cocalc/util/async-utils";
 import { checkProjectName } from "@cocalc/util/db-schema/name-rules";
 import * as misc from "@cocalc/util/misc";
-import { PROJECT_UPGRADES, SCHEMA } from "@cocalc/util/schema";
+import { SCHEMA } from "@cocalc/util/schema";
 import type { CB } from "@cocalc/util/types/callback";
 
 import { updateRetentionData as updateRetentionDataImpl } from "../postgres/retention";
@@ -791,7 +793,7 @@ export function _parse_set_query_opts(
 
     if (typeof val === "function") {
       try {
-        query[field] = val(query, this);
+        query[field] = val(query, this, r.account_id);
       } catch (err) {
         return { err: `FATAL: error setting '${field}' -- ${err}` };
       }
@@ -1452,76 +1454,24 @@ export function _user_get_query_set_defaults(
 export function _user_set_query_project_users(
   this: UserQueryContext,
   obj: AnyRecord,
-  _account_id: string,
+  account_id?: string,
 ) {
-  if (obj.users == null) {
-    // nothing to do -- not changing users.
-    return;
+  return sanitizeUserSetQueryProjectUsers(obj, account_id);
+}
+
+export function _user_set_query_project_manage_users_owner_only(
+  this: UserQueryContext,
+  obj: AnyRecord,
+) {
+  const hasGetter = typeof obj?.get === "function";
+  const hasField = Object.prototype.hasOwnProperty.call(
+    obj ?? {},
+    "manage_users_owner_only",
+  );
+  if (!hasGetter && !hasField) {
+    return undefined;
   }
-  //#dbg("disabled")
-  //#return obj.users
-  //   - ensures all keys of users are valid uuid's (though not that they are valid users).
-  //   - and format is:
-  //          {group:'owner' or 'collaborator', hide:bool, upgrades:{a map}}
-  //     with valid upgrade fields.
-  const upgrade_fields = PROJECT_UPGRADES.params;
-  const users: AnyRecord = {};
-  // TODO: we obviously should check that a user is only changing the part
-  // of this object involving themselves... or adding/removing collaborators.
-  // That is not currently done below.  TODO TODO TODO  SECURITY.
-  for (var id in obj.users) {
-    var x = obj.users[id];
-    if (misc.is_valid_uuid_string(id)) {
-      var k, key;
-      for (key of misc.keys(x)) {
-        if (!["group", "hide", "upgrades", "ssh_keys"].includes(key)) {
-          throw Error(`unknown field '${key}`);
-        }
-      }
-      if (x.group != null && !["owner", "collaborator"].includes(x.group)) {
-        throw Error("invalid value for field 'group'");
-      }
-      if (x.hide != null && typeof x.hide !== "boolean") {
-        throw Error("invalid type for field 'hide'");
-      }
-      if (x.upgrades != null) {
-        if (!misc.is_object(x.upgrades)) {
-          throw Error("invalid type for field 'upgrades'");
-        }
-        for (k in x.upgrades) {
-          if (!upgrade_fields[k]) {
-            throw Error(`invalid upgrades field '${k}'`);
-          }
-        }
-      }
-      if (x.ssh_keys) {
-        // do some checks.
-        if (!misc.is_object(x.ssh_keys)) {
-          throw Error("ssh_keys must be an object");
-        }
-        for (var fingerprint in x.ssh_keys) {
-          key = x.ssh_keys[fingerprint];
-          if (!key) {
-            // deleting
-            continue;
-          }
-          if (!misc.is_object(key)) {
-            throw Error("each key in ssh_keys must be an object");
-          }
-          for (k in key) {
-            // the two dates are just numbers not actual timestamps...
-            if (
-              !["title", "value", "creation_date", "last_use_date"].includes(k)
-            ) {
-              throw Error(`invalid ssh_keys field '${k}'`);
-            }
-          }
-        }
-      }
-      users[id] = x;
-    }
-  }
-  return users;
+  return sanitizeManageUsersOwnerOnly(obj);
 }
 
 export async function project_action(
@@ -3046,6 +2996,7 @@ type UserQueryMethods = {
   _user_get_query_json_timestamps: typeof _user_get_query_json_timestamps;
   _user_get_query_set_defaults: typeof _user_get_query_set_defaults;
   _user_set_query_project_users: typeof _user_set_query_project_users;
+  _user_set_query_project_manage_users_owner_only: typeof _user_set_query_project_manage_users_owner_only;
   project_action: typeof project_action;
   _user_set_query_project_change_before: typeof _user_set_query_project_change_before;
   _user_set_query_project_change_after: typeof _user_set_query_project_change_after;

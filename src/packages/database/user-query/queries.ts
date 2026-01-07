@@ -168,6 +168,17 @@ export function extend_PostgreSQL<TBase extends PostgreSQLConstructor>(
       return userQuery._user_set_query_project_users.call(this, ...args);
     }
 
+    _user_set_query_project_manage_users_owner_only(
+      ...args: Parameters<
+        typeof userQuery._user_set_query_project_manage_users_owner_only
+      >
+    ) {
+      return userQuery._user_set_query_project_manage_users_owner_only.call(
+        this,
+        ...args,
+      );
+    }
+
     project_action(...args: Parameters<typeof userQuery.project_action>) {
       return userQuery.project_action.call(this, ...args);
     }
