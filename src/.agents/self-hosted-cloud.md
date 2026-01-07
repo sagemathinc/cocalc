@@ -348,7 +348,7 @@ Command envelope:
 - **\(now\) Multipass VM sizing**: allow users to edit CPU/RAM and grow disk post\-create; surface safe limits and show current settings in the UI.
 - **\(done\) ARM support**: publish ARM64 variants for connector, project\-host, project bundle, tools, and cloudflared; detect arch and refuse to run wrong binaries with a clear message.
 - **Bootstrap failure reporting**: if the cloud\-init bootstrap script fails, attempt to report a failure status \+ reason back to the control plane using the bootstrap token.
-- **\(needs test\) Btrfs remount**: ensure the btrfs image is remounted on reboot \(fstab or systemd mount\), and block project\-host start until mount is ready.
+- **\(done\) Btrfs remount**: ensure the btrfs image is remounted on reboot \(fstab or systemd mount\), and block project\-host start until mount is ready.
 - **Cloud\-init path policy**: use a non\-hidden, per\-launch cloud\-init directory under `$HOME/cocalc-connector`, clean it up after success, and remove parent dir if empty.
 - **UI live refresh**: refresh connector status without manual reload \(SSE, polling, or catalog refresh timer\) and enable Start immediately when the connector checks in.
 - **Connector UX hardening \(single connector per machine\)**:

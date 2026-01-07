@@ -41,6 +41,34 @@ async function updateHostRow(id: string, updates: Record<string, any>) {
   );
 }
 
+async function updateProjectsHostUrls(opts: {
+  host_id: string;
+  public_url?: string | null;
+  internal_url?: string | null;
+  ssh_server?: string | null;
+}) {
+  const updates: Array<[string, string | null | undefined]> = [
+    ["public_url", opts.public_url],
+    ["internal_url", opts.internal_url],
+    ["ssh_server", opts.ssh_server],
+  ];
+  const params: Array<string | null | undefined> = [opts.host_id];
+  let expr = "coalesce(host, '{}'::jsonb)";
+  let idx = 2;
+  for (const [field, value] of updates) {
+    if (value === undefined) continue;
+    expr = `jsonb_set(${expr}, '{${field}}', to_jsonb($${idx++}::text), true)`;
+    params.push(value);
+  }
+  if (idx === 2) return;
+  await pool().query(
+    `UPDATE projects
+     SET host=${expr}
+     WHERE host_id=$1`,
+    params,
+  );
+}
+
 async function ensureDnsForHost(row: any) {
   if (await hasCloudflareTunnel()) {
     try {
@@ -69,10 +97,20 @@ async function ensureDnsForHost(row: any) {
           : {}),
       };
       row.metadata = nextMetadata;
-      await updateHostRow(row.id, {
-        metadata: nextMetadata,
+      const nextUrls = {
         public_url: `https://${tunnel.hostname}`,
         internal_url: `https://${tunnel.hostname}`,
+      };
+      await updateHostRow(row.id, {
+        metadata: nextMetadata,
+        public_url: nextUrls.public_url,
+        internal_url: nextUrls.internal_url,
+      });
+      await updateProjectsHostUrls({
+        host_id: row.id,
+        public_url: nextUrls.public_url,
+        internal_url: nextUrls.internal_url,
+        ssh_server: row.ssh_server,
       });
     } catch (err) {
       logger.warn("cloudflare tunnel ensure failed", {
@@ -91,10 +129,20 @@ async function ensureDnsForHost(row: any) {
       record_id: row.metadata?.dns?.record_id,
     });
     row.metadata = { ...row.metadata, dns };
-    await updateHostRow(row.id, {
-      metadata: row.metadata,
+    const nextUrls = {
       public_url: `https://${dns.name}`,
       internal_url: `https://${dns.name}`,
+    };
+    await updateHostRow(row.id, {
+      metadata: row.metadata,
+      public_url: nextUrls.public_url,
+      internal_url: nextUrls.internal_url,
+    });
+    await updateProjectsHostUrls({
+      host_id: row.id,
+      public_url: nextUrls.public_url,
+      internal_url: nextUrls.internal_url,
+      ssh_server: row.ssh_server,
     });
   } catch (err) {
     logger.warn("dns update failed", { host_id: row.id, err });
