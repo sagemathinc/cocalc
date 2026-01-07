@@ -1,4 +1,5 @@
 import getPool from "@cocalc/database/pool";
+import { db } from "@cocalc/database";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { uuid } from "@cocalc/util/misc";
 import {
@@ -7,9 +8,10 @@ import {
   type SoftwareLicensePayload,
 } from "@cocalc/util/software-licenses/token";
 import getLogger from "@cocalc/backend/logger";
+import { callback2 } from "@cocalc/util/async-utils";
 
 const logger = getLogger("server:conat:api:software");
-const PRIVATE_KEY_ENV = "COCALC_SOFTWARE_LICENSE_PRIVATE_KEY";
+const PRIVATE_KEY_SETTING = "software_license_private_key";
 
 function requireAdmin(account_id?: string) {
   if (!account_id) {
@@ -18,10 +20,11 @@ function requireAdmin(account_id?: string) {
   return isAdmin(account_id);
 }
 
-function getPrivateKey(): string {
-  const key = process.env[PRIVATE_KEY_ENV];
+async function getPrivateKey(): Promise<string> {
+  const settings = await callback2(db().get_server_settings_cached);
+  const key = settings?.[PRIVATE_KEY_SETTING];
   if (!key) {
-    throw Error(`missing ${PRIVATE_KEY_ENV}`);
+    throw Error(`missing server setting ${PRIVATE_KEY_SETTING}`);
   }
   return key;
 }
@@ -212,7 +215,7 @@ export async function createLicense({
     instance_binding: tier?.defaults?.instance_binding ?? "none",
   };
   const token = encodeSoftwareLicenseToken(
-    signSoftwareLicense(payload, getPrivateKey()),
+    signSoftwareLicense(payload, await getPrivateKey()),
   );
   const owner = owner_account_id ?? account_id;
   await pool.query(

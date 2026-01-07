@@ -15,6 +15,7 @@ import { SystemNotifications } from "./system-notifications";
 import { UserSearch } from "./users/user-search";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { TestLLMAdmin } from "./llm/admin-llm-test";
+import { SoftwareLicensesAdmin } from "./software-licenses";
 
 const headerStyle = { fontSize: "12pt" } as const;
 
@@ -54,6 +55,15 @@ export function AdminPage() {
         </div>
       ),
       children: <SiteLicenses />,
+    },
+    {
+      key: "software-licenses",
+      label: (
+        <div style={headerStyle}>
+          <Icon name="key" style={{ marginRight: "8px" }} /> Software Licenses
+        </div>
+      ),
+      children: <SoftwareLicensesAdmin />,
     },
     {
       key: "registration-tokens",
