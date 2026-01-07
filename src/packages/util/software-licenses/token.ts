@@ -28,7 +28,11 @@ export interface SoftwareLicenseToken {
 }
 
 function canonicalizePayload(payload: SoftwareLicensePayload): string {
-  return jsonStableStringify(payload);
+  const canonical = jsonStableStringify(payload);
+  if (typeof canonical !== "string") {
+    throw Error("failed to canonicalize software license payload");
+  }
+  return canonical;
 }
 
 export function encodeSoftwareLicenseToken(
