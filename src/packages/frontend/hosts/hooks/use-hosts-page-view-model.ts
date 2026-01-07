@@ -23,6 +23,7 @@ import type {
   HostListViewMode,
   HostSortDirection,
   HostSortField,
+  HostProvider,
 } from "../types";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 
@@ -137,7 +138,7 @@ export const useHostsPageViewModel = () => {
     setStatus,
     removeHost,
     renameHost,
-    updateSelfHostResources,
+    updateHostMachine,
     forceDeprovision,
     removeSelfHostConnector,
   } = useHostActions({
@@ -505,6 +506,12 @@ export const useHostsPageViewModel = () => {
     },
   });
 
+  const editProvider = (editingHost?.machine?.cloud ??
+    "none") as HostProvider;
+  const { catalog: editCatalog } = useHostCatalog(hub, {
+    provider: editProvider !== "none" ? editProvider : undefined,
+  });
+
   const editVm = {
     open: editOpen,
     host: editingHost,
@@ -512,7 +519,21 @@ export const useHostsPageViewModel = () => {
     onCancel: closeEdit,
     onSave: async (
       id: string,
-      values: { name: string; cpu?: number; ram_gb?: number; disk_gb?: number },
+      values: {
+        name: string;
+        cpu?: number;
+        ram_gb?: number;
+        disk_gb?: number;
+        disk_type?: string;
+        machine_type?: string;
+        gpu_type?: string;
+        size?: string;
+        gpu?: string;
+        storage_mode?: string;
+        boot_disk_gb?: number;
+        region?: string;
+        zone?: string;
+      },
     ) => {
       setSavingEdit(true);
       try {
@@ -521,34 +542,76 @@ export const useHostsPageViewModel = () => {
           await renameHost(id, values.name);
         }
         const isSelfHost = editingHost.machine?.cloud === "self-host";
+        const isDeprovisioned = editingHost.status === "deprovisioned";
+        const update: Record<string, any> = {};
+        const toPositive = (value: unknown) => {
+          const parsed = Number(value);
+          if (!Number.isFinite(parsed) || parsed <= 0) return undefined;
+          return Math.floor(parsed);
+        };
+
+        const currentCpu = Number(editingHost.machine?.metadata?.cpu);
+        const currentRam = Number(editingHost.machine?.metadata?.ram_gb);
+        const currentDisk = Number(editingHost.machine?.disk_gb);
+        const nextCpu = toPositive(values.cpu);
+        const nextRam = toPositive(values.ram_gb);
+        const nextDisk = toPositive(values.disk_gb);
         if (isSelfHost) {
-          const currentCpu = Number(editingHost.machine?.metadata?.cpu);
-          const currentRam = Number(editingHost.machine?.metadata?.ram_gb);
-          const currentDisk = Number(editingHost.machine?.disk_gb);
-          const nextCpu = Number(values.cpu);
-          const nextRam = Number(values.ram_gb);
-          const nextDisk = Number(values.disk_gb);
-          const cpuChanged =
-            Number.isFinite(nextCpu) && nextCpu > 0 && nextCpu !== currentCpu;
-          const ramChanged =
-            Number.isFinite(nextRam) && nextRam > 0 && nextRam !== currentRam;
-          const diskChanged =
-            Number.isFinite(nextDisk) &&
-            nextDisk > 0 &&
-            nextDisk !== currentDisk;
-          if (cpuChanged || ramChanged || diskChanged) {
-            await updateSelfHostResources(id, {
-              cpu: cpuChanged ? nextCpu : undefined,
-              ram_gb: ramChanged ? nextRam : undefined,
-              disk_gb: diskChanged ? nextDisk : undefined,
-            });
+          if (nextCpu && nextCpu !== currentCpu) update.cpu = nextCpu;
+          if (nextRam && nextRam !== currentRam) update.ram_gb = nextRam;
+        }
+        if (nextDisk && nextDisk !== currentDisk) update.disk_gb = nextDisk;
+
+        if (isDeprovisioned) {
+          const nextMachineType = values.machine_type || values.size;
+          if (values.region && values.region !== editingHost.region) {
+            update.region = values.region;
           }
+          if (values.zone && values.zone !== editingHost.machine?.zone) {
+            update.zone = values.zone;
+          }
+          if (
+            nextMachineType &&
+            nextMachineType !== editingHost.machine?.machine_type
+          ) {
+            update.machine_type = nextMachineType;
+          }
+          if (
+            values.gpu_type &&
+            values.gpu_type !== editingHost.machine?.gpu_type
+          ) {
+            update.gpu_type = values.gpu_type;
+          }
+          if (
+            values.storage_mode &&
+            values.storage_mode !== editingHost.machine?.storage_mode
+          ) {
+            update.storage_mode = values.storage_mode;
+          }
+          if (
+            values.disk_type &&
+            values.disk_type !== editingHost.machine?.disk_type
+          ) {
+            update.disk_type = values.disk_type;
+          }
+          const nextBootDisk = toPositive(values.boot_disk_gb);
+          if (
+            nextBootDisk &&
+            nextBootDisk !== Number(editingHost.machine?.metadata?.boot_disk_gb)
+          ) {
+            update.boot_disk_gb = nextBootDisk;
+          }
+        }
+
+        if (Object.keys(update).length > 0) {
+          await updateHostMachine(id, update);
         }
       } finally {
         setSavingEdit(false);
         closeEdit();
       }
     },
+    catalog: editCatalog,
   };
 
   const setupVm = {

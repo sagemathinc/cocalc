@@ -213,7 +213,14 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
     }
   }
   if (providerId === "nebius") {
-    const wantsGpu = !!gpu;
+    let wantsGpu = !!gpu;
+    if (!wantsGpu && machine.machine_type) {
+      const types = await loadNebiusInstanceTypes();
+      const match = types.find((entry) => entry.name === machine.machine_type);
+      if ((match?.gpus ?? 0) > 0) {
+        wantsGpu = true;
+      }
+    }
     const images = await loadNebiusImages();
     const family = pickNebiusImageFamily(images, wantsGpu, {
       region: row.region,

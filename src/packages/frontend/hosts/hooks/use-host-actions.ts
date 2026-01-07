@@ -14,6 +14,14 @@ type HubClient = {
       cpu?: number;
       ram_gb?: number;
       disk_gb?: number;
+      disk_type?: "ssd" | "balanced" | "standard";
+      machine_type?: string;
+      gpu_type?: string;
+      gpu_count?: number;
+      storage_mode?: "ephemeral" | "persistent";
+      boot_disk_gb?: number;
+      region?: string;
+      zone?: string;
     }) => Promise<unknown>;
   };
 };
@@ -87,11 +95,22 @@ export const useHostActions = ({
     }
   };
 
-  const updateSelfHostResources = async (id: string, opts: {
-    cpu?: number;
-    ram_gb?: number;
-    disk_gb?: number;
-  }) => {
+  const updateHostMachine = async (
+    id: string,
+    opts: {
+      cpu?: number;
+      ram_gb?: number;
+      disk_gb?: number;
+      disk_type?: "ssd" | "balanced" | "standard";
+      machine_type?: string;
+      gpu_type?: string;
+      gpu_count?: number;
+      storage_mode?: "ephemeral" | "persistent";
+      boot_disk_gb?: number;
+      region?: string;
+      zone?: string;
+    },
+  ) => {
     if (!hub.hosts.updateHostMachine) {
       message.error("Host update not available");
       return;
@@ -137,7 +156,7 @@ export const useHostActions = ({
     setStatus,
     removeHost,
     renameHost,
-    updateSelfHostResources,
+    updateHostMachine,
     forceDeprovision,
     removeSelfHostConnector,
   };

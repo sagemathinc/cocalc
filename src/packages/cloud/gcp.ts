@@ -1,4 +1,5 @@
 import {
+  DisksClient,
   ImagesClient,
   InstancesClient,
   ZoneOperationsClient,
@@ -429,11 +430,27 @@ export class GcpProvider implements CloudProvider {
   }
 
   async resizeDisk(
-    _runtime: HostRuntime,
-    _newSizeGb: number,
-    _creds: any,
+    runtime: HostRuntime,
+    newSizeGb: number,
+    creds: any,
   ): Promise<void> {
-    throw new Error("resizeDisk not implemented yet");
+    const credentials = parseCredentials(creds ?? {});
+    if (!runtime.zone) {
+      throw new Error("gcp.resizeDisk requires zone");
+    }
+    const diskName = `${runtime.instance_id}-data`;
+    const client = new DisksClient(credentials);
+    const [response] = await client.resize({
+      project: credentials.projectId,
+      zone: runtime.zone,
+      disk: diskName,
+      disksResizeRequestResource: { sizeGb: newSizeGb },
+    });
+    await waitUntilOperationComplete({
+      response,
+      zone: runtime.zone,
+      credentials,
+    });
   }
 
   async getStatus(

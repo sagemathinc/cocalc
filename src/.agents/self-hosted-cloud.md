@@ -345,6 +345,8 @@ Command envelope:
   - \(done\) Provide clear “connector online” status and automatically attempt the first start.
 - **\(done\) Connector daemon packaging**: ship a binary via `software.cocalc.ai` and provide a one\-line curl install \+ run command; include version reporting and a simple self\-update path.
 - **\(done\) Long\-poll tuning**: keep long\-poll for simplicity, but use adaptive intervals \(fast during initial setup or when VM is off; slower when stable\).
+  - Startup fast window keeps polling at the fast interval for the first ~2 minutes after the connector starts.
+  - Commands and errors extend the fast window so follow-up actions are picked up quickly.
 - **\(done\) Multipass VM sizing**: allow users to edit CPU/RAM and grow disk post\-create; surface safe limits and show current settings in the UI.
 - **\(done\) ARM support**: publish ARM64 variants for connector, project\-host, project bundle, tools, and cloudflared; detect arch and refuse to run wrong binaries with a clear message.
 - **\(pending\) Bootstrap failure reporting**: if the cloud\-init bootstrap script fails, attempt to report a failure status \+ reason back to the control plane using the bootstrap token.

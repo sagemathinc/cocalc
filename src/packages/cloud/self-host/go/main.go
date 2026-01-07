@@ -25,21 +25,22 @@ import (
 )
 
 const (
-	defaultPollSeconds      = 10
-	defaultFastPollSeconds  = 3
-	defaultPollBoostSeconds = 60
-	defaultTimeout          = 20 * time.Second
-	defaultImage            = "24.04"
+	defaultPollSeconds        = 10
+	defaultFastPollSeconds    = 3
+	defaultPollBoostSeconds   = 60
+	defaultStartupFastSeconds = 120
+	defaultTimeout            = 20 * time.Second
+	defaultImage              = "24.04"
 )
 
 var version = "0.0.0"
 
 type Config struct {
-	BaseURL            string `json:"base_url"`
-	ConnectorID        string `json:"connector_id,omitempty"`
-	ConnectorToken     string `json:"connector_token,omitempty"`
+	BaseURL             string `json:"base_url"`
+	ConnectorID         string `json:"connector_id,omitempty"`
+	ConnectorToken      string `json:"connector_token,omitempty"`
 	PollIntervalSeconds int    `json:"poll_interval_seconds,omitempty"`
-	Name               string `json:"name,omitempty"`
+	Name                string `json:"name,omitempty"`
 }
 
 type CommandEnvelope struct {
@@ -129,14 +130,14 @@ func runPair(args []string) {
 		))
 	}
 	info := map[string]interface{}{
-		"name":        *name,
-		"version":     version,
-		"os":          runtime.GOOS,
-		"arch":        runtime.GOARCH,
+		"name":         *name,
+		"version":      version,
+		"os":           runtime.GOOS,
+		"arch":         runtime.GOARCH,
 		"capabilities": map[string]bool{"multipass": true},
 	}
 	payload := map[string]interface{}{
-		"pairing_token": *token,
+		"pairing_token":  *token,
 		"connector_info": info,
 	}
 	body, err := json.Marshal(payload)
@@ -152,19 +153,19 @@ func runPair(args []string) {
 		fail(fmt.Sprintf("pair failed (%d): %s", status, string(respBody)))
 	}
 	var resp struct {
-		ConnectorID        string `json:"connector_id"`
-		ConnectorToken     string `json:"connector_token"`
+		ConnectorID         string `json:"connector_id"`
+		ConnectorToken      string `json:"connector_token"`
 		PollIntervalSeconds int    `json:"poll_interval_seconds"`
 	}
 	if err := json.Unmarshal(respBody, &resp); err != nil {
 		fail(fmt.Sprintf("pair response decode: %v", err))
 	}
 	cfg := Config{
-		BaseURL:            *baseURL,
-		ConnectorID:        resp.ConnectorID,
-		ConnectorToken:     resp.ConnectorToken,
+		BaseURL:             *baseURL,
+		ConnectorID:         resp.ConnectorID,
+		ConnectorToken:      resp.ConnectorToken,
 		PollIntervalSeconds: resp.PollIntervalSeconds,
-		Name:               *name,
+		Name:                *name,
 	}
 	saveJSON(path, cfg)
 	logLine("paired connector", map[string]interface{}{
@@ -453,17 +454,20 @@ func runLoop(cfg Config, cfgPath string) {
 	}
 	boostWindow := time.Duration(defaultPollBoostSeconds) * time.Second
 	boostUntil := time.Now().Add(boostWindow)
+	startupUntil := time.Now().Add(time.Duration(defaultStartupFastSeconds) * time.Second)
 	idlePolls := 0
 	lastNoCommandLog := time.Now()
 	logLine("connector started", map[string]interface{}{
-		"base_url":           cfg.BaseURL,
-		"poll_seconds":       baseInterval,
-		"fast_poll_seconds":  fastInterval,
-		"poll_boost_seconds": defaultPollBoostSeconds,
+		"base_url":             cfg.BaseURL,
+		"poll_seconds":         baseInterval,
+		"fast_poll_seconds":    fastInterval,
+		"poll_boost_seconds":   defaultPollBoostSeconds,
+		"startup_fast_seconds": defaultStartupFastSeconds,
 	})
 	for {
+		now := time.Now()
 		interval := baseInterval
-		if time.Now().Before(boostUntil) {
+		if now.Before(boostUntil) || now.Before(startupUntil) {
 			interval = fastInterval
 		}
 		hadCommand := false
@@ -860,10 +864,10 @@ func indentBlock(text string, spaces int) string {
 }
 
 type cloudInitPaths struct {
-	InitDir string
+	InitDir  string
 	InitPath string
-	BaseDir string
-	RootDir string
+	BaseDir  string
+	RootDir  string
 }
 
 func createCloudInitPaths(hostID string) cloudInitPaths {
@@ -876,10 +880,10 @@ func createCloudInitPaths(hostID string) cloudInitPaths {
 		root = filepath.Dir(base)
 	}
 	return cloudInitPaths{
-		InitDir: initDir,
+		InitDir:  initDir,
 		InitPath: initPath,
-		BaseDir: base,
-		RootDir: root,
+		BaseDir:  base,
+		RootDir:  root,
 	}
 }
 

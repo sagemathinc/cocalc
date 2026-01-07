@@ -24,7 +24,8 @@ import { sendSelfHostCommand } from "@cocalc/server/self-host/commands";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { isValidUUID } from "@cocalc/util/misc";
 import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
-import { listServerProviders } from "@cocalc/server/cloud/providers";
+import { getServerProvider, listServerProviders } from "@cocalc/server/cloud/providers";
+import { getProviderContext } from "@cocalc/server/cloud/provider-context";
 import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -721,25 +722,42 @@ export async function updateHostMachine({
   cpu,
   ram_gb,
   disk_gb,
+  disk_type,
+  machine_type,
+  gpu_type,
+  gpu_count,
+  storage_mode,
+  boot_disk_gb,
+  region,
+  zone,
 }: {
   account_id?: string;
   id: string;
   cpu?: number;
   ram_gb?: number;
   disk_gb?: number;
+  disk_type?: HostMachine["disk_type"];
+  machine_type?: HostMachine["machine_type"];
+  gpu_type?: HostMachine["gpu_type"];
+  gpu_count?: number;
+  storage_mode?: HostMachine["storage_mode"];
+  boot_disk_gb?: number;
+  region?: string;
+  zone?: string;
 }): Promise<Host> {
   const row = await loadOwnedHost(id, account_id);
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
   const machineCloud = normalizeProviderId(machine.cloud);
-  if (machineCloud !== "self-host") {
-    throw new Error("host is not self-hosted");
-  }
+  const isSelfHost = machineCloud === "self-host";
+  const isDeprovisioned = row.status === "deprovisioned";
   const nextMachine: HostMachine = {
     ...machine,
     metadata: { ...(machine.metadata ?? {}) },
   };
   let changed = false;
+  let nonDiskChange = false;
+  let nextRegion = row.region ?? "";
 
   const parsePositiveInt = (value: unknown, label: string) => {
     if (value == null) return undefined;
@@ -753,14 +771,18 @@ export async function updateHostMachine({
   const nextCpu = parsePositiveInt(cpu, "cpu");
   const nextRam = parsePositiveInt(ram_gb, "ram_gb");
   const nextDisk = parsePositiveInt(disk_gb, "disk_gb");
+  const nextGpuCount = parsePositiveInt(gpu_count, "gpu_count");
+  const nextBootDisk = parsePositiveInt(boot_disk_gb, "boot_disk_gb");
 
   if (nextCpu != null && nextCpu !== machine.metadata?.cpu) {
     nextMachine.metadata = { ...(nextMachine.metadata ?? {}), cpu: nextCpu };
     changed = true;
+    nonDiskChange = true;
   }
   if (nextRam != null && nextRam !== machine.metadata?.ram_gb) {
     nextMachine.metadata = { ...(nextMachine.metadata ?? {}), ram_gb: nextRam };
     changed = true;
+    nonDiskChange = true;
   }
   if (nextDisk != null) {
     const currentDisk = Number(machine.disk_gb);
@@ -772,39 +794,135 @@ export async function updateHostMachine({
       changed = true;
     }
   }
+  if (typeof machine_type === "string" && machine_type !== machine.machine_type) {
+    nextMachine.machine_type = machine_type || undefined;
+    changed = true;
+    nonDiskChange = true;
+  }
+  if (typeof gpu_type === "string" && gpu_type !== machine.gpu_type) {
+    nextMachine.gpu_type = gpu_type || undefined;
+    changed = true;
+    nonDiskChange = true;
+  }
+  if (nextGpuCount != null && nextGpuCount !== machine.gpu_count) {
+    nextMachine.gpu_count = nextGpuCount;
+    changed = true;
+    nonDiskChange = true;
+  }
+  if (typeof storage_mode === "string" && storage_mode !== machine.storage_mode) {
+    nextMachine.storage_mode = storage_mode;
+    changed = true;
+    nonDiskChange = true;
+  }
+  if (typeof disk_type === "string" && disk_type !== machine.disk_type) {
+    nextMachine.disk_type = disk_type;
+    changed = true;
+    nonDiskChange = true;
+  }
+  if (nextBootDisk != null && nextBootDisk !== machine.metadata?.boot_disk_gb) {
+    nextMachine.metadata = {
+      ...(nextMachine.metadata ?? {}),
+      boot_disk_gb: nextBootDisk,
+    };
+    changed = true;
+    nonDiskChange = true;
+  }
+  if (typeof zone === "string" && zone && zone !== machine.zone) {
+    nextMachine.zone = zone;
+    changed = true;
+    nonDiskChange = true;
+  }
+  if (typeof region === "string" && region && region !== row.region) {
+    nextRegion = region;
+    changed = true;
+    nonDiskChange = true;
+  }
 
   if (!changed) {
+    return parseRow(row);
+  }
+
+  if (isDeprovisioned) {
+    const nextMetadata = { ...metadata, machine: nextMachine };
+    if (machine_type) {
+      nextMetadata.size = machine_type;
+    }
+    if (nextMachine.gpu_type || (nextMachine.gpu_count ?? 0) > 0) {
+      nextMetadata.gpu = true;
+    } else if (gpu_type === "" || nextMachine.gpu_type === undefined) {
+      nextMetadata.gpu = false;
+    }
+    await pool().query(
+      `UPDATE project_hosts SET region=$2, metadata=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
+      [row.id, nextRegion, nextMetadata],
+    );
+    const { rows } = await pool().query(
+      `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
+      [row.id],
+    );
+    if (!rows[0]) throw new Error("host not found");
+    return parseRow(rows[0]);
+  }
+
+  if (machineCloud && !isSelfHost && nonDiskChange) {
+    throw new Error(
+      "host must be deprovisioned before changing CPU/RAM/machine type",
+    );
+  }
+
+  if (!isSelfHost && nextDisk == null) {
     return parseRow(row);
   }
 
   const runtime = metadata.runtime ?? {};
   const instanceName =
     runtime.metadata?.instance_name ?? runtime.instance_id ?? undefined;
-  const connectorId =
-    row.region ??
-    machine.metadata?.connector_id ??
-    machine.metadata?.connectorId ??
-    undefined;
-  if (connectorId && instanceName) {
-    const payload: Record<string, any> = {
-      host_id: row.id,
-      name: instanceName,
-    };
-    if (nextCpu != null) payload.cpus = nextCpu;
-    if (nextRam != null) payload.mem_gb = nextRam;
-    if (nextDisk != null) payload.disk_gb = nextDisk;
-    await sendSelfHostCommand({
-      connector_id: connectorId,
-      action: "resize",
-      payload,
-      timeoutMs: SELF_HOST_RESIZE_TIMEOUT_MS,
-    });
+  if (isSelfHost) {
+    const connectorId =
+      row.region ??
+      machine.metadata?.connector_id ??
+      machine.metadata?.connectorId ??
+      undefined;
+    if (connectorId && instanceName) {
+      const payload: Record<string, any> = {
+        host_id: row.id,
+        name: instanceName,
+      };
+      if (nextCpu != null) payload.cpus = nextCpu;
+      if (nextRam != null) payload.mem_gb = nextRam;
+      if (nextDisk != null) payload.disk_gb = nextDisk;
+      await sendSelfHostCommand({
+        connector_id: connectorId,
+        action: "resize",
+        payload,
+        timeoutMs: SELF_HOST_RESIZE_TIMEOUT_MS,
+      });
+    }
+  } else if (machineCloud && nextDisk != null) {
+    const provider = getServerProvider(machineCloud);
+    if (!provider?.entry.capabilities.supportsDiskResize) {
+      throw new Error("disk resize is not supported for this provider");
+    }
+    const diskResizeRequiresStop = (
+      provider.entry.capabilities as { diskResizeRequiresStop?: boolean }
+    ).diskResizeRequiresStop;
+    if (nextMachine.storage_mode === "ephemeral") {
+      throw new Error("disk resize is only available for persistent storage");
+    }
+    if (diskResizeRequiresStop && row.status !== "off") {
+      throw new Error("disk resize requires the host to be stopped");
+    }
+    if (!runtime.instance_id) {
+      throw new Error("host is not provisioned");
+    }
+    const { entry, creds } = await getProviderContext(machineCloud);
+    await entry.provider.resizeDisk(runtime, nextDisk, creds);
   }
 
   const nextMetadata = { ...metadata, machine: nextMachine };
   await pool().query(
-    `UPDATE project_hosts SET metadata=$2, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
-    [row.id, nextMetadata],
+    `UPDATE project_hosts SET region=$2, metadata=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
+    [row.id, nextRegion, nextMetadata],
   );
   const { rows } = await pool().query(
     `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,

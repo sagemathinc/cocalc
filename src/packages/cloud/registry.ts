@@ -21,6 +21,7 @@ export type ProviderCapabilities = {
   supportsStop: boolean;
   supportsDiskType: boolean;
   supportsDiskResize: boolean;
+  diskResizeRequiresStop: boolean;
   supportsCustomImage: boolean;
   supportsGpu: boolean;
   supportsZones: boolean;
@@ -96,6 +97,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsStop: true,
       supportsDiskType: true,
       supportsDiskResize: true,
+      diskResizeRequiresStop: false,
       supportsCustomImage: true,
       supportsGpu: true,
       supportsZones: true,
@@ -124,6 +126,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsStop: false,
       supportsDiskType: false,
       supportsDiskResize: false,
+      diskResizeRequiresStop: false,
       supportsCustomImage: true,
       supportsGpu: true,
       supportsZones: false,
@@ -152,6 +155,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsStop: false,
       supportsDiskType: false,
       supportsDiskResize: false,
+      diskResizeRequiresStop: false,
       supportsCustomImage: true,
       supportsGpu: true,
       supportsZones: false,
@@ -180,6 +184,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsStop: true,
       supportsDiskType: false,
       supportsDiskResize: false,
+      diskResizeRequiresStop: false,
       supportsCustomImage: true,
       supportsGpu: false,
       supportsZones: false,
@@ -203,6 +208,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsStop: true,
       supportsDiskType: true,
       supportsDiskResize: true,
+      diskResizeRequiresStop: true,
       supportsCustomImage: true,
       supportsGpu: true,
       supportsZones: false,
@@ -231,6 +237,7 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
       supportsStop: true,
       supportsDiskType: false,
       supportsDiskResize: true,
+      diskResizeRequiresStop: true,
       supportsCustomImage: false,
       supportsGpu: false,
       supportsZones: false,
