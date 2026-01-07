@@ -82,9 +82,7 @@ function readHostSortDirection(): HostSortDirection {
   if (typeof window === "undefined") {
     return DEFAULT_SORT_DIRECTION;
   }
-  const raw = window.localStorage.getItem(
-    HOSTS_SORT_DIRECTION_STORAGE_KEY,
-  );
+  const raw = window.localStorage.getItem(HOSTS_SORT_DIRECTION_STORAGE_KEY);
   if (raw === "asc" || raw === "desc") {
     return raw;
   }
@@ -171,11 +169,13 @@ export const useHostsPageViewModel = () => {
     },
     [hub, refresh],
   );
-  const [editingHost, setEditingHost] = React.useState<typeof hosts[number]>();
+  const [editingHost, setEditingHost] =
+    React.useState<(typeof hosts)[number]>();
   const [editOpen, setEditOpen] = React.useState(false);
   const [savingEdit, setSavingEdit] = React.useState(false);
-  const { drawerOpen, selected, openDetails, closeDetails } = useHostSelection(hosts);
-  const openEdit = (host: typeof hosts[number]) => {
+  const { drawerOpen, selected, openDetails, closeDetails } =
+    useHostSelection(hosts);
+  const openEdit = (host: (typeof hosts)[number]) => {
     setEditingHost(host);
     setEditOpen(true);
   };
@@ -187,13 +187,13 @@ export const useHostsPageViewModel = () => {
     enabled: drawerOpen,
     limit: 50,
   });
-  const [hostViewMode, setHostViewMode] = React.useState<HostListViewMode>(
-    readHostViewMode,
-  );
+  const [hostViewMode, setHostViewMode] =
+    React.useState<HostListViewMode>(readHostViewMode);
   const [sortField, setSortField] =
     React.useState<HostSortField>(readHostSortField);
-  const [sortDirection, setSortDirection] =
-    React.useState<HostSortDirection>(readHostSortDirection);
+  const [sortDirection, setSortDirection] = React.useState<HostSortDirection>(
+    readHostSortDirection,
+  );
   const [autoResort, setAutoResort] =
     React.useState<boolean>(readHostAutoResort);
   React.useEffect(() => {
@@ -246,7 +246,8 @@ export const useHostsPageViewModel = () => {
     [selfHostCatalog],
   );
   const selfHostConnectorMap = React.useMemo(
-    () => new Map(selfHostConnectors.map((connector) => [connector.id, connector])),
+    () =>
+      new Map(selfHostConnectors.map((connector) => [connector.id, connector])),
     [selfHostConnectors],
   );
   const isSelfHostConnectorOnline = React.useCallback(
@@ -260,6 +261,7 @@ export const useHostsPageViewModel = () => {
     },
     [selfHostConnectorMap],
   );
+  const [setupOpen, setSetupOpen] = React.useState(false);
   React.useEffect(() => {
     const hasTransition = hosts.some((host) =>
       ["starting", "stopping", "pending"].includes(host.status ?? ""),
@@ -270,12 +272,7 @@ export const useHostsPageViewModel = () => {
     });
     const needsFast = hasTransition || hasWaitingConnector || setupOpen;
     setFastPoll(needsFast);
-  }, [
-    hosts,
-    selfHostConnectors,
-    isSelfHostConnectorOnline,
-    setupOpen,
-  ]);
+  }, [hosts, selfHostConnectors, isSelfHostConnectorOnline, setupOpen]);
   const baseUrl = React.useMemo(() => {
     if (typeof window === "undefined") return "";
     const basePath = appBasePath && appBasePath !== "/" ? appBasePath : "";
@@ -283,13 +280,14 @@ export const useHostsPageViewModel = () => {
     return raw.replace(/\/$/, "");
   }, []);
   const [setupHost, setSetupHost] = React.useState<Host | undefined>();
-  const [setupOpen, setSetupOpen] = React.useState(false);
   const [setupToken, setSetupToken] = React.useState<string | undefined>();
   const [setupExpires, setSetupExpires] = React.useState<string | undefined>();
   const [setupError, setSetupError] = React.useState<string | undefined>();
   const [setupLoading, setSetupLoading] = React.useState(false);
   const setupRequestRef = React.useRef(0);
-  const [removeHostTarget, setRemoveHostTarget] = React.useState<Host | undefined>();
+  const [removeHostTarget, setRemoveHostTarget] = React.useState<
+    Host | undefined
+  >();
   const [removeOpen, setRemoveOpen] = React.useState(false);
   const requestPairingToken = React.useCallback(
     async (host: Host) => {
@@ -535,7 +533,9 @@ export const useHostsPageViewModel = () => {
           const ramChanged =
             Number.isFinite(nextRam) && nextRam > 0 && nextRam !== currentRam;
           const diskChanged =
-            Number.isFinite(nextDisk) && nextDisk > 0 && nextDisk !== currentDisk;
+            Number.isFinite(nextDisk) &&
+            nextDisk > 0 &&
+            nextDisk !== currentDisk;
           if (cpuChanged || ramChanged || diskChanged) {
             await updateSelfHostResources(id, {
               cpu: cpuChanged ? nextCpu : undefined,
