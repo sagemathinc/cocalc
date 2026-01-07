@@ -431,6 +431,16 @@ if [ -n "$DATA_DISK_DEV" ]; then
     echo "bootstrap: mounting $DATA_DISK_DEV at /btrfs"
     sudo mount "$DATA_DISK_DEV" /btrfs
   fi
+  echo "bootstrap: ensuring /btrfs is mounted on reboot"
+  FSTAB_LINE=""
+  DATA_UUID="$(sudo blkid -s UUID -o value "$DATA_DISK_DEV" 2>/dev/null || true)"
+  if [ -n "$DATA_UUID" ]; then
+    FSTAB_LINE="UUID=$DATA_UUID /btrfs btrfs defaults,nofail 0 0"
+  else
+    FSTAB_LINE="$DATA_DISK_DEV /btrfs btrfs defaults,nofail 0 0"
+  fi
+  sudo sed -i.bak '/cocalc-btrfs/d' /etc/fstab
+  echo "$FSTAB_LINE # cocalc-btrfs" | sudo tee -a /etc/fstab >/dev/null
 else
   echo "bootstrap: no data disk found; using loopback image"
   sudo mkdir -p /var/lib/cocalc
@@ -444,6 +454,9 @@ else
     echo "bootstrap: mounting loopback btrfs image at /btrfs"
     sudo mount -o loop /var/lib/cocalc/btrfs.img /btrfs
   fi
+  echo "bootstrap: ensuring /btrfs is mounted on reboot"
+  sudo sed -i.bak '/cocalc-btrfs/d' /etc/fstab
+  echo "/var/lib/cocalc/btrfs.img /btrfs btrfs loop,defaults,nofail 0 0 # cocalc-btrfs" | sudo tee -a /etc/fstab >/dev/null
 fi
 sudo chown ${sshUser}:${sshUser} /btrfs || true
 echo "bootstrap: ensuring /btrfs/data subvolume"
@@ -493,6 +506,23 @@ case "\${cmd}" in
 esac
 EOF_COCALC_CTL
 chmod +x "$BOOTSTRAP_DIR/ctl"
+cat <<'EOF_COCALC_START' > "$BOOTSTRAP_DIR/start-project-host"
+#!/usr/bin/env bash
+set -euo pipefail
+BOOTSTRAP_DIR="${bootstrapDir}"
+CTL="$BOOTSTRAP_DIR/ctl"
+for attempt in $(seq 1 60); do
+  if mountpoint -q /btrfs; then
+    exec "$CTL" start
+  fi
+  echo "waiting for /btrfs mount (attempt $attempt/60)"
+  sudo mount /btrfs || true
+  sleep 5
+done
+echo "timeout waiting for /btrfs mount"
+exit 1
+EOF_COCALC_START
+chmod +x "$BOOTSTRAP_DIR/start-project-host"
 echo 'tail -n 200 /btrfs/data/log -f' > "$BOOTSTRAP_DIR/logs"
 chmod +x "$BOOTSTRAP_DIR/logs"
 
@@ -502,7 +532,7 @@ chmod +x "$BOOTSTRAP_DIR/ctl-cf" "$BOOTSTRAP_DIR/logs-cf"
 
 echo "bootstrap: configuring project-host autostart"
 sudo tee /etc/cron.d/cocalc-project-host >/dev/null <<'EOF_COCALC_CRON'
-@reboot ${sshUser} ${bootstrapDir}/ctl start
+@reboot ${sshUser} ${bootstrapDir}/start-project-host
 EOF_COCALC_CRON
 sudo chmod 644 /etc/cron.d/cocalc-project-host
 if command -v systemctl >/dev/null 2>&1; then
