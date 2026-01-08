@@ -55,12 +55,22 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   const fieldSchema = providerDescriptor
     ? filterFieldSchemaForCaps(providerDescriptor.fields, providerCaps)
     : { primary: [], advanced: [] };
+  const watchedRegion = Form.useWatch("region", form);
+  const watchedZone = Form.useWatch("zone", form);
+  const watchedMachineType = Form.useWatch("machine_type", form);
+  const watchedGpuType = Form.useWatch("gpu_type", form);
+  const watchedSize = Form.useWatch("size", form);
   const selection: ProviderSelection = {
-    region: host?.region ?? undefined,
-    zone: host?.machine?.zone ?? undefined,
-    machine_type: host?.machine?.machine_type ?? undefined,
-    gpu_type: host?.machine?.gpu_type ?? undefined,
-    size: host?.machine?.machine_type ?? host?.size ?? undefined,
+    region: watchedRegion ?? host?.region ?? undefined,
+    zone: watchedZone ?? host?.machine?.zone ?? undefined,
+    machine_type: watchedMachineType ?? host?.machine?.machine_type ?? undefined,
+    gpu_type: watchedGpuType ?? host?.machine?.gpu_type ?? undefined,
+    size:
+      watchedMachineType ??
+      watchedSize ??
+      host?.machine?.machine_type ??
+      host?.size ??
+      undefined,
     gpu: host?.gpu ? "true" : undefined,
   };
   const fieldOptions = providerDescriptor
@@ -113,6 +123,14 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
       form.resetFields();
     }
   }, [form, host, currentCpu, currentRam, currentDisk, storageMode, bootDisk]);
+  React.useEffect(() => {
+    const zoneOptions = fieldOptions.zone ?? [];
+    if (!zoneOptions.length) return;
+    const hasZone = watchedZone && zoneOptions.some((opt) => opt.value === watchedZone);
+    if (!hasZone) {
+      form.setFieldsValue({ zone: zoneOptions[0]?.value });
+    }
+  }, [fieldOptions.zone, form, watchedZone]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
