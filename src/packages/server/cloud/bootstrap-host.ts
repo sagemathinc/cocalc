@@ -490,28 +490,34 @@ if [ -n "$TARGET_GB" ] && [ -f "$ENV_FILE" ]; then
     echo "COCALC_BTRFS_IMAGE_GB=\${TARGET_GB}" >> "$ENV_FILE"
   fi
 fi
-if [ ! -f "$IMAGE" ]; then
-  exit 0
-fi
 if ! mountpoint -q "$MOUNTPOINT"; then
   exit 0
 fi
-if [ -z "$TARGET_GB" ] && [ -f "$ENV_FILE" ]; then
-  TARGET_GB="\$(grep -E '^COCALC_BTRFS_IMAGE_GB=' "$ENV_FILE" | tail -n1 | cut -d= -f2 || true)"
-fi
-if [ -z "$TARGET_GB" ] || ! echo "$TARGET_GB" | grep -Eq '^[0-9]+$'; then
+MOUNT_SOURCE="$(findmnt -n -o SOURCE "$MOUNTPOINT" 2>/dev/null || true)"
+if [ "$MOUNT_SOURCE" = "$IMAGE" ] || [ "\${MOUNT_SOURCE#/dev/loop}" != "$MOUNT_SOURCE" ]; then
+  if [ ! -f "$IMAGE" ]; then
+    exit 0
+  fi
+  if [ -z "$TARGET_GB" ] && [ -f "$ENV_FILE" ]; then
+    TARGET_GB="\$(grep -E '^COCALC_BTRFS_IMAGE_GB=' "$ENV_FILE" | tail -n1 | cut -d= -f2 || true)"
+  fi
+  if [ -z "$TARGET_GB" ] || ! echo "$TARGET_GB" | grep -Eq '^[0-9]+$'; then
+    exit 0
+  fi
+  CURRENT_BYTES="\$(stat -c %s "$IMAGE" 2>/dev/null || echo 0)"
+  TARGET_BYTES="\$((TARGET_GB * 1024 * 1024 * 1024))"
+  if [ "$CURRENT_BYTES" -lt "$TARGET_BYTES" ]; then
+    echo "bootstrap: growing btrfs image to \${TARGET_GB}G"
+    truncate -s "\${TARGET_GB}G" "$IMAGE"
+    LOOP_DEV="\$(losetup -j "$IMAGE" | head -n1 | cut -d: -f1 || true)"
+    if [ -n "$LOOP_DEV" ]; then
+      losetup -c "$LOOP_DEV" || true
+    fi
+  fi
+  btrfs filesystem resize max "$MOUNTPOINT" >/dev/null 2>&1 || true
   exit 0
 fi
-CURRENT_BYTES="\$(stat -c %s "$IMAGE" 2>/dev/null || echo 0)"
-TARGET_BYTES="\$((TARGET_GB * 1024 * 1024 * 1024))"
-if [ "$CURRENT_BYTES" -lt "$TARGET_BYTES" ]; then
-  echo "bootstrap: growing btrfs image to \${TARGET_GB}G"
-  truncate -s "\${TARGET_GB}G" "$IMAGE"
-  LOOP_DEV="\$(losetup -j "$IMAGE" | head -n1 | cut -d: -f1 || true)"
-  if [ -n "$LOOP_DEV" ]; then
-    losetup -c "$LOOP_DEV" || true
-  fi
-fi
+# Block device (non-loop): just expand to max.
 btrfs filesystem resize max "$MOUNTPOINT" >/dev/null 2>&1 || true
 EOF_COCALC_GROW
 sudo chmod +x /usr/local/sbin/cocalc-grow-btrfs
