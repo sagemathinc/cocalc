@@ -417,8 +417,6 @@ export interface PostgreSQLMethods extends EventEmitter {
   _client_index?: number; // Round-robin index for load balancing
   get_db_query(): Client["query"] | undefined;
 
-  is_standby: boolean;
-
   _create_account_passport_keys?: Record<string, Date>;
 
   get_site_settings(opts: { cb: CB }): void;

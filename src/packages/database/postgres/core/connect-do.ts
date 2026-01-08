@@ -195,30 +195,6 @@ export async function connectDo(db: PostgreSQL, cb?: CB): Promise<void> {
       ),
     );
 
-    dbg(
-      "checking if ANY db server is in recovery, i.e., we are doing standby queries only",
-    );
-    db.is_standby = false;
-    await Promise.all(
-      locals.clients.map(
-        (client) =>
-          new Promise<void>((resolve, reject) => {
-            // Is this a read/write or read-only connection?
-            client.query("SELECT pg_is_in_recovery()", (err, resp) => {
-              if (err) {
-                reject(err);
-                return;
-              }
-              // True if ANY db connection is read only.
-              if (resp.rows[0].pg_is_in_recovery) {
-                db.is_standby = true;
-              }
-              resolve();
-            });
-          }),
-      ),
-    );
-
     db._clients = locals.clients;
     db._concurrent_queries = 0;
     dbg("connected!");

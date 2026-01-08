@@ -80,7 +80,6 @@ describe("SyncTable", () => {
     removeListener: jest.Mock;
     removeAllListeners: jest.Mock;
     emit: jest.Mock;
-    is_standby: boolean;
   };
 
   let SyncTable: typeof import("./synctable").SyncTable;
@@ -110,7 +109,6 @@ describe("SyncTable", () => {
       removeListener: jest.fn(),
       removeAllListeners: jest.fn(),
       emit: jest.fn(),
-      is_standby: false,
     };
     db = mockDb as unknown as PostgreSQL;
   });

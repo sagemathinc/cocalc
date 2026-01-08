@@ -497,8 +497,6 @@ export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
   _project_and_user_tracker_cbs?: Array<CB<ProjectAndUserTracker>>;
 
   // Status
-  is_standby!: boolean;
-
   // External integrations
   declare projectControl?: ProjectControlFunction;
   declare ensure_connection_to_project?: (

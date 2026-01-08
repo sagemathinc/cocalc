@@ -78,7 +78,6 @@ describe("postgres user-queries - Comprehensive Test Suite", () => {
     db.ensure_connection_to_project = jest.fn();
     db.concurrent = jest.fn(() => 0);
     db.is_heavily_loaded = jest.fn(() => false);
-    db.is_standby = false;
     db._changefeeds = {};
     db._user_query_queue = null;
   });
@@ -244,20 +243,6 @@ describe("postgres user-queries - Comprehensive Test Suite", () => {
     });
 
     describe("user_set_query", () => {
-      test("should reject set queries against standby", (done) => {
-        db.is_standby = true;
-
-        db.user_set_query({
-          table: "projects",
-          query: { project_id: "123", name: "test" },
-          account_id: "test-account",
-          cb: (err) => {
-            expect(err).toBe("set queries against standby not allowed");
-            done();
-          },
-        });
-      });
-
       test("should require account_id or project_id", (done) => {
         db.user_set_query({
           table: "projects",

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -33,22 +33,6 @@ function register_hub(cb) {
     cb?.("database not connected");
     return;
   }
-  if (the_database.is_standby) {
-    logger.debug("register_hub -- doing read query of site settings");
-    the_database.get_site_settings({
-      cb(err, _) {
-        if (err) {
-          logger.debug("register_hub -- FAILED read query");
-          database_is_working = false;
-        } else {
-          logger.debug("register_hub -- read query worked");
-          database_is_working = true;
-        }
-      },
-    });
-    return;
-  }
-
   logger.debug("register_hub -- doing db query");
   if (the_host == null || the_port == null || the_interval == null) {
     throw new Error(

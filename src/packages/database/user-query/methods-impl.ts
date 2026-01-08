@@ -1287,10 +1287,6 @@ export async function user_set_query(
   // That's not implemented and will be somewhat nontrivial, and will use the RETURNING clause
   // of postgres's INSERT - https://www.postgresql.org/docs/current/sql-insert.html
 
-  if (this.is_standby) {
-    cb?.("set queries against standby not allowed");
-    return;
-  }
   const r = this._parse_set_query_opts(opts);
 
   // Only uncomment for debugging -- too big/verbose/dangerous

@@ -229,15 +229,6 @@ export function synctable(
     idle_timeout_s: undefined, // TODO: currently ignored
     cb: undefined,
   });
-  if (db.is_standby) {
-    const err = "synctable against standby database not allowed";
-    if (options.cb != null) {
-      options.cb(err);
-      return;
-    } else {
-      throw Error(err);
-    }
-  }
   return new SyncTable(
     db,
     options.table,
@@ -261,10 +252,6 @@ export function changefeed(
     where: misc.required,
     cb: misc.required,
   });
-  if (db.is_standby) {
-    options.cb?.("changefeed against standby database not allowed");
-    return;
-  }
   const Changes = getChanges();
   return new Changes(
     db,

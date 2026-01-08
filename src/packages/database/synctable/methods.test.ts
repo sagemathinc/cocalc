@@ -322,28 +322,7 @@ describe("PostgreSQL Synctable Methods", () => {
   });
 
   describe("synctable", () => {
-    it("should reject on standby database", (done) => {
-      db.is_standby = true;
-
-      db.synctable({
-        table: "projects",
-        cb: (err) => {
-          expect(err).toContain("standby database not allowed");
-          done();
-        },
-      });
-    });
-
-    it("should throw error on standby if no callback provided", () => {
-      db.is_standby = true;
-
-      expect(() => {
-        db.synctable({ table: "projects" });
-      }).toThrow("standby database not allowed");
-    });
-
-    it("should return a SyncTable instance when allowed", (done) => {
-      db.is_standby = false;
+    it("should return a SyncTable instance", (done) => {
       db._listen = jest.fn((_table, _select, _watch, cb) => {
         cb?.(undefined, "test_trigger");
       });
@@ -363,28 +342,8 @@ describe("PostgreSQL Synctable Methods", () => {
   });
 
   describe("changefeed", () => {
-    it("should reject on standby database", () => {
-      db.is_standby = true;
-
-      const cb = jest.fn();
-
-      db.changefeed({
-        table: "projects",
-        select: { project_id: "uuid" },
-        watch: ["title"],
-        where: {},
-        cb,
-      });
-
-      expect(cb).toHaveBeenCalledWith(
-        expect.stringContaining("standby database not allowed"),
-      );
-    });
-
-    it("should create a Changes instance when allowed", () => {
+    it("should create a Changes instance", () => {
       const { Changes } = require("../postgres/changefeed/changefeed");
-      db.is_standby = false;
-
       db.changefeed({
         table: "projects",
         select: { project_id: "uuid" },

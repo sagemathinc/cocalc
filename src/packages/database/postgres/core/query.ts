@@ -48,17 +48,6 @@ export function query(db: PostgreSQL, opts: QueryOptions): void {
   normalized.safety_check ??= true;
   opts = normalized;
 
-  // quick check for write query against read-only connection
-  if (
-    db.is_standby &&
-    (opts.set != null || opts.jsonb_set != null || opts.jsonb_merge != null)
-  ) {
-    if (typeof opts.cb === "function") {
-      opts.cb("set queries against standby not allowed");
-    }
-    return;
-  }
-
   if (opts.retry_until_success) {
     db._query_retry_until_success(opts);
     return;
