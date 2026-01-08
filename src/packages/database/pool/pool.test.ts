@@ -60,6 +60,12 @@ jest.mock("./password", () => ({
   default: jest.fn(() => "pw"),
 }));
 
+jest.mock("@cocalc/database/postgres/schema", () => ({
+  __esModule: true,
+  schemaNeedsSync: jest.fn().mockResolvedValue(false),
+  syncSchema: jest.fn().mockResolvedValue(undefined),
+}));
+
 jest.mock("pg", () => {
   const poolInstances: any[] = [];
   const clientInstances: any[] = [];
@@ -139,8 +145,16 @@ const loadPool = async () => {
   jest.resetModules();
   const pgMock = jest.requireMock("pg") as PgMock;
   pgMock.__reset();
+  const schemaMock = jest.requireMock("@cocalc/database/postgres/schema") as {
+    schemaNeedsSync: jest.Mock;
+    syncSchema: jest.Mock;
+  };
+  schemaMock.schemaNeedsSync.mockReset();
+  schemaMock.syncSchema.mockReset();
+  schemaMock.schemaNeedsSync.mockResolvedValue(false);
+  schemaMock.syncSchema.mockResolvedValue(undefined);
   const poolModule = await import("./pool");
-  return { pgMock, poolModule };
+  return { pgMock, poolModule, schemaMock };
 };
 
 describe("pool getPool ensureExists", () => {
@@ -216,5 +230,43 @@ describe("pool getPool ensureExists", () => {
     });
 
     expect(poolQueryMock).not.toHaveBeenCalled();
+  });
+
+  it("runs schema sync under advisory lock when needed", async () => {
+    const { pgMock, poolModule, schemaMock } = await loadPool();
+    schemaMock.schemaNeedsSync.mockResolvedValue(true);
+
+    const clientQuery = jest.fn(async (query: string) => {
+      if (query.startsWith("SELECT pg_try_advisory_lock")) {
+        return { rows: [{ locked: true }] };
+      }
+      if (query.startsWith("SELECT pg_advisory_unlock")) {
+        return { rows: [{ pg_advisory_unlock: true }] };
+      }
+      if (query.includes("FROM pg_database")) {
+        return { rows: [] };
+      }
+      if (query.startsWith("CREATE DATABASE")) {
+        return {};
+      }
+      return { rows: [] };
+    });
+    pgMock.__setClientImpls({
+      query: clientQuery,
+    });
+
+    const getPool = poolModule.default as (options?: unknown) => Pool;
+    const pool = getPool();
+
+    await pool.query("SELECT 1");
+
+    expect(schemaMock.syncSchema).toHaveBeenCalledTimes(1);
+    expect(clientQuery).toHaveBeenCalledWith(
+      "SELECT pg_try_advisory_lock($1) AS locked",
+      [expect.any(Number)],
+    );
+    expect(clientQuery).toHaveBeenCalledWith("SELECT pg_advisory_unlock($1)", [
+      expect.any(Number),
+    ]);
   });
 });

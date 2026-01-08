@@ -6,12 +6,11 @@ This doesn't work via any generic schema, but is some very specific code.
 
 import type { Client } from "@cocalc/database/pool";
 
-export async function dropDeprecatedTables(db: Client) {
+export async function hasDeprecatedTables(db: Client): Promise<boolean> {
   // There was a table compute_servers used from 2013-2016 with a primary key host.
   // We drop that table from the database if it exists *with that primary key*.
   // During sync we will then create the new compute_servers table, which has
   // primary key "id", is modern, and does something completely different.
-
   const result = await db.query(`SELECT EXISTS (
     SELECT FROM pg_class c
     JOIN pg_namespace n on n.oid = c.relnamespace
@@ -28,7 +27,11 @@ export async function dropDeprecatedTables(db: Client) {
         AND attr.attname = 'host'
     ));`);
 
-  if (result.rows[0].exists) {
+  return Boolean(result.rows[0]?.exists);
+}
+
+export async function dropDeprecatedTables(db: Client) {
+  if (await hasDeprecatedTables(db)) {
     await db.query(`DROP TABLE compute_servers;`);
   }
 }
