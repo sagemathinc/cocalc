@@ -6,7 +6,7 @@
 /*
 Group 1: Database Utilities - Core utility methods for PostgreSQL class
 
-TypeScript implementations of 9 utility methods:
+TypeScript implementations of 8 utility methods:
 - _dbg(f) - Debug logger factory
 - _init_metrics() - Initialize Prometheus metrics
 - concurrent() - Get concurrent query count
@@ -15,20 +15,25 @@ TypeScript implementations of 9 utility methods:
 - sanitize(s) - Escape string for SQL
 - clear_cache() - Clear LRU cache
 - engine() - Return 'postgresql'
-- _ensure_database_exists(cb) - Create database if missing
 */
 
 // @ts-ignore - No type definitions available for sql-string-escape
 import escapeString from "sql-string-escape";
 
-import { trunc_middle } from "@cocalc/util/misc";
-import { sha1 } from "@cocalc/backend/misc_node";
-import { execute_code } from "@cocalc/backend/misc_node";
+import {
+  pgdatabase,
+  pghost,
+  pgssl,
+  pguser,
+  type SSLConfig,
+} from "@cocalc/backend/data";
 import { getLogger } from "@cocalc/backend/logger";
-import { sslConfigToPsqlEnv } from "@cocalc/backend/data";
 import * as metrics from "@cocalc/backend/metrics";
-import type { PostgreSQL } from "../types";
-import type { CB } from "@cocalc/util/types/database";
+import { sha1 } from "@cocalc/backend/misc_node";
+import dbPassword from "@cocalc/database/pool/password";
+import { trunc_middle } from "@cocalc/util/misc";
+
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 
 const winston = getLogger("postgres");
 
@@ -153,70 +158,46 @@ export function engine(): string {
   return "postgresql";
 }
 
-/**
- * Ensure database exists, creating it if necessary
- *
- * Checks if the database exists by running psql --list, and creates it
- * with createdb if not found. Uses shell commands with proper SSL config.
- *
- * @param db - PostgreSQL database instance
- * @param cb - Callback invoked with error (if any) when complete
- */
-export function ensureDatabaseExists(db: PostgreSQL, cb: CB): void {
-  const dbgFn = dbg(db, "_ensure_database_exists");
-  const database = db._database;
-  const user = db._user;
-  const host = db._host.split(",")[0]; // Use first host for database creation
-  const port = String(db._port);
-  const password = db._password;
-  const ssl = db._ssl;
+type PgConnectionInfo = {
+  database: string;
+  host: string;
+  port: number;
+  user: string;
+  password: string | undefined;
+  ssl: SSLConfig;
+};
 
-  dbgFn(`ensure database '${database}' exists`);
-
-  const args = [
-    "--user",
-    user,
-    "--host",
-    host,
-    "--port",
-    port,
-    "--list",
-    "--tuples-only",
-  ];
-  const sslEnv = sslConfigToPsqlEnv(ssl);
-
-  dbgFn(`psql ${args.join(" ")}`);
-
-  execute_code({
-    command: "psql",
-    args,
-    env: { ...sslEnv, PGPASSWORD: password },
-    cb: (err: any, output: any) => {
-      if (err) {
-        cb(err);
-        return;
-      }
-
-      // Parse database list from psql output
-      const databases = output.stdout
-        .split("\n")
-        .filter((x: string) => x)
-        .map((x: string) => x.split("|")[0].trim());
-
-      if (databases.includes(database)) {
-        dbgFn(`database '${database}' already exists`);
-        cb();
-        return;
-      }
-
-      // Database doesn't exist, create it
-      dbgFn(`creating database '${database}'`);
-      execute_code({
-        command: "createdb",
-        args: ["--host", host, "--port", port, database],
-        env: { PGPASSWORD: password },
-        cb: cb,
-      });
-    },
-  });
+export function getPgConnectionInfo(): PgConnectionInfo {
+  const hostEntry = pghost;
+  const isSocket = hostEntry.includes("/");
+  if (isSocket) {
+    return {
+      database: pgdatabase,
+      host: hostEntry,
+      port: 5432,
+      user: pguser,
+      password: dbPassword(),
+      ssl: pgssl,
+    };
+  }
+  if (hostEntry.includes(":")) {
+    const [host, portStr] = hostEntry.split(":");
+    const parsedPort = Number.parseInt(portStr ?? "", 10);
+    return {
+      database: pgdatabase,
+      host,
+      port: Number.isFinite(parsedPort) ? parsedPort : 5432,
+      user: pguser,
+      password: dbPassword(),
+      ssl: pgssl,
+    };
+  }
+  return {
+    database: pgdatabase,
+    host: hostEntry,
+    port: 5432,
+    user: pguser,
+    password: dbPassword(),
+    ssl: pgssl,
+  };
 }

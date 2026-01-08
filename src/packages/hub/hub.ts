@@ -1,5 +1,5 @@
 //########################################################################
-// This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+// This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
 // License: MS-RSL – see LICENSE.md for details
 //########################################################################
 
@@ -14,12 +14,13 @@ import { program as commander, Option } from "commander";
 
 import basePath from "@cocalc/backend/base-path";
 import {
-  pghost as DEFAULT_DB_HOST,
-  pgdatabase as DEFAULT_DB_NAME,
-  pguser as DEFAULT_DB_USER,
-  pgConcurrentWarn as DEFAULT_DB_CONCURRENT_WARN,
-  hubHostname as DEFAULT_HUB_HOSTNAME,
   agentPort as DEFAULT_AGENT_PORT,
+  hubHostname as DEFAULT_HUB_HOSTNAME,
+  pgConcurrentWarn as DEFAULT_DB_CONCURRENT_WARN,
+  pgdatabase,
+  pghost,
+  pguser,
+  data,
 } from "@cocalc/backend/data";
 import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
@@ -49,7 +50,7 @@ import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { set_agent_endpoint } from "./health-checks";
 import { getLogger } from "./logger";
-import initDatabase, { database } from "./servers/database";
+import initDatabase from "./servers/database";
 import initExpressApp from "./servers/express-app";
 
 import initHttpRedirect from "./servers/http-redirect";
@@ -57,6 +58,7 @@ import initHttpRedirect from "./servers/http-redirect";
 import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
 import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
 import { migrateBookmarksToConat } from "./migrate-bookmarks";
+import { PostgreSQL } from "@cocalc/database/postgres";
 
 // Logger tagged with 'hub' for this file.
 const logger = getLogger("hub");
@@ -67,9 +69,18 @@ export { program };
 
 const REGISTER_INTERVAL_S = 20;
 
+let database: PostgreSQL | undefined = undefined;
+
+function getDatabase(): PostgreSQL {
+  if (database == null) {
+    throw new Error("database not initialized yet");
+  }
+  return database;
+}
+
 async function reset_password(email_address: string): Promise<void> {
   try {
-    await callback2(database.reset_password, { email_address });
+    await callback2(getDatabase().reset_password, { email_address });
     logger.info(`Password changed for ${email_address}`);
   } catch (err) {
     logger.info(`Error resetting password -- ${err}`);
@@ -80,7 +91,7 @@ async function reset_password(email_address: string): Promise<void> {
 // It's important that we call this periodically, because otherwise the /stats data is outdated.
 async function init_update_stats(): Promise<void> {
   logger.info("init updating stats periodically");
-  const update = () => callback2(database.get_stats);
+  const update = () => callback2(getDatabase().get_stats);
   // Do it every minute:
   setInterval(() => update(), 60000);
   // Also do it once now:
@@ -93,7 +104,8 @@ async function init_update_stats(): Promise<void> {
 // by default only for dev mode (so for development).
 async function init_update_site_license_usage_log() {
   logger.info("init updating site license usage log periodically");
-  const update = async () => await database.update_site_license_usage_log();
+  const update = async () =>
+    await getDatabase().update_site_license_usage_log();
   setInterval(update, 31000);
   await update();
 }
@@ -114,7 +126,7 @@ async function startServer(): Promise<void> {
 
   logger.info(`basePath='${basePath}'`);
   logger.info(
-    `database: name="${program.databaseName}" nodes="${program.databaseNodes}" user="${program.databaseUser}"`,
+    `database: name="${pgdatabase}" host="${pghost}" user="${pguser}"`,
   );
 
   const { metric_blocked } = await initMetrics();
@@ -132,7 +144,7 @@ async function startServer(): Promise<void> {
 
   // Wait for database connection to work.  Everything requires this.
   await retry_until_success({
-    f: async () => await callback2(database.connect),
+    f: async () => await callback2(getDatabase().connect),
     start_delay: 1000,
     max_delay: 10000,
   });
@@ -140,18 +152,18 @@ async function startServer(): Promise<void> {
 
   if (program.updateDatabaseSchema) {
     logger.info("Update database schema");
-    await callback2(database.update_schema);
+    await callback2(getDatabase().update_schema);
 
     // in those cases where we initialize the database upon startup
     // (essentially only relevant for kucalc's hub-websocket)
     if (program.mode === "kucalc") {
       // and for on-prem setups, also initialize the admin account, set a registration token, etc.
-      await initialOnPremSetup(database);
+      await initialOnPremSetup(getDatabase());
     }
   }
 
   // set server settings based on environment variables
-  await load_server_settings_from_env(database);
+  await load_server_settings_from_env(getDatabase());
 
   if (program.agentPort) {
     logger.info("Configure agent port");
@@ -206,7 +218,7 @@ async function startServer(): Promise<void> {
       // running when they are not is bad.  Something similar
       // is done in cocalc-docker.
       logger.info("killing all projects...");
-      await callback2(database._query, {
+      await callback2(getDatabase()._query, {
         safety_check: false,
         query: 'update projects set state=\'{"state":"opened"}\'',
       });
@@ -216,7 +228,7 @@ async function startServer(): Promise<void> {
       // custom software images, we inject a couple of random nonsense entries
       // into the table in the DB:
       logger.info("inserting random nonsense compute images in database");
-      await callback2(database.insert_random_compute_images);
+      await callback2(getDatabase().insert_random_compute_images);
     }
 
     if (program.mode != "kucalc") {
@@ -224,7 +236,7 @@ async function startServer(): Promise<void> {
       await init_update_site_license_usage_log();
       // This is async but runs forever, so don't wait for it.
       logger.info("init starting always running projects");
-      init_start_always_running_projects(database);
+      init_start_always_running_projects(getDatabase());
     }
   }
 
@@ -367,21 +379,6 @@ async function main(): Promise<void> {
       `host of interface to bind to (default: "${DEFAULT_HUB_HOSTNAME}")`,
       DEFAULT_HUB_HOSTNAME,
     )
-    .option(
-      "--database-nodes <string,string,...>",
-      `database address (default: '${DEFAULT_DB_HOST}')`,
-      DEFAULT_DB_HOST,
-    )
-    .option(
-      "--database-name [string]",
-      `Database name to use (default: "${DEFAULT_DB_NAME}")`,
-      DEFAULT_DB_NAME,
-    )
-    .option(
-      "--database-user [string]",
-      `Database username to use (default: "${DEFAULT_DB_USER}")`,
-      DEFAULT_DB_USER,
-    )
     .option("--passwd [email_address]", "Reset password of given user", "")
     .option(
       "--update-database-schema",
@@ -455,14 +452,9 @@ async function main(): Promise<void> {
 
   try {
     // Everything we do here requires the database to be initialized. Once
-    // this is called, require('@cocalc/database/postgres/database').default() is a valid db
-    // instance that can be used.
-    initDatabase({
-      host: program.databaseNodes,
-      database: program.databaseName,
-      user: program.databaseUser,
-      concurrent_warn: program.dbConcurrentWarn,
-    });
+    // initDatabase returns, database is the initialized singleton.
+    database = initDatabase();
+    database._concurrent_warn = program.dbConcurrentWarn;
 
     if (program.passwd) {
       logger.debug("Resetting password");

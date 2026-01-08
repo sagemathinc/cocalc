@@ -6,7 +6,7 @@
 /*
 Group 1: Database Utilities - Core utility methods for PostgreSQL class
 
-Tests for 9 utility methods:
+Tests for 8 utility methods:
 - _dbg(f) - Debug logger factory
 - _init_metrics() - Initialize Prometheus metrics
 - concurrent() - Get concurrent query count
@@ -15,7 +15,6 @@ Tests for 9 utility methods:
 - sanitize(s) - Escape string for SQL
 - clear_cache() - Clear LRU cache
 - engine() - Return 'postgresql'
-- _ensure_database_exists(cb) - Create database if missing
 
 TDD Workflow:
 - USE_TYPESCRIPT = false: Test against CoffeeScript implementation (db())
@@ -220,31 +219,5 @@ describe("Database Utilities - Group 1", () => {
       const database = db();
       expect(database.engine()).toBe("postgresql");
     });
-  });
-
-  describe("_ensure_database_exists - Create database if missing", () => {
-    it("completes without error for existing database", async () => {
-      const database = db();
-
-      await new Promise<void>((resolve, reject) => {
-        database._ensure_database_exists((err) => {
-          if (err) {
-            reject(err);
-          } else {
-            resolve();
-          }
-        });
-      });
-    });
-
-    it("uses callback pattern correctly", (done) => {
-      const database = db();
-
-      database._ensure_database_exists((_err) => {
-        // Should complete (may succeed or fail depending on environment)
-        // The important thing is the callback is called
-        done();
-      });
-    }, 10000); // Longer timeout for shell commands
   });
 });

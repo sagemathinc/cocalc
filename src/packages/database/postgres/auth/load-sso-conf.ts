@@ -1,12 +1,13 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Client } from "pg";
+import { lstat, readFile, realpath } from "fs/promises";
+import type { PoolClient } from "pg";
+
 import getLogger from "@cocalc/backend/logger";
-import { PostgreSQL } from "@cocalc/database/postgres/types";
-import { lstat, readFile , realpath } from "fs/promises";
+import type { PostgreSQL } from "@cocalc/database/postgres/types";
 
 const L = getLogger("auth:sso:import-sso-configuration").debug;
 
@@ -27,7 +28,7 @@ export async function loadSSOConf(db: PostgreSQL): Promise<void> {
   // test if the path at SSO_JSON is a regular file and is readable
   try {
     // the file could be a symlink, we have to resolve it
-    const ssofn = await realpath(SSO_JSON)
+    const ssofn = await realpath(SSO_JSON);
     const stats = await lstat(ssofn);
     if (!stats.isFile()) {
       L(`SSO configuration file ${SSO_JSON} is not a regular file`);
@@ -47,8 +48,10 @@ async function load(db: PostgreSQL) {
   // load the json data stored in the file SSO_JSON
   L(`Loading SSO configuration from '${SSO_JSON}'`);
 
-  const client = db._client();
-  if (client == null) {
+  let client: PoolClient;
+  try {
+    client = await db._get_query_client();
+  } catch (err) {
     L(`no database client available -- skipping SSO configuration`);
     return;
   }
@@ -70,6 +73,8 @@ async function load(db: PostgreSQL) {
   } catch (err) {
     L(`ROLLBACK -- err=${err}`);
     await client.query("ROLLBACK");
+  } finally {
+    client.release();
   }
 }
 
@@ -77,7 +82,7 @@ const deleteQuery = `
 DELETE FROM passport_settings
 WHERE strategy = $1`;
 
-async function deleteSSO(client: Client, strategy: string) {
+async function deleteSSO(client: PoolClient, strategy: string) {
   L(`Deleting SSO configuration for ${strategy}`);
   await client.query(deleteQuery, [strategy]);
 }
@@ -88,9 +93,9 @@ VALUES ($1, $2, $3)
 ON CONFLICT (strategy) DO UPDATE SET conf = $2, info = $3`;
 
 async function upsertSSO(
-  client: Client,
+  client: PoolClient,
   strategy: string,
-  val: { conf: object; info: object }
+  val: { conf: object; info: object },
 ) {
   const { conf, info } = val;
   L(`Updating SSO configuration for ${strategy}:`, { conf, info });

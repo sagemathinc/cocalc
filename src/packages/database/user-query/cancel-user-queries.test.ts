@@ -4,16 +4,19 @@
  */
 
 import { db } from "@cocalc/database";
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 
 describe("cancel_user_queries", () => {
   let database: any;
 
-  beforeAll(() => {
-    database = db({ connect: false, ensure_exists: false });
+  beforeAll(async () => {
+    await initEphemeralDatabase({});
+    database = db();
   });
 
-  afterAll(() => {
-    database._close_test_query?.();
+  afterAll(async () => {
+    await testCleanup(database);
   });
 
   it("forwards to the query queue when present", () => {

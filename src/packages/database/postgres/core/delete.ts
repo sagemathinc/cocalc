@@ -14,10 +14,12 @@ TypeScript implementations of database deletion methods:
 These are destructive operations requiring careful confirmation.
 */
 
-import type { PostgreSQL } from "../types";
-import { defaults, required } from "@cocalc/util/misc";
-import { SCHEMA } from "@cocalc/util/db-schema";
 import * as misc_node from "@cocalc/backend/misc_node";
+import { SCHEMA } from "@cocalc/util/db-schema";
+import { defaults, required } from "@cocalc/util/misc";
+
+import type { PostgreSQL } from "../types";
+import { getPgConnectionInfo } from "./util";
 
 const async = require("async");
 
@@ -219,15 +221,10 @@ export function deleteEntireDatabase(
       },
       // Step 2: Execute dropdb command
       (stepCb) => {
+        const { database, host, port } = getPgConnectionInfo();
         misc_node.execute_code({
           command: "dropdb",
-          args: [
-            "--host",
-            db._host,
-            "--port",
-            String(db._port),
-            db._database,
-          ],
+          args: ["--host", host, "--port", String(port), database],
           cb: stepCb,
         });
       },

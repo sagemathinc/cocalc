@@ -8,6 +8,8 @@
 
 import type { CB } from "@cocalc/util/types/callback";
 
+import { initEphemeralDatabase } from "@cocalc/database/pool";
+import { testCleanup } from "@cocalc/database/test-utils";
 import type { ChangefeedSelect, PostgreSQL } from "../postgres/types";
 import type { ProjectAndUserTracker } from "../postgres/project/project-and-user-tracker";
 import { PostgreSQL as PostgreSQLClass } from "../postgres";
@@ -44,19 +46,28 @@ describe("PostgreSQL Synctable Methods", () => {
 
   let db: SynctablePostgreSQL;
 
+  beforeAll(async () => {
+    await initEphemeralDatabase({});
+  });
+
   beforeEach(() => {
     // Create a PostgreSQL instance for testing
-    // We won't actually connect to a database, just test method existence
-    db = new PostgreSQLClass({
-      connect: false,
-      database: process.env.PGDATABASE ?? "smc_ephemeral_testing_database",
-    }) as SynctablePostgreSQL;
+    // Connect to the ephemeral database so method wrappers are available
+    db = new PostgreSQLClass({ timeout_ms: 0 }) as SynctablePostgreSQL;
     projectTrackerInit = jest.fn().mockResolvedValue(undefined);
     projectTrackerOnce = jest.fn();
   });
 
   afterEach(() => {
     db?._close_test_query?.();
+    db?.disconnect?.();
+  });
+
+  afterAll(async () => {
+    if (db) {
+      db.disconnect?.();
+    }
+    await testCleanup(db);
   });
 
   describe("extension methods exist", () => {
@@ -308,10 +319,13 @@ describe("PostgreSQL Synctable Methods", () => {
       const synctable = require("../dist/synctable/trigger");
       const tgname = synctable.trigger_name("projects", { id: "uuid" }, []);
       db._ensure_trigger_exists = jest.fn((_t, _s, _w, cb) => cb());
-      db._query = jest.fn((opts) => {
-        expect(opts.query).toBe(`LISTEN ${tgname}`);
-        opts.cb?.("listen-error");
-      });
+      const client = {
+        query: jest.fn((query, cb) => {
+          expect(query).toBe(`LISTEN ${tgname}`);
+          cb?.("listen-error");
+        }),
+      };
+      (db as any)._get_listen_client = jest.fn(async () => client);
 
       db._listen("projects", { id: "uuid" }, [], (err) => {
         expect(err).toBe("listen-error");

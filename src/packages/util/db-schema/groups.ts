@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -7,9 +7,14 @@
 Groups of cocalc accounts.
 */
 
-import { Table } from "./types";
-import { SCHEMA } from "./index";
 import { uuid } from "../misc";
+import { SCHEMA } from "./index";
+import { Table } from "./types";
+
+type DbClient = {
+  query: (...args: any[]) => Promise<any>;
+  release: () => void;
+};
 
 export interface Group {
   // primary key: a uuid
@@ -95,8 +100,7 @@ Table({
           // usually used for validating writes.  Also the where above is obviously
           // only for gets and changefeeds.
           try {
-            const client = database._client();
-            const { rows } = await client.query(
+            const { rows } = await database._pool.query(
               "SELECT COUNT(*) AS count FROM groups WHERE $1=ANY(owner_account_ids) AND group_id=$2",
               [account_id, query?.group_id],
             );
@@ -136,10 +140,15 @@ Table({
           color: null,
         },
         async instead_of_query(database, opts, cb): Promise<void> {
+          let client: DbClient | undefined;
           try {
             // server assigned:
             const group_id = uuid();
-            const client = database._client();
+            client = await database._get_query_client();
+            if (!client) {
+              cb("database not connected -- try again later");
+              return;
+            }
             const query = opts.query ?? {};
             const owner_account_ids = [...query.owner_account_ids];
             if (!owner_account_ids.includes(opts.account_id)) {
@@ -159,6 +168,8 @@ Table({
             });
           } catch (err) {
             cb(`${err}`);
+          } finally {
+            client?.release();
           }
         },
       },

@@ -33,7 +33,7 @@ if (DELAY_MS == null) {
 
 function syncstring_maintenance(cb) {
   console.log(
-    `syncstring_maintenance: moving patches for up to ${MAX_SYNCSTRINGS_PER_RUN} syncstrings at least ${MIN_AGE_DAYS} days old to compressed blobs...`
+    `syncstring_maintenance: moving patches for up to ${MAX_SYNCSTRINGS_PER_RUN} syncstrings at least ${MIN_AGE_DAYS} days old to compressed blobs...`,
   );
   db.syncstring_maintenance({
     limit: parseInt(MAX_SYNCSTRINGS_PER_RUN),
@@ -52,7 +52,7 @@ function go() {
       throw Error(`error in syncstring_maintenance -- ${err}`);
     }
     console.log(
-      `now waiting ${WAIT_BETWEEN_RUNS_S} seconds before doing another syncstring_maintenance...`
+      `now waiting ${WAIT_BETWEEN_RUNS_S} seconds before doing another syncstring_maintenance...`,
     );
     setTimeout(go, parseInt(WAIT_BETWEEN_RUNS_S) * 1000);
   });

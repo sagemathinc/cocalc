@@ -16,7 +16,7 @@ const DEFINITION = `CoCalc Environment Variables:
 - root -- if COCALC_ROOT is set then it; otherwise use [cocalc-source]/src/.
 - data -- if the environment variable DATA is set, use that.  Otherwise, use {root}/data
 - pgdata -- if env var PGDATA is set, use that; otherwise, it is {data}/postgres: where data data is stored (if running locally)
-- pghost - if env var PGHOST is set, use that; otherwise, it is {data}/postgres/socket: what database connects to
+- pghost - if env var PGHOST is set, use that; otherwise, it is {data}/postgres/socket: database host or socket path. For TCP, this is a hostname or hostname:port
 - projects -- If env var PROJECTS is set, use that; otherwise, it is {data}"/projects/[project_id]";
               This is where project home directories are (or shared files for share server), and it MUST
               contain the string "[project_id]".

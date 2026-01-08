@@ -21,7 +21,7 @@ function go() {
       console.log(`failed to delete all expired rows -- ${err}`);
     }
     console.log(
-      `now waiting ${INTERVAL_MS} seconds before doing another delete...`
+      `now waiting ${INTERVAL_MS} seconds before doing another delete...`,
     );
     setTimeout(go, INTERVAL_MS);
   });

@@ -4,11 +4,9 @@
  */
 import { EventEmitter } from "events";
 import LRU from "lru-cache";
+import type { Pool, PoolClient } from "pg";
 
-import { pghost, pgdatabase, pguser, pgssl } from "@cocalc/backend/data";
-import type { SSLConfig } from "@cocalc/backend/data";
-import type { Client } from "pg";
-import dbPassword from "@cocalc/database/pool/password";
+import getPool from "@cocalc/database/pool";
 import { callback2 } from "@cocalc/util/async-utils";
 import { bind_methods } from "@cocalc/util/misc";
 import { SCHEMA } from "@cocalc/util/schema";
@@ -243,11 +241,11 @@ import { syncSchema } from "./postgres/schema";
 import { primaryKey, primaryKeys } from "./postgres/schema/table";
 import { count_result } from "./postgres/utils/count-result";
 import * as UtilTS from "./postgres/core/util";
+import { recordDisconnected } from "./postgres/record-connect-error";
 import {
   closeDatabase,
   connect as connectTS,
   disconnect as disconnectTS,
-  getClient as getClientTS,
   isConnected as isConnectedTS,
 } from "./postgres/core/connect";
 
@@ -270,20 +268,7 @@ import {
   touch_blob,
   type ExtendBlobTtlOpts,
 } from "./postgres/blobs/methods-impl";
-import {
-  backupBup,
-  backupTable,
-  backupTables,
-  getBackupTables,
-  restoreTable,
-  restoreTables,
-  type BackupBupOptions,
-  type BackupTableOptions,
-  type BackupTables,
-  type BackupTablesOptions,
-  type RestoreTableOptions,
-  type RestoreTablesOptions,
-} from "./postgres/ops";
+import { getBackupTables, type BackupTables } from "./postgres/ops/utils";
 import type {
   ArchivePatchesOpts,
   BackupBlobsToTarballOpts,
@@ -322,11 +307,6 @@ import type { ProjectAndUserTracker } from "./postgres/project/project-and-user-
 import type { SyncTable } from "./synctable/synctable";
 import * as userQuery from "./user-query/methods-impl";
 
-type BackupTablesContext = Parameters<typeof backupTables>[0];
-type BackupTableContext = Parameters<typeof backupTable>[0];
-type BackupBupContext = Parameters<typeof backupBup>[0];
-type RestoreTablesContext = Parameters<typeof restoreTables>[0];
-type RestoreTableContext = Parameters<typeof restoreTable>[0];
 type EnsureTriggerContext = Parameters<typeof _ensure_trigger_exists>[0];
 type ListenContext = Parameters<typeof _listen>[0];
 type NotificationContext = Parameters<typeof _notification>[0];
@@ -459,24 +439,20 @@ const runWithCbOrThrow = async (
 };
 export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
   // Connection configuration
-  _database!: string;
-  _host!: string;
-  _port!: number;
-  _password!: string | undefined;
-  _ssl: SSLConfig | undefined;
-  _user!: string;
+  _pool!: Pool;
+  _listen_client?: PoolClient;
+  _query_client?: PoolClient;
+  _connected?: boolean;
+  _ensure_exists?: boolean;
 
   // State management
   _state!: string;
   _debug?: boolean;
   _timeout_ms?: number;
   _timeout_delay_ms?: number;
-  _ensure_exists?: boolean;
 
   // Client management
-  _clients: Client[] | undefined;
-  _client_index?: number;
-  _connecting?: Client[];
+  _connecting?: Array<CB | undefined>;
   _connect_time?: Date;
 
   // Query management
@@ -513,13 +489,20 @@ export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
     super(); // Must call super() first before accessing 'this'
     bind_methods(this); // Bind all methods to this instance to preserve 'this' context in callbacks
     const {
-      host,
-      database,
-      user,
-      ssl,
+      debug = DEBUG,
+      cache_expiry = 5000,
+      cache_size = 300,
+      concurrent_warn = 500,
+      concurrent_heavily_loaded = 70,
+      ensure_exists = true,
+      timeout_ms = DEFAULT_TIMEOUS_MS,
+      timeout_delay_ms = DEFAULT_TIMEOUT_DELAY_MS,
+    } = opts;
+
+    this._debug = debug;
+    const dbg = this._dbg("constructor"); // must be after setting @_debug above
+    dbg({
       debug,
-      connect,
-      password,
       cache_expiry,
       cache_size,
       concurrent_warn,
@@ -527,71 +510,28 @@ export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
       ensure_exists,
       timeout_ms,
       timeout_delay_ms,
-    } = opts ?? {};
-    const resolvedHost = host ?? pghost;
-    const resolvedDatabase = database ?? pgdatabase;
-    const resolvedUser = user ?? pguser;
-    const resolvedSsl = ssl ?? pgssl;
-    const resolvedDebug = debug ?? DEBUG;
-    const resolvedConnect = connect ?? true;
-    const resolvedCacheExpiry = cache_expiry ?? 5000;
-    const resolvedCacheSize = cache_size ?? 300;
-    const resolvedConcurrentWarn = concurrent_warn ?? 500;
-    const resolvedConcurrentHeavilyLoaded = concurrent_heavily_loaded ?? 70;
-    const resolvedEnsureExists = ensure_exists ?? true;
-    const resolvedTimeoutMs = timeout_ms ?? DEFAULT_TIMEOUS_MS;
-    const resolvedTimeoutDelayMs = timeout_delay_ms ?? DEFAULT_TIMEOUT_DELAY_MS;
-    const resolvedPassword = password ?? dbPassword();
-    const resolvedOpts = {
-      host: resolvedHost,
-      database: resolvedDatabase,
-      user: resolvedUser,
-      ssl: resolvedSsl,
-      debug: resolvedDebug,
-      connect: resolvedConnect,
-      password: resolvedPassword,
-      cache_expiry: resolvedCacheExpiry,
-      cache_size: resolvedCacheSize,
-      concurrent_warn: resolvedConcurrentWarn,
-      concurrent_heavily_loaded: resolvedConcurrentHeavilyLoaded,
-      ensure_exists: resolvedEnsureExists,
-      timeout_ms: resolvedTimeoutMs,
-      timeout_delay_ms: resolvedTimeoutDelayMs,
-    };
+    });
+
     this.setMaxListeners(0); // because of a potentially large number of changefeeds
     this._state = "init";
-    this._debug = resolvedDebug;
-    this._timeout_ms = resolvedTimeoutMs;
-    this._timeout_delay_ms = resolvedTimeoutDelayMs;
-    this._ensure_exists = resolvedEnsureExists;
+    this._connected = false;
+    this._timeout_ms = timeout_ms;
+    this._timeout_delay_ms = timeout_delay_ms;
+    this._ensure_exists = ensure_exists;
+    this._concurrent_warn = concurrent_warn;
+    this._concurrent_heavily_loaded = concurrent_heavily_loaded;
+
+    this._pool = getPool({ ensureExists: ensure_exists });
     this._init_test_query();
-    const dbg = this._dbg("constructor"); // must be after setting @_debug above
-    dbg(resolvedOpts);
-    const i = resolvedHost.indexOf(":");
-    if (i !== -1) {
-      this._host = resolvedHost.slice(0, i);
-      this._port = parseInt(resolvedHost.slice(i + 1));
-    } else {
-      this._host = resolvedHost;
-      this._port = 5432;
-    }
-    this._concurrent_warn = resolvedConcurrentWarn;
-    this._concurrent_heavily_loaded = resolvedConcurrentHeavilyLoaded;
-    this._user = resolvedUser;
-    this._database = resolvedDatabase;
-    this._ssl = resolvedSsl;
-    this._password = resolvedPassword;
     this._init_metrics();
 
-    if (resolvedCacheExpiry && resolvedCacheSize) {
+    if (cache_expiry && cache_size) {
       this._query_cache = new LRU({
-        max: resolvedCacheSize,
-        ttl: resolvedCacheExpiry,
+        max: cache_size,
+        ttl: cache_expiry,
       });
     }
-    if (resolvedConnect) {
-      this.connect({}); // start trying to connect
-    }
+    this.connect({}); // start trying to connect
   }
 
   clear_cache() {
@@ -645,17 +585,40 @@ export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
     return connectDo(this as any, cb);
   }
 
-  // Return a native pg client connection.  This will
-  // round robbin through all connections.  It returns
-  // undefined if there are no connections.
-  _client() {
-    return getClientTS(this as any);
+  async _get_query_client(): Promise<PoolClient> {
+    if (this._query_client) {
+      return this._query_client;
+    }
+    return await this._pool.connect();
+  }
+
+  async _get_listen_client(): Promise<PoolClient> {
+    if (this._listen_client) {
+      return this._listen_client;
+    }
+    const client = await this._pool.connect();
+    if (this._notification != null) {
+      client.on("notification", this._notification as any);
+    }
+    const onError = (err) => {
+      client.removeListener("error", onError);
+      client.removeAllListeners();
+      if (this._listen_client === client) {
+        delete this._listen_client;
+      }
+      client.release(err);
+      this.emit("disconnect");
+      recordDisconnected();
+      this.connect({});
+    };
+    client.on("error", onError);
+    this._listen_client = client;
+    return client;
   }
 
   // Return query function of a database connection.
   get_db_query() {
-    const db = this._client();
-    return db != null ? db.query.bind(db) : undefined;
+    return this._pool?.query.bind(this._pool);
   }
 
   _dbg(f: string): (...args: unknown[]) => void {
@@ -685,10 +648,6 @@ export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
   // Group 6: Query Engine - delegating to TypeScript implementations
   _count(opts: PgMethodOpts<"_count">) {
     return countQuery(this as any, opts);
-  }
-
-  _ensure_database_exists(cb) {
-    return UtilTS.ensureDatabaseExists(this as any, cb);
   }
 
   _confirm_delete(opts: ConfirmDeleteOpts) {
@@ -2096,39 +2055,7 @@ export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
     return await updateUnreadMessageCount(opts);
   }
 
-  async backup_tables(opts: BackupTablesOptions & { cb?: CB }): Promise<void> {
-    return runWithCbOrThrow(opts.cb, () =>
-      backupTables(this as unknown as BackupTablesContext, opts),
-    );
-  }
-
-  async _backup_table(opts: BackupTableOptions & { cb?: CB }): Promise<void> {
-    return runWithCbOrThrow(opts.cb, () =>
-      backupTable(this as unknown as BackupTableContext, opts),
-    );
-  }
-
-  async _backup_bup(opts: BackupBupOptions & { cb?: CB }): Promise<void> {
-    return runWithCbOrThrow(opts.cb, () =>
-      backupBup(this as unknown as BackupBupContext, opts),
-    );
-  }
-
   _get_backup_tables(tables: BackupTables): string[] {
     return getBackupTables(tables);
-  }
-
-  async restore_tables(
-    opts: RestoreTablesOptions & { cb?: CB },
-  ): Promise<void> {
-    return runWithCbOrThrow(opts.cb, () =>
-      restoreTables(this as unknown as RestoreTablesContext, opts),
-    );
-  }
-
-  async _restore_table(opts: RestoreTableOptions & { cb?: CB }): Promise<void> {
-    return runWithCbOrThrow(opts.cb, () =>
-      restoreTable(this as unknown as RestoreTableContext, opts),
-    );
   }
 }

@@ -4,9 +4,8 @@
  */
 
 import { EventEmitter } from "events";
-import { Client } from "pg";
+import type { Pool, PoolClient } from "pg";
 
-import { SSLConfig } from "@cocalc/backend/data";
 import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
 import { ProjectStatus } from "@cocalc/util/db-schema/projects";
 import {
@@ -92,13 +91,7 @@ export interface VerifyEmailCreateTokenResult {
 }
 
 export interface PostgreSQLOptions {
-  host?: string;
-  database?: string;
-  user?: string;
-  ssl?: SSLConfig;
   debug?: boolean;
-  connect?: boolean;
-  password?: string;
   cache_expiry?: number;
   cache_size?: number;
   concurrent_warn?: number;
@@ -367,12 +360,11 @@ export interface CreateSsoAccountOpts {
 
 export interface PostgreSQLMethods extends EventEmitter {
   _dbg(desc: string): (...args: unknown[]) => void;
-  _database: string;
-  _host: string;
-  _port: number;
-  _password: string | undefined;
-  _ssl: SSLConfig;
-  _user: string;
+  _pool: Pool;
+  _listen_client?: PoolClient;
+  _query_client?: PoolClient;
+  _connected?: boolean;
+  _ensure_exists?: boolean;
   _concurrent_queries?: number;
   _timeout_ms?: number; // Connection timeout for health check queries
   _timeout_delay_ms?: number; // Delay before timeout enforcement after connect
@@ -412,10 +404,9 @@ export interface PostgreSQLMethods extends EventEmitter {
   _user_get_changefeed_id_to_user?: Record<string, string>;
   _changefeeds?: Record<string, Changes>;
 
-  _client(): Client | undefined;
-  _clients: Client[] | undefined;
-  _client_index?: number; // Round-robin index for load balancing
-  get_db_query(): Client["query"] | undefined;
+  _get_query_client(): Promise<PoolClient>;
+  _get_listen_client(): Promise<PoolClient>;
+  get_db_query(): Pool["query"] | undefined;
 
   _create_account_passport_keys?: Record<string, Date>;
 
@@ -939,27 +930,7 @@ export interface PostgreSQLMethods extends EventEmitter {
   set_project_settings(opts: { project_id: string; settings: object; cb?: CB });
 
   // Database operations (postgres-ops)
-  backup_tables(opts: {
-    tables: string[] | "all" | "critical" | string;
-    path?: string;
-    limit?: number;
-    bup?: boolean;
-    cb?: CB;
-  }): Promise<void>;
-  _backup_table(opts: { table: string; path?: string; cb?: CB }): Promise<void>;
-  _backup_bup(opts: { path?: string; cb?: CB }): Promise<void>;
   _get_backup_tables(tables: string[] | "all" | "critical" | string): string[];
-  restore_tables(opts: {
-    tables?: string[] | "all" | "critical" | string;
-    path?: string;
-    limit?: number;
-    cb?: CB;
-  }): Promise<void>;
-  _restore_table(opts: {
-    table: string;
-    path?: string;
-    cb?: CB;
-  }): Promise<void>;
 
   uncaught_exception(err: any): Promise<void>;
 
@@ -974,8 +945,6 @@ export interface PostgreSQLMethods extends EventEmitter {
   sanitize(s: string): string; // Escape string for SQL injection prevention
   clear_cache(): void; // Clear LRU query cache
   engine(): string; // Return 'postgresql' identifier
-  _ensure_database_exists(cb: CB): void; // Create database if it doesn't exist
-
   // Group 2: Schema & Metadata (postgres/schema/)
   _get_tables(cb: (err?: string | Error, tables?: string[]) => void): void; // Get list of all tables in public schema
   _get_columns(

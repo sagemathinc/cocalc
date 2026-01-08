@@ -6,10 +6,11 @@
 // Hub Registration
 
 import { getLogger } from "@cocalc/backend/logger";
-const logger = getLogger("hub_register");
-import * as misc from "@cocalc/util/misc";
-const { defaults, required } = misc;
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
+import * as misc from "@cocalc/util/misc";
+
+const logger = getLogger("hub_register");
+const { defaults, required } = misc;
 
 // Global variables
 let started = false;
@@ -27,7 +28,7 @@ function register_hub(cb) {
     cb?.("database not yet set");
     return;
   }
-  if (the_database._clients == null) {
+  if (!the_database.is_connected()) {
     database_is_working = false;
     logger.debug("register_hub -- not connected, so FAILED");
     cb?.("database not connected");

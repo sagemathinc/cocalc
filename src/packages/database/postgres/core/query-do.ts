@@ -462,145 +462,166 @@ export function doQuery(db: PostgreSQL, opts: QueryOptions): void {
   // params can easily be huge, e.g., a blob.  But this may be
   // needed at some point for debugging.
   //dbg("query='#{opts.query}', params=#{misc.to_json(opts.params)}")
-  const client = db._client();
-  if (client == null) {
-    if (typeof opts.cb === "function") {
-      opts.cb("not connected");
-    }
-    return;
-  }
-  if (db._concurrent_queries == null) {
-    db._concurrent_queries = 0;
-  }
-  db._concurrent_queries += 1;
-  dbg(`query='${queryText} (concurrent=${db._concurrent_queries})'`);
-
-  if (dbAny.concurrent_counter != null) {
-    dbAny.concurrent_counter.labels("started").inc(1);
-  }
-  try {
-    let timer;
-    const start = new Date();
-    if (db._timeout_ms && db._timeout_delay_ms) {
-      // Create a timer, so that if the query doesn't return within
-      // timeout_ms time, then the entire connection is destroyed.
-      // It then gets recreated automatically.  I tested
-      // and all outstanding queries also get an error when this happens.
-      const timeout_error = () => {
-        // Only disconnect with timeout error if it has been sufficiently long
-        // since connecting.   This way when an error is triggered, all the
-        // outstanding timers at the moment of the error will just get ignored
-        // when they fire (since @_connect_time is 0 or too recent).
-        if (
-          dbAny._connect_time &&
-          db._timeout_delay_ms &&
-          +new Date() - +dbAny._connect_time > db._timeout_delay_ms
-        ) {
-          return client.emit("error", "timeout");
-        }
-      };
-      timer = setTimeout(timeout_error, db._timeout_ms);
-    }
-
-    // PAINFUL FACT: In client.query below, if the client is closed/killed/errored
-    // (especially via client.emit above), then none of the callbacks from
-    // client.query are called!
-    let finished = false;
-    const error_listener = function () {
-      dbg("error_listener fired");
-      return query_cb("error", undefined);
-    };
-    client.once("error", error_listener);
-    var query_cb = (err, result) => {
-      if (finished) {
-        // ensure no matter what that query_cb is called at most once.
-        dbg("called when finished (ignoring)");
+  const runQuery = async (): Promise<void> => {
+    const client = await db._get_query_client();
+    let released = false;
+    const shouldRelease = db._query_client !== client;
+    const releaseClient = (err?: unknown): void => {
+      if (released || !shouldRelease) {
         return;
       }
-      finished = true;
-      client.removeListener("error", error_listener);
+      released = true;
+      const releaseErr =
+        err instanceof Error
+          ? err
+          : err != null
+            ? new Error(String(err))
+            : undefined;
+      client.release(releaseErr);
+    };
+    if (db._concurrent_queries == null) {
+      db._concurrent_queries = 0;
+    }
+    db._concurrent_queries += 1;
+    dbg(`query='${queryText} (concurrent=${db._concurrent_queries})'`);
 
-      if (db._timeout_ms) {
-        clearTimeout(timer);
+    if (dbAny.concurrent_counter != null) {
+      dbAny.concurrent_counter.labels("started").inc(1);
+    }
+    try {
+      let timer;
+      const start = new Date();
+      if (db._timeout_ms && db._timeout_delay_ms) {
+        // Create a timer, so that if the query doesn't return within
+        // timeout_ms time, then the entire connection is destroyed.
+        // It then gets recreated automatically.  I tested
+        // and all outstanding queries also get an error when this happens.
+        const timeout_error = () => {
+          // Only disconnect with timeout error if it has been sufficiently long
+          // since connecting.   This way when an error is triggered, all the
+          // outstanding timers at the moment of the error will just get ignored
+          // when they fire (since @_connect_time is 0 or too recent).
+          if (
+            dbAny._connect_time &&
+            db._timeout_delay_ms &&
+            +new Date() - +dbAny._connect_time > db._timeout_delay_ms
+          ) {
+            return client.emit("error", "timeout");
+          }
+        };
+        timer = setTimeout(timeout_error, db._timeout_ms);
       }
-      const query_time_ms = +new Date() - +start;
+
+      // PAINFUL FACT: In client.query below, if the client is closed/killed/errored
+      // (especially via client.emit above), then none of the callbacks from
+      // client.query are called!
+      let finished = false;
+      const error_listener = function () {
+        dbg("error_listener fired");
+        return query_cb("error", undefined);
+      };
+      client.once("error", error_listener);
+      var query_cb = (err, result) => {
+        if (finished) {
+          // ensure no matter what that query_cb is called at most once.
+          dbg("called when finished (ignoring)");
+          return;
+        }
+        finished = true;
+        client.removeListener("error", error_listener);
+
+        if (db._timeout_ms) {
+          clearTimeout(timer);
+        }
+        const query_time_ms = +new Date() - +start;
+        if (db._concurrent_queries != null) {
+          db._concurrent_queries -= 1;
+        }
+        if (dbAny.query_time_histogram != null) {
+          dbAny.query_time_histogram.observe(
+            { table: opts.table != null ? opts.table : "" },
+            query_time_ms,
+          );
+        }
+        if (dbAny.concurrent_counter != null) {
+          dbAny.concurrent_counter.labels("ended").inc(1);
+        }
+        if (err) {
+          dbg(
+            `done (concurrent=${db._concurrent_queries}), (query_time_ms=${query_time_ms}) -- error: ${err}`,
+          );
+          //# DANGER
+          // Only uncomment this for low level debugging!
+          //### dbg("params = #{JSON.stringify(opts.params)}")
+          //#
+          err = "postgresql " + err;
+        } else {
+          dbg(
+            `done (concurrent=${db._concurrent_queries}) (query_time_ms=${query_time_ms}) -- success`,
+          );
+        }
+        releaseClient(err);
+        if (opts.cache && dbAny._query_cache != null && cacheKey != null) {
+          dbAny._query_cache.set(cacheKey, [err, result]);
+        }
+        if (typeof opts.cb === "function") {
+          opts.cb(err, result);
+        }
+        if (query_time_ms >= QUERY_ALERT_THRESH_MS) {
+          return dbg(
+            `QUERY_ALERT_THRESH: query_time_ms=${query_time_ms}\nQUERY_ALERT_THRESH: query='${queryText}'\nQUERY_ALERT_THRESH: params='${misc.to_json(
+              params,
+            )}'`,
+          );
+        }
+      };
+
+      // set a timeout for one specific query (there is a default when creating the pg.Client, see @_connect)
+      if (
+        opts.timeout_s != null &&
+        typeof opts.timeout_s === "number" &&
+        opts.timeout_s >= 0
+      ) {
+        dbg(`set query timeout to ${opts.timeout_s}secs`);
+        if (opts.pg_params == null) {
+          opts.pg_params = {};
+        }
+        // the actual param is in milliseconds
+        // https://postgresqlco.nf/en/doc/param/statement_timeout/
+        opts.pg_params.statement_timeout = 1000 * opts.timeout_s;
+      }
+
+      if (opts.pg_params != null) {
+        dbg("run query with specific postgres parameters in a transaction");
+        do_query_with_pg_params({
+          client,
+          query: queryText,
+          params,
+          pg_params: opts.pg_params,
+          cb: query_cb,
+        });
+      } else {
+        client.query(queryText, params, query_cb);
+      }
+    } catch (e) {
+      // this should never ever happen
+      dbg(`EXCEPTION in client.query: ${e}`);
+      releaseClient(e);
+      if (typeof opts.cb === "function") {
+        opts.cb(e);
+      }
       if (db._concurrent_queries != null) {
         db._concurrent_queries -= 1;
-      }
-      if (dbAny.query_time_histogram != null) {
-        dbAny.query_time_histogram.observe(
-          { table: opts.table != null ? opts.table : "" },
-          query_time_ms,
-        );
       }
       if (dbAny.concurrent_counter != null) {
         dbAny.concurrent_counter.labels("ended").inc(1);
       }
-      if (err) {
-        dbg(
-          `done (concurrent=${db._concurrent_queries}), (query_time_ms=${query_time_ms}) -- error: ${err}`,
-        );
-        //# DANGER
-        // Only uncomment this for low level debugging!
-        //### dbg("params = #{JSON.stringify(opts.params)}")
-        //#
-        err = "postgresql " + err;
-      } else {
-        dbg(
-          `done (concurrent=${db._concurrent_queries}) (query_time_ms=${query_time_ms}) -- success`,
-        );
-      }
-      if (opts.cache && dbAny._query_cache != null && cacheKey != null) {
-        dbAny._query_cache.set(cacheKey, [err, result]);
-      }
-      if (typeof opts.cb === "function") {
-        opts.cb(err, result);
-      }
-      if (query_time_ms >= QUERY_ALERT_THRESH_MS) {
-        return dbg(
-          `QUERY_ALERT_THRESH: query_time_ms=${query_time_ms}\nQUERY_ALERT_THRESH: query='${queryText}'\nQUERY_ALERT_THRESH: params='${misc.to_json(
-            params,
-          )}'`,
-        );
-      }
-    };
-
-    // set a timeout for one specific query (there is a default when creating the pg.Client, see @_connect)
-    if (
-      opts.timeout_s != null &&
-      typeof opts.timeout_s === "number" &&
-      opts.timeout_s >= 0
-    ) {
-      dbg(`set query timeout to ${opts.timeout_s}secs`);
-      if (opts.pg_params == null) {
-        opts.pg_params = {};
-      }
-      // the actual param is in milliseconds
-      // https://postgresqlco.nf/en/doc/param/statement_timeout/
-      opts.pg_params.statement_timeout = 1000 * opts.timeout_s;
     }
+  };
 
-    if (opts.pg_params != null) {
-      dbg("run query with specific postgres parameters in a transaction");
-      do_query_with_pg_params({
-        client,
-        query: queryText,
-        params,
-        pg_params: opts.pg_params,
-        cb: query_cb,
-      });
-    } else {
-      client.query(queryText, params, query_cb);
-    }
-  } catch (e) {
-    // this should never ever happen
-    dbg(`EXCEPTION in client.query: ${e}`);
+  void runQuery().catch((err) => {
     if (typeof opts.cb === "function") {
-      opts.cb(e);
+      opts.cb(err ?? "not connected");
     }
-    db._concurrent_queries -= 1;
-    if (dbAny.concurrent_counter != null) {
-      dbAny.concurrent_counter.labels("ended").inc(1);
-    }
-  }
+  });
 }

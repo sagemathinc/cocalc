@@ -52,7 +52,7 @@ describe("postgres user-queries - Comprehensive Test Suite", () => {
   });
 
   beforeEach(() => {
-    db = new PostgreSQLClass({ connect: false, timeout_ms: 0 });
+    db = new PostgreSQLClass({ timeout_ms: 0 });
 
     // Reset all mocks
     jest.clearAllMocks();

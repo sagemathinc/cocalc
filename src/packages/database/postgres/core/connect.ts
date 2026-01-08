@@ -10,19 +10,16 @@ TypeScript implementations of connection management methods.
 
 Methods implemented here:
 - connect(db, opts) - Connect with retry orchestration
-- disconnect(db) - Close all client connections
+- disconnect(db) - Release listener client
 - isConnected(db) - Check connection status
-- getClient(db) - Get pg client for queries (round-robin)
-- close(db) - Full cleanup (clients, cache, test query)
+- close(db) - Full cleanup (listener + pinned query clients, cache, test query)
 */
 
 import * as misc from "@cocalc/util/misc";
-
-import type { PostgreSQL } from "../types";
-import type { Client } from "pg";
 import type { CB } from "@cocalc/util/types/callback";
 
 import { recordConnected } from "../record-connect-error";
+import type { PostgreSQL } from "../types";
 
 /**
  * Connect to the database (with retry).
@@ -43,7 +40,7 @@ export function connect(
     return;
   }
   const dbg = db._dbg("connect");
-  if (db._clients != null) {
+  if (dbAny._connected) {
     dbg("already connected");
     if (typeof cb === "function") {
       cb();
@@ -87,6 +84,7 @@ export function connect(
       }
       if (!err) {
         dbAny._state = "connected";
+        dbAny._connected = true;
         db.emit("connect");
         return recordConnected();
       }
@@ -95,21 +93,20 @@ export function connect(
 }
 
 /**
- * Close all database client connections
+ * Release the dedicated listener client (if any)
  *
- * Ends all active pg.Client connections and removes event listeners.
- * Clears the _clients array but does not change connection state.
+ * Clears the listener client and marks the connection as disconnected.
  *
  * @param db - PostgreSQL database instance
  */
 export function disconnect(db: PostgreSQL): void {
-  if (db._clients) {
-    for (const client of db._clients) {
-      client.end();
-      client.removeAllListeners();
-    }
-    delete db._clients;
+  const dbAny = db as any;
+  if (db._listen_client) {
+    db._listen_client.removeAllListeners();
+    db._listen_client.release();
+    delete db._listen_client;
   }
+  dbAny._connected = false;
 }
 
 /**
@@ -121,44 +118,7 @@ export function disconnect(db: PostgreSQL): void {
  * @returns true if connected with at least one client
  */
 export function isConnected(db: PostgreSQL): boolean {
-  return db._clients != null && db._clients.length > 0;
-}
-
-/**
- * Get a PostgreSQL client connection for queries
- *
- * Returns a pg.Client using round-robin load balancing across
- * multiple connections. Returns undefined if not connected.
- *
- * Implementation:
- * - If no clients, returns undefined
- * - If one client, returns that client
- * - If multiple clients, cycles through them using _client_index
- *
- * @param db - PostgreSQL database instance
- * @returns pg.Client or undefined if not connected
- */
-export function getClient(db: PostgreSQL): Client | undefined {
-  if (!db._clients) {
-    return undefined;
-  }
-
-  if (db._clients.length <= 1) {
-    return db._clients[0];
-  }
-
-  // Round-robin through multiple clients
-  if (db._client_index == null) {
-    db._client_index = -1;
-  }
-
-  db._client_index = db._client_index + 1;
-
-  if (db._client_index >= db._clients.length) {
-    db._client_index = 0;
-  }
-
-  return db._clients[db._client_index];
+  return (db as any)._connected === true;
 }
 
 /**
@@ -170,7 +130,7 @@ export function getClient(db: PostgreSQL): Client | undefined {
  * 3. Sets state to 'closed'
  * 4. Emits 'close' event
  * 5. Removes all event listeners
- * 6. Closes and removes all client connections
+ * 6. Releases listener client and any pinned query client
  *
  * @param db - PostgreSQL database instance
  */
@@ -191,12 +151,16 @@ export function closeDatabase(db: PostgreSQL): void {
   // Remove all event listeners
   db.removeAllListeners();
 
-  // Close all client connections
-  if (db._clients) {
-    for (const client of db._clients) {
-      client.removeAllListeners();
-      client.end();
-    }
-    delete db._clients;
+  // Release listen client
+  if (db._query_client) {
+    db._query_client.removeAllListeners();
+    db._query_client.release();
+    delete db._query_client;
   }
+  if (db._listen_client) {
+    db._listen_client.removeAllListeners();
+    db._listen_client.release();
+    delete db._listen_client;
+  }
+  (db as any)._connected = false;
 }

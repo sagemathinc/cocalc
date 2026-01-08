@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -21,12 +21,86 @@ const L = getLogger("db:pool");
 export * from "./util";
 
 let pool: Pool | undefined = undefined;
+let ensureExistsPromise: Promise<void> | undefined = undefined;
 
-export default function getPool(cacheTime?: CacheTime): Pool {
+export type PoolOptions = {
+  cacheTime?: CacheTime;
+  ensureExists?: boolean;
+};
+
+export type PoolOptionInput = CacheTime | PoolOptions | undefined;
+
+function normalizePoolOptions(opts?: PoolOptionInput): PoolOptions {
+  if (typeof opts === "string") {
+    return { cacheTime: opts };
+  }
+  return opts ?? {};
+}
+
+function getPrimaryHost(): { host?: string; port: number } {
+  const hostEntry = host ?? "";
+  if (!hostEntry) {
+    return { host: undefined, port: 5432 };
+  }
+  if (hostEntry.includes("/")) {
+    return { host: hostEntry, port: 5432 };
+  }
+  if (hostEntry.includes(":")) {
+    const [hostname, portStr] = hostEntry.split(":");
+    const parsedPort = Number.parseInt(portStr ?? "", 10);
+    return {
+      host: hostname,
+      port: Number.isFinite(parsedPort) ? parsedPort : 5432,
+    };
+  }
+  return { host: hostEntry, port: 5432 };
+}
+
+async function ensureDatabaseExists(): Promise<void> {
+  const { host: primaryHost, port } = getPrimaryHost();
+  const password = dbPassword();
+  const maintenanceDb = "postgres";
+  const escapedDatabase = database.replace(/"/g, '""');
+  const client = new Client({
+    user,
+    host: primaryHost,
+    port,
+    password,
+    database: maintenanceDb,
+    ssl,
+  });
+  try {
+    await client.connect();
+    const { rows } = await client.query(
+      "SELECT 1 FROM pg_database WHERE datname = $1",
+      [database],
+    );
+    if (rows.length === 0) {
+      try {
+        await client.query(`CREATE DATABASE "${escapedDatabase}"`);
+      } catch (err) {
+        if ((err as { code?: string })?.code !== "42P04") {
+          throw err;
+        }
+      }
+    }
+  } finally {
+    await client.end().catch(() => undefined);
+  }
+}
+
+export default function getPool(options?: PoolOptionInput): Pool {
+  const { cacheTime, ensureExists = true } = normalizePoolOptions(options);
   if (cacheTime != null) {
-    return getCachedPool(cacheTime);
+    return getCachedPool({ cacheTime, ensureExists });
   }
   if (pool == null) {
+    if (ensureExists && ensureExistsPromise == null) {
+      ensureExistsPromise = ensureDatabaseExists().catch((err) => {
+        ensureExistsPromise = undefined;
+        throw err;
+      });
+    }
     L.debug(
       `creating a new Pool(host:${host}, database:${database}, user:${user}, ssl:${JSON.stringify(ssl)} statement_timeout:${STATEMENT_TIMEOUT_MS}ms)`,
     );
@@ -48,10 +122,40 @@ export default function getPool(cacheTime?: CacheTime): Pool {
       });
     });
     const end = pool.end.bind(pool);
+    const connect = pool.connect.bind(pool);
+    const query = pool.query.bind(pool);
+    const ensureReady = async (): Promise<void> => {
+      await ensureExistsPromise;
+    };
+
     pool.end = async () => {
       pool = undefined;
-      end();
+      ensureExistsPromise = undefined;
+      return await end();
     };
+
+    if (ensureExistsPromise != null) {
+      pool.connect = ((...args: any[]) => {
+        const lastArg = args[args.length - 1];
+        if (typeof lastArg === "function") {
+          void ensureReady()
+            .then(() => connect(...args))
+            .catch((err) => lastArg(err));
+          return undefined as any;
+        }
+        return ensureReady().then(() => connect(...args));
+      }) as Pool["connect"];
+      pool.query = ((...args: any[]) => {
+        const lastArg = args[args.length - 1];
+        if (typeof lastArg === "function") {
+          void ensureReady()
+            .then(() => query(...args))
+            .catch((err) => lastArg(err));
+          return undefined as any;
+        }
+        return ensureReady().then(() => query(...args));
+      }) as Pool["query"];
+    }
   }
   return pool;
 }
@@ -60,8 +164,10 @@ export default function getPool(cacheTime?: CacheTime): Pool {
 // that is returned from getTransactionClient()!  E.g., for unit testing
 // if you don't do this  you exhaust the limit of 2 on the pool size,
 // (see above) and everything hangs!
-export async function getTransactionClient(): Promise<PoolClient> {
-  const client = await getPoolClient();
+export async function getTransactionClient(
+  options?: PoolOptionInput,
+): Promise<PoolClient> {
+  const client = await getPoolClient(options);
   try {
     await client.query("BEGIN");
   } catch (err) {
@@ -72,8 +178,10 @@ export async function getTransactionClient(): Promise<PoolClient> {
   return client;
 }
 
-export async function getPoolClient(): Promise<PoolClient> {
-  const pool = await getPool();
+export async function getPoolClient(
+  options?: PoolOptionInput,
+): Promise<PoolClient> {
+  const pool = await getPool(options);
   return await pool.connect();
 }
 
@@ -81,15 +189,18 @@ export function getClient(): Client {
   return new Client({ password: dbPassword(), user, host, database, ssl });
 }
 
-// This is used for testing.  It ensures the schema is loaded and
-// test database is defined.
-
-// Call this with {reset:true} to reset the ephemeral
-// database to a clean state with the schema loaded.
-// You *can't* just initEphemeralDatabase({reset:true}) in the pre-amble
-// of jest tests though, since all the tests are running in parallel, and
-// they would mess up each other's state...
 const TEST = "smc_ephemeral_testing_database";
+
+/**
+ * Initialize the ephemeral test database and ensure the schema is loaded.
+ *
+ * Call with `{ reset: true }` to truncate all tables after schema sync.
+ * Do not run `initEphemeralDatabase({ reset: true })` in test preambles,
+ * since parallel tests can interfere with each other's state.
+ *
+ * @param options
+ * @param options.reset When true, truncates all tables after schema sync.
+ */
 export async function initEphemeralDatabase({
   reset,
 }: { reset?: boolean } = {}) {

@@ -159,10 +159,11 @@ export function _listen(
       },
       (cb) => {
         dbg("add listener");
-        db._query({
-          query: `LISTEN ${tgname}`,
-          cb,
-        });
+        db._get_listen_client()
+          .then((client) => {
+            client.query(`LISTEN ${tgname}`, (err) => cb(err));
+          })
+          .catch((err) => cb(err));
       },
     ],
     (err) => {
@@ -204,10 +205,12 @@ export function _stop_listening(
     db._listening[tgname] -= 1;
   }
   if (db._listening[tgname] === 0) {
-    db._query({
-      query: `UNLISTEN ${tgname}`,
-      cb,
-    });
+    const client = db._listen_client;
+    if (client == null) {
+      cb?.();
+      return;
+    }
+    client.query(`UNLISTEN ${tgname}`, (err) => cb?.(err));
   }
 }
 

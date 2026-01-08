@@ -10,6 +10,6 @@ import type { PostgreSQL } from "@cocalc/database/postgres/types";
 export async function testCleanup(database?: PostgreSQL): Promise<void> {
   const dbInstance = database ?? db();
   dbInstance._clear_throttles();
-  dbInstance._close_test_query?.();
+  dbInstance.close?.();
   await getPool().end();
 }

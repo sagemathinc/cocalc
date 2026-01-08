@@ -53,14 +53,16 @@ describe("Query Engine - Group 6", () => {
     });
 
     const dbAny = database as any;
-    if (dbAny._clients?.length > 1) {
-      // Keep TEMP tables visible across queries by pinning a single client.
-      dbAny._clients = [dbAny._clients[0]];
-      dbAny._client_index = 0;
-    }
+    // Keep TEMP tables visible across queries by pinning a single client.
+    dbAny._query_client = await database._get_query_client();
   }, 30000);
 
   afterAll(async () => {
+    const dbAny = database as any;
+    if (dbAny._query_client) {
+      dbAny._query_client.release();
+      delete dbAny._query_client;
+    }
     await testCleanup();
   });
 
@@ -310,8 +312,8 @@ describe("Query Engine - Group 6", () => {
     describe("Connection and basic validation", () => {
       it("rejects query if not connected", (done) => {
         // Temporarily disconnect
-        const originalClients = (database as any)._clients;
-        delete (database as any)._clients;
+        const originalConnected = (database as any)._connected;
+        (database as any)._connected = false;
 
         database.__do_query({
           query: "SELECT 1",
@@ -319,7 +321,7 @@ describe("Query Engine - Group 6", () => {
             expect(err).toBe("client not yet initialized");
 
             // Restore connection
-            (database as any)._clients = originalClients;
+            (database as any)._connected = originalConnected;
             done();
           },
         });
@@ -654,6 +656,7 @@ describe("Query Engine - Group 6", () => {
       it("generates DO UPDATE when conflict covers all fields (current behavior)", (done) => {
         const client = new EventEmitter() as EventEmitter & {
           query: jest.Mock;
+          release: jest.Mock;
         };
         let capturedQuery = "";
 
@@ -661,12 +664,13 @@ describe("Query Engine - Group 6", () => {
           capturedQuery = query;
           cb(undefined, { rows: [], rowCount: 1, command: "INSERT" });
         });
+        client.release = jest.fn();
 
-        const originalClient = (database as any)._client;
+        const originalGetQueryClient = (database as any)._get_query_client;
         const originalTimeoutMs = database._timeout_ms;
         const originalTimeoutDelay = database._timeout_delay_ms;
 
-        (database as any)._client = () => client;
+        (database as any)._get_query_client = jest.fn(async () => client);
         database._timeout_ms = undefined;
         database._timeout_delay_ms = undefined;
 
@@ -686,7 +690,7 @@ describe("Query Engine - Group 6", () => {
               doneError = error;
             }
 
-            (database as any)._client = originalClient;
+            (database as any)._get_query_client = originalGetQueryClient;
             database._timeout_ms = originalTimeoutMs;
             database._timeout_delay_ms = originalTimeoutDelay;
             done(doneError);
@@ -1199,20 +1203,22 @@ describe("Query Engine - Group 6", () => {
       it("tracks concurrent queries and metrics", (done) => {
         const client = new EventEmitter() as EventEmitter & {
           query: jest.Mock;
+          release: jest.Mock;
         };
         client.query = jest.fn((_query, _params, cb) => {
           expect(database._concurrent_queries).toBe(1);
           cb(undefined, { rows: [], rowCount: 1, command: "SELECT" });
         });
+        client.release = jest.fn();
 
-        const originalClient = (database as any)._client;
+        const originalGetQueryClient = (database as any)._get_query_client;
         const originalCounter = (database as any).concurrent_counter;
         const originalHistogram = (database as any).query_time_histogram;
         const incSpy = jest.fn();
         const labelsSpy = jest.fn(() => ({ inc: incSpy }));
         const observeSpy = jest.fn();
 
-        (database as any)._client = () => client;
+        (database as any)._get_query_client = jest.fn(async () => client);
         (database as any).concurrent_counter = { labels: labelsSpy };
         (database as any).query_time_histogram = { observe: observeSpy };
         (database as any)._concurrent_queries = 0;
@@ -1230,7 +1236,7 @@ describe("Query Engine - Group 6", () => {
               expect.any(Number),
             );
 
-            (database as any)._client = originalClient;
+            (database as any)._get_query_client = originalGetQueryClient;
             (database as any).concurrent_counter = originalCounter;
             (database as any).query_time_histogram = originalHistogram;
             done();
@@ -1240,11 +1246,12 @@ describe("Query Engine - Group 6", () => {
     });
 
     describe("Timeout handling", () => {
-      it("does not emit timeout before _timeout_delay_ms", (done) => {
+      it("does not emit timeout before _timeout_delay_ms", async () => {
         jest.useFakeTimers();
         const client = new EventEmitter() as EventEmitter & {
           query: jest.Mock;
           emit: (...args: any[]) => boolean;
+          release: jest.Mock;
         };
         const emitSpy = jest.spyOn(client, "emit");
         let queryCb: ((err?: unknown, result?: unknown) => void) | undefined;
@@ -1252,80 +1259,101 @@ describe("Query Engine - Group 6", () => {
         client.query = jest.fn((_query, _params, cb) => {
           queryCb = cb;
         });
+        client.release = jest.fn();
 
-        const originalClient = (database as any)._client;
+        const originalGetQueryClient = (database as any)._get_query_client;
         const originalTimeoutMs = database._timeout_ms;
         const originalTimeoutDelay = database._timeout_delay_ms;
         const originalConnectTime = (database as any)._connect_time;
 
-        (database as any)._client = () => client;
+        (database as any)._get_query_client = jest.fn(async () => client);
         database._timeout_ms = 10;
         database._timeout_delay_ms = 1000;
         (database as any)._connect_time = new Date();
 
-        database.__do_query({
-          query: "SELECT 1",
-          cb: (err) => {
-            expectNoErr(err);
-
-            (database as any)._client = originalClient;
-            database._timeout_ms = originalTimeoutMs;
-            database._timeout_delay_ms = originalTimeoutDelay;
-            (database as any)._connect_time = originalConnectTime;
-            jest.useRealTimers();
-            done();
-          },
+        const donePromise = new Promise<void>((resolve, reject) => {
+          database.__do_query({
+            query: "SELECT 1",
+            cb: (err) => {
+              try {
+                expectNoErr(err);
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            },
+          });
         });
+
+        await Promise.resolve();
 
         jest.advanceTimersByTime(20);
         expect(emitSpy).not.toHaveBeenCalledWith("error", "timeout");
 
         queryCb?.(undefined, { rows: [], rowCount: 1, command: "SELECT" });
+        await donePromise;
+
+        (database as any)._get_query_client = originalGetQueryClient;
+        database._timeout_ms = originalTimeoutMs;
+        database._timeout_delay_ms = originalTimeoutDelay;
+        (database as any)._connect_time = originalConnectTime;
+        jest.useRealTimers();
       });
 
-      it("emits timeout after _timeout_delay_ms has elapsed", (done) => {
+      it("emits timeout after _timeout_delay_ms has elapsed", async () => {
         jest.useFakeTimers();
         const client = new EventEmitter() as EventEmitter & {
           query: jest.Mock;
           emit: (...args: any[]) => boolean;
+          release: jest.Mock;
         };
         const emitSpy = jest.spyOn(client, "emit");
 
         client.query = jest.fn();
+        client.release = jest.fn();
 
-        const originalClient = (database as any)._client;
+        const originalGetQueryClient = (database as any)._get_query_client;
         const originalTimeoutMs = database._timeout_ms;
         const originalTimeoutDelay = database._timeout_delay_ms;
         const originalConnectTime = (database as any)._connect_time;
 
-        (database as any)._client = () => client;
+        (database as any)._get_query_client = jest.fn(async () => client);
         database._timeout_ms = 10;
         database._timeout_delay_ms = 1;
         (database as any)._connect_time = new Date(Date.now() - 2000);
 
-        database.__do_query({
-          query: "SELECT 1",
-          cb: (err) => {
-            expect(String(err)).toContain("postgresql error");
-            expect(emitSpy).toHaveBeenCalledWith("error", "timeout");
-
-            (database as any)._client = originalClient;
-            database._timeout_ms = originalTimeoutMs;
-            database._timeout_delay_ms = originalTimeoutDelay;
-            (database as any)._connect_time = originalConnectTime;
-            jest.useRealTimers();
-            done();
-          },
+        const donePromise = new Promise<void>((resolve, reject) => {
+          database.__do_query({
+            query: "SELECT 1",
+            cb: (err) => {
+              try {
+                expect(String(err)).toContain("postgresql error");
+                expect(emitSpy).toHaveBeenCalledWith("error", "timeout");
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            },
+          });
         });
 
+        await Promise.resolve();
         jest.advanceTimersByTime(20);
+        await donePromise;
+
+        (database as any)._get_query_client = originalGetQueryClient;
+        database._timeout_ms = originalTimeoutMs;
+        database._timeout_delay_ms = originalTimeoutDelay;
+        (database as any)._connect_time = originalConnectTime;
+        jest.useRealTimers();
       });
 
-      it("clears timeout timer on success", () => {
+      it("clears timeout timer on success", async () => {
         jest.useFakeTimers();
         const client = new EventEmitter() as EventEmitter & {
           query: jest.Mock;
           emit: (...args: any[]) => boolean;
+          release: jest.Mock;
         };
         const emitSpy = jest.spyOn(client, "emit");
         let queryCb: ((err?: unknown, result?: unknown) => void) | undefined;
@@ -1333,29 +1361,39 @@ describe("Query Engine - Group 6", () => {
         client.query = jest.fn((_query, _params, cb) => {
           queryCb = cb;
         });
+        client.release = jest.fn();
 
-        const originalClient = (database as any)._client;
+        const originalGetQueryClient = (database as any)._get_query_client;
         const originalTimeoutMs = database._timeout_ms;
         const originalTimeoutDelay = database._timeout_delay_ms;
         const originalConnectTime = (database as any)._connect_time;
 
-        (database as any)._client = () => client;
+        (database as any)._get_query_client = jest.fn(async () => client);
         database._timeout_ms = 10;
         database._timeout_delay_ms = 1;
         (database as any)._connect_time = new Date(Date.now() - 2000);
 
-        database.__do_query({
-          query: "SELECT 1",
-          cb: (err) => {
-            expectNoErr(err);
-          },
+        const donePromise = new Promise<void>((resolve, reject) => {
+          database.__do_query({
+            query: "SELECT 1",
+            cb: (err) => {
+              try {
+                expectNoErr(err);
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            },
+          });
         });
 
+        await Promise.resolve();
         queryCb?.(undefined, { rows: [], rowCount: 1, command: "SELECT" });
+        await donePromise;
         jest.advanceTimersByTime(20);
         expect(emitSpy).not.toHaveBeenCalledWith("error", "timeout");
 
-        (database as any)._client = originalClient;
+        (database as any)._get_query_client = originalGetQueryClient;
         database._timeout_ms = originalTimeoutMs;
         database._timeout_delay_ms = originalTimeoutDelay;
         (database as any)._connect_time = originalConnectTime;
@@ -1364,45 +1402,55 @@ describe("Query Engine - Group 6", () => {
     });
 
     describe("Error listener management", () => {
-      it("calls cb once and removes error listener after error", (done) => {
+      it("calls cb once and removes error listener after error", async () => {
         const client = new EventEmitter() as EventEmitter & {
           query: jest.Mock;
+          release: jest.Mock;
         };
         let queryCb: ((err?: unknown, result?: unknown) => void) | undefined;
 
         client.query = jest.fn((_query, _params, cb) => {
           queryCb = cb;
         });
+        client.release = jest.fn();
 
-        const originalClient = (database as any)._client;
+        const originalGetQueryClient = (database as any)._get_query_client;
         const originalTimeoutMs = database._timeout_ms;
         const originalTimeoutDelay = database._timeout_delay_ms;
 
-        (database as any)._client = () => client;
+        (database as any)._get_query_client = jest.fn(async () => client);
         database._timeout_ms = undefined;
         database._timeout_delay_ms = undefined;
 
-        const cbSpy = jest.fn((err) => {
-          expect(String(err)).toContain("postgresql error");
+        const donePromise = new Promise<void>((resolve, reject) => {
+          const cbSpy = jest.fn((err) => {
+            expect(String(err)).toContain("postgresql error");
 
-          queryCb?.(undefined, { rows: [], rowCount: 1, command: "SELECT" });
-          setImmediate(() => {
-            expect(cbSpy).toHaveBeenCalledTimes(1);
-            expect(client.listenerCount("error")).toBe(0);
+            queryCb?.(undefined, { rows: [], rowCount: 1, command: "SELECT" });
+            setImmediate(() => {
+              try {
+                expect(cbSpy).toHaveBeenCalledTimes(1);
+                expect(client.listenerCount("error")).toBe(0);
+                resolve();
+              } catch (error) {
+                reject(error);
+              }
+            });
+          });
 
-            (database as any)._client = originalClient;
-            database._timeout_ms = originalTimeoutMs;
-            database._timeout_delay_ms = originalTimeoutDelay;
-            done();
+          database.__do_query({
+            query: "SELECT 1",
+            cb: cbSpy,
           });
         });
 
-        database.__do_query({
-          query: "SELECT 1",
-          cb: cbSpy,
-        });
-
+        await Promise.resolve();
         client.emit("error", "boom");
+        await donePromise;
+
+        (database as any)._get_query_client = originalGetQueryClient;
+        database._timeout_ms = originalTimeoutMs;
+        database._timeout_delay_ms = originalTimeoutDelay;
       });
     });
 
@@ -1410,6 +1458,7 @@ describe("Query Engine - Group 6", () => {
       it("runs pg_params in a transaction with SET LOCAL", (done) => {
         const client = new EventEmitter() as EventEmitter & {
           query: jest.Mock;
+          release: jest.Mock;
         };
         const queries: string[] = [];
 
@@ -1417,12 +1466,13 @@ describe("Query Engine - Group 6", () => {
           queries.push(query);
           return { rows: [{ ok: true }], rowCount: 1, command: "SELECT" };
         });
+        client.release = jest.fn();
 
-        const originalClient = (database as any)._client;
+        const originalGetQueryClient = (database as any)._get_query_client;
         const originalTimeoutMs = database._timeout_ms;
         const originalTimeoutDelay = database._timeout_delay_ms;
 
-        (database as any)._client = () => client;
+        (database as any)._get_query_client = jest.fn(async () => client);
         database._timeout_ms = undefined;
         database._timeout_delay_ms = undefined;
 
@@ -1440,7 +1490,7 @@ describe("Query Engine - Group 6", () => {
               "COMMIT",
             ]);
 
-            (database as any)._client = originalClient;
+            (database as any)._get_query_client = originalGetQueryClient;
             database._timeout_ms = originalTimeoutMs;
             database._timeout_delay_ms = originalTimeoutDelay;
             done();
@@ -1451,6 +1501,7 @@ describe("Query Engine - Group 6", () => {
       it("rolls back transaction on pg_params error", (done) => {
         const client = new EventEmitter() as EventEmitter & {
           query: jest.Mock;
+          release: jest.Mock;
         };
         const queries: string[] = [];
 
@@ -1461,12 +1512,13 @@ describe("Query Engine - Group 6", () => {
           }
           return { rows: [], rowCount: 0, command: "BEGIN" };
         });
+        client.release = jest.fn();
 
-        const originalClient = (database as any)._client;
+        const originalGetQueryClient = (database as any)._get_query_client;
         const originalTimeoutMs = database._timeout_ms;
         const originalTimeoutDelay = database._timeout_delay_ms;
 
-        (database as any)._client = () => client;
+        (database as any)._get_query_client = jest.fn(async () => client);
         database._timeout_ms = undefined;
         database._timeout_delay_ms = undefined;
 
@@ -1483,7 +1535,7 @@ describe("Query Engine - Group 6", () => {
               "ROLLBACK",
             ]);
 
-            (database as any)._client = originalClient;
+            (database as any)._get_query_client = originalGetQueryClient;
             database._timeout_ms = originalTimeoutMs;
             database._timeout_delay_ms = originalTimeoutDelay;
             done();
@@ -1507,8 +1559,8 @@ describe("Query Engine - Group 6", () => {
 
     it("connects first if not connected", (done) => {
       // Temporarily disconnect
-      const originalClients = (database as any)._clients;
-      delete (database as any)._clients;
+      const originalConnected = (database as any)._connected;
+      (database as any)._connected = false;
 
       database._query({
         query: "SELECT 1 AS result",
@@ -1517,15 +1569,7 @@ describe("Query Engine - Group 6", () => {
           if (!err) {
             expect(result!.rows[0].result).toBe(1);
           }
-
-          const currentClients = (database as any)._clients;
-          if (currentClients && currentClients !== originalClients) {
-            for (const client of currentClients) {
-              client.end?.();
-            }
-          }
-          (database as any)._clients = originalClients;
-          (database as any)._client_index = 0;
+          (database as any)._connected = originalConnected;
           done();
         },
       });
@@ -1881,7 +1925,7 @@ describe("Query Engine - Group 6", () => {
       });
 
       it("caches successful queries", async () => {
-        const querySpy = jest.spyOn(database as any, "_client");
+        const querySpy = jest.spyOn(database as any, "_get_query_client");
         const query = `SELECT ${Math.random()} AS random_value`;
 
         await new Promise<void>((resolve, reject) => {
