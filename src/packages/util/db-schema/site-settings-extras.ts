@@ -188,6 +188,8 @@ export type SiteSettingsExtrasKeys =
   | "pii_retention"
   | "conat_heading"
   | "conat_password"
+  | "software_licenses_heading"
+  | "software_license_private_key"
   | "stripe_heading"
   | "stripe_publishable_key"
   | "stripe_secret_key"
@@ -298,6 +300,23 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     tags: ["Conat"],
+  },
+  software_licenses_heading: {
+    name: "Software Licensing",
+    desc: "Keys used to sign software licenses for Launchpad/Rocket.",
+    default: "",
+    type: "header",
+    tags: ["Licensing"],
+  },
+  software_license_private_key: {
+    name: "Software Licensing: Private Signing Key (PEM)",
+    desc: "Ed25519 private key used to sign software license tokens. Keep this secret.  Generate using\n```sh\nopenssl genpkey -algorithm ED25519 -out software_license_private_key.pem && cat software_license_private_key.pem\n```",
+    default: "",
+    password: true,
+    multiline: 6,
+    to_val: to_trimmed_str,
+    tags: ["Licensing", "Security"],
+    valid: () => true,
   },
   openai_section: {
     name: "Language Model Configuration",

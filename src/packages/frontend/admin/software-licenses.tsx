@@ -34,8 +34,6 @@ import type {
 
 const { Paragraph, Text, Title } = Typography;
 
-const PRIVATE_KEY_SETTING = "software_license_private_key";
-
 function toDate(value?: string | Date | null) {
   if (!value) return undefined;
   return dayjs(value);
@@ -71,11 +69,9 @@ export function SoftwareLicensesAdmin() {
   const [createdLicense, setCreatedLicense] =
     React.useState<SoftwareLicense | null>(null);
   const [savingTier, setSavingTier] = React.useState(false);
-  const [savingKey, setSavingKey] = React.useState(false);
 
   const [tierForm] = Form.useForm();
   const [licenseForm] = Form.useForm();
-  const [keyForm] = Form.useForm();
 
   const loadTiers = React.useCallback(async () => {
     setLoadingTiers(true);
@@ -159,27 +155,6 @@ export function SoftwareLicensesAdmin() {
       message.error(`Failed to save tier: ${err}`);
     } finally {
       setSavingTier(false);
-    }
-  };
-
-  const saveSigningKey = async () => {
-    const values = await keyForm.validateFields();
-    setSavingKey(true);
-    try {
-      await webapp_client.query_client.query({
-        query: {
-          server_settings: {
-            name: PRIVATE_KEY_SETTING,
-            value: values.private_key,
-          },
-        },
-      });
-      message.success("Signing key saved");
-      keyForm.resetFields();
-    } catch (err) {
-      message.error(`Failed to save signing key: ${err}`);
-    } finally {
-      setSavingKey(false);
     }
   };
 
@@ -308,24 +283,6 @@ export function SoftwareLicensesAdmin() {
       <Paragraph type="secondary">
         Manage Launchpad/Rocket software license tiers and issued license tokens.
       </Paragraph>
-
-      <Divider titlePlacement="start">Signing Key</Divider>
-      <Form form={keyForm} layout="vertical">
-        <Form.Item
-          label="Private signing key (PEM)"
-          name="private_key"
-          rules={[{ required: true, message: "Signing key is required" }]}
-        >
-          <Input.TextArea rows={4} placeholder="-----BEGIN PRIVATE KEY-----" />
-        </Form.Item>
-        <Button
-          type="primary"
-          onClick={saveSigningKey}
-          loading={savingKey}
-        >
-          Save signing key
-        </Button>
-      </Form>
 
       <Divider titlePlacement="start">License Tiers</Divider>
       <Space style={{ marginBottom: 12 }}>

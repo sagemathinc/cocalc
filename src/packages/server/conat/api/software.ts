@@ -1,5 +1,4 @@
 import getPool from "@cocalc/database/pool";
-import { db } from "@cocalc/database";
 import isAdmin from "@cocalc/server/accounts/is-admin";
 import { uuid } from "@cocalc/util/misc";
 import {
@@ -8,7 +7,7 @@ import {
   type SoftwareLicensePayload,
 } from "@cocalc/util/software-licenses/token";
 import getLogger from "@cocalc/backend/logger";
-import { callback2 } from "@cocalc/util/async-utils";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const logger = getLogger("server:conat:api:software");
 const PRIVATE_KEY_SETTING = "software_license_private_key";
@@ -21,7 +20,7 @@ function requireAdmin(account_id?: string) {
 }
 
 async function getPrivateKey(): Promise<string> {
-  const settings = await callback2(db().get_server_settings_cached);
+  const settings = await getServerSettings();
   const key = settings?.[PRIVATE_KEY_SETTING];
   if (!key) {
     throw Error(`missing server setting ${PRIVATE_KEY_SETTING}`);

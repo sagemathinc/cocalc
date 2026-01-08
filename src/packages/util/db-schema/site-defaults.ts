@@ -34,6 +34,7 @@ export const TAGS = [
   "Stripe",
   "captcha",
   "Zendesk",
+  "Licensing",
   "GitHub",
   "Pay as you Go",
   "Compute Servers",
