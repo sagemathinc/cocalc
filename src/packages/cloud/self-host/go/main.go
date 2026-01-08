@@ -499,6 +499,10 @@ func executeCommand(cmd CommandEnvelope, state State, statePath string) (interfa
 		return handleStart(cmd.Payload, state)
 	case "stop":
 		return handleStop(cmd.Payload, state)
+	case "restart":
+		return handleRestart(cmd.Payload, state)
+	case "hard_restart":
+		return handleHardRestart(cmd.Payload, state)
 	case "delete":
 		return handleDelete(cmd.Payload, state, statePath)
 	case "status":
@@ -610,6 +614,23 @@ func handleCreate(payload map[string]interface{}, state State, statePath string)
 	}
 	saveState(statePath, state)
 	return map[string]interface{}{"name": name, "state": info.State, "ipv4": info.IPv4}, nil
+}
+
+func handleRestart(payload map[string]interface{}, state State) (interface{}, error) {
+	name := toString(payload["name"])
+	if name == "" {
+		return nil, errors.New("restart requires name")
+	}
+	result := runMultipass([]string{"restart", name})
+	if result.Code != 0 {
+		return nil, errors.New(strings.TrimSpace(result.Stderr))
+	}
+	return map[string]interface{}{"name": name}, nil
+}
+
+func handleHardRestart(payload map[string]interface{}, state State) (interface{}, error) {
+	// Multipass does not differentiate between soft and hard restart; use restart.
+	return handleRestart(payload, state)
 }
 
 func handleStart(payload map[string]interface{}, state State) (interface{}, error) {

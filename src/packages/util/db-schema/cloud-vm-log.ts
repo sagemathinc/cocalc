@@ -22,7 +22,7 @@ Table({
     },
     action: {
       type: "string",
-      desc: "Lifecycle action (create/start/stop/delete/resize/status).",
+      desc: "Lifecycle action (create/start/stop/restart/hard_restart/delete/resize/status).",
     },
     status: {
       type: "string",

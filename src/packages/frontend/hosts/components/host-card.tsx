@@ -1,6 +1,6 @@
 import { Button, Card, Popconfirm, Space, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
-import type { Host } from "@cocalc/conat/hub/api/hosts";
+import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import { STATUS_COLOR } from "../constants";
 import {
   getProviderDescriptor,
@@ -11,9 +11,11 @@ type HostCardProps = {
   host: Host;
   onStart: (id: string) => void;
   onStop: (id: string) => void;
+  onRestart: (id: string, mode: "reboot" | "hard") => void;
   onDelete: (id: string) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
+  providerCapabilities?: HostCatalog["provider_capabilities"];
   selfHost?: {
     isConnectorOnline: (connectorId?: string) => boolean;
     onSetup: (host: Host) => void;
@@ -24,9 +26,11 @@ export const HostCard: React.FC<HostCardProps> = ({
   host,
   onStart,
   onStop,
+  onRestart,
   onDelete,
   onDetails,
   onEdit,
+  providerCapabilities,
   selfHost,
 }) => {
   const isDeleted = !!host.deleted;
@@ -41,8 +45,14 @@ export const HostCard: React.FC<HostCardProps> = ({
     isDeleted ||
     host.status === "running" ||
     host.status === "starting" ||
+    host.status === "restarting" ||
     !connectorOnline;
-  const startLabel = host.status === "starting" ? "Starting" : "Start";
+  const startLabel =
+    host.status === "starting"
+      ? "Starting"
+      : host.status === "restarting"
+        ? "Restarting"
+        : "Start";
   const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
   const statusValue = host.status as Host["status"] | "active";
   const allowStop =
@@ -50,6 +60,17 @@ export const HostCard: React.FC<HostCardProps> = ({
     (statusValue === "running" ||
       statusValue === "active" ||
       statusValue === "error");
+  const providerId = host.machine?.cloud;
+  const caps = providerId ? providerCapabilities?.[providerId] : undefined;
+  const supportsRestart = caps?.supportsRestart ?? true;
+  const supportsHardRestart = caps?.supportsHardRestart ?? false;
+  const allowRestart =
+    !isDeleted &&
+    connectorOnline &&
+    (statusValue === "running" ||
+      statusValue === "active" ||
+      statusValue === "error") &&
+    (supportsRestart || supportsHardRestart);
   const deleteLabel = isDeleted
     ? "Deleted"
     : host.status === "deprovisioned"
@@ -91,6 +112,19 @@ export const HostCard: React.FC<HostCardProps> = ({
     ) : (
       <Button key="stop" type="link" disabled>
         {stopLabel}
+      </Button>
+    ),
+    allowRestart ? (
+      <Button
+        key="restart"
+        type="link"
+        onClick={() => onRestart(host.id, "reboot")}
+      >
+        Restart
+      </Button>
+    ) : (
+      <Button key="restart" type="link" disabled>
+        Restart
       </Button>
     ),
     <Button

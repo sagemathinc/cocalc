@@ -395,6 +395,61 @@ async function handleStop(row: any) {
   });
 }
 
+async function handleRestart(row: any, mode: "reboot" | "hard") {
+  const machine: HostMachine = row.metadata?.machine ?? {};
+  const runtime = row.metadata?.runtime;
+  const providerId = normalizeProviderId(machine.cloud);
+  logger.debug("handleRestart: begin", {
+    host_id: row.id,
+    provider: providerId ?? machine.cloud,
+    mode,
+    runtime,
+  });
+  if (!providerId) {
+    await updateHostRow(row.id, { status: "running", last_seen: new Date() });
+    return;
+  }
+  if (!runtime?.instance_id) {
+    throw new Error("host is not provisioned");
+  }
+  const { entry, creds } = await getProviderContext(providerId);
+  const provider = entry.provider;
+  if (mode === "hard") {
+    if (provider.hardRestartHost) {
+      await provider.hardRestartHost(runtime, creds);
+    } else if (provider.restartHost) {
+      await provider.restartHost(runtime, creds);
+    } else if (entry.capabilities.supportsStop) {
+      await provider.stopHost(runtime, creds);
+      await provider.startHost(runtime, creds);
+    } else {
+      throw new Error("hard reboot not supported");
+    }
+  } else {
+    if (provider.restartHost) {
+      await provider.restartHost(runtime, creds);
+    } else if (entry.capabilities.supportsStop) {
+      await provider.stopHost(runtime, creds);
+      await provider.startHost(runtime, creds);
+    } else if (provider.hardRestartHost) {
+      await provider.hardRestartHost(runtime, creds);
+    } else {
+      throw new Error("reboot not supported");
+    }
+  }
+  await updateHostRow(row.id, { status: "running", last_seen: new Date() });
+  await scheduleRuntimeRefresh(row);
+  await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
+  await logCloudVmEvent({
+    vm_id: row.id,
+    action: mode === "hard" ? "hard_restart" : "restart",
+    status: "success",
+    provider: providerId,
+    spec: machine,
+    runtime,
+  });
+}
+
 async function handleDelete(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
@@ -554,6 +609,26 @@ export const cloudHostHandlers: CloudVmWorkHandlers = {
     if (!host) return;
     try {
       await handleStop(host);
+    } catch (err) {
+      await markHostError(host, err);
+      throw err;
+    }
+  },
+  restart: async (row) => {
+    const host = await loadHostRow(row.vm_id);
+    if (!host) return;
+    try {
+      await handleRestart(host, "reboot");
+    } catch (err) {
+      await markHostError(host, err);
+      throw err;
+    }
+  },
+  hard_restart: async (row) => {
+    const host = await loadHostRow(row.vm_id);
+    if (!host) return;
+    try {
+      await handleRestart(host, "hard");
     } catch (err) {
       await markHostError(host, err);
       throw err;

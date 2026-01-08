@@ -19,6 +19,7 @@ const STATUS_COLOR = {
   off: "red",
   running: "green",
   starting: "blue",
+  restarting: "blue",
   stopping: "orange",
   provisioning: "blue",
   deprovisioned: "default",
@@ -82,7 +83,14 @@ export function HostPickerModal({
         ...g.items
           .sort((a, b) => {
             // sort by status then name
-            const order = ["running", "starting", "off", "stopping", "deprovisioned"];
+            const order = [
+              "running",
+              "starting",
+              "restarting",
+              "off",
+              "stopping",
+              "deprovisioned",
+            ];
             const ai = order.indexOf(a.status);
             const bi = order.indexOf(b.status);
             if (ai !== bi) return ai - bi;

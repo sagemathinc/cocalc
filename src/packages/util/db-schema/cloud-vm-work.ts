@@ -18,7 +18,7 @@ Table({
     },
     action: {
       type: "string",
-      desc: "Work action (create/start/stop/delete/resize/status).",
+      desc: "Work action (create/start/stop/restart/hard_restart/delete/resize/status).",
     },
     payload: {
       type: "map",

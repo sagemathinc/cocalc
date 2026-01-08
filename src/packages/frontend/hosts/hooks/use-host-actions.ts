@@ -5,6 +5,10 @@ type HubClient = {
   hosts: {
     startHost: (opts: { id: string }) => Promise<unknown>;
     stopHost: (opts: { id: string }) => Promise<unknown>;
+    restartHost?: (opts: {
+      id: string;
+      mode?: "reboot" | "hard";
+    }) => Promise<unknown>;
     deleteHost: (opts: { id: string }) => Promise<unknown>;
     forceDeprovisionHost?: (opts: { id: string }) => Promise<unknown>;
     removeSelfHostConnector?: (opts: { id: string }) => Promise<unknown>;
@@ -54,6 +58,30 @@ export const useHostActions = ({
     } catch (err) {
       console.error(err);
       message.error(`Failed to ${action} host`);
+      return;
+    }
+    try {
+      await refresh();
+    } catch (err) {
+      console.error("host refresh failed", err);
+    }
+  };
+
+  const restartHost = async (id: string, mode: "reboot" | "hard") => {
+    if (!hub.hosts.restartHost) {
+      message.error("Restart not available");
+      return;
+    }
+    try {
+      setHosts((prev) =>
+        prev.map((host) =>
+          host.id === id ? { ...host, status: "restarting" } : host,
+        ),
+      );
+      await hub.hosts.restartHost({ id, mode });
+    } catch (err) {
+      console.error(err);
+      message.error("Failed to restart host");
       return;
     }
     try {
@@ -154,6 +182,7 @@ export const useHostActions = ({
 
   return {
     setStatus,
+    restartHost,
     removeHost,
     renameHost,
     updateHostMachine,

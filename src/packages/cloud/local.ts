@@ -46,6 +46,16 @@ export class LocalProvider implements CloudProvider {
     this.states.set(runtime.instance_id, "stopped");
   }
 
+  async restartHost(runtime: HostRuntime, _creds: any): Promise<void> {
+    logger.info("local.restartHost", { instance_id: runtime.instance_id });
+    this.states.set(runtime.instance_id, "running");
+  }
+
+  async hardRestartHost(runtime: HostRuntime, _creds: any): Promise<void> {
+    logger.info("local.hardRestartHost", { instance_id: runtime.instance_id });
+    this.states.set(runtime.instance_id, "running");
+  }
+
   async deleteHost(runtime: HostRuntime, _creds: any): Promise<void> {
     logger.info("local.deleteHost", { instance_id: runtime.instance_id });
     this.states.delete(runtime.instance_id);

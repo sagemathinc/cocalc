@@ -12,7 +12,15 @@ async function sleep(ms: number) {
 
 export async function enqueueSelfHostCommand(opts: {
   connector_id: string;
-  action: "create" | "start" | "stop" | "delete" | "status" | "resize";
+  action:
+    | "create"
+    | "start"
+    | "stop"
+    | "delete"
+    | "status"
+    | "resize"
+    | "restart"
+    | "hard_restart";
   payload: Record<string, any>;
 }): Promise<string> {
   const { rows: connectors } = await pool().query(
@@ -73,7 +81,15 @@ export async function waitForSelfHostCommand(
 
 export async function sendSelfHostCommand(opts: {
   connector_id: string;
-  action: "create" | "start" | "stop" | "delete" | "status" | "resize";
+  action:
+    | "create"
+    | "start"
+    | "stop"
+    | "delete"
+    | "status"
+    | "resize"
+    | "restart"
+    | "hard_restart";
   payload: Record<string, any>;
   timeoutMs?: number;
 }): Promise<any> {

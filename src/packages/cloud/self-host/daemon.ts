@@ -22,7 +22,15 @@ type Config = {
 
 type CommandEnvelope = {
   id: string;
-  action: "create" | "start" | "stop" | "delete" | "status" | "resize";
+  action:
+    | "create"
+    | "start"
+    | "stop"
+    | "delete"
+    | "status"
+    | "resize"
+    | "restart"
+    | "hard_restart";
   payload: Record<string, any>;
   issued_at?: string;
 };
@@ -433,6 +441,26 @@ async function handleStop(payload: Record<string, any>, state: State) {
   };
 }
 
+async function handleRestart(payload: Record<string, any>, state: State) {
+  const hostId = String(payload.host_id ?? "");
+  const name = String(payload.name ?? state.instances[hostId]?.name ?? "");
+  if (!name) throw new Error("restart requires host_id or name");
+  const info = await multipassInfo(name);
+  if (!info.exists) {
+    return { name, state: "not_found" };
+  }
+  const result = await runMultipass(["restart", name]);
+  if (result.code !== 0) {
+    throw new Error(result.stderr.trim() || "multipass restart failed");
+  }
+  const refreshed = await multipassInfo(name);
+  return {
+    name,
+    state: refreshed.info?.state,
+    ipv4: refreshed.info?.ipv4 ?? [],
+  };
+}
+
 async function handleDelete(
   payload: Record<string, any>,
   state: State,
@@ -548,6 +576,10 @@ async function executeCommand(
       return await handleStart(cmd.payload, state);
     case "stop":
       return await handleStop(cmd.payload, state);
+    case "restart":
+      return await handleRestart(cmd.payload, state);
+    case "hard_restart":
+      return await handleRestart(cmd.payload, state);
     case "delete":
       return await handleDelete(cmd.payload, state, statePath);
     case "status":

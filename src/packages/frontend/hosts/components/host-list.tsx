@@ -1,7 +1,7 @@
 import { Button, Card, Col, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
-import type { Host } from "@cocalc/conat/hub/api/hosts";
+import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import { HostCard } from "./host-card";
 import { STATUS_COLOR } from "../constants";
 import type { ColumnsType } from "antd/es/table";
@@ -19,6 +19,7 @@ const STATUS_ORDER = [
   "running",
   "active",
   "starting",
+  "restarting",
   "off",
   "stopping",
   "error",
@@ -109,6 +110,7 @@ type HostListViewModel = {
   hosts: Host[];
   onStart: (id: string) => void;
   onStop: (id: string) => void;
+  onRestart: (id: string, mode: "reboot" | "hard") => void;
   onDelete: (id: string) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
@@ -130,6 +132,7 @@ type HostListViewModel = {
   setSortDirection: (value: HostSortDirection) => void;
   autoResort: boolean;
   setAutoResort: (value: boolean) => void;
+  providerCapabilities?: HostCatalog["provider_capabilities"];
 };
 
 export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
@@ -137,6 +140,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     hosts,
     onStart,
     onStop,
+    onRestart,
     onDelete,
     onDetails,
     onEdit,
@@ -154,9 +158,49 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     setSortDirection,
     autoResort,
     setAutoResort,
+    providerCapabilities,
   } = vm;
 
   const [selectedRowKeys, setSelectedRowKeys] = React.useState<string[]>([]);
+  const [restartTarget, setRestartTarget] = React.useState<Host | null>(null);
+
+  const [showHardRestartHelp, setShowHardRestartHelp] = React.useState(false);
+
+  const closeRestart = React.useCallback(() => {
+    setRestartTarget(null);
+    setShowHardRestartHelp(false);
+  }, []);
+
+  const restartCaps = React.useMemo(() => {
+    const providerId = restartTarget?.machine?.cloud;
+    const caps = providerId ? providerCapabilities?.[providerId] : undefined;
+    return {
+      supportsRestart: caps?.supportsRestart ?? true,
+      supportsHardRestart: caps?.supportsHardRestart ?? false,
+    };
+  }, [providerCapabilities, restartTarget]);
+  const restartHelp = React.useMemo(() => {
+    if (restartCaps.supportsRestart && restartCaps.supportsHardRestart) {
+      return "Reboot attempts a graceful restart. Hard reboot forces a power cycle.";
+    }
+    if (restartCaps.supportsRestart) {
+      return "Reboot attempts a graceful restart.";
+    }
+    if (restartCaps.supportsHardRestart) {
+      return "Hard reboot forces a power cycle.";
+    }
+    return "Restart is not available for this provider.";
+  }, [restartCaps.supportsRestart, restartCaps.supportsHardRestart]);
+
+  const runRestart = React.useCallback(
+    async (mode: "reboot" | "hard") => {
+      if (!restartTarget) return;
+      const target = restartTarget;
+      closeRestart();
+      await onRestart(target.id, mode);
+    },
+    [closeRestart, onRestart, restartTarget],
+  );
 
   const [dynamicOrder, setDynamicOrder] = React.useState<string[]>([]);
   const sortKeyRef = React.useRef<string>("");
@@ -442,8 +486,14 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           isDeleted ||
           host.status === "running" ||
           host.status === "starting" ||
+          host.status === "restarting" ||
           !connectorOnline;
-        const startLabel = host.status === "starting" ? "Starting" : "Start";
+        const startLabel =
+          host.status === "starting"
+            ? "Starting"
+            : host.status === "restarting"
+              ? "Restarting"
+              : "Start";
         const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
         const statusValue = host.status as Host["status"] | "active";
         const allowStop =
@@ -451,6 +501,17 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           (statusValue === "running" ||
             statusValue === "active" ||
             statusValue === "error");
+        const providerId = host.machine?.cloud;
+        const caps = providerId ? providerCapabilities?.[providerId] : undefined;
+        const supportsRestart = caps?.supportsRestart ?? true;
+        const supportsHardRestart = caps?.supportsHardRestart ?? false;
+        const allowRestart =
+          !isDeleted &&
+          connectorOnline &&
+          (statusValue === "running" ||
+            statusValue === "active" ||
+            statusValue === "error") &&
+          (supportsRestart || supportsHardRestart);
         const deleteLabel = isDeleted
           ? "Deleted"
           : host.status === "deprovisioned"
@@ -498,6 +559,20 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           ) : (
             <Button key="stop" size="small" type="link" disabled>
               {stopLabel}
+            </Button>
+          ),
+          allowRestart ? (
+            <Button
+              key="restart"
+              size="small"
+              type="link"
+              onClick={() => setRestartTarget(host)}
+            >
+              Restart
+            </Button>
+          ) : (
+            <Button key="restart" size="small" type="link" disabled>
+              Restart
             </Button>
           ),
           <Button
@@ -721,15 +796,72 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
                 host={host}
                 onStart={onStart}
                 onStop={onStop}
+                onRestart={(id, _mode) => {
+                  const target = hosts.find((h) => h.id === id);
+                  if (!target) return;
+                  setRestartTarget(target);
+                }}
                 onDelete={onDelete}
                 onDetails={onDetails}
                 onEdit={onEdit}
                 selfHost={selfHost}
+                providerCapabilities={providerCapabilities}
               />
             </Col>
           ))}
         </Row>
       )}
+      <Modal
+        open={!!restartTarget}
+        title={
+          restartTarget ? `Restart ${restartTarget.name}?` : "Restart host?"
+        }
+        onCancel={closeRestart}
+        footer={
+          <Space>
+            <Button onClick={closeRestart}>Cancel</Button>
+            <Button
+              type="primary"
+              disabled={!restartCaps.supportsRestart}
+              onClick={() => runRestart("reboot")}
+            >
+              Reboot
+            </Button>
+            {restartCaps.supportsHardRestart && (
+              <Button danger onClick={() => runRestart("hard")}>
+                Hard Reboot
+              </Button>
+            )}
+          </Space>
+        }
+      >
+        <Typography.Paragraph>{restartHelp}</Typography.Paragraph>
+        {restartCaps.supportsHardRestart && (
+          <>
+            <Typography.Paragraph>
+              <Typography.Link
+                onClick={() => setShowHardRestartHelp((prev) => !prev)}
+              >
+                {showHardRestartHelp
+                  ? "Hide hard reboot guidance"
+                  : "When should I use hard reboot?"}
+              </Typography.Link>
+            </Typography.Paragraph>
+            {showHardRestartHelp && (
+              <Typography.Paragraph type="secondary">
+                Hard reboot power-cycles the VM. Use it only if the host is
+                unresponsive or a normal reboot fails. It can risk data loss;
+                otherwise use Reboot or contact support.
+              </Typography.Paragraph>
+            )}
+          </>
+        )}
+        {restartTarget?.status && (
+          <Typography.Text type="secondary">
+            Current status: {restartTarget.status}
+          </Typography.Text>
+        )}
+      </Modal>
     </div>
   );
 };

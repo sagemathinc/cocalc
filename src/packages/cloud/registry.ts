@@ -19,6 +19,8 @@ import {
 
 export type ProviderCapabilities = {
   supportsStop: boolean;
+  supportsRestart: boolean;
+  supportsHardRestart: boolean;
   supportsDiskType: boolean;
   supportsDiskResize: boolean;
   diskResizeRequiresStop: boolean;
@@ -95,6 +97,8 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
     provider: gcpProvider,
     capabilities: {
       supportsStop: true,
+      supportsRestart: true,
+      supportsHardRestart: true,
       supportsDiskType: true,
       supportsDiskResize: true,
       diskResizeRequiresStop: false,
@@ -124,6 +128,8 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
     provider: hyperstackProvider,
     capabilities: {
       supportsStop: false,
+      supportsRestart: true,
+      supportsHardRestart: true,
       supportsDiskType: false,
       supportsDiskResize: false,
       diskResizeRequiresStop: false,
@@ -153,6 +159,8 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
     provider: lambdaProvider,
     capabilities: {
       supportsStop: false,
+      supportsRestart: true,
+      supportsHardRestart: false,
       supportsDiskType: false,
       supportsDiskResize: false,
       diskResizeRequiresStop: false,
@@ -182,6 +190,8 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
     provider: localProvider,
     capabilities: {
       supportsStop: true,
+      supportsRestart: true,
+      supportsHardRestart: false,
       supportsDiskType: false,
       supportsDiskResize: false,
       diskResizeRequiresStop: false,
@@ -206,6 +216,8 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
     provider: nebiusProvider,
     capabilities: {
       supportsStop: true,
+      supportsRestart: true,
+      supportsHardRestart: false,
       supportsDiskType: true,
       supportsDiskResize: true,
       diskResizeRequiresStop: true,
@@ -235,6 +247,8 @@ export const PROVIDERS: Record<ProviderId, ProviderEntry | undefined> = {
     provider: selfHostProvider,
     capabilities: {
       supportsStop: true,
+      supportsRestart: true,
+      supportsHardRestart: false,
       supportsDiskType: false,
       supportsDiskResize: true,
       diskResizeRequiresStop: true,

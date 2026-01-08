@@ -410,6 +410,20 @@ export class GcpProvider implements CloudProvider {
     });
   }
 
+  async hardRestartHost(runtime: HostRuntime, creds: any): Promise<void> {
+    logger.info("gcp.hardRestartHost", {
+      instance_id: runtime.instance_id,
+      zone: runtime.zone,
+    });
+    const credentials = parseCredentials(creds ?? {});
+    const client = new InstancesClient(credentials);
+    await client.reset({
+      project: credentials.projectId,
+      zone: runtime.zone,
+      instance: runtime.instance_id,
+    });
+  }
+
   async deleteHost(runtime: HostRuntime, creds: any): Promise<void> {
     const credentials = parseCredentials(creds ?? {});
     const client = new InstancesClient(credentials);

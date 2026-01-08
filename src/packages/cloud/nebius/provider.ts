@@ -408,6 +408,18 @@ export class NebiusProvider implements CloudProvider {
     await op.wait();
   }
 
+  async restartHost(runtime: HostRuntime, creds: NebiusProviderCreds) {
+    const client = new NebiusClient(creds);
+    const stopOp = await client.instances.stop(
+      StopInstanceRequest.create({ id: runtime.instance_id }),
+    );
+    await stopOp.wait();
+    const startOp = await client.instances.start(
+      StartInstanceRequest.create({ id: runtime.instance_id }),
+    );
+    await startOp.wait();
+  }
+
   async deleteHost(runtime: HostRuntime, creds: NebiusProviderCreds) {
     const client = new NebiusClient(creds);
     const op = await client.instances.delete(

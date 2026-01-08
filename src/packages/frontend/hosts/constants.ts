@@ -14,6 +14,7 @@ export const STATUS_COLOR = {
   active: "green",
   provisioning: "blue",
   starting: "blue",
+  restarting: "blue",
   stopping: "orange",
   deprovisioned: "default",
   off: "red",

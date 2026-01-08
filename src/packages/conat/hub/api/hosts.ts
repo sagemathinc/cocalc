@@ -6,6 +6,7 @@ export type HostStatus =
   | "off"
   | "error"
   | "starting"
+  | "restarting"
   | "running"
   | "stopping";
 
@@ -61,6 +62,8 @@ export interface HostCatalogEntry {
 
 export interface HostProviderCapabilities {
   supportsStop: boolean;
+  supportsRestart?: boolean;
+  supportsHardRestart?: boolean;
   supportsDiskType: boolean;
   supportsDiskResize: boolean;
   diskResizeRequiresStop?: boolean;
@@ -164,6 +167,7 @@ export const hosts = {
   createHost: authFirstRequireAccount,
   startHost: authFirstRequireAccount,
   stopHost: authFirstRequireAccount,
+  restartHost: authFirstRequireAccount,
   forceDeprovisionHost: authFirstRequireAccount,
   removeSelfHostConnector: authFirstRequireAccount,
   renameHost: authFirstRequireAccount,
@@ -207,6 +211,11 @@ export interface Hosts {
   }) => Promise<Host>;
   startHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
   stopHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
+  restartHost: (opts: {
+    account_id?: string;
+    id: string;
+    mode?: "reboot" | "hard";
+  }) => Promise<Host>;
   forceDeprovisionHost: (opts: { account_id?: string; id: string }) => Promise<void>;
   removeSelfHostConnector: (opts: { account_id?: string; id: string }) => Promise<void>;
   renameHost: (opts: {

@@ -10,6 +10,7 @@ import {
   getVirtualMachine,
   getVirtualMachines,
   startVirtualMachine,
+  hardRebootVirtualMachine,
   importKeyPair,
   createEnvironment,
   addFirewallRule,
@@ -416,6 +417,15 @@ export class HyperstackProvider implements CloudProvider {
     logger.debug("HyperstackProvider: stopHost", runtime);
     ensureHyperstackConfig(creds);
     await deleteVirtualMachine(parseInstanceId(runtime.instance_id));
+  }
+
+  async hardRestartHost(
+    runtime: HostRuntime,
+    creds: HyperstackCreds,
+  ): Promise<void> {
+    logger.debug("HyperstackProvider: hardRestartHost", runtime);
+    ensureHyperstackConfig(creds);
+    await hardRebootVirtualMachine(parseInstanceId(runtime.instance_id));
   }
 
   async deleteHost(

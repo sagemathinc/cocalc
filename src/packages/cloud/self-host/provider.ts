@@ -9,7 +9,15 @@ import logger from "../logger";
 type SelfHostCreds = {
   sendCommand: (
     connectorId: string,
-    action: "create" | "start" | "stop" | "delete" | "status" | "resize",
+    action:
+      | "create"
+      | "start"
+      | "stop"
+      | "delete"
+      | "status"
+      | "resize"
+      | "restart"
+      | "hard_restart",
     payload: Record<string, any>,
     opts?: { timeoutMs?: number },
   ) => Promise<any>;
@@ -59,7 +67,15 @@ export class SelfHostProvider implements CloudProvider {
   private async send(
     creds: SelfHostCreds,
     connectorId: string,
-    action: "create" | "start" | "stop" | "delete" | "status" | "resize",
+    action:
+      | "create"
+      | "start"
+      | "stop"
+      | "delete"
+      | "status"
+      | "resize"
+      | "restart"
+      | "hard_restart",
     payload: Record<string, any>,
     timeoutMs: number,
   ) {
@@ -134,6 +150,44 @@ export class SelfHostProvider implements CloudProvider {
     };
     logger.debug("self-host.deleteHost", { connector_id: connectorId, instance: runtime.instance_id });
     await this.send(creds, connectorId, "delete", payload, DEFAULT_TIMEOUTS.delete);
+  }
+
+  async restartHost(runtime: HostRuntime, creds: any): Promise<void> {
+    const connectorId = connectorFromRuntime(runtime);
+    const payload = {
+      host_id: runtimeHostId(runtime),
+      name: runtime.metadata?.instance_name ?? runtime.instance_id,
+    };
+    logger.debug("self-host.restartHost", {
+      connector_id: connectorId,
+      instance: runtime.instance_id,
+    });
+    await this.send(
+      creds,
+      connectorId,
+      "restart",
+      payload,
+      DEFAULT_TIMEOUTS.start,
+    );
+  }
+
+  async hardRestartHost(runtime: HostRuntime, creds: any): Promise<void> {
+    const connectorId = connectorFromRuntime(runtime);
+    const payload = {
+      host_id: runtimeHostId(runtime),
+      name: runtime.metadata?.instance_name ?? runtime.instance_id,
+    };
+    logger.debug("self-host.hardRestartHost", {
+      connector_id: connectorId,
+      instance: runtime.instance_id,
+    });
+    await this.send(
+      creds,
+      connectorId,
+      "hard_restart",
+      payload,
+      DEFAULT_TIMEOUTS.start,
+    );
   }
 
   async resizeDisk(

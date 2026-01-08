@@ -23,6 +23,7 @@ import {
 } from "./hub/move";
 import { getSoftwareVersions } from "./software";
 import { upgradeSoftware } from "./upgrade";
+import { executeCode } from "@cocalc/backend/execute-code";
 
 const logger = getLogger("project-host:master");
 
@@ -153,6 +154,21 @@ export async function startMasterRegistration({
       receiveProject: finalizeReceiveProject,
       cleanupAfterMove,
       upgradeSoftware,
+      async growBtrfs({ disk_gb }) {
+        const args = ["/usr/local/sbin/cocalc-grow-btrfs"];
+        if (disk_gb != null) args.push(String(disk_gb));
+        const { stdout, stderr, exit_code } = await executeCode({
+          command: "sudo",
+          args,
+          timeout: 60,
+        });
+        if (exit_code) {
+          throw new Error(
+            `grow-btrfs failed (exit ${exit_code}): ${stderr || stdout || ""}`.trim(),
+          );
+        }
+        return { ok: true };
+      },
     },
   });
 

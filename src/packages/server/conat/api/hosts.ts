@@ -655,6 +655,69 @@ export async function stopHost({
   return parseRow(rows[0]);
 }
 
+export async function restartHost({
+  account_id,
+  id,
+  mode,
+}: {
+  account_id?: string;
+  id: string;
+  mode?: "reboot" | "hard";
+}): Promise<Host> {
+  const row = await loadHostForStartStop(id, account_id);
+  if (row.status === "deprovisioned") {
+    throw new Error("host is not provisioned");
+  }
+  if (!["running", "active", "error"].includes(row.status)) {
+    throw new Error("host must be running to restart");
+  }
+  const metadata = row.metadata ?? {};
+  const owner = metadata.owner ?? account_id;
+  const machine: HostMachine = metadata.machine ?? {};
+  const machineCloud = normalizeProviderId(machine.cloud);
+  const provider = machineCloud ? getServerProvider(machineCloud) : undefined;
+  const caps = provider?.entry.capabilities;
+  const wantsHard = mode === "hard";
+  if (machineCloud && caps) {
+    const supported = wantsHard ? caps.supportsHardRestart : caps.supportsRestart;
+    if (!supported) {
+      throw new Error(
+        wantsHard ? "hard reboot is not supported" : "reboot is not supported",
+      );
+    }
+  }
+  if (machineCloud === "self-host" && row.region && owner) {
+    await ensureConnectorRecord({
+      connector_id: row.region,
+      account_id: owner,
+      host_id: row.id,
+      name: row.name ?? undefined,
+    });
+  }
+  await pool().query(
+    `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
+    [id, "restarting", new Date()],
+  );
+  if (!machineCloud) {
+    await pool().query(
+      `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
+      [id, "running", new Date()],
+    );
+  } else {
+    await enqueueCloudVmWork({
+      vm_id: id,
+      action: mode === "hard" ? "hard_restart" : "restart",
+      payload: { provider: machineCloud },
+    });
+  }
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
+    [id],
+  );
+  if (!rows[0]) throw new Error("host not found");
+  return parseRow(rows[0]);
+}
+
 export async function forceDeprovisionHost({
   account_id,
   id,
@@ -879,6 +942,7 @@ export async function updateHostMachine({
     return parseRow(row);
   }
 
+  let resizeWarning: string | undefined;
   let runtime = metadata.runtime ?? {};
   if (!runtime.instance_id && machineCloud === "gcp") {
     const zone = runtime.zone ?? nextMachine.zone ?? machine.zone ?? undefined;
@@ -936,9 +1000,33 @@ export async function updateHostMachine({
     }
     const { entry, creds } = await getProviderContext(machineCloud);
     await entry.provider.resizeDisk(runtime, nextDisk, creds);
+    if (row.status !== "off") {
+      const client = createHostControlClient({
+        host_id: row.id,
+        client: conatWithProjectRouting(),
+      });
+      try {
+        await client.growBtrfs({ disk_gb: nextDisk });
+      } catch (err) {
+        resizeWarning =
+          "disk resized in cloud, but filesystem resize failed; reboot or run /usr/local/sbin/cocalc-grow-btrfs";
+        console.warn("growBtrfs failed after disk resize", err);
+      }
+    }
   }
 
-  const nextMetadata = { ...metadata, machine: nextMachine };
+  const nextMetadata = {
+    ...metadata,
+    machine: nextMachine,
+    ...(resizeWarning
+      ? {
+          last_action: "resize_disk",
+          last_action_status: `warning: ${resizeWarning}`,
+          last_action_error: resizeWarning,
+          last_action_at: new Date().toISOString(),
+        }
+      : {}),
+  };
   await pool().query(
     `UPDATE project_hosts SET region=$2, metadata=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [row.id, nextRegion, nextMetadata],

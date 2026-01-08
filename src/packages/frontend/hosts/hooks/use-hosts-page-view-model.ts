@@ -136,6 +136,7 @@ export const useHostsPageViewModel = () => {
   });
   const {
     setStatus,
+    restartHost,
     removeHost,
     renameHost,
     updateHostMachine,
@@ -265,7 +266,9 @@ export const useHostsPageViewModel = () => {
   const [setupOpen, setSetupOpen] = React.useState(false);
   React.useEffect(() => {
     const hasTransition = hosts.some((host) =>
-      ["starting", "stopping", "pending"].includes(host.status ?? ""),
+      ["starting", "restarting", "stopping", "pending"].includes(
+        host.status ?? "",
+      ),
     );
     const hasWaitingConnector = selfHostConnectors.some((connector) => {
       if (!connector.id) return false;
@@ -466,6 +469,7 @@ export const useHostsPageViewModel = () => {
     hosts,
     onStart: (id: string) => setStatus(id, "start"),
     onStop: (id: string) => setStatus(id, "stop"),
+    onRestart: restartHost,
     onDelete: removeHost,
     onDetails: openDetails,
     onEdit: openEdit,
@@ -487,6 +491,8 @@ export const useHostsPageViewModel = () => {
     setSortDirection,
     autoResort,
     setAutoResort,
+    providerCapabilities:
+      catalog?.provider_capabilities ?? selfHostCatalog?.provider_capabilities,
   });
   const hostDrawerVm = useHostDrawerViewModel({
     open: drawerOpen,

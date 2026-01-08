@@ -71,6 +71,7 @@ export interface HostControlApi {
   }) => Promise<void>;
   prepareMove: (opts: { project_id: string }) => Promise<void>;
   upgradeSoftware: (opts: UpgradeSoftwareRequest) => Promise<UpgradeSoftwareResponse>;
+  growBtrfs: (opts: { disk_gb?: number }) => Promise<{ ok: boolean }>;
   // Later: updateProject to adjust title/users/etc.
 }
 

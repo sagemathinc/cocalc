@@ -348,6 +348,11 @@ export class LambdaProvider implements CloudProvider {
     await client.restartInstance([runtime.instance_id]);
   }
 
+  async restartHost(runtime: HostRuntime, creds: LambdaCreds): Promise<void> {
+    const client = new LambdaClient({ apiKey: creds.apiKey });
+    await client.restartInstance([runtime.instance_id]);
+  }
+
   async stopHost(runtime: HostRuntime, creds: LambdaCreds): Promise<void> {
     const client = new LambdaClient({ apiKey: creds.apiKey });
     await client.terminateInstance([runtime.instance_id]);

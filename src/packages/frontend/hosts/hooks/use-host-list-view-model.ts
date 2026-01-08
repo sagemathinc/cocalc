@@ -4,11 +4,13 @@ import type {
   HostSortDirection,
   HostSortField,
 } from "../types";
+import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
 
 type UseHostListViewModelArgs = {
   hosts: Host[];
   onStart: (id: string) => void;
   onStop: (id: string) => void;
+  onRestart: (id: string, mode: "reboot" | "hard") => void;
   onDelete: (id: string) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
@@ -30,12 +32,14 @@ type UseHostListViewModelArgs = {
   setSortDirection: (value: HostSortDirection) => void;
   autoResort: boolean;
   setAutoResort: (value: boolean) => void;
+  providerCapabilities?: HostCatalog["provider_capabilities"];
 };
 
 export const useHostListViewModel = ({
   hosts,
   onStart,
   onStop,
+  onRestart,
   onDelete,
   onDetails,
   onEdit,
@@ -53,11 +57,13 @@ export const useHostListViewModel = ({
   setSortDirection,
   autoResort,
   setAutoResort,
+  providerCapabilities,
 }: UseHostListViewModelArgs) => {
   return {
     hosts,
     onStart,
     onStop,
+    onRestart,
     onDelete,
     onDetails,
     onEdit,
@@ -75,5 +81,6 @@ export const useHostListViewModel = ({
     setSortDirection,
     autoResort,
     setAutoResort,
+    providerCapabilities,
   };
 };
