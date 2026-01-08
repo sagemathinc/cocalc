@@ -166,15 +166,18 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
         ? "standard"
         : "balanced";
   const storage_mode = machine.storage_mode;
+  const gpuType = machine.gpu_type;
   const gpu =
-    machine.gpu_type && machine.gpu_type !== "none"
+    gpuType && gpuType !== "none"
       ? {
-          type: machine.gpu_type,
+          type: gpuType,
           count: Math.max(1, machine.gpu_count ?? 1),
         }
-      : metadata.gpu
-        ? { type: machine.gpu_type ?? "nvidia-l4", count: 1 }
-        : undefined;
+      : gpuType
+        ? undefined
+        : metadata.gpu
+          ? { type: "nvidia-l4", count: 1 }
+          : undefined;
   const { publicKey: controlPlanePublicKey } =
     await getControlPlaneSshKeypair();
   const ssh_user = machine.metadata?.ssh_user ?? "ubuntu";

@@ -374,6 +374,14 @@ if [ "$BOOTSTRAP_ARCH" != "$EXPECTED_ARCH" ]; then
   exit 1
 fi
 ARCH="$BOOTSTRAP_ARCH"
+echo "bootstrap: disabling unattended upgrades"
+if command -v systemctl >/dev/null 2>&1; then
+  sudo systemctl stop apt-daily.service apt-daily-upgrade.service unattended-upgrades.service || true
+  sudo systemctl stop apt-daily.timer apt-daily-upgrade.timer || true
+fi
+sudo pkill -9 apt-get || true
+sudo pkill -f -9 unattended-upgrade || true
+sudo apt-get remove -y unattended-upgrades || true
 echo "bootstrap: updating apt package lists"
 sudo apt-get update -y
 echo "bootstrap: installing base packages"
@@ -409,13 +417,13 @@ if [ -n "${dataDiskDevices}" ]; then
         mountpoints="$(lsblk -nr -o MOUNTPOINT "$dev" 2>/dev/null | grep -v '^$' || true)"
         if [ -n "$mountpoints" ]; then
           if echo "$mountpoints" | grep -qx "/btrfs"; then
-            echo "$dev"
+            printf '%s\n' "$dev"
             return 0
           fi
-          echo "bootstrap: skipping $dev (mounted at $mountpoints)"
+          echo "bootstrap: skipping $dev (mounted at $mountpoints)" >&2
           continue
         fi
-        echo "$dev"
+        printf '%s\n' "$dev"
         return 0
       fi
     done
@@ -670,8 +678,16 @@ WantedBy=multi-user.target
   }
 
   if (cloudflaredScript) {
-    bootstrapScript += cloudflaredScript;
+  bootstrapScript += cloudflaredScript;
   }
+
+  bootstrapScript += `
+echo "bootstrap: re-enabling unattended upgrades"
+sudo apt-get install -y unattended-upgrades || true
+if command -v systemctl >/dev/null 2>&1; then
+  sudo systemctl enable --now apt-daily.timer apt-daily-upgrade.timer unattended-upgrades.service || true
+fi
+`;
 
   const fetchSeaScript = `#!/usr/bin/env bash
 set -euo pipefail
@@ -877,10 +893,9 @@ report_status() {
 on_error() {
   local code="$1"
   local line="$2"
-  local cmd="$3"
-  report_status "error" "bootstrap failed (exit \${code}) at line \${line}: \${cmd}"
+  report_status "error" "bootstrap failed (exit \${code}) at line \${line}"
 }
-trap 'on_error "$?" "$LINENO" "$BASH_COMMAND"' ERR
+trap 'on_error "$?" "$LINENO"' ERR
 
 report_status "running"
 ${scripts.bootstrapScript}

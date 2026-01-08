@@ -84,7 +84,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   const currentCpu = readPositive(host?.machine?.metadata?.cpu);
   const currentRam = readPositive(host?.machine?.metadata?.ram_gb);
   const currentDisk = readPositive(host?.machine?.disk_gb);
-  const diskMin = currentDisk ?? 10;
+  const diskMin = isDeprovisioned ? 10 : currentDisk ?? 10;
   const diskMax = Math.max(2000, diskMin);
   const bootDisk = readPositive(host?.machine?.metadata?.boot_disk_gb);
   const storageMode = host?.machine?.storage_mode ?? "persistent";
@@ -190,11 +190,17 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
           <Form.Item
             label="Disk size (GB)"
             name="disk_gb"
-            tooltip="Disk can only grow. Shrinking is not supported."
+            tooltip={
+              isDeprovisioned
+                ? "Disk size is applied on next provision."
+                : "Disk can only grow while provisioned."
+            }
             extra={
               diskResizeBlocked
                 ? "Stop the VM before resizing the disk."
-                : `Current minimum: ${diskMin} GB (grow only)`
+                : isDeprovisioned
+                  ? undefined
+                  : `Current minimum: ${diskMin} GB (grow only)`
             }
           >
             <InputNumber

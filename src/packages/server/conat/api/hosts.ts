@@ -854,7 +854,12 @@ export async function updateHostMachine({
   }
   if (nextDisk != null) {
     const currentDisk = Number(machine.disk_gb);
-    if (Number.isFinite(currentDisk) && currentDisk > 0 && nextDisk < currentDisk) {
+    if (
+      !isDeprovisioned &&
+      Number.isFinite(currentDisk) &&
+      currentDisk > 0 &&
+      nextDisk < currentDisk
+    ) {
       throw new Error("disk size can only increase");
     }
     if (nextDisk !== machine.disk_gb) {
@@ -915,11 +920,10 @@ export async function updateHostMachine({
     if (machine_type) {
       nextMetadata.size = machine_type;
     }
-    if (nextMachine.gpu_type || (nextMachine.gpu_count ?? 0) > 0) {
-      nextMetadata.gpu = true;
-    } else if (gpu_type === "" || nextMachine.gpu_type === undefined) {
-      nextMetadata.gpu = false;
-    }
+    const gpuEnabled =
+      (nextMachine.gpu_type && nextMachine.gpu_type !== "none") ||
+      ((nextMachine.gpu_count ?? 0) > 0 && nextMachine.gpu_type !== "none");
+    nextMetadata.gpu = gpuEnabled;
     await pool().query(
       `UPDATE project_hosts SET region=$2, metadata=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [row.id, nextRegion, nextMetadata],
