@@ -43,6 +43,10 @@ import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
 import {
+  isLaunchpadMode,
+  isSoftwareLicenseActivated,
+} from "@cocalc/server/software-licenses/activation";
+import {
   is_valid_email_address as isValidEmailAddress,
   len,
 } from "@cocalc/util/misc";
@@ -83,6 +87,15 @@ export async function signUp(req, res) {
     lastName ? lastName : `User-${Math.round(Date.now() / 1000)}`
   ).trim();
   registrationToken = (registrationToken ?? "").trim();
+
+  if (isLaunchpadMode() && !(await isSoftwareLicenseActivated())) {
+    res.json({
+      issues: {
+        api: "Launchpad is not activated yet.",
+      },
+    });
+    return;
+  }
 
   // if email is empty, then trying to create an anonymous account,
   // which may be allowed, depending on server settings.
