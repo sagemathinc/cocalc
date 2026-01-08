@@ -272,6 +272,9 @@ export type SiteSettingsExtrasKeys =
   | "project_hosts_cloudflare_tunnel_enabled"
   | "project_hosts_cloudflare_tunnel_account_id"
   | "project_hosts_cloudflare_tunnel_api_token"
+  | "software_license_token"
+  | "software_license_server_url"
+  | "software_license_instance_id"
   | "google_cloud_compute_servers_image_prefix"
   | "compute_servers_cloudflare_api_key"
   | "compute_servers_images_spec_url"
@@ -316,6 +319,32 @@ export const EXTRAS: SettingsExtras = {
     multiline: 6,
     to_val: to_trimmed_str,
     tags: ["Licensing", "Security"],
+    valid: () => true,
+  },
+  software_license_token: {
+    name: "Software Licensing: License Token",
+    desc: "Launchpad/Rocket activation token. This is typically set by the activation flow.",
+    default: "",
+    password: true,
+    multiline: 4,
+    to_val: to_trimmed_str,
+    tags: ["Licensing"],
+    valid: () => true,
+  },
+  software_license_server_url: {
+    name: "Software Licensing: Server URL",
+    desc: "Licensing server base URL used for activation and refresh.",
+    default: "https://cocalc.ai",
+    to_val: to_trimmed_str,
+    tags: ["Licensing"],
+    valid: () => true,
+  },
+  software_license_instance_id: {
+    name: "Software Licensing: Instance Id",
+    desc: "Unique instance identifier used during license activation (auto-generated).",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Licensing"],
     valid: () => true,
   },
   openai_section: {

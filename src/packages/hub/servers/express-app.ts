@@ -33,6 +33,12 @@ import { initConatServer } from "@cocalc/server/conat/socketio";
 import { conatSocketioCount, root } from "@cocalc/backend/data";
 import { ACCOUNT_ID_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import createApiV2Router from "@cocalc/next/lib/api-v2-router";
+import { ensureBootstrapAdminToken } from "@cocalc/server/auth/bootstrap-admin";
+import {
+  getLicenseStatus,
+  isLaunchpadMode,
+  isSoftwareLicenseActivated,
+} from "@cocalc/server/software-licenses/activation";
 
 const logger = getLogger("hub:servers:express-app");
 
@@ -143,6 +149,9 @@ export default async function init(opts: Options): Promise<{
   initStats(router);
   if (!opts.nextServer) {
     initLanding(router);
+  }
+  if (!opts.nextServer && isLaunchpadMode()) {
+    initLaunchpadActivationGate(router);
   }
   initAppRedirect(router, { includeAuth: !opts.nextServer });
   initProjectHostBootstrap(router);
@@ -313,16 +322,153 @@ async function initStatic(router) {
 function initLanding(router: express.Router) {
   logger.info("initLanding");
   router.get("/", (req, res) => {
-    const base = basePath === "/" ? "" : basePath;
-    const signedIn = Boolean(req.cookies?.[ACCOUNT_ID_COOKIE_NAME]);
-    const links: Array<{ href: string; label: string }> = [
-      { href: `${base}/auth/sign-in`, label: "Sign in" },
-      { href: `${base}/auth/sign-up`, label: "Sign up" },
-    ];
-    if (signedIn) {
-      links.unshift({ href: `${base}/projects`, label: "Projects" });
-    }
-    res.type("html").send(`<!doctype html>
+    void (async () => {
+      const base = basePath === "/" ? "" : basePath;
+      if (isLaunchpadMode()) {
+        const status = await getLicenseStatus();
+        if (!status.activated) {
+          const baseUrl = `${req.protocol}://${req.get("host")}${base}/`;
+          const bootstrapUrl = await ensureBootstrapAdminToken({ baseUrl });
+          res.type("html").send(`<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>CoCalc Launchpad Activation</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #f5f3ee;
+        --fg: #1f1f1f;
+        --muted: #6a6a6a;
+        --card: #ffffff;
+        --accent: #2f6f6d;
+        --border: #e5e1d8;
+      }
+      body {
+        margin: 0;
+        font-family: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+        background: radial-gradient(1200px 600px at 20% -10%, #e9f0ea, transparent),
+                    radial-gradient(800px 400px at 120% 20%, #f6efe6, transparent),
+                    var(--bg);
+        color: var(--fg);
+      }
+      .wrap {
+        max-width: 760px;
+        margin: 10vh auto;
+        padding: 24px;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 28px;
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.08);
+      }
+      h1 {
+        font-size: 28px;
+        margin: 0 0 8px;
+      }
+      p {
+        margin: 0 0 16px;
+        color: var(--muted);
+      }
+      textarea {
+        width: 100%;
+        min-height: 140px;
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 12px;
+        font-family: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 13px;
+      }
+      button {
+        margin-top: 12px;
+        background: var(--accent);
+        color: #fff;
+        border: none;
+        border-radius: 999px;
+        padding: 10px 18px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      .status {
+        margin-top: 16px;
+        font-size: 14px;
+        color: var(--muted);
+      }
+      .success {
+        color: #1b6c3d;
+        font-weight: 600;
+      }
+      .error {
+        color: #a11;
+        font-weight: 600;
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <div class="card">
+        <h1>Activate CoCalc Launchpad</h1>
+        <p>Enter your license token to activate this Launchpad instance.</p>
+        <form id="license-form">
+          <textarea name="token" placeholder="Paste license token"></textarea>
+          <button type="submit">Activate</button>
+        </form>
+        <div class="status" id="license-status"></div>
+      </div>
+    </div>
+    <script>
+      const form = document.getElementById("license-form");
+      const status = document.getElementById("license-status");
+      const signUpUrl = ${JSON.stringify(
+        bootstrapUrl ?? `${base}/auth/sign-up`,
+      )};
+      form.addEventListener("submit", async (evt) => {
+        evt.preventDefault();
+        const token = form.token.value.trim();
+        if (!token) {
+          status.textContent = "Please paste a license token.";
+          status.className = "status error";
+          return;
+        }
+        status.textContent = "Activating...";
+        status.className = "status";
+        try {
+          const resp = await fetch("${base}/api/v2/software/activate", {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ token })
+          });
+          const data = await resp.json();
+          if (!resp.ok || data.error) {
+            throw new Error(data.error || "Activation failed");
+          }
+          status.innerHTML = '<span class="success">Activated!</span> Continue to <a href="' + signUpUrl + '">create the admin account</a>.';
+        } catch (err) {
+          status.textContent = err.message || String(err);
+          status.className = "status error";
+        }
+      });
+    </script>
+  </body>
+</html>`);
+          return;
+        }
+      }
+      const signedIn = Boolean(req.cookies?.[ACCOUNT_ID_COOKIE_NAME]);
+      const links: Array<{ href: string; label: string }> = [
+        { href: `${base}/auth/sign-in`, label: "Sign in" },
+        { href: `${base}/auth/sign-up`, label: "Sign up" },
+      ];
+      if (signedIn) {
+        links.unshift({ href: `${base}/projects`, label: "Projects" });
+      }
+      res.type("html").send(`<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -410,6 +556,28 @@ function initLanding(router: express.Router) {
     </div>
   </body>
 </html>`);
+    })().catch((err) => {
+      logger.warn("landing page failed", { err });
+      res.status(500).send("Landing page error.");
+    });
+  });
+}
+
+function initLaunchpadActivationGate(router: express.Router) {
+  router.use((req, res, next) => {
+    void (async () => {
+      if (await isSoftwareLicenseActivated()) {
+        next();
+        return;
+      }
+      const allowed =
+        req.path === "/" || req.path.startsWith("/api/v2/software");
+      if (allowed) {
+        next();
+        return;
+      }
+      res.redirect(basePath === "/" ? "/" : `${basePath}/`);
+    })().catch((err) => next(err));
   });
 }
 
