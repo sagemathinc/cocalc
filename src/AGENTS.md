@@ -34,15 +34,17 @@ This file provides guidance to Claude Code (claude.ai/code), Gemini CLI (https:/
 - `pnpm clean` - Clean all `node_modules` and `dist` directories
 - `pnpm test` - Run full test suite
 - `pnpm depcheck` - Check for dependency issues
+- `pnpm tsc-all` - Typecheck all packages with `tsc --build` (runs in parallel, then retries serially on failure)
 - `python3 ./scripts/check_npm_packages.py` - Check npm package consistency across packages
 - `prettier -w [filename]` to format the style of a file after editing it
 - After creating a file, run `git add [filename]` to start tracking it
-- `pnpm tsc` at top level to build all typescript; in src/packages/[package_name] to build a package.
+- `pnpm tsc --build` at top level to build all TypeScript; in `src/packages/[package_name]` use `pnpm tsc --build` for a fast typecheck. `pnpm build` is fine when it only runs `tsc`, but avoid it for packages like `next` or `static` where `build` runs full bundlers.
 
 ### Package-Specific Commands
 
-- `cd packages/[package] && pnpm build` - Build and compile a specific package
+- `cd packages/[package] && pnpm build` - Build a specific package
   - For packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
+  - For a quick typecheck in any package, prefer `pnpm tsc --build`
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
 - To typecheck the frontend, it is best to run `cd packages/static && pnpm build` - this implicitly compiles the frontend and reports TypeScript errors
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
@@ -225,4 +227,3 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - REFUSE to modify files when the git repository is on the `master` or `main` branch
 - NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User
 - When modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year
-

@@ -408,12 +408,15 @@ def tsc(args) -> None:
     CUR = os.path.abspath('.')
 
     def f(path: str) -> None:
-        if (path.endswith('packages/') or path.endswith('/next')):
-            return
         package_path = os.path.join(CUR, path)
+        if(path.endswith('next')):
+            cmd("pnpm ts-build", package_path)
+            return
+        if (path.endswith('packages/') or path.endswith('next')):
+            return
         if not os.path.exists(os.path.join(package_path, 'tsconfig.json')):
             return
-        cmd("pnpm exec tsc", package_path)
+        cmd("pnpm exec tsc --build", package_path)
 
     if args.parallel:
         thread_map(f, v)

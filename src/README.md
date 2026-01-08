@@ -83,7 +83,7 @@ The hub will send minimal logging to stdout, and the rest to `data/logs/log`.
 To get real-time updates from, e.g., the `packages/server` directory, you'll also need to run
 
 ```sh
-~/cocalc/src/packages/server$ pnpm tsc # in yet another terminal
+~/cocalc/src/packages/server$ pnpm tsc --build --watch # in yet another terminal
 ```
 
 If you need to do a production build instead:
@@ -109,7 +109,13 @@ The code of CoCalc is in NPM packages in the `src/packages/` subdirectory. To do
 1. **PostgreSQL** database \-\- a postgres instance started via `pnpm database`
 2. **Hub** \-\- a nodejs instance started via `pnpm hub`
 
-Optionally, you may also need to type `pnpm tsc` in packages that you're editing to watch for changes, compile using Typescript and show an errors.
+Optionally, you may also need to type `pnpm tsc --build --watch` in packages that you're editing to watch for changes, compile using Typescript and show errors.
+
+To typecheck everything in one shot, from the `src/` directory run:
+
+```sh
+~/cocalc/src$ pnpm tsc-all
+```
 
 ### 1. More about Starting the Database
 
