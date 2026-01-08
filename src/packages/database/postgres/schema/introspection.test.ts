@@ -11,7 +11,7 @@ Tests for 5 schema/metadata methods:
 - _get_columns(table, cb) - Get list of columns for a specific table
 - _primary_keys(table) - Get array of primary key columns (synchronous)
 - _primary_key(table) - Get single primary key, throws if composite (synchronous)
-- update_schema(opts) - Sync database schema with SCHEMA definition
+- update_schema() - Sync database schema with SCHEMA definition
 
 TDD Workflow:
 These tests call CoffeeScript methods via db(), which will later delegate to TypeScript implementations
@@ -230,48 +230,13 @@ describe("Schema & Metadata - Group 2", () => {
   });
 
   describe("update_schema - Sync database schema", () => {
-    it("completes without error when syncing schema", (done) => {
-      database.update_schema({
-        cb: (err) => {
-          expect(err).toBeUndefined();
-          done();
-        },
-      });
+    it("completes without error when syncing schema", async () => {
+      await database.update_schema();
     }, 30000); // Longer timeout for schema operations
 
-    it("accepts callback and calls it on completion", (done) => {
-      let callbackCalled = false;
-      database.update_schema({
-        cb: (err) => {
-          callbackCalled = true;
-          expect(err).toBeUndefined();
-          expect(callbackCalled).toBe(true);
-          done();
-        },
-      });
-    }, 30000);
-
-    it("can be called multiple times without error", (done) => {
-      database.update_schema({
-        cb: (err1) => {
-          expect(err1).toBeUndefined();
-          database.update_schema({
-            cb: (err2) => {
-              expect(err2).toBeUndefined();
-              done();
-            },
-          });
-        },
-      });
+    it("can be called multiple times without error", async () => {
+      await database.update_schema();
+      await database.update_schema();
     }, 45000); // Extra time for two schema syncs
-
-    it("handles callback being optional (no crash if missing)", (done) => {
-      // Should not crash even if callback is not provided
-      expect(() => {
-        database.update_schema({});
-      }).not.toThrow();
-      // Give it time to complete
-      setTimeout(done, 5000);
-    }, 10000);
   });
 });

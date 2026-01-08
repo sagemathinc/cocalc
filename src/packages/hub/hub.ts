@@ -152,7 +152,7 @@ async function startServer(): Promise<void> {
 
   if (program.updateDatabaseSchema) {
     logger.info("Update database schema");
-    await callback2(getDatabase().update_schema);
+    await getDatabase().update_schema();
 
     // in those cases where we initialize the database upon startup
     // (essentially only relevant for kucalc's hub-websocket)

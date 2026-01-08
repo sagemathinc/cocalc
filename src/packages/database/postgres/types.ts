@@ -953,7 +953,7 @@ export interface PostgreSQLMethods extends EventEmitter {
   ): void; // Get list of columns for a specific table
   _primary_keys(table: string): string[]; // Get array of primary key column names
   _primary_key(table: string): string; // Get single primary key (throws if composite)
-  update_schema(opts: { cb?: (err?: any) => void }): void; // Sync database schema with SCHEMA definition
+  update_schema(): Promise<void>; // Sync database schema with SCHEMA definition
 
   _user_set_query_project_manage_users_owner_only(
     obj: any,

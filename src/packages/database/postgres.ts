@@ -709,13 +709,8 @@ export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
   // Ensure that the actual schema in the database matches the one defined in SCHEMA.
   // This creates the initial schema, adds new columns, and in a VERY LIMITED
   // range of cases, *might be* be able to change the data type of a column.
-  async update_schema(opts: PgMethodOpts<"update_schema">) {
-    try {
-      await syncSchema(SCHEMA);
-      return typeof opts.cb === "function" ? opts.cb() : undefined;
-    } catch (err) {
-      return typeof opts.cb === "function" ? opts.cb(err) : undefined;
-    }
+  async update_schema(): Promise<void> {
+    await syncSchema(SCHEMA);
   }
 
   // Return the number of outstanding concurrent queries.
