@@ -949,6 +949,7 @@ sudo -u ${scripts.sshUser} -H "$BOOTSTRAP_DIR/fetch-project-bundle.sh"
 sudo -u ${scripts.sshUser} -H "$BOOTSTRAP_DIR/fetch-tools.sh"
 ${scripts.installServiceScript}
 sudo touch /btrfs/data/.bootstrap_done
+sudo touch /var/lib/cocalc/.bootstrap_done
 report_status "done"
 `;
 }
@@ -966,6 +967,11 @@ BOOTSTRAP_TOKEN="${token}"
 BOOTSTRAP_URL="${bootstrapUrl}"
 STATUS_URL="${statusUrl}"
 BOOTSTRAP_DIR="/root/bootstrap"
+
+if [ -f /var/lib/cocalc/.bootstrap_done ] || [ -f /btrfs/data/.bootstrap_done ]; then
+  echo "bootstrap: already complete; exiting"
+  exit 0
+fi
 
 if ! command -v curl >/dev/null 2>&1; then
   apt-get update -y
@@ -998,7 +1004,31 @@ report_status() {
     "$STATUS_URL" >/dev/null || true
 }
 
-if ! curl -fsSL -H "Authorization: Bearer $BOOTSTRAP_TOKEN" "$BOOTSTRAP_URL" > "$BOOTSTRAP_DIR/bootstrap.sh"; then
+download_bootstrap() {
+  local attempts=8
+  local delay=5
+  local i=1
+  while [ "$i" -le "$attempts" ]; do
+    local http_code
+    http_code="$(curl -sS -w "%{http_code}" -o "$BOOTSTRAP_DIR/bootstrap.sh" -H "Authorization: Bearer $BOOTSTRAP_TOKEN" "$BOOTSTRAP_URL" || true)"
+    if [ "$http_code" = "200" ]; then
+      return 0
+    fi
+    if [ "$http_code" = "401" ]; then
+      echo "bootstrap: download failed (http $http_code)"
+      return 1
+    fi
+    echo "bootstrap: download failed (http $http_code) attempt $i/$attempts; retrying in \${delay}s"
+    sleep "$delay"
+    if [ "$delay" -lt 60 ]; then
+      delay=$((delay * 2))
+    fi
+    i=$((i + 1))
+  done
+  return 1
+}
+
+if ! download_bootstrap; then
   report_status "error" "bootstrap download failed"
   exit 1
 fi
