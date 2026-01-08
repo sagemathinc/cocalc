@@ -1,0 +1,48 @@
+image:
+  repository: gcr.io/your-project/cocalc-rocket
+  tag: "latest"
+
+data:
+  path: /data
+
+cloudsql:
+  proxy:
+    enabled: true
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.11.3
+    instanceConnectionName: "your-project:us-central1:rocket-db"
+    port: 5432
+    privateIP: true
+    credentialsSecret:
+      name: cloudsql-credentials
+      key: credentials.json
+
+postgres:
+  host: "127.0.0.1"
+  port: 5432
+  database: smc
+  user: smc
+  passwordSecret:
+    name: postgres-password
+    key: password
+
+conat:
+  persist:
+    storage:
+      size: 50Gi
+      className: premium-rwo
+
+hub:
+  replicas: 2
+  ingress:
+    enabled: true
+    className: gce
+    annotations: {}
+    hosts:
+      - host: rocket.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+  extraEnv:
+    - name: COCALC_DISABLE_NEXT
+      value: "yes"

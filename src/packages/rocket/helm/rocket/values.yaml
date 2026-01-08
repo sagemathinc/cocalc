@@ -13,6 +13,18 @@ mode: kucalc
 data:
   path: /data
 
+cloudsql:
+  proxy:
+    enabled: false
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.11.3
+    instanceConnectionName: ""
+    port: 5432
+    privateIP: true
+    credentialsSecret:
+      name: ""
+      key: credentials.json
+    resources: {}
+
 postgres:
   host: "postgres"
   port: 5432
@@ -33,6 +45,19 @@ conat:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    probes:
+      liveness:
+        path: /alive
+        initialDelaySeconds: 20
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 6
+      readiness:
+        path: /healthcheck
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 6
   api:
     enabled: false
     replicas: 2
@@ -40,6 +65,19 @@ conat:
     nodeSelector: {}
     tolerations: []
     affinity: {}
+    probes:
+      liveness:
+        path: /alive
+        initialDelaySeconds: 20
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 6
+      readiness:
+        path: /healthcheck
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 6
   persist:
     enabled: true
     replicas: 1
@@ -50,6 +88,19 @@ conat:
     storage:
       size: 20Gi
       className: ""
+    probes:
+      liveness:
+        path: /alive
+        initialDelaySeconds: 20
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 6
+      readiness:
+        path: /healthcheck
+        initialDelaySeconds: 10
+        periodSeconds: 10
+        timeoutSeconds: 5
+        failureThreshold: 6
 
 hub:
   enabled: true
@@ -62,6 +113,19 @@ hub:
   updateDatabaseSchema: false
   mentions: false
   disableAnalytics: true
+  probes:
+    liveness:
+      path: /alive
+      initialDelaySeconds: 20
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 6
+    readiness:
+      path: /healthcheck
+      initialDelaySeconds: 10
+      periodSeconds: 10
+      timeoutSeconds: 5
+      failureThreshold: 6
   extraEnv: []
   service:
     type: ClusterIP

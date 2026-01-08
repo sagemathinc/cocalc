@@ -51,6 +51,23 @@ scaling for >=10k concurrent users. Project compute remains on external VMs.
   - Kubernetes secret for DB password.
   - Optional: connection string or host/IP.
 
+### Cloud SQL ops + upgrades
+
+- Backups and retention:
+  - Enable automated daily backups with explicit retention \(e.g., 7–30 days\).
+  - Enable PITR for point\-in\-time recovery \(stores WALs for a window\).
+  - Manual on\-demand backups for pre\-change safety.
+  - Exports: SQL export to GCS for portability; CSV export for table\-specific data.
+- Minor upgrades:
+  - Allow automatic minor upgrades; set a maintenance window.
+- Major upgrades \(e.g., PG15 → PG16\):
+  - In\-place upgrade requires downtime; expect tens of minutes to a couple hours for large DBs.
+  - Minimize downtime by temporarily scaling instance size and using SSD.
+  - **Near‑zero downtime option:** create a new PG16 instance, set up logical replication, then cut over.
+    - Steps: create target instance, enable logical replication on source, replicate, sync, short write pause, flip app to new host.
+- HA considerations:
+  - Regional HA doubles compute cost but improves failover; recommended for production.
+
 ## Phase 4: R2 setup
 
 - Create R2 bucket(s) for blobs.

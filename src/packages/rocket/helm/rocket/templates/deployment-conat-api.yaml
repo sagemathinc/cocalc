@@ -54,9 +54,9 @@ spec:
             - name: COCALC_MODE
               value: "{{ .Values.mode }}"
             - name: PGHOST
-              value: "{{ .Values.postgres.host }}"
+              value: "{{ ternary \"127.0.0.1\" .Values.postgres.host .Values.cloudsql.proxy.enabled }}"
             - name: PGPORT
-              value: "{{ .Values.postgres.port }}"
+              value: "{{ ternary (printf \"%v\" .Values.cloudsql.proxy.port) (printf \"%v\" .Values.postgres.port) .Values.cloudsql.proxy.enabled }}"
             - name: PGUSER
               value: "{{ .Values.postgres.user }}"
             - name: PGDATABASE
@@ -76,6 +76,48 @@ spec:
               readOnly: true
           resources:
             {{- toYaml .Values.conat.api.resources | nindent 12 }}
+          {{- with .Values.conat.api.probes.liveness }}
+          livenessProbe:
+            httpGet:
+              path: {{ .path }}
+              port: 5000
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+            timeoutSeconds: {{ .timeoutSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+          {{- with .Values.conat.api.probes.readiness }}
+          readinessProbe:
+            httpGet:
+              path: {{ .path }}
+              port: 5000
+            initialDelaySeconds: {{ .initialDelaySeconds }}
+            periodSeconds: {{ .periodSeconds }}
+            timeoutSeconds: {{ .timeoutSeconds }}
+            failureThreshold: {{ .failureThreshold }}
+          {{- end }}
+        {{- if .Values.cloudsql.proxy.enabled }}
+        - name: cloudsql-proxy
+          image: "{{ .Values.cloudsql.proxy.image }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          args:
+            - "--port={{ .Values.cloudsql.proxy.port }}"
+            {{- if .Values.cloudsql.proxy.privateIP }}
+            - "--private-ip"
+            {{- end }}
+            {{- if .Values.cloudsql.proxy.credentialsSecret.name }}
+            - "--credentials-file=/secrets/cloudsql/credentials.json"
+            {{- end }}
+            - "{{ .Values.cloudsql.proxy.instanceConnectionName }}"
+          {{- if .Values.cloudsql.proxy.credentialsSecret.name }}
+          volumeMounts:
+            - name: cloudsql-credentials
+              mountPath: /secrets/cloudsql
+              readOnly: true
+          {{- end }}
+          resources:
+            {{- toYaml .Values.cloudsql.proxy.resources | nindent 12 }}
+        {{- end }}
       volumes:
         - name: data
           emptyDir: {}
@@ -85,4 +127,12 @@ spec:
             items:
               - key: {{ .Values.conat.passwordSecret.key }}
                 path: conat-password
+        {{- if .Values.cloudsql.proxy.credentialsSecret.name }}
+        - name: cloudsql-credentials
+          secret:
+            secretName: {{ .Values.cloudsql.proxy.credentialsSecret.name }}
+            items:
+              - key: {{ .Values.cloudsql.proxy.credentialsSecret.key }}
+                path: credentials.json
+        {{- end }}
 {{- end }}
