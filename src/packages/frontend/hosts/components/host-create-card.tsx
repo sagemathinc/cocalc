@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Divider, Popconfirm, Select, Space, Typography, message } from "antd";
+import { Alert, Button, Card, Divider, Form, Popconfirm, Select, Space, Typography, message } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
@@ -39,6 +39,38 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({ vm }) => {
       // validation errors are surfaced by the form; no extra handling needed here
     }
   };
+  const watchedRegion = Form.useWatch("region", formInstance);
+  const watchedGpuType = Form.useWatch("gpu_type", formInstance);
+  const gcpRegionIncompatible = React.useMemo(() => {
+    if (provider.selectedProvider !== "gcp") return false;
+    if (!watchedGpuType || watchedGpuType === "none") return false;
+    const regionOption = (provider.fields.options.region ?? []).find(
+      (opt) => opt.value === watchedRegion,
+    );
+    const meta = (regionOption?.meta ?? {}) as { compatible?: boolean };
+    return meta.compatible === false;
+  }, [
+    provider.fields.options.region,
+    provider.selectedProvider,
+    watchedGpuType,
+    watchedRegion,
+  ]);
+  const watchedZone = Form.useWatch("zone", formInstance);
+  const gcpZoneIncompatible = React.useMemo(() => {
+    if (provider.selectedProvider !== "gcp") return false;
+    if (!watchedGpuType || watchedGpuType === "none") return false;
+    const zoneOption = (provider.fields.options.zone ?? []).find(
+      (opt) => opt.value === watchedZone,
+    );
+    const meta = (zoneOption?.meta ?? {}) as { compatible?: boolean };
+    return meta.compatible === false;
+  }, [
+    provider.fields.options.zone,
+    provider.selectedProvider,
+    watchedGpuType,
+    watchedZone,
+  ]);
+  const createDisabled = !canCreateHosts || gcpRegionIncompatible || gcpZoneIncompatible;
 
   return (
     <Card
@@ -77,12 +109,12 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({ vm }) => {
           okText="Create"
           cancelText="Cancel"
           onConfirm={confirmCreateHost}
-          disabled={!canCreateHosts}
+          disabled={createDisabled}
         >
           <Button
             type="primary"
             loading={creating}
-            disabled={!canCreateHosts}
+            disabled={createDisabled}
             block
           >
             Create host

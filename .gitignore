@@ -6,6 +6,7 @@
 *.tmp
 *.sqlite3
 logs
+log-pglite
 codemirror.min.js
 .DS_Store
 *.log

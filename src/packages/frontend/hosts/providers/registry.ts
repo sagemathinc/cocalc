@@ -306,8 +306,55 @@ export const filterFieldSchemaForCaps = (
     advanced: filterFields(schema.advanced),
   };
 };
+
+const gcpZoneHasMachineType = (
+  catalog: HostCatalog | undefined,
+  zone: string,
+  machineType?: string,
+): boolean => {
+  if (!machineType) return true;
+  const types = getCatalogEntryPayload<HostCatalogMachineType[]>(
+    catalog,
+    "machine_types",
+    `zone/${zone}`,
+  );
+  return (types ?? []).some((mt) => mt.name === machineType);
+};
+
+const gcpZoneHasGpuType = (
+  catalog: HostCatalog | undefined,
+  zone: string,
+  gpuType?: string,
+): boolean => {
+  if (!gpuType) return true;
+  const types = getCatalogEntryPayload<HostCatalogGpuType[]>(
+    catalog,
+    "gpu_types",
+    `zone/${zone}`,
+  );
+  return (types ?? []).some((gt) => gt.name === gpuType);
+};
+
+const gcpZoneHasMachinePrefix = (
+  catalog: HostCatalog | undefined,
+  zone: string,
+  prefixes: string[] | undefined,
+): boolean => {
+  if (!prefixes?.length) return true;
+  const types = getCatalogEntryPayload<HostCatalogMachineType[]>(
+    catalog,
+    "machine_types",
+    `zone/${zone}`,
+  );
+  return (types ?? []).some((mt) =>
+    prefixes.some((prefix) => (mt.name ?? "").startsWith(prefix)),
+  );
+};
+
 export const getGcpRegionOptions = (
   catalog?: HostCatalog,
+  selectedMachineType?: string,
+  selectedGpuType?: string,
 ): HostFieldOption[] => {
   const regions = getCatalogEntryPayload<HostCatalogRegion[]>(
     catalog,
@@ -324,6 +371,26 @@ export const getGcpRegionOptions = (
     const zoneWithMeta = zones?.find(
       (z) => z.region === r.name && (z.location || z.lowC02),
     );
+    const gpuType =
+      selectedGpuType && selectedGpuType !== "none" ? selectedGpuType : undefined;
+    const gpuPrefixes = gcpMachinePrefixesForGpuType(gpuType);
+    let compatible = true;
+    let compatibleZone: string | undefined;
+    if (gpuType || selectedMachineType) {
+      const regionZones = r.zones ?? [];
+      compatible = regionZones.some((zone) => {
+        if (!gcpZoneHasGpuType(catalog, zone, gpuType)) return false;
+        if (
+          selectedMachineType
+            ? !gcpZoneHasMachineType(catalog, zone, selectedMachineType)
+            : !gcpZoneHasMachinePrefix(catalog, zone, gpuPrefixes)
+        ) {
+          return false;
+        }
+        compatibleZone = compatibleZone ?? zone;
+        return true;
+      });
+    }
     return {
       value: r.name,
       label: formatRegionLabel(
@@ -331,6 +398,7 @@ export const getGcpRegionOptions = (
         zoneWithMeta?.location,
         zoneWithMeta?.lowC02,
       ),
+      meta: { compatible, compatibleZone },
     };
   });
 };
@@ -338,6 +406,8 @@ export const getGcpRegionOptions = (
 export const getGcpZoneOptions = (
   catalog: HostCatalog | undefined,
   selectedRegion?: string,
+  selectedMachineType?: string,
+  selectedGpuType?: string,
 ): HostFieldOption[] => {
   const regions = getCatalogEntryPayload<HostCatalogRegion[]>(
     catalog,
@@ -352,18 +422,60 @@ export const getGcpZoneOptions = (
   if (!regions?.length || !selectedRegion) return [];
   const zones = regions.find((r) => r.name === selectedRegion)?.zones;
   if (!zones?.length) return [];
+  const gpuType =
+    selectedGpuType && selectedGpuType !== "none" ? selectedGpuType : undefined;
+  const gpuPrefixes = gcpMachinePrefixesForGpuType(gpuType);
   return zones.map((z) => {
     const meta = zonesMeta?.find((zone) => zone.name === z);
+    const gpuCompatible = gcpZoneHasGpuType(catalog, z, gpuType);
+    const machineCompatible = selectedMachineType
+      ? gcpZoneHasMachineType(catalog, z, selectedMachineType)
+      : gcpZoneHasMachinePrefix(catalog, z, gpuPrefixes);
+    const compatible = gpuCompatible && machineCompatible;
     return {
       value: z,
       label: formatRegionLabel(z, meta?.location, meta?.lowC02),
+      meta: {
+        region: meta?.region ?? selectedRegion,
+        gpuCompatible,
+        machineCompatible,
+        compatible,
+      },
     };
   });
+};
+
+const GCP_GPU_ONLY_MACHINE_PREFIXES = ["a2-", "a3-", "g2-"];
+
+// Mirror the supported accelerator set from compute/google-cloud-config.tsx.
+const GCP_ACCELERATOR_TYPES = new Set([
+  "nvidia-tesla-t4",
+  "nvidia-l4",
+  "nvidia-tesla-a100",
+  "nvidia-a100-80gb",
+  "nvidia-h100-80gb",
+]);
+
+const GCP_GPU_COMPATIBILITY = [
+  { match: /l4/i, machinePrefixes: ["g2-"] },
+  { match: /h100/i, machinePrefixes: ["a3-"] },
+  { match: /a100/i, machinePrefixes: ["a2-"] },
+  { match: /t4/i, machinePrefixes: ["n1-"] },
+];
+
+const gcpMachinePrefixesForGpuType = (gpuType?: string): string[] | undefined => {
+  if (!gpuType || gpuType === "none") return [];
+  if (!GCP_ACCELERATOR_TYPES.has(gpuType)) return [];
+  for (const rule of GCP_GPU_COMPATIBILITY) {
+    if (rule.match.test(gpuType)) return rule.machinePrefixes;
+  }
+  return undefined;
 };
 
 export const getGcpMachineTypeOptions = (
   catalog: HostCatalog | undefined,
   selectedZone?: string,
+  selectedGpuType?: string,
 ): HostFieldOption[] => {
   if (!selectedZone) return [];
   const types = getCatalogEntryPayload<HostCatalogMachineType[]>(
@@ -372,7 +484,18 @@ export const getGcpMachineTypeOptions = (
     `zone/${selectedZone}`,
   );
   if (!types?.length) return [];
-  return types.map((mt) => ({
+  const gpuPrefixes = gcpMachinePrefixesForGpuType(selectedGpuType);
+  const filtered = types.filter((mt) => {
+    const name = mt.name ?? "";
+    if (!name) return false;
+    if (!selectedGpuType || selectedGpuType === "none") {
+      return !GCP_GPU_ONLY_MACHINE_PREFIXES.some((prefix) => name.startsWith(prefix));
+    }
+    if (gpuPrefixes === undefined) return true;
+    if (!gpuPrefixes.length) return false;
+    return gpuPrefixes.some((prefix) => name.startsWith(prefix));
+  });
+  return filtered.map((mt) => ({
     value: mt.name ?? "",
     label: mt.name ?? "unknown",
   }));
@@ -380,16 +503,35 @@ export const getGcpMachineTypeOptions = (
 
 export const getGcpGpuTypeOptions = (
   catalog: HostCatalog | undefined,
-  selectedZone?: string,
 ): HostFieldOption[] => {
-  if (!selectedZone) return [];
-  const types = getCatalogEntryPayload<HostCatalogGpuType[]>(
+  const zones = getCatalogEntryPayload<HostCatalogZone[]>(
     catalog,
-    "gpu_types",
-    `zone/${selectedZone}`,
+    "zones",
+    "global",
   );
-  if (!types?.length) return [];
-  return types.map((gt) => ({
+  if (!zones?.length) return [];
+  const typesByName = new Map<string, HostCatalogGpuType>();
+  for (const zone of zones) {
+    if (!zone?.name) continue;
+    const types = getCatalogEntryPayload<HostCatalogGpuType[]>(
+      catalog,
+      "gpu_types",
+      `zone/${zone.name}`,
+    );
+    for (const gt of types ?? []) {
+      if (!gt?.name) continue;
+      if (!typesByName.has(gt.name)) typesByName.set(gt.name, gt);
+    }
+  }
+  if (!typesByName.size) return [];
+  const types = [...typesByName.values()];
+  const filtered = types.filter((gt) => {
+    const name = gt.name ?? "";
+    if (!name) return false;
+    if (!GCP_ACCELERATOR_TYPES.has(name)) return false;
+    return true;
+  });
+  return filtered.map((gt) => ({
     value: gt.name ?? "",
     label: gt.name ?? "unknown",
   }));
@@ -1253,7 +1395,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
       genericGpu: false,
     },
     fields: {
-      primary: ["region", "zone", "machine_type", "gpu_type"],
+      primary: ["region", "zone", "gpu_type", "machine_type"],
       advanced: [],
       labels: {
         machine_type: "Machine type",
@@ -1266,12 +1408,25 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
     storage: { supported: true, growable: true },
     getOptions: (catalog, selection) => ({
       ...emptyOptions(),
-      region: getGcpRegionOptions(catalog),
-      zone: getGcpZoneOptions(catalog, selection.region),
-      machine_type: getGcpMachineTypeOptions(catalog, selection.zone),
+      region: getGcpRegionOptions(
+        catalog,
+        selection.machine_type,
+        selection.gpu_type,
+      ),
+      zone: getGcpZoneOptions(
+        catalog,
+        selection.region,
+        selection.machine_type,
+        selection.gpu_type,
+      ),
+      machine_type: getGcpMachineTypeOptions(
+        catalog,
+        selection.zone,
+        selection.gpu_type,
+      ),
       gpu_type: [
         { value: "none", label: "No GPU" },
-        ...getGcpGpuTypeOptions(catalog, selection.zone),
+        ...getGcpGpuTypeOptions(catalog),
       ],
     }),
     buildCreatePayload: (vals, ctx) => {

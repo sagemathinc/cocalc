@@ -1,4 +1,4 @@
-import { Form, Input, InputNumber, Modal, Select } from "antd";
+import { Alert, Form, Input, InputNumber, Modal, Select } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import type { HostProvider } from "../types";
@@ -76,6 +76,47 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   const fieldOptions = providerDescriptor
     ? getProviderOptions(providerId, catalog, selection)
     : {};
+  const gcpCompatibilityWarning = React.useMemo(() => {
+    if (providerId !== "gcp") return null;
+    const gpuType =
+      watchedGpuType && watchedGpuType !== "none" ? watchedGpuType : undefined;
+    if (!gpuType) return null;
+    const regionOption = (fieldOptions.region ?? []).find(
+      (opt) => opt.value === watchedRegion,
+    );
+    const regionMeta = (regionOption?.meta ?? {}) as {
+      compatible?: boolean;
+      compatibleZone?: string;
+    };
+    if (regionMeta.compatible === false) {
+      const compatibleRegions = (fieldOptions.region ?? []).filter((opt) => {
+        const meta = opt.meta as { compatible?: boolean } | undefined;
+        return meta?.compatible === true;
+      });
+      return { type: "region" as const, compatibleRegions };
+    }
+    if (!watchedZone) return null;
+    const zoneOption = (fieldOptions.zone ?? []).find(
+      (opt) => opt.value === watchedZone,
+    );
+    const zoneMeta = (zoneOption?.meta ?? {}) as {
+      compatible?: boolean;
+      region?: string;
+    };
+    if (zoneMeta.compatible !== false) return null;
+    const compatibleZones = (fieldOptions.zone ?? []).filter((opt) => {
+      const meta = opt.meta as { compatible?: boolean } | undefined;
+      return meta?.compatible === true;
+    });
+    return { type: "zone" as const, compatibleZones };
+  }, [
+    fieldOptions.region,
+    fieldOptions.zone,
+    providerId,
+    watchedGpuType,
+    watchedRegion,
+    watchedZone,
+  ]);
   const storageSupport = providerDescriptor
     ? getProviderStorageSupport(providerId, catalog?.provider_capabilities)
     : { supported: false, growable: false };
@@ -215,6 +256,65 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
         {isDeprovisioned &&
           providerDescriptor &&
           fieldSchema.primary.map(renderField)}
+        {isDeprovisioned && gcpCompatibilityWarning?.type === "region" && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message="Selected GPU isn't available in this region."
+            description={
+              gcpCompatibilityWarning.compatibleRegions.length ? (
+                <Select
+                  placeholder="Choose a compatible region"
+                  options={gcpCompatibilityWarning.compatibleRegions}
+                  onChange={(value) => {
+                    const regionOption =
+                      gcpCompatibilityWarning.compatibleRegions.find(
+                        (opt) => opt.value === value,
+                      );
+                    const meta = (regionOption?.meta ?? {}) as {
+                      compatibleZone?: string;
+                    };
+                    form.setFieldsValue({
+                      region: value,
+                      zone: meta.compatibleZone ?? undefined,
+                    });
+                  }}
+                />
+              ) : (
+                "Try a different GPU."
+              )
+            }
+          />
+        )}
+        {isDeprovisioned && gcpCompatibilityWarning?.type === "zone" && (
+          <Alert
+            type="warning"
+            showIcon
+            style={{ marginBottom: 12 }}
+            message="Selected GPU isn't available in this zone."
+            description={
+              gcpCompatibilityWarning.compatibleZones.length ? (
+                <Select
+                  placeholder="Choose a compatible zone"
+                  options={gcpCompatibilityWarning.compatibleZones}
+                  onChange={(value) => {
+                    const zoneOption = gcpCompatibilityWarning.compatibleZones.find(
+                      (opt) => opt.value === value,
+                    );
+                    const meta = (zoneOption?.meta ?? {}) as { region?: string };
+                    form.setFieldsValue({
+                      zone: value,
+                      region: meta.region ?? undefined,
+                    });
+                  }}
+                />
+              ) : (
+                "Try a different region to use this GPU."
+              )
+            }
+          />
+        )}
         {isSelfHost && (
           <>
             <Form.Item
