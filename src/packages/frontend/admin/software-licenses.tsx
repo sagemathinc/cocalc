@@ -9,6 +9,7 @@ import {
   Input,
   InputNumber,
   Modal,
+  Popconfirm,
   Space,
   Switch,
   Table,
@@ -174,6 +175,8 @@ export function SoftwareLicensesAdmin() {
         notes: values.notes,
       });
       setCreatedLicense(license);
+      setLicenseModalOpen(false);
+      licenseForm.resetFields();
       message.success("License created");
       await loadLicenses();
     } catch (err) {
@@ -245,9 +248,16 @@ export function SoftwareLicensesAdmin() {
               Restore
             </Button>
           ) : (
-            <Button danger size="small" onClick={() => revokeLicense(record.id)}>
-              Revoke
-            </Button>
+            <Popconfirm
+              title="Revoke this license?"
+              okText="Revoke"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => revokeLicense(record.id)}
+            >
+              <Button danger size="small">
+                Revoke
+              </Button>
+            </Popconfirm>
           )}
         </Space>
       ),
@@ -372,7 +382,6 @@ export function SoftwareLicensesAdmin() {
         open={licenseModalOpen}
         onCancel={() => {
           setLicenseModalOpen(false);
-          setCreatedLicense(null);
           licenseForm.resetFields();
         }}
         onOk={createLicense}
@@ -406,14 +415,30 @@ export function SoftwareLicensesAdmin() {
             <Input.TextArea rows={2} />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="License created"
+        open={!!createdLicense}
+        onCancel={() => setCreatedLicense(null)}
+        onOk={() => setCreatedLicense(null)}
+        okText="Close"
+      >
+        <Paragraph>
+          <Text strong>License token</Text>
+        </Paragraph>
+        <Paragraph type="secondary">
+          Copy and store this token securely. You will paste it into the
+          Launchpad/Rocket instance to activate the license. This is a bearer
+          token.
+        </Paragraph>
         {createdLicense?.token && (
-          <>
-            <Divider />
-            <Paragraph>
-              <Text strong>License token</Text>
-            </Paragraph>
-            <CopyToClipBoard value={createdLicense.token} />
-          </>
+          <Paragraph
+            copyable={{ text: createdLicense.token }}
+            style={{ wordBreak: "break-all", fontFamily: "monospace" }}
+          >
+            {createdLicense.token}
+          </Paragraph>
         )}
       </Modal>
     </div>
