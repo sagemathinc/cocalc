@@ -70,6 +70,9 @@ function Search({
   const { project_id, path, actions, id } = useFrameContext();
   // @ts-ignore
   const [search, setSearch] = useState<string>(desc.get("data-search") ?? "");
+  const [searchInput, setSearchInput] = useState<string>(
+    desc.get("data-search") ?? "",
+  );
   const [result, setResult] = useState<any>(null);
   const saveSearch = useMemo(
     () =>
@@ -81,7 +84,7 @@ function Search({
     [project_id, path],
   );
 
-  const { error, setError, index, doRefresh, fragmentKey, reduxName } =
+  const { error, setError, index, doRefresh, fragmentKey, reduxName, isIndexing } =
     useSearchIndex();
 
   const data = useRedux(reduxName ?? actions.name, updateField);
@@ -124,15 +127,28 @@ function Search({
           setError={setError}
           style={{ marginBottom: "15px", fontSize }}
         />
+        {isIndexing ? (
+          <div style={{ color: "#888", marginBottom: "10px", fontSize }}>
+            Indexing...
+          </div>
+        ) : null}
         <Input.Search
           style={{ fontSize }}
           allowClear
           placeholder={`Search ${title}...`}
-          value={search}
+          value={searchInput}
           onChange={(e) => {
-            const search = e.target.value ?? "";
-            setSearch(search);
-            saveSearch(search);
+            const nextValue = e.target.value ?? "";
+            setSearchInput(nextValue);
+            if (!nextValue.trim()) {
+              setSearch("");
+              saveSearch("");
+            }
+          }}
+          onSearch={(value) => {
+            const nextValue = value ?? "";
+            setSearch(nextValue);
+            saveSearch(nextValue);
           }}
         />
       </Card>

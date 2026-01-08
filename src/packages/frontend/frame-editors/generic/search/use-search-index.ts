@@ -11,12 +11,14 @@ export default function useSearchIndex() {
   });
   const [index, setIndex] = useState<null | SearchIndex>(null);
   const [error, setError] = useState<string>("");
+  const [isIndexing, setIsIndexing] = useState<boolean>(false);
   const { val: refresh, inc: doRefresh } = useCounter();
   const [indexTime, setIndexTime] = useState<number>(0);
   const [fragmentKey, setFragmentKey] = useState<string>("id");
   const [reduxName, setReduxName] = useState<string | undefined>(undefined);
 
   useEffect(() => {
+    let cancelled = false;
     if (
       contextRef.current.project_id != project_id ||
       contextRef.current.path != path
@@ -26,19 +28,27 @@ export default function useSearchIndex() {
     }
     (async () => {
       try {
+        setIsIndexing(true);
         setError("");
         const t0 = Date.now();
         const newIndex = new SearchIndex({ actions });
         await newIndex.init();
+        if (cancelled) return;
         setFragmentKey(newIndex.fragmentKey ?? "id");
         setReduxName(newIndex.reduxName);
         setIndex(newIndex);
         setIndexTime(Date.now() - t0);
+        setIsIndexing(false);
         //index?.close();
       } catch (err) {
+        if (cancelled) return;
         setError(`${err}`);
+        setIsIndexing(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [project_id, path, refresh]);
 
   return {
@@ -49,6 +59,7 @@ export default function useSearchIndex() {
     indexTime,
     fragmentKey,
     reduxName,
+    isIndexing,
   };
 }
 

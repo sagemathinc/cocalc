@@ -179,10 +179,9 @@ export class Actions extends CodeEditorActions<ChatEditorState> {
   }
 
   getSearchIndexData = () => {
-    const messages = this.store?.get("messages") as
-      | Map<string, ChatMessageTyped>
-      | undefined;
-    if (messages == null) {
+    const messages: Map<string, ChatMessageTyped> | undefined =
+      this.messageCache?.getMessages();
+    if (!messages) {
       return {};
     }
     const data: { [id: string]: string } = {};

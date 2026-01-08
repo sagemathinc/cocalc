@@ -2,9 +2,10 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import type { EditorDescription } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { Card, Input, Select, Switch } from "antd";
 import { path_split, separate_file_extension, set } from "@cocalc/util/misc";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { throttle } from "lodash";
 import { TimeAgo } from "@cocalc/frontend/components";
+import ShowError from "@cocalc/frontend/components/error";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import type { ChatMessages } from "@cocalc/frontend/chat/types";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
@@ -12,7 +13,7 @@ import {
   COMBINED_FEED_KEY,
   deriveThreadLabel,
 } from "@cocalc/frontend/chat/threads";
-import { newest_content } from "@cocalc/frontend/chat/utils";
+import useSearchIndex from "@cocalc/frontend/frame-editors/generic/search/use-search-index";
 
 const COMBINED_FEED_LABEL = "Combined feed";
 const ALL_MESSAGES_LABEL = "All messages";
@@ -53,6 +54,13 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
     ? (actions as any).getChatActions()
     : actions) ?? undefined) as ChatActions | undefined;
   const [search, setSearch] = useState<string>(desc?.get?.("data-search") ?? "");
+  const [searchInput, setSearchInput] = useState<string>(
+    desc?.get?.("data-search") ?? "",
+  );
+  const { error, setError, index, doRefresh, fragmentKey, isIndexing } =
+    useSearchIndex();
+  const messageCache = chatActions?.messageCache;
+  const [cacheVersion, setCacheVersion] = useState<number>(0);
   const [selectedThreadKey, setSelectedThreadKey] = useState<string | undefined>(
     undefined,
   );
@@ -69,6 +77,11 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
         }
       }, 250),
     [actions, id],
+  );
+  const doRefreshRef = useRef(doRefresh);
+  const refreshIndex = useMemo(
+    () => throttle(() => doRefreshRef.current(), 1000),
+    [],
   );
 
   const messages: ChatMessages | undefined = chatActions?.getAllMessages();
@@ -94,6 +107,37 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
   }, [threadIndex, messages]);
 
   useEffect(() => {
+    if (!messageCache) {
+      return;
+    }
+    const handleVersion = (version: number) => {
+      setCacheVersion(version);
+    };
+    handleVersion(messageCache.getVersion());
+    messageCache.on("version", handleVersion);
+    return () => {
+      messageCache.off("version", handleVersion);
+    };
+  }, [messageCache]);
+
+  useEffect(() => {
+    doRefreshRef.current = doRefresh;
+  }, [doRefresh]);
+
+  useEffect(() => {
+    if (!search.trim()) {
+      return;
+    }
+    refreshIndex();
+  }, [search, cacheVersion, refreshIndex]);
+
+  useEffect(() => {
+    return () => {
+      refreshIndex.cancel();
+    };
+  }, [refreshIndex]);
+
+  useEffect(() => {
     if (!selectedThreadKey && threadOptions.length > 0) {
       setSelectedThreadKey(threadOptions[0].key);
     }
@@ -111,39 +155,34 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
     [],
   );
 
-  const scopeCount = useMemo(() => {
-    if (!messages) return 0;
+  const scopeKeys = useMemo(() => {
+    if (!messages) {
+      return [];
+    }
     if (
       searchScope &&
       searchScope !== COMBINED_FEED_KEY &&
       searchScope !== ALL_MESSAGES_KEY &&
       threadIndex
     ) {
-      return threadIndex.get(searchScope)?.messageKeys.size ?? 0;
+      return Array.from(threadIndex.get(searchScope)?.messageKeys ?? []);
     }
-    return messages.size ?? 0;
+    return Array.from(messages.keys());
   }, [messages, threadIndex, searchScope]);
 
+  const scopeCount = scopeKeys.length;
+
   const scopeHasOlderMessages = useMemo(() => {
-    if (!messages) return false;
-    const keys =
-      searchScope &&
-      searchScope !== COMBINED_FEED_KEY &&
-      searchScope !== ALL_MESSAGES_KEY &&
-      threadIndex
-        ? threadIndex.get(searchScope)?.messageKeys
-        : Array.from(messages.keys());
-    const keyList = keys ? Array.from(keys) : [];
-    if (keyList.length === 0) return false;
+    if (scopeKeys.length === 0) return false;
     let oldestMs = Number.POSITIVE_INFINITY;
-    for (const key of keyList) {
+    for (const key of scopeKeys) {
       const ms = Number.parseFloat(key);
       if (Number.isFinite(ms) && ms < oldestMs) {
         oldestMs = ms;
       }
     }
     return Number.isFinite(oldestMs) && oldestMs < recentThreshold;
-  }, [messages, threadIndex, searchScope, recentThreshold]);
+  }, [scopeKeys, recentThreshold]);
 
   useEffect(() => {
     if (scopeCount > RECENT_SIZE) {
@@ -165,46 +204,60 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
     }
   }, [scopeHasOlderMessages, recentDaysOnly]);
 
-  const matches = useMemo(() => {
-    if (!search.trim() || !messages) {
-      return [];
+  const keysByDate = useMemo(() => {
+    if (!recentDaysOnly) {
+      return scopeKeys;
     }
-    const needle = search.toLowerCase();
-    const hits: MatchHit[] = [];
-    const messageKeys =
-      searchScope &&
-      searchScope !== COMBINED_FEED_KEY &&
-      searchScope !== ALL_MESSAGES_KEY &&
-      threadIndex
-        ? threadIndex.get(searchScope)?.messageKeys
-        : undefined;
-    const allKeys = messageKeys ? Array.from(messageKeys) : Array.from(messages.keys());
-    const byDate = recentDaysOnly
-      ? allKeys.filter((key) => {
-          const ms = Number.parseFloat(key);
-          return Number.isFinite(ms) ? ms >= recentThreshold : true;
-        })
-      : allKeys;
-    const keysToScan =
-      recentOnly && byDate.length > RECENT_SIZE
-        ? byDate.slice(-RECENT_SIZE)
-        : byDate;
-    for (const key of keysToScan) {
-      const message = messages.get(key);
-      if (!message) continue;
-      const content = newest_content(message);
-      if (!content) continue;
-      if (content.toLowerCase().includes(needle)) {
-        hits.push({ id: key, content });
-        if (searchScope !== ALL_MESSAGES_KEY && hits.length >= 50) break;
-      }
+    return scopeKeys.filter((key) => {
+      const ms = Number.parseFloat(key);
+      return Number.isFinite(ms) ? ms >= recentThreshold : true;
+    });
+  }, [scopeKeys, recentDaysOnly, recentThreshold]);
+
+  const keysToScan = useMemo(() => {
+    if (recentOnly && keysByDate.length > RECENT_SIZE) {
+      return keysByDate.slice(-RECENT_SIZE);
     }
-    return hits;
-  }, [messages, threadIndex, search, searchScope]);
+    return keysByDate;
+  }, [keysByDate, recentOnly]);
+
+  const keysToScanSet = useMemo(() => new Set(keysToScan), [keysToScan]);
+
+  const resultLimit = useMemo(() => messages?.size ?? 0, [messages]);
 
   useEffect(() => {
-    setResult(matches);
-  }, [matches]);
+    if (!index || !search.trim() || !messages || messages.size === 0) {
+      setResult([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const rawResult = await index.search({
+          term: search,
+          limit: resultLimit,
+        });
+        if (cancelled) return;
+        const hits = rawResult?.hits ?? [];
+        const filtered = hits.filter((hit) =>
+          keysToScanSet.has(hit.id ?? hit.document?.id),
+        );
+        setResult(
+          filtered.map((hit) => ({
+            id: hit.id,
+            content: hit.document?.content ?? "",
+          })),
+        );
+      } catch (err) {
+        if (!cancelled) {
+          setError(`${err}`);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [index, search, messages, resultLimit, keysToScanSet, setError]);
 
   return (
     <div className="smc-vfill">
@@ -217,6 +270,16 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
         }
         style={{ fontSize }}
       >
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ marginBottom: "15px", fontSize }}
+        />
+        {isIndexing ? (
+          <div style={{ color: "#888", marginBottom: "10px", fontSize }}>
+            Indexing...
+          </div>
+        ) : null}
         <div
           style={{
             display: "flex",
@@ -271,11 +334,19 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
             style={{ fontSize, width: "100%" }}
             allowClear
             placeholder="Search chat..."
-            value={search}
+            value={searchInput}
             onChange={(e) => {
               const value = e.target.value ?? "";
-              setSearch(value);
-              saveSearch(value);
+              setSearchInput(value);
+              if (!value.trim()) {
+                setSearch("");
+                saveSearch("");
+              }
+            }}
+            onSearch={(value) => {
+              const nextValue = value ?? "";
+              setSearch(nextValue);
+              saveSearch(nextValue);
             }}
           />
         </div>
@@ -292,6 +363,7 @@ function ChatSearch({ font_size: fontSize, desc }: Props) {
               hit={hit}
               actions={actions}
               fontSize={fontSize}
+              fragmentKey={fragmentKey}
             />
           ))}
         </div>
@@ -304,11 +376,14 @@ function SearchResult({
   hit,
   actions,
   fontSize,
+  fragmentKey,
 }: {
   hit: MatchHit;
   actions: any;
   fontSize: number;
+  fragmentKey?: string;
 }) {
+  const key = fragmentKey ?? "chat";
   return (
     <div
       style={{
@@ -323,7 +398,7 @@ function SearchResult({
         fontSize,
       }}
       onClick={() => {
-        actions?.gotoFragment?.({ chat: hit.id });
+        actions?.gotoFragment?.({ [key]: hit.id });
       }}
     >
       <TimeAgo
