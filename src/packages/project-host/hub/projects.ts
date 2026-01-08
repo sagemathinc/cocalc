@@ -72,6 +72,12 @@ function runnerConfigFromQuota(run_quota?: any): Partial<Configuration> {
     limits.scratch = disk;
   }
 
+  const hasGpu =
+    run_quota.gpu === true || (run_quota.gpu_count ?? 0) > 0;
+  if (hasGpu) {
+    limits.gpu = true;
+  }
+
   return limits;
 }
 

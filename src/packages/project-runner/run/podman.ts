@@ -470,6 +470,10 @@ export async function start({
     args.push(networkArgument());
     args.push("-p", `${ssh_port}:22`);
     args.push("-p", `${http_port}:80`);
+    if (config.gpu) {
+      args.push("--device", "nvidia.com/gpu=all");
+      args.push("--security-opt", "label=disable");
+    }
 
     const name = projectContainerName(project_id);
     args.push("--name", name);

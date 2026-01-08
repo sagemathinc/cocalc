@@ -52,6 +52,31 @@ export async function loadProject(project_id: string): Promise<ProjectMeta> {
   return { ...rows[0], authorized_keys };
 }
 
+async function hostHasGpu(host_id: string): Promise<boolean> {
+  const { rows } = await pool().query(
+    "SELECT metadata FROM project_hosts WHERE id=$1 AND deleted IS NULL",
+    [host_id],
+  );
+  const metadata = rows[0]?.metadata ?? {};
+  const machine = metadata?.machine ?? {};
+  return (
+    !!metadata?.gpu ||
+    (machine.gpu_type != null && machine.gpu_type !== "none") ||
+    (machine.gpu_count ?? 0) > 0
+  );
+}
+
+async function applyHostGpuToRunQuota(
+  run_quota: any | undefined,
+  host_id: string,
+): Promise<any> {
+  const quota = run_quota ? { ...run_quota } : {};
+  if (await hostHasGpu(host_id)) {
+    quota.gpu = true;
+  }
+  return quota;
+}
+
 export async function loadHostFromRegistry(host_id: string) {
   const { rows } = await pool().query(
     "SELECT name, region, public_url, internal_url, ssh_server, tier FROM project_hosts WHERE id=$1 AND deleted IS NULL",
@@ -133,6 +158,8 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
     host_id: chosen.id,
   });
 
+  const run_quota = await applyHostGpuToRunQuota(meta.run_quota, chosen.id);
+
   await client.createProject({
     project_id,
     title: meta.title,
@@ -140,7 +167,7 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
     image: meta.image,
     start: true,
     authorized_keys: meta.authorized_keys,
-    run_quota: meta.run_quota,
+    run_quota,
   });
 
   const placement: HostPlacement = {
@@ -162,6 +189,10 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
 export async function startProjectOnHost(project_id: string): Promise<void> {
   const placement = await ensurePlacement(project_id);
   const meta = await loadProject(project_id);
+  const run_quota = await applyHostGpuToRunQuota(
+    meta.run_quota,
+    placement.host_id,
+  );
   const client = createHostControlClient({
     host_id: placement.host_id,
     client: conatWithProjectRouting(),
@@ -170,7 +201,7 @@ export async function startProjectOnHost(project_id: string): Promise<void> {
     await client.startProject({
       project_id,
       authorized_keys: meta.authorized_keys,
-      run_quota: meta.run_quota,
+      run_quota,
       image: meta.image,
     });
   } catch (err) {

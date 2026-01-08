@@ -13,6 +13,7 @@ import { networkArgument } from "@cocalc/project-runner/run/podman";
 import { mountArg } from "@cocalc/backend/podman";
 import { getEnvironment } from "@cocalc/project-runner/run/env";
 import { getCoCalcMounts } from "@cocalc/project-runner/run/mounts";
+import { getProject } from "./sqlite/projects";
 
 const logger = getLogger("project-host:codex-project");
 const CONTAINER_TTL_MS = Number(
@@ -95,6 +96,10 @@ async function ensureContainer(projectId: string): Promise<ContainerInfo> {
   const name = codexContainerName(projectId);
   const { containerPath, mount } = await resolveCodexBinary();
   const codexHome = resolveCodexHome();
+  const projectRow = getProject(projectId);
+  const hasGpu =
+    projectRow?.run_quota?.gpu === true ||
+    (projectRow?.run_quota?.gpu_count ?? 0) > 0;
 
   if (await containerExists(name)) {
     return { name, rootfs, codexPath: containerPath, home };
@@ -103,6 +108,10 @@ async function ensureContainer(projectId: string): Promise<ContainerInfo> {
   const args: string[] = [];
   args.push("run", "--detach", "--rm");
   args.push(networkArgument());
+  if (hasGpu) {
+    args.push("--device", "nvidia.com/gpu=all");
+    args.push("--security-opt", "label=disable");
+  }
   args.push("--name", name, "--hostname", name);
   args.push("--workdir", "/root");
 

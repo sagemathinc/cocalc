@@ -68,7 +68,8 @@ type SoftwareOs = "linux" | "darwin";
 function normalizeArch(raw?: string): SoftwareArch | undefined {
   if (!raw) return undefined;
   const value = raw.toLowerCase();
-  if (value === "amd64" || value === "x86_64" || value === "x64") return "amd64";
+  if (value === "amd64" || value === "x86_64" || value === "x64")
+    return "amd64";
   if (value === "arm64" || value === "aarch64") return "arm64";
   return undefined;
 }
@@ -77,7 +78,8 @@ function normalizeOs(raw?: string): SoftwareOs | undefined {
   if (!raw) return undefined;
   const value = raw.toLowerCase();
   if (value === "linux") return "linux";
-  if (value === "darwin" || value === "macos" || value === "osx") return "darwin";
+  if (value === "darwin" || value === "macos" || value === "osx")
+    return "darwin";
   return undefined;
 }
 
@@ -185,6 +187,10 @@ export async function buildBootstrapScripts(
   const runtime = row.metadata?.runtime;
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
+  const hasGpu =
+    !!metadata.gpu ||
+    (machine.gpu_type != null && machine.gpu_type !== "none") ||
+    (machine.gpu_count ?? 0) > 0;
   const sshUser = runtime?.ssh_user ?? machine.metadata?.ssh_user ?? "ubuntu";
   const publicIp = opts.publicIpOverride ?? runtime?.public_ip ?? "";
   if (!publicIp) {
@@ -210,17 +216,25 @@ export async function buildBootstrapScripts(
   const projectHostManifestUrl = `${softwareBaseUrl}/project-host/latest-${targetPlatform.os}-${targetPlatform.arch}.json`;
   const projectManifestUrl = `${softwareBaseUrl}/project/latest-${targetPlatform.os}-${targetPlatform.arch}.json`;
   const toolsManifestUrl = `${softwareBaseUrl}/tools/latest-${targetPlatform.os}-${targetPlatform.arch}.json`;
-  const resolvedHostSea = await resolveSoftwareArtifact(projectHostManifestUrl, targetPlatform);
+  const resolvedHostSea = await resolveSoftwareArtifact(
+    projectHostManifestUrl,
+    targetPlatform,
+  );
   const resolvedSeaUrl = resolvedHostSea.url;
   const seaSha256 = (resolvedHostSea.sha256 ?? "").replace(/[^a-f0-9]/gi, "");
-  const resolvedProjectBundle =
-    await resolveSoftwareArtifact(projectManifestUrl, targetPlatform);
+  const resolvedProjectBundle = await resolveSoftwareArtifact(
+    projectManifestUrl,
+    targetPlatform,
+  );
   const projectBundleUrl = resolvedProjectBundle.url;
   const projectBundleSha256 = (resolvedProjectBundle.sha256 ?? "").replace(
     /[^a-f0-9]/gi,
     "",
   );
-  const resolvedTools = await resolveSoftwareArtifact(toolsManifestUrl, targetPlatform);
+  const resolvedTools = await resolveSoftwareArtifact(
+    toolsManifestUrl,
+    targetPlatform,
+  );
   const toolsUrl = resolvedTools.url;
   const toolsSha256 = (resolvedTools.sha256 ?? "").replace(/[^a-f0-9]/gi, "");
   const projectBundleVersion =
@@ -234,8 +248,7 @@ export async function buildBootstrapScripts(
   const projectHostDir = `${projectHostRoot}/versions/${projectHostVersion}`;
   const projectHostCurrent = `${projectHostRoot}/current`;
   const projectHostBin = `${projectHostCurrent}/cocalc-project-host`;
-  const toolsVersion =
-    extractArtifactVersion(toolsUrl, "tools") || "latest";
+  const toolsVersion = extractArtifactVersion(toolsUrl, "tools") || "latest";
   const toolsRoot = "/opt/cocalc/tools";
   const toolsDir = `${toolsRoot}/${toolsVersion}`;
   const toolsRemote = "/opt/cocalc/tools.tar.xz";
@@ -386,6 +399,22 @@ echo "bootstrap: updating apt package lists"
 sudo apt-get update -y
 echo "bootstrap: installing base packages"
 sudo apt-get install -y podman btrfs-progs uidmap slirp4netns fuse-overlayfs curl xz-utils rsync vim crun cron chrony
+${
+  hasGpu
+    ? `
+echo "bootstrap: installing nvidia container toolkit"
+sudo apt-get install -y ca-certificates gnupg
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
+  sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' | \
+  sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+sudo apt-get update -y
+sudo apt-get install -y nvidia-container-toolkit
+sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+sudo usermod -aG video,render ${sshUser} || true
+`
+    : ""
+}
 echo "bootstrap: configuring time sync"
 sudo systemctl disable --now systemd-timesyncd || true
 sudo systemctl enable --now chrony || true
@@ -633,7 +662,7 @@ fi
       TunnelName: tunnel.name,
       TunnelSecret: tunnel.tunnel_secret,
     });
-cloudflaredScript = `
+    cloudflaredScript = `
 echo "bootstrap: installing cloudflared"
 if ! command -v cloudflared >/dev/null 2>&1; then
   CLOUDFLARED_DEB="cloudflared-linux-\${ARCH}.deb"
@@ -641,18 +670,26 @@ if ! command -v cloudflared >/dev/null 2>&1; then
   sudo dpkg -i /tmp/cloudflared.deb
 fi
 sudo mkdir -p /etc/cloudflared
-${useToken ? `cat <<'${tokenEnvToken}' | sudo tee /etc/cloudflared/token.env >/dev/null
+${
+  useToken
+    ? `cat <<'${tokenEnvToken}' | sudo tee /etc/cloudflared/token.env >/dev/null
 CLOUDFLARED_TOKEN=${tunnel.token}
 ${tokenEnvToken}
 sudo chmod 600 /etc/cloudflared/token.env
-` : `cat <<'${credsToken}' | sudo tee /etc/cloudflared/${tunnel.id}.json >/dev/null
+`
+    : `cat <<'${credsToken}' | sudo tee /etc/cloudflared/${tunnel.id}.json >/dev/null
 ${creds}
 ${credsToken}
 sudo chmod 600 /etc/cloudflared/${tunnel.id}.json
-`}
+`
+}
 cat <<'${configToken}' | sudo tee /etc/cloudflared/config.yml >/dev/null
-${useToken ? "" : `tunnel: ${tunnel.id}
-credentials-file: /etc/cloudflared/${tunnel.id}.json`}
+${
+  useToken
+    ? ""
+    : `tunnel: ${tunnel.id}
+credentials-file: /etc/cloudflared/${tunnel.id}.json`
+}
 ingress:
   - hostname: ${tunnel.hostname}
     service: http://localhost:${port}
@@ -678,7 +715,7 @@ WantedBy=multi-user.target
   }
 
   if (cloudflaredScript) {
-  bootstrapScript += cloudflaredScript;
+    bootstrapScript += cloudflaredScript;
   }
 
   bootstrapScript += `
@@ -799,12 +836,16 @@ sudo -u ${sshUser} -H tar -xJf ${seaRemote}  --strip-components=2 -C ${projectHo
 sudo -u ${sshUser} -H ln -sfn ${projectHostDir} ${projectHostCurrent}
 sudo chown -R ${sshUser}:${sshUser} /btrfs/data || true
 cd ${projectHostDir}
-${cloudflaredServiceUnit ? `cat <<'EOF_CLOUDFLARED_SERVICE' | sudo tee /etc/systemd/system/cocalc-cloudflared.service >/dev/null
+${
+  cloudflaredServiceUnit
+    ? `cat <<'EOF_CLOUDFLARED_SERVICE' | sudo tee /etc/systemd/system/cocalc-cloudflared.service >/dev/null
 ${cloudflaredServiceUnit}
 EOF_CLOUDFLARED_SERVICE
 sudo systemctl daemon-reload
 sudo systemctl enable --now cocalc-cloudflared
-` : ""}
+`
+    : ""
+}
 sudo -u ${sshUser} -H ${projectHostBin} daemon start
 `;
 
@@ -1006,9 +1047,7 @@ async function fetchJson(url: string, redirects = 3): Promise<any> {
             resolve(JSON.parse(body));
           } catch (err) {
             reject(
-              new Error(
-                `SEA manifest parse failed: ${(err as Error).message}`,
-              ),
+              new Error(`SEA manifest parse failed: ${(err as Error).message}`),
             );
           }
         });

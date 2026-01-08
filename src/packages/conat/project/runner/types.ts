@@ -48,4 +48,6 @@ export interface Configuration {
   // but scratch is given, then /tmp is /scratch/tmp; if neither is
   // given then tmp is part of the rootfs and is backed up (so NOT good).
   tmp?: number;
+  // if true, allow GPU devices to be passed through (via CDI)
+  gpu?: boolean;
 }
