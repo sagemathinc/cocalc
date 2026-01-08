@@ -97,7 +97,7 @@ function normalizeSourceImage(value?: string | null): string | undefined {
   return trimmed;
 }
 
-function defaultImageFamilies(): string[] {
+function defaultImageFamilies(_opts?: { gpu?: boolean }): string[] {
   return [
     "ubuntu-2404-lts-amd64",
     "ubuntu-2404-lts",
@@ -158,7 +158,7 @@ async function resolveSourceImage({
     normalizeSourceImage(spec.metadata?.image_family);
   const familyCandidates = familyOverride
     ? [familyOverride]
-    : defaultImageFamilies();
+    : defaultImageFamilies({ gpu: gpuPreferred });
   for (const project of projectCandidates) {
     for (const family of familyCandidates) {
       try {

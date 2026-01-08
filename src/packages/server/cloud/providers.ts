@@ -3,6 +3,7 @@ import {
   type ProviderEntry,
   type ProviderId,
   type HostSpec,
+  type GcpImage,
   type NebiusInstanceType,
   type NebiusImage,
 } from "@cocalc/cloud";
@@ -81,6 +82,19 @@ export async function loadNebiusImages(): Promise<NebiusImage[]> {
        FROM cloud_catalog_cache
       WHERE provider=$1 AND kind=$2`,
     ["nebius", "images"],
+  );
+  if (!rows.length) return [];
+  const preferred = rows.find((row) => row.scope === "global") ?? rows[0];
+  const payload = preferred?.payload;
+  return Array.isArray(payload) ? payload : [];
+}
+
+export async function loadGcpImages(): Promise<GcpImage[]> {
+  const { rows } = await pool().query(
+    `SELECT scope, payload
+       FROM cloud_catalog_cache
+      WHERE provider=$1 AND kind=$2`,
+    ["gcp", "images"],
   );
   if (!rows.length) return [];
   const preferred = rows.find((row) => row.scope === "global") ?? rows[0];

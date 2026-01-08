@@ -1,6 +1,7 @@
 import type { HostMachine } from "@cocalc/conat/hub/api/hosts";
 import {
   type HostSpec,
+  type GcpImage,
   type NebiusImage,
   normalizeProviderId,
 } from "@cocalc/cloud";
@@ -10,6 +11,7 @@ import { getProviderContext, getProviderPrefix } from "./provider-context";
 import {
   getServerProvider,
   gcpSafeName,
+  loadGcpImages,
   loadNebiusImages,
   loadNebiusInstanceTypes,
 } from "./providers";
@@ -63,6 +65,15 @@ const parseUbuntuVersion = (value?: string | null): number | undefined => {
   return major * 100 + minor;
 };
 
+const parseGcpUbuntuVersion = (
+  value?: string | null,
+): number | undefined => {
+  if (!value) return undefined;
+  const match = value.match(/ubuntu-.*?(\d{2})(\d{2})/i);
+  if (!match) return undefined;
+  return Number(`${match[1]}${match[2]}`);
+};
+
 const parseVersionParts = (value?: string | null): number[] | undefined => {
   if (!value) return undefined;
   const parts = value.match(/\d+/g);
@@ -89,6 +100,46 @@ const imageTimestamp = (img: NebiusImage): number => {
   if (!value) return 0;
   const parsed = Date.parse(value);
   return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const gcpImageTimestamp = (img: GcpImage): number => {
+  const value = img.creationTimestamp ?? "";
+  const parsed = Date.parse(value);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
+
+const pickGcpAcceleratorFamily = (
+  images: GcpImage[],
+): { family?: string; project?: string } => {
+  const ubuntuImages = images.filter((img) =>
+    (img.family ?? img.name ?? "").toLowerCase().includes("ubuntu"),
+  );
+  const gpuImages = ubuntuImages.filter((img) => img.gpuReady);
+  const versioned = gpuImages.filter((img) => {
+    const version =
+      parseGcpUbuntuVersion(img.family ?? img.name) ?? 0;
+    return version >= MIN_UBUNTU_VERSION;
+  });
+  if (!versioned.length) return {};
+  const sorted = [...versioned].sort((a, b) => {
+    const versionA =
+      parseGcpUbuntuVersion(a.family ?? a.name) ?? 0;
+    const versionB =
+      parseGcpUbuntuVersion(b.family ?? b.name) ?? 0;
+    if (versionA !== versionB) return versionB - versionA;
+    const timeA = gcpImageTimestamp(a);
+    const timeB = gcpImageTimestamp(b);
+    if (timeA !== timeB) return timeB - timeA;
+    const nameA = a.name ?? "";
+    const nameB = b.name ?? "";
+    if (nameA !== nameB) return nameB.localeCompare(nameA);
+    return 0;
+  });
+  const chosen = sorted[0];
+  return {
+    family: chosen.family ?? chosen.name ?? undefined,
+    project: chosen.project,
+  };
 };
 
 const pickNebiusImageFamily = (
@@ -192,6 +243,7 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   const providerName = providerId ? normalizeName(prefix, baseName) : baseName;
   let sourceImage: string | undefined;
   let sourceImageFamily: string | undefined;
+  let sourceImageProject: string | undefined;
   let platform = machine.metadata?.platform;
   const sanitizedMetadata = { ...(machine.metadata ?? {}) };
   delete sanitizedMetadata.source_image;
@@ -238,6 +290,23 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
       );
     }
   }
+  if (providerId === "gcp" && gpu) {
+    const images = await loadGcpImages();
+    const { family, project } = pickGcpAcceleratorFamily(images);
+    if (!family) {
+      throw new Error(
+        `no GCP accelerator Ubuntu ${MIN_UBUNTU_VERSION / 100}+ images available`,
+      );
+    }
+    sourceImage = undefined;
+    sourceImageFamily = family;
+    sourceImageProject = project || "ubuntu-os-accelerator-images";
+    logger.debug("buildHostSpec: selected gcp accelerator image", {
+      host_id: row.id,
+      family,
+      project: sourceImageProject,
+    });
+  }
   logger.debug("buildHostSpec source_image", {
     host_id: row.id,
     machine_source_image: machine.source_image,
@@ -246,11 +315,15 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
     metadata_image_family: machine.metadata?.image_family,
     selected: sourceImage,
     selected_family: sourceImageFamily,
+    selected_project: sourceImageProject,
   });
 
   const imageMetadata: Record<string, string> = {};
   if (sourceImage) imageMetadata.source_image = sourceImage;
   if (sourceImageFamily) imageMetadata.source_image_family = sourceImageFamily;
+  if (sourceImageProject) {
+    imageMetadata.source_image_project = sourceImageProject;
+  }
 
   const spec: HostSpec = {
     name: providerName,
