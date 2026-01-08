@@ -241,7 +241,9 @@ to make a binary with that version
   //
   // https://github.com/moparisthebest/static-curl/releases/download/v8.11.0/curl-amd64
   // https://github.com/moparisthebest/static-curl/releases/download/v8.11.0/curl-aarch64
+  // This can be really *BAD* to install, due to required security certs
   curl: {
+    optional: true,
     desc: "statically linked curl",
     path: join(binPath, "curl"),
     platforms: ["linux"],
@@ -250,7 +252,7 @@ to make a binary with that version
     script: () => {
       const a = arch() == "x64" ? "amd64" : "aarch64";
       return `curl -L https://github.com/moparisthebest/static-curl/releases/download/v${SPEC.curl.VERSION}/curl-${a} > ${join(binPath, "curl")} && chmod a+x ${join(binPath, "curl")}`;
-    }
+    },
   },
 
   // See https://github.com/sagemathinc/bees-binaries/releases
@@ -264,7 +266,7 @@ to make a binary with that version
       const a = arch() == "x64" ? "x86_64" : "aarch64";
       const name = `bees-${SPEC.bees.VERSION}-${a}-linux-glibc`;
       return `curl -L https://github.com/sagemathinc/bees-binaries/releases/download/${SPEC.bees.VERSION}/${name}.tar.xz | tar -xJ -C ${binPath} --strip-components=2 ${name}/bin/bees`;
-    }
+    },
   },
   //   "reflect-sync": {
   //     optional: true,
