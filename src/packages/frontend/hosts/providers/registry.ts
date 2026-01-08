@@ -618,6 +618,7 @@ const summarizeHyperstackCatalog = (catalog: HostCatalog) => ({
 
 export const getLambdaInstanceTypeOptions = (
   catalog: HostCatalog | undefined,
+  selectedRegion?: string,
 ): LambdaInstanceOption[] => {
   const instanceTypes = getCatalogEntryPayload<LambdaInstance[]>(
     catalog,
@@ -627,6 +628,11 @@ export const getLambdaInstanceTypeOptions = (
   if (!instanceTypes?.length) return [];
   return instanceTypes
     .filter((entry) => !!entry?.name)
+    .filter((entry) =>
+      selectedRegion
+        ? (entry.regions ?? []).includes(selectedRegion)
+        : true,
+    )
     .map((entry) => {
       const regionsCount = entry.regions?.length ?? 0;
       const hasRegions = regionsCount > 0;
@@ -1374,7 +1380,10 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
     },
     storage: { supported: false },
     getOptions: (catalog, selection) => {
-      const instanceTypes = getLambdaInstanceTypeOptions(catalog);
+      const instanceTypes = getLambdaInstanceTypeOptions(
+        catalog,
+        selection.region,
+      );
       const instanceEntry = instanceTypes.find(
         (opt) => opt.value === selection.machine_type,
       )?.entry;

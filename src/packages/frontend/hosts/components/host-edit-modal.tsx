@@ -138,6 +138,37 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
     await onSave(host.id, values);
   };
 
+  const ensureFieldValue = React.useCallback(
+    (field: "region" | "zone" | "machine_type" | "size" | "gpu_type", current?: string) => {
+      const options = fieldOptions[field] ?? [];
+      if (!options.length) return;
+      if (!current || !options.some((opt) => opt.value === current)) {
+        form.setFieldsValue({ [field]: options[0]?.value });
+      }
+    },
+    [fieldOptions, form],
+  );
+
+  React.useEffect(() => {
+    ensureFieldValue("region", watchedRegion);
+  }, [ensureFieldValue, watchedRegion]);
+
+  React.useEffect(() => {
+    ensureFieldValue("zone", watchedZone);
+  }, [ensureFieldValue, watchedZone]);
+
+  React.useEffect(() => {
+    ensureFieldValue("machine_type", watchedMachineType);
+  }, [ensureFieldValue, watchedMachineType]);
+
+  React.useEffect(() => {
+    ensureFieldValue("size", watchedSize);
+  }, [ensureFieldValue, watchedSize]);
+
+  React.useEffect(() => {
+    ensureFieldValue("gpu_type", watchedGpuType);
+  }, [ensureFieldValue, watchedGpuType]);
+
   const renderField = (field: HostFieldId) => {
     const fieldOpts = fieldOptions[field] ?? [];
     const label =

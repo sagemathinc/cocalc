@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Divider, Select, Space, Typography, message } from "antd";
+import { Alert, Button, Card, Divider, Popconfirm, Select, Space, Typography, message } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
@@ -30,6 +30,15 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({ vm }) => {
       message.success("Cloud catalog updated");
     }
   };
+  const confirmCreateHost = async () => {
+    try {
+      const vals = await formInstance.validateFields();
+      await onCreate(vals);
+      formInstance.resetFields();
+    } catch (err) {
+      // validation errors are surfaced by the form; no extra handling needed here
+    }
+  };
 
   return (
     <Card
@@ -52,22 +61,33 @@ export const HostCreateCard: React.FC<HostCreateCardProps> = ({ vm }) => {
         form={formInstance}
         canCreateHosts={canCreateHosts}
         provider={provider}
-        onCreate={onCreate}
       />
       <Divider style={{ margin: "8px 0" }} />
       <Space direction="vertical" style={{ width: "100%" }} size="small">
         <Typography.Text type="secondary">
           Cost estimate (placeholder): updates with size/region
         </Typography.Text>
-        <Button
-          type="primary"
-          onClick={() => formInstance.submit()}
-          loading={creating}
+        <Popconfirm
+          title={
+            <div>
+              <div>Create this host?</div>
+              <div>Provisioning may take a few minutes and can incur costs.</div>
+            </div>
+          }
+          okText="Create"
+          cancelText="Cancel"
+          onConfirm={confirmCreateHost}
           disabled={!canCreateHosts}
-          block
         >
-          Create host
-        </Button>
+          <Button
+            type="primary"
+            loading={creating}
+            disabled={!canCreateHosts}
+            block
+          >
+            Create host
+          </Button>
+        </Popconfirm>
       </Space>
       {isAdmin && (
         <>

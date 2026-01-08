@@ -114,6 +114,9 @@ describe("GcpProvider", () => {
     expect(
       insertArgs.instanceResource.guestAccelerators[0].acceleratorType,
     ).toContain("nvidia-tesla-t4");
+    expect(insertArgs.instanceResource.scheduling?.onHostMaintenance).toBe(
+      "TERMINATE",
+    );
   });
 
   it("starts, stops, and deletes a host", async () => {

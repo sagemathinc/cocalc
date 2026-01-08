@@ -329,6 +329,9 @@ export class GcpProvider implements CloudProvider {
           },
         ]
       : [];
+    const scheduling = spec.gpu
+      ? { onHostMaintenance: "TERMINATE", automaticRestart: true }
+      : undefined;
 
     const instanceResource = {
       name: spec.name,
@@ -338,6 +341,7 @@ export class GcpProvider implements CloudProvider {
       metadata: metadataItems.length ? { items: metadataItems } : undefined,
       guestAccelerators,
       tags: spec.tags ? { items: spec.tags } : undefined,
+      scheduling,
     };
 
     const [response] = await client.insert({

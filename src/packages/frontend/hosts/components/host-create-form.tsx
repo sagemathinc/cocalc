@@ -9,19 +9,16 @@ type HostCreateFormProps = {
   form: FormInstance;
   canCreateHosts: boolean;
   provider: HostCreateViewModel["provider"];
-  onCreate: (vals: any) => Promise<void>;
 };
 
 export const HostCreateForm: React.FC<HostCreateFormProps> = ({
   form,
   canCreateHosts,
   provider,
-  onCreate,
 }) => {
   return (
     <Form
       layout="vertical"
-      onFinish={onCreate}
       disabled={!canCreateHosts}
       form={form}
     >
