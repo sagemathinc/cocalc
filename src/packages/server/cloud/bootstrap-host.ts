@@ -438,6 +438,10 @@ BOOTSTRAP_DIR="${bootstrapDir}"
 sudo mkdir -p "$BOOTSTRAP_DIR"
 sudo chown -R ${sshUser}:${sshUser} "$BOOTSTRAP_DIR" || true
 echo "bootstrap: data disk candidates: ${dataDiskCandidates}"
+if [ -f /btrfs/data/.bootstrap_done ]; then
+  echo "bootstrap: already complete; exiting"
+  exit 0
+fi
 DATA_DISK_DEV=""
 if [ -n "${dataDiskDevices}" ]; then
   pick_data_disk() {
