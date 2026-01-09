@@ -55,6 +55,33 @@ describe("Health Monitoring - Group 4", () => {
     });
   };
 
+  const runWithTestQueryEnabled = async <T>(
+    fn: () => Promise<T> | T,
+  ): Promise<T> => {
+    const originalNodeEnv = process.env.NODE_ENV;
+    const originalWorkerId = process.env.JEST_WORKER_ID;
+    delete process.env.JEST_WORKER_ID;
+    process.env.NODE_ENV = "production";
+    try {
+      return await fn();
+    } finally {
+      if (originalWorkerId != null) {
+        process.env.JEST_WORKER_ID = originalWorkerId;
+      } else {
+        delete process.env.JEST_WORKER_ID;
+      }
+      if (originalNodeEnv != null) {
+        process.env.NODE_ENV = originalNodeEnv;
+      } else {
+        delete process.env.NODE_ENV;
+      }
+      if (database._test_query) {
+        clearInterval(database._test_query);
+        delete database._test_query;
+      }
+    }
+  };
+
   describe("_do_test_query - Execute health check", () => {
     it("executes a simple SELECT NOW() query", async () => {
       const { opts } = await runTestQuery();
@@ -98,47 +125,49 @@ describe("Health Monitoring - Group 4", () => {
       database._timeout_ms = originalTimeoutMs;
     });
 
-    it("creates a test query interval when _timeout_ms is set", () => {
-      const originalTimeoutMs = database._timeout_ms;
-      database._timeout_ms = 5000; // 5 seconds
+    it("creates a test query interval when _timeout_ms is set", async () => {
+      await runWithTestQueryEnabled(() => {
+        const originalTimeoutMs = database._timeout_ms;
+        database._timeout_ms = 5000; // 5 seconds
 
-      // Should create interval
-      database._init_test_query();
+        // Should create interval
+        database._init_test_query();
 
-      expect(database._test_query).toBeDefined();
-      expect(typeof database._test_query).toBe("object"); // setInterval returns a Timeout object
+        expect(database._test_query).toBeDefined();
+        expect(typeof database._test_query).toBe("object"); // setInterval returns a Timeout object
 
-      // Restore
-      database._timeout_ms = originalTimeoutMs;
+        // Restore
+        database._timeout_ms = originalTimeoutMs;
+      });
     });
 
-    it("uses _timeout_ms as the interval duration", (done) => {
-      const originalTimeoutMs = database._timeout_ms;
-      const originalDoTestQuery = database._do_test_query;
+    it("uses _timeout_ms as the interval duration", async () => {
+      await runWithTestQueryEnabled(async () => {
+        const originalTimeoutMs = database._timeout_ms;
+        const originalDoTestQuery = database._do_test_query;
 
-      // Set short timeout for testing
-      database._timeout_ms = 100; // 100ms
-      let callCount = 0;
+        // Set short timeout for testing
+        database._timeout_ms = 100; // 100ms
+        let callCount = 0;
 
-      // Mock _do_test_query to count calls
-      database._do_test_query = function () {
-        callCount++;
-      };
+        // Mock _do_test_query to count calls
+        database._do_test_query = function () {
+          callCount++;
+        };
 
-      // Initialize interval
-      database._init_test_query();
+        // Initialize interval
+        database._init_test_query();
 
-      // Wait for at least 2 intervals
-      setTimeout(() => {
+        // Wait for at least 2 intervals
+        await new Promise((resolve) => setTimeout(resolve, 250));
+
         // Should have been called at least twice
         expect(callCount).toBeGreaterThanOrEqual(2);
 
         // Cleanup
         database._do_test_query = originalDoTestQuery;
         database._timeout_ms = originalTimeoutMs;
-
-        done();
-      }, 250);
+      });
     }, 10000);
   });
 
@@ -160,21 +189,23 @@ describe("Health Monitoring - Group 4", () => {
       expect(database._test_query).toBeUndefined();
     });
 
-    it("clears the test query interval", () => {
-      // Create a test interval
-      const originalTimeoutMs = database._timeout_ms;
-      database._timeout_ms = 5000;
-      database._init_test_query();
+    it("clears the test query interval", async () => {
+      await runWithTestQueryEnabled(() => {
+        // Create a test interval
+        const originalTimeoutMs = database._timeout_ms;
+        database._timeout_ms = 5000;
+        database._init_test_query();
 
-      expect(database._test_query).toBeDefined();
+        expect(database._test_query).toBeDefined();
 
-      // Close the interval
-      database._close_test_query();
+        // Close the interval
+        database._close_test_query();
 
-      expect(database._test_query).toBeUndefined();
+        expect(database._test_query).toBeUndefined();
 
-      // Restore
-      database._timeout_ms = originalTimeoutMs;
+        // Restore
+        database._timeout_ms = originalTimeoutMs;
+      });
     });
 
     it("stops the periodic execution after closing", (done) => {
@@ -221,26 +252,27 @@ describe("Health Monitoring - Group 4", () => {
       }
     });
 
-    it("can init, execute, and close test query", (done) => {
-      const originalTimeoutMs = database._timeout_ms;
-      const originalDoTestQuery = database._do_test_query;
+    it("can init, execute, and close test query", async () => {
+      await runWithTestQueryEnabled(async () => {
+        const originalTimeoutMs = database._timeout_ms;
+        const originalDoTestQuery = database._do_test_query;
 
-      // Set short timeout for testing
-      database._timeout_ms = 100;
-      let executionCount = 0;
+        // Set short timeout for testing
+        database._timeout_ms = 100;
+        let executionCount = 0;
 
-      // Track executions
-      database._do_test_query = function () {
-        executionCount++;
-        originalDoTestQuery.call(this);
-      };
+        // Track executions
+        database._do_test_query = function () {
+          executionCount++;
+          originalDoTestQuery.call(this);
+        };
 
-      // Init -> should start periodic execution
-      database._init_test_query();
-      expect(database._test_query).toBeDefined();
+        // Init -> should start periodic execution
+        database._init_test_query();
+        expect(database._test_query).toBeDefined();
 
-      // Wait for at least one execution
-      setTimeout(() => {
+        // Wait for at least one execution
+        await new Promise((resolve) => setTimeout(resolve, 200));
         expect(executionCount).toBeGreaterThanOrEqual(1);
 
         // Close -> should stop execution
@@ -250,41 +282,40 @@ describe("Health Monitoring - Group 4", () => {
         const countAfterClose = executionCount;
 
         // Wait to verify no more executions
-        setTimeout(() => {
-          expect(executionCount).toBe(countAfterClose);
+        await new Promise((resolve) => setTimeout(resolve, 150));
+        expect(executionCount).toBe(countAfterClose);
 
-          // Cleanup
-          database._do_test_query = originalDoTestQuery;
-          database._timeout_ms = originalTimeoutMs;
-
-          done();
-        }, 150);
-      }, 200);
+        // Cleanup
+        database._do_test_query = originalDoTestQuery;
+        database._timeout_ms = originalTimeoutMs;
+      });
     }, 10000);
 
-    it("can be initialized multiple times safely", () => {
-      const originalTimeoutMs = database._timeout_ms;
-      database._timeout_ms = 5000;
+    it("can be initialized multiple times safely", async () => {
+      await runWithTestQueryEnabled(() => {
+        const originalTimeoutMs = database._timeout_ms;
+        database._timeout_ms = 5000;
 
-      // First init
-      database._init_test_query();
-      const firstInterval = database._test_query;
-      expect(firstInterval).toBeDefined();
+        // First init
+        database._init_test_query();
+        const firstInterval = database._test_query;
+        expect(firstInterval).toBeDefined();
 
-      // Manually clear first interval to avoid leak
-      clearInterval(firstInterval);
+        // Manually clear first interval to avoid leak
+        clearInterval(firstInterval);
 
-      // Second init (without closing first via _close_test_query)
-      database._init_test_query();
-      const secondInterval = database._test_query;
-      expect(secondInterval).toBeDefined();
+        // Second init (without closing first via _close_test_query)
+        database._init_test_query();
+        const secondInterval = database._test_query;
+        expect(secondInterval).toBeDefined();
 
-      // Note: CoffeeScript implementation doesn't prevent multiple intervals
-      // This test documents current behavior (potential resource leak if not manually cleared)
+        // Note: CoffeeScript implementation doesn't prevent multiple intervals
+        // This test documents current behavior (potential resource leak if not manually cleared)
 
-      // Cleanup
-      database._close_test_query();
-      database._timeout_ms = originalTimeoutMs;
+        // Cleanup
+        database._close_test_query();
+        database._timeout_ms = originalTimeoutMs;
+      });
     });
   });
 });
