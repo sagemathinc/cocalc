@@ -240,7 +240,7 @@ export class NebiusProvider implements CloudProvider {
     const bootDiskGb =
       spec.metadata?.boot_disk_gb ??
       spec.metadata?.bootDiskGb ??
-      Math.max(20, spec.disk_gb);
+      (spec.gpu ? 20 : 10);
 
     const diskType = diskTypeFor(spec);
     const diskIds: NebiusRuntimeMeta["diskIds"] = {};

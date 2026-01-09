@@ -795,7 +795,6 @@ export async function updateHostMachine({
   gpu_type,
   gpu_count,
   storage_mode,
-  boot_disk_gb,
   region,
   zone,
 }: {
@@ -809,7 +808,6 @@ export async function updateHostMachine({
   gpu_type?: HostMachine["gpu_type"];
   gpu_count?: number;
   storage_mode?: HostMachine["storage_mode"];
-  boot_disk_gb?: number;
   region?: string;
   zone?: string;
 }): Promise<Host> {
@@ -840,7 +838,6 @@ export async function updateHostMachine({
   const nextRam = parsePositiveInt(ram_gb, "ram_gb");
   const nextDisk = parsePositiveInt(disk_gb, "disk_gb");
   const nextGpuCount = parsePositiveInt(gpu_count, "gpu_count");
-  const nextBootDisk = parsePositiveInt(boot_disk_gb, "boot_disk_gb");
 
   if (nextCpu != null && nextCpu !== machine.metadata?.cpu) {
     nextMachine.metadata = { ...(nextMachine.metadata ?? {}), cpu: nextCpu };
@@ -889,14 +886,6 @@ export async function updateHostMachine({
   }
   if (typeof disk_type === "string" && disk_type !== machine.disk_type) {
     nextMachine.disk_type = disk_type;
-    changed = true;
-    nonDiskChange = true;
-  }
-  if (nextBootDisk != null && nextBootDisk !== machine.metadata?.boot_disk_gb) {
-    nextMachine.metadata = {
-      ...(nextMachine.metadata ?? {}),
-      boot_disk_gb: nextBootDisk,
-    };
     changed = true;
     nonDiskChange = true;
   }

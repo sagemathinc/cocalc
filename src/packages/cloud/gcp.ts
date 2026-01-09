@@ -243,7 +243,10 @@ export class GcpProvider implements CloudProvider {
       spec,
     )}`;
     const sourceImage = await resolveSourceImage({ spec, credentials });
-    const bootDiskGb = spec.metadata?.boot_disk_gb ?? 20;
+    const bootDiskGb =
+      spec.metadata?.boot_disk_gb ??
+      spec.metadata?.bootDiskGb ??
+      (spec.gpu ? 20 : 10);
 
     const storageMode = spec.metadata?.storage_mode;
     type Disk = {

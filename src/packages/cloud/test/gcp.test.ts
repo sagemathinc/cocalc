@@ -65,7 +65,6 @@ describe("GcpProvider", () => {
     const provider = new GcpProvider();
     const spec = buildSpec({
       metadata: {
-        boot_disk_gb: 15,
         bootstrap_url: "https://example.com/bootstrap.sh",
       },
     });
@@ -79,7 +78,7 @@ describe("GcpProvider", () => {
     const disks = insertArgs.instanceResource.disks;
     expect(disks).toHaveLength(2);
     expect(disks[0].boot).toBe(true);
-    expect(disks[0].initializeParams.diskSizeGb).toBe("15");
+    expect(disks[0].initializeParams.diskSizeGb).toBe("10");
     expect(disks[1].boot).toBe(false);
     expect(disks[1].initializeParams.diskSizeGb).toBe("100");
     expect(

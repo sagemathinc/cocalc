@@ -1,12 +1,40 @@
 /*
- * Project-host bootstrap lifecycle
- * - Cloud-init runs once on first boot using a short-lived token to fetch
- *   the bootstrap scripts + conat password from the hub.
- * - Bootstrap installs deps, prepares /btrfs, downloads the SEA, and starts
- *   the project-host daemon. It also installs a cron @reboot hook so the
- *   daemon restarts on every VM reboot without re-running bootstrap.
- * - SSH bootstrap is disabled; cloud-init is the sole bootstrap path.
- * - cloudflared (if enabled) is managed by systemd and restarts on reboot.
+ * Project-host bootstrap lifecycle (cloud-init only)
+ *
+ * Overview:
+ * - Cloud-init/startup-script runs once at first boot using a short-lived
+ *   bootstrap token to fetch a larger script from the hub.
+ * - The bootstrap script prepares the host, writes logs, and never re-runs
+ *   after a successful bootstrap (guarded by /btrfs/data/.bootstrap_done and
+ *   /var/lib/cocalc/.bootstrap_done).
+ *
+ * What bootstrap does:
+ * - Disables unattended upgrades during bootstrap (prevents apt locks), then
+ *   reinstalls/enables them at the end.
+ * - Installs required packages (podman, btrfs, uidmap, slirp4netns,
+ *   fuse-overlayfs, rsync, crun, cron, chrony, etc.).
+ * - For GPU hosts: installs nvidia-container-toolkit and generates CDI config.
+ * - Enables time sync via chrony.
+ * - Detects public IP when needed (if public_ip is not known at provision).
+ * - Ensures subuid/subgid ranges for the ssh user to allow rootless podman.
+ * - Prepares /btrfs:
+ *   - Uses an attached data disk when available, otherwise creates a loopback
+ *     image at /var/lib/cocalc/btrfs.img.
+ *   - Mounts /btrfs and creates /btrfs/data subvolume.
+ * - Configures podman storage to live on /btrfs (via storage.conf).
+ * - Writes /etc/cocalc/project-host.env with runtime config.
+ * - Fetches and installs:
+ *   - project-host SEA
+ *   - project bundle
+ *   - tools bundle
+ * - Writes helper scripts in ~/bootstrap (ctl/logs/logs-cf, etc.).
+ * - Installs /usr/local/sbin/cocalc-grow-btrfs and runs it on boot.
+ * - Sets cron @reboot hook to start project-host without re-running bootstrap.
+ * - Installs and enables cloudflared (if Cloudflare tunnel is enabled).
+ *
+ * Notes:
+ * - there is no SSH bootstrap; cloud-init/startup-script is the only path.
+ * - cloudflared runs under systemd and restarts on reboot.
  */
 
 import http from "node:http";
@@ -331,6 +359,9 @@ export async function buildBootstrapScripts(
     `COCALC_BIN_PATH=${toolsRoot}/current`,
     `COCALC_BTRFS_IMAGE_GB=${imageSizeGb}`,
     `COCALC_PROJECT_HOST_SOFTWARE_BASE_URL=${softwareBaseUrl}`,
+    `TMPDIR=/btrfs/data/tmp`,
+    `TMP=/btrfs/data/tmp`,
+    `TEMP=/btrfs/data/tmp`,
     `COCALC_PROJECT_HOST_HTTPS=${tlsEnabled ? "1" : "0"}`,
     `HOST=0.0.0.0`,
     `PORT=${port}`,
@@ -572,6 +603,31 @@ if ! sudo btrfs subvolume show /btrfs/data >/dev/null 2>&1; then
 fi
 sudo mkdir -p /btrfs/data/secrets
 sudo chown -R ${sshUser}:${sshUser} /btrfs/data || true
+sudo mkdir -p /btrfs/data/tmp
+sudo chmod 1777 /btrfs/data/tmp
+echo "bootstrap: configuring podman storage"
+# Rootful storage (used by sudo podman) lives under /btrfs/data/containers/root
+sudo mkdir -p /btrfs/data/containers/root/storage /btrfs/data/containers/root/run
+sudo mkdir -p /etc/containers
+sudo tee /etc/containers/storage.conf >/dev/null <<'EOF_COCALC_CONTAINER_STORAGE'
+[storage]
+driver = "overlay"
+runroot = "/btrfs/data/containers/root/run"
+graphroot = "/btrfs/data/containers/root/storage"
+EOF_COCALC_CONTAINER_STORAGE
+# Rootless storage (used by the ssh user) lives under /btrfs/data/containers/rootless/<user>
+if [ "${sshUser}" != "root" ]; then
+  sudo -u ${sshUser} mkdir -p /home/${sshUser}/.config/containers
+  sudo mkdir -p /btrfs/data/containers/rootless/${sshUser}/storage /btrfs/data/containers/rootless/${sshUser}/run
+  sudo chown -R ${sshUser}:${sshUser} /btrfs/data/containers/rootless/${sshUser} || true
+  sudo tee /home/${sshUser}/.config/containers/storage.conf >/dev/null <<'EOF_COCALC_CONTAINER_STORAGE_USER'
+[storage]
+driver = "overlay"
+runroot = "/btrfs/data/containers/rootless/${sshUser}/run"
+graphroot = "/btrfs/data/containers/rootless/${sshUser}/storage"
+EOF_COCALC_CONTAINER_STORAGE_USER
+  sudo chown ${sshUser}:${sshUser} /home/${sshUser}/.config/containers/storage.conf || true
+fi
 echo "bootstrap: writing project-host env to ${envFile}"
 ${envBlock}
 `;

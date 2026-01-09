@@ -99,15 +99,6 @@ export const HostCreateAdvancedFields: React.FC<HostCreateAdvancedFieldsProps> =
               <Select options={DISK_TYPES} />
             </Form.Item>
           </Col>
-          <Col span={24}>
-            <Form.Item
-              name="boot_disk_gb"
-              label="Boot disk size (GB)"
-              initialValue={20}
-            >
-              <Slider min={10} max={200} step={5} />
-            </Form.Item>
-          </Col>
         </>
       )}
       <Col span={24}>

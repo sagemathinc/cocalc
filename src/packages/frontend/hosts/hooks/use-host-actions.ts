@@ -23,7 +23,6 @@ type HubClient = {
       gpu_type?: string;
       gpu_count?: number;
       storage_mode?: "ephemeral" | "persistent";
-      boot_disk_gb?: number;
       region?: string;
       zone?: string;
     }) => Promise<unknown>;
@@ -134,7 +133,6 @@ export const useHostActions = ({
       gpu_type?: string;
       gpu_count?: number;
       storage_mode?: "ephemeral" | "persistent";
-      boot_disk_gb?: number;
       region?: string;
       zone?: string;
     },

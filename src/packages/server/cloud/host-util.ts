@@ -246,6 +246,10 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   let sourceImageProject: string | undefined;
   let platform = machine.metadata?.platform;
   const sanitizedMetadata = { ...(machine.metadata ?? {}) };
+  const hasGpu = !!gpu;
+  if (sanitizedMetadata.boot_disk_gb == null) {
+    sanitizedMetadata.boot_disk_gb = hasGpu ? 20 : 10;
+  }
   delete sanitizedMetadata.source_image;
   delete sanitizedMetadata.source_image_family;
   delete sanitizedMetadata.image_family;

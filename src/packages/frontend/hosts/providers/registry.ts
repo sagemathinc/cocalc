@@ -199,7 +199,6 @@ const buildBasePayload = (
   const baseMetadata = {
     shared: vals.shared,
     bucket: vals.bucket,
-    boot_disk_gb: vals.boot_disk_gb,
   };
   const mergedMetadata = { ...baseMetadata, ...(machine.metadata ?? {}) };
   return {

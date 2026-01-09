@@ -27,7 +27,6 @@ type HostEditModalProps = {
       machine_type?: string;
       gpu_type?: string;
       storage_mode?: string;
-      boot_disk_gb?: number;
       region?: string;
       zone?: string;
     },
@@ -137,7 +136,6 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   const currentDisk = readPositive(host?.machine?.disk_gb);
   const diskMin = isDeprovisioned ? 10 : currentDisk ?? 10;
   const diskMax = Math.max(2000, diskMin);
-  const bootDisk = readPositive(host?.machine?.metadata?.boot_disk_gb);
   const storageMode = host?.machine?.storage_mode ?? "persistent";
   const showDiskFields =
     isSelfHost ||
@@ -158,12 +156,11 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
         size: host.machine?.machine_type ?? host.size ?? undefined,
         storage_mode: storageMode,
         disk_type: host.machine?.disk_type ?? "balanced",
-        boot_disk_gb: bootDisk ?? 20,
       });
     } else {
       form.resetFields();
     }
-  }, [form, host, currentCpu, currentRam, currentDisk, storageMode, bootDisk]);
+  }, [form, host, currentCpu, currentRam, currentDisk, storageMode]);
   React.useEffect(() => {
     const zoneOptions = fieldOptions.zone ?? [];
     if (!zoneOptions.length) return;
@@ -390,12 +387,6 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
                   { value: "standard", label: "Standard" },
                 ]}
               />
-            </Form.Item>
-            <Form.Item
-              label="Boot disk size (GB)"
-              name="boot_disk_gb"
-            >
-              <InputNumber min={10} max={200} style={{ width: "100%" }} />
             </Form.Item>
           </>
         )}

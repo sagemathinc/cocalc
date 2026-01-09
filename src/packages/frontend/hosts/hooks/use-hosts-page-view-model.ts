@@ -536,7 +536,6 @@ export const useHostsPageViewModel = () => {
         size?: string;
         gpu?: string;
         storage_mode?: string;
-        boot_disk_gb?: number;
         region?: string;
         zone?: string;
       },
@@ -599,13 +598,6 @@ export const useHostsPageViewModel = () => {
             values.disk_type !== editingHost.machine?.disk_type
           ) {
             update.disk_type = values.disk_type;
-          }
-          const nextBootDisk = toPositive(values.boot_disk_gb);
-          if (
-            nextBootDisk &&
-            nextBootDisk !== Number(editingHost.machine?.metadata?.boot_disk_gb)
-          ) {
-            update.boot_disk_gb = nextBootDisk;
           }
         }
 
