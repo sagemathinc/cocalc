@@ -54,6 +54,9 @@ export function initTestQuery(db: PostgreSQL): void {
   if (!db._timeout_ms) {
     return;
   }
+  if (process.env.JEST_WORKER_ID != null || process.env.NODE_ENV === "test") {
+    return;
+  }
 
   db._test_query = setInterval(() => {
     db._do_test_query();
