@@ -10,7 +10,7 @@ import {
   NewsPrevNext,
   RecentHeadline,
 } from "@cocalc/util/types/news";
-import { LRUQueryCache } from "./util";
+import { LRUQueryCache } from "./utils/query-cache";
 
 const C = new LRUQueryCache({ ttl_s: 10 * 60 });
 
@@ -34,7 +34,7 @@ ORDER BY date DESC
 LIMIT 100`;
 
 export async function getFeedData(): Promise<NewsItem[]> {
-  return await C.query(Q_FEED);
+  return await C.query<NewsItem>(Q_FEED);
 }
 
 // ::timestamptz because if your server is not in UTC, it will be converted to UTC
@@ -124,7 +124,7 @@ export async function getIndex(
   limit: number,
   offset: number,
 ): Promise<NewsItem[]> {
-  return await C.query(Q_INDEX, [limit, offset]);
+  return await C.query<NewsItem>(Q_INDEX, [limit, offset]);
 }
 
 // get the most recent news item (excluding events)
@@ -162,7 +162,7 @@ LIMIT $1`;
 export async function getRecentHeadlines(
   n: number,
 ): Promise<RecentHeadline[] | null> {
-  const headlines = await C.query(Q_RECENT, [n]);
+  const headlines = await C.query<RecentHeadline>(Q_RECENT, [n]);
   if (headlines.length === 0) return null;
   return headlines;
 }
@@ -184,7 +184,7 @@ LIMIT 100`;
 export async function getUpcomingNewsChannelItems(
   channel: Channel,
 ): Promise<NewsItem[]> {
-  return await C.query(Q_UPCOMING_NEWS_CHANNEL_ITEMS, [channel]);
+  return await C.query<NewsItem>(Q_UPCOMING_NEWS_CHANNEL_ITEMS, [channel]);
 }
 
 // Query past events from a particular channel
@@ -204,5 +204,5 @@ LIMIT 100`;
 export async function getPastNewsChannelItems(
   channel: Channel,
 ): Promise<NewsItem[]> {
-  return await C.query(Q_PAST_NEWS_CHANNEL_ITEMS, [channel]);
+  return await C.query<NewsItem>(Q_PAST_NEWS_CHANNEL_ITEMS, [channel]);
 }
