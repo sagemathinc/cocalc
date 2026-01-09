@@ -20,6 +20,7 @@ import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { isEqual } from "lodash";
 import Mermaid from "./mermaid";
 import { Icon } from "@cocalc/frontend/components/icon";
+import CopyButton from "@cocalc/frontend/components/copy-button";
 
 interface FloatingActionMenuProps {
   info: string;
@@ -29,6 +30,7 @@ interface FloatingActionMenuProps {
   onInfoBlur: () => void;
   renderActions: () => ReactNode;
   download: () => void;
+  code: string;
   lineCount: number;
   modeLabel: string;
   onRun?: () => void;
@@ -42,13 +44,14 @@ function FloatingActionMenu({
   onInfoBlur,
   renderActions,
   download,
+  code,
   lineCount,
   modeLabel,
   onRun,
 }: FloatingActionMenuProps) {
   const [open, setOpen] = useState(false);
 
-  const content = (
+  const popoverContent = (
     <div
       onMouseDown={(e) => e.stopPropagation()}
       style={{
@@ -114,19 +117,32 @@ function FloatingActionMenu({
         top: 6,
         right: 6,
         zIndex: 2,
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+        background: "rgba(255, 255, 255, 0.9)",
+        border: "1px solid #ddd",
+        borderRadius: "6px",
+        padding: "2px 4px",
       }}
     >
+      <CopyButton
+        size="small"
+        value={code}
+        noText
+        style={{ color: "#666", background: "transparent" }}
+      />
       <Popover
         trigger="click"
         open={open}
         onOpenChange={(next) => setOpen(next)}
-        content={content}
+        content={popoverContent}
         placement="bottomRight"
       >
         <Button
           size="small"
           type="text"
-          style={{ boxShadow: "none" }}
+          style={{ boxShadow: "none", background: "transparent" }}
           aria-label="Code block actions"
           onMouseDown={(e) => e.stopPropagation()}
         >
@@ -216,6 +232,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
                       }}
                     />
                   )}
+                  code={element.value}
                   download={() => {
                     const blob = new Blob([element.value], {
                       type: "text/plain;charset=utf-8",

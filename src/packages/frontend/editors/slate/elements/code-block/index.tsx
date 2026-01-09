@@ -14,6 +14,7 @@ import { useChange } from "../../use-change";
 import { getHistory } from "./history";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { Icon } from "@cocalc/frontend/components/icon";
+import CopyButton from "@cocalc/frontend/components/copy-button";
 import { isEqual } from "lodash";
 import Mermaid from "./mermaid";
 
@@ -108,8 +109,21 @@ function FloatingActionMenu({
         top: 4,
         right: 4,
         zIndex: 2,
+        display: "flex",
+        alignItems: "center",
+        gap: "4px",
+        background: "rgba(255, 255, 255, 0.9)",
+        border: "1px solid #ddd",
+        borderRadius: "6px",
+        padding: "2px 4px",
       }}
     >
+      <CopyButton
+        size="small"
+        value={content}
+        noText
+        style={{ color: "#666", background: "transparent" }}
+      />
       <Popover
         trigger="click"
         open={open}
@@ -122,6 +136,7 @@ function FloatingActionMenu({
           type="text"
           style={{
             boxShadow: "none",
+            background: "transparent",
           }}
           aria-label="Code block actions"
         >
