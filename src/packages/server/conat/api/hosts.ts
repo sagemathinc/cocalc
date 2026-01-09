@@ -36,6 +36,10 @@ import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { revokeBootstrapTokensForHost } from "@cocalc/server/project-host/bootstrap-token";
 import {
+  machineHasGpu,
+  normalizeMachineGpuInPlace,
+} from "@cocalc/server/cloud/host-gpu";
+import {
   createConnectorRecord,
   ensureConnectorRecord,
   revokeConnector,
@@ -523,6 +527,23 @@ export async function createHost({
     connectorId = connector.connector_id;
     resolvedRegion = connectorId;
   }
+  const normalizedMachine = normalizeMachineGpuInPlace(
+    {
+    ...(machine ?? {}),
+    ...(machineCloud ? { cloud: machineCloud } : {}),
+    ...(connectorId
+      ? {
+          metadata: {
+            ...(machine?.metadata ?? {}),
+            connector_id: connectorId,
+          },
+        }
+      : {}),
+    },
+    gpu,
+  );
+  const gpuEnabled = machineHasGpu(normalizedMachine);
+
   await pool().query(
     `INSERT INTO project_hosts (id, name, region, status, metadata, created, updated, last_seen)
      VALUES ($1,$2,$3,$4,$5,NOW(),NOW(),$6)`,
@@ -534,19 +555,8 @@ export async function createHost({
       {
         owner,
         size,
-        gpu,
-        machine: {
-          ...(machine ?? {}),
-          ...(machineCloud ? { cloud: machineCloud } : {}),
-          ...(connectorId
-            ? {
-                metadata: {
-                  ...(machine?.metadata ?? {}),
-                  connector_id: connectorId,
-                },
-              }
-            : {}),
-        },
+        gpu: gpuEnabled,
+        machine: normalizedMachine,
       },
       now,
     ],
@@ -904,15 +914,14 @@ export async function updateHostMachine({
     return parseRow(row);
   }
 
+  normalizeMachineGpuInPlace(nextMachine);
+
   if (isDeprovisioned) {
     const nextMetadata = { ...metadata, machine: nextMachine };
     if (machine_type) {
       nextMetadata.size = machine_type;
     }
-    const gpuEnabled =
-      (nextMachine.gpu_type && nextMachine.gpu_type !== "none") ||
-      ((nextMachine.gpu_count ?? 0) > 0 && nextMachine.gpu_type !== "none");
-    nextMetadata.gpu = gpuEnabled;
+    nextMetadata.gpu = machineHasGpu(nextMachine);
     await pool().query(
       `UPDATE project_hosts SET region=$2, metadata=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [row.id, nextRegion, nextMetadata],

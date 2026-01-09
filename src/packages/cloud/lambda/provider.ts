@@ -62,6 +62,16 @@ function isCudaImage(img: ImageEntry): boolean {
   return /cuda|nvidia|gpu/i.test(img.family ?? "") || /cuda|nvidia|gpu/i.test(img.name ?? "");
 }
 
+function isGpuBase2404(img: ImageEntry): boolean {
+  const hay = `${img.family ?? ""} ${img.name ?? ""}`.toLowerCase();
+  return /gpu\s*base/.test(hay) && /24\.04/.test(hay);
+}
+
+function isGpuBase2204(img: ImageEntry): boolean {
+  const hay = `${img.family ?? ""} ${img.name ?? ""}`.toLowerCase();
+  return /gpu\s*base/.test(hay) && /22\.04/.test(hay);
+}
+
 function normalizePrefix(prefix?: string): string {
   const value = (prefix ?? "cocalc").toLowerCase().replace(/[^a-z0-9-]/g, "-");
   return value.replace(/-+/g, "-").replace(/^-+|-+$/g, "") || "cocalc";
@@ -195,6 +205,28 @@ function selectImage(
     throw new Error(`no Lambda images available for region ${spec.region}`);
   }
   const poolCandidates = regionCandidates.length ? regionCandidates : candidates;
+  const wantsGpu = !!spec.gpu;
+  if (wantsGpu) {
+    const gpuBase24 = poolCandidates.filter(isGpuBase2404);
+    const gpuBase22 = poolCandidates.filter(isGpuBase2204);
+    const gpuBase = gpuBase24.length ? gpuBase24 : gpuBase22;
+    if (gpuBase.length) {
+      const sorted = [...gpuBase].sort((a, b) => {
+        const versionDelta = imageUbuntuVersion(b) - imageUbuntuVersion(a);
+        if (versionDelta !== 0) return versionDelta;
+        return (b.name ?? "").localeCompare(a.name ?? "");
+      });
+      const selected =
+        sorted[0]?.id ??
+        poolCandidates[0]?.id ??
+        candidates[0]?.id ??
+        images[0]?.id;
+      if (!selected) {
+        throw new Error("no Lambda images available");
+      }
+      return { id: selected };
+    }
+  }
   const ubuntu = poolCandidates
     .filter(isUbuntuImage)
     .filter((img) => imageUbuntuVersion(img) >= MIN_UBUNTU_VERSION);
@@ -203,8 +235,7 @@ function selectImage(
       `no Lambda Ubuntu ${MIN_UBUNTU_VERSION / 100}+ images available for ${spec.region ?? "unknown region"}`,
     );
   }
-  const wantsGpu = !!spec.gpu;
-  const preferred = wantsGpu
+  let preferred = wantsGpu
     ? ubuntu.filter(isCudaImage)
     : ubuntu.filter((img) => !isCudaImage(img));
   const pool = preferred.length ? preferred : ubuntu;
@@ -339,7 +370,7 @@ export class LambdaProvider implements CloudProvider {
         filesystem_name: filesystemName,
       },
     };
-    logger.info("lambda.createHost", { region: spec.region, instance_type_name });
+    logger.info("lambda.createHost", { region: spec.region, instance_type_name, image });
     return runtime;
   }
 

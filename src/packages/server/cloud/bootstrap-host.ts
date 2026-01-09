@@ -52,6 +52,7 @@ import {
   ensureCloudflareTunnelForHost,
   type CloudflareTunnel,
 } from "./cloudflare-tunnel";
+import { machineHasGpu } from "./host-gpu";
 
 const logger = getLogger("server:cloud:bootstrap-host");
 const pool = () => getPool("medium");
@@ -215,10 +216,7 @@ export async function buildBootstrapScripts(
   const runtime = row.metadata?.runtime;
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
-  const hasGpu =
-    !!metadata.gpu ||
-    (machine.gpu_type != null && machine.gpu_type !== "none") ||
-    (machine.gpu_count ?? 0) > 0;
+  const hasGpu = machineHasGpu(machine);
   const sshUser = runtime?.ssh_user ?? machine.metadata?.ssh_user ?? "ubuntu";
   const publicIp = opts.publicIpOverride ?? runtime?.public_ip ?? "";
   if (!publicIp) {
@@ -418,6 +416,9 @@ if [ "$BOOTSTRAP_ARCH" != "$EXPECTED_ARCH" ]; then
   exit 1
 fi
 ARCH="$BOOTSTRAP_ARCH"
+export DEBIAN_FRONTEND=noninteractive
+export NEEDRESTART_MODE=a
+export APT_LISTCHANGES_FRONTEND=none
 echo "bootstrap: disabling unattended upgrades"
 if command -v systemctl >/dev/null 2>&1; then
   sudo systemctl stop apt-daily.service apt-daily-upgrade.service unattended-upgrades.service || true
@@ -435,14 +436,40 @@ ${
     ? `
 echo "bootstrap: installing nvidia container toolkit"
 sudo apt-get install -y ca-certificates gnupg
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+sudo rm -f /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
+export GPG_TTY=/dev/null
+curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey | sudo gpg --batch --yes --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list | \
   sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#' | \
   sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
 sudo apt-get update -y
 sudo apt-get install -y nvidia-container-toolkit
-sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml
+sudo ldconfig || true
+if command -v nvidia-smi >/dev/null 2>&1 || ldconfig -p 2>/dev/null | grep -q libnvidia-ml.so.1; then
+  sudo nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml || echo "bootstrap: nvidia-ctk failed; skipping CDI"
+else
+  echo "bootstrap: nvidia drivers not detected; skipping CDI"
+fi
 sudo usermod -aG video,render ${sshUser} || true
+sudo tee /usr/local/sbin/cocalc-nvidia-cdi >/dev/null <<'EOF_COCALC_CDI'
+#!/usr/bin/env bash
+set -euo pipefail
+if [ "$(id -u)" -ne 0 ]; then
+  exit 0
+fi
+if [ ! -x /usr/bin/nvidia-ctk ]; then
+  exit 0
+fi
+if [ -f /etc/cdi/nvidia.yaml ]; then
+  exit 0
+fi
+ldconfig || true
+if command -v nvidia-smi >/dev/null 2>&1 || ldconfig -p 2>/dev/null | grep -q libnvidia-ml.so.1; then
+  /usr/bin/nvidia-ctk cdi generate --output=/etc/cdi/nvidia.yaml || exit 0
+fi
+exit 0
+EOF_COCALC_CDI
+sudo chmod +x /usr/local/sbin/cocalc-nvidia-cdi
 `
     : ""
 }
@@ -701,6 +728,15 @@ sudo chmod 644 /etc/cron.d/cocalc-project-host
 if command -v systemctl >/dev/null 2>&1; then
   sudo systemctl enable --now cron || true
 fi
+${hasGpu ? `
+if [ -x /usr/local/sbin/cocalc-nvidia-cdi ]; then
+  sudo /usr/local/sbin/cocalc-nvidia-cdi || true
+fi
+sudo tee /etc/cron.d/cocalc-nvidia-cdi >/dev/null <<'EOF_COCALC_CDI_CRON'
+*/5 * * * * root /usr/local/sbin/cocalc-nvidia-cdi >/dev/null 2>&1
+EOF_COCALC_CDI_CRON
+sudo chmod 644 /etc/cron.d/cocalc-nvidia-cdi
+` : ""}
 `;
 
   let cloudflaredScript = "";

@@ -1618,7 +1618,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
         ctx.fieldOptions,
         {
           machine_type: vals.machine_type || undefined,
-          gpu_type: instance?.gpu_label,
+          gpu_type: wantsGpu ? instance?.gpu_label : undefined,
           gpu_count: gpuCount || undefined,
         },
         wantsGpu,

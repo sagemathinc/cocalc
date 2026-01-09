@@ -10,6 +10,7 @@ import {
   updateMove,
 } from "./move-db";
 import { normalizeHostTier } from "./placement";
+import { machineHasGpu } from "../cloud/host-gpu";
 
 const log = getLogger("server:project-host:control");
 
@@ -59,11 +60,7 @@ async function hostHasGpu(host_id: string): Promise<boolean> {
   );
   const metadata = rows[0]?.metadata ?? {};
   const machine = metadata?.machine ?? {};
-  return (
-    !!metadata?.gpu ||
-    (machine.gpu_type != null && machine.gpu_type !== "none") ||
-    (machine.gpu_count ?? 0) > 0
-  );
+  return machineHasGpu(machine);
 }
 
 async function applyHostGpuToRunQuota(
@@ -73,6 +70,13 @@ async function applyHostGpuToRunQuota(
   const quota = run_quota ? { ...run_quota } : {};
   if (await hostHasGpu(host_id)) {
     quota.gpu = true;
+  } else {
+    if (Object.prototype.hasOwnProperty.call(quota, "gpu")) {
+      quota.gpu = false;
+    }
+    if (Object.prototype.hasOwnProperty.call(quota, "gpu_count")) {
+      delete quota.gpu_count;
+    }
   }
   return quota;
 }
