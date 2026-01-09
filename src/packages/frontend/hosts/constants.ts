@@ -52,7 +52,10 @@ export const getDiskTypeOptions = (
   if (!provider) return DISK_TYPES;
   const allowed = PROVIDER_DISK_TYPES[provider];
   if (!allowed) return DISK_TYPES;
-  const filtered = DISK_TYPES.filter((entry) => allowed.includes(entry.value));
+  const optionMap = new Map(DISK_TYPES.map((entry) => [entry.value, entry]));
+  const filtered = allowed
+    .map((value) => optionMap.get(value))
+    .filter((entry): entry is { value: string; label: string } => !!entry);
   if (provider !== "nebius") return filtered;
   return filtered.map((entry) => {
     if (entry.value === "ssd") {

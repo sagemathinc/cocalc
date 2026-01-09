@@ -12,6 +12,7 @@ export const HostCreateAdvancedFields: React.FC<
   HostCreateAdvancedFieldsProps
 > = ({ provider }) => {
   const { selectedProvider, fields, storage } = provider;
+  const form = Form.useFormInstance();
   const diskTypeOptions = getDiskTypeOptions(selectedProvider);
   const defaultDiskType =
     selectedProvider === "nebius"
@@ -24,6 +25,17 @@ export const HostCreateAdvancedFields: React.FC<
     persistentGrowable,
     showDiskFields,
   } = storage;
+  const watchedDiskType = Form.useWatch("disk_type", form);
+
+  React.useEffect(() => {
+    if (!diskTypeOptions.length) return;
+    const hasDiskType =
+      watchedDiskType &&
+      diskTypeOptions.some((opt) => opt.value === watchedDiskType);
+    if (!hasDiskType) {
+      form.setFieldsValue({ disk_type: defaultDiskType });
+    }
+  }, [defaultDiskType, diskTypeOptions, form, watchedDiskType]);
 
   const renderField = (field: HostFieldId) => {
     const fieldOptions = options[field] ?? [];

@@ -145,29 +145,87 @@ const pickGcpAcceleratorFamily = (
 const pickNebiusImageFamily = (
   images: NebiusImage[],
   wantsGpu: boolean,
-  opts: { region?: string; platform?: string | null } = {},
+  opts: { region?: string; platform?: string | null; arch?: string | null } = {},
 ): string | undefined => {
+  const normalizeArch = (raw?: string | null) => {
+    if (!raw) return undefined;
+    const upper = raw.toUpperCase();
+    if (upper === "X86_64") return "AMD64";
+    if (upper === "AARCH64") return "ARM64";
+    if (upper === "UNSPECIFIED") return undefined;
+    return upper;
+  };
   const regionImages = opts.region
     ? images.filter((img) => !img.region || img.region === opts.region)
     : images;
   const ubuntuImages = regionImages.filter((img) =>
     (img.family ?? "").toLowerCase().includes("ubuntu"),
   );
-  const platformImages = opts.platform
+  const baseVersioned = ubuntuImages.filter(
+    (img) => (parseUbuntuVersion(img.family) ?? 0) >= MIN_UBUNTU_VERSION,
+  );
+  let platformImages = opts.platform
     ? ubuntuImages.filter((img) => {
         const recommended = img.recommended_platforms ?? [];
         if (!recommended.length) return true;
         return recommended.includes(opts.platform ?? "");
       })
     : ubuntuImages;
-  const versionedImages = platformImages.filter(
+  if (opts.platform && !platformImages.length) {
+    logger.debug("nebius image selection: no platform matches, falling back", {
+      platform: opts.platform,
+      region: opts.region,
+    });
+    platformImages = ubuntuImages;
+  }
+  const desiredArch = normalizeArch(opts.arch) ?? "AMD64";
+  const archMatches = platformImages.filter((img) => {
+    const imgArch = normalizeArch(img.architecture);
+    if (!imgArch) return true;
+    return imgArch === desiredArch;
+  });
+  const archFiltered = archMatches.length ? archMatches : platformImages;
+  let versionedImages = archFiltered.filter(
     (img) => (parseUbuntuVersion(img.family) ?? 0) >= MIN_UBUNTU_VERSION,
   );
+  if (opts.platform && baseVersioned.length && !versionedImages.length) {
+    const baseArchMatches = baseVersioned.filter((img) => {
+      const imgArch = normalizeArch(img.architecture);
+      if (!imgArch) return true;
+      return imgArch === desiredArch;
+    });
+    versionedImages = baseArchMatches.length ? baseArchMatches : baseVersioned;
+    logger.debug("nebius image selection: no 24.04 images for platform; falling back", {
+      platform: opts.platform,
+      region: opts.region,
+      arch: desiredArch,
+    });
+  }
   const candidates = versionedImages.filter((img) =>
     wantsGpu ? isNebiusGpuFamily(img.family) : !isNebiusGpuFamily(img.family),
   );
   const pool = candidates.length ? candidates : versionedImages;
-  if (!pool.length) return undefined;
+  if (!pool.length) {
+    const sampleFamilies = ubuntuImages
+      .map((img) => img.family ?? "")
+      .filter((value) => value)
+      .slice(0, 8);
+    logger.warn("nebius image selection empty", {
+      region: opts.region,
+      platform: opts.platform,
+      arch: opts.arch,
+      counts: {
+        region: regionImages.length,
+        ubuntu: ubuntuImages.length,
+        platform: platformImages.length,
+        arch: archFiltered.length,
+        versioned: versionedImages.length,
+        candidates: candidates.length,
+      },
+      sample_families: sampleFamilies,
+    });
+    return undefined;
+  }
   const sorted = [...pool].sort((a, b) => {
     const driverlessA = /driverless/i.test(a.family ?? "");
     const driverlessB = /driverless/i.test(b.family ?? "");
@@ -249,6 +307,13 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
   if (sanitizedMetadata.boot_disk_gb == null) {
     sanitizedMetadata.boot_disk_gb = hasGpu ? 20 : 10;
   }
+  if (
+    providerId === "nebius" &&
+    typeof sanitizedMetadata.boot_disk_gb === "number" &&
+    sanitizedMetadata.boot_disk_gb < 40
+  ) {
+    sanitizedMetadata.boot_disk_gb = 40;
+  }
   delete sanitizedMetadata.source_image;
   delete sanitizedMetadata.source_image_family;
   delete sanitizedMetadata.image_family;
@@ -280,9 +345,15 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
       }
     }
     const images = await loadNebiusImages();
+    const archHint =
+      machine.metadata?.arch ??
+      machine.metadata?.architecture ??
+      machine.metadata?.cpu_arch ??
+      undefined;
     const family = pickNebiusImageFamily(images, wantsGpu, {
       region: row.region,
       platform,
+      arch: archHint,
     });
     if (family) {
       sourceImage = undefined;

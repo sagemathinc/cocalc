@@ -146,6 +146,11 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
 
   React.useEffect(() => {
     if (host) {
+      const diskTypeValue =
+        host.machine?.disk_type &&
+        diskTypeOptions.some((opt) => opt.value === host.machine?.disk_type)
+          ? host.machine?.disk_type
+          : diskTypeOptions[0]?.value;
       form.setFieldsValue({
         name: host.name,
         cpu: currentCpu ?? 2,
@@ -157,7 +162,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
         gpu_type: host.machine?.gpu_type ?? "none",
         size: host.machine?.machine_type ?? host.size ?? undefined,
         storage_mode: storageMode,
-        disk_type: host.machine?.disk_type ?? diskTypeOptions[0]?.value,
+        disk_type: diskTypeValue,
       });
     } else {
       form.resetFields();
