@@ -109,6 +109,10 @@ export function ProjectsTable({
         avatar: project.get("avatar_image_tiny"),
         title: project.get("title") ?? "Untitled",
         description: project.get("description") ?? "",
+        host: (() => {
+          const hostName = project.getIn(["host", "name"]);
+          return typeof hostName === "string" ? hostName : undefined;
+        })(),
         last_edited: project.get("last_edited"),
         color: project.get("color"),
         state: project.get("state"),

@@ -41,7 +41,7 @@ const SORT_DIRECTIONS: SortOrder[] = ["ascend", "descend", "ascend"];
  * Sort state for the projects table
  */
 export type SortState = {
-  columnKey: "last_edited" | "title" | "starred";
+  columnKey: "last_edited" | "title" | "starred" | "host";
   order: SortOrder;
 };
 
@@ -75,6 +75,7 @@ export interface ProjectTableRecord {
   avatar?: string;
   title: string;
   description: string;
+  host?: string;
   last_edited?: Date;
   color?: string;
   state?: any; // immutable Map
@@ -258,6 +259,28 @@ export function getProjectTableColumns(
           </div>
         );
       },
+    },
+    {
+      title: intl.formatMessage({
+        id: "projects.table.host",
+        defaultMessage: "Host",
+      }),
+      dataIndex: "host",
+      key: "host",
+      width: 140,
+      sorter: (a, b) => {
+        const hostA = (a.host ?? "").toLowerCase();
+        const hostB = (b.host ?? "").toLowerCase();
+        return hostA.localeCompare(hostB);
+      },
+      sortDirections: SORT_DIRECTIONS,
+      sortOrder: sortState.columnKey === "host" ? sortState.order : null,
+      render: (host?: string) =>
+        host ? (
+          <Text>{host}</Text>
+        ) : (
+          <Text type="secondary">—</Text>
+        ),
     },
     ...(narrow
       ? []

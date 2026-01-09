@@ -67,6 +67,10 @@ function get_search_info(project_id: string, project, user_map): string {
   if (desc != "No description") {
     s += " " + desc;
   }
+  const hostName = project.getIn(["host", "name"]);
+  if (hostName != null) {
+    s += " " + hostName;
+  }
   const compute_state: ComputeState =
     COMPUTE_STATES[project.getIn(["state", "state"], "")];
   const display = compute_state?.display;
