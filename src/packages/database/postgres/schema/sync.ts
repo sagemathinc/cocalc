@@ -108,20 +108,26 @@ async function getColumnActions(
     if (cur_type != null) {
       cur_type = cur_type.split(" ")[0];
     }
-    let goal_type = pgType(info).toLowerCase().split(" ")[0];
-    if (goal_type === "serial") {
-      // We can't do anything with this (or we could, but it's way too complicated).
-      continue;
-    }
-    if (goal_type.slice(0, 4) === "char") {
-      // we do NOT support changing between fixed length and variable length strength
-      goal_type = "var" + goal_type;
+    const goal_type_raw = pgType(info).toLowerCase();
+    let goal_type = goal_type_raw;
+    if (goal_type_raw.includes("[]")) {
+      goal_type = "array";
+    } else {
+      goal_type = goal_type_raw.split(" ")[0];
+      if (goal_type === "serial") {
+        // We can't do anything with this (or we could, but it's way too complicated).
+        continue;
+      }
+      if (goal_type.slice(0, 4) === "char") {
+        // we do NOT support changing between fixed length and variable length strength
+        goal_type = "var" + goal_type;
+      }
     }
     if (cur_type == null) {
       // column is in our schema, but not in the actual database
       actions.push({ action: "add", column });
     } else if (cur_type !== goal_type) {
-      if (goal_type.includes("[]") || goal_type.includes("varchar")) {
+      if (goal_type_raw.includes("[]") || goal_type_raw.includes("varchar")) {
         // NO support for array or varchar schema changes (even detecting)!
         continue;
       }
@@ -332,8 +338,8 @@ export async function schemaNeedsSync(
   dbSchema: DBSchema = SCHEMA,
   role?: string,
 ): Promise<boolean> {
-  const dbg = (...args) => log.debug("schemaNeedsSync", { role }, ...args);
-  dbg();
+  const dbg = (...args) => log.info("schemaNeedsSync", { role }, ...args);
+  dbg("checking schema");
 
   const db = getClient();
   try {
@@ -342,14 +348,14 @@ export async function schemaNeedsSync(
       await db.query(`SET ROLE ${role}`);
     }
     if (await hasDeprecatedTables(db)) {
-      dbg("deprecated tables detected");
+      dbg("detected deprecated tables");
       return true;
     }
 
     const allTables = await getAllTables(db);
     const missingTables = await getMissingTables(dbSchema, allTables);
     if (missingTables.size > 0) {
-      dbg("missing tables", missingTables);
+      dbg("detected missing tables", missingTables);
       return true;
     }
 
@@ -360,23 +366,24 @@ export async function schemaNeedsSync(
       }
       const columnActions = await getColumnActions(db, schema);
       if (columnActions.length > 0) {
-        dbg("column changes needed", schema.name, columnActions);
+        dbg("detected column changes needed", schema.name, columnActions);
         return true;
       }
       const indexActions = await getIndexActions(db, schema);
       if (indexActions.length > 0) {
-        dbg("index changes needed", schema.name, indexActions);
+        dbg("detected index changes needed", schema.name, indexActions);
         return true;
       }
       const primaryKeyDiff = await getPrimaryKeyDiff(db, schema);
       if (primaryKeyDiff != null) {
-        dbg("primary key changes needed", schema.name, primaryKeyDiff);
+        dbg("detected primary key changes needed", schema.name, primaryKeyDiff);
         return true;
       }
     }
+    dbg("schema matches");
     return false;
   } catch (err) {
-    dbg("FAILED to check schema ", { role }, err);
+    dbg("FAILED to check schema", { role }, err);
     throw err;
   } finally {
     db.end();
