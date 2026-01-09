@@ -72,8 +72,8 @@ const HYPERSTACK_TTLS: Record<string, number> = {
 };
 
 const LAMBDA_TTLS: Record<string, number> = {
-  regions: 60 * 60 * 24 * 7,
-  instance_types: 60 * 60 * 24,
+  regions: 60 * 30,
+  instance_types: 60 * 30,
   images: 60 * 60 * 24 * 7,
 };
 
