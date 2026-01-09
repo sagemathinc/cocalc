@@ -1,14 +1,8 @@
-import { Col, Form, Input, InputNumber, Row, Select, Slider } from "antd";
+import { Col, Form, Row, Select } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
-import { DISK_TYPES } from "../constants";
+import { getDiskTypeOptions } from "../constants";
 import type { HostFieldId } from "../providers/registry";
-
-const MIN_DISK_SIZE = 50;
-const MAX_DISK_SIZE = 10_000;
-// TODO for providers where this can't be enlarged... maybe it should be
-// a much larger value by default?
-const INITIAL_DISK_SIZE = 100;
 
 type HostCreateAdvancedFieldsProps = {
   provider: HostCreateViewModel["provider"];
@@ -17,13 +11,12 @@ type HostCreateAdvancedFieldsProps = {
 export const HostCreateAdvancedFields: React.FC<
   HostCreateAdvancedFieldsProps
 > = ({ provider }) => {
-  const form = Form.useFormInstance();
-  const watchedDisk = Form.useWatch("disk", form);
-  const diskValue =
-    typeof watchedDisk === "number" && Number.isFinite(watchedDisk)
-      ? watchedDisk
-      : 100;
   const { selectedProvider, fields, storage } = provider;
+  const diskTypeOptions = getDiskTypeOptions(selectedProvider);
+  const defaultDiskType =
+    selectedProvider === "nebius"
+      ? "ssd_io_m3"
+      : diskTypeOptions[0]?.value;
   const { schema, options, labels, tooltips } = fields;
   const {
     storageModeOptions,
@@ -83,88 +76,18 @@ export const HostCreateAdvancedFields: React.FC<
         <>
           <Col span={24}>
             <Form.Item
-              label="Disk size (GB)"
-              tooltip={`Disk for storing all projects on this host.  Files are compressed and deduplicated. ${
-                persistentGrowable
-                  ? "You can enlarge this disk at any time later."
-                  : "This disk CANNOT be enlarged later."
-              }`}
-            >
-              <Row gutter={12} align="middle">
-                <Col flex="auto">
-                  <Slider
-                    min={MIN_DISK_SIZE}
-                    max={MAX_DISK_SIZE}
-                    step={1}
-                    value={diskValue}
-                    onChange={(value) => {
-                      if (typeof value !== "number" || Number.isNaN(value)) {
-                        return;
-                      }
-                      form.setFieldsValue({ disk: value });
-                    }}
-                  />
-                </Col>
-                <Col flex="120px">
-                  <Form.Item
-                    name="disk"
-                    initialValue={INITIAL_DISK_SIZE}
-                    noStyle
-                  >
-                    <InputNumber
-                      min={MIN_DISK_SIZE}
-                      max={MAX_DISK_SIZE}
-                      step={1}
-                      precision={0}
-                      style={{ width: "100%" }}
-                      onChange={(value) => {
-                        if (typeof value !== "number" || Number.isNaN(value)) {
-                          return;
-                        }
-                        form.setFieldsValue({ disk: value });
-                      }}
-                    />
-                  </Form.Item>
-                </Col>
-              </Row>
-            </Form.Item>
-          </Col>
-          <Col span={24}>
-            <Form.Item
               name="disk_type"
               label="Disk type"
-              initialValue={DISK_TYPES[0].value}
+              initialValue={defaultDiskType}
             >
-              <Select options={DISK_TYPES} />
+              <Select
+                options={diskTypeOptions}
+                disabled={!diskTypeOptions.length}
+              />
             </Form.Item>
           </Col>
         </>
       )}
-      <Col span={24}>
-        <Form.Item
-          name="shared"
-          label="Shared volume"
-          tooltip="Optional Btrfs subvolume bind-mounted into projects on this host."
-          initialValue="none"
-        >
-          <Select
-            options={[
-              { value: "none", label: "None" },
-              { value: "rw", label: "Shared volume (rw)" },
-              { value: "ro", label: "Shared volume (ro)" },
-            ]}
-          />
-        </Form.Item>
-      </Col>
-      <Col span={24}>
-        <Form.Item
-          name="bucket"
-          label="Mount bucket (gcsfuse)"
-          tooltip="Optional bucket to mount via gcsfuse on this host."
-        >
-          <Input placeholder="bucket-name (optional)" />
-        </Form.Item>
-      </Col>
     </Row>
   );
 };

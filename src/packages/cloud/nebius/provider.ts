@@ -62,6 +62,9 @@ function sanitizeName(base: string, maxLen = 63): string {
 
 function diskTypeFor(spec: HostSpec): DiskSpec_DiskType {
   if (spec.disk_type === "standard") return DiskSpec_DiskType.NETWORK_HDD;
+  if (spec.disk_type === "ssd_io_m3") {
+    return DiskSpec_DiskType.NETWORK_SSD_IO_M3;
+  }
   return DiskSpec_DiskType.NETWORK_SSD;
 }
 

@@ -17,7 +17,7 @@ export interface HostMachine {
   gpu_count?: number;
   storage_mode?: "ephemeral" | "persistent";
   disk_gb?: number;
-  disk_type?: "ssd" | "balanced" | "standard";
+  disk_type?: "ssd" | "balanced" | "standard" | "ssd_io_m3";
   zone?: string;
   source_image?: string;
   bootstrap_url?: string;

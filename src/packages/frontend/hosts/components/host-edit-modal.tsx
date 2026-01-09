@@ -2,6 +2,7 @@ import { Alert, Form, Input, InputNumber, Modal, Select } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import type { HostProvider } from "../types";
+import { getDiskTypeOptions } from "../constants";
 import {
   filterFieldSchemaForCaps,
   getProviderDescriptor,
@@ -119,6 +120,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   const storageSupport = providerDescriptor
     ? getProviderStorageSupport(providerId, catalog?.provider_capabilities)
     : { supported: false, growable: false };
+  const diskTypeOptions = getDiskTypeOptions(providerId);
   const supportsDiskResize = !!providerCaps?.supportsDiskResize;
   const diskResizeRequiresStop = !!providerCaps?.diskResizeRequiresStop;
   const diskResizeBlocked =
@@ -155,7 +157,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
         gpu_type: host.machine?.gpu_type ?? "none",
         size: host.machine?.machine_type ?? host.size ?? undefined,
         storage_mode: storageMode,
-        disk_type: host.machine?.disk_type ?? "balanced",
+        disk_type: host.machine?.disk_type ?? diskTypeOptions[0]?.value,
       });
     } else {
       form.resetFields();
@@ -381,11 +383,8 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
               name="disk_type"
             >
               <Select
-                options={[
-                  { value: "balanced", label: "Balanced" },
-                  { value: "ssd", label: "SSD" },
-                  { value: "standard", label: "Standard" },
-                ]}
+                options={diskTypeOptions}
+                disabled={!diskTypeOptions.length}
               />
             </Form.Item>
           </>

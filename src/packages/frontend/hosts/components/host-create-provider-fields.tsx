@@ -1,7 +1,11 @@
-import { Alert, Form, InputNumber, Select } from "antd";
+import { Alert, Col, Form, InputNumber, Row, Select, Slider } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
 import type { HostFieldId } from "../providers/registry";
+
+const MIN_DISK_SIZE = 50;
+const MAX_DISK_SIZE = 10_000;
+const INITIAL_DISK_SIZE = 100;
 
 type HostCreateProviderFieldsProps = {
   provider: HostCreateViewModel["provider"];
@@ -15,14 +19,21 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
     selectedProvider,
     fields,
     catalogError,
+    storage,
   } = provider;
   const { schema, options, labels, tooltips } = fields;
+  const { persistentGrowable, showDiskFields } = storage;
   const form = Form.useFormInstance();
   const watchedRegion = Form.useWatch("region", form);
   const watchedZone = Form.useWatch("zone", form);
   const watchedMachineType = Form.useWatch("machine_type", form);
   const watchedSize = Form.useWatch("size", form);
   const watchedGpuType = Form.useWatch("gpu_type", form);
+  const watchedDisk = Form.useWatch("disk", form);
+  const diskValue =
+    typeof watchedDisk === "number" && Number.isFinite(watchedDisk)
+      ? watchedDisk
+      : INITIAL_DISK_SIZE;
   const gcpCompatibilityWarning = React.useMemo(() => {
     if (selectedProvider !== "gcp") return null;
     const gpuType =
@@ -188,6 +199,54 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
         />
       )}
       {schema.primary.map(renderField)}
+      {showDiskFields && (
+        <Form.Item
+          label="Disk size (GB)"
+          tooltip={`Disk for storing all projects on this host. Files are compressed and deduplicated. ${
+            persistentGrowable
+              ? "You can enlarge this disk at any time later."
+              : "This disk CANNOT be enlarged later."
+          }`}
+        >
+          <Row gutter={12} align="middle">
+            <Col flex="auto">
+              <Slider
+                min={MIN_DISK_SIZE}
+                max={MAX_DISK_SIZE}
+                step={1}
+                value={diskValue}
+                onChange={(value) => {
+                  if (typeof value !== "number" || Number.isNaN(value)) {
+                    return;
+                  }
+                  form.setFieldsValue({ disk: value });
+                }}
+              />
+            </Col>
+            <Col flex="120px">
+              <Form.Item
+                name="disk"
+                initialValue={INITIAL_DISK_SIZE}
+                noStyle
+              >
+                <InputNumber
+                  min={MIN_DISK_SIZE}
+                  max={MAX_DISK_SIZE}
+                  step={1}
+                  precision={0}
+                  style={{ width: "100%" }}
+                  onChange={(value) => {
+                    if (typeof value !== "number" || Number.isNaN(value)) {
+                      return;
+                    }
+                    form.setFieldsValue({ disk: value });
+                  }}
+                />
+              </Form.Item>
+            </Col>
+          </Row>
+        </Form.Item>
+      )}
       {selectedProvider === "self-host" && (
         <>
           <Form.Item

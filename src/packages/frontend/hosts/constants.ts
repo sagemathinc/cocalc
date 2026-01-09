@@ -1,4 +1,5 @@
 import type { CSS } from "@cocalc/frontend/app-framework";
+import type { HostProvider } from "./types";
 
 export const WRAP_STYLE: CSS = {
   padding: "10px 0",
@@ -36,5 +37,30 @@ export const GPU_TYPES = [
 export const DISK_TYPES = [
   { value: "balanced", label: "Balanced SSD" },
   { value: "ssd", label: "SSD" },
+  { value: "ssd_io_m3", label: "SSD IO M3" },
   { value: "standard", label: "Standard (HDD)" },
 ];
+
+const PROVIDER_DISK_TYPES: Partial<Record<HostProvider, string[]>> = {
+  hyperstack: ["ssd"],
+  nebius: ["ssd_io_m3", "ssd"],
+};
+
+export const getDiskTypeOptions = (
+  provider?: HostProvider,
+) => {
+  if (!provider) return DISK_TYPES;
+  const allowed = PROVIDER_DISK_TYPES[provider];
+  if (!allowed) return DISK_TYPES;
+  const filtered = DISK_TYPES.filter((entry) => allowed.includes(entry.value));
+  if (provider !== "nebius") return filtered;
+  return filtered.map((entry) => {
+    if (entry.value === "ssd") {
+      return { ...entry, label: "Network SSD" };
+    }
+    if (entry.value === "ssd_io_m3") {
+      return { ...entry, label: "Network SSD IO M3" };
+    }
+    return entry;
+  });
+};

@@ -18,7 +18,7 @@ type HubClient = {
       cpu?: number;
       ram_gb?: number;
       disk_gb?: number;
-      disk_type?: "ssd" | "balanced" | "standard";
+      disk_type?: "ssd" | "balanced" | "standard" | "ssd_io_m3";
       machine_type?: string;
       gpu_type?: string;
       gpu_count?: number;
@@ -128,7 +128,7 @@ export const useHostActions = ({
       cpu?: number;
       ram_gb?: number;
       disk_gb?: number;
-      disk_type?: "ssd" | "balanced" | "standard";
+      disk_type?: "ssd" | "balanced" | "standard" | "ssd_io_m3";
       machine_type?: string;
       gpu_type?: string;
       gpu_count?: number;

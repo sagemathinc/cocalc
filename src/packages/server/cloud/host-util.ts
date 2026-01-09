@@ -210,12 +210,11 @@ export async function buildHostSpec(row: HostRow): Promise<HostSpec> {
     ram_gb = ramOverride;
   }
   const disk_gb = machine.disk_gb ?? 100;
-  const disk_type =
-    machine.disk_type === "ssd"
-      ? "ssd"
-      : machine.disk_type === "standard"
-        ? "standard"
-        : "balanced";
+  const disk_type = ["ssd", "balanced", "standard", "ssd_io_m3"].includes(
+    machine.disk_type ?? "",
+  )
+    ? (machine.disk_type as HostSpec["disk_type"])
+    : "balanced";
   const storage_mode = machine.storage_mode;
   const gpuType = machine.gpu_type;
   const gpu =
