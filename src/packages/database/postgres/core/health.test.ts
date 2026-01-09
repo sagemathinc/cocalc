@@ -32,72 +32,43 @@ describe("Health Monitoring - Group 4", () => {
     await testCleanup();
   });
 
-  describe("_do_test_query - Execute health check", () => {
-    it("executes a simple SELECT NOW() query", (done) => {
-      // Store original _query to spy on it
-      const originalQuery = database._query;
-      let queryCalled = false;
-      let queryOptions: any = null;
-
-      // Temporarily replace _query to capture the call
-      database._query = function (opts: any) {
-        queryCalled = true;
-        queryOptions = opts;
-        // Call the original _query
-        return originalQuery.call(this, opts);
-      };
-
-      // Execute the test query
-      database._do_test_query();
-
-      // Wait a bit for the query to complete
-      setTimeout(() => {
-        // Restore original _query
-        database._query = originalQuery;
-
-        // Verify the query was called
-        expect(queryCalled).toBe(true);
-        expect(queryOptions).toBeDefined();
-        expect(queryOptions.query).toBe("SELECT NOW()");
-        expect(queryOptions.cb).toBeDefined();
-
-        done();
-      }, 100);
-    }, 10000);
-
-    it("completes without error", (done) => {
-      // Store original _query to capture callback
-      const originalQuery = database._query;
-      let callbackError: any = undefined;
-      let callbackResult: any = undefined;
-
-      // Replace _query to capture callback invocation
+  const runTestQuery = async (): Promise<{
+    opts: any;
+    err: any;
+    result: any;
+  }> => {
+    const originalQuery = database._query;
+    return await new Promise((resolve) => {
       database._query = function (opts: any) {
         const originalCb = opts.cb;
         opts.cb = (err: any, result: any) => {
-          callbackError = err;
-          callbackResult = result;
+          database._query = originalQuery;
           if (originalCb) {
             originalCb(err, result);
           }
+          resolve({ opts, err, result });
         };
         return originalQuery.call(this, opts);
       };
 
-      // Execute the test query
       database._do_test_query();
+    });
+  };
 
-      // Wait for query to complete
-      setTimeout(() => {
-        // Restore original _query
-        database._query = originalQuery;
+  describe("_do_test_query - Execute health check", () => {
+    it("executes a simple SELECT NOW() query", async () => {
+      const { opts } = await runTestQuery();
 
-        // Verify no error occurred
-        expect(callbackError == null || callbackError === undefined).toBe(true);
-        expect(callbackResult).toBeDefined();
+      expect(opts).toBeDefined();
+      expect(opts.query).toBe("SELECT NOW()");
+      expect(opts.cb).toBeDefined();
+    }, 10000);
 
-        done();
-      }, 100);
+    it("completes without error", async () => {
+      const { err, result } = await runTestQuery();
+
+      expect(err == null || err === undefined).toBe(true);
+      expect(result).toBeDefined();
     }, 10000);
   });
 
