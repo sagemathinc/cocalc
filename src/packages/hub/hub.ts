@@ -20,7 +20,6 @@ import {
   pgdatabase,
   pghost,
   pguser,
-  data,
 } from "@cocalc/backend/data";
 import { trimLogFileSize } from "@cocalc/backend/logger";
 import port from "@cocalc/backend/port";
@@ -50,7 +49,7 @@ import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
 import { set_agent_endpoint } from "./health-checks";
 import { getLogger } from "./logger";
-import initDatabase from "./servers/database";
+import initDatabase, { getDatabase } from "./servers/database";
 import initExpressApp from "./servers/express-app";
 
 import initHttpRedirect from "./servers/http-redirect";
@@ -58,7 +57,6 @@ import initHttpRedirect from "./servers/http-redirect";
 import { addErrorListeners } from "@cocalc/server/metrics/error-listener";
 import * as MetricsRecorder from "@cocalc/server/metrics/metrics-recorder";
 import { migrateBookmarksToConat } from "./migrate-bookmarks";
-import { PostgreSQL } from "@cocalc/database/postgres";
 
 // Logger tagged with 'hub' for this file.
 const logger = getLogger("hub");
@@ -68,15 +66,6 @@ let program: { [option: string]: any } = {};
 export { program };
 
 const REGISTER_INTERVAL_S = 20;
-
-let database: PostgreSQL | undefined = undefined;
-
-function getDatabase(): PostgreSQL {
-  if (database == null) {
-    throw new Error("database not initialized yet");
-  }
-  return database;
-}
 
 async function reset_password(email_address: string): Promise<void> {
   try {
@@ -255,6 +244,8 @@ async function startServer(): Promise<void> {
       cert: program.httpsCert,
       key: program.httpsKey,
     });
+
+    const database = getDatabase();
 
     // The express app create via initExpressApp above **assumes** that init_passport is done
     // or complains a lot. This is obviously not really necessary, but we leave it for now.
@@ -453,7 +444,7 @@ async function main(): Promise<void> {
   try {
     // Everything we do here requires the database to be initialized. Once
     // initDatabase returns, database is the initialized singleton.
-    database = initDatabase();
+    const database = initDatabase();
     database._concurrent_warn = program.dbConcurrentWarn;
 
     if (program.passwd) {

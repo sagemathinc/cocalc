@@ -57,6 +57,8 @@ function getPrimaryHost(): { host?: string; port: number } {
   return { host: hostEntry, port: 5432 };
 }
 
+// Advisory lock key: ASCII "COCA" (0x43 0x4f 0x43 0x41), standing for COCALC.
+// Keep this stable across deployments so all nodes coordinate schema sync.
 const SCHEMA_LOCK_KEY = 0x434f4341;
 const SCHEMA_LOCK_WAIT_MS = 1000;
 

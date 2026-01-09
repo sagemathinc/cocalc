@@ -8,6 +8,13 @@ import { enableDbAdminAlerts } from "@cocalc/server/messages/admin-alert";
 // object gets used.
 let database: PostgreSQL | undefined = undefined;
 
+export function getDatabase(): PostgreSQL {
+  if (database == null) {
+    throw new Error("database not initialized yet");
+  }
+  return database;
+}
+
 export default function init(): PostgreSQL {
   if (database != null) {
     throw Error("only call database init once");

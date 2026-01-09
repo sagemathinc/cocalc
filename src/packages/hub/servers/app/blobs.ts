@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { database } from "../database";
+import { getDatabase } from "../database";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { database_is_working } from "@cocalc/server/metrics/hub_register";
 import { callback2 } from "@cocalc/util/async-utils";
@@ -7,6 +7,7 @@ import { getLogger } from "@cocalc/hub/logger";
 
 const logger = getLogger("hub:servers:app:blobs");
 export default function init(router: Router) {
+  const database = getDatabase();
   // return uuid-indexed blobs (mainly used for graphics)
   router.get("/blobs/*", async (req, res) => {
     logger.debug(`${JSON.stringify(req.query)}, ${req.path}`);
