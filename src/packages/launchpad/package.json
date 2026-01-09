@@ -18,6 +18,8 @@
     "build:static": "cd ../static && pnpm clean && pnpm install && pnpm build",
     "build:bundle": "pnpm build:static && cd sea && ./build-bundle.sh",
     "build:tarball": "pnpm build:bundle && cd build && tar Jcvf bundle.tar.xz bundle",
+    "container:build": "./build-container.sh",
+    "container:push": "./push-container.sh",
     "run:bundle": "node ./build/bundle/bundle/index.js",
     "sea": "pnpm build:tarball && cd sea && ./build-sea.sh",
     "build:all": "pnpm build && pnpm build:tarball && pnpm sea",

@@ -212,6 +212,15 @@ file_associations["noext-dockerfile"] = {
   ext: "",
 };
 
+file_associations["noext-dockerfile"] = {
+  editor: "codemirror",
+  icon: "docker",
+  opts: { mode: "dockerfile", indent_unit: 2, tab_size: 2 },
+  name: "Containerfile",
+  exclude_from_menu: true,
+  ext: "",
+};
+
 file_associations["tex"] = {
   editor: "latex",
   icon: "tex-file",

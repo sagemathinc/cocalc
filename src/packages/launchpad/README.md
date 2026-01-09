@@ -27,6 +27,10 @@ PGlite-backed metadata, and api/v2 access without Next.js.
 - **Bundle**: `pnpm --filter @cocalc/launchpad build:bundle`
 - **Tarball**: `pnpm --filter @cocalc/launchpad build:tarball`
 - **SEA binary**: `pnpm --filter @cocalc/launchpad sea`
+- **Container (podman)**:
+  - `export GCR_PROJECT=your-gcp-project`
+  - `pnpm --filter @cocalc/launchpad container:build`
+  - `pnpm --filter @cocalc/launchpad container:push`
 
 The bundle includes static assets, Next api/v2 handlers, and PGlite data/wasm
 so the control plane can run without external services.

@@ -1,21 +1,29 @@
-import { Col, Form, Input, Row, Select, Slider } from "antd";
+import { Col, Form, Input, InputNumber, Row, Select, Slider } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
 import { DISK_TYPES } from "../constants";
 import type { HostFieldId } from "../providers/registry";
 
+const MIN_DISK_SIZE = 50;
+const MAX_DISK_SIZE = 10_000;
+// TODO for providers where this can't be enlarged... maybe it should be
+// a much larger value by default?
+const INITIAL_DISK_SIZE = 100;
+
 type HostCreateAdvancedFieldsProps = {
   provider: HostCreateViewModel["provider"];
 };
 
-export const HostCreateAdvancedFields: React.FC<HostCreateAdvancedFieldsProps> = ({
-  provider,
-}) => {
-  const {
-    selectedProvider,
-    fields,
-    storage,
-  } = provider;
+export const HostCreateAdvancedFields: React.FC<
+  HostCreateAdvancedFieldsProps
+> = ({ provider }) => {
+  const form = Form.useFormInstance();
+  const watchedDisk = Form.useWatch("disk", form);
+  const diskValue =
+    typeof watchedDisk === "number" && Number.isFinite(watchedDisk)
+      ? watchedDisk
+      : 100;
+  const { selectedProvider, fields, storage } = provider;
   const { schema, options, labels, tooltips } = fields;
   const {
     storageModeOptions,
@@ -41,10 +49,7 @@ export const HostCreateAdvancedFields: React.FC<HostCreateAdvancedFieldsProps> =
           tooltip={tooltip}
           initialValue={fieldOptions[0]?.value}
         >
-          <Select
-            options={fieldOptions}
-            disabled={!fieldOptions.length}
-          />
+          <Select options={fieldOptions} disabled={!fieldOptions.length} />
         </Form.Item>
       </Col>
     );
@@ -78,16 +83,50 @@ export const HostCreateAdvancedFields: React.FC<HostCreateAdvancedFieldsProps> =
         <>
           <Col span={24}>
             <Form.Item
-              name="disk"
               label="Disk size (GB)"
-              initialValue={100}
               tooltip={`Disk for storing all projects on this host.  Files are compressed and deduplicated. ${
                 persistentGrowable
                   ? "You can enlarge this disk at any time later."
                   : "This disk CANNOT be enlarged later."
               }`}
             >
-              <Slider min={50} max={1000} step={50} />
+              <Row gutter={12} align="middle">
+                <Col flex="auto">
+                  <Slider
+                    min={MIN_DISK_SIZE}
+                    max={MAX_DISK_SIZE}
+                    step={1}
+                    value={diskValue}
+                    onChange={(value) => {
+                      if (typeof value !== "number" || Number.isNaN(value)) {
+                        return;
+                      }
+                      form.setFieldsValue({ disk: value });
+                    }}
+                  />
+                </Col>
+                <Col flex="120px">
+                  <Form.Item
+                    name="disk"
+                    initialValue={INITIAL_DISK_SIZE}
+                    noStyle
+                  >
+                    <InputNumber
+                      min={MIN_DISK_SIZE}
+                      max={MAX_DISK_SIZE}
+                      step={1}
+                      precision={0}
+                      style={{ width: "100%" }}
+                      onChange={(value) => {
+                        if (typeof value !== "number" || Number.isNaN(value)) {
+                          return;
+                        }
+                        form.setFieldsValue({ disk: value });
+                      }}
+                    />
+                  </Form.Item>
+                </Col>
+              </Row>
             </Form.Item>
           </Col>
           <Col span={24}>

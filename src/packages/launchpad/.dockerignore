@@ -1,0 +1,4 @@
+**
+!Containerfile
+!build/
+!build/bundle/**

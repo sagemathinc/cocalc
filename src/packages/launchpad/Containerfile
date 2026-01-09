@@ -1,0 +1,22 @@
+FROM node:24-bookworm-slim
+
+ENV NODE_ENV=production \
+    COCALC_BUNDLE_DIR=/opt/cocalc \
+    COCALC_PGLITE_BUNDLE_DIR=/opt/cocalc/pglite \
+    COCALC_API_V2_ROOT=/opt/cocalc/next-dist/pages/api/v2
+
+WORKDIR /opt/cocalc
+
+COPY build/bundle/ /opt/cocalc/
+
+RUN set -e; \
+    if ! getent group cocalc >/dev/null; then groupadd cocalc; fi; \
+    if ! id -u cocalc >/dev/null 2>&1; then useradd -m -g cocalc cocalc; fi; \
+    mkdir -p /data && \
+    chown -R cocalc:cocalc /opt/cocalc /data
+
+USER cocalc
+
+EXPOSE 5000
+
+CMD ["node", "/opt/cocalc/bundle/index.js"]
