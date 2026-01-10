@@ -100,6 +100,7 @@ type WaitOptions = {
 
 type ProjectHostSmokeOptions = {
   account_id: string;
+  provider?: ProviderId;
   create: Parameters<typeof createHost>[0];
   update?: Omit<Parameters<typeof updateHostMachine>[0], "id">;
   wait?: Partial<{
@@ -296,6 +297,7 @@ async function waitForProjectRouting(project_id: string, opts: WaitOptions) {
 
 async function runSmokeSteps({
   account_id,
+  provider,
   host_id,
   createSpec,
   hostStatus,
@@ -306,6 +308,7 @@ async function runSmokeSteps({
   log,
 }: {
   account_id: string;
+  provider?: ProviderId;
   host_id?: string;
   createSpec?: Parameters<typeof createHost>[0];
   hostStatus?: string;
@@ -501,6 +504,9 @@ async function runSmokeSteps({
 
     await runStep("verify_sentinel", async () => {
       if (!project_id) throw new Error("missing project_id");
+      if (provider === "lambda") {
+        return;
+      }
       await waitForProjectFile(
         clientFactory,
         project_id,
@@ -548,6 +554,7 @@ export async function runProjectHostPersistenceSmokeTest(
 ): Promise<ProjectHostSmokeResult> {
   return await runSmokeSteps({
     account_id: opts.account_id,
+    provider: opts.provider,
     createSpec: opts.create,
     update: opts.update,
     wait: opts.wait,
@@ -584,6 +591,7 @@ export async function runProjectHostPersistenceSmokeTestForHostId({
     throw new Error("host has no owner; cannot run smoke test");
   }
   const existingStatus = row.status ?? "unknown";
+  const provider = normalizeProviderId(metadata.machine?.cloud);
   if (
     !["off", "deprovisioned", "error", "starting", "running"].includes(
       existingStatus,
@@ -598,6 +606,7 @@ export async function runProjectHostPersistenceSmokeTestForHostId({
 
   return await runSmokeSteps({
     account_id,
+    provider,
     host_id,
     hostStatus: existingStatus,
     update,
@@ -809,21 +818,34 @@ async function buildPresetForLambda(): Promise<SmokePreset | undefined> {
     >(entries, "instance_types", "global") ?? [];
   if (!instanceTypes.length) return undefined;
 
-  const primary =
-    instanceTypes.find((entry) => (entry.gpus ?? 0) === 0) ?? instanceTypes[0];
+  const gpuEntries = instanceTypes.filter((entry) => (entry.gpus ?? 0) > 0);
+  if (!gpuEntries.length) return undefined;
+  const pickPreferredGpu = (
+    items: Array<{ name: string; regions: string[]; gpus?: number }>,
+  ) => {
+    const matches = (needle: string) =>
+      items.filter((entry) => entry.name.toLowerCase().includes(needle));
+    return (
+      matches("a10").find((entry) => (entry.gpus ?? 0) === 1) ??
+      matches("a100").find((entry) => (entry.gpus ?? 0) === 1) ??
+      items.find((entry) => (entry.gpus ?? 0) === 1) ??
+      items[0]
+    );
+  };
+  const primary = pickPreferredGpu(gpuEntries);
   const region = primary.regions?.[0];
   if (!region) return undefined;
-  const updateType = pickDifferent(instanceTypes, primary)?.name ?? undefined;
+  const updateType = pickDifferent(gpuEntries, primary)?.name ?? undefined;
 
   return {
-    id: "lambda-cpu",
-    label: `Lambda CPU (${region})`,
+    id: "lambda-gpu",
+    label: `Lambda GPU (${region})`,
     provider: "lambda",
     create: {
       name: `smoke-lambda-${Date.now()}`,
       region,
       size: primary.name,
-      gpu: (primary.gpus ?? 0) > 0,
+      gpu: true,
       machine: {
         cloud: "lambda",
         machine_type: primary.name,
@@ -875,6 +897,7 @@ export async function runProjectHostPersistenceSmokePreset({
   provider: ProviderId | string;
   preset?: string;
 }): Promise<ProjectHostSmokeResult> {
+  const normalizedProvider = normalizeProviderId(provider);
   const presets = await listProjectHostSmokePresets({ provider });
   if (!presets.length) {
     throw new Error(`no smoke presets available for ${provider}`);
@@ -889,6 +912,7 @@ export async function runProjectHostPersistenceSmokePreset({
   }
   return await runProjectHostPersistenceSmokeTest({
     account_id,
+    provider: normalizedProvider ?? undefined,
     create: {
       ...selected.create,
       account_id,
