@@ -423,14 +423,21 @@ export class NebiusProvider implements CloudProvider {
     await startOp.wait();
   }
 
-  async deleteHost(runtime: HostRuntime, creds: NebiusProviderCreds) {
+  async deleteHost(
+    runtime: HostRuntime,
+    creds: NebiusProviderCreds,
+    opts?: { preserveDataDisk?: boolean },
+  ) {
     const client = new NebiusClient(creds);
     const op = await client.instances.delete(
       DeleteInstanceRequest.create({ id: runtime.instance_id }),
     );
     await op.wait();
     const diskIds = (runtime.metadata as NebiusRuntimeMeta | undefined)?.diskIds;
-    for (const diskId of [diskIds?.data, diskIds?.boot].filter(Boolean) as string[]) {
+    const disksToDelete = opts?.preserveDataDisk
+      ? [diskIds?.boot]
+      : [diskIds?.data, diskIds?.boot];
+    for (const diskId of disksToDelete.filter(Boolean) as string[]) {
       try {
         const diskOp = await client.disks.delete(
           DeleteDiskRequest.create({ id: diskId }),

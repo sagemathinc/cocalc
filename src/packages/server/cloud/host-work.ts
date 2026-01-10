@@ -318,7 +318,9 @@ async function handleStart(row: any) {
           instance_id: runtime.instance_id,
           zone: runtime.zone,
         });
-        await entry.provider.deleteHost(runtime, creds);
+        await entry.provider.deleteHost(runtime, creds, {
+          preserveDataDisk: true,
+        });
       }
       const clearedMetadata = {
         ...(row.metadata ?? {}),

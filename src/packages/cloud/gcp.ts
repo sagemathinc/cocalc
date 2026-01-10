@@ -431,14 +431,55 @@ export class GcpProvider implements CloudProvider {
     });
   }
 
-  async deleteHost(runtime: HostRuntime, creds: any): Promise<void> {
+  async deleteHost(
+    runtime: HostRuntime,
+    creds: any,
+    opts?: { preserveDataDisk?: boolean },
+  ): Promise<void> {
     const credentials = parseCredentials(creds ?? {});
+    if (!runtime.zone) {
+      throw new Error("gcp.deleteHost requires zone");
+    }
     const client = new InstancesClient(credentials);
     try {
-      await client.delete({
+      if (opts?.preserveDataDisk) {
+        try {
+          const [instance] = await client.get({
+            project: credentials.projectId,
+            zone: runtime.zone,
+            instance: runtime.instance_id,
+          });
+          const disks = instance?.disks ?? [];
+          const dataDisk =
+            disks.find((disk) => !disk.boot && disk.type !== "SCRATCH") ??
+            disks.find((disk) => !disk.boot);
+          const deviceName = dataDisk?.deviceName;
+          if (deviceName) {
+            await client.setDiskAutoDelete({
+              project: credentials.projectId,
+              zone: runtime.zone,
+              instance: runtime.instance_id,
+              deviceName,
+              autoDelete: false,
+            });
+          }
+        } catch (err) {
+          logger.warn("gcp.deleteHost preserveDataDisk failed", {
+            instance_id: runtime.instance_id,
+            zone: runtime.zone,
+            err,
+          });
+        }
+      }
+      const [response] = await client.delete({
         project: credentials.projectId,
         zone: runtime.zone,
         instance: runtime.instance_id,
+      });
+      await waitUntilOperationComplete({
+        response,
+        zone: runtime.zone,
+        credentials,
       });
     } catch (err) {
       if (isNotFoundError(err)) {

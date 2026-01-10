@@ -57,7 +57,11 @@ export interface CloudProvider {
   stopHost(runtime: HostRuntime, creds: any): Promise<void>;
   restartHost?(runtime: HostRuntime, creds: any): Promise<void>;
   hardRestartHost?(runtime: HostRuntime, creds: any): Promise<void>;
-  deleteHost(runtime: HostRuntime, creds: any): Promise<void>;
+  deleteHost(
+    runtime: HostRuntime,
+    creds: any,
+    opts?: { preserveDataDisk?: boolean },
+  ): Promise<void>;
   resizeDisk(runtime: HostRuntime, newSizeGb: number, creds: any): Promise<void>;
   getStatus(
     runtime: HostRuntime,
