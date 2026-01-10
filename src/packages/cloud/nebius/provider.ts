@@ -278,25 +278,33 @@ export class NebiusProvider implements CloudProvider {
 
     const storageMode = spec.metadata?.storage_mode;
     if (storageMode === "persistent") {
+      const existingDataDiskId =
+        spec.metadata?.data_disk_id ??
+        spec.metadata?.dataDiskId ??
+        undefined;
       logger.info("nebius: creating data disk", {
         name,
         size_gb: spec.disk_gb,
         type: diskType,
       });
       const dataDiskName = `${name}-data`;
-      diskIds.data = await createDiskOrReuse(
-        client,
-        parentId,
-        dataDiskName,
-        DiskSpec.create({
-          type: diskType,
-          blockSizeBytes: blockSizeBytes(),
-          size: {
-            $case: "sizeGibibytes",
-            sizeGibibytes: Long.fromNumber(spec.disk_gb),
-          },
-        }),
-      );
+      if (existingDataDiskId) {
+        diskIds.data = existingDataDiskId;
+      } else {
+        diskIds.data = await createDiskOrReuse(
+          client,
+          parentId,
+          dataDiskName,
+          DiskSpec.create({
+            type: diskType,
+            blockSizeBytes: blockSizeBytes(),
+            size: {
+              $case: "sizeGibibytes",
+              sizeGibibytes: Long.fromNumber(spec.disk_gb),
+            },
+          }),
+        );
+      }
     }
 
     const userData = buildUserData(spec) ?? "";

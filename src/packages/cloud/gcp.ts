@@ -255,12 +255,13 @@ export class GcpProvider implements CloudProvider {
       type?: string;
       interface?: string;
       deviceName?: string;
-      initializeParams: {
+      initializeParams?: {
         diskType: string;
         diskSizeGb?: string;
         sourceImage?: any;
         diskName?: string;
       };
+      source?: string;
     };
     const disks: Disk[] = [
       {
@@ -273,6 +274,8 @@ export class GcpProvider implements CloudProvider {
         },
       },
     ];
+    const dataDiskName = spec.metadata?.data_disk_name ?? `${spec.name}-data`;
+    let dataDiskSource: string | undefined;
     if (storageMode === "ephemeral") {
       // Attach one local SSD for fast ephemeral storage.
       disks.push({
@@ -285,15 +288,32 @@ export class GcpProvider implements CloudProvider {
         },
       });
     } else {
+      const diskClient = new DisksClient(credentials);
+      try {
+        const [disk] = await diskClient.get({
+          project: credentials.projectId,
+          zone,
+          disk: dataDiskName,
+        });
+        dataDiskSource = disk?.selfLink ?? undefined;
+      } catch (err) {
+        if (!isNotFoundError(err)) {
+          throw err;
+        }
+      }
       disks.push({
-        autoDelete: true,
+        autoDelete: false,
         boot: false,
-        deviceName: `${spec.name}-data`,
-        initializeParams: {
-          diskName: `${spec.name}-data`,
-          diskSizeGb: `${spec.disk_gb}`,
-          diskType,
-        },
+        deviceName: dataDiskName,
+        ...(dataDiskSource
+          ? { source: dataDiskSource }
+          : {
+              initializeParams: {
+                diskName: dataDiskName,
+                diskSizeGb: `${spec.disk_gb}`,
+                diskType,
+              },
+            }),
       });
     }
 
@@ -382,6 +402,8 @@ export class GcpProvider implements CloudProvider {
         disk_type: diskType,
         boot_disk_gb: bootDiskGb,
         data_disk_gb: spec.disk_gb,
+        data_disk_name: dataDiskName,
+        data_disk_uri: dataDiskSource,
         ssh_public_key: spec.metadata?.ssh_public_key,
         ssh_user: sshUserFor(spec),
       },
@@ -441,35 +463,37 @@ export class GcpProvider implements CloudProvider {
       throw new Error("gcp.deleteHost requires zone");
     }
     const client = new InstancesClient(credentials);
+    const diskClient = new DisksClient(credentials);
+    let dataDiskName: string | undefined;
     try {
-      if (opts?.preserveDataDisk) {
-        try {
-          const [instance] = await client.get({
+      try {
+        const [instance] = await client.get({
+          project: credentials.projectId,
+          zone: runtime.zone,
+          instance: runtime.instance_id,
+        });
+        const disks = instance?.disks ?? [];
+        const dataDisk =
+          disks.find((disk) => !disk.boot && disk.type !== "SCRATCH") ??
+          disks.find((disk) => !disk.boot);
+        dataDiskName =
+          dataDisk?.deviceName ??
+          (dataDisk?.source ? dataDisk.source.split("/").pop() : undefined);
+        if (opts?.preserveDataDisk && dataDiskName) {
+          await client.setDiskAutoDelete({
             project: credentials.projectId,
             zone: runtime.zone,
             instance: runtime.instance_id,
-          });
-          const disks = instance?.disks ?? [];
-          const dataDisk =
-            disks.find((disk) => !disk.boot && disk.type !== "SCRATCH") ??
-            disks.find((disk) => !disk.boot);
-          const deviceName = dataDisk?.deviceName;
-          if (deviceName) {
-            await client.setDiskAutoDelete({
-              project: credentials.projectId,
-              zone: runtime.zone,
-              instance: runtime.instance_id,
-              deviceName,
-              autoDelete: false,
-            });
-          }
-        } catch (err) {
-          logger.warn("gcp.deleteHost preserveDataDisk failed", {
-            instance_id: runtime.instance_id,
-            zone: runtime.zone,
-            err,
+            deviceName: dataDiskName,
+            autoDelete: false,
           });
         }
+      } catch (err) {
+        logger.warn("gcp.deleteHost data disk lookup failed", {
+          instance_id: runtime.instance_id,
+          zone: runtime.zone,
+          err,
+        });
       }
       const [response] = await client.delete({
         project: credentials.projectId,
@@ -481,6 +505,29 @@ export class GcpProvider implements CloudProvider {
         zone: runtime.zone,
         credentials,
       });
+      if (!opts?.preserveDataDisk && dataDiskName) {
+        try {
+          const [diskResponse] = await diskClient.delete({
+            project: credentials.projectId,
+            zone: runtime.zone,
+            disk: dataDiskName,
+          });
+          await waitUntilOperationComplete({
+            response: diskResponse,
+            zone: runtime.zone,
+            credentials,
+          });
+        } catch (err) {
+          if (!isNotFoundError(err)) {
+            logger.warn("gcp.deleteHost data disk delete failed", {
+              instance_id: runtime.instance_id,
+              zone: runtime.zone,
+              disk: dataDiskName,
+              err,
+            });
+          }
+        }
+      }
     } catch (err) {
       if (isNotFoundError(err)) {
         logger.info("gcp.deleteHost: instance already gone", {

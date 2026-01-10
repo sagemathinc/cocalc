@@ -253,6 +253,16 @@ async function findDataVolume(
   );
 }
 
+async function findDataVolumeById(
+  environment_name: string,
+  id: number,
+): Promise<VolumeDetails | undefined> {
+  const volumes = await getVolumes();
+  return volumes.find(
+    (volume) => volume.id === id && volume.environment?.name === environment_name,
+  );
+}
+
 async function ensureDataVolume(
   environment_name: string,
   spec: HostSpec,
@@ -346,7 +356,22 @@ export class HyperstackProvider implements CloudProvider {
       creds.catalog?.flavors,
     );
     const image_name = await selectImage(region, spec, creds.catalog?.images);
-    const dataVolume = await ensureDataVolume(environment_name, spec);
+    const metadata = spec.metadata ?? {};
+    const dataVolumeId = Number(metadata.data_volume_id);
+    const dataVolumeName =
+      typeof metadata.data_volume_name === "string" && metadata.data_volume_name
+        ? metadata.data_volume_name
+        : undefined;
+    let dataVolume: VolumeDetails | undefined;
+    if (Number.isFinite(dataVolumeId) && dataVolumeId > 0) {
+      dataVolume = await findDataVolumeById(environment_name, dataVolumeId);
+    }
+    if (!dataVolume && dataVolumeName) {
+      dataVolume = await findDataVolume(environment_name, dataVolumeName);
+    }
+    if (!dataVolume) {
+      dataVolume = await ensureDataVolume(environment_name, spec);
+    }
     const user_data =
       typeof spec.metadata?.startup_script === "string"
         ? spec.metadata.startup_script
@@ -366,13 +391,15 @@ export class HyperstackProvider implements CloudProvider {
     if (!instance) {
       throw new Error("Hyperstack did not return a VM instance");
     }
-    void attachDataVolume(Number(instance.id), dataVolume.id).catch((err) => {
+    try {
+      await attachDataVolume(Number(instance.id), dataVolume.id);
+    } catch (err) {
       logger.warn("Hyperstack attachDataVolume failed", {
         instanceId: instance.id,
         volumeId: dataVolume.id,
         err: String(err),
       });
-    });
+    }
     for (const rule of SECURITY_RULES) {
       try {
         await addFirewallRule({

@@ -325,6 +325,36 @@ async function handleStart(row: any) {
       const clearedMetadata = {
         ...(row.metadata ?? {}),
       };
+      if (reprovisionRequired && runtime?.instance_id) {
+        const nextMachine = { ...(clearedMetadata.machine ?? {}) };
+        const nextMachineMeta = { ...(nextMachine.metadata ?? {}) };
+        if (providerId === "gcp") {
+          const runtimeMeta = runtime.metadata as
+            | { data_disk_name?: string }
+            | undefined;
+          nextMachineMeta.data_disk_name =
+            runtimeMeta?.data_disk_name ?? `${runtime.instance_id}-data`;
+        } else if (providerId === "nebius") {
+          const runtimeMeta = runtime.metadata as
+            | { diskIds?: { data?: string } }
+            | undefined;
+          if (runtimeMeta?.diskIds?.data) {
+            nextMachineMeta.data_disk_id = runtimeMeta.diskIds.data;
+          }
+        } else if (providerId === "hyperstack") {
+          const runtimeMeta = runtime.metadata as
+            | { data_volume_id?: number; data_volume_name?: string }
+            | undefined;
+          if (runtimeMeta?.data_volume_id) {
+            nextMachineMeta.data_volume_id = runtimeMeta.data_volume_id;
+          }
+          if (runtimeMeta?.data_volume_name) {
+            nextMachineMeta.data_volume_name = runtimeMeta.data_volume_name;
+          }
+        }
+        nextMachine.metadata = nextMachineMeta;
+        clearedMetadata.machine = nextMachine;
+      }
       delete clearedMetadata.runtime;
       delete clearedMetadata.dns;
       delete clearedMetadata.cloudflare_tunnel;
