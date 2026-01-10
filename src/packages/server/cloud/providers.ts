@@ -281,6 +281,8 @@ const SERVER_PROVIDER_OVERRIDES: Record<ProviderId, ServerProviderOverrides> = {
       };
     },
     getCatalogFetchOptions: getNebiusCatalogFetchOptions,
+    getBootstrapDataDiskDevices: () =>
+      "/dev/vdb /dev/vdc /dev/xvdb /dev/xvdc /dev/sdb /dev/sdc /dev/nvme1n1 /dev/nvme2n1",
   },
   local: {
     getCreds: () => ({}),

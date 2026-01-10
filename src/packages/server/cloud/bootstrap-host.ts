@@ -515,6 +515,11 @@ if [ -n "${dataDiskDevices}" ]; then
           echo "bootstrap: skipping $dev (mounted at $mountpoints)" >&2
           continue
         fi
+        size_bytes="$(lsblk -nb -o SIZE "$dev" 2>/dev/null | head -n1 | tr -d '[:space:]')"
+        if [ -n "$size_bytes" ] && [ "$size_bytes" -lt 10737418240 ]; then
+          echo "bootstrap: skipping $dev (size ${'${'}size_bytes}B too small)" >&2
+          continue
+        fi
         printf '%s\n' "$dev"
         return 0
       fi
