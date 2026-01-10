@@ -31,6 +31,26 @@ What it does:
 Notes:
 - This uses real cloud resources and may take several minutes.
 - It leaves host/project artifacts on failure for manual inspection.
+
+DEVEL:
+
+export HOST=localhost
+export PORT=9001
+export MASTER_CONAT_SERVER=https://dev.cocalc.ai
+export DEBUG=cocalc:*
+export DEBUG_CONSOLE=yes
+
+node
+
+
+a = require('../../dist/cloud/smoke-runner/project-host'); await a.runProjectHostPersistenceSmokeTestForHostId({host_id:'a8ed241c-1283-4ced-a874-7af630de0897', update:{'machine_type':'n2-standard-4'}})
+
+a = require('../../dist/cloud/smoke-runner/project-host'); await a.runProjectHostPersistenceSmokeTestForHostId({host_id:'f855962b-c50e-4bb4-9da1-84c0dfbd96f4', update:{'machine_type':'8vcpu-32gb'}})
+
+a = require('../../dist/cloud/smoke-runner/project-host'); await a.runProjectHostPersistenceSmokeTestForHostId({host_id:'f855962b-c50e-4bb4-9da1-84c0dfbd96f4', update:{'machine_type':'4vcpu-16gb'}})
+
+
+
 */
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
@@ -44,6 +64,7 @@ import {
   updateHostMachine,
 } from "@cocalc/server/conat/api/hosts";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
+import { materializeProjectHost } from "@cocalc/server/conat/route-project";
 
 const logger = getLogger("server:cloud:smoke-runner:project-host");
 
@@ -167,6 +188,27 @@ async function waitForHostStatus(
   throw new Error(`timeout waiting for host status ${target.join(",")}`);
 }
 
+async function waitForHostSeen(
+  host_id: string,
+  opts: WaitOptions,
+  since?: Date,
+) {
+  for (let attempt = 1; attempt <= opts.attempts; attempt += 1) {
+    const { rows } = await getPool().query<{
+      last_seen: Date | null;
+    }>(
+      "SELECT last_seen FROM project_hosts WHERE id=$1 AND deleted IS NULL",
+      [host_id],
+    );
+    const lastSeen = rows[0]?.last_seen ?? null;
+    if (lastSeen && (!since || lastSeen >= since)) {
+      return lastSeen;
+    }
+    await sleep(opts.intervalMs);
+  }
+  throw new Error("timeout waiting for host to report last_seen");
+}
+
 async function waitForProjectFile(
   clientFactory: () => ReturnType<typeof conatWithProjectRouting>,
   project_id: string,
@@ -174,6 +216,7 @@ async function waitForProjectFile(
   expected: string,
   opts: WaitOptions,
 ) {
+  await waitForProjectRouting(project_id, opts);
   const client = fsClient({
     client: clientFactory(),
     subject: fsSubject({ project_id }),
@@ -191,10 +234,36 @@ async function waitForProjectFile(
         err: `${err}`,
         attempt,
       });
+      if (String(err).includes("no subscribers matching")) {
+        await sleep(Math.min(2000, opts.intervalMs));
+        continue;
+      }
     }
     await sleep(opts.intervalMs);
   }
   throw new Error("timeout waiting for project file");
+}
+
+async function waitForProjectRouting(
+  project_id: string,
+  opts: WaitOptions,
+) {
+  for (let attempt = 1; attempt <= opts.attempts; attempt += 1) {
+    try {
+      const address = await materializeProjectHost(project_id);
+      if (address) {
+        return address;
+      }
+    } catch (err) {
+      logger.debug("smoke-runner routing retry", {
+        project_id,
+        err: `${err}`,
+        attempt,
+      });
+    }
+    await sleep(opts.intervalMs);
+  }
+  throw new Error("timeout waiting for project routing");
 }
 
 async function runSmokeSteps({
@@ -234,6 +303,7 @@ async function runSmokeSteps({
   const clientFactory = () => routedClient;
   const sentinelPath = ".smoke/persist.txt";
   const sentinelValue = `smoke:${Date.now()}`;
+  let hostStartRequestedAt: Date | undefined;
 
   const runStep = async (name: string, fn: () => Promise<void>) => {
     const startedAt = new Date();
@@ -298,12 +368,35 @@ async function runSmokeSteps({
 
     await runStep("write_sentinel", async () => {
       if (!project_id) throw new Error("missing project_id");
-      const client = fsClient({
-        client: clientFactory(),
-        subject: fsSubject({ project_id }),
-      });
-      await client.mkdir(".smoke", { recursive: true });
-      await client.writeFile(sentinelPath, sentinelValue);
+      await waitForProjectRouting(project_id, waitProjectReady);
+      let lastErr: unknown;
+      for (let attempt = 1; attempt <= waitProjectReady.attempts; attempt += 1) {
+        try {
+          const client = fsClient({
+            client: clientFactory(),
+            subject: fsSubject({ project_id }),
+          });
+          await client.mkdir(".smoke", { recursive: true });
+          await client.writeFile(sentinelPath, sentinelValue);
+          lastErr = undefined;
+          break;
+        } catch (err) {
+          lastErr = err;
+          logger.debug("smoke-runner writeFile retry", {
+            project_id,
+            err: `${err}`,
+            attempt,
+          });
+          if (String(err).includes("no subscribers matching")) {
+            await sleep(Math.min(2000, waitProjectReady.intervalMs));
+            continue;
+          }
+          await sleep(waitProjectReady.intervalMs);
+        }
+      }
+      if (lastErr) {
+        throw lastErr;
+      }
     });
 
     await runStep("stop_host", async () => {
@@ -329,13 +422,45 @@ async function runSmokeSteps({
 
     await runStep("start_host", async () => {
       if (!host_id) throw new Error("missing host_id");
+      hostStartRequestedAt = new Date();
       await startHost({ account_id, id: host_id });
       await waitForHostStatus(host_id, ["running"], waitHostRunning);
     });
 
+    await runStep("wait_host_seen", async () => {
+      if (!host_id) throw new Error("missing host_id");
+      await waitForHostSeen(host_id, waitProjectReady, hostStartRequestedAt);
+    });
+
     await runStep("start_project", async () => {
       if (!project_id) throw new Error("missing project_id");
-      await startProject({ account_id, project_id });
+      let lastErr: unknown;
+      for (
+        let attempt = 1;
+        attempt <= waitProjectReady.attempts;
+        attempt += 1
+      ) {
+        try {
+          await startProject({ account_id, project_id });
+          lastErr = undefined;
+          break;
+        } catch (err) {
+          lastErr = err;
+          logger.debug("smoke-runner startProject retry", {
+            project_id,
+            err: `${err}`,
+            attempt,
+          });
+          if (String(err).includes("timeout")) {
+            await sleep(waitProjectReady.intervalMs);
+            continue;
+          }
+          await sleep(waitProjectReady.intervalMs);
+        }
+      }
+      if (lastErr) {
+        throw lastErr;
+      }
     });
 
     await runStep("verify_sentinel", async () => {
