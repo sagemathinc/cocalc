@@ -3,6 +3,9 @@ import { React } from "@cocalc/frontend/app-framework";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import type { HostProvider } from "../types";
 import { getDiskTypeOptions } from "../constants";
+import { HostCreateForm } from "./host-create-form";
+import { useHostForm } from "../hooks/use-host-form";
+import { useHostFormValues } from "../hooks/use-host-form-values";
 import {
   filterFieldSchemaForCaps,
   getProviderDescriptor,
@@ -16,6 +19,7 @@ type HostEditModalProps = {
   host?: Host;
   catalog?: HostCatalog;
   providerOptions?: Array<{ value: HostProvider; label: string }>;
+  catalogError?: string;
   saving?: boolean;
   onCancel: () => void;
   onSave: (
@@ -42,6 +46,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   host,
   catalog,
   providerOptions = [],
+  catalogError,
   saving,
   onCancel,
   onSave,
@@ -60,6 +65,76 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   const providerId = isDeprovisioned
     ? (watchedProvider ?? hostProviderId)
     : hostProviderId;
+  const enabledProviders = React.useMemo(
+    () => providerOptions.map((option) => option.value),
+    [providerOptions],
+  );
+  const {
+    selectedRegion,
+    selectedZone,
+    selectedMachineType,
+    selectedGpuType,
+    selectedGpu,
+    selectedSize,
+    selectedStorageMode,
+  } = useHostFormValues(form);
+  const {
+    fieldSchema: createFieldSchema,
+    fieldOptions: createFieldOptions,
+    fieldLabels: createFieldLabels,
+    fieldTooltips: createFieldTooltips,
+    supportsPersistentStorage,
+    persistentGrowable,
+    storageModeOptions,
+    showDiskFields: createShowDiskFields,
+  } = useHostForm({
+    form,
+    catalog,
+    selectedProvider: providerId,
+    selectedRegion,
+    selectedZone,
+    selectedMachineType,
+    selectedGpuType,
+    selectedSize,
+    selectedGpu,
+    selectedStorageMode,
+    enabledProviders,
+  });
+  const createProviderVm = React.useMemo(
+    () => ({
+      providerOptions,
+      selectedProvider: providerId ?? providerOptions[0]?.value ?? "none",
+      fields: {
+        schema: createFieldSchema,
+        options: createFieldOptions,
+        labels: createFieldLabels,
+        tooltips: createFieldTooltips,
+      },
+      storage: {
+        storageModeOptions,
+        supportsPersistentStorage,
+        persistentGrowable,
+        showDiskFields: createShowDiskFields,
+      },
+      catalogError,
+    }),
+    [
+      providerOptions,
+      providerId,
+      createFieldSchema,
+      createFieldOptions,
+      createFieldLabels,
+      createFieldTooltips,
+      storageModeOptions,
+      supportsPersistentStorage,
+      persistentGrowable,
+      createShowDiskFields,
+      catalogError,
+    ],
+  );
+  const handleProviderChange = (value: HostProvider) => {
+    onProviderChange?.(value);
+  };
   const providerCaps =
     providerId && catalog?.provider_capabilities
       ? catalog.provider_capabilities[providerId]
@@ -90,24 +165,15 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   const fieldOptions = providerDescriptor
     ? getProviderOptions(providerId, catalog, selection)
     : {};
-  const handleProviderChange = (value: HostProvider) => {
-    onProviderChange?.(value);
-    form.setFieldsValue({
-      region: undefined,
-      zone: undefined,
-      machine_type: undefined,
-      gpu_type: undefined,
-      size: undefined,
-      storage_mode: undefined,
-      disk_type: undefined,
-    });
-  };
   const gcpCompatibilityWarning = React.useMemo(() => {
     if (providerId !== "gcp") return null;
+    const compatibilityOptions = isDeprovisioned
+      ? createFieldOptions
+      : fieldOptions;
     const gpuType =
       watchedGpuType && watchedGpuType !== "none" ? watchedGpuType : undefined;
     if (!gpuType) return null;
-    const regionOption = (fieldOptions.region ?? []).find(
+    const regionOption = (compatibilityOptions.region ?? []).find(
       (opt) => opt.value === watchedRegion,
     );
     const regionMeta = (regionOption?.meta ?? {}) as {
@@ -115,14 +181,14 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
       compatibleZone?: string;
     };
     if (regionMeta.compatible === false) {
-      const compatibleRegions = (fieldOptions.region ?? []).filter((opt) => {
+      const compatibleRegions = (compatibilityOptions.region ?? []).filter((opt) => {
         const meta = opt.meta as { compatible?: boolean } | undefined;
         return meta?.compatible === true;
       });
       return { type: "region" as const, compatibleRegions };
     }
     if (!watchedZone) return null;
-    const zoneOption = (fieldOptions.zone ?? []).find(
+    const zoneOption = (compatibilityOptions.zone ?? []).find(
       (opt) => opt.value === watchedZone,
     );
     const zoneMeta = (zoneOption?.meta ?? {}) as {
@@ -130,14 +196,16 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
       region?: string;
     };
     if (zoneMeta.compatible !== false) return null;
-    const compatibleZones = (fieldOptions.zone ?? []).filter((opt) => {
+    const compatibleZones = (compatibilityOptions.zone ?? []).filter((opt) => {
       const meta = opt.meta as { compatible?: boolean } | undefined;
       return meta?.compatible === true;
     });
     return { type: "zone" as const, compatibleZones };
   }, [
+    createFieldOptions,
     fieldOptions.region,
     fieldOptions.zone,
+    isDeprovisioned,
     providerId,
     watchedGpuType,
     watchedRegion,
@@ -175,41 +243,44 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
     isDeprovisioned &&
     ((providerDescriptor && fieldSchema.advanced.length > 0) ||
       storageSupport.supported);
+  const initRef = React.useRef<string | null>(null);
 
   React.useEffect(() => {
-    if (host) {
-      const diskTypeValue =
-        host.machine?.disk_type &&
-        diskTypeOptions.some((opt) => opt.value === host.machine?.disk_type)
-          ? host.machine?.disk_type
-          : defaultDiskType;
-      form.setFieldsValue({
-        name: host.name,
-        provider: host.machine?.cloud ?? providerOptions[0]?.value,
-        cpu: currentCpu ?? 2,
-        ram_gb: currentRam ?? 8,
-        disk_gb: currentDisk ?? 100,
-        region: host.region ?? undefined,
-        zone: host.machine?.zone ?? undefined,
-        machine_type: host.machine?.machine_type ?? undefined,
-        gpu_type: host.machine?.gpu_type ?? "none",
-        size: host.machine?.machine_type ?? host.size ?? undefined,
-        storage_mode: storageMode,
-        disk_type: diskTypeValue,
-      });
-    } else {
-      form.resetFields();
+    if (!open) {
+      initRef.current = null;
+      return;
     }
+    if (!host) {
+      initRef.current = null;
+      form.resetFields();
+      return;
+    }
+    if (initRef.current === host.id) return;
+    initRef.current = host.id;
+    form.setFieldsValue({
+      name: host.name,
+      provider: host.machine?.cloud ?? providerOptions[0]?.value,
+      cpu: currentCpu ?? 2,
+      ram_gb: currentRam ?? 8,
+      disk_gb: currentDisk ?? 100,
+      disk: currentDisk ?? 100,
+      region: host.region ?? undefined,
+      zone: host.machine?.zone ?? undefined,
+      machine_type: host.machine?.machine_type ?? undefined,
+      gpu_type: host.machine?.gpu_type ?? "none",
+      size: host.machine?.machine_type ?? host.size ?? undefined,
+      storage_mode: storageMode,
+      disk_type: host.machine?.disk_type,
+    });
   }, [
+    currentCpu,
+    currentDisk,
+    currentRam,
     form,
     host,
-    currentCpu,
-    currentRam,
-    currentDisk,
-    storageMode,
-    defaultDiskType,
-    diskTypeOptions,
+    open,
     providerOptions,
+    storageMode,
   ]);
   const watchedDiskType = Form.useWatch("disk_type", form);
   React.useEffect(() => {
@@ -229,6 +300,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
     watchedDiskType,
   ]);
   React.useEffect(() => {
+    if (isDeprovisioned) return;
     if (lockRegionZone) return;
     const zoneOptions = fieldOptions.zone ?? [];
     if (!zoneOptions.length) return;
@@ -236,7 +308,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
     if (!hasZone) {
       form.setFieldsValue({ zone: zoneOptions[0]?.value });
     }
-  }, [fieldOptions.zone, form, lockRegionZone, watchedZone]);
+  }, [fieldOptions.zone, form, isDeprovisioned, lockRegionZone, watchedZone]);
 
   const handleOk = async () => {
     const values = await form.validateFields();
@@ -256,26 +328,31 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   );
 
   React.useEffect(() => {
+    if (isDeprovisioned) return;
     if (lockRegionZone) return;
     ensureFieldValue("region", watchedRegion);
-  }, [ensureFieldValue, lockRegionZone, watchedRegion]);
+  }, [ensureFieldValue, isDeprovisioned, lockRegionZone, watchedRegion]);
 
   React.useEffect(() => {
+    if (isDeprovisioned) return;
     if (lockRegionZone) return;
     ensureFieldValue("zone", watchedZone);
-  }, [ensureFieldValue, lockRegionZone, watchedZone]);
+  }, [ensureFieldValue, isDeprovisioned, lockRegionZone, watchedZone]);
 
   React.useEffect(() => {
+    if (isDeprovisioned) return;
     ensureFieldValue("machine_type", watchedMachineType);
-  }, [ensureFieldValue, watchedMachineType]);
+  }, [ensureFieldValue, isDeprovisioned, watchedMachineType]);
 
   React.useEffect(() => {
+    if (isDeprovisioned) return;
     ensureFieldValue("size", watchedSize);
-  }, [ensureFieldValue, watchedSize]);
+  }, [ensureFieldValue, isDeprovisioned, watchedSize]);
 
   React.useEffect(() => {
+    if (isDeprovisioned) return;
     ensureFieldValue("gpu_type", watchedGpuType);
-  }, [ensureFieldValue, watchedGpuType]);
+  }, [ensureFieldValue, isDeprovisioned, watchedGpuType]);
 
   const renderField = (field: HostFieldId) => {
     const fieldOpts = fieldOptions[field] ?? [];
@@ -314,27 +391,31 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
       destroyOnClose
     >
       <Form form={form} layout="vertical">
-        <Form.Item
-          label="Name"
-          name="name"
-          rules={[
-            { required: true, message: "Please enter a name" },
-            { max: 100, message: "Name is too long" },
-          ]}
-        >
-          <Input placeholder="Host name" />
-        </Form.Item>
-        {isDeprovisioned && providerOptions.length > 0 && (
-          <Form.Item name="provider" label="Provider">
-            <Select
-              options={providerOptions}
-              onChange={handleProviderChange}
-            />
-          </Form.Item>
+        {isDeprovisioned ? (
+          <HostCreateForm
+            form={form}
+            canCreateHosts={true}
+            provider={createProviderVm}
+            onProviderChange={handleProviderChange}
+            wrapForm={false}
+          />
+        ) : (
+          <>
+            <Form.Item
+              label="Name"
+              name="name"
+              rules={[
+                { required: true, message: "Please enter a name" },
+                { max: 100, message: "Name is too long" },
+              ]}
+            >
+              <Input placeholder="Host name" />
+            </Form.Item>
+            {canEditMachine &&
+              providerDescriptor &&
+              fieldSchema.primary.map(renderField)}
+          </>
         )}
-        {canEditMachine &&
-          providerDescriptor &&
-          fieldSchema.primary.map(renderField)}
         {canEditMachine && gcpCompatibilityWarning?.type === "region" && (
           <Alert
             type="warning"
@@ -394,7 +475,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
             }
           />
         )}
-        {isSelfHost && (
+        {!isDeprovisioned && isSelfHost && (
           <>
             <Form.Item
               label="vCPU"
@@ -414,7 +495,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
             </Form.Item>
           </>
         )}
-        {showDiskFields && (
+        {!isDeprovisioned && showDiskFields && (
           <Form.Item
             label="Disk size (GB)"
             name="disk_gb"
@@ -439,7 +520,7 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
             />
           </Form.Item>
         )}
-        {showAdvancedSection && (
+        {!isDeprovisioned && showAdvancedSection && (
           <Collapse ghost style={{ marginBottom: 8 }}>
             <Collapse.Panel header="Advanced options" key="advanced">
               {providerDescriptor &&

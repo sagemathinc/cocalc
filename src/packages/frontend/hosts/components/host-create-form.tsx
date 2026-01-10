@@ -9,28 +9,41 @@ type HostCreateFormProps = {
   form: FormInstance;
   canCreateHosts: boolean;
   provider: HostCreateViewModel["provider"];
+  onProviderChange?: (value: string) => void;
+  wrapForm?: boolean;
 };
 
 export const HostCreateForm: React.FC<HostCreateFormProps> = ({
   form,
   canCreateHosts,
   provider,
+  onProviderChange,
+  wrapForm = true,
 }) => {
+  const content = (
+    <>
+      <Form.Item name="name" label="Name" initialValue="My host">
+        <Input placeholder="My host" />
+      </Form.Item>
+      <HostCreateProviderFields
+        provider={provider}
+        onProviderChange={onProviderChange}
+      />
+      <Collapse ghost style={{ marginBottom: 8 }}>
+        <Collapse.Panel header="Advanced options" key="adv">
+          <HostCreateAdvancedFields provider={provider} />
+        </Collapse.Panel>
+      </Collapse>
+    </>
+  );
+  if (!wrapForm) return content;
   return (
     <Form
       layout="vertical"
       disabled={!canCreateHosts}
       form={form}
     >
-      <Form.Item name="name" label="Name" initialValue="My host">
-        <Input placeholder="My host" />
-      </Form.Item>
-      <HostCreateProviderFields provider={provider} />
-      <Collapse ghost style={{ marginBottom: 8 }}>
-        <Collapse.Panel header="Advanced options" key="adv">
-          <HostCreateAdvancedFields provider={provider} />
-        </Collapse.Panel>
-      </Collapse>
+      {content}
     </Form>
   );
 };

@@ -9,10 +9,12 @@ const INITIAL_DISK_SIZE = 100;
 
 type HostCreateProviderFieldsProps = {
   provider: HostCreateViewModel["provider"];
+  onProviderChange?: (value: string) => void;
 };
 
 export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> = ({
   provider,
+  onProviderChange,
 }) => {
   const {
     providerOptions,
@@ -137,7 +139,7 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
         label="Provider"
         initialValue={providerOptions[0]?.value ?? "none"}
       >
-        <Select options={providerOptions} />
+        <Select options={providerOptions} onChange={onProviderChange} />
       </Form.Item>
       {gcpCompatibilityWarning?.type === "region" && (
         <Alert

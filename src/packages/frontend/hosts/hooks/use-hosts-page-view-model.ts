@@ -17,7 +17,11 @@ import { useHostLog } from "./use-host-log";
 import { useHostProviders } from "./use-host-providers";
 import { useHostSelection } from "./use-host-selection";
 import { buildRegionGroupOptions } from "../utils/normalize-catalog";
-import { getSelfHostConnectors } from "../providers/registry";
+import {
+  buildCreateHostPayload,
+  getProviderOptions,
+  getSelfHostConnectors,
+} from "../providers/registry";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import type {
   HostListViewMode,
@@ -516,7 +520,7 @@ export const useHostsPageViewModel = () => {
     },
   });
 
-  const { catalog: editCatalog } = useHostCatalog(hub, {
+  const { catalog: editCatalog, catalogError: editCatalogError } = useHostCatalog(hub, {
     provider: editProvider !== "none" ? editProvider : undefined,
   });
 
@@ -530,6 +534,7 @@ export const useHostsPageViewModel = () => {
       values: {
         name: string;
         provider?: HostProvider;
+        disk?: number;
         cpu?: number;
         ram_gb?: number;
         disk_gb?: number;
@@ -553,6 +558,47 @@ export const useHostsPageViewModel = () => {
         const isDeprovisioned = editingHost.status === "deprovisioned";
         const isStopped = editingHost.status === "off";
         const canEditMachine = isDeprovisioned || isStopped;
+        if (isDeprovisioned) {
+          const provider =
+            (values.provider ??
+              (editingHost.machine?.cloud as HostProvider | undefined) ??
+              "none") as HostProvider;
+          const selection = {
+            region: values.region,
+            zone: values.zone,
+            machine_type: values.machine_type,
+            gpu_type: values.gpu_type,
+            size: values.size,
+            gpu: values.gpu,
+          };
+          const fieldOptions = getProviderOptions(
+            provider,
+            editCatalog,
+            selection,
+          );
+          const payload = buildCreateHostPayload(
+            { ...values, provider },
+            { fieldOptions, catalog: editCatalog },
+          );
+          const machine = payload.machine ?? {};
+          const metadata = (machine.metadata ?? {}) as Record<string, any>;
+          const update: Record<string, any> = {};
+          if (machine.cloud) update.cloud = machine.cloud;
+          if (payload.region) update.region = payload.region;
+          if (machine.zone) update.zone = machine.zone;
+          if (machine.machine_type) update.machine_type = machine.machine_type;
+          if (machine.gpu_type !== undefined) update.gpu_type = machine.gpu_type || undefined;
+          if (machine.gpu_count !== undefined) update.gpu_count = machine.gpu_count;
+          if (machine.storage_mode) update.storage_mode = machine.storage_mode;
+          if (typeof machine.disk_gb === "number") update.disk_gb = machine.disk_gb;
+          if (machine.disk_type) update.disk_type = machine.disk_type;
+          if (typeof metadata.cpu === "number") update.cpu = metadata.cpu;
+          if (typeof metadata.ram_gb === "number") update.ram_gb = metadata.ram_gb;
+          if (Object.keys(update).length > 0) {
+            await updateHostMachine(id, update);
+          }
+          return;
+        }
         const update: Record<string, any> = {};
         const toPositive = (value: unknown) => {
           const parsed = Number(value);
@@ -625,6 +671,7 @@ export const useHostsPageViewModel = () => {
       }
     },
     catalog: editCatalog,
+    catalogError: editCatalogError,
     providerOptions,
     onProviderChange: setEditProvider,
   };
