@@ -32,6 +32,35 @@ const STYLE_SIGNIN_WARNING: CSS = {
   marginTop: "50px",
 } as const;
 
+const STACK_CONTAINER_STYLE: CSS = {
+  position: "relative",
+  flex: 1,
+  minHeight: 0,
+  overflow: "hidden",
+} as const;
+
+const STACK_LAYER_STYLE: CSS = {
+  position: "absolute",
+  inset: 0,
+  display: "flex",
+  flexDirection: "column",
+  overflow: "hidden",
+} as const;
+
+const STACK_LAYER_ACTIVE_STYLE: CSS = {
+  opacity: 1,
+  pointerEvents: "auto",
+  visibility: "visible",
+  zIndex: 1,
+} as const;
+
+const STACK_LAYER_INACTIVE_STYLE: CSS = {
+  opacity: 0,
+  pointerEvents: "none",
+  visibility: "hidden",
+  zIndex: 0,
+} as const;
+
 export const ActiveContent: React.FC = React.memo(() => {
   const page_actions = useActions("page");
 
@@ -55,19 +84,31 @@ export const ActiveContent: React.FC = React.memo(() => {
     return !is_logged_in && notSignedIn;
   }, [is_logged_in, notSignedIn]);
 
-  const v: React.JSX.Element[] = [];
+  function renderLayer(
+    key: string,
+    is_active: boolean,
+    content: React.ReactNode,
+  ): React.JSX.Element {
+    return (
+      <div
+        key={key}
+        className="smc-vfill"
+        style={{
+          ...STACK_LAYER_STYLE,
+          ...(is_active ? STACK_LAYER_ACTIVE_STYLE : STACK_LAYER_INACTIVE_STYLE),
+        }}
+        aria-hidden={!is_active}
+      >
+        {content}
+      </div>
+    );
+  }
+
+  const project_layers: React.JSX.Element[] = [];
   open_projects?.forEach((project_id: string) => {
     const is_active = project_id === active_top_tab;
     const x = <ProjectPage project_id={project_id} is_active={is_active} />;
-    let cls = "smc-vfill";
-    if (project_id !== active_top_tab) {
-      cls += " hide";
-    }
-    v.push(
-      <div key={project_id} className={cls}>
-        {x}
-      </div>
-    );
+    project_layers.push(renderLayer(project_id, is_active, x));
   });
 
   if (get_api_key) {
@@ -75,73 +116,90 @@ export const ActiveContent: React.FC = React.memo(() => {
     return <AccountPage key={"account"} />;
   }
 
-  function project_loading() {
+  function renderProjectLoading(): React.ReactNode {
     // This happens upon loading a URL for a project, but the
     // project isn't open yet.  Implicitly, this waits for a
     // websocket connection. To aid users towards signing up earlier
     // we show a warning box about maybe having to sign in.
     // https://github.com/sagemathinc/cocalc/issues/6092
-    v.push(<Connecting key={"active-content-connecting"} />);
-    if (showSignInWarning) {
-      v.push(
-        <div key="not-signed-in" style={STYLE_SIGNIN_WARNING}>
-          <Alert bsStyle="warning" banner={false}>
-            <Icon style={{ fontSize: "150%" }} name="exclamation-triangle" />
-            <br />
-            Your browser has not yet been able to connect to the <SiteName />{" "}
-            service. You probably have to{" "}
-            <a
-              onClick={() => page_actions.set_active_tab("account")}
-              style={{ fontWeight: "bold" }}
-            >
-              sign in
-            </a>{" "}
-            first, or otherwise check if you experience{" "}
-            <A href={"https://doc.cocalc.com/howto/trouble.html"}>
-              connectivity issues
-            </A>
-            .
-          </Alert>
-        </div>
-      );
-    }
+    return (
+      <>
+        <Connecting />
+        {showSignInWarning ? (
+          <div style={STYLE_SIGNIN_WARNING}>
+            <Alert bsStyle="warning" banner={false}>
+              <Icon style={{ fontSize: "150%" }} name="exclamation-triangle" />
+              <br />
+              Your browser has not yet been able to connect to the <SiteName />{" "}
+              service. You probably have to{" "}
+              <a
+                onClick={() => page_actions.set_active_tab("account")}
+                style={{ fontWeight: "bold" }}
+              >
+                sign in
+              </a>{" "}
+              first, or otherwise check if you experience{" "}
+              <A href={"https://doc.cocalc.com/howto/trouble.html"}>
+                connectivity issues
+              </A>
+              .
+            </Alert>
+          </div>
+        ) : null}
+      </>
+    );
   }
 
+  const layers: React.JSX.Element[] = [...project_layers];
+  let overlay: React.JSX.Element | null = null;
+
   // in kiosk mode: if no file is opened show a banner
-  if (fullscreen == "kiosk" && v.length === 0) {
-    v.push(<KioskModeBanner key={"kiosk"} />);
+  if (fullscreen == "kiosk" && project_layers.length === 0) {
+    overlay = renderLayer("kiosk", true, <KioskModeBanner />);
   } else {
     switch (active_top_tab) {
       case "projects":
-        v.push(<ProjectsPage key={"projects"} />);
+        overlay = renderLayer("projects", true, <ProjectsPage />);
         break;
       case "account":
-        v.push(<AccountPage key={"account"} />);
+        overlay = renderLayer("account", true, <AccountPage />);
         break;
       case "file-use":
-        v.push(<FileUsePage key={"file-use"} />);
+        overlay = renderLayer("file-use", true, <FileUsePage />);
         break;
       case "hosts":
-        v.push(<HostsPage key={"hosts"} />);
+        overlay = renderLayer("hosts", true, <HostsPage />);
         break;
       case "auth":
-        v.push(<AuthPage key={"auth"} />);
+        overlay = renderLayer("auth", true, <AuthPage />);
         break;
       case "notifications":
-        v.push(<NotificationPage key={"notifications"} />);
+        overlay = renderLayer("notifications", true, <NotificationPage />);
         break;
       case "admin":
-        v.push(<AdminPage key={"admin"} />);
+        overlay = renderLayer("admin", true, <AdminPage />);
         break;
       case undefined:
-        v.push(<div key={"broken"}>Please click a button on the top tab.</div>);
+        overlay = renderLayer(
+          "broken",
+          true,
+          <div>Please click a button on the top tab.</div>,
+        );
         break;
     }
   }
 
-  if (v.length === 0) {
-    project_loading();
+  if (overlay == null && project_layers.length === 0) {
+    overlay = renderLayer("project-loading", true, renderProjectLoading());
   }
 
-  return <>{v}</>;
+  if (overlay != null) {
+    layers.push(overlay);
+  }
+
+  return (
+    <div className="smc-vfill" style={STACK_CONTAINER_STYLE}>
+      {layers}
+    </div>
+  );
 });
