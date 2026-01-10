@@ -69,10 +69,20 @@ export function normalizeGcpCatalog(opts: {
         })
     : [];
 
+  const machine_types_by_zone: Record<string, GcpMachineType[]> = {};
+  for (const [zone, types] of Object.entries(opts.machine_types_by_zone)) {
+    machine_types_by_zone[zone] = (types ?? []).filter((entry) => {
+      const name = entry?.name ?? "";
+      if (!name) return false;
+      if (isUnsupportedMachineType(name)) return false;
+      return true;
+    });
+  }
+
   return {
     regions,
     zones,
-    machine_types_by_zone: opts.machine_types_by_zone,
+    machine_types_by_zone,
     gpu_types_by_zone: opts.gpu_types_by_zone,
     images,
   };
@@ -130,6 +140,15 @@ function ubuntuVersionCode(name?: string | null): number | undefined {
   const match = name.match(/ubuntu-.*?(\d{2})(\d{2})/i);
   if (!match) return undefined;
   return Number(`${match[1]}${match[2]}`);
+}
+
+function isUnsupportedMachineType(name: string): boolean {
+  // These machine families require Hyperdisk; we only support pd-* disks.
+  // Reference: https://chatgpt.com/share/69629fbc-a008-800e-887f-c04d76aa1f9b
+  if (/^(c4|c4a|c4d|n4|n4a|n4d|h4d|a4|a4x|g4)-/i.test(name)) return true;
+  // Too small to run a project-host reliably.
+  if (/-micro$|-small$/i.test(name)) return true;
+  return false;
 }
 
 function latestImagesByFamily(images: GcpImage[]): GcpImage[] {
