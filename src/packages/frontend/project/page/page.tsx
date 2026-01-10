@@ -371,8 +371,17 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         }}
       >
         {START_BANNER && <StartButton />}
-        {renderEditorContent()}
-        {render_project_content()}
+        <div
+          style={{
+            position: "relative",
+            flex: 1,
+            minHeight: 0,
+            overflow: "hidden",
+          }}
+        >
+          {renderEditorContent()}
+          {render_project_content()}
+        </div>
         {render_project_modal()}
       </div>
     );

@@ -55,9 +55,8 @@ const DEFAULT_CHAT_WIDTH = IS_MOBILE ? 0.5 : 0.3;
 
 const MAIN_STYLE: React.CSSProperties = {
   overflowX: "auto",
-  flex: "1 1 auto",
-  height: 0,
-  position: "relative",
+  position: "absolute",
+  inset: 0,
 } as const;
 
 interface Props {
@@ -101,9 +100,17 @@ export const Content: React.FC<Props> = (props: Props) => {
       ref={contentRef}
       style={{
         ...MAIN_STYLE,
-        ...(!is_visible ? { display: "none" } : undefined),
+        ...(is_visible
+          ? { opacity: 1, pointerEvents: "auto", zIndex: 1, visibility: "visible" }
+          : {
+              opacity: 0,
+              pointerEvents: "none",
+              zIndex: 0,
+              visibility: "hidden",
+            }),
         ...{ overflowY: tab_name.startsWith("editor-") ? "hidden" : "auto" },
       }}
+      aria-hidden={!is_visible}
       className={"smc-vfill"}
     >
       <TabContent tab_name={tab_name} is_visible={is_visible} />
