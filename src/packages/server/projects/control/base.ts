@@ -305,9 +305,8 @@ export class BaseProject extends EventEmitter {
         one: true,
       });
 
-      const membershipDefaults = await getMembershipProjectDefaultsFromUsers(
-        users,
-      );
+      const membershipDefaults =
+        await getMembershipProjectDefaultsFromUsers(users);
       const settingsWithMembership = mergeProjectSettingsWithMembership(
         settings,
         membershipDefaults,
@@ -328,6 +327,6 @@ export class BaseProject extends EventEmitter {
       set: { run_quota },
     });
 
-    logger.debug("updated run_quota=", run_quota);
+    logger.debug("updated run_quota=", JSON.stringify(run_quota));
   };
 }

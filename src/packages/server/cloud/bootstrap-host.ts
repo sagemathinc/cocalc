@@ -20,6 +20,7 @@
  * - Prepares /btrfs:
  *   - Uses an attached data disk when available, otherwise creates a loopback
  *     image at /var/lib/cocalc/btrfs.img.
+ *   - Never re-formats an existing btrfs data disk.
  *   - Mounts /btrfs and creates /btrfs/data subvolume.
  * - Configures podman storage to live on /btrfs (via storage.conf).
  * - Writes /etc/cocalc/project-host.env with runtime config.
@@ -532,9 +533,15 @@ if [ -n "${dataDiskDevices}" ]; then
 fi
 if [ -n "$DATA_DISK_DEV" ]; then
   echo "bootstrap: using data disk $DATA_DISK_DEV"
-  if ! sudo blkid "$DATA_DISK_DEV" | grep -q btrfs; then
+  DATA_DISK_FSTYPE="$(lsblk -no FSTYPE "$DATA_DISK_DEV" 2>/dev/null | head -n1 | tr -d '[:space:]')"
+  if [ -z "$DATA_DISK_FSTYPE" ]; then
     echo "bootstrap: formatting $DATA_DISK_DEV as btrfs"
     sudo mkfs.btrfs -f "$DATA_DISK_DEV"
+  elif [ "$DATA_DISK_FSTYPE" = "btrfs" ]; then
+    echo "bootstrap: existing btrfs filesystem detected on $DATA_DISK_DEV"
+  else
+    echo "bootstrap: refusing to format $DATA_DISK_DEV (filesystem=$DATA_DISK_FSTYPE)" >&2
+    exit 1
   fi
   if ! mountpoint -q /btrfs; then
     echo "bootstrap: mounting $DATA_DISK_DEV at /btrfs"
