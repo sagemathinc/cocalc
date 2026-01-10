@@ -103,6 +103,7 @@ type ProjectHostSmokeOptions = {
   provider?: ProviderId;
   create: Parameters<typeof createHost>[0];
   update?: Omit<Parameters<typeof updateHostMachine>[0], "id">;
+  restart_after_stop?: boolean;
   wait?: Partial<{
     host_running: Partial<WaitOptions>;
     host_stopped: Partial<WaitOptions>;
@@ -125,6 +126,7 @@ type SmokePreset = {
   create: Omit<SmokeCreateSpec, "account_id">;
   update?: Omit<Parameters<typeof updateHostMachine>[0], "id" | "account_id">;
   wait?: ProjectHostSmokeOptions["wait"];
+  restart_after_stop?: boolean;
 };
 
 export async function buildSmokeCreateSpecFromHost({
@@ -302,6 +304,7 @@ async function runSmokeSteps({
   createSpec,
   hostStatus,
   update,
+  restart_after_stop,
   wait,
   cleanup_on_success,
   cleanup_host,
@@ -313,6 +316,7 @@ async function runSmokeSteps({
   createSpec?: Parameters<typeof createHost>[0];
   hostStatus?: string;
   update?: ProjectHostSmokeOptions["update"];
+  restart_after_stop?: boolean;
   wait?: ProjectHostSmokeOptions["wait"];
   cleanup_on_success?: ProjectHostSmokeOptions["cleanup_on_success"];
   cleanup_host?: boolean;
@@ -448,73 +452,77 @@ async function runSmokeSteps({
       );
     });
 
-    if (update && Object.keys(update).length > 0) {
-      await runStep("update_host", async () => {
-        if (!host_id) throw new Error("missing host_id");
-        await updateHostMachine({
-          ...update,
-          account_id,
-          id: host_id,
+    const shouldRestart =
+      restart_after_stop ?? (update && Object.keys(update).length > 0);
+    if (shouldRestart) {
+      if (update && Object.keys(update).length > 0) {
+        await runStep("update_host", async () => {
+          if (!host_id) throw new Error("missing host_id");
+          await updateHostMachine({
+            ...update,
+            account_id,
+            id: host_id,
+          });
         });
+      }
+
+      await runStep("start_host", async () => {
+        if (!host_id) throw new Error("missing host_id");
+        hostStartRequestedAt = new Date();
+        await startHost({ account_id, id: host_id });
+        await waitForHostStatus(host_id, ["running"], waitHostRunning);
+      });
+
+      await runStep("wait_host_seen", async () => {
+        if (!host_id) throw new Error("missing host_id");
+        await waitForHostSeen(host_id, waitProjectReady, hostStartRequestedAt);
+      });
+
+      await runStep("start_project", async () => {
+        if (!project_id) throw new Error("missing project_id");
+        let lastErr: unknown;
+        for (
+          let attempt = 1;
+          attempt <= waitProjectReady.attempts;
+          attempt += 1
+        ) {
+          try {
+            await startProject({ account_id, project_id });
+            lastErr = undefined;
+            break;
+          } catch (err) {
+            lastErr = err;
+            logger.debug("smoke-runner startProject retry", {
+              project_id,
+              err: `${err}`,
+              attempt,
+            });
+            if (String(err).includes("timeout")) {
+              await sleep(waitProjectReady.intervalMs);
+              continue;
+            }
+            await sleep(waitProjectReady.intervalMs);
+          }
+        }
+        if (lastErr) {
+          throw lastErr;
+        }
+      });
+
+      await runStep("verify_sentinel", async () => {
+        if (!project_id) throw new Error("missing project_id");
+        if (provider === "lambda") {
+          return;
+        }
+        await waitForProjectFile(
+          clientFactory,
+          project_id,
+          sentinelPath,
+          sentinelValue,
+          waitProjectReady,
+        );
       });
     }
-
-    await runStep("start_host", async () => {
-      if (!host_id) throw new Error("missing host_id");
-      hostStartRequestedAt = new Date();
-      await startHost({ account_id, id: host_id });
-      await waitForHostStatus(host_id, ["running"], waitHostRunning);
-    });
-
-    await runStep("wait_host_seen", async () => {
-      if (!host_id) throw new Error("missing host_id");
-      await waitForHostSeen(host_id, waitProjectReady, hostStartRequestedAt);
-    });
-
-    await runStep("start_project", async () => {
-      if (!project_id) throw new Error("missing project_id");
-      let lastErr: unknown;
-      for (
-        let attempt = 1;
-        attempt <= waitProjectReady.attempts;
-        attempt += 1
-      ) {
-        try {
-          await startProject({ account_id, project_id });
-          lastErr = undefined;
-          break;
-        } catch (err) {
-          lastErr = err;
-          logger.debug("smoke-runner startProject retry", {
-            project_id,
-            err: `${err}`,
-            attempt,
-          });
-          if (String(err).includes("timeout")) {
-            await sleep(waitProjectReady.intervalMs);
-            continue;
-          }
-          await sleep(waitProjectReady.intervalMs);
-        }
-      }
-      if (lastErr) {
-        throw lastErr;
-      }
-    });
-
-    await runStep("verify_sentinel", async () => {
-      if (!project_id) throw new Error("missing project_id");
-      if (provider === "lambda") {
-        return;
-      }
-      await waitForProjectFile(
-        clientFactory,
-        project_id,
-        sentinelPath,
-        sentinelValue,
-        waitProjectReady,
-      );
-    });
 
     if (cleanup_on_success) {
       await runStep("cleanup", async () => {
@@ -557,6 +565,7 @@ export async function runProjectHostPersistenceSmokeTest(
     provider: opts.provider,
     createSpec: opts.create,
     update: opts.update,
+    restart_after_stop: opts.restart_after_stop,
     wait: opts.wait,
     cleanup_on_success: opts.cleanup_on_success,
     cleanup_host: true,
@@ -610,6 +619,7 @@ export async function runProjectHostPersistenceSmokeTestForHostId({
     host_id,
     hostStatus: existingStatus,
     update,
+    restart_after_stop: true,
     wait,
     cleanup_on_success,
     cleanup_host: false,
@@ -856,6 +866,7 @@ async function buildPresetForLambda(): Promise<SmokePreset | undefined> {
       },
     },
     update: updateType ? { machine_type: updateType } : undefined,
+    restart_after_stop: false,
   };
 }
 
@@ -918,6 +929,7 @@ export async function runProjectHostPersistenceSmokePreset({
       account_id,
     },
     update: selected.update,
+    restart_after_stop: selected.restart_after_stop,
     wait: selected.wait,
     cleanup_on_success: true,
   });

@@ -29,6 +29,9 @@ import type {
 import { delay } from "awaiting";
 
 const logger = getLogger("cloud:hyperstack:provider");
+const NAME_NOT_AVAILABLE_RE = /name is not available/i;
+const DELETE_WAIT_MS = 5 * 60 * 1000;
+const DELETE_POLL_MS = 5000;
 
 const SECURITY_RULES = [
   { port_range_min: 22, port_range_max: 22, protocol: "tcp" as Protocol }, // ssh bootstrap
@@ -80,6 +83,36 @@ function envName(region: string): string {
   return `${normalizePrefix(prefix)}-${region
     .toLowerCase()
     .replace(/[^a-z0-9-]/g, "-")}`;
+}
+
+async function waitForHyperstackDelete(id: number): Promise<void> {
+  const attempts = Math.ceil(DELETE_WAIT_MS / DELETE_POLL_MS);
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      const vm = await getVirtualMachine(id);
+      logger.debug("Hyperstack delete wait: still present", {
+        id,
+        status: vm?.status,
+        attempt,
+      });
+    } catch (err) {
+      const message = String(err).toLowerCase();
+      if (
+        message.includes("not found") ||
+        message.includes("does not exist") ||
+        message.includes("no such")
+      ) {
+        return;
+      }
+      logger.warn("Hyperstack delete wait: transient error", {
+        id,
+        err: String(err),
+        attempt,
+      });
+    }
+    await delay(DELETE_POLL_MS);
+  }
+  logger.warn("Hyperstack delete wait timed out", { id });
 }
 
 function keyName(region: string): string {
@@ -377,7 +410,7 @@ export class HyperstackProvider implements CloudProvider {
         ? spec.metadata.startup_script
         : undefined;
 
-    const instances = await createVirtualMachines({
+    const createParams = {
       name: spec.name,
       environment_name,
       flavor_name,
@@ -386,7 +419,28 @@ export class HyperstackProvider implements CloudProvider {
       assign_floating_ip: true,
       security_rules: SECURITY_RULES,
       user_data,
-    });
+    };
+    let instances: any[] | undefined;
+    for (let attempt = 1; attempt <= 12; attempt += 1) {
+      try {
+        instances = await createVirtualMachines(createParams);
+        break;
+      } catch (err) {
+        const message = String(err);
+        if (NAME_NOT_AVAILABLE_RE.test(message) && attempt < 12) {
+          logger.warn("Hyperstack createHost name not available; retrying", {
+            name: spec.name,
+            attempt,
+          });
+          await delay(DELETE_POLL_MS);
+          continue;
+        }
+        throw err;
+      }
+    }
+    if (!instances) {
+      throw new Error("Hyperstack did not return a VM instance");
+    }
     const instance = instances[0];
     if (!instance) {
       throw new Error("Hyperstack did not return a VM instance");
@@ -443,7 +497,9 @@ export class HyperstackProvider implements CloudProvider {
   async stopHost(runtime: HostRuntime, creds: HyperstackCreds): Promise<void> {
     logger.debug("HyperstackProvider: stopHost", runtime);
     ensureHyperstackConfig(creds);
-    await deleteVirtualMachine(parseInstanceId(runtime.instance_id));
+    const id = parseInstanceId(runtime.instance_id);
+    await deleteVirtualMachine(id);
+    await waitForHyperstackDelete(id);
   }
 
   async hardRestartHost(
@@ -461,7 +517,9 @@ export class HyperstackProvider implements CloudProvider {
   ): Promise<void> {
     logger.debug("HyperstackProvider: deleteHost", runtime);
     ensureHyperstackConfig(creds);
-    await deleteVirtualMachine(parseInstanceId(runtime.instance_id));
+    const id = parseInstanceId(runtime.instance_id);
+    await deleteVirtualMachine(id);
+    await waitForHyperstackDelete(id);
   }
 
   async resizeDisk(): Promise<void> {
