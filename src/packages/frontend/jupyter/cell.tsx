@@ -273,6 +273,8 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
 
     const style: React.CSSProperties = {
       borderLeft: `5px solid ${color}`,
+      boxShadow:
+        color === "transparent" ? undefined : `0 0 0 2px ${color}`,
       borderRadius: "5px",
       position: "relative",
       padding: "2px 2px 5px 2px",

@@ -20,7 +20,7 @@ import { LLMTools } from "@cocalc/jupyter/types";
 import { CellType } from "@cocalc/util/jupyter/types";
 import { filename_extension, startswith } from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
-import { CellButtonBar, PlaceholderButtonBar } from "./cell-buttonbar";
+import { CellButtonBar } from "./cell-buttonbar";
 import { CellHiddenPart } from "./cell-hidden-part";
 import { CellToolbar } from "./cell-toolbar";
 import { CodeMirror } from "./codemirror-component";
@@ -440,9 +440,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       if (fileContext.disableExtraButtons) {
         return;
       }
-      if (!showButtons) {
-        return <PlaceholderButtonBar />;
-      }
       return (
         <CellButtonBar
           id={props.id}
@@ -456,6 +453,7 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           computeServerId={props.computeServerId}
           llmTools={props.llmTools}
           haveLLMCellTools={haveLLMCellTools}
+          showControls={showButtons}
         />
       );
     }

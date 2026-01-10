@@ -49,6 +49,7 @@ interface Props {
   index: number;
   is_readonly: boolean;
   input_is_readonly?: boolean;
+  showControls?: boolean;
 }
 
 function areEqual(prev: Props, next: Props): boolean {
@@ -62,7 +63,8 @@ function areEqual(prev: Props, next: Props): boolean {
     (next.llmTools?.model ?? "") !== (prev.llmTools?.model ?? "") ||
     next.is_current !== prev.is_current ||
     next.is_readonly !== prev.is_readonly ||
-    next.haveLLMCellTools !== prev.haveLLMCellTools
+    next.haveLLMCellTools !== prev.haveLLMCellTools ||
+    next.showControls !== prev.showControls
   );
 }
 
@@ -79,6 +81,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     is_readonly,
     input_is_readonly,
     haveLLMCellTools,
+    showControls = true,
   }: Props) => {
     const intl = useIntl();
 
@@ -182,7 +185,7 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     function renderCodeBarCellTiming() {
       if (!isCodeCell) return;
       return (
-        <div style={{ margin: "2.5px 4px 4px 10px" }}>
+        <div style={{ margin: "2.5px 4px 4px 0" }}>
           <CellTiming
             start={cell.get("start")}
             end={cell.get("end")}
@@ -294,14 +297,25 @@ export const CellButtonBar: React.FC<Props> = React.memo(
 
     return (
       <div className="hidden-xs" style={MINI_BUTTONS_STYLE_INNER}>
-        {renderCodeBarCellTiming()}
-        {renderCodeBarRunStop()}
-        {renderCodeBarComputeServer()}
-        {renderCodeBarLLMButtons()}
-        {renderMarkdownEditButton()}
-        {renderCodeBarFormatButton()}
-        {renderDropdownMenu()}
-        <CellIndexNumber index={index} />
+        <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
+          {showControls ? renderCodeBarRunStop() : null}
+          {showControls ? renderCodeBarComputeServer() : null}
+          {showControls ? renderCodeBarLLMButtons() : null}
+          {showControls ? renderMarkdownEditButton() : null}
+          {showControls ? renderCodeBarFormatButton() : null}
+          {showControls ? renderDropdownMenu() : null}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "3px",
+            marginLeft: "auto",
+          }}
+        >
+          {renderCodeBarCellTiming()}
+          <CellIndexNumber index={index} />
+        </div>
       </div>
     );
   },
