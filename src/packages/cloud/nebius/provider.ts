@@ -68,6 +68,23 @@ function diskTypeFor(spec: HostSpec): DiskSpec_DiskType {
   return DiskSpec_DiskType.NETWORK_SSD;
 }
 
+const NEBIUS_IO_M3_GIB = 93;
+
+function normalizeDiskSizeGib(
+  sizeGib: number,
+  type: DiskSpec_DiskType,
+): { sizeGib: number; adjusted: boolean } {
+  if (type !== DiskSpec_DiskType.NETWORK_SSD_IO_M3) {
+    return { sizeGib, adjusted: false };
+  }
+  const min = NEBIUS_IO_M3_GIB;
+  const rounded =
+    sizeGib <= min
+      ? min
+      : Math.ceil(sizeGib / NEBIUS_IO_M3_GIB) * NEBIUS_IO_M3_GIB;
+  return { sizeGib: rounded, adjusted: rounded !== sizeGib };
+}
+
 function blockSizeBytes(): Long {
   return Long.fromNumber(4096);
 }
@@ -245,13 +262,14 @@ export class NebiusProvider implements CloudProvider {
       spec.metadata?.bootDiskGb ??
       (spec.gpu ? 20 : 10);
 
-    const diskType = diskTypeFor(spec);
+    const bootDiskType = DiskSpec_DiskType.NETWORK_SSD;
+    const dataDiskType = diskTypeFor(spec);
     const diskIds: NebiusRuntimeMeta["diskIds"] = {};
 
     logger.info("nebius: creating boot disk", {
       name,
       size_gb: bootDiskGb,
-      type: diskType,
+      type: bootDiskType,
     });
     const bootDiskName = `${name}-boot`;
     diskIds.boot = await createDiskOrReuse(
@@ -259,7 +277,7 @@ export class NebiusProvider implements CloudProvider {
       parentId,
       bootDiskName,
       DiskSpec.create({
-        type: diskType,
+        type: bootDiskType,
         blockSizeBytes: blockSizeBytes(),
         size: {
           $case: "sizeGibibytes",
@@ -282,10 +300,18 @@ export class NebiusProvider implements CloudProvider {
         spec.metadata?.data_disk_id ??
         spec.metadata?.dataDiskId ??
         undefined;
+      const normalized = normalizeDiskSizeGib(spec.disk_gb, dataDiskType);
+      if (normalized.adjusted) {
+        logger.info("nebius: adjusting data disk size for IO M3", {
+          name,
+          from_gb: spec.disk_gb,
+          to_gb: normalized.sizeGib,
+        });
+      }
       logger.info("nebius: creating data disk", {
         name,
-        size_gb: spec.disk_gb,
-        type: diskType,
+        size_gb: normalized.sizeGib,
+        type: dataDiskType,
       });
       const dataDiskName = `${name}-data`;
       if (existingDataDiskId) {
@@ -296,11 +322,11 @@ export class NebiusProvider implements CloudProvider {
           parentId,
           dataDiskName,
           DiskSpec.create({
-            type: diskType,
+            type: dataDiskType,
             blockSizeBytes: blockSizeBytes(),
             size: {
               $case: "sizeGibibytes",
-              sizeGibibytes: Long.fromNumber(spec.disk_gb),
+              sizeGibibytes: Long.fromNumber(normalized.sizeGib),
             },
           }),
         );
@@ -396,7 +422,7 @@ export class NebiusProvider implements CloudProvider {
       zone: spec.region,
       metadata: {
         diskIds,
-        diskTypeCode: diskType.code,
+        diskTypeCode: dataDiskType.code,
         subnetId,
       },
     };

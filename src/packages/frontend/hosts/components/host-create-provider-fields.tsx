@@ -6,6 +6,7 @@ import type { HostFieldId } from "../providers/registry";
 const MIN_DISK_SIZE = 50;
 const MAX_DISK_SIZE = 10_000;
 const INITIAL_DISK_SIZE = 100;
+const NEBIUS_IO_M3_GB = 93;
 
 type HostCreateProviderFieldsProps = {
   provider: HostCreateViewModel["provider"];
@@ -32,10 +33,41 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
   const watchedSize = Form.useWatch("size", form);
   const watchedGpuType = Form.useWatch("gpu_type", form);
   const watchedDisk = Form.useWatch("disk", form);
+  const watchedDiskType = Form.useWatch("disk_type", form);
+  const defaultDiskType =
+    selectedProvider === "nebius" ? "ssd_io_m3" : undefined;
+  React.useEffect(() => {
+    if (selectedProvider !== "nebius") return;
+    if (!watchedDiskType) {
+      form.setFieldsValue({ disk_type: defaultDiskType });
+    }
+  }, [defaultDiskType, form, selectedProvider, watchedDiskType]);
+  const effectiveDiskType = watchedDiskType ?? defaultDiskType;
+  const isNebiusIoM3 =
+    selectedProvider === "nebius" && effectiveDiskType === "ssd_io_m3";
+  const diskMin = isNebiusIoM3
+    ? Math.ceil(MIN_DISK_SIZE / NEBIUS_IO_M3_GB) * NEBIUS_IO_M3_GB
+    : MIN_DISK_SIZE;
+  const diskStep = isNebiusIoM3 ? NEBIUS_IO_M3_GB : 1;
   const diskValue =
     typeof watchedDisk === "number" && Number.isFinite(watchedDisk)
       ? watchedDisk
       : INITIAL_DISK_SIZE;
+  const normalizeDiskValue = React.useCallback(
+    (value: number) => {
+      if (!isNebiusIoM3) return value;
+      const rounded = Math.ceil(value / NEBIUS_IO_M3_GB) * NEBIUS_IO_M3_GB;
+      return Math.max(diskMin, rounded);
+    },
+    [diskMin, isNebiusIoM3],
+  );
+  React.useEffect(() => {
+    if (!isNebiusIoM3) return;
+    const normalized = normalizeDiskValue(diskValue);
+    if (normalized !== diskValue) {
+      form.setFieldsValue({ disk: normalized });
+    }
+  }, [diskValue, form, isNebiusIoM3, normalizeDiskValue]);
   const gcpCompatibilityWarning = React.useMemo(() => {
     if (selectedProvider !== "gcp") return null;
     const gpuType =
@@ -208,20 +240,20 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
             persistentGrowable
               ? "You can enlarge this disk at any time later."
               : "This disk CANNOT be enlarged later."
-          }`}
+          }${isNebiusIoM3 ? " SSD IO M3 requires multiples of 93 GB." : ""}`}
         >
           <Row gutter={12} align="middle">
             <Col flex="auto">
               <Slider
-                min={MIN_DISK_SIZE}
+                min={diskMin}
                 max={MAX_DISK_SIZE}
-                step={1}
+                step={diskStep}
                 value={diskValue}
                 onChange={(value) => {
                   if (typeof value !== "number" || Number.isNaN(value)) {
                     return;
                   }
-                  form.setFieldsValue({ disk: value });
+                  form.setFieldsValue({ disk: normalizeDiskValue(value) });
                 }}
               />
             </Col>
@@ -232,16 +264,16 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
                 noStyle
               >
                 <InputNumber
-                  min={MIN_DISK_SIZE}
+                  min={diskMin}
                   max={MAX_DISK_SIZE}
-                  step={1}
+                  step={diskStep}
                   precision={0}
                   style={{ width: "100%" }}
                   onChange={(value) => {
                     if (typeof value !== "number" || Number.isNaN(value)) {
                       return;
                     }
-                    form.setFieldsValue({ disk: value });
+                    form.setFieldsValue({ disk: normalizeDiskValue(value) });
                   }}
                 />
               </Form.Item>

@@ -14,6 +14,8 @@ import {
 } from "../providers/registry";
 import type { HostFieldId, ProviderSelection } from "../providers/registry";
 
+const NEBIUS_IO_M3_GB = 93;
+
 type HostEditModalProps = {
   open: boolean;
   host?: Host;
@@ -234,6 +236,20 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
   const currentDisk = readPositive(host?.machine?.disk_gb);
   const diskMin = isDeprovisioned ? 10 : currentDisk ?? 10;
   const diskMax = Math.max(2000, diskMin);
+  const watchedDiskType = Form.useWatch("disk_type", form);
+  const isNebiusIoM3 = providerId === "nebius" && watchedDiskType === "ssd_io_m3";
+  const diskStep = isNebiusIoM3 ? NEBIUS_IO_M3_GB : 1;
+  const diskMinAdjusted = isNebiusIoM3
+    ? Math.ceil(diskMin / NEBIUS_IO_M3_GB) * NEBIUS_IO_M3_GB
+    : diskMin;
+  const normalizeDiskValue = React.useCallback(
+    (value: number) => {
+      if (!isNebiusIoM3) return value;
+      const rounded = Math.ceil(value / NEBIUS_IO_M3_GB) * NEBIUS_IO_M3_GB;
+      return Math.max(diskMinAdjusted, rounded);
+    },
+    [diskMinAdjusted, isNebiusIoM3],
+  );
   const storageMode = host?.machine?.storage_mode ?? "persistent";
   const showDiskFields =
     isSelfHost ||
@@ -282,7 +298,6 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
     providerOptions,
     storageMode,
   ]);
-  const watchedDiskType = Form.useWatch("disk_type", form);
   React.useEffect(() => {
     if (!isDeprovisioned) return;
     if (!diskTypeOptions.length) return;
@@ -502,21 +517,33 @@ export const HostEditModal: React.FC<HostEditModalProps> = ({
             tooltip={
               isDeprovisioned
                 ? "Disk size is applied on next provision."
-                : "Disk can only grow while provisioned."
+                : `Disk can only grow while provisioned.${
+                    isNebiusIoM3 ? " SSD IO M3 requires multiples of 93 GB." : ""
+                  }`
             }
             extra={
               diskResizeBlocked
                 ? "Stop the VM before resizing the disk."
                 : isDeprovisioned
                   ? undefined
-                  : `Current minimum: ${diskMin} GB (grow only)`
+                  : `Current minimum: ${diskMinAdjusted} GB (grow only)`
             }
           >
             <InputNumber
-              min={diskMin}
+              min={diskMinAdjusted}
               max={diskMax}
+              step={diskStep}
               style={{ width: "100%" }}
               disabled={diskResizeBlocked}
+              onChange={(value) => {
+                if (typeof value !== "number" || Number.isNaN(value)) {
+                  return;
+                }
+                const normalized = normalizeDiskValue(value);
+                if (normalized !== value) {
+                  form.setFieldsValue({ disk_gb: normalized });
+                }
+              }}
             />
           </Form.Item>
         )}
