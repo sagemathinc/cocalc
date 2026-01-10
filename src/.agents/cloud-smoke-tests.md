@@ -1,4 +1,79 @@
-# Systematically getting cloud smoke tests to robustly pass on all supported clouds
+# Systematically getting cloud to robustly work
+
+## State Reconciliation
+
+Goal: keep `project_hosts.status` aligned with actual provider state, without
+flapping or masking in-flight transitions. Treat the provider as the source of
+truth for *runtime state* and the control plane as the source of truth for
+*desired state*.
+
+### State Model
+
+- **Desired state**: last user action (start/stop/reprovision/delete).
+- **Observed state**: provider VM state + data volume existence.
+- **Off semantics**: VM may be absent, but the data volume exists.
+- **Deprovisioned**: VM absent *and* data volume absent.
+
+### Provider Mapping
+
+Each provider maps its raw status to normalized:
+
+- `running`, `starting`, `stopping`, `off`, `error`, `deleted/absent`
+
+Additionally, we must query the **data volume** (where applicable) to decide
+`off` vs `deprovisioned`.
+
+### Reconciliation Loop
+
+- Periodically poll hosts that are:
+  - `starting`, `stopping`, `reprovisioning`, `error`, or stale `last_seen`
+  - OR have missing `runtime.public_ip`
+- For each host:
+  - Fetch provider VM status (if VM exists).
+  - Check data volume existence (if provider has persistent disk).
+  - Update `metadata.runtime.provider_status` and `metadata.runtime.observed_at`.
+  - Reconcile:
+    - VM exists + running → `status=running`
+    - VM absent + volume exists → `status=off`
+    - VM absent + volume absent → `status=deprovisioned`
+    - VM stopping/deleting → keep `status=stopping`
+    - VM error → `status=error`
+  - Clear stale `public_ip` if VM missing.
+
+### Guardrails
+
+- **Grace window**: don’t override `last_action` outcomes for N minutes
+  after a state change to avoid fights with start/stop actions.
+- **Unknown vs off**: a single failed API call should not flip state; require
+  two consecutive confirmations for “missing”. 
+- **Rate limits**: cap hosts per tick, exponential backoff per provider.
+- **Hyperstack reserved volumes**: treat “reserved” as transitional, not failed.
+- **DNS/Cloudflare lag**: avoid flipping to error solely for missing IP; allow
+  DNS setup to proceed after `running`.
+
+### UI Edge Cases
+
+- Show both:
+  - **Control\-plane status** \(e.g., “stopping”\)
+  - **Provider observed status** \(e.g., “stopping/deleting”\)
+- If a host is stale \(`last_seen` old\), show “stale” badge and encourage
+  “Refresh state” or “Reconcile now”.
+- Keep UI simple: if data disk exists, treat as `off`; only show `deprovisioned`
+  when both VM and data volume are gone.
+  - if the VM is deprovisioned but the data disk exists, we just show this as "off", not "deprovisioned".   There's no need to add complexity to the UI purely due to weirdness of cloud providers.  E.g., technically an off machine on GCP and an off machine on Hyperstack are basically identical \-\- it's some bytes on block devices; but GCP has an abstraction of an "instance" in that case, and hyperstack doesn't.  
+
+### Implementation Plan
+
+1. Add provider “status probe” functions \(VM status \+ volume existence\).
+2. Add reconciliation job:
+   - schedules periodically \(e.g., every 2–5 min\)
+   - operates on subsets of hosts
+3. Extend `runtime` metadata with `provider_status` \+ `observed_at`.
+4. Add guardrails: grace window, missing confirmation, backoff.
+5. Wire to UI: display observed status \+ stale indicator.
+6. Use in smoke tests: run reconciliation after stop/start.
+
+---
 
 ## Issues Observed (From Smoke Runs + Manual Checks)
 
