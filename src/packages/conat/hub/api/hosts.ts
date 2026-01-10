@@ -100,6 +100,7 @@ export interface Host {
   size: string; // ui preset label/key
   gpu: boolean;
   status: HostStatus;
+  reprovision_required?: boolean;
   version?: string;
   project_bundle_version?: string;
   tools_version?: string;
@@ -226,6 +227,7 @@ export interface Hosts {
   updateHostMachine: (opts: {
     account_id?: string;
     id: string;
+    cloud?: HostMachine["cloud"];
     cpu?: number;
     ram_gb?: number;
     disk_gb?: number;

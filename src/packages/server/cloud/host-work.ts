@@ -299,16 +299,45 @@ async function handleProvision(row: any) {
 async function handleStart(row: any) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
+  const reprovisionRequired = !!row.metadata?.reprovision_required;
   const providerId = normalizeProviderId(machine.cloud);
   logger.debug("handleStart: begin", {
     host_id: row.id,
     provider: providerId ?? machine.cloud,
     runtime,
+    reprovision_required: reprovisionRequired,
   });
   if (providerId) {
-    if (!runtime?.instance_id) {
+    if (!runtime?.instance_id || reprovisionRequired) {
       // If the VM was deprovisioned, treat "start" as "create" and provision now.
-      await handleProvision(row);
+      if (reprovisionRequired && runtime?.instance_id) {
+        const { entry, creds } = await getProviderContext(providerId);
+        logger.info("handleStart: reprovision delete", {
+          host_id: row.id,
+          provider: providerId,
+          instance_id: runtime.instance_id,
+          zone: runtime.zone,
+        });
+        await entry.provider.deleteHost(runtime, creds);
+      }
+      const clearedMetadata = {
+        ...(row.metadata ?? {}),
+      };
+      delete clearedMetadata.runtime;
+      delete clearedMetadata.dns;
+      delete clearedMetadata.cloudflare_tunnel;
+      delete clearedMetadata.reprovision_required;
+      const rowForProvision = {
+        ...row,
+        metadata: clearedMetadata,
+      };
+      await updateHostRow(row.id, {
+        metadata: clearedMetadata,
+        status: "starting",
+        public_url: null,
+        internal_url: null,
+      });
+      await handleProvision(rowForProvision);
       await logCloudVmEvent({
         vm_id: row.id,
         action: "start",

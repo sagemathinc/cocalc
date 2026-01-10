@@ -15,6 +15,7 @@ type HubClient = {
     renameHost?: (opts: { id: string; name: string }) => Promise<unknown>;
     updateHostMachine?: (opts: {
       id: string;
+      cloud?: string;
       cpu?: number;
       ram_gb?: number;
       disk_gb?: number;
@@ -125,6 +126,7 @@ export const useHostActions = ({
   const updateHostMachine = async (
     id: string,
     opts: {
+      cloud?: string;
       cpu?: number;
       ram_gb?: number;
       disk_gb?: number;

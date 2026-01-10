@@ -81,6 +81,7 @@ function parseRow(
     size: metadata.size ?? "",
     gpu: !!metadata.gpu,
     status: (row.status as HostStatus) ?? "off",
+    reprovision_required: !!metadata.reprovision_required,
     version: row.version ?? software.project_host,
     project_bundle_version: software.project_bundle,
     tools_version: software.tools,
@@ -797,6 +798,7 @@ export async function renameHost({
 export async function updateHostMachine({
   account_id,
   id,
+  cloud,
   cpu,
   ram_gb,
   disk_gb,
@@ -810,6 +812,7 @@ export async function updateHostMachine({
 }: {
   account_id?: string;
   id: string;
+  cloud?: HostMachine["cloud"];
   cpu?: number;
   ram_gb?: number;
   disk_gb?: number;
@@ -827,13 +830,22 @@ export async function updateHostMachine({
   const machineCloud = normalizeProviderId(machine.cloud);
   const isSelfHost = machineCloud === "self-host";
   const isDeprovisioned = row.status === "deprovisioned";
-  const nextMachine: HostMachine = {
+  let nextMachine: HostMachine = {
     ...machine,
     metadata: { ...(machine.metadata ?? {}) },
   };
   let changed = false;
   let nonDiskChange = false;
+  let regionChanged = false;
+  let zoneChanged = false;
+  let storageModeChanged = false;
+  let diskTypeChanged = false;
+  let machineChanged = false;
   let nextRegion = row.region ?? "";
+  const requestedCloudRaw = typeof cloud === "string" ? cloud : undefined;
+  const requestedCloud = normalizeProviderId(requestedCloudRaw);
+  const cloudChanged =
+    requestedCloudRaw !== undefined && requestedCloud !== machineCloud;
 
   const parsePositiveInt = (value: unknown, label: string) => {
     if (value == null) return undefined;
@@ -848,6 +860,21 @@ export async function updateHostMachine({
   const nextRam = parsePositiveInt(ram_gb, "ram_gb");
   const nextDisk = parsePositiveInt(disk_gb, "disk_gb");
   const nextGpuCount = parsePositiveInt(gpu_count, "gpu_count");
+
+  if (cloudChanged) {
+    if (!isDeprovisioned) {
+      throw new Error("provider can only be changed when deprovisioned");
+    }
+    nextMachine = {
+      cloud: requestedCloud,
+      metadata: {},
+    };
+    changed = true;
+    nonDiskChange = true;
+    machineChanged = true;
+    storageModeChanged = true;
+    diskTypeChanged = true;
+  }
 
   if (nextCpu != null && nextCpu !== machine.metadata?.cpu) {
     nextMachine.metadata = { ...(nextMachine.metadata ?? {}), cpu: nextCpu };
@@ -869,45 +896,63 @@ export async function updateHostMachine({
     ) {
       throw new Error("disk size can only increase");
     }
-    if (nextDisk !== machine.disk_gb) {
+    if (nextDisk !== nextMachine.disk_gb) {
       nextMachine.disk_gb = nextDisk;
       changed = true;
     }
   }
-  if (typeof machine_type === "string" && machine_type !== machine.machine_type) {
+  if (
+    typeof machine_type === "string" &&
+    machine_type !== nextMachine.machine_type
+  ) {
     nextMachine.machine_type = machine_type || undefined;
     changed = true;
     nonDiskChange = true;
+    machineChanged = true;
   }
-  if (typeof gpu_type === "string" && gpu_type !== machine.gpu_type) {
-    nextMachine.gpu_type = gpu_type || undefined;
+  if (typeof gpu_type === "string" && gpu_type !== nextMachine.gpu_type) {
+    if (gpu_type === "none") {
+      nextMachine.gpu_type = undefined;
+      nextMachine.gpu_count = 0;
+    } else {
+      nextMachine.gpu_type = gpu_type || undefined;
+    }
     changed = true;
     nonDiskChange = true;
+    machineChanged = true;
   }
-  if (nextGpuCount != null && nextGpuCount !== machine.gpu_count) {
+  if (nextGpuCount != null && nextGpuCount !== nextMachine.gpu_count) {
     nextMachine.gpu_count = nextGpuCount;
     changed = true;
     nonDiskChange = true;
+    machineChanged = true;
   }
-  if (typeof storage_mode === "string" && storage_mode !== machine.storage_mode) {
+  if (
+    typeof storage_mode === "string" &&
+    storage_mode !== nextMachine.storage_mode
+  ) {
     nextMachine.storage_mode = storage_mode;
     changed = true;
     nonDiskChange = true;
+    storageModeChanged = true;
   }
-  if (typeof disk_type === "string" && disk_type !== machine.disk_type) {
+  if (typeof disk_type === "string" && disk_type !== nextMachine.disk_type) {
     nextMachine.disk_type = disk_type;
     changed = true;
     nonDiskChange = true;
+    diskTypeChanged = true;
   }
-  if (typeof zone === "string" && zone && zone !== machine.zone) {
+  if (typeof zone === "string" && zone && zone !== nextMachine.zone) {
     nextMachine.zone = zone;
     changed = true;
     nonDiskChange = true;
+    zoneChanged = true;
   }
   if (typeof region === "string" && region && region !== row.region) {
     nextRegion = region;
     changed = true;
     nonDiskChange = true;
+    regionChanged = true;
   }
 
   if (!changed) {
@@ -922,6 +967,7 @@ export async function updateHostMachine({
       nextMetadata.size = machine_type;
     }
     nextMetadata.gpu = machineHasGpu(nextMachine);
+    delete nextMetadata.reprovision_required;
     await pool().query(
       `UPDATE project_hosts SET region=$2, metadata=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [row.id, nextRegion, nextMetadata],
@@ -934,13 +980,24 @@ export async function updateHostMachine({
     return parseRow(rows[0]);
   }
 
-  if (machineCloud && !isSelfHost && nonDiskChange) {
+  if (!isDeprovisioned && (regionChanged || zoneChanged)) {
+    throw new Error("region/zone can only be changed when deprovisioned");
+  }
+
+  if (!isDeprovisioned && (storageModeChanged || diskTypeChanged)) {
+    throw new Error("disk type/storage mode changes require deprovisioning");
+  }
+
+  const requiresReprovision =
+    !isSelfHost && nonDiskChange && row.status === "off";
+
+  if (!isSelfHost && nonDiskChange && row.status !== "off") {
     throw new Error(
-      "host must be deprovisioned before changing CPU/RAM/machine type",
+      "host must be stopped before changing CPU/RAM/machine type",
     );
   }
 
-  if (!isSelfHost && nextDisk == null) {
+  if (!isSelfHost && nextDisk == null && !requiresReprovision) {
     return parseRow(row);
   }
 
@@ -1020,6 +1077,8 @@ export async function updateHostMachine({
   const nextMetadata = {
     ...metadata,
     machine: nextMachine,
+    ...(requiresReprovision ? { reprovision_required: true } : {}),
+    ...(machineChanged ? { gpu: machineHasGpu(nextMachine) } : {}),
     ...(resizeWarning
       ? {
           last_action: "resize_disk",
@@ -1029,6 +1088,9 @@ export async function updateHostMachine({
         }
       : {}),
   };
+  if (machineChanged && nextMachine.machine_type) {
+    nextMetadata.size = nextMachine.machine_type;
+  }
   await pool().query(
     `UPDATE project_hosts SET region=$2, metadata=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [row.id, nextRegion, nextMetadata],

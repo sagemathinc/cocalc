@@ -175,15 +175,19 @@ export const useHostsPageViewModel = () => {
     React.useState<(typeof hosts)[number]>();
   const [editOpen, setEditOpen] = React.useState(false);
   const [savingEdit, setSavingEdit] = React.useState(false);
+  const [editProvider, setEditProvider] =
+    React.useState<HostProvider>("none");
   const { drawerOpen, selected, openDetails, closeDetails } =
     useHostSelection(hosts);
   const openEdit = (host: (typeof hosts)[number]) => {
     setEditingHost(host);
+    setEditProvider((host.machine?.cloud ?? "none") as HostProvider);
     setEditOpen(true);
   };
   const closeEdit = () => {
     setEditOpen(false);
     setEditingHost(undefined);
+    setEditProvider("none");
   };
   const { hostLog, loadingLog } = useHostLog(hub, selected?.id, {
     enabled: drawerOpen,
@@ -512,8 +516,6 @@ export const useHostsPageViewModel = () => {
     },
   });
 
-  const editProvider = (editingHost?.machine?.cloud ??
-    "none") as HostProvider;
   const { catalog: editCatalog } = useHostCatalog(hub, {
     provider: editProvider !== "none" ? editProvider : undefined,
   });
@@ -527,6 +529,7 @@ export const useHostsPageViewModel = () => {
       id: string,
       values: {
         name: string;
+        provider?: HostProvider;
         cpu?: number;
         ram_gb?: number;
         disk_gb?: number;
@@ -548,6 +551,8 @@ export const useHostsPageViewModel = () => {
         }
         const isSelfHost = editingHost.machine?.cloud === "self-host";
         const isDeprovisioned = editingHost.status === "deprovisioned";
+        const isStopped = editingHost.status === "off";
+        const canEditMachine = isDeprovisioned || isStopped;
         const update: Record<string, any> = {};
         const toPositive = (value: unknown) => {
           const parsed = Number(value);
@@ -567,13 +572,21 @@ export const useHostsPageViewModel = () => {
         }
         if (nextDisk && nextDisk !== currentDisk) update.disk_gb = nextDisk;
 
-        if (isDeprovisioned) {
+        if (canEditMachine) {
           const nextMachineType = values.machine_type || values.size;
-          if (values.region && values.region !== editingHost.region) {
-            update.region = values.region;
-          }
-          if (values.zone && values.zone !== editingHost.machine?.zone) {
-            update.zone = values.zone;
+          if (isDeprovisioned) {
+            if (
+              values.provider &&
+              values.provider !== editingHost.machine?.cloud
+            ) {
+              update.cloud = values.provider;
+            }
+            if (values.region && values.region !== editingHost.region) {
+              update.region = values.region;
+            }
+            if (values.zone && values.zone !== editingHost.machine?.zone) {
+              update.zone = values.zone;
+            }
           }
           if (
             nextMachineType &&
@@ -581,23 +594,25 @@ export const useHostsPageViewModel = () => {
           ) {
             update.machine_type = nextMachineType;
           }
-          if (
-            values.gpu_type &&
-            values.gpu_type !== editingHost.machine?.gpu_type
-          ) {
-            update.gpu_type = values.gpu_type;
+          if (values.gpu_type !== undefined) {
+            const nextGpu = values.gpu_type || undefined;
+            if (nextGpu !== editingHost.machine?.gpu_type) {
+              update.gpu_type = values.gpu_type;
+            }
           }
-          if (
-            values.storage_mode &&
-            values.storage_mode !== editingHost.machine?.storage_mode
-          ) {
-            update.storage_mode = values.storage_mode;
-          }
-          if (
-            values.disk_type &&
-            values.disk_type !== editingHost.machine?.disk_type
-          ) {
-            update.disk_type = values.disk_type;
+          if (isDeprovisioned) {
+            if (
+              values.storage_mode &&
+              values.storage_mode !== editingHost.machine?.storage_mode
+            ) {
+              update.storage_mode = values.storage_mode;
+            }
+            if (
+              values.disk_type &&
+              values.disk_type !== editingHost.machine?.disk_type
+            ) {
+              update.disk_type = values.disk_type;
+            }
           }
         }
 
@@ -610,6 +625,8 @@ export const useHostsPageViewModel = () => {
       }
     },
     catalog: editCatalog,
+    providerOptions,
+    onProviderChange: setEditProvider,
   };
 
   const setupVm = {

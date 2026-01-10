@@ -164,6 +164,9 @@ export const HostCard: React.FC<HostCardProps> = ({
       actions={actions.filter(Boolean) as React.ReactNode[]}
     >
     <Space direction="vertical" size="small">
+      {host.reprovision_required && (
+        <Tag color="orange">Reprovision on next start</Tag>
+      )}
       <Typography.Text>
         Provider:{" "}
         {host.machine?.cloud

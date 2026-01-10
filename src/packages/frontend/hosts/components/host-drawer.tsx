@@ -120,6 +120,9 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
             {connectorStatusTag}
             <Tag>{host.size}</Tag>
             {host.gpu && <Tag color="purple">GPU</Tag>}
+            {host.reprovision_required && (
+              <Tag color="orange">Reprovision on next start</Tag>
+            )}
           </Space>
           <Typography.Text copyable={{ text: host.id }}>
             Host ID: {host.id}
