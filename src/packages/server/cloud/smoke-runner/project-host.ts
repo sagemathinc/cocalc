@@ -21,6 +21,15 @@ How to run:
     update: { machine_type: "<new-type>" },
   });
 
+- Or run a preset that creates a new host, exercises it, then cleans up:
+
+  const presets = await listProjectHostSmokePresets({ provider: "gcp" });
+  await runProjectHostPersistenceSmokePreset({
+    account_id: "<admin-account-id>",
+    provider: "gcp",
+    preset: presets[0]?.id ?? "gcp-cpu",
+  });
+
 What it does:
 - Creates a host and waits for it to be running.
 - Creates and starts a project on that host.
@@ -39,8 +48,18 @@ export PORT=9001
 export MASTER_CONAT_SERVER=https://dev.cocalc.ai
 export DEBUG=cocalc:*
 export DEBUG_CONSOLE=yes
+export account_id='...'
 
 node
+
+
+
+a = require('../../dist/cloud/smoke-runner/project-host');  await a.listProjectHostSmokePresets({ provider: "gcp" });
+
+
+a = require('../../dist/cloud/smoke-runner/project-host');  await a.runProjectHostPersistenceSmokePreset({  account_id: process.env.account_id, provider: "gcp"});
+
+
 
 
 a = require('../../dist/cloud/smoke-runner/project-host'); await a.runProjectHostPersistenceSmokeTestForHostId({host_id:'a8ed241c-1283-4ced-a874-7af630de0897', update:{'machine_type':'n2-standard-4'}})
@@ -49,6 +68,9 @@ a = require('../../dist/cloud/smoke-runner/project-host'); await a.runProjectHos
 
 a = require('../../dist/cloud/smoke-runner/project-host'); await a.runProjectHostPersistenceSmokeTestForHostId({host_id:'f855962b-c50e-4bb4-9da1-84c0dfbd96f4', update:{'machine_type':'4vcpu-16gb'}})
 
+a = require('../../dist/cloud/smoke-runner/project-host'); await a.runProjectHostPersistenceSmokeTestForHostId({host_id:'2cb0a79f-387e-4e6b-a0a7-a8b96738538d', update:{'machine_type':'n1-cpu-large'}})
+
+a = require('../../dist/cloud/smoke-runner/project-host'); await a.runProjectHostPersistenceSmokeTestForHostId({host_id:'2cb0a79f-387e-4e6b-a0a7-a8b96738538d', update:{'machine_type':'n1-cpu-medium'}})
 
 
 */
@@ -59,12 +81,15 @@ import { start as startProject } from "@cocalc/server/conat/api/projects";
 import { fsClient, fsSubject } from "@cocalc/conat/files/fs";
 import {
   createHost,
+  deleteHost,
   startHost,
   stopHost,
   updateHostMachine,
 } from "@cocalc/server/conat/api/hosts";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { materializeProjectHost } from "@cocalc/server/conat/route-project";
+import deleteProject from "@cocalc/server/projects/delete";
+import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
 
 const logger = getLogger("server:cloud:smoke-runner:project-host");
 
@@ -91,6 +116,15 @@ type ProjectHostSmokeOptions = {
 };
 
 type SmokeCreateSpec = Parameters<typeof createHost>[0];
+
+type SmokePreset = {
+  id: string;
+  label: string;
+  provider: ProviderId;
+  create: Omit<SmokeCreateSpec, "account_id">;
+  update?: Omit<Parameters<typeof updateHostMachine>[0], "id" | "account_id">;
+  wait?: ProjectHostSmokeOptions["wait"];
+};
 
 export async function buildSmokeCreateSpecFromHost({
   host_id,
@@ -151,8 +185,7 @@ const DEFAULT_HOST_RUNNING: WaitOptions = { intervalMs: 5000, attempts: 180 };
 const DEFAULT_HOST_STOPPED: WaitOptions = { intervalMs: 5000, attempts: 120 };
 const DEFAULT_PROJECT_READY: WaitOptions = { intervalMs: 3000, attempts: 60 };
 
-const sleep = (ms: number) =>
-  new Promise((resolve) => setTimeout(resolve, ms));
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 function resolveWait(
   overrides: Partial<WaitOptions> | undefined,
@@ -172,10 +205,9 @@ async function waitForHostStatus(
   for (let attempt = 1; attempt <= opts.attempts; attempt += 1) {
     const { rows } = await getPool().query<{
       status: string | null;
-    }>(
-      "SELECT status FROM project_hosts WHERE id=$1 AND deleted IS NULL",
-      [host_id],
-    );
+    }>("SELECT status FROM project_hosts WHERE id=$1 AND deleted IS NULL", [
+      host_id,
+    ]);
     const status = rows[0]?.status ?? "";
     if (target.includes(status)) {
       return status;
@@ -196,10 +228,9 @@ async function waitForHostSeen(
   for (let attempt = 1; attempt <= opts.attempts; attempt += 1) {
     const { rows } = await getPool().query<{
       last_seen: Date | null;
-    }>(
-      "SELECT last_seen FROM project_hosts WHERE id=$1 AND deleted IS NULL",
-      [host_id],
-    );
+    }>("SELECT last_seen FROM project_hosts WHERE id=$1 AND deleted IS NULL", [
+      host_id,
+    ]);
     const lastSeen = rows[0]?.last_seen ?? null;
     if (lastSeen && (!since || lastSeen >= since)) {
       return lastSeen;
@@ -244,10 +275,7 @@ async function waitForProjectFile(
   throw new Error("timeout waiting for project file");
 }
 
-async function waitForProjectRouting(
-  project_id: string,
-  opts: WaitOptions,
-) {
+async function waitForProjectRouting(project_id: string, opts: WaitOptions) {
   for (let attempt = 1; attempt <= opts.attempts; attempt += 1) {
     try {
       const address = await materializeProjectHost(project_id);
@@ -274,6 +302,7 @@ async function runSmokeSteps({
   update,
   wait,
   cleanup_on_success,
+  cleanup_host,
   log,
 }: {
   account_id: string;
@@ -283,6 +312,7 @@ async function runSmokeSteps({
   update?: ProjectHostSmokeOptions["update"];
   wait?: ProjectHostSmokeOptions["wait"];
   cleanup_on_success?: ProjectHostSmokeOptions["cleanup_on_success"];
+  cleanup_host?: boolean;
   log?: ProjectHostSmokeOptions["log"];
 }): Promise<ProjectHostSmokeResult> {
   const steps: ProjectHostSmokeResult["steps"] = [];
@@ -304,6 +334,7 @@ async function runSmokeSteps({
   const sentinelPath = ".smoke/persist.txt";
   const sentinelValue = `smoke:${Date.now()}`;
   let hostStartRequestedAt: Date | undefined;
+  let createdHost = false;
 
   const runStep = async (name: string, fn: () => Promise<void>) => {
     const startedAt = new Date();
@@ -341,6 +372,7 @@ async function runSmokeSteps({
           account_id,
         });
         host_id = host.id;
+        createdHost = true;
       });
     }
 
@@ -370,7 +402,11 @@ async function runSmokeSteps({
       if (!project_id) throw new Error("missing project_id");
       await waitForProjectRouting(project_id, waitProjectReady);
       let lastErr: unknown;
-      for (let attempt = 1; attempt <= waitProjectReady.attempts; attempt += 1) {
+      for (
+        let attempt = 1;
+        attempt <= waitProjectReady.attempts;
+        attempt += 1
+      ) {
         try {
           const client = fsClient({
             client: clientFactory(),
@@ -475,10 +511,14 @@ async function runSmokeSteps({
     });
 
     if (cleanup_on_success) {
-      emit({
-        step: "cleanup",
-        status: "ok",
-        message: "cleanup_on_success requested; leaving cleanup TODO",
+      await runStep("cleanup", async () => {
+        if (project_id) {
+          await deleteProject({ project_id, skipPermissionCheck: true });
+        }
+        if (cleanup_host ?? createdHost) {
+          if (!host_id) throw new Error("missing host_id for cleanup");
+          await deleteHost({ account_id, id: host_id });
+        }
       });
     }
 
@@ -512,6 +552,7 @@ export async function runProjectHostPersistenceSmokeTest(
     update: opts.update,
     wait: opts.wait,
     cleanup_on_success: opts.cleanup_on_success,
+    cleanup_host: true,
     log: opts.log,
   });
 }
@@ -562,6 +603,298 @@ export async function runProjectHostPersistenceSmokeTestForHostId({
     update,
     wait,
     cleanup_on_success,
+    cleanup_host: false,
     log,
+  });
+}
+
+type CatalogEntry = {
+  kind: string;
+  scope: string;
+  payload: any;
+};
+
+async function loadCatalogEntries(
+  provider: ProviderId,
+): Promise<CatalogEntry[]> {
+  const { rows } = await getPool().query(
+    `SELECT kind, scope, payload
+       FROM cloud_catalog_cache
+      WHERE provider=$1`,
+    [provider],
+  );
+  return rows as CatalogEntry[];
+}
+
+function getCatalogPayload<T>(
+  entries: CatalogEntry[],
+  kind: string,
+  scope: string,
+): T | undefined {
+  return entries.find((entry) => entry.kind === kind && entry.scope === scope)
+    ?.payload as T | undefined;
+}
+
+function pickDifferent<T>(
+  items: T[],
+  current?: T,
+  predicate?: (value: T) => boolean,
+): T | undefined {
+  for (const item of items) {
+    if (predicate && !predicate(item)) continue;
+    if (current !== undefined && item === current) continue;
+    return item;
+  }
+  return undefined;
+}
+
+async function buildPresetForGcp(): Promise<SmokePreset | undefined> {
+  const entries = await loadCatalogEntries("gcp");
+  const regions =
+    getCatalogPayload<Array<{ name: string; zones: string[] }>>(
+      entries,
+      "regions",
+      "global",
+    ) ?? [];
+  const zones =
+    getCatalogPayload<Array<{ name: string }>>(entries, "zones", "global") ??
+    [];
+  const zoneNames = new Set(zones.map((z) => z.name));
+
+  let region: string | undefined;
+  let zone: string | undefined;
+  let machineTypes: Array<{ name?: string; guestCpus?: number }> = [];
+
+  for (const candidate of regions) {
+    if (!candidate.name.startsWith("us-west")) {
+      continue;
+    }
+    const candidateZones = (candidate.zones ?? []).filter((z) =>
+      zoneNames.has(z),
+    );
+    for (const z of candidateZones) {
+      const types =
+        getCatalogPayload<any[]>(entries, "machine_types", `zone/${z}`) ?? [];
+      if (!types.length) continue;
+      region = candidate.name;
+      zone = z;
+      machineTypes = types;
+      break;
+    }
+    if (region && zone) break;
+  }
+  if (!region || !zone || !machineTypes.length) return undefined;
+
+  const sorted = machineTypes
+    .filter((entry) => !!entry?.name)
+    .sort((a, b) => (a.guestCpus ?? 0) - (b.guestCpus ?? 0));
+  const primary =
+    sorted.find((entry) => (entry.guestCpus ?? 0) >= 2) ?? sorted[0];
+  if (!primary?.name) return undefined;
+  const fallbackUpdate = pickDifferent(sorted, primary);
+  const updateType = fallbackUpdate?.name ?? undefined;
+
+  return {
+    id: "gcp-cpu",
+    label: `GCP CPU (${region}/${zone})`,
+    provider: "gcp",
+    create: {
+      name: `smoke-gcp-${Date.now()}`,
+      region,
+      size: primary.name,
+      gpu: false,
+      machine: {
+        cloud: "gcp",
+        zone,
+        machine_type: primary.name,
+        disk_gb: 100,
+        disk_type: "balanced",
+        storage_mode: "persistent",
+      },
+    },
+    update: updateType ? { machine_type: updateType } : undefined,
+  };
+}
+
+async function buildPresetForNebius(): Promise<SmokePreset | undefined> {
+  const entries = await loadCatalogEntries("nebius");
+  const regions =
+    getCatalogPayload<Array<{ name: string }>>(entries, "regions", "global") ??
+    [];
+  const instanceTypes =
+    getCatalogPayload<Array<{ name: string; gpus?: number; vcpus?: number }>>(
+      entries,
+      "instance_types",
+      "global",
+    ) ?? [];
+  const region = regions[0]?.name;
+  if (!region || !instanceTypes.length) return undefined;
+
+  const primary =
+    instanceTypes.find((entry) => (entry.gpus ?? 0) === 0) ?? instanceTypes[0];
+  const updateType =
+    pickDifferent(instanceTypes, primary, (entry) => entry?.name !== undefined)
+      ?.name ?? undefined;
+
+  return {
+    id: "nebius-cpu",
+    label: `Nebius CPU (${region})`,
+    provider: "nebius",
+    create: {
+      name: `smoke-nebius-${Date.now()}`,
+      region,
+      size: primary.name,
+      gpu: false,
+      machine: {
+        cloud: "nebius",
+        machine_type: primary.name,
+        disk_gb: 100,
+        disk_type: "ssd_io_m3",
+        storage_mode: "persistent",
+      },
+    },
+    update: updateType ? { machine_type: updateType } : undefined,
+  };
+}
+
+async function buildPresetForHyperstack(): Promise<SmokePreset | undefined> {
+  const entries = await loadCatalogEntries("hyperstack");
+  const regions =
+    getCatalogPayload<Array<{ name: string }>>(entries, "regions", "global") ??
+    [];
+  const flavors =
+    getCatalogPayload<Array<{ region_name: string; flavors: Array<any> }>>(
+      entries,
+      "flavors",
+      "global",
+    ) ?? [];
+  const region = regions[0]?.name ?? flavors[0]?.region_name;
+  if (!region) return undefined;
+  const flavorList =
+    flavors.find((entry) => entry.region_name === region)?.flavors ?? [];
+  if (!flavorList.length) return undefined;
+  const primary =
+    flavorList.find((entry) => (entry.gpu_count ?? 0) === 0) ?? flavorList[0];
+  const updateFlavor = pickDifferent(flavorList, primary)?.name ?? undefined;
+
+  return {
+    id: "hyperstack-cpu",
+    label: `Hyperstack CPU (${region})`,
+    provider: "hyperstack",
+    create: {
+      name: `smoke-hyperstack-${Date.now()}`,
+      region,
+      size: primary.name,
+      gpu: (primary.gpu_count ?? 0) > 0,
+      machine: {
+        cloud: "hyperstack",
+        machine_type: primary.name,
+        disk_gb: primary.disk ?? 50,
+        storage_mode: "persistent",
+      },
+    },
+    update: updateFlavor ? { machine_type: updateFlavor } : undefined,
+    wait: {
+      host_running: { intervalMs: 10000, attempts: 180 },
+      project_ready: { intervalMs: 5000, attempts: 120 },
+    },
+  };
+}
+
+async function buildPresetForLambda(): Promise<SmokePreset | undefined> {
+  const entries = await loadCatalogEntries("lambda");
+  const instanceTypes =
+    getCatalogPayload<
+      Array<{ name: string; regions: string[]; gpus?: number }>
+    >(entries, "instance_types", "global") ?? [];
+  if (!instanceTypes.length) return undefined;
+
+  const primary =
+    instanceTypes.find((entry) => (entry.gpus ?? 0) === 0) ?? instanceTypes[0];
+  const region = primary.regions?.[0];
+  if (!region) return undefined;
+  const updateType = pickDifferent(instanceTypes, primary)?.name ?? undefined;
+
+  return {
+    id: "lambda-cpu",
+    label: `Lambda CPU (${region})`,
+    provider: "lambda",
+    create: {
+      name: `smoke-lambda-${Date.now()}`,
+      region,
+      size: primary.name,
+      gpu: (primary.gpus ?? 0) > 0,
+      machine: {
+        cloud: "lambda",
+        machine_type: primary.name,
+        storage_mode: "persistent",
+        metadata: {
+          instance_type_name: primary.name,
+        },
+      },
+    },
+    update: updateType ? { machine_type: updateType } : undefined,
+  };
+}
+
+export async function listProjectHostSmokePresets({
+  provider,
+}: {
+  provider: ProviderId | string;
+}): Promise<SmokePreset[]> {
+  const normalized = normalizeProviderId(provider);
+  if (!normalized) return [];
+  switch (normalized) {
+    case "gcp": {
+      const preset = await buildPresetForGcp();
+      return preset ? [preset] : [];
+    }
+    case "nebius": {
+      const preset = await buildPresetForNebius();
+      return preset ? [preset] : [];
+    }
+    case "hyperstack": {
+      const preset = await buildPresetForHyperstack();
+      return preset ? [preset] : [];
+    }
+    case "lambda": {
+      const preset = await buildPresetForLambda();
+      return preset ? [preset] : [];
+    }
+    default:
+      return [];
+  }
+}
+
+export async function runProjectHostPersistenceSmokePreset({
+  account_id,
+  provider,
+  preset,
+}: {
+  account_id: string;
+  provider: ProviderId | string;
+  preset?: string;
+}): Promise<ProjectHostSmokeResult> {
+  const presets = await listProjectHostSmokePresets({ provider });
+  if (!presets.length) {
+    throw new Error(`no smoke presets available for ${provider}`);
+  }
+  if (!preset) {
+    preset = presets[0].id;
+  }
+  const selected =
+    (preset && presets.find((p) => p.id === preset)) ?? presets[0];
+  if (!selected) {
+    throw new Error(`smoke preset ${preset} not found for ${provider}`);
+  }
+  return await runProjectHostPersistenceSmokeTest({
+    account_id,
+    create: {
+      ...selected.create,
+      account_id,
+    },
+    update: selected.update,
+    wait: selected.wait,
+    cleanup_on_success: true,
   });
 }
