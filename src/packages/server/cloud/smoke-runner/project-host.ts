@@ -778,17 +778,13 @@ async function buildPresetForNebius(): Promise<SmokePreset | undefined> {
 
 async function buildPresetForHyperstack(): Promise<SmokePreset | undefined> {
   const entries = await loadCatalogEntries("hyperstack");
-  const regions =
-    getCatalogPayload<Array<{ name: string }>>(entries, "regions", "global") ??
-    [];
   const flavors =
     getCatalogPayload<Array<{ region_name: string; flavors: Array<any> }>>(
       entries,
       "flavors",
       "global",
     ) ?? [];
-  const region = regions[0]?.name ?? flavors[0]?.region_name;
-  if (!region) return undefined;
+  const region = "CANADA-1";
   const flavorList =
     flavors.find((entry) => entry.region_name === region)?.flavors ?? [];
   if (!flavorList.length) return undefined;

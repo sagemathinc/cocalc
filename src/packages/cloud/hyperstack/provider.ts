@@ -17,6 +17,7 @@ import {
   createVolume,
   getVolumes,
   attachVolume,
+  attachPublicIP,
 } from "./client";
 import { getHyperstackConfig, setHyperstackConfig } from "./config";
 import type {
@@ -275,6 +276,81 @@ function dataVolumeName(spec: HostSpec): string {
   return `${spec.name}-data`;
 }
 
+function isVolumeAvailable(volume?: VolumeDetails | null): boolean {
+  if (!volume) return false;
+  return String(volume.status ?? "").toLowerCase() === "available";
+}
+
+async function waitForVolumeAvailable(volumeId: number): Promise<void> {
+  const deadline = Date.now() + 10 * 60 * 1000;
+  let wait = 3000;
+  while (Date.now() < deadline) {
+    try {
+      const volumes = await getVolumes(false);
+      const volume = volumes.find((item) => item.id === volumeId);
+      if (isVolumeAvailable(volume)) {
+        logger.debug("Hyperstack volume available", {
+          volumeId,
+          status: volume?.status,
+        });
+        return;
+      }
+      logger.debug("Hyperstack volume not yet available", {
+        volumeId,
+        status: volume?.status,
+      });
+    } catch (err) {
+      logger.warn("Hyperstack volume availability check failed", {
+        volumeId,
+        err: String(err),
+      });
+    }
+    await delay(wait);
+    wait = Math.min(Math.floor(wait * 1.3), 10000);
+  }
+  logger.warn("Hyperstack volume availability wait timed out", { volumeId });
+}
+
+async function waitForHyperstackFloatingIp(
+  instanceId: number,
+): Promise<string | undefined> {
+  const deadline = Date.now() + 5 * 60 * 1000;
+  let wait = 5000;
+  let attachAttempted = false;
+  while (Date.now() < deadline) {
+    try {
+      const instance = await getVirtualMachine(instanceId);
+      const ip = String(instance.floating_ip ?? "").trim();
+      if (ip) {
+        return ip;
+      }
+      if (!attachAttempted) {
+        attachAttempted = true;
+        try {
+          await attachPublicIP(instanceId);
+        } catch (err) {
+          const message = String((err as Error)?.message ?? err).toLowerCase();
+          if (!message.includes("already") || !message.includes("assigned")) {
+            logger.debug("Hyperstack attachPublicIP failed", {
+              instanceId,
+              err: String(err),
+            });
+          }
+        }
+      }
+    } catch (err) {
+      logger.debug("Hyperstack floating IP check failed", {
+        instanceId,
+        err: String(err),
+      });
+    }
+    await delay(wait);
+    wait = Math.min(Math.floor(wait * 1.3), 10000);
+  }
+  logger.warn("Hyperstack VM has no floating IP yet", { instanceId });
+  return undefined;
+}
+
 async function findDataVolume(
   environment_name: string,
   name: string,
@@ -320,6 +396,7 @@ async function attachDataVolume(
   instanceId: number,
   volumeId: number,
 ): Promise<void> {
+  await waitForVolumeAvailable(volumeId);
   const deadline = Date.now() + 10 * 60 * 1000;
   let wait = 3000;
   while (Date.now() < deadline) {
@@ -338,6 +415,12 @@ async function attachDataVolume(
           volumeId,
         });
         return;
+      }
+      if (message.includes("available volumes")) {
+        await waitForVolumeAvailable(volumeId);
+        await delay(wait);
+        wait = Math.min(Math.floor(wait * 1.3), 10000);
+        continue;
       }
       if (message.includes("not_found")) {
         throw err;
@@ -445,8 +528,13 @@ export class HyperstackProvider implements CloudProvider {
     if (!instance) {
       throw new Error("Hyperstack did not return a VM instance");
     }
+    const instanceId = Number(instance.id);
+    const floatingIp = await waitForHyperstackFloatingIp(instanceId);
+    if (!floatingIp) {
+      logger.warn("Hyperstack floating IP not ready", { instanceId });
+    }
     try {
-      await attachDataVolume(Number(instance.id), dataVolume.id);
+      await attachDataVolume(instanceId, dataVolume.id);
     } catch (err) {
       logger.warn("Hyperstack attachDataVolume failed", {
         instanceId: instance.id,
@@ -473,7 +561,7 @@ export class HyperstackProvider implements CloudProvider {
     const runtime: HostRuntime = {
       provider: "hyperstack",
       instance_id: String(instance.id),
-      public_ip: instance.floating_ip ?? undefined,
+      public_ip: floatingIp ?? instance.floating_ip ?? undefined,
       ssh_user: "ubuntu",
       zone: region,
       metadata: {

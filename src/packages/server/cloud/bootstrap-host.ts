@@ -1071,6 +1071,7 @@ BOOTSTRAP_TOKEN="${token}"
 BOOTSTRAP_URL="${bootstrapUrl}"
 STATUS_URL="${statusUrl}"
 BOOTSTRAP_DIR="/root/bootstrap"
+BOOTSTRAP_HOST="$(echo "$BOOTSTRAP_URL" | awk -F/ '{print $3}')"
 
 if [ -f /var/lib/cocalc/.bootstrap_done ] || [ -f /btrfs/data/.bootstrap_done ]; then
   echo "bootstrap: already complete; exiting"
@@ -1132,6 +1133,28 @@ download_bootstrap() {
   return 1
 }
 
+wait_for_dns() {
+  if ! command -v getent >/dev/null 2>&1; then
+    return 0
+  fi
+  local attempts=10
+  local delay=3
+  local i=1
+  while [ "$i" -le "$attempts" ]; do
+    if getent hosts "$BOOTSTRAP_HOST" >/dev/null 2>&1; then
+      return 0
+    fi
+    echo "bootstrap: waiting for DNS for $BOOTSTRAP_HOST (attempt $i/$attempts)"
+    sleep "$delay"
+    if [ "$delay" -lt 30 ]; then
+      delay=$((delay * 2))
+    fi
+    i=$((i + 1))
+  done
+  return 1
+}
+
+wait_for_dns || echo "bootstrap: DNS not ready; continuing"
 if ! download_bootstrap; then
   report_status "error" "bootstrap download failed"
   exit 1
