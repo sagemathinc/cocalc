@@ -426,6 +426,7 @@ export async function getHostLog({
     action: string;
     status: string;
     provider?: string | null;
+    spec?: Record<string, any> | null;
     error?: string | null;
   }[]
 > {
@@ -438,6 +439,7 @@ export async function getHostLog({
     action: entry.action,
     status: entry.status,
     provider: entry.provider ?? null,
+    spec: entry.spec ?? null,
     error: entry.error ?? null,
   }));
 }
@@ -778,7 +780,7 @@ export async function renameHost({
   id: string;
   name: string;
 }): Promise<Host> {
-  await loadOwnedHost(id, account_id);
+  const row = await loadOwnedHost(id, account_id);
   const cleaned = name?.trim();
   if (!cleaned) {
     throw new Error("name must be provided");
@@ -792,6 +794,13 @@ export async function renameHost({
     [id],
   );
   if (!rows[0]) throw new Error("host not found");
+  await logCloudVmEvent({
+    vm_id: id,
+    action: "rename",
+    status: "success",
+    provider: normalizeProviderId(row?.metadata?.machine?.cloud),
+    spec: { before: { name: row?.name ?? null }, after: { name: cleaned } },
+  });
   return parseRow(rows[0]);
 }
 
@@ -846,6 +855,24 @@ export async function updateHostMachine({
   const requestedCloud = normalizeProviderId(requestedCloudRaw);
   const cloudChanged =
     requestedCloudRaw !== undefined && requestedCloud !== machineCloud;
+  const buildConfigSpec = (
+    specMachine: HostMachine,
+    regionValue: string | null | undefined,
+  ) => ({
+    cloud: normalizeProviderId(specMachine.cloud) ?? specMachine.cloud ?? null,
+    name: row.name ?? null,
+    region: regionValue ?? null,
+    zone: specMachine.zone ?? null,
+    machine_type: specMachine.machine_type ?? null,
+    gpu_type: specMachine.gpu_type ?? null,
+    gpu_count: specMachine.gpu_count ?? null,
+    cpu: specMachine.metadata?.cpu ?? null,
+    ram_gb: specMachine.metadata?.ram_gb ?? null,
+    disk_gb: specMachine.disk_gb ?? null,
+    disk_type: specMachine.disk_type ?? null,
+    storage_mode: specMachine.storage_mode ?? null,
+  });
+  const beforeSpec = buildConfigSpec(machine, row.region);
 
   const parsePositiveInt = (value: unknown, label: string) => {
     if (value == null) return undefined;
@@ -977,6 +1004,16 @@ export async function updateHostMachine({
       [row.id],
     );
     if (!rows[0]) throw new Error("host not found");
+    await logCloudVmEvent({
+      vm_id: row.id,
+      action: "update_config",
+      status: "success",
+      provider: normalizeProviderId(nextMachine.cloud),
+      spec: {
+        before: beforeSpec,
+        after: buildConfigSpec(nextMachine, nextRegion),
+      },
+    });
     return parseRow(rows[0]);
   }
 
@@ -1100,6 +1137,16 @@ export async function updateHostMachine({
     [row.id],
   );
   if (!rows[0]) throw new Error("host not found");
+  await logCloudVmEvent({
+    vm_id: row.id,
+    action: "update_config",
+    status: "success",
+    provider: normalizeProviderId(nextMachine.cloud),
+    spec: {
+      before: beforeSpec,
+      after: buildConfigSpec(nextMachine, nextRegion),
+    },
+  });
   return parseRow(rows[0]);
 }
 

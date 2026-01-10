@@ -4,6 +4,7 @@ import {
   Card,
   Divider,
   Drawer,
+  Popover,
   Popconfirm,
   Space,
   Tag,
@@ -36,6 +37,82 @@ type HostDrawerViewModel = {
     onRemove: (host: Host) => void;
     onForceDeprovision: (host: Host) => void;
   };
+};
+
+type HostConfigSpec = {
+  cloud?: string | null;
+  name?: string | null;
+  region?: string | null;
+  zone?: string | null;
+  machine_type?: string | null;
+  gpu_type?: string | null;
+  gpu_count?: number | null;
+  cpu?: number | null;
+  ram_gb?: number | null;
+  disk_gb?: number | null;
+  disk_type?: string | null;
+  storage_mode?: string | null;
+};
+
+type HostConfigSpecEnvelope = {
+  before?: HostConfigSpec;
+  after?: HostConfigSpec;
+};
+
+const SPEC_LABELS: Record<keyof HostConfigSpec, string> = {
+  cloud: "Provider",
+  name: "Name",
+  region: "Region",
+  zone: "Zone",
+  machine_type: "Machine",
+  gpu_type: "GPU",
+  gpu_count: "GPU count",
+  cpu: "CPU",
+  ram_gb: "RAM",
+  disk_gb: "Disk",
+  disk_type: "Disk type",
+  storage_mode: "Storage",
+};
+
+const normalizeSpecValue = (
+  key: keyof HostConfigSpec,
+  value: HostConfigSpec[keyof HostConfigSpec],
+): string => {
+  if (value == null || value === "") return "none";
+  if (key === "ram_gb" || key === "disk_gb") return `${value} GB`;
+  if (key === "cpu") return `${value} vCPU`;
+  return String(value);
+};
+
+const extractSpecEnvelope = (
+  spec: HostLogEntry["spec"],
+): HostConfigSpecEnvelope | null => {
+  if (!spec || typeof spec !== "object") return null;
+  const envelope = spec as HostConfigSpecEnvelope;
+  if (!envelope.before && !envelope.after) return null;
+  return envelope;
+};
+
+const describeSpecChange = (
+  spec: HostLogEntry["spec"],
+): { summary?: string; details?: string } => {
+  const envelope = extractSpecEnvelope(spec);
+  if (!envelope?.before || !envelope?.after) return {};
+  const changes: string[] = [];
+  for (const key of Object.keys(SPEC_LABELS) as Array<keyof HostConfigSpec>) {
+    const before = normalizeSpecValue(key, envelope.before[key]);
+    const after = normalizeSpecValue(key, envelope.after[key]);
+    if (before !== after) {
+      changes.push(`${SPEC_LABELS[key]} ${before} → ${after}`);
+    }
+  }
+  if (!changes.length) return {};
+  const summary =
+    changes.length > 3
+      ? `${changes.slice(0, 3).join(", ")}, +${changes.length - 3} more`
+      : changes.join(", ");
+  const details = JSON.stringify(envelope, null, 2);
+  return { summary, details };
 };
 
 export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
@@ -250,10 +327,41 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
                   size="small"
                   bodyStyle={{ padding: "10px 12px" }}
                 >
+                  {(() => {
+                    const change = describeSpecChange(entry.spec);
+                    const showDetails = !!change.details;
+                    const detailLink = showDetails ? (
+                      <Popover
+                        title="Config changes"
+                        content={
+                          <pre style={{ margin: 0, fontSize: 11 }}>
+                            {change.details}
+                          </pre>
+                        }
+                      >
+                        <a style={{ marginLeft: 8 }}>Details</a>
+                      </Popover>
+                    ) : null;
+                    return (
+                      <>
+                        {change.summary && (
+                          <div style={{ fontSize: 12, marginBottom: 6 }}>
+                            Config updated: {change.summary}
+                            {detailLink}
+                          </div>
+                        )}
+                      </>
+                    );
+                  })()}
                   <div style={{ display: "flex", flexDirection: "column" }}>
                     <div style={{ fontWeight: 600 }}>
                       {entry.action} — {entry.status}
                     </div>
+                    {entry.provider && (
+                      <div style={{ color: "#666", fontSize: 12 }}>
+                        Provider: {entry.provider}
+                      </div>
+                    )}
                     <div style={{ color: "#888", fontSize: 12 }}>
                       {entry.ts
                         ? new Date(entry.ts).toLocaleString()

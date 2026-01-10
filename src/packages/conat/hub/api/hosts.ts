@@ -129,6 +129,7 @@ export interface HostLogEntry {
   action: string;
   status: string;
   provider?: string | null;
+  spec?: Record<string, any> | null;
   error?: string | null;
 }
 
