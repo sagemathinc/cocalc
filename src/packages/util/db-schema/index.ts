@@ -56,6 +56,7 @@ import "./project-invite-tokens";
 import "./project-log";
 import "./project-hosts";
 import "./project-host-bootstrap-tokens";
+import "./project-backup-secrets";
 import "./projects";
 import "./public-path-stars";
 import "./public-paths";

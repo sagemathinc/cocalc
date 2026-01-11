@@ -1,4 +1,4 @@
-import { randomUUID } from "crypto";
+import { randomBytes, randomUUID } from "crypto";
 import type {
   Host,
   HostMachine,
@@ -485,6 +485,28 @@ export async function getHostLog({
   }));
 }
 
+async function getProjectBackupSecret(project_id: string): Promise<string> {
+  const { rows } = await pool().query<{ secret: string }>(
+    "SELECT secret FROM project_backup_secrets WHERE project_id=$1",
+    [project_id],
+  );
+  if (rows[0]?.secret) return rows[0].secret;
+
+  const secret = randomBytes(32).toString("base64url");
+  await pool().query(
+    "INSERT INTO project_backup_secrets (project_id, secret, created, updated) VALUES ($1, $2, NOW(), NOW()) ON CONFLICT (project_id) DO NOTHING",
+    [project_id, secret],
+  );
+  const { rows: created } = await pool().query<{ secret: string }>(
+    "SELECT secret FROM project_backup_secrets WHERE project_id=$1",
+    [project_id],
+  );
+  if (!created[0]?.secret) {
+    throw new Error("failed to create project backup secret");
+  }
+  return created[0].secret;
+}
+
 export async function getBackupConfig({
   account_id,
   host_id,
@@ -525,11 +547,12 @@ export async function getBackupConfig({
   const root = project_id
     ? `${DEFAULT_BACKUP_ROOT}/project-${project_id}`
     : `${DEFAULT_BACKUP_ROOT}/host-${host_id}`;
+  const password = project_id ? await getProjectBackupSecret(project_id) : "";
 
   const toml = [
     "[repository]",
     "repository = \"opendal:s3\"",
-    "password = \"\"",
+    `password = \"${password}\"`,
     "",
     "[repository.options]",
     `endpoint = \"https://${accountId}.r2.cloudflarestorage.com\"`,
