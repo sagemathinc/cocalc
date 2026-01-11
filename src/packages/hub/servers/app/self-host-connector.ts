@@ -52,9 +52,14 @@ async function maybeAutoStartHost(connector: {
   );
   if (!host || host.status !== "off") return;
   const nextMetadata = { ...(host.metadata ?? {}) };
+  const selfHostMeta = { ...(nextMetadata.self_host ?? {}) };
+  if (!selfHostMeta.auto_start_pending) return;
   if (nextMetadata.bootstrap) {
     delete nextMetadata.bootstrap;
   }
+  selfHostMeta.auto_start_pending = false;
+  selfHostMeta.auto_start_queued_at = new Date().toISOString();
+  nextMetadata.self_host = selfHostMeta;
   await pool().query(
     `UPDATE project_hosts
      SET status=$2, last_seen=$3, metadata=$4, updated=NOW()
@@ -116,9 +121,15 @@ export default function init(router: Router) {
           ...(machine.metadata ?? {}),
           connector_id: id,
         };
+        const selfHostMetadata = {
+          ...(host.metadata?.self_host ?? {}),
+          auto_start_pending: true,
+          auto_start_requested_at: new Date().toISOString(),
+        };
         const nextMetadata = {
           ...(host.metadata ?? {}),
           machine: { ...machine, metadata: machineMetadata },
+          self_host: selfHostMetadata,
         };
         await pool().query(
           `UPDATE project_hosts
