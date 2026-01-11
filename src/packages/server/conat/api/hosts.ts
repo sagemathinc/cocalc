@@ -150,6 +150,30 @@ async function loadHostForStartStop(
   throw new Error("not authorized");
 }
 
+async function markHostActionPending(id: string, action: string) {
+  await pool().query(
+    `
+      UPDATE project_hosts
+      SET metadata = jsonb_set(
+        jsonb_set(
+          jsonb_set(
+            jsonb_set(
+              COALESCE(metadata, '{}'::jsonb),
+              '{last_action}', to_jsonb($2::text)
+            ),
+            '{last_action_at}', to_jsonb(NOW())
+          ),
+          '{last_action_status}', to_jsonb('pending'::text)
+        ),
+        '{last_action_error}', 'null'::jsonb
+      ),
+      updated=NOW()
+      WHERE id=$1 AND deleted IS NULL
+    `,
+    [id, action],
+  );
+}
+
 async function markHostDeprovisioned(row: any, action: string) {
   const machine: HostMachine = row.metadata?.machine ?? {};
   const runtime = row.metadata?.runtime;
@@ -615,7 +639,7 @@ export async function startHost({
   }
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, metadata=$4, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
-    [id, "starting", new Date(), nextMetadata],
+    [id, "starting", null, nextMetadata],
   );
   if (!machineCloud) {
     await pool().query(
@@ -623,6 +647,7 @@ export async function startHost({
       [id, "running", new Date()],
     );
   } else {
+    await markHostActionPending(id, "start");
     await enqueueCloudVmWork({
       vm_id: id,
       action: "start",
@@ -650,14 +675,15 @@ export async function stopHost({
   const machineCloud = normalizeProviderId(machine.cloud);
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
-    [id, "stopping", new Date()],
+    [id, "stopping", null],
   );
   if (!machineCloud) {
     await pool().query(
       `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
-      [id, "off", new Date()],
+      [id, "off", null],
     );
   } else {
+    await markHostActionPending(id, "stop");
     await enqueueCloudVmWork({
       vm_id: id,
       action: "stop",
@@ -713,7 +739,7 @@ export async function restartHost({
   }
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
-    [id, "restarting", new Date()],
+    [id, "restarting", null],
   );
   if (!machineCloud) {
     await pool().query(
@@ -721,6 +747,7 @@ export async function restartHost({
       [id, "running", new Date()],
     );
   } else {
+    await markHostActionPending(id, mode === "hard" ? "hard_restart" : "restart");
     await enqueueCloudVmWork({
       vm_id: id,
       action: mode === "hard" ? "hard_restart" : "restart",

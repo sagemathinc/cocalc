@@ -224,6 +224,21 @@ function setMissingCount(
   };
 }
 
+async function hasPendingWork(vmId: string): Promise<boolean> {
+  const { rows } = await pool().query<{ exists: boolean }>(
+    `
+      SELECT EXISTS(
+        SELECT 1
+        FROM cloud_vm_work
+        WHERE vm_id=$1
+          AND state IN ('queued','in_progress')
+      ) AS exists
+    `,
+    [vmId],
+  );
+  return !!rows[0]?.exists;
+}
+
 async function dataDiskStatus(
   provider: Provider,
   row: HostRow,
@@ -374,6 +389,7 @@ async function reconcileProvider(provider: Provider) {
     const inGrace =
       lastActionAt &&
       now.getTime() - lastActionAt.getTime() < RECONCILE_GRACE_MS;
+    const pendingWork = await hasPendingWork(row.id);
     let missingCount = getMissingCount(runtime);
     let nextRuntime = {
       ...runtime,
@@ -390,6 +406,10 @@ async function reconcileProvider(provider: Provider) {
     }
 
     if (inGrace) {
+      await updateHost(row, { runtime: nextRuntime });
+      continue;
+    }
+    if (pendingWork) {
       await updateHost(row, { runtime: nextRuntime });
       continue;
     }

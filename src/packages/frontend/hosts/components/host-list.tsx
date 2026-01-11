@@ -486,7 +486,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             )}
             {showStaleTag && (
               <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
-                <Tag color="orange">stale</Tag>
+                <Tag color="orange">offline</Tag>
               </Tooltip>
             )}
           </Space>

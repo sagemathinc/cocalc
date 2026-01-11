@@ -385,6 +385,7 @@ async function handleStart(row: any) {
       await updateHostRow(row.id, {
         metadata: metadataWithObserved,
         status: "starting",
+        last_seen: null,
         public_url: null,
         internal_url: null,
       });
@@ -405,6 +406,7 @@ async function handleStart(row: any) {
     const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
     await updateHostRow(row.id, {
       status: "starting",
+      last_seen: null,
       metadata: nextMetadata,
     });
     const { entry, creds } = await getProviderContext(providerId);
@@ -414,7 +416,6 @@ async function handleStart(row: any) {
   const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
   await updateHostRow(row.id, {
     status: "running",
-    last_seen: observedAt,
     metadata: nextMetadata,
   });
   const nextRow = { ...row, status: "running", metadata: nextMetadata };
@@ -442,7 +443,11 @@ async function handleStop(row: any) {
   if (providerId && runtime?.instance_id) {
     const observedAt = new Date();
     const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
-    await updateHostRow(row.id, { status: "stopping", metadata: nextMetadata });
+    await updateHostRow(row.id, {
+      status: "stopping",
+      last_seen: null,
+      metadata: nextMetadata,
+    });
     const { entry, creds } = await getProviderContext(providerId);
     supportsStop = entry.capabilities.supportsStop;
     await entry.provider.stopHost(runtime, creds);
@@ -462,7 +467,7 @@ async function handleStop(row: any) {
       status: "off",
       public_url: null,
       internal_url: null,
-      last_seen: new Date(),
+      last_seen: null,
     });
   } else if (providerId && !supportsStop) {
     // Providers without a stop state (e.g., Lambda) should be treated as
@@ -478,14 +483,13 @@ async function handleStop(row: any) {
       status: "deprovisioned",
       public_url: null,
       internal_url: null,
-      last_seen: new Date(),
+      last_seen: null,
     });
   } else {
     const observedAt = new Date();
     const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
     await updateHostRow(row.id, {
       status: "off",
-      last_seen: observedAt,
       metadata: nextMetadata,
     });
   }
@@ -520,7 +524,11 @@ async function handleRestart(row: any, mode: "reboot" | "hard") {
   const provider = entry.provider;
   const observedAt = new Date();
   const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
-  await updateHostRow(row.id, { status: "restarting", metadata: nextMetadata });
+  await updateHostRow(row.id, {
+    status: "restarting",
+    last_seen: null,
+    metadata: nextMetadata,
+  });
   if (mode === "hard") {
     if (provider.hardRestartHost) {
       await provider.hardRestartHost(runtime, creds);
@@ -551,7 +559,6 @@ async function handleRestart(row: any, mode: "reboot" | "hard") {
   );
   await updateHostRow(row.id, {
     status: "running",
-    last_seen: observedAtComplete,
     metadata: nextMetadataComplete,
   });
   await scheduleRuntimeRefresh({ ...row, metadata: nextMetadataComplete });
@@ -604,6 +611,7 @@ async function handleDelete(row: any) {
     status: "deprovisioned",
     public_url: null,
     internal_url: null,
+    last_seen: null,
   });
 }
 
@@ -696,6 +704,7 @@ async function markHostError(row: any, err: unknown) {
   await updateHostRow(row.id, {
     metadata: nextMetadata,
     status: "error",
+    last_seen: null,
   });
 }
 

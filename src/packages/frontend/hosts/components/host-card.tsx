@@ -180,7 +180,7 @@ export const HostCard: React.FC<HostCardProps> = ({
           )}
           {showStaleTag && (
             <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
-              <Tag color="orange">stale</Tag>
+              <Tag color="orange">offline</Tag>
             </Tooltip>
           )}
         </Space>

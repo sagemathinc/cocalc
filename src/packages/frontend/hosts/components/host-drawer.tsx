@@ -169,7 +169,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
         </Tooltip>
       ) : showStaleTag ? (
         <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
-          <Tag color="default">stale</Tag>
+          <Tag color="default">offline</Tag>
         </Tooltip>
       ) : null
     ) : null;
