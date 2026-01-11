@@ -1,4 +1,4 @@
-import { randomBytes, randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 import type {
   Host,
   HostMachine,
@@ -23,7 +23,6 @@ import {
 } from "@cocalc/server/cloud";
 import { sendSelfHostCommand } from "@cocalc/server/self-host/commands";
 import isAdmin from "@cocalc/server/accounts/is-admin";
-import { isValidUUID } from "@cocalc/util/misc";
 import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
 import {
   gcpSafeName,
@@ -273,21 +272,7 @@ function requireCreateHosts(entitlements: any) {
   }
 }
 
-async function getSiteSetting(name: string): Promise<string | undefined> {
-  const { rows } = await pool().query<{ value: string | null }>(
-    "SELECT value FROM server_settings WHERE name=$1",
-    [name],
-  );
-  const value = rows[0]?.value ?? undefined;
-  if (value == null || value === "") {
-    return undefined;
-  }
-  return value;
-}
-
-const DEFAULT_BACKUP_TTL_SECONDS = 60 * 60 * 12; // 12 hours
-const DEFAULT_BACKUP_ROOT = "rustic";
-
+export { getBackupConfig } from "@cocalc/server/project-backup";
 
 export async function listHosts({
   account_id,
@@ -483,88 +468,6 @@ export async function getHostLog({
     spec: entry.spec ?? null,
     error: entry.error ?? null,
   }));
-}
-
-async function getProjectBackupSecret(project_id: string): Promise<string> {
-  const { rows } = await pool().query<{ secret: string }>(
-    "SELECT secret FROM project_backup_secrets WHERE project_id=$1",
-    [project_id],
-  );
-  if (rows[0]?.secret) return rows[0].secret;
-
-  const secret = randomBytes(32).toString("base64url");
-  await pool().query(
-    "INSERT INTO project_backup_secrets (project_id, secret, created, updated) VALUES ($1, $2, NOW(), NOW()) ON CONFLICT (project_id) DO NOTHING",
-    [project_id, secret],
-  );
-  const { rows: created } = await pool().query<{ secret: string }>(
-    "SELECT secret FROM project_backup_secrets WHERE project_id=$1",
-    [project_id],
-  );
-  if (!created[0]?.secret) {
-    throw new Error("failed to create project backup secret");
-  }
-  return created[0].secret;
-}
-
-export async function getBackupConfig({
-  account_id,
-  host_id,
-  project_id,
-}: {
-  account_id?: string;
-  host_id: string;
-  project_id?: string;
-}): Promise<{ toml: string; ttl_seconds: number }> {
-  if (account_id) {
-    throw new Error("not authorized");
-  }
-  if (!isValidUUID(host_id)) {
-    throw new Error("invalid host_id");
-  }
-  if (project_id != null && !isValidUUID(project_id)) {
-    throw new Error("invalid project_id");
-  }
-  const { rows } = await pool().query<{
-    region: string | null;
-  }>("SELECT region FROM project_hosts WHERE id=$1 AND deleted IS NULL", [
-    host_id,
-  ]);
-  if (!rows[0]) {
-    throw new Error("host not found");
-  }
-
-  const accountId = await getSiteSetting("r2_account_id");
-  const accessKey = await getSiteSetting("r2_access_key_id");
-  const secretKey = await getSiteSetting("r2_secret_access_key");
-  const bucketPrefix = await getSiteSetting("r2_bucket_prefix");
-  if (!accountId || !accessKey || !secretKey || !bucketPrefix) {
-    return { toml: "", ttl_seconds: 0 };
-  }
-
-  const region = rows[0]?.region || "global";
-  const bucket = `${bucketPrefix}-${region}`;
-  const root = project_id
-    ? `${DEFAULT_BACKUP_ROOT}/project-${project_id}`
-    : `${DEFAULT_BACKUP_ROOT}/host-${host_id}`;
-  const password = project_id ? await getProjectBackupSecret(project_id) : "";
-
-  const toml = [
-    "[repository]",
-    "repository = \"opendal:s3\"",
-    `password = \"${password}\"`,
-    "",
-    "[repository.options]",
-    `endpoint = \"https://${accountId}.r2.cloudflarestorage.com\"`,
-    "region = \"auto\"",
-    `bucket = \"${bucket}\"`,
-    `root = \"${root}\"`,
-    `access_key_id = \"${accessKey}\"`,
-    `secret_access_key = \"${secretKey}\"`,
-    "",
-  ].join("\n");
-
-  return { toml, ttl_seconds: DEFAULT_BACKUP_TTL_SECONDS };
 }
 
 export async function createHost({
