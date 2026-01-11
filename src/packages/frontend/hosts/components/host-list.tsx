@@ -463,11 +463,8 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           : undefined,
       render: (_: string, host: Host) => {
         const hostOnline = isHostOnline(host.last_seen);
-        const showStaleTag =
-          !hostOnline &&
-          (host.status === "running" ||
-            host.status === "starting" ||
-            host.status === "restarting");
+        const showOnlineTag = host.status === "running" && hostOnline;
+        const showStaleTag = host.status === "running" && !hostOnline;
         return (
           <Space size="small">
             <Tooltip
@@ -482,7 +479,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
                 {host.deleted ? "deleted" : host.status}
               </Tag>
             </Tooltip>
-            {hostOnline && (
+            {showOnlineTag && (
               <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
                 <Tag color="green">online</Tag>
               </Tooltip>

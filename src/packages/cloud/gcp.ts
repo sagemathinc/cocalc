@@ -416,12 +416,20 @@ export class GcpProvider implements CloudProvider {
       zone: runtime.zone,
     });
     const credentials = parseCredentials(creds ?? {});
+    if (!runtime.zone) {
+      throw new Error("gcp.startHost requires zone");
+    }
     const client = new InstancesClient(credentials);
     await ensureSshMetadata(runtime, credentials, client);
-    await client.start({
+    const [response] = await client.start({
       project: credentials.projectId,
       zone: runtime.zone,
       instance: runtime.instance_id,
+    });
+    await waitUntilOperationComplete({
+      response,
+      zone: runtime.zone,
+      credentials,
     });
   }
 
@@ -431,11 +439,19 @@ export class GcpProvider implements CloudProvider {
       zone: runtime.zone,
     });
     const credentials = parseCredentials(creds ?? {});
+    if (!runtime.zone) {
+      throw new Error("gcp.stopHost requires zone");
+    }
     const client = new InstancesClient(credentials);
-    await client.stop({
+    const [response] = await client.stop({
       project: credentials.projectId,
       zone: runtime.zone,
       instance: runtime.instance_id,
+    });
+    await waitUntilOperationComplete({
+      response,
+      zone: runtime.zone,
+      credentials,
     });
   }
 
@@ -445,11 +461,19 @@ export class GcpProvider implements CloudProvider {
       zone: runtime.zone,
     });
     const credentials = parseCredentials(creds ?? {});
+    if (!runtime.zone) {
+      throw new Error("gcp.hardRestartHost requires zone");
+    }
     const client = new InstancesClient(credentials);
-    await client.reset({
+    const [response] = await client.reset({
       project: credentials.projectId,
       zone: runtime.zone,
       instance: runtime.instance_id,
+    });
+    await waitUntilOperationComplete({
+      response,
+      zone: runtime.zone,
+      credentials,
     });
   }
 

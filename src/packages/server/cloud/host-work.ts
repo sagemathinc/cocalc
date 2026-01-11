@@ -69,6 +69,17 @@ async function updateProjectsHostUrls(opts: {
   );
 }
 
+function setRuntimeObservedAt(metadata: any, at: Date): any {
+  if (!metadata?.runtime) return metadata;
+  return {
+    ...metadata,
+    runtime: {
+      ...metadata.runtime,
+      observed_at: at.toISOString(),
+    },
+  };
+}
+
 async function ensureDnsForHost(row: any) {
   if (await hasCloudflareTunnel()) {
     try {
@@ -262,6 +273,8 @@ async function handleProvision(row: any) {
   }
   const provisioned = await provisionIfNeeded(row, { startupScript });
   const runtime = provisioned.metadata?.runtime;
+  const observedAt = new Date();
+  const nextMetadata = setRuntimeObservedAt(provisioned.metadata, observedAt);
   logger.debug("handleProvision: runtime", {
     host_id: row.id,
     provider: providerId,
@@ -274,17 +287,18 @@ async function handleProvision(row: any) {
     provisioned.internal_url ??
     (runtime?.public_ip ? `http://${runtime.public_ip}` : undefined);
   await updateHostRow(provisioned.id, {
-    metadata: provisioned.metadata,
+    metadata: nextMetadata,
     status: provisioned.status ?? "running",
     public_url: publicUrl,
     internal_url: internalUrl,
   });
   await ensureDnsForHost({
     ...provisioned,
+    metadata: nextMetadata,
     public_url: publicUrl,
     internal_url: internalUrl,
   });
-  await scheduleRuntimeRefresh(provisioned);
+  await scheduleRuntimeRefresh({ ...provisioned, metadata: nextMetadata });
   await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
   await logCloudVmEvent({
     vm_id: row.id,
@@ -363,13 +377,21 @@ async function handleStart(row: any) {
         ...row,
         metadata: clearedMetadata,
       };
+      const observedAt = new Date();
+      const metadataWithObserved = setRuntimeObservedAt(
+        rowForProvision.metadata,
+        observedAt,
+      );
       await updateHostRow(row.id, {
-        metadata: clearedMetadata,
+        metadata: metadataWithObserved,
         status: "starting",
         public_url: null,
         internal_url: null,
       });
-      await handleProvision(rowForProvision);
+      await handleProvision({
+        ...rowForProvision,
+        metadata: metadataWithObserved,
+      });
       await logCloudVmEvent({
         vm_id: row.id,
         action: "start",
@@ -379,11 +401,23 @@ async function handleStart(row: any) {
       });
       return;
     }
+    const observedAt = new Date();
+    const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
+    await updateHostRow(row.id, {
+      status: "starting",
+      metadata: nextMetadata,
+    });
     const { entry, creds } = await getProviderContext(providerId);
     await entry.provider.startHost(runtime, creds);
   }
-  await updateHostRow(row.id, { status: "running", last_seen: new Date() });
-  const nextRow = { ...row, status: "running" };
+  const observedAt = new Date();
+  const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
+  await updateHostRow(row.id, {
+    status: "running",
+    last_seen: observedAt,
+    metadata: nextMetadata,
+  });
+  const nextRow = { ...row, status: "running", metadata: nextMetadata };
   await ensureDnsForHost(nextRow);
   await scheduleRuntimeRefresh(nextRow);
   if (providerId) {
@@ -406,6 +440,9 @@ async function handleStop(row: any) {
   await revokeBootstrapTokensForHost(row.id, { purpose: "bootstrap" });
   let supportsStop = true;
   if (providerId && runtime?.instance_id) {
+    const observedAt = new Date();
+    const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
+    await updateHostRow(row.id, { status: "stopping", metadata: nextMetadata });
     const { entry, creds } = await getProviderContext(providerId);
     supportsStop = entry.capabilities.supportsStop;
     await entry.provider.stopHost(runtime, creds);
@@ -444,7 +481,13 @@ async function handleStop(row: any) {
       last_seen: new Date(),
     });
   } else {
-    await updateHostRow(row.id, { status: "off", last_seen: new Date() });
+    const observedAt = new Date();
+    const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
+    await updateHostRow(row.id, {
+      status: "off",
+      last_seen: observedAt,
+      metadata: nextMetadata,
+    });
   }
   await logCloudVmEvent({
     vm_id: row.id,
@@ -475,6 +518,9 @@ async function handleRestart(row: any, mode: "reboot" | "hard") {
   }
   const { entry, creds } = await getProviderContext(providerId);
   const provider = entry.provider;
+  const observedAt = new Date();
+  const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
+  await updateHostRow(row.id, { status: "restarting", metadata: nextMetadata });
   if (mode === "hard") {
     if (provider.hardRestartHost) {
       await provider.hardRestartHost(runtime, creds);
@@ -498,8 +544,17 @@ async function handleRestart(row: any, mode: "reboot" | "hard") {
       throw new Error("reboot not supported");
     }
   }
-  await updateHostRow(row.id, { status: "running", last_seen: new Date() });
-  await scheduleRuntimeRefresh(row);
+  const observedAtComplete = new Date();
+  const nextMetadataComplete = setRuntimeObservedAt(
+    row.metadata ?? {},
+    observedAtComplete,
+  );
+  await updateHostRow(row.id, {
+    status: "running",
+    last_seen: observedAtComplete,
+    metadata: nextMetadataComplete,
+  });
+  await scheduleRuntimeRefresh({ ...row, metadata: nextMetadataComplete });
   await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
   await logCloudVmEvent({
     vm_id: row.id,

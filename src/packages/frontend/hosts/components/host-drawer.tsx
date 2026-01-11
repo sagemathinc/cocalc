@@ -158,17 +158,20 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
       {connectorOnline ? "Connector online" : "Connector offline"}
     </Tag>
   ) : null;
+  const hostOnline = !!host && isHostOnline(host.last_seen);
+  const showOnlineTag = host?.status === "running" && hostOnline;
+  const showStaleTag = host?.status === "running" && !hostOnline;
   const onlineTag =
     host && !host.deleted ? (
-      isHostOnline(host.last_seen) ? (
+      showOnlineTag ? (
         <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
           <Tag color="green">online</Tag>
         </Tooltip>
-      ) : (
+      ) : showStaleTag ? (
         <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
           <Tag color="default">stale</Tag>
         </Tooltip>
-      )
+      ) : null
     ) : null;
   const canForceDeprovision =
     !!host &&
