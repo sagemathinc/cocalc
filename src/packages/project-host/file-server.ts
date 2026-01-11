@@ -172,7 +172,8 @@ async function fetchBackupConfig(project_id: string): Promise<{
 
 async function ensureBackupConfig(project_id: string): Promise<string | null> {
   logger.debug("ensureBackupConfig", { project_id });
-  const profilePath = join(secrets, `rustic-project-${project_id}.toml`);
+  const profilePath = join(secrets, "rustic", `project-${project_id}.toml`);
+  const profileDir = path.dirname(profilePath);
   const now = Date.now();
   const cached = backupConfigCache.get(project_id);
   if (cached && now < cached.expiresAt) {
@@ -190,7 +191,7 @@ async function ensureBackupConfig(project_id: string): Promise<string | null> {
         expiresAt: ttlSeconds > 0 ? now + ttlSeconds * 1000 : now + 3600 * 1000,
         path: profilePath,
       });
-      await mkdir(secrets, { recursive: true });
+      await mkdir(profileDir, { recursive: true });
       await writeFile(profilePath, toml, "utf8");
       await chmod(profilePath, 0o600);
       return profilePath;

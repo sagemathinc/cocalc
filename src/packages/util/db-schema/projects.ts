@@ -383,6 +383,11 @@ Table({
       desc: "See the SnapshotSchedule interface; same as for snapshots, but for backups.",
       render: { type: "json", editable: false },
     },
+    backup_bucket_id: {
+      type: "uuid",
+      desc: "Bucket id used for this project's backups.",
+      render: { type: "text", editable: false },
+    },
   },
 });
 

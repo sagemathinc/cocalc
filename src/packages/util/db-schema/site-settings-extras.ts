@@ -196,6 +196,7 @@ export type SiteSettingsExtrasKeys =
   | "stripe_webhook_secret"
   | "r2_heading"
   | "r2_account_id"
+  | "r2_api_token"
   | "r2_access_key_id"
   | "r2_secret_access_key"
   | "r2_bucket_prefix"
@@ -511,6 +512,13 @@ export const EXTRAS: SettingsExtras = {
     name: "R2 Account ID",
     desc: "Cloudflare account ID used to build the R2 endpoint URL.",
     default: "",
+    tags: ["Backups", "R2"],
+  },
+  r2_api_token: {
+    name: "R2 API Token",
+    desc: 'Cloudflare API token with "R2:Edit" permissions used to create region buckets automatically.',
+    default: "",
+    password: true,
     tags: ["Backups", "R2"],
   },
   r2_access_key_id: {

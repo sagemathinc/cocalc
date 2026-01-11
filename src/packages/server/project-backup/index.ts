@@ -2,11 +2,45 @@ import { createCipheriv, createDecipheriv, randomBytes } from "crypto";
 import { readFile, writeFile } from "fs/promises";
 import { join } from "path";
 import { secrets } from "@cocalc/backend/data";
+import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
+import { createBucket, R2BucketInfo } from "./r2";
 
 const DEFAULT_BACKUP_TTL_SECONDS = 60 * 60 * 12; // 12 hours
 const DEFAULT_BACKUP_ROOT = "rustic";
+const BUCKET_PROVIDER = "r2";
+const BUCKET_PURPOSE = "project-backups";
+
+const logger = getLogger("server:project-backup");
+
+type R2Region = "wnam" | "enam" | "weur" | "eeur" | "apac" | "oc";
+
+function resolveR2Region(region: string): R2Region {
+  const value = region.trim().toLowerCase();
+  if (!value) {
+    return "wnam";
+  }
+  if (/^us-(west|south)/.test(value) || value.includes("canada")) {
+    return "wnam";
+  }
+  if (/^us-(east|central|north)/.test(value) || value.startsWith("us-")) {
+    return "enam";
+  }
+  if (value.startsWith("eu-") || value.includes("norway")) {
+    return "weur";
+  }
+  if (value.startsWith("me-")) {
+    return "eeur";
+  }
+  if (value.startsWith("ap-") || value.startsWith("asia") || value.includes("apac")) {
+    return "apac";
+  }
+  if (value.startsWith("oc") || value.includes("australia")) {
+    return "oc";
+  }
+  return "wnam";
+}
 
 function pool() {
   return getPool();
@@ -22,6 +56,150 @@ async function getSiteSetting(name: string): Promise<string | undefined> {
     return undefined;
   }
   return value;
+}
+
+type BucketRow = {
+  id: string;
+  name: string;
+  provider: string | null;
+  purpose: string | null;
+  region: string | null;
+  location: string | null;
+  account_id: string | null;
+  access_key_id: string | null;
+  secret_access_key: string | null;
+  endpoint: string | null;
+  status: string | null;
+};
+
+async function loadBucketById(id: string): Promise<BucketRow | null> {
+  const { rows } = await pool().query<BucketRow>(
+    "SELECT id, name, provider, purpose, region, location, account_id, access_key_id, secret_access_key, endpoint, status FROM buckets WHERE id=$1",
+    [id],
+  );
+  return rows[0] ?? null;
+}
+
+async function findBucketForRegion(region: string): Promise<BucketRow | null> {
+  const { rows } = await pool().query<BucketRow>(
+    "SELECT id, name, provider, purpose, region, location, account_id, access_key_id, secret_access_key, endpoint, status FROM buckets WHERE provider=$1 AND purpose=$2 AND region=$3 AND (status IS NULL OR status != 'disabled') ORDER BY created DESC LIMIT 1",
+    [BUCKET_PROVIDER, BUCKET_PURPOSE, region],
+  );
+  return rows[0] ?? null;
+}
+
+async function insertBucketRecord({
+  accountId,
+  accessKey,
+  secretKey,
+  bucketPrefix,
+  region,
+  created,
+}: {
+  accountId: string;
+  accessKey: string;
+  secretKey: string;
+  bucketPrefix: string;
+  region: string;
+  created?: R2BucketInfo;
+}): Promise<BucketRow> {
+  const name = `${bucketPrefix}-${region}`;
+  const location = created?.location ?? null;
+  const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
+  const status =
+    location && location !== region ? "mismatch" : location ? "active" : "unknown";
+  await pool().query(
+    "INSERT INTO buckets (id, provider, purpose, region, location, name, account_id, access_key_id, secret_access_key, endpoint, status, created, updated) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) ON CONFLICT (name) DO NOTHING",
+    [
+      BUCKET_PROVIDER,
+      BUCKET_PURPOSE,
+      region,
+      location,
+      name,
+      accountId,
+      accessKey,
+      secretKey,
+      endpoint,
+      status,
+    ],
+  );
+  const { rows } = await pool().query<BucketRow>(
+    "SELECT id, name, provider, purpose, region, location, account_id, access_key_id, secret_access_key, endpoint, status FROM buckets WHERE name=$1 ORDER BY created DESC LIMIT 1",
+    [name],
+  );
+  if (!rows[0]) {
+    throw new Error(`failed to record bucket ${name}`);
+  }
+  return rows[0];
+}
+
+async function getOrCreateBucketForRegion(region: string): Promise<BucketRow | null> {
+  const existing = await findBucketForRegion(region);
+  if (existing) return existing;
+
+  const accountId = await getSiteSetting("r2_account_id");
+  const apiToken = await getSiteSetting("r2_api_token");
+  const accessKey = await getSiteSetting("r2_access_key_id");
+  const secretKey = await getSiteSetting("r2_secret_access_key");
+  const bucketPrefix = await getSiteSetting("r2_bucket_prefix");
+  if (!accountId || !accessKey || !secretKey || !bucketPrefix) {
+    return null;
+  }
+  if (!apiToken) {
+    logger.warn("r2_api_token is missing; cannot create bucket", { region });
+    return null;
+  }
+
+  let created: R2BucketInfo | undefined;
+  try {
+    created = await createBucket(apiToken, accountId, `${bucketPrefix}-${region}`, region);
+    if (created.location && created.location !== region) {
+      logger.warn("r2 bucket location mismatch", {
+        name: created.name,
+        region,
+        location: created.location,
+      });
+    } else {
+      logger.info("r2 bucket created", { name: created.name, region });
+    }
+  } catch (err) {
+    logger.warn("r2 bucket creation failed", { region, err: `${err}` });
+  }
+
+  return await insertBucketRecord({
+    accountId,
+    accessKey,
+    secretKey,
+    bucketPrefix,
+    region,
+    created,
+  });
+}
+
+async function getProjectBucket(project_id: string, region: string): Promise<BucketRow | null> {
+  const { rows } = await pool().query<{ backup_bucket_id: string | null }>(
+    "SELECT backup_bucket_id FROM projects WHERE project_id=$1",
+    [project_id],
+  );
+  const bucketId = rows[0]?.backup_bucket_id ?? null;
+  if (bucketId) {
+    const bucket = await loadBucketById(bucketId);
+    if (bucket) return bucket;
+  }
+  const bucket = await getOrCreateBucketForRegion(region);
+  if (!bucket) return null;
+  if (bucketId) {
+    await pool().query("UPDATE projects SET backup_bucket_id=$2 WHERE project_id=$1", [
+      project_id,
+      bucket.id,
+    ]);
+  } else {
+    await pool().query(
+      "UPDATE projects SET backup_bucket_id=$2 WHERE project_id=$1 AND backup_bucket_id IS NULL",
+      [project_id, bucket.id],
+    );
+  }
+  return bucket;
 }
 
 async function getProjectBackupSecret(project_id: string): Promise<string> {
@@ -132,16 +310,25 @@ export async function getBackupConfig({
     throw new Error("host not found");
   }
 
-  const accountId = await getSiteSetting("r2_account_id");
-  const accessKey = await getSiteSetting("r2_access_key_id");
-  const secretKey = await getSiteSetting("r2_secret_access_key");
-  const bucketPrefix = await getSiteSetting("r2_bucket_prefix");
-  if (!accountId || !accessKey || !secretKey || !bucketPrefix) {
+  const hostRegion = rows[0]?.region ?? "";
+  const r2Region = resolveR2Region(hostRegion);
+  const bucket = project_id
+    ? await getProjectBucket(project_id, r2Region)
+    : await getOrCreateBucketForRegion(r2Region);
+  if (!bucket) {
+    return { toml: "", ttl_seconds: 0 };
+  }
+  const accountId = bucket.account_id ?? (await getSiteSetting("r2_account_id"));
+  const accessKey = bucket.access_key_id ?? (await getSiteSetting("r2_access_key_id"));
+  const secretKey =
+    bucket.secret_access_key ?? (await getSiteSetting("r2_secret_access_key"));
+  const endpoint =
+    bucket.endpoint ??
+    (accountId ? `https://${accountId}.r2.cloudflarestorage.com` : undefined);
+  if (!accountId || !accessKey || !secretKey || !endpoint) {
     return { toml: "", ttl_seconds: 0 };
   }
 
-  const region = rows[0]?.region || "global";
-  const bucket = `${bucketPrefix}-${region}`;
   const root = project_id
     ? `${DEFAULT_BACKUP_ROOT}/project-${project_id}`
     : `${DEFAULT_BACKUP_ROOT}/host-${host_id}`;
@@ -153,9 +340,9 @@ export async function getBackupConfig({
     `password = \"${password}\"`,
     "",
     "[repository.options]",
-    `endpoint = \"https://${accountId}.r2.cloudflarestorage.com\"`,
+    `endpoint = \"${endpoint}\"`,
     "region = \"auto\"",
-    `bucket = \"${bucket}\"`,
+    `bucket = \"${bucket.name}\"`,
     `root = \"${root}\"`,
     `access_key_id = \"${accessKey}\"`,
     `secret_access_key = \"${secretKey}\"`,
