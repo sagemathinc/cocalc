@@ -90,6 +90,7 @@ import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { materializeProjectHost } from "@cocalc/server/conat/route-project";
 import deleteProject from "@cocalc/server/projects/delete";
 import { normalizeProviderId, type ProviderId } from "@cocalc/cloud";
+import { getProviderContext } from "@cocalc/server/cloud/provider-context";
 
 const logger = getLogger("server:cloud:smoke-runner:project-host");
 
@@ -198,6 +199,101 @@ function resolveWait(
     intervalMs: overrides?.intervalMs ?? fallback.intervalMs,
     attempts: overrides?.attempts ?? fallback.attempts,
   };
+}
+
+type HostStatusSnapshot = {
+  status: string;
+  last_action_status?: string | null;
+  metadata?: Record<string, any>;
+};
+
+function normalizeHostStatusForCheck(status?: string | null): string {
+  if (!status) return "unknown";
+  if (status === "active") return "running";
+  return status;
+}
+
+function normalizeProviderStatusForCheck(status?: string | null): string {
+  if (status === "stopped") return "off";
+  return status ?? "unknown";
+}
+
+async function loadHostStatusSnapshot(host_id: string): Promise<HostStatusSnapshot> {
+  const { rows } = await getPool().query<{
+    status: string | null;
+    metadata: Record<string, any> | null;
+  }>(
+    "SELECT status, metadata FROM project_hosts WHERE id=$1 AND deleted IS NULL",
+    [host_id],
+  );
+  const row = rows[0];
+  if (!row) {
+    throw new Error("host not found for provider status check");
+  }
+  return {
+    status: row.status ?? "unknown",
+    last_action_status: row.metadata?.last_action_status ?? null,
+    metadata: row.metadata ?? {},
+  };
+}
+
+async function checkProviderStatus({
+  host_id,
+  providerHint,
+}: {
+  host_id: string;
+  providerHint?: ProviderId;
+}) {
+  const snapshot = await loadHostStatusSnapshot(host_id);
+  if (snapshot.last_action_status === "pending") {
+    logger.debug("smoke-runner provider status check skipped (pending)", {
+      host_id,
+    });
+    return;
+  }
+  const normalizedStatus = normalizeHostStatusForCheck(snapshot.status);
+  if (["starting", "stopping", "restarting"].includes(normalizedStatus)) {
+    logger.debug("smoke-runner provider status check skipped (transition)", {
+      host_id,
+      status: normalizedStatus,
+    });
+    return;
+  }
+  const runtime = snapshot.metadata?.runtime ?? {};
+  if (!runtime?.instance_id) {
+    logger.debug("smoke-runner provider status check skipped (no instance)", {
+      host_id,
+      status: normalizedStatus,
+    });
+    return;
+  }
+  const providerId =
+    providerHint ?? normalizeProviderId(snapshot.metadata?.machine?.cloud);
+  if (!providerId) {
+    logger.debug("smoke-runner provider status check skipped (no provider)", {
+      host_id,
+    });
+    return;
+  }
+  const { entry, creds } = await getProviderContext(providerId);
+  if (!entry.provider.getStatus) {
+    logger.debug("smoke-runner provider status check skipped (no getStatus)", {
+      host_id,
+      provider: providerId,
+    });
+    return;
+  }
+  const providerStatus = await entry.provider.getStatus(runtime, creds);
+  const normalizedProvider = normalizeProviderStatusForCheck(providerStatus);
+  const normalizedHost = normalizeHostStatusForCheck(snapshot.status);
+  if (
+    normalizedHost !== "unknown" &&
+    normalizedProvider !== normalizedHost
+  ) {
+    throw new Error(
+      `provider status mismatch: host=${normalizedHost} provider=${normalizedProvider}`,
+    );
+  }
 }
 
 async function waitForHostStatus(
@@ -356,6 +452,13 @@ async function runSmokeSteps({
         finished_at: finishedAt.toISOString(),
       });
       emit({ step: name, status: "ok" });
+      if (host_id) {
+        try {
+          await checkProviderStatus({ host_id, providerHint: provider });
+        } catch (err) {
+          throw err;
+        }
+      }
     } catch (err) {
       const finishedAt = new Date();
       const message = err instanceof Error ? err.message : String(err);

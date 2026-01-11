@@ -156,6 +156,12 @@ This reduces UI drift and avoids “off” while the VM is still stopping.
    - set transitional state immediately
    - block on provider “wait” or poll
    - finalize only after provider confirmation
+   - provider-by-provider:
+     - \(done\) GCP start/stop waits for RUNNING/TERMINATED after the API call
+     - \(done\) Nebius wait on instance state after start/stop
+     - \(done\) Hyperstack wait on instance state after start; stop waits for delete
+     - \(done\) Lambda uses deprovision semantics; wait for delete complete
+     - \(todo\) Self-host wait for connector-reported state change
 4. Reconciliation job:
    - runs every 2–5 minutes
    - updates `metadata.runtime.provider_status` \+ `observed_at`
