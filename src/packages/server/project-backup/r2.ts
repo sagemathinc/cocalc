@@ -65,7 +65,7 @@ async function createBucket(
 ) {
   await cloudflareRequest<{ name: string }>(token, `accounts/${accountId}/r2/buckets`, {
     method: "POST",
-    body: JSON.stringify({ name, location }),
+    body: JSON.stringify({ name, locationHint: location }),
   });
 }
 
