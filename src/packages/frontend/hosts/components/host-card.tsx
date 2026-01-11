@@ -47,11 +47,8 @@ export const HostCard: React.FC<HostCardProps> = ({
   const showConnectorSetup =
     isSelfHost && !connectorOnline && host.status === "off";
   const hostOnline = isHostOnline(host.last_seen);
-  const showStaleTag =
-    !hostOnline &&
-    (host.status === "running" ||
-      host.status === "starting" ||
-      host.status === "restarting");
+  const showOnlineTag = host.status === "running" && hostOnline;
+  const showStaleTag = host.status === "running" && !hostOnline;
   const startDisabled =
     isDeleted ||
     host.status === "running" ||
@@ -176,7 +173,7 @@ export const HostCard: React.FC<HostCardProps> = ({
               {host.deleted ? "deleted" : host.status}
             </Tag>
           </Tooltip>
-          {hostOnline && (
+          {showOnlineTag && (
             <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
               <Tag color="green">online</Tag>
             </Tooltip>
