@@ -3,6 +3,7 @@ import type { HostSpec } from "../types";
 
 const insertMock = jest.fn();
 const getMock = jest.fn();
+const diskGetMock = jest.fn();
 const startMock = jest.fn();
 const stopMock = jest.fn();
 const deleteMock = jest.fn();
@@ -12,6 +13,10 @@ jest.mock("@google-cloud/compute", () => {
   class ImagesClient {
     get = getMock;
     getFromFamily = () => [{ selfLink: "/my/image" }];
+    constructor(_opts?: any) {}
+  }
+  class DisksClient {
+    get = diskGetMock;
     constructor(_opts?: any) {}
   }
   class InstancesClient {
@@ -26,7 +31,7 @@ jest.mock("@google-cloud/compute", () => {
     wait = waitMock;
     constructor(_opts?: any) {}
   }
-  return { InstancesClient, ZoneOperationsClient, ImagesClient };
+  return { InstancesClient, ZoneOperationsClient, ImagesClient, DisksClient };
 });
 
 function buildSpec(overrides: Partial<HostSpec> = {}): HostSpec {
@@ -45,6 +50,7 @@ describe("GcpProvider", () => {
   beforeEach(() => {
     insertMock.mockReset();
     getMock.mockReset();
+    diskGetMock.mockReset();
     startMock.mockReset();
     stopMock.mockReset();
     deleteMock.mockReset();
@@ -61,6 +67,7 @@ describe("GcpProvider", () => {
         networkInterfaces: [{ accessConfigs: [{ natIP: "203.0.113.10" }] }],
       },
     ]);
+    diskGetMock.mockRejectedValueOnce({ code: 404 });
 
     const provider = new GcpProvider();
     const spec = buildSpec({
@@ -97,6 +104,7 @@ describe("GcpProvider", () => {
     ]);
     waitMock.mockResolvedValueOnce([{ status: "DONE" }]);
     getMock.mockResolvedValueOnce([{ networkInterfaces: [] }]);
+    diskGetMock.mockRejectedValueOnce({ code: 404 });
 
     const provider = new GcpProvider();
     const spec = buildSpec({
@@ -119,6 +127,10 @@ describe("GcpProvider", () => {
   });
 
   it("starts, stops, and deletes a host", async () => {
+    startMock.mockResolvedValueOnce([{}]);
+    stopMock.mockResolvedValueOnce([{}]);
+    deleteMock.mockResolvedValueOnce([{}]);
+
     const provider = new GcpProvider();
     const runtime = {
       provider: "gcp" as const,
@@ -158,6 +170,7 @@ describe("GcpProvider", () => {
     ]);
     waitMock.mockResolvedValueOnce([{ status: "DONE" }]);
     getMock.mockResolvedValueOnce([{ networkInterfaces: [] }]);
+    diskGetMock.mockRejectedValueOnce({ code: 404 });
 
     const provider = new GcpProvider();
     const spec = buildSpec({

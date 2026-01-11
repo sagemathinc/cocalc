@@ -193,8 +193,18 @@ async function waitUntilOperationComplete({
   zone: string;
   credentials: any;
 }) {
-  let operation = response.latestResponse;
+  let operation = response?.latestResponse ?? response;
+  if (!operation?.name) {
+    return;
+  }
   const operationsClient = new ZoneOperationsClient(credentials);
+  if (!operation.status) {
+    [operation] = await operationsClient.wait({
+      operation: operation.name,
+      project: credentials.projectId,
+      zone,
+    });
+  }
   while (operation.status !== "DONE") {
     [operation] = await operationsClient.wait({
       operation: operation.name,
