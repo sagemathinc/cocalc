@@ -15,6 +15,7 @@ import {
   STUDENT_PAY,
   SUBSCRIPTION_RENEWAL,
   RESUME_SUBSCRIPTION,
+  MEMBERSHIP_CHANGE,
 } from "@cocalc/util/db-schema/purchases";
 import {
   processSubscriptionRenewal,
@@ -22,6 +23,7 @@ import {
   processResumeSubscription,
   processResumeSubscriptionFailure,
 } from "./create-subscription-payment";
+import { applyMembershipChange } from "../membership-change";
 import send, { support, url, name } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import { currency, round2down } from "@cocalc/util/misc";
@@ -248,6 +250,8 @@ customer.  So we don't know what to do with this.  Please manually investigate.
           await processResumeSubscriptionFailure({
             paymentIntent,
           });
+        } else if (paymentIntent.metadata.purpose == MEMBERSHIP_CHANGE) {
+          result = `the membership change to ${paymentIntent.metadata.membership_class} was not applied`;
         } else if (paymentIntent.metadata.purpose?.startsWith("statement-")) {
           const statement_id = parseInt(
             paymentIntent.metadata.purpose.split("-")[1],
@@ -366,6 +370,16 @@ ${await support()}`;
       } else if (paymentIntent.metadata.purpose == RESUME_SUBSCRIPTION) {
         reason = `resume a subscription (id=${paymentIntent.metadata.subscription_id})`;
         await processResumeSubscription({ account_id, paymentIntent, amount });
+      } else if (paymentIntent.metadata.purpose == MEMBERSHIP_CHANGE) {
+        reason = `change membership to ${paymentIntent.metadata.membership_class}`;
+        await applyMembershipChange({
+          account_id,
+          targetClass: paymentIntent.metadata.membership_class,
+          interval: paymentIntent.metadata
+            .membership_interval as "month" | "year",
+          allowDowngrade: paymentIntent.metadata.allow_downgrade === "true",
+          storeVisibleOnly: true,
+        });
       } else if (paymentIntent.metadata.purpose?.startsWith("statement-")) {
         const statement_id = parseInt(
           paymentIntent.metadata.purpose.split("-")[1],

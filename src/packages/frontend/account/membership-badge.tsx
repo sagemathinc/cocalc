@@ -4,7 +4,7 @@
  */
 
 import { Button, Modal, Space, Spin, Tag, Typography } from "antd";
-import { type ReactElement, useMemo, useState } from "react";
+import { type ReactElement, useEffect, useMemo, useState } from "react";
 
 import api from "@cocalc/frontend/client/api";
 import { useAsyncEffect, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -31,6 +31,7 @@ export default function MembershipBadge(): ReactElement | null {
   const [open, setOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [refreshToken, setRefreshToken] = useState<number>(0);
   const [membership, setMembership] = useState<MembershipResolution | null>(null);
   const [tiers, setTiers] = useState<MembershipTier[]>([]);
 
@@ -58,7 +59,16 @@ export default function MembershipBadge(): ReactElement | null {
         setLoading(false);
       }
     }
-  }, [account_id]);
+  }, [account_id, refreshToken]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const handler = () => setRefreshToken((value) => value + 1);
+    window.addEventListener("cocalc:membership-changed", handler);
+    return () => {
+      window.removeEventListener("cocalc:membership-changed", handler);
+    };
+  }, []);
 
   const tierById = useMemo(() => {
     return tiers.reduce((acc, tier) => {
@@ -79,7 +89,7 @@ export default function MembershipBadge(): ReactElement | null {
   const tagLabel = error
     ? "Unavailable"
     : loading && !membership
-      ? "Loading…"
+      ? "Loading..."
       : tierLabel ?? "Free";
   const tagColor = membershipClass === "free" ? "default" : "blue";
 

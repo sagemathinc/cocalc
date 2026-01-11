@@ -28,6 +28,12 @@ export interface MembershipPricingResult {
   current_period_end?: Date;
 }
 
+export interface MembershipChangeResult extends MembershipPricingResult {
+  change: "new" | "upgrade" | "downgrade";
+  target_class: MembershipClass;
+  target_interval: "month" | "year";
+}
+
 export async function getMembershipTiers({
   includeDisabled = true,
   storeVisibleOnly = false,
@@ -184,6 +190,86 @@ export async function computeMembershipPricing({
     refund,
     existing_subscription_id: existing?.id,
     existing_class: existing?.metadata?.class,
+    current_period_start: existing?.current_period_start,
+    current_period_end: existing?.current_period_end,
+  };
+}
+
+export async function computeMembershipChange({
+  account_id,
+  targetClass,
+  interval,
+  allowDowngrade = false,
+  storeVisibleOnly = false,
+  client,
+}: {
+  account_id: string;
+  targetClass: MembershipClass;
+  interval: "month" | "year";
+  allowDowngrade?: boolean;
+  storeVisibleOnly?: boolean;
+  client?: PoolClient;
+}): Promise<MembershipChangeResult> {
+  const tierMap = await getMembershipTierMap({
+    includeDisabled: true,
+    client,
+  });
+  const targetTier = tierMap[targetClass];
+  if (!targetTier || targetTier.disabled) {
+    throw Error(`membership tier "${targetClass}" is not available`);
+  }
+  if (storeVisibleOnly && !targetTier.store_visible) {
+    throw Error(`membership tier "${targetClass}" is not available`);
+  }
+
+  const price = getMembershipPrice(targetTier, interval);
+  const existing = await getActiveMembershipSubscription({
+    account_id,
+    client,
+  });
+  const existingClass = existing?.metadata?.class;
+  if (existingClass && existingClass == targetClass) {
+    throw Error(`already subscribed to ${targetClass}`);
+  }
+
+  const existingTier = existingClass ? tierMap[existingClass] : undefined;
+  const existingPriority = existingTier?.priority ?? 0;
+  const targetPriority = targetTier?.priority ?? 0;
+
+  let change: MembershipChangeResult["change"] = "new";
+  if (existingClass) {
+    if (targetPriority > existingPriority) {
+      change = "upgrade";
+    } else {
+      change = "downgrade";
+    }
+  }
+  if (change == "downgrade" && !allowDowngrade) {
+    throw Error("unsupported membership change");
+  }
+
+  let refund = 0;
+  if (change == "upgrade" && existing) {
+    const start = new Date(existing.current_period_start).valueOf();
+    const end = new Date(existing.current_period_end).valueOf();
+    const now = Date.now();
+    if (end > now && end > start) {
+      const fraction = Math.max(0, Math.min(1, (end - now) / (end - start)));
+      refund = round2up(existing.cost * fraction);
+    }
+  }
+  const charge =
+    change == "downgrade" ? 0 : Math.max(0, round2up(price - refund));
+
+  return {
+    change,
+    target_class: targetClass,
+    target_interval: interval,
+    price,
+    charge,
+    refund,
+    existing_subscription_id: existing?.id,
+    existing_class: existingClass,
     current_period_start: existing?.current_period_start,
     current_period_end: existing?.current_period_end,
   };

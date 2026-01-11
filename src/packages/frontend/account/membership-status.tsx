@@ -23,6 +23,7 @@ import { LLMUsageStatus } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { upgrades } from "@cocalc/util/upgrade-spec";
 import { capitalize, round2 } from "@cocalc/util/misc";
 import type { MembershipResolution } from "@cocalc/conat/hub/api/purchases";
+import MembershipPurchaseModal from "./membership-purchase-modal";
 
 const { Text } = Typography;
 
@@ -125,6 +126,8 @@ export function MembershipStatusPanel({
   const [tiers, setTiers] = useState<MembershipTier[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
+  const [refreshToken, setRefreshToken] = useState<number>(0);
+  const [purchaseOpen, setPurchaseOpen] = useState<boolean>(false);
 
   useAsyncEffect(
     async (isMounted) => {
@@ -151,7 +154,7 @@ export function MembershipStatusPanel({
         }
       }
     },
-    [account_id],
+    [account_id, refreshToken],
   );
 
   const tierById = useMemo(() => {
@@ -167,6 +170,13 @@ export function MembershipStatusPanel({
   if (!account_id || is_anonymous) {
     return null;
   }
+
+  const handleChanged = () => {
+    setRefreshToken((value) => value + 1);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("cocalc:membership-changed"));
+    }
+  };
 
   const tier = membership ? tierById[membership.class] : undefined;
   const tierLabel =
@@ -239,21 +249,11 @@ export function MembershipStatusPanel({
           <Space wrap>
             <Button
               type={membership.class === "free" ? "primary" : "default"}
-              href="/store/membership"
-              target="_blank"
-              rel="noopener"
+              onClick={() => setPurchaseOpen(true)}
             >
               {membership.class === "free"
                 ? "Upgrade membership"
-                : "Manage membership"}
-            </Button>
-            <Button
-              type="link"
-              href="/store/membership"
-              target="_blank"
-              rel="noopener"
-            >
-              View membership tiers
+                : "Change membership"}
             </Button>
           </Space>
 
@@ -311,6 +311,11 @@ export function MembershipStatusPanel({
           </div>
         </Space>
       )}
+      <MembershipPurchaseModal
+        open={purchaseOpen}
+        onClose={() => setPurchaseOpen(false)}
+        onChanged={handleChanged}
+      />
     </Panel>
   );
 }
