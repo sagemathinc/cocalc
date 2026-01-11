@@ -7,6 +7,7 @@ import {
   Popover,
   Popconfirm,
   Space,
+  Spin,
   Tag,
   Tooltip,
   Typography,
@@ -21,6 +22,7 @@ import {
   getHostOnlineTooltip,
   getHostStatusTooltip,
   isHostOnline,
+  isHostTransitioning,
 } from "../constants";
 import { getProviderDescriptor, isKnownProvider } from "../providers/registry";
 
@@ -161,6 +163,8 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
   const hostOnline = !!host && isHostOnline(host.last_seen);
   const showOnlineTag = host?.status === "running" && hostOnline;
   const showStaleTag = host?.status === "running" && !hostOnline;
+  const showSpinner = host ? isHostTransitioning(host.status) : false;
+  const statusLabel = host ? (host.deleted ? "deleted" : host.status) : "";
   const onlineTag =
     host && !host.deleted ? (
       showOnlineTag ? (
@@ -193,7 +197,14 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               )}
             >
               <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
-                {host.deleted ? "deleted" : host.status}
+                {showSpinner ? (
+                  <Space size={4}>
+                    <Spin size="small" />
+                    <span>{statusLabel}</span>
+                  </Space>
+                ) : (
+                  statusLabel
+                )}
               </Tag>
             </Tooltip>
           )}

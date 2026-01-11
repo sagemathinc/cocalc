@@ -1,9 +1,9 @@
-import { Button, Card, Col, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Tooltip, Typography } from "antd";
+import { Button, Card, Col, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Spin, Switch, Table, Tag, Tooltip, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import { HostCard } from "./host-card";
-import { STATUS_COLOR, getHostOnlineTooltip, getHostStatusTooltip, isHostOnline } from "../constants";
+import { STATUS_COLOR, getHostOnlineTooltip, getHostStatusTooltip, isHostOnline, isHostTransitioning } from "../constants";
 import type { ColumnsType } from "antd/es/table";
 import {
   getProviderDescriptor,
@@ -465,6 +465,8 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
         const hostOnline = isHostOnline(host.last_seen);
         const showOnlineTag = host.status === "running" && hostOnline;
         const showStaleTag = host.status === "running" && !hostOnline;
+        const showSpinner = isHostTransitioning(host.status);
+        const statusLabel = host.deleted ? "deleted" : host.status;
         return (
           <Space size="small">
             <Tooltip
@@ -476,7 +478,14 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               placement="top"
             >
               <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
-                {host.deleted ? "deleted" : host.status}
+                {showSpinner ? (
+                  <Space size={4}>
+                    <Spin size="small" />
+                    <span>{statusLabel}</span>
+                  </Space>
+                ) : (
+                  statusLabel
+                )}
               </Tag>
             </Tooltip>
             {showOnlineTag && (

@@ -339,6 +339,16 @@ async function updateHost(
     internal_url?: string | null;
   },
 ) {
+  if (updates.status !== undefined) {
+    const stack = new Error().stack;
+    logger.debug("status update", {
+      host_id: row.id,
+      status: updates.status,
+      previous: row.status,
+      source: "reconcile",
+      stack,
+    });
+  }
   const sets: string[] = [];
   const params: any[] = [row.id];
   let idx = 2;

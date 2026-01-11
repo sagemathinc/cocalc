@@ -26,6 +26,9 @@ service readiness are distinct.
 1. **Running vs Active**
    - **running**: provider reports the VM is running.
    - **active**: project-host heartbeat is present (daemon alive).
+   - **heartbeat gating**: ignore heartbeats unless current status is already
+     `running`/`active`, so a host shutting down cannot flip state back to
+     running mid-stop.
    - UI should show both if possible (e.g., “running / host offline”).
 2. **Starting with no IP**
    - If provider says running but no IP/tunnel yet, keep **starting** until
@@ -194,4 +197,3 @@ This reduces UI drift and avoids “off” while the VM is still stopping.
 ## Current Focus
 
 - **Nebius reprovision disk safety**: stop `mkfs` on already-formatted data disks and preserve `/btrfs` across reprovision/start.
-
