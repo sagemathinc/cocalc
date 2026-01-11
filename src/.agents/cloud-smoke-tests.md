@@ -75,7 +75,7 @@ Additionally, we must query the **data volume** (where applicable) to decide
 
 ---
 
-## Issues Observed (From Smoke Runs + Manual Checks)
+## \(done\) Issues Observed \(From Smoke Runs \+ Manual Checks\)
 
 - **Data disk re\-formatted on reprovision**: editing a stopped host and starting can wipe `/btrfs` \(Nebius repro shows empty project dir, root\-owned, no snapshots\). Suspect bootstrap is re\-running `mkfs` because sentinel is missing on a reattached disk.
 - **Project subvolume ownership**: after reprovision, project dir is owned by root and `.snapshots` creation fails. Likely a consequence of disk reformat, but guard should still ensure correct ownership.
