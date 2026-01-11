@@ -113,7 +113,7 @@ Details to not forget:
 [x] Update subscription maintenance messaging to describe memberships in [src/packages/server/purchases/maintain\-subscriptions.ts](./src/packages/server/purchases/maintain-subscriptions.ts) and [src/packages/server/purchases/subscription\-renewal\-emails.ts](./src/packages/server/purchases/subscription-renewal-emails.ts). \(easy\)
 
 Exit criteria: membership subscriptions can be created, billed, renewed, and displayed in backend APIs without touching licenses.  
-Risks/unknowns: metadata branching might miss legacy flows; subscription UI assumes license metadata in multiple places.  
+Risks/unknowns: metadata branching might miss legacy flows; subscription UI assumes license metadata in multiple places.
 
 ### Phase 2: Entitlements applied to projects + usage
 
@@ -126,29 +126,34 @@ Risks/unknowns: metadata branching might miss legacy flows; subscription UI assu
 [x] Add unit tests for membership purchase and upgrade \(prorated credit\). \(medium\)
 
 Exit criteria: project defaults and LLM usage limits are governed by membership entitlements with no per-call purchase spam.  
-Risks/unknowns: quota injection could conflict with legacy site_license stacking; LLM usage accounting needs a clear reset window and storage model.  
+Risks/unknowns: quota injection could conflict with legacy site_license stacking; LLM usage accounting needs a clear reset window and storage model.
 
 ### Phase 3: UI and migration/compatibility
 
 [x] Add membership\-aware UI rendering in [src/packages/frontend/purchases/subscriptions.tsx](./src/packages/frontend/purchases/subscriptions.tsx) and [src/packages/next/components/billing/subscriptions.tsx](./src/packages/next/components/billing/subscriptions.tsx) \(show membership class instead of license id\). \(medium\)  
-[x] Keep legacy license subscriptions visible under an “Advanced” tab or section in [src/packages/next/components/store](./src/packages/next/components/store). \(easy\)  
+[ ] Remove project-license UI from the app and store; keep only software licenses for onprem. \(medium\)  
+[ ] Add in-app membership purchase links to the store \(settings, subscriptions, upgrade CTAs\). \(easy\)  
+[ ] If legacy project licenses must remain accessible, move them behind an admin-only or advanced path. \(medium\)  
 [ ] Add migration/compat mapping: map existing license subscriptions to membership classes and preserve remaining value \(advanced/legacy still available\). \(hard\)
 
-[x] Make the Membership Tiers admin configuration user friendly \(custom react component form\). \(medium\)
+[ ] Replace raw JSON editing in membership tier admin UI with structured editors for `project_defaults`, `llm_limits`, and `features`, including validation and hints. \(medium\)
 
 [x] Add buying membership to the store \(hard\)
 
 UI todo (store + settings):
 
-[ ] Add “current plan” badges and disable CTA buttons accordingly on membership cards. (easy)  
-[ ] Show a prorated credit line item on checkout when upgrading member → pro. (medium)  
-[ ] Add a membership status panel in settings: class, source, renewal date, and usage summary. (medium)  
-[ ] Add a “why limited?” callout with upgrade links on LLM throttles and project start limits. (medium)  
-[ ] Hide membership “buy it again” and “saved for later” flows. (easy)  
-[ ] Add clear “what you get” copy/feature summaries in store + settings. (medium)  
+[ ] Add a membership status panel: tier, source, renewal/expiry, and usage summary, with "manage membership" or "upgrade" CTAs. (medium)  
+[ ] Show membership tier and benefits in account preferences (and optionally a top-level badge). (easy)  
+[ ] Link all "upgrade" affordances to the membership store; remove license-based upgrade copy. (easy)  
+[ ] Remove or hide project-license purchase UI and references in settings, project views, and purchases. (medium)  
+[ ] Add "current plan" badges and disable CTA buttons accordingly on membership cards. (easy)  
+[ ] Show a prorated credit line item on checkout when upgrading member -> pro. (medium)  
+[ ] Add a "why limited?" callout with upgrade links on LLM throttles and project start limits. (medium)  
+[ ] Hide membership "buy it again" and "saved for later" flows. (easy)  
+[ ] Add clear "what you get" copy/feature summaries in store + settings. (medium)
 
-Exit criteria: users can see membership subscriptions in UI, legacy licenses remain accessible, and existing paid value is preserved.  
-Risks/unknowns: migration mapping could under/over-credit value; “advanced” legacy UX needs careful labeling to avoid confusion.  
+Exit criteria: users can see membership subscriptions and status in UI, project-license UI is removed from standard flows, and existing paid value is preserved.  
+Risks/unknowns: migration mapping could under/over-credit value; any legacy license access needs a safe admin/advanced path.
 
 ## Open Questions
 
@@ -172,14 +177,15 @@ Risks/unknowns: migration mapping could under/over-credit value; “advanced” 
 - Store and resolver use table-driven tiers and priority.
 - Admin UI exists but uses raw JSON for complex fields (needs a structured editor).
 
-Risks/unknowns: multiple tier sources (org/course/subscription) need consistent conflict resolution; upgrade path rules for non-linear tiers need a simple policy.  
+Risks/unknowns: multiple tier sources (org/course/subscription) need consistent conflict resolution; upgrade path rules for non-linear tiers need a simple policy.
 
 ## Current Status Summary
 
-- Core membership backend is implemented and tested \(purchase + upgrade with proration\).  
-- Membership tiers are stored in a dedicated table and used by resolver + store.  
-- LLM usage is membership-based \(no pay-as-you-go\), with 5-hour + 7-day limits and usage status surfaced in UI.  
-- UI still lacks clear membership benefits messaging and a structured admin editor for tier limits/quotas.  
+- Core membership backend is implemented and tested \(purchase + upgrade with proration\).
+- Membership tiers are stored in a dedicated table and used by resolver + store.
+- LLM usage is membership-based \(no pay-as-you-go\), with 5-hour + 7-day limits and usage status surfaced in UI.
+- UI still lacks membership status/benefits surfaces, in-app membership purchase links, and removal of project-license UI.
+- Admin membership tier editing still relies on raw JSON for entitlements and needs a structured editor.
 
 ## Phase 4 (Planned): Team + Course Memberships (replace licenses)
 
@@ -187,35 +193,34 @@ Goal: enable membership-only operation \(for cocalc.ai\) without licenses, by su
 
 Proposed membership sources:
 
-- **Org/Team plan**: subscription with seats; owner assigns accounts to seats.  
-- **Course plan**: one-time purchase for a class term; instructor assigns students; auto-expire.  
+- **Org/Team plan**: subscription with seats; owner assigns accounts to seats.
+- **Course plan**: one-time purchase for a class term; instructor assigns students; auto-expire.
 
 Changes needed:
 
-- Data model: `org_membership_grants` and `course_membership_grants` tables, plus assignment tables.  
-- Resolver: include org/course sources and seat allocation logic.  
-- UI: admin/instructor tools to manage seats and assignments.  
-- Store: team plan purchase flow and course purchase flow \(non-renewing\).  
+- Data model: `org_membership_grants` and `course_membership_grants` tables, plus assignment tables.
+- Resolver: include org/course sources and seat allocation logic.
+- UI: admin/instructor tools to manage seats and assignments.
+- Store: team plan purchase flow and course purchase flow \(non-renewing\).
 
-Exit criteria: memberships cover the same real-world cases as licenses; licenses can be removed from cocalc.ai.  
+Exit criteria: memberships cover the same real-world cases as licenses; licenses can be removed from cocalc.ai.
 
 ## Bridge Solution (Before Team Plans Land)
 
-- Allow **project default tier** chosen by the owner, with **soft downgrade** when a free user starts a project.  
-- Allow a **sponsor this run** upgrade from any collaborator.  
-- Add a **team trial** (time‑boxed + seat‑limited) so owners can onboard collaborators without immediate payment.  
+- Allow **project default tier** chosen by the owner, with **soft downgrade** when a free user starts a project.
+- Allow a **sponsor this run** upgrade from any collaborator.
+- Add a **team trial** (time‑boxed + seat‑limited) so owners can onboard collaborators without immediate payment.
 
 ## cocalc.ai Launch Strategy
 
-- Keep cocalc.com as-is initially; launch cocalc.ai membership-only.  
-- Provide an explicit import flow to migrate projects + subscriptions opt-in.  
-- No automatic conversion of legacy licenses; use import tooling to map to memberships.  
+- Keep cocalc.com as-is initially; launch cocalc.ai membership-only.
+- Provide an explicit import flow to migrate projects + subscriptions opt-in.
+- No automatic conversion of legacy licenses; use import tooling to map to memberships.
 
 ## Forward Plan (Ordering)
 
-1. **UX clarity + admin editing**: explain membership benefits and build structured editors for LLM limits / project defaults.  
-2. **Entitlement tests**: add targeted tests for project quota injection and entitlement resolution.  
-3. **Team/Course sources**: build data model + resolver support for seats and courses.  
-4. **Team/Course UI + store**: purchase flows, assignment UI, seat management.  
-5. **License retirement for cocalc.ai**: remove licenses from store/UI; rely on team/course memberships.  
-
+1. **UX clarity + admin editing**: membership status UI, upgrade links, and structured editors for LLM limits / project defaults / features.
+2. **Entitlement tests**: add targeted tests for project quota injection and entitlement resolution.
+3. **Team/Course sources**: build data model + resolver support for seats and courses.
+4. **Team/Course UI + store**: purchase flows, assignment UI, seat management.
+5. **License retirement for cocalc.ai**: remove project licenses from store/UI; rely on team/course memberships.
