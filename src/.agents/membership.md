@@ -9,8 +9,8 @@
 
 ## Non-Goals (initial rollout)
 
-- Fully removing legacy purchases in one step.
 - Rewriting billing beyond what is needed to support membership sources and entitlements.
+- Keeping legacy project-license UI or purchase flows.
 
 ## Membership Model
 
@@ -71,10 +71,10 @@
 
 ## Migration Strategy
 
-- Map existing project licenses to membership classes:
+- Convert existing project licenses to membership classes:
   - License tiers map to member/pro with fixed end dates.
   - Remaining value is preserved via time credits.
-- Legacy purchases continue to work during transition via a compatibility layer.
+- Legacy project licenses are fully retired after migration (no UI exposure).
 
 ## Implementation Sketch
 
@@ -94,7 +94,7 @@
 
 - New membership dashboard and store flows.
 - Replace project-license-centric UI with membership-centric UI.
-- Maintain legacy UI in parallel until migration completes.
+- Remove license-based UI as migration tooling lands (no parallel legacy UI).
 
 ## Concrete Transition Checklist (Minimal Branching)
 
@@ -133,8 +133,8 @@ Risks/unknowns: quota injection could conflict with legacy site_license stacking
 [x] Add membership\-aware UI rendering in [src/packages/frontend/purchases/subscriptions.tsx](./src/packages/frontend/purchases/subscriptions.tsx) and [src/packages/next/components/billing/subscriptions.tsx](./src/packages/next/components/billing/subscriptions.tsx) \(show membership class instead of license id\). \(medium\)  
 [ ] Remove project-license UI from the app and store; keep only software licenses for onprem. \(medium\)  
 [ ] Add in-app membership purchase links to the store \(settings, subscriptions, upgrade CTAs\). \(easy\)  
-[ ] If legacy project licenses must remain accessible, move them behind an admin-only or advanced path. \(medium\)  
-[ ] Add migration/compat mapping: map existing license subscriptions to membership classes and preserve remaining value \(advanced/legacy still available\). \(hard\)
+[x] If legacy project licenses must remain accessible, move them behind an admin-only or advanced path. \(decision: remove legacy project licenses entirely\) \(medium\)  
+[ ] Add migration/compat mapping: map existing license subscriptions to membership classes and preserve remaining value \(no legacy UI\). \(hard\)
 
 [ ] Replace raw JSON editing in membership tier admin UI with structured editors for `project_defaults`, `llm_limits`, and `features`, including validation and hints. \(medium\)
 
@@ -145,15 +145,15 @@ UI todo (store + settings):
 [ ] Add a membership status panel: tier, source, renewal/expiry, and usage summary, with "manage membership" or "upgrade" CTAs. (medium)  
 [ ] Show membership tier and benefits in account preferences (and optionally a top-level badge). (easy)  
 [ ] Link all "upgrade" affordances to the membership store; remove license-based upgrade copy. (easy)  
-[ ] Remove or hide project-license purchase UI and references in settings, project views, and purchases. (medium)  
+[ ] Remove all project-license purchase UI and references in settings, project views, and purchases. (medium)  
 [ ] Add "current plan" badges and disable CTA buttons accordingly on membership cards. (easy)  
 [ ] Show a prorated credit line item on checkout when upgrading member -> pro. (medium)  
 [ ] Add a "why limited?" callout with upgrade links on LLM throttles and project start limits. (medium)  
 [ ] Hide membership "buy it again" and "saved for later" flows. (easy)  
 [ ] Add clear "what you get" copy/feature summaries in store + settings. (medium)
 
-Exit criteria: users can see membership subscriptions and status in UI, project-license UI is removed from standard flows, and existing paid value is preserved.  
-Risks/unknowns: migration mapping could under/over-credit value; any legacy license access needs a safe admin/advanced path.
+Exit criteria: users can see membership subscriptions and status in UI, project-license UI is removed entirely, and existing paid value is preserved.  
+Risks/unknowns: migration mapping could under/over-credit value; migration must avoid orphaned entitlements.
 
 ## Open Questions
 
@@ -187,7 +187,7 @@ Risks/unknowns: multiple tier sources (org/course/subscription) need consistent 
 - UI still lacks membership status/benefits surfaces, in-app membership purchase links, and removal of project-license UI.
 - Admin membership tier editing still relies on raw JSON for entitlements and needs a structured editor.
 
-## Phase 4 (Planned): Team + Course Memberships (replace licenses)
+## Phase 4 (Planned): Team + Course Memberships
 
 Goal: enable membership-only operation \(for cocalc.ai\) without licenses, by supporting org/team seats and course purchases.
 
@@ -203,7 +203,7 @@ Changes needed:
 - UI: admin/instructor tools to manage seats and assignments.
 - Store: team plan purchase flow and course purchase flow \(non-renewing\).
 
-Exit criteria: memberships cover the same real-world cases as licenses; licenses can be removed from cocalc.ai.
+Exit criteria: memberships cover the same real-world cases formerly handled by licenses.
 
 ## Bridge Solution (Before Team Plans Land)
 
@@ -215,7 +215,7 @@ Exit criteria: memberships cover the same real-world cases as licenses; licenses
 
 - Keep cocalc.com as-is initially; launch cocalc.ai membership-only.
 - Provide an explicit import flow to migrate projects + subscriptions opt-in.
-- No automatic conversion of legacy licenses; use import tooling to map to memberships.
+- Convert legacy licenses to memberships during import; no legacy license UI.
 
 ## Forward Plan (Ordering)
 
@@ -223,4 +223,12 @@ Exit criteria: memberships cover the same real-world cases as licenses; licenses
 2. **Entitlement tests**: add targeted tests for project quota injection and entitlement resolution.
 3. **Team/Course sources**: build data model + resolver support for seats and courses.
 4. **Team/Course UI + store**: purchase flows, assignment UI, seat management.
-5. **License retirement for cocalc.ai**: remove project licenses from store/UI; rely on team/course memberships.
+5. **License retirement**: remove project licenses from store/UI; rely on memberships only.
+
+## Membership Status UI Plan (Proposal)
+
+- Data: use existing membership and tier APIs, plus LLM usage status, to build a single client-side status model.
+- Surfaces: add a membership panel in account preferences and a compact summary in subscriptions/purchases.
+- Content: show tier name, source, renewal/expiry, and key entitlements; include usage summary and reset windows.
+- CTAs: route "manage membership" and "upgrade" to the store membership page; disable upgrade when already on that tier.
+- States: handle free tier, canceled-at-renewal, expired, and admin-granted memberships cleanly.
