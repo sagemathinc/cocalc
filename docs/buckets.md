@@ -23,7 +23,7 @@ future providers.
 ## Architecture Diagram
 
 ```mermaid
-flowchart LR
+flowchart TD
   subgraph DB[Postgres]
     Projects[(projects)]
     Buckets[(buckets)]
@@ -107,3 +107,15 @@ Migration requires an explicit admin action:
 - Optionally deprecate old bucket
 
 This is intentionally not automatic.
+
+## Provider Extensibility
+
+The `buckets` table is provider-agnostic. This design allows future use of any
+S3-compatible provider (e.g., B2, MinIO, or another object store) without
+changing project-level wiring. Only a provider-specific API adapter and config
+builder would be needed.
+
+## TODO
+
+- Admin UI: add a Buckets panel in `/admin` showing configured buckets, status,
+  actual location, and project counts.

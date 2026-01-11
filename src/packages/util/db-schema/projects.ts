@@ -73,6 +73,7 @@ Table({
           deleted: null,
           host_id: null,
           host: null,
+          region: null,
           settings: DEFAULT_QUOTAS,
           run_quota: null,
           site_license: null,
@@ -222,6 +223,10 @@ Table({
       type: "map",
       desc: "This is a map {host:'hostname_of_server', assigned:timestamp of when assigned to that server}.",
       date: ["assigned"],
+    },
+    region: {
+      type: "string",
+      desc: "Project backup region (Cloudflare R2 region code).",
     },
     settings: {
       type: "map",
@@ -771,6 +776,8 @@ export interface CreateProjectOptions {
   // combined with the project's own ~/.ssh/authorized_keys when serving SSH via project-host.
   authorized_keys?: string;
   rootfs_image?: string;
+  // Optional backup region (Cloudflare R2 region code).
+  region?: string;
   // (optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license
   license?: string;
   public_path_id?: string; // may imply use of a license

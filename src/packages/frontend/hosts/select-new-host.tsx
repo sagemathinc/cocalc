@@ -16,10 +16,14 @@ export function SelectNewHost({
   selectedHost,
   onChange,
   disabled,
+  regionFilter,
+  regionLabel,
 }: {
   selectedHost?: Host;
   onChange: (host?: Host) => void;
   disabled?: boolean;
+  regionFilter?: string;
+  regionLabel?: string;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -49,6 +53,11 @@ export function SelectNewHost({
                           {selectedHost.region}
                         </Tag>
                       )}
+                      {regionLabel && (
+                        <Tag color="geekblue" style={{ marginRight: 6 }}>
+                          {regionLabel}
+                        </Tag>
+                      )}
                       {selectedHost.tier != null && (
                         <Tag color="purple" style={{ marginRight: 6 }}>
                           Tier {selectedHost.tier}
@@ -56,7 +65,7 @@ export function SelectNewHost({
                       )}
                     </>
                   ) : (
-                    "Auto (best available host)"
+                    `Auto (best available host${regionLabel ? ` in ${regionLabel}` : ""})`
                   )}
                 </div>
               </div>
@@ -91,6 +100,8 @@ export function SelectNewHost({
       <HostPickerModal
         open={pickerOpen}
         currentHostId={selectedHost?.id}
+        regionFilter={regionFilter}
+        lockRegion={Boolean(regionFilter)}
         onCancel={() => setPickerOpen(false)}
         onSelect={(_, host) => {
           setPickerOpen(false);

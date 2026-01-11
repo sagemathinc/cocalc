@@ -13,4 +13,13 @@ export { CONAT_LLM_HISTORY_KEY } from "./llm";
 
 export { DUMMY_SECRET } from "./project";
 
+export {
+  DEFAULT_R2_REGION,
+  R2_REGION_LABELS,
+  R2_REGIONS,
+  mapCloudRegionToR2Region,
+  parseR2Region,
+  type R2Region,
+} from "./r2-regions";
+
 export { SERVER_SETTINGS_ENV_PREFIX } from "./server_settings";

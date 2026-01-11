@@ -5,6 +5,11 @@ import { secrets } from "@cocalc/backend/data";
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
+import {
+  DEFAULT_R2_REGION,
+  mapCloudRegionToR2Region,
+  parseR2Region,
+} from "@cocalc/util/consts";
 import { createBucket, R2BucketInfo } from "./r2";
 
 const DEFAULT_BACKUP_TTL_SECONDS = 60 * 60 * 12; // 12 hours
@@ -14,32 +19,10 @@ const BUCKET_PURPOSE = "project-backups";
 
 const logger = getLogger("server:project-backup");
 
-type R2Region = "wnam" | "enam" | "weur" | "eeur" | "apac" | "oc";
-
-function resolveR2Region(region: string): R2Region {
-  const value = region.trim().toLowerCase();
-  if (!value) {
-    return "wnam";
-  }
-  if (/^us-(west|south)/.test(value) || value.includes("canada")) {
-    return "wnam";
-  }
-  if (/^us-(east|central|north)/.test(value) || value.startsWith("us-")) {
-    return "enam";
-  }
-  if (value.startsWith("eu-") || value.includes("norway")) {
-    return "weur";
-  }
-  if (value.startsWith("me-")) {
-    return "eeur";
-  }
-  if (value.startsWith("ap-") || value.startsWith("asia") || value.includes("apac")) {
-    return "apac";
-  }
-  if (value.startsWith("oc") || value.includes("australia")) {
-    return "oc";
-  }
-  return "wnam";
+function normalizeLocation(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const normalized = value.trim().toLowerCase();
+  return normalized || null;
 }
 
 function pool() {
@@ -85,7 +68,27 @@ async function findBucketForRegion(region: string): Promise<BucketRow | null> {
     "SELECT id, name, provider, purpose, region, location, account_id, access_key_id, secret_access_key, endpoint, status FROM buckets WHERE provider=$1 AND purpose=$2 AND region=$3 AND (status IS NULL OR status != 'disabled') ORDER BY created DESC LIMIT 1",
     [BUCKET_PROVIDER, BUCKET_PURPOSE, region],
   );
-  return rows[0] ?? null;
+  const row = rows[0];
+  if (!row) return null;
+  const normalizedLocation = normalizeLocation(row.location ?? null);
+  const normalizedRegion = normalizeLocation(row.region ?? null);
+  const desiredStatus =
+    normalizedLocation && normalizedRegion && normalizedLocation !== normalizedRegion
+      ? "mismatch"
+      : normalizedLocation
+        ? "active"
+        : "unknown";
+  if (
+    normalizedLocation !== row.location ||
+    (row.status ?? "unknown") !== desiredStatus
+  ) {
+    await pool().query(
+      "UPDATE buckets SET location=$2, status=$3, updated=NOW() WHERE id=$1",
+      [row.id, normalizedLocation, desiredStatus],
+    );
+    return { ...row, location: normalizedLocation, status: desiredStatus };
+  }
+  return row;
 }
 
 async function insertBucketRecord({
@@ -104,7 +107,7 @@ async function insertBucketRecord({
   created?: R2BucketInfo;
 }): Promise<BucketRow> {
   const name = `${bucketPrefix}-${region}`;
-  const location = created?.location ?? null;
+  const location = normalizeLocation(created?.location ?? null);
   const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
   const status =
     location && location !== region ? "mismatch" : location ? "active" : "unknown";
@@ -153,7 +156,8 @@ async function getOrCreateBucketForRegion(region: string): Promise<BucketRow | n
   let created: R2BucketInfo | undefined;
   try {
     created = await createBucket(apiToken, accountId, `${bucketPrefix}-${region}`, region);
-    if (created.location && created.location !== region) {
+    const createdLocation = normalizeLocation(created.location ?? null);
+    if (createdLocation && createdLocation !== region) {
       logger.warn("r2 bucket location mismatch", {
         name: created.name,
         region,
@@ -200,6 +204,29 @@ async function getProjectBucket(project_id: string, region: string): Promise<Buc
     );
   }
   return bucket;
+}
+
+async function resolveProjectRegion(
+  project_id: string,
+  hostRegion?: string | null,
+): Promise<string> {
+  const { rows } = await pool().query<{ region: string | null }>(
+    "SELECT region FROM projects WHERE project_id=$1",
+    [project_id],
+  );
+  if (!rows[0]) {
+    throw new Error("project not found");
+  }
+  const stored = rows[0].region ?? null;
+  const parsed = parseR2Region(stored);
+  if (parsed) return parsed;
+
+  const mapped = mapCloudRegionToR2Region(hostRegion ?? DEFAULT_R2_REGION);
+  await pool().query("UPDATE projects SET region=$2 WHERE project_id=$1", [
+    project_id,
+    mapped,
+  ]);
+  return mapped;
 }
 
 async function getProjectBackupSecret(project_id: string): Promise<string> {
@@ -310,11 +337,14 @@ export async function getBackupConfig({
     throw new Error("host not found");
   }
 
-  const hostRegion = rows[0]?.region ?? "";
-  const r2Region = resolveR2Region(hostRegion);
+  const hostRegion = rows[0]?.region ?? null;
+  const hostR2Region = mapCloudRegionToR2Region(hostRegion ?? DEFAULT_R2_REGION);
+  const projectR2Region = project_id
+    ? await resolveProjectRegion(project_id, hostRegion)
+    : hostR2Region;
   const bucket = project_id
-    ? await getProjectBucket(project_id, r2Region)
-    : await getOrCreateBucketForRegion(r2Region);
+    ? await getProjectBucket(project_id, projectR2Region)
+    : await getOrCreateBucketForRegion(projectR2Region);
   if (!bucket) {
     return { toml: "", ttl_seconds: 0 };
   }

@@ -14,6 +14,7 @@ import {
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { mapCloudRegionToR2Region, R2_REGION_LABELS } from "@cocalc/util/consts";
 
 import { getHostStatusTooltip } from "./constants";
 
@@ -33,17 +34,23 @@ export function HostPickerModal({
   onCancel,
   onSelect,
   currentHostId,
+  regionFilter,
+  lockRegion,
 }: {
   open: boolean;
   currentHostId?: string;
   onCancel: () => void;
   onSelect: (host_id: string, host?: Host) => void;
+  regionFilter?: string;
+  lockRegion?: boolean;
 }) {
   const [hosts, setHosts] = useState<Host[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | undefined>();
   const [showUnavailable, setShowUnavailable] = useState(false);
-  const [regionFilter, setRegionFilter] = useState<string | undefined>();
+  const [regionFilterState, setRegionFilterState] = useState<string | undefined>(
+    regionFilter,
+  );
 
   const grouped = useMemo(() => {
     const groups: { label: string; items: Host[] }[] = [];
@@ -53,7 +60,11 @@ export function HostPickerModal({
 
     const filtered = hosts.filter((h) => {
       if (!showUnavailable && h.can_place === false) return false;
-      if (regionFilter && h.region !== regionFilter) return false;
+      if (
+        regionFilterState &&
+        mapCloudRegionToR2Region(h.region) !== regionFilterState
+      )
+        return false;
       return true;
     });
 
@@ -103,7 +114,16 @@ export function HostPickerModal({
       );
     }
     return items;
-  }, [hosts, currentHostId, showUnavailable, regionFilter]);
+  }, [hosts, currentHostId, showUnavailable, regionFilterState]);
+
+  const availableRegions = useMemo(() => {
+    const regions = new Set<string>();
+    for (const host of hosts) {
+      const mapped = mapCloudRegionToR2Region(host.region);
+      if (mapped) regions.add(mapped);
+    }
+    return Array.from(regions);
+  }, [hosts]);
 
   const load = async () => {
     setLoading(true);
@@ -127,8 +147,11 @@ export function HostPickerModal({
   useEffect(() => {
     if (open) {
       load().catch(console.error);
+      if (regionFilter) {
+        setRegionFilterState(regionFilter);
+      }
     }
-  }, [open]);
+  }, [open, regionFilter]);
 
   return (
     <Modal
@@ -163,24 +186,34 @@ export function HostPickerModal({
         >
           {showUnavailable ? "Hide unavailable" : "Show unavailable"}
         </Button>
-        <Dropdown
-          menu={{
-            items: [
-              { key: "all", label: "All regions" },
-              ...Array.from(new Set(hosts.map((h) => h.region))).map((r) => ({
-                key: r,
-                label: r,
-              })),
-            ],
-            onClick: ({ key }) =>
-              setRegionFilter(key === "all" ? undefined : key),
-          }}
-          trigger={["click"]}
-        >
-          <Button size="small">
-            Region: {regionFilter ?? "All"}
-          </Button>
-        </Dropdown>
+        {!lockRegion && (
+          <Dropdown
+            menu={{
+              items: [
+                { key: "all", label: "All regions" },
+                ...availableRegions.map((region) => ({
+                  key: region,
+                  label: R2_REGION_LABELS[region] ?? region,
+                })),
+              ],
+              onClick: ({ key }) =>
+                setRegionFilterState(key === "all" ? undefined : key),
+            }}
+            trigger={["click"]}
+          >
+            <Button size="small">
+              Region:{" "}
+              {regionFilterState
+                ? R2_REGION_LABELS[regionFilterState] ?? regionFilterState
+                : "All"}
+            </Button>
+          </Dropdown>
+        )}
+        {lockRegion && regionFilterState && (
+          <Tag color="geekblue">
+            Region: {R2_REGION_LABELS[regionFilterState] ?? regionFilterState}
+          </Tag>
+        )}
       </Space>
       <Radio.Group
         style={{ width: "100%" }}

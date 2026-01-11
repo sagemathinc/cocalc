@@ -7,7 +7,7 @@
 Create a new project
 */
 
-import { Button, Card, Col, Form, Input, Modal, Row } from "antd";
+import { Button, Card, Col, Form, Input, Modal, Row, Select } from "antd";
 import { delay } from "awaiting";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -37,6 +37,13 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
+import {
+  DEFAULT_R2_REGION,
+  mapCloudRegionToR2Region,
+  R2_REGION_LABELS,
+  R2_REGIONS,
+  type R2Region,
+} from "@cocalc/util/consts";
 import { isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
@@ -89,6 +96,16 @@ export function NewProjectCreator({
   const [show_add_license, set_show_add_license] =
     useState<boolean>(requireLicense);
   const [selectedHost, setSelectedHost] = useState<Host | undefined>();
+  const [projectRegion, setProjectRegion] =
+    useState<R2Region>(DEFAULT_R2_REGION);
+  const regionOptions = useMemo(
+    () =>
+      R2_REGIONS.map((region) => ({
+        value: region,
+        label: R2_REGION_LABELS[region],
+      })),
+    [],
+  );
 
   // onprem and cocalc.com use licenses to adjust quota configs – but only cocalc.com has custom software images
   const show = useMemo(
@@ -105,6 +122,14 @@ export function NewProjectCreator({
   useEffect(() => {
     set_title_manually(default_value.length > 0);
   }, [default_value.length > 0]);
+
+  useEffect(() => {
+    if (!selectedHost) return;
+    const hostRegion = mapCloudRegionToR2Region(selectedHost.region);
+    if (hostRegion !== projectRegion) {
+      setSelectedHost(undefined);
+    }
+  }, [projectRegion, selectedHost]);
 
   // Open modal when open_trigger changes
   useEffect(() => {
@@ -129,6 +154,7 @@ export function NewProjectCreator({
   function start_editing(): void {
     set_state("edit");
     set_title_text(default_value || getDefaultTitle());
+    setProjectRegion(DEFAULT_R2_REGION);
     select_text();
   }
 
@@ -142,6 +168,7 @@ export function NewProjectCreator({
     set_title_manually(false);
     set_license_id("");
     setSelectedHost(undefined);
+    setProjectRegion(DEFAULT_R2_REGION);
   }
 
   function toggle_editing(): void {
@@ -162,6 +189,7 @@ export function NewProjectCreator({
       start: true, // used to not start, due to apply_default_upgrades, but upgrades are  deprecated
       license: license_id,
       host_id: selectedHost?.id,
+      region: projectRegion,
     };
     try {
       project_id = await actions.create_project(opts);
@@ -415,10 +443,33 @@ export function NewProjectCreator({
           </Col>
           <SoftwareEnvironment onChange={onChangeHandler} />
         </Row>
+        <Row gutter={[30, 10]} style={{ paddingTop: 10 }}>
+          <Col sm={12}>
+            <Card size="small" bodyStyle={{ padding: "10px 12px" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+                <div style={{ fontWeight: 600 }}>Backup region</div>
+                <Select
+                  value={projectRegion}
+                  onChange={(value) => setProjectRegion(value as R2Region)}
+                  options={regionOptions}
+                  disabled={state === "saving"}
+                />
+              </div>
+            </Card>
+          </Col>
+          <Col sm={12}>
+            <Paragraph type="secondary">
+              Backups are stored in this region. Projects can only run on hosts in
+              the same region.
+            </Paragraph>
+          </Col>
+        </Row>
         <SelectNewHost
           disabled={state === "saving"}
           selectedHost={selectedHost}
           onChange={setSelectedHost}
+          regionFilter={projectRegion}
+          regionLabel={R2_REGION_LABELS[projectRegion]}
         />
         {render_add_license()}
         {render_license()}

@@ -429,6 +429,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     start?: boolean; // immediately start on create
     license?: string;
     host_id?: string;
+    region?: string;
   }): Promise<string> {
     const image = await redux.getStore("customize").getDefaultComputeImage();
 
@@ -437,6 +438,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       description: string;
       image?: string;
       host_id?: string;
+      region?: string;
       start: boolean;
       license?: string;
     } = defaults(opts, {
@@ -444,6 +446,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       description: "No Description",
       image,
       host_id: undefined,
+      region: undefined,
       start: false,
       license: undefined,
     });

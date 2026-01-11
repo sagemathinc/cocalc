@@ -24,6 +24,11 @@ import {
   normalizeHostTier,
 } from "@cocalc/server/project-host/placement";
 import { resolveMembershipForAccount } from "@cocalc/server/membership/resolve";
+import {
+  DEFAULT_R2_REGION,
+  mapCloudRegionToR2Region,
+  parseR2Region,
+} from "@cocalc/util/consts";
 
 const log = getLogger("server:projects:create");
 
@@ -46,6 +51,7 @@ export default async function createProject(opts: CreateProjectOptions) {
     src_project_id,
     ephemeral,
     host_id: requested_host_id,
+    region: requested_region_raw,
   } = opts;
 
   let license = opts.license;
@@ -100,6 +106,7 @@ export default async function createProject(opts: CreateProjectOptions) {
     if (!can_place) {
       throw Error("not allowed to place a project on that host");
     }
+    const hostRegion = mapCloudRegionToR2Region(row.region ?? "");
     return {
       host_id,
       host: {
@@ -110,6 +117,7 @@ export default async function createProject(opts: CreateProjectOptions) {
         region: row.region,
         tier: normalizeHostTier(row.tier),
       },
+      hostRegion,
     };
   }
 
@@ -122,12 +130,15 @@ export default async function createProject(opts: CreateProjectOptions) {
     }
     // keep the clone on the same project-host as the source unless explicitly overridden
     const { rows } = await pool.query(
-      "SELECT host_id, host FROM projects WHERE project_id=$1",
+      "SELECT host_id, host, region FROM projects WHERE project_id=$1",
       [src_project_id],
     );
     if (!host_id && rows[0]?.host_id) {
       host_id = rows[0].host_id;
       host = rows[0]?.host;
+    }
+    if (!opts.region && rows[0]?.region) {
+      opts.region = rows[0].region;
     }
     // create filesystem for new project as a clone.
     // Route clone to the host that owns the source project.
@@ -135,8 +146,19 @@ export default async function createProject(opts: CreateProjectOptions) {
     await client.clone({ project_id, src_project_id });
   }
 
+  const requestedRegion = parseR2Region(requested_region_raw);
+  if (requested_region_raw && !requestedRegion) {
+    throw Error("invalid region");
+  }
+
+  let hostRegion: string | undefined;
   if (host_id && !host) {
-    ({ host_id, host } = await resolveHostPlacement(host_id));
+    ({ host_id, host, hostRegion } = await resolveHostPlacement(host_id));
+  }
+
+  const projectRegion = requestedRegion ?? hostRegion ?? DEFAULT_R2_REGION;
+  if (requestedRegion && hostRegion && requestedRegion !== hostRegion) {
+    throw Error("project region must match host region");
   }
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };
@@ -153,7 +175,7 @@ export default async function createProject(opts: CreateProjectOptions) {
   const envs = await getSoftwareEnvironments("server");
 
   await pool.query(
-    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, rootfs_image, ephemeral, host_id, host) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8::BIGINT, $9, $10)",
+    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, rootfs_image, ephemeral, host_id, host, region) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8::BIGINT, $9, $10, $11)",
     [
       project_id,
       title ?? "No Title",
@@ -165,6 +187,7 @@ export default async function createProject(opts: CreateProjectOptions) {
       ephemeral ?? null,
       host_id ?? null,
       host != null ? JSON.stringify(host) : null,
+      projectRegion,
     ],
   );
 
