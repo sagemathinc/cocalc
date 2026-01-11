@@ -323,7 +323,7 @@ def test(args) -> None:
             if args.test_github_ci and 'test-github-ci' in package_json:
                 test_cmd = "pnpm run test-github-ci"
             else:
-                test_cmd = "pnpm run --if-present test"
+                test_cmd = "pnpm run --if-present test:all || pnpm run --if-present test"
             if args.report:
                 test_cmd += " --reporters=default --reporters=jest-junit"
             if args.max_workers:
