@@ -1,4 +1,4 @@
-import { Button, Card, Popconfirm, Space, Tag, Tooltip, Typography } from "antd";
+import { Button, Card, Popconfirm, Space, Spin, Tag, Tooltip, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import {
@@ -6,6 +6,7 @@ import {
   getHostOnlineTooltip,
   getHostStatusTooltip,
   isHostOnline,
+  isHostTransitioning,
 } from "../constants";
 import {
   getProviderDescriptor,
@@ -49,6 +50,8 @@ export const HostCard: React.FC<HostCardProps> = ({
   const hostOnline = isHostOnline(host.last_seen);
   const showOnlineTag = host.status === "running" && hostOnline;
   const showStaleTag = host.status === "running" && !hostOnline;
+  const showSpinner = isHostTransitioning(host.status);
+  const statusLabel = host.deleted ? "deleted" : host.status;
   const startDisabled =
     isDeleted ||
     host.status === "running" ||
@@ -170,7 +173,14 @@ export const HostCard: React.FC<HostCardProps> = ({
             placement="top"
           >
             <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
-              {host.deleted ? "deleted" : host.status}
+              {showSpinner ? (
+                <Space size={4}>
+                  <Spin size="small" />
+                  <span>{statusLabel}</span>
+                </Space>
+              ) : (
+                statusLabel
+              )}
             </Tag>
           </Tooltip>
           {showOnlineTag && (

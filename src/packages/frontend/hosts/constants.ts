@@ -20,6 +20,12 @@ export const STATUS_COLOR = {
   off: "red",
 } as const;
 
+export function isHostTransitioning(status?: string): boolean {
+  return (
+    status === "starting" || status === "stopping" || status === "restarting"
+  );
+}
+
 export const HOST_ONLINE_WINDOW_MS = 2 * 60 * 1000;
 const HOST_ONLINE_WINDOW_MINUTES = Math.floor(HOST_ONLINE_WINDOW_MS / 60000);
 
