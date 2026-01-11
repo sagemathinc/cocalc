@@ -10,6 +10,7 @@ Admin UI for membership tiers.
 import {
   Button,
   Checkbox,
+  Divider,
   Form,
   Input,
   InputNumber,
@@ -30,6 +31,7 @@ import {
   Saving,
   TimeAgo,
 } from "@cocalc/frontend/components";
+import { JsonObjectEditor } from "@cocalc/frontend/components/json-object-editor";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
 import { COLORS } from "@cocalc/util/theme";
@@ -165,16 +167,6 @@ interface Tier {
   updated?: dayjs.Dayjs;
 }
 
-function toJsonText(value: unknown): string | undefined {
-  if (value == null) return undefined;
-  if (typeof value === "string") return value;
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch (_err) {
-    return String(value);
-  }
-}
-
 function parseJsonField(
   value: string | unknown | undefined,
   label: string,
@@ -255,9 +247,9 @@ function use_membership_tiers() {
     if (editing != null) {
       form.setFieldsValue({
         ...editing,
-        project_defaults: toJsonText(editing.project_defaults),
-        llm_limits: toJsonText(editing.llm_limits),
-        features: toJsonText(editing.features),
+        project_defaults: editing.project_defaults ?? {},
+        llm_limits: editing.llm_limits ?? {},
+        features: editing.features ?? {},
         active: !editing.disabled,
       });
     }
@@ -421,6 +413,9 @@ export function MembershipTiers() {
     save,
     load,
   } = use_membership_tiers();
+  const [jsonErrors, setJsonErrors] = React.useState<Record<string, string>>(
+    {},
+  );
 
   function render_edit() {
     const layout = {
@@ -435,12 +430,24 @@ export function MembershipTiers() {
       const template = TIER_TEMPLATES[key];
       form.setFieldsValue({
         ...template,
-        project_defaults: toJsonText(template.project_defaults),
-        llm_limits: toJsonText(template.llm_limits ?? {}),
-        features: toJsonText((template as { features?: unknown }).features ?? {}),
+        project_defaults: template.project_defaults ?? {},
+        llm_limits: template.llm_limits ?? {},
+        features: (template as { features?: unknown }).features ?? {},
         active: true,
       });
     };
+    const updateJsonError = (field: string, err?: string) => {
+      setJsonErrors((prev) => {
+        const next = { ...prev };
+        if (err) {
+          next[field] = err;
+        } else {
+          delete next[field];
+        }
+        return next;
+      });
+    };
+    const hasJsonErrors = Object.keys(jsonErrors).length > 0;
 
     return (
       <>
@@ -461,6 +468,7 @@ export function MembershipTiers() {
           name="edit-membership-tier"
           onFinish={onFinish}
         >
+          <Divider>Basics</Divider>
           <Form.Item name="id" label="Tier ID" rules={[{ required: true }]}>
             <Input disabled={editingExisting} />
           </Form.Item>
@@ -483,28 +491,40 @@ export function MembershipTiers() {
           <Form.Item name="price_yearly" label="Yearly price">
             <InputNumber min={0} step={1} />
           </Form.Item>
-          <Form.Item
-            name="project_defaults"
-            label="Project defaults"
-            tooltip="JSON object"
-          >
-            <Input.TextArea rows={4} placeholder="{}" />
-          </Form.Item>
-          <Form.Item name="llm_limits" label="LLM limits" tooltip="JSON object">
-            <Input.TextArea rows={3} placeholder="{}" />
-          </Form.Item>
-          <Form.Item name="features" label="Features" tooltip="JSON object">
-            <Input.TextArea rows={3} placeholder="{}" />
-          </Form.Item>
           <Form.Item name="notes" label="Notes">
             <Input.TextArea rows={2} />
           </Form.Item>
-          <Form.Item name="active" label="Active" valuePropName="checked">
+          <Form.Item
+            name="active"
+            label="Active"
+            valuePropName="checked"
+          >
             <Switch />
+          </Form.Item>
+          <Divider>Entitlements / Features</Divider>
+          <Form.Item name="features" label="Features">
+            <JsonObjectEditor
+              emptyHint="No feature flags yet."
+              onErrorChange={(err) => updateJsonError("features", err)}
+            />
+          </Form.Item>
+          <Divider>Project Defaults</Divider>
+          <Form.Item name="project_defaults" label="Defaults">
+            <JsonObjectEditor
+              emptyHint="No default quotas set."
+              onErrorChange={(err) => updateJsonError("project_defaults", err)}
+            />
+          </Form.Item>
+          <Divider>LLM Limits</Divider>
+          <Form.Item name="llm_limits" label="Limits">
+            <JsonObjectEditor
+              emptyHint="No limits defined."
+              onErrorChange={(err) => updateJsonError("llm_limits", err)}
+            />
           </Form.Item>
           <Form.Item {...tailLayout}>
             <Button.Group>
-              <Button type="primary" htmlType="submit">
+              <Button type="primary" htmlType="submit" disabled={hasJsonErrors}>
                 Save
               </Button>
               <Button
@@ -520,6 +540,13 @@ export function MembershipTiers() {
                 Cancel
               </Button>
             </Button.Group>
+            {hasJsonErrors && (
+              <div style={{ marginTop: "8px" }}>
+                <Text type="danger">
+                  Fix errors in JSON fields before saving.
+                </Text>
+              </div>
+            )}
           </Form.Item>
         </Form>
       </>
