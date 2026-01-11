@@ -1,9 +1,9 @@
-import { Button, Card, Col, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Typography } from "antd";
+import { Button, Card, Col, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Tooltip, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import { HostCard } from "./host-card";
-import { STATUS_COLOR } from "../constants";
+import { STATUS_COLOR, getHostOnlineTooltip, getHostStatusTooltip, isHostOnline } from "../constants";
 import type { ColumnsType } from "antd/es/table";
 import {
   getProviderDescriptor,
@@ -17,7 +17,6 @@ import type {
 
 const STATUS_ORDER = [
   "running",
-  "active",
   "starting",
   "restarting",
   "off",
@@ -302,9 +301,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       selectedHosts.filter(
         (host) =>
           !host.deleted &&
-          (host.status === "running" ||
-            (host.status as Host["status"] | "active") === "active" ||
-            host.status === "error"),
+          (host.status === "running" || host.status === "error"),
       ),
     [selectedHosts],
   );
@@ -464,11 +461,40 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             ? "ascend"
             : "descend"
           : undefined,
-      render: (_: string, host: Host) => (
-        <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
-          {host.deleted ? "deleted" : host.status}
-        </Tag>
-      ),
+      render: (_: string, host: Host) => {
+        const hostOnline = isHostOnline(host.last_seen);
+        const showStaleTag =
+          !hostOnline &&
+          (host.status === "running" ||
+            host.status === "starting" ||
+            host.status === "restarting");
+        return (
+          <Space size="small">
+            <Tooltip
+              title={getHostStatusTooltip(
+                host.status,
+                Boolean(host.deleted),
+                host.provider_observed_at,
+              )}
+              placement="top"
+            >
+              <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
+                {host.deleted ? "deleted" : host.status}
+              </Tag>
+            </Tooltip>
+            {hostOnline && (
+              <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
+                <Tag color="green">online</Tag>
+              </Tooltip>
+            )}
+            {showStaleTag && (
+              <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
+                <Tag color="orange">stale</Tag>
+              </Tooltip>
+            )}
+          </Space>
+        );
+      },
     },
     {
       title: "Actions",
@@ -495,12 +521,9 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               ? "Restarting"
               : "Start";
         const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
-        const statusValue = host.status as Host["status"] | "active";
+        const statusValue = host.status;
         const allowStop =
-          !isDeleted &&
-          (statusValue === "running" ||
-            statusValue === "active" ||
-            statusValue === "error");
+          !isDeleted && (statusValue === "running" || statusValue === "error");
         const providerId = host.machine?.cloud;
         const caps = providerId ? providerCapabilities?.[providerId] : undefined;
         const supportsRestart = caps?.supportsRestart ?? true;
@@ -508,9 +531,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
         const allowRestart =
           !isDeleted &&
           connectorOnline &&
-          (statusValue === "running" ||
-            statusValue === "active" ||
-            statusValue === "error") &&
+          (statusValue === "running" || statusValue === "error") &&
           (supportsRestart || supportsHardRestart);
         const deleteLabel = isDeleted
           ? "Deleted"

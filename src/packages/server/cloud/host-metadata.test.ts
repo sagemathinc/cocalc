@@ -26,7 +26,7 @@ describe("project host metadata updates", () => {
       id: "11111111-1111-1111-1111-111111111111",
       name: "Host One",
       region: "us-west1",
-      status: "active",
+      status: "running",
     });
 
     const { rows } = await getPool().query(

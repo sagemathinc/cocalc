@@ -51,7 +51,7 @@ export async function initHostRegistryService() {
         });
         await upsertProjectHost({
           ...info,
-          status: info.status ?? "active",
+          status: info.status,
           last_seen: new Date(),
         });
         await publishKey(info);
@@ -63,7 +63,7 @@ export async function initHostRegistryService() {
         logger.silly?.("heartbeat", { id: info.id, status: info.status });
         await upsertProjectHost({
           ...info,
-          status: info.status ?? "active",
+          status: info.status,
           last_seen: new Date(),
         });
         await publishKey(info);

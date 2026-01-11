@@ -8,6 +8,7 @@ import {
   Popconfirm,
   Space,
   Tag,
+  Tooltip,
   Typography,
 } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
@@ -15,7 +16,12 @@ import Bootlog from "@cocalc/frontend/project/bootlog";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import type { HostLogEntry } from "../hooks/use-host-log";
-import { STATUS_COLOR } from "../constants";
+import {
+  STATUS_COLOR,
+  getHostOnlineTooltip,
+  getHostStatusTooltip,
+  isHostOnline,
+} from "../constants";
 import { getProviderDescriptor, isKnownProvider } from "../providers/registry";
 
 type HostDrawerViewModel = {
@@ -152,6 +158,18 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
       {connectorOnline ? "Connector online" : "Connector offline"}
     </Tag>
   ) : null;
+  const onlineTag =
+    host && !host.deleted ? (
+      isHostOnline(host.last_seen) ? (
+        <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
+          <Tag color="green">online</Tag>
+        </Tooltip>
+      ) : (
+        <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
+          <Tag color="default">stale</Tag>
+        </Tooltip>
+      )
+    ) : null;
   const canForceDeprovision =
     !!host &&
     isSelfHost &&
@@ -164,10 +182,19 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
         <Space>
           <Icon name="server" /> {host?.name ?? "Host details"}
           {host && (
-            <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
-              {host.deleted ? "deleted" : host.status}
-            </Tag>
+            <Tooltip
+              title={getHostStatusTooltip(
+                host.status,
+                Boolean(host.deleted),
+                host.provider_observed_at,
+              )}
+            >
+              <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
+                {host.deleted ? "deleted" : host.status}
+              </Tag>
+            </Tooltip>
           )}
+          {onlineTag}
           {host && (
             <Button
               type="link"
@@ -198,7 +225,9 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
             <Tag>{host.size}</Tag>
             {host.gpu && <Tag color="purple">GPU</Tag>}
             {host.reprovision_required && (
-              <Tag color="orange">Reprovision on next start</Tag>
+              <Tooltip title="Host config changed while stopped; will reprovision on next start.">
+                <Tag color="orange">Reprovision on next start</Tag>
+              </Tooltip>
             )}
           </Space>
           <Typography.Text copyable={{ text: host.id }}>

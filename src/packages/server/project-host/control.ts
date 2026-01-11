@@ -96,7 +96,7 @@ export async function selectActiveHost(exclude_host_id?: string) {
     `
       SELECT id, name, region, public_url, internal_url, ssh_server, tier
       FROM project_hosts
-      WHERE status='active'
+      WHERE status='running'
         AND deleted IS NULL
         AND last_seen > NOW() - interval '2 minutes'
         ${exclude_host_id ? "AND id != $1" : ""}
@@ -148,7 +148,7 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
 
   const chosen = await selectActiveHost();
   if (!chosen) {
-    throw Error("no active project-host available");
+    throw Error("no running project-host available");
   }
 
   const client = createHostControlClient({
@@ -280,7 +280,7 @@ export async function requestMoveToHost({
     dest_host_id ??
     (await selectActiveHost(meta.host_id))?.id ??
     (() => {
-      throw Error("no active project-host available");
+      throw Error("no running project-host available");
     })();
 
   if (dest === meta.host_id) {

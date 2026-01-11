@@ -30,7 +30,7 @@ async function chooseDestination(
   if (dest_host_id) return dest_host_id;
   const chosen = await selectActiveHost(source_host_id);
   if (!chosen) {
-    throw Error("no active project-host available");
+    throw Error("no running project-host available");
   }
   return chosen.id;
 }

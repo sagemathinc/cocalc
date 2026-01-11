@@ -8,11 +8,14 @@ import {
   Radio,
   Space,
   Tag,
+  Tooltip,
   Typography,
 } from "antd";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { Icon } from "@cocalc/frontend/components/icon";
+
+import { getHostStatusTooltip } from "./constants";
 
 const STATUS_COLOR = {
   stopped: "red",
@@ -216,9 +219,17 @@ export function HostPickerModal({
                       <Radio value={host.id} disabled={disabled}>
                         {host.name}
                       </Radio>
-                      <Tag color={STATUS_COLOR[host.status] ?? "default"}>
-                        {host.status}
-                      </Tag>
+                      <Tooltip
+                        title={getHostStatusTooltip(
+                          host.status,
+                          Boolean(host.deleted),
+                          host.provider_observed_at,
+                        )}
+                      >
+                        <Tag color={STATUS_COLOR[host.status] ?? "default"}>
+                          {host.status}
+                        </Tag>
+                      </Tooltip>
                       {host.tier != null && (
                         <Tag color={host.can_place ? "blue" : "default"}>
                           Tier {host.tier}

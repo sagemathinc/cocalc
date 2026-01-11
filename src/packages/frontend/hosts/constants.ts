@@ -12,7 +12,6 @@ export const WRAP_STYLE: CSS = {
 export const STATUS_COLOR = {
   stopped: "red",
   running: "green",
-  active: "green",
   provisioning: "blue",
   starting: "blue",
   restarting: "blue",
@@ -20,6 +19,73 @@ export const STATUS_COLOR = {
   deprovisioned: "default",
   off: "red",
 } as const;
+
+export const HOST_ONLINE_WINDOW_MS = 2 * 60 * 1000;
+const HOST_ONLINE_WINDOW_MINUTES = Math.floor(HOST_ONLINE_WINDOW_MS / 60000);
+
+const STATUS_TOOLTIP: Record<string, string> = {
+  running: "Provider last reported the VM is running.",
+  starting: "Provider reports the VM is starting; host is not reachable yet.",
+  provisioning: "Provider reports provisioning in progress; host may not be reachable yet.",
+  restarting: "Restart requested; waiting for provider to report running.",
+  stopping: "Stop requested; waiting for provider to report stopped.",
+  off: "VM is stopped or deleted; data disk retained.",
+  stopped: "VM is stopped; data disk retained.",
+  deprovisioned: "VM and data disk deleted; data exists only in backups.",
+  error: "Provider or bootstrap error; check logs for details.",
+};
+
+const ONLINE_TOOLTIP = {
+  noHeartbeat: "No heartbeat reported yet.",
+  invalidTimestamp: "Heartbeat timestamp is invalid.",
+  recent: (minutes: number) =>
+    `Heartbeat received within the last ${minutes} minutes.`,
+  stale: (minutes: number) =>
+    `No heartbeat in the last ${minutes} minutes; host may be running but is not reporting.`,
+};
+
+export function isHostOnline(lastSeen?: string): boolean {
+  if (!lastSeen) return false;
+  const ts = Date.parse(lastSeen);
+  if (Number.isNaN(ts)) return false;
+  return Date.now() - ts < HOST_ONLINE_WINDOW_MS;
+}
+
+function formatObservedAge(observedAt?: string): string | undefined {
+  if (!observedAt) return undefined;
+  const ts = Date.parse(observedAt);
+  if (Number.isNaN(ts)) return undefined;
+  const deltaMs = Date.now() - ts;
+  if (deltaMs < 0) return "just now";
+  const minutes = Math.round(deltaMs / 60000);
+  if (minutes <= 0) return "just now";
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.round(minutes / 60);
+  return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+}
+
+export function getHostStatusTooltip(
+  status?: string,
+  deleted?: boolean,
+  observedAt?: string,
+): string {
+  if (deleted) return "Host deleted (soft delete).";
+  if (!status) return "Status reported by cloud provider.";
+  const base = STATUS_TOOLTIP[status] ?? "Status reported by cloud provider.";
+  const age = formatObservedAge(observedAt);
+  if (!age) return base;
+  return `${base} (Last reported ${age}.)`;
+}
+
+export function getHostOnlineTooltip(lastSeen?: string): string {
+  if (!lastSeen) return ONLINE_TOOLTIP.noHeartbeat;
+  const ts = Date.parse(lastSeen);
+  if (Number.isNaN(ts)) return ONLINE_TOOLTIP.invalidTimestamp;
+  if (isHostOnline(lastSeen)) {
+    return ONLINE_TOOLTIP.recent(HOST_ONLINE_WINDOW_MINUTES);
+  }
+  return ONLINE_TOOLTIP.stale(HOST_ONLINE_WINDOW_MINUTES);
+}
 
 export const SIZES = [
   { value: "small", label: "Small (2 vCPU / 8 GB)" },

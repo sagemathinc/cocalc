@@ -3,7 +3,11 @@
 ## State Reconciliation
 
 Goal: keep `project_hosts.status` aligned with actual provider state, without
-flapping or masking in-flight transitions. Treat the provider as the source of
+flapping or masking in-flight transitions. This should follow best practices
+from managed services (GKE, Cloud SQL, RDS, etc.), where control-plane state
+is distinct from data-plane readiness.
+
+Treat the provider as the source of
 truth for *runtime state* and the control plane as the source of truth for
 *desired state*.
 
@@ -13,6 +17,72 @@ truth for *runtime state* and the control plane as the source of truth for
 - **Observed state**: provider VM state + data volume existence.
 - **Off semantics**: VM may be absent, but the data volume exists.
 - **Deprovisioned**: VM absent *and* data volume absent.
+
+### State Definition Decisions (Managed Services Convention)
+
+These rules mirror common managed-service semantics where VM lifecycle and
+service readiness are distinct.
+
+1. **Running vs Active**
+   - **running**: provider reports the VM is running.
+   - **active**: project-host heartbeat is present (daemon alive).
+   - UI should show both if possible (e.g., “running / host offline”).
+2. **Starting with no IP**
+   - If provider says running but no IP/tunnel yet, keep **starting** until
+     IP/tunnel appears or a timeout is reached.
+3. **Bootstrap pending**
+   - VM running with bootstrap incomplete remains **running** with a sub-status
+     “bootstrap pending.”
+4. **Failure semantics**
+   - A failed API call never flips state.
+   - Only update state on successful provider responses.
+5. **Off vs Deprovisioned**
+   - **off**: VM absent/stopped *and* data disk exists.
+   - **deprovisioned**: VM absent *and* data disk absent.
+6. **Reconcile precedence**
+   - Provider state wins after N confirmations (e.g., 2 polls), except within
+     a grace window of a user action.
+7. **Self-host**
+   - If connector offline, show **unknown** (not off) with last-seen info.
+   - VM state + connector heartbeat determines running/active.
+
+### Normalized State Diagram
+
+```mermaid
+stateDiagram-v2
+  [*] --> off : data disk exists, VM absent
+  [*] --> deprovisioned : data disk absent, VM absent
+
+  off --> starting : start requested
+  starting --> running : provider reports running
+  starting --> error : provider reports error
+
+  running --> stopping : stop requested
+  stopping --> off : provider reports stopped/terminated AND data disk exists
+  stopping --> deprovisioned : provider reports deleted AND data disk absent
+  stopping --> error : provider reports error
+
+  running --> restarting : reboot requested
+  restarting --> running : provider reports running
+  restarting --> error : provider reports error
+
+  off --> reprovisioning : edit requires reprovision + start
+  reprovisioning --> starting : create VM + attach disk begins
+  reprovisioning --> error : provider reports error
+
+  error --> starting : retry start requested
+  error --> deprovisioned : delete requested
+
+  note right of off
+    “off” means data disk exists,
+    regardless of whether an instance exists.
+  end note
+
+  note right of deprovisioned
+    “deprovisioned” means both VM
+    and data disk are gone.
+  end note
+```
 
 ### Provider Mapping
 
@@ -62,16 +132,40 @@ Additionally, we must query the **data volume** (where applicable) to decide
   when both VM and data volume are gone.
   - if the VM is deprovisioned but the data disk exists, we just show this as "off", not "deprovisioned".   There's no need to add complexity to the UI purely due to weirdness of cloud providers.  E.g., technically an off machine on GCP and an off machine on Hyperstack are basically identical \-\- it's some bytes on block devices; but GCP has an abstraction of an "instance" in that case, and hyperstack doesn't.  
 
+### Action-Level Waiters (Fast, Accurate Transitions)
+
+When a user clicks Start/Stop/Reboot/Deprovision:
+
+- Set a transitional status (`starting`, `stopping`, `restarting`).
+- Wait for provider confirmation:
+  - Prefer “wait” APIs when available (e.g., GCP operations).
+  - Otherwise poll provider state on a short interval (e.g., 5–10s) until
+    the normalized target state is reached or timeout.
+- Only then update `project_hosts.status` to the final state.
+
+This reduces UI drift and avoids “off” while the VM is still stopping.
+
 ### Implementation Plan
 
-1. Add provider “status probe” functions \(VM status \+ volume existence\).
-2. Add reconciliation job:
-   - schedules periodically \(e.g., every 2–5 min\)
-   - operates on subsets of hosts
-3. Extend `runtime` metadata with `provider_status` \+ `observed_at`.
-4. Add guardrails: grace window, missing confirmation, backoff.
-5. Wire to UI: display observed status \+ stale indicator.
-6. Use in smoke tests: run reconciliation after stop/start.
+1. Centralize provider state normalization \(single map to `starting|running|stopping|off|error|deprovisioned|unknown`\).
+2. Add provider “status probe” functions \(VM status \+ data volume existence\).
+3. \(not done\) Action waiters for Start/Stop/Reboot/Deprovision:
+   - set transitional state immediately
+   - block on provider “wait” or poll
+   - finalize only after provider confirmation
+4. Reconciliation job:
+   - runs every 2–5 minutes
+   - updates `metadata.runtime.provider_status` \+ `observed_at`
+   - reconciles `project_hosts.status` with guardrails
+5. \(not done\) Guardrails:
+   - grace window for in\-flight actions
+   - require 2 consecutive “missing” results before marking off/deprovisioned
+   - backoff and per\-provider caps
+6. \(not done\) UI:
+   - show normalized status \+ observed provider state
+   - show stale badge if `last_seen` too old
+7. \(not done\) Smoke tests:
+   - run reconcile after stop/start to validate the loop
 
 ---
 

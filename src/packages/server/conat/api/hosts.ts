@@ -73,6 +73,9 @@ function parseRow(
   const metadata = row.metadata ?? {};
   const software = metadata.software ?? {};
   const machine: HostMachine | undefined = metadata.machine;
+  const rawStatus = String(row.status ?? "");
+  const normalizedStatus =
+    rawStatus === "active" ? "running" : (rawStatus || "off");
   return {
     id: row.id,
     name: row.name ?? "Host",
@@ -80,7 +83,7 @@ function parseRow(
     region: row.region ?? "",
     size: metadata.size ?? "",
     gpu: !!metadata.gpu,
-    status: (row.status as HostStatus) ?? "off",
+    status: normalizedStatus as HostStatus,
     reprovision_required: !!metadata.reprovision_required,
     version: row.version ?? software.project_host,
     project_bundle_version: software.project_bundle,
@@ -102,6 +105,7 @@ function parseRow(
     last_action_at: metadata.last_action_at,
     last_action_status: metadata.last_action_status,
     last_action_error: metadata.last_action_error,
+    provider_observed_at: metadata.runtime?.observed_at,
     deleted: row.deleted ? new Date(row.deleted).toISOString() : undefined,
   };
 }
@@ -681,7 +685,7 @@ export async function restartHost({
   if (row.status === "deprovisioned") {
     throw new Error("host is not provisioned");
   }
-  if (!["running", "active", "error"].includes(row.status)) {
+  if (!["running", "error"].includes(row.status)) {
     throw new Error("host must be running to restart");
   }
   const metadata = row.metadata ?? {};

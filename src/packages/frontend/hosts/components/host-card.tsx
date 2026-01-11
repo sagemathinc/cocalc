@@ -1,7 +1,12 @@
-import { Button, Card, Popconfirm, Space, Tag, Typography } from "antd";
+import { Button, Card, Popconfirm, Space, Tag, Tooltip, Typography } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
-import { STATUS_COLOR } from "../constants";
+import {
+  STATUS_COLOR,
+  getHostOnlineTooltip,
+  getHostStatusTooltip,
+  isHostOnline,
+} from "../constants";
 import {
   getProviderDescriptor,
   isKnownProvider,
@@ -41,6 +46,12 @@ export const HostCard: React.FC<HostCardProps> = ({
     selfHost.isConnectorOnline(host.region);
   const showConnectorSetup =
     isSelfHost && !connectorOnline && host.status === "off";
+  const hostOnline = isHostOnline(host.last_seen);
+  const showStaleTag =
+    !hostOnline &&
+    (host.status === "running" ||
+      host.status === "starting" ||
+      host.status === "restarting");
   const startDisabled =
     isDeleted ||
     host.status === "running" ||
@@ -54,12 +65,9 @@ export const HostCard: React.FC<HostCardProps> = ({
         ? "Restarting"
         : "Start";
   const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
-  const statusValue = host.status as Host["status"] | "active";
   const allowStop =
     !isDeleted &&
-    (statusValue === "running" ||
-      statusValue === "active" ||
-      statusValue === "error");
+    (host.status === "running" || host.status === "error");
   const providerId = host.machine?.cloud;
   const caps = providerId ? providerCapabilities?.[providerId] : undefined;
   const supportsRestart = caps?.supportsRestart ?? true;
@@ -67,9 +75,7 @@ export const HostCard: React.FC<HostCardProps> = ({
   const allowRestart =
     !isDeleted &&
     connectorOnline &&
-    (statusValue === "running" ||
-      statusValue === "active" ||
-      statusValue === "error") &&
+    (host.status === "running" || host.status === "error") &&
     (supportsRestart || supportsHardRestart);
   const deleteLabel = isDeleted
     ? "Deleted"
@@ -157,16 +163,39 @@ export const HostCard: React.FC<HostCardProps> = ({
     <Card
       title={host.name}
       extra={
-        <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
-          {host.deleted ? "deleted" : host.status}
-        </Tag>
+        <Space size="small">
+          <Tooltip
+            title={getHostStatusTooltip(
+              host.status,
+              Boolean(host.deleted),
+              host.provider_observed_at,
+            )}
+            placement="top"
+          >
+            <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
+              {host.deleted ? "deleted" : host.status}
+            </Tag>
+          </Tooltip>
+          {hostOnline && (
+            <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
+              <Tag color="green">online</Tag>
+            </Tooltip>
+          )}
+          {showStaleTag && (
+            <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
+              <Tag color="orange">stale</Tag>
+            </Tooltip>
+          )}
+        </Space>
       }
       actions={actions.filter(Boolean) as React.ReactNode[]}
     >
     <Space direction="vertical" size="small">
-      {host.reprovision_required && (
-        <Tag color="orange">Reprovision on next start</Tag>
-      )}
+        {host.reprovision_required && (
+          <Tooltip title="Host config changed while stopped; will reprovision on next start.">
+            <Tag color="orange">Reprovision on next start</Tag>
+          </Tooltip>
+        )}
       <Typography.Text>
         Provider:{" "}
         {host.machine?.cloud

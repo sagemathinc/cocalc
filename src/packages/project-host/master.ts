@@ -82,7 +82,6 @@ export async function startMasterRegistration({
     process.env.PROJECT_HOST_SSH_SERVER ??
     process.env.COCALC_SSH_SERVER ??
     `${host}:${2222}`;
-  const status = "active";
 
   logger.info("registering with master", { masterAddress, id, public_url });
 
@@ -181,7 +180,6 @@ export async function startMasterRegistration({
     ssh_server,
     host_to_host_public_key: hostKey.publicKey,
     sshpiperd_public_key: sshpiperdKey.publicKey,
-    status,
     metadata: {
       runnerId,
     },

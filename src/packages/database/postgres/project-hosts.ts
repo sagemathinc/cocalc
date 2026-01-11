@@ -54,7 +54,7 @@ export async function upsertProjectHost({
       public_url = EXCLUDED.public_url,
       internal_url = EXCLUDED.internal_url,
       ssh_server = EXCLUDED.ssh_server,
-      status = EXCLUDED.status,
+      status = COALESCE(EXCLUDED.status, project_hosts.status),
       version = EXCLUDED.version,
       capacity = EXCLUDED.capacity,
       metadata = COALESCE(project_hosts.metadata, '{}'::jsonb) || COALESCE(EXCLUDED.metadata, '{}'::jsonb),

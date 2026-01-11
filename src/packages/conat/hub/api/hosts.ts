@@ -1,7 +1,6 @@
 import { authFirstRequireAccount, noAuth } from "./util";
 
 export type HostStatus =
-  | "active"
   | "deprovisioned"
   | "off"
   | "error"
@@ -119,6 +118,7 @@ export interface Host {
   last_action_at?: string;
   last_action_status?: string;
   last_action_error?: string;
+  provider_observed_at?: string;
   deleted?: string;
 }
 
