@@ -34,6 +34,15 @@ async function loadHostRow(id: string) {
 async function updateHostRow(id: string, updates: Record<string, any>) {
   const keys = Object.keys(updates).filter((key) => updates[key] !== undefined);
   if (!keys.length) return;
+  if (updates.status !== undefined) {
+    const stack = new Error().stack;
+    logger.debug("status update", {
+      host_id: id,
+      status: updates.status,
+      source: "host-work",
+      stack,
+    });
+  }
   const sets = keys.map((key, idx) => `${key}=$${idx + 2}`);
   await pool().query(
     `UPDATE project_hosts SET ${sets.join(", ")}, updated=NOW() WHERE id=$1 AND deleted IS NULL`,

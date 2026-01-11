@@ -6,6 +6,7 @@ import type {
   HostCatalog,
   HostSoftwareUpgradeTarget,
 } from "@cocalc/conat/hub/api/hosts";
+import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import {
   computePlacementPermission,
@@ -53,6 +54,17 @@ function pool() {
 }
 
 const SELF_HOST_RESIZE_TIMEOUT_MS = 5 * 60 * 1000;
+const logger = getLogger("server:conat:api:hosts");
+
+function logStatusUpdate(id: string, status: string, source: string) {
+  const stack = new Error().stack;
+  logger.debug("status update", {
+    host_id: id,
+    status,
+    source,
+    stack,
+  });
+}
 
 function requireAccount(account_id?: string): string {
   if (!account_id) {
@@ -182,6 +194,7 @@ async function markHostDeprovisioned(row: any, action: string) {
   delete nextMetadata.dns;
   delete nextMetadata.cloudflare_tunnel;
 
+  logStatusUpdate(row.id, "deprovisioned", "api");
   await revokeBootstrapTokensForHost(row.id, { purpose: "bootstrap" });
   try {
     if (await hasCloudflareTunnel()) {
@@ -637,11 +650,13 @@ export async function startHost({
       name: row.name ?? undefined,
     });
   }
+  logStatusUpdate(id, "starting", "api");
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, metadata=$4, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, "starting", null, nextMetadata],
   );
   if (!machineCloud) {
+    logStatusUpdate(id, "running", "api");
     await pool().query(
       `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [id, "running", new Date()],
@@ -673,11 +688,13 @@ export async function stopHost({
   const metadata = row.metadata ?? {};
   const machine: HostMachine = metadata.machine ?? {};
   const machineCloud = normalizeProviderId(machine.cloud);
+  logStatusUpdate(id, "stopping", "api");
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, "stopping", null],
   );
   if (!machineCloud) {
+    logStatusUpdate(id, "off", "api");
     await pool().query(
       `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [id, "off", null],
@@ -737,11 +754,13 @@ export async function restartHost({
       name: row.name ?? undefined,
     });
   }
+  logStatusUpdate(id, "restarting", "api");
   await pool().query(
     `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, "restarting", null],
   );
   if (!machineCloud) {
+    logStatusUpdate(id, "running", "api");
     await pool().query(
       `UPDATE project_hosts SET status=$2, last_seen=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [id, "running", new Date()],
@@ -1233,12 +1252,14 @@ export async function deleteHost({
       action: "delete",
       payload: { provider: machineCloud },
     });
+    logStatusUpdate(id, "stopping", "api");
     await pool().query(
       `UPDATE project_hosts SET status=$2, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
       [id, "stopping"],
     );
     return;
   }
+  logStatusUpdate(id, "deprovisioned", "api");
   await pool().query(
     `UPDATE project_hosts SET status=$2, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
     [id, "deprovisioned"],

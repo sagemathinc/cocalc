@@ -5,8 +5,10 @@ import {
   type ProjectHostRecord,
 } from "@cocalc/database/postgres/project-hosts";
 import { conat } from "@cocalc/backend/conat";
+import getPool from "@cocalc/database/pool";
 
 const logger = getLogger("server:conat:host-registry");
+const pool = () => getPool();
 
 export interface HostRegistration extends ProjectHostRecord {
   host_to_host_public_key?: string;
@@ -23,6 +25,15 @@ const SUBJECT = "project-hosts";
 export async function initHostRegistryService() {
   logger.info("starting host registry service");
   const client = conat();
+  const loadCurrentStatus = async (
+    id: string,
+  ): Promise<string | undefined> => {
+    const { rows } = await pool().query(
+      "SELECT status FROM project_hosts WHERE id=$1 AND deleted IS NULL",
+      [id],
+    );
+    return rows[0]?.status;
+  };
   const publishKey = async (info: HostRegistration) => {
     if (!info?.id) return;
     try {
@@ -49,9 +60,20 @@ export async function initHostRegistryService() {
           region: info.region,
           url: info.public_url,
         });
+        const currentStatus = await loadCurrentStatus(info.id);
+        if (
+          currentStatus &&
+          !["running", "active"].includes(String(currentStatus))
+        ) {
+          logger.debug("register ignored (status)", {
+            id: info.id,
+            status: currentStatus,
+          });
+          return;
+        }
         await upsertProjectHost({
           ...info,
-          status: info.status,
+          status: "running",
           last_seen: new Date(),
         });
         await publishKey(info);
@@ -61,9 +83,20 @@ export async function initHostRegistryService() {
           throw Error("heartbeat: id is required");
         }
         logger.silly?.("heartbeat", { id: info.id, status: info.status });
+        const currentStatus = await loadCurrentStatus(info.id);
+        if (
+          currentStatus &&
+          !["running", "active"].includes(String(currentStatus))
+        ) {
+          logger.debug("heartbeat ignored (status)", {
+            id: info.id,
+            status: currentStatus,
+          });
+          return;
+        }
         await upsertProjectHost({
           ...info,
-          status: info.status,
+          status: "running",
           last_seen: new Date(),
         });
         await publishKey(info);
