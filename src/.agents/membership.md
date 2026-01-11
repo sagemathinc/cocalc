@@ -142,15 +142,15 @@ Risks/unknowns: quota injection could conflict with legacy site_license stacking
 
 UI todo (store + settings):
 
-[ ] Add a membership status panel: tier, source, renewal/expiry, and usage summary, with "manage membership" or "upgrade" CTAs. (medium)  
-[ ] Show membership tier and benefits in account preferences (and optionally a top-level badge). (easy)  
-[ ] Link all "upgrade" affordances to the membership store; remove license-based upgrade copy. (easy)  
-[ ] Remove all project-license purchase UI and references in settings, project views, and purchases. (medium)  
-[ ] Add "current plan" badges and disable CTA buttons accordingly on membership cards. (easy)  
-[ ] Show a prorated credit line item on checkout when upgrading member -> pro. (medium)  
-[ ] Add a "why limited?" callout with upgrade links on LLM throttles and project start limits. (medium)  
-[ ] Hide membership "buy it again" and "saved for later" flows. (easy)  
-[ ] Add clear "what you get" copy/feature summaries in store + settings. (medium)
+[x] Add a membership status panel: tier, source, renewal/expiry, and usage summary, with "manage membership" or "upgrade" CTAs. \(medium\)  
+[x] Show membership tier and benefits in account preferences \(and optionally a top\-level badge\). \(easy\)  
+[ ] Link all "upgrade" affordances to the membership store; remove license\-based upgrade copy. \(easy\)  
+[ ] Remove all project\-license purchase UI and references in settings, project views, and purchases. \(medium\)  
+[ ] Add "current plan" badges and disable CTA buttons accordingly on membership cards. \(easy\)  
+[ ] Show a prorated credit line item on checkout when upgrading member \-&gt; pro. \(medium\)  
+[ ] Add a "why limited?" callout with upgrade links on LLM throttles and project start limits. \(medium\)  
+[ ] Hide membership "buy it again" and "saved for later" flows. \(easy\)  
+[ ] Add clear "what you get" copy/feature summaries in store \+ settings. \(medium\)
 
 Exit criteria: users can see membership subscriptions and status in UI, project-license UI is removed entirely, and existing paid value is preserved.  
 Risks/unknowns: migration mapping could under/over-credit value; migration must avoid orphaned entitlements.
@@ -232,3 +232,4 @@ Exit criteria: memberships cover the same real-world cases formerly handled by l
 - Content: show tier name, source, renewal/expiry, and key entitlements; include usage summary and reset windows.
 - CTAs: route "manage membership" and "upgrade" to the store membership page; disable upgrade when already on that tier.
 - States: handle free tier, canceled-at-renewal, expired, and admin-granted memberships cleanly.
+

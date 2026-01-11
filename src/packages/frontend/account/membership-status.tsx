@@ -112,7 +112,11 @@ function formatFeatureTag(key: string, value: unknown): string | null {
   return `${label}: ${value}`;
 }
 
-export function MembershipStatusPanel(): ReactElement | null {
+export function MembershipStatusPanel({
+  showHeader = true,
+}: {
+  showHeader?: boolean;
+}): ReactElement | null {
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const [membership, setMembership] = useState<MembershipResolution | null>(
@@ -197,9 +201,11 @@ export function MembershipStatusPanel(): ReactElement | null {
     <Panel
       size="small"
       header={
-        <>
-          <Icon name="user" /> Membership
-        </>
+        showHeader ? (
+          <>
+            <Icon name="user" /> Membership
+          </>
+        ) : undefined
       }
     >
       {loading && <Loading />}
