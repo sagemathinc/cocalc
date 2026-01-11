@@ -350,6 +350,8 @@ export async function buildBootstrapScripts(
     `PROJECT_HOST_SSH_SERVER=${sshServer}`,
     `PROJECT_RUNNER_NAME=0`,
     `COCALC_FILE_SERVER_MOUNTPOINT=/btrfs`,
+    `COCALC_SYNC=/btrfs`,
+    `COCALC_PERSIST_PROJECT_BASE=.local/share/cocalc/persist`,
     `DATA=${dataDir}`,
     `COCALC_DATA=${dataDir}`,
     `COCALC_LITE_SQLITE_FILENAME=${dataDir}/sqlite.db`,
@@ -517,7 +519,7 @@ if [ -n "${dataDiskDevices}" ]; then
         fi
         size_bytes="$(lsblk -nb -o SIZE "$dev" 2>/dev/null | head -n1 | tr -d '[:space:]')"
         if [ -n "$size_bytes" ] && [ "$size_bytes" -lt 10737418240 ]; then
-          echo "bootstrap: skipping $dev (size ${'${'}size_bytes}B too small)" >&2
+          echo "bootstrap: skipping $dev (size ${"${"}size_bytes}B too small)" >&2
           continue
         fi
         printf '%s\n' "$dev"
@@ -740,7 +742,9 @@ sudo chmod 644 /etc/cron.d/cocalc-project-host
 if command -v systemctl >/dev/null 2>&1; then
   sudo systemctl enable --now cron || true
 fi
-${hasGpu ? `
+${
+  hasGpu
+    ? `
 if [ -x /usr/local/sbin/cocalc-nvidia-cdi ]; then
   sudo /usr/local/sbin/cocalc-nvidia-cdi || true
 fi
@@ -748,7 +752,9 @@ sudo tee /etc/cron.d/cocalc-nvidia-cdi >/dev/null <<'EOF_COCALC_CDI_CRON'
 */5 * * * * root /usr/local/sbin/cocalc-nvidia-cdi >/dev/null 2>&1
 EOF_COCALC_CDI_CRON
 sudo chmod 644 /etc/cron.d/cocalc-nvidia-cdi
-` : ""}
+`
+    : ""
+}
 `;
 
   let cloudflaredScript = "";

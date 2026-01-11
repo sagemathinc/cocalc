@@ -84,12 +84,17 @@ export function assertHasWritePermission({
       if (path.startsWith(base)) {
         // permissions granted
         return;
-      } else {
-        throw new ConatError(
-          `permission denied: subject '${subject}' does not grant write permission to path='${path}' since it is not under '${base}'`,
-          { code: 403, subject },
-        );
       }
+      if (cls === "project" && process.env.COCALC_PERSIST_PROJECT_BASE) {
+        const projectBase = `project-${user_id}/`;
+        if (path.startsWith(projectBase)) {
+          return;
+        }
+      }
+      throw new ConatError(
+        `permission denied: subject '${subject}' does not grant write permission to path='${path}' since it is not under '${base}'`,
+        { code: 403, subject },
+      );
     }
   }
   throw new ConatError(`invalid subject: '${subject}'`, { code: 403, subject });
