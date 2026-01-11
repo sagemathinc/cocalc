@@ -84,6 +84,7 @@ import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SettingsOverview } from "./settings-index";
 import { UpgradesPage } from "./upgrades/upgrades-page";
+import MembershipBadge from "./membership-badge";
 import { lite, project_id } from "@cocalc/frontend/lite";
 import { AdminPage } from "@cocalc/frontend/admin";
 
@@ -535,6 +536,7 @@ export const AccountPage: React.FC = () => {
     return (
       <Space>
         {is_commercial ? <BalanceButton /> : undefined}
+        <MembershipBadge />
         <I18NSelector isWide={isWide} />
         {!lite && (
           <SignOut everywhere={false} highlight={true} narrow={!isWide} />

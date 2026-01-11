@@ -38,6 +38,9 @@ export const SUBSCRIPTION_RENEWAL = "subscription-renewal";
 // resuming a canceled subscription that has expired:
 export const RESUME_SUBSCRIPTION = "resume-subscription";
 
+// change membership tiers directly in-app
+export const MEMBERSHIP_CHANGE = "membership-change";
+
 // for paying a statement the purpose is `statement-${statement_id}`
 // (Maybe we should be usig metadata for this though?)
 

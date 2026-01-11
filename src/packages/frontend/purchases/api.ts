@@ -420,6 +420,39 @@ export async function getShoppingCartCheckoutParams(
   return await api("purchases/get-shopping-cart-checkout-params", opts);
 }
 
+export interface MembershipChangeQuote {
+  change: "new" | "upgrade" | "downgrade";
+  target_class: string;
+  target_interval: "month" | "year";
+  price: number;
+  charge: number;
+  refund: number;
+  existing_subscription_id?: number;
+  existing_class?: string;
+  current_period_start?: Date | string;
+  current_period_end?: Date | string;
+  allowed?: boolean;
+  discouraged?: boolean;
+  reason?: string;
+  charge_amount?: number;
+}
+
+export async function getMembershipChangeQuote(opts: {
+  class: string;
+  interval: "month" | "year";
+  allow_downgrade?: boolean;
+}): Promise<MembershipChangeQuote> {
+  return await api("purchases/membership-quote", opts);
+}
+
+export async function applyMembershipChange(opts: {
+  class: string;
+  interval: "month" | "year";
+  allow_downgrade?: boolean;
+}): Promise<MembershipChangeQuote & { subscription_id: number; purchase_id: number }> {
+  return await api("purchases/membership-change", opts);
+}
+
 // get your own min balance
 export async function getMinBalance(): Promise<number> {
   return await api("purchases/get-min-balance");
