@@ -31,6 +31,7 @@ import { deriveAcpLogRefs } from "@cocalc/chat";
 import { ChatActions } from "./actions";
 import { getUserName } from "./chat-log";
 import { codexEventsToMarkdown } from "./codex-activity";
+import { cancelQueuedAcpTurn } from "./acp-api";
 import { History, HistoryFooter, HistoryTitle } from "./history";
 import ChatInput from "./input";
 import { FeedbackLLM } from "./llm-msg-feedback";
@@ -1329,6 +1330,37 @@ export default function Message({
     }
   }
 
+  const handleCancelQueued = () => {
+    if (!actions) return;
+    cancelQueuedAcpTurn({ actions, message });
+  };
+
+  const renderAcpState = () => {
+    if (!acpState) return null;
+    if (acpState === "queue") {
+      return (
+        <span style={{ display: "inline-flex", gap: 8, alignItems: "center" }}>
+          <Tag color="gold">queued</Tag>
+          <Button size="small" type="text" onClick={handleCancelQueued}>
+            Cancel
+          </Button>
+        </span>
+      );
+    }
+    if (acpState === "not-sent") {
+      return (
+        <Button size="small" type="text" disabled>
+          not sent
+        </Button>
+      );
+    }
+    return (
+      <Tag color="blue">
+        {acpState == "running" ? <SyncOutlined spin /> : null} {acpState}
+      </Tag>
+    );
+  };
+
   return (
     <Row
       style={getStyle()}
@@ -1339,11 +1371,7 @@ export default function Message({
       {renderFoldedRow()}
       {acpState ? (
         <div style={{ width: "100%" }}>
-          <Divider>
-            <Tag color="blue">
-              {acpState == "running" ? <SyncOutlined spin /> : null} {acpState}
-            </Tag>
-          </Divider>
+          <Divider>{renderAcpState()}</Divider>
         </div>
       ) : undefined}
     </Row>

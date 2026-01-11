@@ -24,7 +24,7 @@ export interface ChatState {
   syncdbReady?: number;
   acpState: ImmutableMap<
     string, // key = ms since epoch as **string**
-    string // e.g.,    "queue" | "sending" | "sent" | "running"
+    string // e.g.,    "queue" | "sending" | "sent" | "running" | "not-sent"
   >; // iso strings
 }
 

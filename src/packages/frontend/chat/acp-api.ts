@@ -12,7 +12,12 @@ import { dateValue } from "./access";
 import { type ChatActions } from "./actions";
 
 type QueueKey = string;
-type QueueState = { running: boolean; items: Array<() => Promise<void>> };
+type QueueItem = {
+  messageDateMs: number;
+  run: () => Promise<void>;
+  canceled: boolean;
+};
+type QueueState = { running: boolean; items: QueueItem[] };
 const turnQueues: Map<QueueKey, QueueState> = new Map();
 
 function getQueue(key: QueueKey): QueueState {
@@ -31,7 +36,10 @@ function makeQueueKey({ project_id, path, threadKey }): QueueKey {
 async function runQueue(key: QueueKey): Promise<void> {
   const q = turnQueues.get(key);
   if (!q) return;
-  const next = q.items.shift();
+  let next = q.items.shift();
+  while (next && next.canceled) {
+    next = q.items.shift();
+  }
   if (!next) {
     q.running = false;
     if (q.items.length === 0) {
@@ -41,7 +49,7 @@ async function runQueue(key: QueueKey): Promise<void> {
   }
   q.running = true;
   try {
-    await next();
+    await next.run();
   } catch (err) {
     console.error("ACP turn queue job failed", err);
   } finally {
@@ -113,18 +121,6 @@ export async function processAcpLLM({
   // is fine, even if the response is very long.
   setTimeout(() => chatStreams.delete(id), 3 * 60 * 1000);
 
-  // Generate a stable assistant-reply key for this turn, but do NOT write any
-  // corresponding chat row here. The backend is the sole writer of the assistant
-  // reply row (avoids frontend/backend sync races on the same row).
-  let newMessageDate = new Date();
-  if (newMessageDate.valueOf() <= messageDate.valueOf()) {
-    // ensure ai response message is after the message we're
-    // responding to.
-    newMessageDate = new Date(
-      messageDate.valueOf() + Math.round(100 * Math.random()),
-    );
-  }
-
   const setState = (state) => {
     store.setState({
       acpState: store.get("acpState").set(`${messageDate.valueOf()}`, state),
@@ -134,18 +130,29 @@ export async function processAcpLLM({
   const project_id = store.get("project_id");
   const path = store.get("path");
 
-  const chatMetadata = buildChatMetadata({
-    project_id,
-    path,
-    sender_id,
-    messageDate: newMessageDate,
-    reply_to: threadRootDate,
-  });
   const sessionKey = config?.sessionId ?? threadKey;
   const queueKey = makeQueueKey({ project_id, path, threadKey });
   const job = async (): Promise<void> => {
     try {
       setState("sending");
+      // Generate a stable assistant-reply key for this turn, but do NOT write any
+      // corresponding chat row here. The backend is the sole writer of the assistant
+      // reply row (avoids frontend/backend sync races on the same row).
+      let newMessageDate = new Date();
+      if (newMessageDate.valueOf() <= messageDate.valueOf()) {
+        // ensure ai response message is after the message we're
+        // responding to.
+        newMessageDate = new Date(
+          messageDate.valueOf() + Math.round(100 * Math.random()),
+        );
+      }
+      const chatMetadata = buildChatMetadata({
+        project_id,
+        path,
+        sender_id,
+        messageDate: newMessageDate,
+        reply_to: threadRootDate,
+      });
       console.log("Starting ACP turn for", { message, chatMetadata });
       const stream = await webapp_client.conat_client.streamAcp({
         project_id,
@@ -199,11 +206,49 @@ export async function processAcpLLM({
   };
 
   const q = getQueue(queueKey);
-  q.items.push(job);
+  q.items.push({
+    messageDateMs: messageDate.valueOf(),
+    run: job,
+    canceled: false,
+  });
   setState("queue");
   if (!q.running) {
     void runQueue(queueKey);
   }
+}
+
+export function cancelQueuedAcpTurn({
+  actions,
+  message,
+}: {
+  actions: ChatActions;
+  message: ChatMessage;
+}): boolean {
+  const { store } = actions;
+  if (!store) return false;
+  const messageDate = dateValue(message);
+  if (!messageDate) return false;
+  const threadKey = actions.computeThreadKey(messageDate.valueOf());
+  if (!threadKey) return false;
+  const project_id = store.get("project_id");
+  const path = store.get("path");
+  if (!project_id || !path) return false;
+  const queueKey = makeQueueKey({ project_id, path, threadKey });
+  const q = turnQueues.get(queueKey);
+  if (!q) return false;
+  const targetIndex = q.items.findIndex(
+    (item) => item.messageDateMs === messageDate.valueOf(),
+  );
+  if (targetIndex < 0) return false;
+  const [item] = q.items.splice(targetIndex, 1);
+  item.canceled = true;
+  if (!q.running && q.items.length === 0) {
+    turnQueues.delete(queueKey);
+  }
+  store.setState({
+    acpState: store.get("acpState").set(`${messageDate.valueOf()}`, "not-sent"),
+  });
+  return true;
 }
 
 function normalizeCodexMention(model?: string): string | undefined {
