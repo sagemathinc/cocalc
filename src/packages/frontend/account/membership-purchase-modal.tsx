@@ -149,7 +149,15 @@ export default function MembershipPurchaseModal({
   const selectedLabel = selectedTier?.label ?? selectedTier?.id ?? "";
 
   const quoteCharge = quote?.charge ?? 0;
-  const chargeAmount = quote?.charge_amount ?? quoteCharge;
+  const rawChargeAmount =
+    quote?.charge_amount ??
+    (quote as { chargeAmount?: number } | null)?.chargeAmount;
+  const chargeAmount =
+    rawChargeAmount != null ? Number(rawChargeAmount) : quoteCharge;
+  const paymentRequired =
+    quote?.allowed === false &&
+    rawChargeAmount != null &&
+    chargeAmount > 0;
 
   const lineItems: LineItem[] = [];
   if (quote && quoteCharge > 0) {
@@ -171,7 +179,7 @@ export default function MembershipPurchaseModal({
       : quote?.change === "downgrade"
         ? "Downgrade"
         : "Start";
-  const canProceed = quote?.allowed !== false;
+  const canProceed = quote?.allowed !== false || paymentRequired;
 
   const isCurrent = selectedTierId != null && selectedTierId === currentClass;
 
@@ -305,7 +313,10 @@ export default function MembershipPurchaseModal({
           {quoteLoading && <Spin />}
           {quoteError && <Alert type="error" message={quoteError} />}
           {quote && quote.allowed === false && quote.reason && (
-            <Alert type="error" message={quote.reason} />
+            <Alert
+              type={paymentRequired ? "warning" : "error"}
+              message={quote.reason}
+            />
           )}
           {quote && place === "checkout" && (
             <div>
