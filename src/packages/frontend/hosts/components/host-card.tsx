@@ -1,4 +1,5 @@
-import { Button, Card, Popconfirm, Space, Spin, Tag, Tooltip, Typography } from "antd";
+import { Button, Card, Popconfirm, Space, Tag, Tooltip, Typography } from "antd";
+import { SyncOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import {
@@ -177,7 +178,7 @@ export const HostCard: React.FC<HostCardProps> = ({
             <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
               {showSpinner ? (
                 <Space size={4}>
-                  <Spin size="small" />
+                 <SyncOutlined spin />
                   <span>{statusLabel}</span>
                 </Space>
               ) : (

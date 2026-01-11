@@ -1,4 +1,5 @@
-import { Button, Card, Col, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Spin, Switch, Table, Tag, Tooltip, Typography } from "antd";
+import { Button, Card, Col, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Tooltip, Typography } from "antd";
+import { SyncOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
@@ -486,7 +487,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
                 {showSpinner ? (
                   <Space size={4}>
-                    <Spin size="small" />
+                    <SyncOutlined spin />
                     <span>{statusLabel}</span>
                   </Space>
                 ) : (

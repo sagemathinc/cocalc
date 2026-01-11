@@ -7,11 +7,11 @@ import {
   Popover,
   Popconfirm,
   Space,
-  Spin,
   Tag,
   Tooltip,
   Typography,
 } from "antd";
+import { SyncOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
 import Bootlog from "@cocalc/frontend/project/bootlog";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -199,7 +199,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
                 {showSpinner ? (
                   <Space size={4}>
-                    <Spin size="small" />
+                    <SyncOutlined spin />
                     <span>{statusLabel}</span>
                   </Space>
                 ) : (
