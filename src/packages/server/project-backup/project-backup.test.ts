@@ -1,6 +1,7 @@
 let queryMock: jest.Mock;
 let readFileMock: jest.Mock;
 let writeFileMock: jest.Mock;
+let createBucketMock: jest.Mock;
 
 jest.mock("@cocalc/database/pool", () => ({
   __esModule: true,
@@ -16,15 +17,27 @@ jest.mock("fs/promises", () => ({
   writeFile: (...args: any[]) => writeFileMock(...args),
 }));
 
+jest.mock("./r2", () => ({
+  createBucket: (...args: any[]) => createBucketMock(...args),
+}));
+
 const HOST_ID = "11111111-1111-1111-1111-111111111111";
 const PROJECT_ID = "22222222-2222-2222-2222-222222222222";
+const BUCKET_ID = "33333333-3333-3333-3333-333333333333";
 
 describe("project-backup", () => {
   beforeEach(() => {
     jest.resetModules();
+    createBucketMock = jest.fn(async () => ({
+      name: "cocalc-backups-wnam",
+      location: "wnam",
+    }));
     queryMock = jest.fn(async (sql: string, params: any[]) => {
       if (sql.includes("FROM project_hosts")) {
         return { rows: [{ region: "us-west1" }] };
+      }
+      if (sql.includes("FROM projects")) {
+        return { rows: [{ backup_bucket_id: settings.backup_bucket_id ?? null }] };
       }
       if (sql.includes("FROM server_settings")) {
         const key = params?.[0];
@@ -37,6 +50,34 @@ describe("project-backup", () => {
         return { rows: [] };
       }
       if (sql.startsWith("INSERT INTO project_backup_secrets")) {
+        return { rows: [] };
+      }
+      if (sql.startsWith("INSERT INTO buckets")) {
+        return { rows: [] };
+      }
+      if (sql.includes("FROM buckets WHERE provider")) {
+        return { rows: [] };
+      }
+      if (sql.includes("FROM buckets WHERE name")) {
+        return {
+          rows: [
+            {
+              id: BUCKET_ID,
+              name: "cocalc-backups-wnam",
+              provider: "r2",
+              purpose: "project-backups",
+              region: "wnam",
+              location: "wnam",
+              account_id: settings.r2_account_id ?? "account",
+              access_key_id: settings.r2_access_key_id ?? "access",
+              secret_access_key: settings.r2_secret_access_key ?? "secret",
+              endpoint: "https://account.r2.cloudflarestorage.com",
+              status: "active",
+            },
+          ],
+        };
+      }
+      if (sql.startsWith("UPDATE projects")) {
         return { rows: [] };
       }
       throw new Error(`unexpected query: ${sql}`);

@@ -57,16 +57,28 @@ async function listBuckets(
   return result.buckets.map((bucket) => bucket.name);
 }
 
-async function createBucket(
+export type R2BucketInfo = {
+  name: string;
+  location?: string;
+  creation_date?: string;
+  jurisdiction?: string;
+  storage_class?: string;
+};
+
+export async function createBucket(
   token: string,
   accountId: string,
   name: string,
   location: string,
-) {
-  await cloudflareRequest<{ name: string }>(token, `accounts/${accountId}/r2/buckets`, {
-    method: "POST",
-    body: JSON.stringify({ name, locationHint: location }),
-  });
+): Promise<R2BucketInfo> {
+  return await cloudflareRequest<R2BucketInfo>(
+    token,
+    `accounts/${accountId}/r2/buckets`,
+    {
+      method: "POST",
+      body: JSON.stringify({ name, locationHint: location }),
+    },
+  );
 }
 
 export async function ensureR2Buckets(opts: {

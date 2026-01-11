@@ -48,11 +48,10 @@ flowchart LR
 - `purpose` (`backups`, `artifacts`, `rootfs`, `logs`, ...)
 - `provider` (`r2`, later others)
 - `account_id` (provider account)
-- `region_hint` (wnam/enam/weur/eeur/apac/oc)
-- `location_actual` (reported by provider)
+- `region` (wnam/enam/weur/eeur/apac/oc)
+- `location` (reported by provider, if available)
 - `name`, `endpoint`
-- `locked` (boolean; prevents silent re-targeting)
-- `status` (active, mismatched, deprecated)
+- `status` (active, mismatch, unknown, disabled)
 - timestamps
 
 `projects.backup_bucket_id`:
@@ -85,7 +84,7 @@ If a bucket name is reused, the original location will be reused. For that
 reason:
 
 - Use new bucket names if the first placement is wrong.
-- Record actual location in `buckets.location_actual`.
+- Record actual location in `buckets.location`.
 - Do not silently switch a bucket for an existing region.
 
 ## Deletion & Compliance
@@ -108,4 +107,3 @@ Migration requires an explicit admin action:
 - Optionally deprecate old bucket
 
 This is intentionally not automatic.
-

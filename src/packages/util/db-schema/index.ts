@@ -22,6 +22,7 @@ import "./api-keys";
 import "./auth";
 import "./blobs";
 import "./bookmarks";
+import "./buckets";
 import "./central-log";
 import "./client-error-log";
 import "./cloud-filesystems";
