@@ -71,7 +71,7 @@ describe("project-backup", () => {
     });
     expect(result.toml).toContain("repository = \"opendal:s3\"");
     expect(result.toml).toContain("password = \"project-secret\"");
-    expect(result.toml).toContain("bucket = \"cocalc-backups-us-west1\"");
+    expect(result.toml).toContain("bucket = \"cocalc-backups-wnam\"");
     expect(result.toml).toContain(`root = \"rustic/project-${PROJECT_ID}\"`);
     expect(result.ttl_seconds).toBeGreaterThan(0);
   });

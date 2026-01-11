@@ -9,6 +9,34 @@ import { ensureR2Buckets } from "./r2";
 const DEFAULT_BACKUP_TTL_SECONDS = 60 * 60 * 12; // 12 hours
 const DEFAULT_BACKUP_ROOT = "rustic";
 
+type R2Region = "wnam" | "enam" | "weur" | "eeur" | "apac" | "oc";
+
+function resolveR2Region(region: string): R2Region {
+  const value = region.trim().toLowerCase();
+  if (!value) {
+    return "wnam";
+  }
+  if (/^us-(west|south)/.test(value) || value.includes("canada")) {
+    return "wnam";
+  }
+  if (/^us-(east|central|north)/.test(value) || value.startsWith("us-")) {
+    return "enam";
+  }
+  if (value.startsWith("eu-") || value.includes("norway")) {
+    return "weur";
+  }
+  if (value.startsWith("me-")) {
+    return "eeur";
+  }
+  if (value.startsWith("ap-") || value.startsWith("asia") || value.includes("apac")) {
+    return "apac";
+  }
+  if (value.startsWith("oc") || value.includes("australia")) {
+    return "oc";
+  }
+  return "wnam";
+}
+
 function pool() {
   return getPool();
 }
@@ -143,8 +171,9 @@ export async function getBackupConfig({
   }
   void ensureR2Buckets({ accountId, bucketPrefix, apiToken });
 
-  const region = rows[0]?.region || "global";
-  const bucket = `${bucketPrefix}-${region}`;
+  const hostRegion = rows[0]?.region ?? "";
+  const r2Region = resolveR2Region(hostRegion);
+  const bucket = `${bucketPrefix}-${r2Region}`;
   const root = project_id
     ? `${DEFAULT_BACKUP_ROOT}/project-${project_id}`
     : `${DEFAULT_BACKUP_ROOT}/host-${host_id}`;
