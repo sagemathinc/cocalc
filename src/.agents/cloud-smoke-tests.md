@@ -152,23 +152,31 @@ This reduces UI drift and avoids “off” while the VM is still stopping.
 
 1. Centralize provider state normalization \(single map to `starting|running|stopping|off|error|deprovisioned|unknown`\).
 2. Add provider “status probe” functions \(VM status \+ data volume existence\).
-3. \(not done\) Action waiters for Start/Stop/Reboot/Deprovision:
+3. Action waiters for Start/Stop/Reboot/Deprovision:
    - set transitional state immediately
    - block on provider “wait” or poll
    - finalize only after provider confirmation
+   - provider-by-provider:
+     - \(done\) GCP start/stop waits for RUNNING/TERMINATED after the API call
+     - \(done\) Nebius wait on instance state after start/stop
+     - \(done\) Hyperstack wait on instance state after start; stop waits for delete
+     - \(done\) Lambda uses deprovision semantics; wait for delete complete
+     - \(todo\) Self-host wait for connector-reported state change
 4. Reconciliation job:
    - runs every 2–5 minutes
    - updates `metadata.runtime.provider_status` \+ `observed_at`
    - reconciles `project_hosts.status` with guardrails
-5. \(not done\) Guardrails:
-   - grace window for in\-flight actions
-   - require 2 consecutive “missing” results before marking off/deprovisioned
-   - backoff and per\-provider caps
-6. \(not done\) UI:
-   - show normalized status \+ observed provider state
-   - show stale badge if `last_seen` too old
-7. \(not done\) Smoke tests:
-   - run reconcile after stop/start to validate the loop
+5. Guardrails:
+   - \(done\) grace window for in\-flight actions
+   - \(done\) require 2 consecutive “missing” results before marking off/deprovisioned
+   - \(todo\) backoff and per\-provider caps
+6. UI:
+   - \(done\) show normalized status \+ observed provider state
+   - \(done\) show online/offline badges with tooltips
+   - \(done\) hide Stop for ephemeral providers (e.g., Lambda)
+7. Smoke tests:
+   - \(done\) minimal provider-status check per step (skip when action pending)
+   - \(todo\) run reconcile after stop/start to validate the loop
 
 ---
 
@@ -183,6 +191,7 @@ This reduces UI drift and avoids “off” while the VM is still stopping.
   - this is because the VM still exists.  It's the "**Cloud transitional state drift" above.**
 - **DNS propagation race**: project host can be reachable, but local DNS caches NXDOMAIN, causing startProject timeouts. \(Not a smoke failure anymore, but still a real UX issue.\)
   - how to solve this? I think we need careful gating \- make sure a browser doesn't try until dns is setup?  don't return the host\_id until we successfully setup dns and don't remove the dns entry should do it.
+- **Lambda stop UX**: deprovisioning can take longer than UI reflects. Needs a clearer “deprovisioning” wait state based on provider delete completion.
 
 ## Todo List (Ordered)
 
@@ -193,6 +202,7 @@ This reduces UI drift and avoids “off” while the VM is still stopping.
 5. **Provider reconciliation loop**: periodically reconcile cloud provider state with `project_hosts.status` to fix drift.
 6. **Hyperstack stop/start gating**: ensure stop fully completes before reprovision/start (wait for provider state and disk visibility).
 7. **DNS race mitigation**: retry on initial failures or delay project start until DNS is resolvable.
+8. **Lambda deprovision wait**: keep status “stopping/deprovisioning” until the provider confirms deletion.
 
 ## Current Focus
 

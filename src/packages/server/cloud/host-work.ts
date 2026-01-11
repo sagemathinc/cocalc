@@ -22,6 +22,108 @@ import {
 
 const logger = getLogger("server:cloud:host-work");
 const pool = () => getPool();
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function waitForProviderStatus(opts: {
+  entry: Awaited<ReturnType<typeof getProviderContext>>["entry"];
+  creds: any;
+  runtime: any;
+  desired: Array<"running" | "off" | "stopped" | "starting" | "error">;
+  timeoutMs?: number;
+  intervalMs?: number;
+}): Promise<"running" | "starting" | "off" | "stopped" | "error" | undefined> {
+  const timeoutMs = opts.timeoutMs ?? 120000;
+  const intervalMs = opts.intervalMs ?? 5000;
+  const deadline = Date.now() + timeoutMs;
+  let lastStatus:
+    | "running"
+    | "starting"
+    | "off"
+    | "stopped"
+    | "error"
+    | undefined;
+  while (Date.now() < deadline) {
+    try {
+      if (opts.entry.provider.getStatus) {
+        const status = await opts.entry.provider.getStatus(
+          opts.runtime,
+          opts.creds,
+        );
+        lastStatus = status;
+      } else if (opts.entry.provider.getInstance) {
+        const remote = await opts.entry.provider.getInstance(
+          opts.runtime,
+          opts.creds,
+        );
+        if (!remote) {
+          lastStatus = "off";
+        } else {
+          const mapped =
+            opts.entry.provider.mapStatus?.(remote.status) ??
+            remote.status ??
+            undefined;
+          lastStatus = mapped as typeof lastStatus;
+        }
+      }
+      if (lastStatus && opts.desired.includes(lastStatus)) {
+        return lastStatus;
+      }
+      if (lastStatus === "error") return lastStatus;
+    } catch (err) {
+      logger.warn("provider wait status failed", { err });
+    }
+    await sleep(intervalMs);
+  }
+  return lastStatus;
+}
+
+async function waitForLambdaStatus(opts: {
+  entry: Awaited<ReturnType<typeof getProviderContext>>["entry"];
+  creds: any;
+  runtime: any;
+  desired: "running" | "stopped";
+  timeoutMs?: number;
+  intervalMs?: number;
+}): Promise<"running" | "stopped" | "starting" | "error" | undefined> {
+  const timeoutMs = opts.timeoutMs ?? 120000;
+  const intervalMs = opts.intervalMs ?? 5000;
+  const deadline = Date.now() + timeoutMs;
+  let lastStatus: "running" | "stopped" | "starting" | "error" | undefined;
+  while (Date.now() < deadline) {
+    try {
+      const status = await opts.entry.provider.getStatus(opts.runtime, opts.creds);
+      lastStatus = status;
+      if (status === opts.desired) return status;
+      if (status === "error") return status;
+    } catch (err) {
+      logger.warn("lambda wait status failed", { err });
+    }
+    await sleep(intervalMs);
+  }
+  return lastStatus;
+}
+
+async function waitForLambdaInstanceGone(opts: {
+  entry: Awaited<ReturnType<typeof getProviderContext>>["entry"];
+  creds: any;
+  runtime: any;
+  timeoutMs?: number;
+  intervalMs?: number;
+}): Promise<boolean> {
+  const timeoutMs = opts.timeoutMs ?? 120000;
+  const intervalMs = opts.intervalMs ?? 5000;
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    try {
+      const inst = await opts.entry.provider.getInstance?.(opts.runtime, opts.creds);
+      if (!inst) return true;
+    } catch (err) {
+      logger.warn("lambda wait instance failed", { err });
+    }
+    await sleep(intervalMs);
+  }
+  return false;
+}
 
 async function loadHostRow(id: string) {
   const { rows } = await pool().query(
@@ -283,12 +385,49 @@ async function handleProvision(row: any) {
   const provisioned = await provisionIfNeeded(row, { startupScript });
   const runtime = provisioned.metadata?.runtime;
   const observedAt = new Date();
-  const nextMetadata = setRuntimeObservedAt(provisioned.metadata, observedAt);
+  let nextMetadata = setRuntimeObservedAt(provisioned.metadata, observedAt);
   logger.debug("handleProvision: runtime", {
     host_id: row.id,
     provider: providerId,
     runtime,
   });
+  let nextStatus = provisioned.status ?? "running";
+  if (providerId === "lambda" && runtime?.instance_id) {
+    await updateHostRow(row.id, {
+      status: "starting",
+      last_seen: null,
+      metadata: nextMetadata,
+    });
+    const { entry, creds } = await getProviderContext(providerId);
+    const waitedStatus = await waitForLambdaStatus({
+      entry,
+      creds,
+      runtime,
+      desired: "running",
+    });
+    const observedAtDone = new Date();
+    nextMetadata = setRuntimeObservedAt(nextMetadata, observedAtDone);
+    nextStatus = waitedStatus ?? "starting";
+  } else if (
+    (providerId === "nebius" || providerId === "hyperstack") &&
+    runtime?.instance_id
+  ) {
+    await updateHostRow(row.id, {
+      status: "starting",
+      last_seen: null,
+      metadata: nextMetadata,
+    });
+    const { entry, creds } = await getProviderContext(providerId);
+    const waitedStatus = await waitForProviderStatus({
+      entry,
+      creds,
+      runtime,
+      desired: ["running"],
+    });
+    const observedAtDone = new Date();
+    nextMetadata = setRuntimeObservedAt(nextMetadata, observedAtDone);
+    nextStatus = waitedStatus ?? "starting";
+  }
   const publicUrl =
     provisioned.public_url ??
     (runtime?.public_ip ? `http://${runtime.public_ip}` : undefined);
@@ -297,7 +436,7 @@ async function handleProvision(row: any) {
     (runtime?.public_ip ? `http://${runtime.public_ip}` : undefined);
   await updateHostRow(provisioned.id, {
     metadata: nextMetadata,
-    status: provisioned.status ?? "running",
+    status: nextStatus,
     public_url: publicUrl,
     internal_url: internalUrl,
   });
@@ -420,6 +559,36 @@ async function handleStart(row: any) {
     });
     const { entry, creds } = await getProviderContext(providerId);
     await entry.provider.startHost(runtime, creds);
+    let statusAfterStart:
+      | "running"
+      | "starting"
+      | "off"
+      | "stopped"
+      | "error"
+      | undefined;
+    if (providerId === "nebius" || providerId === "hyperstack") {
+      statusAfterStart = await waitForProviderStatus({
+        entry,
+        creds,
+        runtime,
+        desired: ["running"],
+      });
+      const observedAtDone = new Date();
+      const nextMetadataAfter = setRuntimeObservedAt(
+        row.metadata ?? {},
+        observedAtDone,
+      );
+      await updateHostRow(row.id, {
+        status: statusAfterStart ?? "starting",
+        metadata: nextMetadataAfter,
+        last_seen: null,
+      });
+      row.metadata = nextMetadataAfter;
+      if (statusAfterStart !== "running") {
+        await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
+        return;
+      }
+    }
   }
   const observedAt = new Date();
   const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
@@ -449,6 +618,7 @@ async function handleStop(row: any) {
   const providerId = normalizeProviderId(machine.cloud);
   await revokeBootstrapTokensForHost(row.id, { purpose: "bootstrap" });
   let supportsStop = true;
+  let stopConfirmed = false;
   if (providerId && runtime?.instance_id) {
     const observedAt = new Date();
     const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
@@ -460,8 +630,31 @@ async function handleStop(row: any) {
     const { entry, creds } = await getProviderContext(providerId);
     supportsStop = entry.capabilities.supportsStop;
     await entry.provider.stopHost(runtime, creds);
+    if (providerId === "nebius" || providerId === "hyperstack") {
+      const waitedStatus = await waitForProviderStatus({
+        entry,
+        creds,
+        runtime,
+        desired: ["off", "stopped"],
+      });
+      const observedAtDone = new Date();
+      const nextMetadataAfter = setRuntimeObservedAt(
+        row.metadata ?? {},
+        observedAtDone,
+      );
+      await updateHostRow(row.id, {
+        status: waitedStatus ?? "stopping",
+        metadata: nextMetadataAfter,
+        last_seen: null,
+      });
+      stopConfirmed = waitedStatus === "off" || waitedStatus === "stopped";
+    }
   }
   if (providerId === "hyperstack") {
+    if (!stopConfirmed) {
+      await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
+      return;
+    }
     if (!(await hasCloudflareTunnel()) && (await hasDns())) {
       await deleteHostDns({ record_id: row.metadata?.dns?.record_id });
     }
@@ -474,6 +667,26 @@ async function handleStop(row: any) {
     await updateHostRow(row.id, {
       metadata: nextMetadata,
       status: "off",
+      public_url: null,
+      internal_url: null,
+      last_seen: null,
+    });
+  } else if (providerId === "lambda") {
+    const { entry, creds } = await getProviderContext(providerId);
+    const gone = await waitForLambdaInstanceGone({ entry, creds, runtime });
+    if (!gone) {
+      await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
+      return;
+    }
+    const nextMetadata = {
+      ...(row.metadata ?? {}),
+    };
+    delete nextMetadata.runtime;
+    delete nextMetadata.dns;
+    delete nextMetadata.cloudflare_tunnel;
+    await updateHostRow(row.id, {
+      metadata: nextMetadata,
+      status: "deprovisioned",
       public_url: null,
       internal_url: null,
       last_seen: null,
@@ -495,6 +708,12 @@ async function handleStop(row: any) {
       last_seen: null,
     });
   } else {
+    if (providerId === "nebius" && !stopConfirmed) {
+      if (providerId) {
+        await bumpReconcile(providerId, DEFAULT_INTERVALS.running_ms);
+      }
+      return;
+    }
     const observedAt = new Date();
     const nextMetadata = setRuntimeObservedAt(row.metadata ?? {}, observedAt);
     await updateHostRow(row.id, {

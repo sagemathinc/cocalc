@@ -65,11 +65,13 @@ export const HostCard: React.FC<HostCardProps> = ({
         ? "Restarting"
         : "Start";
   const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
-  const allowStop =
-    !isDeleted &&
-    (host.status === "running" || host.status === "error");
   const providerId = host.machine?.cloud;
   const caps = providerId ? providerCapabilities?.[providerId] : undefined;
+  const allowStop =
+    !isDeleted &&
+    (host.status === "running" || host.status === "error") &&
+    caps?.supportsStop !== false &&
+    host.machine?.storage_mode !== "ephemeral";
   const supportsRestart = caps?.supportsRestart ?? true;
   const supportsHardRestart = caps?.supportsHardRestart ?? false;
   const allowRestart =

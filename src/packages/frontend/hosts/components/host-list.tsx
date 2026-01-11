@@ -299,11 +299,17 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
   const stopTargets = React.useMemo(
     () =>
       selectedHosts.filter(
-        (host) =>
-          !host.deleted &&
-          (host.status === "running" || host.status === "error"),
+        (host) => {
+          if (host.deleted) return false;
+          if (!(host.status === "running" || host.status === "error")) return false;
+          const providerId = host.machine?.cloud;
+          const caps = providerId ? providerCapabilities?.[providerId] : undefined;
+          if (caps?.supportsStop === false) return false;
+          if (host.machine?.storage_mode === "ephemeral") return false;
+          return true;
+        },
       ),
-    [selectedHosts],
+    [selectedHosts, providerCapabilities],
   );
   const deprovisionTargets = React.useMemo(
     () =>
@@ -528,10 +534,13 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               : "Start";
         const stopLabel = host.status === "stopping" ? "Stopping" : "Stop";
         const statusValue = host.status;
-        const allowStop =
-          !isDeleted && (statusValue === "running" || statusValue === "error");
         const providerId = host.machine?.cloud;
         const caps = providerId ? providerCapabilities?.[providerId] : undefined;
+        const allowStop =
+          !isDeleted &&
+          (statusValue === "running" || statusValue === "error") &&
+          caps?.supportsStop !== false &&
+          host.machine?.storage_mode !== "ephemeral";
         const supportsRestart = caps?.supportsRestart ?? true;
         const supportsHardRestart = caps?.supportsHardRestart ?? false;
         const allowRestart =
