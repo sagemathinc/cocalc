@@ -488,15 +488,20 @@ export async function getHostLog({
 export async function getBackupConfig({
   account_id,
   host_id,
+  project_id,
 }: {
   account_id?: string;
   host_id: string;
+  project_id?: string;
 }): Promise<{ toml: string; ttl_seconds: number }> {
   if (account_id) {
     throw new Error("not authorized");
   }
   if (!isValidUUID(host_id)) {
     throw new Error("invalid host_id");
+  }
+  if (project_id != null && !isValidUUID(project_id)) {
+    throw new Error("invalid project_id");
   }
   const { rows } = await pool().query<{
     region: string | null;
@@ -517,7 +522,9 @@ export async function getBackupConfig({
 
   const region = rows[0]?.region || "global";
   const bucket = `${bucketPrefix}-${region}`;
-  const root = `${DEFAULT_BACKUP_ROOT}/host-${host_id}`;
+  const root = project_id
+    ? `${DEFAULT_BACKUP_ROOT}/project-${project_id}`
+    : `${DEFAULT_BACKUP_ROOT}/host-${host_id}`;
 
   const toml = [
     "[repository]",

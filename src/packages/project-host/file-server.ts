@@ -94,6 +94,13 @@ export async function getVolume(project_id: string) {
   return await fs.subvolumes.get(volName(project_id));
 }
 
+async function getVolumeForBackup(project_id: string) {
+  const vol = await getVolume(project_id);
+  // Safe to override: each Subvolume owns its SandboxedFilesystem instance.
+  vol.fs.rusticRepo = await resolveRusticRepo(project_id);
+  return vol;
+}
+
 export function getMountPoint(): string {
   if (fs == null) {
     throw Error("file server not initialized");
@@ -112,7 +119,10 @@ function projectMountpoint(project_id: string): string {
   return join(getMountPoint(), `project-${project_id}`);
 }
 
-let backupConfigCache: { toml: string; expiresAt: number } | null = null;
+const backupConfigCache = new Map<
+  string,
+  { toml: string; expiresAt: number; path: string }
+>();
 let backupConfigInvalidationSub: any = null;
 
 async function startBackupConfigInvalidation(client: ConatClient) {
@@ -123,9 +133,9 @@ async function startBackupConfigInvalidation(client: ConatClient) {
   backupConfigInvalidationSub = await client.subscribe(subject);
   (async () => {
     for await (const _msg of backupConfigInvalidationSub) {
-      backupConfigCache = null;
+      backupConfigCache.clear();
       try {
-        await ensureBackupConfig();
+        // Refresh on demand; we only clear cache here.
       } catch (err) {
         logger.warn("backup config refresh failed", err);
       }
@@ -135,11 +145,11 @@ async function startBackupConfigInvalidation(client: ConatClient) {
   );
 }
 
-async function fetchBackupConfig(): Promise<{
+async function fetchBackupConfig(project_id: string): Promise<{
   toml: string;
   ttl_seconds: number;
 } | null> {
-  logger.debug("fetchBackupConfig");
+  logger.debug("fetchBackupConfig", { project_id });
   const client = getMasterConatClient();
   if (!client) {
     logger.debug("ERROR: master");
@@ -155,29 +165,31 @@ async function fetchBackupConfig(): Promise<{
     client,
     account_id,
     name: "hosts.getBackupConfig",
-    args: [{ host_id: hostId }],
+    args: [{ host_id: hostId, project_id }],
     timeout: 30000,
   });
 }
 
-async function ensureBackupConfig(): Promise<string | null> {
-  logger.debug("ensureBackupConfig");
-  const profilePath = join(secrets, "rustic.toml");
+async function ensureBackupConfig(project_id: string): Promise<string | null> {
+  logger.debug("ensureBackupConfig", { project_id });
+  const profilePath = join(secrets, `rustic-project-${project_id}.toml`);
   const now = Date.now();
-  if (backupConfigCache && now < backupConfigCache.expiresAt) {
-    return profilePath;
+  const cached = backupConfigCache.get(project_id);
+  if (cached && now < cached.expiresAt) {
+    return cached.path;
   }
   const retryDelayMs = 5000;
   while (true) {
     try {
-      const remoteConfig = await fetchBackupConfig();
+      const remoteConfig = await fetchBackupConfig(project_id);
       const toml = remoteConfig?.toml;
       if (!toml) return null;
       const ttlSeconds = remoteConfig?.ttl_seconds ?? 0;
-      backupConfigCache = {
+      backupConfigCache.set(project_id, {
         toml,
         expiresAt: ttlSeconds > 0 ? now + ttlSeconds * 1000 : now + 3600 * 1000,
-      };
+        path: profilePath,
+      });
       await mkdir(secrets, { recursive: true });
       await writeFile(profilePath, toml, "utf8");
       await chmod(profilePath, 0o600);
@@ -189,8 +201,9 @@ async function ensureBackupConfig(): Promise<string | null> {
   }
 }
 
-async function resolveRusticRepo(): Promise<string> {
-  const profilePath = await ensureBackupConfig();
+async function resolveRusticRepo(project_id?: string): Promise<string> {
+  if (!project_id) return rusticRepo;
+  const profilePath = await ensureBackupConfig(project_id);
   if (profilePath) return profilePath;
   return rusticRepo;
 }
@@ -360,7 +373,7 @@ async function createBackup({
   project_id: string;
   limit?: number;
 }): Promise<{ time: Date; id: string }> {
-  const vol = await getVolume(project_id);
+  const vol = await getVolumeForBackup(project_id);
   return await vol.rustic.backup({ limit });
 }
 
@@ -375,7 +388,7 @@ async function restoreBackup({
   path?: string;
   dest?: string;
 }): Promise<void> {
-  const vol = await getVolume(project_id);
+  const vol = await getVolumeForBackup(project_id);
   await vol.rustic.restore({ id, path, dest });
 }
 
@@ -386,7 +399,7 @@ async function deleteBackup({
   project_id: string;
   id: string;
 }): Promise<void> {
-  const vol = await getVolume(project_id);
+  const vol = await getVolumeForBackup(project_id);
   await vol.rustic.forget({ id });
 }
 
@@ -399,7 +412,7 @@ async function updateBackups({
   counts?: Partial<SnapshotCounts>;
   limit?: number;
 }): Promise<void> {
-  const vol = await getVolume(project_id);
+  const vol = await getVolumeForBackup(project_id);
   await vol.rustic.update(counts, { limit });
 }
 
@@ -414,7 +427,7 @@ export async function getBackups({
     summary: { [key: string]: string | number };
   }[]
 > {
-  const vol = await getVolume(project_id);
+  const vol = await getVolumeForBackup(project_id);
   return await vol.rustic.snapshots();
 }
 
@@ -427,7 +440,7 @@ async function getBackupFiles({
   id: string;
   path?: string;
 }): Promise<{ name: string; isDir: boolean; mtime: number; size: number }[]> {
-  const vol = await getVolume(project_id);
+  const vol = await getVolumeForBackup(project_id);
   return await vol.rustic.ls({ id, path });
 }
 

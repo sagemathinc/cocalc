@@ -202,6 +202,7 @@ export interface Hosts {
   getBackupConfig: (opts: {
     account_id?: string;
     host_id: string;
+    project_id?: string;
   }) => Promise<{ toml: string; ttl_seconds: number }>;
   createHost: (opts: {
     account_id?: string;
