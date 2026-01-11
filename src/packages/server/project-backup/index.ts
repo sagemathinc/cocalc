@@ -4,6 +4,7 @@ import { join } from "path";
 import { secrets } from "@cocalc/backend/data";
 import getPool from "@cocalc/database/pool";
 import { isValidUUID } from "@cocalc/util/misc";
+import { ensureR2Buckets } from "./r2";
 
 const DEFAULT_BACKUP_TTL_SECONDS = 60 * 60 * 12; // 12 hours
 const DEFAULT_BACKUP_ROOT = "rustic";
@@ -133,12 +134,14 @@ export async function getBackupConfig({
   }
 
   const accountId = await getSiteSetting("r2_account_id");
+  const apiToken = await getSiteSetting("r2_api_token");
   const accessKey = await getSiteSetting("r2_access_key_id");
   const secretKey = await getSiteSetting("r2_secret_access_key");
   const bucketPrefix = await getSiteSetting("r2_bucket_prefix");
   if (!accountId || !accessKey || !secretKey || !bucketPrefix) {
     return { toml: "", ttl_seconds: 0 };
   }
+  void ensureR2Buckets({ accountId, bucketPrefix, apiToken });
 
   const region = rows[0]?.region || "global";
   const bucket = `${bucketPrefix}-${region}`;
