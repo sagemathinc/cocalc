@@ -14,12 +14,13 @@ import { A, Icon, Loading, Gap } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { plural, round1 } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { Progress } from "antd";
+import { Button, Progress } from "antd";
 import { Map } from "immutable";
 import { join } from "path";
 import { PolicyPricingPageUrl, SiteName } from "../../customize";
 import "./project-upgrades-table";
 import { ProjectUpgradesTable } from "./project-upgrades-table";
+import MembershipPurchaseModal from "../membership-purchase-modal";
 export { tmp as UpgradesPage };
 declare var DEBUG: boolean;
 
@@ -29,7 +30,11 @@ interface reduxProps {
   all_projects_have_been_loaded?: boolean;
 }
 
-class UpgradesPage extends Component<reduxProps> {
+interface State {
+  showMembershipModal: boolean;
+}
+
+class UpgradesPage extends Component<reduxProps, State> {
   static reduxProps() {
     return {
       projects: {
@@ -42,16 +47,37 @@ class UpgradesPage extends Component<reduxProps> {
     };
   }
 
+  constructor(props, state) {
+    super(props, state);
+    this.state = { showMembershipModal: false };
+  }
+
+  private openMembershipModal = () => {
+    this.setState({ showMembershipModal: true });
+  };
+
+  private closeMembershipModal = () => {
+    this.setState({ showMembershipModal: false });
+  };
+
   private render_no_upgrades(): React.JSX.Element {
     return (
       <div>
         <h3>Upgrades are no longer available</h3>
-        Please visit <A href={join(appBasePath, "store")}>the new store</A>,
-        explore <A href={join(appBasePath, "pricing")}>our products</A>, or{" "}
-        <A href={join(appBasePath, "billing/subscriptions")}>
-          view your legacy upgrade subscriptions
-        </A>
-        .
+        <p>
+          Memberships now cover the upgrades that used to be handled with
+          licenses.
+        </p>
+        <Button type="primary" onClick={this.openMembershipModal}>
+          View memberships
+        </Button>
+        <div style={{ marginTop: "8px" }}>
+          <A href={PolicyPricingPageUrl}>Explore our products</A> or{" "}
+          <A href={join(appBasePath, "billing/subscriptions")}>
+            view your legacy upgrade subscriptions
+          </A>
+          .
+        </div>
       </div>
     );
   }
@@ -72,8 +98,10 @@ class UpgradesPage extends Component<reduxProps> {
           <p>
             Going forward, we offer many{" "}
             <A href={PolicyPricingPageUrl}> pricing and subscription options</A>
-            , which you can subscribe to in the{" "}
-            <A href={join(appBasePath, "store")}>Store</A>.
+            .{" "}
+            <Button type="link" onClick={this.openMembershipModal}>
+              View memberships
+            </Button>
           </p>
         </div>
         <Gap />
@@ -186,16 +214,27 @@ class UpgradesPage extends Component<reduxProps> {
       !DEBUG &&
       !this.props.stripe_customer?.getIn(["subscriptions", "total_count"])
     ) {
-      return this.render_no_upgrades();
-    } else {
       return (
         <div>
-          {this.render_have_upgrades()}
-          {this.render_upgrades()}
-          <ProjectUpgradesTable />
+          {this.render_no_upgrades()}
+          <MembershipPurchaseModal
+            open={this.state.showMembershipModal}
+            onClose={this.closeMembershipModal}
+          />
         </div>
       );
     }
+    return (
+      <div>
+        {this.render_have_upgrades()}
+        {this.render_upgrades()}
+        <ProjectUpgradesTable />
+        <MembershipPurchaseModal
+          open={this.state.showMembershipModal}
+          onClose={this.closeMembershipModal}
+        />
+      </div>
+    );
   }
 }
 
