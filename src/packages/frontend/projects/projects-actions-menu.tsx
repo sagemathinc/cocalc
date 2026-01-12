@@ -36,6 +36,7 @@ import {
   useServersMenuItems,
 } from "./util";
 import { HostPickerModal } from "@cocalc/frontend/hosts/pick-host";
+import { DEFAULT_R2_REGION } from "@cocalc/util/consts";
 
 const FILES_SUBMENU_LIST_STYLE: CSS = {
   maxWidth: "80vw",
@@ -61,6 +62,9 @@ export function ProjectActionsMenu({ record }: Props) {
     record.project_id,
     "host_id",
   ]) as string | undefined;
+  const projectRegion = String(
+    project_map?.getIn([record.project_id, "region"]) ?? DEFAULT_R2_REGION,
+  );
   const project_log = useTypedRedux(
     { project_id: record.project_id },
     "project_log",
@@ -303,6 +307,8 @@ export function ProjectActionsMenu({ record }: Props) {
         <HostPickerModal
           open={moveOpen}
           currentHostId={currentHostId}
+          regionFilter={projectRegion}
+          lockRegion
           onCancel={() => setMoveOpen(false)}
           onSelect={async (dest_host_id) => {
             setMoveOpen(false);
