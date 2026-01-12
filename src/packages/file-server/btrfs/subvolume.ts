@@ -4,7 +4,6 @@ A subvolume
 
 import { type Filesystem } from "./filesystem";
 import refCache from "@cocalc/util/refcache";
-import { sudo } from "./util";
 import { join } from "path";
 import { mkdir } from "fs/promises";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
@@ -13,7 +12,7 @@ import { SubvolumeSnapshots } from "./subvolume-snapshots";
 import { SubvolumeQuota } from "./subvolume-quota";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
-import { btrfs } from "./util";
+import { btrfs, sudo } from "./util";
 
 import getLogger from "@cocalc/backend/logger";
 
@@ -47,6 +46,14 @@ export class Subvolume {
   }
 
   init = async () => {
+    if (await exists(this.path)) {
+      const isSubvolume = await isBtrfsSubvolume(this.path);
+      if (!isSubvolume) {
+        throw new Error(
+          `existing path is not a btrfs subvolume: ${this.path}`,
+        );
+      }
+    }
     if (!(await exists(this.path))) {
       logger.debug(`creating ${this.name} at ${this.path}`);
       await btrfs({
@@ -105,6 +112,19 @@ export class Subvolume {
     if (await exists(dir)) return;
     await mkdir(dir, { recursive: true });
   };
+}
+
+async function isBtrfsSubvolume(path: string): Promise<boolean> {
+  const { exit_code, stderr } = await btrfs({
+    args: ["subvolume", "show", path],
+    err_on_exit: false,
+    verbose: false,
+  });
+  if (!exit_code) return true;
+  if (typeof stderr === "string" && stderr.includes("Not a Btrfs subvolume")) {
+    return false;
+  }
+  throw new Error(`btrfs subvolume show failed for ${path}: ${stderr}`);
 }
 
 const cache = refCache<Options & { noCache?: boolean }, Subvolume>({

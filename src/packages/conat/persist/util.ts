@@ -43,7 +43,7 @@ Also getAll using start_seq:
 import { assertHasWritePermission } from "./auth";
 import { pstream, PersistentStream } from "./storage";
 import { join } from "path";
-import { syncFiles, ensureContainingDirectoryExists } from "./context";
+import { syncFiles, ensureContainingDirectoryExists, statSync } from "./context";
 
 // this is per-server -- and "user" means where the resource is, usually
 // a given project.  E.g., 500 streams in a project, across many users.
@@ -81,6 +81,11 @@ function resolveLocalPath(storagePath: string): string {
         "project_id",
         projectId,
       );
+      try {
+        statSync(base);
+      } catch {
+        throw new Error(`project persist base does not exist: ${base}`);
+      }
       return rest ? join(base, rest) : base;
     }
   }
