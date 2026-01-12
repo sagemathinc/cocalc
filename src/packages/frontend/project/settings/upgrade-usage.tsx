@@ -37,7 +37,6 @@ import { GPU } from "@cocalc/util/types/site-licenses";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
 import AdminQuotas from "./quota-editor/admin-quotas";
-import PayAsYouGoQuotaEditor from "./quota-editor/pay-as-you-go";
 import { RunQuota } from "./run-quota";
 import { Project } from "./types";
 
@@ -214,12 +213,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         <>
           {account_groups.includes("admin") && (
             <AdminQuotas
-              project_id={project_id}
-              style={{ marginTop: "15px" }}
-            />
-          )}
-          {is_commercial && (
-            <PayAsYouGoQuotaEditor
               project_id={project_id}
               style={{ marginTop: "15px" }}
             />

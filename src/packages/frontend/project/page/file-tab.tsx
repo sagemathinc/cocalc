@@ -30,7 +30,6 @@ import {
   ICON_UPGRADES,
   ICON_USERS,
 } from "@cocalc/frontend/project/servers/consts";
-import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
 import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -571,9 +570,6 @@ function DisplayedLabel({ path, label, inline = true, project_id }) {
     return (
       <>
         <E style={style}>{label}</E>
-        {label == FIXED_PROJECT_TABS.upgrades.label && (
-          <PayAsYouGoCost project_id={project_id} />
-        )}
         {label == FIXED_PROJECT_TABS.servers.label && (
           <ComputeServerSpendRate project_id={project_id} />
         )}
