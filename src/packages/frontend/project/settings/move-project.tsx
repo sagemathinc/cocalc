@@ -5,6 +5,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { HostPickerModal } from "@cocalc/frontend/hosts/pick-host";
+import { DEFAULT_R2_REGION } from "@cocalc/util/consts";
 
 interface Props {
   project_id: string;
@@ -33,6 +34,10 @@ export default function MoveProject({
     project_id,
     "host_id",
   ]) as string | undefined;
+  const projectRegion = String(
+    useTypedRedux("projects", "project_map")?.getIn([project_id, "region"]) ??
+      DEFAULT_R2_REGION,
+  );
 
   return (
     <>
@@ -70,6 +75,8 @@ export default function MoveProject({
       <HostPickerModal
         open={pickerOpen}
         currentHostId={currentHostId}
+        regionFilter={projectRegion}
+        lockRegion
         onCancel={() => setPickerOpen(false)}
         onSelect={async (dest_host_id) => {
           setPickerOpen(false);
