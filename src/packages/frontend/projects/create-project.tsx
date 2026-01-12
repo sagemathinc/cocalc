@@ -186,7 +186,7 @@ export function NewProjectCreator({
     const opts = {
       title: title_text,
       image: await derive_project_img_name(selected),
-      start: true, // used to not start, due to apply_default_upgrades, but upgrades are  deprecated
+      start: true,
       license: license_id,
       host_id: selectedHost?.id,
       region: projectRegion,
@@ -205,18 +205,6 @@ export function NewProjectCreator({
       license_id,
       ...opts,
     });
-    // We also update the customer billing information so apply_default_upgrades works.
-    const billing_actions = redux.getActions("billing");
-    if (billing_actions != null) {
-      try {
-        await billing_actions.update_customer();
-        await actions.apply_default_upgrades({ project_id }); // see issue #4192
-      } catch (err) {
-        // Ignore error coming from this -- it's merely a convenience to
-        // upgrade the project on creation; user could always do it manually,
-        // and nothing in the UI guarantees it will happen.
-      }
-    }
     // switch_to=true is perhaps suggested by #4088
     actions.open_project({ project_id, switch_to: true });
     cancel_editing();

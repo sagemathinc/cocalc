@@ -20,15 +20,12 @@ import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/project
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import {
   assert_uuid,
-  copy,
   defaults,
   is_valid_uuid_string,
   len,
   uuid,
 } from "@cocalc/util/misc";
-import { DEFAULT_QUOTAS } from "@cocalc/util/schema";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
-import { Upgrades } from "@cocalc/util/upgrades/types";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -331,32 +328,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
       }
     }
   };
-
-  // Apply default upgrades -- if available -- to the given project.
-  // Right now this means upgrading to member hosting and enabling
-  // network access.  Later this could mean something else (e.g., a license code)
-  // or be configurable by the user.
-  public async apply_default_upgrades(opts: {
-    project_id: string;
-  }): Promise<void> {
-    // WARNING/TODO: This may be invalid if redux.getActions('billing')?.update_customer() has
-    // not been recently called. There's no big *harm* if it is out of date (since quotas will
-    // just get removed when the project is started), but it could be mildly confusing.
-    const total = redux.getStore("account").get_total_upgrades();
-    // anonymous users: total is undefined
-    if (total == null) return;
-    const applied = store.get_total_upgrades_you_have_applied();
-    const to_upgrade = {};
-    for (let quota of ["member_host", "network", "always_running"]) {
-      const avail = (total[quota] ?? 0) - (applied?.[quota] ?? 0);
-      if (avail > 0) {
-        to_upgrade[quota] = 1;
-      }
-    }
-    if (len(to_upgrade) > 0) {
-      await this.apply_upgrades_to_project(opts.project_id, to_upgrade);
-    }
-  }
 
   public async set_project_course_info({
     project_id,
@@ -760,64 +731,9 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   }
 
-  /*
-   * Upgrades
-   */
-  // - upgrades is a map from upgrade parameters to integer values.
-  // - The upgrades get merged into any other upgrades this user may have already applied,
-  //   unless merge=false (the third option)
-  public async apply_upgrades_to_project(
-    project_id: string,
-    upgrades: Upgrades,
-    merge: boolean = true,
-  ): Promise<void> {
+  // Remove any site licenses applied to this project.
+  public async clear_project_licenses(project_id: string): Promise<void> {
     assert_uuid(project_id);
-    const account_id = this.redux.getStore("account").get_account_id();
-    if (!account_id) {
-      throw Error("user must be signed in");
-    }
-    if (!merge) {
-      // explicitly set every field not specified to 0
-      upgrades = copy(upgrades);
-      for (let quota in DEFAULT_QUOTAS) {
-        if (upgrades[quota] == null) {
-          upgrades[quota] = 0;
-        }
-      }
-    }
-    // Will anything change?
-    const cur =
-      store
-        .getIn(["project_map", project_id, "users", account_id, "upgrades"])
-        ?.toJS() ?? {};
-    let nothing_will_change: boolean = true;
-    for (let quota in DEFAULT_QUOTAS) {
-      if ((upgrades[quota] ?? 0) != (cur[quota] ?? 0)) {
-        nothing_will_change = false;
-        break;
-      }
-    }
-    if (nothing_will_change) {
-      return;
-    }
-
-    await this.projects_table_set({
-      project_id,
-      users: {
-        [account_id]: { upgrades },
-      },
-    });
-    // log the change in the project log
-    await this.project_log(project_id, {
-      event: "upgrade",
-      upgrades,
-    });
-  }
-
-  // Remove any upgrades and site licenses applied to this project.
-  public async clear_project_upgrades(project_id: string): Promise<void> {
-    assert_uuid(project_id);
-    await this.apply_upgrades_to_project(project_id, {}, false);
     await this.remove_site_license_from_project(project_id);
   }
 
@@ -1224,7 +1140,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   public async delete_project(project_id: string): Promise<void> {
-    await this.clear_project_upgrades(project_id);
+    await this.clear_project_licenses(project_id);
     await this.projects_table_set({
       project_id,
       deleted: true,
@@ -1236,7 +1152,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
   public async toggle_delete_project(project_id: string): Promise<void> {
     const is_deleted = store.is_deleted(project_id);
     if (!is_deleted) {
-      await this.clear_project_upgrades(project_id);
+      await this.clear_project_licenses(project_id);
     }
 
     await this.projects_table_set({

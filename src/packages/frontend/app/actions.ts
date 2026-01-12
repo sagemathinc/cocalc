@@ -226,12 +226,6 @@ export class PageActions extends Actions<PageState> {
         set_window_title("Loading Project");
         var projects_store = redux.getStore("projects");
 
-        if (projects_store.date_when_course_payment_required(key)) {
-          redux
-            .getActions("projects")
-            .apply_default_upgrades({ project_id: key });
-        }
-
         try {
           const title: string = await projects_store.async_wait({
             until: (store): string | undefined => {

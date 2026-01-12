@@ -14,11 +14,10 @@ import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
-import { copy, days_ago, keys, len } from "@cocalc/util/misc";
+import { copy, days_ago, keys } from "@cocalc/util/misc";
 import { SITE_NAME } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
-import { UpgradeGoal } from "../types";
 import { Result, run_in_all_projects } from "./run-in-all-projects";
 import type { StudentRecord } from "../store";
 
@@ -865,34 +864,6 @@ export class StudentProjectsActions {
     } finally {
       this.course_actions.set_activity({ id });
     }
-  };
-
-  // upgrade_goal is a map from the quota type to the goal quota the instructor wishes
-  // to get all the students to.
-  upgrade_all_student_projects = async (
-    upgrade_goal: UpgradeGoal,
-  ): Promise<void> => {
-    const store = this.get_store();
-    const plan = store.get_upgrade_plan(upgrade_goal);
-    if (len(plan) === 0) {
-      // nothing to do
-      return;
-    }
-    const id = this.course_actions.set_activity({
-      desc: `Adjusting upgrades on ${len(plan)} student projects...`,
-    });
-    const a = redux.getActions("projects");
-    const s = redux.getStore("projects");
-    for (const project_id in plan) {
-      if (project_id == null) continue;
-      const upgrades = plan[project_id];
-      if (upgrades == null) continue;
-      // avoid race if projects are being created *right* when we
-      // try to upgrade them.
-      if (!s.has_project(project_id)) continue;
-      await a.apply_upgrades_to_project(project_id, upgrades, false);
-    }
-    this.course_actions.set_activity({ id });
   };
 
   // Do an admin upgrade to all student projects.  This changes the base quotas for every student

@@ -7,15 +7,13 @@
 import { Store, redux } from "@cocalc/frontend/app-framework";
 import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 // CoCalc libraries
-import { cmp, cmp_array, set } from "@cocalc/util/misc";
+import { cmp, cmp_array } from "@cocalc/util/misc";
 import { DirectoryListingEntry } from "@cocalc/util/types";
 // Course Library
 import { STEPS } from "./util";
 import { Map, Set, List } from "immutable";
 import { TypedMap, createTypedMap } from "@cocalc/frontend/app-framework";
 import { SITE_NAME } from "@cocalc/util/theme";
-// Upgrades
-import * as project_upgrades from "./project-upgrades";
 import {
   Datastore,
   EnvVars,
@@ -36,7 +34,6 @@ import {
   AssignmentCopyStep,
   AssignmentStatus,
   SiteLicenseStrategy,
-  UpgradeGoal,
   ComputeServerConfig,
 } from "./types";
 
@@ -159,7 +156,6 @@ export type CourseSettingsRecord = TypedMap<{
   shared_project_id: string;
   student_pay: boolean;
   title: string;
-  upgrade_goal: Map<any, any>;
   license_upgrade_host_project?: boolean; // https://github.com/sagemathinc/cocalc/issues/5360
   site_license_id?: string;
   site_license_removed?: string; // comma separated list of licenses that have been explicitly removed from this course.
@@ -907,30 +903,6 @@ export class CourseStore extends Store<CourseState> {
 
     this.handout_status_cache[handout_id] = info;
     return info;
-  }
-
-  public get_upgrade_plan(upgrade_goal: UpgradeGoal) {
-    const account_store: any = this.redux.getStore("account");
-    const project_map = this.redux.getStore("projects").get("project_map");
-    if (project_map == null) throw Error("not fully loaded");
-    const plan = project_upgrades.upgrade_plan({
-      account_id: account_store.get_account_id(),
-      purchased_upgrades: account_store.get_total_upgrades(),
-      project_map,
-      student_project_ids: set(
-        this.get_student_project_ids({
-          include_deleted: true,
-        }),
-      ),
-      deleted_project_ids: set(
-        this.get_student_project_ids({
-          include_deleted: true,
-          deleted_only: true,
-        }),
-      ),
-      upgrade_goal,
-    });
-    return plan;
   }
 
   private resolve(opts: {

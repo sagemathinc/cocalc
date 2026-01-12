@@ -24,7 +24,7 @@ import {
   CourseSettingsRecord,
   PARALLEL_DEFAULT,
 } from "../store";
-import { SiteLicenseStrategy, SyncDBRecord, UpgradeGoal } from "../types";
+import { SiteLicenseStrategy, SyncDBRecord } from "../types";
 import {
   StudentProjectFunctionality,
   completeStudentProjectFunctionality,
@@ -117,10 +117,6 @@ export class ConfigurationActions {
         this.setStudentPay({ when: "" });
       }
     }
-  };
-
-  set_upgrade_goal = (upgrade_goal: UpgradeGoal): void => {
-    this.set({ upgrade_goal, table: "settings" });
   };
 
   set_allow_collabs = (allow_collabs: boolean): void => {

@@ -52,7 +52,6 @@ export { TimeAgo, TimeAgoElement, is_different_date } from "./time-ago";
 export { TimeElapsed } from "./time-elapsed";
 export { Tip } from "./tip";
 export { UncommittedChanges } from "./uncommited-changes";
-export { UPGRADE_ERROR_STYLE, UpgradeAdjustor } from "./upgrade-adjustor";
 
 export { AIAvatar, CopyToClipBoard, Delay };
 

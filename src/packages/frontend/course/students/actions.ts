@@ -141,7 +141,7 @@ export class StudentsActions {
     const project_id = student.get("project_id");
     if (project_id != null) {
       // The student's project was created so let's clear any upgrades from it.
-      redux.getActions("projects").clear_project_upgrades(project_id);
+      redux.getActions("projects").clear_project_licenses(project_id);
     }
     if (noTrash) {
       this.course_actions.delete(

@@ -14,7 +14,6 @@ We allow a project to run if any of these conditions is satisfied:
 
    - not in a blocked country
    - any license is applied to the project
-   - any upgrades are applied to the project
    - admin member upgrade
    - is a project in a course (don't interfere with instructors/students)
    - project already running or starting for some reason
@@ -75,16 +74,6 @@ export async function allow_project_to_run(
   if (project.get("course") != null) {
     log("don't mess with students in course");
     return true;
-  }
-
-  const upgrades = store.get_total_project_upgrades(project_id);
-  if (upgrades != null) {
-    for (const name in upgrades) {
-      if (upgrades[name]) {
-        log("some upgrade exists, so run.");
-        return true;
-      }
-    }
   }
 
   if (project.getIn(["settings", "member_host"])) {

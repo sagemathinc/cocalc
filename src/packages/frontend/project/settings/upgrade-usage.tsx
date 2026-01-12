@@ -3,18 +3,16 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Card, Typography } from "antd";
+import { Card, Typography } from "antd";
 import { List } from "immutable";
 import { join } from "path";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
-  CSS,
   React,
   Rendered,
-  redux,
-  useActions,
   useTypedRedux,
+  useActions,
 } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -22,39 +20,25 @@ import {
   Paragraph,
   Text,
   Title,
-  UpgradeAdjustor,
 } from "@cocalc/frontend/components";
 import MembershipBadge from "@cocalc/frontend/account/membership-badge";
-import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { ROOT } from "@cocalc/util/consts/dedicated";
-import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
-import { PROJECT_UPGRADES } from "@cocalc/util/schema";
+import { plural } from "@cocalc/util/misc";
 import {
   DedicatedDisk,
   DedicatedResources,
 } from "@cocalc/util/types/dedicated";
 import { process_gpu_quota } from "@cocalc/util/types/gpu";
-import { GPU } from "@cocalc/util/types/site-licenses";
 import { PRICES } from "@cocalc/util/upgrades/dedicated";
 import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
 import AdminQuotas from "./quota-editor/admin-quotas";
 import { RunQuota } from "./run-quota";
 import { Project } from "./types";
 
-const UPGRADE_BUTTON_STYLE: CSS = {
-  paddingBottom: "15px",
-} as const;
-
 interface Props {
   project_id: string;
   project: Project;
-  upgrades_you_can_use?: object;
-  upgrades_you_applied_to_all_projects?: object;
-  upgrades_you_applied_to_this_project?: object;
-  total_project_quotas?: object;
-  all_projects_have_been_loaded?: boolean;
   dedicated_resources?: DedicatedResources;
-  gpu?: GPU;
   mode: "project" | "flyout";
 }
 
@@ -62,151 +46,36 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
   ({
     project_id,
     project,
-    upgrades_you_can_use,
-    upgrades_you_applied_to_all_projects,
-    upgrades_you_applied_to_this_project,
-    total_project_quotas,
-    all_projects_have_been_loaded,
     dedicated_resources,
     mode,
   }: Readonly<Props>) => {
     const intl = useIntl();
-    const actions: ProjectsActions = useActions("projects");
     const project_actions = useActions({ project_id });
     const account_groups: List<string> =
       useTypedRedux("account", "groups") ?? List<string>();
 
     const is_commercial: boolean = useTypedRedux("customize", "is_commercial");
-
-    const [show_adjustor, set_show_adjustor] = React.useState<boolean>(false);
-
-    function submit_upgrade_quotas(new_quotas): void {
-      actions.apply_upgrades_to_project(project_id, new_quotas);
-      set_show_adjustor(false);
-    }
-
-    function list_user_contributions() {
-      const info: string[] = [];
-      const applied = upgrades_you_applied_to_this_project;
-      const noUpgrades =
-        "You have not contributed any upgrades to this project.";
-
-      if (applied == null) {
-        return noUpgrades;
-      }
-
-      const getAmount = ({ val, param, factor }) => {
-        if (typeof val === "boolean") {
-          return val ? "1" : "0";
-        } else {
-          const amount = round2((val ?? 0) * factor);
-          const unit = param.display_unit
-            ? plural(amount, param.display_unit)
-            : "";
-          return `${amount} ${unit}`;
-        }
-      };
-
-      for (const name in PROJECT_UPGRADES.params) {
-        const param = PROJECT_UPGRADES.params[name];
-        const factor = param.display_factor;
-        const val = applied[name];
-        // we only show those values, where the user actually contributed something
-        if (val == null || val === false || val === 0) continue;
-        const display = param.display;
-        const amount = getAmount({ val, param, factor });
-        info.push(`${display}: ${amount}`);
-      }
-
-      if (info.length === 0) {
-        return noUpgrades;
-      }
-
-      return to_human_list(info);
-    }
-
-    function render_contributions() {
-      // never show if not commercial
-      // not being displayed since button not clicked
-      const showAdjustor = is_commercial && show_adjustor;
-      const style = showAdjustor ? { padding: 0 } : {};
-      const adjust = (
-        <Button
-          disabled={show_adjustor}
-          onClick={() => set_show_adjustor(true)}
-        >
-          <Icon name="arrow-circle-up" /> Adjust...
-        </Button>
-      );
-      return (
-        <Card
-          title="Your upgrade contributions"
-          extra={adjust}
-          type="inner"
-          styles={{ body: style }}
-        >
-          {showAdjustor ? render_upgrade_adjustor() : list_user_contributions()}
-        </Card>
-      );
-    }
-
-    function render_upgrades_button(): Rendered {
-      if (!is_commercial) return; // never show if not commercial
-      // dedicated VMs have fixed quotas, hence there is nothing to adjust
+    function render_membership_note(): Rendered {
+      if (!is_commercial) return;
       if (dedicated_resources?.vm !== false) return;
-      const noUpgrades = is_zero_map(upgrades_you_can_use);
       return (
-        <div style={{ ...UPGRADE_BUTTON_STYLE, marginTop: "15px" }}>
-          {noUpgrades ? (
-            <Typography.Text type="secondary">
-              <FormattedMessage
-                id="project.settings.upgrade-usage.how_upgrade_info_note"
-                defaultMessage={
-                  "<strong>Note:</strong> You can increase the above limits using a custom project host or {membershipButton}."
-                }
-                values={{
-                  strong: (ch) => (
-                    <Typography.Text strong>{ch}</Typography.Text>
-                  ),
-                  membershipButton: <MembershipBadge />,
-                }}
-              />
-            </Typography.Text>
-          ) : (
-            <>{render_contributions()}</>
-          )}
-        </div>
-      );
-    }
-
-    function render_upgrade_adjustor(): Rendered {
-      if (!all_projects_have_been_loaded) {
-        // Have to wait for this to get accurate value right now.
-        // Plan to fix: https://github.com/sagemathinc/cocalc/issues/4123
-        // Also, see https://github.com/sagemathinc/cocalc/issues/3802
-        redux.getActions("projects").load_all_projects();
-        return <Loading theme={"medium"} />;
-      }
-      return (
-        <UpgradeAdjustor
-          upgrades_you_can_use={upgrades_you_can_use}
-          upgrades_you_applied_to_all_projects={
-            upgrades_you_applied_to_all_projects
-          }
-          upgrades_you_applied_to_this_project={
-            upgrades_you_applied_to_this_project
-          }
-          quota_params={PROJECT_UPGRADES.params}
-          submit_upgrade_quotas={submit_upgrade_quotas}
-          cancel_upgrading={() => set_show_adjustor(false)}
-          total_project_quotas={total_project_quotas}
-        />
+        <Typography.Text type="secondary">
+          <FormattedMessage
+            id="project.settings.upgrade-usage.how_upgrade_info_note"
+            defaultMessage={
+              "<strong>Note:</strong> You can increase the above limits using a custom project host or {membershipButton}."
+            }
+            values={{
+              strong: (ch) => <Typography.Text strong>{ch}</Typography.Text>,
+              membershipButton: <MembershipBadge />,
+            }}
+          />
+        </Typography.Text>
       );
     }
 
     function renderQuotaEditor(): Rendered {
-      // The whole info is in the "run quota" box,
-      // below are upgrade contributions (deprecated), and then the license quota upgrades.
+      // The whole info is in the "run quota" box, below are the license quota upgrades.
       // Also not shown if project runs on a dedicated VM – where the back-end manages the fixed quotas.
       if (dedicated_resources?.vm !== false) {
         return render_dedicated_vm();
@@ -380,7 +249,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           })}
         </Paragraph>
         {render_run_quota()}
-        {render_upgrades_button()}
+        {render_membership_note()}
         {renderQuotaEditor()}
         {render_dedicated_disks()}
         {render_gpu()}

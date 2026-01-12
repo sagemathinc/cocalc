@@ -22,7 +22,6 @@ import {
   copy,
   is_valid_uuid_string,
   keys,
-  len,
   map_sum,
   months_before,
   parse_number_input,
@@ -343,91 +342,6 @@ export class ProjectsStore extends Store<ProjectsState> {
     });
   }
 
-  // Returns the total amount of upgrades that this user has allocated
-  // across all their projects.
-  public get_total_upgrades_you_have_applied(): Upgrades | undefined {
-    if (this.get("project_map") == null) {
-      return;
-    }
-    let total: Upgrades = {};
-    this.get("project_map")?.map((project) => {
-      const upgrades = (
-        project.getIn(["users", webapp_client.account_id, "upgrades"]) as any
-      )?.toJS();
-      if (upgrades == null) return;
-      total = map_sum(total as any, upgrades);
-    });
-    return total;
-  }
-
-  public get_upgrades_you_applied_to_project(project_id): undefined | Upgrades {
-    if (webapp_client.account_id == null) return;
-    return this.getIn([
-      "project_map",
-      project_id,
-      "users",
-      webapp_client.account_id,
-      "upgrades",
-    ])?.toJS();
-  }
-
-  /*
-  Get the individual users's contributions to the project's upgrades
-  mapping (or undefined) =
-      memory  :
-          account_id         : 1000
-          another_account_id : 2000
-      network :
-          account_id : 1
-  etc. with other upgrades and maps of account ids to upgrade amount
-  */
-  public get_upgrades_to_project(project_id: string): undefined | Upgrades {
-    const users = this.getIn(["project_map", project_id, "users"])?.toJS();
-    if (users == null) {
-      return;
-    }
-    const upgrades = {};
-    for (let account_id in users) {
-      const info = users[account_id];
-      const object = info.upgrades != null ? info.upgrades : {};
-      for (let prop in object) {
-        const val = object[prop];
-        if (val > 0) {
-          if (upgrades[prop] == null) {
-            upgrades[prop] = {};
-          }
-          upgrades[prop][account_id] = val;
-        }
-      }
-    }
-    return upgrades;
-  }
-
-  /*
-  Get the sum of all the upgrades given to the project by all users
-  mapping (or undefined) =
-      memory  : 3000
-      network : 2
-  */
-  public get_total_project_upgrades(project_id: string): undefined | Upgrades {
-    const users = this.getIn(["project_map", project_id, "users"])?.toJS();
-    if (users == null) {
-      return;
-    }
-    // clone zeroed quota upgrades, to make sure they're always defined
-    const upgrades = copy(ZERO_QUOTAS);
-    for (let account_id in users) {
-      const info = users[account_id];
-      const object = info.upgrades != null ? info.upgrades : {};
-      for (let prop in object) {
-        const val = object[prop];
-        upgrades[prop] = (upgrades[prop] ?? 0) + val;
-      }
-    }
-
-    return upgrades;
-  }
-
   // in seconds
   public get_idle_timeout(project_id: string): number {
     // mintime = time in seconds project can stay unused
@@ -435,10 +349,6 @@ export class ProjectsStore extends Store<ProjectsState> {
     let mintime =
       this.getIn(["project_map", project_id, "settings", "mintime"]) ?? 0;
 
-    // contribution from users
-    this.getIn(["project_map", project_id, "users"])?.map((info) => {
-      mintime += info?.getIn(["upgrades", "mintime"]) ?? 0;
-    });
     // contribution from site license
     const site_license =
       this.get_total_site_license_upgrades_to_project(project_id);
@@ -534,19 +444,15 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   // Get the total quotas for the given project, including free base
-  // values, site_license contribution and all user upgrades.
+  // values and site_license contribution.
   public get_total_project_quotas(project_id: string): undefined | Upgrades {
     const base_values =
       this.getIn(["project_map", project_id, "settings"])?.toJS() ??
       copy(ZERO_QUOTAS);
     coerce_codomain_to_numbers(base_values);
-    const upgrades = this.get_total_project_upgrades(project_id);
     const site_license_upgrades =
       this.get_total_site_license_upgrades_to_project(project_id);
-    const quota = map_sum(
-      map_sum(base_values, upgrades as any),
-      site_license_upgrades as any,
-    );
+    const quota = map_sum(base_values, site_license_upgrades as any);
     this.new_format_license_quota(project_id, quota);
     return quota;
   }
@@ -639,53 +545,6 @@ export class ProjectsStore extends Store<ProjectsState> {
     } else {
       return !!(quotas.network || quotas.member_host);
     }
-  }
-
-  // Return javascript mapping from project_id's to the upgrades
-  // for the given projects.
-  // Only includes projects with at least one upgrade
-  public get_upgraded_projects():
-    | { [project_id: string]: Upgrades }
-    | undefined {
-    if (this.get("project_map") == null) {
-      return;
-    }
-    const v: { [project_id: string]: Upgrades } = {};
-    this.get("project_map")?.map((_, project_id) => {
-      const upgrades = this.get_upgrades_to_project(project_id);
-      if (upgrades != null && len(upgrades) > 0) {
-        v[project_id] = upgrades;
-      }
-    });
-    return v;
-  }
-
-  // Return javascript mapping from project_id's to the upgrades
-  // the user with the given account_id applied to projects.  Only
-  // includes projects that they upgraded that you are a collaborator on.
-  public get_projects_upgraded_by():
-    | undefined
-    | { [project_id: string]: Upgrades } {
-    if (this.get("project_map") == null) {
-      return;
-    }
-    const { account_id } = webapp_client;
-    if (account_id == null) return {};
-    const v: { [project_id: string]: Upgrades } = {};
-    this.get("project_map")?.map((project, project_id) => {
-      const upgrades = (
-        project.getIn(["users", account_id, "upgrades"]) as any
-      )?.toJS();
-      if (upgrades == null) return;
-      for (let upgrade in upgrades) {
-        const val = upgrades[upgrade];
-        if (val > 0) {
-          v[project_id] = upgrades;
-          break;
-        }
-      }
-    });
-    return v;
   }
 
   // Returns true if the project should be visible with the specified filters selected

@@ -121,7 +121,6 @@ export class CSILauncher {
       });
       return;
     }
-    this.actions.apply_default_upgrades({ project_id });
     this.actions.open_project({ project_id, switch_to: true });
     return project_id;
   }
