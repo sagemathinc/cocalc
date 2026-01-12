@@ -11,7 +11,6 @@ import type {
   Reason,
   Service,
 } from "@cocalc/util/db-schema/purchases";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import LRU from "lru-cache";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
@@ -367,28 +366,6 @@ export const getServiceCosts = longCache(
 export const getMinimumPayment = longCache(
   async () => (await getServiceCost("credit")) as number,
   "get-minimum-payment",
-);
-
-export async function setPayAsYouGoProjectQuotas(
-  project_id: string,
-  quota: ProjectQuota,
-) {
-  await api("purchases/set-project-quota", { project_id, quota });
-}
-
-export const getPayAsYouGoMaxProjectQuotas = longCache(
-  async () => await api("purchases/get-max-project-quotas"),
-  "get-max-project-quotas",
-);
-
-export const getPayAsYouGoPricesProjectQuotas = longCache(
-  async (): Promise<{
-    cores: number;
-    disk_quota: number;
-    memory: number;
-    member_host: number;
-  }> => await api("purchases/get-prices-project-quotas"),
-  "get-prices-project-quotas",
 );
 
 export async function syncSubscription(): Promise<boolean> {

@@ -10,7 +10,6 @@ scoped better.  That said quotaModal is here.
 import type { Service } from "@cocalc/util/db-schema/purchases";
 import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 import { round2up } from "@cocalc/util/misc";
@@ -131,23 +130,6 @@ export class PurchasesClient {
 
   async getMinimumPayment(): Promise<number> {
     return await purchasesApi.getMinimumPayment();
-  }
-
-  async setPayAsYouGoProjectQuotas(project_id: string, quota: ProjectQuota) {
-    await purchasesApi.setPayAsYouGoProjectQuotas(project_id, quota);
-  }
-
-  async getPayAsYouGoMaxProjectQuotas(): Promise<ProjectQuota> {
-    return await purchasesApi.getPayAsYouGoMaxProjectQuotas();
-  }
-
-  async getPayAsYouGoPricesProjectQuotas(): Promise<{
-    cores: number;
-    disk_quota: number;
-    memory: number;
-    member_host: number;
-  }> {
-    return await purchasesApi.getPayAsYouGoPricesProjectQuotas();
   }
 
   // this is only used in the nextjs store app right now...
