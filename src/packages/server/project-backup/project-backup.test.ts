@@ -33,16 +33,22 @@ describe("project-backup", () => {
       location: "wnam",
     }));
     queryMock = jest.fn(async (sql: string, params: any[]) => {
-      if (sql.includes("SELECT backup_bucket_id")) {
-        return { rows: [{ backup_bucket_id: "bucket_id" }] };
+      if (sql.includes("SELECT backup_bucket_id FROM projects")) {
+        return {
+          rows: [{ backup_bucket_id: settings.backup_bucket_id ?? null }],
+        };
       }
       if (sql.includes("FROM project_hosts")) {
         return { rows: [{ region: "us-west1" }] };
       }
-      if (sql.includes("FROM projects")) {
-        return {
-          rows: [{ backup_bucket_id: settings.backup_bucket_id ?? null }],
-        };
+      if (sql.includes("SELECT host_id FROM projects")) {
+        return { rows: [{ host_id: settings.project_host_id ?? HOST_ID }] };
+      }
+      if (sql.includes("SELECT region FROM projects")) {
+        return { rows: [{ region: settings.project_region ?? "wnam" }] };
+      }
+      if (sql.includes("FROM project_moves")) {
+        return { rows: [] };
       }
       if (sql.includes("FROM server_settings")) {
         const key = params?.[0];
@@ -84,6 +90,25 @@ describe("project-backup", () => {
           ],
         };
       }
+      if (sql.includes("FROM buckets WHERE name")) {
+        return {
+          rows: [
+            {
+              id: BUCKET_ID,
+              name: params?.[0] ?? "cocalc-backups-wnam",
+              provider: "r2",
+              purpose: "project-backups",
+              region: "wnam",
+              location: "wnam",
+              account_id: settings.r2_account_id ?? "account",
+              access_key_id: settings.r2_access_key_id ?? "access",
+              secret_access_key: settings.r2_secret_access_key ?? "secret",
+              endpoint: "https://account.r2.cloudflarestorage.com",
+              status: "active",
+            },
+          ],
+        };
+      }
       if (sql.startsWith("UPDATE projects")) {
         return { rows: [] };
       }
@@ -99,10 +124,12 @@ describe("project-backup", () => {
   it("builds per-project config when settings exist", async () => {
     settings = {
       r2_account_id: "account",
+      r2_api_token: "token",
       r2_access_key_id: "access",
       r2_secret_access_key: "secret",
       r2_bucket_prefix: "cocalc-backups",
       project_secret: "project-secret",
+      project_region: "wnam",
     };
     const { getBackupConfig } = await import("./index");
     const result = await getBackupConfig({
@@ -114,5 +141,25 @@ describe("project-backup", () => {
     expect(result.toml).toContain('bucket = "cocalc-backups-wnam"');
     expect(result.toml).toContain(`root = \"rustic/project-${PROJECT_ID}\"`);
     expect(result.ttl_seconds).toBeGreaterThan(0);
+  });
+
+  it("records last_backup using the provided time", async () => {
+    settings = {
+      project_host_id: HOST_ID,
+      project_region: "wnam",
+    };
+    const { recordProjectBackup } = await import("./index");
+    const when = new Date("2026-01-01T00:00:00Z");
+    await recordProjectBackup({
+      host_id: HOST_ID,
+      project_id: PROJECT_ID,
+      time: when.toISOString(),
+    });
+    const updateCall = queryMock.mock.calls.find(([sql]) =>
+      sql.startsWith("UPDATE projects SET last_backup"),
+    );
+    expect(updateCall).toBeDefined();
+    const params = updateCall?.[1] as [string, Date];
+    expect(params?.[1]?.toISOString()).toBe(when.toISOString());
   });
 });
