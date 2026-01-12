@@ -10,8 +10,6 @@
         - system-wide customizable site defaults
         - overcommit ratios
         - maximum overall limits
-    - old plans:
-        - upgrades coming from about-to-be-deprecated subscriptions and course packages
     - site licenses:
         - old format which is the same as upgrades
         - new format quota object
@@ -783,7 +781,7 @@ function round_quota(quota: RQuota): RQuota {
   return quota;
 }
 
-// calculate how much users can contribute with their upgades
+// calculate how much contributions can add to the quota
 function calc_quota({ quota, contribs, max_upgrades }): RQuota {
   const default_quota: RQuota = { ...quota };
 
@@ -804,7 +802,6 @@ function calc_quota({ quota, contribs, max_upgrades }): RQuota {
 interface OptsV2 {
   quota: Quota;
   max_upgrades: RQuota;
-  users: Users;
   site_licenses?: SiteLicenses;
   site_settings?: SiteSettingsQuotas;
   settings: RQuota;
@@ -812,22 +809,10 @@ interface OptsV2 {
 
 function quota_v2(opts: OptsV2): Quota {
   let quota = opts.quota as RQuota;
-  const {
-    settings,
-    max_upgrades,
-    users,
-    site_licenses = {},
-    site_settings = {},
-  } = opts;
+  const { settings, max_upgrades, site_licenses = {}, site_settings = {} } =
+    opts;
   // limit the default quota by max upgrades
   quota = min_quotas(quota, max_upgrades);
-
-  // classical upgrades by users
-  const users_sum = sum_quotas(
-    ...Object.values(users)
-      .filter((v: { upgrades?: Upgrades }) => v?.upgrades != null)
-      .map((v: { upgrades: Upgrades }) => upgrade2quota(v.upgrades)),
-  );
 
   // v1 of licenses, encoding upgrades directly
   const license_upgrades_sum = sum_quotas(
@@ -862,7 +847,7 @@ function quota_v2(opts: OptsV2): Quota {
             max_quotas(quota, settings),
             calc_quota({
               quota,
-              contribs: sum_quotas(users_sum, license_upgrades_sum),
+              contribs: license_upgrades_sum,
               max_upgrades,
             }),
           ),
@@ -923,10 +908,10 @@ export function quota_with_reasons(
     purchase_id: number;
   },
 ): { quota: Quota; reasons: { [key: string]: string } } {
+  void users_arg;
   // as a precaution (and also since we indeed ARE modifying licenses) we make deep copies of all arguments.
   // tests to catch this are in postgres/site-license/hook.test.ts
   settings_arg = deep_copy(settings_arg);
-  users_arg = deep_copy(users_arg);
   site_licenses = deep_copy(site_licenses);
   site_settings = deep_copy(site_settings);
 
@@ -937,10 +922,6 @@ export function quota_with_reasons(
   // we want to make sure the arguments can't be modified
   const settings: Readonly<Settings> = Object.freeze(
     settings_arg == null ? {} : settings_arg,
-  );
-
-  const users: Readonly<Users> = Object.freeze(
-    users_arg == null ? {} : users_arg,
   );
 
   site_settings = Object.freeze(site_settings);
@@ -1040,7 +1021,6 @@ export function quota_with_reasons(
     quota,
     settings: upgrade2quota(settings),
     max_upgrades: upgrade2quota(max_upgrades),
-    users,
     site_licenses,
     site_settings,
   });
