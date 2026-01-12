@@ -1,5 +1,6 @@
-import { Alert, Col, Form, InputNumber, Row, Select, Slider } from "antd";
+import { Alert, Col, Form, InputNumber, Row, Select, Slider, Tag } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
+import { mapCloudRegionToR2Region, R2_REGION_LABELS } from "@cocalc/util/consts";
 import type { HostCreateViewModel } from "../hooks/use-host-create-view-model";
 import type { HostFieldId } from "../providers/registry";
 
@@ -148,7 +149,7 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
         .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
         .join(" ");
     const tooltip = tooltips[field];
-    return (
+    const item = (
       <Form.Item
         key={field}
         name={field}
@@ -162,6 +163,22 @@ export const HostCreateProviderFields: React.FC<HostCreateProviderFieldsProps> =
         />
       </Form.Item>
     );
+    if (field === "region" && selectedProvider !== "self-host") {
+      const regionValue = watchedRegion ?? fieldOptions[0]?.value;
+      if (regionValue) {
+        const r2Region = mapCloudRegionToR2Region(regionValue);
+        const r2Label = R2_REGION_LABELS[r2Region];
+        return (
+          <React.Fragment key={field}>
+            {item}
+            <div style={{ marginBottom: 12 }}>
+              <Tag>Backup region: {r2Label}</Tag>
+            </div>
+          </React.Fragment>
+        );
+      }
+    }
+    return item;
   };
 
   return (
