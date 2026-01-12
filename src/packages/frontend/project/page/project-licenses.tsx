@@ -87,7 +87,7 @@ export function ProjectLicenses({ project_id }): React.JSX.Element {
         <FormattedMessage
           id="project.page.project-licenses.intro"
           defaultMessage={
-            "Memberships and pay-as-you-go upgrades change the quotas and features available to a project."
+            "Memberships change the quotas and features available to a project."
           }
         />
       </Paragraph>

@@ -5,13 +5,11 @@
 
 import { Alert } from "@cocalc/frontend/antd-bootstrap";
 import { A, Icon, Paragraph } from "@cocalc/frontend/components";
-import { PAYGODocsUrl, PolicyPricingPageUrl } from "@cocalc/frontend/customize";
+import { PolicyPricingPageUrl } from "@cocalc/frontend/customize";
 
 export const UPGRADE_HINT = (
   <>
-    <A href={PolicyPricingPageUrl}>Memberships are available</A> or temporarily
-    upgrade via <A href={PAYGODocsUrl}>Pay-as-you-go</A> for a few cents per
-    hour.
+    <A href={PolicyPricingPageUrl}>Memberships are available</A>.
   </>
 );
 

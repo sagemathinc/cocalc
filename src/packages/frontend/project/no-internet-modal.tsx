@@ -91,7 +91,7 @@ export function NoInternetModal(props: NoInternetBannerProps) {
           <Paragraph>
             <FormattedMessage
               id="project.no-internet-modal.message"
-              defaultMessage={`To fix this, upgrade your <A1>membership</A1> or enable pay-as-you-go upgrades in project settings.`}
+              defaultMessage={`To fix this, upgrade your <A1>membership</A1>.`}
               values={{
                 A1: (c) => <A href={MEMBERSHIP_URL}>{c}</A>,
               }}

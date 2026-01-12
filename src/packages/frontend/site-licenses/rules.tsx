@@ -30,10 +30,6 @@ const RULES = (
     <li>
       A <b>Dedicated VM</b> renders regular and boost licenses ineffective.
     </li>
-    <li>
-      Active <b>"Pay as you go"</b> upgrades render regular and boost licenses
-      ineffective.
-    </li>
   </ul>
 );
 
@@ -49,9 +45,8 @@ export const LICENSE_INFORMATION = (
         site-license documentation
       </A>{" "}
       for more information. During project startup, the status and eligibility
-      of each license applied to a project is evaluated. If a project runs with
-      pay-as-you-go upgrades, no license will be used. Here is an overview about
-      the rules:
+      of each license applied to a project is evaluated. Here is an overview
+      about the rules:
     </p>
 
     {RULES}

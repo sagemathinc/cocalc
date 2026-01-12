@@ -84,7 +84,7 @@ export function ProjectUpgradesFlyout({
       <FormattedMessage
         id="page.flyouts.licenses.upgrades_explanation"
         defaultMessage={
-          "<p>This project is using the following resource quotas when running. You can add more resources with memberships or pay-as-you-go upgrades.</p>"
+          "<p>This project is using the following resource quotas when running. You can add more resources with memberships.</p>"
         }
         values={{
           p: (ch) => (

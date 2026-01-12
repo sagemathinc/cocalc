@@ -19,8 +19,8 @@ export function LicensesPage() {
       <div style={{ fontSize: "12pt" }}>
         <h3>About</h3>
         <Typography.Paragraph>
-          Project upgrades are now handled through memberships and
-          pay-as-you-go quotas. Project licenses are no longer available.
+          Project upgrades are now handled through memberships. Project licenses
+          are no longer available.
         </Typography.Paragraph>
         <Button type="primary" onClick={() => setShowMembership(true)}>
           Change membership

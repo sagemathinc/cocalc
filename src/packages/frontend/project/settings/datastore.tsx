@@ -514,7 +514,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           collection of file-like objects) or a remote file-system into a
           CoCalc project. The configuration is passed on to the back-end and
           activated upon project startup. The project must have access to
-          the internet (via membership or pay-as-you-go upgrades).
+          the internet (via membership).
         </p>
         <p>
           If everything works out fine, you will be able to access the data
@@ -565,7 +565,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
             <h3>No internet access</h3>
             <p>
               You need the "internet access" quota enabled (via membership or
-              pay-as-you-go upgrades) to access cloud storage or remote file
+              membership) to access cloud storage or remote file
               systems.
             </p>
           </div>

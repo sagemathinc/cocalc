@@ -35,7 +35,6 @@ import { useProjectContext } from "./context";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 const MEMBERSHIP_URL = join(appBasePath, "/settings");
-const PAYG_URL = "https://doc.cocalc.com/paygo.html";
 
 const TRACK_KEY = "trial_banner";
 
@@ -149,10 +148,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         <>
           <A href={MEMBERSHIP_URL} style={a_style}>
             Upgrade your membership
-          </A>{" "}
-          or{" "}
-          <A href={PAYG_URL} style={a_style}>
-            use pay as you go
           </A>
         </>
       );
