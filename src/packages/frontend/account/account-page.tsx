@@ -83,7 +83,6 @@ import { I18NSelector } from "./i18n-selector";
 import { LicensesPage } from "./licenses/licenses-page";
 import { PublicPaths } from "./public-paths/public-paths";
 import { SettingsOverview } from "./settings-index";
-import { UpgradesPage } from "./upgrades/upgrades-page";
 import MembershipBadge from "./membership-badge";
 import { lite, project_id } from "@cocalc/frontend/lite";
 import { AdminPage } from "@cocalc/frontend/admin";
@@ -356,19 +355,6 @@ export const AccountPage: React.FC = () => {
         ),
         children: active_page === "payg" && <PayAsYouGoPage />,
       });
-      if (is_commercial && kucalc === KUCALC_COCALC_COM) {
-        // these have been deprecated for ~ 5 years, but some customers still have them.
-        items.push({
-          key: "upgrades",
-          label: (
-            <span>
-              <Icon name="arrow-circle-up" />{" "}
-              {intl.formatMessage(labels.upgrades)}
-            </span>
-          ),
-          children: active_page === "upgrades" && <UpgradesPage />,
-        });
-      }
       items.push({ type: "divider" });
       items.push({
         key: "purchases",
