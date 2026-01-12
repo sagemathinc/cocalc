@@ -24,6 +24,7 @@ import {
   Title,
   UpgradeAdjustor,
 } from "@cocalc/frontend/components";
+import MembershipBadge from "@cocalc/frontend/account/membership-badge";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { ROOT } from "@cocalc/util/consts/dedicated";
 import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
@@ -161,12 +162,13 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
               <FormattedMessage
                 id="project.settings.upgrade-usage.how_upgrade_info_note"
                 defaultMessage={
-                  "<strong>Note:</strong> You can increase the above limits via memberships or Pay As You Go below:"
+                  "<strong>Note:</strong> You can increase the above limits using a custom project host or {membershipButton}."
                 }
                 values={{
                   strong: (ch) => (
                     <Typography.Text strong>{ch}</Typography.Text>
                   ),
+                  membershipButton: <MembershipBadge />,
                 }}
               />
             </Typography.Text>
