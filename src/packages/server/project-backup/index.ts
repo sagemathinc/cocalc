@@ -334,23 +334,28 @@ function decryptBackupSecret(encoded: string, key: Buffer): string {
 export async function recordProjectBackup({
   host_id,
   project_id,
+  time,
 }: {
   host_id?: string;
   project_id: string;
+  time?: Date | string;
 }): Promise<void> {
-  // [ ] TODO: security -- verify that project_id is assigned to this
-  // host, and if not throw an error otherwise.
-
-  if (!isValidUUID(host_id)) {
+  if (!host_id || !isValidUUID(host_id)) {
     throw new Error("invalid host_id");
   }
   if (!isValidUUID(project_id)) {
     throw new Error("invalid project_id");
   }
-  await pool().query(
-    "UPDATE projects SET last_backup=NOW() WHERE project_id=$1",
-    [project_id],
-  );
+  await assertHostProjectAccess(host_id, project_id);
+
+  let recordedAt = time ? new Date(time) : new Date();
+  if (Number.isNaN(recordedAt.getTime())) {
+    recordedAt = new Date();
+  }
+  await pool().query("UPDATE projects SET last_backup=$2 WHERE project_id=$1", [
+    project_id,
+    recordedAt,
+  ]);
 }
 
 export async function getBackupConfig({
@@ -360,10 +365,10 @@ export async function getBackupConfig({
   host_id?: string;
   project_id?: string;
 }): Promise<{ toml: string; ttl_seconds: number }> {
-  if (!isValidUUID(host_id)) {
+  if (!host_id || !isValidUUID(host_id)) {
     throw new Error("invalid host_id");
   }
-  if (!isValidUUID(project_id)) {
+  if (!project_id || !isValidUUID(project_id)) {
     throw new Error("invalid project_id");
   }
   const { rows } = await pool().query<{
@@ -375,9 +380,7 @@ export async function getBackupConfig({
     throw new Error("host not found");
   }
 
-  // [ ] TODO: security -- verify that project_id is assigned to this
-  // host or being moved to this host, and if not throw an error otherwise.
-  // No need to give away secrets to just anybody.
+  await assertHostProjectAccess(host_id, project_id);
 
   const hostRegion = rows[0]?.region ?? null;
   const hostR2Region = mapCloudRegionToR2Region(
@@ -426,4 +429,31 @@ export async function getBackupConfig({
   ].join("\n");
 
   return { toml, ttl_seconds: DEFAULT_BACKUP_TTL_SECONDS };
+}
+
+async function assertHostProjectAccess(host_id: string, project_id: string) {
+  const { rows } = await pool().query<{
+    host_id: string | null;
+  }>("SELECT host_id FROM projects WHERE project_id=$1", [project_id]);
+  const currentHost = rows[0]?.host_id ?? null;
+  if (!currentHost) {
+    throw new Error("project not assigned to host");
+  }
+  if (currentHost === host_id) return;
+
+  const { rows: moveRows } = await pool().query<{
+    source_host_id: string | null;
+    dest_host_id: string | null;
+  }>(
+    "SELECT source_host_id, dest_host_id FROM project_moves WHERE project_id=$1",
+    [project_id],
+  );
+  const move = moveRows[0];
+  if (
+    move &&
+    (move.source_host_id === host_id || move.dest_host_id === host_id)
+  ) {
+    return;
+  }
+  throw new Error("project not assigned to host");
 }
