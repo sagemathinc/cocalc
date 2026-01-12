@@ -35,7 +35,6 @@ import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects"
 import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initEphemeralMaintenance from "@cocalc/server/ephemeral-maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
-import { stripe_sync } from "@cocalc/server/stripe/sync";
 import { startProjectMoveWorker } from "@cocalc/server/project-host/move-worker";
 import {
   cloudHostHandlers,
@@ -419,11 +418,6 @@ async function main(): Promise<void> {
       "If specified, updates database schema on startup (always happens when mode is not kucalc).",
     )
     .option(
-      "--stripe-sync",
-      "Sync stripe subscriptions to database for all users with stripe id",
-      "yes",
-    )
-    .option(
       "--update-stats",
       "Calculates the statistics for the /stats endpoint and stores them in the database",
       "yes",
@@ -496,10 +490,6 @@ async function main(): Promise<void> {
     if (program.passwd) {
       logger.debug("Resetting password");
       await reset_password(program.passwd);
-      process.exit();
-    } else if (program.stripeSync) {
-      logger.debug("Stripe sync");
-      await stripe_sync({ database, logger: logger });
       process.exit();
     } else if (program.deleteExpired) {
       await callback2(database.delete_expired, {

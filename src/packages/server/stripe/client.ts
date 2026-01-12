@@ -11,7 +11,6 @@ import { db } from "@cocalc/database";
 import {
   getStripeCustomerId,
   setStripeCustomerId,
-  syncCustomer,
 } from "@cocalc/database/postgres/stripe";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import getPrivateProfile from "@cocalc/server/accounts/profile/private";
@@ -302,11 +301,7 @@ export class StripeClient {
     this.dbg("update_database")();
     const customer_id = await this.get_customer_id();
     if (customer_id == null) return;
-    return await syncCustomer({
-      account_id: this.client.account_id,
-      customer_id,
-      stripe: await getConn(),
-    });
+    return;
   }
 
   public async mesg_update_source(mesg: Message): Promise<void> {
@@ -529,14 +524,7 @@ export class StripeClient {
     mesg.account_id = r.account_id;
     const conn = await getConn();
     if (customer_id != null) {
-      dbg(
-        "already signed up for stripe -- sync local user account with stripe",
-      );
-      await syncCustomer({
-        account_id: mesg.account_id,
-        stripe: conn,
-        customer_id,
-      });
+      // no-op
     } else {
       dbg("create stripe entry for this customer");
       const { is_anonymous } = await getPrivateProfile(mesg.account_id);

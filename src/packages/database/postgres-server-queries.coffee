@@ -42,7 +42,7 @@ read = require('read')
 
 # TODO is set_account_info_if_possible used here?!
 {is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
-{getStripeCustomerId, syncCustomer} = require('./postgres/stripe')
+{getStripeCustomerId} = require('./postgres/stripe')
 
 {site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
 {update_site_license_usage_log} = require('./postgres/site-license/usage-log')
@@ -1120,25 +1120,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     set   : {email_address: opts.email_address}
                     where : @_account_where(opts)
                     cb    : cb
-            (cb) =>
-                @_query
-                    query : "SELECT stripe_customer_id FROM accounts"
-                    where : "account_id = $::UUID" : opts.account_id
-                    cb    : one_result (err, x) =>
-                        if err
-                            cb(err)
-                            return
-                        if x.stripe_customer_id
-                            try
-                                await syncCustomer
-                                    account_id  : opts.account_id
-                                    stripe      : opts.stripe
-                                    customer_id : x.stripe_customer_id
-                                cb()
-                            catch err
-                                cb(err)
-                        else
-                            cb()
         ], (err) =>
             opts.cb(err)
         )
