@@ -13,8 +13,6 @@ import {
 } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
-import { FIX_BORDER } from "@cocalc/frontend/project/page/common";
-import { SagewsControl } from "@cocalc/frontend/project/settings/sagews-control";
 import { NAMED_SERVER_NAMES } from "@cocalc/util/types/servers";
 import { FLYOUT_PADDING } from "./consts";
 import {
@@ -55,22 +53,6 @@ export function ServersFlyout({ project_id, wrap }) {
     );
   }
 
-  function renderSageServerControl() {
-    return (
-      <div
-        style={{
-          padding: "20px 5px 5px 5px",
-          marginTop: "20px",
-          borderTop: FIX_BORDER,
-        }}
-      >
-        <Title level={5}>
-          <Icon name="sagemath" /> Sage Worksheet Server
-        </Title>
-        <SagewsControl key="worksheet" project_id={project_id} mode="flyout" />
-      </div>
-    );
-  }
 
   function renderComputeServers() {
     return (
@@ -117,7 +99,6 @@ export function ServersFlyout({ project_id, wrap }) {
     children: (
       <>
         {renderEmbeddedServers()}
-        {renderSageServerControl()}
       </>
     ),
   });

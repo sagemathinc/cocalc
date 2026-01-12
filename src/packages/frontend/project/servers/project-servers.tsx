@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Divider, Modal, Row, Tabs, TabsProps } from "antd";
+import { Col, Modal, Row, Tabs, TabsProps } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import { FormattedMessage } from "react-intl";
 import { useState } from "@cocalc/frontend/app-framework";
@@ -27,7 +27,6 @@ import { R_IDE } from "@cocalc/util/consts/ui";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { NamedServerPanel } from "../named-server-panel";
 import { NewFileButton } from "../new/new-file-button";
-import { SagewsControl } from "../settings/sagews-control";
 import { useAvailableFeatures } from "../use-available-features";
 import { ICON_NAME, ROOT_STYLE, TITLE } from "./consts";
 
@@ -168,18 +167,6 @@ export function ProjectServers() {
     );
   }
 
-  function renderSageServerControl(): React.JSX.Element {
-    return (
-      <Row gutter={gutter} style={newRowStyle}>
-        <Col sm={24} md={12}>
-          <Title level={3}>
-            <Icon name="sagemath" /> Sage Worksheet Server
-          </Title>
-          <SagewsControl key="worksheet" project_id={project_id} />
-        </Col>
-      </Row>
-    );
-  }
 
   const items: TabsProps["items"] = [];
   items.push({
@@ -206,8 +193,6 @@ export function ProjectServers() {
           />
         </Paragraph>
         {renderNamedServers()}
-        <Divider plain />
-        {renderSageServerControl()}
       </>
     ),
   });
