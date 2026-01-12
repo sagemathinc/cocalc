@@ -87,8 +87,3 @@ export function brand_to_icon_name(brand: undefined | string): IconName {
     return "credit-card";
   }
 }
-
-import { upgrades } from "@cocalc/util/upgrade-spec";
-
-export const STUDENT_COURSE_PRICE: number =
-  upgrades.subscription.student_course.price.month4;

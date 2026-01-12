@@ -9,10 +9,7 @@ import { reduce } from "lodash";
 import { store as customizeStore } from "@cocalc/frontend/customize";
 import { make_valid_name } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
-import { get_total_upgrades } from "@cocalc/util/upgrades";
 import type { AccountState } from "./types";
-
-declare var DEBUG: boolean;
 
 // Define account store
 export class AccountStore extends Store<AccountState> {
@@ -106,20 +103,9 @@ export class AccountStore extends Store<AccountState> {
     return this.getIn(["other_settings", "confirm_close"]);
   }
 
-  // Total upgrades this user is paying for (sum of all upgrades from subscriptions)
+  // Legacy subscription upgrades have been removed.
   get_total_upgrades(): { [key: string]: number } | undefined {
-    const stripe_data = this.getIn([
-      "stripe_customer",
-      "subscriptions",
-      "data",
-    ]);
-    // to fake having upgrades, type this in the console
-    //   cc.redux.getStore('account').fake_upgrades = true
-    if (DEBUG && (this as any).fake_upgrades && !stripe_data) {
-      // fake debugging data
-      return get_total_upgrades({}, true);
-    }
-    return stripe_data && get_total_upgrades(stripe_data.toJS());
+    return undefined;
   }
 
   hasLegacyUpgrades = () => {

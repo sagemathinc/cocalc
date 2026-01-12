@@ -8,6 +8,7 @@ Goal: Complete remove all code and functionality for the following:
 - [ ] Sage worksheets
 - [ ] payg LLM purchases
 - [ ] all code involving compute\_servers
+- [ ] dedicated\_vms and dedicated\_disks
 - [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
 
 ## Remove **legacy upgrades (pre-2020 Stripe-based project upgrades)** with clear checkpoints:

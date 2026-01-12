@@ -158,6 +158,7 @@ export const EditUpgrades: React.FC<EditProps> = (props) => {
     for (const preset in PRESETS) {
       items.push(render_preset_item(PRESETS[preset]));
     }
+    if (items.length === 0) return undefined;
     return (
       <Row key={"presets"}>
         <Col md={8}></Col>

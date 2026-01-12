@@ -1905,35 +1905,8 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                                 cb(err)
                 ], cb)
             (cb) =>
-                excess = require('@cocalc/util/upgrades').available_upgrades(stripe_data, project_upgrades).excess
-                if opts.fix
-                    fix = (project_id, cb) =>
-                        dbg("fixing project_id='#{project_id}' with excess #{JSON.stringify(excess[project_id])}")
-                        upgrades = undefined
-                        async.series([
-                            (cb) =>
-                                @_query
-                                    query : "SELECT users#>'{#{opts.account_id},upgrades}' AS upgrades FROM projects"
-                                    where : 'project_id = $::UUID' : project_id
-                                    cb    : one_result 'upgrades', (err, x) =>
-                                        upgrades = x; cb(err)
-                            (cb) =>
-                                if not upgrades?
-                                    cb(); return
-                                # WORRY: this is dangerous since if something else changed about a user
-                                # between the read/write here, then we would have trouble.  (This is milliseconds of time though...)
-                                for k, v of excess[project_id]
-                                    upgrades[k] -= v
-                                @_query
-                                    query       : "UPDATE projects"
-                                    where       : 'project_id = $::UUID' : project_id
-                                    jsonb_merge :
-                                        users : {"#{opts.account_id}": {upgrades: upgrades}}
-                                    cb          : cb
-                        ], cb)
-                    async.map(misc.keys(excess), fix, cb)
-                else
-                    cb()
+                excess = {}
+                cb()
         ], (err) =>
             opts.cb(err, excess)
         )
