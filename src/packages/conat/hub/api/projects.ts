@@ -246,6 +246,7 @@ export interface Projects {
     authorized_keys?: string;
     run_quota?: any;
     image?: string;
+    restore?: "none" | "auto" | "required";
     // When false, enqueue start and return immediately; callers can watch
     // bootlog/changefeed for progress.
     wait?: boolean;

@@ -197,6 +197,11 @@ export async function startProjectOnHost(project_id: string): Promise<void> {
     meta.run_quota,
     placement.host_id,
   );
+  const { rows } = await pool().query<{ backup_bucket_id: string | null }>(
+    "SELECT backup_bucket_id FROM projects WHERE project_id=$1",
+    [project_id],
+  );
+  const restore = rows[0]?.backup_bucket_id ? "auto" : "none";
   const client = createHostControlClient({
     host_id: placement.host_id,
     client: conatWithProjectRouting(),
@@ -207,6 +212,7 @@ export async function startProjectOnHost(project_id: string): Promise<void> {
       authorized_keys: meta.authorized_keys,
       run_quota,
       image: meta.image,
+      restore,
     });
   } catch (err) {
     log.warn("startProjectOnHost failed", { project_id, host: placement, err });

@@ -5,6 +5,7 @@ export default async function callHub({
   client,
   account_id,
   project_id,
+  host_id,
   name,
   args = [],
   timeout = DEFAULT_TIMEOUT,
@@ -12,11 +13,12 @@ export default async function callHub({
   client: Client;
   account_id?: string;
   project_id?: string;
+  host_id?: string;
   name: string;
   args?: any[];
   timeout?: number;
 }) {
-  const subject = getSubject({ account_id, project_id });
+  const subject = getSubject({ account_id, project_id, host_id });
   try {
     const data = { name, args };
     const resp = await client.request(subject, data, { timeout });
@@ -27,12 +29,14 @@ export default async function callHub({
   }
 }
 
-function getSubject({ account_id, project_id }) {
+function getSubject({ account_id, project_id, host_id }) {
   if (account_id) {
     return `hub.account.${account_id}.api`;
   } else if (project_id) {
     return `hub.project.${project_id}.api`;
+  } else if (host_id) {
+    return `hub.host.${host_id}.api`;
   } else {
-    throw Error("account_id or project_id must be specified");
+    throw Error("account_id or project_id or host_id must be specified");
   }
 }

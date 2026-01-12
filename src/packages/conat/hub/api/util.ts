@@ -1,4 +1,4 @@
-export const authFirst = ({ args, account_id, project_id }) => {
+export const authFirst = ({ args, account_id, project_id, host_id }) => {
   if (args[0] == null) {
     args[0] = {} as any;
   }
@@ -6,6 +6,8 @@ export const authFirst = ({ args, account_id, project_id }) => {
     args[0].account_id = account_id;
   } else if (project_id) {
     args[0].project_id = project_id;
+  } else if (host_id) {
+    args[0].host_id = host_id;
   }
   return args;
 };
@@ -20,9 +22,9 @@ export const requireAccount = ({ args, account_id }) => {
   return args;
 };
 
-export const requireSignedIn = ({ args, account_id, project_id }) => {
-  if (!account_id && !project_id) {
-    throw Error("must be signed in as account or project");
+export const requireSignedIn = ({ args, account_id, project_id, host_id }) => {
+  if (!account_id && !project_id && !host_id) {
+    throw Error("must be signed in as account or project or host");
   }
   return args;
 };
@@ -46,5 +48,16 @@ export const authFirstRequireProject = async ({ args, project_id }) => {
     throw Error("must be a project");
   }
   args[0].project_id = project_id;
+  return args;
+};
+
+export const authFirstRequireHost = async ({ args, host_id }) => {
+  if (args[0] == null) {
+    args[0] = {} as any;
+  }
+  if (!host_id) {
+    throw Error("must be a host");
+  }
+  args[0].host_id = host_id;
   return args;
 };

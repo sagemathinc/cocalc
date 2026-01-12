@@ -19,7 +19,6 @@ import {
   data,
   fileServerMountpoint,
   secrets,
-  account_id,
   rusticRepo,
 } from "@cocalc/backend/data";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
@@ -163,9 +162,31 @@ async function fetchBackupConfig(project_id: string): Promise<{
   if (!hostId) return null;
   return await callHub({
     client,
-    account_id,
+    host_id: hostId,
     name: "hosts.getBackupConfig",
-    args: [{ host_id: hostId, project_id }],
+    args: [{ project_id }],
+    timeout: 30000,
+  });
+}
+
+async function reportBackupSuccess(
+  project_id: string,
+  time: Date,
+): Promise<void> {
+  const client = getMasterConatClient();
+  if (!client) {
+    logger.warn("backup success not reported: master conat client missing", {
+      project_id,
+    });
+    return;
+  }
+  const hostId = getLocalHostId();
+  if (!hostId) return;
+  await callHub({
+    client,
+    host_id: hostId,
+    name: "hosts.recordProjectBackup",
+    args: [{ project_id, time }],
     timeout: 30000,
   });
 }
@@ -375,7 +396,13 @@ async function createBackup({
   limit?: number;
 }): Promise<{ time: Date; id: string }> {
   const vol = await getVolumeForBackup(project_id);
-  return await vol.rustic.backup({ limit });
+  const result = await vol.rustic.backup({ limit });
+  try {
+    await reportBackupSuccess(project_id, result.time);
+  } catch (err) {
+    logger.warn("backup success report failed", { project_id, err });
+  }
+  return result;
 }
 
 async function restoreBackup({

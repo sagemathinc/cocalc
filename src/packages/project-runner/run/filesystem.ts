@@ -31,6 +31,10 @@ function getFsClient() {
   return fsclient;
 }
 
+export function fileServerClient() {
+  return getFsClient();
+}
+
 export async function setQuota(project_id: string, size: number | string) {
   const c = getFsClient();
   await c.setQuota({ project_id, size });

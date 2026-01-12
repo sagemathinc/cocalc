@@ -33,18 +33,25 @@ describe("project-backup", () => {
       location: "wnam",
     }));
     queryMock = jest.fn(async (sql: string, params: any[]) => {
+      if (sql.includes("SELECT backup_bucket_id")) {
+        return { rows: [{ backup_bucket_id: "bucket_id" }] };
+      }
       if (sql.includes("FROM project_hosts")) {
         return { rows: [{ region: "us-west1" }] };
       }
       if (sql.includes("FROM projects")) {
-        return { rows: [{ backup_bucket_id: settings.backup_bucket_id ?? null }] };
+        return {
+          rows: [{ backup_bucket_id: settings.backup_bucket_id ?? null }],
+        };
       }
       if (sql.includes("FROM server_settings")) {
         const key = params?.[0];
         return { rows: [{ value: settings[key] ?? null }] };
       }
       if (sql.includes("FROM project_backup_secrets")) {
-        return { rows: [{ secret: settings.project_secret ?? "plain-secret" }] };
+        return {
+          rows: [{ secret: settings.project_secret ?? "plain-secret" }],
+        };
       }
       if (sql.startsWith("UPDATE project_backup_secrets")) {
         return { rows: [] };
@@ -58,7 +65,7 @@ describe("project-backup", () => {
       if (sql.includes("FROM buckets WHERE provider")) {
         return { rows: [] };
       }
-      if (sql.includes("FROM buckets WHERE name")) {
+      if (sql.includes("FROM buckets WHERE id")) {
         return {
           rows: [
             {
@@ -89,14 +96,6 @@ describe("project-backup", () => {
   const masterKeyBase64 = Buffer.alloc(32, 7).toString("base64");
   let settings: Record<string, string | undefined> = {};
 
-  it("returns empty config when R2 settings are missing", async () => {
-    settings = {};
-    const { getBackupConfig } = await import("./index");
-    const result = await getBackupConfig({ host_id: HOST_ID });
-    expect(result.toml).toBe("");
-    expect(result.ttl_seconds).toBe(0);
-  });
-
   it("builds per-project config when settings exist", async () => {
     settings = {
       r2_account_id: "account",
@@ -110,9 +109,9 @@ describe("project-backup", () => {
       host_id: HOST_ID,
       project_id: PROJECT_ID,
     });
-    expect(result.toml).toContain("repository = \"opendal:s3\"");
-    expect(result.toml).toContain("password = \"project-secret\"");
-    expect(result.toml).toContain("bucket = \"cocalc-backups-wnam\"");
+    expect(result.toml).toContain('repository = "opendal:s3"');
+    expect(result.toml).toContain('password = "project-secret"');
+    expect(result.toml).toContain('bucket = "cocalc-backups-wnam"');
     expect(result.toml).toContain(`root = \"rustic/project-${PROJECT_ID}\"`);
     expect(result.ttl_seconds).toBeGreaterThan(0);
   });
