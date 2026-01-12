@@ -3,7 +3,7 @@ import { join } from "path";
 import { A } from "@cocalc/frontend/components/A";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 const { Paragraph } = Typography;
-export const BUY_A_LICENSE_URL = join(appBasePath, "/store/site-license");
+export const MEMBERSHIP_URL = join(appBasePath, "/settings");
 
 export function CallToSupport({ onClose }: { onClose? }) {
   return (
@@ -18,7 +18,7 @@ export function CallToSupport({ onClose }: { onClose? }) {
           <Paragraph strong>
             Please{" "}
             <b>
-              <A href={BUY_A_LICENSE_URL}>purchase a CoCalc license</A>
+              <A href={MEMBERSHIP_URL}>upgrade your membership</A>
             </b>
             !
           </Paragraph>

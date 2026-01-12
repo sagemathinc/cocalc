@@ -40,7 +40,6 @@ export function ProjectLicenses({ project_id }): React.JSX.Element {
     get_upgrades_you_applied_to_project(project_id);
   const total_project_quotas = get_total_project_quotas(project_id); // only available for non-admin for now.
   const store = redux.getStore("projects");
-  const site_license_ids: string[] = store.get_site_license_ids(project_id);
   const dedicated_resources =
     store.get_total_site_license_dedicated(project_id);
 
@@ -61,7 +60,6 @@ export function ProjectLicenses({ project_id }): React.JSX.Element {
         }
         total_project_quotas={total_project_quotas}
         all_projects_have_been_loaded={all_projects_have_been_loaded}
-        site_license_ids={site_license_ids}
         dedicated_resources={dedicated_resources}
         mode="project"
       />
@@ -91,7 +89,7 @@ export function ProjectLicenses({ project_id }): React.JSX.Element {
         <FormattedMessage
           id="project.page.project-licenses.intro"
           defaultMessage={
-            "Licenses and pay as you go upgrades change the quotas and features available to a project."
+            "Memberships and pay-as-you-go upgrades change the quotas and features available to a project."
           }
         />
       </Paragraph>

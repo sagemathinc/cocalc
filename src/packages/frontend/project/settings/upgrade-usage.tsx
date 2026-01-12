@@ -26,7 +26,6 @@ import {
 } from "@cocalc/frontend/components";
 import { ProjectsActions } from "@cocalc/frontend/todo-types";
 import { ROOT } from "@cocalc/util/consts/dedicated";
-import { KUCALC_DISABLED } from "@cocalc/util/db-schema/site-defaults";
 import { is_zero_map, plural, round2, to_human_list } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import {
@@ -40,7 +39,6 @@ import { dedicatedDiskDisplay } from "@cocalc/util/upgrades/utils";
 import AdminQuotas from "./quota-editor/admin-quotas";
 import PayAsYouGoQuotaEditor from "./quota-editor/pay-as-you-go";
 import { RunQuota } from "./run-quota";
-import { SiteLicense } from "./site-license";
 import { Project } from "./types";
 
 const UPGRADE_BUTTON_STYLE: CSS = {
@@ -55,7 +53,6 @@ interface Props {
   upgrades_you_applied_to_this_project?: object;
   total_project_quotas?: object;
   all_projects_have_been_loaded?: boolean;
-  site_license_ids: string[];
   dedicated_resources?: DedicatedResources;
   gpu?: GPU;
   mode: "project" | "flyout";
@@ -80,8 +77,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       useTypedRedux("account", "groups") ?? List<string>();
 
     const is_commercial: boolean = useTypedRedux("customize", "is_commercial");
-    const kucalc: string = useTypedRedux("customize", "kucalc");
-    const in_kucalc = kucalc !== KUCALC_DISABLED;
 
     const [show_adjustor, set_show_adjustor] = React.useState<boolean>(false);
 
@@ -167,7 +162,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
               <FormattedMessage
                 id="project.settings.upgrade-usage.how_upgrade_info_note"
                 defaultMessage={
-                  "<strong>Note:</strong> You can increase the above limits via Licenses or Pay As You Go below:"
+                  "<strong>Note:</strong> You can increase the above limits via memberships or Pay As You Go below:"
                 }
                 values={{
                   strong: (ch) => (
@@ -365,21 +360,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
       );
     }
 
-    function render_site_license(): Rendered {
-      if (!in_kucalc) {
-        // site licenses are also used in on-prem setups to tweak project quotas, but
-        // nowhere else (currently).
-        return;
-      }
-      return (
-        <SiteLicense
-          project_id={project_id}
-          site_license={project.get("site_license") as any}
-          mode={mode}
-        />
-      );
-    }
-
     // This is is just a precaution, since "project" isn't properly typed
     if (project == null) {
       return <Loading theme="medium" transparent />;
@@ -406,7 +386,6 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
         </Paragraph>
         {render_run_quota()}
         {render_upgrades_button()}
-        {render_site_license()}
         {renderQuotaEditor()}
         {render_dedicated_disks()}
         {render_gpu()}

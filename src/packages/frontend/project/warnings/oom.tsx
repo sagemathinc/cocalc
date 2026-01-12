@@ -6,7 +6,6 @@
 import { Alert, Button } from "@cocalc/frontend/antd-bootstrap";
 import {
   useEffect,
-  useMemo,
   useRedux,
   useState,
   useTypedRedux,
@@ -38,11 +37,7 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
   const project = useRedux(["projects", "project_map", project_id]);
   const is_commercial = useTypedRedux("customize", "is_commercial");
 
-  // any licenses applied to project? → if yes, boost license
-  const hasLicenseUpgrades = useMemo(() => {
-    const licenses = project?.get("site_license")?.keySeq().toJS() ?? [];
-    return licenses.length > 0;
-  }, [project?.get("site_license")]);
+  const membershipUrl = join(appBasePath, "/settings");
 
   // Load start_ts and oom_dismissed from local storage first time only.
   useEffect(() => {
@@ -125,21 +120,11 @@ export const OOMWarning: React.FC<{ project_id: string }> = ({
   }
 
   function renderUpgrade() {
-    if (hasLicenseUpgrades) {
-      const boostUrl = join(appBasePath, "/settings/licenses");
-      return (
-        <A href={boostUrl} style={{ fontWeight: "bold" }}>
-          edit your license to increase its memory quota
-        </A>
-      );
-    } else {
-      const slUrl = join(appBasePath, "/store/site-license");
-      return (
-        <A href={slUrl} style={{ fontWeight: "bold" }}>
-          purchase a license with higher memory quota
-        </A>
-      );
-    }
+    return (
+      <A href={membershipUrl} style={{ fontWeight: "bold" }}>
+        upgrade your membership to get more memory
+      </A>
+    );
   }
 
   return (
