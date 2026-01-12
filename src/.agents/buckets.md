@@ -8,6 +8,7 @@
 - [ ] Extend the end-to-end smoke test to include a backup/restore step.
 - [ ] Implement full project deletion so backups are cleaned up appropriately.
 - [ ] Order backup regions based on distance from user (use Cloudflare location cookie).
+- [ ] Allow self-hosted project hosts to select a backup region (default to closest).
 - [ ] Move project between hosts (even if host is offline) via restore-from-backup.
 - [ ] When turning off a host, ensure all projects are backed up; add a separate "force off" path. Surface host-level backup status in the host admin page.
 - [ ] Surface per-project backup status in the project UI.
@@ -18,7 +19,7 @@
 
 ## Plan to implement full backup/restore and copy using rustic and buckets
 
-### Phase 1: Foundation (layout + backup + restore)
+### \(done\) Phase 1: Foundation \(layout \+ backup \+ restore\)
 
 - **\(done\) Rustic layout v2**: store data in a simple straightforward way
 - **\(done\) Backup**

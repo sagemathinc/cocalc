@@ -17,6 +17,7 @@ import Bootlog from "@cocalc/frontend/project/bootlog";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import type { HostLogEntry } from "../hooks/use-host-log";
+import { mapCloudRegionToR2Region, R2_REGION_LABELS } from "@cocalc/util/consts";
 import {
   STATUS_COLOR,
   getHostOnlineTooltip,
@@ -155,6 +156,13 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
   const connectorLabel = isSelfHost
     ? `Connector: ${host?.region ?? "n/a"}`
     : host?.region;
+  const backupRegion =
+    host?.region && host.machine?.cloud !== "self-host"
+      ? mapCloudRegionToR2Region(host.region)
+      : undefined;
+  const backupRegionLabel = backupRegion
+    ? R2_REGION_LABELS[backupRegion] ?? backupRegion
+    : undefined;
   const connectorStatusTag = isSelfHost ? (
     <Tag color={connectorOnline ? "green" : "red"}>
       {connectorOnline ? "Connector online" : "Connector offline"}
@@ -235,6 +243,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
                 : "provider: n/a"}
             </Tag>
             <Tag>{connectorLabel}</Tag>
+            {backupRegionLabel && <Tag>Backup region: {backupRegionLabel}</Tag>}
             {connectorStatusTag}
             <Tag>{host.size}</Tag>
             {host.gpu && <Tag color="purple">GPU</Tag>}
