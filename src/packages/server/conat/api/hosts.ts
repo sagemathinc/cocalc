@@ -272,7 +272,7 @@ function requireCreateHosts(entitlements: any) {
   }
 }
 
-export { getBackupConfig } from "@cocalc/server/project-backup";
+export { getBackupConfig, recordProjectBackup } from "@cocalc/server/project-backup";
 
 export async function listHosts({
   account_id,

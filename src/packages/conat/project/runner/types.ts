@@ -50,4 +50,6 @@ export interface Configuration {
   tmp?: number;
   // if true, allow GPU devices to be passed through (via CDI)
   gpu?: boolean;
+  // backup restore behavior when starting a project on a host
+  restore?: "none" | "auto" | "required";
 }

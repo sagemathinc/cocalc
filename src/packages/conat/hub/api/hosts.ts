@@ -1,4 +1,4 @@
-import { authFirstRequireAccount, noAuth } from "./util";
+import { authFirstRequireAccount, authFirstRequireHost } from "./util";
 
 export type HostStatus =
   | "deprovisioned"
@@ -176,7 +176,8 @@ export const hosts = {
   updateHostMachine: authFirstRequireAccount,
   deleteHost: authFirstRequireAccount,
   upgradeHostSoftware: authFirstRequireAccount,
-  getBackupConfig: noAuth,
+  getBackupConfig: authFirstRequireHost,
+  recordProjectBackup: authFirstRequireHost,
 };
 
 export interface Hosts {
@@ -199,11 +200,18 @@ export interface Hosts {
     id: string;
     limit?: number;
   }) => Promise<HostLogEntry[]>;
+
+  // host calls getBackupConfig function to get backup configuration
   getBackupConfig: (opts: {
-    account_id?: string;
-    host_id: string;
+    host_id?: string;
     project_id?: string;
   }) => Promise<{ toml: string; ttl_seconds: number }>;
+  recordProjectBackup: (opts: {
+    host_id?: string;
+    project_id: string;
+    time: Date;
+  }) => Promise<void>;
+
   createHost: (opts: {
     account_id?: string;
     name: string;
@@ -212,6 +220,7 @@ export interface Hosts {
     gpu?: boolean;
     machine?: HostMachine;
   }) => Promise<Host>;
+
   startHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
   stopHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
   restartHost: (opts: {
@@ -219,8 +228,14 @@ export interface Hosts {
     id: string;
     mode?: "reboot" | "hard";
   }) => Promise<Host>;
-  forceDeprovisionHost: (opts: { account_id?: string; id: string }) => Promise<void>;
-  removeSelfHostConnector: (opts: { account_id?: string; id: string }) => Promise<void>;
+  forceDeprovisionHost: (opts: {
+    account_id?: string;
+    id: string;
+  }) => Promise<void>;
+  removeSelfHostConnector: (opts: {
+    account_id?: string;
+    id: string;
+  }) => Promise<void>;
   renameHost: (opts: {
     account_id?: string;
     id: string;

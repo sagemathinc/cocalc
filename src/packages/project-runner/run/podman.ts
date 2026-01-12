@@ -26,10 +26,11 @@ import {
   readdir,
   stat,
   realpath,
+  unlink,
   writeFile,
 } from "node:fs/promises";
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
-import { setQuota } from "./filesystem";
+import { fileServerClient, setQuota } from "./filesystem";
 import { dirname, join, relative, isAbsolute } from "node:path";
 import { mount as mountRootFs, unmount as unmountRootFs } from "./rootfs";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
@@ -65,6 +66,7 @@ const PROJECT_BUNDLE_ENTRY_CANDIDATES = [
 ] as const;
 const PROJECT_BUNDLE_MOUNT_POINT = "/opt/cocalc/project-bundle";
 const PROJECT_BUNDLE_BIN_PATH = join(PROJECT_BUNDLE_MOUNT_POINT, "bin");
+const RESTORE_MARKER = ".restore_in_progress";
 
 // if computing status of a project shows pod is
 // somehow messed up, this will cleanly kill it.  It's
@@ -75,12 +77,99 @@ const STOP_ON_STATUS_ERROR = false;
 
 // projects we are definitely starting right now
 export const starting = new Set<string>();
+const restoring = new Set<string>();
 
 function formatKeys(keys?: string): string | undefined {
   if (!keys) return;
   const trimmed = keys.trim();
   if (!trimmed) return;
   return trimmed.endsWith("\n") ? trimmed : `${trimmed}\n`;
+}
+
+async function maybeRestoreFromBackup({
+  project_id,
+  home,
+  restore,
+}: {
+  project_id: string;
+  home: string;
+  restore?: "none" | "auto" | "required";
+}): Promise<void> {
+  if (!restore || restore === "none") return;
+  if (restoring.has(project_id)) return;
+  const markerPath = join(home, RESTORE_MARKER);
+  try {
+    const info = await stat(markerPath);
+    const ageMs = Date.now() - info.mtimeMs;
+    if (ageMs < 30 * 60 * 1000) {
+      logger.warn("restore already in progress; skipping", { project_id });
+      return;
+    }
+    await unlink(markerPath).catch(() => {});
+  } catch (err: any) {
+    if (err?.code !== "ENOENT") {
+      logger.warn("restore marker check failed", {
+        project_id,
+        err: `${err}`,
+      });
+    }
+  }
+
+  restoring.add(project_id);
+  try {
+    await writeFile(markerPath, `${new Date().toISOString()}\n`);
+    bootlog({
+      project_id,
+      type: "start-project",
+      progress: 8,
+      desc: "checking backups...",
+    });
+
+    const fs = fileServerClient();
+    const backups = await fs.getBackups({ project_id });
+    if (!backups.length) {
+      if (restore === "required") {
+        throw Error("no backups available for restore");
+      }
+      bootlog({
+        project_id,
+        type: "start-project",
+        progress: 10,
+        desc: "no backups found; continuing",
+      });
+      return;
+    }
+
+    const latest = backups.reduce((best, current) =>
+      new Date(current.time).getTime() > new Date(best.time).getTime()
+        ? current
+        : best,
+    );
+    bootlog({
+      project_id,
+      type: "start-project",
+      progress: 12,
+      desc: "restoring from backup...",
+    });
+    await fs.restoreBackup({ project_id, id: latest.id });
+    bootlog({
+      project_id,
+      type: "start-project",
+      progress: 18,
+      desc: "restore complete",
+    });
+  } catch (err) {
+    bootlog({
+      project_id,
+      type: "start-project",
+      progress: 18,
+      desc: "restore failed",
+    });
+    throw err;
+  } finally {
+    restoring.delete(project_id);
+    await unlink(markerPath).catch(() => {});
+  }
 }
 
 async function writeSshAuthorizedKeys({
@@ -325,6 +414,12 @@ export async function start({
       type: "start-project",
       progress: 5,
       desc: "got home and scratch directories",
+    });
+
+    await maybeRestoreFromBackup({
+      project_id,
+      home,
+      restore: config?.restore,
     });
 
     const image = getImage(config);

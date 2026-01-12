@@ -42,6 +42,8 @@ export async function getUser(
     }
   }
 
+  // TODO - SECURITY: we need to have host passwords and {return host_id:"host_id"} and allow hosts to publish to host-{host_id} only.
+
   if (cookies[HUB_PASSWORD_COOKIE_NAME]) {
     if (cookies[HUB_PASSWORD_COOKIE_NAME] == conatPassword) {
       return { hub_id: "hub" };
@@ -49,6 +51,7 @@ export async function getUser(
       throw Error(`invalid hub password`);
     }
   }
+
   if (cookies[API_COOKIE_NAME]) {
     // project or compute server or account
     const user = await getAccountWithApiKey(cookies[API_COOKIE_NAME]!);
@@ -135,6 +138,8 @@ export async function isAllowed({
     allowed = isProjectAllowed({ project_id: userId, subject, type });
   } else if (userType == "account") {
     allowed = await isAccountAllowed({ account_id: userId, subject, type });
+  } else if (userType == "host") {
+    allowed = await isHostAllowed({ host_id: userId, subject, type });
   } else {
     allowed = false;
   }
@@ -150,7 +155,7 @@ export function checkCommonPermissions({
   type,
 }: {
   user: CoCalcUser;
-  userType: "account" | "project";
+  userType: "account" | "project" | "host";
   userId: string;
   subject: string;
   type: "sub" | "pub";
@@ -196,6 +201,27 @@ function isProjectAllowed({
   }
   // *.project-${project_id}.>
   if (subject.split(".")[1] == `project-${project_id}`) {
+    return true;
+  }
+
+  return false;
+}
+
+function isHostAllowed({
+  host_id,
+  subject,
+}: {
+  host_id: string;
+  subject: string;
+  type: "sub" | "pub";
+}): boolean {
+  // pub and sub are the same
+
+  if (subject.startsWith(`host.${host_id}.`)) {
+    return true;
+  }
+  // *.host-${host_id}.>
+  if (subject.split(".")[1] == `host-${host_id}`) {
     return true;
   }
 
@@ -297,24 +323,35 @@ export type CoCalcUser =
       account_id: string;
       project_id?: string;
       hub_id?: string;
+      host_id?: string;
       error?: string;
     }
   | {
       account_id?: string;
       project_id?: string;
       hub_id: string;
+      host_id?: string;
       error?: string;
     }
   | {
       account_id?: string;
       project_id: string;
       hub_id?: string;
+      host_id?: string;
       error?: string;
     }
   | {
       account_id?: string;
       project_id?: string;
       hub_id?: string;
+      host_id: string;
+      error?: string;
+    }
+  | {
+      account_id?: string;
+      project_id?: string;
+      hub_id?: string;
+      host_id?: string;
       error: string;
     };
 
@@ -322,52 +359,74 @@ export function getCoCalcUserType({
   account_id,
   project_id,
   hub_id,
-}: CoCalcUser): "account" | "project" | "hub" {
+  host_id,
+}: CoCalcUser): "account" | "project" | "hub" | "host" {
   if (account_id) {
-    if (project_id || hub_id) {
+    if (project_id || hub_id || host_id) {
       throw Error(
-        "exactly one of account_id or project_id or hub_id must be specified",
+        "exactly one of account_id or project_id or hub_id d or host_id must be specified",
       );
     }
     return "account";
   }
   if (project_id) {
-    if (hub_id) {
+    if (hub_id || host_id) {
       throw Error(
-        "exactly one of account_id or project_id or hub_id must be specified",
+        "exactly one of account_id or project_id or hub_id or host_id must be specified",
       );
     }
     return "project";
   }
   if (hub_id) {
+    if (host_id) {
+      throw Error(
+        "exactly one of account_id or project_id or hub_id or host_id must be specified",
+      );
+    }
     return "hub";
   }
-  throw Error("account_id or project_id or hub_id must be specified in User");
+  if (host_id) {
+    return "host";
+  }
+  throw Error(
+    "account_id or project_id or hub_id or host_id must be specified in User",
+  );
 }
 
 export function getCoCalcUserId({
   account_id,
   project_id,
   hub_id,
+  host_id,
 }: CoCalcUser): string {
   if (account_id) {
-    if (project_id || hub_id) {
+    if (project_id || hub_id || host_id) {
       throw Error(
-        "exactly one of account_id or project_id or hub_id must be specified",
+        "exactly one of account_id or project_id or hub_id d or host_id must be specified",
       );
     }
     return account_id;
   }
   if (project_id) {
-    if (hub_id) {
+    if (hub_id || host_id) {
       throw Error(
-        "exactly one of account_id or project_id or hub_id must be specified",
+        "exactly one of account_id or project_id or hub_id or host_id must be specified",
       );
     }
     return project_id;
   }
   if (hub_id) {
+    if (host_id) {
+      throw Error(
+        "exactly one of account_id or project_id or hub_id or host_id must be specified",
+      );
+    }
     return hub_id;
   }
-  throw Error("account_id or project_id or hub_id must be specified");
+  if (host_id) {
+    return host_id;
+  }
+  throw Error(
+    "account_id or project_id or hub_id or host_id must be specified in User",
+  );
 }

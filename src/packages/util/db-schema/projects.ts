@@ -278,7 +278,7 @@ Table({
     },
     last_backup: {
       type: "timestamp",
-      desc: "(DEPRECATED) Timestamp of last off-disk successful backup using bup to Google cloud storage",
+      desc: "Timestamp of last successful backup using Rustic to off-host storage.",
     },
     storage_request: {
       type: "map",

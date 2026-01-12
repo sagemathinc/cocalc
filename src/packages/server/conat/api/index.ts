@@ -185,9 +185,9 @@ const moduleRequire: NodeRequire | undefined =
     ? require
     : typeof (Module as { createRequire?: (path: string) => NodeRequire })
           .createRequire === "function"
-      ? (Module as { createRequire: (path: string) => NodeRequire }).createRequire(
-          __filename,
-        )
+      ? (
+          Module as { createRequire: (path: string) => NodeRequire }
+        ).createRequire(__filename)
       : undefined;
 
 function lazyTerminate(moduleName: string, exportName: string): () => void {
@@ -205,14 +205,17 @@ function lazyTerminate(moduleName: string, exportName: string): () => void {
 async function handleApiRequest({ request, mesg }) {
   let resp, headers;
   try {
-    const { account_id, project_id } = getUserId(mesg.subject);
+    const { account_id, project_id, host_id } = getUserId(mesg.subject);
     const { name, args } = request as any;
     logger.debug("handling hub.api request:", {
       account_id,
       project_id,
+      host_id,
       name,
     });
-    resp = (await getResponse({ name, args, account_id, project_id })) ?? null;
+    resp =
+      (await getResponse({ name, args, account_id, project_id, host_id })) ??
+      null;
     headers = undefined;
   } catch (err) {
     resp = null;
@@ -224,14 +227,14 @@ async function handleApiRequest({ request, mesg }) {
   try {
     await mesg.respond(resp, { headers });
   } catch (err) {
-    // there's nothing we can do here, e.g., maybe NATS just died.
+    // there's nothing we can do here, e.g., maybe conat just died.
     logger.debug(
       `WARNING: error responding to hub.api request (client will receive no response) -- ${err}`,
     );
   }
 }
 
-async function getResponse({ name, args, account_id, project_id }) {
+async function getResponse({ name, args, account_id, project_id, host_id }) {
   const [group, functionName] = name.split(".");
   const f = hubApi[group]?.[functionName];
   if (f == null) {
@@ -242,6 +245,7 @@ async function getResponse({ name, args, account_id, project_id }) {
     args,
     account_id,
     project_id,
+    host_id,
   });
   return await f(...args2);
 }

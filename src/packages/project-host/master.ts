@@ -119,7 +119,13 @@ export async function startMasterRegistration({
         } as any);
         return { project_id };
       },
-      async startProject({ project_id, authorized_keys, run_quota, image }) {
+      async startProject({
+        project_id,
+        authorized_keys,
+        run_quota,
+        image,
+        restore,
+      }) {
         if (!hubApi.projects?.start) {
           throw Error("start not available");
         }
@@ -129,6 +135,7 @@ export async function startMasterRegistration({
           authorized_keys,
           run_quota,
           image,
+          restore,
         });
         return { project_id, state: (status as any)?.state };
       },

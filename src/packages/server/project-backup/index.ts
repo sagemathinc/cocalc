@@ -73,7 +73,9 @@ async function findBucketForRegion(region: string): Promise<BucketRow | null> {
   const normalizedLocation = normalizeLocation(row.location ?? null);
   const normalizedRegion = normalizeLocation(row.region ?? null);
   const desiredStatus =
-    normalizedLocation && normalizedRegion && normalizedLocation !== normalizedRegion
+    normalizedLocation &&
+    normalizedRegion &&
+    normalizedLocation !== normalizedRegion
       ? "mismatch"
       : normalizedLocation
         ? "active"
@@ -110,7 +112,11 @@ async function insertBucketRecord({
   const location = normalizeLocation(created?.location ?? null);
   const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
   const status =
-    location && location !== region ? "mismatch" : location ? "active" : "unknown";
+    location && location !== region
+      ? "mismatch"
+      : location
+        ? "active"
+        : "unknown";
   await pool().query(
     "INSERT INTO buckets (id, provider, purpose, region, location, name, account_id, access_key_id, secret_access_key, endpoint, status, created, updated) VALUES (gen_random_uuid(), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW(), NOW()) ON CONFLICT (name) DO NOTHING",
     [
@@ -136,7 +142,9 @@ async function insertBucketRecord({
   return rows[0];
 }
 
-async function getOrCreateBucketForRegion(region: string): Promise<BucketRow | null> {
+async function getOrCreateBucketForRegion(
+  region: string,
+): Promise<BucketRow | null> {
   const existing = await findBucketForRegion(region);
   if (existing) return existing;
 
@@ -155,7 +163,12 @@ async function getOrCreateBucketForRegion(region: string): Promise<BucketRow | n
 
   let created: R2BucketInfo | undefined;
   try {
-    created = await createBucket(apiToken, accountId, `${bucketPrefix}-${region}`, region);
+    created = await createBucket(
+      apiToken,
+      accountId,
+      `${bucketPrefix}-${region}`,
+      region,
+    );
     const createdLocation = normalizeLocation(created.location ?? null);
     if (createdLocation && createdLocation !== region) {
       logger.warn("r2 bucket location mismatch", {
@@ -180,7 +193,10 @@ async function getOrCreateBucketForRegion(region: string): Promise<BucketRow | n
   });
 }
 
-async function getProjectBucket(project_id: string, region: string): Promise<BucketRow | null> {
+async function getProjectBucket(
+  project_id: string,
+  region: string,
+): Promise<BucketRow | null> {
   const { rows } = await pool().query<{ backup_bucket_id: string | null }>(
     "SELECT backup_bucket_id FROM projects WHERE project_id=$1",
     [project_id],
@@ -193,10 +209,10 @@ async function getProjectBucket(project_id: string, region: string): Promise<Buc
   const bucket = await getOrCreateBucketForRegion(region);
   if (!bucket) return null;
   if (bucketId) {
-    await pool().query("UPDATE projects SET backup_bucket_id=$2 WHERE project_id=$1", [
-      project_id,
-      bucket.id,
-    ]);
+    await pool().query(
+      "UPDATE projects SET backup_bucket_id=$2 WHERE project_id=$1",
+      [project_id, bucket.id],
+    );
   } else {
     await pool().query(
       "UPDATE projects SET backup_bucket_id=$2 WHERE project_id=$1 AND backup_bucket_id IS NULL",
@@ -291,7 +307,10 @@ async function getBackupMasterKey(): Promise<Buffer> {
 function encryptBackupSecret(secret: string, key: Buffer): string {
   const iv = randomBytes(12);
   const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const encrypted = Buffer.concat([cipher.update(secret, "utf8"), cipher.final()]);
+  const encrypted = Buffer.concat([
+    cipher.update(secret, "utf8"),
+    cipher.final(),
+  ]);
   const tag = cipher.getAuthTag();
   return `v1:${iv.toString("base64")}:${tag.toString("base64")}:${encrypted.toString("base64")}`;
 }
@@ -307,25 +326,44 @@ function decryptBackupSecret(encoded: string, key: Buffer): string {
   const data = Buffer.from(dataB64, "base64");
   const decipher = createDecipheriv("aes-256-gcm", key, iv);
   decipher.setAuthTag(tag);
-  return Buffer.concat([decipher.update(data), decipher.final()]).toString("utf8");
+  return Buffer.concat([decipher.update(data), decipher.final()]).toString(
+    "utf8",
+  );
 }
 
-export async function getBackupConfig({
-  account_id,
+export async function recordProjectBackup({
   host_id,
   project_id,
 }: {
-  account_id?: string;
-  host_id: string;
-  project_id?: string;
-}): Promise<{ toml: string; ttl_seconds: number }> {
-  if (account_id) {
-    throw new Error("not authorized");
-  }
+  host_id?: string;
+  project_id: string;
+}): Promise<void> {
+  // [ ] TODO: security -- verify that project_id is assigned to this
+  // host, and if not throw an error otherwise.
+
   if (!isValidUUID(host_id)) {
     throw new Error("invalid host_id");
   }
-  if (project_id != null && !isValidUUID(project_id)) {
+  if (!isValidUUID(project_id)) {
+    throw new Error("invalid project_id");
+  }
+  await pool().query(
+    "UPDATE projects SET last_backup=NOW() WHERE project_id=$1",
+    [project_id],
+  );
+}
+
+export async function getBackupConfig({
+  host_id,
+  project_id,
+}: {
+  host_id?: string;
+  project_id?: string;
+}): Promise<{ toml: string; ttl_seconds: number }> {
+  if (!isValidUUID(host_id)) {
+    throw new Error("invalid host_id");
+  }
+  if (!isValidUUID(project_id)) {
     throw new Error("invalid project_id");
   }
   const { rows } = await pool().query<{
@@ -337,8 +375,14 @@ export async function getBackupConfig({
     throw new Error("host not found");
   }
 
+  // [ ] TODO: security -- verify that project_id is assigned to this
+  // host or being moved to this host, and if not throw an error otherwise.
+  // No need to give away secrets to just anybody.
+
   const hostRegion = rows[0]?.region ?? null;
-  const hostR2Region = mapCloudRegionToR2Region(hostRegion ?? DEFAULT_R2_REGION);
+  const hostR2Region = mapCloudRegionToR2Region(
+    hostRegion ?? DEFAULT_R2_REGION,
+  );
   const projectR2Region = project_id
     ? await resolveProjectRegion(project_id, hostRegion)
     : hostR2Region;
@@ -348,8 +392,10 @@ export async function getBackupConfig({
   if (!bucket) {
     return { toml: "", ttl_seconds: 0 };
   }
-  const accountId = bucket.account_id ?? (await getSiteSetting("r2_account_id"));
-  const accessKey = bucket.access_key_id ?? (await getSiteSetting("r2_access_key_id"));
+  const accountId =
+    bucket.account_id ?? (await getSiteSetting("r2_account_id"));
+  const accessKey =
+    bucket.access_key_id ?? (await getSiteSetting("r2_access_key_id"));
   const secretKey =
     bucket.secret_access_key ?? (await getSiteSetting("r2_secret_access_key"));
   const endpoint =
@@ -366,12 +412,12 @@ export async function getBackupConfig({
 
   const toml = [
     "[repository]",
-    "repository = \"opendal:s3\"",
+    'repository = "opendal:s3"',
     `password = \"${password}\"`,
     "",
     "[repository.options]",
     `endpoint = \"${endpoint}\"`,
-    "region = \"auto\"",
+    'region = "auto"',
     `bucket = \"${bucket.name}\"`,
     `root = \"${root}\"`,
     `access_key_id = \"${accessKey}\"`,

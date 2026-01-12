@@ -155,12 +155,15 @@ export async function getDiskQuota({
 export async function start({
   account_id,
   project_id,
+  restore: _restore,
   wait = true,
 }: {
   account_id: string;
   project_id: string;
   // not used; passed through for typing compatibility with project-host
   run_quota?: any;
+  // not used; passed through for typing compatibility with project-host
+  restore?: "none" | "auto" | "required";
   wait?: boolean;
 }): Promise<void> {
   await assertCollab({ account_id, project_id });

@@ -43,12 +43,25 @@ const HubApiStructure = {
   software,
 } as const;
 
-export function transformArgs({ name, args, account_id, project_id }) {
+export function transformArgs({
+  name,
+  args,
+  account_id,
+  project_id,
+  host_id,
+}: {
+  name: string;
+  args: any[];
+  account_id?: string;
+  project_id?: string;
+  host_id?: string;
+}) {
   const [group, functionName] = name.split(".");
   return HubApiStructure[group]?.[functionName]({
     args,
     account_id,
     project_id,
+    host_id,
   });
 }
 
@@ -76,23 +89,33 @@ type UserId =
   | {
       account_id: string;
       project_id: undefined;
+      host_id: undefined;
     }
   | {
       account_id: undefined;
       project_id: string;
+      host_id: undefined;
+    }
+  | {
+      account_id: undefined;
+      project_id: undefined;
+      host_id: string;
     };
+
 export function getUserId(subject: string): UserId {
   const segments = subject.split(".");
   const uuid = segments[2];
   if (!isValidUUID(uuid)) {
     throw Error(`invalid uuid '${uuid}'`);
   }
-  const type = segments[1]; // 'project' or 'account'
+  const type = segments[1]; // 'project' or 'account' or 'host'
   if (type == "project") {
     return { project_id: uuid } as UserId;
   } else if (type == "account") {
     return { account_id: uuid } as UserId;
+  } else if (type == "host") {
+    return { host_id: uuid } as UserId;
   } else {
-    throw Error("must be project or account");
+    throw Error("must be project or account or host");
   }
 }

@@ -31,6 +31,7 @@ export interface HostControlApi {
     authorized_keys?: string;
     run_quota?: any;
     image?: string;
+    restore?: "none" | "auto" | "required";
   }) => Promise<HostCreateProjectResponse>;
   stopProject: (opts: {
     project_id: string;
