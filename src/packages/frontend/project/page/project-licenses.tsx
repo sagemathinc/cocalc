@@ -3,13 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Divider } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 import { redux } from "@cocalc/frontend//app-framework";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, Paragraph, Title } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import Purchases from "@cocalc/frontend/purchases/purchases";
 import { ICON_UPGRADES, ROOT_STYLE } from "../servers/consts";
 import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { UpgradeUsage } from "../settings/upgrade-usage";
@@ -95,8 +93,6 @@ export function ProjectLicenses({ project_id }): React.JSX.Element {
       </Paragraph>
       {renderAdmin()}
       {renderBody()}
-      <Divider />
-      <Purchases project_id={project_id} group={false} />
     </div>
   );
 }

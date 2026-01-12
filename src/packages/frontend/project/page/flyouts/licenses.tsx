@@ -9,7 +9,6 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Loading, Paragraph } from "@cocalc/frontend/components";
 import { SandboxProjectSettingsWarning } from "@cocalc/frontend/project/settings/settings";
 import { UpgradeUsage } from "@cocalc/frontend/project/settings/upgrade-usage";
-import Purchases from "@cocalc/frontend/purchases/purchases";
 import { useProject } from "../common";
 
 interface ProjectUpgradesProps {
@@ -72,7 +71,6 @@ export function ProjectUpgradesFlyout({
           dedicated_resources={dedicated_resources}
           mode="flyout"
         />
-        <Purchases project_id={project_id} group={true} />
       </div>,
     );
   }
