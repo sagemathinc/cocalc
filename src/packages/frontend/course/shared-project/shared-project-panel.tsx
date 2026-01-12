@@ -130,7 +130,8 @@ export function SharedProjectPanel({
               project.
             </secondary>
             <secondary>
-              After you create the shared project, you should upgrade that project via a license as well.
+              After you create the shared project, consider upgrading via a
+              membership or pay-as-you-go so it has the resources you need.
             </secondary>`}
           values={icuVals}
         />

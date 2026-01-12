@@ -340,9 +340,9 @@ export default function PayAsYouGoQuotaEditor({ project_id, style }: Props) {
                 You will be charged by the second for usage during this session.
               </b>
               <br /> <br />
-              NOTES: No licenses will be applied. Only one person can upgrade a
-              project at once, though all collaborators get to use the upgraded
-              version of the project.
+              NOTES: Only these pay-as-you-go quotas will be applied. Only one
+              person can upgrade a project at once, though all collaborators
+              get to use the upgraded version of the project.
             </div>
           }
           onConfirm={handleRun}

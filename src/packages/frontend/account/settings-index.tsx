@@ -69,7 +69,8 @@ const MESSAGES = defineMessages({
   },
   billing: {
     id: "account.settings.overview.billing",
-    defaultMessage: "Manage subscriptions, licenses, and billing information.",
+    defaultMessage:
+      "Manage memberships, subscriptions, and billing information.",
   },
   subscriptions: {
     id: "account.settings.overview.subscriptions",

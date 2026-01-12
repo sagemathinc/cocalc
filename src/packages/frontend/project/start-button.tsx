@@ -111,7 +111,7 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
                   id="project.start-button.trial.description"
                   defaultMessage={`There is no more capacity for <A>Free Trial projects</A>on CoCalc right now.
                   {br}
-                  <A2>Upgrade your project</A2> using <A3>a license</A3> or {A4}.
+                  <A2>Upgrade your project</A2> with a membership or {A4}.
                   `}
                   values={{
                     br: <br />,
@@ -126,9 +126,6 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
                       >
                         {c}
                       </a>
-                    ),
-                    A3: (c) => (
-                      <A href="https://doc.cocalc.com/licenses.html">{c}</A>
                     ),
                     A4: (
                       <A href="https://doc.cocalc.com/paygo.html">

@@ -144,8 +144,8 @@ export const RunQuota: React.FC<Props> = React.memo(
 
       const idleTimeoutInfo = (
         <>
-          To increase the idle timeout, either purchase a new license with a
-          larger timeout period or the "always running" quota.
+          To increase the idle timeout, upgrade your membership or enable the
+          "always running" quota.
         </>
       );
 
@@ -267,7 +267,7 @@ export const RunQuota: React.FC<Props> = React.memo(
     function renderValueColumnTitle(): React.JSX.Element {
       if (projectIsRunning) {
         return (
-          <QuestionMarkText tip="Usage limit imposed by the current quota configuration. Add a license to change this limit or adjust your quota upgrade contribution. Project needs to run in order to see the effective runtime quota.">
+          <QuestionMarkText tip="Usage limit imposed by the current quota configuration. Change your membership or adjust your pay-as-you-go upgrades to change this limit. Project needs to run in order to see the effective runtime quota.">
             Limit
           </QuestionMarkText>
         );

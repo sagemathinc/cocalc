@@ -3,52 +3,36 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
-import { DOC_LICENSE_URL } from "../../billing/data";
-import { ManagedLicenses } from "./managed-licenses";
-import { ProjectsWithLicenses } from "./projects-with-licenses";
+import { Button, Typography } from "antd";
+import { useState } from "react";
 import { SoftwareLicensesPage } from "./software-licenses";
-import Next from "@cocalc/frontend/components/next";
 import { A } from "@cocalc/frontend/components/A";
+import MembershipPurchaseModal from "../membership-purchase-modal";
+import { PolicyPricingPageUrl } from "../../customize";
 
 export function LicensesPage() {
+  const [showMembership, setShowMembership] = useState(false);
   return (
     <div style={{ margin: "auto" }}>
       <SoftwareLicensesPage />
       <hr />
       <div style={{ fontSize: "12pt" }}>
         <h3>About</h3>
-        <A href={DOC_LICENSE_URL}>Licenses</A> allow you to automatically
-        upgrade projects whenever they start up, so that they have more memory,
-        run faster, etc.
+        <Typography.Paragraph>
+          Project upgrades are now handled through memberships and
+          pay-as-you-go quotas. Project licenses are no longer available.
+        </Typography.Paragraph>
+        <Button type="primary" onClick={() => setShowMembership(true)}>
+          Change membership
+        </Button>
+        <div style={{ marginTop: "10px" }}>
+          <A href={PolicyPricingPageUrl}>See pricing and memberships</A>
+        </div>
       </div>
-      <br />
-      <div>
-        <BuyLicenseForProject noVoucher />
-      </div>
-      <ManagedLicenses />
-      <ProjectsWithLicenses />
-      <div>
-        {/* kind of outdated */}
-        <h3>Links</h3>
-        <ul style={{ fontSize: "12pt" }}>
-          <li>
-            <Next href={"licenses"}>License Management Center</Next>: manage
-            your licenses
-          </li>
-          <li>
-            <Next href={"pricing"}>Pricing</Next>: an overview of all offered
-            products.
-          </li>
-          <li>
-            <Next href={"billing"}>Billing</Next>:{" "}
-            <Next href={"billing/receipts"}>your purchases</Next>,{" "}
-            <Next href={"billing/subscriptions"}>subscriptions</Next>,{" "}
-            <Next href={"billing/cards"}>credit cards</Next>,{" "}
-            <Next href={"billing/receipts"}>invoices</Next>, etc.
-          </li>
-        </ul>
-      </div>
+      <MembershipPurchaseModal
+        open={showMembership}
+        onClose={() => setShowMembership(false)}
+      />
     </div>
   );
 }

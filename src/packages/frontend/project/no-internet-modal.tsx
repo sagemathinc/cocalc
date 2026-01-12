@@ -15,11 +15,9 @@ import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { trunc } from "@cocalc/util/misc";
-import { BUY_A_LICENSE_URL } from "./call-to-support";
 import { useProjectContext } from "./context";
-import { BannerApplySiteLicense } from "./trial-banner";
 
-const MANAGE_LICENSE_URL = join(appBasePath, "/licenses/managed");
+const MEMBERSHIP_URL = join(appBasePath, "/settings");
 
 const INET_QUOTA_URL = "https://doc.cocalc.com/upgrades.html#internet-access";
 
@@ -55,14 +53,11 @@ export function useInternetWarningClosed(
 }
 
 export function NoInternetModal(props: NoInternetBannerProps) {
-  const { projectSiteLicenses, isPaidStudentPayProject, hasComputeServers } =
-    props;
+  const { isPaidStudentPayProject, hasComputeServers } = props;
   const { project_id, project } = useProjectContext();
   const intl = useIntl();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
-
-  const [showAddLicense, setShowAddLicense] = useState<boolean>(false);
 
   const [dismissed, dismissInternetWarning] =
     useInternetWarningClosed(project_id);
@@ -96,11 +91,9 @@ export function NoInternetModal(props: NoInternetBannerProps) {
           <Paragraph>
             <FormattedMessage
               id="project.no-internet-modal.message"
-              defaultMessage={`To fix this, you <A1>need to apply</A1> a <A2>valid license</A2> providing upgrades or <A3>purchase a license</A3>.`}
+              defaultMessage={`To fix this, upgrade your <A1>membership</A1> or enable pay-as-you-go upgrades in project settings.`}
               values={{
-                A1: (c) => <a onClick={() => setShowAddLicense(true)}>{c}</a>,
-                A2: (c) => <A href={MANAGE_LICENSE_URL}>{c}</A>,
-                A3: (c) => <A href={BUY_A_LICENSE_URL}>{c}</A>,
+                A1: (c) => <A href={MEMBERSHIP_URL}>{c}</A>,
               }}
             />
           </Paragraph>
@@ -116,22 +109,14 @@ export function NoInternetModal(props: NoInternetBannerProps) {
   return (
     <Modal
       open={true}
-      width={showAddLicense ? 800 : undefined}
+      width={800}
       onCancel={() => dismissInternetWarning()}
       footer={
-        !showAddLicense && (
-          <Space>
-            <Button onClick={() => setShowAddLicense(true)}>
-              {intl.formatMessage({
-                id: "project.no-internet-modal.add-license",
-                defaultMessage: "Add License",
-              })}
-            </Button>
-            <Button onClick={() => dismissInternetWarning()} type="primary">
-              {intl.formatMessage(labels.dismiss)}
-            </Button>
-          </Space>
-        )
+        <Space>
+          <Button onClick={() => dismissInternetWarning()} type="primary">
+            {intl.formatMessage(labels.dismiss)}
+          </Button>
+        </Space>
       }
       title={
         <>
@@ -149,20 +134,6 @@ export function NoInternetModal(props: NoInternetBannerProps) {
       }
     >
       {renderMessage()}
-      <Paragraph>
-        {showAddLicense && (
-          <BannerApplySiteLicense
-            project_id={project_id}
-            projectSiteLicenses={projectSiteLicenses}
-            setShowAddLicense={setShowAddLicense}
-            narrow={true}
-            licenseAdded={() =>
-              // when a license is added, we close the modal
-              dismissInternetWarning()
-            }
-          />
-        )}
-      </Paragraph>
     </Modal>
   );
 }

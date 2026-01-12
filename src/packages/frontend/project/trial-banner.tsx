@@ -20,25 +20,22 @@ import {
 import { A, Icon, Paragraph } from "@cocalc/frontend/components";
 import { TimeAmount } from "@cocalc/frontend/editors/stopwatch/time";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import {
-  SiteLicenseInput,
-  useManagedLicenses,
-} from "@cocalc/frontend/site-licenses/input";
-import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import track from "@cocalc/frontend/user-tracking";
 import {
   BANNER_NON_DISMISSIBLE_DAYS,
   EVALUATION_PERIOD_DAYS,
-  LICENSE_MIN_PRICE,
 } from "@cocalc/util/consts/billing";
 import { server_time } from "@cocalc/util/misc";
 import { COLORS, DOC_URL } from "@cocalc/util/theme";
-import { BUY_A_LICENSE_URL, CallToSupport } from "./call-to-support";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
+import { CallToSupport } from "./call-to-support";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { useProjectContext } from "./context";
-import { applyLicense } from "./settings/site-license";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
+const MEMBERSHIP_URL = join(appBasePath, "/settings");
+const PAYG_URL = "https://doc.cocalc.com/paygo.html";
 
 const TRACK_KEY = "trial_banner";
 
@@ -106,8 +103,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       hasComputeServers,
     } = props;
 
-    const [showAddLicense, setShowAddLicense] = useState<boolean>(false);
-    const managedLicenses = useManagedLicenses();
     const allow_run = useAllowedFreeProjectToRun(project_id);
 
     const projectAgeDays = useMemo(() => {
@@ -118,14 +113,12 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     }, [projectCreatedTS]);
 
     // when to show the more intimidating red banner:
-    // after $ELEVATED_DAYS days
-    // but not if there are already any licenses applied to the project
-    // or if user manages at least one license
-    const no_licenses =
-      projectSiteLicenses.length === 0 && managedLicenses?.size === 0;
-    const elevated = projectAgeDays >= EVALUATION_PERIOD_DAYS && no_licenses;
+    // after $ELEVATED_DAYS days and no paid entitlements detected
+    const no_entitlements = projectSiteLicenses.length === 0;
+    const elevated =
+      projectAgeDays >= EVALUATION_PERIOD_DAYS && no_entitlements;
     const expired =
-      projectAgeDays >= BANNER_NON_DISMISSIBLE_DAYS && no_licenses;
+      projectAgeDays >= BANNER_NON_DISMISSIBLE_DAYS && no_entitlements;
 
     const style = expired
       ? ALERT_STYLE_EXPIRED
@@ -151,24 +144,16 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     //   );
     // }
 
-    function renderBuyAndUpgrade(
-      text: string = "with a license",
-      voucherText = "redeem a voucher",
-    ): React.JSX.Element {
+    function renderMembershipCta(): React.JSX.Element {
       return (
         <>
-          <BuyLicenseForProject
-            project_id={project_id}
-            buyText={text}
-            voucherText={voucherText}
-            asLink={true}
-            style={{ padding: 0, fontSize: style.fontSize, ...a_style }}
-          />
-          .<br />
-          Prices start at {LICENSE_MIN_PRICE}.{" "}
-          <a style={a_style} onClick={() => setShowAddLicense(true)}>
-            Apply your license to this project
-          </a>
+          <A href={MEMBERSHIP_URL} style={a_style}>
+            Upgrade your membership
+          </A>{" "}
+          or{" "}
+          <A href={PAYG_URL} style={a_style}>
+            use pay as you go
+          </A>
         </>
       );
     }
@@ -179,13 +164,13 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
           <span>
             There are too many free projects running right now.
             <br />
-            Try again later or {renderBuyAndUpgrade()}.
+            Try again later or {renderMembershipCta()}.
           </span>
         );
       }
 
       if (noMemberHosting && noInternet) {
-        const intro = no_licenses ? (
+        const intro = no_entitlements ? (
           <A href={DOC_URL} style={{ ...a_style, paddingRight: ".5em" }}>
             Hello <Icon name="hand" />
           </A>
@@ -194,8 +179,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
         );
         return (
           <span>
-            {intro}{" "}
-            {renderBuyAndUpgrade("Buy a license")}.
+            {intro} {renderMembershipCta()}.
           </span>
         );
       } else if (noMemberHosting) {
@@ -208,7 +192,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
             or {humanizeList(NO_HOST)}
             {"."}
             <br />
-            {renderBuyAndUpgrade("Buy a license")}
+            {renderMembershipCta()}
           </span>
         );
       }
@@ -233,12 +217,12 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       );
     }
 
-    // allow users to close the banner, if there is either internet or host upgrade – or if user has licenses (past customer, upgrades by someone else, etc.)
+    // allow users to close the banner, if there is either internet or host upgrade
     const closable =
       hasComputeServers ||
       !noMemberHosting ||
       !noInternet ||
-      !no_licenses ||
+      !no_entitlements ||
       projectAgeDays < BANNER_NON_DISMISSIBLE_DAYS;
 
     // don't show the banner if project is not running.
@@ -295,111 +279,12 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
               {renderCountDown()}
               {renderMessage()} {renderLearnMore(style.color)}
             </Paragraph>
-            {showAddLicense ? (
-              <BannerApplySiteLicense
-                project_id={project_id}
-                projectSiteLicenses={projectSiteLicenses}
-                setShowAddLicense={setShowAddLicense}
-              />
-            ) : undefined}
           </>
         }
       />
     );
   },
 );
-
-interface ApplyLicenseProps {
-  projectSiteLicenses: string[];
-  project_id: string;
-  setShowAddLicense: (show: boolean) => void;
-  narrow?: boolean; // if true, then we use a narrower layout
-  licenseAdded?: () => void; // callback when license is added
-}
-
-export const BannerApplySiteLicense: React.FC<ApplyLicenseProps> = ({
-  projectSiteLicenses,
-  project_id,
-  setShowAddLicense,
-  narrow = false,
-  licenseAdded,
-}: ApplyLicenseProps) => {
-  function renderInput() {
-    return (
-      <SiteLicenseInput
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          flex: "1 0 auto",
-        }}
-        exclude={projectSiteLicenses}
-        onSave={(license_id) => {
-          setShowAddLicense(false);
-          applyLicense({ project_id, license_id });
-          licenseAdded?.();
-        }}
-        onCancel={() => setShowAddLicense(false)}
-        extraButtons={
-          <BuyLicenseForProject project_id={project_id} size={"middle"} />
-        }
-      />
-    );
-  }
-
-  if (narrow) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          flex: "1 0 auto",
-          marginTop: "10px",
-        }}
-      >
-        <div
-          style={{
-            margin: "10px 10px 10px 0",
-            verticalAlign: "bottom",
-            display: "flex",
-            fontWeight: "bold",
-            whiteSpace: "nowrap",
-          }}
-        >
-          Select a license:
-        </div>
-        {renderInput()}
-      </div>
-    );
-  }
-
-  // NOTE: we show this dialog even if user does not manage any licenses,
-  // because the user could have one via another channel and just wants to add it directly via copy/paste.
-  return (
-    <>
-      <br />
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          flex: "1 0 auto",
-        }}
-      >
-        <div
-          style={{
-            margin: "10px 10px 10px 0",
-            verticalAlign: "bottom",
-            display: "flex",
-            fontWeight: "bold",
-            whiteSpace: "nowrap",
-          }}
-        >
-          Select a license:
-        </div>
-        {renderInput()}
-      </div>
-    </>
-  );
-};
 
 interface CountdownProjectProps {
   fontSize: CSS["fontSize"];
@@ -451,7 +336,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
           </Space>
         }
         open={showInfo}
-        onOk={() => open_new_tab(BUY_A_LICENSE_URL)}
+        onOk={() => open_new_tab(MEMBERSHIP_URL)}
         onCancel={() => setShowInfo(false)}
       >
         <Paragraph>

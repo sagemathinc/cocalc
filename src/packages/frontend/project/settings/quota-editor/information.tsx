@@ -7,9 +7,8 @@ export default function Information() {
       content={
         <div style={{ width: "550px", maxWidth: "90vw" }}>
           <p>
-            Set quotas here. IMPORTANT: When this project starts, any other
-            licenses and upgrades are NOT applied, and instead{" "}
-            <b>only the upgrades listed here are used</b>.
+            Set quotas here. IMPORTANT: When this project starts, only the
+            pay-as-you-go upgrades listed here are used.
           </p>
           <p>
             There is a monthly spending limit on project upgrades, and if you
