@@ -88,7 +88,7 @@ export function NewProjectCreator({
   );
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const hasLegacyUpgrades = redux.getStore("account").hasLegacyUpgrades();
-  // only require a license on cocalc.com, if users has no upgrades, and if configured to require a license
+  // only require a license on cocalc.com when legacy subscriptions are absent, and if configured to require a license
   const requireLicense =
     isCoCalcCom &&
     !hasLegacyUpgrades &&

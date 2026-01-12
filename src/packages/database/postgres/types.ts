@@ -279,14 +279,6 @@ export interface PostgreSQL extends EventEmitter {
 
   get_coupon_history(opts: { account_id: string; cb: CB }): void;
 
-  get_user_project_upgrades(opts: { account_id: string; cb: CB }): void;
-
-  remove_all_user_project_upgrades(opts: {
-    account_id: string;
-    projects: string[];
-    cb: CB;
-  }): void;
-
   _concurrent_warn: number;
 
   concurrent(): number;

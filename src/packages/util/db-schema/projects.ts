@@ -197,7 +197,7 @@ Table({
     users: {
       title: "Collaborators",
       type: "map",
-      desc: "This is a map from account_id's to {hide:bool, group:'owner'|'collaborator', upgrades:{memory:1000, ...}, ssh:{...}}.",
+      desc: "This is a map from account_id's to {hide:bool, group:'owner'|'collaborator', ssh:{...}}.",
       render: { type: "usersmap", editable: true },
     },
     invite: {
@@ -234,7 +234,7 @@ Table({
     },
     site_license: {
       type: "map",
-      desc: "This is a map that defines upgrades (just when running the project) that come from a site license, and also the licenses that are applied to this project.  The format is {license_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The license_id is the uuid of the license that contributed these upgrades.  To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly, i.e., changes {license_id:{},...} to {license_id:{memory:?,...},...}",
+      desc: "This is a map that defines site license allocations for a project when running. The format is {license_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The license_id is the uuid of the license that contributed these quotas. To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly, i.e., changes {license_id:{},...} to {license_id:{memory:?,...},...}",
     },
     status: {
       type: "map",

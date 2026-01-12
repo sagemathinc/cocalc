@@ -1820,11 +1820,11 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         @_get_project_column('state', opts.project_id, opts.cb)
 
     ###
-    Project quotas and upgrades
+    Project quotas
     ###
 
     # Returns the total quotas for the project, including any
-    # upgrades to the base settings.
+    # allocations beyond the base settings.
     get_project_quotas: (opts) =>
         opts = defaults opts,
             project_id : required
@@ -1849,154 +1849,9 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             if err
                 opts.cb(err)
             else
-                upgrades = quota(settings, users, site_license, server_settings)
-                opts.cb(undefined, upgrades)
+                quotas = quota(settings, users, site_license, server_settings)
+                opts.cb(undefined, quotas)
         )
-
-    # Return mapping from project_id to map listing the upgrades this particular user
-    # applied to the given project.  This only includes project_id's of projects that
-    # this user may have upgraded in some way.
-    get_user_project_upgrades: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            cb         : required
-        @_query
-            query : "SELECT project_id, users#>'{#{opts.account_id},upgrades}' AS upgrades FROM projects"
-            where : [
-                'users ? $::TEXT' : opts.account_id,    # this is a user of the project
-                "users#>'{#{opts.account_id},upgrades}' IS NOT NULL"     # upgrades are defined
-            ]
-            cb : (err, result) =>
-                if err
-                    opts.cb(err)
-                else
-                    x = {}
-                    for p in result.rows
-                        x[p.project_id] = p.upgrades
-                    opts.cb(undefined, x)
-
-    # Ensure that all upgrades applied by the given user to projects are consistent,
-    # truncating any that exceed their allotment.  NOTE: Unless there is a bug,
-    # the only way the quotas should ever exceed their allotment would be if the
-    # user is trying to cheat... *OR* a subscription was canceled or ended.
-    ensure_user_project_upgrades_are_valid: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            fix        : true       # if true, will fix projects in database whose quotas exceed the allotted amount; it is the caller's responsibility to actually change them.
-            cb         : required   # cb(err, excess)
-        dbg = @_dbg("ensure_user_project_upgrades_are_valid(account_id='#{opts.account_id}')")
-        dbg()
-        excess = stripe_data = project_upgrades = undefined
-        async.series([
-            (cb) =>
-                async.parallel([
-                    (cb) =>
-                        @_query
-                            query : 'SELECT stripe_customer FROM accounts'
-                            where : 'account_id = $::UUID' : opts.account_id
-                            cb    : one_result 'stripe_customer', (err, stripe_customer) =>
-                                stripe_data = stripe_customer?.subscriptions?.data
-                                cb(err)
-                    (cb) =>
-                        @get_user_project_upgrades
-                            account_id : opts.account_id
-                            cb         : (err, x) =>
-                                project_upgrades = x
-                                cb(err)
-                ], cb)
-            (cb) =>
-                excess = {}
-                cb()
-        ], (err) =>
-            opts.cb(err, excess)
-        )
-
-    # Loop through every user of cocalc that is connected with stripe (so may have a subscription),
-    # and ensure that any upgrades that have applied to projects are valid.  It is important to
-    # run this periodically or there is a really natural common case where users can cheat:
-    #    (1) they apply upgrades to a project
-    #    (2) their subscription expires
-    #    (3) they do NOT touch upgrades on any projects again.
-    ensure_all_user_project_upgrades_are_valid: (opts) =>
-        opts = defaults opts,
-            limit : 1          # We only default to 1 at a time, since there is no hurry.
-            cb    : required
-        dbg = @_dbg("ensure_all_user_project_upgrades_are_valid")
-        locals = {}
-        async.series([
-            (cb) =>
-                @_query
-                    query : "SELECT account_id FROM accounts"
-                    where : "stripe_customer_id IS NOT NULL"
-                    timeout_s: 300
-                    cb    : all_results 'account_id', (err, account_ids) =>
-                        locals.account_ids = account_ids
-                        cb(err)
-            (cb) =>
-                m = 0
-                n = locals.account_ids.length
-                dbg("got #{n} accounts with stripe")
-                f = (account_id, cb) =>
-                    m += 1
-                    dbg("#{m}/#{n}")
-                    @ensure_user_project_upgrades_are_valid
-                        account_id : account_id
-                        cb         : cb
-                async.mapLimit(locals.account_ids, opts.limit, f, cb)
-        ], opts.cb)
-
-    # Return the sum total of all user upgrades to a particular project
-    get_project_upgrades: (opts) =>
-        opts = defaults opts,
-            project_id : required
-            cb         : required
-        @_query
-            query : 'SELECT users FROM projects'
-            where : 'project_id = $::UUID' : opts.project_id
-            cb    : one_result 'users', (err, users) =>
-                if err
-                    opts.cb(err); return
-                upgrades = undefined
-                if users?
-                    for account_id, info of users
-                        upgrades = misc.map_sum(upgrades, info.upgrades)
-                opts.cb(undefined, upgrades)
-
-    # Remove all upgrades to all projects applied by this particular user.
-    remove_all_user_project_upgrades: (opts) =>
-        opts = defaults opts,
-            account_id : required
-            projects   : undefined  # if given, only remove from projects with id in this array.
-            cb         : required
-        if not misc.is_valid_uuid_string(opts.account_id)
-            opts.cb("invalid account_id")
-            return
-        query =  "UPDATE projects SET users=jsonb_set(users, '{#{opts.account_id}}', jsonb(users#>'{#{opts.account_id}}') - 'upgrades')"
-        where = [
-                'users ? $::TEXT' : opts.account_id,                     # this is a user of the project
-                "users#>'{#{opts.account_id},upgrades}' IS NOT NULL"     # upgrades are defined
-            ]
-        if opts.projects
-            if not misc.is_array(opts.projects)
-                opts.cb("projects must be an array")
-                return
-            w = []
-            for project_id in opts.projects
-                if not misc.is_valid_uuid_string(project_id)
-                    opts.cb('each entry in projects must be a valid uuid')
-                    return
-                w.push("'#{project_id}'")
-            where.push("project_id in (#{w.join(',')})")
-
-        @_query
-            query : query
-            where : where
-            cb: opts.cb
-        # TODO: any impacted project that is currently running should also (optionally?) get restarted.
-        # I'm not going to bother for now, but this DOES need to get implemented, since otherwise users
-        # can cheat too easily.  Alternatively, have a periodic control loop on all running projects that
-        # confirms that everything is legit (and remove the verification code for user_query) --
-        # that's probably better.  This could be a service called manage-upgrades.
 
     ###
     Project settings
@@ -2115,10 +1970,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         if x.settings?.member_host
                             num_prof_pay += 1
                             continue
-                        for _, d of x.users
-                            if d.upgrades?.member_host
-                                num_prof_pay += 1
-                                continue
                 # free - neither student pays, and also project not on members only server
                 num_free        = t.length - num_prof_pay - num_student_pay
                 conversion_rate = if t.length then 100*(num_student_pay + num_prof_pay) / t.length else 0
