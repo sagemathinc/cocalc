@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -43,7 +43,7 @@ export function SettingBox({
         show_header ? (
           <div style={{ whiteSpace: "normal" }}>
             <Title level={4} style={{ display: "flex" }}>
-              {icon && <Icon name={icon} />}&nbsp;{title}
+              {icon && <Icon name={icon} />}&nbsp;<span>{title}</span>
             </Title>
             {subtitle}
             {/* subtitle must be outside of the Typography.Title -- this is assumed, e.g., in frontend/project/new/project-new-form.tsx */}
