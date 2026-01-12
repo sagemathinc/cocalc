@@ -30,10 +30,10 @@ export const FALLBACK_COMPUTE_IMAGE = "default";
 
 export const DEFAULT_PROJECT_IMAGE = "ubuntu:25.10";
 
-// directory that contains overlay modifications to roofs filesystem image.
-// It stores them in PROJECT_IMAGE_PATH/{compute_server_id}
+// Directory that contains overlay modifications to the root filesystem image.
+// It stores them in PROJECT_IMAGE_PATH/{compute_server_id} (upper/work dirs).
 // Obviously do NOT change this willy nilly for an existing install, since
 // it would cause all existing data to vanish...
-export const PROJECT_IMAGE_PATH = ".local/share/overlay";
+export const PROJECT_IMAGE_PATH = ".local/share/cocalc/rootfs";
 
 export const OTHER_SETTINGS_USERDEFINED_LLM = "userdefined_llm";

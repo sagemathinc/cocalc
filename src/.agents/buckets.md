@@ -1,6 +1,7 @@
 # Buckets
 
 ## TODO
+
 - [ ] Cloning a project should preserve the backup region (and bucket assignment).
 - [ ] Show the backup region clearly in project settings.
 - [ ] Show the backup region clearly in the project flyout settings.
@@ -18,35 +19,37 @@
 ## Plan to implement full backup/restore and copy using rustic and buckets
 
 ### Phase 1: Foundation (layout + backup + restore)
-- **Rustic layout v2**: store data using multiple roots per snapshot:
-  - `project/` for project home tree
-  - `persist/` for per-project sqlite/meta DBs (replaces `.cocalc-persist/` hack)
-  - add snapshot metadata flag `persist_layout=v2` (and any other versioning keys)
+
+- **Rustic layout v2**: store data in a simple straightforward way
 - **Backup**:
   - create snapshot with both roots in one operation
-  - record metadata (layout version + project_id + host_id)
-- **Restore-on-missing**:
-  - when starting a project, if local project root is missing, auto-restore
+  - record metadata \(layout version \+ project\_id \+ host\_id\)
+- **Restore\-on\-missing**:
+  - when starting a project, if local project root is missing, auto\-restore
   - restore `project/` root into project home
   - restore `persist/` root into the persist location
-  - surface clear progress + failure in UI
+  - surface clear progress \+ failure in UI
 - **Backup freshness tracking**:
   - record last successful backup time
-  - record last possible data change time (project running, FS API, codex edits)
-  - if last-change > last-backup, warn about potential data loss if skipping backup
+  - record last possible data change time \(project running, FS API, codex edits\)
+  - if last\-change &gt; last\-backup, warn about potential data loss if skipping backup
 
 ### Phase 2: Move project between hosts (same region)
+
 - force backup on source host (allow option to skip if source host unavailable; warn about potential data loss using freshness tracking)
 - change project host_id to target
 - target host starts project; restore-on-missing kicks in
 - optional cleanup of local data on source host
 
 ### Phase 3: Copy files between hosts
+
 - create a temporary backup snapshot of a subpath (root `project/` limited to that subpath)
 - restore into target project path
 - optionally delete the temporary snapshot
 
 ### Phase 4: Cleanup / compatibility
+
 - **No backward compatibility**:
   - treat layout v2 as the only supported format
   - new snapshots must include metadata; restore logic assumes it
+
