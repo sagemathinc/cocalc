@@ -31,8 +31,6 @@ import getLogger from "@cocalc/backend/logger";
 import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
 import getPool from "@cocalc/database/pool";
-import { closePayAsYouGoPurchases } from "@cocalc/server/purchases/project-quotas";
-import { handlePayAsYouGoQuotas } from "./pay-as-you-go";
 import { query } from "@cocalc/database/postgres/query";
 import { getProjectSecretToken } from "./secret-token";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
@@ -108,23 +106,11 @@ export class BaseProject extends EventEmitter {
     await site_license_hook(db(), this.project_id, havePAYGO);
   }
 
-  protected async closePayAsYouGoPurchases() {
-    try {
-      await closePayAsYouGoPurchases(this.project_id);
-    } catch (err) {
-      logger.error("problem closing pay as you go purchases", err);
-      // will happen soon via periodic sync...
-    }
-  }
-
   async saveStateToDatabase(state: ProjectState): Promise<void> {
     await callback2(db().set_project_state, {
       ...state,
       project_id: this.project_id,
     });
-    if (state.state != "starting" && state.state != "running") {
-      this.closePayAsYouGoPurchases();
-    }
   }
 
   protected async saveStatusToDatabase(status: ProjectStatus): Promise<void> {
@@ -277,18 +263,8 @@ export class BaseProject extends EventEmitter {
   };
 
   computeQuota = async () => {
-    const paygoQuota = await this.getPayAsYouGoQuota();
-    await this.siteLicenseHook(paygoQuota != null);
-    await this.setRunQuota(paygoQuota);
-  };
-
-  getPayAsYouGoQuota = async () => {
-    try {
-      return await handlePayAsYouGoQuotas(this.project_id);
-    } catch (err) {
-      logger.debug("issue handling pay as you go quota", err);
-      return null;
-    }
+    await this.siteLicenseHook(false);
+    await this.setRunQuota(null);
   };
 
   // The run_quota is now explicitly used in singule-user and multi-user

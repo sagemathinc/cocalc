@@ -10,8 +10,6 @@ import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import getStatements from "./get-statements";
 import getPurchases from "../get-purchases";
-import dayjs from "dayjs";
-import { closeAndContinuePurchase } from "../project-quotas";
 import { before, after, getPool } from "@cocalc/server/test";
 
 beforeAll(async () => {
@@ -21,8 +19,6 @@ afterAll(after);
 
 describe("creates an account, then creates purchases and statements", () => {
   const account_id = uuid();
-  const project_id = uuid();
-  const cost_per_hour1 = 1.25;
 
   it("creates an account, run statements and get none since no purchases", async () => {
     await createTestAccount(account_id);
@@ -35,7 +31,6 @@ describe("creates an account, then creates purchases and statements", () => {
     expect(statements.length).toBe(0);
   });
 
-  let upgrade_purchase_id = -1;
   it("add some purchases, run statements and check properties", async () => {
     // a credit of 10
     await createPurchase({
@@ -54,30 +49,6 @@ describe("creates an account, then creates purchases and statements", () => {
       client: null,
       cost: 7,
     });
-
-    // start pay-as-you-go project upgrade, which will
-    // NOT be on the statement, because it's not closed.
-    const period_start = dayjs(new Date()).subtract(30, "minutes").toDate();
-    upgrade_purchase_id = await createPurchase({
-      client: null,
-      account_id,
-      project_id,
-      service: "project-upgrade",
-      period_start,
-      cost_per_hour: cost_per_hour1,
-      description: {
-        type: "project-upgrade",
-        start: period_start.valueOf(),
-        project_id,
-        quota: {} as any,
-      },
-    });
-    // here we are manually setting the purchase time to the period_start time
-    // from a half hour ago for testing purposes.
-    await getPool().query("UPDATE purchases set time=$1 WHERE id=$2", [
-      period_start,
-      upgrade_purchase_id,
-    ]);
 
     await delay(50); // so above purchase is on statement.
     await createStatements({ time: new Date(Date.now() - 1), interval: "day" });
@@ -102,28 +73,6 @@ describe("creates an account, then creates purchases and statements", () => {
     expect(purchases[0].cost + purchases[1].cost).toBe(-3);
   });
 
-  it("close/continue the project-upgrade and make a statement", async () => {
-    await closeAndContinuePurchase(upgrade_purchase_id);
-    await delay(150); // so above purchase is on statement.
-    await createStatements({ time: new Date(Date.now() - 1), interval: "day" });
-    await delay(50);
-    const statements = await getStatements({
-      account_id,
-      limit: 2,
-      interval: "day",
-    });
-    expect(statements.length).toBe(2);
-
-    const { purchases } = await getPurchases({
-      account_id,
-      day_statement_id: statements[0].id,
-    });
-    expect(purchases.length).toBe(1);
-    expect(purchases[0].cost).toBeCloseTo(statements[0].total_charges, 3);
-    expect(purchases[0].cost).toBeCloseTo(1.25 / 2, 2);
-    const { purchases: allPurchases } = await getPurchases({ account_id });
-    expect(allPurchases.length).toBe(4); // because of new one created by splitting existing one
-  }, 10000);
 });
 
 describe("creates an account, then creates purchases and statements and ensures that there aren't multiple statements per day", () => {

@@ -1,5 +1,4 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { maintainActivePurchases as maintainProjectUpgrades } from "./project-quotas";
 import { TASKS as computeServerTasks } from "@cocalc/server/compute/maintenance";
 import maintainSubscriptions from "./maintain-subscriptions";
 import maintainStatements from "./statements/maintenance";
@@ -22,7 +21,6 @@ interface MaintenanceDescription {
 }
 
 const FUNCTIONS: MaintenanceDescription[] = [
-  { f: maintainProjectUpgrades, desc: "maintain project upgrade quotas" },
   { f: maintainSubscriptions, desc: "maintain subscriptions" },
   { f: maintainStatements, desc: "maintain statements" },
   {
