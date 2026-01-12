@@ -21,6 +21,10 @@ export let decompress: (data: Buffer) => Buffer = () => {
 
 export let syncFiles = {
   local: "",
+  localProjects: "",
+  localAccounts: "",
+  localHosts: "",
+  localHub: "",
   archive: "",
   archiveInterval: 30_000,
   backup: "",
@@ -46,6 +50,10 @@ export function initContext(opts: {
   decompress: (Buffer) => Buffer;
   syncFiles: {
     local: string;
+    localProjects: string;
+    localAccounts: string;
+    localHosts: string;
+    localHub: string;
     archive: string;
     archiveInterval: number;
     backup: string;

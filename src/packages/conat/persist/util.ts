@@ -63,6 +63,62 @@ export type User = {
   host_id?: string;
 };
 
+function resolveTemplateBase(base: string, token: string, id: string): string {
+  const placeholder = `[${token}]`;
+  if (base.includes(placeholder)) {
+    return base.split(placeholder).join(id);
+  }
+  return join(base, id);
+}
+
+function resolveLocalPath(storagePath: string): string {
+  const projectMatch = storagePath.match(/^projects\/([^/]+)(?:\/(.*))?$/);
+  if (projectMatch) {
+    const [, projectId, rest = ""] = projectMatch;
+    if (syncFiles.localProjects) {
+      const base = resolveTemplateBase(
+        syncFiles.localProjects,
+        "project_id",
+        projectId,
+      );
+      return rest ? join(base, rest) : base;
+    }
+  }
+
+  const accountMatch = storagePath.match(/^accounts\/([^/]+)(?:\/(.*))?$/);
+  if (accountMatch) {
+    const [, accountId, rest = ""] = accountMatch;
+    if (syncFiles.localAccounts) {
+      const base = resolveTemplateBase(
+        syncFiles.localAccounts,
+        "account_id",
+        accountId,
+      );
+      return rest ? join(base, rest) : base;
+    }
+  }
+
+  const hostMatch = storagePath.match(/^hosts\/([^/]+)(?:\/(.*))?$/);
+  if (hostMatch) {
+    const [, hostId, rest = ""] = hostMatch;
+    if (syncFiles.localHosts) {
+      const base = resolveTemplateBase(
+        syncFiles.localHosts,
+        "host_id",
+        hostId,
+      );
+      return rest ? join(base, rest) : base;
+    }
+  }
+
+  if (storagePath.startsWith("hub/") && syncFiles.localHub) {
+    const rest = storagePath.slice("hub/".length);
+    return rest ? join(syncFiles.localHub, rest) : syncFiles.localHub;
+  }
+
+  return join(syncFiles.local, storagePath);
+}
+
 export function persistSubject({
   account_id,
   project_id,
@@ -95,7 +151,8 @@ export async function getStream({
     path: storage.path,
     service,
   });
-  const path = join(syncFiles.local, storage.path);
+  // Project/host/account paths can be redirected to per-subject roots.
+  const path = resolveLocalPath(storage.path);
   const archive = syncFiles.archive
     ? join(syncFiles.archive, storage.path)
     : undefined;

@@ -61,6 +61,12 @@ async function pathExists(path: string): Promise<boolean> {
 }
 
 function persistPath(project_id: string): string {
+  if (syncFiles.localProjects) {
+    const base = syncFiles.localProjects.includes("[project_id]")
+      ? syncFiles.localProjects.split("[project_id]").join(project_id)
+      : join(syncFiles.localProjects, project_id);
+    return base;
+  }
   return join(syncFiles.local, "projects", project_id);
 }
 

@@ -236,6 +236,13 @@ export const projectRunnerMountpoint: string | undefined =
 export const syncFiles = {
   // Persistent local storage of streams and kv's as sqlite3 files
   local: process.env.COCALC_SYNC ?? join(data, "sync"),
+  // OPTIONAL: Override local storage base for specific subjects.
+  // Use [project_id], [account_id], or [host_id] as placeholders.
+  // Example: /btrfs/project-[project_id]/.local/share/cocalc/persist
+  localProjects: process.env.COCALC_SYNC_PROJECTS ?? "",
+  localAccounts: process.env.COCALC_SYNC_ACCOUNTS ?? "",
+  localHosts: process.env.COCALC_SYNC_HOSTS ?? "",
+  localHub: process.env.COCALC_SYNC_HUB ?? "",
 
   // OPTIONAL:  Archived storage of streams and kv
   // This could be a gcsfuse mountpoint.
