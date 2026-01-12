@@ -19,7 +19,6 @@ import * as message from "@cocalc/util/message";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import stripeName from "@cocalc/util/stripe/name";
 import { InvoicesData } from "@cocalc/util/types/stripe";
-import { available_upgrades, get_total_upgrades } from "@cocalc/util/upgrades";
 import getConn from "./connection";
 import salesTax from "./sales-tax";
 
@@ -317,81 +316,6 @@ export class StripeClient {
     return await salesTax(customer_id);
   }
 
-  public async mesg_create_subscription(mesg: Message): Promise<void> {
-    const dbg = this.dbg("mesg_create_subscription");
-    dbg("create a subscription for this user, using some billing method");
-
-    const plan: string = get_string_field(mesg, "plan");
-
-    const schema = require("@cocalc/util/schema").PROJECT_UPGRADES.subscription[
-      plan.split("-")[0]
-    ];
-    if (schema == null) throw Error(`unknown plan -- '${plan}'`);
-
-    const customer_id: string = await this.need_customer_id();
-
-    const quantity = mesg.quantity ? mesg.quantity : 1;
-
-    dbg("determine applicable tax");
-    const tax_percent = await this.sales_tax(customer_id);
-    // CRITICAL regarding setting tax_percent below: if we don't just multiply by 100, since then sometimes
-    // stripe comes back with an error like this
-    //    "Error: Invalid decimal: 8.799999999999999; must contain at maximum two decimal places."
-
-    const options = {
-      customer: customer_id,
-      payment_behavior: "error_if_incomplete", // see https://github.com/sagemathinc/cocalc/issues/5234
-      items: [{ quantity, plan }],
-      coupon: mesg.coupon_id,
-      cancel_at_period_end: schema.cancel_at_period_end,
-      tax_percent: tax_percent
-        ? Math.round(tax_percent * 100 * 100) / 100
-        : undefined,
-    } as Stripe.SubscriptionCreateParams;
-
-    dbg("add customer subscription to stripe");
-    await (await getConn()).subscriptions.create(options);
-
-    dbg("added subscription; now save info in our database about it...");
-    await this.update_database();
-
-    if (options.coupon != null) {
-      dbg("add coupon to customer history");
-      const { coupon, coupon_history } = await this.validate_coupon(
-        options.coupon,
-      );
-
-      // SECURITY NOTE: incrementing a counter... subject to attack?
-      // I.e., use a coupon more times than should be able to?
-      // NOT a big worry since we never issue or use coupons anyways...
-      coupon_history[coupon.id] += 1;
-      await callback2(this.client.database.update_coupon_history, {
-        account_id: this.client.account_id,
-        coupon_history,
-      });
-    }
-  }
-
-  public async mesg_cancel_subscription(mesg: Message): Promise<void> {
-    const dbg = this.dbg("mesg_cancel_subscription");
-    dbg("cancel a subscription for this user");
-
-    const subscription_id: string = get_string_field(mesg, "subscription_id");
-
-    // TODO/SECURITY: We should check that this subscription actually
-    // belongs to this user.  As it is, they could be canceling somebody
-    // else's subscription!
-
-    dbg("cancel the subscription at stripe");
-    await (
-      await getConn()
-    ).subscriptions.update(subscription_id, {
-      cancel_at_period_end: mesg.at_period_end,
-    });
-
-    await this.update_database();
-  }
-
   public async mesg_update_subscription(mesg: Message): Promise<void> {
     const dbg = this.dbg("mesg_update_subscription");
     dbg("edit a subscription for this user");
@@ -556,47 +480,6 @@ export class StripeClient {
       amount: mesg.amount * 100,
       currency: "usd",
       description: mesg.description,
-    });
-  }
-
-  public async mesg_get_available_upgrades(_mesg: Message): Promise<Message> {
-    const dbg = this.dbg("mesg_get_available_upgrades");
-
-    dbg("get stripe customer data");
-    const customer = await this.get_customer();
-    if (customer == null || customer.subscriptions == null) {
-      // no upgrades since not even a stripe account.
-      return message.available_upgrades({
-        total: {},
-        excess: {},
-        available: {},
-      });
-    }
-    const stripe_data = customer.subscriptions.data;
-
-    dbg("get user project upgrades");
-    const projects = await callback2(
-      this.client.database.get_user_project_upgrades,
-      {
-        account_id: this.client.account_id,
-      },
-    );
-    const { excess, available } = available_upgrades(stripe_data, projects);
-    const total = get_total_upgrades(stripe_data);
-    return message.available_upgrades({
-      total,
-      excess,
-      available,
-    });
-  }
-
-  public async mesg_remove_all_upgrades(mesg: Message): Promise<void> {
-    const dbg = this.dbg("mesg_remove_all_upgrades");
-    dbg();
-    if (this.client.account_id == null) throw Error("you must be signed in");
-    await callback2(this.client.database.remove_all_user_project_upgrades, {
-      account_id: this.client.account_id,
-      projects: mesg.projects,
     });
   }
 

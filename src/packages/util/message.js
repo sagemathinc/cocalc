@@ -1129,27 +1129,6 @@ API(
   }),
 ); // [{name:'Basic', projects:1, description:'...', price:'$10/month', trial_period:'30 days', ...}, ...]
 
-// Create a subscription to a plan
-API(
-  message({
-    event: "stripe_create_subscription",
-    id: undefined,
-    plan: required, // name of plan
-    quantity: 1,
-    coupon_id: undefined,
-  }),
-);
-
-// Delete a subscription to a plan
-API(
-  message({
-    event: "stripe_cancel_subscription",
-    id: undefined,
-    subscription_id: required,
-    at_period_end: true,
-  }),
-);
-
 // Modify a subscription to a plan, e.g., change which projects plan applies to.
 API(
   message({
@@ -1591,53 +1570,6 @@ and provide that to a user.  When they visit that URL, they will be temporarily 
   }),
 );
 
-// Info about available upgrades for a given user
-API(
-  message2({
-    event: "get_available_upgrades",
-    fields: {
-      id: {
-        init: undefined,
-        desc: "A unique UUID for the query",
-      },
-    },
-    desc: `\
-This request returns information on project upgrdes for the user
-whose API key appears in the request.
-Two objects are returned, total upgrades and available upgrades.
-
-See https://github.com/sagemathinc/cocalc/blob/master/src/packages/util/upgrade-spec.js for units
-
-Example:
-\`\`\`
-  curl -X POST -u sk_abcdefQWERTY090900000000: https://cocalc.com/api/v1/get_available_upgrades
-  ==>
-  {"id":"57fcfd71-b50f-44ef-ba66-1e37cac858ef",
-   "event":"available_upgrades",
-   "total":{
-     "cores":10,
-     "cpu_shares":2048,
-     "disk_quota":200000,
-     "member_host":80,
-     "memory":120000,
-     "memory_request":8000,
-     "mintime":3456000,
-     "network":400},
-     "excess":{},
-   "available":{
-     "cores":6,
-     "cpu_shares":512,
-     "disk_quota":131000,
-     "member_host":51,
-     "memory":94000,
-     "memory_request":8000,
-     "mintime":1733400,
-     "network":372}}
-\`\`\`\
-`,
-  }),
-);
-
 // client --> hub
 API(
   message2({
@@ -1655,24 +1587,6 @@ API(
     desc: "Disconnect the hub that gets this message from the project.   This is used entirely for internal debugging and development.",
   }),
 );
-
-// client <-- hub
-message({
-  event: "available_upgrades",
-  id: undefined,
-  total: required, // total upgrades the user has purchased
-  excess: required, // upgrades where the total allocated exceeds what user has purchased
-  available: required,
-}); // how much of each purchased upgrade is available
-
-// Remove *all* upgrades applied by the signed in user to any projects,
-// or just from a specific list.
-// client --> hub
-message({
-  event: "remove_all_upgrades",
-  projects: undefined, // optional array of project_id's.
-  id: undefined,
-});
 
 /*
 Sage Worksheet Support, v2
