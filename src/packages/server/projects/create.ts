@@ -51,7 +51,7 @@ export default async function createProject(opts: CreateProjectOptions) {
     src_project_id,
     ephemeral,
     host_id: requested_host_id,
-    region: requested_region_raw,
+    region: requested_region_raw_input,
   } = opts;
 
   let license = opts.license;
@@ -78,6 +78,7 @@ export default async function createProject(opts: CreateProjectOptions) {
   const pool = getPool();
   let host_id: string | undefined = requested_host_id;
   let host: any | undefined;
+  let requested_region_raw: string | undefined = requested_region_raw_input;
 
   async function resolveHostPlacement(host_id: string) {
     if (!account_id) {
@@ -139,6 +140,9 @@ export default async function createProject(opts: CreateProjectOptions) {
     }
     if (!opts.region && rows[0]?.region) {
       opts.region = rows[0].region;
+    }
+    if (!requested_region_raw && rows[0]?.region) {
+      requested_region_raw = rows[0].region;
     }
     // create filesystem for new project as a clone.
     // Route clone to the host that owns the source project.

@@ -20,16 +20,14 @@
 
 ### Phase 1: Foundation (layout + backup + restore)
 
-- **Rustic layout v2**: store data in a simple straightforward way
-- **Backup**:
-  - create snapshot with both roots in one operation
-  - record metadata \(layout version \+ project\_id \+ host\_id\)
-- **Restore\-on\-missing**:
+- **\(done\) Rustic layout v2**: store data in a simple straightforward way
+- **\(done\) Backup**
+- **\(todo\) Restore\-on\-missing**:
   - when starting a project, if local project root is missing, auto\-restore
   - restore `project/` root into project home
   - restore `persist/` root into the persist location
   - surface clear progress \+ failure in UI
-- **Backup freshness tracking**:
+- **\(todo\) Backup freshness tracking**:
   - record last successful backup time
   - record last possible data change time \(project running, FS API, codex edits\)
   - if last\-change &gt; last\-backup, warn about potential data loss if skipping backup
