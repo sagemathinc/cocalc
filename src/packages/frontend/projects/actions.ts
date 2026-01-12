@@ -13,7 +13,6 @@ import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
-import startProjectPayg from "@cocalc/frontend/purchases/pay-as-you-go/start-project";
 import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { once } from "@cocalc/util/async-utils";
@@ -977,59 +976,41 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   // return true, if it actually started the project
-  start_project = reuseInFlight(
-    async (
-      project_id: string,
-      options: { disablePayAsYouGo?: boolean } = {},
-    ): Promise<boolean> => {
-      if (
-        !(await allow_project_to_run(project_id)) ||
-        !store.getIn(["project_map", project_id])
-      ) {
-        return false;
-      }
-      if (!options.disablePayAsYouGo) {
-        const quota = store
-          .getIn([
-            "project_map",
-            project_id,
-            "pay_as_you_go_quotas",
-            webapp_client.account_id ?? "",
-          ])
-          ?.toJS();
-        if (quota?.enabled) {
-          return await startProjectPayg({ project_id, quota });
-        }
-      }
+  start_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
+    if (
+      !(await allow_project_to_run(project_id)) ||
+      !store.getIn(["project_map", project_id])
+    ) {
+      return false;
+    }
 
-      const t0 = webapp_client.server_time().getTime();
-      // make an action request:
-      this.project_log(project_id, {
-        event: "project_start_requested",
+    const t0 = webapp_client.server_time().getTime();
+    // make an action request:
+    this.project_log(project_id, {
+      event: "project_start_requested",
+    });
+
+    webapp_client.project_client.touch_project(project_id);
+    const actions = redux.getProjectActions(project_id);
+    try {
+      await webapp_client.conat_client.hub.projects.start({
+        project_id,
+        wait: false,
       });
+    } catch (err) {
+      actions.setState({ control_error: `Error starting project -- ${err}` });
+      throw err;
+    }
+    actions.setState({ control_error: "" });
 
-      webapp_client.project_client.touch_project(project_id);
-      const actions = redux.getProjectActions(project_id);
-      try {
-        await webapp_client.conat_client.hub.projects.start({
-          project_id,
-          wait: false,
-        });
-      } catch (err) {
-        actions.setState({ control_error: `Error starting project -- ${err}` });
-        throw err;
-      }
-      actions.setState({ control_error: "" });
+    this.project_log(project_id, {
+      event: "project_started",
+      duration_ms: webapp_client.server_time().getTime() - t0,
+      ...store.classify_project(project_id),
+    });
 
-      this.project_log(project_id, {
-        event: "project_started",
-        duration_ms: webapp_client.server_time().getTime() - t0,
-        ...store.classify_project(project_id),
-      });
-
-      return true;
-    },
-  );
+    return true;
+  });
 
   // allow UI elements to open the move modal via project actions
   open_move_modal?: (project_id: string) => void;
