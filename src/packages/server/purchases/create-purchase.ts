@@ -18,7 +18,7 @@ interface Options {
   description: Description;
   client: PoolClient | null; // all purchases have to explicitly set client (possibly to null), to strongly encourage doing them as part of an atomic transaction.
   project_id?: string;
-  // if cost not known yet, don't give.  E.g., for project-upgrade, the cost isn't known until project stops (or we close out a purchase interval).
+  // if cost not known yet, don't give. The cost may be unknown until a purchase interval closes.
   cost?: number;
   unrounded_cost?: number; // if given and we compute cost_per_hour, this will be used, since cost itself may be rounded!
   cost_per_hour?: number;

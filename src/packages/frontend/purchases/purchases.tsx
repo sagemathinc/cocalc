@@ -46,11 +46,7 @@ import {
   MISTRAL_PREFIX,
   service2model,
 } from "@cocalc/util/db-schema/llm-utils";
-import {
-  QUOTA_SPEC,
-  type ProjectQuota,
-  type Service,
-} from "@cocalc/util/db-schema/purchase-quotas";
+import { QUOTA_SPEC, type Service } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
@@ -895,7 +891,7 @@ function PurchaseModal({ purchase, onClose, admin }) {
   );
 }
 
-// "credit" | "openai-gpt-4" | "project-upgrade" | "license" | "edit-license", etc.
+// "credit" | "openai-gpt-4" | "license" | "edit-license", etc.
 
 function Description({ description, period_end, service }) {
   if (description == null) {
@@ -989,15 +985,6 @@ function Description({ description, period_end, service }) {
           )}
         </div>
       </div>
-    );
-  }
-
-  if (service === "project-upgrade") {
-    const quota = description?.quota ?? {};
-    return (
-      <>
-        Project upgraded with <DisplayProjectQuota quota={quota} />
-      </>
     );
   }
 
@@ -1124,32 +1111,6 @@ function LicenseDates({ info }: { info: PurchaseInfo }) {
   }
 }
 */
-
-export function DisplayProjectQuota({ quota }: { quota: ProjectQuota }) {
-  const v: string[] = [];
-  if (quota.disk_quota) {
-    v.push(`${quota.disk_quota / 1000} GB disk`);
-  }
-  if (quota.memory) {
-    v.push(`${quota.memory / 1000} GB RAM`);
-  }
-  if (quota.cores) {
-    v.push(`${quota.cores} ${plural(quota.cores, "core")}`);
-  }
-  if (quota.always_running) {
-    v.push("always running");
-  }
-  if (quota.member_host) {
-    v.push("member hosting");
-  }
-  if (quota.network) {
-    v.push("network");
-  }
-  if (quota.cost) {
-    v.push(`${currency(quota.cost)} / hour`);
-  }
-  return <span>{v.join(", ")}</span>;
-}
 
 function InvoiceLink({ invoice_id }) {
   const [loading, setLoading] = useState<boolean>(false);

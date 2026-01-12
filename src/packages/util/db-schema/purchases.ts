@@ -62,7 +62,6 @@ export type ComputeService =
   | "credit"
   | "auto-credit"
   | "refund"
-  | "project-upgrade"
   | "compute-server"
   | "compute-server-network-usage"
   | "compute-server-storage"
@@ -82,25 +81,6 @@ export interface LLMDescription {
   completion_tokens: number;
   amount?: number; // appears in purchses/close.ts
   last_updated?: number; // also in purchases/close.ts, a timestamp (Date.valueOf())
-}
-
-export interface ProjectUpgrade {
-  type: "project-upgrade";
-  project_id: string;
-  start: number; // ms since epoch
-  stop?: number; // ms since epoch
-  quota: {
-    cost: number; // dollars per hour
-    cores?: number;
-    memory?: number;
-    network?: number;
-    mintime?: number;
-    cpu_shares?: number;
-    disk_quota?: number;
-    member_host?: number;
-    always_running?: number;
-    memory_request?: number;
-  };
 }
 
 export interface ComputeServer {
@@ -212,7 +192,6 @@ export interface Refund {
 
 export type Description =
   | LLMDescription
-  | ProjectUpgrade
   | ComputeServer
   | ComputeServerNetworkUsage
   | ComputeServerStorage

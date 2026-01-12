@@ -62,8 +62,8 @@ describe("test computing balance under various conditions", () => {
     const period_start = dayjs().subtract(hours, "hour").toDate();
     await createPurchase({
       account_id,
-      service: "project-upgrade",
-      description: {} as any,
+      service: "compute-server",
+      description: { type: "compute-server" } as any,
       client: null,
       cost_per_hour: 1.25,
       period_start,
@@ -92,8 +92,8 @@ describe("test computing balance under various conditions", () => {
     const account_id = uuid();
     await createPurchase({
       account_id,
-      service: "project-upgrade",
-      description: {} as any,
+      service: "compute-server",
+      description: { type: "compute-server" } as any,
       client: null,
       cost_per_hour: 1.25,
       period_start,

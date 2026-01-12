@@ -417,16 +417,9 @@ export const QUOTA_SPEC: QuotaSpec = {
   //   color: MISTRALAI_COLOR, // the orange from their website
   //   category: "ai",
   // },
-  "project-upgrade": {
-    display: "Project Upgrade",
-    color: "#5bc0de",
-    category: "compute",
-    description:
-      "Charge resulting from using pay as you go upgrades to a project.",
-  },
 } as const;
 
-// For pay-as-you-go project quota upgrades
+// Legacy project quota upgrades (deprecated)
 export interface ProjectQuota {
   cost?: number; // dollars per hour
   enabled?: number;
@@ -462,7 +455,7 @@ Table({
     account_id: CREATED_BY,
     service: {
       title: "Service Category",
-      desc: "The service being charged for, e.g., openai-gpt-4, project-upgrade, etc.",
+      desc: "The service being charged for, e.g., openai-gpt-4, compute-server, etc.",
       type: "string",
       pg_type: "varchar(127)",
     },

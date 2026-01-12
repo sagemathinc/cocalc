@@ -31,7 +31,6 @@ import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { labels } from "@cocalc/frontend/i18n";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { DisplayProjectQuota } from "@cocalc/frontend/purchases/purchases";
 import { UserMap } from "@cocalc/frontend/todo-types";
 import track from "@cocalc/frontend/user-tracking";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
@@ -50,7 +49,6 @@ import type {
   LLMEvent,
   MiniTermEvent,
   OpenFile,
-  PayAsYouGoUpgradeEvent,
   ProjectControlEvent,
   ProjectEvent,
   PublicPathEvent,
@@ -754,15 +752,6 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_pay_as_you_go(event: PayAsYouGoUpgradeEvent) {
-      return (
-        <span>
-          ran this project with temporary Pay As You Go Upgrade:{" "}
-          {event.quota && <DisplayProjectQuota quota={event.quota} />}
-        </span>
-      );
-    }
-
     function render_invite_user(event: CollaboratorEvent): React.JSX.Element {
       return (
         <span>
@@ -845,8 +834,6 @@ export const LogEntry: React.FC<Props> = React.memo(
           return render_upgrade(event);
         case "license":
           return render_license(event);
-        case "pay-as-you-go-upgrade":
-          return render_pay_as_you_go(event);
         case "invite_user":
           return render_invite_user(event);
         case "invite_nonuser":

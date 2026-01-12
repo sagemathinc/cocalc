@@ -58,17 +58,6 @@ describe("get some service costs", () => {
     expect(await getServiceCost("credit")).toBeGreaterThan(0.5);
   });
 
-  it("gets cost of a credit, i.e., the min allowed", async () => {
-    // this depends on the default server settings.  It might look like
-    // {"cores": 32, "disk_quota": 0.25, "member_host": 4, "memory": 4}
-    // We test the four fields are there with positive values
-    const cost = await getServiceCost("project-upgrade");
-    expect(cost.cores).toBeGreaterThan(0);
-    expect(cost.disk_quota).toBeGreaterThan(0);
-    expect(cost.member_host).toBeGreaterThan(0);
-    expect(cost.memory).toBeGreaterThan(0);
-  });
-
   it("throws error on invalid service", async () => {
     await expect(
       async () => await getServiceCost("nonsense" as any),

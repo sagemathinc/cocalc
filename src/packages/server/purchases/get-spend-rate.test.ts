@@ -46,15 +46,12 @@ describe("get the spend rate of a user under various circumstances", () => {
       client: null,
       account_id,
       project_id,
-      service: "project-upgrade",
+      service: "compute-server",
       period_start: new Date(),
       cost_per_hour: cost_per_hour1,
       description: {
-        type: "project-upgrade",
-        start: Date.now(),
-        project_id,
-        quota: {} as any,
-      },
+        type: "compute-server",
+      } as any,
     });
     expect(await getSpendRate(account_id, "")).toBe(cost_per_hour1);
   });
@@ -68,15 +65,12 @@ describe("get the spend rate of a user under various circumstances", () => {
       client: null,
       account_id,
       project_id,
-      service: "project-upgrade",
+      service: "compute-server",
       period_start: new Date(),
       cost_per_hour: cost_per_hour2,
       description: {
-        type: "project-upgrade",
-        start: Date.now(),
-        project_id,
-        quota: {} as any,
-      },
+        type: "compute-server",
+      } as any,
     });
     expect(await getSpendRate(account_id, "")).toBe(
       cost_per_hour1 + cost_per_hour2

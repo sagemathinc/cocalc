@@ -9,7 +9,6 @@ import { TypedMap } from "@cocalc/frontend/app-framework";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
 import type { ComputeServerEvent } from "@cocalc/util/compute/log";
-import type { ProjectQuota } from "@cocalc/util/db-schema/purchase-quotas";
 
 import type { Mode as JupyterCellLLMMode } from "@cocalc/frontend/jupyter/llm/cell-tool";
 import { Ext } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
@@ -39,7 +38,6 @@ export type ProjectEvent =
   | LibraryEvent
   | LLMEvent
   | UpgradeEvent
-  | PayAsYouGoUpgradeEvent
   | LicenseEvent
   | OpenFile
   | MiniTermEvent
@@ -105,11 +103,6 @@ export type CollaboratorEvent = {
 export type UpgradeEvent = {
   event: "upgrade";
   upgrades: any;
-};
-
-export type PayAsYouGoUpgradeEvent = {
-  event: "pay-as-you-go-upgrade";
-  quota: ProjectQuota;
 };
 
 export type LicenseEvent = {

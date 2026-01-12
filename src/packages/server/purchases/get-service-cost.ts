@@ -34,11 +34,6 @@ export default async function getServiceCost(service: Service) {
       const { pay_as_you_go_min_payment } = await getServerSettings();
       return pay_as_you_go_min_payment;
 
-    case "project-upgrade":
-      const { pay_as_you_go_price_project_upgrades } =
-        await getServerSettings();
-      return pay_as_you_go_price_project_upgrades;
-
     case "compute-server":
     case "compute-server-storage":
       const { compute_servers_markup_percentage } = await getServerSettings();

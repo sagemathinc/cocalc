@@ -4,7 +4,7 @@ Render the cost of a pay-as-you-go service.
 This gets the cost once via an api call, then uses the cached cost afterwards (until
 user refreshes browser), since costs change VERY rarely.
 */
-import { Alert, Spin, Table, Tooltip } from "antd";
+import { Alert, Spin, Table } from "antd";
 import LRU from "lru-cache";
 import { useEffect, useState } from "react";
 import { getGoogleCloudPriceData } from "@cocalc/frontend/compute/api";
@@ -55,9 +55,7 @@ export default function Cost({ inline, service, cost: cost0 }: Props) {
     return <MoneyStatistic title={"Minimum Credit"} value={cost} />;
   }
 
-  if (service == "project-upgrade") {
-    return <ProjectUpgradeCost cost={cost} />;
-  } else if (isLanguageModelService(service)) {
+  if (isLanguageModelService(service)) {
     return (
       <LLMServiceCost
         prompt_tokens={cost.prompt_tokens}
@@ -105,82 +103,6 @@ export default function Cost({ inline, service, cost: cost0 }: Props) {
 }
 
 const TEXT_STYLE = { maxWidth: "400px", margin: "auto" } as const;
-
-function ProjectUpgradeCost({ cost }) {
-  // cost is an object like this, where the amount is in dollars per month, except
-  // the member host factor:
-  // {"cores":50, "memory":7, "disk_quota":0.25, "member_host":4}
-
-  // We convert to per hour pricing.
-  const hours = 30.5 * 24;
-  const cores = currency(cost.cores / hours, 3);
-  const memory = currency(cost.memory / hours, 3);
-  const disk_quota = currency(cost.disk_quota, 3);
-
-  const columns = [
-    {
-      title: "Memory (GB)",
-      dataIndex: "memory",
-      key: "memory",
-    },
-    {
-      title: "Disk Quota (GB)",
-      dataIndex: "disk_quota",
-      key: "disk_quota",
-    },
-    {
-      title: "vCPU",
-      dataIndex: "cores",
-      key: "cores",
-    },
-    {
-      title: "Member Hosting",
-      dataIndex: "member_host",
-      key: "member_host",
-    },
-  ];
-
-  const data = [
-    {
-      input: "key",
-      cores: <PricePerUnit value={cores} unit="hour" month={cost.cores} />,
-      memory: <PricePerUnit value={memory} unit="hour" month={cost.memory} />,
-      disk_quota: <PricePerUnit value={disk_quota} unit="month " />,
-      member_host: (
-        <span>
-          {Math.round(100 * (1 - 1 / cost.member_host))}%{" "}
-          <span style={{ color: "#666" }}>non-member discount</span>
-        </span>
-      ),
-    },
-  ];
-
-  return (
-    <Table
-      rowKey={"input"}
-      columns={columns}
-      dataSource={data}
-      pagination={false}
-    />
-  );
-}
-
-function PricePerUnit({ value, unit, month }: { value; unit; month? }) {
-  const body = (
-    <span>
-      <span style={{ color: "#000" }}>{value}</span>
-      <span style={{ color: "#666" }}> / {unit}</span>
-    </span>
-  );
-  if (month) {
-    const cost = month.toLocaleString("en-US", {
-      style: "currency",
-      currency: "USD",
-    });
-    return <Tooltip title={`${cost} per month`}>{body}</Tooltip>;
-  }
-  return body;
-}
 
 function LLMServiceCost({ prompt_tokens, completion_tokens }) {
   const inputPrice = currency(prompt_tokens * 1000, 3);

@@ -121,7 +121,6 @@ const PROJECT_EVENTS = [
   "start_project",
   "upgrade",
   "license",
-  "pay-as-you-go-upgrade",
   "delete_project",
   "undelete_project",
   "hide_project",
