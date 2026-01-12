@@ -96,6 +96,27 @@ async function maybeRestoreFromBackup({
   restore?: "none" | "auto" | "required";
 }): Promise<void> {
   if (!restore || restore === "none") return;
+  if (restore === "auto") {
+    try {
+      const entries = await readdir(home);
+      const meaningful = entries.filter(
+        (entry) => entry !== ".snapshots" && entry !== RESTORE_MARKER,
+      );
+      if (meaningful.length > 0) {
+        return;
+      }
+    } catch (err: any) {
+      if (err?.code === "ENOENT") {
+        // Home doesn't exist; proceed to check backups.
+      } else {
+        logger.warn("restore check failed; skipping auto-restore", {
+          project_id,
+          err: `${err}`,
+        });
+        return;
+      }
+    }
+  }
   if (restoring.has(project_id)) return;
   const markerPath = join(home, RESTORE_MARKER);
   try {
