@@ -63,11 +63,6 @@ const DEFAULT_GET_ALL_TIMEOUT = 15000;
 const log = (..._args) => {};
 //const log = console.log;
 
-const PROJECT_PERSIST_BASE = (process.env.COCALC_PERSIST_PROJECT_BASE ?? "")
-  .trim()
-  .replace(/^\/+/, "")
-  .replace(/\/+$/, "");
-
 // when this many bytes of key:value have been changed (so need to be freed),
 // we do a garbage collection pass.
 export const KEY_GC_THRESH = 10 * 1e6;
@@ -147,11 +142,7 @@ export function storagePath({
   if (account_id) {
     userPath = `accounts/${account_id}`;
   } else if (project_id) {
-    if (PROJECT_PERSIST_BASE) {
-      userPath = join(`project-${project_id}`, PROJECT_PERSIST_BASE);
-    } else {
-      userPath = `projects/${project_id}`;
-    }
+    userPath = `projects/${project_id}`;
   } else if (host_id) {
     userPath = `hosts/${host_id}`;
   } else {
