@@ -2,7 +2,11 @@ import { authFirstRequireAccount, authFirstRequireProject } from "./util";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
-import { type SnapshotUsage } from "@cocalc/conat/files/file-server";
+import {
+  type SnapshotUsage,
+  type RestoreMode,
+  type RestoreStagingHandle,
+} from "@cocalc/conat/files/file-server";
 
 export type ProjectMoveState =
   | "queued"
@@ -39,6 +43,11 @@ export const projects = {
   createBackup: authFirstRequireAccount,
   deleteBackup: authFirstRequireAccount,
   restoreBackup: authFirstRequireAccount,
+  beginRestoreStaging: authFirstRequireAccount,
+  ensureRestoreStaging: authFirstRequireAccount,
+  finalizeRestoreStaging: authFirstRequireAccount,
+  releaseRestoreStaging: authFirstRequireAccount,
+  cleanupRestoreStaging: authFirstRequireAccount,
   updateBackups: authFirstRequireAccount,
   getBackups: authFirstRequireAccount,
   getBackupFiles: authFirstRequireAccount,
@@ -178,6 +187,35 @@ export interface Projects {
     path?: string;
     dest?: string;
     id: string;
+  }) => Promise<void>;
+
+  beginRestoreStaging: (opts: {
+    account_id?: string;
+    project_id: string;
+    home?: string;
+    restore?: RestoreMode;
+  }) => Promise<RestoreStagingHandle | null>;
+
+  ensureRestoreStaging: (opts: {
+    account_id?: string;
+    handle: RestoreStagingHandle;
+  }) => Promise<void>;
+
+  finalizeRestoreStaging: (opts: {
+    account_id?: string;
+    handle: RestoreStagingHandle;
+  }) => Promise<void>;
+
+  releaseRestoreStaging: (opts: {
+    account_id?: string;
+    handle: RestoreStagingHandle;
+    cleanupStaging?: boolean;
+  }) => Promise<void>;
+
+  cleanupRestoreStaging: (opts: {
+    account_id?: string;
+    project_id: string;
+    root?: string;
   }) => Promise<void>;
 
   updateBackups: (opts: {

@@ -22,7 +22,11 @@ import type { Configuration } from "@cocalc/conat/project/runner/types";
 import { ensureHostKey } from "../ssh/host-key";
 import { getSshpiperdPublicKey } from "../ssh/host-keys";
 import { getLocalHostId } from "../sqlite/hosts";
-import { client as fileServerClient } from "@cocalc/conat/files/file-server";
+import {
+  client as fileServerClient,
+  type RestoreMode,
+  type RestoreStagingHandle,
+} from "@cocalc/conat/files/file-server";
 import { runCmd, setupSshTempFiles } from "./util";
 
 const logger = getLogger("project-host:hub:projects");
@@ -328,6 +332,11 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
   hubApi.projects.deleteBackup = deleteBackup;
   hubApi.projects.updateBackups = updateBackups;
   hubApi.projects.restoreBackup = restoreBackup;
+  hubApi.projects.beginRestoreStaging = beginRestoreStaging;
+  hubApi.projects.ensureRestoreStaging = ensureRestoreStaging;
+  hubApi.projects.finalizeRestoreStaging = finalizeRestoreStaging;
+  hubApi.projects.releaseRestoreStaging = releaseRestoreStaging;
+  hubApi.projects.cleanupRestoreStaging = cleanupRestoreStaging;
   hubApi.projects.getBackups = getBackups;
   hubApi.projects.getBackupFiles = getBackupFiles;
   hubApi.projects.getBackupQuota = getBackupQuota;
@@ -561,6 +570,76 @@ export async function restoreBackup({
     throw Error("invalid project_id");
   }
   await fileServer(project_id).restoreBackup({ project_id, id, path, dest });
+}
+
+export async function beginRestoreStaging({
+  project_id,
+  home,
+  restore,
+}: {
+  project_id: string;
+  home?: string;
+  restore?: RestoreMode;
+}): Promise<RestoreStagingHandle | null> {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+  return await fileServer(project_id).beginRestoreStaging({
+    project_id,
+    home,
+    restore,
+  });
+}
+
+export async function ensureRestoreStaging({
+  handle,
+}: {
+  handle: RestoreStagingHandle;
+}): Promise<void> {
+  if (!isValidUUID(handle.project_id)) {
+    throw Error("invalid project_id");
+  }
+  await fileServer(handle.project_id).ensureRestoreStaging({ handle });
+}
+
+export async function finalizeRestoreStaging({
+  handle,
+}: {
+  handle: RestoreStagingHandle;
+}): Promise<void> {
+  if (!isValidUUID(handle.project_id)) {
+    throw Error("invalid project_id");
+  }
+  await fileServer(handle.project_id).finalizeRestoreStaging({ handle });
+}
+
+export async function releaseRestoreStaging({
+  handle,
+  cleanupStaging,
+}: {
+  handle: RestoreStagingHandle;
+  cleanupStaging?: boolean;
+}): Promise<void> {
+  if (!isValidUUID(handle.project_id)) {
+    throw Error("invalid project_id");
+  }
+  await fileServer(handle.project_id).releaseRestoreStaging({
+    handle,
+    cleanupStaging,
+  });
+}
+
+export async function cleanupRestoreStaging({
+  project_id,
+  root,
+}: {
+  project_id: string;
+  root?: string;
+}): Promise<void> {
+  if (!isValidUUID(project_id)) {
+    throw Error("invalid project_id");
+  }
+  await fileServer(project_id).cleanupRestoreStaging({ root });
 }
 
 export async function getBackups({ project_id }: { project_id: string }) {

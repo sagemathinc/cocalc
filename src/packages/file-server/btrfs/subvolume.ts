@@ -114,7 +114,7 @@ export class Subvolume {
   };
 }
 
-async function isBtrfsSubvolume(path: string): Promise<boolean> {
+export async function isBtrfsSubvolume(path: string): Promise<boolean> {
   const { exit_code, stderr } = await btrfs({
     args: ["subvolume", "show", path],
     err_on_exit: false,

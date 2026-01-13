@@ -2,20 +2,21 @@
 
 ## TODO
 
-- [ ] Cloning a project should preserve the backup region (and bucket assignment).
+- [ ] Cloning a project should preserve the backup region \(and bucket assignment\).
 - [ ] Show the backup region clearly in project settings.
 - [ ] Show the backup region clearly in the project flyout settings.
-- [ ] Extend the end-to-end smoke test to include a backup/restore step.
+- [ ] Extend the end\-to\-end smoke test to include a backup/restore step.
 - [ ] Implement full project deletion so backups are cleaned up appropriately.
-- [ ] Order backup regions based on distance from user (use Cloudflare location cookie).
-- [ ] Allow self-hosted project hosts to select a backup region (default to closest).
-- [ ] Move project between hosts (even if host is offline) via restore-from-backup.
-- [ ] When turning off a host, ensure all projects are backed up; add a separate "force off" path. Surface host-level backup status in the host admin page.
-- [ ] Surface per-project backup status in the project UI.
-- [ ] Rewrite backup APIs to handle long-running operations (progress + timeouts).
-- [ ] On project start, if backup exists but local data is missing, restore from backup (lambda hosts).
-- [ ] Improve backup browsing UX in file explorer (prefetch tree, loading states).
-- [ ] Sharing files (new share server), but use bucket.
+- [ ] Order backup regions based on distance from user \(use Cloudflare location cookie\).
+- [ ] Allow self\-hosted project hosts to select a backup region \(default to closest\).
+- [ ] Move project between hosts \(even if host is offline\) via restore\-from\-backup.
+- [ ] When turning off a host, ensure all projects are backed up; add a separate "force off" path. Surface host\-level backup status in the host admin page.
+- [ ] Surface per\-project backup status in the project UI.
+- [ ] Rewrite backup APIs to handle long\-running operations \(progress \+ timeouts\).
+- [ ] On project start, if backup exists but local data is missing, restore from backup \(lambda hosts\).
+- [ ] Improve backup browsing UX in file explorer \(prefetch tree, loading states\).
+- [ ] Sharing files \(new share server\), but use bucket.
+- [ ] update last\_edited for projects properly, so it is dependable for project moves
 
 ## Plan to implement full backup/restore and copy using rustic and buckets
 
@@ -33,7 +34,7 @@
   - record last possible data change time \(project running, FS API, codex edits\)
   - if last\-change &gt; last\-backup, warn about potential data loss if skipping backup
 
-### Phase 2: Move project between hosts (same region)
+### \(mostly done\) Phase 2: Move project between hosts \(same region\)
 
 **Phase 2 Detailed Plan**
 
@@ -103,9 +104,76 @@
 
 ### Phase 3: Copy files between hosts
 
-- create a temporary backup snapshot of a subpath (root `project/` limited to that subpath)
-- restore into target project path
-- optionally delete the temporary snapshot
+Notes:
+
+- we want to allow more than one dst_project_id, since distributing content (e.g., a handout to all 100 students in a course) is a key use case, and we don't want to have create and delete the corresponding backup 100 times.  It's fine for the dst_path to be the same for all targets.
+
+- the actual function we need to support is copyPathBetweenProjects in src/packages/conat/hub/api/projects.ts, in the case then when the dest project_id is on a different host:
+``` 
+  copyPathBetweenProjects: (opts: {
+    src: { project_id: string; path: string | string[] };
+    dest: { project_id: string; path: string };
+    options?: CopyOptions;
+  }) => Promise<void>;
+```
+There is no "safe mode" and no need for one due to extensive snapshots; this is basically supposed to be like "cp -r" on a filesystem. For a single project host it is that with reflink support for dedup.  Note CopyOptions...
+
+**Phase 3 Detailed Plan**
+
+1. **New entrypoint**
+   - Add [src/packages/server/projects/copy.ts](./src/packages/server/projects/copy.ts).
+   - Export `copyProjectFiles({ src_project_id, dst_project_id, src_path, dst_path, account_id, mode })`.
+   - `mode` defaults to safe (no overwrite unless explicitly requested).
+
+2. **API wiring**
+   - Add a conat API handler in [src/packages/server/conat/api/projects.ts](./src/packages/server/conat/api/projects.ts) to call the new entrypoint.
+   - Reuse `assertCollab` for both source and destination projects.
+
+3. **Validation & safety**
+   - Require both projects to be in the **same backup region** (use project region mapping).
+   - Normalize `src_path` and `dst_path` to **project‑relative** paths; reject absolute paths or `..` traversal.
+   - Fail fast if `src_path` does not exist on the source host (use file‑server stat).
+   - Decide whether project must be stopped:
+     - Default: allow if project is not running.
+     - Optional: allow with `force=true` (warn about possible inconsistency).
+
+4. **Backup requirement**
+   - If source project is running, stop it (unless `force=true`).
+   - If `last_backup` is missing or older than `last_edited`, trigger a backup **of the whole project** (simple and safe).
+   - Later optimization: backup only the requested subpath (see step 6).
+
+5. **Generate a temporary “copy snapshot”**
+   - Create a **temporary backup snapshot** tagged with metadata:
+     - `purpose=copy`
+     - `src_project_id`, `src_path`, `dst_project_id`, `dst_path`
+   - Use a deterministic tag so repeats can reuse or cleanup.
+
+6. **Restore onto destination**
+   - Call restore on the destination host with:
+     - `restore=required`
+     - `restore_subpath` = `src_path`
+     - `restore_target` = `dst_path`
+   - For now: restore into a **temporary staging dir** under the destination project, then atomically move into place (mirrors Phase 2 staging logic).
+   - Respect `mode`:
+     - `safe` → fail if target exists
+     - `overwrite` → replace target
+
+7. **Cleanup**
+   - If copy succeeds: delete the temporary snapshot (or let retention trim it).
+   - If copy fails: leave snapshot for inspection; log clearly.
+
+8. **Progress (first pass)**
+   - Log each step in `copy.ts`; no conat progress channel yet.
+   - Later: add a progress subject for UI.
+
+9. **Failure handling**
+   - Any error should **not** change project placement.
+   - Always return a structured error with step name + reason.
+
+10. **Future optimization**
+
+   - Add “backup only subpath” support in rustic wrapper to reduce size/time.
+   - Add optional restore‑only if `last_backup` is fresh and `src_path` unchanged.
 
 ### Phase 4: Cleanup / compatibility
 
