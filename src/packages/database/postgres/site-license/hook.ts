@@ -203,35 +203,6 @@ class SiteLicenseHook {
 
     const orderedIds: string[] = [];
 
-    // first, pick the "dedicated licenses", in particular dedicated VM.
-    // otherwise: regular quota upgrade licenses are picked and registered as valid,
-    // while in fact later on, when incrementally applying more licenses in computeNextSiteLicense,
-    // those will become ineffective.
-
-    for (let idx = 0; idx < ids.length; idx++) {
-      const id = ids[idx];
-      const val = validLicenses.get(id).toJS();
-      if (isSiteLicenseQuotaSetting(val)) {
-        const vm = val.quota.dedicated_vm;
-        if (vm != null && vm !== false) {
-          orderedIds.push(id);
-          ids.splice(idx, 1);
-        }
-      }
-    }
-
-    for (let idx = 0; idx < ids.length; idx++) {
-      const id = ids[idx];
-      const val = validLicenses.get(id).toJS();
-      if (isSiteLicenseQuotaSetting(val)) {
-        const disk = val.quota.dedicated_disk;
-        if (disk != null) {
-          orderedIds.push(id);
-          ids.splice(idx, 1);
-        }
-      }
-    }
-
     // then all regular licenses (boost == false), then the boost licenses
     for (const boost of [false, true]) {
       const idsPartition = ids.filter((id) => {
@@ -400,16 +371,14 @@ class SiteLicenseHook {
     }
   }
 
-  // Return true, if the license is not a dedicated disk license.
+  // Return true if the license should be disallowed under PAYGO.
   private disallowUnderPAYGO(license: LicenseMap): boolean {
     const quota = license.get("quota");
     if (quota == null) return true;
-    // there are some exceptions. dedicated disks do work under PAYGO.
-    const hasDisk = quota.get("dedicated_disk") != null;
     // ext_rw and patch are for CoCalc OnPrem, adding them just in case...
     const hasExtRW = quota.get("ext_rw") === true;
     const hasPatch = quota.get("patch") != null;
-    if (hasDisk || hasExtRW || hasPatch) return false;
+    if (hasExtRW || hasPatch) return false;
     return true;
   }
 

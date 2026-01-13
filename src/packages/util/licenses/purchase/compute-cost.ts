@@ -9,7 +9,6 @@ import {
   requiresMemberhosting,
 } from "@cocalc/util/consts/site-license";
 import { BASIC, getCosts, MAX, STANDARD } from "./consts";
-import { dedicatedPrice } from "./dedicated-price";
 import type { Cost, PurchaseInfo } from "./types";
 import { round2up } from "@cocalc/util/misc";
 import { decimalMultiply } from "@cocalc/util/stripe/calc";
@@ -30,12 +29,8 @@ import { decimalMultiply } from "@cocalc/util/stripe/calc";
 // a specific version of a license!  If you make any change, then you must assign a
 // new version number and also keep the old version around.
 export function compute_cost(info: PurchaseInfo): Cost {
-  if (info.type === "disk" || info.type === "vm") {
-    return compute_cost_dedicated(info);
-  }
-
   if (info.type !== "quota") {
-    throw new Error(`can only compute costa for type=quota`);
+    throw new Error(`can only compute cost for type=quota`);
   }
 
   let {
@@ -200,18 +195,4 @@ export function periodicCost(cost: Cost): number {
   } else {
     return cost.cost;
   }
-}
-
-// cost-object for dedicated resource – there are no discounts whatsoever
-export function compute_cost_dedicated(info) {
-  const { price, monthly } = dedicatedPrice(info);
-  return {
-    cost: price,
-    cost_per_unit: price,
-    cost_per_project_per_month: monthly, // dedicated is always only 1 project
-    cost_sub_month: monthly,
-    cost_sub_year: 12 * monthly,
-    period: info.subscription,
-    quantity: 1,
-  };
 }

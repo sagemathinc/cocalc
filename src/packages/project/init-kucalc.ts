@@ -6,7 +6,6 @@
 import { init as initJupyterPool } from "@cocalc/jupyter/pool/pool";
 import { init as initJupyterPoolParams } from "@cocalc/jupyter/pool/pool-params";
 import { activate as initAutorenice } from "./autorenice";
-import * as dedicatedDisks from "./dedicated-disks";
 import { getOptions } from "./init-program";
 import * as initScript from "./init-script";
 import * as kucalc from "./kucalc";
@@ -39,8 +38,6 @@ export default async function init() {
 
   // this must come after projectSetup.set_extra_env !
   initJupyterPoolParams();
-
-  await dedicatedDisks.init();
 
   initScript.run();
 
