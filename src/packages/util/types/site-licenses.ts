@@ -5,7 +5,6 @@
 
 import { User } from "@cocalc/util/licenses/purchase/types";
 import { Upgrades } from "@cocalc/util/upgrades/types";
-import { DedicatedDisk, DedicatedVM } from "./dedicated";
 
 export type GPU = {
   num?: number; // usualy 1, to set nvidia.com/gpu=1, 0 means "disabled"
@@ -23,8 +22,6 @@ export interface SiteLicenseQuota {
   always_running?: boolean;
   member?: boolean;
   user?: User;
-  dedicated_vm?: DedicatedVM | false;
-  dedicated_disk?: DedicatedDisk;
   // idle_timeouts came later:
   // 1. they don't mix, just like member/free and always_running does not mix
   // 2. we define the timeout spans indirectly, gives us a bit of room to modify this later on.

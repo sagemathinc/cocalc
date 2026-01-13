@@ -40,12 +40,9 @@ import {
   LicenseIdleTimeoutsKeysOrdered,
 } from "@cocalc/util/consts/site-license";
 import type { ProjectQuota as PayAsYouGoQuota } from "@cocalc/util/db-schema/purchase-quotas";
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
-import { VMS } from "@cocalc/util/upgrades/dedicated";
 import { deep_copy, len, test_valid_jsonpatch } from "../misc";
-import { DEDICATED_VM_ONPREM_MACHINE } from "./consts";
 
 const MAX_UPGRADES = upgrades.max_per_project;
 
@@ -95,8 +92,6 @@ interface QuotaBase {
   cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
-  dedicated_vm?: { name?: string; machine: string } | boolean;
-  dedicated_disks?: DedicatedDisk[];
   pay_as_you_go?: null | {
     account_id: string;
     purchase_id: number;
@@ -193,8 +188,6 @@ export interface SiteLicenseQuotaSetting {
 
 // collect the explanation, why a certain license is inactive
 export const ReasonsExplanation = {
-  dedicated_vm:
-    "There is another license for hosting this project on a dedicated VM. Licenses providing quota upgrades have no effect.",
   hosting_incompatible:
     "This license cannot be activated, because there is at least one other license active, which has a different type of hosting or idle timeout. Only licenses with the same type of hosting and idle timeout can be active at the same time.",
 } as const;
@@ -258,8 +251,6 @@ const ZERO_QUOTA: RQuota = {
   cpu_limit: 0,
   idle_timeout: 0,
   always_running: false,
-  dedicated_vm: false,
-  dedicated_disks: [] as DedicatedDisk[],
   pay_as_you_go: null,
   gpu: false,
 } as const;
@@ -277,8 +268,6 @@ const BASE_QUOTAS: RQuota = {
   cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPUs
   idle_timeout: DEFAULT_QUOTAS.mintime, // minimum uptime
   always_running: false, // if true, a service restarts the project if it isn't running
-  dedicated_vm: false,
-  dedicated_disks: [] as DedicatedDisk[],
   pay_as_you_go: null,
   gpu: false,
 } as const;
@@ -351,33 +340,6 @@ function isSettingsQuota(slq?: QuotaSetting): slq is Upgrades {
     (slq as Upgrades).ephemeral_disk != null ||
     (slq as Upgrades).always_running != null
   );
-}
-
-function select_dedicated_vm(
-  site_licenses: SiteLicenses,
-): { id: string; vm: DedicatedVM } | null {
-  // if there is a dedicated_vm upgrade, pick the first one
-  for (const [id, val] of Object.entries(site_licenses)) {
-    if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_vm != null) {
-      const vm = val.quota.dedicated_vm;
-      if (typeof vm !== "boolean" && typeof vm?.machine === "string") {
-        return { id, vm };
-      }
-    }
-  }
-  return null;
-}
-
-// extract all dedicated disks that are defined anywhere
-function select_dedicated_disks(site_licenses: SiteLicenses): DedicatedDisk[] {
-  const dedicated_disks: DedicatedDisk[] = [];
-  for (const [id, val] of Object.entries(site_licenses)) {
-    if (isSiteLicenseQuotaSetting(val) && val.quota.dedicated_disk != null) {
-      dedicated_disks.push(val.quota.dedicated_disk);
-      delete site_licenses[id];
-    }
-  }
-  return dedicated_disks;
 }
 
 /**
@@ -555,45 +517,13 @@ function selectSiteLicenses(
   reasons?: Reasons,
 ): {
   site_licenses: SiteLicenses;
-  dedicated_disks?: DedicatedDisk[];
-  dedicated_vm?: DedicatedVM;
-  dedicated_vm_license?: QuotaSetting;
   ext_rw: boolean;
   patch: Patch;
   gpu: QuotaOnPrem["gpu"];
 } {
-  // this "extracts" all dedicated disk upgrades from the site_licenses map
-  const dedicated_disks = select_dedicated_disks(site_licenses);
   const ext_rw = extract_ext_rw(site_licenses);
   const patch = extract_patches(site_licenses);
   const gpu = extract_gpu(site_licenses);
-  // and here we extract the dedicated VM quota
-  const dedicated_vm = select_dedicated_vm(site_licenses);
-  // if there is a dedicated VM, we ignore all site licenses.
-  if (dedicated_vm != null) {
-    const { id, vm } = dedicated_vm;
-
-    // iterate over all keys in site_licenses, and set reason[key] = "dedicated_vm" for all keys that are not id
-    if (reasons != null) {
-      Object.keys(site_licenses).forEach((key) => {
-        if (key !== id) {
-          reasons[key] = "dedicated_vm";
-        }
-      });
-    }
-
-    return {
-      site_licenses: {},
-      dedicated_disks,
-      dedicated_vm: vm,
-      // we need the site license only for cocalc-cloud.
-      // in production, we use the known VM specs for the quotas!
-      dedicated_vm_license: site_licenses[id],
-      ext_rw,
-      patch,
-      gpu,
-    };
-  }
 
   // will only return "regular" site licenses
   const regular = selectMatchingLicenses(site_licenses);
@@ -616,7 +546,7 @@ function selectSiteLicenses(
     });
   }
 
-  return { site_licenses: all, dedicated_disks, ext_rw, patch, gpu };
+  return { site_licenses: all, ext_rw, patch, gpu };
 }
 
 // idle_timeouts aren't added up. All are assumed to have the *same* idle_timeout
@@ -650,8 +580,6 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     cpu_request: defaultNumber(up.cpu_shares) / 1024,
     privileged: defaultFalse(up.privileged),
     idle_timeout: defaultNumber(up.mintime),
-    dedicated_vm: false, // old schema has no dedicated_vm upgrades
-    dedicated_disks: [] as DedicatedDisk[], // old schema has no dedicated_disk upgrades
     ext_rw: false,
     pay_as_you_go: null,
     patch: [],
@@ -672,8 +600,6 @@ function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
     cpu_request: q.dedicated_cpu ?? 0,
     privileged: false,
     idle_timeout: 0, // idle_timeout is set AFTER summing up all licenses, they're not additive
-    dedicated_vm: q.dedicated_vm ?? false,
-    dedicated_disks: [] as DedicatedDisk[],
     pay_as_you_go: null,
     ext_rw: !!q.ext_rw,
     patch: q.patch ? loadPatch(q.patch) : [],
@@ -946,62 +872,12 @@ export function quota_with_reasons(
   // we might not consider all of them!
   const {
     site_licenses: site_licenses_selected,
-    dedicated_disks = [],
-    dedicated_vm = false,
-    dedicated_vm_license = null,
     ext_rw = false,
     patch = [],
     gpu = false,
   } = selectSiteLicenses(site_licenses, reasons);
 
   site_licenses = Object.freeze(site_licenses_selected);
-
-  if (dedicated_vm !== false) {
-    const vm = VMS[dedicated_vm.machine];
-    const dedicated_quota: Partial<RQuota> = {
-      network: true,
-      member_host: true,
-    };
-    if (dedicated_vm.machine === DEDICATED_VM_ONPREM_MACHINE) {
-      // for cocalc onprem, quotas are taken from that license (and only that license)
-      if (isSiteLicenseQuotaSetting(dedicated_vm_license)) {
-        const dvlq = dedicated_vm_license.quota;
-        Object.assign(dedicated_quota, {
-          always_running: dvlq.always_running ?? quota.always_running,
-          cpu_limit: dvlq.cpu ?? quota.cpu_limit, // fallback
-          memory_limit: dvlq.ram != null ? 1000 * dvlq.ram : quota.memory_limit, // fallback
-          idle_timeout:
-            LicenseIdleTimeouts[dvlq.idle_timeout ?? "short"].mins * 60,
-        });
-      }
-    } else if (vm == null) {
-      throw new Error(`no VM spec known for machine "${dedicated_vm.machine}"`);
-    } else {
-      Object.assign(dedicated_quota, {
-        always_running: true,
-        disk_quota: max_upgrades.disk_quota, // TODO: introduce disk quotas for VMs or use dedicated disks
-        idle_timeout: quota.idle_timeout, // always_running is true, but it's sane to set this > 0
-      });
-      if (vm.spec?.cpu != null) {
-        // fallback, hence this setting is very high!
-        dedicated_quota.cpu_limit = vm.spec?.cpu ?? 16;
-      }
-      if (vm.spec?.mem != null) {
-        //  fallback, hence this setting is very high!
-        dedicated_quota.memory_limit = 1000 * (vm.spec?.mem ?? 128);
-      }
-    }
-
-    return {
-      quota: {
-        ...ZERO_QUOTA,
-        ...dedicated_quota,
-        dedicated_vm,
-        dedicated_disks,
-      },
-      reasons,
-    };
-  }
 
   if (pay_as_you_go != null) {
     // Include pay-as-you-go quotas.  We just take
@@ -1025,7 +901,6 @@ export function quota_with_reasons(
     site_settings,
   });
 
-  total_quota.dedicated_disks = dedicated_disks;
   if (ext_rw === true) total_quota.ext_rw = true;
   if (patch.length > 0) total_quota.patch = patch;
   if (typeof gpu === "object") total_quota.gpu = gpu;
@@ -1053,7 +928,6 @@ export function site_license_quota(
   // we filter here as well, b/c this function is used elsewhere
   const {
     site_licenses: site_licenses_selected,
-    dedicated_vm = false,
     gpu = false,
   } = selectSiteLicenses(site_licenses);
   site_licenses = Object.freeze(site_licenses_selected);
@@ -1072,8 +946,6 @@ export function site_license_quota(
     member_host: false,
     privileged: false,
     idle_timeout: 0,
-    dedicated_vm: false,
-    dedicated_disks: [],
     pay_as_you_go: null,
     gpu: false,
   };
@@ -1115,15 +987,6 @@ export function site_license_quota(
     }
   }
 
-  // remember: this function is for the front-end
-  // if there is a dedicated VM, all other licenses are ignored and we set some quotas
-  // to avoid warnings and the red banner, that's all.
-  if (dedicated_vm) {
-    total_quota.dedicated_vm = dedicated_vm;
-    total_quota.member_host = true;
-    total_quota.network = true;
-  }
-
   if (typeof gpu === "object") {
     total_quota.gpu = gpu;
   }
@@ -1152,8 +1015,6 @@ total_quota =  {            max_upgrades = {
 */
 
 const IGNORED_KEYS = [
-  "dedicated_disks",
-  "dedicated_vm",
   "patch",
   "pay_as_you_go",
   "gpu",

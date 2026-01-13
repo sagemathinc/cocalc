@@ -41,80 +41,65 @@ export function computeCost(
   props: ComputeCostProps,
   noRangeShift?: boolean,
 ): CostInputPeriod | undefined {
-  const type = props.type ?? "quota";
-  switch (type) {
-    case "cash-voucher":
-      return computeCashVoucherPrice(props);
-
-    case "disk":
-    case "vm":
-      throw Error(`computing cost of item of type ${type} is deprecated`);
-
-    case "quota":
-    default:
-      if (
-        props.type == "disk" ||
-        props.type == "vm" ||
-        props.type == "cash-voucher"
-      ) {
-        throw Error("must be a quota upgrade license");
-      }
-      const {
-        user,
-        run_limit,
-        period,
-        range,
-        ram,
-        disk,
-        always_running,
-        member,
-        uptime,
-        boost = false, // if true, allow "all zero" values and start at 0 USD
-      } = props;
-      const cpu = FAIR_CPU_MODE ? 1 : props.cpu;
-
-      if (period == "range" && range?.[1] == null) {
-        return undefined;
-      }
-
-      if (run_limit == null) {
-        return undefined;
-      }
-
-      const input: PurchaseInfo = {
-        version: CURRENT_VERSION,
-        type: "quota",
-        user,
-        upgrade: "custom" as "custom",
-        quantity: run_limit,
-        subscription: (period == "range" ? "no" : period) as
-          | "no"
-          | "monthly"
-          | "yearly",
-        custom_ram: ram,
-        custom_dedicated_ram: 0,
-        custom_cpu: cpu,
-        custom_dedicated_cpu: 0,
-        custom_disk: disk,
-        custom_always_running: always_running,
-        custom_member: member,
-        custom_uptime: uptime,
-        boost,
-        // For computing the *shopping cart checkout price* of a subscription,
-        // we remove the endpoints data.  Otherwise, compute_cost(input).cost
-        // returns the price for that exact interval, not the generic monthly
-        // cost, since compute_cost is also used for refunds/value computations
-        // (though we never do prorated refunds of subscriptions anymore!).
-        // In particular, we only include start/end dates for explicit ranges.
-        ...(period == "range"
-          ? fixRange(range, period, noRangeShift)
-          : { start: null, end: null }),
-      };
-
-      return {
-        ...compute_cost(input),
-        input,
-        period,
-      };
+  if (props.type === "cash-voucher") {
+    return computeCashVoucherPrice(props);
   }
+
+  const {
+    user,
+    run_limit,
+    period,
+    range,
+    ram,
+    disk,
+    always_running,
+    member,
+    uptime,
+    boost = false, // if true, allow "all zero" values and start at 0 USD
+  } = props;
+  const cpu = FAIR_CPU_MODE ? 1 : props.cpu;
+
+  if (period == "range" && range?.[1] == null) {
+    return undefined;
+  }
+
+  if (run_limit == null) {
+    return undefined;
+  }
+
+  const input: PurchaseInfo = {
+    version: CURRENT_VERSION,
+    type: "quota",
+    user,
+    upgrade: "custom" as "custom",
+    quantity: run_limit,
+    subscription: (period == "range" ? "no" : period) as
+      | "no"
+      | "monthly"
+      | "yearly",
+    custom_ram: ram,
+    custom_dedicated_ram: 0,
+    custom_cpu: cpu,
+    custom_dedicated_cpu: 0,
+    custom_disk: disk,
+    custom_always_running: always_running,
+    custom_member: member,
+    custom_uptime: uptime,
+    boost,
+    // For computing the *shopping cart checkout price* of a subscription,
+    // we remove the endpoints data.  Otherwise, compute_cost(input).cost
+    // returns the price for that exact interval, not the generic monthly
+    // cost, since compute_cost is also used for refunds/value computations
+    // (though we never do prorated refunds of subscriptions anymore!).
+    // In particular, we only include start/end dates for explicit ranges.
+    ...(period == "range"
+      ? fixRange(range, period, noRangeShift)
+      : { start: null, end: null }),
+  };
+
+  return {
+    ...compute_cost(input),
+    input,
+    period,
+  };
 }

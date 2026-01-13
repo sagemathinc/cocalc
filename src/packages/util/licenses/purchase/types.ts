@@ -4,7 +4,6 @@
  */
 
 import type { Uptime } from "@cocalc/util/consts/site-license";
-import type { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import type {
   CustomDescription,
   LicenseSource,
@@ -39,7 +38,7 @@ export interface Cost {
 
 export type CostInput =
   | (Partial<PurchaseInfo> & {
-      type: "vm" | "disk" | "quota";
+      type: "quota";
       subscription: Subscription;
     })
   | { type: "cash-voucher"; amount: number; subscription: Subscription };
@@ -100,31 +99,10 @@ export type PurchaseInfoVoucher = {
   tax: number;
 };
 
-export type PurchaseInfoVM = {
-  type: "vm";
-  quantity: 1;
-  dedicated_vm: DedicatedVM;
-  subscription: "no";
-  cost?: Cost;
-  payment_method?: string;
-};
-
-export type PurchaseInfoDisk = {
-  // note that start is set automatically when actually purchasing
-  type: "disk";
-  quantity: 1;
-  subscription: Omit<Subscription, "no">;
-  dedicated_disk: DedicatedDisk;
-  cost?: Cost;
-  payment_method?: string;
-};
-
 export type PurchaseInfo = Version &
   (
     | PurchaseInfoQuota
     | (PurchaseInfoVoucher & CustomDescription)
-    | (PurchaseInfoVM & StartEndDates & CustomDescription)
-    | (PurchaseInfoDisk & StartEndDates & CustomDescription)
   );
 
 // stripe's metadata can only handle string or number values.
@@ -144,19 +122,6 @@ export type ProductMetadataQuota = Record<
   duration_days?: number;
 };
 
-export type ProductMetadataVM = Record<"machine", string | number | null> & {
-  duration_days?: number;
-  type: "vm";
-};
-
-export type ProductMetadataDisk = Record<
-  "size_gb" | "speed",
-  string | number | null
-> & {
-  duration_days?: number;
-  type: "disk";
-};
-
 export interface ProductMetadataVouchers {
   type: "vouchers";
   id: number; // id of the voucher in the vouchers table of the database
@@ -164,6 +129,4 @@ export interface ProductMetadataVouchers {
 
 export type ProductMetadata =
   | ProductMetadataVouchers
-  | ProductMetadataDisk
-  | ProductMetadataQuota
-  | ProductMetadataVM;
+  | ProductMetadataQuota;

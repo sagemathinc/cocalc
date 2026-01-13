@@ -29,17 +29,6 @@ export async function project_has_network_access(
   if (x.settings != null && x.settings.network) {
     return true;
   }
-  if (x.users != null) {
-    for (const account_id in x.users) {
-      if (
-        x.users[account_id] != null &&
-        x.users[account_id].upgrades != null &&
-        x.users[account_id].upgrades.network
-      ) {
-        return true;
-      }
-    }
-  }
   return false;
 }
 

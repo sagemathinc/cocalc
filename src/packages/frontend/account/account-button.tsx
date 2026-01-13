@@ -123,24 +123,6 @@ export const DefaultAccountDropDownLinks: React.FC<LinksProps> = ({
             onClick={(event) => {
               event.preventDefault();
               page_actions.set_active_tab("account"); // Set to account page
-              account_actions.set_active_tab("upgrades"); /// Set to the Preferences tab
-            }}
-            href=""
-          >
-            Upgrades
-          </a>
-        </li>
-        <li>
-          <a
-            style={{
-              width: "100%",
-              padding: "4px 8px 4px 16px",
-              display: "inline-block",
-            }}
-            className={"cocalc-account-button"}
-            onClick={(event) => {
-              event.preventDefault();
-              page_actions.set_active_tab("account"); // Set to account page
               account_actions.set_active_tab("support"); /// Set to the Preferences tab
             }}
             href=""

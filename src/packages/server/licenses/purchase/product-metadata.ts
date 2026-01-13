@@ -5,9 +5,7 @@
 
 import {
   ProductMetadata,
-  ProductMetadataDisk,
   ProductMetadataQuota,
-  ProductMetadataVM,
   PurchaseInfo,
 } from "@cocalc/util/licenses/purchase/types";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
@@ -41,23 +39,6 @@ export function getProductMetadata(info: PurchaseInfo): ProductMetadata {
       boost: `${!!info.boost}`, // "true" or "false"
     };
     duration(meta, info);
-    return meta;
-  } else if (type === "vm") {
-    // always has a specific start and end date
-    const meta: ProductMetadataVM = {
-      type: "vm",
-      machine: info.dedicated_vm.machine,
-    };
-    duration(meta, info);
-    return meta;
-  } else if (type === "disk") {
-    if (typeof info.dedicated_disk === "boolean")
-      throw new Error(`dedicated_disk is not an object`);
-    const meta: ProductMetadataDisk = {
-      type: "disk",
-      size_gb: info.dedicated_disk.size_gb,
-      speed: info.dedicated_disk.speed,
-    };
     return meta;
   } else {
     throw new Error(`ProductMetadata: unknown type: ${type}`);

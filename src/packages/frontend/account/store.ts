@@ -4,7 +4,6 @@
  */
 
 import { List, Map } from "immutable";
-import { reduce } from "lodash";
 
 import { store as customizeStore } from "@cocalc/frontend/customize";
 import { make_valid_name } from "@cocalc/util/misc";
@@ -101,23 +100,6 @@ export class AccountStore extends Store<AccountState> {
 
   get_confirm_close(): string {
     return this.getIn(["other_settings", "confirm_close"]);
-  }
-
-  // Legacy subscription upgrades have been removed.
-  get_total_upgrades(): { [key: string]: number } | undefined {
-    return undefined;
-  }
-
-  hasLegacyUpgrades = () => {
-    return this.getIn(["stripe_customer", "subscriptions", "data"]) != null;
-  };
-
-  // uses the total upgrades information to determine, if this is a paying member
-  // TODO: this is not used anywhere; but, if it was, it should also take into account
-  // being a license manager...
-  is_paying_member(): boolean {
-    const ups = this.get_total_upgrades();
-    return ups != null && reduce(ups, (a: number, b: number) => a + b, 0) > 0;
   }
 
   get_page_size(): number {

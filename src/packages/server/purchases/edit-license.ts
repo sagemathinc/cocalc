@@ -341,7 +341,7 @@ export async function changeLicense(
   if (info.type == "vouchers") {
     throw Error("BUG -- info.type must not be vouchers");
   }
-  const quota = getQuota(info, license_id);
+  const quota = getQuota(info);
   await client.query(
     "UPDATE site_licenses SET quota=$1,run_limit=$2,info=$3,expires=$4,activates=$5 WHERE id=$6",
     [

@@ -1320,39 +1320,6 @@ Get users, given the project id.
 \`\`\`
 
 
-Show project upgrades. Like the preceding example, this is a query to get users.
-In this example, there are no collaborators, but upgrades have been applied to the
-selected project. Upgrades do not show if none are applied.
-
-The project shows the following upgrades:
-- cpu cores:       1
-- memory:          3000 MB
-- idle timeout:    24 hours (86400 seconds)
-- internet access: true
-- cpu shares:      3 (stored in database as 768 = 3 * 256)
-- disk space:      27000 MB
-- member hosting:  true
-
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -H "Content-Type: application/json" \\
-    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d","users":null}}}' \\
-    https://cocalc.com/api/v1/query
-  ==> {"event":"query",
-       "query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d",
-                            "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{
-                                         "group":"owner",
-                                         "upgrades":{"cores":1,
-                                                     "memory":3000,
-                                                     "mintime":86400,
-                                                     "network":1,
-                                                     "cpu_shares":768,
-                                                     "disk_quota":27000,
-                                                     "member_host":1}}}}},
-       "multi_response":false,
-       "id":"9dd3ef3f-002b-4893-b31f-ff51440c855f"}
-\`\`\`
-
 Get editor settings for the present user.
 
 \`\`\`
@@ -1417,25 +1384,6 @@ Make a path public (publish a file).
          "multi_response":false,
          "id":"ad7d6b17-f5a9-4c5c-abc3-3823b1e1773f"}
 
-\`\`\`
-
-Add an upgrade to a project. In the "get" example above showing project upgrades,
-change cpu upgrades from 3 to 4. The \`users\` object is returned as
-read, with \`cpu_shares\` increased to 1024 = 4 * 256.
-It is not necessary to specify the entire \`upgrades\` object
-if you are only setting the \`cpu_shares\` attribute because changes are merged in.
-
-\`\`\`
-  curl -u sk_abcdefQWERTY090900000000: \\
-    -H "Content-Type: application/json" \\
-    -d '{"query":{"projects":{"project_id":"29163de6-b5b0-496f-b75d-24be9aa2aa1d", \\
-                              "users":{"6c28c5f4-3235-46be-b025-166b4dcaac7e":{ \\
-                                           "upgrades": {"cpu_shares":1024}}}}}}' \\
-    https://cocalc.com/api/v1/query
-    ==> {"event":"query",
-         "query":{},
-         "multi_response":false,
-         "id":"ec822d6f-f9fe-443d-9845-9cd5f68bac20"}
 \`\`\`
 
 Set present user to open Jupyter notebooks in

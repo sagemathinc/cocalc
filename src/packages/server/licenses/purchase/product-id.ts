@@ -14,7 +14,6 @@ There.   We had a huge bug that costs us a ton due to not realizing this.
 import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
-import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 
 // When we change pricing, the products in stripe will already
 // exist with old prices (often grandfathered) so we may want to
@@ -54,7 +53,6 @@ export function getProductId(info: PurchaseInfo): string {
 
   function period(): string {
     if (info.type == "vouchers") throw Error("bug"); // can't happen
-    if (info.type === "disk") throw new Error("disk do not have a period");
 
     if (info.subscription == "no") {
       return getDays(info).toString();
@@ -102,30 +100,6 @@ export function getProductId(info: PurchaseInfo): string {
       if (info.boost === true) {
         pid.push("B");
       }
-      break;
-
-    // this makes also sure to only purchase a known disk (nothing made up)
-    case "disk":
-      if (typeof info.dedicated_disk === "boolean") {
-        throw new Error(`didicated_disk configuration must be an object!`);
-      }
-      const disk = PRICES.disks[getDedicatedDiskKey(info.dedicated_disk)];
-      if (disk == null) {
-        throw new Error("no disk found – should never happen!");
-      }
-      pid.push(disk.stripeID);
-      break;
-
-    // we make sure only known VMs can be bought (and later we check if the price matches as well)
-    case "vm":
-      const vm = PRICES.vms[info.dedicated_vm.machine];
-      if (vm == null) {
-        throw new Error(`VM of type ${info.dedicated_vm.machine} not found`);
-      }
-      pid.push(vm.stripeID);
-      // NOTE -- we need to take into account how long the dedicated is being rented for. That's
-      // part of the product id.
-      pid.push(`p${period()}`);
       break;
 
     default:

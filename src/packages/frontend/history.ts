@@ -21,8 +21,6 @@ The URI schema handled by the single page app is as follows:
          etc.
      Billing:
         https://cocalc.com/settings/billing
-     Upgrades:
-        https://cocalc.com/settings/upgrades
      Licenses:
         https://cocalc.com/settings/licenses
      Support:
@@ -287,7 +285,7 @@ export function parse_target(target?: string):
     }
   | {
       page: "account";
-      tab: "billing" | "upgrades" | "licenses" | "support";
+      tab: "billing" | "licenses" | "support";
     }
   | {
       page: "notifications";
@@ -328,12 +326,11 @@ export function parse_target(target?: string):
             return { page: "preferences" };
           }
         case "billing":
-        case "upgrades":
         case "licenses":
         case "support":
           return {
             page: "account",
-            tab: segments[1] as "billing" | "upgrades" | "licenses" | "support",
+            tab: segments[1] as "billing" | "licenses" | "support",
           };
         default:
           return { page: "profile" };
