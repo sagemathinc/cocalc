@@ -5,14 +5,13 @@ Maintain automatic balance increases.
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import createPaymentIntent from "@cocalc/server/purchases/stripe/create-payment-intent";
-import { currency, round2up } from "@cocalc/util/misc";
+import { moneyRound2Up, moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import getBalance from "./get-balance";
 import { getAllOpenPayments } from "@cocalc/server/purchases/stripe/get-payments";
 import { AUTO_CREDIT } from "@cocalc/util/db-schema/purchases";
 import { AUTOBALANCE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import send, { support, url } from "@cocalc/server/messages/send";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import { decimalAdd } from "@cocalc/util/stripe/calc";
 import {
   type AutoBalance,
   ensureAutoBalanceValid,
@@ -140,9 +139,17 @@ async function update({
   }
 
   const balance = await getBalance({ account_id });
-  logger.debug("update: balance = ", balance);
+  const balanceValue = toDecimal(balance);
+  const trigger = toDecimal(auto_balance.trigger);
+  const baseAmount = toDecimal(auto_balance.amount);
+  const maxDay = toDecimal(auto_balance.max_day);
+  const maxWeek = toDecimal(auto_balance.max_week);
+  const maxMonth = toDecimal(auto_balance.max_month);
+  const min = (a, b) => (a.lt(b) ? a : b);
 
-  if (balance > auto_balance.trigger) {
+  logger.debug("update: balance = ", balanceValue.toString());
+
+  if (balanceValue.gt(trigger)) {
     return { reason: "balance > trigger, so nothing to do" };
   }
 
@@ -158,33 +165,34 @@ async function update({
     [account_id],
   );
   const period = auto_balance.period ?? AUTOBALANCE_DEFAULTS.period;
-  let amount_day = 0;
-  let amount_week = 0;
-  let amount_month = 0;
+  let amount_day = toDecimal(0);
+  let amount_week = toDecimal(0);
+  let amount_month = toDecimal(0);
   const now = Date.now();
   for (const { time, cost } of rows) {
     const t = time.valueOf();
+    const credit = toDecimal(cost).neg();
     if (period == "day" && now - t <= ONE_DAY) {
-      amount_day += -cost;
-      if (amount_day + auto_balance.amount >= auto_balance.max_day) {
+      amount_day = amount_day.add(credit);
+      if (amount_day.add(baseAmount).gte(maxDay)) {
         return {
-          reason: `daily threshold of ${currency(auto_balance.max_day)} would be exceeded since ${currency(amount_day)} was already added during the last day, so not adding money`,
+          reason: `daily threshold of ${moneyToCurrency(maxDay)} would be exceeded since ${moneyToCurrency(amount_day)} was already added during the last day, so not adding money`,
         };
       }
     }
     if (period == "week" && now - t <= ONE_WEEK) {
-      amount_week += -cost;
-      if (amount_week + auto_balance.amount >= auto_balance.max_week) {
+      amount_week = amount_week.add(credit);
+      if (amount_week.add(baseAmount).gte(maxWeek)) {
         return {
-          reason: `weekly threshold of ${currency(auto_balance.max_week)} would be exceeded since ${currency(amount_week)} was already added during the last week, so not adding money`,
+          reason: `weekly threshold of ${moneyToCurrency(maxWeek)} would be exceeded since ${moneyToCurrency(amount_week)} was already added during the last week, so not adding money`,
         };
       }
     }
     if (period == "month" && now - t <= ONE_MONTH) {
-      amount_month += -cost;
-      if (amount_month + auto_balance.amount >= auto_balance.max_month) {
+      amount_month = amount_month.add(credit);
+      if (amount_month.add(baseAmount).gte(maxMonth)) {
         return {
-          reason: `monthly threshold of ${currency(auto_balance.max_month)} would be exceeded since ${currency(amount_month)} was already added during the last month, so not adding money`,
+          reason: `monthly threshold of ${moneyToCurrency(maxMonth)} would be exceeded since ${moneyToCurrency(amount_month)} was already added during the last month, so not adding money`,
         };
       }
     }
@@ -201,28 +209,28 @@ async function update({
   logger.debug("update: no problems -- let's do it!");
   // but what exactly?
   // we can add this amount as cleared above
-  let amount = auto_balance.amount;
-  if (balance + amount <= auto_balance.trigger) {
+  let amount = baseAmount;
+  if (balanceValue.add(amount).lte(trigger)) {
     // it won't be enough -- can we add more?
     let remaining; // the most we can add
     if (period == "day") {
-      remaining = auto_balance.max_day - amount_day - amount;
+      remaining = maxDay.sub(amount_day).sub(amount);
     } else if (period == "week") {
-      remaining = auto_balance.max_week - amount_week - amount;
+      remaining = maxWeek.sub(amount_week).sub(amount);
     } else {
-      remaining = auto_balance.max_month - amount_month - amount;
+      remaining = maxMonth.sub(amount_month).sub(amount);
     }
-    const want = auto_balance.trigger - (balance + amount);
-    amount += Math.min(want, remaining);
+    const want = trigger.sub(balanceValue.add(amount));
+    amount = amount.add(min(want, remaining));
   }
-  amount = round2up(amount);
+  amount = moneyRound2Up(amount);
 
-  const result = decimalAdd(balance, amount);
-  const longDescription = `Deposit ${currency(amount)} to increase balance from ${currency(balance)} to ${currency(result)}, to keep balance above ${currency(auto_balance.trigger)}.`;
-  const shortDescription = `Deposit ${currency(amount)} since balance went below ${currency(auto_balance.trigger)}.`;
+  const result = balanceValue.add(amount);
+  const longDescription = `Deposit ${moneyToCurrency(amount)} to increase balance from ${moneyToCurrency(balanceValue)} to ${moneyToCurrency(result)}, to keep balance above ${moneyToCurrency(trigger)}.`;
+  const shortDescription = `Deposit ${moneyToCurrency(amount)} since balance went below ${moneyToCurrency(trigger)}.`;
   await createPaymentIntent({
     account_id,
-    lineItems: [{ description: longDescription, amount }],
+    lineItems: [{ description: longDescription, amount: amount.toNumber() }],
     description: shortDescription,
     purpose: AUTO_CREDIT,
   });
@@ -240,9 +248,9 @@ async function update({
   }
 
   const status = {
-    day: amount_day + amount,
-    week: amount_week + amount,
-    month: amount_month + amount,
+    day: amount_day.add(amount).toNumber(),
+    week: amount_week.add(amount).toNumber(),
+    month: amount_month.add(amount).toNumber(),
   };
 
   return { reason: longDescription, status };
@@ -250,7 +258,7 @@ async function update({
 
 async function sendAutoBalanceAlert({ account_id, description, amount }) {
   const { name } = await getUser(account_id);
-  const subject = `Automatic Deposit of ${currency(amount)} Initiated`;
+  const subject = `Automatic Deposit of ${moneyToCurrency(amount)} Initiated`;
 
   const body = `
 Dear ${name},

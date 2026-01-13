@@ -14,8 +14,13 @@ import {
   isPaygService,
 } from "@cocalc/util/db-schema/purchase-quotas";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
-import { currency, round2down, round2up } from "@cocalc/util/misc";
-import { decimalSubtract } from "@cocalc/util/stripe/calc";
+import {
+  moneyRound2Down,
+  moneyRound2Up,
+  moneyToCurrency,
+  toDecimal,
+  type MoneyValue,
+} from "@cocalc/util/money";
 import getBalance from "./get-balance";
 import { getTotalChargesThisMonth } from "./get-charges";
 import { getPurchaseQuotas } from "./purchase-quotas";
@@ -32,12 +37,12 @@ import { ALLOWED_SLACK } from "./shopping-cart-checkout";
 interface Options {
   account_id: string;
   service: Service;
-  cost?: number;
+  cost?: MoneyValue;
   client?: PoolClient;
 
   // if margin is set to a positive number, then the user's balance and all quotas are viewed as
   // increased by this amount when deciding of the purchase is allowed or not.
-  margin?: number;
+  margin?: MoneyValue;
 }
 
 // balance, minPayment, amountDue, chargeAmount, total, minBalance
@@ -56,8 +61,11 @@ export async function isPurchaseAllowed({
   // taking into account the configured minPayment. The reason will explain this.
   chargeAmount?: number;
 }> {
-  if (cost != null && cost >= 0) {
-    cost = round2up(cost);
+  const max = (a, b) => (a.gt(b) ? a : b);
+  const marginValue = toDecimal(margin);
+  let costValue = cost != null ? toDecimal(cost) : undefined;
+  if (costValue != null && costValue.gte(0)) {
+    costValue = moneyRound2Up(costValue);
   }
   if (!(await isValidAccount(account_id))) {
     return { allowed: false, reason: `${account_id} is not a valid account` };
@@ -73,40 +81,42 @@ export async function isPurchaseAllowed({
       ).join(", ")}`,
     };
   }
-  if (cost == null) {
-    cost = await getCostEstimate(service);
+  if (costValue == null) {
+    const estimate = await getCostEstimate(service);
+    costValue = estimate == null ? undefined : toDecimal(estimate);
   }
-  if (cost == null) {
+  if (costValue == null) {
     return {
       allowed: false,
       reason: `cost estimate for service "${service}" not implemented`,
     };
   }
-  if (cost > MAX_COST) {
+  if (costValue.gt(MAX_COST)) {
     return {
       allowed: false,
-      reason: `Cost exceeds the maximum allowed cost of ${currency(
+      reason: `Cost exceeds the maximum allowed cost of ${moneyToCurrency(
         MAX_COST,
       )}. Please contact support.`,
     };
   }
-  if (!Number.isFinite(cost)) {
+  if (!Number.isFinite(costValue.toNumber())) {
     return { allowed: false, reason: `cost must be finite` };
   }
   if (service == "credit") {
     const { pay_as_you_go_min_payment } = await getServerSettings();
-    if (cost > -pay_as_you_go_min_payment) {
+    const minPayment = toDecimal(pay_as_you_go_min_payment ?? 0);
+    if (costValue.gt(minPayment.neg())) {
       return {
         allowed: false,
-        reason: `must credit account with at least ${currency(
-          pay_as_you_go_min_payment,
-        )}, but you're trying to credit ${currency(-cost)}`,
+        reason: `must credit account with at least ${moneyToCurrency(
+          minPayment,
+        )}, but you're trying to credit ${moneyToCurrency(costValue.neg())}`,
       };
     }
     return { allowed: true };
   }
 
-  if (cost <= 0) {
+  if (costValue.lte(0)) {
     if (service == "edit-license") {
       // some services are specially excluded -- TODO: this should be moved to the spec in db-schema
       return { allowed: true };
@@ -116,23 +126,27 @@ export async function isPurchaseAllowed({
   const { services, minBalance } = await getPurchaseQuotas(account_id, client);
   const { pay_as_you_go_min_payment, llm_default_quota } =
     await getServerSettings();
+  const minPayment = toDecimal(pay_as_you_go_min_payment ?? 0);
 
   if (!isPaygService(service)) {
     // for non-PAYG, we only allow credit toward a purchase if your balance is positive.
-    const balance = round2down(await getBalance({ account_id, client }));
-    const required = round2up(decimalSubtract(cost, Math.max(balance, 0)));
-    const chargeAmount =
-      required <= 0 ? 0 : Math.max(pay_as_you_go_min_payment, required);
+    const balance = moneyRound2Down(toDecimal(await getBalance({ account_id, client })));
+    const required = moneyRound2Up(
+      costValue.sub(balance.gt(0) ? balance : toDecimal(0)),
+    );
+    const chargeAmount = required.lte(0)
+      ? toDecimal(0)
+      : max(minPayment, required);
     return {
       // allowed means "without making any payment at all"
-      allowed: chargeAmount <= 0,
-      chargeAmount,
+      allowed: chargeAmount.lte(0),
+      chargeAmount: chargeAmount.toNumber(),
       reason:
-        required < chargeAmount
-          ? `The minimum payment is ${currency(
-              pay_as_you_go_min_payment,
-            )}, so a payment of ${currency(required)} is not allowed.`
-          : `Please pay ${currency(chargeAmount)}.`,
+        required.lt(chargeAmount)
+          ? `The minimum payment is ${moneyToCurrency(
+              minPayment,
+            )}, so a payment of ${moneyToCurrency(required)} is not allowed.`
+          : `Please pay ${moneyToCurrency(chargeAmount)}.`,
     };
   }
 
@@ -141,29 +155,34 @@ export async function isPurchaseAllowed({
   // First check that making purchase won't reduce our balance below the minBalance.
   // Also, we round balance down since fractional pennies don't count, and
   // can cause required to be off by 1 below.
-  const balance = round2down(await getBalance({ account_id, client })) + margin;
-  const balanceAfterPurchase = balance - cost;
+  const balance = moneyRound2Down(toDecimal(await getBalance({ account_id, client }))).add(
+    marginValue,
+  );
+  const balanceAfterPurchase = balance.sub(costValue);
   // add 0.01 due to potential rounding errors
-  if (balanceAfterPurchase + 0.01 < minBalance) {
+  const minBalanceValue = toDecimal(minBalance);
+  if (balanceAfterPurchase.add("0.01").lt(minBalanceValue)) {
     // You do not have enough money, so obviously deny the purchase.
 
-    const required = round2up(cost - (balance - minBalance));
-    const chargeAmount = Math.max(pay_as_you_go_min_payment, required);
+    const required = moneyRound2Up(
+      costValue.sub(balance.sub(minBalanceValue)),
+    );
+    const chargeAmount = max(minPayment, required);
     const v: string[] = [];
-    if (balance) {
-      v.push(`Your Balance: ${currency(round2down(balance))}`);
-      v.push(`Required: ${currency(cost)}`);
-      if (minBalance) {
-        v.push(`Minimum Allowed Balance: ${currency(minBalance)}`);
+    if (!balance.eq(0)) {
+      v.push(`Your Balance: ${moneyToCurrency(moneyRound2Down(balance))}`);
+      v.push(`Required: ${moneyToCurrency(costValue)}`);
+      if (!minBalanceValue.eq(0)) {
+        v.push(`Minimum Allowed Balance: ${moneyToCurrency(minBalanceValue)}`);
       }
-      if (required < pay_as_you_go_min_payment) {
-        v.push(`Minimum Payment: ${currency(pay_as_you_go_min_payment)}`);
+      if (required.lt(minPayment)) {
+        v.push(`Minimum Payment: ${moneyToCurrency(minPayment)}`);
       }
     }
     return {
       allowed: false,
-      chargeAmount,
-      reason: `Please pay ${currency(round2up(chargeAmount))}${
+      chargeAmount: chargeAmount.toNumber(),
+      reason: `Please pay ${moneyToCurrency(moneyRound2Up(chargeAmount))}${
         v.length > 0 ? ": " : ""
       } ${v.join(", ")}`,
     };
@@ -178,8 +197,10 @@ export async function isPurchaseAllowed({
   if (!QUOTA_SPEC[service]?.noSet) {
     const isLLM = QUOTA_SPEC[service]?.category === "ai";
     const defaultQuota = isLLM ? llm_default_quota : 0;
-    const quotaForService = (services[service] ?? defaultQuota) + margin;
-    if (quotaForService <= 0) {
+    const quotaForService = toDecimal(services[service] ?? defaultQuota).add(
+      marginValue,
+    );
+    if (quotaForService.lte(0)) {
       return {
         allowed: true,
         discouraged: true,
@@ -197,15 +218,15 @@ export async function isPurchaseAllowed({
       service,
       client,
     );
-    if (chargesForService + cost > quotaForService) {
+    if (toDecimal(chargesForService).add(costValue).gt(quotaForService)) {
       return {
         allowed: true,
         discouraged: true,
-        reason: `This purchase may exceed your personal monthly spending budget of ${currency(
+        reason: `This purchase may exceed your personal monthly spending budget of ${moneyToCurrency(
           quotaForService,
         )} for "${
           QUOTA_SPEC[service]?.display ?? service
-        }".  This month you have spent ${currency(chargesForService)} on ${
+        }".  This month you have spent ${moneyToCurrency(chargesForService)} on ${
           QUOTA_SPEC[service]?.display ?? service
         }.`,
       };
@@ -220,16 +241,18 @@ interface AssertOptions extends Options {
   // we just successfully captured this amount of money from the user.  For
   // non PAYG purchases, if amount >= cost, then we allow the purchase no
   // matter what the user's balance situation is.
-  amount?: number;
+  amount?: MoneyValue;
 }
 
 export async function assertPurchaseAllowed(opts: AssertOptions) {
   const { allowed, reason } = await isPurchaseAllowed(opts);
   if (!allowed) {
+    const costValue = opts.cost != null ? toDecimal(opts.cost) : undefined;
+    const amountValue = toDecimal(opts.amount ?? 0);
     if (
-      opts.cost != null &&
+      costValue != null &&
       !isPaygService(opts.service) &&
-      (opts.amount ?? 0) + ALLOWED_SLACK >= opts.cost
+      amountValue.add(ALLOWED_SLACK).gte(costValue)
     ) {
       // the cost is explicitly given, it is NOT a PAYG service,
       // and the amount the user just paid us is at least as

@@ -34,7 +34,12 @@ import { getQuota } from "@cocalc/server/licenses/purchase/create-license";
 import getName from "@cocalc/server/accounts/get-name";
 import { query_projects_using_site_license } from "@cocalc/database/postgres/site-license/analytics";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
-import { currency } from "@cocalc/util/misc";
+import {
+  moneyToCurrency,
+  moneyToDbString,
+  toDecimal,
+  type MoneyValue,
+} from "@cocalc/util/money";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
 import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import createPurchase from "./create-purchase";
@@ -45,7 +50,7 @@ interface Options {
   account_id: string;
   license_id: string;
   changes: Changes;
-  cost?: number;
+  cost?: MoneyValue;
   note?: string;
   // set to true if this is a subscription renewal.
   isSubscriptionRenewal?: boolean;
@@ -110,15 +115,18 @@ export default async function editLicense(
 
   // If a cost is explicitly passed in, then we use that.
   // This happens for subscriptions.
-  const cost = cost0 ? cost0 : changeCost;
+  const cost = cost0 ?? changeCost;
+  const costValue = toDecimal(cost);
   let note = opts.note ?? "";
   if (note != "") {
     note += " ";
   }
-  if (cost0) {
-    note += `We use the fixed cost ${currency(Math.abs(cost))}.`;
+  if (cost0 != null) {
+    note += `We use the fixed cost ${moneyToCurrency(costValue.abs())}.`;
   } else {
-    note += `We use the current prorated cost ${currency(Math.abs(cost))}.`;
+    note += `We use the current prorated cost ${moneyToCurrency(
+      costValue.abs(),
+    )}.`;
   }
 
   logger.debug("editLicense -- cost to make the edit: ", cost, modifiedInfo);
@@ -130,9 +138,9 @@ export default async function editLicense(
   let purchase_id;
   try {
     // Is it possible for this user to purchase this change?
-    if (cost > 0) {
+    if (costValue.gt(0)) {
       try {
-        await assertPurchaseAllowed({ account_id, service, cost, client });
+        await assertPurchaseAllowed({ account_id, service, cost: costValue, client });
       } catch (err) {
         if (!force) {
           throw err;
@@ -143,7 +151,7 @@ export default async function editLicense(
     // Change license
     await changeLicense(license_id, modifiedInfo, client);
 
-    if (Math.abs(cost) > 0.005) {
+    if (costValue.abs().gt("0.005")) {
       // we only create a charge if it is bigger than epsilon in absolute value.
 
       // Make purchase
@@ -173,7 +181,7 @@ export default async function editLicense(
         account_id,
         service,
         description,
-        cost,
+        cost: costValue,
         client,
         period_start,
         period_end,
@@ -232,7 +240,7 @@ export default async function editLicense(
       }
     })();
   }
-  return { cost, purchase_id };
+  return { cost: costValue.toNumber(), purchase_id };
 }
 
 export async function costToChangeLicense({
@@ -407,19 +415,21 @@ async function updateSubscriptionCost(
   if (modifiedInfo.type != "quota") {
     throw Error("bug");
   }
-  const newCost = compute_cost({
-    ...modifiedInfo,
-    start: null,
-    end: null,
-  }).cost;
+  const newCostValue = toDecimal(
+    compute_cost({
+      ...modifiedInfo,
+      start: null,
+      end: null,
+    }).cost,
+  );
   logger.debug(
     "updateSubscriptionCost",
     license_id,
     "changing cost to",
-    newCost,
+    newCostValue.toNumber(),
   );
   await client.query("UPDATE subscriptions SET cost=$1 WHERE id=$2", [
-    newCost,
+    moneyToDbString(newCostValue),
     subscription_id,
   ]);
 }
@@ -471,7 +481,8 @@ async function getSubscriptionCostPerHour(
     // should never happen: returns 0 if no such subscription, instead of an error.
     return 0;
   }
-  return rows[0].cost / hoursInInterval(rows[0].interval);
+  const costValue = toDecimal(rows[0]?.cost ?? 0);
+  return costValue.div(hoursInInterval(rows[0].interval)).toNumber();
 }
 
 async function restartProjectsUsingLicense(license_id: string) {

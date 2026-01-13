@@ -1,7 +1,7 @@
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import send, { support, url, name } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency } from "@cocalc/util/money";
 
 interface Options {
   account_id: string;
@@ -46,7 +46,7 @@ export async function sendCancelNotification({
   const subject = `Subscription Id=${subscription_id} Canceled`;
   const body = `
 This is a confirmation that your subscription (id=${subscription_id}) that
-costs ${currency(cost)}/${interval} was canceled.
+costs ${moneyToCurrency(cost)}/${interval} was canceled.
 
 **REASON:** ${JSON.stringify(canceled_reason)}
 
@@ -62,13 +62,13 @@ ${await support()}
   });
 
   adminAlert({
-    subject: `Alert -- User Subscription for ${currency(cost)}/${interval} Id=${subscription_id} was Canceled`,
+    subject: `Alert -- User Subscription for ${moneyToCurrency(cost)}/${interval} Id=${subscription_id} was Canceled`,
     body: `
 - User: ${await name(account_id)}, account_id=${account_id}
 
 - User provided reason: "${JSON.stringify(canceled_reason)}"
 
-- Cost: ${currency(cost)}/${interval}
+- Cost: ${moneyToCurrency(cost)}/${interval}
 
 - subscription_id=${subscription_id}
 

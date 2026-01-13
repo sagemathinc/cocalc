@@ -22,8 +22,8 @@ import createCredit from "./create-credit";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { markTokenActionPaid } from "@cocalc/server/token-actions/make-payment";
-import { currency } from "@cocalc/util/misc";
-import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
+import { moneyToCurrency, stripeToMoney, toDecimal } from "@cocalc/util/money";
+import { decimalToStripe } from "@cocalc/util/stripe/calc";
 
 const logger = getLogger("purchases:create-invoice");
 
@@ -44,11 +44,13 @@ export default async function createInvoice({
 }> {
   logger.debug("createInvoice", { account_id, amount, description });
   const { pay_as_you_go_min_payment } = await getServerSettings();
-  if (!amount || amount < pay_as_you_go_min_payment) {
+  const amountValue = toDecimal(amount);
+  const minPayment = toDecimal(pay_as_you_go_min_payment ?? 0);
+  if (amountValue.eq(0) || amountValue.lt(minPayment)) {
     throw Error(
-      `Amount must be at least ${currency(
-        pay_as_you_go_min_payment,
-      )}, but it is ${currency(amount)}`,
+      `Amount must be at least ${moneyToCurrency(
+        minPayment,
+      )}, but it is ${moneyToCurrency(amountValue)}`,
     );
   }
   if (!description?.trim()) {
@@ -214,10 +216,10 @@ export async function createCreditFromPaidStripeInvoice(
     throw Error(`invalid account_id in metadata '${account_id}'`);
   }
 
-  let amount;
+  let amountValue;
   if (invoice.currency == "usd") {
     // See comment about "total_excluding_tax" below.
-    amount = stripeToDecimal(invoice.total_excluding_tax);
+    amountValue = stripeToMoney(invoice.total_excluding_tax);
   } else {
     /*
     The currency is not usd so we can't just read off total_excluding_tax, since it will be horribly wrong.
@@ -235,23 +237,25 @@ export async function createCreditFromPaidStripeInvoice(
     but that is only created when doing manual checkout, but not for automatic charges, and we need
     to handle both.
     */
-    amount = 0;
+    amountValue = toDecimal(0);
     for (const line of invoice.lines.data) {
       if (line.price.currency != "usd") {
         throw Error("cannot process this invoice since unknown currency");
       }
       // This is the amount we are trying to charge the user before any taxes or currency conversion:
-      amount += stripeToDecimal(line.quantity * line.price.unit_amount);
+      amountValue = amountValue.add(
+        stripeToMoney(line.quantity * line.price.unit_amount),
+      );
     }
   }
-  if (!amount) {
+  if (amountValue == null || amountValue.eq(0)) {
     logger.debug("createCreditFromPaidStripeInvoice -- 0 amount so skipping");
     return false;
   }
   await createCredit({
     account_id,
     invoice_id: invoice.id,
-    amount,
+    amount: amountValue,
   });
 
   const { token } = metadata;
@@ -317,8 +321,8 @@ intent = {
   }
 
   // See comment about "total_excluding_tax" below.
-  const amount = stripeToDecimal(intent.amount_received);
-  if (!amount) {
+  const amountValue = stripeToMoney(intent.amount_received);
+  if (amountValue.eq(0)) {
     logger.debug(
       "createCreditFromPaidStripePaymentIntent -- 0 amount so skipping",
     );
@@ -327,7 +331,7 @@ intent = {
   await createCredit({
     account_id,
     invoice_id: intent.id,
-    amount,
+    amount: amountValue,
   });
 }
 

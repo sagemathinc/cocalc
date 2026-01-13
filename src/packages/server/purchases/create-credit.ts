@@ -12,6 +12,7 @@ import type { Credit } from "@cocalc/util/db-schema/purchases";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import getLogger from "@cocalc/backend/logger";
 import getBalance from "./get-balance";
+import { moneyToDbString, toDecimal, type MoneyValue } from "@cocalc/util/money";
 
 const logger = getLogger("purchases:create-credit");
 
@@ -28,7 +29,7 @@ export default async function createCredit({
   account_id: string;
   // id of Stripe invoice or payment intent.
   invoice_id?: string;
-  amount: number;
+  amount: MoneyValue;
   notes?: string;
   tag?: string;
   description?: Omit<Credit, "type">;
@@ -39,7 +40,8 @@ export default async function createCredit({
   if (!(await isValidAccount(account_id))) {
     throw Error(`${account_id} is not a valid account`);
   }
-  if (amount <= 0) {
+  const amountValue = toDecimal(amount);
+  if (amountValue.lte(0)) {
     throw Error(`credit amount (=${amount}) must be positive`);
   }
   const pool = client ?? getPool();
@@ -64,7 +66,7 @@ export default async function createCredit({
     "INSERT INTO purchases (service, time, account_id, cost, description, invoice_id, notes, tag) VALUES($7, CURRENT_TIMESTAMP, $1, $2, $3, $4, $5, $6) RETURNING id",
     [
       account_id,
-      -amount,
+      moneyToDbString(amountValue.neg()),
       { type: "credit", ...description } as Credit,
       invoice_id,
       notes,

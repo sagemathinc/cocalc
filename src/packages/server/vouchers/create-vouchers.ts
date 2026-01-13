@@ -23,7 +23,7 @@ import generateVouchers, {
 import { getLogger } from "@cocalc/backend/logger";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import dayjs from "dayjs";
-import { decimalMultiply } from "@cocalc/util/stripe/calc";
+import { moneyToDbString, toDecimal } from "@cocalc/util/money";
 
 const log = getLogger("createVouchers");
 
@@ -67,6 +67,7 @@ export default async function createVouchers({
   codes: string[];
   amount: number; // value of one single voucher
 }> {
+  const amountValue = toDecimal(amount);
   log.debug({
     account_id,
     whenPay,
@@ -82,7 +83,7 @@ export default async function createVouchers({
     // older vouchers that might be in user shopping carts still
     count = 1;
   }
-  if (!amount || amount <= 0 || amount > MAX_VOUCHER_VALUE) {
+  if (amountValue.eq(0) || amountValue.lte(0) || amountValue.gt(MAX_VOUCHER_VALUE)) {
     throw Error(`amount must be positive and at most ${MAX_VOUCHER_VALUE}`);
   }
 
@@ -141,7 +142,7 @@ export default async function createVouchers({
         cancelBy,
         count,
         whenPay,
-        amount,
+        moneyToDbString(amountValue),
       ],
     );
     const { id } = rows[0];
@@ -167,7 +168,7 @@ export default async function createVouchers({
       const description = {
         type: "voucher",
         quantity: count,
-        cost: amount,
+        cost: amountValue.toNumber(),
         title,
         voucher_id: id,
         credit_id,
@@ -175,7 +176,7 @@ export default async function createVouchers({
       log.debug("charging user; description =", description);
       const purchase_id = await createPurchase({
         account_id,
-        cost: decimalMultiply(amount, count),
+        cost: amountValue.mul(count),
         service: "voucher",
         description,
         client,
@@ -191,7 +192,7 @@ export default async function createVouchers({
         id,
       ]);
     }
-    return { id, codes, amount };
+    return { id, codes, amount: amountValue.toNumber() };
   } catch (err) {
     log.debug("error -- rolling back entire transaction", err);
     throw err;

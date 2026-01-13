@@ -13,7 +13,7 @@ import getLogger from "@cocalc/backend/logger";
 import type { Stripe } from "stripe";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import type { LineItem } from "@cocalc/util/stripe/types";
 import { getStripeCustomerId, sanityCheckAmount } from "./stripe/util";
 import { decimalToStripe } from "@cocalc/util/stripe/calc";
@@ -38,8 +38,8 @@ export const createStripeCheckoutSession = async (
   logger.debug("createStripeCheckoutSession", opts);
 
   const cartTotal = line_items.reduce(
-    (total, line_item) => total + line_item.amount,
-    0,
+    (total, line_item) => total.add(toDecimal(line_item.amount)),
+    toDecimal(0),
   );
 
   // check if there is already a stripe checkout session; if so throw error.
@@ -51,18 +51,18 @@ export const createStripeCheckoutSession = async (
     await sanityCheckAmount(cartTotal);
   } else {
     // Conform to minimum Stripe transaction amount
-    if (!cartTotal || cartTotal < MINIMUM_STRIPE_TRANSACTION) {
+    if (cartTotal.eq(0) || cartTotal.lt(MINIMUM_STRIPE_TRANSACTION)) {
       line_items.push({
-        amount: MINIMUM_STRIPE_TRANSACTION - cartTotal,
+        amount: toDecimal(MINIMUM_STRIPE_TRANSACTION).sub(cartTotal).toNumber(),
         description: "Minimum payment processor transaction charge",
       });
     }
   }
 
   // Session validation
-  if (cartTotal > MAX_COST) {
+  if (cartTotal.gt(MAX_COST)) {
     throw Error(
-      `Amount exceeds the maximum allowed amount of ${currency(MAX_COST)}. Please contact support.`,
+      `Amount exceeds the maximum allowed amount of ${moneyToCurrency(MAX_COST)}. Please contact support.`,
     );
   }
   if (line_items.some((item) => !item.description?.trim())) {

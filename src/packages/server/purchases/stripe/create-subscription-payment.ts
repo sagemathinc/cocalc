@@ -2,7 +2,8 @@ import getLogger from "@cocalc/backend/logger";
 import { getStripeCustomerId } from "./util";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import { SUBSCRIPTION_RENEWAL } from "@cocalc/util/db-schema/purchases";
-import { currency, isValidUUID, round2down } from "@cocalc/util/misc";
+import { isValidUUID } from "@cocalc/util/misc";
+import { moneyRound2Down, moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import dayjs from "dayjs";
 import { ALLOWED_SLACK } from "@cocalc/server/purchases/shopping-cart-checkout";
 import editLicense from "@cocalc/server/purchases/edit-license";
@@ -52,11 +53,12 @@ export default async function createSubscriptionPayment({
   }
   const {
     payment,
-    cost: amount,
+    cost: amountRaw,
     metadata,
     interval,
     current_period_end,
   } = subscriptions[0] as Subscription;
+  const amountValue = toDecimal(amountRaw ?? 0);
   if (payment != null && payment.status == "active") {
     throw Error(
       "There is a current outstanding active payment -- either cancel it or pay it",
@@ -89,16 +91,19 @@ export default async function createSubscriptionPayment({
   const new_expires_ms = addInterval(start, interval).valueOf();
 
   const lineItems = [
-    { description: `Renew subscription Id=${subscription_id}`, amount },
+    {
+      description: `Renew subscription Id=${subscription_id}`,
+      amount: amountValue.toNumber(),
+    },
   ];
 
   let payNow = false;
-  if (amount <= MIN_SUBSCRIPTION_AMOUNT) {
+  if (amountValue.lte(MIN_SUBSCRIPTION_AMOUNT)) {
     payNow = true;
   } else if (await useBalanceTowardSubscriptions(account_id)) {
     // The user has "Use Balance Toward Subscriptions" enabled.
-    const balance = await getBalance({ account_id });
-    if (balance >= amount) {
+    const balance = toDecimal(await getBalance({ account_id }));
+    if (balance.gte(amountValue)) {
       payNow = true;
     }
   }
@@ -115,7 +120,7 @@ export default async function createSubscriptionPayment({
 
     const payment = {
       subscription_id,
-      amount,
+      amount: amountValue.toNumber(),
       created: Date.now(),
       status: "active",
       new_expires_ms,
@@ -130,7 +135,7 @@ export default async function createSubscriptionPayment({
       await processSubscriptionRenewal({
         account_id,
         paymentIntent: { metadata: { subscription_id } },
-        amount,
+        amount: amountValue.toNumber(),
         client,
       });
       // it worked -- so commit it
@@ -150,7 +155,9 @@ export default async function createSubscriptionPayment({
     await send({
       to_ids: [account_id],
       subject: `${site_name} Subscription Renewal: Id ${subscription_id}`,
-      body: `Your ${site_name} subscription (id=${subscription_id}) has been renewed for ${currency(amount)} using credit on your account.  Your subscription is now fully paid through ${new Date(new_expires_ms)}. \n\n- Account Balance: ${currency(round2down(await getBalance({ account_id })))}`,
+      body: `Your ${site_name} subscription (id=${subscription_id}) has been renewed for ${moneyToCurrency(amountValue)} using credit on your account.  Your subscription is now fully paid through ${new Date(new_expires_ms)}. \n\n- Account Balance: ${moneyToCurrency(
+        moneyRound2Down(toDecimal(await getBalance({ account_id }))),
+      )}`,
     });
     return;
   }
@@ -171,7 +178,7 @@ export default async function createSubscriptionPayment({
   const payment1 = {
     payment_intent_id,
     subscription_id,
-    amount,
+    amount: amountValue.toNumber(),
     created: Date.now(),
     status: "active",
     new_expires_ms,
@@ -185,7 +192,7 @@ export default async function createSubscriptionPayment({
     to_ids: [account_id],
     subject: `${site_name} Subscription Renewal: Id ${subscription_id}`,
     body: `
-${site_name} has started renewing your ${currency(amount)}/${interval} subscription (id=${subscription_id}).
+${site_name} has started renewing your ${moneyToCurrency(amountValue)}/${interval} subscription (id=${subscription_id}).
 
 - [Subscription Status](${await url(`/settings/subscriptions#id=${subscription_id}`)})
 
@@ -219,6 +226,7 @@ export async function processSubscriptionRenewal({
     amount,
     subscription_id,
   });
+  const amountValue = toDecimal(amount);
   client = client ?? getPool();
   const { rows: subscriptions } = await client.query(
     "SELECT payment, cost, metadata, interval FROM subscriptions WHERE account_id=$1 AND id=$2",
@@ -233,6 +241,7 @@ export async function processSubscriptionRenewal({
     throw Error(`You do not have a subscription with id ${subscription_id}.`);
   }
   const { cost, metadata, interval } = subscriptions[0];
+  const costValue = toDecimal(cost);
   let { payment } = subscriptions[0];
   logger.debug("processSubscriptionRenewal", {
     payment,
@@ -243,7 +252,7 @@ export async function processSubscriptionRenewal({
   if (metadata?.type != "license" && metadata?.type != "membership") {
     throw Error("unsupported subscription metadata");
   }
-  if (!force && amount + ALLOWED_SLACK <= cost) {
+  if (!force && amountValue.add(ALLOWED_SLACK).lte(costValue)) {
     logger.debug("processSubscriptionRenewal: SUSPICIOUS! -- not doing it.");
     throw Error(
       `subscription costs a lot more than payment -- contact support.`,
@@ -276,7 +285,7 @@ export async function processSubscriptionRenewal({
       account_id,
       license_id: metadata.license_id,
       changes: { end },
-      cost,
+      cost: costValue.toNumber(),
       note: "This is a subscription with a fixed cost per period.",
       isSubscriptionRenewal: true,
       force: true,
@@ -297,7 +306,7 @@ export async function processSubscriptionRenewal({
         interval,
       },
       client,
-      cost,
+      cost: costValue,
       period_start: subtractInterval(end, interval),
       period_end: end,
     });

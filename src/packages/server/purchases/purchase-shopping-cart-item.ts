@@ -70,7 +70,7 @@ import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
 import getLogger from "@cocalc/backend/logger";
 import createSubscription from "./create-subscription";
 import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
-import { round2up } from "@cocalc/util/misc";
+import { moneyRound2Up } from "@cocalc/util/money";
 import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 import createVouchers from "@cocalc/server/vouchers/create-vouchers";
 import dayjs from "dayjs";
@@ -125,7 +125,7 @@ async function purchaseLicenseShoppingCartItem(
 
   const purchase_id = await createPurchase({
     account_id: item.account_id,
-    cost: round2up(licenseCost.cost),
+    cost: moneyRound2Up(licenseCost.cost),
     unrounded_cost: licenseCost.cost,
     service: "license",
     description: { type: "license", item, info, license_id, credit_id },

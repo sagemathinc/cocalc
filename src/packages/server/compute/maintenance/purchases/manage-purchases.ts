@@ -31,6 +31,7 @@ import {
 } from "@cocalc/server/compute/cloud/google-cloud/bigquery";
 import { getServerName } from "@cocalc/server/compute/cloud/google-cloud/index";
 import adminAlert from "@cocalc/server/messages/admin-alert";
+import { moneyToDbString, toDecimal } from "@cocalc/util/money";
 
 const logger = getLogger("server:compute:maintenance:purchases:manage");
 
@@ -401,12 +402,13 @@ export async function computeNetworkPurchaseCosts({
     // > a = new Date(); a.setSeconds(0); a.setMinutes(0); a
     // 2024-06-27T17:00:00.751Z
     const totalCost = await getInstanceTotalCost({ name, start, end });
-    purchase.cost = totalCost.network;
-    purchase.description.cost = totalCost.network;
+    const networkCostValue = toDecimal(totalCost.network ?? 0);
+    purchase.cost = networkCostValue.toNumber();
+    purchase.description.cost = networkCostValue.toNumber();
     const pool = getPool();
     await pool.query(
       "UPDATE purchases SET cost=$1, description=$2 WHERE id=$3",
-      [purchase.cost, purchase.description, purchase.id],
+      [moneyToDbString(networkCostValue), purchase.description, purchase.id],
     );
   }
 }

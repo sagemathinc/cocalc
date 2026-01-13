@@ -26,7 +26,7 @@ import {
 import { applyMembershipChange } from "../membership-change";
 import send, { support, url, name } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
-import { currency, round2down } from "@cocalc/util/misc";
+import { moneyRound2Down, moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import getBalance from "@cocalc/server/purchases/get-balance";
 import getPool from "@cocalc/database/pool";
@@ -260,13 +260,15 @@ customer.  So we don't know what to do with this.  Please manually investigate.
         }
         send({
           to_ids: [account_id],
-          subject: `Canceled ${currency(amount)} Payment`,
-          body: `A payment of ${currency(amount)} was canceled, and as a result ${result}.
+          subject: `Canceled ${moneyToCurrency(amount)} Payment`,
+          body: `A payment of ${moneyToCurrency(amount)} was canceled, and as a result ${result}.
 - Payment id: ${paymentIntent.id}
 
 - Your payments: ${await url("settings", "payments")}
 
-- Account Balance: ${currency(round2down(await getBalance({ account_id })))}
+- Account Balance: ${moneyToCurrency(
+            moneyRound2Down(toDecimal(await getBalance({ account_id }))),
+          )}
 
 ${await support()}`,
         });
@@ -285,16 +287,18 @@ the consequence is "${result}".  Admins might want to investigate.
       } catch (err) {
         // There basically should never be a case where any of the above fails... but reality.
         // So communicate this.
-        const body = `You canceled a payment of ${currency(amount)}, so ${result}.  However, cleaning up this resulted in an error.  You may need to contact support.
+        const body = `You canceled a payment of ${moneyToCurrency(amount)}, so ${result}.  However, cleaning up this resulted in an error.  You may need to contact support.
 
-- Account Balance: ${currency(round2down(await getBalance({ account_id })))}
+- Account Balance: ${moneyToCurrency(
+          moneyRound2Down(toDecimal(await getBalance({ account_id }))),
+        )}
 
 - ERROR: ${err}
 
 ${await support()}`;
         send({
           to_ids: [account_id],
-          subject: `Possible Issue Processing Canceled ${currency(amount)} Payment`,
+          subject: `Possible Issue Processing Canceled ${moneyToCurrency(amount)} Payment`,
           body,
         });
         adminAlert({
@@ -393,9 +397,9 @@ ${await support()}`;
       }
       send({
         to_ids: [account_id],
-        subject: `You Made a ${currency(amount)} Payment (Credit id: ${credit_id})`,
+        subject: `You Made a ${moneyToCurrency(amount)} Payment (Credit id: ${credit_id})`,
         body: `
-You successfully made a payment of ${currency(amount)}, which was used to ${reason}.
+You successfully made a payment of ${moneyToCurrency(amount)}, which was used to ${reason}.
 Thank you!
 
 - Payment id: ${paymentIntent.id}
@@ -404,7 +408,9 @@ Thank you!
 
 - Browser all your [Payments](${await url("settings", "payments")}) and [Purchases](${await url("settings", "purchases")})
 
-- Account Balance: ${currency(round2down(await getBalance({ account_id })))}
+- Account Balance: ${moneyToCurrency(
+          moneyRound2Down(toDecimal(await getBalance({ account_id }))),
+        )}
 
 ${await support()}`,
       });
@@ -413,15 +419,17 @@ ${await support()}`,
       // transactions happening at once, or bugs, etc. could maybe lead to a case where
       // cocalc refuses to fully process the transaction.  Communicate this.
       const body = `
-You made a payment of ${currency(amount)}, which has been successfully processed by our
-payment processor, and a credit of ${currency(amount)} has been added to your
+You made a payment of ${moneyToCurrency(amount)}, which has been successfully processed by our
+payment processor, and a credit of ${moneyToCurrency(amount)} has been added to your
 account (purchase id=${credit_id}).   You made this payment to ${reason}, but something
 went wrong.
 
 Please retry that purchase instead using the credit that is now on your account, or contact
 support if you are concerned (see below).
 
-- Account Balance: ${currency(round2down(await getBalance({ account_id })))}
+- Account Balance: ${moneyToCurrency(
+        moneyRound2Down(toDecimal(await getBalance({ account_id }))),
+      )}
 
 - Your payments: ${await url("settings", "payments")}
 
@@ -431,7 +439,7 @@ ${await support()}
 `;
       send({
         to_ids: [account_id],
-        subject: `Possible Issue Processing ${currency(amount)} Payment`,
+        subject: `Possible Issue Processing ${moneyToCurrency(amount)} Payment`,
         body,
       });
       adminAlert({

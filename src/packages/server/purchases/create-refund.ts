@@ -8,7 +8,7 @@ import getConn from "@cocalc/server/stripe/connection";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import createPurchase from "./create-purchase";
 import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import send, { support, url } from "@cocalc/server/messages/send";
 import { changeLicense } from "./edit-license";
 import cancelSubscription from "./cancel-subscription";
@@ -76,6 +76,7 @@ async function refundCredit(
   },
 ) {
   logger.debug("refundCredit", purchase_id);
+  const costValue = toDecimal(cost);
   if (!invoice_id) {
     throw Error("Only credits with an invoice_id can be refunded");
   }
@@ -111,7 +112,7 @@ async function refundCredit(
     refund_purchase_id = await createPurchase({
       account_id,
       service: "refund",
-      cost: -cost,
+      cost: costValue.neg(),
       description,
       client,
     });
@@ -156,12 +157,12 @@ async function refundCredit(
 
   // send confirmation message
   try {
-    const subject = `Refund of Transaction ${purchase_id} for ${currency(
-      Math.abs(cost),
+    const subject = `Refund of Transaction ${purchase_id} for ${moneyToCurrency(
+      costValue.abs(),
     )} + tax`;
     const body = `
-Your credit of ${currency(
-      Math.abs(cost),
+Your credit of ${moneyToCurrency(
+      costValue.abs(),
     )} + tax from transaction ${purchase_id} has been refunded.
 
 This refund will appear immediately in [your account](${await url("settings", "purchases")}),
@@ -197,6 +198,7 @@ async function refundLicense(
     cost,
     account_id,
   });
+  const costValue = toDecimal(cost);
 
   if (description.refund_purchase_id) {
     // UI should never allow this, but just in case (or api mistake usage)
@@ -225,7 +227,7 @@ async function refundLicense(
     refund_purchase_id = await createPurchase({
       account_id,
       service: "refund",
-      cost: -cost,
+      cost: costValue.neg(),
       description: {
         type: "refund",
         purchase_id,
@@ -280,12 +282,12 @@ The corresponding subscription with id ${rows[0].id} was also canceled.
 
   // send confirmation message
   try {
-    const subject = `Refund of Transaction ${purchase_id} for ${currency(
-      Math.abs(cost),
+    const subject = `Refund of Transaction ${purchase_id} for ${moneyToCurrency(
+      costValue.abs(),
     )} + tax`;
     const body = `
-Your license purchase of ${currency(
-      Math.abs(cost),
+Your license purchase of ${moneyToCurrency(
+      costValue.abs(),
     )} + tax from transaction ${purchase_id} has been refunded.
 
 ${action}

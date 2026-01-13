@@ -18,6 +18,7 @@ import editLicense from "./edit-license";
 import type { Status } from "@cocalc/util/db-schema/subscriptions";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
 import createPurchase from "./create-purchase";
+import { toDecimal } from "@cocalc/util/money";
 
 const logger = getLogger("purchases:renew-subscription");
 
@@ -152,8 +153,10 @@ export async function getSubscription(subscription_id: number): Promise<{
   if (rows.length == 0) {
     throw Error(`no subscription with id=${subscription_id}`);
   }
+  const costValue = toDecimal(rows[0]?.cost ?? 0);
   return {
     ...rows[0],
-    cost_per_hour: rows[0].cost / hoursInInterval(rows[0].interval),
+    cost: costValue.toNumber(),
+    cost_per_hour: costValue.div(hoursInInterval(rows[0].interval)).toNumber(),
   };
 }

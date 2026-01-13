@@ -3,6 +3,7 @@ import { getLastClosingDate } from "./closing-date";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { COST_OR_METERED_COST } from "./get-balance";
 import type { PoolClient } from "@cocalc/database/pool";
+import { toDecimal } from "@cocalc/util/money";
 
 export async function getTotalChargesThisMonth(
   account_id: string,
@@ -18,7 +19,7 @@ export async function getTotalChargesThisMonth(
     params.push(service);
   }
   const { rows } = await pool.query(query, params);
-  return rows[0].total ?? 0;
+  return toDecimal(rows[0]?.total ?? 0).toNumber();
 }
 
 // Returns the total charges this month grouped by service.
@@ -32,7 +33,10 @@ export async function getChargesThisMonthByService(
   const params = [account_id, closing_date];
   const { rows } = await pool.query(query, params);
   return rows.reduce(
-    (map, { service, total }) => ({ ...map, [service]: total }),
+    (map, { service, total }) => ({
+      ...map,
+      [service]: toDecimal(total ?? 0).toNumber(),
+    }),
     {}
   );
 }

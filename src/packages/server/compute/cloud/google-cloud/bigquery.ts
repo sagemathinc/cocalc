@@ -3,6 +3,7 @@ import { BigQuery } from "@google-cloud/bigquery";
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { GOOGLE_COST_LAG_MS } from "@cocalc/util/db-schema/compute-servers";
+import { toDecimal } from "@cocalc/util/money";
 export { GOOGLE_COST_LAG_MS }
 
 const logger = getLogger("server:compute:cloud:google-cloud:bigquery");
@@ -145,10 +146,13 @@ export function summarize(costs: LineItem[]): {
     [description: string]: { cost: number; amount: number; unit: string };
   } = {};
   for (const { description, cost, amount, unit } of costs) {
+    const costValue = toDecimal(cost);
     if (m[description] == null) {
-      m[description] = { cost, amount, unit };
+      m[description] = { cost: costValue.toNumber(), amount, unit };
     } else {
-      m[description].cost += cost;
+      m[description].cost = toDecimal(m[description].cost)
+        .add(costValue)
+        .toNumber();
     }
   }
   return m;
@@ -172,23 +176,30 @@ export async function getInstanceTotalCost({
 }> {
   const costs = await getCost({ name, start, end });
   const s = summarize(costs);
-  let c = { cpu: 0, ram: 0, network: 0, external_ip: 0, disk: 0, other: 0 };
+  let c = {
+    cpu: toDecimal(0),
+    ram: toDecimal(0),
+    network: toDecimal(0),
+    external_ip: toDecimal(0),
+    disk: toDecimal(0),
+    other: toDecimal(0),
+  };
   for (const description in s) {
     const d = description.toLowerCase();
-    const { cost } = s[description];
-    if (!cost) {
+    const costValue = toDecimal(s[description].cost ?? 0);
+    if (costValue.eq(0)) {
       continue;
     }
     if (d.includes("network")) {
-      c.network += cost;
+      c.network = c.network.add(costValue);
     } else if (d.includes(" core ")) {
-      c.cpu += cost;
+      c.cpu = c.cpu.add(costValue);
     } else if (d.includes(" ram ")) {
-      c.ram += cost;
+      c.ram = c.ram.add(costValue);
     } else if (d.includes("capacity")) {
-      c.disk += cost;
+      c.disk = c.disk.add(costValue);
     } else if (d.includes("external ip")) {
-      c.external_ip += cost;
+      c.external_ip = c.external_ip.add(costValue);
     } else {
       logger.debug(
         "getInstanceTotalCost -- WARNING",
@@ -196,10 +207,17 @@ export async function getInstanceTotalCost({
         s[description],
         " not categorized",
       );
-      c.other += cost;
+      c.other = c.other.add(costValue);
     }
   }
-  return c;
+  return {
+    cpu: c.cpu.toNumber(),
+    ram: c.ram.toNumber(),
+    disk: c.disk.toNumber(),
+    network: c.network.toNumber(),
+    external_ip: c.external_ip.toNumber(),
+    other: c.other.toNumber(),
+  };
 }
 
 export async function getBucketTotalCost({
@@ -221,28 +239,28 @@ export async function getBucketTotalCost({
   const costs = await getBucketCost({ name, start, end });
   const s = summarize(costs);
   let c = {
-    network: 0,
-    storage: 0,
-    classA: 0,
-    classB: 0,
-    autoclass: 0,
-    other: 0,
+    network: toDecimal(0),
+    storage: toDecimal(0),
+    classA: toDecimal(0),
+    classB: toDecimal(0),
+    autoclass: toDecimal(0),
+    other: toDecimal(0),
   };
   for (const description in s) {
     const d = description.toLowerCase();
-    const { cost } = s[description];
+    const costValue = toDecimal(s[description].cost ?? 0);
     if (d.includes("class a operation")) {
-      c.classA += cost;
+      c.classA = c.classA.add(costValue);
     } else if (d.includes("class b operation")) {
-      c.classB += cost;
+      c.classB = c.classB.add(costValue);
     } else if (d.startsWith("autoclass")) {
-      c.autoclass += cost;
+      c.autoclass = c.autoclass.add(costValue);
     } else if (d.startsWith("network") || d.startsWith("download")) {
-      c.network += cost;
+      c.network = c.network.add(costValue);
     } else if (d.includes("storage")) {
       // autoclass ops also have "storage" in them, but
       // autoclass ops also *start with* the word "autoclass"
-      c.storage += cost;
+      c.storage = c.storage.add(costValue);
     } else {
       logger.debug(
         "getBucketTotalCost -- WARNING",
@@ -250,8 +268,15 @@ export async function getBucketTotalCost({
         s[description],
         " not categorized",
       );
-      c.other += cost;
+      c.other = c.other.add(costValue);
     }
   }
-  return c;
+  return {
+    network: c.network.toNumber(),
+    storage: c.storage.toNumber(),
+    classA: c.classA.toNumber(),
+    classB: c.classB.toNumber(),
+    autoclass: c.autoclass.toNumber(),
+    other: c.other.toNumber(),
+  };
 }

@@ -10,7 +10,7 @@ export interface MakePayment {
 */
 
 import type { MakePayment } from "@cocalc/util/db-schema/token-actions";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency } from "@cocalc/util/money";
 import getName from "@cocalc/server/accounts/get-name";
 import getPool from "@cocalc/database/pool";
 import syncPaidInvoices from "@cocalc/server/purchases/sync-paid-invoices";
@@ -25,16 +25,16 @@ export default async function makePayment(
   return {
     type: "create-credit",
     pay: {
-      description: `Add ${currency(amount)} to ${user}'s account.`,
+      description: `Add ${moneyToCurrency(amount)} to ${user}'s account.`,
       purpose: `token-${token}`,
       lineItems: [
         {
-          description: `${currency(amount)} credit for ${user}'s account.`,
+          description: `${moneyToCurrency(amount)} credit for ${user}'s account.`,
           amount,
         },
       ],
     },
-    instructions: `Click here to deposit ${currency(
+    instructions: `Click here to deposit ${moneyToCurrency(
       amount,
     )} into ${user}'s account...`,
   };
@@ -49,7 +49,7 @@ export async function extraInfo(description, token) {
     return {
       ...description,
       title: "Make Payment -- PAID",
-      details: `Payment of ${currency(
+      details: `Payment of ${moneyToCurrency(
         description.amount,
         2,
       )} to the account of ${user} completed. Thank you!
@@ -78,8 +78,8 @@ ${description.reason ? "\n\n- " + description.reason : ""}
 
   return {
     ...description,
-    title: `Make Payment -- ${currency(description.amount, 2)}`,
-    details: `Make a payment of ${currency(
+    title: `Make Payment -- ${moneyToCurrency(description.amount, 2)}`,
+    details: `Make a payment of ${moneyToCurrency(
       description.amount,
       2,
     )} to the account of ${user}.

@@ -9,10 +9,11 @@ rewrite this to scale better.
 */
 
 import { getTransactionClient } from "@cocalc/database/pool";
-import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
+import type { Interval } from "@cocalc/util/db-schema/statements";
 import multiInsert from "@cocalc/database/pool/multi-insert";
 import getLogger from "@cocalc/backend/logger";
 import LRU from "lru-cache";
+import { moneyToDbString, toDecimal } from "@cocalc/util/money";
 
 const logger = getLogger("purchases:create-statements");
 
@@ -124,26 +125,39 @@ export async function createStatements({
       accounts.size,
       " distinct accounts",
     );
-    const statements: Omit<Omit<Omit<Statement, "id">, "interval">, "time">[] =
-      [];
+    const statements: Array<{
+      account_id: string;
+      balance: string;
+      total_charges: string;
+      num_charges: number;
+      total_credits: string;
+      num_credits: number;
+    }> = [];
     for (const account_id of accounts) {
       const userCharges = charges[account_id] ?? {
-        total_charges: 0,
+        total_charges: toDecimal(0),
         num_charges: 0,
       };
       const userCredits = credits[account_id] ?? {
-        total_credits: 0,
+        total_credits: toDecimal(0),
         num_credits: 0,
       };
-      const total = userCharges.total_charges + userCredits.total_credits;
-      const balance =
-        (await getPreviousStatementBalance(account_id, client, interval)) -
-        total;
+      const total = toDecimal(userCharges.total_charges).add(
+        toDecimal(userCredits.total_credits),
+      );
+      const previousBalance = await getPreviousStatementBalance(
+        account_id,
+        client,
+        interval,
+      );
+      const balance = previousBalance.sub(total);
       statements.push({
         account_id,
-        ...userCharges,
-        ...userCredits,
-        balance,
+        total_charges: moneyToDbString(userCharges.total_charges),
+        num_charges: userCharges.num_charges,
+        total_credits: moneyToDbString(userCredits.total_credits),
+        num_credits: userCredits.num_credits,
+        balance: moneyToDbString(balance),
       });
     }
     if (statements.length > 0) {
@@ -234,14 +248,20 @@ async function getData(
 function toAccountMap(rows) {
   const map: {
     [account_id: string]: {
-      total_charges: number;
+      total_charges: any;
       num_charges: number;
-      total_credits: number;
+      total_credits: any;
       num_credits: number;
     };
   } = {};
   for (const row of rows) {
-    map[row.account_id] = row;
+    map[row.account_id] = {
+      ...row,
+      total_charges:
+        row.total_charges == null ? undefined : toDecimal(row.total_charges),
+      total_credits:
+        row.total_credits == null ? undefined : toDecimal(row.total_credits),
+    };
   }
   return map;
 }
@@ -255,10 +275,10 @@ async function getPreviousStatementBalance(
   account_id: string,
   pool,
   interval: Interval,
-): Promise<number> {
+): Promise<any> {
   const { rows } = await pool.query(
     "SELECT balance FROM statements WHERE interval=$1 AND account_id=$2 ORDER BY id DESC limit 1",
     [interval, account_id],
   );
-  return rows[0]?.balance ?? 0;
+  return toDecimal(rows[0]?.balance ?? 0);
 }

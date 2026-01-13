@@ -6,7 +6,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import createCredit from "@cocalc/server/purchases/create-credit";
 import { getTransactionClient } from "@cocalc/database/pool";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency } from "@cocalc/util/money";
 import send, { support, url } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 
@@ -113,7 +113,7 @@ async function sendRedeemAlerts({ account_id, voucher, code, id }) {
 
   const { name: userName } = await getUser(account_id);
 
-  const subject = `Voucher ${code} Redeemed for ${currency(voucher.cost)}`;
+  const subject = `Voucher ${code} Redeemed for ${moneyToCurrency(voucher.cost)}`;
 
   // to creator of voucher
   await send({
@@ -123,7 +123,7 @@ async function sendRedeemAlerts({ account_id, voucher, code, id }) {
 Hello ${creator},
 
 A voucher you created with the code '${code}' was redeemed
-by ${userName} for ${currency(voucher.cost)}.
+by ${userName} for ${moneyToCurrency(voucher.cost)}.
 
 - [Browse all codes for this voucher](${await url("vouchers", voucher.id)})
 
@@ -139,7 +139,7 @@ ${await support()}
 Hello ${userName},
 
 You successfully redeemed a voucher from ${creator} with the code '${code}'
-for ${currency(voucher.cost)}.
+for ${moneyToCurrency(voucher.cost)}.
 
 - [View Account Credit Id = ${id}](${purchaseUrl})
 

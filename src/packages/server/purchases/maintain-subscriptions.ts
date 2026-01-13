@@ -72,7 +72,7 @@ import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency } from "@cocalc/util/money";
 import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
 
 const logger = getLogger("purchases:maintain-subscriptions");
@@ -146,7 +146,7 @@ change your subscription:
 
 - ${interval == "month" ? "Monthly" : "Yearly"} Subscription (id=${
       id
-    }) for ${currency(cost)}/${interval}
+    }) for ${moneyToCurrency(cost)}/${interval}
 - ${await describeSubscription(metadata)}
 `;
 

@@ -11,8 +11,9 @@ import type {
   CheckoutSessionOptions,
 } from "@cocalc/util/stripe/types";
 import { isEqual } from "lodash";
-import { decimalToStripe, decimalAdd } from "@cocalc/util/stripe/calc";
+import { decimalToStripe } from "@cocalc/util/stripe/calc";
 import { url } from "@cocalc/server/messages/send";
+import { toDecimal } from "@cocalc/util/money";
 
 const logger = getLogger("purchases:stripe:get-checkout-session");
 
@@ -42,9 +43,9 @@ export default async function getCheckoutSession({
   }
   assertValidUserMetadata(metadata);
 
-  let total = 0;
+  let total = toDecimal(0);
   for (const { amount } of lineItems) {
-    total = decimalAdd(total, amount);
+    total = total.add(toDecimal(amount));
   }
   await sanityCheckAmount(total);
 

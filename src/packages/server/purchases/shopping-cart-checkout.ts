@@ -8,7 +8,12 @@ import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
 import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
-import { currency, round2up } from "@cocalc/util/misc";
+import {
+  moneyRound2Up,
+  moneyToCurrency,
+  moneyToStripe,
+  toDecimal,
+} from "@cocalc/util/money";
 import getMinBalance from "./get-min-balance";
 import getBalance from "./get-balance";
 import purchaseShoppingCartItem from "./purchase-shopping-cart-item";
@@ -75,9 +80,13 @@ export async function shoppingCartCheckout({
     cart_ids,
   );
 
+  const amountDueValue = toDecimal(params.amountDue);
+  const allowedSlackValue = toDecimal(ALLOWED_SLACK);
+  const totalValue = toDecimal(params.total);
+  const amountValue = amount == null ? null : toDecimal(amount);
   if (
-    params.amountDue <= ALLOWED_SLACK ||
-    (amount != null && params.total <= amount + ALLOWED_SLACK)
+    amountDueValue.lte(allowedSlackValue) ||
+    (amountValue != null && totalValue.lte(amountValue.add(allowedSlackValue)))
   ) {
     // The user has sufficient balance to complete the cart checkout, so we immediately
     // create all the purchase items and products for the user and deduct the charges
@@ -106,7 +115,7 @@ export async function shoppingCartCheckout({
     }
   } else {
     throw Error(
-      `Insufficient credit on your account to complete the purchase (you need ${currency(params.chargeAmount)}). Please refresh your browser and try again or contact support.`,
+      `Insufficient credit on your account to complete the purchase (you need ${moneyToCurrency(params.chargeAmount)}). Please refresh your browser and try again or contact support.`,
     );
   }
 }
@@ -158,8 +167,9 @@ export async function getCheckoutCart(
     if (itemCost == null) {
       throw Error("bug cost must not be null");
     }
-    const lineItemAmount = round2up(itemCost.cost);
-    totalStripe += Math.ceil(100 * lineItemAmount);
+    const lineItemAmountDecimal = moneyRound2Up(itemCost.cost);
+    const lineItemAmount = lineItemAmountDecimal.toNumber();
+    totalStripe += moneyToStripe(lineItemAmountDecimal);
     chargeableCart.push({
       ...cartItem,
       cost: itemCost,
@@ -179,15 +189,17 @@ async function membershipCostFromCart(account_id: string, cartItem) {
     targetClass: description.class,
     interval: description.interval,
   });
-  const monthly = description.interval == "month" ? price : price / 12;
-  const yearly = description.interval == "year" ? price : price * 12;
+  const priceValue = toDecimal(price);
+  const monthly =
+    description.interval == "month" ? priceValue : priceValue.div(12);
+  const yearly = description.interval == "year" ? priceValue : priceValue.mul(12);
   const period = description.interval == "month" ? "monthly" : "yearly";
   const cost: CostInputPeriod = {
     cost: charge,
-    cost_per_unit: price,
-    cost_per_project_per_month: monthly,
-    cost_sub_month: monthly,
-    cost_sub_year: yearly,
+    cost_per_unit: priceValue.toNumber(),
+    cost_per_project_per_month: monthly.toNumber(),
+    cost_sub_month: monthly.toNumber(),
+    cost_sub_year: yearly.toNumber(),
     cost_sub_first_period: charge,
     quantity: 1,
     period,

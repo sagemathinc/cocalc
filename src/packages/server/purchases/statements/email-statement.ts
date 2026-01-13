@@ -16,6 +16,7 @@ import { disableDailyStatements } from "@cocalc/server/token-actions/create";
 import { getTotalBalance } from "../get-balance";
 import getLogger from "@cocalc/backend/logger";
 import send, { support } from "@cocalc/server/messages/send";
+import { toDecimal } from "@cocalc/util/money";
 
 const logger = getLogger("purchases:email-statement");
 
@@ -43,11 +44,13 @@ export default async function emailStatement(opts: {
     }
   }
   let pay;
-  if (statement.balance >= 0) {
+  const statementBalance = toDecimal(statement.balance);
+  if (statementBalance.gte(0)) {
     pay = "**NO PAYMENT IS REQUIRED.**";
   } else {
-    const totalBalance = await getTotalBalance(account_id);
-    if (totalBalance >= -pay_as_you_go_min_payment) {
+    const totalBalance = toDecimal(await getTotalBalance(account_id));
+    const minPayment = toDecimal(pay_as_you_go_min_payment ?? 0);
+    if (totalBalance.gte(minPayment.neg())) {
       pay = "Your account is **fully paid**.";
     } else {
       pay = "You may receive an invoice soon.";

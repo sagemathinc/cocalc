@@ -38,7 +38,7 @@ import {
 import { getServerSettings } from "@cocalc/database/settings";
 import createPaymentIntent from "@cocalc/server/purchases/stripe/create-payment-intent";
 import { hasPaymentMethod } from "@cocalc/server/purchases/stripe/get-payment-methods";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import send, { support, url } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 
@@ -95,9 +95,10 @@ export default async function maintainAutomaticPayments() {
   const { rows } = await pool.query(QUERY);
   logger.debug("Got ", rows.length, " statements to automatically pay");
   for (const { time, account_id, balance, statement_id } of rows) {
-    const description = `Pay statement ${statement_id} with balance ${currency(balance)} from ${time}`;
+    const balanceValue = toDecimal(balance);
+    const description = `Pay statement ${statement_id} with balance ${moneyToCurrency(balanceValue)} from ${time}`;
     logger.debug(description);
-    const amount = -balance;
+    const amount = balanceValue.neg();
     try {
       // Set that automatic_payment has been *processed* for this statement.
       // This only means there was an actual payment attempt if the balance was negative.
@@ -105,17 +106,18 @@ export default async function maintainAutomaticPayments() {
         "UPDATE statements SET automatic_payment=NOW() WHERE id=$1",
         [statement_id],
       );
-      if (balance >= 0) {
+      if (balanceValue.gte(0)) {
         // should never happen
         continue;
       }
       logger.debug(
         "Since amount ",
-        amount,
+        amount.toString(),
         " is positive, may try to collect automatically",
       );
 
-      if (amount < pay_as_you_go_min_payment) {
+      const minPayment = toDecimal(pay_as_you_go_min_payment ?? 0);
+      if (amount.lt(minPayment)) {
         logger.debug(
           "amount is below min payment, so we do not charge anything for now. the min payment amount is ",
           pay_as_you_go_min_payment,
@@ -124,8 +126,8 @@ export default async function maintainAutomaticPayments() {
           to_ids: [account_id],
           subject: "Payment for Monthly Statement",
           body: `
-The amount due on your monthly statement is ${currency(amount)}.
-However, this is below the minimum payment size of ${currency(pay_as_you_go_min_payment)}.
+The amount due on your monthly statement is ${moneyToCurrency(amount)}.
+However, this is below the minimum payment size of ${moneyToCurrency(minPayment)}.
 You will not be billed this month, and your balance will roll over to your next statement.
 
 - [Your Statements](${await url("settings", "statements")})
@@ -139,7 +141,7 @@ ${await support()}
       // Now make the attempt.  This might work quickly, it might take a day, it might
       // never succeed, it might throw an error.  That's all ok.
       if (mockCollectPayment != null) {
-        await mockCollectPayment({ account_id, amount });
+        await mockCollectPayment({ account_id, amount: amount.toNumber() });
       } else {
         // This should  eventually "work", but we might not get the money until later.
         const { payment_intent, hosted_invoice_url } =
@@ -148,7 +150,7 @@ ${await support()}
             lineItems: [
               {
                 description: `Credit account to cover balance on statement ${statement_id}`,
-                amount,
+                amount: amount.toNumber(),
               },
             ],
             // this purpose format is assumed in server/purchases/stripe/process-payment-intents.ts
@@ -161,7 +163,7 @@ ${await support()}
           to_ids: [account_id],
           subject: "Payment for Monthly Statement",
           body: `
-${site_name} issued an invoice for the balance of ${currency(amount)} that is due on your monthly statement id=${statement_id}.
+${site_name} issued an invoice for the balance of ${moneyToCurrency(amount)} that is due on your monthly statement id=${statement_id}.
 
 - Statements: ${await url("settings", "statements")}
 
@@ -180,7 +182,7 @@ ${await support()}`,
         to_ids: [account_id],
         subject: "Payment for Monthly Statement -- Error",
         body: `
-The amount due on your monthly statement is ${currency(amount)}.
+The amount due on your monthly statement is ${moneyToCurrency(amount)}.
 When attempting to automatically charge you, an error occured.
 
 ${err}

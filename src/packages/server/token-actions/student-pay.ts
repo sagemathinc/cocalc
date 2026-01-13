@@ -1,4 +1,4 @@
-import { currency, round2up } from "@cocalc/util/misc";
+import { moneyRound2Up, moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import getName from "@cocalc/server/accounts/get-name";
 import studentPayPurchase from "@cocalc/server/purchases/student-pay";
 import type { Description } from "@cocalc/util/db-schema/token-actions";
@@ -7,7 +7,6 @@ import { getCost } from "@cocalc/server/purchases/student-pay";
 import getBalance from "@cocalc/server/purchases/get-balance";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { STUDENT_PAY } from "@cocalc/util/db-schema/purchases";
-import { decimalSubtract } from "@cocalc/util/stripe/calc";
 import type { LineItem } from "@cocalc/util/stripe/types";
 
 export async function studentPay(
@@ -44,13 +43,13 @@ export async function extraInfo(description: Description, account_id?: string) {
     throw Error("Invalid token -- not a course project.");
   }
   const projectLink = `[${title}](/projects/${description.project_id})`;
-  const cost = getCost(course.payInfo);
+  const cost = toDecimal(getCost(course.payInfo));
   if (course.paid || description.paid) {
     // Yeah, it's fully paid!
     return {
       ...description,
       title: "Pay Course Fee",
-      details: `The ${currency(cost, 2)} course fee for the project ${projectLink} has already been paid. Thank you!`,
+      details: `The ${moneyToCurrency(cost, 2)} course fee for the project ${projectLink} has already been paid. Thank you!`,
       okText: "",
       cancelText: "Close",
       icon: "graduation-cap",
@@ -61,7 +60,7 @@ export async function extraInfo(description: Description, account_id?: string) {
     return {
       ...description,
       title: "Pay Course Fee",
-      details: `The ${currency(cost, 2)} course fee for the project ${projectLink} is being processed.
+      details: `The ${moneyToCurrency(cost, 2)} course fee for the project ${projectLink} is being processed.
 
 - Refresh this page to see the latest status.
 
@@ -82,31 +81,33 @@ export async function extraInfo(description: Description, account_id?: string) {
     };
   }
 
-  const balance = await getBalance({ account_id });
-  const balanceAfterPay = decimalSubtract(balance, cost);
+  const balance = toDecimal(await getBalance({ account_id }));
+  const balanceAfterPay = balance.sub(cost);
   const { pay_as_you_go_min_payment } = await getServerSettings();
-  let due = round2up(Math.max(0, -balanceAfterPay));
+  let due = moneyRound2Up(balanceAfterPay.neg().gt(0) ? balanceAfterPay.neg() : 0);
   let minPayment = "";
-  if (due > 0 && due < pay_as_you_go_min_payment) {
-    due = Math.max(due, pay_as_you_go_min_payment);
-    minPayment = `\n\n- There is a minimum transaction amount of ${currency(
-      pay_as_you_go_min_payment,
+  const minPaymentValue = toDecimal(pay_as_you_go_min_payment ?? 0);
+  if (due.gt(0) && due.lt(minPaymentValue)) {
+    due = minPaymentValue;
+    minPayment = `\n\n- There is a minimum transaction amount of ${moneyToCurrency(
+      minPaymentValue,
     )}. `;
   }
   const name = await getName(course.account_id);
 
   const lineItems: LineItem[] = [];
-  if (due > 0) {
+  if (due.gt(0)) {
     lineItems.push({
       description: `Course Fee for project '${title}'`,
-      amount: cost,
+      amount: cost.toNumber(),
     });
   }
-  const balanceAmount = Math.min(0, -decimalSubtract(cost, due));
-  if (balanceAmount > 0) {
+  const min = (a, b) => (a.lt(b) ? a : b);
+  const balanceAmount = min(toDecimal(0), due.sub(cost));
+  if (balanceAmount.gt(0)) {
     lineItems.push({
       description: "Apply account balance toward course fee",
-      amount: balanceAmount,
+      amount: balanceAmount.toNumber(),
     });
   }
 
@@ -119,17 +120,18 @@ export async function extraInfo(description: Description, account_id?: string) {
 
   return {
     ...description,
-    due,
+    due: due.toNumber(),
     title: "Pay Course Fee",
     details: `
-- The course fee of ${currency(round2up(cost))} ${
+- The course fee of ${moneyToCurrency(moneyRound2Up(cost))} ${
       name ? `for ${name}'s ` : " for the "
     } project ${projectLink} has not yet been paid.
 
 ${minPayment}
 `,
-    okText:
-      due <= 0 ? "Purchase With 1-Click Using Account Credit" : "Checkout",
+    okText: due.lte(0)
+      ? "Purchase With 1-Click Using Account Credit"
+      : "Checkout",
     icon: "graduation-cap",
 
     payment,

@@ -22,6 +22,7 @@ import { closeAndContinueCloudStoragePurchase } from "./close";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { MAX_PURCHASE_LENGTH_MS } from "./manage-purchases";
 import { createCloudStoragePurchase } from "@cocalc/server/compute/cloud-filesystem/create";
+import { moneyToDbString, toDecimal } from "@cocalc/util/money";
 
 const logger = getLogger(
   "server:compute:maintenance:purchases:manage-cloud-filesystem-purchase",
@@ -97,17 +98,17 @@ async function computeBucketPurchaseCosts(bucketPurchases) {
     start.setMinutes(0);
     start = new Date(start.valueOf() - 30000);
     const cost_breakdown = await getBucketTotalCost({ name, start, end });
-    let cost = 0;
+    let costValue = toDecimal(0);
     for (const k in cost_breakdown) {
-      cost += cost_breakdown[k];
+      costValue = costValue.add(cost_breakdown[k]);
     }
-    purchase.cost = cost;
-    purchase.description.cost = cost;
+    purchase.cost = costValue.toNumber();
+    purchase.description.cost = costValue.toNumber();
     purchase.description.cost_breakdown = cost_breakdown;
     const pool = getPool();
     await pool.query(
       "UPDATE purchases SET cost=$1, description=$2 WHERE id=$3",
-      [purchase.cost, purchase.description, purchase.id],
+      [moneyToDbString(costValue), purchase.description, purchase.id],
     );
   }
 }

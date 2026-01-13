@@ -14,6 +14,7 @@ it rarely changes -- only when an admin manually changes something.
 */
 
 import getPool, { PoolClient, Pool } from "@cocalc/database/pool";
+import { toDecimal } from "@cocalc/util/money";
 
 export default async function getMinBalance(
   account_id: string,
@@ -24,5 +25,5 @@ export default async function getMinBalance(
     "SELECT min_balance FROM accounts WHERE account_id=$1",
     [account_id]
   );
-  return rows[0]?.min_balance ?? 0; // defaults to 0
+  return toDecimal(rows[0]?.min_balance ?? 0).toNumber(); // defaults to 0
 }

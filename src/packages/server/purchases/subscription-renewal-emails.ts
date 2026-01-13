@@ -24,10 +24,10 @@ Include a link to manage the subscription.
 import getPool from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import {
-  currency,
   plural,
   is_valid_email_address as isValidEmailAddress,
 } from "@cocalc/util/misc";
+import { moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { getTotalBalance } from "./get-balance";
 import { getUsageSubscription } from "./stripe-usage-based-subscription";
@@ -79,18 +79,18 @@ async function sendSubscriptionRenewalEmail(account_id, subs: Subscription[]) {
   }
   const subject = `${siteName} Subscription Renewals`;
 
-  const totalBalance = await getTotalBalance(account_id);
-  let cost = 0;
+  const totalBalance = toDecimal(await getTotalBalance(account_id));
+  let cost = toDecimal(0);
   for (const sub of subs) {
-    cost += sub.cost ?? 0;
+    cost = cost.add(toDecimal(sub.cost ?? 0));
   }
   const usageSub = await getUsageSubscription(account_id);
 
-  let pay = `Your account balance is ${currency(
+  let pay = `Your account balance is ${moneyToCurrency(
     totalBalance,
   )}. `;
-  if (totalBalance - cost < 0) {
-    const amount = currency(Math.abs(totalBalance - cost));
+  if (totalBalance.sub(cost).lt(0)) {
+    const amount = moneyToCurrency(totalBalance.sub(cost).abs());
     if (usageSub) {
       pay += ` You have automatic payments set up, and might be charged at least ${amount} in the next few days.`;
     } else {
@@ -106,7 +106,7 @@ so they are not automatically canceled.   You will receive a reminder email in a
     subscriptionList.push(
       `<li>${sub.interval == "month" ? "Monthly" : "Yearly"} Subscription (id=${
         sub.id
-      }) for ${currency(sub.cost)}/${sub.interval}: ${await describeLicense(
+      }) for ${moneyToCurrency(sub.cost)}/${sub.interval}: ${await describeLicense(
         sub.metadata,
       )} </li>`,
     );

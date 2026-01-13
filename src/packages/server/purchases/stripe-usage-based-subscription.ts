@@ -63,6 +63,7 @@ import { createCreditFromPaidStripePaymentIntent } from "./create-invoice";
 import syncPaidInvoices from "./sync-paid-invoices";
 import { isValidUUID } from "@cocalc/util/misc";
 import dayjs from "dayjs";
+import { moneyToStripe, toDecimal, type MoneyValue } from "@cocalc/util/money";
 
 const logger = getLogger("purchases:stripe-usage-based-subscription");
 
@@ -293,24 +294,29 @@ export async function collectPayment({
   amount, // in dollars; is rounded up to pennies.
 }: {
   account_id: string;
-  amount: number;
+  amount: MoneyValue;
 }) {
   const sub = await getUsageSubscription(account_id);
   if (sub == null) {
     throw Error("No active usage subscription -- please create a new one.");
   }
-  if (amount < MINIMUM_PAYMENT) {
+  let amountValue = toDecimal(amount);
+  if (amountValue.lt(MINIMUM_PAYMENT)) {
     logger.debug(
       "collectPayment: increasing amount from ",
-      amount,
+      amountValue.toNumber(),
       "to the min allowed amount of",
       MINIMUM_PAYMENT,
     );
-    amount = MINIMUM_PAYMENT;
+    amountValue = toDecimal(MINIMUM_PAYMENT);
   }
   if (sub.object == "card") {
     // legacy fallback for credit cards
-    await collectPaymentUsingCreditCard({ account_id, amount, card: sub });
+    await collectPaymentUsingCreditCard({
+      account_id,
+      amount: amountValue,
+      card: sub,
+    });
     return;
   }
   if (sub.object != "subscription") {
@@ -321,8 +327,9 @@ export async function collectPayment({
     throw Error("Usage subscription is invalid -- please create a new one.");
   }
   const stripe = await getConn();
+  const stripeAmount = moneyToStripe(amountValue);
   await stripe.subscriptionItems.createUsageRecord(subscription_item, {
-    quantity: Math.ceil(amount * 100),
+    quantity: stripeAmount,
   });
   await stripe.subscriptions.update(sub.id, { billing_cycle_anchor: "now" });
 
@@ -359,15 +366,24 @@ export async function hasUsageSubscription(
 Legacy function to collect money from user via a credit card.
 This can get deleted when there are no more credit cards on file...
 */
-async function collectPaymentUsingCreditCard({ account_id, amount, card }) {
+async function collectPaymentUsingCreditCard({
+  account_id,
+  amount,
+  card,
+}: {
+  account_id: string;
+  amount: MoneyValue;
+  card: any;
+}) {
   const customer = await getStripeCustomerId({ account_id, create: false });
   if (!customer) {
     throw Error("no stripe customer id");
   }
   const stripe = await getConn();
+  const stripeAmount = moneyToStripe(amount);
   const intent = await stripe.paymentIntents.create({
     customer,
-    amount: Math.ceil(amount * 100),
+    amount: stripeAmount,
     currency: "usd",
     confirm: true,
     description: "Credit CoCalc Account",

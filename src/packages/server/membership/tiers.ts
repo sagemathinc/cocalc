@@ -1,6 +1,6 @@
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import type { MembershipClass } from "@cocalc/conat/hub/api/purchases";
-import { round2up } from "@cocalc/util/misc";
+import { moneyRound2Up, toDecimal } from "@cocalc/util/money";
 
 export interface MembershipTierPricing {
   price_monthly?: number;
@@ -85,10 +85,15 @@ export function getMembershipPrice(
   }
   const price =
     interval == "month" ? tier.price_monthly : tier.price_yearly;
-  if (price == null || !Number.isFinite(price) || price < 0) {
+  const priceValue = toDecimal(price ?? 0);
+  if (
+    price == null ||
+    !Number.isFinite(priceValue.toNumber()) ||
+    priceValue.lt(0)
+  ) {
     throw Error(`invalid membership price for "${tier.id}" (${interval})`);
   }
-  return price;
+  return priceValue.toNumber();
 }
 
 export async function getActiveMembershipSubscription({
@@ -154,6 +159,7 @@ export async function computeMembershipPricing({
     throw Error(`membership tier "${targetClass}" is not available`);
   }
   const price = getMembershipPrice(targetTier, interval);
+  const priceValue = toDecimal(price);
   const existing = await getActiveMembershipSubscription({
     account_id,
     client,
@@ -172,22 +178,24 @@ export async function computeMembershipPricing({
     }
   }
 
-  let refund = 0;
+  let refund = toDecimal(0);
   if (existingClass && targetPriority > existingPriority) {
     const start = new Date(existing.current_period_start).valueOf();
     const end = new Date(existing.current_period_end).valueOf();
     const now = Date.now();
     if (end > now && end > start) {
       const fraction = Math.max(0, Math.min(1, (end - now) / (end - start)));
-      refund = round2up(existing.cost * fraction);
+      refund = moneyRound2Up(toDecimal(existing.cost ?? 0).mul(fraction));
     }
   }
 
-  const charge = Math.max(0, round2up(price - refund));
+  const charge = moneyRound2Up(
+    priceValue.sub(refund).lt(0) ? 0 : priceValue.sub(refund),
+  );
   return {
-    price,
-    charge,
-    refund,
+    price: priceValue.toNumber(),
+    charge: charge.toNumber(),
+    refund: refund.toNumber(),
     existing_subscription_id: existing?.id,
     existing_class: existing?.metadata?.class,
     current_period_start: existing?.current_period_start,
@@ -223,6 +231,7 @@ export async function computeMembershipChange({
   }
 
   const price = getMembershipPrice(targetTier, interval);
+  const priceValue = toDecimal(price);
   const existing = await getActiveMembershipSubscription({
     account_id,
     client,
@@ -248,26 +257,30 @@ export async function computeMembershipChange({
     throw Error("unsupported membership change");
   }
 
-  let refund = 0;
+  let refund = toDecimal(0);
   if (change == "upgrade" && existing) {
     const start = new Date(existing.current_period_start).valueOf();
     const end = new Date(existing.current_period_end).valueOf();
     const now = Date.now();
     if (end > now && end > start) {
       const fraction = Math.max(0, Math.min(1, (end - now) / (end - start)));
-      refund = round2up(existing.cost * fraction);
+      refund = moneyRound2Up(toDecimal(existing.cost ?? 0).mul(fraction));
     }
   }
   const charge =
-    change == "downgrade" ? 0 : Math.max(0, round2up(price - refund));
+    change == "downgrade"
+      ? toDecimal(0)
+      : moneyRound2Up(
+          priceValue.sub(refund).lt(0) ? 0 : priceValue.sub(refund),
+        );
 
   return {
     change,
     target_class: targetClass,
     target_interval: interval,
-    price,
-    charge,
-    refund,
+    price: priceValue.toNumber(),
+    charge: charge.toNumber(),
+    refund: refund.toNumber(),
     existing_subscription_id: existing?.id,
     existing_class: existingClass,
     current_period_start: existing?.current_period_start,

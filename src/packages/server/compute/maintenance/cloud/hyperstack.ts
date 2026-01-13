@@ -13,7 +13,7 @@ but would be better configured via admin settings...
 import { getCredit } from "@cocalc/server/compute/cloud/hyperstack/client";
 import { globalResourceSync } from "@cocalc/server/compute/cloud/hyperstack/sync";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency } from "@cocalc/util/money";
 import { createTTLCache } from "@cocalc/server/compute/database-cache";
 import getLogger from "@cocalc/backend/logger";
 import adminAlert from "@cocalc/server/messages/admin-alert";
@@ -96,8 +96,8 @@ async function balanceCheck() {
     const subject = `${siteName} HYPERSTACK BALANCE ALERT`;
     const body = `Dear ${siteName} Admin,
 
-The balance on the Hyperstack account is ${currency(credit)}, which is below the
-threshold of ${currency(hyperstack_balance_alert_thresh)}.
+The balance on the Hyperstack account is ${moneyToCurrency(credit)}, which is below the
+threshold of ${moneyToCurrency(hyperstack_balance_alert_thresh)}.
 
 -- ${siteName}
 `;

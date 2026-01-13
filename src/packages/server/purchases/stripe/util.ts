@@ -1,5 +1,5 @@
 import getLogger from "@cocalc/backend/logger";
-import { currency, round2 } from "@cocalc/util/misc";
+import { moneyToCurrency, toDecimal, type MoneyValue } from "@cocalc/util/money";
 import getConn from "@cocalc/server/stripe/connection";
 import getPool from "@cocalc/database/pool";
 import stripeName from "@cocalc/util/stripe/name";
@@ -74,23 +74,25 @@ export async function getStripeCustomerId({
   }
 }
 
-export async function sanityCheckAmount(amount) {
-  if (!amount) {
+export async function sanityCheckAmount(amount: MoneyValue) {
+  const amountValue = toDecimal(amount);
+  if (amountValue.eq(0)) {
     throw Error("Amount must be nonzero.");
   }
   const { pay_as_you_go_min_payment } = await getServerSettings();
-  const minAllowed = Math.max(
-    MINIMUM_STRIPE_TRANSACTION,
-    pay_as_you_go_min_payment ?? 0,
-  );
-  if (amount < minAllowed) {
+  const minAllowed = (() => {
+    const minStripe = toDecimal(MINIMUM_STRIPE_TRANSACTION);
+    const minPayment = toDecimal(pay_as_you_go_min_payment ?? 0);
+    return minStripe.gt(minPayment) ? minStripe : minPayment;
+  })();
+  if (amountValue.lt(minAllowed)) {
     throw Error(
-      `Amount ${currency(round2(amount))} must be at least ${currency(minAllowed)}.`,
+      `Amount ${moneyToCurrency(amountValue)} must be at least ${moneyToCurrency(minAllowed)}.`,
     );
   }
-  if (amount > MAX_COST) {
+  if (amountValue.gt(MAX_COST)) {
     throw Error(
-      `Amount ${currency(round2(amount))} exceeds the maximum allowed amount of ${currency(MAX_COST)}.  Please contact support.`,
+      `Amount ${moneyToCurrency(amountValue)} exceeds the maximum allowed amount of ${moneyToCurrency(MAX_COST)}.  Please contact support.`,
     );
   }
 }
@@ -158,8 +160,9 @@ export function getStripeLineItems(lineItems: LineItem[]): {
   let credit = 0;
   let total_excluding_tax_usd = 0;
   for (const item of lineItems) {
-    const amount = decimalToStripe(item.amount);
-    if (item.amount < 0) {
+    const amountValue = toDecimal(item.amount);
+    const amount = decimalToStripe(amountValue);
+    if (amountValue.lt(0)) {
       credit += Math.abs(amount);
     }
     total_excluding_tax_usd += amount;
@@ -174,7 +177,8 @@ export function getStripeLineItems(lineItems: LineItem[]): {
   // reduce charges to use up the credits
   const newLineItems: LineItem[] = [];
   for (const item of lineItems) {
-    const amount = decimalToStripe(item.amount);
+    const amountValue = toDecimal(item.amount);
+    const amount = decimalToStripe(amountValue);
     if (amount < 0) {
       // a credit
       continue;
@@ -188,7 +192,7 @@ export function getStripeLineItems(lineItems: LineItem[]): {
       newLineItems.push({
         description:
           item.description +
-          ` (${currency(stripeToDecimal(creditToUse))} credit deducted from your account)`,
+          ` (${moneyToCurrency(stripeToDecimal(creditToUse))} credit deducted from your account)`,
         amount: stripeToDecimal(amount2),
       });
     }

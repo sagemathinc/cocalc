@@ -55,6 +55,7 @@ import {
   unmountAll as unmountAllCloudFilesystems,
   numMounted as numMountedCloudFilesystems,
 } from "@cocalc/server/compute/cloud-filesystem/control";
+import { moneyToDbString } from "@cocalc/util/money";
 
 const logger = getLogger("server:compute:control");
 
@@ -459,7 +460,7 @@ export async function cost({
   // to user, etc.
   await getPool().query(
     "UPDATE compute_servers SET cost_per_hour=$1 WHERE id=$2",
-    [cost_per_hour, id],
+    [moneyToDbString(cost_per_hour), id],
   );
   return cost_per_hour;
 }

@@ -1,5 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import type { PoolClient } from "@cocalc/database/pool";
+import { moneyToDbString, toDecimal } from "@cocalc/util/money";
 
 /*
 compute the sum of the following, over all rows of the table for a given account_id:
@@ -39,18 +40,18 @@ export default async function getBalance({
     `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1`,
     [account_id],
   );
-  const balance = rows[0]?.balance ?? 0;
+  const balance = toDecimal(rows[0]?.balance ?? 0);
   if (!noSave) {
     const now = Date.now();
     if (now - (lastUpdate[account_id] ?? 0) >= MIN_BALANCE_UPDATE_MS) {
       lastUpdate[account_id] = now;
       await pool.query("UPDATE accounts SET balance=$2 WHERE account_id=$1", [
         account_id,
-        balance,
+        moneyToDbString(balance),
       ]);
     }
   }
-  return balance;
+  return balance.toNumber();
 }
 
 // total balance right now
@@ -60,5 +61,5 @@ export async function getTotalBalance(account_id: string, client?: PoolClient) {
     `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1`,
     [account_id],
   );
-  return rows[0]?.balance ?? 0;
+  return toDecimal(rows[0]?.balance ?? 0).toNumber();
 }

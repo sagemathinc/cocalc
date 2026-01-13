@@ -45,7 +45,7 @@ import { uuid } from "@cocalc/util/misc";
 import getPool from "@cocalc/database/pool";
 import { delay } from "awaiting";
 import { FIELDS } from "./get";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency } from "@cocalc/util/money";
 
 const logger = getLogger("server:compute:cloud-filesystem:create");
 
@@ -179,7 +179,7 @@ export async function createCloudFilesystem(opts: Options): Promise<number> {
   if (!allowed) {
     logger.debug("createCloudFilesystem -- not allowed", reason);
     throw Error(
-      `You must have at least ${currency(
+      `You must have at least ${moneyToCurrency(
         CREATE_CLOUD_FILESYSTEM_AMOUNT,
       )} credit on your account to create a cloud file system.  There is no charge to create the file system.`,
     );

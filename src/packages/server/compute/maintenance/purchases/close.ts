@@ -14,6 +14,7 @@ import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { MIN_NETWORK_CLOSE_DELAY_MS } from "./manage-purchases";
 import { setPurchaseId } from "./util";
 import { computeCost, getNetworkUsage } from "@cocalc/server/compute/control";
+import { moneyToDbString, toDecimal } from "@cocalc/util/money";
 
 const logger = getLogger("server:compute:maintenance:purchases:close");
 
@@ -60,14 +61,14 @@ export async function closePurchase({
   const now = Date.now();
   // at least 1 minute
   const hours = Math.max((now - start) / (1000 * 60 * 60), 1 / 60.0);
-  purchase.cost = Math.max(
-    0.001, // always at least 0.1 penny to avoid abuse (?).
-    hours * purchase.cost_per_hour,
-  );
+  const minCost = toDecimal("0.001"); // always at least 0.1 penny to avoid abuse (?).
+  const computedCost = toDecimal(purchase.cost_per_hour ?? 0).mul(hours);
+  const finalCost = computedCost.gt(minCost) ? computedCost : minCost;
+  purchase.cost = finalCost.toNumber();
   // set the final cost, thus closing out this purchase.
   purchase.period_end = new Date(now);
   await pool.query("UPDATE purchases SET cost=$1, period_end=$2 WHERE id=$3", [
-    purchase.cost,
+    moneyToDbString(finalCost),
     purchase.period_end,
     purchase.id,
   ]);

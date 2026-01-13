@@ -19,6 +19,7 @@ import {
 } from "@cocalc/util/db-schema/compute-servers";
 import getPurchases from "@cocalc/server/purchases/get-purchases";
 import dayjs from "dayjs";
+import { moneyToDbString, toDecimal } from "@cocalc/util/money";
 
 const logger = getLogger("server:compute:maintenance:cloud:spend-limit");
 
@@ -54,24 +55,25 @@ WHERE state = 'running'
       group: true,
       cutoff: dayjs().subtract(hours, "hour").toDate(),
     });
-    let total = 0;
+    let total = toDecimal(0);
     for (const { cost, cost_so_far } of purchases) {
-      total += cost ?? cost_so_far ?? 0;
+      total = total.add(cost ?? cost_so_far ?? 0);
     }
+    const dollarsValue = toDecimal(dollars);
     try {
       await pool.query("UPDATE compute_servers SET spend=$1 where id=$2", [
-        total,
+        moneyToDbString(total),
         row.id,
       ]);
     } catch (err) {
       logger.debug(`WARNING -- unable to update spend field -- ${err}`);
     }
-    if (total < dollars) {
+    if (total.lt(dollarsValue)) {
       logger.debug("spend is under the limit -- nothing to do", row);
       return;
     }
     try {
-      await createProjectLogEntry({ ...row, total });
+      await createProjectLogEntry({ ...row, total: total.toNumber() });
       const { account_id, id } = row;
       await stop({ account_id, id });
     } catch (err) {

@@ -3,6 +3,7 @@ import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import getMinBalance from "./get-min-balance";
 import type { PoolClient } from "@cocalc/database/pool";
 import { getServerSettings } from "@cocalc/database/settings";
+import { moneyToDbString, toDecimal, type MoneyValue } from "@cocalc/util/money";
 
 export async function setPurchaseQuota({
   account_id,
@@ -33,12 +34,12 @@ export async function setPurchaseQuota({
   if (services[service] != null) {
     await pool.query(
       "UPDATE purchase_quotas SET value=$3 WHERE service=$2 AND account_id=$1",
-      [account_id, service, value],
+      [account_id, service, moneyToDbString(value)],
     );
   } else {
     await pool.query(
       "INSERT INTO purchase_quotas(account_id,service,value) VALUES($1,$2,$3)",
-      [account_id, service, value],
+      [account_id, service, moneyToDbString(value)],
     );
     if (
       service == "compute-server" &&
@@ -50,15 +51,15 @@ export async function setPurchaseQuota({
       // the new user frontend UI complicated right now with multiple quotas to buy one thing.
       await pool.query(
         "INSERT INTO purchase_quotas(account_id,service,value) VALUES($1,$2,$3)",
-        [account_id, "compute-server-network-usage", value],
+        [account_id, "compute-server-network-usage", moneyToDbString(value)],
       );
     }
   }
 }
 
 export interface PurchaseQuotas {
-  services: { [service: string]: number };
-  minBalance: number;
+  services: { [service: string]: MoneyValue };
+  minBalance: MoneyValue;
 }
 
 export async function getPurchaseQuotas(
@@ -71,7 +72,7 @@ export async function getPurchaseQuotas(
     [account_id],
   );
 
-  const services: { [service: string]: number } = {};
+  const services: { [service: string]: MoneyValue } = {};
   for (const { service, value } of rows) {
     const isLLM = QUOTA_SPEC[service]?.category === "ai";
     const { llm_default_quota } = await getServerSettings();
@@ -94,8 +95,10 @@ export async function getPurchaseQuota(
   const isLLM = QUOTA_SPEC[service]?.category === "ai";
   if (isLLM) {
     const { llm_default_quota } = await getServerSettings();
-    return rows[0]?.value ?? llm_default_quota;
+    return toDecimal(rows[0]?.value ?? llm_default_quota).toNumber();
   } else {
-    return rows[0]?.value ?? null;
+    return rows[0]?.value == null
+      ? null
+      : toDecimal(rows[0]?.value).toNumber();
   }
 }

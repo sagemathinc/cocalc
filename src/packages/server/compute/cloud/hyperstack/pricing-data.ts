@@ -26,6 +26,7 @@ import type { Price } from "@cocalc/util/compute/cloud/hyperstack/api-types";
 import { getFlavors, getPricebook, getStocks } from "./client";
 import TTLCache from "@isaacs/ttlcache";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { toDecimal } from "@cocalc/util/money";
 
 function getKey({ region_name, gpu, gpu_count }) {
   return `${region_name}-${gpu}-${gpu_count}`;
@@ -138,18 +139,20 @@ function computeCost({
   ram,
   gpu_count,
 }): number | string {
-  let cost =
-    Number(priceMap["Cloud-SSD"].original_value) * disk +
-    Number(priceMap["PublicIP"].original_value);
+  let cost = toDecimal(priceMap["Cloud-SSD"].original_value).mul(disk);
+  cost = cost.add(priceMap["PublicIP"].original_value);
   if (gpu) {
     // for machines with GPU's, the cost seems to be the internal disk (which we do not use at all)
     // plus the cost of an ip address, plus the gpu cost.
-    cost += Number(priceMap[gpu].original_value) * gpu_count;
+    cost = cost.add(toDecimal(priceMap[gpu].original_value).mul(gpu_count));
   } else {
     // for NON-GPU machines (cpu only) the cost is a function of the number of cpu's and the amount of ram.
-    cost +=
-      Number(priceMap["vCPU (cpu-only-flavors)"].original_value) * cpu +
-      Number(priceMap["RAM (cpu-only-flavors)"].original_value) * ram;
+    cost = cost.add(
+      toDecimal(priceMap["vCPU (cpu-only-flavors)"].original_value).mul(cpu),
+    );
+    cost = cost.add(
+      toDecimal(priceMap["RAM (cpu-only-flavors)"].original_value).mul(ram),
+    );
   }
-  return cost;
+  return cost.toNumber();
 }

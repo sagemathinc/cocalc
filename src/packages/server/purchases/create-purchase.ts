@@ -5,6 +5,7 @@ import getPool, { PoolClient } from "@cocalc/database/pool";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Description } from "@cocalc/util/db-schema/purchases";
 import { getClosingDay } from "./closing-date";
+import { moneyToDbString, toDecimal, type MoneyValue } from "@cocalc/util/money";
 
 const logger = getLogger("purchase:create-purchase");
 
@@ -19,10 +20,10 @@ interface Options {
   client: PoolClient | null; // all purchases have to explicitly set client (possibly to null), to strongly encourage doing them as part of an atomic transaction.
   project_id?: string;
   // if cost not known yet, don't give. The cost may be unknown until a purchase interval closes.
-  cost?: number;
-  unrounded_cost?: number; // if given and we compute cost_per_hour, this will be used, since cost itself may be rounded!
-  cost_per_hour?: number;
-  cost_so_far?: number;
+  cost?: MoneyValue;
+  unrounded_cost?: MoneyValue; // if given and we compute cost_per_hour, this will be used, since cost itself may be rounded!
+  cost_per_hour?: MoneyValue;
+  cost_so_far?: MoneyValue;
   period_start?: Date; // options; used mainly for analytics, e.g., for a license with given start and end dates.
   period_end?: Date;
   invoice_id?: string;
@@ -65,7 +66,7 @@ export default async function createPurchase(opts: Options): Promise<number> {
   ) {
     const hours = dayjs(period_end).diff(dayjs(period_start), "hour", true);
     if (hours > 0) {
-      cost_per_hour = (unrounded_cost ?? cost) / hours;
+      cost_per_hour = toDecimal(unrounded_cost ?? cost).div(hours);
     }
   } else {
     // TODO: I don't know if there is something meaningful to do if there is no period, e.g., with GPT-4.
@@ -78,9 +79,9 @@ export default async function createPurchase(opts: Options): Promise<number> {
     [
       account_id,
       project_id,
-      cost,
-      cost_per_hour,
-      cost_so_far,
+      cost == null ? null : moneyToDbString(cost),
+      cost_per_hour == null ? null : moneyToDbString(cost_per_hour),
+      cost_so_far == null ? null : moneyToDbString(cost_so_far),
       period_start,
       period_end,
       service,

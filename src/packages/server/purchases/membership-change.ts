@@ -9,6 +9,7 @@ import {
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import createSubscription from "@cocalc/server/purchases/create-subscription";
 import { MembershipClass } from "@cocalc/conat/hub/api/purchases";
+import { toDecimal } from "@cocalc/util/money";
 
 interface MembershipChangeOptions {
   account_id: string;
@@ -42,19 +43,20 @@ export async function applyMembershipChange({
       storeVisibleOnly,
       client: transaction,
     });
+    const chargeValue = toDecimal(change.charge);
 
-    if (requireNoPayment && change.charge > 0) {
+    if (requireNoPayment && chargeValue.gt(0)) {
       const purchase = await isPurchaseAllowed({
         account_id,
         service: "membership",
-        cost: change.charge,
+        cost: chargeValue,
         client: transaction,
       });
-      const chargeAmount = purchase.chargeAmount ?? change.charge;
+      const chargeAmount = toDecimal(purchase.chargeAmount ?? change.charge);
       if (!purchase.allowed) {
         throw Error(purchase.reason ?? "purchase not allowed");
       }
-      if (chargeAmount > 0) {
+      if (chargeAmount.gt(0)) {
         throw Error("payment required");
       }
     }
@@ -96,8 +98,8 @@ export async function applyMembershipChange({
 
     const purchase_id = await createPurchase({
       account_id,
-      cost: change.charge,
-      unrounded_cost: change.charge,
+      cost: chargeValue,
+      unrounded_cost: chargeValue,
       service: "membership",
       description: {
         type: "membership",

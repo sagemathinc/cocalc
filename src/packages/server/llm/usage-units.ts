@@ -1,5 +1,5 @@
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { round2up } from "@cocalc/util/misc";
+import { moneyRound2Up, toDecimal } from "@cocalc/util/money";
 import { getLLMCost, type LanguageModelCore } from "@cocalc/util/db-schema/llm-utils";
 
 export const UNITS_PER_DOLLAR = 100;
@@ -15,11 +15,14 @@ export async function computeUsageUnits({
 }): Promise<number> {
   const { pay_as_you_go_openai_markup_percentage } = await getServerSettings();
   const cost = getLLMCost(model, pay_as_you_go_openai_markup_percentage);
-  const dollars =
-    cost.prompt_tokens * prompt_tokens +
-    cost.completion_tokens * completion_tokens;
-  if (!Number.isFinite(dollars) || dollars <= 0) {
+  const dollars = toDecimal(cost.prompt_tokens)
+    .mul(prompt_tokens)
+    .add(toDecimal(cost.completion_tokens).mul(completion_tokens));
+  if (!Number.isFinite(dollars.toNumber()) || dollars.lte(0)) {
     return 0;
   }
-  return Math.max(1, round2up(dollars * UNITS_PER_DOLLAR));
+  return Math.max(
+    1,
+    moneyRound2Up(dollars.mul(UNITS_PER_DOLLAR)).toNumber(),
+  );
 }

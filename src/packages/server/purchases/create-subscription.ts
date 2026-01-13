@@ -7,8 +7,11 @@ import type {
 import { getPoolClient, PoolClient } from "@cocalc/database/pool";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import { is_date as isDate, is_integer } from "@cocalc/util/misc";
+import { moneyToDbString, toDecimal, type MoneyValue } from "@cocalc/util/money";
 
-type Options = Omit<Subscription, "id" | "created" | "notes">;
+type Options = Omit<Subscription, "id" | "created" | "notes"> & {
+  cost: MoneyValue;
+};
 
 export default async function createSubscription(
   opts: Options,
@@ -21,7 +24,8 @@ export default async function createSubscription(
   if (!(await isValidAccount(opts.account_id))) {
     throw Error("account_id must be valid");
   }
-  if (!opts.cost || opts.cost < 0) {
+  const costValue = toDecimal(opts.cost);
+  if (costValue.eq(0) || costValue.lt(0)) {
     throw Error("cost must be positive");
   }
   if (opts.interval != "month" && opts.interval != "year") {
@@ -60,7 +64,7 @@ export default async function createSubscription(
     "INSERT INTO subscriptions (account_id,created,cost,interval,current_period_start,current_period_end,latest_purchase_id,status,metadata) VALUES($1,NOW(),$2,$3,$4,$5,$6,'active',$7)  RETURNING id",
     [
       opts.account_id,
-      opts.cost,
+      moneyToDbString(costValue),
       opts.interval,
       opts.current_period_start,
       opts.current_period_end,

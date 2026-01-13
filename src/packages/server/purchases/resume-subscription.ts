@@ -25,6 +25,7 @@ import {
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import getBalance from "./get-balance";
 import createPurchase from "./create-purchase";
+import { moneyToDbString, toDecimal } from "@cocalc/util/money";
 
 interface Options {
   account_id: string;
@@ -175,7 +176,8 @@ async function getSubscriptionRenewalData(subscription_id): Promise<{
       `You can only resume a canceled subscription, but this subscription is "${status}"`,
     );
   }
-  let periodicCost = currentCost;
+  const currentCostValue = toDecimal(currentCost ?? 0);
+  let periodicCostValue = currentCostValue;
   if (metadata.type == "license") {
     const pool = getPool();
     const { rows } = await pool.query(
@@ -189,19 +191,26 @@ async function getSubscriptionRenewalData(subscription_id): Promise<{
         start: null,
         end: null,
       });
-      const newCost = getPeriodicCost(computedCost);
-      if (newCost != currentCost) {
+      const newCostValue = toDecimal(getPeriodicCost(computedCost));
+      if (!newCostValue.eq(currentCostValue)) {
         await pool.query(`UPDATE subscriptions SET cost=$1 WHERE id=$2`, [
-          newCost,
+          moneyToDbString(newCostValue),
           subscription_id,
         ]);
-        periodicCost = newCost;
+        periodicCostValue = newCostValue;
       }
     }
   }
   const start = dayjs().startOf("day").toDate();
   const end = addInterval(start, interval);
-  return { metadata, start, end, periodicCost, current_period_end, interval };
+  return {
+    metadata,
+    start,
+    end,
+    periodicCost: periodicCostValue.toNumber(),
+    current_period_end,
+    interval,
+  };
 }
 
 export async function costToResumeSubscription(

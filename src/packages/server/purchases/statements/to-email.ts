@@ -37,10 +37,9 @@ purchases:
 
 import type { Statement } from "@cocalc/util/db-schema/statements";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
-import { currency, round2down } from "@cocalc/util/misc";
+import { moneyRound2Down, moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import { plural } from "@cocalc/util/misc";
 import { QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
-import { decimalSubtract } from "@cocalc/util/stripe/calc";
 
 function toISODay(d: any) {
   return new Date(d).toISOString().split("T")[0];
@@ -52,18 +51,26 @@ export function statementToMarkdown(
   opts: { siteName?: string } = {},
 ): string {
   const { siteName = "CoCalc" } = opts;
+  const previousBalance = moneyRound2Down(
+    toDecimal(previousStatement?.balance ?? 0),
+  );
+  const totalCharges = toDecimal(statement.total_charges ?? 0);
+  const totalCredits = toDecimal(statement.total_credits ?? 0);
+  const balance = toDecimal(statement.balance ?? 0);
   return `
 ## Your ${statement.interval == "day" ? "Daily" : "Monthly"} ${siteName} Statement (Id = ${statement.id})
 - ${toISODay(statement.time)}
-- Previous Balance: ${currency(round2down(previousStatement?.balance ?? 0))}
-- ${statement.num_charges} ${plural(statement.num_charges, "Charge")}: ${currency(
-    -statement.total_charges,
-  )}
-- ${statement.num_credits} ${plural(statement.num_credits, "Credit")}: ${currency(
-    -statement.total_credits,
-  )}
-- New Balance: ${currency(statement.balance)}
-${statement.balance >= 0 ? "- **NO PAYMENT IS REQUIRED.**" : ""}
+- Previous Balance: ${moneyToCurrency(previousBalance)}
+- ${statement.num_charges} ${plural(
+    statement.num_charges,
+    "Charge",
+  )}: ${moneyToCurrency(totalCharges.neg())}
+- ${statement.num_credits} ${plural(
+    statement.num_credits,
+    "Credit",
+  )}: ${moneyToCurrency(totalCredits.neg())}
+- New Balance: ${moneyToCurrency(balance)}
+${balance.gte(0) ? "- **NO PAYMENT IS REQUIRED.**" : ""}
 `;
 }
 
@@ -77,15 +84,17 @@ export function purchasesToMarkdown({
   const v: string[] = [];
   v.push("| Id  | Date | Service | Amount | Balance |");
   v.push("| :-- | :--  | :------ | -----: | -----: |");
-  let balance = statement.balance;
+  let balance = toDecimal(statement.balance ?? 0);
   for (const { id, time, service, cost } of purchases) {
-    const amount = -(cost ?? 0);
+    const amount = cost == null ? null : toDecimal(cost).neg();
     const spec = QUOTA_SPEC[service];
     v.push(
-      `| ${id} | ${toISODay(time)} | ${spec?.display ?? service} | ${amount == null ? "-" : currency(amount)} | ${currency(balance)} |`,
+      `| ${id} | ${toISODay(time)} | ${spec?.display ?? service} | ${
+        amount == null ? "-" : moneyToCurrency(amount)
+      } | ${moneyToCurrency(balance)} |`,
     );
     if (amount != null) {
-      balance = decimalSubtract(balance, amount);
+      balance = balance.sub(amount);
     }
   }
 
