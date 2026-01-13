@@ -285,59 +285,6 @@ describe("shopping-cart-checkout", () => {
     });
   });
 
-  //   describe("#toFriendlyName", () => {
-  //     it("constructs disk description", async () => {
-  //       // Arrange
-  //       //
-  //       const productDescription = {
-  //         type: "disk",
-  //         dedicated_disk: {
-  //           size_gb: 512,
-  //           speed: "ssd",
-  //         },
-  //       };
-
-  //       // Act
-  //       //
-  //       const testDescription = sut.toFriendlyDescription(
-  //         productDescription as SiteLicenseDescriptionDB,
-  //       );
-
-  //       // Assert
-  //       //
-  //       expect(testDescription).toEqual(
-  //         "Dedicated Disk (512G size and fast speed)",
-  //       );
-  //     });
-
-  //     it("constructs VM description", async () => {
-  //       // Arrange
-  //       //
-  //       const productDescription = {
-  //         type: "vm",
-  //         dedicated_vm: {
-  //           name: "raspberry pi",
-  //           machine: "n2-standard-2",
-  //         },
-  //       };
-
-  //       // Act
-  //       //
-  //       const testDescription = sut.toFriendlyDescription(
-  //         productDescription as SiteLicenseDescriptionDB,
-  //       );
-
-  //       // Assert
-  //       //
-  //       expect(testDescription).toEqual("Dedicated VM 2 vCPU cores, 6 GB RAM");
-  //     });
-
-  //     it("constructs quota description", async () => {
-  //       // Arrange
-  //       //
-  //       const productDescription = {
-  //         cpu: 1,
-  //         ram: 2,
   //         disk: 3,
   //         type: "quota",
   //         user: "business",

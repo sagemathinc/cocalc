@@ -6,7 +6,6 @@
 // test product ID and pricing
 
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { round2 } from "@cocalc/util/misc";
 import {
@@ -17,7 +16,6 @@ import {
 import expect from "expect";
 import { unitAmount } from "./licenses/purchase/charge";
 import { COSTS } from "@cocalc/util/licenses/purchase/consts";
-import dayjs from "dayjs";
 
 // TODO: some tests are ignored if the machine is not running on UTC.
 // Ideally, this is taken into account, but that's not implemented.
@@ -145,34 +143,5 @@ describe("roundToMidnight", () => {
     expect(roundToMidnight(pm, "end")).toEqual(
       new Date("2022-04-04T23:59:59.999Z"),
     );
-  });
-});
-
-describe("dedicated disk", () => {
-  it("calculates subscription price of one disk", () => {
-    const start = startOfDay(new Date());
-    const purchaseInfo: PurchaseInfo = {
-      version: "1",
-      type: "disk",
-      start,
-      end: dayjs(start).add(30, "days").add(12, "hours").toDate(), // adding exact amount of time to make test well defined
-      quantity: 1,
-      subscription: "monthly",
-      dedicated_disk: {
-        name: "mydisk123",
-        speed: "balanced",
-        size_gb: 32,
-      },
-    };
-    const cost = compute_cost(purchaseInfo);
-    expect(cost).toEqual({
-      cost: 8,
-      cost_per_project_per_month: 8,
-      cost_per_unit: 8,
-      cost_sub_month: 8,
-      cost_sub_year: 96,
-      period: "monthly",
-      quantity: 1,
-    });
   });
 });
