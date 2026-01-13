@@ -30,7 +30,12 @@ import {
 } from "@cocalc/frontend/purchases/api";
 import { MEMBERSHIP_CHANGE } from "@cocalc/util/db-schema/purchases";
 import { currency } from "@cocalc/util/misc";
-import { moneyRound2Up, toDecimal } from "@cocalc/util/money";
+import {
+  moneyRound2Up,
+  moneyToCurrency,
+  toDecimal,
+  type MoneyValue,
+} from "@cocalc/util/money";
 import type { LineItem } from "@cocalc/util/stripe/types";
 import type { MembershipResolution } from "@cocalc/conat/hub/api/purchases";
 
@@ -41,8 +46,8 @@ interface MembershipTier {
   label?: string;
   store_visible?: boolean;
   priority?: number;
-  price_monthly?: number;
-  price_yearly?: number;
+  price_monthly?: MoneyValue;
+  price_yearly?: MoneyValue;
   disabled?: boolean;
 }
 
@@ -261,6 +266,7 @@ export default function MembershipPurchaseModal({
             {visibleTiers.map((tier) => {
               const price =
                 interval === "month" ? tier.price_monthly : tier.price_yearly;
+              const priceValue = price != null ? toDecimal(price) : null;
               const isCurrentTier = tier.id === currentClass;
               const tierPriority = tier.priority ?? 0;
               const currentPriority =
@@ -282,8 +288,8 @@ export default function MembershipPurchaseModal({
                 >
                   <Title level={4}>{tier.label ?? tier.id}</Title>
                   <div style={{ marginBottom: "8px" }}>
-                    {price != null ? (
-                      <Text strong>{currency(price)}</Text>
+                    {priceValue != null ? (
+                      <Text strong>{moneyToCurrency(priceValue)}</Text>
                     ) : (
                       <Text type="secondary">Pricing not configured</Text>
                     )}{" "}
@@ -291,7 +297,7 @@ export default function MembershipPurchaseModal({
                   </div>
                   <Button
                     type={selectedTierId === tier.id ? "primary" : "default"}
-                    disabled={isCurrentTier || price == null}
+                    disabled={isCurrentTier || priceValue == null}
                     onClick={() => {
                       if (!isCurrentTier) {
                         setSelectedTierId(tier.id);

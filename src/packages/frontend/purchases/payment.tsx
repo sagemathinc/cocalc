@@ -1,8 +1,7 @@
 import { Divider, Tag } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
-import { currency } from "@cocalc/util/misc";
-import { toDecimal } from "@cocalc/util/money";
+import { moneyToCurrency, toDecimal, type MoneyValue } from "@cocalc/util/money";
 import { zIndexPayAsGo } from "./zindex";
 import * as api from "./api";
 import PaymentConfig from "./payment-config";
@@ -12,9 +11,9 @@ const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
 
 interface Props {
-  balance: number;
+  balance: MoneyValue;
   update?: Function;
-  cost?: number; // optional amount that we want to encourage the user to pay
+  cost?: MoneyValue; // optional amount that we want to encourage the user to pay
 }
 
 export default function Payment({ balance, update, cost }: Props) {
@@ -52,7 +51,7 @@ export default function Payment({ balance, update, cost }: Props) {
       <h3>
         <Icon name="credit-card" style={{ marginRight: "10px" }} />
         {cost
-          ? `Add at least ${currency(cost)} (plus tax) to your account`
+          ? `Add at least ${moneyToCurrency(cost)} (plus tax) to your account`
           : "Make a Deposit"}
       </h3>
       <div>
@@ -83,7 +82,7 @@ export default function Payment({ balance, update, cost }: Props) {
                       amount: paymentAmount,
                     },
                   ]}
-                  description={`Add ${currency(paymentAmount)} to your account from within the CoCalc app.`}
+                  description={`Add ${moneyToCurrency(paymentAmount)} to your account from within the CoCalc app.`}
                   purpose={"add-credit"}
                   onFinished={() => {
                     update?.();

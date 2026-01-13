@@ -18,6 +18,7 @@ import createCredit from "./create-credit";
 import getBalance from "./get-balance";
 import getPool from "@cocalc/database/pool";
 import { before, after } from "@cocalc/server/test";
+import { toDecimal } from "@cocalc/util/money";
 
 beforeAll(async () => {
   await before({ noConat: true });
@@ -50,12 +51,16 @@ describe("create a subscription, then renew it", () => {
     expect(
       dayjs(sub.current_period_end).diff(dayjs(), "day"),
     ).toBeGreaterThanOrEqual(50); // another month added...
-    expect(await getBalance({ account_id })).toBeCloseTo(0);
+    expect(toDecimal(await getBalance({ account_id })).toNumber()).toBeCloseTo(
+      0,
+    );
   });
 
   it("renews the subscription again but with force set to true, so that the subscription renews (even though we are out of money)", async () => {
     await renewSubscription({ account_id, subscription_id, force: true });
-    expect(await getBalance({ account_id })).toBeCloseTo(-cost);
+    expect(toDecimal(await getBalance({ account_id })).toNumber()).toBeCloseTo(
+      -cost,
+    );
     const sub = await getSubscription(subscription_id);
     expect(
       dayjs(sub.current_period_end).diff(dayjs(), "day"),

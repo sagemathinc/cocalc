@@ -3,9 +3,10 @@ import Support from "./support";
 import MoneyStatistic from "./money-statistic";
 import ClosingDate from "./closing-date";
 import { Icon } from "@cocalc/frontend/components/icon";
+import type { MoneyValue } from "@cocalc/util/money";
 
 interface Props {
-  minBalance?: number | null;
+  minBalance?: MoneyValue | null;
   style?;
 }
 

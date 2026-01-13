@@ -3,6 +3,7 @@ import { uuid } from "@cocalc/util/misc";
 import createAccount from "@cocalc/server/accounts/create-account";
 import createPurchase from "./create-purchase";
 import { before, after, getPool } from "@cocalc/server/test";
+import { toDecimal } from "@cocalc/util/money";
 
 beforeAll(async () => {
   await before({ noConat: true });
@@ -13,7 +14,7 @@ describe("get the spend rate of a user under various circumstances", () => {
   const account_id = uuid();
 
   it("gets spend rate of user that doesn't even exist", async () => {
-    expect(await getSpendRate(account_id)).toBe(0);
+    expect(toDecimal(await getSpendRate(account_id)).toNumber()).toBe(0);
   });
 
   it("create an account, and spend rate of course still 0", async () => {
@@ -24,7 +25,7 @@ describe("get the spend rate of a user under various circumstances", () => {
       lastName: "User",
       account_id,
     });
-    expect(await getSpendRate(account_id)).toBe(0);
+    expect(toDecimal(await getSpendRate(account_id)).toNumber()).toBe(0);
   });
 
   it("add a purchase that is not pay-as-you-go and spend rate still 0", async () => {
@@ -35,7 +36,7 @@ describe("get the spend rate of a user under various circumstances", () => {
       client: null,
       cost: 3.89,
     });
-    expect(await getSpendRate(account_id)).toBe(0);
+    expect(toDecimal(await getSpendRate(account_id)).toNumber()).toBe(0);
   });
 
   const cost_per_hour1 = 1.23;
@@ -53,7 +54,9 @@ describe("get the spend rate of a user under various circumstances", () => {
         type: "compute-server",
       } as any,
     });
-    expect(await getSpendRate(account_id, "")).toBe(cost_per_hour1);
+    expect(toDecimal(await getSpendRate(account_id, "")).toNumber()).toBe(
+      cost_per_hour1
+    );
   });
 
   const cost_per_hour2 = 0.49;
@@ -72,7 +75,7 @@ describe("get the spend rate of a user under various circumstances", () => {
         type: "compute-server",
       } as any,
     });
-    expect(await getSpendRate(account_id, "")).toBe(
+    expect(toDecimal(await getSpendRate(account_id, "")).toNumber()).toBe(
       cost_per_hour1 + cost_per_hour2
     );
   });
@@ -82,7 +85,9 @@ describe("get the spend rate of a user under various circumstances", () => {
     await pool.query("UPDATE purchases SET period_end=NOW() WHERE id=$1", [
       purchase_id2,
     ]);
-    expect(await getSpendRate(account_id, "")).toBe(cost_per_hour1);
+    expect(toDecimal(await getSpendRate(account_id, "")).toNumber()).toBe(
+      cost_per_hour1
+    );
   });
 
   it("and do that again to get back to 0", async () => {
@@ -90,6 +95,6 @@ describe("get the spend rate of a user under various circumstances", () => {
     await pool.query("UPDATE purchases SET period_end=NOW() WHERE id=$1", [
       purchase_id1,
     ]);
-    expect(await getSpendRate(account_id, "")).toBe(0);
+    expect(toDecimal(await getSpendRate(account_id, "")).toNumber()).toBe(0);
   });
 });

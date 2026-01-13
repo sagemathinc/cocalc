@@ -2,6 +2,7 @@ import { Table } from "./types";
 import { CREATED_BY, ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { NOTES } from "./crm";
+import type { MoneyValue } from "@cocalc/util/money";
 
 export type Status = "active" | "canceled" | "unpaid" | "past_due";
 export type Interval = "month" | "year";
@@ -25,7 +26,7 @@ export interface SubscriptionPayment {
   payment_intent_id: string;
   // the cost of the subscription renewal; this is usually the same as the cost of the subscription,
   // but could be different, e.g,. if part of the renewal is paid from the user's balance.
-  amount: number;
+  amount: MoneyValue;
   // timestamp in ms since epoch of when this payment was created.
   created: number;
   // status of this payment: "active" --> "paid" or "active" --> "canceled"
@@ -39,7 +40,7 @@ export interface Subscription {
   id: number;
   account_id: string;
   created: Date;
-  cost: number;
+  cost: MoneyValue;
   interval: Interval;
   current_period_start: Date;
   current_period_end: Date;
@@ -51,7 +52,7 @@ export interface Subscription {
   metadata: Metadata;
   renewal_email?: Date;
   notes?: string;
-  cost_per_hour?: number;
+  cost_per_hour?: MoneyValue;
   payment?: SubscriptionPayment;
   // if resuming this is the payment intent
   resume_payment_intent?: string;

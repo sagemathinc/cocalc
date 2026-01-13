@@ -27,7 +27,7 @@ import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import { getSubscription } from "./api";
 import { CSSProperties, useEffect, useState } from "react";
 import ShowError from "@cocalc/frontend/components/error";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency } from "@cocalc/util/money";
 import { SubscriptionStatus } from "./subscriptions-util";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -70,7 +70,8 @@ export default function Subscription({ subscription_id, style }: Props) {
       {subscription != null && (
         <div>
           {subscription.interval == "month" ? "Monthly" : "Yearly"} subscription
-          that costs {currency(subscription.cost)}/{subscription.interval}
+          that costs {moneyToCurrency(subscription.cost)}/
+          {subscription.interval}
           <br />
           Status: <SubscriptionStatus status={subscription.status} />
           <br />

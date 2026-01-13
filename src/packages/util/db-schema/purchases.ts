@@ -20,6 +20,7 @@ import { LanguageServiceCore } from "./llm-utils";
 import type { CourseInfo } from "./projects";
 import { Table } from "./types";
 import type { LineItem } from "@cocalc/util/stripe/types";
+import type { MoneyValue } from "@cocalc/util/money";
 
 // various specific payment purposes
 
@@ -79,7 +80,7 @@ export interface LLMDescription {
   type: LanguageServiceCore;
   prompt_tokens: number;
   completion_tokens: number;
-  amount?: number; // appears in purchses/close.ts
+  amount?: MoneyValue; // appears in purchses/close.ts
   last_updated?: number; // also in purchases/close.ts, a timestamp (Date.valueOf())
 }
 
@@ -92,7 +93,7 @@ export interface ComputeServer {
 
 export interface ComputeServerNetworkUsage {
   type: "compute-server-network-usage";
-  cost?: number;
+  cost?: MoneyValue;
   compute_server_id: number;
   amount: number; // amount of data used in GB
   last_updated?: number;
@@ -104,12 +105,12 @@ export interface ComputeServerNetworkUsage {
 // But at least this breakdown is probably helpful as a start to
 // better understand charges.
 export interface GoogleCloudStorageBucketCost {
-  network: number;
-  storage: number;
-  classA: number;
-  classB: number;
-  autoclass: number;
-  other: number;
+  network: MoneyValue;
+  storage: MoneyValue;
+  classA: MoneyValue;
+  classB: MoneyValue;
+  autoclass: MoneyValue;
+  other: MoneyValue;
 }
 
 // This is used to support cloud file systems; however, it's generic
@@ -120,14 +121,14 @@ export interface ComputeServerStorage {
   bucket: string; // SUPER important -- the name of the bucket
   cloud_filesystem_id: number;
   // once the purchase is done and finalized, we put the final cost here:
-  cost?: number;
+  cost?: MoneyValue;
   // this is a breakdown of the cost, which is cloud-specific
   cost_breakdown?: GoogleCloudStorageBucketCost;
   // filesystem the bucket is used for.
   // an estimated cost for the given period of time -- we try to make this
   // based on collected metrics, and it may or may not be close to the
   // actual cost.
-  estimated_cost?: { min: number; max: number };
+  estimated_cost?: { min: MoneyValue; max: MoneyValue };
   // when the estimated cost was set.
   last_updated?: number;
 }
@@ -154,7 +155,7 @@ export interface Membership {
 export interface Voucher {
   type: "voucher";
   quantity: number;
-  cost: number; // per voucher
+  cost: MoneyValue; // per voucher
   title: string;
   voucher_id: number;
   credit_id?: number;
@@ -221,9 +222,9 @@ export interface Purchase {
   id: number;
   time: Date;
   account_id: string;
-  cost?: number;
-  cost_per_hour?: number; // for purchases with a specific rate (e.g., an upgrade)
-  cost_so_far?: number; // for purchases that accumulate (e.g., data transfer)
+  cost?: MoneyValue;
+  cost_per_hour?: MoneyValue; // for purchases with a specific rate (e.g., an upgrade)
+  cost_so_far?: MoneyValue; // for purchases that accumulate (e.g., data transfer)
   period_start?: Date;
   period_end?: Date;
   pending?: boolean;

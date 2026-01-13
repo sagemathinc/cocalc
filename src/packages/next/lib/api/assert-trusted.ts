@@ -4,6 +4,7 @@ import { getServerSettings } from "@cocalc/database/settings";
 import getMinBalance from "@cocalc/server/purchases/get-min-balance";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { currency } from "@cocalc/util/misc";
+import { toDecimal } from "@cocalc/util/money";
 
 const THRESH = -100;
 export const TRUST_ERROR_MESSAGE = `Please contact support and request a minimum balance that is under ${currency(
@@ -18,7 +19,7 @@ export default async function assertTrusted(account_id: string): Promise<void> {
 
   if (kucalc === KUCALC_COCALC_COM) {
     // on cocalc.com, we check if users have gained trust by giving them a lower min balance
-    if ((await getMinBalance(account_id)) > THRESH) {
+    if (toDecimal(await getMinBalance(account_id)).gt(THRESH)) {
       throw new Error(TRUST_ERROR_MESSAGE);
     }
   } else {

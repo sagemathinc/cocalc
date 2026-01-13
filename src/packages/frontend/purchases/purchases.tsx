@@ -59,7 +59,12 @@ import {
   plural,
   round1,
 } from "@cocalc/util/misc";
-import { moneyRound2Down, toDecimal } from "@cocalc/util/money";
+import {
+  moneyRound2Down,
+  moneyToDbString,
+  toDecimal,
+  type MoneyValue,
+} from "@cocalc/util/money";
 import AdminRefund, { isRefundable } from "./admin-refund";
 import * as api from "./api";
 import EmailStatement from "./email-statement";
@@ -180,7 +185,7 @@ function Purchases0({
 }
 
 type PurchaseItem = Partial<
-  Purchase & { sum?: number; filter?: string; balance?: number }
+  Purchase & { sum?: number; filter?: string; balance?: MoneyValue }
 >;
 
 export function PurchasesTable({
@@ -226,7 +231,9 @@ export function PurchasesTable({
   const [offset, setOffset] = useState<number>(0);
   const [total, setTotal] = useState<number | null>(null);
   const [service /*, setService*/] = useState<Service | undefined>(undefined);
-  const [balance, setBalance] = useState<number | null | undefined>(undefined);
+  const [balance, setBalance] = useState<MoneyValue | null | undefined>(
+    undefined,
+  );
   const [hasMore, setHasMore] = useState<boolean>(true); // todo
   const [limit, setLimit] = useState<number>(DEFAULT_LIMIT);
   const [filter, setFilter] = useState<string>("");
@@ -358,7 +365,7 @@ export function PurchasesTable({
       const cost = toDecimal(getCost(row));
       // Compute incremental balance
       if (b != null) {
-        purchases.push({ ...row, balance: b.toNumber() });
+        purchases.push({ ...row, balance: moneyToDbString(b) });
       } else {
         purchases.push(row);
       }
@@ -540,7 +547,8 @@ export function GroupedPurchaseTable({
               key: "cost",
               align: "right" as "right",
               render: (cost) => <Amount record={{ cost }} />,
-              sorter: (a: any, b: any) => (a.cost ?? 0) - (b.cost ?? 0),
+              sorter: (a: any, b: any) =>
+                toDecimal(a.cost ?? 0).comparedTo(b.cost ?? 0),
               sortDirections: ["ascend", "descend"],
             },
 
@@ -725,7 +733,7 @@ export function DetailedPurchaseTable({
                   <Amount record={record} />
                 </>
               ),
-              sorter: (a, b) => (a.cost ?? 0) - (b.cost ?? 0),
+              sorter: (a, b) => toDecimal(a.cost ?? 0).comparedTo(b.cost ?? 0),
               sortDirections: ["ascend", "descend"],
             },
             {

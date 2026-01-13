@@ -17,6 +17,7 @@ import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import type { LicenseFromApi } from "@cocalc/util/db-schema/site-licenses";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
+import { toDecimal, type MoneyValue } from "@cocalc/util/money";
 import type {
   PaymentIntentSecret,
   PaymentIntentCancelReason,
@@ -77,23 +78,25 @@ function shortCache(f, name) {
 
 // getBalance is called a LOT, so we cache the result
 // for 5s and reuseinflight.
-export const getBalance = shortCache(async (): Promise<number> => {
+export const getBalance = shortCache(async (): Promise<MoneyValue> => {
   return await api("purchases/get-balance");
 }, "get-balance");
 
 // Admins can get balance for any specified user -- error if called by non-admin.
 // account_id is required.
-export async function getBalanceAdmin(account_id: string) {
+export async function getBalanceAdmin(
+  account_id: string,
+): Promise<MoneyValue> {
   return await api("purchases/get-balance-admin", { account_id });
 }
 
-export async function getSpendRate(): Promise<number> {
+export async function getSpendRate(): Promise<MoneyValue> {
   return await api("purchases/get-spend-rate");
 }
 
 export async function getQuotas(): Promise<{
-  minBalance: number;
-  services: { [service: string]: number };
+  minBalance: MoneyValue;
+  services: { [service: string]: MoneyValue };
 }> {
   return await api("purchases/get-quotas");
 }
@@ -109,14 +112,14 @@ export async function resetClosingDate() {
 export async function setQuota(
   service: Service,
   value: number,
-): Promise<{ global: number; services: { [service: string]: number } }> {
+): Promise<{ minBalance: MoneyValue; services: { [service: string]: MoneyValue } }> {
   return await api("purchases/set-quota", { service, value });
 }
 
 let lastPurchaseAlert = 0;
 export async function isPurchaseAllowed(
   service: Service,
-  cost?: number,
+  cost?: MoneyValue,
 ): Promise<{
   allowed: boolean;
   discouraged?: boolean;
@@ -179,7 +182,7 @@ function parsePurchaseDates(v) {
 
 type PurchasesFunction = (
   opts: PurchasesOptions,
-) => Promise<{ purchases: Purchase[]; balance: number }>;
+) => Promise<{ purchases: Purchase[]; balance: MoneyValue }>;
 
 export const getPurchases: PurchasesFunction = shortCache(
   async (opts: PurchasesOptions) => {
@@ -199,7 +202,7 @@ export const getPurchases: PurchasesFunction = shortCache(
 // Same options as getPurchases, but specify the account_id.
 export async function getPurchasesAdmin(
   opts: PurchasesOptions & { account_id: string },
-): Promise<{ purchases: Purchase[]; balance: number }> {
+): Promise<{ purchases: Purchase[]; balance: MoneyValue }> {
   return parsePurchaseDates(await api("purchases/get-purchases-admin", opts));
 }
 
@@ -243,7 +246,11 @@ export async function getSubscription(
       z[field] = new Date(z[field]);
     }
   }
-  return { ...z, cost_per_hour: z.cost / hoursInInterval(z.interval) };
+  const costValue = toDecimal(z.cost ?? 0);
+  return {
+    ...z,
+    cost_per_hour: costValue.div(hoursInInterval(z.interval)).toNumber(),
+  };
 }
 
 export async function createSubscriptionPayment(subscription_id: number) {
@@ -254,7 +261,7 @@ export async function createSubscriptionPayment(subscription_id: number) {
 
 export interface LiveSubscription {
   id: number;
-  cost: number;
+  cost: MoneyValue;
   status: "unpaid" | "past_due" | "active";
 }
 export async function getLiveSubscriptions(): Promise<LiveSubscription[]> {
@@ -299,7 +306,10 @@ export async function getInvoiceUrl(
 }
 
 export async function getCostPerDay(opts: { limit?: number; offset?: number }) {
-  return await api("purchases/get-cost-per-day", opts);
+  return (await api("purchases/get-cost-per-day", opts)) as Array<{
+    date: string;
+    total_cost: MoneyValue;
+  }>;
 }
 
 // Get all the stripe information about a given user.
@@ -308,8 +318,12 @@ export async function getCustomer() {
 }
 
 // Get this month's outstanding charges by service.
-export async function getChargesByService() {
-  return await api("purchases/get-charges-by-service");
+export async function getChargesByService(): Promise<{
+  [service: string]: MoneyValue;
+}> {
+  return (await api("purchases/get-charges-by-service")) as {
+    [service: string]: MoneyValue;
+  };
 }
 
 export async function createPaymentIntent(opts: {
@@ -401,9 +415,9 @@ export interface MembershipChangeQuote {
   change: "new" | "upgrade" | "downgrade";
   target_class: string;
   target_interval: "month" | "year";
-  price: number;
-  charge: number;
-  refund: number;
+  price: MoneyValue;
+  charge: MoneyValue;
+  refund: MoneyValue;
   existing_subscription_id?: number;
   existing_class?: string;
   current_period_start?: Date | string;
@@ -411,7 +425,7 @@ export interface MembershipChangeQuote {
   allowed?: boolean;
   discouraged?: boolean;
   reason?: string;
-  charge_amount?: number;
+  charge_amount?: MoneyValue;
 }
 
 export async function getMembershipChangeQuote(opts: {
@@ -431,13 +445,15 @@ export async function applyMembershipChange(opts: {
 }
 
 // get your own min balance
-export async function getMinBalance(): Promise<number> {
+export async function getMinBalance(): Promise<MoneyValue> {
   return await api("purchases/get-min-balance");
 }
 
 // Get the min balance for user with given account_id.  This is only
 // for use by admins.
-export async function adminGetMinBalance(account_id: string): Promise<number> {
+export async function adminGetMinBalance(
+  account_id: string,
+): Promise<MoneyValue> {
   const x = await api("user-query", {
     query: { crm_accounts: { account_id, min_balance: null } },
   });
@@ -493,7 +509,7 @@ export async function resumeSubscription(subscription_id: number) {
 
 export async function costToResumeSubscription(
   subscription_id: number,
-): Promise<{ periodicCost: number; cost: number }> {
+): Promise<{ periodicCost: MoneyValue; cost: MoneyValue }> {
   return await api("purchases/cost-to-resume-subscription", {
     subscription_id,
   });

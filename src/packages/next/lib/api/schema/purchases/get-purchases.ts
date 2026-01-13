@@ -1,6 +1,6 @@
 import { z } from "../../framework";
 
-import { FailedAPIOperationSchema } from "../common";
+import { FailedAPIOperationSchema, MoneyValueSchema } from "../common";
 import { ProjectIdSchema } from "../projects/common";
 
 import {
@@ -78,8 +78,7 @@ export const GetPurchasesOutputSchema = z.union([
   FailedAPIOperationSchema,
   z
     .object({
-      balance: z
-        .number()
+      balance: MoneyValueSchema
         .describe(
           `The account balance after this purchase was made.  For in progress PAYG purchases, e.g., compute servers, this can be complicated -- it's the balance when the purchases table was requested, incorporating the contribution of this purchase so far.`,
         ),
@@ -87,7 +86,7 @@ export const GetPurchasesOutputSchema = z.union([
         z.object({
           id: PurchaseIdSchema,
           time: z.string().describe("Time at which this purchase was logged."),
-          cost: z.number().describe(
+          cost: MoneyValueSchema.describe(
             `The cost in US dollars. Not set if the purchase isn't finished, e.g., when
          upgrading a project this is only set when project stops or purchase is finalized.
          This takes precedence over the \`cost_per_hour\` times the length of the period
@@ -102,7 +101,7 @@ export const GetPurchasesOutputSchema = z.union([
          purchase finished being charged, in which case the cost field should be equal to
          the length of the period times the \`cost_per_hour\`.`,
           ),
-          cost_per_hour: z.number().describe(
+          cost_per_hour: MoneyValueSchema.describe(
             `The cost in US dollars per hour. This is used to compute the cost so far for
          metered purchases when the cost field isn't set yet. The cost so far is the
          number of hours since \`period_start\` times the \`cost_per_hour\`. The
@@ -110,7 +109,7 @@ export const GetPurchasesOutputSchema = z.union([
          \`cost_per_hour\` field is the definitive source of truth. Once the \`cost\`
          field is set, this \`cost_per_hour\` is just useful for display purposes.`,
           ),
-          cost_so_far: z.number().describe(
+          cost_so_far: MoneyValueSchema.describe(
             `The cost so far in US dollars for a metered purchase that accumulates. This is
          used, e.g., for data transfer charges.`,
           ),

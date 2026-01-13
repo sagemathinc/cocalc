@@ -19,6 +19,7 @@ import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import costToEditLicense from "@cocalc/util/purchases/cost-to-edit-license";
 import { currency, len } from "@cocalc/util/misc";
+import { moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 import { isEqual } from "lodash";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -71,7 +72,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
           throw Error("cost_per_hour must be set");
         }
         if (info != null) {
-          info.cost_per_hour = sub.cost_per_hour;
+          info.cost_per_hour = toDecimal(sub.cost_per_hour ?? 0).toNumber();
         }
       }
       if (info != null) {
@@ -127,6 +128,16 @@ export default function EditLicense({ license_id, refresh }: Props) {
       />
     );
   }
+  const subscriptionCostValue =
+    subscription?.cost != null ? toDecimal(subscription.cost) : null;
+  const modifiedCostValue =
+    modifiedSubscriptionCost != null
+      ? toDecimal(modifiedSubscriptionCost)
+      : null;
+  const hasModifiedSubscriptionCost =
+    modifiedCostValue != null &&
+    subscriptionCostValue != null &&
+    !modifiedCostValue.eq(subscriptionCostValue);
   return (
     <div>
       <Divider titlePlacement="start">
@@ -247,11 +258,11 @@ export default function EditLicense({ license_id, refresh }: Props) {
                   Subscription{" "}
                   {subscription != null &&
                     modifiedSubscriptionCost != null &&
-                    modifiedSubscriptionCost != subscription.cost && (
+                    hasModifiedSubscriptionCost && (
                       <>
                         cost at current rates:{" "}
                         <b>
-                          {currency(modifiedSubscriptionCost)}/
+                          {moneyToCurrency(modifiedCostValue)}/
                           {subscription.interval}
                         </b>
                       </>
@@ -261,17 +272,18 @@ export default function EditLicense({ license_id, refresh }: Props) {
                   {subscription?.cost != null && (
                     <div>
                       {" "}
-                      What you currently pay: {currency(subscription?.cost)}/
+                      What you currently pay:{" "}
+                      {moneyToCurrency(subscriptionCostValue ?? 0)}/
                       {subscription.interval}
                     </div>
                   )}
                   {subscription != null &&
                     modifiedSubscriptionCost != null &&
-                    modifiedSubscriptionCost != subscription.cost && (
+                    hasModifiedSubscriptionCost && (
                       <div>
                         <b>
                           New cost after changes:{" "}
-                          {currency(modifiedSubscriptionCost)}/
+                          {moneyToCurrency(modifiedCostValue)}/
                           {subscription.interval}
                         </b>
                       </div>

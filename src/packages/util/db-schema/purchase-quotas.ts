@@ -3,6 +3,7 @@ import { SCHEMA as schema } from "./index";
 import { LLM_USERNAMES } from "./llm-utils";
 import type { Service } from "./purchases";
 import { Table } from "./types";
+import type { MoneyValue } from "@cocalc/util/money";
 
 export type { Service };
 
@@ -421,7 +422,7 @@ export const QUOTA_SPEC: QuotaSpec = {
 
 // Legacy project quota upgrades (deprecated)
 export interface ProjectQuota {
-  cost?: number; // dollars per hour
+  cost?: MoneyValue; // dollars per hour
   enabled?: number;
   cores?: number;
   disk_quota?: number;

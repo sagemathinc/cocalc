@@ -17,6 +17,7 @@ import {
 } from "./close";
 import { getPurchase } from "./util";
 import { before, after } from "@cocalc/server/test";
+import { toDecimal } from "@cocalc/util/money";
 
 beforeAll(before, 15000);
 afterAll(after);
@@ -83,7 +84,7 @@ describe("creates account, project, test compute server, and purchase, then clos
     if (purchaseAfter.cost == null) {
       throw Error("fail");
     }
-    expect(Math.abs(purchaseAfter.cost - 0.05)).toBeLessThan(0.01);
+    expect(toDecimal(purchaseAfter.cost).sub(0.05).abs().toNumber()).toBeLessThan(0.01);
   });
 
   it("calling close on already closed purchases doesn't break", async () => {

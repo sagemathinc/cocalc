@@ -19,6 +19,7 @@ import createPurchase from "./create-purchase";
 import { before, after, getPool } from "@cocalc/server/test";
 import { createTestMembershipSubscription } from "./test-data";
 import { round2up } from "@cocalc/util/misc";
+import { toDecimal } from "@cocalc/util/money";
 
 const MEMBER_TIER = `member-test-${uuid().slice(0, 8)}`;
 const PRO_TIER = `pro-test-${uuid().slice(0, 8)}`;
@@ -125,21 +126,23 @@ describe("create a subscription license and edit it and confirm the subscription
     // The cost of the license should be close to the monthly subscription,
     // as there is no proration and setting the close day above doesn't impact this!
     expect(
-      Math.abs(await getBalance({ account_id: item.account_id })),
-    ).toBeCloseTo(subs[0].cost, -1);
+      toDecimal(await getBalance({ account_id: item.account_id }))
+        .abs()
+        .toNumber(),
+    ).toBeCloseTo(toDecimal(subs[0].cost).toNumber(), -1);
   });
 
   it("cancels subscription and verifies that balance is unchanged", async () => {
     const subs = await getSubscriptions({ account_id: item.account_id });
     const { id: subscription_id } = subs[0];
-    const before = await getBalance({ account_id: item.account_id });
+    const before = toDecimal(await getBalance({ account_id: item.account_id }));
     await cancelSubscription({
       account_id: item.account_id,
       subscription_id,
     });
-    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(
-      before,
-    );
+    expect(
+      toDecimal(await getBalance({ account_id: item.account_id })).toNumber(),
+    ).toBeCloseTo(before.toNumber());
   });
 
   it("same test but with different parameters for the subscription, e.g., business and yearly", async () => {
@@ -193,10 +196,9 @@ describe("create a subscription license and edit it and confirm the subscription
     });
 
     // balance starts at 100K
-    expect(await getBalance({ account_id: item.account_id })).toBeCloseTo(
-      100000,
-      0,
-    );
+    expect(
+      toDecimal(await getBalance({ account_id: item.account_id })).toNumber(),
+    ).toBeCloseTo(100000, 0);
 
     const client = await getPoolClient();
     await purchaseShoppingCartItem(item as any, client);
@@ -288,7 +290,7 @@ describe("membership upgrade pricing (member -> pro with prorated credit)", () =
       [account_id],
     );
     expect(rows.length).toBe(1);
-    expect(rows[0].cost).toBeCloseTo(expectedCharge, 2);
+    expect(toDecimal(rows[0].cost).toNumber()).toBeCloseTo(expectedCharge, 2);
     expect(rows[0].description?.type).toBe("membership");
     expect(rows[0].description?.class).toBe(PRO_TIER);
   });
@@ -339,7 +341,7 @@ describe("membership purchase via shopping cart", () => {
         [account_id],
       );
       expect(rows.length).toBe(1);
-      expect(rows[0].cost).toBeCloseTo(100, 2);
+      expect(toDecimal(rows[0].cost).toNumber()).toBeCloseTo(100, 2);
       expect(rows[0].description?.type).toBe("membership");
       expect(rows[0].description?.class).toBe(MEMBER_TIER);
     } finally {

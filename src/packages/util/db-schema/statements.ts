@@ -2,6 +2,7 @@ import { Table } from "./types";
 import { ID } from "./crm";
 import { SCHEMA as schema } from "./index";
 import { NOTES } from "./crm";
+import type { MoneyValue } from "@cocalc/util/money";
 
 export type Interval = "day" | "month";
 
@@ -10,10 +11,10 @@ export interface Statement {
   interval: Interval;
   account_id: string;
   time: Date;
-  balance: number;
-  total_charges: number;
+  balance: MoneyValue;
+  total_charges: MoneyValue;
   num_charges: number;
-  total_credits: number;
+  total_credits: MoneyValue;
   num_credits: number;
   last_sent?: Date;
   // If an automatic payment was created to pay for this statement, then

@@ -1,6 +1,6 @@
 import { z } from "../../framework";
 
-import { FailedAPIOperationSchema } from "../common";
+import { FailedAPIOperationSchema, MoneyValueSchema } from "../common";
 
 import { ComputeServerIdSchema } from "./common";
 
@@ -24,7 +24,7 @@ export const GetComputeServerNetworkUsageOutputSchema = z.union([
   FailedAPIOperationSchema,
   z.object({
     amount: z.number().min(0).describe("Total amount of network usage."),
-    cost: z.number().min(0).describe("Network usage cost."),
+    cost: MoneyValueSchema.describe("Network usage cost."),
   }),
 ]);
 

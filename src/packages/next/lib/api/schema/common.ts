@@ -43,3 +43,9 @@ export const SkipResultsSchema = z
   .describe("Skips the first `n` results.");
 
 export type SkipResults = z.infer<typeof SkipResultsSchema>;
+
+export const MoneyValueSchema = z
+  .union([z.string(), z.number()])
+  .describe("Decimal money value (USD) represented as string or number.");
+
+export type MoneyValue = z.infer<typeof MoneyValueSchema>;

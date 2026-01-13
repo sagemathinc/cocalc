@@ -57,3 +57,4 @@ PostgreSQL exact numeric types and Decimal-based arithmetic in JS/TS.
    purchases tests, statements tests, frontend calculations).
 
 8. Run targeted tests for purchases/stripe logic and ensure schema sync builds.
+

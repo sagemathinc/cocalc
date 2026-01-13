@@ -1,4 +1,5 @@
 import { authFirst } from "./util";
+import type { MoneyValue } from "@cocalc/util/money";
 export type MembershipClass = string;
 
 export interface MembershipEntitlements {
@@ -30,8 +31,8 @@ export interface LLMUsageStatus {
 }
 
 export interface Purchases {
-  getBalance: (opts?: { account_id?: string }) => Promise<number>;
-  getMinBalance: (opts?: { account_id?: string }) => Promise<number>;
+  getBalance: (opts?: { account_id?: string }) => Promise<MoneyValue>;
+  getMinBalance: (opts?: { account_id?: string }) => Promise<MoneyValue>;
   getMembership: (opts?: { account_id?: string }) => Promise<MembershipResolution>;
   getLLMUsage: (opts?: { account_id?: string }) => Promise<LLMUsageStatus>;
 }

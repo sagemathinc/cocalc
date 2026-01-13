@@ -7,11 +7,12 @@ import Payment from "./payment";
 import { Icon } from "@cocalc/frontend/components/icon";
 import AutoBalance from "./auto-balance";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import type { MoneyValue } from "@cocalc/util/money";
 
 interface Props {
   style?: CSSProperties;
   refresh?: Function;
-  cost?: number; // optional amount of money we want right now
+  cost?: MoneyValue; // optional amount of money we want right now
   defaultAdd?: boolean;
 }
 

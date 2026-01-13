@@ -17,6 +17,7 @@ import { getLastClosingDate } from "./closing-date";
 import { COST_OR_METERED_COST } from "./get-balance";
 import getBalance from "./get-balance";
 import { getOwner } from "@cocalc/server/compute/owner";
+import type { MoneyValue } from "@cocalc/util/money";
 
 interface Options {
   account_id: string;
@@ -64,7 +65,7 @@ export default async function getPurchases({
   no_statement,
   includeName,
   compute_server_id,
-}: Options): Promise<{ balance: number; purchases: PurchaseData[] }> {
+}: Options): Promise<{ balance: MoneyValue; purchases: PurchaseData[] }> {
   if (limit > MAX_API_LIMIT || !limit) {
     throw Error(`limit must be specified and at most ${MAX_API_LIMIT}`);
   }

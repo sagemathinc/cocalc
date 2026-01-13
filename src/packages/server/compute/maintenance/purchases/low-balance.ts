@@ -10,6 +10,7 @@ import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import TTLCache from "@isaacs/ttlcache";
 import getMinBalance from "@cocalc/server/purchases/get-min-balance";
 import adminAlert from "@cocalc/server/messages/admin-alert";
+import { toDecimal } from "@cocalc/util/money";
 
 // turn VM off if you don't have at least this much left.
 const COST_THRESH_DOLLARS = 1;
@@ -62,10 +63,10 @@ async function checkAllowed(service, server) {
     return true;
   }
   const minBalance = await getMinBalance(server.account_id);
-  const margin =
-    minBalance < 0
-      ? DELETE_THRESH_MARGIN_NEGATIVE_BALANCE
-      : DELETE_THRESH_MARGIN_DEFAULT;
+  const minBalanceValue = toDecimal(minBalance);
+  const margin = minBalanceValue.lt(0)
+    ? DELETE_THRESH_MARGIN_NEGATIVE_BALANCE
+    : DELETE_THRESH_MARGIN_DEFAULT;
 
   // is it just bad, or REALLY bad?
   const x = await isPurchaseAllowed({

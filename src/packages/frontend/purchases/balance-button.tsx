@@ -8,7 +8,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import BalanceModal from "@cocalc/frontend/purchases/balance-modal";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency } from "@cocalc/util/misc";
-import { moneyRound2Down } from "@cocalc/util/money";
+import { moneyRound2Down, type MoneyValue } from "@cocalc/util/money";
 
 export default function BalanceButton({
   style,
@@ -27,7 +27,7 @@ export default function BalanceButton({
   const [loading, setLoading] = useState<boolean>(true);
   const dbBalance = useTypedRedux("account", "balance");
   const balanceAlert = useTypedRedux("account", "balance_alert");
-  const [balance, setBalance] = useState<number | null>(dbBalance ?? null);
+  const [balance, setBalance] = useState<MoneyValue | null>(dbBalance ?? null);
   const otherSettings = useTypedRedux("account", "other_settings");
   const hideNavbarBalance = otherSettings?.get("hide_navbar_balance");
 

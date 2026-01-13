@@ -133,7 +133,7 @@ function DescribeSubscription({ license, subscription, reload }) {
             <Space>
               <Statistic
                 title={<>Cost Per {capitalize(subscription.interval)} (USD)</>}
-                value={subscription.cost}
+                value={toDecimal(subscription.cost ?? 0).toNumber()}
                 precision={2}
                 prefix={"$"}
               />
@@ -145,7 +145,7 @@ function DescribeSubscription({ license, subscription, reload }) {
               >
                 <Statistic
                   title={<>Cost Per Hour (USD)</>}
-                  value={subscription.cost_per_hour}
+                  value={toDecimal(subscription.cost_per_hour ?? 0).toNumber()}
                   precision={2}
                   prefix={"$"}
                 />

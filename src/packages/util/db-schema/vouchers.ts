@@ -1,6 +1,7 @@
 import { Table } from "./types";
 import { CREATED, CREATED_BY, ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
+import type { MoneyValue } from "@cocalc/util/money";
 
 export type WhenPay = "now" | "admin";
 
@@ -18,8 +19,8 @@ export interface Voucher {
   created_by: string;
   title: string;
   count: number;
-  cost: number;
-  tax: number;
+  cost: MoneyValue;
+  tax: MoneyValue;
   active: Date;
   expire: Date;
   cancel_by: Date;

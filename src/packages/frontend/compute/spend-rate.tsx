@@ -2,6 +2,7 @@ import { Tag } from "antd";
 import { DynamicallyUpdatingRate } from "@cocalc/frontend/purchases/pay-as-you-go/dynamically-updating-cost";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useMemo } from "react";
+import { toDecimal } from "@cocalc/util/money";
 
 interface Props {
   project_id: string;
@@ -13,13 +14,13 @@ export default function SpendRate({ project_id }: Props) {
     if (computeServers == null) {
       return 0;
     }
-    let cost = 0;
+    let cost = toDecimal(0);
     for (const [_, server] of computeServers) {
       if (server.get("state", "deprovisioned") != "deprovisioned") {
-        cost += server.get("cost_per_hour") ?? 0;
+        cost = cost.add(server.get("cost_per_hour") ?? 0);
       }
     }
-    return cost;
+    return cost.toNumber();
   }, [computeServers]);
   if (costPerHour <= 0) {
     return null;

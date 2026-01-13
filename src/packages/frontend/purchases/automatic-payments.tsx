@@ -9,6 +9,7 @@ import {
 import ShowError from "@cocalc/frontend/components/error";
 import { SectionDivider } from "./util";
 import Balance from "./balance";
+import type { MoneyValue } from "@cocalc/util/money";
 
 export default function AutomaticPayments({
   compact,
@@ -18,9 +19,9 @@ export default function AutomaticPayments({
   style?;
 }) {
   const [loading, setLoading] = useState<boolean>(true);
-  const [minBalance, setMinBalance] = useState<number | null>(null);
+  const [minBalance, setMinBalance] = useState<MoneyValue | null>(null);
   const [error, setError] = useState<string>("");
-  const [spendRate, setSpendRate] = useState<number | null>(null);
+  const [spendRate, setSpendRate] = useState<MoneyValue | null>(null);
 
   const getSpendRate = async () => {
     setSpendRate(await getSpendRateUsingApi());

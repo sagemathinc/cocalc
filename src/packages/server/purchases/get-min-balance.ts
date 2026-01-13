@@ -14,16 +14,16 @@ it rarely changes -- only when an admin manually changes something.
 */
 
 import getPool, { PoolClient, Pool } from "@cocalc/database/pool";
-import { toDecimal } from "@cocalc/util/money";
+import { moneyToDbString, type MoneyValue } from "@cocalc/util/money";
 
 export default async function getMinBalance(
   account_id: string,
   client?: PoolClient | Pool
-): Promise<number> {
+): Promise<MoneyValue> {
   const pool = client ?? getPool("long");
   const { rows } = await pool.query(
     "SELECT min_balance FROM accounts WHERE account_id=$1",
     [account_id]
   );
-  return toDecimal(rows[0]?.min_balance ?? 0).toNumber(); // defaults to 0
+  return moneyToDbString(rows[0]?.min_balance ?? 0); // defaults to 0
 }

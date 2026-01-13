@@ -4,6 +4,7 @@ by the given account, and return that amount.
 */
 
 import getPool from "@cocalc/database/pool";
+import type { MoneyValue } from "@cocalc/util/money";
 
 const DEFAULT_LIMIT = 100;
 
@@ -17,7 +18,7 @@ export default async function getCostPerDay({
   account_id,
   limit = 100,
   offset = 0,
-}: Options): Promise<{ date: Date; total_cost: number }[]> {
+}: Options): Promise<{ date: Date; total_cost: MoneyValue }[]> {
   const db = getPool("long");
   const { rows } = await db.query(
     `SELECT date_trunc('day', "time" AT TIME ZONE 'UTC') AS date, SUM(COALESCE(cost, cost_per_hour * (EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start))::numeric / 3600))) AS total_cost

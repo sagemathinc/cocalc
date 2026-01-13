@@ -2,17 +2,21 @@ import { Alert, Button, InputNumber, Space, Spin } from "antd";
 import { useState } from "react";
 import { Icon } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { currency } from "@cocalc/util/misc";
+import {
+  moneyToCurrency,
+  toDecimal,
+  type MoneyValue,
+} from "@cocalc/util/money";
 
 export default function PayAsYouGoMinBalance({ account_id }) {
-  const [minBalance, setMinBalance] = useState<number | null>(null);
-  const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const [minBalance, setMinBalance] = useState<MoneyValue | null>(null);
+  const [lastSaved, setLastSaved] = useState<MoneyValue | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
 
   const getMinBalance = async () => {
     try {
       setLoading(true);
-      const minBalance =
+      const minBalance: MoneyValue =
         await webapp_client.purchases_client.adminGetMinBalance(account_id);
       setMinBalance(minBalance);
       setLastSaved(minBalance);
@@ -58,7 +62,7 @@ export default function PayAsYouGoMinBalance({ account_id }) {
           message={
             <div>
               <span>Current Minimum Allowed Balance: </span>
-              <span>{currency(lastSaved)}</span>
+              <span>{moneyToCurrency(lastSaved)}</span>
             </div>
           }
           description={
@@ -70,22 +74,26 @@ export default function PayAsYouGoMinBalance({ account_id }) {
               <Space style={{ marginTop: "5px" }}>
                 <InputNumber
                   step={10}
-                  defaultValue={minBalance ?? undefined}
-                  onChange={(val) => setMinBalance(val)}
+                  defaultValue={
+                    minBalance == null
+                      ? undefined
+                      : toDecimal(minBalance).toNumber()
+                  }
+                  onChange={(val) => setMinBalance(val ?? null)}
                 />
                 <Button
                   type="primary"
                   disabled={minBalance == lastSaved || minBalance == null}
                   onClick={() => {
                     if (minBalance != null) {
-                      saveMinBalance(minBalance);
+                      saveMinBalance(toDecimal(minBalance).toNumber());
                     }
                   }}
                 >
                   <Icon name="save" /> Save
                 </Button>
               </Space>
-              {(minBalance ?? 0) > 0 && (
+              {toDecimal(minBalance ?? 0).gt(0) && (
                 <Alert
                   style={{ marginTop: "15px" }}
                   showIcon
@@ -102,7 +110,7 @@ export default function PayAsYouGoMinBalance({ account_id }) {
                   }
                 />
               )}
-              {(minBalance ?? 0) < 0 && (
+              {toDecimal(minBalance ?? 0).lt(0) && (
                 <Alert
                   style={{ marginTop: "15px" }}
                   showIcon

@@ -15,6 +15,7 @@ This is 100% built on juicefs/keydb instead of gcs/s3, etc., since:
 import { Table } from "./types";
 import { ID, NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
+import type { MoneyValue } from "@cocalc/util/money";
 
 // We do NOT charge to make a cloud file system.  However, we require that
 // the user have enough money to make a CREATE_CLOUD_FILESYSTEM_AMOUNT purchase.
@@ -581,7 +582,7 @@ export interface CloudFilesystemMetric {
   bucket_location: string;
   bucket_storage_class: GoogleCloudBucketStorageClass;
   compute_server_location: GoogleCloudBucketLocation;
-  cost?: number | null;
+  cost?: MoneyValue | null;
 }
 
 Table({

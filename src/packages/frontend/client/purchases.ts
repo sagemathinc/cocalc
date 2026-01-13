@@ -12,7 +12,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
-import { moneyRound2Up } from "@cocalc/util/money";
+import { moneyRound2Up, type MoneyValue } from "@cocalc/util/money";
 import type { WebappClient } from "./client";
 
 export class PurchasesClient {
@@ -24,17 +24,17 @@ export class PurchasesClient {
     this.client = client;
   }
   async getQuotas(): Promise<{
-    minBalance: number;
-    services: { [service: string]: number };
+    minBalance: MoneyValue;
+    services: { [service: string]: MoneyValue };
   }> {
     return await purchasesApi.getQuotas();
   }
 
-  async getBalance(): Promise<number> {
+  async getBalance(): Promise<MoneyValue> {
     return await this.client.conat_client.hub.purchases.getBalance();
   }
 
-  async getSpendRate(): Promise<number> {
+  async getSpendRate(): Promise<MoneyValue> {
     return await purchasesApi.getSpendRate();
   }
 
@@ -45,13 +45,13 @@ export class PurchasesClient {
   async setQuota(
     service: Service,
     value: number,
-  ): Promise<{ global: number; services: { [service: string]: number } }> {
+  ): Promise<{ minBalance: MoneyValue; services: { [service: string]: MoneyValue } }> {
     return await purchasesApi.setQuota(service, value);
   }
 
   async isPurchaseAllowed(
     service: Service,
-    cost?: number,
+    cost?: MoneyValue,
   ): Promise<{ allowed: boolean; reason?: string; chargeAmount?: number }> {
     return await purchasesApi.isPurchaseAllowed(service, cost);
   }
@@ -88,7 +88,7 @@ export class PurchasesClient {
   }: {
     service?: Service;
     // cost = how much you have to have available in your account
-    cost?: number;
+    cost?: MoneyValue;
     allowed?: boolean;
     reason?: string;
     // the rate if this is a pay-as-you-go metered purchase.
@@ -112,7 +112,7 @@ export class PurchasesClient {
     return await purchasesApi.getCustomer();
   }
 
-  async getChargesByService() {
+  async getChargesByService(): Promise<{ [service: string]: MoneyValue }> {
     return await purchasesApi.getChargesByService();
   }
 
@@ -137,7 +137,7 @@ export class PurchasesClient {
     return await purchasesApi.getShoppingCartCheckoutParams();
   }
 
-  async adminGetMinBalance(account_id: string): Promise<number> {
+  async adminGetMinBalance(account_id: string): Promise<MoneyValue> {
     return await purchasesApi.adminGetMinBalance(account_id);
   }
 

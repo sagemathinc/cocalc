@@ -27,6 +27,7 @@ import {
   validatedSpendLimit,
 } from "@cocalc/util/db-schema/compute-servers";
 import { currency } from "@cocalc/util/misc";
+import { toDecimal } from "@cocalc/util/money";
 import { AutomaticShutdownCard } from "./automatic-shutdown";
 
 export function SpendLimit({
@@ -233,12 +234,15 @@ export function SpendLimitStatus({ server, horizontal = false }) {
         server.configuration.spendLimit,
       )!;
       let desc = "";
+      const spendValue = toDecimal(server.spend ?? 0);
       if (server.spend != null) {
-        desc += `${currency(server.spend)} was spent on this compute server in the last ${spendLimitPeriod(hours)}.  `;
+        desc += `${currency(
+          spendValue.toNumber(),
+        )} was spent on this compute server in the last ${spendLimitPeriod(hours)}.  `;
       }
       desc += `Spend limit for this server is ${currency(dollars)}/${spendLimitPeriod(hours)}.`;
       setDesc(desc);
-      setTotal(server.spend ?? 0);
+      setTotal(spendValue.toNumber());
       return;
     }
     // spend limit not enabled, so put total spend over all time:
@@ -247,10 +251,11 @@ export function SpendLimitStatus({ server, horizontal = false }) {
         compute_server_id: server.id,
         group: true,
       });
-      let total = 0;
+      let totalValue = toDecimal(0);
       for (const { cost, cost_so_far } of purchases) {
-        total += cost ?? cost_so_far ?? 0;
+        totalValue = totalValue.add(cost ?? cost_so_far ?? 0);
       }
+      const total = totalValue.toNumber();
       setTotal(total);
       setDesc(
         `${currency(total)} was spent on this compute server since it was created.  No spend limit is set.`,

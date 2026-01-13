@@ -1,6 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import type { PoolClient } from "@cocalc/database/pool";
-import { moneyToDbString, toDecimal } from "@cocalc/util/money";
+import { moneyToDbString, toDecimal, type MoneyValue } from "@cocalc/util/money";
 
 /*
 compute the sum of the following, over all rows of the table for a given account_id:
@@ -28,7 +28,7 @@ export default async function getBalance({
   client?: PoolClient;
   // do not save the computed balance to the accounts table.
   noSave?: boolean;
-}): Promise<number> {
+}): Promise<MoneyValue> {
   const pool = client ?? getPool();
 
   // Criticism:
@@ -51,15 +51,18 @@ export default async function getBalance({
       ]);
     }
   }
-  return balance.toNumber();
+  return moneyToDbString(balance);
 }
 
 // total balance right now
-export async function getTotalBalance(account_id: string, client?: PoolClient) {
+export async function getTotalBalance(
+  account_id: string,
+  client?: PoolClient,
+): Promise<MoneyValue> {
   const pool = client ?? getPool();
   const { rows } = await pool.query(
     `SELECT -SUM(${COST_OR_METERED_COST}) as balance FROM purchases WHERE account_id=$1`,
     [account_id],
   );
-  return toDecimal(rows[0]?.balance ?? 0).toNumber();
+  return moneyToDbString(rows[0]?.balance ?? 0);
 }

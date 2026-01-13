@@ -9,6 +9,7 @@ import InlineComputeServer from "./inline";
 import Cost from "@cocalc/frontend/purchases/pay-as-you-go/cost";
 import InlineCloudFilesystem from "./cloud-filesystem/inline";
 import { WhenKnown } from "@cocalc/frontend/compute/state";
+import { toDecimal } from "@cocalc/util/money";
 
 export function ComputeServerDescription({
   description,
@@ -42,6 +43,10 @@ export function ComputeServerNetworkUsageDescription({
   period_end?: Date;
 }) {
   const { amount, compute_server_id: id } = description;
+  const cost =
+    description.cost == null
+      ? undefined
+      : toDecimal(description.cost).toNumber();
 
   return (
     <div>
@@ -49,7 +54,7 @@ export function ComputeServerNetworkUsageDescription({
         amount={amount}
         style={{ display: "inline-block" }}
         period_end={period_end}
-        cost={description.cost}
+        cost={cost}
       />{" "}
       Network used by <InlineComputeServer id={id} />.{" "}
       {period_end == null && (

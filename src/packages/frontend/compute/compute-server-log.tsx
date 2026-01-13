@@ -30,6 +30,7 @@ import {
   GroupedPurchaseTable,
 } from "@cocalc/frontend/purchases/purchases";
 import { currency } from "@cocalc/util/misc";
+import { toDecimal } from "@cocalc/util/money";
 
 export default function ComputeServerLog({
   id,
@@ -97,11 +98,11 @@ export function LogModal({ id, close }) {
             group,
           });
           setLog(purchases);
-          let total = 0;
+          let totalValue = toDecimal(0);
           for (const { cost, cost_so_far } of purchases) {
-            total += cost ?? cost_so_far ?? 0;
+            totalValue = totalValue.add(cost ?? cost_so_far ?? 0);
           }
-          setTotal(total);
+          setTotal(totalValue.toNumber());
         }
       } catch (err) {
         setError(`${err}`);

@@ -20,6 +20,7 @@ import getBalance from "./get-balance";
 import { before, after } from "@cocalc/server/test";
 import getPool from "@cocalc/database/pool";
 import dayjs from "dayjs";
+import { toDecimal } from "@cocalc/util/money";
 
 beforeAll(async () => {
   await before({ noConat: true });
@@ -52,14 +53,16 @@ describe("create a subscription, cancel it, then resume it", () => {
   });
 
   it("cancels our subscription, then start it again.", async () => {
-    const balanceBeforeCancel = await getBalance({ account_id });
+    const balanceBeforeCancel = toDecimal(await getBalance({ account_id }));
     await cancelSubscription({
       account_id,
       subscription_id,
     });
     expect((await getSubscription(subscription_id)).status).toBe("canceled");
     // balance should not change.
-    expect(await getBalance({ account_id })).toBeCloseTo(balanceBeforeCancel);
+    expect(toDecimal(await getBalance({ account_id })).toNumber()).toBeCloseTo(
+      balanceBeforeCancel.toNumber(),
+    );
     const license = await getLicense(license_id);
     // now resume:
     await resumeSubscription({ account_id, subscription_id });

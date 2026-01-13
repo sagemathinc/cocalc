@@ -23,7 +23,7 @@ import { getServiceCosts } from "@cocalc/frontend/purchases/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { service2model_core } from "@cocalc/util/db-schema/llm-utils";
 import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
-import { currency } from "@cocalc/util/misc";
+import { moneyToCurrency, toDecimal, type MoneyValue } from "@cocalc/util/money";
 import { COLORS } from "@cocalc/util/theme";
 import { TITLE_BAR_BORDER } from "../frame-editors/frame-tree/style";
 import Cost from "./pay-as-you-go/cost";
@@ -38,8 +38,8 @@ export const STEP = 5;
 
 interface ServiceQuota {
   service: Service;
-  quota: number;
-  current: number;
+  quota: MoneyValue;
+  current: MoneyValue;
   cost?: any;
 }
 
@@ -119,11 +119,14 @@ export default function AllQuotasConfig() {
       for (let i = 0; i < lastFetchedQuotasRef.current.length; i++) {
         if (!isEqual(lastFetchedQuotasRef.current[i], serviceQuotas[i])) {
           try {
-            await webapp_client.purchases_client.setQuota(
-              serviceQuotas[i].service,
+            const quotaValue = toDecimal(
               serviceQuotas[i].quota ??
                 lastFetchedQuotasRef.current[i]?.quota ??
                 0,
+            ).toNumber();
+            await webapp_client.purchases_client.setQuota(
+              serviceQuotas[i].service,
+              quotaValue,
             );
           } catch (err) {
             setError(`${err}`);
@@ -150,9 +153,10 @@ export default function AllQuotasConfig() {
       title: "Monthly Limit (USD)",
       dataIndex: "quota",
       align: "center" as "center",
-      render: (quota: number, _record: ServiceQuota, index: number) => {
+      render: (quota: MoneyValue, _record: ServiceQuota, index: number) => {
         const isLLM = QUOTA_SPEC[_record.service]?.category === "ai";
         const presets = isLLM ? PRESETS_LLM : PRESETS;
+        const quotaValue = toDecimal(quota ?? 0).toNumber();
 
         return (
           <Dropdown
@@ -172,7 +176,7 @@ export default function AllQuotasConfig() {
             <div style={{ display: "flex" }}>
               <InputNumber
                 min={0}
-                value={quota}
+                value={quotaValue}
                 onChange={(newQuota) =>
                   handleQuotaChange(index, newQuota as number)
                 }
@@ -205,16 +209,23 @@ export default function AllQuotasConfig() {
       title: "This Month Spend (USD)",
       dataIndex: "current",
       align: "center" as "center",
-      render: (current: number, record: ServiceQuota) => {
+      render: (current: MoneyValue, record: ServiceQuota) => {
         if (record.quota == null) return null;
+        const currentValue = toDecimal(current ?? 0);
+        const quotaValue = toDecimal(record.quota ?? 0);
+        const percent =
+          quotaValue.gt(0)
+            ? Math.round(currentValue.div(quotaValue).mul(100).toNumber())
+            : 0;
+        const overBudget = quotaValue.gt(0) && currentValue.div(quotaValue).gt(0.8);
         return (
           <div>
-            {currency(current)}{" "}
+            {moneyToCurrency(currentValue)}{" "}
             <Progress
-              percent={Math.round((current / record.quota) * 100)}
-              strokeColor={current / record.quota > 0.8 ? "#ff4d4f" : undefined}
+              percent={percent}
+              strokeColor={overBudget ? "#ff4d4f" : undefined}
             />
-            of {currency(record.quota)}
+            of {moneyToCurrency(record.quota)}
           </div>
         );
       },

@@ -15,6 +15,7 @@ import {
   serviceToDisplay,
 } from "@cocalc/util/db-schema/purchase-quotas";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
+import { toDecimal, type MoneyValue } from "@cocalc/util/money";
 import Quotas, {
   PRESETS,
   PRESETS_LLM,
@@ -28,7 +29,7 @@ import ServiceTag from "./service";
 interface Props {
   service: Service;
   updateAllowed: () => Promise<void>;
-  cost?: number; // optional amount of money we want right now
+  cost?: MoneyValue; // optional amount of money we want right now
   saveRef?;
 }
 
@@ -43,10 +44,10 @@ export default function QuotaConfig({
   const [savedValue, setSavedValue] = useState<number | null>(null);
   const [error, setError] = useState<string>("");
   const [quotas, setQuotas] = useState<{
-    minBalance: number;
-    services: { [service: string]: number };
+    minBalance: MoneyValue;
+    services: { [service: string]: MoneyValue };
   } | null>(null);
-  const [balance, setBalance] = useState<number | null>(null);
+  const [balance, setBalance] = useState<MoneyValue | null>(null);
 
   const updateQuotas = async () => {
     setBalance(await webapp_client.purchases_client.getBalance());
@@ -107,7 +108,7 @@ export default function QuotaConfig({
                 min={0}
                 step={STEP}
                 value={inputValue}
-                defaultValue={quotas.services[service] ?? 0}
+                defaultValue={toDecimal(quotas.services[service] ?? 0).toNumber()}
                 formatter={(value) =>
                   `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ",")
                 }

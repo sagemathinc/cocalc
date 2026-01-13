@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { Card, Tooltip } from "antd";
 import ShowError from "@cocalc/frontend/components/error";
-import { moneyRound2Down } from "@cocalc/util/money";
+import { moneyRound2Down, type MoneyValue } from "@cocalc/util/money";
 import Plot from "@cocalc/frontend/components/plotly";
 
 interface Props {
   title?;
-  data: { date: Date; amount: number }[];
+  data: { date: Date; amount: MoneyValue }[];
   style?;
   description?;
 }

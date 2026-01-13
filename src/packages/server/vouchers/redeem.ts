@@ -6,7 +6,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import createCredit from "@cocalc/server/purchases/create-credit";
 import { getTransactionClient } from "@cocalc/database/pool";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
-import { moneyToCurrency } from "@cocalc/util/money";
+import { moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import send, { support, url } from "@cocalc/server/messages/send";
 import adminAlert from "@cocalc/server/messages/admin-alert";
 
@@ -69,7 +69,7 @@ export default async function redeemVoucher({
     purchase_ids.push(id);
     createdItems.push({
       type: "cash",
-      amount: voucher.cost,
+      amount: toDecimal(voucher.cost).toNumber(),
       purchase_id: id,
     });
     // set voucher as redeemed in the voucher_code:
