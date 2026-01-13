@@ -8,6 +8,7 @@ import {
 import {
   loadHostFromRegistry,
   savePlacement,
+  startProjectOnHost,
   stopProjectOnHost,
 } from "../project-host/control";
 import { createBackup } from "../conat/api/project-backups";
@@ -146,7 +147,18 @@ export async function moveProjectToHost(
     project_id: context.project_id,
     dest_host_id: context.dest_host_id,
   });
-  throw new Error(
-    "moveProjectToHost not implemented beyond backup requirement yet",
-  );
+  try {
+    await startProjectOnHost(context.project_id);
+    log.info("moveProjectToHost started project on destination host", {
+      project_id: context.project_id,
+      dest_host_id: context.dest_host_id,
+    });
+  } catch (err) {
+    log.warn("moveProjectToHost start failed", {
+      project_id: context.project_id,
+      dest_host_id: context.dest_host_id,
+      err,
+    });
+    throw err;
+  }
 }
