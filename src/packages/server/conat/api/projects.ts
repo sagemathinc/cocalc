@@ -10,9 +10,9 @@ export * from "@cocalc/server/conat/api/project-backups";
 import getPool from "@cocalc/database/pool";
 import {
   updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl,
-  requestMoveToHost,
 } from "@cocalc/server/project-host/control";
 import { getProject } from "@cocalc/server/projects/control";
+import { moveProjectToHost } from "@cocalc/server/projects/move";
 import { assertCollab } from "./util";
 import { materializeProjectHost } from "../route-project";
 import { conat } from "@cocalc/backend/conat";
@@ -212,7 +212,14 @@ export async function moveProject({
   dest_host_id?: string;
 }): Promise<void> {
   await assertCollab({ account_id, project_id });
-  await requestMoveToHost({ project_id, dest_host_id });
+  if (!dest_host_id) {
+    throw Error("dest_host_id must be specified");
+  }
+  await moveProjectToHost({
+    project_id,
+    dest_host_id,
+    account_id,
+  });
 }
 
 export async function getMoveStatus({

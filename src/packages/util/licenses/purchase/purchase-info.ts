@@ -51,30 +51,8 @@ export default function getPurchaseInfo(
         description,
         source,
       };
-
-    case "vm":
-      return {
-        version: CURRENT_VERSION,
-        type: "vm",
-        quantity: 1,
-        dedicated_vm: conf.dedicated_vm,
-        subscription: "no",
-        ...fixRange(conf.range, conf.period),
-        title,
-        description,
-      };
-
-    case "disk":
-      return {
-        version: CURRENT_VERSION,
-        type: "disk",
-        quantity: 1,
-        dedicated_disk: conf.dedicated_disk,
-        subscription: conf.period,
-        title,
-        description,
-        ...fixRange(null, conf.period),
-      };
+    default:
+      throw new Error(`unsupported site license type "${conf.type}"`);
   }
 }
 

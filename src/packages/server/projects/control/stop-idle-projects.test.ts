@@ -40,7 +40,7 @@ describe("creates a project, set various parameters, and runs idle project funct
 
   it("mock start of our project by setting run_quota, last_edited, and last_started", async () => {
     await pool.query(
-      `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "dedicated_vm": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": false, "memory_request": 200, "dedicated_disks": []}',
+      `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": false, "memory_request": 200}',
       last_edited=NOW(), last_started=NOW(), state='{"state":"running"}' WHERE project_id=$1`,
       [project_id],
     );
@@ -82,7 +82,7 @@ describe("creates a project, set various parameters, and runs idle project funct
 
   it("changes our project so that last_edited and last_started are both a month ago, but always_running is true, and observe project does NOT get stopped", async () => {
     await pool.query(
-      `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "dedicated_vm": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": true, "memory_request": 200, "dedicated_disks": []}',
+      `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": true, "memory_request": 200}',
       last_edited=NOW()-interval '1 month', last_started=NOW()-interval '1 month' WHERE project_id=$1`,
       [project_id],
     );
@@ -93,7 +93,7 @@ describe("creates a project, set various parameters, and runs idle project funct
 
   it("makes it so stopping the project throws an error, and checks that the entire stopIdleProjects does NOT throw an error (it just logs something)", async () => {
     await pool.query(
-      `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "dedicated_vm": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": false, "memory_request": 200, "dedicated_disks": []}',
+      `UPDATE projects SET run_quota='{"network": false, "cpu_limit": 1, "disk_quota": 3000, "privileged": false, "cpu_request": 0.02, "member_host": false, "idle_timeout": 1800, "memory_limit": 1000, "always_running": false, "memory_request": 200}',
       last_edited=NOW()-interval '1 month', last_started=NOW()-interval '1 month', state='{"state":"running"}' WHERE project_id=$1`,
       [project_id],
     );

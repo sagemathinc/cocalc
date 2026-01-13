@@ -7,7 +7,6 @@ import getPool, { PoolClient } from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/backend/logger";
 import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import { adjustDateRangeEndOnSameDay } from "@cocalc/util/stripe/timecalcs";
-import { getDedicatedDiskKey, PRICES } from "@cocalc/util/upgrades/dedicated";
 import { v4 as uuid } from "uuid";
 import dayjs from "dayjs";
 
@@ -21,7 +20,7 @@ export default async function createLicense(
   client?: PoolClient,
 ): Promise<string> {
   const pool = client ?? getPool();
-  const license_id = await getUUID(pool, info);
+  const license_id = uuid();
   logger.debug("creating a license...", license_id, info);
   if (info.type == "vouchers") {
     throw Error("purchaseLicense can't be used to purchase vouchers");
@@ -48,7 +47,7 @@ export default async function createLicense(
         ? dayjs().subtract(1, "minute").toDate() // one minute in past to avoid any funny confusion.
         : start,
       [account_id],
-      getQuota(info, license_id),
+      getQuota(info),
       info.title,
       info.description,
       info.quantity,
@@ -60,7 +59,7 @@ export default async function createLicense(
 
 // this constructs the "quota" object for the license,
 // while it also sanity checks all fields. Last chance to find a problem!
-export function getQuota(info: PurchaseInfo, license_id: string) {
+export function getQuota(info: PurchaseInfo) {
   switch (info.type) {
     case "quota":
       return {
@@ -75,66 +74,7 @@ export function getQuota(info: PurchaseInfo, license_id: string) {
         member: info.custom_member,
         boost: info.boost ?? false,
       };
-
-    case "vm":
-      const { machine } = info.dedicated_vm;
-      if (PRICES.vms[machine] == null) {
-        throw new Error(`VM type ${machine} does not exist`);
-      }
-      return {
-        dedicated_vm: {
-          machine,
-          name: uuid2name(license_id),
-        },
-      };
-
-    case "disk":
-      if (info.dedicated_disk === false) {
-        throw new Error(`info.dedicated_disk cannot be false`);
-      }
-      const diskID = getDedicatedDiskKey(info.dedicated_disk);
-      if (PRICES.disks[diskID] == null) {
-        throw new Error(`Disk type ${diskID} does not exist`);
-      }
-      return {
-        dedicated_disk: info.dedicated_disk,
-      };
+    default:
+      throw new Error(`unsupported license type "${info.type}"`);
   }
-}
-
-async function getUUID(pool, info: PurchaseInfo) {
-  if (info.type !== "vm") {
-    // non-vm case is easy -- no need to check if id already exists, since
-    // if the id conflicted with one in the database,
-    // then the insert of the license later to create it would result in an error.
-    return uuid();
-  }
-
-  // in the case of type == 'vm', we derive the "name" from the UUID
-  // and double check that this is a unique name, since it's much more
-  // likely that there could be a collision.
-
-  // we try up to 10 times
-  for (let i = 0; i < 10; i++) {
-    const id = uuid();
-    // use the last part of the UUID id after the last dash
-    const name = uuid2name(id);
-    const { rows } = await pool.query(
-      `
-SELECT EXISTS(
-  SELECT 1 FROM site_licenses WHERE quota -> 'dedicated_vm' ->> 'name' = $1
-) AS exists`,
-      [name],
-    );
-    if (!rows[0]?.exists) {
-      return id;
-    }
-  }
-  // insanely unlikely...
-  throw new Error(`Unable to generate a unique name for VM`);
-}
-
-// last part of the UUID, we show this to users even if they're not license managers. hence no leak of information.
-function uuid2name(id: string) {
-  return id.split("-").pop();
 }

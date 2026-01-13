@@ -55,7 +55,7 @@ export class AccountTable extends Table {
           email_daily_statements: null,
           stripe_checkout_session: null,
           stripe_usage_subscription: null,
-          stripe_customer: null, // used for legacy upgrades ONLY.
+          stripe_customer: null,
           unread_message_count: null,
         },
       ],
@@ -72,12 +72,6 @@ export class AccountTable extends Table {
       this.first_set = false;
       actions.setState({ is_ready: true });
       this.redux.getStore("account").emit("is_ready");
-      if (obj.stripe_customer?.subscriptions?.data != null) {
-        // exclude legacy customers from commercialization requirements.
-        (
-          this.redux.getActions("customize") as any
-        ).disableCommercializationParameters();
-      }
     }
   }
 }

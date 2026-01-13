@@ -368,10 +368,6 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
     if (!licenseInfo) return <></>;
     const quota: SiteLicenseQuota | undefined = licenseInfo.quota;
 
-    if (quota?.dedicated_disk || quota?.dedicated_vm) {
-      return <>{describe_quota(quota)}</>;
-    }
-
     if (quota != null && rec.status === "valid") {
       return <>{describe_quota(quota)}</>;
     }

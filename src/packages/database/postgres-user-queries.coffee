@@ -26,7 +26,7 @@ lodash       = require('lodash')
 {defaults} = misc = require('@cocalc/util/misc')
 required = defaults.required
 
-{PROJECT_UPGRADES, SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
+{SCHEMA, OPERATORS, isToOperand} = require('@cocalc/util/schema')
 {queryIsCmp, userGetQueryFilter} = require("./user-query/user-get-query")
 
 {updateRetentionData} = require('./postgres/retention')
@@ -801,9 +801,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         ##return obj.users
         #   - ensures all keys of users are valid uuid's (though not that they are valid users).
         #   - and format is:
-        #          {group:'owner' or 'collaborator', hide:bool, upgrades:{a map}}
-        #     with valid upgrade fields.
-        upgrade_fields = PROJECT_UPGRADES.params
+        #          {group:'owner' or 'collaborator', hide:bool, ssh_keys:{...}}
         users = {}
         # TODO: we obviously should check that a user is only changing the part
         # of this object involving themselves... or adding/removing collaborators.
@@ -811,18 +809,12 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         for id, x of obj.users
             if misc.is_valid_uuid_string(id)
                 for key in misc.keys(x)
-                    if key not in ['group', 'hide', 'upgrades', 'ssh_keys']
+                    if key not in ['group', 'hide', 'ssh_keys']
                         throw Error("unknown field '#{key}")
                 if x.group? and (x.group not in ['owner', 'collaborator'])
                     throw Error("invalid value for field 'group'")
                 if x.hide? and typeof(x.hide) != 'boolean'
                     throw Error("invalid type for field 'hide'")
-                if x.upgrades?
-                    if not misc.is_object(x.upgrades)
-                        throw Error("invalid type for field 'upgrades'")
-                    for k,_ of x.upgrades
-                        if not upgrade_fields[k]
-                            throw Error("invalid upgrades field '#{k}'")
                 if x.ssh_keys
                     # do some checks.
                     if not misc.is_object(x.ssh_keys)
@@ -956,18 +948,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                     cb(err, true)
             return
 
-        if not new_val.users?  # not changing users
-            cb(); return
-        old_val = old_val?.users ? {}
-        new_val = new_val?.users ? {}
-        for id in misc.keys(old_val).concat(new_val)
-            if account_id != id
-                # make sure user doesn't change anybody else's allocation
-                if not lodash.isEqual(old_val?[id]?.upgrades, new_val?[id]?.upgrades)
-                    err = "FATAL: user '#{account_id}' tried to change user '#{id}' allocation toward a project"
-                    dbg(err)
-                    cb(err)
-                    return
         cb()
 
     # This hook is called *after* the user commits a change to a project in the database
@@ -977,39 +957,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     _user_set_query_project_change_after: (old_val, new_val, account_id, cb) =>
         dbg = @_dbg("_user_set_query_project_change_after #{account_id}, #{misc.to_json(old_val)} --> #{misc.to_json(new_val)}")
         dbg()
-        old_upgrades = old_val.users?[account_id]?.upgrades
-        new_upgrades = new_val.users?[account_id]?.upgrades
-        if new_upgrades? and not lodash.isEqual(old_upgrades, new_upgrades)
-            dbg("upgrades changed for #{account_id} from #{misc.to_json(old_upgrades)} to #{misc.to_json(new_upgrades)}")
-            project = undefined
-            async.series([
-                (cb) =>
-                    @ensure_user_project_upgrades_are_valid
-                        account_id : account_id
-                        cb         : cb
-                (cb) =>
-                    if not @projectControl?
-                        cb()
-                    else
-                        dbg("get project")
-                        try
-                            project = await @projectControl(new_val.project_id)
-                            cb()
-                        catch err
-                            cb(err)
-                (cb) =>
-                    if not project?
-                        cb()
-                    else
-                        dbg("determine total quotas and apply")
-                        try
-                            await project.setAllQuotas()
-                            cb()
-                        catch err
-                            cb(err)
-            ], cb)
-        else
-            cb()
+        cb()
 
     ###
     GET QUERIES

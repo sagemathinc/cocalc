@@ -78,37 +78,24 @@ async function stripeCreatePriceSubscriptions({
   product: string;
 }): Promise<void> {
   if (info.cost == null) throw Error("cost must be defined");
-  const { type } = info;
+  if (info.type !== "quota") {
+    throw new Error("only quota subscriptions are supported");
+  }
   const common = {
     currency: "usd",
     product,
   } as const;
-  if (type === "quota") {
-    // create the two recurring subscription costs.
-    await conn.prices.create({
-      ...common,
-      unit_amount: decimalToStripe(info.cost.cost_sub_month),
-      recurring: { interval: "month" },
-    });
-    await conn.prices.create({
-      ...common,
-      unit_amount: decimalToStripe(info.cost.cost_sub_year),
-      recurring: { interval: "year" },
-    });
-  } else if (type === "disk" || type === "vm") {
-    // there are no vm subscriptions – at this point in time – but if there are some,
-    // we would handle them just like the dedicated disks
-    await conn.prices.create({
-      ...common,
-      unit_amount: Math.round(100 * info.cost.cost_sub_month),
-      recurring: { interval: "month" },
-    });
-    await conn.prices.create({
-      ...common,
-      unit_amount: Math.round(100 * info.cost.cost_sub_year),
-      recurring: { interval: "year" },
-    });
-  }
+  // create the two recurring subscription costs.
+  await conn.prices.create({
+    ...common,
+    unit_amount: decimalToStripe(info.cost.cost_sub_month),
+    recurring: { interval: "month" },
+  });
+  await conn.prices.create({
+    ...common,
+    unit_amount: decimalToStripe(info.cost.cost_sub_year),
+    recurring: { interval: "year" },
+  });
 }
 
 async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
@@ -126,9 +113,6 @@ async function stripeGetProduct(info: PurchaseInfo): Promise<string> {
     } else if (info.subscription != "no") {
       statement_descriptor += "LIC SUB";
     } else {
-      if (info.type === "disk") {
-        throw new Error("disk do not have a period");
-      }
       const n = getDays(info);
       statement_descriptor += `LIC ${n}${n < 100 ? " " : ""}DAYS`;
     }
@@ -179,8 +163,9 @@ async function stripePurchaseProduct(
   const { quantity } = info;
   logger.debug("stripePurchaseProduct", product_id, quantity);
 
-  if (info.type === "disk")
-    throw new Error("can only deal with VMs and quota licenses");
+  if (info.type !== "quota" && info.type !== "vouchers") {
+    throw new Error("can only deal with quota licenses or vouchers");
+  }
 
   const customer: string = await stripe.need_customer_id();
   const conn = await getConn();

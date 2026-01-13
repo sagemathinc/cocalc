@@ -5,26 +5,12 @@
 
 import { LicenseIdleTimeouts } from "../consts/site-license";
 import { User } from "../licenses/purchase/types";
-import { DedicatedDisk, DedicatedVM } from "../types/dedicated";
 
-export type LicenseType = "quota" | "vm" | "disk";
+export type LicenseType = "quota";
 
 export type Period = "range" | "monthly" | "yearly";
 
 export type DateRange = [Date | undefined, Date | undefined];
-
-export type DiskCostProps = {
-  type: "disk";
-  dedicated_disk: DedicatedDisk;
-  period: Period;
-};
-
-export type VMCostProps = {
-  type: "vm";
-  period: "range";
-  range: DateRange;
-  dedicated_vm: DedicatedVM;
-};
 
 // the store's source page from where a site-license has been created
 export type LicenseSource = "site-license" | "course";
@@ -60,9 +46,7 @@ export type CashVoucherCostProps = {
 
 export type ComputeCostProps =
   | CashVoucherCostProps
-  | DiskCostProps
-  | QuotaCostProps
-  | VMCostProps;
+  | QuotaCostProps;
 
 export type ComputeCostPropsTypes = ComputeCostProps["type"];
 
@@ -80,6 +64,4 @@ export interface QuotaCostPropsDB
 // server side, what comes out of the DB in the "description" column in the cart
 // for the implementation, check out what next/components/store/add-box.tsx is doing
 export type SiteLicenseDescriptionDB =
-  | (QuotaCostPropsDB & CustomDescription)
-  | (VMCostProps & CustomDescription)
-  | (DiskCostProps & CustomDescription);
+  | (QuotaCostPropsDB & CustomDescription);

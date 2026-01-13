@@ -87,11 +87,9 @@ export function NewProjectCreator({
     "compute_servers_enabled",
   );
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
-  const hasLegacyUpgrades = redux.getStore("account").hasLegacyUpgrades();
-  // only require a license on cocalc.com, if users has no upgrades, and if configured to require a license
+  // only require a license on cocalc.com when configured to require a license
   const requireLicense =
     isCoCalcCom &&
-    !hasLegacyUpgrades &&
     !!useTypedRedux("customize", "require_license_to_create_project");
   const [show_add_license, set_show_add_license] =
     useState<boolean>(requireLicense);

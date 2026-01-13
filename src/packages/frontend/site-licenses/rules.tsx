@@ -23,13 +23,6 @@ const RULES = (
       <b>Boost</b> licenses can only be used in combination with a matching
       regular license.
     </li>
-    <li>
-      A <b>Dedicated Disk</b> can only be active with one project, since there
-      is only one physical disk.
-    </li>
-    <li>
-      A <b>Dedicated VM</b> renders regular and boost licenses ineffective.
-    </li>
   </ul>
 );
 

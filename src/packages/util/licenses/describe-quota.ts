@@ -21,14 +21,10 @@ import {
 import { capitalize, is_array, plural, round2 } from "../misc";
 import { SiteLicenseQuota } from "../types/site-licenses";
 import { loadPatch } from "../upgrades/quota";
-import { dedicatedDiskDisplay, dedicatedVmDisplay } from "../upgrades/utils";
 import type { PurchaseInfo } from "./purchase/types";
 import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
 
-export function describeQuotaFromInfo(
-  info: Partial<PurchaseInfo>,
-  withName = true,
-): string {
+export function describeQuotaFromInfo(info: Partial<PurchaseInfo>): string {
   const { type } = info;
   switch (type) {
     case "quota":
@@ -47,29 +43,8 @@ export function describeQuotaFromInfo(
         run_limit: info.run_limit || info.quantity,
       });
 
-    case "vm":
-      if (info.dedicated_vm == null) {
-        throw new Error(`dedicated_vm must be defined`);
-      }
-      // we make a copy, because we eventually delete a field
-      const dedicated_vm = { ...info.dedicated_vm };
-      if (!withName) delete dedicated_vm?.name;
-      return describe_quota({ dedicated_vm });
-
-    case "disk":
-      if (
-        info.dedicated_disk == null ||
-        typeof info.dedicated_disk === "boolean"
-      ) {
-        throw new Error(`dedicated_disk must be defined and not a boolean`);
-      }
-      // we make a copy, because we eventually delete a field
-      const dedicated_disk = { ...info.dedicated_disk };
-      if (!withName) delete dedicated_disk?.name;
-      return describe_quota({ dedicated_disk });
-
     default:
-      throw new Error(`unkonwn type ${type}`);
+      throw new Error(`unknown type ${type}`);
   }
 }
 
@@ -104,7 +79,6 @@ export function describe_quota(
       intro = `${capitalize(quota.user)} license${booster} providing`;
     }
   } else {
-    // dedicated resources do not have a specific user
     intro = short ? "License" : "License providing";
   }
 
@@ -149,28 +123,8 @@ export function describe_quota(
     v.push(`${num} GPU(s)`);
   }
 
-  if (
-    typeof quota.dedicated_vm !== "boolean" &&
-    typeof quota.dedicated_vm?.machine === "string"
-  ) {
-    hideNetwork = true;
-    v.push(
-      `hosting on a Dedicated VM providing ${dedicatedVmDisplay(
-        quota.dedicated_vm,
-      )}`,
-    );
-  } else {
-    if (quota.member) {
-      v.push("member" + (short ? "" : " hosting"));
-    }
-  }
-
-  if (
-    quota.dedicated_disk != null &&
-    typeof quota.dedicated_disk !== "boolean"
-  ) {
-    hideNetwork = true;
-    v.push(`a Dedicated Disk (${dedicatedDiskDisplay(quota.dedicated_disk)})`);
+  if (quota.member) {
+    v.push("member" + (short ? "" : " hosting"));
   }
 
   if (quota.always_running) {
@@ -245,24 +199,8 @@ export function describeQuotaOnLine(
     );
   }
 
-  if (
-    typeof quota.dedicated_vm !== "boolean" &&
-    typeof quota.dedicated_vm?.machine === "string"
-  ) {
-    v.push(`Dedicated VM ${dedicatedVmDisplay(quota.dedicated_vm)}`);
-  } else {
-    if (quota.member) {
-      v.push("member");
-    }
-  }
-
-  if (
-    quota.dedicated_disk != null &&
-    typeof quota.dedicated_disk !== "boolean"
-  ) {
-    v.push(
-      `Dedicated Disk (${dedicatedDiskDisplay(quota.dedicated_disk, "short")})`,
-    );
+  if (quota.member) {
+    v.push("member");
   }
 
   if (quota.always_running) {

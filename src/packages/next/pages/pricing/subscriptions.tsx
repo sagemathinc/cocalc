@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Layout, List } from "antd";
+import { Layout, List } from "antd";
 import dayjs from "dayjs";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
@@ -197,23 +197,6 @@ const business: Item = (() => {
 
 const data: Item[] = [hobby, academic, business];
 
-function dedicated(): JSX.Element {
-  return (
-    <Alert
-      style={{ margin: "15px 0" }}
-      message="Dedicated Virtual Machines"
-      description={
-        <span style={{ fontSize: "11pt" }}>
-          For more intensive workloads you can also rent a{" "}
-          <A href="/pricing/dedicated">dedicated virtual machine or disk</A>.
-        </span>
-      }
-      type="info"
-      showIcon
-    />
-  );
-}
-
 export default function Subscriptions({ customize }) {
   const { siteName } = customize;
   return (
@@ -332,7 +315,6 @@ function Body(): JSX.Element {
       />
       {listedPrices()}
       {pricingQuestions()}
-      {dedicated()}
     </div>
   );
 }

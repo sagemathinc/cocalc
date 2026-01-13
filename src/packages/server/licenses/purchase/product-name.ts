@@ -25,7 +25,7 @@ export function getProductName(info: PurchaseInfo): string {
   const period = getPeriod(info);
   // ATTN: this is the name for an SKU, not the individual product the user buys.
   // Hence this must not include the name of the VM or disk.
-  const desc = describeQuotaFromInfo(info, false);
+  const desc = describeQuotaFromInfo(info);
   return `${desc} - ${period}`;
 }
 

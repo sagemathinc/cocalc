@@ -230,10 +230,6 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
               use-case involves harnessing a lot of CPU power, consider using a{" "}
               <A href="https://doc.cocalc.com/compute_server.html">
                 compute server
-              </A>{" "}
-              or{" "}
-              <A href={"/store/dedicated?type=vm"}>
-                dedicated virtual machines
               </A>
               . This will not only give you many more CPU cores, but also a far
               superior experience!

@@ -47,15 +47,10 @@ import {
 } from "@cocalc/util/db-schema/subscriptions";
 import { capitalize, currency } from "@cocalc/util/misc";
 import { moneyRound2Up } from "@cocalc/util/money";
-import {
-  cancelSubscription,
-  getLicense,
-  getSubscriptions as getSubscriptionsUsingApi,
-} from "./api";
+import { cancelSubscription, getSubscriptions as getSubscriptionsUsingApi } from "./api";
 import Export from "./export";
 import Refresh from "./refresh";
 import UnpaidSubscriptions from "./unpaid-subscriptions";
-import type { License } from "@cocalc/util/db-schema/site-licenses";
 import { SubscriptionStatus } from "./subscriptions-util";
 import Fragment from "@cocalc/frontend/misc/fragment-id";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
@@ -78,19 +73,8 @@ function SubscriptionActions({
   const [error, setError] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
-  const [license, setLicense] = useState<License | null>(null);
   const [showResume, setShowResume] = useState<boolean>(false);
-  const license_id = metadata?.type == "license" ? metadata.license_id : null;
   const isLicense = metadata?.type == "license";
-
-  const updateLicense = async () => {
-    try {
-      if (!license_id) return;
-      setLicense((await getLicense({ license_id })) as License);
-    } catch (err) {
-      setError(`${err}`);
-    }
-  };
 
   const reasonRef = useRef<string>("");
   const handleCancel = async () => {
@@ -176,9 +160,6 @@ function SubscriptionActions({
           disabled={loading}
           type="default"
           onClick={() => {
-            if (isLicense) {
-              updateLicense();
-            }
             setModalOpen(true);
           }}
         >
@@ -210,14 +191,6 @@ function SubscriptionActions({
               </li>
               <li>You can resume a canceled subscription later.</li>
             </ul>
-            {license?.info?.purchased.type == "disk" && (
-              <Alert
-                showIcon
-                type="warning"
-                message="Dedicated Disk"
-                description="This is a dedicated disk, so when the license ends, all data on the disk will be permanently deleted."
-              />
-            )}
             {loading && (
               <div style={{ textAlign: "center" }}>
                 <Spin />
