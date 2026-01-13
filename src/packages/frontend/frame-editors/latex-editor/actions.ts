@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -1764,6 +1764,14 @@ export class Actions extends BaseActions<LatexEditorState> {
       path = this.relative_paths[path];
     }
     this.synctex_tex_to_pdf(line, ch, path);
+  }
+
+  set_frame_type(id: string, type: string): void {
+    super.set_frame_type(id, type);
+    if (type === "time_travel" && this.knitr) {
+      // Use the source .rnw/.rtex path for time travel frames.
+      this.set_frame_tree({ id, path: this.filename_knitr });
+    }
   }
 
   time_travel(opts: { path?: string; frame?: boolean }): void {
