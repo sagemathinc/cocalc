@@ -128,6 +128,7 @@ export function cleanup(): void {
     "BASE_PATH",
     "NODE_PATH",
     "NODE_VERSION",
+    "NODE_OPTIONS",
     "NVM_CD_FLAGS",
     "NVM_DIR",
     "NVM_BIN",
