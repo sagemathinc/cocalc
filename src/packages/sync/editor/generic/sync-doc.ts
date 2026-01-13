@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -108,6 +108,7 @@ import { SortedPatchList } from "./sorted-patch-list";
 import type {
   Client,
   CompressedPatch,
+  CursorMap,
   DocType,
   Document,
   FileWatcher,
@@ -199,7 +200,7 @@ export class SyncDoc extends EventEmitter {
   private throttled_file_use?: Function;
 
   private cursors: boolean = false; // if true, also provide cursor tracking functionality
-  private cursor_map: Map<string, any> = Map();
+  private cursor_map: CursorMap = Map() as CursorMap;
   private cursor_last_time: Date = new Date(0);
 
   // doctype: object describing document constructor
@@ -2068,7 +2069,7 @@ export class SyncDoc extends EventEmitter {
   }: {
     maxAge?: number;
     excludeSelf?: "always" | "never" | "heuristic";
-  } = {}): Map<string, any> => {
+  } = {}): CursorMap => {
     this.assert_not_closed("get_cursors");
     if (!this.cursors) {
       throw Error("cursors are not enabled");
