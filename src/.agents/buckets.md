@@ -37,17 +37,17 @@
 
 **Phase 2 Detailed Plan**
 
-1. **Define the new entrypoint**
+1. **\(done\) Define the new entrypoint**
 
 - Create a new server module: [src/packages/server/projects/move.ts](./src/packages/server/projects/move.ts)
 - Export a single function like `moveProjectToHost({ project_id, dest_host_id, account_id })` that does the orchestration.
 
-2. **Replace the old path**
+2. **\(done\) Replace the old path**
 
 - Locate the existing move flow in [src/packages/server/conat/api/projects.ts](./src/packages/server/conat/api/projects.ts) \(currently `requestMoveToHost`\).
 - Replace the old call with the new function from [src/packages/server/projects/move.ts](./src/packages/server/projects/move.ts).
 
-3. **Auth and basic validation**
+3. **\(done\) Auth and basic validation**
 
 - In the conat API handler, keep `assertCollab` for project access.
 - In `move.ts`, load:
@@ -58,7 +58,7 @@
   - Project and host are in the same backup region \(using the project’s region mapping\).
   - Host is not deprovisioned and has a data disk.
 
-4. **Determine backup requirement**
+4. **\(done\) Determine backup requirement**
 
 - If the project is running: stop it first \(use existing `stopProject` in [src/packages/server/project\-host/control.ts](./src/packages/server/project-host/control.ts)\).
 - If the project is not running:
@@ -99,6 +99,7 @@
 - No changes in smoke‑runner in this phase, but keep the function signature clean so we can call it from tests later.
 
 11. **Docs / TODO alignment**
+12. another thing I just remembered \-\- we need to add a very clear warning in the move dialog that snapshots are NOT moved \(they get deleted\); only the backup history is preserved.
 
 ### Phase 3: Copy files between hosts
 
