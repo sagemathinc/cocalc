@@ -20,13 +20,20 @@
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "clean": "rm -rf dist node_modules",
-    "tsc": "pnpm exec tsc  --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events,bufferutil,utf-8-validate"
   },
-  "files": ["dist/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "conat", "cocalc"],
+  "keywords": [
+    "utilities",
+    "conat",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies": {
     "@cocalc/comm": "workspace:*",
@@ -37,7 +44,6 @@
     "ascii-table3": "^1.0.1",
     "awaiting": "^3.0.0",
     "bufferutil": "^4.0.9",
-    "consistent-hash": "^1.2.2",
     "dayjs": "^1.11.11",
     "events": "3.3.0",
     "immutable": "^4.3.0",

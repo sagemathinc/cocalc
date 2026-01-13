@@ -1,6 +1,11 @@
 import { authFirstRequireAccount } from "./util";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { type UserCopyOptions } from "@cocalc/util/db-schema/projects";
+import { type UserGroup } from "@cocalc/util/project-ownership";
+import {
+  type ProjectState,
+  type ProjectStatus,
+} from "@cocalc/util/db-schema/projects";
 
 export const projects = {
   createProject: authFirstRequireAccount,
@@ -9,9 +14,14 @@ export const projects = {
   addCollaborator: authFirstRequireAccount,
   inviteCollaborator: authFirstRequireAccount,
   inviteCollaboratorWithoutAccount: authFirstRequireAccount,
+  changeUserType: authFirstRequireAccount,
   setQuotas: authFirstRequireAccount,
   start: authFirstRequireAccount,
   stop: authFirstRequireAccount,
+  deleteProject: authFirstRequireAccount,
+  touch: authFirstRequireAccount,
+  state: authFirstRequireAccount,
+  status: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -87,6 +97,18 @@ export interface Projects {
     };
   }) => Promise<void>;
 
+  changeUserType: ({
+    account_id,
+    opts,
+  }: {
+    account_id?: string;
+    opts: {
+      project_id: string;
+      target_account_id: string;
+      new_group: UserGroup;
+    };
+  }) => Promise<void>;
+
   setQuotas: (opts: {
     account_id?: string;
     project_id: string;
@@ -103,4 +125,18 @@ export interface Projects {
 
   start: (opts: { account_id: string; project_id: string }) => Promise<void>;
   stop: (opts: { account_id: string; project_id: string }) => Promise<void>;
+  deleteProject: (opts: {
+    account_id: string;
+    project_id: string;
+  }) => Promise<void>;
+
+  touch: (opts: { account_id: string; project_id: string }) => Promise<void>;
+  state: (opts: {
+    account_id: string;
+    project_id: string;
+  }) => Promise<ProjectState>;
+  status: (opts: {
+    account_id: string;
+    project_id: string;
+  }) => Promise<ProjectStatus>;
 }

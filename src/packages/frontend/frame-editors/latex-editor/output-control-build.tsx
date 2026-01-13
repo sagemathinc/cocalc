@@ -8,6 +8,8 @@ Build Controls Component for LaTeX Editor Output Panel
 Provides build, force build, clean, download, and print controls
 */
 
+import type { SizeType } from "antd/es/config-provider/SizeContext";
+
 import type { MenuProps } from "antd";
 import { Dropdown } from "antd";
 import { useIntl } from "react-intl";
@@ -21,7 +23,8 @@ import {
   BUILD_ON_SAVE_ICON_DISABLED,
   BUILD_ON_SAVE_ICON_ENABLED,
   BUILD_ON_SAVE_LABEL,
-} from "@cocalc/frontend/frame-editors/frame-tree/commands/generic-commands";
+} from "@cocalc/frontend/frame-editors/frame-tree/commands/const";
+import { server_time } from "@cocalc/frontend/frame-editors/generic/client";
 import { editor, IntlMessage } from "@cocalc/frontend/i18n";
 import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 
@@ -29,11 +32,17 @@ import { Actions } from "./actions";
 
 interface BuildControlsProps {
   actions: Actions;
-  id: string;
+  id?: string; // must be set if used for the PDF preview, used by the print command
   narrow?: boolean;
+  size?: SizeType;
 }
 
-export function BuildControls({ actions, id, narrow }: BuildControlsProps) {
+export function BuildControls({
+  actions,
+  id,
+  narrow,
+  size = "small",
+}: BuildControlsProps) {
   const intl = useIntl();
 
   // Get build on save setting from account store
@@ -67,6 +76,10 @@ export function BuildControls({ actions, id, narrow }: BuildControlsProps) {
     set_account_table({ editor_settings: { build_on_save: !buildOnSave } });
   };
 
+  const handleReloadPdf = () => {
+    actions.update_pdf(server_time().valueOf(), true);
+  };
+
   const buildMenuItems: MenuProps["items"] = [
     {
       key: "force-build",
@@ -84,41 +97,50 @@ export function BuildControls({ actions, id, narrow }: BuildControlsProps) {
       type: "divider",
     },
     {
+      key: "reload-pdf",
+      label: "Reload PDF",
+      icon: <Icon name="refresh" />,
+      onClick: handleReloadPdf,
+    },
+    {
       key: "download-pdf",
       label: intl.formatMessage(COMMANDS.download_pdf.label as IntlMessage),
       icon: <Icon name="cloud-download" />,
       onClick: () => actions.download_pdf(),
     },
-    {
+  ];
+
+  if (id != null) {
+    buildMenuItems.push({
       key: "print",
       label: intl.formatMessage(COMMANDS.print.label as IntlMessage),
       icon: <Icon name="print" />,
       onClick: () => actions.print(id),
-    },
-    {
-      type: "divider",
-    },
-    {
-      key: "auto-build",
-      icon: (
-        <Icon
-          name={
-            buildOnSave
-              ? BUILD_ON_SAVE_ICON_ENABLED
-              : BUILD_ON_SAVE_ICON_DISABLED
-          }
-        />
-      ),
-      label: intl.formatMessage(BUILD_ON_SAVE_LABEL, { enabled: buildOnSave }),
-      onClick: toggleBuildOnSave,
-    },
-  ];
+    });
+  }
+
+  buildMenuItems.push({
+    type: "divider",
+  });
+
+  buildMenuItems.push({
+    key: "auto-build",
+    icon: (
+      <Icon
+        name={
+          buildOnSave ? BUILD_ON_SAVE_ICON_ENABLED : BUILD_ON_SAVE_ICON_DISABLED
+        }
+      />
+    ),
+    label: intl.formatMessage(BUILD_ON_SAVE_LABEL, { enabled: buildOnSave }),
+    onClick: toggleBuildOnSave,
+  });
 
   return (
     <>
       <Dropdown.Button
         type="primary"
-        size="small"
+        size={size}
         icon={<Icon name="caret-down" />}
         menu={{ items: buildMenuItems }}
         trigger={["click"]}
@@ -130,7 +152,7 @@ export function BuildControls({ actions, id, narrow }: BuildControlsProps) {
       </Dropdown.Button>
 
       {/* Dark mode toggle - only shown when global dark mode is enabled */}
-      {isDarkMode && (
+      {isDarkMode && id != null && (
         <BSButton
           bsSize="xsmall"
           active={pdfDarkModeDisabled}

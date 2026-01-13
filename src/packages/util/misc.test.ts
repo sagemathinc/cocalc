@@ -160,6 +160,24 @@ test("EDITOR_PREFIX", () => {
   expect(misc.EDITOR_PREFIX).toBe("editor-");
 });
 
+describe("is_bad_latex_filename", () => {
+  test("allows filenames without double spaces or quotes", () => {
+    expect(misc.is_bad_latex_filename("paper.tex")).toBe(false);
+    expect(misc.is_bad_latex_filename("my paper.tex")).toBe(false);
+    expect(misc.is_bad_latex_filename("folder/subfolder/file.tex")).toBe(false);
+  });
+
+  test("rejects filenames with double spaces", () => {
+    expect(misc.is_bad_latex_filename("my  paper.tex")).toBe(true);
+    expect(misc.is_bad_latex_filename("folder/bad  name/file.tex")).toBe(true);
+  });
+
+  test("rejects filenames with single quotes", () => {
+    expect(misc.is_bad_latex_filename("author's-notes.tex")).toBe(true);
+    expect(misc.is_bad_latex_filename("folder/author's-notes.tex")).toBe(true);
+  });
+});
+
 describe("test code for displaying numbers as currency with 2 or sometimes 3 decimals of precision", () => {
   const { currency } = misc;
   it("displays 1.23", () => {
@@ -341,5 +359,50 @@ describe("suggest_duplicate_filename", () => {
   });
   it("also works with weird corner cases", () => {
     expect(dup("asdf-")).toBe("asdf--1");
+  });
+});
+
+describe("isValidAnonymousID", () => {
+  const isValid = misc.isValidAnonymousID;
+
+  it("should accept valid IPv4 addresses", () => {
+    expect(isValid("192.168.1.1")).toBe(true);
+    expect(isValid("10.23.66.8")).toBe(true);
+  });
+
+  it("should accept valid IPv6 addresses", () => {
+    expect(isValid("::1")).toBe(true);
+    expect(isValid("2001:db8::1")).toBe(true);
+    expect(isValid("fe80::1")).toBe(true);
+    expect(isValid("2001:0db8:85a3:0000:0000:8a2e:0370:7334")).toBe(true);
+  });
+
+  it("should accept valid UUIDs", () => {
+    expect(isValid("123e4567-e89b-12d3-a456-426614174000")).toBe(true);
+  });
+
+  it("should accept strings with minimum length", () => {
+    expect(isValid("abc")).toBe(true);
+  });
+
+  it("should reject empty strings", () => {
+    expect(isValid("")).toBe(false);
+  });
+
+  it("should reject strings shorter than 3 characters", () => {
+    expect(isValid("ab")).toBe(false);
+  });
+
+  it("should reject null and undefined", () => {
+    expect(isValid(null)).toBe(false);
+    expect(isValid(undefined)).toBe(false);
+  });
+
+  it("should reject non-string types", () => {
+    expect(isValid(123)).toBe(false);
+    expect(isValid(true)).toBe(false);
+    expect(isValid({})).toBe(false);
+    expect(isValid([])).toBe(false);
+    expect(isValid(new Date())).toBe(false);
   });
 });

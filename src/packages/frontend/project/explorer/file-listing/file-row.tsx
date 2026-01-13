@@ -35,6 +35,8 @@ export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "jpeg",
 ] as const;
 
+const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+
 interface Props {
   isdir: boolean;
   name: string;
@@ -57,6 +59,7 @@ interface Props {
   computeServerId?: number;
   isStarred?: boolean;
   onToggleStar?: (path: string, starred: boolean) => void;
+  dimFileExtensions?: boolean;
 }
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
@@ -68,7 +71,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function render_icon() {
     const style: React.CSSProperties = {
-      color: props.mask ? "#bbbbbb" : COLORS.FILE_ICON,
+      color: props.mask ? COLORS.FILE_DIMMED : COLORS.FILE_ICON,
       verticalAlign: "sub",
     } as const;
     let body: React.JSX.Element;
@@ -117,12 +120,11 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   }
 
   function render_name_link(styles, name, ext) {
+    const extStyle = props.dimFileExtensions ? DIMMED_STYLE : undefined;
     return (
       <a style={styles} cocalc-test="file-line">
         {misc.trunc_middle(name, 50)}
-        <span style={{ color: !props.mask ? COLORS.FILE_EXT : undefined }}>
-          {ext === "" ? "" : `.${ext}`}
-        </span>
+        <span style={extStyle}>{ext === "" ? "" : `.${ext}`}</span>
         {render_link_target()}
       </a>
     );
@@ -147,7 +149,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       wordWrap: "break-word",
       overflowWrap: "break-word",
       verticalAlign: "middle",
-      color: props.mask ? "#bbbbbb" : COLORS.TAB,
+      color: props.mask ? COLORS.FILE_DIMMED : COLORS.TAB,
     };
 
     if (show_tip) {
@@ -260,12 +262,12 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       return (
         <TimeAgo
           date={new Date(props.time * 1000).toISOString()}
-          style={{ color: COLORS.GRAY_M }}
+          style={{ color: COLORS.TAB }}
         />
       );
     } catch (error) {
       return (
-        <div style={{ color: COLORS.GRAY_M, display: "inline" }}>
+        <div style={{ color: COLORS.TAB, display: "inline" }}>
           Invalid Date Time
         </div>
       );
@@ -280,7 +282,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     const ext_lower = ext.toLowerCase();
     const style: CSS = {
       marginLeft: "10px",
-      color: COLORS.GRAY,
+      color: COLORS.TAB,
       padding: 0,
     };
     const icon = <Icon name="eye" />;
@@ -341,10 +343,10 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           type="link"
           href={url}
           onClick={handle_download_click}
-          style={{ color: COLORS.GRAY, padding: 0 }}
+          style={{ color: COLORS.TAB, padding: 0 }}
         >
           {size}
-          <Icon name="cloud-download" style={{ color: COLORS.GRAY }} />
+          <Icon name="cloud-download" style={{ color: COLORS.TAB }} />
         </Button>
       </Popover>
     );
@@ -416,7 +418,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
             <DirectorySize size={props.size} />
           </>
         ) : (
-          <span className="pull-right" style={{ color: COLORS.GRAY_M }}>
+          <span className="pull-right" style={{ color: COLORS.TAB }}>
             {render_download_button(url)}
             {render_view_button(url, props.name)}
           </span>
@@ -427,7 +429,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 });
 
 const directory_size_style: React.CSSProperties = {
-  color: COLORS.GRAY,
+  color: COLORS.TAB,
   marginRight: "3em",
 } as const;
 

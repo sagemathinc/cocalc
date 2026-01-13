@@ -100,10 +100,9 @@ export interface ProjectStoreState {
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   page_number: number;
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
-  file_action?: string; // undefineds is meaningfully none here
+  file_action?: string; // undefined is meaningfully none here
   file_search?: string;
   show_hidden?: boolean;
-  show_masked?: boolean;
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
@@ -301,7 +300,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       show_upload: false,
       create_file_alert: false,
       displayed_listing: undefined, // computed(object),
-      show_masked: true,
       configuration: undefined,
       configuration_loading: false, // for UI feedback
       show_custom_software_reset: false,
@@ -383,7 +381,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "file_search",
         "other_settings",
         "show_hidden",
-        "show_masked",
         "compute_server_id",
         "starred_files",
       ] as const,
@@ -513,20 +510,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
             }
             return result;
           })();
-        }
-
-        if (!this.get("show_masked", true)) {
-          // if we do not gray out files (and hence haven't computed the file mask yet)
-          // we do it now!
-          if (!this.get("other_settings").get("mask_files")) {
-            compute_file_masks(listing);
-          }
-
-          const filtered: DirectoryListing = [];
-          for (const f of listing) {
-            if (!f.mask) filtered.push(f);
-          }
-          listing = filtered;
         }
 
         const file_map = {};

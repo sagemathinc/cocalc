@@ -10,6 +10,7 @@ import {
   CurrentCollaboratorsPanel,
 } from "@cocalc/frontend/collaborators";
 import { Icon, Loading, Paragraph, Title } from "@cocalc/frontend/components";
+import { Alert } from "antd";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProject } from "../common";
@@ -26,8 +27,13 @@ export function CollabsFlyout({
 }: CollabsProps): React.JSX.Element {
   const intl = useIntl();
   const user_map = useTypedRedux("users", "user_map");
+  const accountCustomize = useTypedRedux("account", "customize")?.toJS() as
+    | { disableCollaborators?: boolean }
+    | undefined;
   const student = getStudentProjectFunctionality(project_id);
   const { project, group } = useProject(project_id);
+  const disableCollaborators =
+    accountCustomize?.disableCollaborators || student.disableCollaborators;
 
   function renderSettings() {
     if (project == null) {
@@ -35,14 +41,20 @@ export function CollabsFlyout({
     }
     return wrap(
       <>
-        <CurrentCollaboratorsPanel
-          key="current-collabs"
-          project={project}
-          user_map={user_map}
-          mode="flyout"
-        />
-        {!student.disableCollaborators && (
+        {disableCollaborators ? (
+          <Alert
+            type="warning"
+            showIcon
+            message="Collaborator configuration is disabled."
+          />
+        ) : (
           <>
+            <CurrentCollaboratorsPanel
+              key="current-collabs"
+              project={project}
+              user_map={user_map}
+              mode="flyout"
+            />
             <br />
             <Title level={3}>
               <Icon name="UserAddOutlined" /> Add New Collaborators

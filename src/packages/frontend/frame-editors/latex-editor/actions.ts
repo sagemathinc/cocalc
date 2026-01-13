@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -50,6 +50,7 @@ import { once } from "@cocalc/util/async-utils";
 import { ExecOutput } from "@cocalc/util/db-schema/projects";
 import {
   change_filename_extension,
+  is_bad_latex_filename,
   path_split,
   separate_file_extension,
   sha1,
@@ -144,6 +145,9 @@ export class Actions extends BaseActions<LatexEditorState> {
   // PDF file watcher - watches directory for PDF file changes
   private pdf_watcher?: PDFWatcher;
 
+  // Debounced version - initialized in _init2()
+  update_pdf: (time: number, force: boolean) => void;
+
   // Auto-sync function for cursor position changes (forward sync: source → PDF)
   private async handle_cursor_sync_to_pdf(
     line: number,
@@ -179,6 +183,11 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _init2(): void {
     this.set_gutter = this.set_gutter.bind(this);
+    // Debounce update_pdf with 500ms delay, trailing only, has to work when PDF watcher fires during the build
+    this.update_pdf = debounce(this._update_pdf.bind(this), 500, {
+      leading: false,
+      trailing: true,
+    });
     if (!this.is_public) {
       this.init_bad_filename();
       this.init_ext_filename(); // safe to set before syncstring init
@@ -210,7 +219,10 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.pdf_watcher = new PDFWatcher(
       this.project_id,
       pdfPath,
-      this.update_pdf.bind(this),
+      // We ignore the PDFs timestamp (mtime) and use last_save_time for consistency with build-triggered updates
+      (_mtime: number, force: boolean) => {
+        this.update_pdf(this.last_save_time(), force);
+      },
     );
     await this.pdf_watcher.init();
   }
@@ -227,9 +239,10 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private init_bad_filename(): void {
     // #3230 two or more spaces
+    // Shell injection prevention: single quotes break bash string interpolation
     // note: if there are additional reasons why a filename is bad, add it to the
     // alert msg in run_build.
-    this.bad_filename = /\s\s+/.test(this.path);
+    this.bad_filename = is_bad_latex_filename(this.path);
   }
 
   private init_ext_filename(): void {
@@ -867,7 +880,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
     if (this.bad_filename) {
       const err = `ERROR: It is not possible to compile this LaTeX file with the name '${this.path}'.
-        Please modify the filename, such that it does **not** contain two or more consecutive spaces.`;
+        Please modify the filename, such that it does **not** contain two or more consecutive spaces or single quotes (').`;
       this.set_error(err);
       return;
     }
@@ -882,13 +895,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     if (this._has_frame_of_type("word_count")) {
       run_word_count = this.word_count(time, force);
     }
-    await this.run_latex(time, force);
+    // update_pdf=false, because it is deferred until the end
+    await this.run_latex(time, force, false);
     // ... and then patch the synctex file to align the source line numberings
     if (this.knitr) {
       await this.run_patch_synctex(time, force);
     }
 
     const s = this.store.unsafe_getIn(["build_logs", "latex", "stdout"]);
+    let update_pdf = true;
     if (typeof s == "string") {
       const is_sagetex = s.indexOf("sagetex.sty") != -1;
       const is_pythontex =
@@ -896,8 +911,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (is_sagetex || is_pythontex) {
         if (this.ensure_output_directory_disabled()) {
           // rebuild if build command changed
-          await this.run_latex(time, true);
+          await this.run_latex(time, true, false);
         }
+        update_pdf = false;
         if (is_sagetex) {
           await this.run_sagetex(time, force);
         }
@@ -906,6 +922,12 @@ export class Actions extends BaseActions<LatexEditorState> {
           await this.run_pythontex(time, force);
         }
       }
+    }
+
+    // we suppress a cycle of loading the PDF if sagetex or pythontex runs above
+    // because these two trigger a rebuild and update_pdf on their own at the end
+    if (update_pdf) {
+      this.update_pdf(time, force);
     }
 
     if (run_word_count != null) {
@@ -994,7 +1016,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  private async run_latex(time: number, force: boolean): Promise<void> {
+  private async run_latex(
+    time: number,
+    force: boolean,
+    update_pdf: boolean = true,
+  ): Promise<void> {
     if (this.is_stopping) return;
     let output: BuildLog;
     let build_command: string | string[];
@@ -1051,6 +1077,10 @@ export class Actions extends BaseActions<LatexEditorState> {
     this.check_for_fatal_error();
     this.update_gutters();
     this.update_gutters_soon();
+    // Explicit PDF reload after latex compilation
+    if (update_pdf) {
+      this.update_pdf(time, force);
+    }
   }
 
   // this *merges* errors from log into an eventually already existing this.parsed_output_log
@@ -1186,7 +1216,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  update_pdf(time: number, force: boolean): void {
+  private _update_pdf(time: number, force: boolean): void {
     const timestamp = this.make_timestamp(time, force);
     // forget currently cached pdf
     this._forget_pdf_document();
@@ -1230,11 +1260,13 @@ export class Actions extends BaseActions<LatexEditorState> {
           this.get_output_directory(),
         );
         if (hash === this._last_sagetex_hash) {
-          // no change - nothing to do
+          // no change - nothing to do except updating the pdf preview
+          this.update_pdf(time, force);
           return;
         }
       } catch (err) {
         this.set_error(err);
+        this.update_pdf(time, force);
         return;
       } finally {
         this.set_status("");
@@ -1264,6 +1296,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       await this.run_latex(time + 1, force);
     } catch (err) {
       this.set_error(err);
+      this.update_pdf(time, force);
     } finally {
       this._last_sagetex_hash = hash;
       this.set_status("");
@@ -1303,6 +1336,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     } catch (err) {
       this.set_error(err);
       // this.setState({ pythontex_error: true });
+      this.update_pdf(time, force);
       return;
     } finally {
       this.set_status("");
@@ -1469,15 +1503,15 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   _get_most_recent_output_panel(): string | undefined {
     let result = this._get_most_recent_active_frame_id_of_type("output");
-    console.log(
-      "LaTeX: _get_most_recent_output_panel() via active history returning",
-      result,
-    );
+    // console.log(
+    //   "LaTeX: _get_most_recent_output_panel() via active history returning",
+    //   result,
+    // );
 
     // If no recently active output panel found, look for any output panel
     if (!result) {
       result = this._get_any_frame_id_of_type("output");
-      console.log("LaTeX: _get_any_frame_id_of_type() returning", result);
+      //console.log("LaTeX: _get_any_frame_id_of_type() returning", result);
     }
 
     return result;
@@ -1730,6 +1764,14 @@ export class Actions extends BaseActions<LatexEditorState> {
       path = this.relative_paths[path];
     }
     this.synctex_tex_to_pdf(line, ch, path);
+  }
+
+  set_frame_type(id: string, type: string): void {
+    super.set_frame_type(id, type);
+    if (type === "time_travel" && this.knitr) {
+      // Use the source .rnw/.rtex path for time travel frames.
+      this.set_frame_tree({ id, path: this.filename_knitr });
+    }
   }
 
   time_travel(opts: { path?: string; frame?: boolean }): void {

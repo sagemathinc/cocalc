@@ -9,15 +9,34 @@
 
 import { useState } from "react";
 import { Alert, Input } from "antd";
+
 import {
   React,
   redux,
   useActions,
   useRedux,
   useTypedRedux,
-} from "../app-framework";
-import { Icon, Gap } from "../components";
-const { SiteName } = require("../customize");
+} from "@cocalc/frontend/app-framework";
+import { Icon, Gap } from "@cocalc/frontend/components";
+const { SiteName } = require("@cocalc/frontend/customize");
+const HOUR_MS = 60 * 60 * 1000;
+
+function formatTimeDelta(ms: number | undefined): string {
+  if (ms == null || !isFinite(ms) || ms <= 0) {
+    return "soon";
+  }
+  const hours = ms / HOUR_MS;
+  if (hours >= 48) {
+    const days = Math.round(hours / 24);
+    return `in ${days} day${days === 1 ? "" : "s"}`;
+  }
+  if (hours >= 1) {
+    const rounded = Math.round(hours * 10) / 10;
+    return `in ${rounded} hour${rounded === 1 ? "" : "s"}`;
+  }
+  const minutes = Math.max(1, Math.round(ms / 60000));
+  return `in ${minutes} minute${minutes === 1 ? "" : "s"}`;
+}
 
 interface Props {
   project_id: string;
@@ -28,7 +47,7 @@ interface Props {
 export const AnonymousName: React.FC<Props> = React.memo(({ project_id }) => {
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   if (!is_anonymous) {
-    // no need to do thisencourage a name -- they are by themself.
+    // no need to encourage a name -- they are by themselves.
     return <></>;
   }
   return <AnonymousNameInput project_id={project_id} />;
@@ -38,6 +57,8 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
   const project = useRedux(["project_map", project_id], "projects");
   const first_name = useTypedRedux("account", "first_name");
   const last_name = useTypedRedux("account", "last_name");
+  const ephemeral = useTypedRedux("account", "ephemeral");
+  const created = useTypedRedux("account", "created");
   const [editingName, setEditingName] = useState<boolean>(false);
   const actions = useActions("account");
   if (first_name == null || last_name == null) {
@@ -54,7 +75,18 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
     </>
   );
   let mesg;
-  if ((project?.get("users")?.size ?? 1) <= 1) {
+  if (ephemeral) {
+    const expiresAt =
+      created != null ? created.valueOf() + ephemeral : Date.now() + ephemeral;
+    const timeText = formatTimeDelta(expiresAt - Date.now());
+    mesg = (
+      <div>
+        {icon}
+        You are using <SiteName /> with an ephemeral account. This account will
+        be deleted {timeText}.
+      </div>
+    );
+  } else if ((project?.get("users")?.size ?? 1) <= 1) {
     // no need to encourage a name -- they are alone; also, emphasize
     // that they could lose their work:
     mesg = (
@@ -125,6 +157,7 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
       style={{ marginBottom: "5px" }}
       type="warning"
       message={mesg}
-    ></Alert>
+      banner
+    />
   );
 });

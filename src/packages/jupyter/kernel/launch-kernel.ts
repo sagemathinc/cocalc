@@ -168,6 +168,11 @@ async function launchKernelSpec(
   } else {
     running_kernel = spawn(argv[0], argv.slice(1), full_spawn_options);
   }
+
+  // Store kernel info for tracking
+  running_kernel.connectionFile = connectionFile;
+  running_kernel.kernel_spec = kernel_spec;
+
   spawned.push(running_kernel);
 
   running_kernel.on("error", (code, signal) => {
@@ -221,6 +226,48 @@ async function ensureDirectoryExists(path: string) {
 
 // Clean up after any children created here
 const spawned: any[] = [];
+
+export interface RunningKernel {
+  pid: number;
+  connectionFile: string;
+  kernel_name?: string;
+}
+
+export function listRunningKernels(): RunningKernel[] {
+  return spawned
+    .filter((child) => child.pid)
+    .map((child) => ({
+      pid: child.pid,
+      connectionFile: child.connectionFile || "unknown",
+      kernel_name: child.kernel_spec?.name,
+    }));
+}
+
+export function stopKernel(pid: number): boolean {
+  const index = spawned.findIndex((child) => child.pid === pid);
+  if (index === -1) {
+    return false;
+  }
+
+  const child = spawned[index];
+  try {
+    // Try to kill the process group first (negative PID)
+    process.kill(-child.pid, "SIGKILL");
+  } catch (err) {
+    // If that fails, try killing the process directly
+    try {
+      child.kill("SIGKILL");
+    } catch (err2) {
+      logger.debug(`stopKernel: failed to kill ${child.pid}: ${err2}`);
+      return false;
+    }
+  }
+
+  // Remove from spawned array
+  spawned.splice(index, 1);
+  return true;
+}
+
 export function closeAll() {
   for (const child of spawned) {
     if (child.pid) {

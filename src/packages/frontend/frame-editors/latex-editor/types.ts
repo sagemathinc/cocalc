@@ -3,10 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { Map } from "immutable";
 
 import { createTypedMap, TypedMap } from "@cocalc/frontend/app-framework";
-import { IconName } from "@cocalc/frontend/components";
 import type { ExecOutput } from "@cocalc/util/db-schema/projects";
 import { IProcessedLatexLog } from "./latex-log-parser";
 

@@ -125,7 +125,7 @@ async function sendData(mesg, createReadStream) {
     // (heartbeats, etc.) and disconnect us, when transfering a large file.
     seq += 1;
     logger.debug("sendData: sending", { path, seq });
-    const data = Buffer.concat(chunks);
+    const data = Buffer.concat(chunks as any);
     const { count } = await mesg.respond(data, getSeqHeader(seq));
     if (count == 0) {
       logger.debug("sendData: nobody is listening");

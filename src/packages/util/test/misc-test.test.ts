@@ -85,6 +85,7 @@ describe("seconds2hms", () => {
   const m = 60; // one minute
   const h = 60 * m; // one hour
   const d = 24 * h; // one day
+  const y = 365 * d; // one year
 
   it("converts to short form", () => {
     expect(s2hms(0)).toBe("0s");
@@ -135,6 +136,113 @@ describe("seconds2hms", () => {
     expect(s2hm(21 * d + 19 * h - 1, true)).toBe("21 days 18 hours 59 minutes");
     expect(s2hm(1 * d, true)).toBe("1 day");
     expect(s2hm(1 * d + 3 * m, true)).toBe("1 day 3 minutes");
+  });
+
+  it("converts to short form with show_minutes=false (with fallback)", () => {
+    expect(s2hms(0, false, false, false)).toBe("0s");
+    expect(s2hms(30, false, false, false)).toBe("30s");
+    expect(s2hms(60, false, false, false)).toBe("1m");
+    expect(s2hms(90, false, false, false)).toBe("1m");
+    expect(s2hms(120, false, false, false)).toBe("2m");
+    expect(s2hms(3599, false, false, false)).toBe("59m");
+    expect(s2hms(3600, false, false, false)).toBe("1h");
+    expect(s2hms(3661, false, false, false)).toBe("1h");
+    expect(s2hms(7300, false, false, false)).toBe("2h");
+    expect(s2hms(10 * h, false, false, false)).toBe("10h");
+    expect(s2hms(10 * h + 45 * m, false, false, false)).toBe("10h");
+  });
+
+  it("converts to long form with show_minutes=false (with fallback)", () => {
+    expect(s2hms(0, true, false, false)).toBe("0 seconds");
+    expect(s2hms(30, true, false, false)).toBe("30 seconds");
+    expect(s2hms(60, true, false, false)).toBe("1 minute");
+    expect(s2hms(90, true, false, false)).toBe("1 minute");
+    expect(s2hms(120, true, false, false)).toBe("2 minutes");
+    expect(s2hms(3599, true, false, false)).toBe("59 minutes");
+    expect(s2hms(3600, true, false, false)).toBe("1 hour");
+    expect(s2hms(3661, true, false, false)).toBe("1 hour");
+    expect(s2hms(7300, true, false, false)).toBe("2 hours");
+    expect(s2hms(10 * h, true, false, false)).toBe("10 hours");
+    expect(s2hms(10 * h + 45 * m, true, false, false)).toBe("10 hours");
+  });
+
+  it("converts to short form in days resolution with show_minutes=false", () => {
+    expect(s2hms(d + 2 * h + 1 * m, false, false, false)).toBe("1d2h");
+    expect(s2hms(21 * d + 19 * h - 1, false, false, false)).toBe("21d18h");
+    expect(s2hms(1 * d, false, false, false)).toBe("1d");
+    expect(s2hms(1 * d + 3 * m, false, false, false)).toBe("1d");
+    expect(s2hms(5 * d + 12 * h + 30 * m, false, false, false)).toBe("5d12h");
+  });
+
+  it("converts to long form in days resolution with show_minutes=false", () => {
+    expect(s2hms(1 * d + 2 * h + 1 * m, true, false, false)).toBe(
+      "1 day 2 hours",
+    );
+    expect(s2hms(21 * d + 19 * h - 1, true, false, false)).toBe(
+      "21 days 18 hours",
+    );
+    expect(s2hms(1 * d, true, false, false)).toBe("1 day");
+    expect(s2hms(1 * d + 3 * m, true, false, false)).toBe("1 day");
+    expect(s2hms(5 * d + 12 * h + 30 * m, true, false, false)).toBe(
+      "5 days 12 hours",
+    );
+  });
+
+  it("converts to short form in years resolution with show_minutes=false", () => {
+    expect(s2hms(4 * y + 66 * d, false, false, false)).toBe("4y66d");
+    expect(s2hms(1 * y, false, false, false)).toBe("1y");
+    expect(s2hms(2 * y + 30 * d, false, false, false)).toBe("2y30d");
+    expect(s2hms(5 * y + 100 * d + 12 * h, false, false, false)).toBe("5y100d");
+  });
+
+  it("converts to long form in years resolution with show_minutes=false", () => {
+    expect(s2hms(4 * y + 66 * d, true, false, false)).toBe("4 years 66 days");
+    expect(s2hms(1 * y, true, false, false)).toBe("1 year");
+    expect(s2hms(2 * y + 30 * d, true, false, false)).toBe("2 years 30 days");
+    expect(s2hms(5 * y + 100 * d + 12 * h, true, false, false)).toBe(
+      "5 years 100 days",
+    );
+  });
+
+  it("converts to short form in years resolution with show_minutes=true", () => {
+    expect(s2hms(4 * y + 66 * d + 5 * h + 30 * m, false, false, true)).toBe(
+      "4y66d5h30m",
+    );
+    expect(s2hms(1 * y + 2 * h, false, false, true)).toBe("1y2h0m");
+    expect(s2hms(2 * y + 30 * d + 12 * h, false, false, true)).toBe(
+      "2y30d12h0m",
+    );
+    expect(s2hms(3 * y, false, false, true)).toBe("3y");
+  });
+
+  it("converts to long form in years resolution with show_minutes=true", () => {
+    expect(s2hms(4 * y + 66 * d + 5 * h + 30 * m, true, false, true)).toBe(
+      "4 years 66 days 5 hours 30 minutes",
+    );
+    expect(s2hms(1 * y + 2 * h, true, false, true)).toBe("1 year 2 hours");
+    expect(s2hms(2 * y + 30 * d + 12 * h, true, false, true)).toBe(
+      "2 years 30 days 12 hours",
+    );
+    expect(s2hms(3 * y, true, false, true)).toBe("3 years");
+  });
+
+  it("converts to short form in years resolution with show_seconds=true", () => {
+    expect(s2hms(4 * y + 66 * d + 5 * h + 30 * m + 45, false, true, true)).toBe(
+      "4y66d5h30m45s",
+    );
+    expect(s2hms(1 * y + 2 * h + 30, false, true, true)).toBe("1y2h0m30s");
+    expect(s2hms(2 * y + 1 * d, false, true, true)).toBe("2y1d");
+  });
+
+  it("converts to long form in years resolution with show_seconds=true", () => {
+    expect(s2hms(4 * y + 66 * d + 5 * h + 30 * m + 45, true, true, true)).toBe(
+      "4 years 66 days 5 hours 30 minutes",
+    );
+    expect(s2hms(1 * y + 2 * h + 30, true, true, true)).toBe("1 year 2 hours");
+    expect(s2hms(2 * y + 1 * d, true, true, true)).toBe("2 years 1 day");
+    expect(s2hms(3 * y + 45 * m + 30, true, true, true)).toBe(
+      "3 years 45 minutes 30 seconds",
+    );
   });
 });
 

@@ -4,8 +4,8 @@
  */
 
 import type { ReactNode } from "react";
+import type { IconName, IconRotation } from "@cocalc/frontend/components/icon";
 
-import { IconName, IconRotation } from "@cocalc/frontend/components/icon";
 import { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
 import { IntlMessage } from "@cocalc/frontend/i18n";
 import type { ManageCommands } from "./manage";

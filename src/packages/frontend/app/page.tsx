@@ -10,6 +10,8 @@ everything on *desktop*, once the user has signed in.
 
 declare var DEBUG: boolean;
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { Spin } from "antd";
 import { useIntl } from "react-intl";
 
@@ -25,7 +27,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ClientContext } from "@cocalc/frontend/client/context";
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
+import { Icon } from "@cocalc/frontend/components/icon";
 import Next from "@cocalc/frontend/components/next";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { labels } from "@cocalc/frontend/i18n";
@@ -116,6 +118,7 @@ export const Page: React.FC = () => {
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const ephemeral = useTypedRedux("account", "ephemeral");
   const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
   const show_i18n = useShowI18NBanner();
@@ -150,7 +153,7 @@ export const Page: React.FC = () => {
     }
     const icon = account_tab_icon();
     let label, style;
-    if (is_anonymous) {
+    if (is_anonymous && !ephemeral) {
       let mesg;
       style = { fontWeight: "bold", opacity: 0 };
       if (

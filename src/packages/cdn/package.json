@@ -13,7 +13,7 @@
   },
   "scripts": {
     "clean": "rm -rf build node_modules dist",
-    "build": "rm -rf build dist && mkdir build && cp -rv *.json *.py *.js build/ && cd build && npm ci && mkdir dist && ./setup.py && mv dist .. && cd .. && rm -rf build ",
+    "build": "rm -rf build dist && mkdir build && cp -rv *.json *.py *.js build/ && cp -rv cm-custom-theme build/ && cd build && npm ci && mkdir dist && ./setup.py && mv dist .. && cd .. && rm -rf build ",
     "postinstall": "./postinstall.js",
     "test": "../node_modules/.bin/jest",
     "prepublishOnly": "npm test"

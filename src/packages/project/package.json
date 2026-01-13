@@ -67,7 +67,6 @@
     "preinstall": "npx only-allow pnpm",
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' pnpm cocalc-project",
     "build": "../node_modules/.bin/tsc --build",
-    "tsc": "../node_modules/.bin/tsc  --watch  --pretty --preserveWatchOutput",
     "test": "COCALC_PROJECT_ID=812abe34-a382-4bd1-9071-29b6f4334f03 COCALC_USERNAME=user pnpm exec jest",
     "depcheck": "pnpx depcheck",
     "prepublishOnly": "pnpm test",

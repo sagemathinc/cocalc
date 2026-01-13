@@ -6,6 +6,8 @@
 // Site Customize -- dynamically customize the look and configuration
 // of CoCalc for the client.
 
+// cSpell:ignore TOSurl PAYGO nonfree tagmanager
+
 import { fromJS, List, Map } from "immutable";
 import { join } from "path";
 import { useIntl } from "react-intl";
@@ -107,6 +109,7 @@ export interface CustomizeState {
   google_vertexai_enabled: boolean;
   mistral_enabled: boolean;
   anthropic_enabled: boolean;
+  xai_enabled: boolean;
   ollama_enabled: boolean;
   custom_openai_enabled: boolean;
   neural_search_enabled: boolean;
@@ -146,6 +149,7 @@ export interface CustomizeState {
   organization_name: string;
   organization_url: string;
   share_server: boolean;
+  strict_collaborator_management: boolean;
   site_description: string;
   site_name: string;
   splash_image: string;
@@ -215,6 +219,7 @@ export class CustomizeStore extends Store<CustomizeState> {
       custom_openai: this.get("custom_openai_enabled"),
       mistralai: this.get("mistral_enabled"),
       anthropic: this.get("anthropic_enabled"),
+      xai: this.get("xai_enabled"),
       user: this.get("user_defined_llm"),
     };
   }
@@ -261,7 +266,7 @@ export class CustomizeActions extends Actions<CustomizeState> {
       unlicensed_project_timetravel_limit: undefined,
     });
   };
-  
+
   reload = async () => {
     await loadCustomizeState();
   };
@@ -589,7 +594,6 @@ export const Footer: React.FC = React.memo(() => {
   const webappVersionInfo =
     `Version ${smc_version} @ ${build_date}` + ` | ${smc_git_rev.slice(0, 8)}`;
   const style: React.CSSProperties = {
-    color: "gray",
     textAlign: "center",
     paddingBottom: `${UNIT}px`,
   };

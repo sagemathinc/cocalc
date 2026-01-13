@@ -7,11 +7,10 @@
 Create a new project
 */
 
-import { Button, Card, Col, Form, Input, Modal, Row, Space } from "antd";
+import { Button, Card, Col, Form, Input, Modal, Row } from "antd";
 import { delay } from "awaiting";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { Well } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   redux,
@@ -48,11 +47,17 @@ const CARD_STYLE: CSS = { margin: "10px 0" } as const;
 interface Props {
   noProjects: boolean;
   default_value: string;
+  /** Increment this value to trigger the modal to open */
+  open_trigger?: number;
 }
 
 type EditState = "edit" | "view" | "saving";
 
-export function NewProjectCreator({ noProjects, default_value }: Props) {
+export function NewProjectCreator({
+  noProjects,
+  default_value,
+  open_trigger,
+}: Props) {
   const intl = useIntl();
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(noProjects ? "edit" : "view");
@@ -97,6 +102,13 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
   useEffect(() => {
     set_title_manually(default_value.length > 0);
   }, [default_value.length > 0]);
+
+  // Open modal when open_trigger changes
+  useEffect(() => {
+    if (open_trigger != null && open_trigger > 0) {
+      start_editing();
+    }
+  }, [open_trigger]);
 
   const is_mounted_ref = useIsMountedRef();
 
@@ -213,7 +225,7 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
           <Button
             cocalc-test={"create-project"}
             size="large"
-            disabled={noProjects || state !== "view"}
+            disabled={state !== "view"}
             onClick={toggle_editing}
             style={{ width: "100%" }}
           >
@@ -400,24 +412,6 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
         </Row>
         {render_add_license()}
         {render_license()}
-        {noProjects && (
-          <Row>
-            <Col sm={24} style={{ marginTop: "10px" }}>
-              <Space>
-                <Button disabled={state === "saving"} onClick={cancel_editing}>
-                  {intl.formatMessage(labels.cancel)}
-                </Button>
-                <Button
-                  disabled={isDisabled()}
-                  onClick={() => create_project()}
-                  type="primary"
-                >
-                  {renderOKButtonText()}
-                </Button>
-              </Space>
-            </Col>
-          </Row>
-        )}
         {render_error()}
       </>
     );
@@ -438,37 +432,28 @@ export function NewProjectCreator({ noProjects, default_value }: Props) {
 
   function render_project_creation(): React.JSX.Element | undefined {
     if (state === "view") return;
-    // if user has no projects yet, show the create dialog directly – otherwise its a modal
-    if (noProjects) {
-      return (
-        <Well style={{ backgroundColor: "#FFF" }}>
-          {render_input_section()}
-        </Well>
-      );
-    } else {
-      return (
-        <Modal
-          title={intl.formatMessage(labels.create_project)}
-          open={state === "edit" || state === "saving"}
-          okButtonProps={{ disabled: isDisabled() }}
-          okText={renderOKButtonText()}
-          cancelText={intl.formatMessage(labels.cancel)}
-          onCancel={cancel_editing}
-          onOk={create_project}
-          confirmLoading={state === "saving"}
-          width={{
-            xs: "90%",
-            sm: "90%",
-            md: "80%",
-            lg: "75%",
-            xl: "70%",
-            xxl: "60%",
-          }}
-        >
-          {render_input_section()}
-        </Modal>
-      );
-    }
+    return (
+      <Modal
+        title={intl.formatMessage(labels.create_project)}
+        open={state === "edit" || state === "saving"}
+        okButtonProps={{ disabled: isDisabled() }}
+        okText={renderOKButtonText()}
+        cancelText={intl.formatMessage(labels.cancel)}
+        onCancel={cancel_editing}
+        onOk={create_project}
+        confirmLoading={state === "saving"}
+        width={{
+          xs: "90%",
+          sm: "90%",
+          md: "80%",
+          lg: "75%",
+          xl: "70%",
+          xxl: "60%",
+        }}
+      >
+        {render_input_section()}
+      </Modal>
+    );
   }
 
   return (

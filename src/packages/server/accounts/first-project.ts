@@ -8,6 +8,7 @@ import { getProject } from "@cocalc/server/projects/control";
 import callProject from "@cocalc/server/projects/call";
 import getKernels from "@cocalc/server/jupyter/kernels";
 import { isValidUUID } from "@cocalc/util/misc";
+import type { RegistrationTokenCustomize } from "@cocalc/util/types/registration-token";
 
 // If true, create welcome files based on tags.
 // disabled because based on data with users, it doesn't help.
@@ -22,9 +23,15 @@ const log = getLogger("server:accounts:first-project");
 export default async function firstProject({
   account_id,
   tags,
+  dontStartProject,
+  ephemeral,
+  customize,
 }: {
   account_id: string;
   tags?: string[];
+  dontStartProject?: boolean;
+  ephemeral?: number;
+  customize?: RegistrationTokenCustomize;
 }): Promise<string> {
   log.debug(account_id, tags);
   if (!isValidUUID(account_id)) {
@@ -32,11 +39,15 @@ export default async function firstProject({
   }
   const project_id = await createProject({
     account_id,
-    title: "My First Project",
+    title: ephemeral ? "My Project" : "My First Project",
+    ephemeral,
+    customize,
   });
   log.debug("created new project", project_id);
-  const project = getProject(project_id);
-  await project.start();
+  if (!dontStartProject) {
+    const project = getProject(project_id);
+    await project.start();
+  }
   if (!WELCOME_FILES || tags == null || tags.length == 0) {
     return project_id;
   }
@@ -57,7 +68,7 @@ export default async function firstProject({
             account_id,
             project_id,
             language,
-            welcome + jupyterExtra
+            welcome + jupyterExtra,
           );
         }
       }
@@ -78,7 +89,7 @@ async function createJupyterNotebookIfAvailable(
   account_id: string,
   project_id: string,
   language: string,
-  welcome: string
+  welcome: string,
 ): Promise<string> {
   // find the highest priority kernel with the given language
   let kernelspec: any = null;
@@ -129,7 +140,7 @@ async function createWelcome(
   account_id: string,
   project_id: string,
   ext: string,
-  welcome: string
+  welcome: string,
 ): Promise<string> {
   const path = `welcome/welcome.${ext}`;
   const { torun } = TAGS_MAP[ext] ?? {};

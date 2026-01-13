@@ -16,7 +16,8 @@ and they have a similar massive list: https://github.com/blakeembrey/language-ma
 Maybe that could be useful at some point.
 */
 
-import { IconName } from "./components/icon";
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import imageExtensions from "image-extensions";
 import videoExtensions from "video-extensions";
 import audioExtensions from "audio-extensions";

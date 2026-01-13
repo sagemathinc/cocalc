@@ -56,7 +56,6 @@ export interface ProjectsState {
   search: string;
   deleted: boolean;
   hidden: boolean;
-  starred: boolean;
   selected_hashtags: Map<string, Set<string>>;
 
   all_projects_have_been_loaded: boolean;
@@ -66,6 +65,8 @@ export interface ProjectsState {
   project_websockets: Map<string, WebsocketState>;
 
   tableError?: TypedMap<{ error: string; query: any }>;
+
+  expanded_project_id?: string; // the currently expanded project in the projects table
 }
 
 // Define projects store
@@ -540,7 +541,7 @@ export class ProjectsStore extends Store<ProjectsState> {
     if (quotas == null) {
       return undefined;
     }
-    const kind = quotas.member_host ?? true ? "member" : "free";
+    const kind = (quotas.member_host ?? true) ? "member" : "free";
     // if any quota regarding cpu or memory is upgraded, we treat it better than purely free projects
     const upgraded =
       (quotas.memory != null && quotas.memory > DEFAULT_QUOTAS.memory) ||
@@ -810,6 +811,10 @@ export class ProjectsStore extends Store<ProjectsState> {
     tag?: string,
     vendor: LLMServiceName | "any" = "any",
   ): boolean {
+    if (redux.getStore("account").getIn(["customize", "disableAI"])) {
+      // admin account-wide AI is disabled for this user.
+      return false;
+    }
     const courseLimited = this.limitAIinCourseProject(tag);
 
     // cache answer for a few seconds, in case this gets called a lot:
@@ -882,7 +887,6 @@ const init_store = {
   search: "",
   deleted: false,
   hidden: false,
-  starred: false,
   selected_hashtags: Map<string, Set<string>>(),
 
   all_projects_have_been_loaded: false,

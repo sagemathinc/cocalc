@@ -32,7 +32,7 @@ export const LS = new LocalStorageLRU({
   fallback: true,
 });
 
-export function set_local_storage(key: string, val: string): void {
+export function set_local_storage(key: string, val: string | object): void {
   LS.set(key, val);
 }
 
