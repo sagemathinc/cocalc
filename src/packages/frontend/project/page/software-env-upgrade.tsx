@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 import { Space } from "antd";
+import { useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Alert, Button } from "@cocalc/frontend/antd-bootstrap";
@@ -21,6 +22,7 @@ import {
   Loading,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   DISMISS_IMG_1804,
   DISMISS_IMG_2004,
@@ -85,6 +87,9 @@ interface Props {
 
 const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
   const { project_id } = props;
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const [updating, set_updating] = useState(false);
   const [hide, set_hide] = useState(false);
   const compute_image = useComputeImage(project_id);
@@ -212,8 +217,8 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
             <div style={{ flex: "1 1 auto" }}>
               <strong>Software Upgrade Available!</strong>{" "}
               <VisibleMDLG>
-                Upgrade this project's software environment from {oldname} to{" "}
-                {render_update_to_2004()}
+                Upgrade this {projectLabelLower}'s software environment from{" "}
+                {oldname} to {render_update_to_2004()}
                 <strong>
                   <A href={DOC_UBUNTU_2204}>{name2204}</A>
                 </strong>
@@ -225,7 +230,8 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
                     style={{ color: COLORS.GRAY }}
                     href={DOC_CHANGE_SOFTWARE_IMAGE}
                   >
-                    Project Settings → Project Control → Software Environment
+                    {projectLabel} Settings → {projectLabel} Control → Software
+                    Environment
                   </A>
                   .
                 </span>

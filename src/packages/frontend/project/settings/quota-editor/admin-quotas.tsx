@@ -27,6 +27,7 @@ interface Props {
 
 export default function AdminQuotas({ project_id, style }: Props) {
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
 
   const projectSettings: ProjectSettings | undefined = useRedux([
     "projects",
@@ -76,7 +77,7 @@ export default function AdminQuotas({ project_id, style }: Props) {
       });
       alert_message({
         type: "success",
-        message: "Project quotas updated.",
+        message: `${projectLabel} quotas updated.`,
       });
     } catch (err) {
       alert_message({ type: "error", message: err.message });

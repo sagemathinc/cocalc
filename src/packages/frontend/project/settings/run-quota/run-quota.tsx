@@ -5,9 +5,11 @@
 
 import { PoweroffOutlined } from "@ant-design/icons";
 import { Table, Typography } from "antd";
+import { useIntl } from "react-intl";
 
 import { React, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
@@ -48,6 +50,9 @@ export const RunQuota: React.FC<Props> = React.memo(
     const { project_id, project_state, mode } = props;
     const isFlyout = mode === "flyout";
     const projectIsRunning = project_state === "running";
+    const intl = useIntl();
+    const projectLabel = intl.formatMessage(labels.project);
+    const projectLabelLower = projectLabel.toLowerCase();
     //const projectStatus = project.get("status");
     const currentUsage = useCurrentUsage({ project_id, shortStr: isFlyout });
     const kucalc = useTypedRedux("customize", "kucalc");
@@ -187,7 +192,9 @@ export const RunQuota: React.FC<Props> = React.memo(
 
       if (record.key === "idle_timeout" && val === "&infin;") {
         return (
-          <QuestionMarkText tip="If the project stops or the underlying VM goes into maintenance, the project will automatically restart.">
+          <QuestionMarkText
+            tip={`If the ${projectLabelLower} stops or the underlying VM goes into maintenance, the ${projectLabelLower} will automatically restart.`}
+          >
             &infin;
           </QuestionMarkText>
         );
@@ -211,14 +218,16 @@ export const RunQuota: React.FC<Props> = React.memo(
     function renderValueColumnTitle(): React.JSX.Element {
       if (projectIsRunning) {
         return (
-          <QuestionMarkText tip="Usage limit imposed by the current quota configuration. Change your membership to adjust this limit. Project needs to run in order to see the effective runtime quota.">
+          <QuestionMarkText
+            tip={`Usage limit imposed by the current quota configuration. Change your membership to adjust this limit. ${projectLabel} needs to run in order to see the effective runtime quota.`}
+          >
             Limit
           </QuestionMarkText>
         );
       } else {
         return (
           <Tip
-            tip={`The project is currently not running. The data is stale from the last run. Start the project to see the effective quotas.`}
+            tip={`The ${projectLabelLower} is currently not running. The data is stale from the last run. Start the ${projectLabelLower} to see the effective quotas.`}
           >
             Limit <PoweroffOutlined style={{ color: COLORS.ANTD_RED_WARN }} />
           </Tip>

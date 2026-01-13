@@ -13,9 +13,12 @@ That's it for now.
 import { delay } from "awaiting";
 import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { cmp } from "@cocalc/util/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
+
+const DEFAULT_PROJECT_TITLE = `My First ${WORKSPACE_LABEL}`;
 
 export default async function signInAction() {
   const signIn = QueryParams.get("sign-in");
@@ -30,7 +33,7 @@ export default async function signInAction() {
   await actions.start_project(project_id);
 }
 
-async function create(title = "My First Project") {
+async function create(title = DEFAULT_PROJECT_TITLE) {
   const project_id = await webapp_client.project_client.create({
     title,
     description: "",
@@ -63,7 +66,7 @@ async function getProject(): Promise<string> {
       Date.now() - 2 * 24 * 60 * 60 * 1000
     ) {
       // new account -- make a project
-      return await create("My First Project");
+      return await create(DEFAULT_PROJECT_TITLE);
     } else {
       // old account but no projects -- try loading all.
       const projectActions = redux.getActions("projects");

@@ -68,6 +68,10 @@ export function NewProjectCreator({
   open_trigger,
 }: Props) {
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
+  const projectsLabel = intl.formatMessage(labels.projects);
+  const projectsLabelLower = projectsLabel.toLowerCase();
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(noProjects ? "edit" : "view");
   const [title_text, set_title_text] = useState<string>(
@@ -194,7 +198,7 @@ export function NewProjectCreator({
     } catch (err) {
       if (!is_mounted_ref.current) return;
       set_state("edit");
-      set_error(`Error creating project -- ${err}`);
+      set_error(`Error creating ${projectLabelLower} -- ${err}`);
       return;
     }
     track("create-project", {
@@ -234,7 +238,8 @@ export function NewProjectCreator({
           onClick={show_account_tab}
           style={{ width: "100%", margin: "30px 0" }}
         >
-          Sign up now so you can create more projects and not lose your work!
+          Sign up now so you can create more {projectsLabelLower} and not lose
+          your work!
         </Button>
       );
     }
@@ -340,7 +345,7 @@ export function NewProjectCreator({
             requireMessage={intl.formatMessage({
               id: "projects.create-project.requireLicense",
               defaultMessage:
-                "A license is required to create additional projects.",
+                "A license is required to create additional workspaces.",
             })}
           />
         </Card>
@@ -352,8 +357,8 @@ export function NewProjectCreator({
     if (isValidUUID(license_id)) {
       return (
         <div style={{ color: COLORS.GRAY }}>
-          This project will have the license <code>{license_id}</code> applied
-          to. You can{" "}
+          This {projectLabelLower} will have the license{" "}
+          <code>{license_id}</code> applied to. You can{" "}
           <A
             href={
               "https://doc.cocalc.com/project-settings.html#project-add-license"
@@ -361,7 +366,7 @@ export function NewProjectCreator({
           >
             add/remove licenses
           </A>{" "}
-          in project settings later.
+          in {projectLabelLower} settings later.
         </div>
       );
     }
@@ -392,7 +397,7 @@ export function NewProjectCreator({
               >
                 <Input
                   ref={new_project_title_ref}
-                  placeholder={"Name your new project..."}
+                  placeholder={`Name your new ${projectLabelLower}...`}
                   disabled={state === "saving"}
                   onChange={input_on_change}
                   onKeyDown={handle_keypress}
@@ -405,13 +410,14 @@ export function NewProjectCreator({
             <Paragraph type="secondary">
               <FormattedMessage
                 id="projects.create-project.explanation"
-                defaultMessage={`A <A1>project</A1> is a private computational workspace,
+                defaultMessage={`A <A1>{projectLabel}</A1> is a private computational workspace,
                   where you can work with collaborators that you explicitly invite.
                   {compute_servers_enabled, select,
-                  true {You can attach powerful <A2>GPUs, CPUs</A2> and <A3>storage</A3> to a project.}
+                  true {You can attach powerful <A2>GPUs, CPUs</A2> and <A3>storage</A3> to a {projectLabel}.}
                   other {}}`}
                 values={{
                   compute_servers_enabled,
+                  projectLabel: projectLabelLower,
                   A1: (c) => (
                     <A href="https://doc.cocalc.com/project.html">{c}</A>
                   ),
@@ -445,8 +451,8 @@ export function NewProjectCreator({
           </Col>
           <Col sm={12}>
             <Paragraph type="secondary">
-              Backups are stored in this region. Projects can only run on hosts in
-              the same region.
+              Backups are stored in this region. {projectsLabel} can only run on
+              hosts in the same region.
             </Paragraph>
           </Col>
         </Row>
@@ -469,10 +475,11 @@ export function NewProjectCreator({
       {
         id: "projects.create-project.create",
         defaultMessage:
-          "Create Project {requireLicense, select, true {(select license above)} other {}}",
+          "Create {projectLabel} {requireLicense, select, true {(select license above)} other {}}",
       },
       {
         requireLicense: requireLicense && !license_id,
+        projectLabel,
       },
     );
   }

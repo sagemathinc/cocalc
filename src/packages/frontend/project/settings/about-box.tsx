@@ -54,6 +54,9 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
   } = props;
   const isFlyout = mode === "flyout";
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
+  const projectsLabelLower = intl.formatMessage(labels.projects).toLowerCase();
   const [showNameInfo, setShowNameInfo] = useState<boolean>(false);
   const project_map = useTypedRedux("projects", "project_map");
   const courseProjectType = project_map?.getIn([
@@ -214,13 +217,17 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
                 {isProjectBookmarked(project_id) ? "Enabled" : "Disabled"}
               </Typography.Text>
             </div>
-            <HelpIcon title="Project Starring">
-              {intl.formatMessage({
-                id: "project.settings.about-box.starred.help",
-                defaultMessage:
-                  "Starred projects can be filtered by clicking the starred filter button in your projects list.",
-                description: "Help text explaining how project starring works",
-              })}
+            <HelpIcon title={`${projectLabel} Starring`}>
+              {intl.formatMessage(
+                {
+                  id: "project.settings.about-box.starred.help",
+                  defaultMessage:
+                    "Starred {projectsLabel} can be filtered by clicking the starred filter button in your {projectsLabel} list.",
+                  description:
+                    "Help text explaining how project starring works",
+                },
+                { projectsLabel: projectsLabelLower },
+              )}
             </HelpIcon>
           </div>
         </LabeledRow>
@@ -242,7 +249,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
                   await actions.setProjectImage(project_id, data);
                   setAvatarImage(data.full);
                 } catch (err) {
-                  setError(`Error saving project image: ${err}`);
+                  setError(`Error saving ${projectLabelLower} image: ${err}`);
                 }
               }}
             />
@@ -257,7 +264,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
                     });
                     setAvatarImage(undefined);
                   } catch (err) {
-                    setError(`Error deleting project image: ${err}`);
+                    setError(`Error deleting ${projectLabelLower} image: ${err}`);
                   }
                 }}
               >
@@ -317,11 +324,15 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             )}
           </div>
           <Modal
-            title={intl.formatMessage({
-              id: "project.settings.about-box.color.modal.title",
-              defaultMessage: "Select Project Color",
-              description: "Title of modal dialog for selecting project color",
-            })}
+            title={intl.formatMessage(
+              {
+                id: "project.settings.about-box.color.modal.title",
+                defaultMessage: "Select {projectLabel} Color",
+                description:
+                  "Title of modal dialog for selecting project color",
+              },
+              { projectLabel },
+            )}
             open={showColorModal}
             okText={intl.formatMessage(labels.select)}
             onOk={async () => {
@@ -330,7 +341,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
                 setColor(nextColor);
                 setShowColorModal(false);
               } catch (err) {
-                setError(`Error saving project color: ${err}`);
+                setError(`Error saving ${projectLabelLower} color: ${err}`);
               }
             }}
             onCancel={() => {
@@ -359,7 +370,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
 
         <LabeledRow
           key="project_id"
-          label="Project ID"
+          label={`${projectLabel} ID`}
           vertical={isFlyout}
           style={{ marginTop: "15px" }}
         >
@@ -373,7 +384,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
             <Paragraph
               copyable={{
                 text: project_id,
-                tooltips: ["Copy Project ID", "Copied!"],
+                tooltips: [`Copy ${projectLabel} ID`, "Copied!"],
               }}
               code
               style={{ marginBottom: 0 }}

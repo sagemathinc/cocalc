@@ -57,6 +57,8 @@ export function ProjectActionsMenu({ record }: Props) {
   const intl = useIntl();
   const actions = useActions("projects");
   const account_id = useTypedRedux("account", "account_id");
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const project_map = useTypedRedux("projects", "project_map");
   const currentHostId = project_map?.getIn([
     record.project_id,
@@ -167,10 +169,13 @@ export function ProjectActionsMenu({ record }: Props) {
         break;
       case "remove-self":
         Modal.confirm({
-          title: "Remove Myself from Project",
+          title: `Remove Myself from ${projectLabel}`,
           content: (
             <div>
-              <p>Are you sure you want to remove yourself from this project?</p>
+              <p>
+                Are you sure you want to remove yourself from this{" "}
+                {projectLabelLower}?
+              </p>
               <p>
                 <strong>
                   You will no longer have access and cannot add yourself back.
@@ -287,12 +292,16 @@ export function ProjectActionsMenu({ record }: Props) {
       : []),
     {
       key: "hide",
-      label: record.hidden ? "Unhide Project" : "Hide Project",
+      label: record.hidden
+        ? `Unhide ${projectLabel}`
+        : `Hide ${projectLabel}`,
       icon: <Icon name={record.hidden ? "eye" : "eye-slash"} />,
     },
     {
       key: "delete",
-      label: record.deleted ? "Undelete Project" : "Delete Project",
+      label: record.deleted
+        ? `Undelete ${projectLabel}`
+        : `Delete ${projectLabel}`,
       icon: <Icon name={record.deleted ? "undo" : "trash"} />,
       danger: !record.deleted,
     },

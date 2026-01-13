@@ -42,7 +42,7 @@ export function SelectNewHost({
                     alignItems: "center",
                   }}
                 >
-                  <Icon name="servers" /> Project host
+                  <Icon name="servers" /> Workspace host
                 </div>
                 <div style={{ color: COLORS.GRAY_D }}>
                   {selectedHost ? (

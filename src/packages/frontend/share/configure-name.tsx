@@ -123,12 +123,12 @@ export function ConfigureName({
               <Paragraph type="secondary">
                 Edit the name of this shared path. The name can be up to 100
                 letters, digits, dashes and periods, and must be unique in this
-                project. For a nice URL, also set both the project name in
-                Project Settings <b>and</b> the project owner's name in Account
-                Preferences. (WARNING: If you change the name, existing public
-                shared links using the previous name will break, so change with
-                caution. Instead, create a new shared document and define a
-                redirect below.)
+                workspace. For a nice URL, also set both the workspace name in
+                Workspace Settings <b>and</b> the workspace owner's name in
+                Account Preferences. (WARNING: If you change the name, existing
+                public shared links using the previous name will break, so
+                change with caution. Instead, create a new shared document and
+                define a redirect below.)
               </Paragraph>
             )}
           </div>

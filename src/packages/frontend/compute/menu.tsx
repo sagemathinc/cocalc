@@ -539,7 +539,7 @@ export default function Menu({
           case "support":
             openSupportTab({
               type: "question",
-              subject: `Compute Server (Global Id: ${id}; Project Specific Id: ${title?.project_specific_id})`,
+              subject: `Compute Server (Global Id: ${id}; Workspace Specific Id: ${title?.project_specific_id})`,
               body: `I am using a compute server, and have a question...`,
             });
             break;
@@ -547,7 +547,7 @@ export default function Menu({
           case "dedicated":
             openSupportTab({
               type: "question",
-              subject: `Compute Server (Global Id: ${id}; Project Specific Id: ${title?.project_specific_id})`,
+              subject: `Compute Server (Global Id: ${id}; Workspace Specific Id: ${title?.project_specific_id})`,
               body: `I need a dedicated always on compute server for at least 6 months, and am interested in significant discounts.\nI would love to tell you about my problem, and see if CoCalc can help!`,
             });
             break;

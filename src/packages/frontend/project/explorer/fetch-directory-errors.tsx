@@ -6,6 +6,8 @@
 import ShowError from "@cocalc/frontend/components/error";
 import { AccessErrors } from "./access-errors";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useIntl } from "react-intl";
+import { labels } from "@cocalc/frontend/i18n";
 
 interface Props {
   error: any;
@@ -20,6 +22,9 @@ export function FetchDirectoryErrors({
   quotas,
   is_logged_in,
 }: Props): React.JSX.Element {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const is_commercial = useTypedRedux("customize", "is_commercial");
   switch (error) {
     case "not_public":
@@ -39,9 +44,9 @@ export function FetchDirectoryErrors({
       // This shouldn't happen, but due to maybe a slight race condition in the backend it can.
       return (
         <ShowError
-          message="Project still not running"
+          message={`${projectLabel} still not running`}
           error={
-            "The project was not running when this listing was requested.  Please try again in a moment."
+            `The ${projectLabelLower} was not running when this listing was requested.  Please try again in a moment.`
           }
         />
       );
@@ -56,8 +61,8 @@ export function FetchDirectoryErrors({
         // the second part of the or is to blame it on the free servers, unless EACCESS = read permission error -- see https://github.com/sagemathinc/cocalc/issues/4100
         return (
           <ShowError
-            message="Project unavailable"
-            error={`This project seems to not be responding.\n\n${
+            message={`${projectLabel} unavailable`}
+            error={`This ${projectLabelLower} seems to not be responding.\n\n${
               !(quotas != undefined ? quotas.member_host : undefined)
                 ? error
                 : undefined

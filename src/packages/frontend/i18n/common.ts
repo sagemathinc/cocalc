@@ -80,7 +80,7 @@ export const labels = defineMessages({
   },
   create_project: {
     id: "labels.create_project",
-    defaultMessage: "Create Project...",
+    defaultMessage: "Create Workspace...",
     description:
       "Label on buttons to open dialog to create a project, with 3 dots",
   },
@@ -875,7 +875,7 @@ export const labels = defineMessages({
   },
   project_status: {
     id: "labels.project_status",
-    defaultMessage: "Project Status",
+    defaultMessage: "Workspace Status",
   },
   you: {
     id: "labels.you",
@@ -1814,7 +1814,7 @@ export const course = defineMessages({
   },
   shared_project: {
     id: "course.shared_project",
-    defaultMessage: "Shared Project",
+    defaultMessage: "Shared Workspace",
   },
   student: {
     id: "course.student",
@@ -1848,15 +1848,15 @@ export const course = defineMessages({
   },
   create_shared_project: {
     id: "course.create_shared_project",
-    defaultMessage: "Create Shared Project",
+    defaultMessage: "Create Shared Workspace",
   },
   delete_shared_project: {
     id: "course.delete_shared_project",
-    defaultMessage: "Delete Shared Project",
+    defaultMessage: "Delete Shared Workspace",
   },
   reconfigure_all_projects: {
     id: "course.reconfigure_all_projects",
-    defaultMessage: "Reconfigure all Projects",
+    defaultMessage: "Reconfigure all Workspaces",
   },
   export_grades: {
     id: "course.export_grades",
@@ -1885,11 +1885,11 @@ export const course = defineMessages({
   },
   run_terminal_command_title: {
     id: "course.commands.terminal-command.label",
-    defaultMessage: "Run Terminal Command in all Student Projects",
+    defaultMessage: "Run Terminal Command in all Student Workspaces",
   },
   delete_student_projects: {
     id: "course.commands.delete-student-projects.title",
-    defaultMessage: "Delete all Student Projects",
+    defaultMessage: "Delete all Student Workspaces",
   },
   assign_button: {
     id: "course.assignments.assign.button",
@@ -1940,6 +1940,6 @@ export const course = defineMessages({
   },
   restrict_student_projects: {
     id: "course.commands.restrict-student-projects.label",
-    defaultMessage: "Restrict Student Projects",
+    defaultMessage: "Restrict Student Workspaces",
   },
 });

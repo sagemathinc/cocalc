@@ -25,6 +25,7 @@ import ShowError from "@cocalc/frontend/components/error";
 
 export default function StudentPay({ actions, settings }) {
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
 
   const [error, setError] = useState<string>("");
   const [minPayment, setMinPayment] = useState<number | undefined>(undefined);
@@ -201,7 +202,7 @@ export default function StudentPay({ actions, settings }) {
                 message={
                   <>
                     <Icon name="credit-card" /> Require Students to Upgrade
-                    their Project
+                    their {projectLabel}
                   </>
                 }
                 description={

@@ -7,7 +7,9 @@ declare let DEBUG;
 
 import { Alert, Table } from "antd";
 import { ProjectActions, useState } from "@cocalc/frontend/app-framework";
+import { useIntl } from "react-intl";
 import { Loading, Paragraph } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   Process,
   ProjectInfo as ProjectInfoType,
@@ -50,6 +52,8 @@ interface Props {
 }
 
 export function Flyout(_: Readonly<Props>): React.JSX.Element {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const {
     wrap,
     cg_info,
@@ -224,7 +228,7 @@ export function Flyout(_: Readonly<Props>): React.JSX.Element {
         <Alert
           type="warning"
           banner={true}
-          message={"Project is not running."}
+          message={`${projectLabel} is not running.`}
         />
       );
     }

@@ -23,6 +23,7 @@ import {
 import dayjs from "dayjs";
 import jsonic from "jsonic";
 import { sortBy, pick } from "lodash";
+import { useIntl } from "react-intl";
 
 import { React } from "@cocalc/frontend/app-framework";
 import {
@@ -32,6 +33,7 @@ import {
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { JsonObjectEditor } from "@cocalc/frontend/components/json-object-editor";
+import { labels } from "@cocalc/frontend/i18n";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { DEFAULT_QUOTAS } from "@cocalc/util/upgrade-spec";
 import { COLORS } from "@cocalc/util/theme";
@@ -394,6 +396,15 @@ function use_membership_tiers() {
 }
 
 export function MembershipTiers() {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const workspaceDefaultsLabel = intl.formatMessage(
+    {
+      id: "admin.membership-tiers.workspace-defaults",
+      defaultMessage: "{projectLabel} Defaults",
+    },
+    { projectLabel },
+  );
   const {
     data,
     form,
@@ -508,7 +519,7 @@ export function MembershipTiers() {
               onErrorChange={(err) => updateJsonError("features", err)}
             />
           </Form.Item>
-          <Divider>Project Defaults</Divider>
+          <Divider>{workspaceDefaultsLabel}</Divider>
           <Form.Item name="project_defaults" label="Defaults">
             <JsonObjectEditor
               emptyHint="No default quotas set."

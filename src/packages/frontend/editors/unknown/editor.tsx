@@ -188,7 +188,7 @@ export const UnknownEditor: React.FC<Props> = (props: Props) => {
     }
     if (actions == null) {
       console.warn(
-        `Project Actions for ${project_id} not available – shouldn't happen.`,
+        `Workspace Actions for ${project_id} not available – shouldn't happen.`,
       );
       return;
     }

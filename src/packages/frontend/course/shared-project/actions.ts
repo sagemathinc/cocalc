@@ -12,6 +12,7 @@ import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { delay } from "awaiting";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 
 export class SharedProjectActions {
   private actions: CourseActions;
@@ -34,10 +35,10 @@ export class SharedProjectActions {
   } => {
     const settings = this.get_store().get("settings");
     return {
-      title: `Shared Project -- ${settings.get("title")}`,
+      title: `Shared ${WORKSPACE_LABEL} -- ${settings.get("title")}`,
       description:
         settings.get("description") +
-        "\n\n---\n\nThis project is shared with all students in the course.",
+        `\n\n---\n\nThis ${WORKSPACE_LABEL.toLowerCase()} is shared with all students in the course.`,
       image: settings.get("custom_image"),
     };
   };

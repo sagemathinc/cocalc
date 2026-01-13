@@ -1,10 +1,12 @@
 // Upload an image that is associated to the project.
 
 import { useState } from "react";
+import { useIntl } from "react-intl";
 import { Alert, Upload } from "antd";
 import ImgCrop from "antd-img-crop";
 import { InboxOutlined } from "@ant-design/icons";
 import imageToDataURL from "@cocalc/frontend/misc/image-to-data";
+import { labels } from "@cocalc/frontend/i18n";
 
 // aiming for about 200kB
 const fullSize: number = 320;
@@ -21,10 +23,12 @@ interface Props {
 
 export default function ProjectImage({ avatarImage, onChange }: Props) {
   const [error, setError] = useState<string>("");
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   return (
     <div>
       <ImgCrop
-        modalTitle={"Edit Project Image"}
+        modalTitle={`Edit ${projectLabel} Image`}
         cropShape="rect"
         rotationSlider
         maxZoom={5}

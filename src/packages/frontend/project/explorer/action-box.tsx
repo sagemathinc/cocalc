@@ -19,6 +19,7 @@ import {
 } from "@cocalc/frontend/antd-bootstrap";
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, LoginLink } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
@@ -67,6 +68,7 @@ export function ActionBox({
   actions,
 }: Props) {
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const runQuota = useRunQuota(project_id, null);
   const get_user_type: () => string = useRedux("account", "get_user_type");
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
@@ -282,7 +284,7 @@ export function ActionBox({
     if (show_different_project) {
       return (
         <Col sm={4} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
-          <h4>Target Project</h4>
+          <h4>Target {projectLabel}</h4>
           <SelectProject
             at_top={[project_id]}
             value={copy_destination_project_id}

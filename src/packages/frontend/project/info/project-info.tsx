@@ -6,6 +6,7 @@
 // cSpell:ignore chldsum
 
 import { Alert } from "antd";
+import { useIntl } from "react-intl";
 
 import { cgroup_stats } from "@cocalc/comm/project-status/utils";
 import {
@@ -18,6 +19,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { unreachable } from "@cocalc/util/misc";
 import {
@@ -63,6 +65,8 @@ const pt_stats_init = {
 export const ProjectInfo: React.FC<Props> = React.memo(
   ({ mode = "full", wrap }: Props) => {
     const { project_id } = useProjectContext();
+    const intl = useIntl();
+    const projectLabel = intl.formatMessage(labels.project);
     const { disconnected, info, error, setError } = useProjectInfo({
       project_id,
     });
@@ -256,7 +260,7 @@ export const ProjectInfo: React.FC<Props> = React.memo(
       switch (cocalc.type) {
         case "project":
           return render_cocalc_btn({
-            title: "Project",
+            title: projectLabel,
             onClick: () => set_modal("project"),
           });
 

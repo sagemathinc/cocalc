@@ -22,12 +22,14 @@ import {
   useState,
   MutableRefObject,
 } from "react";
+import { useIntl } from "react-intl";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import { Icon } from "@cocalc/frontend/components/icon";
 import Next from "@cocalc/frontend/components/next";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   ComputeServerDescription,
   ComputeServerNetworkUsageDescription,
@@ -107,6 +109,9 @@ function Purchases0({
   account_id,
   noTitle,
 }: Props) {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const [group, setGroup] = useState<boolean>(!!group0);
   const [cutoff, setCutoff] = useState<Date | undefined>(undefined);
 
@@ -145,14 +150,16 @@ function Purchases0({
         <Flex style={{ alignItems: "center" }}>
           <div style={{ flex: 1 }} />
           <div>
-            <Tooltip title="Aggregate transactions by service and project so you can see how much you are spending on each service in each project. Pay-as-you-go in progress purchases are not included.">
+            <Tooltip
+              title={`Aggregate transactions by service and ${projectLabelLower} so you can see how much you are spending on each service in each ${projectLabelLower}. Pay-as-you-go in progress purchases are not included.`}
+            >
               <Checkbox
                 checked={group}
                 onChange={(e) => {
                   setGroup(e.target.checked);
                 }}
               >
-                Group by service and project
+                Group by service and {projectLabelLower}
               </Checkbox>
             </Tooltip>
           </div>
@@ -216,6 +223,8 @@ export function PurchasesTable({
   activeOnly?: boolean;
   refreshRef?;
 }) {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const [loading, setLoading] = useState<boolean>(false);
   const [purchaseRecords, setPurchaseRecords] = useState<PurchaseItem[] | null>(
     null,
@@ -403,7 +412,7 @@ export function PurchasesTable({
         <Tooltip title="These are transactions made within CoCalc, which includes all purchases and credits resulting from payments.">
           {group ? (
             <>
-              All Your Purchases Grouped by Service and Project
+              All Your Purchases Grouped by Service and {projectLabel}
               {cutoff && (
                 <>
                   {" "}
@@ -519,6 +528,8 @@ export function GroupedPurchaseTable({
   hideColumns?: Set<string>;
   style?;
 }) {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   if (purchases == null) {
     return <Spin size="large" />;
   }
@@ -563,7 +574,7 @@ export function GroupedPurchaseTable({
             },
             {
               hidden: hideColumns?.has("project"),
-              title: "Project",
+              title: projectLabel,
               dataIndex: "project_id",
               key: "project_id",
               sorter: (a: any, b: any) => {
@@ -603,6 +614,8 @@ export function DetailedPurchaseTable({
   hideColumns?: Set<string>;
   style?;
 }) {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const [current, setCurrent] = useState<PurchaseItem | undefined>(undefined);
   const fragment = useTypedRedux("account", "fragment");
   const [hideBalance, setHideBalance] = useState<boolean>(false);
@@ -703,7 +716,7 @@ export function DetailedPurchaseTable({
             },
             {
               hidden: hideColumns?.has("project"),
-              title: "Project",
+              title: projectLabel,
               dataIndex: "project_id",
               key: "project_id",
               render: (project_id) =>
@@ -856,6 +869,8 @@ function PurchaseDescription({
 }
 
 function PurchaseModal({ purchase, onClose, admin }) {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   useEffect(() => {
     Fragment.set({ id: purchase.id });
   }, [purchase.id]);
@@ -879,7 +894,7 @@ function PurchaseModal({ purchase, onClose, admin }) {
         <div>
           {purchase.project_id ? (
             <>
-              Project: <ProjectTitle project_id={purchase.project_id} />
+              {projectLabel}: <ProjectTitle project_id={purchase.project_id} />
             </>
           ) : undefined}
         </div>

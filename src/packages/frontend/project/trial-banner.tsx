@@ -327,7 +327,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
       <Modal
         title={
           <Space>
-            <Icon name="hand-stop" /> Automatic Project Shutdown
+            <Icon name="hand-stop" /> Automatic Workspace Shutdown
           </Space>
         }
         open={showInfo}
@@ -335,12 +335,12 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
         onCancel={() => setShowInfo(false)}
       >
         <Paragraph>
-          <A href={"https://doc.cocalc.com/trial.html"}>Free projects</A> have
+          <A href={"https://doc.cocalc.com/trial.html"}>Free workspaces</A> have
           a maximum uptime of {limit_min} minutes. After that period, the
-          project will stop and interrupt your work.
+          workspace will stop and interrupt your work.
         </Paragraph>
         <Paragraph strong>
-          This shutdown timer only exists for projects without any upgrades!
+          This shutdown timer only exists for workspaces without any upgrades!
         </Paragraph>
         <CallToSupport />
       </Modal>
@@ -350,7 +350,7 @@ function CountdownProject({ fontSize }: CountdownProjectProps) {
   return (
     <>
       {renderInfo()}
-      <Tooltip title="Automatic Project Shutdown: click for details...">
+      <Tooltip title="Automatic Workspace Shutdown: click for details...">
         <Tag
           style={{
             marginTop: "5px",

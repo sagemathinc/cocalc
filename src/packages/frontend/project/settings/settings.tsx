@@ -4,6 +4,7 @@
  */
 
 import { Alert } from "antd";
+import { useIntl } from "react-intl";
 import {
   redux,
   rclass,
@@ -11,6 +12,7 @@ import {
   project_redux_name,
 } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Loading } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   Customer,
   ProjectMap,
@@ -196,24 +198,30 @@ const ProjectSettings0 = rclass<ReactProps>(
 );
 
 export function SandboxProjectSettingsWarning() {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
+  const projectsLabel = intl.formatMessage(labels.projects);
+  const projectsLabelLower = projectsLabel.toLowerCase();
   return (
     <Alert
       showIcon
       style={{ margin: "auto", fontSize: "14pt" }}
       type="warning"
-      message="Sandboxed Project"
+      message={`Sandboxed ${projectLabel}`}
       description={
         <div style={{ maxWidth: "700px" }}>
-          Settings are disabled for non-owners of sandboxed projects.
+          Settings are disabled for non-owners of sandboxed{" "}
+          {projectsLabelLower}.
           <br />
           <br />
-          You will automatically be removed as a collaborator of this project
-          when you stop actively using it.
+          You will automatically be removed as a collaborator of this{" "}
+          {projectLabelLower} when you stop actively using it.
           <br />
           <br />
-          You can easily make your own new private project by clicking on the
-          "Projects" button then "Create new project". Copy any files to it from
-          the Files tab here.
+          You can easily make your own new private {projectLabelLower} by
+          clicking on the "{projectsLabel}" button then "Create new{" "}
+          {projectLabelLower}". Copy any files to it from the Files tab here.
         </div>
       }
     />

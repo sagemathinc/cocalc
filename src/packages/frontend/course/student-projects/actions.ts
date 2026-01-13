@@ -16,6 +16,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
 import { copy, days_ago, keys } from "@cocalc/util/misc";
 import { SITE_NAME } from "@cocalc/util/theme";
+import { WORKSPACE_LABEL, WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 import { CourseActions } from "../actions";
 import { CourseStore } from "../store";
 import { Result, run_in_all_projects } from "./run-in-all-projects";
@@ -431,10 +432,10 @@ export class StudentProjectsActions {
     const store = this.get_store();
     // calling start also deals with possibility that it's in stop state.
     const id = this.course_actions.set_activity({
-      desc: "Running a command across all student projects…",
+      desc: `Running a command across all student ${WORKSPACES_LABEL.toLowerCase()}…`,
     });
     let id1: number | undefined = this.course_actions.set_activity({
-      desc: "Starting projects …",
+      desc: `Starting ${WORKSPACES_LABEL.toLowerCase()}…`,
     });
     let i = 0;
     const student_project_ids = store.get_student_project_ids();
@@ -451,7 +452,7 @@ export class StudentProjectsActions {
       log?.(result);
       clear_id1();
       id1 = this.course_actions.set_activity({
-        desc: `Project ${i}/${num} finished…`,
+        desc: `${WORKSPACE_LABEL} ${i}/${num} finished…`,
       });
     };
 

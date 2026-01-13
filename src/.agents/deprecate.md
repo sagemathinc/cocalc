@@ -58,7 +58,6 @@ Goal: Complete remove all code and functionality for the following:
 7. **Final audit.**  
    Ripgrep for site_license, licenses, and license_id across src and docs; confirm no references remain beyond software licenses.
 
-
 ## Rename: Project -> Workspace in frontend UI
 
 1. **Terminology helper + i18n keys.**  
@@ -87,3 +86,4 @@ Goal: Complete remove all code and functionality for the following:
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
+

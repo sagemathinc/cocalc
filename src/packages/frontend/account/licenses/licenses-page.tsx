@@ -5,13 +5,17 @@
 
 import { Button, Typography } from "antd";
 import { useState } from "react";
+import { useIntl } from "react-intl";
 import { SoftwareLicensesPage } from "./software-licenses";
 import { A } from "@cocalc/frontend/components/A";
 import MembershipPurchaseModal from "../membership-purchase-modal";
 import { PolicyPricingPageUrl } from "../../customize";
+import { labels } from "@cocalc/frontend/i18n";
 
 export function LicensesPage() {
   const [showMembership, setShowMembership] = useState(false);
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
   return (
     <div style={{ margin: "auto" }}>
       <SoftwareLicensesPage />
@@ -19,8 +23,8 @@ export function LicensesPage() {
       <div style={{ fontSize: "12pt" }}>
         <h3>About</h3>
         <Typography.Paragraph>
-          Project upgrades are now handled through memberships. Project licenses
-          are no longer available.
+          {projectLabelLower} upgrades are now handled through memberships.{" "}
+          {projectLabelLower} licenses are no longer available.
         </Typography.Paragraph>
         <Button type="primary" onClick={() => setShowMembership(true)}>
           Change membership

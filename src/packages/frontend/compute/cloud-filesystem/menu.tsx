@@ -96,7 +96,7 @@ function getItems(cloudFilesystem, show): MenuProps["items"] {
       key: "edit-project",
       disabled: cloudFilesystem.mount,
       icon: <Icon name={"pencil"} />,
-      label: "Move to Another Project",
+      label: "Move to Another Workspace",
     },
     {
       type: "divider",
@@ -203,7 +203,7 @@ export default function Menu({
           case "support":
             openSupportTab({
               type: "question",
-              subject: `Cloud File System (Global Id: ${cloudFilesystem.id}; Project Specific Id: ${cloudFilesystem.project_specific_id})`,
+              subject: `Cloud File System (Global Id: ${cloudFilesystem.id}; Workspace Specific Id: ${cloudFilesystem.project_specific_id})`,
               body: `I am using a cloud file system, and have a question...`,
             });
             break;

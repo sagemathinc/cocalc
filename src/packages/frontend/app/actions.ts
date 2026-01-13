@@ -163,6 +163,7 @@ export class PageActions extends Actions<PageState> {
     }
 
     const intl = await getIntl();
+    const projectLabel = intl.formatMessage(labels.project);
 
     switch (key) {
       case "projects":
@@ -194,7 +195,7 @@ export class PageActions extends Actions<PageState> {
         if (change_history) {
           set_url("/hosts");
         }
-        set_window_title("Project Hosts");
+        set_window_title(`${projectLabel} Hosts`);
         return;
       case "notifications":
         if (change_history) {
@@ -223,7 +224,7 @@ export class PageActions extends Actions<PageState> {
         if (change_history) {
           redux.getProjectActions(key)?.push_state();
         }
-        set_window_title("Loading Project");
+        set_window_title(`Loading ${projectLabel}`);
         var projects_store = redux.getStore("projects");
 
         try {
@@ -238,7 +239,7 @@ export class PageActions extends Actions<PageState> {
                 title = store.getIn(["public_project_titles", key]);
               }
               if (title === "") {
-                return "Untitled Project";
+                return `Untitled ${projectLabel}`;
               }
               if (title == null) {
                 redux.getActions("projects").fetch_public_project_title(key);

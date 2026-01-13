@@ -64,6 +64,8 @@ const DARK_MODE_LABELS = defineMessages({
 
 export function AccountPreferencesAppearance() {
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const other_settings = useTypedRedux("account", "other_settings");
   const editor_settings = useTypedRedux("account", "editor_settings");
   const font_size = useTypedRedux("account", "font_size");
@@ -253,8 +255,9 @@ export function AccountPreferencesAppearance() {
         >
           <FormattedMessage
             id="account.other-settings.project_popovers"
-            defaultMessage={`<strong>Hide Project Tab Popovers:</strong>
-            do not show the popovers over the project tabs`}
+            defaultMessage={`<strong>Hide {projectLabel} Tab Popovers:</strong>
+            do not show the popovers over the {projectLabelLower} tabs`}
+            values={{ projectLabel, projectLabelLower }}
           />
         </Switch>
         <Switch

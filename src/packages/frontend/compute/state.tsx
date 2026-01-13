@@ -250,7 +250,7 @@ function Body({ account_id, editable, controllable }) {
   if (controllable && !editable) {
     return (
       <div>
-        Project collaborators can change the state of this compute server.
+        Workspace collaborators can change the state of this compute server.
       </div>
     );
   }

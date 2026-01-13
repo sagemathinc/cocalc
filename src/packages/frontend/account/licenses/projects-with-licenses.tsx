@@ -5,17 +5,24 @@
 
 import { Alert, Col, Row } from "antd";
 import { useEffect, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 import { Virtuoso } from "react-virtuoso";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Loading, TimeAgo } from "@cocalc/frontend/components";
 import { SiteLicense } from "@cocalc/frontend/project/settings/site-license";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
+import { labels } from "@cocalc/frontend/i18n";
 import { plural, trunc_middle } from "@cocalc/util/misc";
 import { LICENSES_STYLE } from "./managed-licenses";
 import { projects_with_licenses } from "./util";
 
 export function ProjectsWithLicenses({}) {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
+  const projectsLabel = intl.formatMessage(labels.projects);
+  const projectsLabelLower = projectsLabel.toLowerCase();
   const [project_id, setProjectId] = useState<string | undefined>(undefined);
   const project_map = useTypedRedux("projects", "project_map");
   const all_projects_have_been_loaded = useTypedRedux(
@@ -64,8 +71,9 @@ export function ProjectsWithLicenses({}) {
     if (projects == null || projects.length == 0) {
       return (
         <span>
-          You do not have any licensed projects yet. Please purchase a license
-          or apply a license to one of your projects in Project Settings.
+          You do not have any licensed {projectsLabelLower} yet. Please
+          purchase a license or apply a license to one of your{" "}
+          {projectsLabelLower} in {projectLabel} Settings.
         </span>
       );
     }
@@ -85,15 +93,16 @@ export function ProjectsWithLicenses({}) {
 
   return (
     <div>
-      <h3>Projects</h3>
+      <h3>{projectsLabel}</h3>
       <Alert
         style={{ marginBottom: "15px" }}
         banner
         type="info"
         message={
           <>
-            Select a project below to add or remove a license from that project,
-            or to buy a license for that project.
+            Select a {projectLabelLower} below to add or remove a license from
+            that {projectLabelLower}, or to buy a license for that{" "}
+            {projectLabelLower}.
           </>
         }
       />
@@ -105,8 +114,8 @@ export function ProjectsWithLicenses({}) {
         />
       )}
       <div style={{ marginTop: "10px" }}>
-        The following {projects.length} {plural(projects.length, "project")}{" "}
-        have a license:
+        The following {projects.length}{" "}
+        {plural(projects.length, projectLabelLower)} have a license:
       </div>
       {render_projects_with_license()}
     </div>

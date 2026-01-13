@@ -39,6 +39,7 @@ const DEFAULT_CHECKED: filters[] = ["Listed", "Unlisted", "Authenticated"];
 
 export const PublicPaths: React.FC = () => {
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const account_id = useTypedRedux("account", "account_id");
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const showAuthenticatedOption = customize_kucalc !== KUCALC_COCALC_COM;
@@ -118,7 +119,7 @@ export const PublicPaths: React.FC = () => {
       },
     },
     {
-      title: "Project",
+      title: projectLabel,
       dataIndex: "project_id",
       key: "project_id",
       render: (project_id) => {

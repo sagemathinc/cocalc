@@ -60,6 +60,7 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
   const { displayI18N } = useAppContext();
   const [show_add_collab, set_show_add_collab] = useState<boolean>(false);
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
 
   const actions = useActions("projects");
   const project = useRedux(["projects", "project_map", project_id]);
@@ -361,7 +362,7 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
         <Descriptions.Item label="Software Image" span={2}>
           {renderSoftwareImage()}
         </Descriptions.Item>
-        <Descriptions.Item label="Project ID">
+        <Descriptions.Item label={`${projectLabel} ID`}>
           <CopyToClipBoard
             value={project_id}
             display={`${project_id.slice(0, 20)}...`}

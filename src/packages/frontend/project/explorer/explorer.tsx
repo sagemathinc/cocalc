@@ -14,6 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useIntl } from "react-intl";
 import {
   A,
   ActivityDisplay,
@@ -28,6 +29,7 @@ import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { Library } from "@cocalc/frontend/library";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
+import { labels } from "@cocalc/frontend/i18n";
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ActionBar } from "./action-bar";
@@ -96,6 +98,9 @@ function sortDesc(active_file_sort?): {
 }
 
 export function Explorer() {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const { actions, project_id, compute_server_id } = useProjectContext();
 
   const newFileRef = useRef<any>(null);
@@ -339,7 +344,7 @@ export function Explorer() {
       <div style={{ margin: "30px auto", textAlign: "center" }}>
         <ShowError
           message={
-            "Permission Issues: You are probably using the wrong account to access this project."
+            `Permission Issues: You are probably using the wrong account to access this ${projectLabelLower}.`
           }
           error={listingError}
           style={{ textAlign: "left" }}
@@ -354,7 +359,7 @@ export function Explorer() {
               redux.getActions("page").close_project_tab(project_id);
             }}
           >
-            <Icon name="times-circle" /> Close Project
+            <Icon name="times-circle" /> Close {projectLabel}
           </Button>
         </Space.Compact>
       </div>

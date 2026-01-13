@@ -6,11 +6,12 @@
 import { MenuProps } from "antd";
 import { Map as immutableMap, Set as immutableSet } from "immutable";
 import { useMemo } from "react";
+import { useIntl } from "react-intl";
 import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, Tip } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { isIntlMessage } from "@cocalc/frontend/i18n";
+import { isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { EventRecordMap } from "@cocalc/frontend/project/history/types";
 import {
   SPEC as SERVER_SPEC,
@@ -386,6 +387,9 @@ export function useServersMenuItems(
   project_id: string,
   onServerOpen?: (serverName: NamedServerName) => void,
 ): MenuProps["items"] {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const project_map = useTypedRedux("projects", "project_map");
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
@@ -403,8 +407,10 @@ export function useServersMenuItems(
         {
           key: "project-not-running",
           label: (
-            <Tip title="The project must be running to launch apps">
-              Project not running
+            <Tip
+              title={`The ${projectLabelLower} must be running to launch apps`}
+            >
+              {projectLabel} not running
             </Tip>
           ),
           disabled: true,
