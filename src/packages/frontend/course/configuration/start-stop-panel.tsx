@@ -20,6 +20,8 @@ export function StudentProjectsStartStopPanel({
   num_students,
 }: Props) {
   const intl = useIntl();
+  const projectsLabel = intl.formatMessage(labels.projects);
+  const projectsLabelLower = projectsLabel.toLowerCase();
   const action_all_projects_state: string = useRedux([
     name,
     "action_all_projects_state",
@@ -72,7 +74,8 @@ export function StudentProjectsStartStopPanel({
           <Icon name="bolt" />{" "}
           <FormattedMessage
             id="course.start-stop-panel.title"
-            defaultMessage="Start or Stop all Student Projects"
+            defaultMessage="Start or Stop all Student {projectsLabel}"
+            values={{ projectsLabel }}
           />
         </>
       }
@@ -81,8 +84,8 @@ export function StudentProjectsStartStopPanel({
         <Col md={18}>
           <FormattedMessage
             id="course.start-stop-panel.status"
-            defaultMessage={`{r} of {n} student projects currently running.`}
-            values={{ r, n }}
+            defaultMessage={`{r} of {n} student {projectsLabel} currently running.`}
+            values={{ r, n, projectsLabel: projectsLabelLower }}
           />
         </Col>
       </Row>
@@ -94,11 +97,11 @@ export function StudentProjectsStartStopPanel({
                 <div style={{ maxWidth: "400px" }}>
                   <FormattedMessage
                     id="course.start-stop-panel.confirm"
-                    defaultMessage={`<b>Are you sure you want to start all student projects?</b>
+                    defaultMessage={`<b>Are you sure you want to start all student {projectsLabel}?</b>
                     {br}
-                    This will ensure the projects are already running when the students open them,
+                    This will ensure the {projectsLabel} are already running when the students open them,
                     and can make assigning and collecting homework more robust.`}
-                    values={{ br: <br /> }}
+                    values={{ br: <br />, projectsLabel: projectsLabelLower }}
                   />
                 </div>
               }

@@ -40,6 +40,7 @@ const STYLE: CSSProperties = {
 export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
+  const projectsLabel = intl.formatMessage(labels.projects);
   const { project_id } = useProjectContext();
   const project_map = useTypedRedux("projects", "project_map");
   const lastNotRunningRef = useRef<null | number>(null);
@@ -102,7 +103,8 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
               <span style={{ fontWeight: 500, fontSize: "14pt" }}>
                 <FormattedMessage
                   id="project.start-button.trial.message"
-                  defaultMessage={"Too Many Free Trial Projects"}
+                  defaultMessage={"Too Many Free Trial {projectsLabel}"}
+                  values={{ projectsLabel }}
                 />
               </span>
             }
@@ -111,12 +113,14 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
               <span style={{ fontSize: "12pt" }}>
                 <FormattedMessage
                   id="project.start-button.trial.description"
-                  defaultMessage={`There is no more capacity for <A>Free Trial projects</A>on CoCalc right now.
+                  defaultMessage={`There is no more capacity for <A>Free Trial {projectsLabel}</A> on CoCalc right now.
                   {br}
-                  <A2>Upgrade your project</A2> with a membership.
+                  <A2>Upgrade your {projectLabel}</A2> with a membership.
                   `}
                   values={{
                     br: <br />,
+                    projectsLabel: projectsLabel.toLowerCase(),
+                    projectLabel: projectLabel.toLowerCase(),
                     A: (c) => <A href={DOC_TRIAL}>{c}</A>,
                     A2: (c) => (
                       <a

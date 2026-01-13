@@ -15,11 +15,13 @@ import {
 } from "antd";
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 import { MAX } from "@cocalc/util/licenses/purchase/consts";
 import { MIN_DISK_GB } from "@cocalc/util/upgrades/consts";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
 import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
+import { labels } from "@cocalc/frontend/i18n";
 
 type Field =
   | "start"
@@ -69,6 +71,8 @@ export default function LicenseEditor({
   minDiskGb = MIN_DISK_GB,
   minRamGb = 4,
 }: Props) {
+  const intl = useIntl();
+  const projectsLabel = intl.formatMessage(labels.projects);
   if (info.type == "vouchers") {
     return <Alert type="error" message="Editing vouchers is not allowed." />;
   }
@@ -198,7 +202,7 @@ export default function LicenseEditor({
                 step={1}
                 value={info.quantity}
                 onChange={handleFieldChange("quantity")}
-                addonAfter={"Projects"}
+                addonAfter={projectsLabel}
               />
             ),
           },
