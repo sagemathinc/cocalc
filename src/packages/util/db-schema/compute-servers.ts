@@ -976,7 +976,7 @@ Table({
       title: "Cost per Hour",
       desc: "The cost in US dollars per hour that this compute server cost us when it is provisioned. Any time the state is changed, this is set by the server to the proper cost.",
       type: "number",
-      pg_type: "real",
+      pg_type: "numeric(20,10)",
     },
     deleted: {
       type: "boolean",

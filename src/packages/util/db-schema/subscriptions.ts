@@ -75,7 +75,7 @@ Table({
       title: "Cost (USD $)",
       desc: "The cost in US dollars for one period of this subscription.",
       type: "number",
-      pg_type: "real",
+      pg_type: "numeric(20,10)",
     },
     interval: {
       title: "Interval",

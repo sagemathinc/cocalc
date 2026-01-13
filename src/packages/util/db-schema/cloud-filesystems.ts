@@ -661,7 +661,7 @@ Table({
     },
     cost: {
       type: "number",
-      pg_type: "double precision",
+      pg_type: "numeric(20,10)",
       desc: "The estimated accumulated total cost from when the bucket was created until this point in time.  This could be recomputed, but is nice to have easily available, and means we can delete old data.",
     },
     //     cost_state: {

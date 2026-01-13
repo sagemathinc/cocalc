@@ -463,7 +463,7 @@ Table({
       title: "Value",
       desc: "The maximum amount that user can be charged for this service during one month billing period, in US dollars.",
       type: "number", // actually comes back as string in queries.
-      pg_type: "REAL",
+      pg_type: "numeric(20,10)",
     },
   },
   rules: {

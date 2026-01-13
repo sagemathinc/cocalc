@@ -84,10 +84,12 @@ Table({
     price_monthly: {
       type: "number",
       desc: "Monthly price in USD.",
+      pg_type: "numeric(20,10)",
     },
     price_yearly: {
       type: "number",
       desc: "Yearly price in USD.",
+      pg_type: "numeric(20,10)",
     },
     project_defaults: {
       type: "map",

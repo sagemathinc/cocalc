@@ -351,7 +351,7 @@ Table({
     },
     min_balance: {
       type: "number",
-      pg_type: "REAL",
+      pg_type: "numeric(20,10)",
       desc: "The minimum allowed balance for this user. This is a quota we impose for safety, not something they set. Admins may change this in response to a support request.  For most users this is not set at all hence 0, but for some special enterprise-style customers to whom we extend 'credit', it will be set.",
       render: {
         title: "Minimum Allowed Balance (USD)",
@@ -363,7 +363,7 @@ Table({
     },
     balance: {
       type: "number",
-      pg_type: "REAL",
+      pg_type: "numeric(20,10)",
       desc: "Last computed balance for this user.  NOT a source of truth.  Meant to ensure all frontend clients show the same thing.  Probably also useful for db queries and maybe analytics.",
       render: {
         title: "Account Balance (USD)",

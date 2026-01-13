@@ -82,11 +82,13 @@ Table({
     cost: {
       type: "number",
       desc: "How much one voucher costs in dollars.",
+      pg_type: "numeric(20,10)",
       render: { type: "number", editable: true, format: "money", min: 0 },
     },
     tax: {
       type: "number",
       desc: "How much sales tax in dollars for each redeemed voucher.",
+      pg_type: "numeric(20,10)",
       render: { type: "number", editable: true, format: "money", min: 0 },
     },
     notes: NOTES,

@@ -248,7 +248,7 @@ Table({
       title: "Cost ($)",
       desc: "The cost in US dollars. Not set if the purchase isn't finished, e.g., when upgrading a project this is only set when project stops or purchase is finalized. This takes precedence over the cost_per_hour times the length of the period when active.",
       type: "number",
-      pg_type: "real",
+      pg_type: "numeric(20,10)",
     },
     pending: {
       type: "boolean",
@@ -258,13 +258,13 @@ Table({
       title: "Cost Per Hour",
       desc: "The cost in US dollars per hour.  This is used to compute the cost so far for metered purchases when the cost field isn't set yet.  The cost so far is the number of hours since period_start times the cost_per_hour.  The description field may also contain redundant cost per hour information, but this cost_per_hour field is the definitive source of truth.  Once the cost field is set, this cost_per_hour is just useful for display purposes.",
       type: "number",
-      pg_type: "real",
+      pg_type: "numeric(20,10)",
     },
     cost_so_far: {
       title: "Cost So Far",
       desc: "The cost so far in US dollars for a metered purchase that accumulates.  This is used, e.g., for data transfer charges.",
       type: "number",
-      pg_type: "real",
+      pg_type: "numeric(20,10)",
     },
     period_start: {
       title: "Period Start",

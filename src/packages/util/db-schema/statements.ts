@@ -49,13 +49,13 @@ Table({
       title: "Balance (USD $)",
       desc: "The balance in US dollars of the user's account at this point in time.",
       type: "number",
-      pg_type: "real",
+      pg_type: "numeric(20,10)",
     },
     total_charges: {
       title: "Total Charges (USD $)",
       desc: "The total of all positive charges for purchases that are part of this statement",
       type: "number",
-      pg_type: "real",
+      pg_type: "numeric(20,10)",
     },
     num_charges: {
       title: "Number of Charges",
@@ -66,7 +66,7 @@ Table({
       title: "Total Credits (USD $)",
       desc: "The total of all negative charges for purchases that are part of this statement",
       type: "number",
-      pg_type: "real",
+      pg_type: "numeric(20,10)",
     },
     num_credits: {
       title: "Number of Credits",
