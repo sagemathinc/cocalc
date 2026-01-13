@@ -27,7 +27,6 @@ import {
   parse_number_input,
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { DedicatedDisk, DedicatedVM } from "@cocalc/util/types/dedicated";
 import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
@@ -399,35 +398,23 @@ export class ProjectsStore extends Store<ProjectsState> {
     return upgrades;
   }
 
-  public get_total_site_license_dedicated(project_id: string): {
-    vm: false | DedicatedVM;
-    disks: DedicatedDisk[];
-    gpu: GPU | false;
-  } {
+  public get_total_site_license_gpu(project_id: string): GPU | false {
     const site_license: any = this.getIn([
       "project_map",
       project_id,
       "site_license",
     ])?.toJS();
-    const disks: DedicatedDisk[] = [];
-    let vm: false | DedicatedVM = false;
     let gpu: GPU | false = false;
     for (const license of Object.values(site_license ?? {})) {
       // could be null in the moment when a license is removed!
       if (license == null) continue;
       const quota = (license as any).quota;
       if (quota == null) continue;
-      if (quota.dedicated_disk != null) {
-        disks.push(quota.dedicated_disk);
-      }
-      if (!vm && typeof quota.dedicated_vm?.machine === "string") {
-        vm = quota.dedicated_vm;
-      }
       if (!gpu && typeof quota.gpu === "object") {
         gpu = quota.gpu;
       }
     }
-    return { vm, disks, gpu };
+    return gpu;
   }
 
   // Return string array of the site licenses that are applied to this project.
@@ -529,9 +516,6 @@ export class ProjectsStore extends Store<ProjectsState> {
         quota[field] = !!license_quota[field] || !!quota[field];
       } else if (typeof license_quota[field] === "number") {
         quota[field] = Math.max(license_quota[field] ?? 0, quota[field] ?? 0);
-      } else if (["dedicated_disks", "dedicated_vm"].includes(field)) {
-        // this is a special case, just for the frontend code – not a general "max" function
-        quota[field] = license_quota[field];
       }
     }
   }

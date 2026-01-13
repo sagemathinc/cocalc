@@ -36,7 +36,6 @@ interface Props {
   form;
   cartError: string | undefined;
   setCartError: (error) => void;
-  dedicatedItem?: boolean;
   disabled?: boolean;
   noAccount: boolean;
   source: LicenseSource;
@@ -48,7 +47,6 @@ export function AddBox({
   form,
   cartError,
   setCartError,
-  dedicatedItem = false,
   noAccount,
   disabled = false,
   source,
@@ -68,7 +66,7 @@ export function AddBox({
     if (cost?.input.type != "quota") {
       return;
     }
-    if (dedicatedItem || cost.input.quantity == null) {
+    if (cost.input.quantity == null) {
       return;
     }
     const costPer = decimalDivide(periodicCost(cost), cost.input.quantity);

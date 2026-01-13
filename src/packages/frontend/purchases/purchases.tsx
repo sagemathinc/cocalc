@@ -1083,35 +1083,6 @@ function LicenseDates({ info }: { info: PurchaseInfo }) {
   );
 }
 
-/*
-{
-  "type": "edit-license",
-  "origInfo": {
-    "end": "2023-07-04T06:59:59.999Z",
-    "type": "vm",
-    "start": "2023-06-29T07:00:00.000Z",
-    "quantity": 1,
-    "account_id": "8e138678-9264-431c-8dc6-5c4f6efe66d8",
-    "dedicated_vm": {
-      "machine": "n2-highmem-8"
-    },
-    "subscription": "no"
-  },
-  "license_id": "0b7b03a4-d13a-4187-b907-0cae6f591f8a",
-  "modifiedInfo": {
-    "end": "2023-07-07T06:59:59.999Z",
-    "type": "vm",
-    "start": "2023-06-30T23:29:22.413Z",
-    "quantity": 1,
-    "account_id": "8e138678-9264-431c-8dc6-5c4f6efe66d8",
-    "dedicated_vm": {
-      "machine": "n2-highmem-8"
-    },
-    "subscription": "no"
-  }
-}
-*/
-
 function InvoiceLink({ invoice_id }) {
   const [loading, setLoading] = useState<boolean>(false);
   const [unknown, setUnknown] = useState<boolean>(false);

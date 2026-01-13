@@ -36,9 +36,7 @@ export interface QuotaData {
   key: string;
   desc: string;
   quota: Value;
-  quotaDedicated: Value | undefined;
   maximum: string | undefined;
-  maxDedicated: string | undefined;
   display: string | undefined;
   usage: Usage;
 }

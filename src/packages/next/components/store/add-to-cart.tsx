@@ -14,7 +14,7 @@ import { ALL_FIELDS } from "./quota-query-params";
 // these are the hidden type fields of the forms
 // regular and boost end up as "quota" types
 // where the description.boost flag is true or false
-export type LicenseTypeInForms = "regular" | "boost" | "vm" | "disk";
+export type LicenseTypeInForms = "regular" | "boost";
 
 interface Props {
   form: any;

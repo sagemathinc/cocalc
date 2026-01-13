@@ -9,6 +9,7 @@ Goal: Complete remove all code and functionality for the following:
 - [ ] payg LLM purchases
 - [ ] all code involving compute\_servers
 - [ ] dedicated\_vms and dedicated\_disks
+- [ ] GPU licenses
 - [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
 - [ ] jitsi \-\- video chat
 
@@ -41,4 +42,3 @@ Goal: Complete remove all code and functionality for the following:
 5. **Tests + docs sweep.**  
    Delete dedicated VM/disk test cases and update any docs or copy that reference them.  
    Review: tests green; no dedicated_* references remain in copy.
-

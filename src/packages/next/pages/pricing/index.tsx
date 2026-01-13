@@ -73,21 +73,6 @@ const dataSource: DataSource = [
       </>
     ),
   },
-  //   {
-  //     link: "/pricing/dedicated",
-  //     title: "Dedicated Resources",
-  //     logo: "server",
-  //     description: (
-  //       <>
-  //         How to{" "}
-  //         <A href="/pricing/dedicated">
-  //           rent a dedicated powerful virtual machine
-  //         </A>
-  //         , which can greatly improve collaboration and scalability in your
-  //         research group.
-  //       </>
-  //     ),
-  //   },
   {
     link: "/pricing/onprem",
     title: "On-Premises Installations",

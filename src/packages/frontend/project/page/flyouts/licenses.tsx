@@ -25,8 +25,7 @@ export function ProjectUpgradesFlyout({
   // TODO this duplicates a lot with settings/body.tsx → make this one or more hooks
 
   const store = redux.getStore("projects");
-  const dedicated_resources =
-    store.get_total_site_license_dedicated(project_id);
+  const gpu = store.get_total_site_license_gpu(project_id);
 
   function renderUsage(): React.JSX.Element {
     if (project == null) {
@@ -38,7 +37,7 @@ export function ProjectUpgradesFlyout({
         <UpgradeUsage
           project_id={project_id}
           project={project}
-          dedicated_resources={dedicated_resources}
+          gpu={gpu}
           mode="flyout"
         />
       </div>,
