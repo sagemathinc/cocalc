@@ -76,15 +76,19 @@ function resolveLocalPath(storagePath: string): string {
   if (projectMatch) {
     const [, projectId, rest = ""] = projectMatch;
     if (syncFiles.localProjects) {
-      const base = resolveTemplateBase(
-        syncFiles.localProjects,
-        "project_id",
-        projectId,
-      );
+      const template = syncFiles.localProjects;
+      const base = resolveTemplateBase(template, "project_id", projectId);
+      const projectRoot = template.includes("[project_id]")
+        ? (() => {
+            const [prefix, suffix] = template.split("[project_id]");
+            const suffixRoot = suffix.split("/")[0] ?? "";
+            return `${prefix}${projectId}${suffixRoot}`;
+          })()
+        : base;
       try {
-        statSync(base);
+        statSync(projectRoot);
       } catch {
-        throw new Error(`project persist base does not exist: ${base}`);
+        throw new Error(`project root does not exist: ${projectRoot}`);
       }
       return rest ? join(base, rest) : base;
     }
