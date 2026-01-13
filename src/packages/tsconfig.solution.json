@@ -1,0 +1,31 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./ai" },
+    { "path": "./api-client" },
+    { "path": "./backend" },
+    { "path": "./chat" },
+    { "path": "./cloud" },
+    { "path": "./comm" },
+    { "path": "./conat" },
+    { "path": "./database" },
+    { "path": "./file-server" },
+    { "path": "./frontend" },
+    { "path": "./hub" },
+    { "path": "./jupyter" },
+    { "path": "./launchpad" },
+    { "path": "./lite" },
+    { "path": "./next" },
+    { "path": "./plus" },
+    { "path": "./project" },
+    { "path": "./project-host" },
+    { "path": "./project-proxy" },
+    { "path": "./project-runner" },
+    { "path": "./server" },
+    { "path": "./static" },
+    { "path": "./sync" },
+    { "path": "./sync-client" },
+    { "path": "./test" },
+    { "path": "./util" }
+  ]
+}

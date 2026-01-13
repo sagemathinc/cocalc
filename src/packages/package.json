@@ -2,7 +2,9 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "echo 'nothing yet'",
-    "check-deps": "check-dependency-version-consistency --ignore-dep async --ignore-dep entities ."
+    "check-deps": "check-dependency-version-consistency --ignore-dep async --ignore-dep entities .",
+    "tsc:build": "tsc --build tsconfig.solution.json",
+    "tsc:watch": "tsc --build --watch --pretty --preserveWatchOutput tsconfig.solution.json"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
