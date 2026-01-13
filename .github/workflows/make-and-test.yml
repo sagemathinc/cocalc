@@ -285,6 +285,17 @@ jobs:
           PGUSER: smc
           PGHOST: localhost
 
+      - name: Run api/v2 exec e2e tests
+        run: |
+          export COCALC_API_KEY=$(cat src/api_key.txt)
+          export COCALC_HOST=http://localhost:5000
+          export COCALC_PROJECT_ID=$(cd src/python/cocalc-api && make ci-create-project)
+          cd src/packages/next && pnpm run test-apiv2-e2e
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+
       - name: Stop CoCalc Hub
         if: always()
         run: |
@@ -338,4 +349,3 @@ jobs:
           reporter: jest-junit
           use-actions-summary: 'true'
           fail-on-error: false
-
