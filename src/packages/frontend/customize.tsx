@@ -262,7 +262,6 @@ export class CustomizeActions extends Actions<CustomizeState> {
     }
   });
 
-  // this is used for accounts that have legacy upgrades
   disableCommercializationParameters = () => {
     this.setState({
       limit_free_project_uptime: undefined,
