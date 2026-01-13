@@ -7,6 +7,10 @@ import { Alert, Checkbox, Input, Popover, Table } from "antd";
 import { useEffect, useMemo, useState } from "react";
 
 import { capitalize, cmp, search_match, search_split } from "@cocalc/util/misc";
+import {
+  WORKSPACE_LABEL,
+  WORKSPACES_LABEL,
+} from "@cocalc/util/i18n/terminology";
 import Avatar from "components/account/avatar";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
@@ -33,7 +37,7 @@ function TitleId({ title, project_id, collaborators, account_id, label }) {
       {label && (
         <>
           <br />
-          Project Id:
+          {WORKSPACE_LABEL} ID:
         </>
       )}
       <Copyable value={project_id} size="small" />
@@ -99,16 +103,17 @@ export default function HowLicenseUsed({ account_id }) {
         title: (
           <Popover
             placement="bottom"
-            title="Project"
+            title={WORKSPACE_LABEL}
             content={
               <div style={{ maxWidth: "75ex" }}>
-                This is the title and id of the project. If you are a
-                collaborator on this project, then you can click the title to
-                open the project.
+                This is the title and id of the {WORKSPACE_LABEL.toLowerCase()}.
+                If you are a collaborator on this{" "}
+                {WORKSPACE_LABEL.toLowerCase()}, then you can click the title to
+                open the {WORKSPACE_LABEL.toLowerCase()}.
               </div>
             }
           >
-            Project
+            {WORKSPACE_LABEL}
           </Popover>
         ),
         width: "30%",
@@ -130,11 +135,13 @@ export default function HowLicenseUsed({ account_id }) {
             title="Collaborators"
             content={
               <div style={{ maxWidth: "75ex" }}>
-                These are the collaborators on this project. You are not
-                necessarily included in this list, since this license can be
-                applied to any project by somebody who knows the license code.
-                Click the "Exclude me" checkbox to see only projects that you
-                are <b>not</b> a collaborator on.
+                These are the collaborators on this{" "}
+                {WORKSPACE_LABEL.toLowerCase()}. You are not necessarily
+                included in this list, since this license can be applied to any{" "}
+                {WORKSPACE_LABEL.toLowerCase()} by somebody who knows the
+                license code. Click the "Exclude me" checkbox to see only{" "}
+                {WORKSPACES_LABEL.toLowerCase()} that you are <b>not</b> a
+                collaborator on.
               </div>
             }
           >
@@ -195,10 +202,11 @@ export default function HowLicenseUsed({ account_id }) {
       <Title level={2}>How a License You Manage is Being Used</Title>
       <Paragraph>
         Select a license you manage to see how it is being used. You can see{" "}
-        <i>all</i> projects that have this license applied to them (even if you
-        are not a collaborator on them!), remove licenses from projects, and
-        view analytics about how the license has been used over time to better
-        inform your decision making.
+        <i>all</i> {WORKSPACES_LABEL.toLowerCase()} that have this license
+        applied to them (even if you are not a collaborator on them!), remove
+        licenses from {WORKSPACES_LABEL.toLowerCase()}, and view analytics about
+        how the license has been used over time to better inform your decision
+        making.
       </Paragraph>
       <div style={{ margin: "15px 0", width: "100%", textAlign: "center" }}>
         <SelectLicense
@@ -240,7 +248,7 @@ export default function HowLicenseUsed({ account_id }) {
       {license && !loading && projects.length > 1 && (
         <div style={{ margin: "15px 0", maxWidth: "50ex" }}>
           <Input.Search
-            placeholder="Search project titles..."
+            placeholder={`Search ${WORKSPACE_LABEL.toLowerCase()} titles...`}
             allowClear
             onChange={(e) => setSearch(e.target.value)}
             style={{ width: "100%" }}

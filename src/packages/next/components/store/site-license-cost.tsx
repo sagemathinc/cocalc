@@ -17,6 +17,7 @@ import type {
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { plural, round2, round2up } from "@cocalc/util/misc";
 import { appendAfterNowToDate, getDays } from "@cocalc/util/stripe/timecalcs";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 import Timestamp, { processTimestamp } from "components/misc/timestamp";
 import { ReactNode } from "react";
 import { useTimeFixer } from "./util";
@@ -162,7 +163,10 @@ function describeQuantity(props: DescribeQuantityProps): ReactNode {
   if (variant === "short") {
     return `${quantity}x`;
   } else {
-    return `for ${quantity} running ${plural(quantity, "project")}`;
+    return `for ${quantity} running ${plural(
+      quantity,
+      WORKSPACE_LABEL.toLowerCase(),
+    )}`;
   }
 }
 

@@ -38,6 +38,7 @@ import {
 } from "@cocalc/frontend/purchases/api";
 import { currency, plural, round2up, round2down } from "@cocalc/util/misc";
 import { type CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 import { ProductColumn } from "./cart";
 import ShowError from "@cocalc/frontend/components/error";
 import { StoreBalanceContext } from "../../lib/balance";
@@ -737,7 +738,7 @@ function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
   if (!project_id || !isValidUUID(project_id)) return null;
   return (
     <div>
-      For project: <code>{project_id}</code>
+      For {WORKSPACE_LABEL.toLowerCase()}: <code>{project_id}</code>
     </div>
   );
 }

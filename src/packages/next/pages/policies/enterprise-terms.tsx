@@ -112,7 +112,7 @@ export default function TermsOfService({ customize }) {
                 can use SageMath and other open source math software online in
                 connection with mathematical research and teaching and the
                 performance of computational mathematics. Through their
-                Accounts, users can create multiple projects ("<b>Project</b>"),
+                Accounts, users can create multiple workspaces ("<b>Workspace</b>"),
                 each of which acts as a file system with multiple directories,
                 inside of which a user can create and edit any number of files
                 of any type (such as Latex documents, IPython notebooks, and

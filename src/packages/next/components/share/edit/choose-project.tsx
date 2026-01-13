@@ -19,6 +19,7 @@ import editURL from "lib/share/edit-url";
 import { Icon } from "@cocalc/frontend/components/icon";
 import RunApp from "components/app/path";
 import useCustomize from "lib/use-customize";
+import { WORKSPACE_LABEL, WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 
 interface Props {
   id;
@@ -97,7 +98,7 @@ export default function ChooseProject(props: Props) {
           path: targetPath,
         });
       } else {
-        setLog("Copying From Project");
+        setLog(`Copying From ${WORKSPACE_LABEL}`);
         // From another project
         await copyPublicPath({
           id,
@@ -127,15 +128,15 @@ export default function ChooseProject(props: Props) {
         )}
         {image && image != defaultComputeImage && (
           <div>
-            We recommend that you create a new project, since this public path
-            uses the non-default image "{image}".
+            We recommend that you create a new {WORKSPACE_LABEL.toLowerCase()},
+            since this public path uses the non-default image "{image}".
           </div>
         )}
         {log && <Alert type="info" message={log} />}
         {!hideSelect && (
           <SelectProject
             defaultOpen
-            label="In one of your existing projects"
+            label={`In one of your existing ${WORKSPACES_LABEL.toLowerCase()}`}
             onChange={({ project_id, title }) => {
               setCreatedProject(false);
               setProject({ project_id, title });
@@ -146,7 +147,7 @@ export default function ChooseProject(props: Props) {
         {!hideCreate && (
           <CreateProject
             image={image}
-            label="In a new project"
+            label={`In a new ${WORKSPACE_LABEL.toLowerCase()}`}
             start={true}
             public_path_id={id}
             defaultTitle={url ? targetPath : description}

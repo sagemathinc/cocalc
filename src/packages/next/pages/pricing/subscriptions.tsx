@@ -10,6 +10,10 @@ import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import {
+  WORKSPACE_LABEL,
+  WORKSPACES_LABEL,
+} from "@cocalc/util/i18n/terminology";
+import {
   CURRENT_VERSION,
   discount_monthly_pct,
   discount_yearly_pct,
@@ -242,10 +246,11 @@ function Body(): JSX.Element {
         A subscription provides you with a{" "}
         <A href="https://doc.cocalc.com/licenses.html">license key</A> for{" "}
         <A href="https://doc.cocalc.com/project-settings.html#licenses">
-          upgrading your projects
+          upgrading your {WORKSPACES_LABEL.toLowerCase()}
         </A>{" "}
-        or other projects where you are a collaborator — everyone using an
-        upgraded project benefits equally. Such a{" "}
+        or other {WORKSPACES_LABEL.toLowerCase()} where you are a collaborator
+        — everyone using an upgraded {WORKSPACE_LABEL.toLowerCase()} benefits
+        equally. Such a{" "}
         <A href="/billing/subscriptions">subscription</A>{" "}
         <b>automatically renews</b> at the end of each period. You can{" "}
         <A href="/billing/subscriptions">
@@ -261,7 +266,8 @@ function Body(): JSX.Element {
         We list three typical configurations below, which you can{" "}
         <A href="/store/site-license">modify and purchase here</A>. All
         parameters can be adjusted to fit your needs. Listed upgrades are for
-        each project. Exact prices may vary. Below ${MIN_QUOTE}, only online
+        each {WORKSPACE_LABEL.toLowerCase()}. Exact prices may vary.{" "}
+        {`Below $${MIN_QUOTE},`} only online
         purchases are available (no purchase orders). Subscriptions receive a{" "}
         {discount_monthly_pct}% discount for monthly and {discount_yearly_pct}%
         for yearly periods.
@@ -271,10 +277,19 @@ function Body(): JSX.Element {
         dataSource={data}
         renderItem={(item) => (
           <PricingItem title={item.title} icon={item.icon}>
-            <Line amount={item.projects} desc="Projects" />
-            <Line amount={item.shared_ram} desc="Shared RAM per project" />
-            <Line amount={item.shared_cores} desc="Shared CPU per project" />
-            <Line amount={item.disk} desc="Disk space per project" />
+            <Line amount={item.projects} desc={WORKSPACES_LABEL} />
+            <Line
+              amount={item.shared_ram}
+              desc={`Shared RAM per ${WORKSPACE_LABEL.toLowerCase()}`}
+            />
+            <Line
+              amount={item.shared_cores}
+              desc={`Shared CPU per ${WORKSPACE_LABEL.toLowerCase()}`}
+            />
+            <Line
+              amount={item.disk}
+              desc={`Disk space per ${WORKSPACE_LABEL.toLowerCase()}`}
+            />
             <Line amount={item.uptime} desc="Idle timeout" />
             <Line amount={"∞"} desc="Collaborators" />
             {item.academic ? (

@@ -25,6 +25,8 @@ import { type Sync } from "@cocalc/conat/files/file-server";
 import { type Filesystem } from "./filesystem";
 import { sha1 } from "@cocalc/backend/sha1";
 import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
+import { exists } from "@cocalc/backend/misc/async-utils-node";
+import { isBtrfsSubvolume } from "./subvolume";
 
 export const SYNC_STATE = "sync-state";
 
@@ -132,9 +134,21 @@ export class FileSync {
   private HOME?: string;
   private mutagen = async (args: string[], err_on_exit = true) => {
     if (!this.HOME) {
-      this.HOME = (await this.fs.subvolumes.get(SYNC_STATE, true)).path;
+      this.HOME = (await this.fs.subvolumes.ensure(SYNC_STATE, true)).path;
     }
     return await mutagen(args, { HOME: this.HOME, err_on_exit });
+  };
+
+  private getExistingVolume = async (name: string) => {
+    const vol = await this.fs.subvolumes.get(name);
+    if (!(await exists(vol.path))) {
+      throw Error(`subvolume ${name} does not exist`);
+    }
+    const isSubvolume = await isBtrfsSubvolume(vol.path);
+    if (!isSubvolume) {
+      throw Error(`existing path is not a btrfs subvolume: ${vol.path}`);
+    }
+    return vol;
   };
 
   create = async ({ ignores = [], ...sync }: Sync & { ignores?: string[] }) => {
@@ -144,8 +158,8 @@ export class FileSync {
     }
     logger.debug("create", sync);
     const { src, dest } = parseSync(sync);
-    const srcVolume = await this.fs.subvolumes.get(src.name);
-    const destVolume = await this.fs.subvolumes.get(dest.name);
+    const srcVolume = await this.getExistingVolume(src.name);
+    const destVolume = await this.getExistingVolume(dest.name);
     const alpha = join(srcVolume.path, src.path);
     const beta = join(destVolume.path, dest.path);
     const args = [

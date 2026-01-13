@@ -14,6 +14,7 @@ import ChooseProject from "./choose-project";
 import { Props } from "./index";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import { trunc_middle } from "@cocalc/util/misc";
+import { WORKSPACE_LABEL, WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 
 interface EditOptionsProps extends Props {
   onClose: () => void;
@@ -42,7 +43,9 @@ export default function EditOptions({
           <div style={{ float: "right", display: "flex" }}>
             {!(!url && isCollaborator) && (
               <div>
-                <Tooltip title="When checked, additional files may be copied to your project, which uses more spaces but ensures everything works.">
+                <Tooltip
+                  title={`When checked, additional files may be copied to your ${WORKSPACE_LABEL.toLowerCase()}, which uses more space but ensures everything works.`}
+                >
                   <Checkbox
                     disabled={copied}
                     checked={everything}
@@ -131,10 +134,10 @@ function NotSignedInOptions({ path, has_site_license, id }) {
   return (
     <div>
       <InPlaceSignInOrUp
-        title="Choose Project"
+        title={`Choose ${WORKSPACE_LABEL}`}
         why={`to edit in one of your own ${
           has_site_license ? "licensed" : ""
-        } projects using a full collaborative ${
+        } ${WORKSPACES_LABEL.toLowerCase()} using a full collaborative ${
           path?.endsWith("ipynb") ? "Jupyter notebook" : "editor"
         }`}
         publicPathId={has_site_license ? id : undefined}

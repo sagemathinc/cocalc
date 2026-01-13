@@ -16,7 +16,11 @@ import { reportProjectStateToMaster } from "../master-status";
 import { secretsPath as sshProxySecretsPath } from "@cocalc/project-proxy/ssh-server";
 import { readFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
-import { writeManagedAuthorizedKeys, getVolume } from "../file-server";
+import {
+  writeManagedAuthorizedKeys,
+  getVolume,
+  ensureVolume,
+} from "../file-server";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import type { Configuration } from "@cocalc/conat/project/runner/types";
 import { ensureHostKey } from "../ssh/host-key";
@@ -234,6 +238,8 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       state: "opened",
       authorized_keys: (opts as any).authorized_keys,
     });
+
+    await ensureVolume(project_id);
 
     if (opts.start) {
       // Immediately mark as starting so the master reflects that state while we pull/podman up.

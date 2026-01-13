@@ -23,8 +23,10 @@ describe("create basic mocked file server and test it out", () => {
     await createFileServer({
       client: client1,
       mount: async ({ project_id }): Promise<{ path: string }> => {
-        volumes.add(project_id);
         return { path: `/mnt/${project_id}` };
+      },
+      ensureVolume: async ({ project_id }): Promise<void> => {
+        volumes.add(project_id);
       },
 
       // create project_id as an exact lightweight clone of src_project_id
@@ -167,7 +169,9 @@ describe("create basic mocked file server and test it out", () => {
     });
     const { path } = await fileClient.mount({ project_id });
     expect(path).toEqual(`/mnt/${project_id}`);
-    expect(volumes.has(project_id));
+    expect(volumes.has(project_id)).toBe(false);
+    await fileClient.ensureVolume({ project_id });
+    expect(volumes.has(project_id)).toBe(true);
 
     expect(await fileClient.getUsage({ project_id })).toEqual({
       size: 0,

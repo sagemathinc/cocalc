@@ -13,6 +13,7 @@ import useAPI from "lib/hooks/api";
 import Loading from "components/share/loading";
 import { Alert, TreeSelect } from "antd";
 import { Placeholder } from "./util";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 
 interface Node {
   title: ReactNode;
@@ -58,7 +59,7 @@ export default function RecentFiles({ interval, onChange }: Props) {
       treeData.push({
         title: (
           <>
-            Project: <b>{files[0].title}</b>
+            {WORKSPACE_LABEL}: <b>{files[0].title}</b>
           </>
         ),
         value: files[0].project_id,

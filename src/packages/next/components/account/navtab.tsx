@@ -11,6 +11,7 @@ import { join } from "path";
 import { CSSProperties } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { WORKSPACE_LABEL, WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 import {
   type PreferencesSubTabType,
   type SettingsPageType,
@@ -203,7 +204,7 @@ export default function AccountNavTab({ style }: Props) {
       menuItem(
         "projects",
         <a href={join(basePath, "projects")}>
-          {is_anonymous ? "Project" : "Projects"}
+          {is_anonymous ? WORKSPACE_LABEL : WORKSPACES_LABEL}
         </a>,
         "edit",
       ),

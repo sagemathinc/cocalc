@@ -24,6 +24,7 @@ import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
 import { capitalize, isValidUUID } from "@cocalc/util/misc";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -428,7 +429,7 @@ function DescriptionColumnSiteLicense(props: DCProps) {
         banner={true}
         message={
           <>
-            For project: <code>{project_id}</code>
+            For {WORKSPACE_LABEL.toLowerCase()}: <code>{project_id}</code>
           </>
         }
       />

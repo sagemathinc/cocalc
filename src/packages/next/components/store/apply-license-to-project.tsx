@@ -8,6 +8,7 @@ import { Alert, Button, Popconfirm } from "antd";
 import { NextRouter } from "next/router";
 import { useLicenseProject } from "./util";
 import Project from "components/project/link";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 
 import type { JSX } from "react";
 
@@ -25,7 +26,8 @@ export const ApplyLicenseToProject: React.FC<ApplyLicenseToProjectProps> = (
     if (!upgradeProjectId) throw new Error("should never happen");
     return (
       <div>
-        After purchase, this license will applied to project{" "}
+        After purchase, this license will applied to{" "}
+        {WORKSPACE_LABEL.toLowerCase()}{" "}
         <Project project_id={upgradeProjectId} /> automatically.
       </div>
     );
@@ -44,8 +46,8 @@ export const ApplyLicenseToProject: React.FC<ApplyLicenseToProjectProps> = (
           title={
             <div style={{ maxWidth: "400px" }}>
               Are you sure you want to cancel automatically applying the license
-              to the project after purchasing it? Don't forget to apply the
-              license manually.
+              to the {WORKSPACE_LABEL.toLowerCase()} after purchasing it? Don't
+              forget to apply the license manually.
             </div>
           }
           onConfirm={upgradeProjectDelete}

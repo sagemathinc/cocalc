@@ -14,7 +14,7 @@ jest.setTimeout(15000);
 describe("setting and getting quota of a subvolume", () => {
   let vol: Subvolume;
   it("set the quota of a subvolume to 5 M", async () => {
-    vol = await fs.subvolumes.get("q");
+    vol = await fs.subvolumes.ensure("q");
     await vol.quota.set("5M");
 
     const { size, used } = await vol.quota.get();
@@ -56,12 +56,12 @@ describe("the filesystem operations", () => {
   let vol: Subvolume;
 
   it("creates a volume and get empty listing", async () => {
-    vol = await fs.subvolumes.get("fs");
+    vol = await fs.subvolumes.ensure("fs");
     expect(filtered(await vol.fs.readdir(""))).toEqual([]);
   });
 
   it("error listing non-existent path", async () => {
-    vol = await fs.subvolumes.get("fs");
+    vol = await fs.subvolumes.ensure("fs");
     expect(async () => {
       await vol.fs.readdir("no-such-path");
     }).rejects.toThrow("ENOENT");
@@ -183,7 +183,7 @@ describe("test snapshots", () => {
   let vol: Subvolume;
 
   it("creates a volume and write a file to it", async () => {
-    vol = await fs.subvolumes.get("snapper");
+    vol = await fs.subvolumes.ensure("snapper");
     expect(await vol.snapshots.hasUnsavedChanges()).toBe(false);
     await vol.fs.writeFile("a.txt", "hello");
     expect(await vol.snapshots.hasUnsavedChanges()).toBe(true);
