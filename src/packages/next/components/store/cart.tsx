@@ -357,11 +357,7 @@ const DESCRIPTION_STYLE = {
 export function DescriptionColumn(props: DCProps) {
   const router = useRouter();
   const { id, description, style, readOnly } = props;
-  if (
-    description.type === "disk" ||
-    description.type === "vm" ||
-    description.type === "quota"
-  ) {
+  if (description.type === "quota") {
     return <DescriptionColumnSiteLicense {...props} />;
   } else if (description.type == "membership") {
     return (
@@ -411,13 +407,7 @@ export function DescriptionColumn(props: DCProps) {
 
 function DescriptionColumnSiteLicense(props: DCProps) {
   const { id, cost, description, compact, project_id, readOnly } = props;
-  if (
-    !(
-      description.type === "disk" ||
-      description.type === "vm" ||
-      description.type === "quota"
-    )
-  ) {
+  if (!(description.type === "quota")) {
     throw Error("BUG -- incorrect typing");
   }
   const router = useRouter();

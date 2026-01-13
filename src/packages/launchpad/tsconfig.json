@@ -9,6 +9,6 @@
       "@cocalc/hub/*": ["../hub/*"]
     }
   },
-  "exclude": ["dist", "node_modules", "build"],
+  "exclude": ["dist", "node_modules", "build", "sea"],
   "references": [{ "path": "../hub" }]
 }
