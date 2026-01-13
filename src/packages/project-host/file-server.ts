@@ -9,6 +9,8 @@ import {
   client as createFileClient,
   type Fileserver,
   type CopyOptions,
+  type RestoreMode,
+  type RestoreStagingHandle,
   type SnapshotUsage,
   type Sync,
 } from "@cocalc/conat/files/file-server";
@@ -22,6 +24,13 @@ import {
   rusticRepo,
 } from "@cocalc/backend/data";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
+import {
+  beginRestoreStaging as beginRestoreStagingBtrfs,
+  ensureRestoreStaging as ensureRestoreStagingBtrfs,
+  finalizeRestoreStaging as finalizeRestoreStagingBtrfs,
+  releaseRestoreStaging as releaseRestoreStagingBtrfs,
+  cleanupRestoreStaging as cleanupRestoreStagingBtrfs,
+} from "@cocalc/file-server/btrfs/restore-staging";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 import { init as initSshServer } from "@cocalc/project-proxy/ssh-server";
@@ -420,6 +429,54 @@ async function restoreBackup({
   await vol.rustic.restore({ id, path, dest });
 }
 
+async function beginRestoreStaging({
+  project_id,
+  home,
+  restore,
+}: {
+  project_id: string;
+  home?: string;
+  restore?: RestoreMode;
+}): Promise<RestoreStagingHandle | null> {
+  const resolvedHome = home ?? projectMountpoint(project_id);
+  return await beginRestoreStagingBtrfs({
+    project_id,
+    home: resolvedHome,
+    restore,
+  });
+}
+
+async function ensureRestoreStaging({
+  handle,
+}: {
+  handle: RestoreStagingHandle;
+}): Promise<void> {
+  await ensureRestoreStagingBtrfs(handle);
+}
+
+async function finalizeRestoreStaging({
+  handle,
+}: {
+  handle: RestoreStagingHandle;
+}): Promise<void> {
+  await finalizeRestoreStagingBtrfs(handle);
+}
+
+async function releaseRestoreStaging({
+  handle,
+  cleanupStaging,
+}: {
+  handle: RestoreStagingHandle;
+  cleanupStaging?: boolean;
+}): Promise<void> {
+  await releaseRestoreStagingBtrfs(handle, { cleanupStaging });
+}
+
+async function cleanupRestoreStaging(opts?: { root?: string }): Promise<void> {
+  const root = opts?.root ?? getMountPoint();
+  await cleanupRestoreStagingBtrfs({ root });
+}
+
 async function deleteBackup({
   project_id,
   id,
@@ -570,6 +627,12 @@ export async function initFileServer({
 
   logger.debug("initFileServer: create conat server");
 
+  try {
+    await cleanupRestoreStaging();
+  } catch (err) {
+    logger.warn("restore staging cleanup failed", { err: `${err}` });
+  }
+
   const file = await createFileServer({
     client,
     mount: reuseInFlight(mount),
@@ -581,6 +644,11 @@ export async function initFileServer({
     // backups
     createBackup: reuseInFlight(createBackup),
     restoreBackup: reuseInFlight(restoreBackup),
+    beginRestoreStaging,
+    ensureRestoreStaging,
+    finalizeRestoreStaging,
+    releaseRestoreStaging,
+    cleanupRestoreStaging,
     deleteBackup: reuseInFlight(deleteBackup),
     updateBackups: reuseInFlight(updateBackups),
     getBackups: reuseInFlight(getBackups),

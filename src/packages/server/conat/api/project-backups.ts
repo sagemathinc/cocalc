@@ -1,4 +1,8 @@
-import { client as fileServerClient } from "@cocalc/conat/files/file-server";
+import {
+  client as fileServerClient,
+  type RestoreMode,
+  type RestoreStagingHandle,
+} from "@cocalc/conat/files/file-server";
 import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 import { assertCollab } from "./util";
 
@@ -71,6 +75,80 @@ export async function restoreBackup({
     path,
     dest,
   });
+}
+
+export async function beginRestoreStaging({
+  account_id,
+  project_id,
+  home,
+  restore,
+}: {
+  account_id?: string;
+  project_id: string;
+  home?: string;
+  restore?: RestoreMode;
+}): Promise<RestoreStagingHandle | null> {
+  await assertCollab({ account_id, project_id });
+  return await fileServerClient({ project_id }).beginRestoreStaging({
+    project_id,
+    home,
+    restore,
+  });
+}
+
+export async function ensureRestoreStaging({
+  account_id,
+  handle,
+}: {
+  account_id?: string;
+  handle: RestoreStagingHandle;
+}) {
+  await assertCollab({ account_id, project_id: handle.project_id });
+  await fileServerClient({ project_id: handle.project_id }).ensureRestoreStaging({
+    handle,
+  });
+}
+
+export async function finalizeRestoreStaging({
+  account_id,
+  handle,
+}: {
+  account_id?: string;
+  handle: RestoreStagingHandle;
+}) {
+  await assertCollab({ account_id, project_id: handle.project_id });
+  await fileServerClient({ project_id: handle.project_id }).finalizeRestoreStaging({
+    handle,
+  });
+}
+
+export async function releaseRestoreStaging({
+  account_id,
+  handle,
+  cleanupStaging,
+}: {
+  account_id?: string;
+  handle: RestoreStagingHandle;
+  cleanupStaging?: boolean;
+}) {
+  await assertCollab({ account_id, project_id: handle.project_id });
+  await fileServerClient({ project_id: handle.project_id }).releaseRestoreStaging({
+    handle,
+    cleanupStaging,
+  });
+}
+
+export async function cleanupRestoreStaging({
+  account_id,
+  project_id,
+  root,
+}: {
+  account_id?: string;
+  project_id: string;
+  root?: string;
+}) {
+  await assertCollab({ account_id, project_id });
+  await fileServerClient({ project_id }).cleanupRestoreStaging({ root });
 }
 
 export async function getBackups({

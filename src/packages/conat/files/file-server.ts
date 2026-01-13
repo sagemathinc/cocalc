@@ -43,6 +43,18 @@ export interface Sync {
   replica?: boolean;
 }
 
+export type RestoreMode = "none" | "auto" | "required";
+
+export interface RestoreStagingHandle {
+  project_id: string;
+  home: string;
+  restore: RestoreMode;
+  homeExists: boolean;
+  stagingRoot: string;
+  stagingPath: string;
+  markerPath: string;
+}
+
 export interface Fileserver {
   mount: (opts: { project_id: string }) => Promise<{ path: string }>;
 
@@ -112,6 +124,23 @@ export interface Fileserver {
     path?: string;
     dest?: string;
   }) => Promise<void>;
+  // staged restore helpers (filesystem-specific implementation)
+  beginRestoreStaging: (opts: {
+    project_id: string;
+    home?: string;
+    restore?: RestoreMode;
+  }) => Promise<RestoreStagingHandle | null>;
+  ensureRestoreStaging: (opts: {
+    handle: RestoreStagingHandle;
+  }) => Promise<void>;
+  finalizeRestoreStaging: (opts: {
+    handle: RestoreStagingHandle;
+  }) => Promise<void>;
+  releaseRestoreStaging: (opts: {
+    handle: RestoreStagingHandle;
+    cleanupStaging?: boolean;
+  }) => Promise<void>;
+  cleanupRestoreStaging: (opts?: { root?: string }) => Promise<void>;
   // delete the given backup
   deleteBackup: (opts: { project_id: string; id: string }) => Promise<void>;
   // Return list of id's and timestamps of all backups of this project.

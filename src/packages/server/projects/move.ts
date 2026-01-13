@@ -58,7 +58,7 @@ async function buildMoveProjectContext(
     region: string | null;
     status: string | null;
   }>(
-    "SELECT id, region, status FROM project_hosts WHERE id=$1 AND deleted IS NOT TRUE",
+    "SELECT id, region, status FROM project_hosts WHERE id=$1 AND deleted IS NULL",
     [dest_host_id],
   );
   const hostRow = hostResult.rows[0];

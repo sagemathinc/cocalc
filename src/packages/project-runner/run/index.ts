@@ -11,7 +11,7 @@ import { server as projectRunnerServer } from "@cocalc/conat/project/runner/run"
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { init as initFilesystem, localPath, sshServers } from "./filesystem";
 import getLogger from "@cocalc/backend/logger";
-import { start, stop, status, save, cleanupRestoreStaging } from "./podman";
+import { start, stop, status, save } from "./podman";
 
 const logger = getLogger("project-runner:run");
 
@@ -24,11 +24,6 @@ export async function init(opts: { id?: string; client?: ConatClient } = {}) {
   }
   client = opts.client ?? conat();
   initFilesystem({ client });
-  try {
-    await cleanupRestoreStaging();
-  } catch (err) {
-    logger.warn("restore staging cleanup failed", { err: `${err}` });
-  }
   return await projectRunnerServer({
     id,
     client,

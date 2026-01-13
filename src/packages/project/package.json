@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project",
-  "version": "1.41.10",
+  "version": "1.41.11",
   "description": "CoCalc: project daemon",
   "exports": {
     "./conat": "./dist/conat/index.js",

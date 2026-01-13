@@ -59,7 +59,7 @@ export class TimeActions extends Actions<StopwatchEditorState> {
       timers: this.syncdb.get(),
     });
 
-    if (this.syncdb.get_doc().size === 0) {
+    if (this.syncdb.get_doc().count() === 0) {
       this.addStopwatch();
     }
   }
@@ -88,7 +88,7 @@ export class TimeActions extends Actions<StopwatchEditorState> {
 
   public deleteStopwatch(id: number): void {
     this.syncdb.delete({ id });
-    if (this.syncdb.get_doc().size === 0) {
+    if (this.syncdb.get_doc().count() === 0) {
       this.addStopwatch();
     }
     this.syncdb.commit();
