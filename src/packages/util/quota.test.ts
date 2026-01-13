@@ -212,8 +212,8 @@ describe("main quota functionality", () => {
     const q = quota(settings, undefined, undefined, site_settings);
     expect(q).toEqual({
       idle_timeout: 3600,
-      memory_limit: 5100,
-      memory_request: 1020, // (4100 + 1000) / 5
+      memory_limit: 4100,
+      memory_request: 820, // 4100 / 5
       cpu_limit: 1,
       cpu_request: 0.05,
       disk_quota: DISK_QUOTA,
@@ -240,8 +240,8 @@ describe("main quota functionality", () => {
       idle_timeout: 9999,
       memory_limit: 1000,
       memory_request: 500,
-      cpu_limit: 2.4,
-      cpu_request: 0.24,
+      cpu_limit: 1.4,
+      cpu_request: 1.4 / 10,
       disk_quota: 5432,
       member_host: false,
       network: true,
@@ -584,10 +584,10 @@ describe("main quota functionality", () => {
     };
 
     const q1 = quota(settings, undefined, undefined, site_settings);
-    expect(q1.memory_request).toEqual(1111);
-    expect(q1.memory_limit).toEqual(4444);
-    expect(q1.cpu_request).toEqual(0.5); // (1+1.5)/5
-    expect(q1.cpu_limit).toEqual(2.5);
+    expect(q1.memory_request).toEqual(861);
+    expect(q1.memory_limit).toEqual(3444);
+    expect(q1.cpu_request).toEqual(0.3); // 1.5/5
+    expect(q1.cpu_limit).toEqual(1.5);
   }); // sum
 
   it("sanitizes bad overcommitment ratios", () => {
@@ -605,10 +605,10 @@ describe("main quota functionality", () => {
     };
 
     const q1 = quota(settings, undefined, undefined, site_settings);
-    expect(q1.memory_request).toEqual(1100);
-    expect(q1.memory_limit).toEqual(1100);
-    expect(q1.cpu_request).toEqual(2);
-    expect(q1.cpu_limit).toEqual(2);
+    expect(q1.memory_request).toEqual(1000);
+    expect(q1.memory_limit).toEqual(1000);
+    expect(q1.cpu_request).toEqual(1);
+    expect(q1.cpu_limit).toEqual(1);
   });
 
   it("overcommitment with fractions", () => {
@@ -626,10 +626,10 @@ describe("main quota functionality", () => {
     };
 
     const q1 = quota(settings, undefined, undefined, site_settings);
-    expect(q1.memory_request).toEqual(Math.round(1234 / 2.22));
-    expect(q1.memory_limit).toEqual(1234);
-    expect(q1.cpu_request).toEqual(1.234 / 6.66);
-    expect(q1.cpu_limit).toEqual(1.234);
+    expect(q1.memory_request).toEqual(Math.floor(1000 / 2.22));
+    expect(q1.memory_limit).toEqual(1000);
+    expect(q1.cpu_request).toEqual(1 / 6.66);
+    expect(q1.cpu_limit).toEqual(1);
   });
 
   it("takes overcommitment ratios into account for settings + site updates", () => {
@@ -648,10 +648,10 @@ describe("main quota functionality", () => {
     };
 
     const q1 = quota(settings, undefined, undefined, site_settings);
-    expect(q1.memory_request).toEqual(500);
-    expect(q1.memory_limit).toEqual(3000);
-    expect(q1.cpu_request).toEqual(0.25);
-    expect(q1.cpu_limit).toEqual(2.5);
+    expect(q1.memory_request).toEqual(333);
+    expect(q1.memory_limit).toEqual(2000);
+    expect(q1.cpu_request).toEqual(0.2);
+    expect(q1.cpu_limit).toEqual(2);
   });
 });
 
