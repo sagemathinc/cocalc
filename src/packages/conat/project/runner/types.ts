@@ -5,6 +5,8 @@ export type LocalPathFunction = (opts: {
   // if set, create scratch space of this size in bytes and return path
   // to it as scratch.
   scratch?: number;
+  // if false, only resolve paths without creating volumes
+  ensure?: boolean;
 }) => Promise<{ home: string; scratch?: string }>;
 
 export interface SshServer {

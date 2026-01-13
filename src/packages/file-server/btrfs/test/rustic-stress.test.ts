@@ -8,7 +8,7 @@ describe(`make backups of ${count} different volumes at the same time`, () => {
   const vols: Subvolume[] = [];
   it(`creates ${count} volumes`, async () => {
     for (let i = 0; i < count; i++) {
-      const vol = await fs.subvolumes.get(`rustic-multi-${i}`);
+      const vol = await fs.subvolumes.ensure(`rustic-multi-${i}`);
       await vol.fs.writeFile(`a-${i}.txt`, `hello-${i}`);
       vols.push(vol);
     }

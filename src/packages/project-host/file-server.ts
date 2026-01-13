@@ -31,6 +31,7 @@ import {
   releaseRestoreStaging as releaseRestoreStagingBtrfs,
   cleanupRestoreStaging as cleanupRestoreStagingBtrfs,
 } from "@cocalc/file-server/btrfs/restore-staging";
+import { isBtrfsSubvolume } from "@cocalc/file-server/btrfs/subvolume";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 import { init as initSshServer } from "@cocalc/project-proxy/ssh-server";
@@ -64,6 +65,7 @@ type SshTarget =
   | { type: "btrfs"; host_id: string };
 
 const logger = getLogger("project-host:file-server");
+const RESTORE_STAGING_ROOT = ".restore-staging";
 
 function volName(project_id: string) {
   return `project-${project_id}`;
@@ -99,11 +101,33 @@ export async function getVolume(project_id: string) {
   if (fs == null) {
     throw Error("file server not initialized");
   }
+  const vol = await fs.subvolumes.get(volName(project_id));
+  if (!(await exists(vol.path))) {
+    throw new Error(`project volume does not exist: ${vol.path}`);
+  }
+  const isSubvolume = await isBtrfsSubvolume(vol.path);
+  if (!isSubvolume) {
+    throw new Error(`project volume is not a btrfs subvolume: ${vol.path}`);
+  }
+  return vol;
+}
+
+export async function ensureVolume(project_id: string) {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  return await fs.subvolumes.ensure(volName(project_id));
+}
+
+async function getVolumeUnchecked(project_id: string) {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
   return await fs.subvolumes.get(volName(project_id));
 }
 
 async function getVolumeForBackup(project_id: string) {
-  const vol = await getVolume(project_id);
+  const vol = await getVolumeUnchecked(project_id);
   // Safe to override: each Subvolume owns its SandboxedFilesystem instance.
   vol.fs.rusticRepo = await resolveRusticRepo(project_id);
   return vol;
@@ -125,6 +149,11 @@ function getFileSync() {
 
 function projectMountpoint(project_id: string): string {
   return join(getMountPoint(), `project-${project_id}`);
+}
+
+function isSubPath(parent: string, child: string): boolean {
+  const rel = path.relative(parent, child);
+  return rel === "" || (!rel.startsWith("..") && !path.isAbsolute(rel));
 }
 
 const backupConfigCache = new Map<
@@ -264,8 +293,7 @@ async function mount({
   project_id: string;
 }): Promise<{ path: string }> {
   logger.debug("mount", { project_id });
-  const { path } = await getVolume(project_id);
-  return { path };
+  return { path: projectMountpoint(project_id) };
 }
 
 async function clone({
@@ -404,7 +432,8 @@ async function createBackup({
   project_id: string;
   limit?: number;
 }): Promise<{ time: Date; id: string }> {
-  const vol = await getVolumeForBackup(project_id);
+  const vol = await getVolume(project_id);
+  vol.fs.rusticRepo = await resolveRusticRepo(project_id);
   const result = await vol.rustic.backup({ limit });
   try {
     await reportBackupSuccess(project_id, result.time);
@@ -417,7 +446,7 @@ async function createBackup({
 async function restoreBackup({
   project_id,
   id,
-  path,
+  path: backupPath,
   dest,
 }: {
   project_id: string;
@@ -426,7 +455,63 @@ async function restoreBackup({
   dest?: string;
 }): Promise<void> {
   const vol = await getVolumeForBackup(project_id);
-  await vol.rustic.restore({ id, path, dest });
+  const home = projectMountpoint(project_id);
+  const stagingRoot = join(dirname(home), RESTORE_STAGING_ROOT);
+  const stagingHome = join(stagingRoot, volName(project_id));
+  const restorePath = backupPath ?? "";
+  const destPath = dest ?? restorePath;
+
+  const assertSubvolumeRoot = async (root: string, label: string) => {
+    if (!(await exists(root))) {
+      throw new Error(`${label} does not exist: ${root}`);
+    }
+    const isSubvolume = await isBtrfsSubvolume(root);
+    if (!isSubvolume) {
+      throw new Error(`${label} is not a btrfs subvolume: ${root}`);
+    }
+  };
+
+  let root = home;
+  let relDest = destPath ?? "";
+
+  if (destPath && path.isAbsolute(destPath)) {
+    if (isSubPath(home, destPath)) {
+      root = home;
+      relDest = path.relative(home, destPath);
+    } else if (isSubPath(stagingHome, destPath)) {
+      root = stagingHome;
+      relDest = path.relative(stagingHome, destPath);
+    } else {
+      throw new Error(
+        `restore destination must be within project home or restore staging: ${destPath}`,
+      );
+    }
+  } else {
+    const resolved = path.resolve(home, destPath || "");
+    if (!isSubPath(home, resolved)) {
+      throw new Error(`restore destination escapes project home: ${destPath}`);
+    }
+    root = home;
+    relDest = path.relative(home, resolved);
+  }
+
+  await assertSubvolumeRoot(
+    root,
+    root === home ? "project home" : "restore staging",
+  );
+
+  const restoreFs =
+    root === home
+      ? vol.fs
+      : new SandboxedFilesystem(root, {
+          rusticRepo: vol.fs.rusticRepo,
+          host: vol.name,
+        });
+
+  await restoreFs.rustic(
+    ["restore", `${id}${restorePath ? ":" + restorePath : ""}`, relDest],
+    { timeout: 30 * 60 * 1000 },
+  );
 }
 
 async function beginRestoreStaging({
@@ -636,6 +721,9 @@ export async function initFileServer({
   const file = await createFileServer({
     client,
     mount: reuseInFlight(mount),
+    ensureVolume: reuseInFlight(async ({ project_id }) => {
+      await ensureVolume(project_id);
+    }),
     clone,
     getUsage: reuseInFlight(getUsage),
     getQuota: reuseInFlight(getQuota),
@@ -869,9 +957,18 @@ export async function writeManagedAuthorizedKeys(
       : `${content}\n`
     : "";
   if (!formatted) return;
-  const { path } = await mount({ project_id });
-  const managedPath = join(path, INTERNAL_SSH_CONFIG, "authorized_keys");
-  await mkdir(join(path, INTERNAL_SSH_CONFIG), {
+  let vol;
+  try {
+    vol = await getVolume(project_id);
+  } catch (err) {
+    logger.debug("writeManagedAuthorizedKeys: missing volume", {
+      project_id,
+      err: `${err}`,
+    });
+    return;
+  }
+  const managedPath = join(vol.path, INTERNAL_SSH_CONFIG, "authorized_keys");
+  await mkdir(join(vol.path, INTERNAL_SSH_CONFIG), {
     recursive: true,
     mode: 0o700,
   });

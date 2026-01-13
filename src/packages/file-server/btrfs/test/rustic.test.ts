@@ -7,7 +7,7 @@ beforeAll(before);
 describe("test rustic backups", () => {
   let vol: Subvolume;
   it("creates a volume", async () => {
-    vol = await fs.subvolumes.get("rustic-test");
+    vol = await fs.subvolumes.ensure("rustic-test");
     await vol.fs.writeFile("a.txt", "hello");
   });
 

@@ -16,7 +16,7 @@ describe("stress operations with subvolumes", () => {
   it(`create ${count1} subvolumes in serial`, async () => {
     const t = Date.now();
     for (let i = 0; i < count1; i++) {
-      await fs.subvolumes.get(`${i}`);
+      await fs.subvolumes.ensure(`${i}`);
     }
     log(
       `created ${Math.round((count1 / (Date.now() - t)) * 1000)} subvolumes per second serial`,
@@ -33,7 +33,7 @@ describe("stress operations with subvolumes", () => {
     const v: any[] = [];
     const t = Date.now();
     for (let i = 0; i < count2; i++) {
-      v.push(fs.subvolumes.get(`p-${i}`));
+      v.push(fs.subvolumes.ensure(`p-${i}`));
     }
     await Promise.all(v);
     log(
@@ -48,7 +48,7 @@ describe("stress operations with subvolumes", () => {
 
   it("write a file to each volume", async () => {
     for (const name of filtered(await fs.subvolumes.list())) {
-      const vol = await fs.subvolumes.get(name);
+      const vol = await fs.subvolumes.ensure(name);
       await vol.fs.writeFile("a.txt", "hi");
     }
   });

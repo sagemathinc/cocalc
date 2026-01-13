@@ -394,17 +394,22 @@ export async function start({
     resetBootlog({ project_id });
     bootlog({ project_id, type: "start-project", progress: 0 });
 
-    const { home, scratch } = await localPath({
+    let { home, scratch } = await localPath({
       project_id,
       disk: config?.disk,
       scratch: config?.scratch,
+      ensure: false,
     });
-    logger.debug("start: home and scratch", { project_id, home, scratch });
+    logger.debug("start: resolved home and scratch", {
+      project_id,
+      home,
+      scratch,
+    });
     bootlog({
       project_id,
       type: "start-project",
       progress: 5,
-      desc: "got home and scratch directories",
+      desc: "resolved home and scratch paths",
     });
 
     await maybeRestoreFromBackup({
@@ -412,6 +417,13 @@ export async function start({
       home,
       restore: config?.restore,
     });
+
+    ({ home, scratch } = await localPath({
+      project_id,
+      disk: config?.disk,
+      scratch: config?.scratch,
+      ensure: true,
+    }));
 
     const image = getImage(config);
     bootlog({
@@ -731,7 +743,7 @@ export async function status({ project_id, localPath }) {
   let publicKey: string | undefined = undefined;
   let error: string | undefined = undefined;
   try {
-    const { home } = await localPath({ project_id });
+    const { home } = await localPath({ project_id, ensure: false });
     publicKey = await readFile(join(home, SSH_IDENTITY_FILE + ".pub"), "utf8");
   } catch (err) {
     if (s != "opened") {

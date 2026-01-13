@@ -60,24 +60,8 @@ export class Subvolume {
         args: ["subvolume", "create", this.path],
       });
       await this.chown(this.path);
-      const id = await this.getSubvolumeId();
-      try {
-        await btrfs({ args: ["qgroup", "create", `1/${id}`, this.path] });
-      } catch (err: any) {
-        if (
-          typeof err?.stderr === "string" &&
-          err.stderr.includes("quota not enabled")
-        ) {
-          // quotas are disabled on the mount; enable and retry once
-          await btrfs({
-            args: ["quota", "enable", this.filesystem.opts.mount],
-          });
-          await btrfs({ args: ["qgroup", "create", `1/${id}`, this.path] });
-        } else {
-          throw err;
-        }
-      }
     }
+    await this.ensureQgroup();
     await this.ensureSnapshotsDir();
   };
 
@@ -107,6 +91,41 @@ export class Subvolume {
     });
   };
 
+  private ensureQgroup = async () => {
+    const id = await this.getSubvolumeId();
+    const tryCreate = async () => {
+      await btrfs({ args: ["qgroup", "create", `1/${id}`, this.path] });
+    };
+    try {
+      await tryCreate();
+    } catch (err: any) {
+      const stderr =
+        typeof err?.stderr === "string"
+          ? err.stderr
+          : `${err?.message ?? err}`;
+      if (stderr.includes("quota not enabled")) {
+        // quotas are disabled on the mount; enable and retry once
+        await btrfs({
+          args: ["quota", "enable", this.filesystem.opts.mount],
+        });
+        await tryCreate().catch((retryErr: any) => {
+          const retryStderr =
+            typeof retryErr?.stderr === "string"
+              ? retryErr.stderr
+              : `${retryErr?.message ?? retryErr}`;
+          if (retryStderr.toLowerCase().includes("exist")) {
+            return;
+          }
+          throw retryErr;
+        });
+      } else if (stderr.toLowerCase().includes("exist")) {
+        return;
+      } else {
+        throw err;
+      }
+    }
+  };
+
   private ensureSnapshotsDir = async () => {
     const dir = join(this.path, SNAPSHOTS);
     if (await exists(dir)) return;
@@ -132,7 +151,6 @@ const cache = refCache<Options & { noCache?: boolean }, Subvolume>({
   createKey: ({ name }) => name,
   createObject: async (options: Options) => {
     const subvolume = new Subvolume(options);
-    await subvolume.init();
     return subvolume;
   },
 });

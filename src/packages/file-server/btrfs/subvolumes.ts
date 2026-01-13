@@ -28,6 +28,12 @@ export class Subvolumes {
     return await subvolume({ filesystem: this.filesystem, name });
   };
 
+  ensure = async (name: string, force = false): Promise<Subvolume> => {
+    const vol = await this.get(name, force);
+    await vol.init();
+    return vol;
+  };
+
   clone = async (source: string, dest: string): Promise<Subvolume> => {
     logger.debug("clone ", { source, dest });
     if (RESERVED.has(dest)) {

@@ -49,6 +49,7 @@ export async function localPath({
   project_id,
   disk,
   scratch: scratchQuota,
+  ensure = true,
 }: {
   project_id: string;
   // if given, this quota will be set in case of btrfs
@@ -56,16 +57,25 @@ export async function localPath({
   // if given, a /scratch with this quota will be created
   // and mounted in the container as /scratch
   scratch?: number;
+  // if false, resolve paths without creating volumes
+  ensure?: boolean;
 }): Promise<{ home: string; scratch?: string }> {
   if (projectRunnerMountpoint) {
     fs ??= await filesystem({
       mount: projectRunnerMountpoint,
       rustic: rusticRepo,
     });
-    let home: string = "",
-      scratch: string | undefined = undefined;
+    if (!ensure) {
+      const home = join(projectRunnerMountpoint, `project-${project_id}`);
+      const scratch = scratchQuota
+        ? join(projectRunnerMountpoint, `scratch-project-${project_id}`)
+        : undefined;
+      return { home, scratch };
+    }
+    let home = "";
+    let scratch: string | undefined;
     const createHome = async () => {
-      const vol = await fs!.subvolumes.get(`project-${project_id}`);
+      const vol = await fs!.subvolumes.ensure(`project-${project_id}`);
       if (disk != null) {
         await vol.quota.set(disk);
       }
@@ -73,7 +83,7 @@ export async function localPath({
     };
     const createScratch = async () => {
       if (!scratchQuota) return;
-      const vol = await fs!.subvolumes.get(`scratch-project-${project_id}`);
+      const vol = await fs!.subvolumes.ensure(`scratch-project-${project_id}`);
       await vol.quota.set(scratchQuota);
       scratch = vol.path;
     };
@@ -84,10 +94,15 @@ export async function localPath({
     return { home, scratch };
   } else if (process.env.COCALC_PROJECT_PATH) {
     const path = join(process.env.COCALC_PROJECT_PATH, project_id);
-    await mkdir(path, { recursive: true });
+    if (ensure) {
+      await mkdir(path, { recursive: true });
+    }
     return { home: path };
   }
   const c = getFsClient();
+  if (ensure) {
+    await c.ensureVolume({ project_id });
+  }
   const { path } = await c.mount({ project_id });
   return { home: path };
 }

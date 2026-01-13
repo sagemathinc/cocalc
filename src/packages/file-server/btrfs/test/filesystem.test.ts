@@ -28,12 +28,12 @@ describe("some basic tests", () => {
 describe("operations with subvolumes", () => {
   it("can't use a reserved subvolume name", async () => {
     expect(async () => {
-      await fs.subvolumes.get(RUSTIC);
+      await fs.subvolumes.ensure(RUSTIC);
     }).rejects.toThrow("is reserved");
   });
 
   it("creates a subvolume", async () => {
-    const vol = await fs.subvolumes.get("cocalc");
+    const vol = await fs.subvolumes.ensure("cocalc");
     expect(vol.name).toBe("cocalc");
     // it has no snapshots
     expect(await vol.snapshots.readdir()).toEqual([]);
@@ -44,8 +44,8 @@ describe("operations with subvolumes", () => {
   });
 
   it("create another two subvolumes", async () => {
-    await fs.subvolumes.get("sagemath");
-    await fs.subvolumes.get("a-math");
+    await fs.subvolumes.ensure("sagemath");
+    await fs.subvolumes.ensure("a-math");
     // list is sorted:
     expect(filteredList(await fs.subvolumes.list())).toEqual([
       "a-math",
@@ -79,8 +79,8 @@ describe("operations with subvolumes", () => {
   });
 
   it("cp an actual file", async () => {
-    const sagemath = await fs.subvolumes.get("sagemath");
-    const cython = await fs.subvolumes.get("cython");
+    const sagemath = await fs.subvolumes.ensure("sagemath");
+    const cython = await fs.subvolumes.ensure("cython");
     await sagemath.fs.writeFile("README.md", "hi5");
     await fs.subvolumes.fs.cp("sagemath/README.md", "cython/README.md", {
       reflink: true,
@@ -99,7 +99,7 @@ describe("operations with subvolumes", () => {
 
   it("clone a subvolume with contents", async () => {
     await fs.subvolumes.clone("cython", "pyrex");
-    const pyrex = await fs.subvolumes.get("pyrex");
+    const pyrex = await fs.subvolumes.ensure("pyrex");
     const clone = await pyrex.fs.readFile("README.md", "utf8");
     expect(clone).toEqual("hi5");
   });
@@ -107,7 +107,7 @@ describe("operations with subvolumes", () => {
 
 describe("clone of a subvolume with snapshots should have no snapshots", () => {
   it("creates a subvolume, a file, and a snapshot", async () => {
-    const x = await fs.subvolumes.get("my-volume");
+    const x = await fs.subvolumes.ensure("my-volume");
     await x.fs.writeFile("abc.txt", "hi");
     await x.snapshots.create("my-snap");
   });
@@ -117,7 +117,7 @@ describe("clone of a subvolume with snapshots should have no snapshots", () => {
   });
 
   it("clone has no snapshots", async () => {
-    const clone = await fs.subvolumes.get("my-clone");
+    const clone = await fs.subvolumes.ensure("my-clone");
     expect(await clone.fs.readFile("abc.txt", "utf8")).toEqual("hi");
     expect(await clone.snapshots.readdir()).toEqual([]);
     await clone.snapshots.create("my-clone-snap");

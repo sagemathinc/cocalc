@@ -21,6 +21,7 @@ Instead of using btrfs send/recv for backups, we use Rustic because:
 import { type Subvolume } from "./subvolume";
 import getLogger from "@cocalc/backend/logger";
 import { parseOutput } from "@cocalc/backend/sandbox/exec";
+import rustic from "@cocalc/backend/sandbox/rustic";
 import { field_cmp } from "@cocalc/util/misc";
 import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -40,6 +41,18 @@ interface Snapshot {
 
 export class SubvolumeRustic {
   constructor(public readonly subvolume: Subvolume) {}
+
+  private rusticHost = async (
+    args: string[],
+    opts?: { timeout?: number; maxSize?: number },
+  ) => {
+    return await rustic(args, {
+      repo: this.subvolume.fs.rusticRepo,
+      host: this.subvolume.name,
+      timeout: opts?.timeout,
+      maxSize: opts?.maxSize,
+    });
+  };
 
   // create a new rustic backup
   backup = async ({
@@ -112,7 +125,7 @@ export class SubvolumeRustic {
       return this.snapshotsCache;
     }
     const { stdout } = parseOutput(
-      await this.subvolume.fs.rustic(["snapshots", "--json"]),
+      await this.rusticHost(["snapshots", "--json"]),
     );
     const snapshots = JSON.parse(stdout)?.[0]?.snapshots;
     /* stdout = [
@@ -193,7 +206,7 @@ export class SubvolumeRustic {
   > => {
     const target = `${id}:${path}`;
     const { stdout } = parseOutput(
-      await this.subvolume.fs.rustic(["ls", "-l", target]),
+      await this.rusticHost(["ls", "-l", target]),
     );
     const entries: {
       name: string;
@@ -229,7 +242,7 @@ export class SubvolumeRustic {
   // can better support concurrent writes.
   forget = async ({ id }: { id: string }) => {
     const { stdout } = parseOutput(
-      await this.subvolume.fs.rustic(["forget", id]),
+      await this.rusticHost(["forget", id]),
     );
     this.snapshotsCache = null;
     return stdout;
