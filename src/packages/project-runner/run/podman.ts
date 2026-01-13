@@ -31,6 +31,7 @@ import {
 } from "node:fs/promises";
 import { getCoCalcMounts, COCALC_SRC } from "./mounts";
 import { fileServerClient, setQuota } from "./filesystem";
+import { btrfs, sudo } from "@cocalc/file-server/btrfs/util";
 import { dirname, join, relative, isAbsolute } from "node:path";
 import { mount as mountRootFs, unmount as unmountRootFs } from "./rootfs";
 import { type ProjectState } from "@cocalc/conat/project/runner/state";
@@ -67,6 +68,7 @@ const PROJECT_BUNDLE_ENTRY_CANDIDATES = [
 const PROJECT_BUNDLE_MOUNT_POINT = "/opt/cocalc/project-bundle";
 const PROJECT_BUNDLE_BIN_PATH = join(PROJECT_BUNDLE_MOUNT_POINT, "bin");
 const RESTORE_MARKER = ".restore_in_progress";
+const RESTORE_STAGING_ROOT = ".restore-staging";
 
 // if computing status of a project shows pod is
 // somehow messed up, this will cleanly kill it.  It's
@@ -86,6 +88,29 @@ function formatKeys(keys?: string): string | undefined {
   return trimmed.endsWith("\n") ? trimmed : `${trimmed}\n`;
 }
 
+async function isBtrfsSubvolume(path: string): Promise<boolean> {
+  const { exit_code, stderr } = await btrfs({
+    args: ["subvolume", "show", path],
+    err_on_exit: false,
+    verbose: false,
+  });
+  if (!exit_code) return true;
+  if (typeof stderr === "string" && stderr.includes("Not a Btrfs subvolume")) {
+    return false;
+  }
+  throw new Error(`btrfs subvolume show failed for ${path}: ${stderr}`);
+}
+
+async function pathExists(path: string): Promise<boolean> {
+  try {
+    await stat(path);
+    return true;
+  } catch (err: any) {
+    if (err?.code === "ENOENT") return false;
+    throw err;
+  }
+}
+
 async function maybeRestoreFromBackup({
   project_id,
   home,
@@ -95,45 +120,68 @@ async function maybeRestoreFromBackup({
   home: string;
   restore?: "none" | "auto" | "required";
 }): Promise<void> {
+  // Restore is staged into a temporary btrfs subvolume under .restore-staging and
+  // atomically moved into place on success; a marker file prevents concurrent or
+  // stale restores and is cleaned on the next attempt.
   if (!restore || restore === "none") return;
-  if (restore === "auto") {
-    try {
-      const entries = await readdir(home);
-      const meaningful = entries.filter(
-        (entry) => entry !== ".snapshots" && entry !== RESTORE_MARKER,
+  const homeExists = await pathExists(home);
+  if (homeExists) {
+    const isSubvolume = await isBtrfsSubvolume(home);
+    if (!isSubvolume) {
+      throw new Error(
+        `project home exists but is not a btrfs subvolume: ${home}`,
       );
+    }
+    if (restore === "auto") {
+      const entries = await readdir(home);
+      const meaningful = entries.filter((entry) => entry !== ".snapshots");
       if (meaningful.length > 0) {
-        return;
-      }
-    } catch (err: any) {
-      if (err?.code === "ENOENT") {
-        // Home doesn't exist; proceed to check backups.
-      } else {
-        logger.warn("restore check failed; skipping auto-restore", {
-          project_id,
-          err: `${err}`,
-        });
         return;
       }
     }
   }
   if (restoring.has(project_id)) return;
-  const markerPath = join(home, RESTORE_MARKER);
+  const stagingRoot = join(dirname(home), RESTORE_STAGING_ROOT);
+  const stagingPath = join(stagingRoot, `project-${project_id}`);
+  const markerPath = join(stagingRoot, `${RESTORE_MARKER}.${project_id}`);
+  const uid = process.getuid?.();
+  const gid = process.getgid?.();
   try {
-    const info = await stat(markerPath);
-    const ageMs = Date.now() - info.mtimeMs;
-    if (ageMs < 30 * 60 * 1000) {
-      logger.warn("restore already in progress; skipping", { project_id });
-      return;
+    await sudo({ command: "mkdir", args: ["-p", stagingRoot] });
+    if (uid != null && gid != null) {
+      await sudo({
+        command: "chown",
+        args: [`${uid}:${gid}`, stagingRoot],
+      }).catch(() => {});
     }
-    await unlink(markerPath).catch(() => {});
-  } catch (err: any) {
-    if (err?.code !== "ENOENT") {
-      logger.warn("restore marker check failed", {
-        project_id,
-        err: `${err}`,
+    if (await pathExists(markerPath)) {
+      const info = await stat(markerPath);
+      const ageMs = Date.now() - info.mtimeMs;
+      if (ageMs < 30 * 60 * 1000) {
+        logger.warn("restore already in progress; skipping", { project_id });
+        return;
+      }
+      await unlink(markerPath).catch(() => {});
+    }
+    if (await pathExists(stagingPath)) {
+      const stagingIsSubvolume = await isBtrfsSubvolume(stagingPath);
+      if (!stagingIsSubvolume) {
+        throw new Error(
+          `restore staging path exists but is not a btrfs subvolume: ${stagingPath}`,
+        );
+      }
+      await btrfs({
+        args: ["subvolume", "delete", stagingPath],
+        err_on_exit: true,
+        verbose: false,
       });
     }
+  } catch (err: any) {
+    logger.warn("restore marker check failed", {
+      project_id,
+      err: `${err}`,
+    });
+    return;
   }
 
   restoring.add(project_id);
@@ -172,7 +220,24 @@ async function maybeRestoreFromBackup({
       progress: 12,
       desc: "restoring from backup...",
     });
-    await fs.restoreBackup({ project_id, id: latest.id });
+    await btrfs({
+      args: ["subvolume", "create", stagingPath],
+      err_on_exit: true,
+      verbose: false,
+    });
+    await fs.restoreBackup({ project_id, id: latest.id, dest: stagingPath });
+    if (homeExists) {
+      const oldPath = `${home}.restore_old.${Date.now()}`;
+      await sudo({ command: "mv", args: [home, oldPath] });
+      await sudo({ command: "mv", args: [stagingPath, home] });
+      await btrfs({
+        args: ["subvolume", "delete", oldPath],
+        err_on_exit: false,
+        verbose: false,
+      }).catch(() => {});
+    } else {
+      await sudo({ command: "mv", args: [stagingPath, home] });
+    }
     bootlog({
       project_id,
       type: "start-project",
