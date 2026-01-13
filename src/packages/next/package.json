@@ -74,7 +74,7 @@
     "basic-auth": "^2.0.1",
     "csv-stringify": "^6.3.0",
     "dayjs": "^1.11.11",
-    "express": "^5.1.0",
+    "express": "^5.2.1",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "ms": "2.1.2",
@@ -97,7 +97,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.3",
     "@testing-library/react": "^16.3.0",
-    "@types/express": "^5.0.3",
+    "@types/express": "^5.0.6",
     "@types/node": "^18.16.14",
     "@types/react": "^19.1.10",
     "@uiw/react-textarea-code-editor": "^3.1.1",
