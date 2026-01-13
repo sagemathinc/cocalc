@@ -40,7 +40,6 @@ import {
   LicenseIdleTimeoutsKeysOrdered,
 } from "@cocalc/util/consts/site-license";
 import type { ProjectQuota as PayAsYouGoQuota } from "@cocalc/util/db-schema/purchase-quotas";
-import { DedicatedDisk } from "@cocalc/util/types/dedicated";
 import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { DEFAULT_QUOTAS, upgrades } from "@cocalc/util/upgrade-spec";
 import { deep_copy, len, test_valid_jsonpatch } from "../misc";
@@ -93,8 +92,6 @@ interface QuotaBase {
   cpu_request?: number;
   privileged?: boolean;
   idle_timeout?: number;
-  dedicated_vm?: { name?: string; machine: string } | boolean;
-  dedicated_disks?: DedicatedDisk[];
   pay_as_you_go?: null | {
     account_id: string;
     purchase_id: number;
@@ -254,8 +251,6 @@ const ZERO_QUOTA: RQuota = {
   cpu_limit: 0,
   idle_timeout: 0,
   always_running: false,
-  dedicated_vm: false,
-  dedicated_disks: [] as DedicatedDisk[],
   pay_as_you_go: null,
   gpu: false,
 } as const;
@@ -273,8 +268,6 @@ const BASE_QUOTAS: RQuota = {
   cpu_limit: DEFAULT_QUOTAS.cores, // upper bound on vCPUs
   idle_timeout: DEFAULT_QUOTAS.mintime, // minimum uptime
   always_running: false, // if true, a service restarts the project if it isn't running
-  dedicated_vm: false,
-  dedicated_disks: [] as DedicatedDisk[],
   pay_as_you_go: null,
   gpu: false,
 } as const;
@@ -587,8 +580,6 @@ function upgrade2quota(up: Partial<Upgrades>): RQuota {
     cpu_request: defaultNumber(up.cpu_shares) / 1024,
     privileged: defaultFalse(up.privileged),
     idle_timeout: defaultNumber(up.mintime),
-    dedicated_vm: false, // old schema has no dedicated_vm upgrades
-    dedicated_disks: [] as DedicatedDisk[], // old schema has no dedicated_disk upgrades
     ext_rw: false,
     pay_as_you_go: null,
     patch: [],
@@ -609,8 +600,6 @@ function license2quota(q: Partial<SiteLicenseQuota>): RQuota {
     cpu_request: q.dedicated_cpu ?? 0,
     privileged: false,
     idle_timeout: 0, // idle_timeout is set AFTER summing up all licenses, they're not additive
-    dedicated_vm: q.dedicated_vm ?? false,
-    dedicated_disks: [] as DedicatedDisk[],
     pay_as_you_go: null,
     ext_rw: !!q.ext_rw,
     patch: q.patch ? loadPatch(q.patch) : [],
@@ -957,8 +946,6 @@ export function site_license_quota(
     member_host: false,
     privileged: false,
     idle_timeout: 0,
-    dedicated_vm: false,
-    dedicated_disks: [],
     pay_as_you_go: null,
     gpu: false,
   };
@@ -1028,8 +1015,6 @@ total_quota =  {            max_upgrades = {
 */
 
 const IGNORED_KEYS = [
-  "dedicated_disks",
-  "dedicated_vm",
   "patch",
   "pay_as_you_go",
   "gpu",

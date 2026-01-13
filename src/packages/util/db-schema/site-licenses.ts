@@ -153,10 +153,6 @@ Table({
     anonymous: false,
     primary_key: "id",
     pg_indexes: [
-      "((quota -> 'dedicated_disk' IS NOT NULL))",
-      "((quota -> 'dedicated_vm' IS NOT NULL))",
-      "((quota -> 'dedicated_disk' ->> 'name'))",
-      "((quota -> 'dedicated_vm' ->> 'name'))",
       "subscription_id", // make it fast to get the license for a given subscription
     ],
     user_query: {

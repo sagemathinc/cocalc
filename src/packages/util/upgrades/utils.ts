@@ -70,8 +70,6 @@ export function isBoostLicense(license?: {
   ) {
     // if there are any other upgrades, this is not a pure boost license
     return !(
-      quota.dedicated_disk != null ||
-      quota.dedicated_vm != null ||
       quota.ext_rw != null
     );
   }

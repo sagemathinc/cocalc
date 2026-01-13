@@ -20,7 +20,6 @@ export const DEFAULT_FREE_PROCS_NICENESS = 18;
 interface ProjectConfig {
   quota?: {
     member_host?: boolean;
-    dedicated_disks?: { name: string }[];
   };
 }
 
