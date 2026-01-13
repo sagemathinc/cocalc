@@ -62,6 +62,9 @@ export async function isPurchaseAllowed({
   chargeAmount?: number;
 }> {
   const max = (a, b) => (a.gt(b) ? a : b);
+  if (typeof cost === "number" && !Number.isFinite(cost)) {
+    return { allowed: false, reason: `cost must be finite` };
+  }
   const marginValue = toDecimal(margin);
   let costValue = cost != null ? toDecimal(cost) : undefined;
   if (costValue != null && costValue.gte(0)) {

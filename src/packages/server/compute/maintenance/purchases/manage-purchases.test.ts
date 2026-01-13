@@ -11,6 +11,7 @@ import createProject from "@cocalc/server/projects/create";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { setPurchaseQuota } from "@cocalc/server/purchases/purchase-quotas";
 import { ComputeServer } from "@cocalc/util/db-schema/purchases";
+import { toDecimal } from "@cocalc/util/money";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import managePurchases, {
@@ -191,7 +192,7 @@ describe("confirm managing of purchases works", () => {
       throw Error("bug");
     }
     expect(network.cost).toBe(null);
-    expect(network.cost_so_far).toBe(0);
+    expect(toDecimal(network.cost_so_far!).toNumber()).toBe(0);
     expect(network.description.amount).toBe(389);
   });
 
@@ -216,10 +217,10 @@ describe("confirm managing of purchases works", () => {
     if (network.description.type != "compute-server-network-usage") {
       throw Error("bug");
     }
-    expect(network.cost_so_far).toBe(0);
+    expect(toDecimal(network.cost_so_far!).toNumber()).toBe(0);
     expect(network.description.amount).toBe(389);
 
-    expect(normal.cost).toBeGreaterThan(1);
+    expect(toDecimal(normal.cost!).toNumber()).toBeGreaterThan(1);
 
     const server = await getServer({ account_id, id: server_id });
     const purchases = await outstandingPurchases(server);

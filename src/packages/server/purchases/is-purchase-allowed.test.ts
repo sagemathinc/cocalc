@@ -108,7 +108,7 @@ describe("test checking whether or not purchase is allowed under various conditi
       cost: 1 / 0,
     });
     expect(allowed).toBe(false);
-    expect(reason).toContain("exceeds the maximum allowed cost");
+    expect(reason).toContain("cost must be finite");
   });
 
   it("refuses to allow credit less than the minimum, but does allow if >= min", async () => {

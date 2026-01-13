@@ -11,6 +11,7 @@ import getLicense from "@cocalc/server/licenses/get-license";
 import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import getPurchaseInfo from "@cocalc/util/licenses/purchase/purchase-info";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import { toDecimal } from "@cocalc/util/money";
 import { uuid } from "@cocalc/util/misc";
 import createPurchase from "./create-purchase";
 import editLicense from "./edit-license";
@@ -229,7 +230,10 @@ describe("create a subscription license and edit it and confirm the subscription
     // the monthly cost doesn't change *exactly* as the cost to edit, due
     // to the date range, particular month, etc.  Other tests that do
     // test exact cost changes exist below!
-    expect(subs2[0].cost).toBeCloseTo(cost2?.cost ?? 0, -1);
+    expect(toDecimal(subs2[0].cost!).toNumber()).toBeCloseTo(
+      toDecimal(cost2?.cost ?? 0).toNumber(),
+      -1,
+    );
   });
 });
 

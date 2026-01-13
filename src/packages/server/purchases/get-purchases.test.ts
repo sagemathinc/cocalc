@@ -6,6 +6,7 @@
 import createAccount from "@cocalc/server/accounts/create-account";
 import createPurchase from "./create-purchase";
 import getPurchases from "./get-purchases";
+import { toDecimal } from "@cocalc/util/money";
 import { uuid } from "@cocalc/util/misc";
 import dayjs from "dayjs";
 import { before, after, getPool } from "@cocalc/server/test";
@@ -40,7 +41,7 @@ describe("creates and get purchases using various options", () => {
     });
     const { purchases: p } = await getPurchases({ account_id });
     expect(p.length).toBe(1);
-    expect(p[0].cost).toBe(-100);
+    expect(toDecimal(p[0].cost!).toNumber()).toBe(-100);
   });
 
   it("gets purchase along with email address", async () => {

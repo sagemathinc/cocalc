@@ -6,6 +6,7 @@
 import { createTestAccount } from "@cocalc/server/purchases/test-data";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { createStatements, _TEST_ } from "./create-statements";
+import { toDecimal } from "@cocalc/util/money";
 import { uuid } from "@cocalc/util/misc";
 import { delay } from "awaiting";
 import getStatements from "./get-statements";
@@ -59,18 +60,18 @@ describe("creates an account, then creates purchases and statements", () => {
     });
     expect(statements.length).toBe(1);
     expect(statements[0].num_charges).toBe(1);
-    expect(statements[0].total_charges).toBe(7);
+    expect(toDecimal(statements[0].total_charges).toNumber()).toBe(7);
     expect(statements[0].num_credits).toBe(1);
-    expect(statements[0].total_credits).toBe(-10);
-    expect(statements[0].balance).toBe(3);
+    expect(toDecimal(statements[0].total_credits).toNumber()).toBe(-10);
+    expect(toDecimal(statements[0].balance).toNumber()).toBe(3);
 
     const { purchases } = await getPurchases({
       account_id,
       day_statement_id: statements[0].id,
     });
     expect(purchases.length).toBe(2);
-    // @ts-ignore
-    expect(purchases[0].cost + purchases[1].cost).toBe(-3);
+    const purchaseTotal = toDecimal(purchases[0].cost!).add(purchases[1].cost!);
+    expect(purchaseTotal.toNumber()).toBe(-3);
   });
 
 });
