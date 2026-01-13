@@ -20,6 +20,7 @@ import { useEffect, useRef, useState, type JSX } from "react";
 import { HelpIcon } from "@cocalc/frontend/components/help-icon";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { displaySiteLicense } from "@cocalc/util/consts/site-license";
+import { WORKSPACE_LABEL, WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 import { plural, unreachable } from "@cocalc/util/misc";
 import {
   BOOST,
@@ -43,6 +44,8 @@ import {
 import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
 
 const { Text } = Typography;
+const WORKSPACE_LABEL_LOWER = WORKSPACE_LABEL.toLowerCase();
+const WORKSPACES_LABEL_LOWER = WORKSPACES_LABEL.toLowerCase();
 
 const EXPERT_CONFIG = "Expert Configuration";
 const listFormat = new Intl.ListFormat("en");
@@ -123,7 +126,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         case "site-license":
           return "Quota Upgrades";
         case "course":
-          return "Project Upgrades";
+          return `${WORKSPACE_LABEL} Upgrades`;
         default:
           unreachable(source);
       }
@@ -138,10 +141,11 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
         {renderRamInfo()}
         {showExplanations ? (
           <>
-            This quota limits the total amount of memory a project can use. Note
-            that RAM may be limited, if many other users are using the same host
-            – though member hosting significantly reduces competition for RAM.
-            We recommend at least {MEM_MIN_RECOMMEND}G!
+            This quota limits the total amount of memory a{" "}
+            {WORKSPACE_LABEL.toLowerCase()} can use. Note that RAM may be
+            limited, if many other users are using the same host – though
+            member hosting significantly reduces competition for RAM. We
+            recommend at least {MEM_MIN_RECOMMEND}G!
           </>
         ) : undefined}
       </>
@@ -249,9 +253,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             <A href="https://cloud.google.com/compute/docs/faq#virtualcpu">
               Google Cloud vCPUs.
             </A>{" "}
-            To keep prices low, these vCPUs may be shared with other projects,
-            though member hosting very significantly reduces competition for
-            CPUs.
+            To keep prices low, these vCPUs may be shared with other{" "}
+            {WORKSPACES_LABEL_LOWER}, though member hosting very significantly
+            reduces competition for CPUs.
           </>
         ) : undefined}
       </>
@@ -318,9 +322,9 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             <>
               Extra disk space lets you store a larger number of files.
               Snapshots and file edit history is included at no additional
-              charge. Each project receives at least {DISK_DEFAULT_GB}G of
-              storage space. We also offer MUCH larger disks (and CPU and
-              memory) via{" "}
+              charge. Each {WORKSPACE_LABEL_LOWER} receives at least{" "}
+              {DISK_DEFAULT_GB}G of storage space. We also offer MUCH larger
+              disks (and CPU and memory) via{" "}
               <A href="https://doc.cocalc.com/compute_server.html">
                 compute server
               </A>
@@ -397,13 +401,14 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
   function renderIdleTimeoutWithHelp(text?: string) {
     return (
       <HelpIcon title="Idle Timeout" extra={text || "idle timeout"}>
-        The idle timeout determines how long your project stays running after
-        you stop using it. For example, if you work in your project for 2 hours,
-        it will keep running during that time. When you close your browser or
-        stop working, the project will automatically shut down after the idle
+        The idle timeout determines how long your {WORKSPACE_LABEL_LOWER} stays
+        running after you stop using it. For example, if you work in your{" "}
+        {WORKSPACE_LABEL_LOWER} for 2 hours, it will keep running during that
+        time. When you close your browser or stop working, the{" "}
+        {WORKSPACE_LABEL_LOWER} will automatically shut down after the idle
         timeout period. Don't worry - your files are always saved and you can
-        restart the project anytime to continue your work exactly where you left
-        off.
+        restart the {WORKSPACE_LABEL_LOWER} anytime to continue your work
+        exactly where you left off.
       </HelpIcon>
     );
   }
@@ -443,7 +448,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
       const { name, cpu, disk, ram, uptime, note, details } = p;
       const basic = (
         <>
-          Each student project will be outfitted with up to{" "}
+          Each student {WORKSPACE_LABEL_LOWER} will be outfitted with up to{" "}
           {!FAIR_CPU_MODE && (
             <Text strong>
               {cpu} {plural(cpu, "vCPU")},
@@ -507,12 +512,13 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             {cpu} {plural(cpu, "vCPU")}
           </Text>
           , <Text strong>{ram} GB memory</Text>, and{" "}
-          <Text strong>{disk} GB disk space</Text> for each project.
+          <Text strong>{disk} GB disk space</Text> for each{" "}
+          {WORKSPACE_LABEL_LOWER}.
         </>
       );
       const ut = (
         <>
-          the project's{" "}
+          the {WORKSPACE_LABEL_LOWER}'s{" "}
           <Text strong>
             {renderIdleTimeoutWithHelp()} is {displaySiteLicense(uptime)}
           </Text>
@@ -587,7 +593,7 @@ export const QuotaConfig: React.FC<Props> = (props: Props) => {
             <Divider />
             <Paragraph>
               <Text type="secondary">
-                In each project, you will be able to:
+                In each {WORKSPACE_LABEL_LOWER}, you will be able to:
               </Text>
               <ul>
                 {expect.map((what, idx) => (

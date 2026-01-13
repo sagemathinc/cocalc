@@ -7,6 +7,10 @@ import { Divider, Form } from "antd";
 import { useRouter } from "next/router";
 
 import { unreachable } from "@cocalc/util/misc";
+import {
+  WORKSPACE_LABEL,
+  WORKSPACES_LABEL,
+} from "@cocalc/util/i18n/terminology";
 import A from "components/misc/A";
 import IntegerSlider from "components/misc/integer-slider";
 
@@ -46,9 +50,11 @@ export function RunLimit({
                 want to boost!
               </div>
             ) : undefined}
-            Simultaneously run this many projects using this license. You, and
-            anyone you share the license code with, can apply the license to an
-            unlimited number of projects, but it will only be used up to the run
+            Simultaneously run this many {WORKSPACES_LABEL.toLowerCase()} using
+            this license. You, and
+            anyone you share the license code with can apply the license to an
+            unlimited number of {WORKSPACE_LABEL.toLowerCase()}s, but it will
+            only be used up to the run
             limit. When{" "}
             <A href="https://doc.cocalc.com/teaching-instructors.html">
               teaching a course
@@ -57,8 +63,9 @@ export function RunLimit({
             <b>
               <i>
                 the run limit is typically 2 more than the number of students
-                (one for each student, one for the shared project and one for
-                the instructor project)
+                (one for each student, one for the shared{" "}
+                {WORKSPACE_LABEL.toLowerCase()} and one for the instructor{" "}
+                {WORKSPACE_LABEL.toLowerCase()})
               </i>
             </b>
             .
@@ -67,11 +74,12 @@ export function RunLimit({
       case "course":
         return (
           <div style={{ marginTop: "5px" }}>
-            If you consider creating a shared project for your course, you
-            should select one more seat than the number of students. One for
-            each student, and one for the shared project. Regarding your
-            instructor project, you need one additional seat or purchase a
-            regular{" "}
+            If you consider creating a shared{" "}
+            {WORKSPACE_LABEL.toLowerCase()} for your course, you should select
+            one more seat than the number of students. One for each student,
+            and one for the shared {WORKSPACE_LABEL.toLowerCase()}. Regarding
+            your instructor {WORKSPACE_LABEL.toLowerCase()}, you need one
+            additional seat or purchase a regular{" "}
             <a onClick={() => router.push("/store/site-license")}>
               site license
             </a>{" "}
@@ -88,7 +96,7 @@ export function RunLimit({
     case "site-license":
       return (
         <>
-          <Divider plain>Simultaneous Project Upgrades</Divider>
+          <Divider plain>Simultaneous Workspace Upgrades</Divider>
           <Form.Item
             label="Run Limit"
             name="run_limit"
@@ -153,7 +161,9 @@ function EditRunLimit({
       max={300}
       maxText={MAX_ALLOWED_RUN_LIMIT}
       onChange={onChange}
-      units={source === "course" ? "students" : "projects"}
+      units={
+        source === "course" ? "students" : WORKSPACES_LABEL.toLowerCase()
+      }
       presets={
         source === "course"
           ? [10, 25, 50, 75, 100, 125, 150, 200]

@@ -8,6 +8,10 @@ import { ReactNode, type JSX } from "react";
 
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import getSupportUrl from "@cocalc/frontend/support/url";
+import {
+  WORKSPACE_LABEL,
+  WORKSPACES_LABEL,
+} from "@cocalc/util/i18n/terminology";
 import { money } from "@cocalc/util/licenses/purchase/utils";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -159,8 +163,14 @@ function Body() {
                   <Line amount={individuals} desc={"Monthly Active Users¹"} />
                   <Line amount={prod ?? 1} desc="Production Deployment" />
                   <Line amount={1} desc="Test Deployment" />
-                  <Line amount={INF} desc="Number of Projects" />
-                  <Line amount={INF} desc="Project Collaborators" />
+                  <Line
+                    amount={INF}
+                    desc={`Number of ${WORKSPACES_LABEL}`}
+                  />
+                  <Line
+                    amount={INF}
+                    desc={`${WORKSPACE_LABEL} Collaborators`}
+                  />
                   <Line amount={INF} desc="Cluster Resources²" />
                   <Line amount={CM} desc="Help for Initial Setup" />
                   <Line amount={CM} desc="Premium Support" />
@@ -362,7 +372,7 @@ function Body() {
             </li>
             <li>
               <Text strong>Shared storage system</Text> - Network file system
-              for collaborative project data.
+              for collaborative {WORKSPACE_LABEL.toLowerCase()} data.
             </li>
             <li>
               <Text strong>IT support resources</Text> - Your internal team or

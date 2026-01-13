@@ -303,7 +303,7 @@ export default function JupyterNotebook({ customize }) {
             title="JupyterLab and Jupyter Classic"
             icon="server"
             image={JupyterLab}
-            alt="Running JupyterLab inside a CoCalc Project"
+            alt="Running JupyterLab inside a CoCalc Workspace"
           >
             <Paragraph>
               CoCalc's Jupyter is a <strong>complete rewrite</strong> of the

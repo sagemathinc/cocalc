@@ -6,6 +6,7 @@ import SelectProject from "components/project/select";
 import basePath from "lib/base-path";
 import { join } from "path";
 import apiPost from "lib/api/post";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 
 type State = "browse" | "sign-in" | "select-project";
 
@@ -52,7 +53,7 @@ export default function ComputeServerTemplates({
       {state == "select-project" && (
         <div style={{ maxWidth: "600px", margin: "auto" }}>
           <SelectProject
-            label={"Select or Create Project for your Compute Server"}
+            label={`Select or Create ${WORKSPACE_LABEL} for your Compute Server`}
             defaultOpen
             allowCreate
             onChange={async ({ project_id, title }) => {

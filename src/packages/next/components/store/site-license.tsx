@@ -14,6 +14,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { get_local_storage } from "@cocalc/frontend/misc/local-storage";
 import { CostInputPeriod, User } from "@cocalc/util/licenses/purchase/types";
 import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
@@ -100,10 +101,12 @@ export default function SiteLicense({ noAccount, source }: Props) {
                 <A href="https://doc.cocalc.com/licenses.html">
                   <SiteName /> licenses
                 </A>{" "}
-                allow you to upgrade projects to run more quickly, have network
+                allow you to upgrade {WORKSPACE_LABEL.toLowerCase()}s to run
+                more quickly, have network
                 access, more disk space and memory. Licenses cover a wide range
-                of use cases, ranging from a single hobbyist project to
-                thousands of simultaneous users across a large organization.
+                of use cases, ranging from a single hobbyist{" "}
+                {WORKSPACE_LABEL.toLowerCase()} to thousands of simultaneous
+                users across a large organization.
               </Paragraph>
 
               <Paragraph style={{ fontSize: "12pt" }}>

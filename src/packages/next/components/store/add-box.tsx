@@ -17,6 +17,7 @@ import { periodicCost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { decimalDivide } from "@cocalc/util/stripe/calc";
 import ShowError from "@cocalc/frontend/components/error";
 import type { LicenseSource } from "@cocalc/util/upgrades/shopping";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 
 export const ADD_STYLE = {
   display: "inline-block",
@@ -79,7 +80,12 @@ export function AddBox({
         message={
           <>
             {money(round2up(costPer))}{" "}
-            <b>per {source === "course" ? "student" : "project"}</b>{" "}
+            <b>
+              per{" "}
+              {source === "course"
+                ? "student"
+                : WORKSPACE_LABEL.toLowerCase()}
+            </b>{" "}
             {!!cost.period && cost.period != "range" ? cost.period : ""}
           </>
         }

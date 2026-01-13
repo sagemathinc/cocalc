@@ -4,6 +4,7 @@
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 import A from "components/misc/A";
 import {
   OverviewRow,
@@ -30,8 +31,8 @@ export default function Overview() {
           href={join(basePath, "/settings/licenses")}
           external
         >
-          View and manage your licenses and see licensed projects you
-          collaborate on
+          View and manage your licenses and see licensed{" "}
+          {WORKSPACES_LABEL.toLowerCase()} you collaborate on
         </Product>
 
         <Product icon="rocket" href="/licenses/how-used" title="License Usage">

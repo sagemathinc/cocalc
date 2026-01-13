@@ -8,6 +8,7 @@ import A from "components/misc/A";
 import { Icon } from "@cocalc/frontend/components/icon";
 import apiPost from "lib/api/post";
 import editURL from "lib/share/edit-url";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 
 interface Props {
   label?: string;
@@ -26,6 +27,8 @@ export default function CreateProject({
   onCreate,
   public_path_id,
 }: Props) {
+  const workspaceLabel = WORKSPACE_LABEL;
+  const workspaceLabelLower = WORKSPACE_LABEL.toLowerCase();
   const [title, setTitle] = useState<string>(defaultTitle ?? "");
   const [project_id, setProjectID] = useState<string>("");
   const [error, setError] = useState<string>("");
@@ -60,20 +63,22 @@ export default function CreateProject({
 
   return (
     <div>
-      <Divider style={{ color: "#666" }}>{label ?? "Create a Project"}</Divider>
+      <Divider style={{ color: "#666" }}>
+        {label ?? `Create a ${workspaceLabel}`}
+      </Divider>
       <Space direction="vertical" style={{ width: "100%" }}>
         {error && <Alert type="error" message={error} showIcon />}
         {state == "creating" && (
           <div style={{ textAlign: "center" }}>
             <Loading style={{ fontSize: "16pt" }}>
-              Creating project "{title}"...
+              Creating {workspaceLabelLower} "{title}"...
             </Loading>
           </div>
         )}
         {state == "starting" && (
           <div style={{ textAlign: "center" }}>
             <Loading style={{ fontSize: "16pt" }}>
-              Starting project "{title}"...
+              Starting {workspaceLabelLower} "{title}"...
             </Loading>
           </div>
         )}
@@ -83,7 +88,7 @@ export default function CreateProject({
               name="check"
               style={{ color: "darkgreen", fontSize: "16pt" }}
             />{" "}
-            Created project{" "}
+            Created {workspaceLabelLower}{" "}
             {project_id && title ? (
               <A
                 href={editURL({
@@ -104,7 +109,7 @@ export default function CreateProject({
           allowClear
           defaultValue={defaultTitle}
           disabled={state != "config"}
-          placeholder="Project title (easily change this at any time)"
+          placeholder={`${workspaceLabel} title (easily change this at any time)`}
           onChange={(e) => setTitle(e.target.value)}
           onPressEnter={(e) => {
             e.preventDefault();
@@ -117,7 +122,7 @@ export default function CreateProject({
             type={title ? "primary" : undefined}
             onClick={() => create(title)}
           >
-            <Icon name="plus-circle" /> Create New Project
+            <Icon name="plus-circle" /> Create New {workspaceLabel}
           </Button>
         )}
       </Space>

@@ -4,6 +4,7 @@
  */
 
 import { Icon } from "@cocalc/frontend/components/icon";
+import { WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 import { Menu, MenuProps, Typography } from "antd";
 import { useRouter } from "next/router";
 const { Text } = Typography;
@@ -16,7 +17,11 @@ export default function ConfigMenu({ main }) {
   const items: MenuItem[] = [
     { label: <Text strong>Licenses</Text>, key: "" },
     { label: "Manage", key: "managed", icon: <Icon name={"key"} /> },
-    { label: "Projects", key: "projects", icon: <Icon name={"edit"} /> },
+    {
+      label: WORKSPACES_LABEL,
+      key: "projects",
+      icon: <Icon name={"edit"} />,
+    },
     { label: "How Used", key: "how-used", icon: <Icon name={"graph"} /> },
   ];
 
