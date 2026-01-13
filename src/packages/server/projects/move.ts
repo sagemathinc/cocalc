@@ -5,7 +5,11 @@ import {
   mapCloudRegionToR2Region,
   parseR2Region,
 } from "@cocalc/util/consts";
-import { stopProjectOnHost } from "../project-host/control";
+import {
+  loadHostFromRegistry,
+  savePlacement,
+  stopProjectOnHost,
+} from "../project-host/control";
 import { createBackup } from "../conat/api/project-backups";
 
 const log = getLogger("server:projects:move");
@@ -130,6 +134,18 @@ export async function moveProjectToHost(
       project_id: context.project_id,
     });
   }
+  const destHost = await loadHostFromRegistry(context.dest_host_id);
+  if (!destHost) {
+    throw new Error(`host ${context.dest_host_id} not found`);
+  }
+  await savePlacement(context.project_id, {
+    host_id: context.dest_host_id,
+    host: destHost,
+  });
+  log.info("moveProjectToHost placement updated", {
+    project_id: context.project_id,
+    dest_host_id: context.dest_host_id,
+  });
   throw new Error(
     "moveProjectToHost not implemented beyond backup requirement yet",
   );
