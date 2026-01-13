@@ -69,6 +69,7 @@ const PROJECT_BUNDLE_MOUNT_POINT = "/opt/cocalc/project-bundle";
 const PROJECT_BUNDLE_BIN_PATH = join(PROJECT_BUNDLE_MOUNT_POINT, "bin");
 const RESTORE_MARKER = ".restore_in_progress";
 const RESTORE_STAGING_ROOT = ".restore-staging";
+const RESTORE_STALE_MS = 30 * 60 * 1000;
 
 // if computing status of a project shows pod is
 // somehow messed up, this will cleanly kill it.  It's
@@ -157,7 +158,7 @@ async function maybeRestoreFromBackup({
     if (await pathExists(markerPath)) {
       const info = await stat(markerPath);
       const ageMs = Date.now() - info.mtimeMs;
-      if (ageMs < 30 * 60 * 1000) {
+      if (ageMs < RESTORE_STALE_MS) {
         logger.warn("restore already in progress; skipping", { project_id });
         return;
       }
@@ -255,6 +256,67 @@ async function maybeRestoreFromBackup({
   } finally {
     restoring.delete(project_id);
     await unlink(markerPath).catch(() => {});
+  }
+}
+
+export async function cleanupRestoreStaging(): Promise<void> {
+  const mountpoint = process.env.COCALC_FILE_SERVER_MOUNTPOINT ?? "/btrfs";
+  const stagingRoot = join(mountpoint, RESTORE_STAGING_ROOT);
+  if (!(await pathExists(stagingRoot))) {
+    return;
+  }
+  let entries: string[] = [];
+  try {
+    entries = await readdir(stagingRoot);
+  } catch (err) {
+    logger.warn("restore staging cleanup failed to read directory", {
+      stagingRoot,
+      err: `${err}`,
+    });
+    return;
+  }
+
+  for (const entry of entries) {
+    if (!entry.startsWith(`${RESTORE_MARKER}.`)) continue;
+    const projectId = entry.slice(`${RESTORE_MARKER}.`.length);
+    if (!isValidUUID(projectId)) continue;
+    const markerPath = join(stagingRoot, entry);
+    let markerAgeMs = 0;
+    try {
+      const info = await stat(markerPath);
+      markerAgeMs = Date.now() - info.mtimeMs;
+    } catch {
+      markerAgeMs = RESTORE_STALE_MS + 1;
+    }
+    if (markerAgeMs < RESTORE_STALE_MS) {
+      continue;
+    }
+    const stagingPath = join(stagingRoot, `project-${projectId}`);
+    if (await pathExists(stagingPath)) {
+      try {
+        const isSubvolume = await isBtrfsSubvolume(stagingPath);
+        if (isSubvolume) {
+          await btrfs({
+            args: ["subvolume", "delete", stagingPath],
+            err_on_exit: true,
+            verbose: false,
+          });
+        } else {
+          logger.warn("restore staging path is not btrfs; skipping delete", {
+            stagingPath,
+          });
+        }
+      } catch (err) {
+        logger.warn("restore staging cleanup failed", {
+          stagingPath,
+          err: `${err}`,
+        });
+      }
+    }
+    await unlink(markerPath).catch(() => {});
+    logger.info("restore staging cleanup completed", {
+      project_id: projectId,
+    });
   }
 }
 
