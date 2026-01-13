@@ -110,6 +110,11 @@ export async function moveProjectToHost(
       project_state: context.project_state,
     });
     await stopProjectOnHost(context.project_id);
+  } else {
+    log.info("moveProjectToHost skip stop (project not running)", {
+      project_id: context.project_id,
+      project_state: context.project_state,
+    });
   }
   const lastEdited =
     context.last_edited != null ? new Date(context.last_edited) : undefined;
@@ -132,6 +137,10 @@ export async function moveProjectToHost(
       project_id: context.project_id,
     });
     log.info("moveProjectToHost backup created", {
+      project_id: context.project_id,
+    });
+  } else {
+    log.info("moveProjectToHost backup not needed", {
       project_id: context.project_id,
     });
   }
