@@ -16,6 +16,8 @@ import { React } from "@cocalc/frontend/app-framework";
 import Bootlog from "@cocalc/frontend/project/bootlog";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
+import { labels } from "@cocalc/frontend/i18n";
+import { useIntl } from "react-intl";
 import type { HostLogEntry } from "../hooks/use-host-log";
 import { mapCloudRegionToR2Region, R2_REGION_LABELS } from "@cocalc/util/consts";
 import {
@@ -125,6 +127,8 @@ const describeSpecChange = (
 };
 
 export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
+  const intl = useIntl();
+  const projectsLabel = intl.formatMessage(labels.projects);
   const {
     open,
     host,
@@ -288,7 +292,9 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               </Typography.Text>
             )}
           </Space>
-          <Typography.Text>Projects: {host.projects ?? 0}</Typography.Text>
+          <Typography.Text>
+            {projectsLabel}: {host.projects ?? 0}
+          </Typography.Text>
           {(host.version ||
             host.project_bundle_version ||
             host.tools_version) && (

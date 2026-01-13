@@ -17,6 +17,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 
 import RemoveMyself from "./remove-myself";
@@ -33,6 +34,10 @@ export function ProjectsOperations({
   onClearCollaboratorFilter,
 }: Props) {
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectsLabel = intl.formatMessage(labels.projects);
+  const projectLabelLower = projectLabel.toLowerCase();
+  const projectsLabelLower = projectsLabel.toLowerCase();
   const actions = useActions("projects");
 
   const deleted = useTypedRedux("projects", "deleted");
@@ -128,39 +133,54 @@ export function ProjectsOperations({
       {
         id: "projects.operations.hide.description",
         defaultMessage:
-          "Are you sure you want to {hidden, select, true {unhide} other {hide}} {count, plural, one {# project} other {# projects}}?",
+          "Are you sure you want to {hidden, select, true {unhide} other {hide}} {count, plural, one {# {projectLabel}} other {# {projectsLabel}}}?",
       },
-      { hidden: !!hidden, count: visible_projects.length },
+      {
+        hidden: !!hidden,
+        count: visible_projects.length,
+        projectLabel: projectLabelLower,
+        projectsLabel: projectsLabelLower,
+      },
     );
 
     const warning = intl.formatMessage(
       {
         id: "projects.operations.hide.warning",
         defaultMessage:
-          "This {hidden, select, true {shows} other {hides}} the {count, plural, one {project} other {projects}} from you, not your collaborators.",
+          "This {hidden, select, true {shows} other {hides}} the {count, plural, one {{projectLabel}} other {{projectsLabel}}} from you, not your collaborators.",
       },
-      { hidden: !!hidden, count: visible_projects.length },
+      {
+        hidden: !!hidden,
+        count: visible_projects.length,
+        projectLabel: projectLabelLower,
+        projectsLabel: projectsLabelLower,
+      },
     );
 
-    const undoable = intl.formatMessage({
-      id: "projects.operations.undoable",
-      defaultMessage: "This can be undone in project settings.",
-    });
+    const undoableText = intl.formatMessage(
+      {
+        id: "projects.operations.undoable",
+        defaultMessage: "This can be undone in {projectLabel} settings.",
+      },
+      { projectLabel: projectLabelLower },
+    );
 
     Modal.confirm({
       title: intl.formatMessage(
         {
           id: "projects.operations.hide.title",
           defaultMessage:
-            "{hidden, select, true {Unhide} other {Hide}} Projects",
+            "{hidden, select, true {Unhide} other {Hide}} {projectsLabel}",
         },
-        { hidden: !!hidden },
+        { hidden: !!hidden, projectsLabel },
       ),
       content: (
         <div>
           <p>{description}</p>
           <p>{warning}</p>
-          <p style={{ fontSize: "0.9em", color: COLORS.GRAY_M }}>{undoable}</p>
+          <p style={{ fontSize: "0.9em", color: COLORS.GRAY_M }}>
+            {undoableText}
+          </p>
         </div>
       ),
       okText: intl.formatMessage(
@@ -185,9 +205,9 @@ export function ProjectsOperations({
       {
         id: "projects.operations.delete.ownership",
         defaultMessage: `{ownership, select,
-          none {You do not own any of the listed projects.}
-          some {You are the owner of {ownedCount} of the {totalCount} listed projects.}
-          all {You are the owner of every listed project.}
+          none {You do not own any of the listed {projectsLabel}.}
+          some {You are the owner of {ownedCount} of the {totalCount} listed {projectsLabel}.}
+          all {You are the owner of every listed {projectLabel}.}
           other {}
           }`,
       },
@@ -200,6 +220,8 @@ export function ProjectsOperations({
               : "all",
         ownedCount: ownedProjectCount,
         totalCount: visible_projects.length,
+        projectLabel: projectLabelLower,
+        projectsLabel: projectsLabelLower,
       },
     );
 
@@ -207,18 +229,28 @@ export function ProjectsOperations({
       {
         id: "projects.operations.delete.description",
         defaultMessage:
-          "Are you sure you want to {deleted, select, true {undelete} other {delete}} {count, plural, one {# project} other {# projects}}?",
+          "Are you sure you want to {deleted, select, true {undelete} other {delete}} {count, plural, one {# {projectLabel}} other {# {projectsLabel}}}?",
       },
-      { deleted: !!deleted, count: visible_projects.length },
+      {
+        deleted: !!deleted,
+        count: visible_projects.length,
+        projectLabel: projectLabelLower,
+        projectsLabel: projectsLabelLower,
+      },
     );
 
     const warning = intl.formatMessage(
       {
         id: "projects.operations.delete.warning",
         defaultMessage:
-          "This will {deleted, select, true {restore} other {delete}} the {count, plural, one {project} other {projects}} for all collaborators.",
+          "This will {deleted, select, true {restore} other {delete}} the {count, plural, one {{projectLabel}} other {{projectsLabel}}} for all collaborators.",
       },
-      { deleted: !!deleted, count: visible_projects.length },
+      {
+        deleted: !!deleted,
+        count: visible_projects.length,
+        projectLabel: projectLabelLower,
+        projectsLabel: projectsLabelLower,
+      },
     );
 
     const undoable = intl.formatMessage({
@@ -231,9 +263,9 @@ export function ProjectsOperations({
         {
           id: "projects.operations.delete.title",
           defaultMessage:
-            "{deleted, select, true {Undelete} other {Delete}} Projects",
+            "{deleted, select, true {Undelete} other {Delete}} {projectsLabel}",
         },
-        { deleted: !!deleted },
+        { deleted: !!deleted, projectsLabel },
       ),
       content: (
         <div>
@@ -265,17 +297,24 @@ export function ProjectsOperations({
   // Handle Stop All
   function handleStopAll() {
     Modal.confirm({
-      title: intl.formatMessage({
-        id: "projects.operations.stop.title",
-        defaultMessage: "Stop Projects",
-      }),
+      title: intl.formatMessage(
+        {
+          id: "projects.operations.stop.title",
+          defaultMessage: "Stop {projectsLabel}",
+        },
+        { projectsLabel },
+      ),
       content: intl.formatMessage(
         {
           id: "projects.operations.stop.description",
           defaultMessage:
-            "Stop {count, plural, one {this project} other {these # projects}}?",
+            "Stop {count, plural, one {this {projectLabel}} other {these # {projectsLabel}}}?",
         },
-        { count: visible_projects.length },
+        {
+          count: visible_projects.length,
+          projectLabel: projectLabelLower,
+          projectsLabel: projectsLabelLower,
+        },
       ),
       okText: intl.formatMessage({
         id: "projects.operations.stop.confirm",
@@ -293,17 +332,24 @@ export function ProjectsOperations({
   // Handle Restart All
   function handleRestartAll() {
     Modal.confirm({
-      title: intl.formatMessage({
-        id: "projects.operations.restart.title",
-        defaultMessage: "Restart Projects",
-      }),
+      title: intl.formatMessage(
+        {
+          id: "projects.operations.restart.title",
+          defaultMessage: "Restart {projectsLabel}",
+        },
+        { projectsLabel },
+      ),
       content: intl.formatMessage(
         {
           id: "projects.operations.restart.description",
           defaultMessage:
-            "Restart {count, plural, one {this project} other {these # projects}}?",
+            "Restart {count, plural, one {this {projectLabel}} other {these # {projectsLabel}}}?",
         },
-        { count: visible_projects.length },
+        {
+          count: visible_projects.length,
+          projectLabel: projectLabelLower,
+          projectsLabel: projectsLabelLower,
+        },
       ),
       okText: intl.formatMessage({
         id: "projects.operations.restart.confirm",
@@ -334,11 +380,13 @@ export function ProjectsOperations({
           <div>
             <FormattedMessage
               id="projects.operations.status"
-              defaultMessage={`Showing {count, plural, one {# project} other {# projects}}{filterText, select, empty {} other { ({filterText})}}{searchHashtagText, select, empty {} other { matching {searchHashtagText}}}`}
+              defaultMessage={`Showing {count, plural, one {# {projectLabel}} other {# {projectsLabel}}}{filterText, select, empty {} other { ({filterText})}}{searchHashtagText, select, empty {} other { matching {searchHashtagText}}}`}
               values={{
                 count: visible_projects.length,
                 filterText: filterText || "empty",
                 searchHashtagText: searchHashtagText || "empty",
+                projectLabel: projectLabelLower,
+                projectsLabel: projectsLabelLower,
               }}
             />
           </div>

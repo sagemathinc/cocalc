@@ -2,6 +2,8 @@ import { Button, Card, Popconfirm, Space, Tag, Tooltip, Typography } from "antd"
 import { SyncOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
+import { labels } from "@cocalc/frontend/i18n";
+import { useIntl } from "react-intl";
 import {
   STATUS_COLOR,
   getHostOnlineTooltip,
@@ -40,6 +42,8 @@ export const HostCard: React.FC<HostCardProps> = ({
   providerCapabilities,
   selfHost,
 }) => {
+  const intl = useIntl();
+  const projectsLabel = intl.formatMessage(labels.projects);
   const isDeleted = !!host.deleted;
   const isSelfHost = host.machine?.cloud === "self-host";
   const connectorOnline =
@@ -219,7 +223,9 @@ export const HostCard: React.FC<HostCardProps> = ({
       </Typography.Text>
       <Typography.Text>Size: {host.size}</Typography.Text>
       <Typography.Text>GPU: {host.gpu ? "Yes" : "No"}</Typography.Text>
-      <Typography.Text>Projects: {host.projects ?? 0}</Typography.Text>
+      <Typography.Text>
+        {projectsLabel}: {host.projects ?? 0}
+      </Typography.Text>
       {host.last_action && (
         <Typography.Text type="secondary">
           Last action: {host.last_action}

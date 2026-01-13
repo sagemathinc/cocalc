@@ -74,6 +74,8 @@ export function StudentProjectUpgrades({
   actions,
 }: Props) {
   const intl = useIntl();
+  const projectsLabel = intl.formatMessage(labels.projects);
+  const projectsLabelLower = projectsLabel.toLowerCase();
 
   const course_actions = useActions<CourseActions>({ name });
   const [show_site_license, set_show_site_license] = useState<boolean>(false);
@@ -371,10 +373,11 @@ export function StudentProjectUpgrades({
           <p>
             <FormattedMessage
               id="course.upgrades.details"
-              defaultMessage={`Add or remove upgrades to student projects associated to this course,
+              defaultMessage={`Add or remove upgrades to student {projectsLabel} associated to this course,
                 adding to what is provided for free and what students may have purchased.
                 <A>Help...</A>`}
               values={{
+                projectsLabel: projectsLabelLower,
                 A: (c) => (
                   <A href="https://doc.cocalc.com/teaching-create-course.html#option-2-teacher-or-institution-pays-for-upgradespay">
                     {c}
@@ -399,7 +402,8 @@ export function StudentProjectUpgrades({
         <div>
           <FormattedMessage
             id="course.upgrades.onprem.title"
-            defaultMessage={"Upgrade Student Projects"}
+            defaultMessage={"Upgrade Student {projectsLabel}"}
+            values={{ projectsLabel }}
           />
         </div>
       );
@@ -409,7 +413,8 @@ export function StudentProjectUpgrades({
           <Icon name="dashboard" />{" "}
           <FormattedMessage
             id="course.upgrades.prod.title"
-            defaultMessage={"Upgrade all Student Projects (Institute Pays)"}
+            defaultMessage={"Upgrade all Student {projectsLabel} (Institute Pays)"}
+            values={{ projectsLabel }}
           />
         </div>
       );

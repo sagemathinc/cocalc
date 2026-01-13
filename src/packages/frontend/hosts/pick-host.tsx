@@ -14,6 +14,8 @@ import {
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { labels } from "@cocalc/frontend/i18n";
+import { useIntl } from "react-intl";
 import { mapCloudRegionToR2Region, R2_REGION_LABELS } from "@cocalc/util/consts";
 
 import { getHostStatusTooltip } from "./constants";
@@ -44,6 +46,9 @@ export function HostPickerModal({
   regionFilter?: string;
   lockRegion?: boolean;
 }) {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectsLabel = intl.formatMessage(labels.projects);
   const [hosts, setHosts] = useState<Host[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | undefined>();
@@ -283,11 +288,11 @@ export function HostPickerModal({
                     </Space>
                   </Space>
                   <Typography.Text type="secondary">
-                    Projects: {host.projects ?? 0}
+                    {projectsLabel}: {host.projects ?? 0}
                   </Typography.Text>
                   {host.id === currentHostId && (
                     <Typography.Text type="secondary">
-                      This project is already on this host.
+                      This {projectLabel.toLowerCase()} is already on this host.
                     </Typography.Text>
                   )}
                   {host.can_place === false && host.reason_unavailable && (
