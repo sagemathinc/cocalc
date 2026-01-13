@@ -6,6 +6,7 @@ import {
   parseR2Region,
 } from "@cocalc/util/consts";
 import { stopProjectOnHost } from "../project-host/control";
+import { createBackup } from "../conat/api/project-backups";
 
 const log = getLogger("server:projects:move");
 
@@ -117,6 +118,18 @@ export async function moveProjectToHost(
     last_backup: lastBackup ? lastBackup.toISOString() : null,
     last_edited: lastEdited ? lastEdited.toISOString() : null,
   });
+  if (backupNeeded) {
+    log.info("moveProjectToHost creating backup", {
+      project_id: context.project_id,
+    });
+    await createBackup({
+      account_id: context.account_id,
+      project_id: context.project_id,
+    });
+    log.info("moveProjectToHost backup created", {
+      project_id: context.project_id,
+    });
+  }
   throw new Error(
     "moveProjectToHost not implemented beyond backup requirement yet",
   );
