@@ -142,9 +142,9 @@ export const SPEC = {
     desc: "codex",
     path: join(binPath, "codex"),
     getVersion: "codex --version | awk '{print $2}'",
-    VERSION: "0.78.0-alpha.10",
+    VERSION: "0.80.0",
     script: () => {
-      // https://github.com/openai/codex/releases/download/rust-v0.78.0-alpha.10/codex-aarch64-apple-darwin.tar.gz
+      // https://github.com/openai/codex/releases/download/rust-v0.80.0/codex-aarch64-apple-darwin.tar.gz
       let p;
       switch (platform()) {
         case "darwin":
