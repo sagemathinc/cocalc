@@ -35,85 +35,70 @@
 
 ### Phase 2: Move project between hosts (same region)
 
-- force backup on source host (allow option to skip if source host unavailable; warn about potential data loss using freshness tracking)
-- change project host_id to target
-- target host starts project; restore-on-missing kicks in
-- optional cleanup of local data on source host
+**Phase 2 Detailed Plan**
 
-**Detailed Implementation Plan: Move Project Between Hosts (Same Region)**
+1. **Define the new entrypoint**
 
-1. **UI entry point**
-   - Reuse the existing “Move” UI but **region‑lock** host choices to the project’s backup region.
-   - Only show hosts that are `running` and `online` by default.
-   - If no eligible hosts, show a clear message and a “Force move using last backup” option.
-   - **Optional \(later\)**: support cross‑region move as a slower path \(copy the per‑project rustic repo to a new bucket, then re‑point\). Keep UI biased toward staying in‑region.
+- Create a new server module: [src/packages/server/projects/move.ts](./src/packages/server/projects/move.ts)
+- Export a single function like `moveProjectToHost({ project_id, dest_host_id, account_id })` that does the orchestration.
 
-2. **Hub orchestration**
-   - Add a new hub action \(e.g. `projects.moveToHost`\) in [src/packages/server/conat/api/projects.ts](./src/packages/server/conat/api/projects.ts) or a new orchestration file \(e.g. `src/packages/server/projects/move.ts`\).
-   - The hub owns the entire flow and emits progress.
-   - **Progress channel**: bootlog can’t be used \(stored in project itself\). Add a **movelog** subject pattern in [src/packages/server/conat/socketio/auth.ts](./src/packages/server/conat/socketio/auth.ts) that:
-     - allows collaborators of a project to read/write,
-     - does **not** route to the project itself,
-     - is used for move/restore progress and errors.
-     - \(if this is unclear, skip until end \-\- it's not a blocker for everything else.\)
+2. **Replace the old path**
 
-3. **State/locking**
-   - Introduce a move lock \(either new fields on `projects` or a small `project_moves` table\).
-   - Use a **DB‑level lock** \(PG advisory/row lock\) so multiple moves can’t overlap.
-   - Ensure this also works with pglite \(avoid PG‑only constructs that break it\).
+- Locate the existing move flow in [src/packages/server/conat/api/projects.ts](./src/packages/server/conat/api/projects.ts) \(currently `requestMoveToHost`\).
+- Replace the old call with the new function from [src/packages/server/projects/move.ts](./src/packages/server/projects/move.ts).
 
-4. **Preflight checks**
-   - Verify `project.region == targetHost.region`.
-   - Require target host to be `running` and `online` unless `force` is set.
-   - Use `last_backup` vs `last_edited`:
-     - If `last_backup < last_edited`, `force` must be explicit.
-     - This gives a concrete “potential data loss up to X minutes” warning.
+3. **Auth and basic validation**
 
-5. **Backup step**
-   - If the source host is reachable and `force` is **false**, request an immediate backup on the source host **only if** `last_backup < last_edited`.
-   - If backup fails, abort the move.
-   - If the source host is unreachable, allow `force` to skip this step with a warning that data may be missing.
+- In the conat API handler, keep `assertCollab` for project access.
+- In `move.ts`, load:
+  - Project record \(need `project_id`, `last_backup`, `last_edited`, current `host`/`project_host_id`, region\).
+  - Destination host record \(need `id`, `status`, region\).
+- Validate:
+  - Destination host exists and is not deleted.
+  - Project and host are in the same backup region \(using the project’s region mapping\).
+  - Host is not deprovisioned and has a data disk.
 
-6. **Freeze project writes**
-   - Introduce a new **move‑locked** state that blocks:
-     - FS writes,
-     - Codex edits,
-     - other project activity.
-   - This prevents `last_edited` from advancing during the move.
+4. **Determine backup requirement**
 
-7. **Start on target with restore directive**
-   - Call `startProjectOnHost` with `restore: required`.
-   - Include rustic TOML if needed.
-   - Host should restore on missing and then start the project.
+- If the project is running: stop it first \(use existing `stopProject` in [src/packages/server/project\-host/control.ts](./src/packages/server/project-host/control.ts)\).
+- If the project is not running:
+  - Compare `last_edited` and `last_backup`.
+  - If `last_backup` is missing or older than `last_edited`, mark “backup needed.”
 
-8. **Verification**
-   - Verify by querying a sentinel file via file‑server RPC.
-   - If verification fails, surface a clear error and keep the move lock \(for manual recovery\).
+5. **Trigger backup only if needed**
 
-9. **Finalize**
-   - On success:
-     - update `project.host_id` to the target,
-     - clear move lock,
-     - emit “Move complete” in movelog,
-     - schedule cleanup of the old host’s project subvolume.
+- Reuse the existing backup RPC path \(the same flow used in project\-host backup\).
+- After backup completes, update `last_backup` via the hub RPC you already added.
+- If backup is not needed, skip this step entirely.
 
-10. **Failure handling**
+6. **Move placement**
 
-   - If any step fails:
-     - keep `project.host_id` unchanged,
-     - store clear failure metadata,
-     - allow “Resume move / Retry / Force move”.
+- Update the project’s host assignment to `dest_host_id` using the existing placement helper \(e.g., `savePlacement`\) in [src/packages/server/project\-host/control.ts](./src/packages/server/project-host/control.ts).
+- This should update the project’s host record, not start anything yet.
 
-**Progress & UX**
+7. **Start project on destination host**
 
-- Use **movelog** as the single progress channel \(“backup started”, “backup complete”, “restoring”, “verifying”\).
-- If `force` is used, show an explicit warning: “Restoring from last backup; changes since last backup may be lost \(last edit at …\).
-- ”
+- Call `startProjectOnHost` with `restore="auto"`.
+- Do not send TOML proactively unless restore is truly needed \(let host fetch it if missing\).
 
-**Smoke‑runner extension**
-Add a move‑between‑hosts step to [src/packages/server/cloud/smoke-runner/project-host.ts](./src/packages/server/cloud/smoke-runner/project-host.ts) and verify the sentinel survives.
+8. **Basic logging \(no progress channel yet\)**
 
-If you want, I can paste this into the “Phase 2” section in [src/.agents/buckets.md](./src/.agents/buckets.md) for tracking.
+- Add structured logs in [src/packages/server/projects/move.ts](./src/packages/server/projects/move.ts) for each step:
+  - stop, backup, placement update, start, restore.
+- Keep logs only; do not add conat channels yet.
+
+9. **Error handling**
+
+- If stop fails: return error immediately.
+- If backup fails: return error immediately; do not move host assignment.
+- If start fails after placement update: log as a failure and bubble error.
+- Ensure no “partial” move is silent.
+
+10. **Smoke‑runner hook \(later\)**
+
+- No changes in smoke‑runner in this phase, but keep the function signature clean so we can call it from tests later.
+
+11. **Docs / TODO alignment**
 
 ### Phase 3: Copy files between hosts
 
