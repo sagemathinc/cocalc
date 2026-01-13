@@ -20,6 +20,11 @@
       "require": "./dist/acp/index.js",
       "types": "./dist/acp/index.d.ts"
     },
+    "./control-agent": {
+      "import": "./dist/control-agent/index.js",
+      "require": "./dist/control-agent/index.js",
+      "types": "./dist/control-agent/index.d.ts"
+    },
     "./sync": {
       "import": "./dist/sync/index.js",
       "require": "./dist/sync/index.js",
