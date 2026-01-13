@@ -12,7 +12,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
-import { round2up } from "@cocalc/util/misc";
+import { moneyRound2Up } from "@cocalc/util/money";
 import type { WebappClient } from "./client";
 
 export class PurchasesClient {
@@ -99,7 +99,7 @@ export class PurchasesClient {
       pay_as_you_go: {
         showModal: true,
         service,
-        cost: cost != null ? round2up(cost) : cost,
+        cost: cost != null ? moneyRound2Up(cost).toNumber() : cost,
         reason,
         allowed,
         cost_per_hour,

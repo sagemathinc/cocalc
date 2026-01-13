@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { currency, round2down, round4 } from "@cocalc/util/misc";
+import { currency } from "@cocalc/util/misc";
+import { moneyRound2Down, toDecimal } from "@cocalc/util/money";
 import { Tooltip, Statistic } from "antd";
 import { zIndexTip } from "./zindex";
 
@@ -15,9 +16,9 @@ export default function MoneyStatistic({
   costPerMonth,
   roundDown,
 }: Props) {
-  const origValue = value;
+  const origValue = toDecimal(value);
   if (roundDown) {
-    value = round2down(value);
+    value = moneyRound2Down(value).toNumber();
   }
 
   return (
@@ -26,7 +27,7 @@ export default function MoneyStatistic({
       zIndex={zIndexTip}
       title={() => (
         <>
-          {title} (USD): ${round4(origValue)}
+          {title} (USD): ${origValue.toDecimalPlaces(4).toNumber()}
           {costPerMonth ? (
             <>
               <br /> Cost per month (USD): {currency(costPerMonth)}

@@ -1,5 +1,6 @@
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { currency, round2up } from "@cocalc/util/misc";
+import { currency } from "@cocalc/util/misc";
+import { moneyRound2Up } from "@cocalc/util/money";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 
 export function getCost(purchaseInfo?: PurchaseInfo): number {
@@ -9,15 +10,15 @@ export function getCost(purchaseInfo?: PurchaseInfo): number {
   }
   const { cost } = purchaseInfo;
   if (cost == null) {
-    return round2up(compute_cost(purchaseInfo).cost);
+    return moneyRound2Up(compute_cost(purchaseInfo).cost).toNumber();
   }
   if (typeof cost == "number") {
     // should never happen
-    return round2up(cost);
+    return moneyRound2Up(cost).toNumber();
   }
-  return round2up(cost.cost);
+  return moneyRound2Up(cost.cost).toNumber();
 }
 
 export default function Cost({ purchaseInfo }: { purchaseInfo: PurchaseInfo }) {
-  return <>{currency(round2up(getCost(purchaseInfo)))}</>;
+  return <>{currency(moneyRound2Up(getCost(purchaseInfo)).toNumber())}</>;
 }

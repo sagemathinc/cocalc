@@ -12,7 +12,7 @@ import Transfer from "./transfer";
 import StripePayment from "@cocalc/frontend/purchases/stripe-payment";
 import type { LineItem } from "@cocalc/util/stripe/types";
 import { currency } from "@cocalc/util/misc";
-import { decimalSubtract } from "@cocalc/util/stripe/calc";
+import { toDecimal } from "@cocalc/util/money";
 import Payments from "@cocalc/frontend/purchases/payments";
 import { STUDENT_PAY } from "@cocalc/util/db-schema/purchases";
 import ShowError from "@cocalc/frontend/components/error";
@@ -42,25 +42,31 @@ export default function PayNow({
   const numPaymentsRef = useRef<number | null>(null);
 
   const update = async () => {
-    const cost = getCost(purchaseInfo);
+    const costValue = toDecimal(getCost(purchaseInfo));
     try {
-      const { chargeAmount = 0 } = await isPurchaseAllowed("license", cost);
+      const { chargeAmount = 0 } = await isPurchaseAllowed(
+        "license",
+        costValue.toNumber(),
+      );
+      const chargeAmountValue = toDecimal(chargeAmount);
       const lineItems: LineItem[] = [
         {
           description: `Course fee for project "${redux.getStore("projects").get_title(project_id)}"`,
-          amount: cost,
+          amount: costValue.toNumber(),
         },
       ];
-      if (chargeAmount < cost) {
+      if (chargeAmountValue.lt(costValue)) {
         lineItems.push({
           description: "Apply account balance toward course fee.",
-          amount: -decimalSubtract(cost, chargeAmount),
+          amount: chargeAmountValue.sub(costValue).toNumber(),
         });
       }
       setLineItems(lineItems);
-      if (cost < chargeAmount) {
+      if (costValue.lt(chargeAmountValue)) {
         setReason(
-          `NOTE: There is a minimum charge of ${currency(chargeAmount)}.`,
+          `NOTE: There is a minimum charge of ${currency(
+            chargeAmountValue.toNumber(),
+          )}.`,
         );
       } else {
         setReason(null);

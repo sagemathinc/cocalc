@@ -29,8 +29,8 @@ import {
   type MembershipChangeQuote,
 } from "@cocalc/frontend/purchases/api";
 import { MEMBERSHIP_CHANGE } from "@cocalc/util/db-schema/purchases";
-import { currency, round2up } from "@cocalc/util/misc";
-import { decimalSubtract } from "@cocalc/util/stripe/calc";
+import { currency } from "@cocalc/util/misc";
+import { moneyRound2Up, toDecimal } from "@cocalc/util/money";
 import type { LineItem } from "@cocalc/util/stripe/types";
 import type { MembershipResolution } from "@cocalc/conat/hub/api/purchases";
 
@@ -148,27 +148,28 @@ export default function MembershipPurchaseModal({
   const selectedTier = selectedTierId ? tierById[selectedTierId] : undefined;
   const selectedLabel = selectedTier?.label ?? selectedTier?.id ?? "";
 
-  const quoteCharge = quote?.charge ?? 0;
+  const quoteChargeValue = toDecimal(quote?.charge ?? 0);
   const rawChargeAmount =
     quote?.charge_amount ??
     (quote as { chargeAmount?: number } | null)?.chargeAmount;
-  const chargeAmount =
-    rawChargeAmount != null ? Number(rawChargeAmount) : quoteCharge;
+  const chargeAmountValue =
+    rawChargeAmount != null ? toDecimal(rawChargeAmount) : quoteChargeValue;
   const paymentRequired =
     quote?.allowed === false &&
     rawChargeAmount != null &&
-    chargeAmount > 0;
+    chargeAmountValue.gt(0);
+  const refundValue = toDecimal(quote?.refund ?? 0);
 
   const lineItems: LineItem[] = [];
-  if (quote && quoteCharge > 0) {
+  if (quote && quoteChargeValue.gt(0)) {
     lineItems.push({
       description: `${selectedLabel} membership (${interval})`,
-      amount: round2up(quoteCharge),
+      amount: moneyRound2Up(quoteChargeValue).toNumber(),
     });
-    if (chargeAmount < quoteCharge) {
+    if (chargeAmountValue.lt(quoteChargeValue)) {
       lineItems.push({
         description: "Apply account balance toward membership change",
-        amount: -decimalSubtract(quoteCharge, chargeAmount),
+        amount: chargeAmountValue.sub(quoteChargeValue).toNumber(),
       });
     }
   }
@@ -325,11 +326,11 @@ export default function MembershipPurchaseModal({
                   {changeLabel} to {selectedLabel} ({interval})
                 </Text>
               </div>
-              {quote.refund > 0 && (
+              {refundValue.gt(0) && (
                 <Alert
                   type="info"
                   message={`Prorated credit applied: ${currency(
-                    round2up(quote.refund),
+                    moneyRound2Up(refundValue).toNumber(),
                   )}`}
                 />
               )}
@@ -344,7 +345,9 @@ export default function MembershipPurchaseModal({
                   }
                 />
               )}
-              {canProceed && quoteCharge > 0 && chargeAmount > 0 && (
+              {canProceed &&
+                quoteChargeValue.gt(0) &&
+                chargeAmountValue.gt(0) && (
                 <div style={{ marginTop: "12px" }}>
                   <StripePayment
                     disabled={actionLoading}
@@ -366,7 +369,8 @@ export default function MembershipPurchaseModal({
                   />
                 </div>
               )}
-              {canProceed && (quoteCharge === 0 || chargeAmount === 0) && (
+              {canProceed &&
+                (quoteChargeValue.eq(0) || chargeAmountValue.eq(0)) && (
                 <div style={{ marginTop: "12px" }}>
                   <Space>
                     <Button onClick={onClose}>Cancel</Button>

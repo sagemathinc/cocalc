@@ -5,6 +5,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency, plural } from "@cocalc/util/misc";
+import { toDecimal } from "@cocalc/util/money";
 import {
   getLiveSubscriptions,
   LiveSubscription,
@@ -50,19 +51,21 @@ export default function UnpaidSubscriptions({
     update();
   }, [counter]);
 
-  const cost = useMemo(() => {
-    if (unpaidSubscriptions == null || unpaidSubscriptions.length == 0)
-      return 0;
-    let total = 0;
+  const costValue = useMemo(() => {
+    if (unpaidSubscriptions == null || unpaidSubscriptions.length == 0) {
+      return toDecimal(0);
+    }
+    let total = toDecimal(0);
     for (const { cost } of unpaidSubscriptions) {
-      total += cost;
+      total = total.add(cost);
     }
     return total;
   }, [unpaidSubscriptions]);
+  const cost = costValue.toNumber();
 
   const handleRenewSubscriptions = async () => {
     if (
-      cost == 0 ||
+      costValue.eq(0) ||
       unpaidSubscriptions == null ||
       unpaidSubscriptions.length == 0
     ) {
@@ -94,7 +97,7 @@ export default function UnpaidSubscriptions({
     return null;
   }
 
-  if (!cost && !error) {
+  if (costValue.eq(0) && !error) {
     if (showWhen == "unpaid") {
       return null;
     }

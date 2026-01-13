@@ -13,6 +13,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
 import type { Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
+import { toDecimal } from "@cocalc/util/money";
 import MoneyStatistic from "../money-statistic";
 
 const cache = new LRU<string, any>({
@@ -105,8 +106,14 @@ export default function Cost({ inline, service, cost: cost0 }: Props) {
 const TEXT_STYLE = { maxWidth: "400px", margin: "auto" } as const;
 
 function LLMServiceCost({ prompt_tokens, completion_tokens }) {
-  const inputPrice = currency(prompt_tokens * 1000, 3);
-  const outputPrice = currency(completion_tokens * 1000, 3);
+  const inputPrice = currency(
+    toDecimal(prompt_tokens).mul(1000).toNumber(),
+    3,
+  );
+  const outputPrice = currency(
+    toDecimal(completion_tokens).mul(1000).toNumber(),
+    3,
+  );
   const columns = [
     {
       title: "Input",

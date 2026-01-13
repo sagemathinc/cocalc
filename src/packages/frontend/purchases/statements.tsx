@@ -4,7 +4,8 @@ import Refresh from "@cocalc/frontend/components/refresh";
 import { getStatements } from "./api";
 import { useEffect, useState } from "react";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
-import { currency, round2down } from "@cocalc/util/misc";
+import { currency } from "@cocalc/util/misc";
+import { moneyRound2Down, toDecimal } from "@cocalc/util/money";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { PurchasesTable } from "./purchases";
 import EmailDailyStatements from "./email-daily-statements";
@@ -62,7 +63,8 @@ export default function Statements({
       dataIndex: "total_charges",
       key: "total_charges",
       align: "right" as "right",
-      render: (total) => (total ? currency(-total, 2) : "-"),
+      render: (total) =>
+        total ? currency(toDecimal(total).neg().toNumber(), 2) : "-",
     },
     {
       width: "150px",
@@ -84,7 +86,8 @@ export default function Statements({
       dataIndex: "total_credits",
       key: "total_credits",
       align: "right" as "right",
-      render: (total) => (total ? currency(-total, 2) : "-"),
+      render: (total) =>
+        total ? currency(toDecimal(total).neg().toNumber(), 2) : "-",
     },
     {
       width: "150px",
@@ -106,7 +109,7 @@ export default function Statements({
       dataIndex: "balance",
       key: "balance",
       align: "right" as "right",
-      render: (balance) => currency(round2down(balance), 2),
+      render: (balance) => currency(moneyRound2Down(balance).toNumber(), 2),
     },
     { title: "ID", dataIndex: "id", key: "id" },
   ];

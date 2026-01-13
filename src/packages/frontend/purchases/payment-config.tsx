@@ -6,6 +6,7 @@ import { zIndexPayAsGo } from "./zindex";
 import * as api from "./api";
 import MoneyStatistic from "./money-statistic";
 import { MAX_COST } from "@cocalc/util/db-schema/purchases";
+import { toDecimal } from "@cocalc/util/money";
 
 const zIndex = zIndexPayAsGo + 1;
 export const zIndexTip = zIndex + 1;
@@ -32,7 +33,10 @@ export default function PaymentConfig({
     (async () => {
       const minPayment = await api.getMinimumPayment();
       setMinPayment(minPayment);
-      if (paymentAmount != null && paymentAmount < minPayment) {
+      if (
+        paymentAmount != null &&
+        toDecimal(paymentAmount).lt(toDecimal(minPayment ?? 0))
+      ) {
         setPaymentAmount(minPayment);
       }
     })();
@@ -44,6 +48,12 @@ export default function PaymentConfig({
   if (minPayment == null || balance == null) {
     return <Spin />;
   }
+  const minPaymentValue = toDecimal(minPayment ?? 0);
+  const minAmountValue = toDecimal(minAmount);
+  const balanceValue = toDecimal(balance);
+  const minRequired = minAmountValue.gt(minPaymentValue)
+    ? minAmountValue
+    : minPaymentValue;
 
   return (
     <div>
@@ -73,12 +83,12 @@ export default function PaymentConfig({
       <div style={{ textAlign: "center" }}>
         {minPayment != null && (
           <div style={{ marginBottom: "15px" }}>
-            {minAmount <= minPayment && (
+            {minAmountValue.lte(minPaymentValue) && (
               <Preset amount={minPayment} setPaymentAmount={setPaymentAmount}>
                 Minimum: {currency(minPayment)}
               </Preset>
             )}
-            {minAmount > minPayment && (
+            {minAmountValue.gt(minPaymentValue) && (
               <Preset amount={minAmount} setPaymentAmount={setPaymentAmount}>
                 Due: {currency(minAmount)}
               </Preset>
@@ -88,12 +98,15 @@ export default function PaymentConfig({
                 Total: {currency(totalCost)}
               </Preset>
             )}
-            {-balance >= Math.max(minAmount, minPayment) && (
-              <Preset amount={-balance} setPaymentAmount={setPaymentAmount}>
-                Balance: {currency(-balance)}
+            {balanceValue.neg().gte(minRequired) && (
+              <Preset
+                amount={balanceValue.neg().toNumber()}
+                setPaymentAmount={setPaymentAmount}
+              >
+                Balance: {currency(balanceValue.neg().toNumber())}
               </Preset>
             )}
-            {DEFAULT_AMOUNT >= Math.max(minAmount, minPayment) && (
+            {toDecimal(DEFAULT_AMOUNT).gte(minRequired) && (
               <Preset
                 amount={DEFAULT_AMOUNT}
                 setPaymentAmount={setPaymentAmount}
@@ -101,17 +114,17 @@ export default function PaymentConfig({
                 ${DEFAULT_AMOUNT}
               </Preset>
             )}
-            {20 >= Math.max(minAmount, minPayment) && (
+            {toDecimal(20).gte(minRequired) && (
               <Preset amount={20} setPaymentAmount={setPaymentAmount}>
                 $20
               </Preset>
             )}
-            {50 >= Math.max(minAmount, minPayment) && (
+            {toDecimal(50).gte(minRequired) && (
               <Preset amount={50} setPaymentAmount={setPaymentAmount}>
                 $50
               </Preset>
             )}
-            {100 >= Math.max(minAmount, minPayment) && (
+            {toDecimal(100).gte(minRequired) && (
               <Preset amount={100} setPaymentAmount={setPaymentAmount}>
                 $100
               </Preset>
@@ -121,7 +134,7 @@ export default function PaymentConfig({
         <InputNumber
           style={{ maxWidth: "200px" }}
           size="large"
-          min={Math.max(minAmount, minPayment)}
+          min={minRequired.toNumber()}
           max={MAX_COST}
           precision={2} // for two decimal places
           step={5}

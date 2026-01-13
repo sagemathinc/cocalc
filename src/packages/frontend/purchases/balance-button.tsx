@@ -7,7 +7,8 @@ import { NAV_CLASS } from "@cocalc/frontend/app/top-nav-consts";
 import { labels } from "@cocalc/frontend/i18n";
 import BalanceModal from "@cocalc/frontend/purchases/balance-modal";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { currency, round2down } from "@cocalc/util/misc";
+import { currency } from "@cocalc/util/misc";
+import { moneyRound2Down } from "@cocalc/util/money";
 
 export default function BalanceButton({
   style,
@@ -64,7 +65,9 @@ export default function BalanceButton({
     return (
       <>
         {!minimal && <>{intl.formatMessage(labels.balance)}: </>}
-        {balance != null ? currency(round2down(balance)) : undefined}
+        {balance != null
+          ? currency(moneyRound2Down(balance).toNumber())
+          : undefined}
         {balanceAlert && (
           <Badge
             count={1}

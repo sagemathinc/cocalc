@@ -18,7 +18,8 @@ import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import ShowError from "@cocalc/frontend/components/error";
 import type { LicenseFromApi } from "@cocalc/util/db-schema/site-licenses";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { capitalize, round4 } from "@cocalc/util/misc";
+import { capitalize } from "@cocalc/util/misc";
+import { toDecimal } from "@cocalc/util/money";
 import { describe_quota as describeQuota } from "@cocalc/util/licenses/describe-quota";
 import { SubscriptionStatus } from "./subscriptions-util";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
@@ -138,7 +139,9 @@ function DescribeSubscription({ license, subscription, reload }) {
               />
               <div style={{ width: "30px" }} />
               <Tooltip
-                title={`(USD): ${round4(subscription.cost_per_hour)}/hour`}
+                title={`(USD): ${toDecimal(
+                  subscription.cost_per_hour,
+                ).toDecimalPlaces(4).toNumber()}/hour`}
               >
                 <Statistic
                   title={<>Cost Per Hour (USD)</>}

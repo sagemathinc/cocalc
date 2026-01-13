@@ -10,6 +10,7 @@ import { currency, round3 } from "@cocalc/util/misc";
 import { useInterval } from "react-interval-hook";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
+import { toDecimal } from "@cocalc/util/money";
 
 const MS_IN_HOUR = 1000 * 60 * 60;
 const UPDATE_INTERVAL_S = 10; // very cheap to update; confusing if too infrequent -- annoying if too frequent?
@@ -52,15 +53,23 @@ function DynamicallyUpdating({
     body = <span style={getAmountStyle(1)}>{currency(costPerHour, 2)}/h</span>;
     cost = null;
   } else {
-    cost = (costPerHour * (currentTime - start)) / MS_IN_HOUR;
-    let amount = -cost;
+    const costValue = toDecimal(costPerHour)
+      .mul(currentTime - start)
+      .div(MS_IN_HOUR);
+    cost = costValue.toNumber();
+    let amount = costValue.neg();
     if (alwaysNonnegative) {
-      amount = Math.abs(amount);
+      amount = amount.abs();
     }
+    const amountNumber = amount.toNumber();
     body = rate ? (
-      <span style={getAmountStyle(amount)}>{currency(costPerHour, 2)}/h</span>
+      <span style={getAmountStyle(amountNumber)}>
+        {currency(costPerHour, 2)}/h
+      </span>
     ) : (
-      <span style={getAmountStyle(amount)}>{currency(amount, 2)}</span>
+      <span style={getAmountStyle(amountNumber)}>
+        {currency(amountNumber, 2)}
+      </span>
     );
   }
   return (

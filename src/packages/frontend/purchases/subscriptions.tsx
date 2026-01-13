@@ -45,7 +45,8 @@ import {
   type Subscription,
   STATUS_TO_COLOR,
 } from "@cocalc/util/db-schema/subscriptions";
-import { capitalize, currency, round2up } from "@cocalc/util/misc";
+import { capitalize, currency } from "@cocalc/util/misc";
+import { moneyRound2Up } from "@cocalc/util/money";
 import {
   cancelSubscription,
   getLicense,
@@ -441,7 +442,7 @@ export default function Subscriptions() {
         render: (cost, record) => {
           // in prod we hit a case where cost was null, hence the if here.
           if (cost != null) {
-            return `${currency(round2up(cost))}/${record.interval}`;
+            return `${currency(moneyRound2Up(cost).toNumber())}/${record.interval}`;
           } else {
             return "-";
           }
@@ -594,7 +595,8 @@ function SubscriptionModal({ subscription, getSubscriptions, onClose }) {
         </div>
         <div>Period: {`${capitalize(subscription.interval)}ly`}</div>
         <div>
-          Cost: {currency(subscription.cost)} / {subscription.interval}
+          Cost: {currency(moneyRound2Up(subscription.cost).toNumber())} /{" "}
+          {subscription.interval}
         </div>
         <div>
           Paid Through: <TimeAgo date={subscription.current_period_end} />

@@ -58,10 +58,8 @@ import {
   currency,
   plural,
   round1,
-  round2down,
-  round4,
 } from "@cocalc/util/misc";
-import { decimalAdd } from "@cocalc/util/stripe/calc";
+import { moneyRound2Down, toDecimal } from "@cocalc/util/money";
 import AdminRefund, { isRefundable } from "./admin-refund";
 import * as api from "./api";
 import EmailStatement from "./email-statement";
@@ -350,17 +348,17 @@ export function PurchasesTable({
 
     setTotal(null);
 
-    let b = balance;
-    let t = 0;
+    let b = balance != null ? toDecimal(balance) : null;
+    let t = toDecimal(0);
     const purchases: PurchaseItem[] = [];
     for (const row of purchaseRecords) {
       if (activeOnly && row.cost != null) {
         continue;
       }
-      const cost = getCost(row);
+      const cost = toDecimal(getCost(row));
       // Compute incremental balance
       if (b != null) {
-        purchases.push({ ...row, balance: b });
+        purchases.push({ ...row, balance: b.toNumber() });
       } else {
         purchases.push(row);
       }
@@ -371,11 +369,11 @@ export function PurchasesTable({
         continue;
       }
       if (b != null) {
-        b = decimalAdd(b, cost);
+        b = b.add(cost);
       }
 
       // Compute total cost
-      t = decimalAdd(t, cost);
+      t = t.add(cost);
     }
 
     if (group) {
@@ -384,7 +382,7 @@ export function PurchasesTable({
     } else {
       setPurchases(purchases);
     }
-    setTotal(t);
+    setTotal(t.toNumber());
   }, [balance, purchaseRecords, activeOnly]);
 
   //const download = (format: "csv" | "json") => {};
@@ -495,7 +493,9 @@ export function PurchasesTable({
           <span>Total of Displayed Costs: {currency(-total)}</span>
         )}
         {showBalance && balance != null && !filter?.trim() && (
-          <span>Current Balance: {currency(round2down(balance))}</span>
+          <span>
+            Current Balance: {currency(moneyRound2Down(balance).toNumber())}
+          </span>
         )}
       </div>
       {!group && purchases != null && <PurchasesPlot purchases={purchases} />}
@@ -1154,15 +1154,22 @@ function Amount({ record }) {
         />
       );
     } else if (record.period_start && record.cost_so_far != null) {
-      const amount = -record.cost_so_far;
+      const amountValue = toDecimal(record.cost_so_far).neg();
+      const amount = amountValue.toNumber();
       // it's a metered pay as you go purchase
       return <span style={getAmountStyle(amount)}>{currency(amount, 2)}</span>;
     }
   }
   if (cost != null) {
-    const amount = -cost;
+    const amountValue = toDecimal(cost).neg();
+    const amount = amountValue.toNumber();
     return (
-      <Tooltip title={` (USD): ${currency(round4(amount), 4)}`}>
+      <Tooltip
+        title={` (USD): ${currency(
+          amountValue.toDecimalPlaces(4).toNumber(),
+          4,
+        )}`}
+      >
         <span
           style={{
             ...getAmountStyle(amount),
@@ -1179,10 +1186,16 @@ function Amount({ record }) {
 
 function Balance({ balance }) {
   if (balance != null) {
+    const balanceValue = toDecimal(balance);
     return (
-      <Tooltip title={` (USD): ${currency(round4(balance), 4)}`}>
-        <span style={getAmountStyle(balance)}>
-          {currency(round2down(balance), 2)}
+      <Tooltip
+        title={` (USD): ${currency(
+          balanceValue.toDecimalPlaces(4).toNumber(),
+          4,
+        )}`}
+      >
+        <span style={getAmountStyle(balanceValue.toNumber())}>
+          {currency(moneyRound2Down(balanceValue).toNumber(), 2)}
         </span>
       </Tooltip>
     );
@@ -1236,7 +1249,7 @@ function getCost(row: PurchaseItem) {
   }
   if (row.cost_per_hour != null && row.period_start != null) {
     const hours = periodLengthInHours(row);
-    return row.cost_per_hour * hours;
+    return toDecimal(row.cost_per_hour).mul(hours).toNumber();
   }
   return 0;
 }

@@ -1,6 +1,5 @@
 import { Card, Statistic, Tooltip } from "antd";
-import { currency } from "@cocalc/util/misc";
-import { round2 } from "@cocalc/util/misc";
+import { moneyToCurrency, toDecimal } from "@cocalc/util/money";
 
 interface Props {
   style?;
@@ -12,17 +11,18 @@ export default function SpendRate({ style, spendRate }: Props) {
     // loading...
     return null;
   }
+  const spendRateValue = toDecimal(spendRate);
   return (
     <Card style={{ maxWidth: "300px", ...style }}>
       <Tooltip
-        title={`Pay as you go upgrades and compute servers cost ${currency(
-          spendRate,
+        title={`Pay as you go upgrades and compute servers cost ${moneyToCurrency(
+          spendRateValue,
           3,
         )}/hour.  Licenses and network data transfer costs are not included above.`}
       >
         <Statistic
           title={"Compute Server Spend Rate (USD)"}
-          value={round2(spendRate)}
+          value={spendRateValue.toDecimalPlaces(2).toNumber()}
           precision={2}
           prefix={"$"}
           suffix={"/hour"}

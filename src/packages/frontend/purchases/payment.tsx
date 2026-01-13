@@ -2,6 +2,7 @@ import { Divider, Tag } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { useEffect, useState } from "react";
 import { currency } from "@cocalc/util/misc";
+import { toDecimal } from "@cocalc/util/money";
 import { zIndexPayAsGo } from "./zindex";
 import * as api from "./api";
 import PaymentConfig from "./payment-config";
@@ -24,14 +25,20 @@ export default function Payment({ balance, update, cost }: Props) {
   useEffect(() => {
     (async () => {
       const minPayment = await api.getMinimumPayment();
-      setPaymentAmount(
-        cost
-          ? Math.max(minPayment, cost)
-          : Math.max(
-              minPayment ?? 0,
-              balance != null && balance < 0 ? -balance : 0,
-            ),
-      );
+      const minPaymentValue = toDecimal(minPayment ?? 0);
+      const costValue = cost != null ? toDecimal(cost) : null;
+      const balanceValue = toDecimal(balance ?? 0);
+      const negativeBalance = balanceValue.lt(0)
+        ? balanceValue.neg()
+        : toDecimal(0);
+      const paymentValue = costValue
+        ? minPaymentValue.gt(costValue)
+          ? minPaymentValue
+          : costValue
+        : minPaymentValue.gt(negativeBalance)
+          ? minPaymentValue
+          : negativeBalance;
+      setPaymentAmount(paymentValue.toNumber());
       setInitialized(true);
     })();
   }, [balance, cost]);

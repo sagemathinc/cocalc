@@ -38,7 +38,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { debounce } from "lodash";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
-import { stripeToDecimal, decimalToStripe } from "@cocalc/util/stripe/calc";
+import { moneyToStripe, stripeToMoney } from "@cocalc/util/money";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { LineItemsTable } from "./line-items";
 import { AddressButton } from "./address";
@@ -90,8 +90,7 @@ export default function StripePayment({
 
   let totalStripe = 0;
   for (const lineItem of lineItems) {
-    const lineItemAmountStripe = decimalToStripe(lineItem.amount);
-    totalStripe += lineItemAmountStripe;
+    totalStripe += moneyToStripe(lineItem.amount);
   }
 
   useEffect(() => {
@@ -111,7 +110,7 @@ export default function StripePayment({
       <LineItemsTable
         lineItems={lineItems.concat({
           description: "Amount due (excluding tax)",
-          amount: stripeToDecimal(totalStripe),
+          amount: stripeToMoney(totalStripe).toNumber(),
           extra: true,
           bold: true,
         })}
@@ -137,7 +136,7 @@ export default function StripePayment({
                         purpose,
                         metadata,
                       });
-                      onFinished?.(stripeToDecimal(totalStripe));
+                      onFinished?.(stripeToMoney(totalStripe).toNumber());
                     } catch (err) {
                       setError(`${err}`);
                     } finally {
@@ -305,7 +304,7 @@ function StripeCheckout({
         options={{
           fetchClientSecret: async () => secret.clientSecret,
           onComplete: () => {
-            onFinished?.(stripeToDecimal(totalStripe));
+            onFinished?.(stripeToMoney(totalStripe).toNumber());
           },
         }}
         stripe={loadStripe()}

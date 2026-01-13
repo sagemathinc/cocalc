@@ -12,8 +12,8 @@ import StripePayment, {
   BigSpin,
 } from "@cocalc/frontend/purchases/stripe-payment";
 import type { LineItem } from "@cocalc/util/stripe/types";
-import { currency, round2up } from "@cocalc/util/misc";
-import { decimalSubtract } from "@cocalc/util/stripe/calc";
+import { currency } from "@cocalc/util/misc";
+import { moneyRound2Up, toDecimal } from "@cocalc/util/money";
 import Payments from "@cocalc/frontend/purchases/payments";
 import { RESUME_SUBSCRIPTION } from "@cocalc/util/db-schema/purchases";
 import ShowError from "@cocalc/frontend/components/error";
@@ -78,19 +78,25 @@ export default function ResumeSubscription({
     try {
       const { cost, periodicCost } =
         await costToResumeSubscription(subscription_id);
-      setCostToResume(cost);
-      setPeriodicCost(periodicCost);
-      const { chargeAmount = 0 } = await isPurchaseAllowed("license", cost);
+      const costValue = toDecimal(cost ?? 0);
+      const periodicCostValue = toDecimal(periodicCost ?? 0);
+      setCostToResume(costValue.toNumber());
+      setPeriodicCost(periodicCostValue.toNumber());
+      const { chargeAmount = 0 } = await isPurchaseAllowed(
+        "license",
+        costValue.toNumber(),
+      );
+      const chargeAmountValue = toDecimal(chargeAmount ?? 0);
       const lineItems: LineItem[] = [
         {
           description: `Fee to resume Subscription Id ${subscription_id}`,
-          amount: cost,
+          amount: costValue.toNumber(),
         },
       ];
-      if (chargeAmount < cost) {
+      if (chargeAmountValue.lt(costValue)) {
         lineItems.push({
           description: "Apply account balance towards resuming subscription",
-          amount: -decimalSubtract(cost, chargeAmount),
+          amount: costValue.sub(chargeAmountValue).neg().toNumber(),
         });
       }
       setLineItems(lineItems);
@@ -132,14 +138,15 @@ export default function ResumeSubscription({
                     <b>There is no charge</b> to resume your subscription, since
                     your license is still active. Your subscription will resume
                     at the current rate, which is{" "}
-                    {currency(round2up(periodicCost))}/{interval}.
+                    {currency(moneyRound2Up(periodicCost ?? 0).toNumber())}/
+                    {interval}.
                   </>
                 ) : (
                   <>
                     To resume your subscription,{" "}
                     <b>
                       please pay the current rate of{" "}
-                      {currency(round2up(periodicCost))}
+                      {currency(moneyRound2Up(periodicCost ?? 0).toNumber())}
                     </b>{" "}
                     for the next {interval}.
                   </>

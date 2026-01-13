@@ -20,14 +20,14 @@ import {
   Tooltip,
 } from "antd";
 import { FinishStripePayment } from "./stripe-payment";
-import { capitalize, replace_all, round2 } from "@cocalc/util/misc";
+import { capitalize, replace_all } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { PAYMENT_INTENT_REASONS } from "@cocalc/util/stripe/types";
 import { describeNumberOf, RawJson } from "./util";
 import { PaymentMethod } from "./payment-methods";
-import { decimalSubtract, stripeToDecimal } from "@cocalc/util/stripe/calc";
+import { stripeToMoney } from "@cocalc/util/money";
 import { LineItemsTable, moneyToString } from "./line-items";
 import dayjs from "dayjs";
 
@@ -201,7 +201,10 @@ function PaymentIntentsTable({ paymentIntents, onFinished, account_id }) {
       dataIndex: "amount",
       key: "amount",
       render: (amount, { intent }) => {
-        return moneyToString(round2(amount / 100), intent.currency);
+        return moneyToString(
+          stripeToMoney(amount).toNumber(),
+          intent.currency,
+        );
       },
     },
     {
@@ -478,43 +481,41 @@ function InvoiceLink({ invoice }) {
 }
 function Invoice({ invoice }) {
   const lineItems = invoice.lines?.data.map(({ amount, description }) => {
-    return { description, amount: stripeToDecimal(amount) };
+    return { description, amount: stripeToMoney(amount).toNumber() };
   });
   if (invoice.subtotal != null) {
     lineItems.push({
       extra: true,
       description: "Subtotal",
-      amount: stripeToDecimal(invoice.subtotal),
+      amount: stripeToMoney(invoice.subtotal).toNumber(),
     });
   }
   if (invoice.tax != null) {
     lineItems.push({
       extra: true,
       description: "Tax",
-      amount: stripeToDecimal(invoice.tax),
+      amount: stripeToMoney(invoice.tax).toNumber(),
     });
   }
   if (invoice.total != null) {
     lineItems.push({
       extra: true,
       description: "Total",
-      amount: stripeToDecimal(invoice.total),
+      amount: stripeToMoney(invoice.total).toNumber(),
     });
   }
   if (invoice.amount_paid != null) {
     lineItems.push({
       extra: true,
       description: "Amount paid",
-      amount: stripeToDecimal(-invoice.amount_paid),
+      amount: stripeToMoney(invoice.amount_paid).neg().toNumber(),
     });
   }
   if (invoice.total != null && invoice.amount_paid != null) {
     lineItems.push({
       extra: true,
       description: "Amount due",
-      amount: stripeToDecimal(
-        decimalSubtract(invoice.total, invoice.amount_paid),
-      ),
+      amount: stripeToMoney(invoice.total).sub(invoice.amount_paid).toNumber(),
     });
   }
   return <LineItemsTable lineItems={lineItems} currency={invoice.currency} />;
