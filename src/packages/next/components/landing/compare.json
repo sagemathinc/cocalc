@@ -389,7 +389,7 @@
         "feature": "Full Linux",
         "cocalc": {
           "type": true,
-          "note": "Compute servers provide full root access to a dedicated virtual machine and ability to run any Docker containers.",
+          "note": "Compute servers provide full root access to a private virtual machine and the ability to run any Docker containers.",
           "link": "https://doc.cocalc.com/compute_server.html"
         },
         "cloud": true,

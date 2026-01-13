@@ -7,16 +7,7 @@ import dayjs from "dayjs";
 import { clamp, isDate } from "lodash";
 import { NextRouter } from "next/router";
 
-import { testDedicatedDiskNameBasic } from "@cocalc/util/licenses/check-disk-name-basics";
 import { BOOST, REGULAR } from "@cocalc/util/upgrades/consts";
-import {
-  DEDICATED_DISK_SIZES,
-  DEDICATED_DISK_SPEEDS,
-  DEFAULT_DEDICATED_DISK_SIZE,
-  DEFAULT_DEDICATED_DISK_SPEED,
-  DEFAULT_DEDICATED_VM_MACHINE,
-  PRICES,
-} from "@cocalc/util/upgrades/dedicated";
 import type { DateRange } from "@cocalc/util/upgrades/shopping";
 import { MAX_ALLOWED_RUN_LIMIT } from "./run-limit";
 // Various support functions for storing quota parameters as a query parameter in the browser URL
@@ -71,31 +62,13 @@ const REGULAR_FIELDS = [
   "disk",
 ] as const;
 
-const DEDICATED_FIELDS = [
-  ...COMMON_FIELDS,
-  "disk-size_gb",
-  "disk-name",
-  "disk-speed",
-  "vm-machine",
-] as const;
-
-function getFormFields(
-  type: "regular" | "boost" | "dedicated",
-): readonly string[] {
-  switch (type) {
-    case "regular":
-    case "boost":
-      return REGULAR_FIELDS;
-    case "dedicated":
-      return DEDICATED_FIELDS;
-  }
+function getFormFields(type: "regular" | "boost"): readonly string[] {
+  void type;
+  return REGULAR_FIELDS;
 }
 
 export const ALL_FIELDS: Set<string> = new Set(
-  REGULAR_FIELDS.concat(DEDICATED_FIELDS as any).concat([
-    "type",
-    "source",
-  ] as any),
+  REGULAR_FIELDS.concat(["type", "source"] as any),
 );
 
 // Global flag to prevent URL encoding during initial page load
@@ -108,7 +81,7 @@ export function setAllowUrlEncoding(allow: boolean) {
 export function encodeFormValues(
   router: NextRouter,
   vals: any,
-  type: "regular" | "boost" | "dedicated",
+  type: "regular" | "boost",
 ): void {
   if (!allowUrlEncoding) {
     return;
@@ -149,12 +122,10 @@ function fixNumVal(
 
 /** a query looks like this:
  * user=academic&period=monthly&run_limit=1&member=true&uptime=short&cpu=1&ram=2&disk=3
- *
- * NOTE: the support for dedicated disk & vm does not work. the form is too complicated, not no need to support this yet.
  */
 export function decodeFormValues(
   router: NextRouter,
-  type: "regular" | "boost" | "dedicated",
+  type: "regular" | "boost",
 ): {
   [key: string]: string | number | boolean;
 } {
@@ -233,32 +204,6 @@ export function decodeFormValues(
         data[key] = fixNumVal(val, P.disk);
         break;
 
-      case "disk-size_gb":
-        if (typeof val !== "number" || !DEDICATED_DISK_SIZES.includes(val)) {
-          data[key] = DEFAULT_DEDICATED_DISK_SIZE;
-        }
-        break;
-
-      case "disk-name":
-        try {
-          testDedicatedDiskNameBasic(val);
-        } catch {
-          data[key] = "";
-        }
-        break;
-
-      case "disk-speed":
-        if (!DEDICATED_DISK_SPEEDS.includes(val)) {
-          data[key] = DEFAULT_DEDICATED_DISK_SPEED;
-        }
-        break;
-
-      case "vm-machine":
-        if (PRICES.vms[val] == null) {
-          data[key] = DEFAULT_DEDICATED_VM_MACHINE;
-        }
-        break;
-
       case "title":
       case "description":
         data[key] = val;
@@ -273,27 +218,6 @@ export function decodeFormValues(
   // hosting quality vs. uptime restriction:
   if (["always_running", "day"].includes(data["uptime"])) {
     data["member"] = true;
-  }
-
-  if (type === "dedicated") {
-    data["type"] = data["vm-machine"] != null ? "vm" : null;
-
-    // if any key in data starts with "disk-" then set data["type"] to "disk"
-    if (data["type"] == null) {
-      for (const key in data) {
-        if (key.startsWith("disk-")) {
-          data["type"] = "disk";
-          break;
-        }
-      }
-    }
-
-    if (data["type"] === "disk") {
-      data["period"] = "monthly";
-    }
-    if (data["type"] === "vm") {
-      data["period"] = "range";
-    }
   }
 
   return data;

@@ -15,8 +15,7 @@ import AdminWarning from "@cocalc/frontend/project/page/admin-warning";
 export function ProjectLicenses({ project_id }): React.JSX.Element {
   const { project, group } = useProject(project_id);
   const store = redux.getStore("projects");
-  const dedicated_resources =
-    store.get_total_site_license_dedicated(project_id);
+  const gpu = store.get_total_site_license_gpu(project_id);
 
   function renderBody(): React.JSX.Element {
     if (project == null) {
@@ -26,7 +25,7 @@ export function ProjectLicenses({ project_id }): React.JSX.Element {
       <UpgradeUsage
         project_id={project_id}
         project={project}
-        dedicated_resources={dedicated_resources}
+        gpu={gpu}
         mode="project"
       />
     );

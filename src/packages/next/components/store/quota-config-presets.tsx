@@ -168,8 +168,7 @@ export const SITE_LICENSE: PresetEntries = {
     note: (
       <>
         <Paragraph type="secondary">
-          If you need{" "}
-          <b>much more dedicated disk space, a GPU, more CPU or RAM</b>, you
+          If you need <b>much more storage, a GPU, more CPU or RAM</b>, you
           should also{" "}
           <b>
             use <A href="/features/compute-server">compute servers</A>.
@@ -184,8 +183,7 @@ export const SITE_LICENSE: PresetEntries = {
         is sufficient to not interrupt your work; you can also execute
         long-running calculations with this configuration. Increasing the disk
         space quota also allows you to store larger datasets. If you need{" "}
-        <b>much more dedicated disk space, a GPU, more CPU or RAM</b>, you
-        should also{" "}
+        <b>much more storage, a GPU, more CPU or RAM</b>, you should also{" "}
         <b>
           use a <A href="/features/compute-server">compute server</A>.
         </b>

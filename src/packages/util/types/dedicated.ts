@@ -67,7 +67,7 @@ export function isDedicatedDisk(d): d is DedicatedDisk {
   );
 }
 
-// returned by store.get_total_site_license_dedicated(project_id)
+// legacy dedicated resources summary
 export type DedicatedResources = {
   vm: false | DedicatedVM;
   disks: DedicatedDisk[];

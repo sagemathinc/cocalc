@@ -86,21 +86,3 @@ export default function Overview() {
     </div>
   );
 }
-
-/*
-        <Product icon="rocket" title="License Booster" href="/store/boost">
-          Add additional upgrades to an existing and <em>compatible</em>{" "}
-          license.
-        </Product>
-        <Product
-          href={"/store/dedicated"}
-          icon="save"
-          icon2="dedicated"
-          title="Dedicated Disk/VM"
-        >
-          Attach a large dedicated disk for more storage to your project or run
-          your project on a dedicated Virtual Machine to harness much more CPU
-          and memory.
-        </Product>
-
-*/

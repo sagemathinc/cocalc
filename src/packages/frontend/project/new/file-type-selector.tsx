@@ -209,7 +209,7 @@ export function FileTypeSelector({
                 title={"Create a Compute Server"}
                 placement="left"
                 icon={"cloud"}
-                tip={"Affordable GPUs and high-end dedicated virtual machines."}
+                tip={"Affordable GPUs and high-end compute servers."}
               >
                 <NewFileButton
                   name={"Compute Server: GPUs and VM's"}

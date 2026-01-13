@@ -55,7 +55,6 @@ import {
   process_gpu_quota,
 } from "@cocalc/util/types/gpu";
 import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
-import { DEDICATED_VM_ONPREM_MACHINE } from "@cocalc/util/upgrades/consts";
 import { Upgrades } from "@cocalc/util/upgrades/quota";
 
 const { Text } = Typography;
@@ -157,9 +156,6 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
     setQuotaMax("dedicated_ram", "memory_request");
     return max;
   }, [max_upgrades, isOnPrem]);
-
-  const isDedicated =
-    quota.dedicated_vm != null || quota.dedicated_disk != null;
 
   function render_cpu(): React.JSX.Element {
     return (
@@ -440,82 +436,6 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
             </strong>
             : intended for instructors/administrators.
           </Checkbox>
-        </Col>
-      </Row>
-    );
-  }
-
-  function render_dedicated_vm_help(): React.JSX.Element {
-    return (
-      <HelpIcon title="Dedicated VM">
-        <Paragraph>
-          A dedicated virtual machine is part of your cluster. Due to its{" "}
-          <A
-            href={
-              "https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/"
-            }
-          >
-            kubernetes taint
-          </A>
-          , projects do not run on that node by default. The purpose of this
-          license configuration is to tell the management job, which creates the
-          pod for the project, to run the given project on exactly that node.
-          This is accomplished by adding a toleration to the pod specification
-          and selecting the dedicated VM node as the preferred node.
-        </Paragraph>
-        <Paragraph>
-          To configure such a Dedicated VM node, add a new node to your
-          kubernetes cluster and then add a taint and label in the following
-          way:
-        </Paragraph>
-        <Paragraph code>
-          kubectl taint nodes [node-name]
-          cocalc-dedicated_vm=[taint_name]:NoSchedule
-        </Paragraph>
-        <Paragraph code>
-          kubectl label nodes [node-name] cocalc-dedicated_vm=[taint_name]
-        </Paragraph>
-        <Paragraph type="secondary">
-          Replace [node-name] with the name of the node in your cluster and
-          [taint_name] with the name you did set here in this license
-          configuration.
-        </Paragraph>
-        <Paragraph>
-          Note: Do not forget to change the quota limits as well. In particular,
-          you'll probably want to increase the shared CPU and RAM quotas. You
-          can also increase the run limit of that license and change the idle
-          timeout to e.g. "always running". Once you saved the license,
-          double-check the quota configuration data – it will be displayed as a
-          JSON object. An empty string as the dedicated VM's name will be
-          interpreted as "no Dedicated VM".
-        </Paragraph>
-      </HelpIcon>
-    );
-  }
-
-  function render_dedicated_vm(): React.JSX.Element {
-    const dvm = quota.dedicated_vm;
-    const text = (dvm != null && typeof dvm != "boolean" && dvm.name) || "";
-    return (
-      <Row style={ROW_STYLE}>
-        <Col md={col.control}>
-          <strong>Run project on dedicated virtual machine named</strong>{" "}
-          <TextInput
-            disabled={disabled}
-            type={"text"}
-            on_change={(name) =>
-              onChange({
-                dedicated_vm: { name, machine: DEDICATED_VM_ONPREM_MACHINE },
-              })
-            }
-            style={{
-              fontWeight: "normal",
-              display: "inline-block",
-              margin: "0 10px",
-            }}
-            text={text}
-          />{" "}
-          {render_dedicated_vm_help()}
         </Col>
       </Row>
     );
@@ -857,30 +777,11 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
       );
   }
 
-  function render_dedicated(): React.JSX.Element {
-    return (
-      <div style={ROW_STYLE}>
-        We also offer <b>dedicated virtual machines</b>, which are usually a
-        much better value than always running dedicated cpu's. Request a quote
-        below and explain that you're interested in a dedicated VM.
-      </div>
-    );
-  }
-
-  if (isDedicated && !(isOnPrem && quota.dedicated_vm != null)) {
-    return (
-      <Typography.Text strong type="danger">
-        Dear Admin: editing a Dedicated VM or Disk is not yet implemented.
-      </Typography.Text>
-    );
-  }
-
   function render_advanced_onprem(): React.JSX.Element | undefined {
     if (!show_advanced || !isOnPrem) return;
     return (
       <>
         {render_ext_rw()}
-        {render_dedicated_vm()}
         {render_gpu()}
         {render_patch_project_pod()}
       </>
@@ -895,7 +796,6 @@ export const QuotaEditor: React.FC<Props> = (props: Props) => {
         {render_idle_timeout()}
         {render_dedicated_cpu()}
         {render_dedicated_ram()}
-        {!hideExtra && render_dedicated()}
         {render_advanced_onprem()}
       </>
     );
