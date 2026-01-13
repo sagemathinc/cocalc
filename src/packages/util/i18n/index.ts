@@ -23,3 +23,4 @@ export {
 
 export { isIntlMessage } from "./types";
 export type { Locale };
+export { WORKSPACE_LABEL, WORKSPACES_LABEL } from "./terminology";

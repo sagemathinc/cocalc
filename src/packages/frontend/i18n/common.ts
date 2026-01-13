@@ -61,16 +61,18 @@ export const labels = defineMessages({
     defaultMessage: "No",
     description: "A denial response, often used in dialogs or prompts.",
   },
+  // Note: do not import WORKSPACE_LABEL(S) here; the i18n extractor
+  // requires a literal defaultMessage (it does not handle variables).
   project: {
-    id: "labels.project",
-    defaultMessage: "Project",
-    description: "Label for a single project, label on a button, title, etc.",
+    id: "labels.workspace",
+    defaultMessage: "Workspace",
+    description: "Label for a single workspace, label on a button, title, etc.",
   },
   projects: {
-    id: "labels.projects",
-    defaultMessage: "Projects",
+    id: "labels.workspaces",
+    defaultMessage: "Workspaces",
     description:
-      "Label for a collection of projects, label on a button, title, etc.",
+      "Label for a collection of workspaces, label on a button, title, etc.",
   },
   create: {
     id: "labels.create",
