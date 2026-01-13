@@ -5,6 +5,7 @@ import {
   mapCloudRegionToR2Region,
   parseR2Region,
 } from "@cocalc/util/consts";
+import { stopProjectOnHost } from "../project-host/control";
 
 const log = getLogger("server:projects:move");
 
@@ -21,6 +22,9 @@ type MoveProjectContext = {
   project_region: string;
   dest_region: string;
   project_host_id?: string | null;
+  last_backup?: string | null;
+  last_edited?: string | null;
+  project_state?: string | null;
 };
 
 async function buildMoveProjectContext(
@@ -32,8 +36,11 @@ async function buildMoveProjectContext(
     project_id: string;
     host_id: string | null;
     region: string | null;
+    last_backup: string | null;
+    last_edited: string | null;
+    project_state: string | null;
   }>(
-    "SELECT project_id, host_id, region FROM projects WHERE project_id=$1",
+    "SELECT project_id, host_id, region, last_backup, last_edited, state->>'state' AS project_state FROM projects WHERE project_id=$1",
     [project_id],
   );
   const projectRow = projectResult.rows[0];
@@ -45,7 +52,7 @@ async function buildMoveProjectContext(
     region: string | null;
     status: string | null;
   }>(
-    "SELECT id, region, status FROM project_hosts WHERE id=$1 AND deleted IS NULL",
+    "SELECT id, region, status FROM project_hosts WHERE id=$1 AND deleted IS NOT TRUE",
     [dest_host_id],
   );
   const hostRow = hostResult.rows[0];
@@ -67,6 +74,9 @@ async function buildMoveProjectContext(
     project_region,
     dest_region,
     project_host_id: projectRow.host_id,
+    last_backup: projectRow.last_backup,
+    last_edited: projectRow.last_edited,
+    project_state: projectRow.project_state,
   };
 }
 
@@ -81,6 +91,33 @@ export async function moveProjectToHost(
     project_region: context.project_region,
     dest_region: context.dest_region,
     project_host_id: context.project_host_id,
+    project_state: context.project_state,
+    last_backup: context.last_backup,
+    last_edited: context.last_edited,
   });
-  throw new Error("moveProjectToHost not implemented yet");
+  const projectRunning = ["running", "starting"].includes(
+    String(context.project_state ?? ""),
+  );
+  if (projectRunning) {
+    log.info("moveProjectToHost stopping project before move", {
+      project_id: context.project_id,
+      project_state: context.project_state,
+    });
+    await stopProjectOnHost(context.project_id);
+  }
+  const lastEdited =
+    context.last_edited != null ? new Date(context.last_edited) : undefined;
+  const lastBackup =
+    context.last_backup != null ? new Date(context.last_backup) : undefined;
+  const backupNeeded =
+    !lastBackup || (lastEdited && lastEdited > lastBackup);
+  log.info("moveProjectToHost backup requirement", {
+    project_id: context.project_id,
+    backup_needed: backupNeeded,
+    last_backup: lastBackup ? lastBackup.toISOString() : null,
+    last_edited: lastEdited ? lastEdited.toISOString() : null,
+  });
+  throw new Error(
+    "moveProjectToHost not implemented beyond backup requirement yet",
+  );
 }
