@@ -21,6 +21,7 @@ import SiteName from "components/share/site-name";
 import useAPI from "lib/hooks/api";
 import bella from "public/shopping/bella.png";
 import TimeAgo from "timeago-react";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 
 import type { JSX } from "react";
 
@@ -79,7 +80,7 @@ export default function Congrats() {
                 <li style={{ marginBottom: "15px" }}>
                   You can{" "}
                   <A href="https://doc.cocalc.com/project-settings.html#project-add-license">
-                    apply a license to projects
+                    apply a license to workspaces
                   </A>
                   ,{" "}
                   <A href="https://doc.cocalc.com/teaching-upgrade-course.html#install-course-license">
@@ -89,7 +90,7 @@ export default function Congrats() {
                   <A href="https://doc.cocalc.com/licenses.html">
                     explained here
                   </A>
-                  . It's time to make your <SiteName /> projects much, much
+                  . It's time to make your <SiteName /> workspaces much, much
                   better.
                 </li>
               </ul>
@@ -156,13 +157,13 @@ export default function Congrats() {
           message={
             <>
               <p>
-                The following {plural(numApplied, "project")} automatically got
-                a license applied:
+                The following {plural(numApplied, WORKSPACE_LABEL.toLowerCase())}{" "}
+                automatically got a license applied:
               </p>
               <ul>
                 {appliedProjects.map((x) => (
                   <li key={x.project_id}>
-                    Project{" "}
+                    {WORKSPACE_LABEL}{" "}
                     <A href={`/projects/${x.project_id}`} external={true}>
                       {x.project_id}
                     </A>{" "}

@@ -22,6 +22,7 @@ import Edit from "./edit";
 import editURL from "lib/share/edit-url";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { Avatar } from "antd";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 
 export default function Project({
   project_id,
@@ -58,7 +59,7 @@ export default function Project({
               style={{ float: "right" }}
             />
           )}
-          Project:{" "}
+          {WORKSPACE_LABEL}:{" "}
           {collab ? (
             <A href={editURL({ project_id, type: "collaborator" })} external>
               {title}

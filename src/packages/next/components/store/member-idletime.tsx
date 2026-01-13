@@ -7,6 +7,10 @@ import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
 } from "@cocalc/util/consts/site-license";
+import {
+  WORKSPACE_LABEL,
+  WORKSPACES_LABEL,
+} from "@cocalc/util/i18n/terminology";
 import { Divider, Form, Radio, Typography } from "antd";
 import A from "components/misc/A";
 import type { JSX } from "react";
@@ -58,33 +62,37 @@ export function IdleTimeout(props: Props) {
         return (
           <>
             <Text strong type="secondary">
-              Keep projects running:
+              Keep {WORKSPACES_LABEL.toLowerCase()} running:
             </Text>{" "}
-            Once started your project stays running, so you can run very long
-            computations and also never have to wait for your project to start.
+            Once started your {WORKSPACE_LABEL.toLowerCase()} stays running, so
+            you can run very long computations and also never have to wait for
+            your {WORKSPACE_LABEL.toLowerCase()} to start.
             This effectively disables{" "}
             <A href="https://doc.cocalc.com/howto/software-development.html#idle-timeout">
               idle timeout
             </A>
-            , since your project will restart automatically if it stops. See{" "}
+            , since your {WORKSPACE_LABEL.toLowerCase()} will restart
+            automatically if it stops. See{" "}
             <A href="https://doc.cocalc.com/project-init.html">
-              project init scripts
+              {WORKSPACE_LABEL.toLowerCase()} init scripts
             </A>
-            . (Note: this is NOT guaranteed 100% uptime, since projects may
-            sometimes restart for security and maintenance reasons.)
+            . (Note: this is NOT guaranteed 100% uptime, since{" "}
+            {WORKSPACES_LABEL.toLowerCase()} may sometimes restart for security
+            and maintenance reasons.)
           </>
         );
       } else {
         return (
           <>
-            Projects stop automatically if they are not actively used.
-            Increasing{" "}
+            {WORKSPACES_LABEL} stop automatically if they are not actively
+            used. Increasing{" "}
             <A href="https://doc.cocalc.com/howto/software-development.html#idle-timeout">
               idle timeout
             </A>{" "}
             will allow you to run longer calculations without you having to be
-            active while they run. However, this is not 100% guaranteed, because
-            projects may still restart due to maintenance or security reasons.
+            active while they run. However, this is not 100% guaranteed,
+            because {WORKSPACES_LABEL.toLowerCase()} may still restart due to
+            maintenance or security reasons.
           </>
         );
       }

@@ -8,6 +8,7 @@ import useDatabase from "lib/hooks/database";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { field_cmp } from "@cocalc/util/cmp";
+import { WORKSPACE_LABEL, WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 
 interface Props {
   label?: string;
@@ -22,6 +23,8 @@ export default function SelectProject({
   defaultOpen,
   allowCreate,
 }: Props) {
+  const workspaceLabel = WORKSPACE_LABEL;
+  const workspacesLabelLower = WORKSPACES_LABEL.toLowerCase();
   const { error, value, loading } = useDatabase({
     projects: [{ title: null, project_id: null, last_edited: null }],
   });
@@ -42,17 +45,22 @@ export default function SelectProject({
       v.push({
         label: (
           <>
-            <Icon name="plus-circle" /> Create Project...
+            <Icon name="plus-circle" /> Create {workspaceLabel}...
           </>
         ),
-        value: JSON.stringify({ project_id: "", title: "Untitled Project" }),
+        value: JSON.stringify({
+          project_id: "",
+          title: `Untitled ${workspaceLabel}`,
+        }),
       });
     }
     return v;
   }, [loading]);
   return (
     <div>
-      <Divider style={{ color: "#666" }}>{label ?? "Select a Project"}</Divider>
+      <Divider style={{ color: "#666" }}>
+        {label ?? `Select a ${workspaceLabel}`}
+      </Divider>
       <Space direction="vertical" style={{ width: "100%" }}>
         {error && <Alert type="error" message={error} showIcon />}
         {loading && <Loading style={{ fontSize: "24pt" }} />}
@@ -62,13 +70,13 @@ export default function SelectProject({
               defaultOpen={defaultOpen}
               showSearch
               style={{ width: "100%" }}
-              placeholder={"Select a Project..."}
+              placeholder={`Select a ${workspaceLabel}...`}
               optionFilterProp="label"
               options={projects}
               onChange={(x) => (x ? onChange(JSON.parse(`${x}`)) : undefined)}
             />
           ) : (
-            <div>You do not have any recent projects.</div>
+            <div>You do not have any recent {workspacesLabelLower}.</div>
           ))}
       </Space>
     </div>

@@ -17,6 +17,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { search_split, search_match } from "@cocalc/util/misc";
 import Timestamp from "components/misc/timestamp";
 import { Paragraph, Title as AntdTitle } from "components/misc";
+import { WORKSPACE_LABEL, WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 
 function Title({ title, project_id }) {
   return (
@@ -67,7 +68,7 @@ const columns = [
     title: "Invoices and Receipts",
     render: (_, project) => (
       <div>
-        Project: <Title {...project} />
+        {WORKSPACE_LABEL}: <Title {...project} />
         <div>
           Last Edited: <LastEdited {...project} />
         </div>
@@ -87,7 +88,7 @@ const columns = [
   },
   {
     responsive: ["sm"] as any,
-    title: "Project",
+    title: WORKSPACE_LABEL,
     width: "30%",
     render: (_, project) => <Title {...project} />,
     sorter: { compare: (a, b) => cmp(a.title, b.title) },
@@ -100,9 +101,9 @@ const columns = [
         title="Licenses"
         content={
           <div style={{ maxWidth: "75ex" }}>
-            These licenses are all applied to the project. They may or may not
-            contribute any upgrades, depending on how the license is being used
-            across all projects.
+            These licenses are all applied to the {WORKSPACE_LABEL.toLowerCase()}
+            . They may or may not contribute any upgrades, depending on how the
+            license is being used across all {WORKSPACES_LABEL.toLowerCase()}.
           </div>
         }
       >
@@ -123,11 +124,11 @@ const columns = [
         title="Last Edited"
         content={
           <div style={{ maxWidth: "75ex" }}>
-            When the project was last edited.
+            When the {WORKSPACE_LABEL.toLowerCase()} was last edited.
           </div>
         }
       >
-        Project Last Edited
+        {WORKSPACE_LABEL} Last Edited
       </Popover>
     ),
     render: (_, project) => <LastEdited {...project} />,
@@ -138,17 +139,19 @@ const columns = [
     title: (
       <Popover
         placement="bottom"
-        title="Project Hidden"
+        title={`${WORKSPACE_LABEL} Hidden`}
         content={
           <div style={{ maxWidth: "75ex" }}>
-            Whether or not the project is "hidden" from you, so it doesn't
-            appear in your default list of projects. Typically all student
-            projects in a course you teach are hidden. There is a checkmark
-            below for hidden projects.
+            Whether or not the {WORKSPACE_LABEL.toLowerCase()} is "hidden" from
+            you, so it doesn't appear in your default list of{" "}
+            {WORKSPACES_LABEL.toLowerCase()}. Typically all student{" "}
+            {WORKSPACES_LABEL.toLowerCase()} in a course you teach are hidden.
+            There is a checkmark below for hidden{" "}
+            {WORKSPACES_LABEL.toLowerCase()}.
           </div>
         }
       >
-        Project Hidden
+        {WORKSPACE_LABEL} Hidden
       </Popover>
     ),
     width: "10%",
@@ -171,12 +174,15 @@ export default function LicensedProjects() {
   }
   return (
     <>
-      <AntdTitle level={2}>Your Licensed Projects ({result.length})</AntdTitle>
+      <AntdTitle level={2}>
+        Your Licensed {WORKSPACES_LABEL} ({result.length})
+      </AntdTitle>
       <Paragraph>
-        These are the licensed projects that you are a collaborator on. You
-        might not be a manager of some of the licenses listed below. If you're
-        teaching a course, the student projects are likely hidden from your
-        normal project list, but are included below.
+        These are the licensed {WORKSPACES_LABEL.toLowerCase()} that you are a
+        collaborator on. You might not be a manager of some of the licenses
+        listed below. If you're teaching a course, the student{" "}
+        {WORKSPACES_LABEL.toLowerCase()} are likely hidden from your normal{" "}
+        {WORKSPACE_LABEL.toLowerCase()} list, but are included below.
       </Paragraph>
       <Paragraph style={{ margin: "15px 0" }}>
         <Input.Search

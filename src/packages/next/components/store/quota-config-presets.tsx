@@ -7,6 +7,7 @@ import { ReactNode } from "react";
 import type { IconName } from "@cocalc/frontend/components/icon";
 import { Uptime } from "@cocalc/util/consts/site-license";
 import { MAX_DISK_GB } from "@cocalc/util/upgrades/consts";
+import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import { STANDARD_DISK } from "@cocalc/util/consts/billing";
@@ -44,6 +45,7 @@ type PresetEntries = {
 // some constants to keep text and preset in sync
 const STANDARD_CPU = 1;
 const STANDARD_RAM = 4;
+const WORKSPACE_LABEL_LOWER = WORKSPACE_LABEL.toLowerCase();
 
 const PRESET_STANDARD_NAME = "Standard";
 
@@ -60,17 +62,18 @@ export const SITE_LICENSE: PresetEntries = {
     ],
     note: (
       <Paragraph type="secondary">
-        You can start with a "Run Limit" of one project. Later, when your usage
-        increases, you can easily edit your license at any time to change the
-        "Run Limit" or the quotas. Read more about{" "}
+        You can start with a "Run Limit" of one {WORKSPACE_LABEL_LOWER}. Later,
+        when your usage increases, you can easily edit your license at any time
+        to change the "Run Limit" or the quotas. Read more about{" "}
         <A href={"https://doc.cocalc.com/licenses.html"}>Managing Licenses</A>{" "}
         in our documentation.
       </Paragraph>
     ),
     details: (
       <>
-        You can run 5-10 Jupyter Notebooks in a project at once, depending on
-        the kernel and memory usage. This quota is fine for editing LaTeX
+        You can run 5-10 Jupyter Notebooks in a {WORKSPACE_LABEL_LOWER} at
+        once, depending on the kernel and memory usage. This quota is fine for
+        editing LaTeX
         documents, working with Sage Worksheets, using VS Code, and editing all
         other document types. Also, {STANDARD_DISK} GB of disk space is
         sufficient to store many files and a few small datasets.
@@ -85,20 +88,20 @@ export const SITE_LICENSE: PresetEntries = {
   instructor: {
     icon: "slides",
     name: "Instructor",
-    descr: "is good for your instructor project when teaching a course",
+    descr: `is good for your instructor ${WORKSPACE_LABEL_LOWER} when teaching a course`,
     expect: [
       "Grade the work of students,",
       "Run 10-20 Jupyter Notebooks at once¹,",
       "Store the files of all students,",
-      "Make longer breaks without your project being shut down.",
+      `Make longer breaks without your ${WORKSPACE_LABEL_LOWER} being shut down.`,
     ],
     note: (
       <>
         <Paragraph type="secondary">
-          For your instructor project, you only need one such license with a
-          "Run Limit" of 1. Apply that license via the{" "}
+          For your instructor {WORKSPACE_LABEL_LOWER}, you only need one such
+          license with a "Run Limit" of 1. Apply that license via the{" "}
           <A href={"https://doc.cocalc.com/project-settings.html#licenses"}>
-            project settings
+            {WORKSPACE_LABEL_LOWER} settings
           </A>
           . For the students, select a "{PRESET_STANDARD_NAME}" license with a
           "Run Limit" of the number of students and distribute it via the{" "}
@@ -139,11 +142,11 @@ export const SITE_LICENSE: PresetEntries = {
         to avoid exceeding the quota. Regarding disk space, distributing and
         collecting files from many students adds up – hence the disk quota is
         increased significantly! Finally, a longer idle-timeout will allow you
-        to make longer breaks without your project being shut down. You only
-        need a license with a "Run Limit" of one for your instructor project.
-        Apply that license via the{" "}
+        to make longer breaks without your {WORKSPACE_LABEL_LOWER} being shut
+        down. You only need a license with a "Run Limit" of one for your
+        instructor {WORKSPACE_LABEL_LOWER}. Apply that license via the{" "}
         <A href={"https://doc.cocalc.com/project-settings.html#licenses"}>
-          project settings
+          {WORKSPACE_LABEL_LOWER} settings
         </A>
         , not the course configuration!
       </>
@@ -178,7 +181,8 @@ export const SITE_LICENSE: PresetEntries = {
     ),
     details: (
       <>
-        This configuration allows the project to run many Jupyter Notebooks at
+        This configuration allows the {WORKSPACE_LABEL_LOWER} to run many
+        Jupyter Notebooks at
         once and run memory-intensive computations. An idle-timeout of one day
         is sufficient to not interrupt your work; you can also execute
         long-running calculations with this configuration. Increasing the disk
@@ -210,11 +214,11 @@ export const COURSE = {
     note: <>Suitable for most courses.</>,
     details: (
       <>
-        You can run a couple of Jupyter Notebooks in a project at once,
-        depending on the kernel and memory usage. This quota is fine for editing
-        LaTeX documents, working with Sage Worksheets, using VS Code, and
-        editing all other document types. Also, {STANDARD_DISK} GB of disk space
-        is sufficient to store many files and a few small datasets.
+        You can run a couple of Jupyter Notebooks in a {WORKSPACE_LABEL_LOWER}{" "}
+        at once, depending on the kernel and memory usage. This quota is fine
+        for editing LaTeX documents, working with Sage Worksheets, using VS
+        Code, and editing all other document types. Also, {STANDARD_DISK} GB of
+        disk space is sufficient to store many files and a few small datasets.
       </>
     ),
     cpu: STANDARD_CPU,
@@ -238,8 +242,8 @@ export const COURSE = {
       <>
         This configuration provides enhanced resources for more demanding
         coursework. With 1 CPU, 8GB RAM, and a 2-hour idle timeout, students can
-        work on memory-intensive projects and longer computational tasks without
-        interruption. Ideal for advanced programming, data science, and
+        work on memory-intensive workloads and longer computational tasks
+        without interruption. Ideal for advanced programming, data science, and
         research-oriented courses.
       </>
     ),

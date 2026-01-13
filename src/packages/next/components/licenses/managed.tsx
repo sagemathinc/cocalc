@@ -16,6 +16,10 @@ import { useMemo, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
+import {
+  WORKSPACE_LABEL,
+  WORKSPACES_LABEL,
+} from "@cocalc/util/i18n/terminology";
 import { cmp, plural, search_match, search_split } from "@cocalc/util/misc";
 import Avatar from "components/account/avatar";
 import UserName from "components/account/name";
@@ -38,8 +42,9 @@ export const quotaColumn = {
       title="Quota"
       content={
         <div style={{ maxWidth: "75ex" }}>
-          This is the license quota. If the license is active on a project, its
-          quotas will be set to at least the values listed here.
+          This is the license quota. If the license is active on a{" "}
+          {WORKSPACE_LABEL.toLowerCase()}, its quotas will be set to at least
+          the values listed here.
         </div>
       }
     >
@@ -165,10 +170,11 @@ function columns(onChange) {
           content={
             <div style={{ maxWidth: "75ex" }}>
               The first line is the id of the license, which anybody can enter
-              in various places to upgrade projects or courses. The title and
-              description of the license help you keep track of what the license
-              is for, and you can edit both fields here as well by clicking on
-              them.
+              in various places to upgrade{" "}
+              {WORKSPACES_LABEL.toLowerCase()} or courses. The title and
+              description of the license help you keep track of what the
+              license is for, and you can edit both fields here as well by
+              clicking on them.
             </div>
           }
         >
@@ -217,9 +223,11 @@ function columns(onChange) {
           title="Run Limit"
           content={
             <div style={{ maxWidth: "75ex" }}>
-              The maximum number of simultaneous running projects that this
-              license can upgrade. You can apply the license to any number of
-              projects, but it only impacts this many projects at once.
+              The maximum number of simultaneous running{" "}
+              {WORKSPACES_LABEL.toLowerCase()} that this license can upgrade.
+              You can apply the license to any number of{" "}
+              {WORKSPACES_LABEL.toLowerCase()}, but it only impacts this many{" "}
+              {WORKSPACES_LABEL.toLowerCase()} at once.
             </div>
           }
         >
@@ -239,9 +247,10 @@ function columns(onChange) {
           title="When License was Last Used"
           content={
             <div style={{ maxWidth: "75ex" }}>
-              This is when this license was last used to upgrade a project when
-              the project was starting. It's the point in time when the project
-              started.
+              This is when this license was last used to upgrade a{" "}
+              {WORKSPACE_LABEL.toLowerCase()} when the{" "}
+              {WORKSPACE_LABEL.toLowerCase()} was starting. It's the point in
+              time when the {WORKSPACE_LABEL.toLowerCase()} started.
             </div>
           }
         >
@@ -313,7 +322,8 @@ export default function ManagedLicenses() {
       <Paragraph>
         These are the licenses that you have purchased or been added to manage.
         You can add other people as managers of any of these licenses, if they
-        need to be able to use these licenses to upgrade projects. You can also{" "}
+        need to be able to use these licenses to upgrade{" "}
+        {WORKSPACES_LABEL.toLowerCase()}. You can also{" "}
         <A href="/billing/subscriptions">manage your purchased subscriptions</A>{" "}
         and browse <A href="/billing/receipts">your receipts and invoices</A>.
       </Paragraph>
@@ -490,8 +500,8 @@ function RemoveManager({
               license listed under licenses they manage.
             </>
           )}
-          <br /> The license will <i>not</i> be automatically removed from any
-          projects.
+          <br /> The license will <i>not</i> be automatically removed from any{" "}
+          {WORKSPACES_LABEL.toLowerCase()}.
         </>
       }
       onConfirm={async () => {
