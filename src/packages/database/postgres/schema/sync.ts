@@ -47,6 +47,34 @@ async function getColumnTypeInfo(
   return columns;
 }
 
+function parseTriggerDependencyError(
+  err: unknown,
+  table: string,
+): { trigger: string; table: string } | null {
+  if (err == null || typeof err !== "object") {
+    return null;
+  }
+  const pgErr = err as { code?: string; detail?: string };
+  if (pgErr.code !== "0A000" || typeof pgErr.detail !== "string") {
+    return null;
+  }
+  const match = pgErr.detail.match(
+    /trigger ([^ ]+) on table ([^ ]+) depends on column/,
+  );
+  if (!match) {
+    return null;
+  }
+  const trigger = match[1];
+  const triggerTable = match[2];
+  const normalizedTable = triggerTable.includes(".")
+    ? triggerTable.split(".").pop()
+    : triggerTable;
+  if (!trigger.startsWith("change_") || normalizedTable !== table) {
+    return null;
+  }
+  return { trigger, table: normalizedTable };
+}
+
 async function alterColumnOfTable(
   db: Client,
   schema: TableSchema,
@@ -76,9 +104,32 @@ async function alterColumnOfTable(
       "alter this column's type:",
       col,
     );
-    await db.query(
-      `ALTER TABLE ${qTable} ALTER COLUMN ${col} TYPE ${desc} USING ${col}::${type}`,
-    );
+    const query = `ALTER TABLE ${qTable} ALTER COLUMN ${col} TYPE ${desc} USING ${col}::${type}`;
+    try {
+      await db.query(query);
+    } catch (err) {
+      const dependency = parseTriggerDependencyError(err, schema.name);
+      if (!dependency) {
+        throw err;
+      }
+      log.debug(
+        "alterColumnOfTable",
+        schema.name,
+        "dropping trigger",
+        dependency.trigger,
+        "on",
+        dependency.table,
+      );
+      await db.query(
+        `DROP TRIGGER IF EXISTS ${quoteField(dependency.trigger)} ON ${quoteField(
+          dependency.table,
+        )}`,
+      );
+      await db.query(
+        `DROP FUNCTION IF EXISTS ${quoteField(dependency.trigger)}()`,
+      );
+      await db.query(query);
+    }
   } else if (action == "add") {
     log.debug("alterColumnOfTable", schema.name, "add this column:", col);
     await db.query(`ALTER TABLE ${qTable} ADD COLUMN ${col} ${desc}`);
