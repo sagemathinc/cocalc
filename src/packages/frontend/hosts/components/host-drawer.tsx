@@ -295,11 +295,11 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
             <Space direction="vertical" size="small">
               <Typography.Text strong>Software</Typography.Text>
               {host.version && (
-                <Typography.Text>Project host: {host.version}</Typography.Text>
+                <Typography.Text>Workspace host: {host.version}</Typography.Text>
               )}
               {host.project_bundle_version && (
                 <Typography.Text>
-                  Project bundle: {host.project_bundle_version}
+                  Workspace bundle: {host.project_bundle_version}
                 </Typography.Text>
               )}
               {host.tools_version && (

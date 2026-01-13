@@ -124,9 +124,10 @@ export function NoInternetModal(props: NoInternetBannerProps) {
           {intl.formatMessage(
             {
               id: "project.no-internet-modal.title",
-              defaultMessage: 'Project "{name}" has no internet access',
+              defaultMessage: '{projectLabel} "{name}" has no internet access',
             },
             {
+              projectLabel: intl.formatMessage(labels.project),
               name: trunc(project?.get("title") ?? project_id, 30),
             },
           )}

@@ -31,13 +31,16 @@ export function HideDeleteBox(props: Readonly<Props>) {
   const { project, actions, mode = "project" } = props;
   const isFlyout = mode === "flyout";
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
+  const projectsLabelLower = intl.formatMessage(labels.projects).toLowerCase();
   const is_deleted = project.get("deleted");
 
   const deleteUndeleteMsg = (
     <FormattedMessage
       id="project.settings.hide-delete-box.delete.label"
-      defaultMessage={`{is_deleted, select, true {Undelete Project} other {Delete Project}}`}
-      values={{ is_deleted }}
+      defaultMessage={`{is_deleted, select, true {Undelete {projectLabel}} other {Delete {projectLabel}}}`}
+      values={{ is_deleted, projectLabel }}
     />
   );
 
@@ -62,11 +65,12 @@ export function HideDeleteBox(props: Readonly<Props>) {
         <span>
           <FormattedMessage
             id="project.settings.hide-delete-box.delete.explanation"
-            defaultMessage={`Delete this project for everyone.
-            You can undo this for a few days after which it becomes permanent and all data in this project is lost.
-            Any running compute servers stop shortly after the project is deleted,
+            defaultMessage={`Delete this {projectLabel} for everyone.
+            You can undo this for a few days after which it becomes permanent and all data in this {projectLabel} is lost.
+            Any running compute servers stop shortly after the {projectLabel} is deleted,
             and the compute servers will be permanently deleted in a few days,
-            if the project is not undeleted.`}
+            if the {projectLabel} is not undeleted.`}
+            values={{ projectLabel: projectLabelLower }}
           />
         </span>
       );
@@ -85,14 +89,14 @@ export function HideDeleteBox(props: Readonly<Props>) {
         id="project.settings.hide-delete-box.hide.explanation"
         defaultMessage={`
           {hide, select, true {
-            Unhide this project, so it shows up in your default project listing.
+            Unhide this {projectLabel}, so it shows up in your default {projectLabel} listing.
             Right now it only appears when hidden is checked.
           }
           other {
-            Hide this project, so it does not show up in your default project listing.
+            Hide this {projectLabel}, so it does not show up in your default {projectLabel} listing.
             This only impacts you, not your collaborators, and you can easily unhide it.
           }}`}
-        values={{ hide: hidden }}
+        values={{ hide: hidden, projectLabel: projectLabelLower }}
       />
     );
 
@@ -118,10 +122,13 @@ export function HideDeleteBox(props: Readonly<Props>) {
           arrow={{ pointAtCenter: true }}
           title={render_expanded_delete_info()}
           onConfirm={toggle_delete_project}
-          okText={intl.formatMessage({
-            id: "project.settings.hide-delete-box.delete.confirm.yes",
-            defaultMessage: `Yes, please delete this project!`,
-          })}
+          okText={intl.formatMessage(
+            {
+              id: "project.settings.hide-delete-box.delete.confirm.yes",
+              defaultMessage: `Yes, please delete this {projectLabel}!`,
+            },
+            { projectLabel: projectLabelLower },
+          )}
           cancelText={intl.formatMessage(labels.cancel)}
           overlayStyle={{ maxWidth: "400px" }}
           icon={<Icon name="trash" />}
@@ -146,22 +153,28 @@ export function HideDeleteBox(props: Readonly<Props>) {
     return (
       <Paragraph>
         <div style={{ marginBottom: "5px" }}>
-          {intl.formatMessage({
-            id: "project.settings.hide-delete-box.delete.warning.title",
-            defaultMessage: `Are you sure you want to delete this project?`,
-          })}
+          {intl.formatMessage(
+            {
+              id: "project.settings.hide-delete-box.delete.warning.title",
+              defaultMessage: `Are you sure you want to delete this {projectLabel}?`,
+            },
+            { projectLabel: projectLabelLower },
+          )}
         </div>
         {has_upgrades ? (
           <Alert
             showIcon
             style={{ margin: "15px" }}
             type="info"
-            description={intl.formatMessage({
-              id: "project.settings.hide-delete-box.delete.warning.info",
-              defaultMessage: `All of your upgrades from this project will be removed automatically.
-              Undeleting the project will not automatically restore them.
+            description={intl.formatMessage(
+              {
+                id: "project.settings.hide-delete-box.delete.warning.info",
+                defaultMessage: `All of your upgrades from this {projectLabel} will be removed automatically.
+              Undeleting the {projectLabel} will not automatically restore them.
               This will not affect upgrades other people have applied.`,
-            })}
+              },
+              { projectLabel: projectLabelLower },
+            )}
           />
         ) : undefined}
       </Paragraph>
@@ -172,9 +185,9 @@ export function HideDeleteBox(props: Readonly<Props>) {
     const hide_label = intl.formatMessage(
       {
         id: "project.settings.hide-delete-box.hide.label",
-        defaultMessage: `{hidden, select, true {Unhide Project} other {Hide Project}}`,
+        defaultMessage: `{hidden, select, true {Unhide {projectLabel}} other {Hide {projectLabel}}}`,
       },
-      { hidden },
+      { hidden, projectLabel },
     );
 
     const hide_switch = defineMessage({
@@ -217,10 +230,14 @@ export function HideDeleteBox(props: Readonly<Props>) {
             <Paragraph type="secondary">
               <FormattedMessage
                 id="project.settings.hide-delete-box.delete.disclaimer"
-                defaultMessage={`Projects are not immediately deleted.
-                If you need to permanently and immediately delete some sensitive information in this project,
+                defaultMessage={`{projectsLabel} are not immediately deleted.
+                If you need to permanently and immediately delete some sensitive information in this {projectLabel},
                 contact {help}.`}
-                values={{ help: <HelpEmailLink /> }}
+                values={{
+                  help: <HelpEmailLink />,
+                  projectsLabel: projectsLabelLower,
+                  projectLabel: projectLabelLower,
+                }}
               />
             </Paragraph>
           </Col>
@@ -240,10 +257,13 @@ export function HideDeleteBox(props: Readonly<Props>) {
   } else {
     return (
       <SettingBox
-        title={intl.formatMessage({
-          id: "project.settings.hide-delete-box.title",
-          defaultMessage: "Hide or Delete Project",
-        })}
+        title={intl.formatMessage(
+          {
+            id: "project.settings.hide-delete-box.title",
+            defaultMessage: "Hide or Delete {projectLabel}",
+          },
+          { projectLabel },
+        )}
         icon="warning"
       >
         {renderBody()}

@@ -19,6 +19,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { labels } from "@cocalc/frontend/i18n";
 import {
   get_local_storage,
   set_local_storage,
@@ -52,6 +53,7 @@ export function ProjectsTable({
 }: Props) {
   const intl = useIntl();
   const actions = useActions("projects");
+  const projectLabel = intl.formatMessage(labels.project);
   const project_map = useTypedRedux("projects", "project_map");
   const user_map = useTypedRedux("users", "user_map");
   const expanded_project_id = useTypedRedux("projects", "expanded_project_id");
@@ -83,7 +85,7 @@ export function ProjectsTable({
         return {
           project_id,
           starred: false,
-          title: "Unknown Project",
+          title: `Unknown ${projectLabel}`,
           description: "",
           last_edited: undefined,
           deleted: false,

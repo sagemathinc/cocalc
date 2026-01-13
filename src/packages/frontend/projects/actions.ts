@@ -1004,7 +1004,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const host_id = store.getIn(["project_map", project_id, "host_id"]);
     const actions = redux.getProjectActions(project_id);
     const id = uuid();
-    const status = `Moving Project`;
+    const status = `Moving Workspace`;
     actions.set_activity({ id, status });
     try {
       // start the move going
@@ -1044,7 +1044,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       if (dest_host_id === current_host) return true;
       const actions = redux.getProjectActions(project_id);
       const id = uuid();
-      const status = `Moving Project`;
+      const status = `Moving Workspace`;
       actions?.set_activity({ id, status });
       try {
         await webapp_client.conat_client.hub.projects.moveProject({

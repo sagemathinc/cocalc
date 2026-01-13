@@ -102,7 +102,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
                   A compute server belongs to the user who created it, and they
                   will be billed by the second for usage. Select "Allow
                   Collaborator Control" to allow project collaborators to start
-                  and stop a compute server. Project collaborators can always
+                  and stop a compute server. Workspace collaborators can always
                   connect to running compute servers.
                 </li>
                 <li>

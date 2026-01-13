@@ -9,12 +9,14 @@ declare let DEBUG;
 
 import { Alert, Button, Form, Modal, Popconfirm, Switch, Table } from "antd";
 import { useEffect, useRef, useState } from "react";
+import { useIntl } from "react-intl";
 
 import { InfoCircleOutlined, ScheduleOutlined } from "@ant-design/icons";
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
+import { labels } from "@cocalc/frontend/i18n";
 import { field_cmp, seconds2hms } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import {
@@ -65,6 +67,9 @@ interface Props {
 }
 
 export function Full(props: Readonly<Props>): React.JSX.Element {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const {
     any_alerts,
     cg_info,
@@ -210,7 +215,7 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
   function restart_project() {
     return (
       <Popconfirm
-        title="Are you sure to restart this project?"
+        title={`Are you sure to restart this ${projectLabelLower}?`}
         onConfirm={() => {
           const actions = redux.getActions("projects");
           actions?.restart_project(project_id);
@@ -218,7 +223,7 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
         okText="Restart"
         cancelText="No"
       >
-        <a href="#">restart this project</a>
+        <a href="#">restart this {projectLabelLower}</a>
       </Popconfirm>
     );
   }
@@ -236,13 +241,14 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
       case "ssh":
         return (
           <Modal
-            title="Project's SSH Daemon"
+            title={`${projectLabel}'s SSH Daemon`}
             open={modal === "ssh"}
             footer={render_modal_footer()}
             onCancel={() => set_modal(undefined)}
           >
             <div>
-              This process allows to SSH into this project. Do not terminate it!
+              This process allows to SSH into this {projectLabelLower}. Do not
+              terminate it!
               <br />
               Learn more: <A href={SSH_KEYS_DOC}>SSH keys documentation</A>
             </div>
@@ -251,14 +257,15 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
       case "project":
         return (
           <Modal
-            title="Project's process"
+            title={`${projectLabel}'s process`}
             open={modal === "project"}
             footer={render_modal_footer()}
             onCancel={() => set_modal(undefined)}
           >
             <div>
-              This is the project's own management process. Do not terminate it!
-              If it uses too much resources, you can {restart_project()}.
+              This is the {projectLabelLower}'s own management process. Do not
+              terminate it! If it uses too much resources, you can{" "}
+              {restart_project()}.
             </div>
           </Modal>
         );
@@ -559,7 +566,7 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
         <Alert
           type="warning"
           banner={true}
-          message={"Project is not running."}
+          message={`${projectLabel} is not running.`}
         />
       </Row>
     );

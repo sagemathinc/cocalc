@@ -123,6 +123,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   const isFlyout = mode === "flyout";
   const size = isFlyout ? "small" : undefined; // for buttons
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const project_actions = useActions({ project_id });
   const state = useProjectState(project_id);
   const has_internet = useProjectHasInternetAccess(project_id);
@@ -533,7 +534,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
           p: (c) => <p>{c}</p>,
           doc: (
             <A href={DOC_CLOUD_STORAGE_URL}>
-              Project Settings / Cloud Storage & Remote File Systems
+              {projectLabel} Settings / Cloud Storage & Remote File Systems
             </A>
           ),
         }}

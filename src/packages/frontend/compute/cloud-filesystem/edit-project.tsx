@@ -57,7 +57,7 @@ export default function EditProjectId({
       title={
         <>
           <Icon name={"folder-open"} /> Move "{cloudFilesystem.title}" to
-          Another Project
+          Another Workspace
         </>
       }
       open={open}

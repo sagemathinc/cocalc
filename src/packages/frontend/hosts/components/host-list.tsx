@@ -716,7 +716,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       <Space size="large" align="center">
         <Space size="middle" align="center">
           <Typography.Title level={5} style={{ margin: 0 }}>
-            Project Hosts
+            Workspace Hosts
           </Typography.Title>
           <Space size="small" align="center">
             <Typography.Text>Sort by</Typography.Text>
@@ -779,12 +779,13 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           style={{ maxWidth: 720, margin: "0 auto" }}
           title={
             <span>
-              <Icon name="server" /> Project Hosts
+              <Icon name="server" /> Workspace Hosts
             </span>
           }
         >
           <Typography.Paragraph>
-            Dedicated project hosts let you run and share normal CoCalc projects
+            Dedicated workspace hosts let you run and share normal CoCalc
+            workspaces
             on your own VMs (e.g. GPU or large-memory machines). Create one below
             to get started.
           </Typography.Paragraph>

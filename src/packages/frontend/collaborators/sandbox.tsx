@@ -49,9 +49,9 @@ export default function Sandbox({ project }: Props) {
           name={expanded ? "caret-down" : "caret-right"}
         />{" "}
         {project?.get("sandbox") ? (
-          <b>This is a Public Sandbox Project...</b>
+          <b>This is a Public Sandbox Workspace...</b>
         ) : (
-          "Make this a public sandbox project..."
+          "Make this a public sandbox workspace..."
         )}
       </a>
     </div>
@@ -65,16 +65,16 @@ export default function Sandbox({ project }: Props) {
       return (
         <div>
           <p>
-            If you make this project a public sandbox project, then you can
-            share any URL in your project and when somebody visits that URL they
-            will automatically be added as a collaborator to your project. All
-            collaborators who are not the owner will be removed if they are not
-            active for about 10 minutes. Any trial, member hosting, and network
-            banners are also not visible.
+            If you make this workspace a public sandbox workspace, then you can
+            share any URL in your workspace and when somebody visits that URL
+            they will automatically be added as a collaborator to your
+            workspace. All collaborators who are not the owner will be removed
+            if they are not active for about 10 minutes. Any trial, member
+            hosting, and network banners are also not visible.
           </p>
           <p>
             Only do this if you have very minimal security requirements for the
-            content of this project, and have no concern about potential cross
+            content of this workspace, and have no concern about potential cross
             site scripting attacks, e.g., you are running cocalc on a private
             network, or only share this URL with trusted people.
           </p>
@@ -119,7 +119,7 @@ export default function Sandbox({ project }: Props) {
                 .set_project_sandbox(project.get("project_id"), false);
             }}
           >
-            Public Sandbox Project
+            Public Sandbox Workspace
           </Checkbox>
         ) : (
           <Popconfirm
@@ -150,7 +150,7 @@ export default function Sandbox({ project }: Props) {
             okText={"Yes, make this a public sandbox project!"}
             cancelText={<CancelText />}
           >
-            <Checkbox checked={false}>Public Sandbox Project</Checkbox>
+            <Checkbox checked={false}>Public Sandbox Workspace</Checkbox>
           </Popconfirm>
         )}
         <br />

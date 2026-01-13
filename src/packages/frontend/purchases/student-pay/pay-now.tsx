@@ -178,7 +178,7 @@ export default function PayNow({
             }
           }}
         >
-          Close Project
+          Close Workspace
         </Button>
       </Space>
     </Modal>

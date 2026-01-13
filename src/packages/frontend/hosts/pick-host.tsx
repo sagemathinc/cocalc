@@ -172,7 +172,7 @@ export function HostPickerModal({
       destroyOnClose
     >
       <Typography.Paragraph type="secondary">
-        Pick a project host to move this project to. Files in{" "}
+        Pick a workspace host to move this workspace to. Files in{" "}
         <code>/scratch</code> (if any) will be discarded.
       </Typography.Paragraph>
       <Space style={{ marginBottom: 8 }}>

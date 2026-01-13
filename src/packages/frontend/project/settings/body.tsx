@@ -4,11 +4,13 @@
  */
 
 import React, { useMemo } from "react";
+import { useIntl } from "react-intl";
 
 import { Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { labels } from "@cocalc/frontend/i18n";
 import { Customer, ProjectMap } from "@cocalc/frontend/todo-types";
 import {
   KUCALC_COCALC_COM,
@@ -48,6 +50,8 @@ const is_same = (prev: ReactProps, next: ReactProps) => {
 
 export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
   const { project_id, account_id, project } = props;
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const kucalc = useTypedRedux("customize", "kucalc");
   const runQuota = useRunQuota(project_id, null);
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
@@ -83,7 +87,7 @@ export const Body: React.FC<ReactProps> = React.memo((props: ReactProps) => {
       {showNonMemberWarning ? <NonMemberProjectWarning /> : undefined}
       {showNoInternetWarning ? <NoNetworkProjectWarning /> : undefined}
       <h1 style={{ marginTop: "0px" }}>
-        <Icon name="wrench" /> Project Settings and Controls
+        <Icon name="wrench" /> {projectLabel} Settings and Controls
       </h1>
       <SavingProjectSettingsError project_id={project_id} />
       <Row>

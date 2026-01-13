@@ -5,7 +5,7 @@
 
 import { Button } from "antd";
 import { List } from "immutable";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
 
 import StatefulVirtuoso from "@cocalc/frontend/components/stateful-virtuoso";
@@ -22,6 +22,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, Loading } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { rowBackground, search_match, search_split } from "@cocalc/util/misc";
 import { LogEntry } from "./log-entry";
 import { LogSearch } from "./search";
@@ -32,6 +33,8 @@ interface Props {
 }
 
 export const ProjectLog: React.FC<Props> = ({ project_id }) => {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const project_log = useTypedRedux({ project_id }, "project_log");
   const project_log_all = useTypedRedux({ project_id }, "project_log_all");
   const search = useTypedRedux({ project_id }, "search") ?? "";
@@ -245,7 +248,8 @@ export const ProjectLog: React.FC<Props> = ({ project_id }) => {
           <Icon name="history" />{" "}
           <FormattedMessage
             id="project.history.log.title"
-            defaultMessage={"Project Activity Log"}
+            defaultMessage="{projectLabel} Activity Log"
+            values={{ projectLabel }}
           />
         </h1>
         {render_search()}

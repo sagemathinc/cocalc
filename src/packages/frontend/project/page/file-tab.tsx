@@ -151,7 +151,7 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     flyout: LicensesFlyout,
     flyoutTitle: defineMessage({
       id: "project.page.file-tab.upgrades.flyoutTitle",
-      defaultMessage: `Project Upgrades`,
+      defaultMessage: `Workspace Upgrades`,
     }),
     noAnonymous: false,
     noLite: true,

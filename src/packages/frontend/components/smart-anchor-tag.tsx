@@ -207,7 +207,7 @@ function CoCalcURL({ href, title, children, project_id }) {
         children = <>Settings</>;
       }
       icon = "wrench";
-      heading = "Project Settings";
+      heading = "Workspace Settings";
       message = (
         <>
           Open project settings in{" "}
@@ -241,7 +241,7 @@ function CoCalcURL({ href, title, children, project_id }) {
         children = <>Log</>;
       }
       icon = "history";
-      heading = "Project Log";
+      heading = "Workspace Log";
       message = (
         <>
           Open project log in{" "}

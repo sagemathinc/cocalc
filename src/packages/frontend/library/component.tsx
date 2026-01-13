@@ -407,7 +407,7 @@ export function Library({ project_id, onClose }: Props) {
   const state = project?.get("state")?.get("state");
 
   if (state && state !== "running") {
-    content = <span>Project not running</span>;
+    content = <span>Workspace not running</span>;
   } else if (library?.get("examples") == null) {
     content = <Loading />;
   } else {

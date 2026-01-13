@@ -344,6 +344,7 @@ export function projectStatus(
   redux,
   intl: IntlShape,
 ): ProjectStatus {
+  const projectLabel = intl.formatMessage(labels.project);
   if (!project_id) {
     return { description: "(not created)", icon: "hourglass-half", state: "" };
   }
@@ -353,10 +354,13 @@ export function projectStatus(
   if (kucalc === KUCALC_COCALC_COM) {
     return projectStatusCoCalcCom({ project_id, state, store, intl });
   } else {
-    const tip = intl.formatMessage({
-      id: "course.util.project_status.ready",
-      defaultMessage: "Project exists and is ready.",
-    });
+    const tip = intl.formatMessage(
+      {
+        id: "course.util.project_status.ready",
+        defaultMessage: "{projectLabel} exists and is ready.",
+      },
+      { projectLabel },
+    );
     return {
       icon: "exclamation-triangle",
       description: intl.formatMessage(labels.ready),
@@ -377,6 +381,8 @@ function projectStatusCoCalcCom({
   store: ProjectsStore;
   intl: IntlShape;
 }): ProjectStatus {
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const upgrades = store.get_total_project_quotas(project_id);
   if (upgrades == null) {
     // user opening the course, but isn't a collaborator on
@@ -397,7 +403,7 @@ function projectStatusCoCalcCom({
     return {
       icon: "check",
       description: "Members-only hosting",
-      tip: "Projects is on a members-only server, which is much more robust and has priority support.",
+      tip: `${projectLabel} is on a members-only server, which is much more robust and has priority support.`,
       state,
     };
   }
@@ -407,23 +413,29 @@ function projectStatusCoCalcCom({
       id: "course.util.status-cocalc-com.licensed.description",
       defaultMessage: "Licensed",
     });
-    const tip = intl.formatMessage({
-      id: "course.util.status-cocalc-com.licensed.tooltip",
-      defaultMessage:
-        "Project is properly licensed and should work well. Thank you!",
-    });
+    const tip = intl.formatMessage(
+      {
+        id: "course.util.status-cocalc-com.licensed.tooltip",
+        defaultMessage:
+          "{projectLabel} is properly licensed and should work well. Thank you!",
+      },
+      { projectLabel },
+    );
     return { description, icon: "check", state, tip };
   } else {
     const description = intl.formatMessage({
       id: "course.util.status-cocalc-com.free.description",
       defaultMessage: "Free Trial",
     });
-    const tip = intl.formatMessage({
-      id: "course.util.status-cocalc-com.free.tooltip",
-      defaultMessage: `Project is a trial project hosted on a free server,
+    const tip = intl.formatMessage(
+      {
+        id: "course.util.status-cocalc-com.free.tooltip",
+        defaultMessage: `{projectLabel} is a trial {projectLabelLower} hosted on a free server,
       so it may be overloaded and will be rebooted frequently.
       Please upgrade in course configuration.`,
-    });
+      },
+      { projectLabel, projectLabelLower },
+    );
     return {
       description,
       icon: "exclamation-triangle",

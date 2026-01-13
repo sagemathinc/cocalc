@@ -61,6 +61,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   const { project_id, compute_image } = useProjectContext();
   const isFlyout = mode === "flyout";
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const [computeImgChanging, setComputeImgChanging] = useState<boolean>(false);
 
@@ -155,9 +156,10 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           <Paragraph>
             <FormattedMessage
               id="project.settings.control.idle_timeout.always_running.info"
-              defaultMessage={`Project will be <b>automatically started</b> if it stops
+              defaultMessage={`{projectLabel} will be <b>automatically started</b> if it stops
                 for any reason (it will run any <A>init scripts</A>).`}
               values={{
+                projectLabel,
                 A: (c) => (
                   <A href="https://doc.cocalc.com/project-init.html">{c}</A>
                 ),
@@ -198,8 +200,8 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           <Icon name="clock" />{" "}
           <FormattedMessage
             id="project.settings.control.uptime.info"
-            defaultMessage={`Project started <b>{ago}</b> ago`}
-            values={{ ago: <TimeElapsed start_ts={start_ts} /> }}
+            defaultMessage={`{projectLabel} started <b>{ago}</b> ago`}
+            values={{ ago: <TimeElapsed start_ts={start_ts} />, projectLabel }}
           />
         </span>
       </LabeledRow>
@@ -380,7 +382,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
     return renderBody();
   } else {
     return (
-      <SettingBox title="Project Control" icon="gears">
+      <SettingBox title={`${projectLabel} Control`} icon="gears">
         {renderBody()}
       </SettingBox>
     );

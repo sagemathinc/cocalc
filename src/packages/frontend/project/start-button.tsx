@@ -22,6 +22,7 @@ import {
   ProjectState,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { server_seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
@@ -38,6 +39,7 @@ const STYLE: CSSProperties = {
 
 export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const { project_id } = useProjectContext();
   const project_map = useTypedRedux("projects", "project_map");
   const lastNotRunningRef = useRef<null | number>(null);
@@ -148,11 +150,11 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
     const txt = intl.formatMessage(
       {
         id: "project.start-button.button.txt",
-        defaultMessage: `{starting, select, true {Starting Project} other {Start Project}}`,
+        defaultMessage: `{starting, select, true {Starting {projectLabel}} other {Start {projectLabel}}}`,
         description:
           "Label on a button, either to start the project or indicating the project is currently starting.",
       },
-      { starting },
+      { starting, projectLabel },
     );
 
     return (
@@ -209,7 +211,7 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
       <Alert
         banner={true}
         type="error"
-        message="Admin Project View"
+        message="Admin Workspace View"
         description={
           <>
             WARNING: You are viewing this project as an admin! (1) Some things

@@ -39,6 +39,7 @@ export default function SSHKeyList({
   mode = "project",
 }: SSHKeyListProps) {
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
   const isFlyout = mode === "flyout";
 
   function renderAdder(size?) {
@@ -76,7 +77,7 @@ export default function SSHKeyList({
   function render_header() {
     return (
       <Flex style={{ width: "100%" }}>
-        {project_id ? "Project " : ""}
+        {project_id ? `${projectLabel} ` : ""}
         {intl.formatMessage(labels.ssh_keys)} <Gap />
         {help && <HelpIcon title="Using SSH Keys">{help}</HelpIcon>}
         <div style={{ flex: 1 }} />

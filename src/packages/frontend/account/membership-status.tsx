@@ -13,6 +13,7 @@ import {
   Typography,
 } from "antd";
 import { type ReactElement, useMemo, useState } from "react";
+import { useIntl } from "react-intl";
 
 import api from "@cocalc/frontend/client/api";
 import { Panel } from "@cocalc/frontend/antd-bootstrap";
@@ -20,6 +21,7 @@ import { Icon, Loading } from "@cocalc/frontend/components";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { useAsyncEffect, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { LLMUsageStatus } from "@cocalc/frontend/misc/llm-cost-estimation";
+import { labels } from "@cocalc/frontend/i18n";
 import { upgrades } from "@cocalc/util/upgrade-spec";
 import { capitalize, round2 } from "@cocalc/util/misc";
 import type { MembershipResolution } from "@cocalc/conat/hub/api/purchases";
@@ -120,6 +122,9 @@ export function MembershipStatusPanel({
 }): ReactElement | null {
   const account_id = useTypedRedux("account", "account_id");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const [membership, setMembership] = useState<MembershipResolution | null>(
     null,
   );
@@ -260,10 +265,12 @@ export function MembershipStatusPanel({
           <Divider style={{ margin: "8px 0" }} />
 
           <div>
-            <Text strong>Project defaults</Text>
+            <Text strong>{projectLabel} defaults</Text>
             {projectDefaultsItems.length === 0 ? (
               <div>
-                <Text type="secondary">No project defaults configured.</Text>
+                <Text type="secondary">
+                  No {projectLabelLower} defaults configured.
+                </Text>
               </div>
             ) : (
               <Descriptions
