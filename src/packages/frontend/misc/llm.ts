@@ -35,10 +35,11 @@ const numTokensEstimateImpl = (content: string, maxTokens?: number): number => {
   return estimate;
 };
 
-export const numTokensEstimate = timed(
-  "frontend/misc/llm.ts#numTokensEstimate",
-  numTokensEstimateImpl,
-);
+// export const numTokensEstimate = timed(
+//   "frontend/misc/llm.ts#numTokensEstimate",
+//   numTokensEstimateImpl,
+// );
+export const numTokensEstimate = numTokensEstimateImpl;
 
 const numTokensUpperBoundImpl = (
   content: string,
