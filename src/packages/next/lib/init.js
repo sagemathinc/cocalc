@@ -72,7 +72,7 @@ async function init({ basePath }) {
     //   - then try to view /projects
     // Without this fix, the websocket will disconnect. With this fix, the websocket works.
     winston.info("patching upgrade handler");
-    app.upgradeHandler = () => {};
+    app.upgradeHandler = () => { };
   }
 
   winston.info("ready to handle requests:");
@@ -80,6 +80,11 @@ async function init({ basePath }) {
     winston.http(`req.url=${req.url}`);
     // Express 5 compatibility: Make req.query writable for Next.js
     // Next.js's apiResolver tries to set req.query, but Express 5 makes it read-only
+    //
+    // This is what would end up in the next.js log, if this isn't set
+    //  ⨯ [TypeError: Cannot set property query of #<IncomingMessage> which has only a getter] {
+    //    page: '/api/v2/exec'
+    //  }
     if (req.query !== undefined) {
       const queryValue = req.query;
       Object.defineProperty(req, "query", {
