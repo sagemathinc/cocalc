@@ -13,8 +13,6 @@ interface Options {
   offset?: number;
 }
 
-// Here we do NOT worry about ::decimal like in get-balance, because
-// this is just for a statement or analytics.
 export default async function getCostPerDay({
   account_id,
   limit = 100,
@@ -22,7 +20,7 @@ export default async function getCostPerDay({
 }: Options): Promise<{ date: Date; total_cost: number }[]> {
   const db = getPool("long");
   const { rows } = await db.query(
-    `SELECT date_trunc('day', "time" AT TIME ZONE 'UTC') AS date, SUM(COALESCE(cost, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)) AS total_cost
+    `SELECT date_trunc('day', "time" AT TIME ZONE 'UTC') AS date, SUM(COALESCE(cost, cost_per_hour * (EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start))::numeric / 3600))) AS total_cost
 FROM purchases
 WHERE account_id = $1 AND (cost > 0 OR cost_per_hour IS NOT NULL)
 GROUP BY date_trunc('day', "time" AT TIME ZONE 'UTC')
