@@ -52,7 +52,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           <FormattedMessage
             id="project.settings.upgrade-usage.how_upgrade_info_note"
             defaultMessage={
-              "<strong>Note:</strong> You can increase the above limits using a custom project host or {membershipButton}."
+              "<strong>Note:</strong> You can increase the above limits using a custom workspace host or {membershipButton}."
             }
             values={{
               strong: (ch) => <Typography.Text strong>{ch}</Typography.Text>,

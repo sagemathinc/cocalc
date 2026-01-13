@@ -356,7 +356,7 @@ export function SoftwareLicensesAdmin() {
           <Form.Item label="Max accounts" name="max_accounts">
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
-          <Form.Item label="Max project hosts" name="max_project_hosts">
+          <Form.Item label="Max workspace hosts" name="max_project_hosts">
             <InputNumber min={0} style={{ width: "100%" }} />
           </Form.Item>
           <Form.Item label="Max active licenses" name="max_active_licenses">

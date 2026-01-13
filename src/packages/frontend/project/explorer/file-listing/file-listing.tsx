@@ -166,10 +166,10 @@ export function FileListing({
             description={
               <>
                 Snapshots in this folder are fast local readonly filesystem
-                checkpoints on the current project host, which you can directly
+                checkpoints on the current workspace host, which you can directly
                 open or copy. Backups are durable, deduplicated archives stored
                 separately, which can only be restored. Use Backups to restore
-                files that might be missing from snapshots or if a project host
+                files that might be missing from snapshots or if a workspace host
                 is not available.
               </>
             }
@@ -193,7 +193,7 @@ export function FileListing({
               <>
                 Backups are durable, deduplicated archives stored separately,
                 which can only be restored. Snapshots are fast local readonly
-                filesystem checkpoints on the current project host that you can
+                filesystem checkpoints on the current workspace host that you can
                 open or copy directly. Use Snapshots for quick local recovery.
               </>
             }

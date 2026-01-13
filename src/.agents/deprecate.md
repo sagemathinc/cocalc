@@ -81,9 +81,9 @@ Goal: Complete remove all code and functionality for the following:
 
 5. **Edge cases + exceptions.**  
    Keep technical identifiers and URLs (project_id, /projects routes, API names) unchanged.  
-   Decide on compound terms (e.g., "project host" -> "workspace host") and document those choices for consistent copy updates.
+   Decide on compound terms (e.g., "project host" -> "workspace host") and document those choices for consistent copy updates.  
+   Decision: use "workspace host(s)" in user-facing copy; keep internal `project-host` ids, `project_host` fields, and `/projects` routes/URL paths unchanged.
 
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
-
