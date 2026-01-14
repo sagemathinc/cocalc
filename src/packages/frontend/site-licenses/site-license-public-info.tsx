@@ -81,6 +81,8 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 
   const isFlyout = mode === "flyout";
   const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
+  const projectsLabelLower = intl.formatMessage(labels.projects).toLowerCase();
   const isMountedRef = useIsMountedRef();
   const [loading, setLoading] = useState<boolean>(true);
   // string is an error, Info the actual license data
@@ -181,14 +183,14 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         const run_limit = infos?.[k]?.run_limit ?? 1;
         if (activates instanceof Date) {
           const end = activates.toISOString().slice(0, 10);
-          return `The license activated on ${end}, is still active, and its run limit of ${run_limit} has not been exhausted when the project started.`;
+          return `The license activated on ${end}, is still active, and its run limit of ${run_limit} has not been exhausted when the ${projectLabelLower} started.`;
         }
         return;
       }
 
       case "exhausted": {
         const run_limit = infos?.[k]?.run_limit ?? 1;
-        return `The run limit of ${run_limit} has been exhausted when the project started. Other projects, which are upgraded by this license, have to stop in order to make it possible to activate this license for this project.`;
+        return `The run limit of ${run_limit} has been exhausted when the ${projectLabelLower} started. Other ${projectsLabelLower}, which are upgraded by this license, have to stop in order to make it possible to activate this license for this ${projectLabelLower}.`;
       }
 
       case "future": {
@@ -315,7 +317,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 
     const runLimitTxt = `Upgrades up to ${runLimit} running ${plural(
       runLimit,
-      "project",
+      projectLabelLower,
     )}.`;
 
     if (rec.activates != null && rec.activates > new Date()) {
@@ -350,7 +352,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
         return (
           <>
             Expired {when}.{delimiter}Could upgrade {runLimit} running{" "}
-            {plural(runLimit, "project")}.
+            {plural(runLimit, projectLabelLower)}.
           </>
         );
       }
@@ -444,7 +446,7 @@ export const SiteLicensePublicInfoTable: React.FC<PropsTable> = (
 
     return (
       <>
-        The project will no longer get upgraded using this license.{" "}
+        The {projectLabelLower} will no longer get upgraded using this license.{" "}
         {restartAfterRemove && (
           <>
             <br />

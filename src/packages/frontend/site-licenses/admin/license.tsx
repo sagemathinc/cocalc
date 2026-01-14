@@ -85,6 +85,10 @@ export const License: React.FC<Props> = (props: Props) => {
   } = props;
 
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectsLabel = intl.formatMessage(labels.projects);
+  const projectLabelLower = projectLabel.toLowerCase();
+  const projectsLabelLower = projectsLabel.toLowerCase();
 
   function render_data(): Rendered[] {
     const v: Rendered[] = [];
@@ -444,10 +448,14 @@ export const License: React.FC<Props> = (props: Props) => {
   function render_show_projects_title(): Rendered {
     if (!show_projects) return <span />;
     if (show_projects == "now")
-      return <span>Currently running projects upgraded with this license</span>;
+      return (
+        <span>
+          Currently running {projectsLabelLower} upgraded with this license
+        </span>
+      );
     return (
       <span>
-        Projects that ran upgraded with this license since{" "}
+        {projectsLabel} that ran with upgrades from this license since{" "}
         <TimeAgo date={show_projects} />
       </span>
     );
@@ -482,11 +490,11 @@ export const License: React.FC<Props> = (props: Props) => {
     return (
       <div style={{ marginLeft: "5px" }}>
         <span style={style}>
-          {usage_stats ?? 0} running {plural(usage_stats, "project")} currently
-          using this license.
+          {usage_stats ?? 0} running{" "}
+          {plural(usage_stats, projectLabelLower)} currently using this license.
         </span>
         <br />
-        Projects using license:{" "}
+        {projectsLabel} using license:{" "}
         <a onClick={() => actions.show_projects(license.get("id"), "now")}>
           now
         </a>
@@ -610,7 +618,7 @@ export const License: React.FC<Props> = (props: Props) => {
           message={
             <span>
               <Icon name="user-check" /> License is currently active and can
-              upgrade projects.
+              upgrade {projectsLabelLower}.
             </span>
           }
         />
@@ -622,8 +630,8 @@ export const License: React.FC<Props> = (props: Props) => {
           type="warning"
           message={
             <span>
-              <Icon name="user-slash" /> License CANNOT upgrade projects because{" "}
-              {why_not}.
+              <Icon name="user-slash" /> License CANNOT upgrade{" "}
+              {projectsLabelLower} because {why_not}.
             </span>
           }
         />
