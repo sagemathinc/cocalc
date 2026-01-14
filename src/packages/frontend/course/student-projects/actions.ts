@@ -8,13 +8,12 @@ Actions specific to manipulating the student projects that students have in a co
 */
 
 import { delay, map as awaitMap } from "awaiting";
-import { sortBy } from "lodash";
 import { redux } from "@cocalc/frontend/app-framework";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import { Datastore, EnvVars } from "@cocalc/frontend/projects/actions";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { RESEND_INVITE_INTERVAL_DAYS } from "@cocalc/util/consts/invites";
-import { copy, days_ago, keys } from "@cocalc/util/misc";
+import { copy, days_ago } from "@cocalc/util/misc";
 import { SITE_NAME } from "@cocalc/util/theme";
 import { WORKSPACE_LABEL, WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 import { CourseActions } from "../actions";
@@ -234,94 +233,6 @@ export class StudentProjectsActions {
             .remove_collaborator(student_project_id, account_id);
         }
       }
-    }
-  };
-
-  // Sets the licenses for the given project to the given licenses
-  // from our course configuration.  Any licenses already on the
-  // project that are not set at all in our course configure license
-  // list stay unchanged.  This way a student can buy their own extra
-  // license and apply it and it stays even when the instructor makes
-  // changes to licenses.
-  private set_project_site_license = async (
-    project_id: string,
-    license_ids: string[],
-  ): Promise<void> => {
-    const project_map = redux.getStore("projects").get("project_map");
-    if (project_map == null || project_map.get(project_id) == null) {
-      // do nothing if we're not a collab on the project or info about
-      // it isn't loaded -- this should have been ensured earlier on.
-      return;
-    }
-    const store = this.get_store();
-    if (store == null) return;
-    const currentLicenses: string[] = keys(
-      (project_map.getIn([project_id, "site_license"]) as any)?.toJS() ?? {},
-    );
-    const courseLicenses = new Set(
-      ((store.getIn(["settings", "site_license_id"]) as any) ?? "").split(","),
-    );
-    const removedLicenses = new Set(
-      ((store.getIn(["settings", "site_license_removed"]) as any) ?? "").split(
-        ",",
-      ),
-    );
-    const toApply = [...license_ids];
-    for (const id of currentLicenses) {
-      if (!courseLicenses.has(id) && !removedLicenses.has(id)) {
-        toApply.push(id);
-      }
-    }
-    const actions = redux.getActions("projects");
-    await actions.set_site_license(project_id, toApply.join(","));
-  };
-
-  private configure_project_license = async (
-    student_project_id: string,
-    license_id?: string, // if not set, all known licenses
-  ): Promise<void> => {
-    if (license_id != null) {
-      await this.set_project_site_license(
-        student_project_id,
-        license_id.split(","),
-      );
-      return;
-    }
-    const store = this.get_store();
-    if (store == null) return;
-    // Set all license keys we have that are known and not
-    // expired.  (option = false so cached)
-    const licenses = await store.getLicenses(false);
-    const license_ids: string[] = [];
-    for (const license_id in licenses) {
-      if (!licenses[license_id].expired) {
-        license_ids.push(license_id);
-      }
-    }
-    await this.set_project_site_license(student_project_id, license_ids);
-  };
-
-  private remove_project_license = async (
-    student_project_id: string,
-  ): Promise<void> => {
-    const actions = redux.getActions("projects");
-    await actions.set_site_license(student_project_id, "");
-  };
-
-  remove_all_project_licenses = async (): Promise<void> => {
-    const id = this.course_actions.set_activity({
-      desc: "Removing all student project licenses...",
-    });
-    try {
-      const store = this.get_store();
-      if (store == null) return;
-      for (const student of store.get_students().valueSeq().toArray()) {
-        const student_project_id = student.get("project_id");
-        if (student_project_id == null) continue;
-        await this.remove_project_license(student_project_id);
-      }
-    } finally {
-      this.course_actions.set_activity({ id });
     }
   };
 
@@ -564,9 +475,8 @@ export class StudentProjectsActions {
     student_id;
     student_project_id?: string;
     force_send_invite_by_email?: boolean;
-    license_id?: string; // relevant for serial license strategy only
   }): Promise<void> => {
-    const { student_id, force_send_invite_by_email, license_id } = props;
+    const { student_id, force_send_invite_by_email } = props;
     let student_project_id = props.student_project_id;
 
     // student_project_id is optional. Will be used instead of from student_id store if provided.
@@ -595,7 +505,6 @@ export class StudentProjectsActions {
         this.configure_project_description(student_project_id),
         this.configure_project_compute_image(student_project_id),
         this.configure_project_envvars(student_project_id),
-        this.configure_project_license(student_project_id, license_id),
         this.configure_project_envvars(student_project_id),
       ]);
     }
@@ -716,31 +625,6 @@ export class StudentProjectsActions {
       return;
     }
 
-    const licenses = await store.getLicenses(force);
-
-    // filter all expired licenses – no point in applying them –
-    // and repeat each license ID as many times as it has seats (run_limit).
-    // that way, licenses will be applied more often if they have more seats.
-    // In particular, we are interested in the case, where a course has way more students than license seats.
-    const allLicenseIDs: string[] = [];
-    // we want to start with the license with the highest run limit
-    const sortedLicenseIDs = sortBy(
-      Object.keys(licenses),
-      (l) => -licenses[l].runLimit,
-    );
-    for (const license_id of sortedLicenseIDs) {
-      const license = licenses[license_id];
-      if (license.expired) continue;
-      for (let i = 0; i < license.runLimit; i++) {
-        allLicenseIDs.push(license_id);
-      }
-    }
-
-    // 2023-03-30: if "serial", then all student projects get exactly one license
-    // and hence all seats are shared between all student projects.
-    const isSerial =
-      store.getIn(["settings", "site_license_strategy"], "serial") == "serial";
-
     let id: number = -1;
     try {
       this.course_actions.setState({ configuring_projects: true });
@@ -797,7 +681,6 @@ export class StudentProjectsActions {
           student_id: deleted_student_id,
           student_project_id: undefined,
           force_send_invite_by_email: false,
-          license_id: "", // no license for a deleted project
         });
         this.course_actions.set_activity({ id: idDel });
         await delay(0); // give UI, etc. a solid chance to render
@@ -811,18 +694,10 @@ export class StudentProjectsActions {
           desc: `Configuring student project ${i} of ${ids.length}`,
         });
 
-        // if isSerial is set, we distribute the licenses in "serial" mode:
-        // i.e. we allocate one license per student project in a round-robin fashion
-        // proportional to the number of seats of the license.
-        const license_id: string | undefined = isSerial
-          ? allLicenseIDs[i % allLicenseIDs.length]
-          : undefined;
-
         await this.configure_project({
           student_id,
           student_project_id: undefined,
           force_send_invite_by_email: force,
-          license_id, // if undefined (i.e. !isSerial), all known licenses will be applied to this student project
         });
         this.course_actions.set_activity({ id: id1 });
         await delay(0); // give UI, etc. a solid chance to render

@@ -7,7 +7,7 @@ import { DirectoryListingEntry } from "@cocalc/util/types";
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 import { Datastore, EnvVars } from "../projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import type {
   CopyConfigurationOptions,
   CopyConfigurationTargets,
@@ -16,8 +16,6 @@ import type {
 export interface SyncDBRecordBase {
   table: string;
 }
-
-export type SiteLicenseStrategy = "serial" | "parallel";
 
 export interface SyncDBRecordSettings {
   table: string;
@@ -28,9 +26,6 @@ export interface SyncDBRecordSettings {
   shared_project_id?: string;
   pay?: string;
   payInfo?: PurchaseInfo;
-  site_license_id?: string;
-  site_license_removed?: string;
-  site_license_strategy?: SiteLicenseStrategy;
   copy_parallel?: number; // how many assignments to copy at once in parallel when assigning/collecting/returning
   nbgrader_grade_in_instructor_project?: boolean; // deprecated
   nbgrader_grade_project?: string;
@@ -44,7 +39,6 @@ export interface SyncDBRecordSettings {
   inherit_compute_image?: boolean; // if true (default), set the compute_image of student projects to the one of the project hosting the course
   datastore?: Datastore;
   envvars?: EnvVars;
-  license_upgrade_host_project?: boolean;
   copy_config_targets?: CopyConfigurationTargets;
   copy_config_options?: CopyConfigurationOptions;
 }

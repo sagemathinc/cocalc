@@ -34,11 +34,11 @@ This file provides guidance to Claude Code (claude.ai/code), Gemini CLI (https:/
 - `pnpm clean` - Clean all `node_modules` and `dist` directories
 - `pnpm test` - Run full test suite
 - `pnpm depcheck` - Check for dependency issues
-- `pnpm tsc-all` - Typecheck all packages with `tsc --build` (runs in parallel, then retries serially on failure)
+- `pnpm tsc` - Typecheck all packages (the src directory) or any package directory
 - `python3 ./scripts/check_npm_packages.py` - Check npm package consistency across packages
 - `prettier -w [filename]` to format the style of a file after editing it
 - After creating a file, run `git add [filename]` to start tracking it
-- `pnpm tsc --build` at top level to build all TypeScript; in `src/packages/[package_name]` use `pnpm tsc --build` for a fast typecheck. `pnpm build` is fine when it only runs `tsc`, but avoid it for packages like `next` or `static` where `build` runs full bundlers.
+- `pnpm tsc` at top level (the src directory) to build all TypeScript; in `src/packages/[package_name]` use `pnpm tsc --build` for a fast typecheck. `pnpm build` is fine when it only runs `tsc`, but avoid it for packages like `next` or `static` where `build` runs full bundlers.
 
 ### Package-Specific Commands
 

@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { GPU } from "./site-licenses";
+import { GPU } from "./gpu";
 
 export interface VMsType {
   [id: string]:

@@ -33,7 +33,6 @@ import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { UserMap } from "@cocalc/frontend/todo-types";
 import track from "@cocalc/frontend/user-tracking";
-import { describe_quota } from "@cocalc/util/licenses/describe-quota";
 import * as misc from "@cocalc/util/misc";
 import { round1 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -45,7 +44,6 @@ import type {
   CollaboratorEvent,
   FileActionEvent,
   LibraryEvent,
-  LicenseEvent,
   LLMEvent,
   MiniTermEvent,
   OpenFile,
@@ -185,7 +183,7 @@ export const LogEntry: React.FC<Props> = React.memo(
         <span>
           <FormattedMessage
             id="project.history.log-entry.public_path"
-            defaultMessage={`set the public path {gap} {path} to be {event} and {listed} {license}`}
+            defaultMessage={`set the public path {gap} {path} to be {event} and {listed}`}
             values={{
               gap: <Gap />,
               path: (
@@ -200,9 +198,6 @@ export const LogEntry: React.FC<Props> = React.memo(
               ),
               event: event.disabled ? "disabled" : "enabled",
               listed: event.unlisted ? "unlisted" : "listed",
-              license: event.site_license_id
-                ? ` and license id ...${event.site_license_id}`
-                : "",
             }}
           />
         </span>
@@ -742,17 +737,6 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_license(event: LicenseEvent): Rendered {
-      return (
-        <span>
-          {event.action == "add" ? "added" : "removed"} license{" "}
-          {event.title ? `"${event.title}"` : ""} with key ending in "
-          {event.license_id?.slice(36 - 13, 36)}" for{" "}
-          {event.quota ? describe_quota(event.quota) : "upgrades"}
-        </span>
-      );
-    }
-
     function render_invite_user(event: CollaboratorEvent): React.JSX.Element {
       return (
         <span>
@@ -833,8 +817,6 @@ export const LogEntry: React.FC<Props> = React.memo(
           return render_file_action(event);
         case "upgrade":
           return render_upgrade(event);
-        case "license":
-          return render_license(event);
         case "invite_user":
           return render_invite_user(event);
         case "invite_nonuser":

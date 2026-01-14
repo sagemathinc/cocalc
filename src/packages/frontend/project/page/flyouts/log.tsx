@@ -120,7 +120,6 @@ const PROJECT_EVENTS = [
   "project_started",
   "start_project",
   "upgrade",
-  "license",
   "delete_project",
   "undelete_project",
   "hide_project",

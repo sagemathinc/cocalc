@@ -4,7 +4,7 @@
  */
 
 import { State } from "@cocalc/util/compute-states";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { deep_copy } from "@cocalc/util/misc";
 import {
   ExecuteCodeOptions,

@@ -3,10 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { List, Map, Set } from "immutable";
+import { Map, Set } from "immutable";
 
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
-import { SiteLicense } from "@cocalc/util/types/site-licenses";
 import { AppliedCoupons, CoursePay, CustomerMap, InvoicesMap } from "./types";
 
 export interface BillingStoreState {
@@ -22,10 +21,6 @@ export interface BillingStoreState {
   continue_first_purchase?: boolean;
   selected_plan?: string;
   course_pay: CoursePay;
-  managed_license_ids?: List<string>; // array of active (or recently expired) id's of license you manage. Not a changefeed -- you must explicitly call update_managed_licenses action.
-  all_managed_license_ids?: List<string>; // same as managed_license_ids, but also includes all expired licenses.
-  managed_licenses?: TypedMap<{ [id: string]: SiteLicense }>; // actual data of the licenses.
-  subscription_list_state?: "view" | "buy_upgrades" | "buy_license";
   pay_as_you_go?: TypedMap<{
     showModal?: boolean;
     service?: string;

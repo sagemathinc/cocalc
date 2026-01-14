@@ -5,7 +5,7 @@
 
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import { getLogger } from "@cocalc/backend/logger";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { adjustDateRangeEndOnSameDay } from "@cocalc/util/stripe/timecalcs";
 import { v4 as uuid } from "uuid";
 import dayjs from "dayjs";

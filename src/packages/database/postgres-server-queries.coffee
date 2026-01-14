@@ -1828,15 +1828,14 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         opts = defaults opts,
             project_id : required
             cb         : required
-        settings = users = site_license = server_settings = undefined
+        settings = users = server_settings = undefined
         async.parallel([
             (cb) =>
                 @_query
-                    query : 'SELECT settings, users, site_license FROM projects'
+                    query : 'SELECT settings, users FROM projects'
                     where : 'project_id = $::UUID' : opts.project_id
                     cb    : one_result (err, x) =>
                         settings = x.settings
-                        site_license = x.site_license
                         users = x.users
                         cb(err)
             (cb) =>
@@ -1848,7 +1847,7 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
             if err
                 opts.cb(err)
             else
-                quotas = quota(settings, users, site_license, server_settings)
+                quotas = quota(settings, users, server_settings)
                 opts.cb(undefined, quotas)
         )
 

@@ -7,22 +7,9 @@ import { Button } from "antd";
 import { useRouter } from "next/router";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { Uptime } from "@cocalc/util/consts/site-license";
-
-export interface StoreConf {
-  run_limit: number;
-  disk: number;
-  ram: number;
-  cpu: number;
-  user: "academic" | "business";
-  start?: Date;
-  end?: Date;
-  uptime: Uptime;
-  period?: "monthly" | "yearly" | "range";
-}
 
 interface Props {
-  conf?: StoreConf;
+  label?: string;
 }
 
 const STYLE: React.CSSProperties = {
@@ -32,24 +19,18 @@ const STYLE: React.CSSProperties = {
   marginTop: "30px",
 } as const;
 
-export function LinkToStore(props: Props) {
-  const { conf } = props;
-
+export function LinkToStore({ label }: Props) {
   const router = useRouter();
-
-  const url = "/store/membership";
-
-  const label = conf != null ? "Select" : `Store`;
 
   return (
     <div style={STYLE}>
       <Button
-        size={"large"}
-        type={"primary"}
-        onClick={() => router.push(url)}
+        size="large"
+        type="primary"
+        onClick={() => router.push("/store/membership")}
         icon={<Icon name="shopping-cart" />}
       >
-        {label}
+        {label ?? "Store"}
       </Button>
     </div>
   );

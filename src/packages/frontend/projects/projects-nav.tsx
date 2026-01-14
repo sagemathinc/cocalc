@@ -25,12 +25,10 @@ import {
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { ProjectAvatarImage } from "@cocalc/frontend/projects/project-avatar";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectState } from "../project/page/project-state-hook";
 import { useProjectHasInternetAccess } from "../project/settings/has-internet-access-hook";
-import { BuyLicenseForProject } from "../site-licenses/purchase/buy-license-for-project";
 
 const PROJECT_NAME_STYLE: CSS = {
   whiteSpace: "nowrap",
@@ -57,8 +55,6 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   const { width } = useItemContext();
 
   // determine, if the "no internet" icon + text is shown – only known for sure, if project is running
-  const customize_kucalc = useTypedRedux("customize", "kucalc");
-  const onKucalc = customize_kucalc === KUCALC_COCALC_COM;
   const status = useProjectState(project_id);
   const isRunning = useMemo(
     () => status.get("state") === "running",
@@ -118,22 +114,6 @@ function ProjectTab({ project_id }: ProjectTabProps) {
       <>
         <div style={fontStyle}>
           This project does not have access to the internet.
-          {onKucalc && (
-            <>
-              {" "}
-              <BuyLicenseForProject
-                buyText="Upgrade this project"
-                asLink={true}
-                size="small"
-                style={{
-                  padding: 0,
-                  fontWeight: "bold",
-                  ...fontStyle,
-                }}
-              />{" "}
-              to unblock internet access.
-            </>
-          )}
         </div>
         {mode === "popover" ? <hr /> : null}
       </>

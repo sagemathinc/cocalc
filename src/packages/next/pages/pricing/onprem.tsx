@@ -12,7 +12,7 @@ import {
   WORKSPACE_LABEL,
   WORKSPACES_LABEL,
 } from "@cocalc/util/i18n/terminology";
-import { money } from "@cocalc/util/licenses/purchase/utils";
+import { money } from "@cocalc/util/purchases/quota/utils";
 import { COLORS } from "@cocalc/util/theme";
 
 import Footer from "components/landing/footer";

@@ -7,7 +7,7 @@ import {
   ProductMetadata,
   ProductMetadataQuota,
   PurchaseInfo,
-} from "@cocalc/util/licenses/purchase/types";
+} from "@cocalc/util/purchases/quota/types";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 
 function duration(meta, info) {

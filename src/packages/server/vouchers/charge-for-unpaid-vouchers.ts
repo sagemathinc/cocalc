@@ -20,7 +20,7 @@ import { getLogger } from "@cocalc/backend/logger";
 import { chargeUser } from "@cocalc/server/licenses/purchase/charge";
 import { StripeClient } from "@cocalc/server/stripe/client";
 import type { PurchaseInfo } from "@cocalc/util/db-schema/vouchers";
-import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
+import { CURRENT_VERSION } from "@cocalc/util/purchases/quota/consts";
 
 const log = getLogger("charge-for-unpaid-vouchers");
 

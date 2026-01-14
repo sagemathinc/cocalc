@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { LicenseIdleTimeouts, Uptime } from "@cocalc/util/consts/site-license";
+import { LicenseIdleTimeouts, Uptime } from "@cocalc/util/consts/quota-uptime";
 import { isEqual } from "lodash";
 import { compute_cost } from "./compute-cost";
 import { MAX } from "./consts";

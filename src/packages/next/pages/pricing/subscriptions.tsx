@@ -3,209 +3,24 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Layout, List } from "antd";
-import dayjs from "dayjs";
+import { Layout } from "antd";
 
-import { Icon, IconName } from "@cocalc/frontend/components/icon";
-import { LicenseIdleTimeouts } from "@cocalc/util/consts/site-license";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import {
-  WORKSPACE_LABEL,
-  WORKSPACES_LABEL,
-} from "@cocalc/util/i18n/terminology";
-import {
-  CURRENT_VERSION,
-  discount_monthly_pct,
-  discount_yearly_pct,
-  MIN_QUOTE,
-} from "@cocalc/util/licenses/purchase/consts";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import { money } from "@cocalc/util/licenses/purchase/utils";
-import { COLORS } from "@cocalc/util/theme";
 import Footer from "components/landing/footer";
 import Head from "components/landing/head";
 import Header from "components/landing/header";
-import PricingItem, { Line } from "components/landing/pricing-item";
-import { Paragraph, Title } from "components/misc";
-import A from "components/misc/A";
-import {
-  applyLicense,
-  listedPrices,
-  pricingQuestions,
-} from "components/share/pricing";
-import { LinkToStore, StoreConf } from "components/store/link";
+import { Paragraph } from "components/misc";
+import Memberships from "components/store/memberships";
 import { MAX_WIDTH } from "lib/config";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 
 import type { JSX } from "react";
 
-function addMonth(date: Date): Date {
-  return dayjs(date).add(30, "days").add(12, "hours").toDate();
-}
-
-interface Item {
-  title: string;
-  icon: IconName;
-  projects: number;
-  disk: number;
-  shared_ram: number;
-  shared_cores: number;
-  academic?: boolean;
-  uptime?: string;
-  monthly: number;
-  yearly: number;
-  conf: StoreConf;
-}
-
-const now = new Date();
-
-const hobby: Item = (() => {
-  const conf = {
-    run_limit: 2,
-    disk: 3,
-    ram: 2,
-    cpu: 1,
-    uptime: "short",
-    user: "academic",
-  } as const;
-
-  const info: PurchaseInfo = {
-    version: CURRENT_VERSION,
-    type: "quota",
-    user: conf.user,
-    upgrade: "custom",
-    quantity: conf.run_limit,
-    subscription: "monthly",
-    start: now,
-    end: addMonth(now),
-    custom_ram: conf.ram,
-    custom_cpu: conf.cpu,
-    custom_disk: conf.disk,
-    custom_member: true,
-    custom_dedicated_ram: 0,
-    custom_dedicated_cpu: 0,
-    custom_uptime: conf.uptime,
-  };
-
-  const priceM = compute_cost(info);
-  const priceY = compute_cost({ ...info, subscription: "yearly" });
-
-  return {
-    title: "Hobbyist",
-    icon: "battery-quarter",
-    projects: conf.run_limit,
-    shared_ram: conf.ram,
-    shared_cores: conf.cpu,
-    disk: conf.disk,
-    academic: true,
-    uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: priceM.cost,
-    yearly: priceY.cost,
-    conf,
-  };
-})();
-
-const academic: Item = (() => {
-  const conf = {
-    run_limit: 3,
-    disk: 10,
-    ram: 5,
-    cpu: 2,
-    uptime: "day",
-    user: "academic",
-  } as const;
-
-  const info: PurchaseInfo = {
-    version: CURRENT_VERSION,
-    type: "quota",
-    user: conf.user,
-    upgrade: "custom",
-    quantity: conf.run_limit,
-    subscription: "monthly",
-    start: now,
-    end: addMonth(now),
-    custom_ram: conf.ram,
-    custom_cpu: conf.cpu,
-    custom_disk: conf.disk,
-    custom_member: true,
-    custom_dedicated_ram: 0,
-    custom_dedicated_cpu: 0,
-    custom_uptime: conf.uptime,
-  };
-
-  const priceM = compute_cost(info);
-  const priceY = compute_cost({ ...info, subscription: "yearly" });
-
-  return {
-    title: "Academic Researcher Group",
-    icon: "battery-half",
-    projects: conf.run_limit,
-    shared_ram: conf.ram,
-    shared_cores: conf.cpu,
-    disk: conf.disk,
-    dedicated_cores: 0,
-    academic: true,
-    uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: priceM.cost,
-    yearly: priceY.cost,
-    conf,
-  };
-})();
-
-const business: Item = (() => {
-  const conf = {
-    run_limit: 5,
-    disk: 5,
-    ram: 4,
-    cpu: 1,
-    uptime: "medium",
-    user: "business",
-  } as const;
-
-  const info: PurchaseInfo = {
-    version: CURRENT_VERSION,
-    type: "quota",
-    user: conf.user,
-    upgrade: "custom",
-    quantity: conf.run_limit,
-    subscription: "monthly",
-    start: now,
-    end: addMonth(now),
-    custom_ram: conf.ram,
-    custom_cpu: conf.cpu,
-    custom_disk: conf.disk,
-    custom_member: true,
-    custom_dedicated_ram: 0,
-    custom_dedicated_cpu: 0,
-    custom_uptime: conf.uptime,
-  };
-
-  const priceM = compute_cost(info);
-  const priceY = compute_cost({ ...info, subscription: "yearly" });
-
-  return {
-    title: "Business Working Group",
-    icon: "battery-full",
-    projects: conf.run_limit,
-    shared_ram: conf.ram,
-    shared_cores: conf.cpu,
-    disk: conf.disk,
-    academic: false,
-    uptime: LicenseIdleTimeouts[conf.uptime].labelShort,
-    monthly: priceM.cost,
-    yearly: priceY.cost,
-    conf,
-  };
-})();
-
-const data: Item[] = [hobby, academic, business];
-
 export default function Subscriptions({ customize }) {
   const { siteName } = customize;
   return (
     <Customize value={customize}>
-      <Head title={`${siteName} – Pricing – Subscriptions`} />
+      <Head title={`${siteName} – Pricing – Memberships`} />
       <Layout>
         <Header page="pricing" subPage="subscriptions" />
         <Layout.Content
@@ -223,113 +38,12 @@ export default function Subscriptions({ customize }) {
 
 function Body(): JSX.Element {
   return (
-    <div
-      style={{
-        maxWidth: MAX_WIDTH,
-        margin: "15px auto",
-        padding: "15px",
-        backgroundColor: "white",
-      }}
-    >
-      <Title level={1} style={{ textAlign: "center" }}>
-        <Icon name="calendar" style={{ marginRight: "30px" }} /> CoCalc -
-        Subscriptions
-      </Title>
-      <a id="subscriptions"></a>
+    <div style={{ maxWidth: MAX_WIDTH, margin: "auto", padding: "20px 0" }}>
       <Paragraph>
-        Initially, you start using CoCalc under a{" "}
-        <A href="https://doc.cocalc.com/trial.html">free trial plan</A> in order
-        to test out the service. If CoCalc works for you, please purchase a
-        license.
+        Memberships replace legacy project licenses. Pick a plan below to cover
+        workspace resources and included entitlements.
       </Paragraph>
-      <Paragraph>
-        A subscription provides you with a{" "}
-        <A href="https://doc.cocalc.com/licenses.html">license key</A> for{" "}
-        <A href="https://doc.cocalc.com/project-settings.html#licenses">
-          upgrading your {WORKSPACES_LABEL.toLowerCase()}
-        </A>{" "}
-        or other {WORKSPACES_LABEL.toLowerCase()} where you are a collaborator
-        — everyone using an upgraded {WORKSPACE_LABEL.toLowerCase()} benefits
-        equally. Such a{" "}
-        <A href="/billing/subscriptions">subscription</A>{" "}
-        <b>automatically renews</b> at the end of each period. You can{" "}
-        <A href="/billing/subscriptions">
-          <b>cancel at any time</b>
-        </A>
-        .
-      </Paragraph>
-
-      {applyLicense()}
-
-      <Title level={2}>Examples</Title>
-      <Paragraph>
-        We list three typical configurations below, which you can{" "}
-        <A href="/store/site-license">modify and purchase here</A>. All
-        parameters can be adjusted to fit your needs. Listed upgrades are for
-        each {WORKSPACE_LABEL.toLowerCase()}. Exact prices may vary.{" "}
-        {`Below $${MIN_QUOTE},`} only online
-        purchases are available (no purchase orders). Subscriptions receive a{" "}
-        {discount_monthly_pct}% discount for monthly and {discount_yearly_pct}%
-        for yearly periods.
-      </Paragraph>
-      <List
-        grid={{ gutter: 15, column: 3, xs: 1, sm: 1 }}
-        dataSource={data}
-        renderItem={(item) => (
-          <PricingItem title={item.title} icon={item.icon}>
-            <Line amount={item.projects} desc={WORKSPACES_LABEL} />
-            <Line
-              amount={item.shared_ram}
-              desc={`Shared RAM per ${WORKSPACE_LABEL.toLowerCase()}`}
-            />
-            <Line
-              amount={item.shared_cores}
-              desc={`Shared CPU per ${WORKSPACE_LABEL.toLowerCase()}`}
-            />
-            <Line
-              amount={item.disk}
-              desc={`Disk space per ${WORKSPACE_LABEL.toLowerCase()}`}
-            />
-            <Line amount={item.uptime} desc="Idle timeout" />
-            <Line amount={"∞"} desc="Collaborators" />
-            {item.academic ? (
-              <Line amount="40%" desc="Academic discount" />
-            ) : (
-              <Line amount="" desc="" />
-            )}
-
-            <br />
-            <br />
-            <div>
-              <span
-                style={{
-                  fontWeight: "bold",
-                  fontSize: "18pt",
-                  color: COLORS.GRAY_DD,
-                }}
-              >
-                {money(item.monthly, true)}
-              </span>{" "}
-              / month
-            </div>
-            <div>
-              <span
-                style={{
-                  fontWeight: "bold",
-                  fontSize: "18pt",
-                  color: COLORS.GRAY_DD,
-                }}
-              >
-                {money(item.yearly, true)}
-              </span>{" "}
-              / year
-            </div>
-            <LinkToStore conf={item.conf} />
-          </PricingItem>
-        )}
-      />
-      {listedPrices()}
-      {pricingQuestions()}
+      <Memberships />
     </div>
   );
 }

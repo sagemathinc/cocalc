@@ -7,7 +7,6 @@ import { Alert, Table } from "antd";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { cmp, stripeAmount } from "@cocalc/util/misc";
-import License from "components/licenses/license";
 import { Paragraph, Title } from "components/misc";
 import A from "components/misc/A";
 import Timestamp from "components/misc/timestamp";
@@ -15,8 +14,6 @@ import Loading from "components/share/loading";
 import useAPI from "lib/hooks/api";
 
 function Description({ hosted_invoice_url, lines, metadata }) {
-  const license_id =
-    metadata?.license_id ?? lines.data[0]?.metadata?.license_id;
   const membership_class =
     metadata?.type == "membership"
       ? metadata?.class
@@ -30,11 +27,6 @@ function Description({ hosted_invoice_url, lines, metadata }) {
           <A href={hosted_invoice_url}>
             <Icon name="external-link" /> Invoice/Receipt
           </A>
-        </div>
-      )}
-      {license_id && (
-        <div>
-          License: <License license_id={license_id} />
         </div>
       )}
       {membership_class && <div>Membership: {membership_class}</div>}

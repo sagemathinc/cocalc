@@ -1,11 +1,11 @@
 import { useMemo, useState } from "react";
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import dayjs from "dayjs";
 import PayNow from "./pay-now";
 import PaySoon from "./pay-soon";
 import InstructorBanner from "./instructor-banner";
-import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/purchases/quota/student-pay";
 
 export default function StudentPayUpgrade({
   project_id,

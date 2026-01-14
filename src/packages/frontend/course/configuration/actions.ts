@@ -20,16 +20,15 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { CourseActions, primary_key } from "../actions";
 import {
-  DEFAULT_LICENSE_UPGRADE_HOST_PROJECT,
   CourseSettingsRecord,
   PARALLEL_DEFAULT,
 } from "../store";
-import { SiteLicenseStrategy, SyncDBRecord } from "../types";
+import { SyncDBRecord } from "../types";
 import {
   StudentProjectFunctionality,
   completeStudentProjectFunctionality,
 } from "./customize-student-project-functionality";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { delay } from "awaiting";
 import {
   NBGRADER_CELL_TIMEOUT_MS,
@@ -73,42 +72,6 @@ export class ConfigurationActions {
     this.course_actions.shared_project.set_project_description();
   };
 
-  // NOTE: site_license_id can be a single id, or multiple id's separate by a comma.
-  add_site_license_id = (license_id: string): void => {
-    const store = this.course_actions.get_store();
-    let site_license_id = store.getIn(["settings", "site_license_id"]) ?? "";
-    if (site_license_id.indexOf(license_id) != -1) return; // already known
-    site_license_id += (site_license_id.length > 0 ? "," : "") + license_id;
-    this.set({ site_license_id, table: "settings" });
-  };
-
-  remove_site_license_id = (license_id: string): void => {
-    const store = this.course_actions.get_store();
-    let cur = store.getIn(["settings", "site_license_id"]) ?? "";
-    let removed = store.getIn(["settings", "site_license_removed"]) ?? "";
-    if (cur.indexOf(license_id) == -1) return; // already removed
-    const v: string[] = [];
-    for (const id of cur.split(",")) {
-      if (id != license_id) {
-        v.push(id);
-      }
-    }
-    const site_license_id = v.join(",");
-    if (!removed.includes(license_id)) {
-      removed = removed.split(",").concat([license_id]).join(",");
-    }
-    this.set({
-      site_license_id,
-      site_license_removed: removed,
-      table: "settings",
-    });
-  };
-
-  set_site_license_strategy = (
-    site_license_strategy: SiteLicenseStrategy,
-  ): void => {
-    this.set({ site_license_strategy, table: "settings" });
-  };
 
   set_pay_choice = (type: "student" | "institute", value: boolean): void => {
     this.set({ [type + "_pay"]: value, table: "settings" });
@@ -165,37 +128,6 @@ export class ConfigurationActions {
     });
   };
 
-  configure_host_project = async (): Promise<void> => {
-    const id = this.course_actions.set_activity({
-      desc: "Configuring host project.",
-    });
-    try {
-      // NOTE: we never remove it or any other licenses from the host project,
-      // since instructor may want to augment license with another license.
-      const store = this.course_actions.get_store();
-      // be explicit about copying all course licenses to host project
-      // https://github.com/sagemathinc/cocalc/issues/5360
-      const license_upgrade_host_project =
-        store.getIn(["settings", "license_upgrade_host_project"]) ??
-        DEFAULT_LICENSE_UPGRADE_HOST_PROJECT;
-      if (license_upgrade_host_project) {
-        const site_license_id = store.getIn(["settings", "site_license_id"]);
-        const actions = redux.getActions("projects");
-        const course_project_id = store.get("course_project_id");
-        if (site_license_id) {
-          await actions.add_site_license_to_project(
-            course_project_id,
-            site_license_id,
-          );
-        }
-      }
-    } catch (err) {
-      this.course_actions.set_error(`Error configuring host project - ${err}`);
-    } finally {
-      this.course_actions.set_activity({ id });
-    }
-  };
-
   configure_all_projects = async (force: boolean = false): Promise<void> => {
     if (this.configuring) {
       // Important -- if configure_all_projects is called *while* it is running,
@@ -210,7 +142,6 @@ export class ConfigurationActions {
       this.configureAgain = false;
       this.configuring = true;
       await this.course_actions.shared_project.configure();
-      await this.configure_host_project();
       await this.course_actions.student_projects.configure_all_projects(force);
       await this.configure_nbgrader_grade_project();
     } finally {
@@ -413,13 +344,6 @@ export class ConfigurationActions {
     }, 1);
   };
 
-  set_license_upgrade_host_project = (upgrade: boolean): void => {
-    this.set({ license_upgrade_host_project: upgrade, table: "settings" });
-    setTimeout(() => {
-      this.configure_host_project();
-    }, 1);
-  };
-
   private configure_all_projects_shared_and_nbgrader = () => {
     this.course_actions.student_projects.configure_all_projects();
     this.course_actions.shared_project.set_datastore_and_envvars();
@@ -567,12 +491,6 @@ async function configureGroup({
       }
       if (settings.get("institute_pay")) {
         actions.configuration.set_pay_choice("institute", true);
-        const strategy = settings.get("set_site_license_strategy");
-        if (strategy != null) {
-          actions.configuration.set_site_license_strategy(strategy);
-        }
-        const site_license_id = settings.get("site_license_id");
-        actions.configuration.set({ site_license_id, table: "settings" });
       } else {
         actions.configuration.set_pay_choice("institute", false);
       }

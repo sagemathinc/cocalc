@@ -14,7 +14,7 @@ all async (no callbacks!).
 **PRETTY MUCH DEPRECATED**
 */
 
-import { fromJS, Map } from "immutable";
+import { Map } from "immutable";
 import { redux, Actions, Store } from "../app-framework";
 import { reuse_in_flight_methods } from "@cocalc/util/async-utils";
 
@@ -88,13 +88,6 @@ export class BillingActions extends Actions<BillingStoreState> {
     this.setState({ selected_plan: plan });
   }
 
-  public async update_managed_licenses(): Promise<void> {
-    this.setState({
-      managed_licenses: fromJS({}) as any,
-      managed_license_ids: fromJS([]) as any,
-      all_managed_license_ids: fromJS([]) as any,
-    });
-  }
 }
 
 export const actions = redux.createActions("billing", BillingActions);

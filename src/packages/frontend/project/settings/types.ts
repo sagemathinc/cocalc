@@ -7,8 +7,6 @@ import type { Map } from "immutable";
 import type { ReactNode } from "react";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
-import { LicenseStatus } from "@cocalc/util/upgrades/quota";
 
 export type { DatastoreConfig } from "@cocalc/util/types";
 
@@ -27,15 +25,6 @@ export type ProjectStatus = TypedMap<{
 
 export type ProjectSettings = Map<string, any>;
 
-// this is the "correct" type you get, when doing e.g. project.get('site_license')
-export type SiteLicense = Map<
-  string,
-  TypedMap<{
-    quota?: TypedMap<SiteLicenseQuota>;
-    status?: LicenseStatus;
-  }>
->;
-
 export type Project = TypedMap<{
   title: string;
   description: string;
@@ -49,7 +38,6 @@ export type Project = TypedMap<{
   settings: ProjectSettings;
   compute_image: string;
   rootfs_image?: string;
-  site_license?: SiteLicense;
 }>;
 
 export type SoftwareInfo = {

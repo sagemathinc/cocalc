@@ -11,11 +11,6 @@ Show a table with links to recently used projects (with most recent first) that
                not everything. This is sorted by when *they* used
                it last.
 
- - license_id: has a given license applied: here we show all projects
-               that are currently running with this license actively
-               upgrading them.  Projects are sorted by their
-               last_edited field.
-
 */
 
 import { Component, Rendered } from "@cocalc/frontend/app-framework";
@@ -24,7 +19,6 @@ import { Loading, TimeAgo } from "@cocalc/frontend/components";
 import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { Card } from "antd";
 import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
-import { Button } from "antd";
 import { FormattedMessage } from "react-intl";
 import { labels } from "@cocalc/frontend/i18n";
 
@@ -38,17 +32,13 @@ interface Project {
 }
 
 interface Props {
-  account_id?: string; // one of account_id or license_id must be given; see comments above
-  license_id?: string;
-  cutoff?: "now" | Date; // if given, and showing projects for a license, show projects that ran back to cutoff.
+  account_id?: string; // account_id must be given
   title?: string | Rendered; // Defaults to "Projects"
 }
 
 interface State {
   status?: string;
-  number?: number; // number of projects -- only used for license_id
   projects?: Project[]; // actual information about the projects
-  load_projects?: boolean;
 }
 
 function project_sort_key(
@@ -80,8 +70,7 @@ export class Projects extends Component<Props, State> {
   }
 
   componentDidUpdate(prevProps) {
-    if (this.props.cutoff != prevProps.cutoff) {
-      this.setState({ load_projects: false });
+    if (this.props.account_id != prevProps.account_id) {
       this.update_search();
     }
   }
@@ -90,12 +79,6 @@ export class Projects extends Component<Props, State> {
     this.setState({
       status: s,
     });
-  }
-
-  private get_cutoff(): undefined | Date {
-    return !this.props.cutoff || this.props.cutoff == "now"
-      ? undefined
-      : this.props.cutoff;
   }
 
   private query() {
@@ -115,36 +98,14 @@ export class Projects extends Component<Props, State> {
         },
         options: [{ account_id: this.props.account_id }],
       };
-    } else if (this.props.license_id) {
-      const cutoff = this.get_cutoff();
-      return {
-        query: {
-          projects_using_site_license: [
-            {
-              license_id: this.props.license_id,
-              project_id: null,
-              title: null,
-              description: null,
-              users: null,
-              last_active: null,
-              last_edited: null,
-              cutoff,
-            },
-          ],
-        },
-      };
     } else {
-      throw Error("account_id or license_id must be specified");
+      throw Error("account_id must be specified");
     }
   }
 
   async update_search(): Promise<void> {
     try {
-      if (this.props.account_id || this.state.load_projects) {
-        await this.load_projects();
-      } else {
-        await this.load_number();
-      }
+      await this.load_projects();
     } catch (err) {
       this.status_mesg(`ERROR -- ${err}`);
     }
@@ -167,77 +128,10 @@ export class Projects extends Component<Props, State> {
         ),
     );
     this.status_mesg("");
-    this.setState({ projects: projects, number: projects.length });
-  }
-
-  // Load the number of projects
-  async load_number(): Promise<void> {
-    this.status_mesg("Counting projects...");
-    const cutoff = this.get_cutoff();
-    const q = {
-      query: {
-        number_of_projects_using_site_license: {
-          license_id: this.props.license_id,
-          number: null,
-          cutoff,
-        },
-      },
-    };
-    const { number } = (await query(q)).query
-      .number_of_projects_using_site_license;
-    if (!this.mounted) {
-      return;
-    }
-    this.status_mesg("");
-    this.setState({ number });
-  }
-
-  private render_load_projects_button(): Rendered {
-    if (this.props.account_id || this.state.load_projects) return;
-    if (this.state.number != null && this.state.number == 0) {
-      return (
-        <div>
-          <FormattedMessage
-            id="admin.users.projects.none"
-            defaultMessage="No {projectsLabel}"
-            values={{ projectsLabel: <FormattedMessage {...labels.projects} /> }}
-          />
-        </div>
-      );
-    }
-
-    const count = this.state.number;
-    const label =
-      count === 1 ? (
-        <FormattedMessage {...labels.project} />
-      ) : (
-        <FormattedMessage {...labels.projects} />
-      );
-    return (
-      <Button onClick={() => this.click_load_projects_button()}>
-        Show {count != null ? `${count} ` : ""}
-        {label}...
-      </Button>
-    );
-  }
-
-  private click_load_projects_button(): void {
-    this.setState({ load_projects: true });
-    this.load_projects();
-  }
-
-  render_number_of_projects(): Rendered {
-    if (this.state.number == null) {
-      return;
-    }
-    return <span>({this.state.number})</span>;
+    this.setState({ projects });
   }
 
   render_projects(): Rendered {
-    if (this.props.license_id != null && !this.state.load_projects) {
-      return this.render_load_projects_button();
-    }
-
     if (!this.state.projects) {
       return <Loading />;
     }
@@ -309,7 +203,7 @@ export class Projects extends Component<Props, State> {
       this.state.status
     ) : (
       <span>
-        {this.props.title} {this.render_number_of_projects()}
+        {this.props.title}
       </span>
     );
     const title = (

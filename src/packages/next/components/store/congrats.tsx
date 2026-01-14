@@ -4,24 +4,19 @@ Page that you show user after they successfully complete a purchase.
 It queries the backend for "the most recent stuff you bought", thanks
 you for your purchase, has useful links, etc.
 
-NOTE: the current implementation is just a really simple one that assumes
-you are purchasing a license for projects, since that's all we sell
-right now.  This will have to be a bit more sophisticated when there's
-more products.
+ NOTE: the current implementation focuses on memberships and vouchers,
+ which are the only purchase types available in-app now.
 */
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { plural } from "@cocalc/util/misc";
 import { Alert, Card } from "antd";
 import Image from "components/landing/image";
-import License from "components/licenses/license";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
-import SiteName from "components/share/site-name";
 import useAPI from "lib/hooks/api";
 import bella from "public/shopping/bella.png";
 import TimeAgo from "timeago-react";
-import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 
 import type { JSX } from "react";
 
@@ -68,32 +63,10 @@ export default function Congrats() {
       <>
         <h2>Here are your next steps</h2>
         <ul>
-          {purchases.result.length > 0 && (
+          {memberships.length > 0 && (
             <li style={{ marginBottom: "15px" }}>
-              <b>Licenses:</b> You are a manager for each of the licenses you
-              purchased.{" "}
-              <A href="/settings/licenses">You manage your licenses</A>, add
-              other people as managers, edit the title, description and every
-              property of each license, and{" "}
-              <A href="/licenses/how-used">see how a license is being used</A>.
-              <ul>
-                <li style={{ marginBottom: "15px" }}>
-                  You can{" "}
-                  <A href="https://doc.cocalc.com/project-settings.html#project-add-license">
-                    apply a license to workspaces
-                  </A>
-                  ,{" "}
-                  <A href="https://doc.cocalc.com/teaching-upgrade-course.html#install-course-license">
-                    courses
-                  </A>
-                  , or directly share the license code, as{" "}
-                  <A href="https://doc.cocalc.com/licenses.html">
-                    explained here
-                  </A>
-                  . It's time to make your <SiteName /> workspaces much, much
-                  better.
-                </li>
-              </ul>
+              <b>Membership:</b> You can review or manage your membership from{" "}
+              <A href="/settings/subscriptions">settings</A>.
             </li>
           )}
           {vouchers.result.length > 0 && (
@@ -122,10 +95,17 @@ export default function Congrats() {
           {purchases.result.length > 0 ? (
             <li style={{ marginBottom: "15px" }}>
               <b>Payments:</b> You can{" "}
-              <A href="/settings/purchases">download your receipt</A> and{" "}
-              <A href="/settings/subscriptions">
-                check on the status of any subscriptions.
-              </A>
+              <A href="/settings/purchases">download your receipt</A>
+              {memberships.length > 0 && (
+                <>
+                  {" "}
+                  and{" "}
+                  <A href="/settings/subscriptions">
+                    check on the status of any subscriptions.
+                  </A>
+                </>
+              )}
+              .
             </li>
           ) : (
             <li style={{ marginBottom: "15px" }}>
@@ -143,43 +123,6 @@ export default function Congrats() {
     );
   }
 
-  function renderAutomaticallyApplied(): JSX.Element {
-    const appliedProjects = purchases.result.filter(
-      (x) => x.project_id != null,
-    );
-    const numApplied = appliedProjects.length;
-    if (numApplied == 0) return <></>;
-    return (
-      <>
-        <br />
-        <Alert
-          type="info"
-          message={
-            <>
-              <p>
-                The following {plural(numApplied, WORKSPACE_LABEL.toLowerCase())}{" "}
-                automatically got a license applied:
-              </p>
-              <ul>
-                {appliedProjects.map((x) => (
-                  <li key={x.project_id}>
-                    {WORKSPACE_LABEL}{" "}
-                    <A href={`/projects/${x.project_id}`} external={true}>
-                      {x.project_id}
-                    </A>{" "}
-                    got license <License license_id={x.purchased?.license_id} />
-                    .
-                  </li>
-                ))}
-              </ul>
-            </>
-          }
-        ></Alert>
-      </>
-    );
-  }
-
-  const licenses = purchases.result.filter((x) => x.purchased.license_id);
   const memberships = purchases.result.filter(
     (x) => x.product == "membership",
   );
@@ -220,32 +163,6 @@ export default function Congrats() {
                 </li>
               ))}
             </ul>
-          </Card>
-        )}
-        {licenses.length > 0 && (
-          <Card
-            style={{ margin: "15px auto", maxWidth: "700px" }}
-            title={
-              <>
-                <Icon name="key" style={{ marginRight: "15px" }} />
-                Congrats! You recently ordered{" "}
-                {licenses.length >= 2 ? "these" : "this"} {licenses.length}{" "}
-                <SiteName /> {plural(licenses.length, "license")}.
-              </>
-            }
-          >
-            <ul>
-              {licenses.map((item) => (
-                <li key={item.purchased.license_id}>
-                  <License
-                    key={item.purchased.license_id}
-                    license_id={item.purchased.license_id}
-                  />
-                  , purchased <TimeAgo datetime={item.purchased.time} />
-                </li>
-              ))}
-            </ul>
-            {renderAutomaticallyApplied()}
           </Card>
         )}
         {vouchers.result.length > 0 && (

@@ -21,8 +21,7 @@ import {
 } from "@cocalc/frontend/components";
 import MembershipBadge from "@cocalc/frontend/account/membership-badge";
 import { labels } from "@cocalc/frontend/i18n";
-import { process_gpu_quota } from "@cocalc/util/types/gpu";
-import { GPU } from "@cocalc/util/types/site-licenses";
+import { GPU, process_gpu_quota } from "@cocalc/util/types/gpu";
 import AdminQuotas from "./quota-editor/admin-quotas";
 import { RunQuota } from "./run-quota";
 import { Project } from "./types";
@@ -92,7 +91,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
 
     function render_gpu(): Rendered {
       if (gpu == null || gpu === false) return;
-      const info = process_gpu_quota({ gpu });
+      const info = process_gpu_quota(gpu);
       const nodes = info.nodeSelector
         ? ` on nodes labeled: ${Object.entries(info.nodeSelector)
             .map(([key, value]) => `${key}=${value}`)

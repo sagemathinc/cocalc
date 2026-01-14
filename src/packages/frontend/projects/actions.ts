@@ -13,19 +13,15 @@ import { COCALC_MINIMAL } from "@cocalc/frontend/fullscreen";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
 import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
-import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { once } from "@cocalc/util/async-utils";
 import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import {
-  assert_uuid,
   defaults,
   is_valid_uuid_string,
-  len,
   uuid,
 } from "@cocalc/util/misc";
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -731,164 +727,8 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   }
 
-  // Remove any site licenses applied to this project.
-  public async clear_project_licenses(project_id: string): Promise<void> {
-    assert_uuid(project_id);
-    await this.remove_site_license_from_project(project_id);
-  }
-
-  // Use a site license key to upgrade a project.  This only has an
-  // impact on actual upgrades when the project is restarted.
-  // Multiple licenses can be included in license_id separated
-  // by commas to add several at once.
-  public async add_site_license_to_project(
-    project_id: string,
-    license_id: string,
-  ): Promise<void> {
-    if (license_id.indexOf(",") != -1) {
-      for (const id of license_id.split(",")) {
-        await this.add_site_license_to_project(project_id, id);
-      }
-      return;
-    }
-    if (!is_valid_uuid_string(license_id)) {
-      throw Error(
-        `invalid license key '${license_id}' -- it must be a 36-character valid v4 uuid`,
-      );
-    }
-    const project = store.getIn(["project_map", project_id]);
-    if (project == null) {
-      throw Error("unknown project -- can't add license to it");
-    }
-    const site_license = project.get("site_license")?.toJS() ?? {};
-    if (site_license[license_id] != null) {
-      return;
-    }
-    site_license[license_id] = {};
-    await this.projects_table_set({ project_id, site_license }, "shallow");
-    this.log_site_license_change(project_id, license_id, "add");
-  }
-
-  // Removes a given (or all) site licenses from a project. If license_id is empty
-  // string (or not set) then removes all of them.
-  // Multiple licenses can be included in license_id separated
-  // by commas to remove several at once.
-  public async remove_site_license_from_project(
-    project_id: string,
-    license_id: string = "",
-  ): Promise<void> {
-    if (license_id.indexOf(",") != -1) {
-      for (const id of license_id.split(",")) {
-        await this.remove_site_license_from_project(project_id, id);
-      }
-      return;
-    }
-
-    const project = store.getIn(["project_map", project_id]);
-    if (project == null) {
-      return; // nothing to do
-    }
-    const site_license = project.get("site_license")?.toJS() ?? {};
-    if (!license_id && len(site_license) === 0) {
-      // common special case that is easy
-      return;
-    }
-    // The null stuff here is confusing, but that's just because our
-    // SyncTable functionality makes deleting things tricky.
-    if (license_id) {
-      if (site_license[license_id] == null) {
-        return;
-      }
-      site_license[license_id] = null;
-    } else {
-      for (let x in site_license) {
-        site_license[x] = null;
-      }
-    }
-    await this.projects_table_set({ project_id, site_license }, "shallow");
-    this.log_site_license_change(project_id, license_id, "remove");
-  }
-
-  private async log_site_license_change(
-    project_id: string,
-    license_id: string,
-    action: "add" | "remove",
-  ): Promise<void> {
-    if (!is_valid_uuid_string(project_id)) {
-      throw Error(`invalid project_id "${project_id}"`);
-    }
-    if (license_id.includes(",")) {
-      for (const id of license_id.split(",")) {
-        this.log_site_license_change(project_id, id, action);
-      }
-      return;
-    }
-
-    let info;
-    if (!license_id) {
-      info = { title: "All licenses" };
-      action = "remove";
-    } else {
-      if (!is_valid_uuid_string(license_id)) {
-        throw Error(`invalid license_id "${license_id}"`);
-      }
-      try {
-        info = await site_license_public_info(license_id);
-      } catch (err) {
-        // happens if the license is not valid.
-        info = { title: `${err}` };
-      }
-    }
-    if (!info) return;
-    const quota: SiteLicenseQuota | undefined = info.quota;
-    const title: string = info.title ?? "";
-    await this.project_log(project_id, {
-      event: "license",
-      action,
-      license_id,
-      quota,
-      title,
-    });
-  }
-
   public async project_log(project_id: string, entry): Promise<void> {
     await this.redux.getProjectActions(project_id).log(entry);
-  }
-
-  // Sets site licenses for project to exactly license_id.
-  // Multiple licenses can be included in license_id separated
-  // by commas to set several at once.
-  public async set_site_license(
-    project_id: string,
-    license_id: string = "",
-  ): Promise<void> {
-    const project = store.getIn(["project_map", project_id]);
-    if (project == null) {
-      return; // nothing to do -- not a project we know/manage
-    }
-    const site_license = project.get("site_license")?.toJS() ?? {};
-    if (!license_id && len(site_license) === 0) {
-      // common special case that is easy -- set to empty and is already empty
-      return;
-    }
-    let changed: boolean = false;
-    for (const id in site_license) {
-      if (license_id.indexOf(id) == -1) {
-        changed = true;
-        site_license[id] = null;
-        this.log_site_license_change(project_id, license_id, "remove");
-      }
-    }
-    for (const id of license_id.split(",")) {
-      if (site_license[id] == null) {
-        changed = true;
-        site_license[id] = {};
-        this.log_site_license_change(project_id, license_id, "add");
-      }
-    }
-    if (changed) {
-      await this.projects_table_set({ project_id, site_license }, "shallow");
-    }
   }
 
   // return true, if it actually started the project
@@ -1140,7 +980,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
   }
 
   public async delete_project(project_id: string): Promise<void> {
-    await this.clear_project_licenses(project_id);
     await this.projects_table_set({
       project_id,
       deleted: true,
@@ -1151,9 +990,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
   // Toggle whether or not project is deleted.
   public async toggle_delete_project(project_id: string): Promise<void> {
     const is_deleted = store.is_deleted(project_id);
-    if (!is_deleted) {
-      await this.clear_project_licenses(project_id);
-    }
 
     await this.projects_table_set({
       project_id,

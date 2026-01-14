@@ -1600,7 +1600,7 @@ API(
   message({
     event: "purchase_license",
     id: undefined,
-    info: required, // import { PurchaseInfo } from "@cocalc/util/licenses/purchase/util";
+    info: required, // import { PurchaseInfo } from "@cocalc/util/purchases/quota/util";
   }),
 );
 

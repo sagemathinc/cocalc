@@ -41,7 +41,6 @@ import { alert_message } from "../alerts";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import Sandbox from "./sandbox";
 import track from "@cocalc/frontend/user-tracking";
-import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
 
 interface RegisteredUser {
   sort?: string;
@@ -89,10 +88,6 @@ export const AddCollaborators: React.FC<Props> = ({
   mode = "project",
 }) => {
   const intl = useIntl();
-  const unlicensedLimit = useTypedRedux(
-    "customize",
-    "unlicensed_project_collaborator_limit",
-  );
   const isFlyout = mode === "flyout";
   const student = useStudentProjectFunctionality(project_id);
   const accountCustomize = useTypedRedux("account", "customize")?.toJS() as
@@ -129,13 +124,6 @@ export const AddCollaborators: React.FC<Props> = ({
   const [email_body_error, set_email_body_error] = useState<string>("");
   const [email_body_editing, set_email_body_editing] = useState<boolean>(false);
   const [invite_result, set_invite_result] = useState<string>("");
-
-  const hasLicense = (project?.get("site_license")?.size ?? 0) > 0;
-  const limitExceeded =
-    !!unlicensedLimit &&
-    !hasLicense &&
-    (project?.get("users").size ?? 1) + selected_entries.length >
-      unlicensedLimit;
 
   const isMountedRef = useIsMountedRef();
 
@@ -657,7 +645,7 @@ export const AddCollaborators: React.FC<Props> = ({
         disabled = false;
       }
     }
-    if (email_body_error || limitExceeded) {
+    if (email_body_error) {
       disabled = true;
     }
     return (
@@ -695,12 +683,6 @@ export const AddCollaborators: React.FC<Props> = ({
     <div
       style={isFlyout ? { paddingLeft: "5px", paddingRight: "5px" } : undefined}
     >
-      {limitExceeded && (
-        <RequireLicense
-          project_id={project_id}
-          message={`A license is required to have more than ${unlicensedLimit} collaborators on this project.`}
-        />
-      )}
       {err && <ErrorDisplay error={err} onClose={() => set_err("")} />}
       {state == "searching" && <Loading />}
       {render_search()}

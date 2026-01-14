@@ -10,7 +10,6 @@ import { join } from "path";
 import { NewFileButton } from "@cocalc/frontend/project/new/new-file-button";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { capitalize, cmp, planInterval, stripeAmount } from "@cocalc/util/misc";
-import License from "components/licenses/license";
 import { CSS, Paragraph, Text, Title } from "components/misc";
 import A from "components/misc/A";
 import HelpEmail from "components/misc/help-email";
@@ -19,7 +18,6 @@ import Loading from "components/share/loading";
 import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
-import { Details as LicenseLoader } from "../licenses/license";
 import { InvoicesData } from "@cocalc/util/types/stripe";
 
 const DESCR_STYLE: CSS = {
@@ -36,7 +34,7 @@ function getInvoiceById(invoices, id) {
 
 interface DescriptionProps {
   latest_invoice: string;
-  metadata?: { type?: string; license_id?: string; class?: string };
+  metadata?: { type?: string; class?: string };
   invoices: InvoicesData;
 }
 
@@ -59,11 +57,6 @@ function Description(props: DescriptionProps) {
             </A>
           </div>
         )}
-        {metadata?.license_id && (
-          <div>
-            License: <License license_id={metadata?.license_id} />
-          </div>
-        )}
         {metadata?.type == "membership" && metadata?.class && (
           <div>Membership: {metadata.class}</div>
         )}
@@ -71,15 +64,6 @@ function Description(props: DescriptionProps) {
     );
   }
 
-  // in case the above didn't return, i.e. invoice was not found in the invoices.data array, we try to load it:
-  if (metadata?.license_id) {
-    return (
-      <div style={DESCR_STYLE}>
-        <LicenseLoader license_id={metadata.license_id} condensed={true} />
-        License: <License license_id={metadata.license_id} />
-      </div>
-    );
-  }
   if (metadata?.type == "membership" && metadata?.class) {
     return <div style={DESCR_STYLE}>Membership: {metadata.class}</div>;
   }
@@ -118,7 +102,7 @@ interface CostProps {
     interval_count: number;
   };
   invoices: InvoicesData;
-  metadata?: { type?: string; license_id?: string; class?: string };
+  metadata?: { type?: string; class?: string };
 }
 
 function Cost({ latest_invoice, plan, invoices, metadata }: CostProps) {
@@ -130,15 +114,6 @@ function Cost({ latest_invoice, plan, invoices, metadata }: CostProps) {
         {stripeAmount(plan.amount, plan.currency, unitCount)} for{" "}
         {planInterval(plan.interval, plan.interval_count)}
       </>
-    );
-    // since no invoice has been not found in the invoices.data array, we try to load it:
-  } else if (metadata?.license_id) {
-    return (
-      <LicenseLoader
-        license_id={metadata.license_id}
-        type={"cost"}
-        plan={plan}
-      />
     );
   } else if (metadata?.type == "membership" && metadata?.class) {
     return <>Membership: {metadata.class}</>;
@@ -265,22 +240,8 @@ export default function Subscriptions() {
   const subscriptions = useAPI("billing/get-subscriptions", { limit: 100 });
   const invoices = useAPI("billing/get-invoices-and-receipts");
 
-  const { numLicense, numUpgrade, subs } = useMemo(() => {
-    let numLicense = 0,
-      numUpgrade = 0,
-      subs: any[] = [];
-    for (const sub of subscriptions.result?.data ?? []) {
-      if (sub.metadata?.service != null || sub.automatic_tax?.enabled) {
-        // new automatic payment subscriptions
-      } else if (sub.metadata?.license_id != null) {
-        numLicense += 1;
-        subs.push(sub);
-      } else {
-        numUpgrade += 1;
-        subs.push(sub);
-      }
-    }
-    return { numLicense, numUpgrade, subs };
+  const subs = useMemo(() => {
+    return subscriptions.result?.data ?? [];
   }, [subscriptions.result]);
 
   if (subscriptions.error) {
@@ -311,28 +272,14 @@ export default function Subscriptions() {
         />
       </div>
 
-      <Title level={2}>Legacy Subscriptions ({subs.length})</Title>
+      <Title level={2}>Subscriptions ({subs.length})</Title>
       <Paragraph style={{ marginBottom: "30px" }}>
-        {numLicense > 0 && (
-          <p>
-            Your license subscriptions should be listed as canceled below, and
-            have{" "}
-            <A href={join(basePath, "settings", "subscriptions")} external>
-              migrated to the new subscriptions page
-            </A>
-            .
-          </p>
-        )}
-        {numUpgrade > 0 && (
-          <p>
-            Upgrade packages have been deprecated for years, but you have one so
-            you're grandfathered in still. Please consider cancelling your
-            subscription and purchasing licenses, pay-as-you-go project
-            upgrades, etc.{" "}
-          </p>
-        )}
         <p>
-          You can <A href="/store/membership">visit the store</A>.
+          Manage memberships and other subscriptions on the{" "}
+          <A href={join(basePath, "settings", "subscriptions")} external>
+            subscriptions page
+          </A>
+          .
         </p>{" "}
         If you have any questions <HelpEmail lower />.
       </Paragraph>

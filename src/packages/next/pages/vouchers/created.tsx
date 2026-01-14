@@ -19,7 +19,7 @@ import Loading from "components/share/loading";
 import useDatabase from "lib/hooks/database";
 import TimeAgo from "timeago-react";
 import { field_cmp } from "@cocalc/util/misc";
-import { money } from "@cocalc/util/licenses/purchase/utils";
+import { money } from "@cocalc/util/purchases/quota/utils";
 import Help from "components/vouchers/help";
 
 const QUERY = {

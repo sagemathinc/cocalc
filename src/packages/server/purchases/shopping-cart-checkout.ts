@@ -4,8 +4,8 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getCart from "@cocalc/server/shopping/cart/get";
 import { removeShoppingCartPaymentIntent } from "@cocalc/server/shopping/cart/payment-intent";
 import { Item as ShoppingCartItem } from "@cocalc/util/db-schema/shopping-cart-items";
-import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import { CostInputPeriod } from "@cocalc/util/purchases/quota/types";
+import { computeCost } from "@cocalc/util/purchases/store/compute-cost";
 import getChargeAmount from "@cocalc/util/purchases/charge-amount";
 import { ComputeCostProps } from "@cocalc/util/upgrades/shopping";
 import {

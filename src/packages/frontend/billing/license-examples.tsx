@@ -7,8 +7,8 @@ import {
   discount_monthly_pct,
   discount_yearly_pct,
   MIN_QUOTE,
-} from "@cocalc/util/licenses/purchase/consts";
-import { Cost, User } from "@cocalc/util/licenses/purchase/types";
+} from "@cocalc/util/purchases/quota/consts";
+import { Cost, User } from "@cocalc/util/purchases/quota/types";
 import { COLORS } from "@cocalc/util/theme";
 import { Col, Row, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { React } from "../app-framework";

@@ -7,7 +7,16 @@
 Voucher -- create vouchers from the contents of your shopping cart.
 */
 
-import { Button, Divider, Form, Input, InputNumber, Radio, Space } from "antd";
+import {
+  Button,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Radio,
+  Space,
+  Spin,
+} from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { currency, plural } from "@cocalc/util/misc";
@@ -24,7 +33,6 @@ import vouchers, {
   MAX_VOUCHER_VALUE,
   WhenPay,
 } from "@cocalc/util/vouchers";
-import { ADD_STYLE, AddToCartButton } from "./add-box";
 import apiPost from "lib/api/post";
 import Loading from "components/share/loading";
 
@@ -141,8 +149,8 @@ export default function CreateVouchers() {
         <Paragraph style={STYLE}>
           Voucher codes are exactly like gift cards. They can be{" "}
           <A href="/redeem">redeemed</A> by anybody for <SiteName /> credit,
-          which does not expire and can be used to purchase anything on the site
-          (licenses, GPU's, etc.). Visit the{" "}
+          which does not expire and can be used to purchase anything in the
+          store. Visit the{" "}
           <A href="/vouchers">Voucher Center</A> for more about vouchers, and{" "}
           <A href="https://doc.cocalc.com/vouchers.html">read the docs</A>. If
           anything goes wrong with your purchase,{" "}
@@ -341,7 +349,11 @@ export default function CreateVouchers() {
           </div>
           <Divider />
           <Space>
-            {router.query.id != null && <Button size="large">Cancel</Button>}
+            {router.query.id != null && (
+              <Button size="large" onClick={() => router.push("/store/cart")}>
+                Cancel
+              </Button>
+            )}
             <AddToCartButton
               disabled={disabled}
               cartError={error}
@@ -376,5 +388,85 @@ function Check({ done }) {
     return (
       <Icon name="arrow-right" style={{ ...CHECK_STYLE, color: "#cf1322" }} />
     );
+  }
+}
+
+const ADD_STYLE = {
+  display: "inline-block",
+  maxWidth: "550px",
+  minWidth: "400px",
+  background: "#fafafa",
+  border: "1px solid #ccc",
+  padding: "10px 20px",
+  borderRadius: "5px",
+  margin: "15px 0",
+  fontSize: "12pt",
+} as const;
+
+interface CartButtonProps {
+  cost: { cost: number } | undefined;
+  router;
+  form;
+  setCartError: (error) => void;
+  disabled?: boolean;
+  cartError: string | undefined;
+}
+
+function AddToCartButton({
+  cost,
+  form,
+  router,
+  setCartError,
+  cartError,
+  disabled: disabled0,
+}: CartButtonProps) {
+  const [clicked, setClicked] = useState<boolean>(false);
+  const disabled =
+    clicked || (disabled0 ?? false) || !!cartError || cost == null || cost.cost === 0;
+
+  return (
+    <Button
+      size="large"
+      type="primary"
+      htmlType="submit"
+      onClick={async () => {
+        try {
+          setClicked(true);
+          await addVoucherToCart({ form, setCartError, router });
+        } catch (_err) {
+          setClicked(false);
+        }
+      }}
+      disabled={disabled}
+    >
+      {clicked
+        ? "Moving to Cart..."
+        : router.query.id != null
+          ? "Save Changes"
+          : "Add to Cart"}
+      {clicked && <Spin style={{ marginLeft: "15px" }} />}
+    </Button>
+  );
+}
+
+async function addVoucherToCart({ form, setCartError, router }) {
+  const description = { ...form.getFieldsValue(true), type: "cash-voucher" };
+  try {
+    setCartError("");
+    if (router.query.id != null) {
+      await apiPost("/shopping/cart/edit", {
+        id: router.query.id,
+        description,
+      });
+    } else {
+      await apiPost("/shopping/cart/add", {
+        product: "cash-voucher",
+        description,
+      });
+    }
+    router.push("/store/cart");
+  } catch (err) {
+    setCartError(err.message);
+    throw err;
   }
 }

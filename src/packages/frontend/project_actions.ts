@@ -3018,10 +3018,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         });
         break;
 
-      case "upgrades":
-        this.set_active_tab("upgrades", { change_history: change_history });
-        break;
-
       default:
         misc.unreachable(main_segment);
         console.warn(`project/load_target: don't know segment ${main_segment}`);

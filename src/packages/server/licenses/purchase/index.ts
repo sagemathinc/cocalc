@@ -7,7 +7,7 @@
 
 
 import { getLogger } from "@cocalc/backend/logger";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 const logger = getLogger("purchaseLicense");
 
 export default async function purchaseLicense(

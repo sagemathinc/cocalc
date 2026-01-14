@@ -13,18 +13,16 @@ to use.
 
 import { Alert, Button, Checkbox, Popconfirm, Table } from "antd";
 import { useRouter } from "next/router";
-import { useEffect, useMemo, useState, type JSX } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import type {
   ProductDescription,
   ProductType,
 } from "@cocalc/util/db-schema/shopping-cart-items";
-import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
-import { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
-import { capitalize, isValidUUID } from "@cocalc/util/misc";
-import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
+import { CostInputPeriod } from "@cocalc/util/purchases/quota/types";
+import { computeCost } from "@cocalc/util/purchases/store/compute-cost";
+import { capitalize } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
@@ -32,7 +30,7 @@ import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import OtherItems from "./other-items";
-import { describeItem, describePeriod, DisplayCost } from "./site-license-cost";
+import { describeItem, DisplayCost } from "./site-license-cost";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();
@@ -103,15 +101,7 @@ export default function ShoppingCart() {
   const columns = [
     {
       responsive: ["xs" as "xs"],
-      render: ({
-        id,
-        product,
-        checked,
-        cost,
-        description,
-        type,
-        project_id,
-      }) => {
+      render: ({ id, product, checked, cost, description }) => {
         return (
           <div>
             <CheckboxColumn
@@ -127,8 +117,6 @@ export default function ShoppingCart() {
                 setUpdating,
                 isMounted,
                 reload,
-                type,
-                project_id,
               }}
               compact
             />
@@ -159,7 +147,7 @@ export default function ShoppingCart() {
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { product, id, cost, description, type, project_id }) => (
+      render: (_, { product, id, cost, description }) => (
         <DescriptionColumn
           {...{
             product,
@@ -170,8 +158,6 @@ export default function ShoppingCart() {
             setUpdating,
             isMounted,
             reload,
-            type,
-            project_id,
           }}
           compact={false}
         />
@@ -341,7 +327,6 @@ interface DCProps {
   isMounted: { current: boolean };
   reload: () => void;
   compact: boolean;
-  project_id?: string;
   readOnly?: boolean; // if true, don't show any buttons
   style?;
 }
@@ -358,9 +343,7 @@ const DESCRIPTION_STYLE = {
 export function DescriptionColumn(props: DCProps) {
   const router = useRouter();
   const { id, description, style, readOnly } = props;
-  if (description.type === "quota") {
-    return <DescriptionColumnSiteLicense {...props} />;
-  } else if (description.type == "membership") {
+  if (description.type == "membership") {
     return (
       <div style={style}>
         <b style={{ fontSize: "12pt" }}>
@@ -378,7 +361,8 @@ export function DescriptionColumn(props: DCProps) {
         )}
       </div>
     );
-  } else if (description.type == "cash-voucher") {
+  }
+  if (description.type == "cash-voucher") {
     return (
       <div style={style}>
         <b style={{ fontSize: "12pt" }}>Cash Voucher: {description.title}</b>
@@ -401,99 +385,8 @@ export function DescriptionColumn(props: DCProps) {
         )}
       </div>
     );
-  } else {
-    return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
   }
-}
-
-function DescriptionColumnSiteLicense(props: DCProps) {
-  const { id, cost, description, compact, project_id, readOnly } = props;
-  if (!(description.type === "quota")) {
-    throw Error("BUG -- incorrect typing");
-  }
-  const router = useRouter();
-  if (cost == null) {
-    // don't crash when used on deprecated items
-    return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
-  }
-  const { input } = cost;
-  if (input.type === "cash-voucher") {
-    throw Error("incorrect typing");
-  }
-
-  function renderProjectID(): JSX.Element | null {
-    if (!project_id || !isValidUUID(project_id)) return null;
-    return (
-      <Alert
-        type="info"
-        banner={true}
-        message={
-          <>
-            For {WORKSPACE_LABEL.toLowerCase()}: <code>{project_id}</code>
-          </>
-        }
-      />
-    );
-  }
-
-  function editableQuota() {
-    if (input.type === "cash-voucher") return null;
-    return (
-      <div>
-        <div>{describeQuotaFromInfo(input)}</div>
-        {renderProjectID()}
-      </div>
-    );
-  }
-
-  // this could rely an the "type" field, but we rather check the data directly
-  function editPage(): "site-license" | "vouchers" | "course" {
-    if (input.type === "cash-voucher") {
-      return "vouchers";
-    } else if (
-      description.type === "quota" &&
-      description.source === "course"
-    ) {
-      return "course";
-    }
-    return "site-license";
-  }
-
-  return (
-    <div style={{ fontSize: "12pt" }}>
-      {description.title && (
-        <div>
-          <b>{description.title}</b>
-        </div>
-      )}
-      {description.description && <div>{description.description}</div>}
-      <div style={DESCRIPTION_STYLE}>
-        <div style={{ marginBottom: "8px" }}>
-          <b>
-            {input.subscription === "no"
-              ? describePeriod({ quota: input })
-              : capitalize(input.subscription) + " subscription"}
-          </b>
-        </div>
-        {compact || readOnly ? describeItem({ info: input }) : editableQuota()}{" "}
-      </div>
-      {!readOnly && (
-        <>
-          <Button
-            style={{ marginRight: "5px" }}
-            onClick={() => {
-              const page = editPage();
-              router.push(`/store/${page}?id=${id}`);
-            }}
-          >
-            <Icon name="pencil" /> Edit
-          </Button>
-          <SaveForLater {...props} />
-          <DeleteItem {...props} />
-        </>
-      )}
-    </div>
-  );
+  return <pre>{JSON.stringify(description, undefined, 2)}</pre>;
 }
 
 function SaveForLater({ id, reload, updating, setUpdating, isMounted }) {
@@ -544,7 +437,6 @@ function DeleteItem({ id, reload, updating, setUpdating, isMounted }) {
 }
 
 const PRODUCTS = {
-  "site-license": { icon: "key", label: "License" },
   "cash-voucher": { icon: "money", label: "Cash Voucher" },
   membership: { icon: "user", label: "Membership" },
 };

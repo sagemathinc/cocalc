@@ -28,7 +28,6 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { getCost } from "./cost";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { studentPayTransfer } from "@cocalc/frontend/purchases/api";
-import { len } from "@cocalc/util/misc";
 
 interface Props {
   project_id: string;
@@ -149,8 +148,8 @@ function getAvailable(project_id): string[] {
     if (id == project_id) {
       continue;
     }
-    const { course, site_license } = projects[id] ?? {};
-    if (course == null || site_license == null || len(site_license) == 0) {
+    const { course } = projects[id] ?? {};
+    if (course == null) {
       continue;
     }
     if (!course.paid) {

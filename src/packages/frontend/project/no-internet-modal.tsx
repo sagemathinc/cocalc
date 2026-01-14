@@ -22,7 +22,6 @@ const MEMBERSHIP_URL = join(appBasePath, "/settings");
 const INET_QUOTA_URL = "https://doc.cocalc.com/upgrades.html#internet-access";
 
 interface NoInternetBannerProps {
-  projectSiteLicenses: string[];
   isPaidStudentPayProject?: boolean;
   hasComputeServers: boolean;
 }

@@ -11,8 +11,8 @@ The duration -- i.e., the number of days -- must be PART OF THE product id!!
 There.   We had a huge bug that costs us a ton due to not realizing this.
 */
 
-import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/site-license";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { LicenseIdleTimeoutsKeysOrdered } from "@cocalc/util/consts/quota-uptime";
+import { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 
 // When we change pricing, the products in stripe will already

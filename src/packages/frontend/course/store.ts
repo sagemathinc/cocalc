@@ -5,7 +5,6 @@
 
 // React libraries
 import { Store, redux } from "@cocalc/frontend/app-framework";
-import { site_license_public_info } from "@cocalc/frontend/site-licenses/util";
 // CoCalc libraries
 import { cmp, cmp_array } from "@cocalc/util/misc";
 import { DirectoryListingEntry } from "@cocalc/util/types";
@@ -20,28 +19,21 @@ import {
   EnvVarsRecord,
 } from "@cocalc/frontend/projects/actions";
 import { StudentProjectFunctionality } from "./configuration/customize-student-project-functionality";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import type {
   CopyConfigurationOptions,
   CopyConfigurationTargets,
 } from "./configuration/configuration-copying";
-import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/purchases/quota/student-pay";
 
 export const PARALLEL_DEFAULT = 5;
 export const MAX_COPY_PARALLEL = 25;
 
-import {
-  AssignmentCopyStep,
-  AssignmentStatus,
-  SiteLicenseStrategy,
-  ComputeServerConfig,
-} from "./types";
+import { AssignmentCopyStep, AssignmentStatus, ComputeServerConfig } from "./types";
 
 import { NotebookScores } from "../jupyter/nbgrader/autograde";
 
 import { CourseActions } from "./actions";
-
-export const DEFAULT_LICENSE_UPGRADE_HOST_PROJECT = false;
 
 export type TerminalCommandOutput = TypedMap<{
   project_id: string;
@@ -156,10 +148,6 @@ export type CourseSettingsRecord = TypedMap<{
   shared_project_id: string;
   student_pay: boolean;
   title: string;
-  license_upgrade_host_project?: boolean; // https://github.com/sagemathinc/cocalc/issues/5360
-  site_license_id?: string;
-  site_license_removed?: string; // comma separated list of licenses that have been explicitly removed from this course.
-  site_license_strategy?: SiteLicenseStrategy;
   copy_parallel?: number;
   nbgrader_grade_in_instructor_project?: boolean; // deprecated
   nbgrader_grade_project?: string;
@@ -961,29 +949,6 @@ export class CourseStore extends Store<CourseState> {
     if (n < 1) return 1;
     if (n > 50) return 50;
     return n;
-  }
-
-  public async getLicenses(force?: boolean): Promise<{
-    [license_id: string]: { expired: boolean; runLimit: number };
-  }> {
-    const licenses: {
-      [license_id: string]: { expired: boolean; runLimit: number };
-    } = {};
-    const license_ids = this.getIn(["settings", "site_license_id"]) ?? "";
-    for (const license_id of license_ids.split(",")) {
-      if (!license_id) continue;
-      try {
-        const license_info = await site_license_public_info(license_id, force);
-        if (license_info == null) continue;
-        const { expires, run_limit } = license_info;
-        const expired = !!(expires && expires <= new Date());
-        const runLimit = run_limit ? run_limit : 999999999999999; // effectively unlimited
-        licenses[license_id] = { expired, runLimit };
-      } catch (err) {
-        console.warn(`Error getting license info for ${license_id}`, err);
-      }
-    }
-    return licenses;
   }
 
   getUnit = (id: string) => {

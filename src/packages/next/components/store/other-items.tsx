@@ -18,8 +18,8 @@ import {
   Table,
 } from "antd";
 import { DisplayCost, describeItem } from "./site-license-cost";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
-import type { CostInputPeriod } from "@cocalc/util/licenses/purchase/types";
+import { computeCost } from "@cocalc/util/purchases/store/compute-cost";
+import type { CostInputPeriod } from "@cocalc/util/purchases/quota/types";
 import type { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";
 import Loading from "components/share/loading";
 import { Icon } from "@cocalc/frontend/components/icon";

@@ -31,7 +31,6 @@ import { moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { getTotalBalance } from "./get-balance";
 import { getUsageSubscription } from "./stripe-usage-based-subscription";
-import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import sendEmail from "@cocalc/server/email/send-email";
 import getLogger from "@cocalc/backend/logger";
 import siteURL from "@cocalc/database/settings/site-url";
@@ -106,7 +105,7 @@ so they are not automatically canceled.   You will receive a reminder email in a
     subscriptionList.push(
       `<li>${sub.interval == "month" ? "Monthly" : "Yearly"} Subscription (id=${
         sub.id
-      }) for ${moneyToCurrency(sub.cost)}/${sub.interval}: ${await describeLicense(
+      }) for ${moneyToCurrency(sub.cost)}/${sub.interval}: ${await describeSubscription(
         sub.metadata,
       )} </li>`,
     );
@@ -151,23 +150,14 @@ to this email to create a support request.
   );
 }
 
-async function describeLicense(metadata): Promise<string> {
+async function describeSubscription(metadata): Promise<string> {
   if (!metadata) {
     return "";
   }
   if (metadata.type == "membership") {
     return `Membership (${metadata.class ?? "unknown"})`;
   }
-  const license_id = metadata.license_id;
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "select info->'purchased' as purchased from site_licenses where id=$1",
-    [license_id],
-  );
-  if (rows.length == 0) {
-    return "";
-  }
-  return describeQuotaFromInfo(rows[0].purchased);
+  return "";
 }
 
 /*

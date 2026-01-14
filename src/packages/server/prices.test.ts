@@ -6,7 +6,7 @@
 // test product ID and pricing
 
 import { ONE_DAY_MS } from "@cocalc/util/consts/billing";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { compute_cost } from "@cocalc/util/purchases/quota/compute-cost";
 import { round2 } from "@cocalc/util/misc";
 import {
   endOfDay,
@@ -15,7 +15,7 @@ import {
 } from "@cocalc/util/stripe/timecalcs";
 import expect from "expect";
 import { unitAmount } from "./licenses/purchase/charge";
-import { COSTS } from "@cocalc/util/licenses/purchase/consts";
+import { COSTS } from "@cocalc/util/purchases/quota/consts";
 
 // TODO: some tests are ignored if the machine is not running on UTC.
 // Ideally, this is taken into account, but that's not implemented.

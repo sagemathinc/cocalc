@@ -13,10 +13,10 @@ Everything is done in a single atomic transaction.
 import getPool from "@cocalc/database/pool";
 import { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
+import { compute_cost } from "@cocalc/util/purchases/quota/compute-cost";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/purchases/quota/student-pay";
 import type { CourseInfo } from "@cocalc/util/db-schema/projects";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
 import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import setCourseInfo from "@cocalc/server/projects/course/set-course-info";

@@ -20,10 +20,6 @@ which is VERY BAD.
 // account
 export { AccountStore, AccountActions } from "@cocalc/frontend/account";
 export type { AccountState } from "@cocalc/frontend/account/types";
-// admin-site-licenses
-export { SiteLicensesActions } from "@cocalc/frontend/site-licenses/admin/actions";
-export { SiteLicensesStore } from "@cocalc/frontend/site-licenses/admin/store";
-export type { SiteLicensesState } from "@cocalc/frontend/site-licenses/admin/types";
 // admin-users
 export { AdminUsersActions } from "@cocalc/frontend/admin/users/actions";
 export { AdminUsersStore } from "@cocalc/frontend/admin/users/store";

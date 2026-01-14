@@ -10,7 +10,7 @@
 import { getLogger } from "@cocalc/backend/logger";
 import { Stripe, StripeClient } from "@cocalc/server/stripe/client";
 import getConn from "@cocalc/server/stripe/connection";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { getDays } from "@cocalc/util/stripe/timecalcs";
 import { getProductId } from "./product-id";
 import { getProductMetadata } from "./product-metadata";

@@ -1,14 +1,18 @@
-// On-prem: parsing and converting the quota.gpu information
+// On-prem: parsing and converting GPU quota information.
 
-import { SiteLicenseQuota } from "./site-licenses";
+export type GPU = {
+  num?: number; // usually 1, 0 means "disabled"
+  toleration?: string; // e.g. gpu=cocalc for key=value
+  nodeLabel?: string; // e.g. gpu=cocalc for key=value
+  resource?: string; // default: GPU_DEFAULT_RESOURCE
+};
 
-export const GPU_DEFAULT_RESOURCE = "nvidia.com/gpu"
+export const GPU_DEFAULT_RESOURCE = "nvidia.com/gpu";
 
-export function extract_gpu(quota: SiteLicenseQuota = {}) {
-  const { gpu } = quota;
-  if (gpu == null) return { num: 0 };
-  if (typeof gpu === "object") return gpu;
-  return { num: 0 };
+export function extract_gpu(gpu?: GPU | boolean): GPU {
+  if (gpu == null || gpu === false) return { num: 0 };
+  if (gpu === true) return { num: 1 };
+  return gpu;
 }
 
 type GPUQuotaInfo = {
@@ -33,13 +37,13 @@ type GPUQuotaInfo = {
   )[];
 };
 
-export function process_gpu_quota(quota: SiteLicenseQuota = {}): GPUQuotaInfo {
+export function process_gpu_quota(gpu?: GPU | boolean): GPUQuotaInfo {
   const {
     num = 0,
     toleration = "",
     nodeLabel = "",
     resource = GPU_DEFAULT_RESOURCE,
-  } = extract_gpu(quota);
+  } = extract_gpu(gpu);
 
   const info: GPUQuotaInfo = {};
   if (num > 0) {
