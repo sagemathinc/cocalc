@@ -2,7 +2,14 @@
 Dev-only control-agent API for quick end-to-end testing.
 */
 
-import { Agent, run, setTracingDisabled, tool } from "@openai/agents";
+import {
+  Agent,
+  run,
+  setDefaultOpenAIKey,
+  setTracingDisabled,
+  setTracingExportApiKey,
+  tool,
+} from "@openai/agents";
 import type {
   ControlAgentDevResponse,
   ControlAgentTranscriptItem,
@@ -15,6 +22,7 @@ import { createFullControlAgentRunner } from "@cocalc/server/control-agent";
 import type { ControlAgentContext } from "@cocalc/ai/control-agent";
 import getLogger from "@cocalc/backend/logger";
 import { z } from "zod";
+import { getServerSettings } from "@cocalc/database/settings/server-settings";
 
 const logger = getLogger("control-agent:dev");
 
@@ -35,10 +43,13 @@ function ensureDevEnabled(): void {
   }
 }
 
-function ensureApiKey(): void {
-  if (!process.env.OPENAI_API_KEY) {
-    throw Error("OPENAI_API_KEY is required for control agent dev API");
+async function ensureApiKey(): Promise<void> {
+  const { openai_api_key } = await getServerSettings();
+  if (!openai_api_key) {
+    throw Error("openai_api_key is not configured in server settings");
   }
+  setDefaultOpenAIKey(openai_api_key);
+  setTracingExportApiKey(openai_api_key);
 }
 
 function normalizeDryRun(dryRun?: boolean): boolean {
@@ -139,7 +150,7 @@ export async function controlAgentDev({
   dryRun?: boolean;
 }): Promise<ControlAgentDevResponse> {
   ensureDevEnabled();
-  ensureApiKey();
+  await ensureApiKey();
   if (!account_id) {
     throw Error("account_id is required");
   }
