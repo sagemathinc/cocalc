@@ -11,6 +11,7 @@ import type {
   ControlAgentMessage,
   ControlAgentThread,
 } from "./types";
+import type { ControlAgentToolResult } from "./tools";
 
 export type ControlAgentContextAdapter = {
   toString: () => string;
@@ -54,7 +55,10 @@ export type ControlAgentToolContext = {
   capabilities: ControlAgentCapabilities;
 };
 
-export type ControlAgentToolHandler<Input = unknown, Output = unknown> = (
+export type ControlAgentToolHandler<
+  Input = unknown,
+  Output = ControlAgentToolResult,
+> = (
   input: Input,
   context: ControlAgentToolContext,
 ) => Promise<Output>;

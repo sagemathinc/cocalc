@@ -1,4 +1,8 @@
 import { authFirstRequireAccount, authFirstRequireHost } from "./util";
+import {
+  type ProjectCopyRow,
+  type ProjectCopyState,
+} from "@cocalc/conat/hub/api/projects";
 
 export type HostStatus =
   | "deprovisioned"
@@ -178,6 +182,8 @@ export const hosts = {
   upgradeHostSoftware: authFirstRequireAccount,
   getBackupConfig: authFirstRequireHost,
   recordProjectBackup: authFirstRequireHost,
+  claimPendingCopies: authFirstRequireHost,
+  updateCopyStatus: authFirstRequireHost,
 };
 
 export interface Hosts {
@@ -210,6 +216,20 @@ export interface Hosts {
     host_id?: string;
     project_id: string;
     time: Date;
+  }) => Promise<void>;
+  claimPendingCopies: (opts: {
+    host_id?: string;
+    project_id?: string;
+    limit?: number;
+  }) => Promise<ProjectCopyRow[]>;
+  updateCopyStatus: (opts: {
+    host_id?: string;
+    src_project_id: string;
+    src_path: string;
+    dest_project_id: string;
+    dest_path: string;
+    status: ProjectCopyState;
+    last_error?: string;
   }) => Promise<void>;
 
   createHost: (opts: {

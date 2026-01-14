@@ -13,15 +13,18 @@ const MAX_BACKUPS_PER_PROJECT = 30;
 export async function createBackup({
   account_id,
   project_id,
+  tags,
 }: {
   account_id?: string;
   project_id: string;
   name?: string;
+  tags?: string[];
 }): Promise<{ time: Date; id: string }> {
   await assertCollab({ account_id, project_id });
   return await fileServerClient({ project_id }).createBackup({
     project_id,
     limit: MAX_BACKUPS_PER_PROJECT,
+    tags,
   });
 }
 
