@@ -187,7 +187,13 @@ export async function start({
   // not used; passed through for typing compatibility with project-host
   restore?: "none" | "auto" | "required";
   wait?: boolean;
-}): Promise<void> {
+}): Promise<{
+  op_id: string;
+  scope_type: "project";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+}> {
   await assertCollab({ account_id, project_id });
   const op = await createLro({
     kind: "project-start",
@@ -218,6 +224,13 @@ export async function start({
 
   log.debug("start", { project_id, op_id: op.op_id });
   const project = await getProject(project_id);
+  const response = {
+    op_id: op.op_id,
+    scope_type: "project" as const,
+    scope_id: project_id,
+    service: PERSIST_SERVICE,
+    stream_name: lroStreamName(op.op_id),
+  };
   const runStart = async () => {
     const running = await updateLro({
       op_id: op.op_id,
@@ -280,6 +293,7 @@ export async function start({
       log.warn("async start failed", { project_id, err: `${err}` }),
     );
   }
+  return response;
 }
 
 export async function stop({
