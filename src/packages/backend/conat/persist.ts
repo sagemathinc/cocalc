@@ -37,14 +37,17 @@ const persistServers: any[] = [];
 export function initPersistServer({
   id,
   clusterMode,
+  service,
 }: {
   id?: string;
   clusterMode?: boolean;
+  service?: string;
 }) {
   const persistServer = server({
     client: conat({ noCache: persistServers.length > 0 }),
     id,
     clusterMode,
+    service,
   });
   persistServers.push(persistServer);
 }

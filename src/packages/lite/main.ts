@@ -127,6 +127,7 @@ export async function main(): Promise<number> {
   process.once("exit", () => {
     conatServer?.close();
     conatServer = null;
+    persistServer?.close?.();
     httpServer?.close();
   });
 

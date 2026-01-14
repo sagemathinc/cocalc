@@ -42,6 +42,7 @@ export interface ProjectCopyRow {
   src_path: string;
   dest_project_id: string;
   dest_path: string;
+  op_id: string | null;
   snapshot_id: string;
   options: CopyOptions | null;
   status: ProjectCopyState;
@@ -117,7 +118,13 @@ export interface Projects {
     src: { project_id: string; path: string | string[] };
     dest: { project_id: string; path: string };
     options?: CopyOptions;
-  }) => Promise<void>;
+  }) => Promise<{
+    op_id: string;
+    scope_type: "project";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }>;
 
   listPendingCopies: (opts: {
     account_id?: string;

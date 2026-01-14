@@ -70,28 +70,27 @@ Summary stream:
 
 ## Subject naming and locality
 
-We want a canonical subject that works with existing auth and an alias for locality.
+We want a canonical persist subject that works with existing auth and routes to the project host.
 
-Canonical subject (auth-friendly, no changes required):
+Persist subject (auth-friendly, no changes required):
 
-- lro.project-<project_id>.<op_id>
-- lro.account-<account_id>.<op_id>
-- lro.host-<host_id>.<op_id>
-- lro.hub.<op_id>
+- persist.project-<project_id>
+- persist.account-<account_id>
+- persist.host-<host_id>
+- persist.hub
 
-This matches existing auth rules in [src/packages/server/conat/socketio/auth.ts](./src/packages/server/conat/socketio/auth.ts) because it uses the second segment format (project-<id>, account-<id>, host-<id>).
+Each op uses a per-op stream name so storage is scoped by op_id:
 
-Alias subject for locality (project-scoped):
+- stream name: lro.<op_id>
+- storage path: projects/<project_id>/lro.<op_id> (or accounts/..., hosts/..., hub/...)
 
-- project.<project_id>.lro.<op_id>
-
-Use this alias whenever the op has a project scope. This keeps client traffic local to the project host when possible (e.g., Australia client and Australia host), while the canonical stream remains available for global access.
+Clients publish/subscribe via conat astream/dstream with `{ project_id, name: "lro.<op_id>" }`. Project scope already routes to the project host, so no extra alias subject is required.
 
 ## API surface
 
 Hub APIs:
 
-- create({ kind, scope, input, routing, dedupe_key, ttl }) -> { op_id, status, subject, alias_subject? }
+- create({ kind, scope, input, routing, dedupe_key, ttl }) -> { op_id, status, scope_type, scope_id, service, stream_name }
 - get({ op_id }) -> summary
 - list({ scope_type, scope_id, kind?, status? }) -> summaries
 - wait({ op_id, timeout }) -> final summary or timeout
@@ -193,9 +192,9 @@ sequenceDiagram
    - Add conat dstream setup helpers (configurable max_age/max_msgs/ttl).
 
 3. **Subject and auth**
-   - Introduce subject helpers for canonical and alias subjects.
-   - Use the `lro.<scopeTag>.<op_id>` pattern to avoid auth changes.
-   - Optionally add explicit auth rules for `lro.*` if we ever want `lro.project.<id>`.
+   - Use conat persist service `persist`, so subjects are `persist.project-<id>`/`persist.account-<id>`/`persist.host-<id>`/`persist.hub`.
+   - Stream name is `lro.<op_id>`.
+   - No auth changes required.
 
 4. **Hub API**
    - Implement create/get/list/wait/cancel endpoints.
