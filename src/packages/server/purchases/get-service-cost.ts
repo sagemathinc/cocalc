@@ -43,8 +43,7 @@ export default async function getServiceCost(service: Service) {
       return DATA_TRANSFER_OUT_COST_PER_GiB;
 
     case "refund":
-    case "edit-license":
-    case "license":
+    case "student-pay":
     case "voucher":
       throw new Error("No cost for these services");
 

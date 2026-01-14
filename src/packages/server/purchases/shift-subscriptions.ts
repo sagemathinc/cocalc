@@ -84,7 +84,7 @@ async function shiftSubscriptionToEndOnDay(
       [current_period_start, current_period_end, sub.id]
     );
 
-    // license subscriptions are deprecated; no license-side updates here.
+    // No side-effect updates needed here.
   }
 }
 

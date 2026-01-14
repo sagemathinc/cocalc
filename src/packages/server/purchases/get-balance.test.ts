@@ -25,7 +25,7 @@ describe("test computing balance under various conditions", () => {
   it("with one purchase", async () => {
     await createPurchase({
       account_id,
-      service: "license",
+      service: "student-pay",
       description: {} as any,
       client: null,
       cost: 3.89,
@@ -54,7 +54,7 @@ describe("test computing balance under various conditions", () => {
     const account_id2 = uuid();
     await createPurchase({
       account_id: account_id2,
-      service: "license",
+      service: "student-pay",
       description: {} as any,
       client: null,
       cost: 1.23,

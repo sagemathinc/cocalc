@@ -11,7 +11,6 @@ import {
   assert_valid_email_address,
   len,
 } from "@cocalc/util/misc";
-import { is_a_site_license_manager } from "./site-license/search";
 import { PostgreSQL } from "./types";
 //import getLogger from "@cocalc/backend/logger";
 //const L = getLogger("db:pg:account-queries");
@@ -40,8 +39,7 @@ export async function is_paying_customer(
     // they have at least one subscription of some form -- so that's enough to count.
     return true;
   }
-  // If they manage any licenses then they also count:
-  return await is_a_site_license_manager(db, account_id);
+  return false;
 }
 
 interface SetAccountFields {

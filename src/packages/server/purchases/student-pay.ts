@@ -1,10 +1,9 @@
 /*
-Run this function so that the user buys a license and upgrades the given project
-with that license exactly as prescribed by "student pay" for a course.
+Run this function so that the user pays the course fee for a student project.
 
 This fails if:
 
- - The user doesn't have sufficient funds on their account to pay for the license (unless amount is sufficient).
+ - The user doesn't have sufficient funds on their account to pay the fee (unless amount is sufficient).
  - The course fee was already paid.
 
 Everything is done in a single atomic transaction.
@@ -27,7 +26,6 @@ import createTokenAction, {
 } from "@cocalc/server/token-actions/create";
 import dayjs from "dayjs";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import { uuid } from "@cocalc/util/misc";
 import getConn from "@cocalc/server/stripe/connection";
 import { isValidUUID } from "@cocalc/util/misc";
 import { url } from "@cocalc/server/messages/send";
@@ -43,7 +41,7 @@ interface Options {
   // we always allow the purchase.
   amount?: number;
 
-  // noted when creating the actual purchase of the license, assuming some
+  // noted when creating the actual purchase, assuming some
   // specific credit was added to the account for this purpose (which may or may not
   // be the case, obviously)
   credit_id?: number;
@@ -59,7 +57,7 @@ export default async function studentPay({
   const client = await getTransactionClient();
   try {
     // start atomic transaction:
-    // Creating the license and the purchase and recording that student paid all happen as a single PostgreSQL atomic transaction.
+    // Creating the purchase and recording that student paid all happen as a single PostgreSQL atomic transaction.
 
     // Get current value of course field of this project
     const { rows } = await client.query(
@@ -79,23 +77,21 @@ export default async function studentPay({
     const { title, description } = rows[0];
     const purchaseInfo = {
       ...(currentCourse.payInfo ?? DEFAULT_PURCHASE_INFO),
-      title: `Course License for ${title}`,
-      description: `License for the course "${title}".\n\n${description?.trim() != "No description" ? description : ""}`,
+      title: `Course fee for ${title}`,
+      description: `Course fee for "${title}".\n\n${description?.trim() != "No description" ? description : ""}`,
     };
     if (purchaseInfo.type != "quota") {
       // typescript wants this
-      throw Error("must purchase a quota license");
+      throw Error("must purchase a quota-based course fee");
     }
     const cost = getCost(purchaseInfo);
     await assertPurchaseAllowed({
       account_id,
-      service: "license",
+      service: "student-pay",
       cost,
       client,
       amount,
     });
-
-    const license_id = uuid();
 
     if (purchaseInfo.start == null || purchaseInfo.end == null) {
       throw Error("start and end must be set");
@@ -104,13 +100,13 @@ export default async function studentPay({
     // Create the purchase
     const purchase_id = await createPurchase({
       account_id,
-      service: "license",
+      project_id,
+      service: "student-pay",
       cost,
       period_start: purchaseInfo.start,
       period_end: purchaseInfo.end,
       description: {
-        type: "license",
-        license_id,
+        type: "student-pay",
         info: purchaseInfo,
         course: currentCourse,
         credit_id,

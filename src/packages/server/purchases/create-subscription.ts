@@ -1,5 +1,4 @@
 import type {
-  LicenseMetadata,
   MembershipMetadata,
   Metadata,
   Subscription,
@@ -53,7 +52,7 @@ export default async function createSubscription(
   if (typeof metadata != "object" || !metadataType) {
     throw Error("metadata must be a nontrivial object with type field");
   }
-  if (metadataType != "license" && metadataType != "membership") {
+  if (metadataType != "membership") {
     throw Error(`unsupported subscription metadata type "${metadataType}"`);
   }
   if (metadataType == "membership" && !(metadata as MembershipMetadata).class) {
@@ -73,13 +72,6 @@ export default async function createSubscription(
     ]
   );
   const { id } = rows[0];
-  if (metadataType == "license") {
-    const licenseMetadata = metadata as LicenseMetadata;
-    await db.query("UPDATE site_licenses SET subscription_id=$1 WHERE id=$2", [
-      id,
-      licenseMetadata.license_id,
-    ]);
-  }
   if (client == null) {
     db.release();
   }

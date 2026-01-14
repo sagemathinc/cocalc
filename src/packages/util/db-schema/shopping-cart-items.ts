@@ -46,8 +46,6 @@ export interface Item {
     success?: true;
     // when it was bought and paid for
     time?: Date;
-    // if allocated this is the license that was created
-    license_id?: string;
     // voucher if that was what was bought (instead of a license)
     voucher_id?: number;
     // when checkout happened, which should trigger payment
@@ -89,12 +87,12 @@ Table({
     },
     purchased: {
       type: "map",
-      desc: "Object that describes the purchase once it is made.  account_id of who made the purchase?  Pointer to stripe invoice?  license_id.",
+      desc: "Object that describes the purchase once it is made.  account_id of who made the purchase?  Pointer to stripe invoice?",
       render: { type: "purchased" },
     },
     product: {
       type: "string",
-      desc: "General class of product, e.g., 'site-license', 'cash-voucher', 'membership'.",
+      desc: "General class of product, e.g., 'cash-voucher', 'membership'.",
     },
     description: {
       type: "map",

@@ -36,7 +36,6 @@ export interface Props {
   project_id: string;
   image?: string;
   description?: string;
-  has_site_license?: boolean;
 }
 
 export default function Edit({
@@ -47,7 +46,6 @@ export default function Edit({
   project_id,
   image,
   description,
-  has_site_license,
 }: Props) {
   const router = useRouter();
   const [expanded, setExpanded] = useState<boolean>(!!router.query.edit);
@@ -78,7 +76,6 @@ export default function Edit({
           project_id={project_id}
           image={image}
           description={description}
-          has_site_license={has_site_license}
           onClose={() => {
             setExpanded(false);
           }}

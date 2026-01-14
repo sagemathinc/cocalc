@@ -31,7 +31,7 @@ describe("get the spend rate of a user under various circumstances", () => {
   it("add a purchase that is not pay-as-you-go and spend rate still 0", async () => {
     await createPurchase({
       account_id,
-      service: "license",
+      service: "student-pay",
       description: {} as any,
       client: null,
       cost: 3.89,

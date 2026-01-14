@@ -30,7 +30,7 @@ import apiPost from "lib/api/post";
 import useAPI from "lib/hooks/api";
 import useIsMounted from "lib/hooks/mounted";
 import OtherItems from "./other-items";
-import { describeItem, DisplayCost } from "./site-license-cost";
+import { describeItem, DisplayCost } from "./item-cost";
 
 export default function ShoppingCart() {
   const isMounted = useIsMounted();

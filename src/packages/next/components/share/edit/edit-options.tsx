@@ -29,7 +29,6 @@ export default function EditOptions({
   image,
   onClose,
   description,
-  has_site_license,
 }: EditOptionsProps) {
   const { isCollaborator } = useCustomize();
   const [everything, setEverything] = useState<boolean>(true);
@@ -86,7 +85,6 @@ export default function EditOptions({
       {account?.account_id == null && (
         <NotSignedInOptions
           path={path}
-          has_site_license={has_site_license}
           id={id}
         />
       )}
@@ -129,23 +127,18 @@ function SignedInOptions({
   );
 }
 
-function NotSignedInOptions({ path, has_site_license, id }) {
-  const { anonymousSignup, anonymousSignupLicensedShares } = useCustomize();
+function NotSignedInOptions({ path, id }) {
+  const { anonymousSignup } = useCustomize();
   return (
     <div>
       <InPlaceSignInOrUp
         title={`Choose ${WORKSPACE_LABEL}`}
-        why={`to edit in one of your own ${
-          has_site_license ? "licensed" : ""
-        } ${WORKSPACES_LABEL.toLowerCase()} using a full collaborative ${
+        why={`to edit in one of your own ${WORKSPACES_LABEL.toLowerCase()} using a full collaborative ${
           path?.endsWith("ipynb") ? "Jupyter notebook" : "editor"
         }`}
-        publicPathId={has_site_license ? id : undefined}
+        publicPathId={id}
       />
       {anonymousSignup && <OpenAnonymously />}
-      {!anonymousSignup &&
-        anonymousSignupLicensedShares &&
-        has_site_license && <OpenAnonymously publicPathId={id} />}
     </div>
   );
 }

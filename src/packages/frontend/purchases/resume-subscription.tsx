@@ -83,7 +83,7 @@ export default function ResumeSubscription({
       setCostToResume(costValue.toNumber());
       setPeriodicCost(periodicCostValue.toNumber());
       const { chargeAmount = 0 } = await isPurchaseAllowed(
-        "license",
+        "membership",
         costValue.toNumber(),
       );
       const chargeAmountValue = toDecimal(chargeAmount ?? 0);
@@ -136,7 +136,7 @@ export default function ResumeSubscription({
                 {costToResume == 0 ? (
                   <>
                     <b>There is no charge</b> to resume your subscription, since
-                    your license is still active. Your subscription will resume
+                    your subscription is still active. Your subscription will resume
                     at the current rate, which is{" "}
                     {currency(moneyRound2Up(periodicCost ?? 0).toNumber())}/
                     {interval}.

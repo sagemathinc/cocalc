@@ -16,8 +16,8 @@ status can be either "active", "unpaid", "past_due" or "canceled".
   "current_period_end": "2023-08-20T18:53:55.491Z",
   "latest_purchase_id": 431,
   "metadata": {
-    "type": "license",
-    "license_id": "9826bc9e-9a56-4128-8048-fc7571813159"
+    "type": "membership",
+    "class": "member"
   }
 }
 */

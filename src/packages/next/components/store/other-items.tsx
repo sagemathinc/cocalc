@@ -17,7 +17,7 @@ import {
   Popconfirm,
   Table,
 } from "antd";
-import { DisplayCost, describeItem } from "./site-license-cost";
+import { DisplayCost, describeItem } from "./item-cost";
 import { computeCost } from "@cocalc/util/purchases/store/compute-cost";
 import type { CostInputPeriod } from "@cocalc/util/purchases/quota/types";
 import type { ProductDescription } from "@cocalc/util/db-schema/shopping-cart-items";

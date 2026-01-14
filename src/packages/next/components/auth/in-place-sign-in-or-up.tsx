@@ -22,7 +22,6 @@ interface InPlaceOrSignUpProps {
   defaultView?: SelectedView;
   onSuccess?: () => void;
   style?: CSSProperties;
-  has_site_license?: boolean;
   publicPathId?: string;
   minimal?: boolean;
 }
@@ -33,7 +32,6 @@ export default function InPlaceSignInOrUp({
   why,
   onSuccess,
   style,
-  has_site_license,
   publicPathId,
 }: InPlaceOrSignUpProps) {
   const router = useRouter();
@@ -53,7 +51,6 @@ export default function InPlaceSignInOrUp({
         <SignUpAuth
           minimal
           requireTags={false}
-          has_site_license={has_site_license}
           publicPathId={publicPathId}
           onSuccess={
             onSuccess ??

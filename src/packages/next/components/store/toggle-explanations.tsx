@@ -18,10 +18,7 @@ export function ToggleExplanations({ showExplanations, setShowExplanations }) {
           onChange={(show) => {
             setShowExplanations(show);
             // ugly and ignores basePath -- change later:
-            set_local_storage(
-              "store_site_license_show_explanations",
-              show ? "t" : ""
-            );
+            set_local_storage("store_show_explanations", show ? "t" : "");
           }}
         />{" "}
         Show explanations

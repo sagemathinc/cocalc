@@ -960,9 +960,8 @@ function Description({ description, period_end, service }) {
   }
 
   // <pre>{JSON.stringify(description, undefined, 2)}</pre>
-  if (service === "license") {
-    const { license_id } = description;
-    return <>License: {license_id && <License license_id={license_id} />}</>;
+  if (service === "student-pay") {
+    return <>Course fee</>;
   }
   if (service === "membership") {
     const { class: membershipClass, subscription_id } = description;
@@ -1283,8 +1282,4 @@ function getFilter(purchase) {
     purchase.filter = JSON.stringify(purchase).toLowerCase();
   }
   return purchase.filter;
-}
-
-function License({ license_id }) {
-  return <span>{license_id}</span>;
 }

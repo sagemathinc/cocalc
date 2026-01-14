@@ -109,7 +109,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
       "SELECT description FROM purchases WHERE id=$1",
       [purchase_id],
     );
-    expect(x.rows[0].description?.type).toBe("license");
+    expect(x.rows[0].description?.type).toBe("student-pay");
   });
 
   it("try to pay again and DO NOT get an error that already paid -- it's an idempotent and just doesn't charge user. Allowing this avoids some annoying race condition.", async () => {

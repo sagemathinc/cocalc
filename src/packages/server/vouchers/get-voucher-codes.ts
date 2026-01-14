@@ -35,7 +35,7 @@ export default async function getVoucherCodes({
   // OK, good to go regarding permissions.
 
   const { rows: rows2 } = await pool.query(
-    "SELECT code, created, when_redeemed, redeemed_by, notes, canceled, license_ids FROM voucher_codes WHERE id=$1 ORDER BY created DESC, code",
+    "SELECT code, created, when_redeemed, redeemed_by, notes, canceled FROM voucher_codes WHERE id=$1 ORDER BY created DESC, code",
     [id]
   );
   return rows2;

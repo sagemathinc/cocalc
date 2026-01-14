@@ -280,7 +280,7 @@ Table({
     },
     course: {
       type: "map",
-      desc: "{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, payInfo:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must pay. If payInfo is set, it specifies the parameters of the license the students should purchase.",
+      desc: "{project_id:[id of project that contains .course file], path:[path to .course file], pay:?, payInfo:?, email_address:[optional email address of student -- used if account_id not known], account_id:[account id of student]}, where pay is either not set (or equals falseish) or is a timestamp by which the students must pay. If payInfo is set, it specifies the parameters of the course fee students should pay.",
       date: ["pay"],
     },
     storage_server: {
@@ -771,9 +771,7 @@ export interface CreateProjectOptions {
   rootfs_image?: string;
   // Optional backup region (Cloudflare R2 region code).
   region?: string;
-  // (optional) license id (or multiple ids separated by commas) -- if given, project will be created with this license
-  license?: string;
-  public_path_id?: string; // may imply use of a license
+  public_path_id?: string;
   // start running the moment the project is created -- uses more resources, but possibly better user experience
   start?: boolean;
 

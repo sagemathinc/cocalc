@@ -68,7 +68,7 @@ export interface StudentPay {
   // STEP 0:
   // If payment hasn't happened yet, this is the information needed to use
   // the StripePayment component to do the payment, and also ensure the
-  // payment processing buys the license for the student project.
+  // payment processing records the course fee purchase for the student project.
   payment?: {
     lineItems: LineItem[];
     description: string;

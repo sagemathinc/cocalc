@@ -7,8 +7,8 @@ import { sortBy } from "lodash";
 
 type Keys = "short" | "medium" | "day";
 
-// Site Licenses related constants
-// the license timeouts combined with the default quota (either hardcoded or the one from the site_settings)
+// Idle timeout options used in quota calculations.
+// The timeouts are combined with the default quota (either hardcoded or from site_settings)
 // hence 30 minutes + 30 minutes default result in 30 minutes, and the same for "medium" and "day"
 // @see DEFAULT_QUOTAS.mintime in src/packages/util/upgrade-spec.js
 // medium and day imply member hosting
@@ -66,12 +66,4 @@ export function untangleUptime(uptime?: Uptime): {
     return { always_running: true, idle_timeout: "day" };
   }
   return { always_running: false, idle_timeout: uptime };
-}
-
-export function displaySiteLicense(uptime: Uptime) {
-  if (uptime == "always_running") {
-    return "Always Running";
-  } else {
-    return LicenseIdleTimeouts[uptime].label;
-  }
 }

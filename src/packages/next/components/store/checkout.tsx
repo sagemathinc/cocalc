@@ -27,7 +27,7 @@ import A from "components/misc/A";
 import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
 import { useRouter } from "next/router";
-import { describeItem, DisplayCost } from "./site-license-cost";
+import { describeItem, DisplayCost } from "./item-cost";
 import { useProfileWithReload } from "lib/hooks/profile";
 import { Paragraph, Title, Text } from "components/misc";
 import { COLORS } from "@cocalc/util/theme";

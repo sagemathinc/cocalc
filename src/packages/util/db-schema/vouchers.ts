@@ -183,7 +183,6 @@ export interface VoucherCode {
   redeemed_by?: string;
   canceled?: Date;
   notes?: string;
-  license_ids?: string[];
   purchase_ids?: number[]; // if voucher results in a credit to an account, this is the amount
 }
 
@@ -219,12 +218,6 @@ Table({
         type: "timestamp",
       },
     },
-    license_ids: {
-      title: "License IDs",
-      type: "array",
-      pg_type: "UUID[]",
-      desc: "The ids of the licenses created when this voucher code was redeemed (if this was for a license)",
-    },
     purchase_ids: {
       title: "Ids of Account Credits",
       type: "array",
@@ -246,7 +239,6 @@ Table({
           when_redeemed: null,
           redeemed_by: null,
           canceled: null,
-          license_ids: null,
           purchase_ids: null,
         },
       },
@@ -271,7 +263,6 @@ Table({
           redeemed_by: null,
           notes: null,
           canceled: null,
-          license_ids: null,
           purchase_ids: null,
         },
       },

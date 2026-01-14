@@ -198,20 +198,12 @@ export const QUOTA_SPEC: QuotaSpec = {
     category: "license",
     description: "Charge for a membership subscription.",
   },
-  license: {
-    display: "License",
+  "student-pay": {
+    display: "Course Fee",
     color: "cyan",
     noSet: true,
-    category: "license",
-    description: "Purchase of a license from the store.",
-  },
-  "edit-license": {
-    display: "Edit License",
-    color: "gold",
-    noSet: true,
-    category: "license",
-    description:
-      "Charge or credit resulting from changing a license, which includes you manually editing the license, or the license being edited to extend the validity date on subscription renewal.",
+    category: "money",
+    description: "Charge for a course fee paid by a student.",
   },
   voucher: {
     display: "Voucher",

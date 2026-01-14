@@ -24,7 +24,6 @@
     "./project-backup": "./dist/project-backup/index.js",
     "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",
-    "./licenses/purchase": "./dist/licenses/purchase/index.js",
     "./projects/control": "./dist/projects/control/index.js",
     "./projects/control/*": "./dist/projects/control/*.js",
     "./projects/connection": "./dist/projects/connection/index.js",

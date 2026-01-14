@@ -14,8 +14,8 @@ The subscriptions look like this in the database:
     latest_purchase_id: 220,
     status: "active",
     metadata: {
-      type: "license",
-      license_id: "a3e17422-8f09-48d4-bc34-32f0bdc77f73",
+      type: "membership",
+      class: "member",
     },
   },
 ];

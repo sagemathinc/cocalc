@@ -67,9 +67,8 @@ export type ComputeService =
   | "compute-server-network-usage"
   | "compute-server-storage"
   | "membership"
-  | "license"
-  | "voucher"
-  | "edit-license";
+  | "student-pay"
+  | "voucher";
 
 // NOTE: we keep Codex under the openai prefix since it uses OpenAI billing.
 export type CodexService = "openai-codex-agent";
@@ -133,23 +132,19 @@ export interface ComputeServerStorage {
   last_updated?: number;
 }
 
-export interface License {
-  type: "license";
-  info: PurchaseInfo;
-  license_id: string;
-  item?; // item in shopping cart
-  course?: CourseInfo;
-  // if this license was bought using credit that was added, then record the id of that transaction here.
-  // it's mainly "psychological", but often money is added specifically to buy a license, and it is good
-  // to keep track of that flow.
-  credit_id?: number;
-}
-
 export interface Membership {
   type: "membership";
   subscription_id: number;
   class: MembershipClass;
   interval: "month" | "year";
+}
+
+export interface StudentPayPurchase {
+  type: "student-pay";
+  info: PurchaseInfo;
+  course?: CourseInfo;
+  // if this was bought using credit that was added for this purpose.
+  credit_id?: number;
 }
 
 export interface Voucher {
@@ -159,14 +154,6 @@ export interface Voucher {
   title: string;
   voucher_id: number;
   credit_id?: number;
-}
-
-export interface EditLicense {
-  type: "edit-license";
-  license_id: string;
-  origInfo: PurchaseInfo;
-  modifiedInfo: PurchaseInfo;
-  note: string; // not explaining the cost
 }
 
 export interface Credit {
@@ -198,10 +185,9 @@ export type Description =
   | ComputeServerStorage
   | Credit
   | Refund
-  | License
   | Membership
-  | Voucher
-  | EditLicense;
+  | StudentPayPurchase
+  | Voucher;
 
 // max number of purchases a user can get in one query.
 export const MAX_API_LIMIT = 500;
@@ -270,7 +256,7 @@ Table({
     period_start: {
       title: "Period Start",
       type: "timestamp",
-      desc: "When the purchase starts being active (e.g., a 1 week license starts and ends on specific days; for metered purchases it is when the purchased started charging)",
+      desc: "When the purchase starts being active (e.g., a 1-week purchase starts and ends on specific days; for metered purchases it is when charging starts)",
     },
     period_end: {
       title: "Period End",

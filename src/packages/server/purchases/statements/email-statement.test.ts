@@ -136,7 +136,7 @@ describe("creates an account, then creates statements and corresponding emails a
     ]);
     await createPurchase({
       account_id,
-      service: "license",
+      service: "student-pay",
       description: {} as any,
       client: null,
       cost: 0.5,
@@ -163,7 +163,7 @@ describe("creates an account, then creates statements and corresponding emails a
   it("Payment required -- makes a bigger purchase, then creates a monthly statement, which explicitly asks the user to make a payment", async () => {
     await createPurchase({
       account_id,
-      service: "license",
+      service: "student-pay",
       description: {} as any,
       client: null,
       cost: 25,

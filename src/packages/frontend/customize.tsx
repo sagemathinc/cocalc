@@ -139,9 +139,6 @@ export interface CustomizeState {
   // below if you change these:
   nonfree_countries?: List<string>;
   limit_free_project_uptime: number; // minutes
-  require_license_to_create_project?: boolean;
-  unlicensed_project_collaborator_limit?: number;
-  unlicensed_project_timetravel_limit?: number;
 
   onprem_quota_heading: string;
   organization_email: string;
@@ -265,9 +262,6 @@ export class CustomizeActions extends Actions<CustomizeState> {
   disableCommercializationParameters = () => {
     this.setState({
       limit_free_project_uptime: undefined,
-      require_license_to_create_project: undefined,
-      unlicensed_project_collaborator_limit: undefined,
-      unlicensed_project_timetravel_limit: undefined,
     });
   };
 
