@@ -332,7 +332,7 @@ export default function Subscriptions() {
           </p>
         )}
         <p>
-          You can <A href="/store/site-license">visit the store</A>.
+          You can <A href="/store/membership">visit the store</A>.
         </p>{" "}
         If you have any questions <HelpEmail lower />.
       </Paragraph>

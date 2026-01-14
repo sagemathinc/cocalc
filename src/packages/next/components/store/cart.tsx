@@ -225,7 +225,7 @@ export default function ShoppingCart() {
           <Button
             type="link"
             style={{ marginLeft: "15px" }}
-            onClick={() => router.push("/store/site-license")}
+            onClick={() => router.push("/store")}
           >
             Continue Shopping
           </Button>

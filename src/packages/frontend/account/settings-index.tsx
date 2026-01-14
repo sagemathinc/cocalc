@@ -78,7 +78,7 @@ const MESSAGES = defineMessages({
   },
   licenses: {
     id: "account.settings.overview.licenses",
-    defaultMessage: "Manage software licenses and access permissions.",
+    defaultMessage: "Manage your software licenses.",
   },
   payg: {
     id: "account.settings.overview.payg",

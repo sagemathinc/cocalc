@@ -256,7 +256,7 @@ export default function Checkout() {
             You must have at least one item in{" "}
             <A href="/store/cart">your cart</A> to checkout. Shop for{" "}
             <A href="/store/membership">memberships</A>,{" "}
-            <A href="/store/site-license">licenses</A>, or{" "}
+            <A href="/store/course">courses</A>, or{" "}
             <A href="/store/vouchers">vouchers</A>.
           </div>
         )}

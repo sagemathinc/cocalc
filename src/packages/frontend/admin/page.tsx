@@ -7,7 +7,6 @@ import { Collapse, CollapseProps } from "antd";
 import { useState } from "react";
 
 import { Icon, Title } from "@cocalc/frontend/components";
-import { SiteLicenses } from "../site-licenses/admin/component";
 import { RegistrationToken } from "./registration-token";
 import { MembershipTiers } from "./membership-tiers";
 import SiteSettings from "./site-settings";
@@ -46,15 +45,6 @@ export function AdminPage() {
           }}
         />
       ),
-    },
-    {
-      key: "site-licenses",
-      label: (
-        <div style={headerStyle}>
-          <Icon name="key" style={{ marginRight: "8px" }} /> Licenses
-        </div>
-      ),
-      children: <SiteLicenses />,
     },
     {
       key: "software-licenses",
