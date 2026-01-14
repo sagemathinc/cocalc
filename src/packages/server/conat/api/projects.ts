@@ -13,14 +13,17 @@ import {
 } from "@cocalc/server/project-host/control";
 import { getProject } from "@cocalc/server/projects/control";
 import { moveProjectToHost } from "@cocalc/server/projects/move";
+import { copyProjectFiles } from "@cocalc/server/projects/copy";
+import {
+  cancelCopy as cancelCopyDb,
+  listCopiesForProject,
+} from "@cocalc/server/projects/copy-db";
 import { assertCollab } from "./util";
-import { materializeProjectHost } from "../route-project";
-import { conat } from "@cocalc/backend/conat";
-import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import {
   getMove,
   type ProjectMoveRow,
 } from "@cocalc/server/project-host/move-db";
+import type { ProjectCopyRow } from "@cocalc/conat/hub/api/projects";
 
 export async function copyPathBetweenProjects({
   src,
@@ -40,35 +43,47 @@ export async function copyPathBetweenProjects({
   if (dest.project_id !== src.project_id) {
     await assertCollab({ account_id, project_id: dest.project_id });
   }
+  await copyProjectFiles({
+    src,
+    dests: [dest],
+    options,
+    account_id,
+  });
+}
 
-  const srcHost = await materializeProjectHost(src.project_id);
-  const destHost = await materializeProjectHost(dest.project_id);
-  if (srcHost == destHost) {
-    // on the same server
-    const client = filesystemClient({ project_id: src.project_id });
-    await client.cp({ src, dest, options });
-  } else {
-    // on different hosts: ask destination host to pull from source.
-    const srcInfo = await getProjectHostInfo(src.project_id);
-    const destInfo = await getProjectHostInfo(dest.project_id);
-    const client = createHostControlClient({
-      host_id: destInfo.host_id,
-      client: await conat(),
-    });
-    await client.copyPaths({
-      src: {
-        host_id: srcInfo.host_id,
-        ssh_server: srcInfo.host.ssh_server,
-        project_id: src.project_id,
-        paths: Array.isArray(src.path) ? src.path : [src.path],
-      },
-      dest: {
-        host_id: destInfo.host_id,
-        project_id: dest.project_id,
-        path: dest.path,
-      },
-    });
-  }
+export async function listPendingCopies({
+  account_id,
+  project_id,
+  include_completed,
+}: {
+  account_id?: string;
+  project_id: string;
+  include_completed?: boolean;
+}): Promise<ProjectCopyRow[]> {
+  await assertCollab({ account_id, project_id });
+  return await listCopiesForProject({ project_id, include_completed });
+}
+
+export async function cancelPendingCopy({
+  account_id,
+  src_project_id,
+  src_path,
+  dest_project_id,
+  dest_path,
+}: {
+  account_id?: string;
+  src_project_id: string;
+  src_path: string;
+  dest_project_id: string;
+  dest_path: string;
+}): Promise<void> {
+  await assertCollab({ account_id, project_id: dest_project_id });
+  await cancelCopyDb({
+    src_project_id,
+    src_path,
+    dest_project_id,
+    dest_path,
+  });
 }
 
 import { db } from "@cocalc/database";
@@ -76,35 +91,6 @@ import { callback2 } from "@cocalc/util/async-utils";
 
 const log = getLogger("server:conat:api:projects");
 
-type ProjectHostInfo = {
-  host_id: string;
-  host: {
-    public_url?: string;
-    internal_url?: string;
-    ssh_server?: string;
-  };
-};
-
-async function getProjectHostInfo(
-  project_id: string,
-): Promise<ProjectHostInfo> {
-  const { rows } = await getPool().query(
-    `
-      SELECT host_id, host
-      FROM projects
-      WHERE project_id=$1
-    `,
-    [project_id],
-  );
-  const row = rows[0];
-  if (!row?.host_id || !row?.host) {
-    throw Error(`project ${project_id} has no host assigned`);
-  }
-  return {
-    host_id: row.host_id,
-    host: row.host,
-  };
-}
 
 export async function setQuotas(opts: {
   account_id: string;

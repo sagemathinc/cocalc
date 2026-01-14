@@ -11,6 +11,7 @@ import {
   parseR2Region,
 } from "@cocalc/util/consts";
 import { createBucket, R2BucketInfo } from "./r2";
+import { ensureCopySchema } from "@cocalc/server/projects/copy-db";
 
 const DEFAULT_BACKUP_TTL_SECONDS = 60 * 60 * 12; // 12 hours
 const DEFAULT_BACKUP_ROOT = "rustic";
@@ -453,6 +454,22 @@ async function assertHostProjectAccess(host_id: string, project_id: string) {
     move &&
     (move.source_host_id === host_id || move.dest_host_id === host_id)
   ) {
+    return;
+  }
+  await ensureCopySchema();
+  const { rows: copyRows } = await pool().query(
+    `
+      SELECT 1
+      FROM project_copies pc
+      JOIN projects p ON p.project_id = pc.dest_project_id
+      WHERE pc.src_project_id=$1
+        AND p.host_id=$2
+        AND pc.status = ANY($3::text[])
+      LIMIT 1
+    `,
+    [project_id, host_id, ["queued", "applying", "failed"]],
+  );
+  if (copyRows.length) {
     return;
   }
   throw new Error("project not assigned to host");

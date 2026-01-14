@@ -29,9 +29,35 @@ export interface ProjectMoveRow {
   updated_at: Date;
 }
 
+export type ProjectCopyState =
+  | "queued"
+  | "applying"
+  | "done"
+  | "failed"
+  | "canceled"
+  | "expired";
+
+export interface ProjectCopyRow {
+  src_project_id: string;
+  src_path: string;
+  dest_project_id: string;
+  dest_path: string;
+  snapshot_id: string;
+  options: CopyOptions | null;
+  status: ProjectCopyState;
+  last_error: string | null;
+  attempt: number;
+  created_at: Date;
+  updated_at: Date;
+  expires_at: Date;
+  last_attempt_at: Date | null;
+}
+
 export const projects = {
   createProject: authFirstRequireAccount,
   copyPathBetweenProjects: authFirstRequireAccount,
+  listPendingCopies: authFirstRequireAccount,
+  cancelPendingCopy: authFirstRequireAccount,
   removeCollaborator: authFirstRequireAccount,
   addCollaborator: authFirstRequireAccount,
   inviteCollaborator: authFirstRequireAccount,
@@ -91,6 +117,20 @@ export interface Projects {
     src: { project_id: string; path: string | string[] };
     dest: { project_id: string; path: string };
     options?: CopyOptions;
+  }) => Promise<void>;
+
+  listPendingCopies: (opts: {
+    account_id?: string;
+    project_id: string;
+    include_completed?: boolean;
+  }) => Promise<ProjectCopyRow[]>;
+
+  cancelPendingCopy: (opts: {
+    account_id?: string;
+    src_project_id: string;
+    src_path: string;
+    dest_project_id: string;
+    dest_path: string;
   }) => Promise<void>;
 
   removeCollaborator: ({
