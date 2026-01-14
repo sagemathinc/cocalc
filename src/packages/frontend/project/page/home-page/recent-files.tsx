@@ -1,14 +1,14 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Flex, Input, List } from "antd";
+import { useIntl } from "react-intl";
 
 import {
   CSS,
   redux,
-  useMemo,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -21,16 +21,14 @@ import {
   TimeAgo,
 } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { EventRecordMap } from "@cocalc/frontend/project/history/types";
-import { getTime } from "@cocalc/frontend/project/page/flyouts/log";
+import { labels } from "@cocalc/frontend/i18n";
+import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
+import {
+  useRecentFiles,
+  type OpenedFile,
+} from "@cocalc/frontend/projects/util";
 import { User } from "@cocalc/frontend/users";
-import { handleFileEntryClick } from "../../history/utils";
 
-interface OpenedFile {
-  filename: string;
-  time: Date;
-  account_id: string;
-}
 interface Props {
   project_id: string;
   max?: number;
@@ -44,46 +42,13 @@ export function HomeRecentFiles({
   style,
   mode = "box",
 }: Props): React.JSX.Element {
+  const intl = useIntl();
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const log: OpenedFile[] = useMemo(() => {
-    if (project_log == null) return [];
-
-    const dedupe: string[] = [];
-
-    return project_log
-      .valueSeq()
-      .filter(
-        (entry: EventRecordMap) =>
-          entry.getIn(["event", "filename"]) &&
-          entry.getIn(["event", "event"]) === "open",
-      )
-      .sort((a, b) => getTime(b) - getTime(a))
-      .filter((entry: EventRecordMap) => {
-        const fn = entry.getIn(["event", "filename"]);
-        if (dedupe.includes(fn)) return false;
-        dedupe.push(fn);
-        return true;
-      })
-      .filter((entry: EventRecordMap) =>
-        entry
-          .getIn(["event", "filename"], "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()),
-      ) // <-- added filter
-      .slice(0, max)
-      .map((entry: EventRecordMap) => {
-        return {
-          filename: entry.getIn(["event", "filename"]),
-          time: entry.get("time"),
-          account_id: entry.get("account_id"),
-        };
-      })
-      .toJS() as any;
-  }, [project_log, searchTerm]);
+  const log: OpenedFile[] = useRecentFiles(project_log, max, searchTerm);
 
   function renderItemInfo({ account_id, time }) {
     return (
@@ -134,7 +99,7 @@ export function HomeRecentFiles({
     }
   }
 
-  function renderHeader(): React.JSX.Element | undefined {
+  function renderHeader(): React.JSX.Element {
     return (
       <Flex
         justify="space-between"
@@ -144,7 +109,7 @@ export function HomeRecentFiles({
           ...(mode === "embed" ? { padding: "10px" } : undefined),
         }}
       >
-        <Text strong>Recent Files</Text>
+        <Text strong>{intl.formatMessage(labels.recent_files)}</Text>
         <Input
           placeholder="Search..."
           value={searchTerm}

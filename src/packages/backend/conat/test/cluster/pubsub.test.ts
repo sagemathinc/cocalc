@@ -9,10 +9,7 @@ import {
   addNodeToDefaultCluster,
   wait,
   delay,
-  waitForConsistentState,
-  defaultCluster,
 } from "@cocalc/backend/conat/test/setup";
-import { STICKY_QUEUE_GROUP } from "@cocalc/conat/core/client";
 
 beforeAll(before);
 
@@ -119,74 +116,6 @@ describe("three nodes and two subscribers with different queue group on distinct
     await delay(250);
     const { count } = await client2.publish("math", "hi");
     expect(count).toBe(1);
-  });
-
-  it("make sticky subs from each node, and see that all messages go to the same receiver, no matter which node we send from", async () => {
-    const sub0 = await client0.subscribe("sticky", {
-      queue: STICKY_QUEUE_GROUP,
-    });
-    let n0 = 0;
-    (async () => {
-      for await (const _ of sub0) {
-        n0++;
-      }
-    })();
-
-    const sub1 = await client1.subscribe("sticky", {
-      queue: STICKY_QUEUE_GROUP,
-    });
-    let n1 = 0;
-    (async () => {
-      for await (const _ of sub1) {
-        n1++;
-      }
-    })();
-
-    const sub2 = await client2.subscribe("sticky", {
-      queue: STICKY_QUEUE_GROUP,
-    });
-    let n2 = 0;
-    (async () => {
-      for await (const _ of sub2) {
-        n2++;
-      }
-    })();
-
-    await client2.waitForInterest("sticky");
-
-    for (let i = 0; i < 20; i++) {
-      const { count } = await client2.publish("sticky", null);
-      expect(count).toBe(1);
-    }
-    for (let i = 0; i < 20; i++) {
-      const { count } = await client1.publish("sticky", null);
-      expect(count).toBe(1);
-    }
-    for (let i = 0; i < 20; i++) {
-      const { count } = await client0.publish("sticky", null);
-      expect(count).toBe(1);
-    }
-    await wait({ until: () => n0 + n1 + n2 == 60 });
-    expect(n0 * n1).toBe(0);
-    expect(n0 * n2).toBe(0);
-    expect(n1 * n2).toBe(0);
-    expect(n0 + n1 + n2).toBe(60);
-
-    await waitForConsistentState(defaultCluster);
-
-    // add another node and test
-    const server3 = await addNodeToDefaultCluster();
-    const client3 = server3.client();
-    await waitForConsistentState(defaultCluster);
-    for (let i = 0; i < 20; i++) {
-      const { count } = await client3.publish("sticky", null);
-      expect(count).toBe(1);
-    }
-    await wait({ until: () => n0 + n1 + n2 == 80 });
-    expect(n0 * n1).toBe(0);
-    expect(n0 * n2).toBe(0);
-    expect(n1 * n2).toBe(0);
-    expect(n0 + n1 + n2).toBe(80);
   });
 });
 

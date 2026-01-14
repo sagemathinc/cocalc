@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -40,6 +40,8 @@ import type {
   EnvVarsRecord,
 } from "@cocalc/util/db-schema/projects";
 export type { Datastore, EnvVars, EnvVarsRecord };
+
+// cSpell:ignore replyto collabs noncloud Payg
 
 // Define projects actions
 export class ProjectsActions extends Actions<ProjectsState> {
@@ -222,6 +224,32 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   };
 
+  setProjectColor = async (
+    project_id: string,
+    color: string,
+  ): Promise<void> => {
+    if (!(await this.have_project(project_id))) {
+      console.warn(
+        `Can't set project color -- you are not a collaborator on project '${project_id}'.`,
+      );
+      return;
+    }
+    const before = store.getIn(["project_map", project_id, "color"]);
+    if (before === color) return;
+    try {
+      // set in the Table
+      await this.projects_table_set({ project_id, color });
+      // create entry in the project's log
+      await this.redux.getProjectActions(project_id).async_log({
+        event: "set",
+        color,
+      });
+    } catch (err) {
+      this.projects_table_set({ project_id, color: before });
+      throw err;
+    }
+  };
+
   // creates and stores image as a blob in the database.
   // stores sha1 of that blog in projects map and also returns
   // the sha1.
@@ -400,7 +428,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
       license: undefined,
     });
     if (!opts2.image) {
-      // make falseish same as not specified.
+      // make false-ish same as not specified.
       delete opts2.image;
     }
 
@@ -612,16 +640,33 @@ export class ProjectsActions extends Actions<ProjectsState> {
   ): Promise<void> {
     const removed_name = redux.getStore("users").get_name(account_id);
     try {
-      await this.redux
-        .getProjectActions(project_id)
-        .async_log({ event: "remove_collaborator", removed_name });
       await webapp_client.project_collaborators.remove({
         project_id,
         account_id,
       });
+      // Logging the removal happens in packages/server/projects/collaborators.ts
     } catch (err) {
       const message = `Error removing ${removed_name} from project ${project_id} -- ${err}`;
       alert_message({ type: "error", message });
+    }
+  }
+
+  public async change_user_type(
+    project_id: string,
+    target_account_id: string,
+    new_group: "owner" | "collaborator",
+  ): Promise<void> {
+    const target_name = redux.getStore("users").get_name(target_account_id);
+    try {
+      await webapp_client.project_collaborators.change_user_type({
+        project_id,
+        target_account_id,
+        new_group,
+      });
+    } catch (err) {
+      const message = `Error changing ${target_name} to ${new_group} in project ${project_id} -- ${err}`;
+      alert_message({ type: "error", message });
+      throw err;
     }
   }
 
@@ -635,11 +680,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     replyto?: string,
     replyto_name?: string,
   ): Promise<void> {
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "invite_user",
-      invitee_account_id: account_id,
-    });
-
     const title = store.get_title(project_id);
     const link2proj = `https://${window.location.hostname}/projects/${project_id}/`;
     // convert body from markdown to html, which is what the backend expects
@@ -674,11 +714,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     replyto: string | undefined,
     replyto_name: string | undefined,
   ): Promise<void> {
-    await this.redux.getProjectActions(project_id).async_log({
-      event: "invite_nonuser",
-      invitee_email: to,
-    });
-
     const title = store.get_title(project_id);
     if (body == null) {
       const name = this.redux.getStore("account").get_fullname();
@@ -1024,7 +1059,7 @@ export class ProjectsActions extends Actions<ProjectsState> {
     await this.start_project(project_id, options);
   };
 
-  // Explcitly set whether or not project is hidden for the given account
+  // Explicitly set whether or not project is hidden for the given account
   // (hide=true means hidden)
   public async set_project_hide(
     account_id: string,
@@ -1095,10 +1130,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     this.setState({ deleted });
   }
 
-  public display_starred_projects(starred: boolean): void {
-    this.setState({ starred });
-  }
-
   public async load_all_projects(): Promise<void> {
     if (store.get("all_projects_have_been_loaded")) {
       return;
@@ -1117,6 +1148,21 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     selected_hashtags = selected_hashtags.set(filter, hashtags);
     this.setState({ selected_hashtags });
+  }
+
+  // Set which project row is expanded in the projects table
+  public set_expanded_project(project_id?: string): void {
+    this.setState({ expanded_project_id: project_id });
+  }
+
+  // Toggle expanded state for a project row in the projects table
+  public toggle_expanded_project(project_id: string): void {
+    const current = store.get("expanded_project_id");
+    if (current === project_id) {
+      this.setState({ expanded_project_id: undefined });
+    } else {
+      this.setState({ expanded_project_id: project_id });
+    }
   }
 }
 

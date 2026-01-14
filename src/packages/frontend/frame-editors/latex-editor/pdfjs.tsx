@@ -7,7 +7,7 @@
 
 const HIGHLIGHT_TIME_S: number = 6;
 
-import { Alert } from "antd";
+import { Alert, Button } from "antd";
 import { delay } from "awaiting";
 import type { Set as iSet } from "immutable";
 import type { PDFDocumentProxy, PDFPageProxy } from "pdfjs-dist/webpack.mjs";
@@ -20,7 +20,14 @@ import {
   useIsMountedRef,
   useRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, Markdown } from "@cocalc/frontend/components";
+import {
+  HelpIcon,
+  Icon,
+  Loading,
+  Markdown,
+  Paragraph,
+  Text,
+} from "@cocalc/frontend/components";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import usePinchToZoom, {
@@ -28,8 +35,9 @@ import usePinchToZoom, {
 } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
+import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
-import { Actions } from "./actions";
+import { Actions, Actions as LatexEditorActions } from "./actions";
 import { dblclick } from "./mouse-click";
 import { SyncHighlight } from "./pdfjs-annotation";
 import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
@@ -78,6 +86,12 @@ export function PDFJS({
   onZoom,
 }: PDFJSProps) {
   const { desc } = useFrameContext();
+
+  // Get the dark mode disabled state for this specific frame from Redux store
+  // This allows toggle_pdf_dark_mode action to control dark mode per frame
+  const pdfDarkModeDisabledMap = useRedux(name, "pdf_dark_mode_disabled");
+  const disableDarkMode = pdfDarkModeDisabledMap?.get?.(id) ?? false;
+
   const isMounted = useIsMountedRef();
   const pageActions = useActions("page");
 
@@ -89,6 +103,8 @@ export function PDFJS({
   const derived_file_types: iSet<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
   const autoSyncInProgress = useRedux(name, "autoSyncInProgress") ?? false;
+  const newLayoutNagDismissed =
+    useRedux([name, "local_view_state", "new_layout_nag_dismissed"]) ?? false;
 
   const [loaded, setLoaded] = useState<boolean>(false);
   const [pages, setPages] = useState<PDFPageProxy[]>([]);
@@ -158,6 +174,7 @@ export function PDFJS({
       });
       return;
     }
+
     if ((evt.key == " " && evt.shiftKey) || evt.key == "PageUp") {
       // left = move a visible page up
       virtuosoRef.current?.scrollBy({
@@ -165,6 +182,7 @@ export function PDFJS({
       });
       return;
     }
+
     if (evt.key == "ArrowRight") {
       // next page
       virtuosoRef.current?.scrollBy({
@@ -175,6 +193,7 @@ export function PDFJS({
       });
       return;
     }
+
     if (evt.key == "ArrowLeft") {
       // previous page
       virtuosoRef.current?.scrollBy({
@@ -230,7 +249,7 @@ export function PDFJS({
     if (evt.key == "0" && (evt.metaKey || evt.ctrlKey)) {
       actions.set_font_size(
         id,
-        redux.getStore("account").get("font_size") ?? 14,
+        redux.getStore("account").get("font_size") ?? DEFAULT_FONT_SIZE,
       );
       return;
     }
@@ -422,7 +441,8 @@ export function PDFJS({
 
     // Use onZoom callback if available (new zoom system), otherwise fall back to font_size
     if (onZoom) {
-      const fontSize = getFontSize(scale);
+      // For zoom-to-fit, always use DEFAULT_FONT_SIZE as base to avoid account font size dependency
+      const fontSize = scale * DEFAULT_FONT_SIZE;
       onZoom({ fontSize });
     } else {
       actions.set_font_size(id, getFontSize(scale));
@@ -446,7 +466,8 @@ export function PDFJS({
 
     // Use onZoom callback if available (new zoom system), otherwise fall back to font_size
     if (onZoom) {
-      const fontSize = getFontSize(scale);
+      // For zoom-to-fit, always use DEFAULT_FONT_SIZE as base to avoid account font size dependency
+      const fontSize = scale * DEFAULT_FONT_SIZE;
       onZoom({ fontSize });
     } else {
       actions.set_font_size(id, getFontSize(scale));
@@ -698,10 +719,104 @@ export function PDFJS({
               key={n}
               scale={scale}
               syncHighlight={syncHighlight({ n, id })}
+              disableDarkMode={disableDarkMode}
             />
           );
         }}
         {...virtuosoScroll}
+      />
+    );
+  }
+
+  // Check if there's an output panel in the frame tree
+  const hasOutputPanel = useCallback(() => {
+    return actions.get_matching_frame({ type: "output" }) != null;
+  }, [actions]);
+
+  // Check if we should show the new layout nag banner
+  // Only show in LaTeX editor mode (not in standalone PDF editor)
+  function showNewLayoutNag(): boolean {
+    // Check if actions is from LaTeX editor using instanceof
+    if (!(actions instanceof LatexEditorActions)) {
+      return false;
+    }
+    // Don't show if dismissed or if there's already an output panel
+    if (newLayoutNagDismissed || hasOutputPanel()) {
+      return false;
+    }
+    return true;
+  }
+
+  // Handler for dismissing the new layout nag
+  function handleDismissLayoutNag() {
+    const local_view_state = actions.store.get("local_view_state");
+    actions.setState({
+      local_view_state: local_view_state.set("new_layout_nag_dismissed", true),
+    });
+    // save_local_view_state only exists in LaTeX editor actions
+    if (typeof (actions as any).save_local_view_state === "function") {
+      (actions as any).save_local_view_state();
+    }
+  }
+
+  function handleNewLayoutClick() {
+    // _new_frame_tree_layout only exists in LaTeX editor actions
+    if (typeof (actions as any)._new_frame_tree_layout === "function") {
+      const tree = (actions as any)._new_frame_tree_layout();
+      actions.replace_frame_tree(tree);
+    }
+  }
+
+  function renderNewLayoutNag(): React.JSX.Element | null {
+    if (!showNewLayoutNag()) {
+      return null;
+    }
+
+    return (
+      <Alert
+        banner
+        closable
+        type="info"
+        icon={<Icon name="layout" />}
+        message={
+          <>
+            <Button type="text" size="small" onClick={handleNewLayoutClick}>
+              <Text strong>New Layout Available:</Text>
+            </Button>{" "}
+            it unifies PDF preview, build logs, and more.{" "}
+            <HelpIcon title="About the New Layout">
+              <Paragraph>
+                The new <strong>Output</strong> panel combines everything you
+                need in one unified tabbed interface: PDF preview, build logs,
+                errors and warnings, table of contents, file list, and
+                statistics. You can also mix and match by opening additional
+                panels alongside the new output panel.
+              </Paragraph>
+              <Paragraph>
+                You can easily switch back to the classic layout at any time via
+                the <strong>Frame Menu</strong>. Click on "Source" or "Output"
+                and select "Classic Layout".
+              </Paragraph>
+              <Paragraph>
+                Finally, click on the <Icon name="times" />
+                -Icon on the right to{" "}
+                <Button size="small" onClick={handleDismissLayoutNag}>
+                  dismiss
+                </Button>{" "}
+                this banner for this LaTeX file.
+              </Paragraph>
+            </HelpIcon>{" "}
+            <Button
+              size="small"
+              onClick={handleNewLayoutClick}
+              style={{ marginLeft: "10px" }}
+            >
+              <Text strong>Switch Now</Text>
+            </Button>
+          </>
+        }
+        onClose={handleDismissLayoutNag}
+        style={{ marginBottom: "4px" }}
       />
     );
   }
@@ -714,7 +829,12 @@ export function PDFJS({
         return renderLoading();
       }
     } else {
-      return <div className="smc-vfill">{renderPagesUsingVirtuoso()}</div>;
+      return (
+        <div className="smc-vfill">
+          {renderNewLayoutNag()}
+          {renderPagesUsingVirtuoso()}
+        </div>
+      );
     }
   }
 
@@ -723,11 +843,16 @@ export function PDFJS({
     if (zoom !== undefined) {
       return zoom;
     }
-    return font_size / (redux.getStore("account").get("font_size") ?? 14);
+    return (
+      font_size /
+      (redux.getStore("account").get("font_size") ?? DEFAULT_FONT_SIZE)
+    );
   }, [zoom, font_size]);
 
   function getFontSize(scale: number): number {
-    return (redux.getStore("account").get("font_size") ?? 14) * scale;
+    return (
+      (redux.getStore("account").get("font_size") ?? DEFAULT_FONT_SIZE) * scale
+    );
   }
 
   function renderOtherViewers() {

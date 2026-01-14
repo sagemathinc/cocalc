@@ -11,7 +11,9 @@ import { useIntl } from "react-intl";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
 import { ACTIVITY_BAR_LABELS } from "@cocalc/frontend/project/page/activity-bar-consts";
+import { A11Y } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
+import { getBaseAntdTheme } from "./antd-base-theme";
 import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";
 import useAppContext, { AppContext, AppState, calcStyle } from "./use-context";
 
@@ -58,8 +60,19 @@ export function useAppContextProvider(): AppState {
     }
   }
 
+  function displayI18N(
+    label: string | IntlMessage | ReactNode,
+  ): string | ReactNode {
+    if (isIntlMessage(label)) {
+      return intl.formatMessage(label);
+    } else {
+      return label;
+    }
+  }
+
   return {
     formatIntl,
+    displayI18N,
     pageWidthPx,
     pageStyle,
     showActBarLabels,
@@ -68,10 +81,23 @@ export function useAppContextProvider(): AppState {
 
 export function useAntdStyleProvider() {
   const other_settings = useTypedRedux("account", "other_settings");
+  const baseTheme = getBaseAntdTheme();
   const rounded = other_settings?.get("antd_rounded", true);
   const animate = other_settings?.get("antd_animate", true);
   const branded = other_settings?.get("antd_brandcolors", false);
   const compact = other_settings?.get("antd_compact", false);
+
+  // Parse accessibility settings
+  const accessibilityStr = other_settings?.get(A11Y);
+  let accessibilityEnabled = false;
+  if (accessibilityStr) {
+    try {
+      const accessibilitySettings = JSON.parse(accessibilityStr);
+      accessibilityEnabled = accessibilitySettings.enabled ?? false;
+    } catch {
+      // Ignore parse errors
+    }
+  }
 
   const borderStyle = rounded
     ? undefined
@@ -79,22 +105,35 @@ export function useAntdStyleProvider() {
 
   const animationStyle = animate ? undefined : { motion: false };
 
-  const brandedColors = branded
-    ? { colorPrimary: COLORS.COCALC_BLUE }
+  const primaryColor = branded
+    ? undefined
+    : { colorPrimary: COLORS.ANTD_LINK_BLUE };
+
+  // Accessibility: Set all text to pure black for maximum contrast
+  const accessibilityTextColor = accessibilityEnabled
+    ? {
+        colorText: "#000000",
+        colorTextSecondary: "#000000",
+        colorTextTertiary: "#000000",
+        colorTextQuaternary: "#000000",
+      }
     : undefined;
 
   const algorithm = compact ? { algorithm: theme.compactAlgorithm } : undefined;
 
   const antdTheme: ThemeConfig = {
+    ...baseTheme,
     ...algorithm,
     token: {
-      ...brandedColors,
+      ...(baseTheme.token ?? {}),
+      ...primaryColor,
       ...borderStyle,
       ...animationStyle,
+      ...accessibilityTextColor,
     },
     components: {
       Button: {
-        ...brandedColors,
+        ...primaryColor,
       },
     },
   };

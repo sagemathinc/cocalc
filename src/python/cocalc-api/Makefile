@@ -1,13 +1,62 @@
 all: install build-docs
 
+help:
+	@echo "Available targets:"
+	@echo "  install          - Install project dependencies"
+	@echo "  format           - Format code using yapf"
+	@echo "  check            - Run linting and type checking"
+	@echo "  test             - Run tests"
+	@echo "  test-verbose     - Run tests with verbose output"
+	@echo "  ci               - Run tests with coverage and JUnit XML for CI"
+	@echo "  coverage         - Run tests with coverage reporting (HTML + terminal)"
+	@echo "  coverage-report  - Show coverage report in terminal"
+	@echo "  coverage-html    - Generate HTML coverage report only"
+	@echo "  mcp              - Start the MCP server (requires COCALC_API_KEY)"
+	@echo "  mcp-debug        - Debug the running MCP server and show tools/resources"
+	@echo "  serve-docs       - Serve documentation locally"
+	@echo "  build-docs       - Build documentation"
+	@echo "  publish          - Build and publish package"
+	@echo "  clean            - Clean build artifacts and cache files"
+
 install:
 	uv --version >/dev/null 2> /dev/null || curl -LsSf https://astral.sh/uv/install.sh | sh
 	uv sync --dev
 	uv pip install -e .
 
+format:
+	uv run yapf --in-place --recursive src/ tests/
+
 check:
-	uv run ruff check src/
-	uv run mypy src/
+	uv run ruff check src/ tests/
+	uv run mypy src/ tests/
+	uv run pyright src/ tests/
+
+test:
+	uv run pytest
+
+test-verbose:
+	uv run pytest -v
+
+ci-create-project:
+	@uv run python3 scripts/ci-create-project.py
+
+ci: ci-create-project
+	export COCALC_PROJECT_ID=$$($(MAKE) ci-create-project) && uv run pytest --junitxml=test-results.xml --cov=src --cov-report=term-missing --cov-report=html
+
+coverage:
+	uv run pytest --cov=src --cov-report=term-missing --cov-report=html
+
+coverage-report:
+	uv run coverage report
+
+coverage-html:
+	uv run coverage html
+
+mcp:
+	uv run cocalc-mcp-server
+
+mcp-debug:
+	uv run cocalc-mcp-debug
 
 serve-docs:
 	uv run mkdocs serve
@@ -20,5 +69,6 @@ publish: install
 	uv publish
 
 clean:
-	rm -rf dist build *.egg-info site
+	rm -rf dist build *.egg-info site .pytest_cache htmlcov .coverage
 	find . -name "__pycache__" -type d -exec rm -rf {} +
+	find . -name "*.pyc" -delete

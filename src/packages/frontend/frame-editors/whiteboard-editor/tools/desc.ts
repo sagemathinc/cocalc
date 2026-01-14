@@ -1,7 +1,8 @@
 import { ReactNode } from "react";
 
 // TODO: terrible icons...  need to add more.
-import { IconName } from "@cocalc/frontend/components/icon";
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { ElementType, Element } from "../types";
 import { DEFAULT_FONT_SIZE } from "./defaults";
 import { DEFAULT_WIDTH, DEFAULT_HEIGHT } from "../math";

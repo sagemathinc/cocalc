@@ -106,7 +106,6 @@ jobs:
           pip install ipykernel
           python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
 
-
       - name: install pnpm
         uses: pnpm/action-setup@v4
         with:
@@ -127,6 +126,202 @@ jobs:
         with:
           name: "test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
           path: 'src/packages/*/junit.xml'
+
+      - name: Start CoCalc Hub
+        run: |
+          # Create conat password for hub internal authentication
+          mkdir -p src/data/secrets
+          echo "test-conat-password-$(date +%s)" > src/data/secrets/conat-password
+          chmod 600 src/data/secrets/conat-password
+
+          cd src/packages/hub
+          pnpm run hub-project-dev-nobuild > hub.log 2>&1 &
+          HUB_PID=$!
+          echo $HUB_PID > hub.pid
+          echo "Hub started with PID $HUB_PID"
+          # Check if process is still running after a moment
+          sleep 2
+          if ! kill -0 $HUB_PID 2>/dev/null; then
+            echo "Error: Hub process died immediately after starting"
+            echo "Hub log:"
+            cat hub.log
+            exit 1
+          fi
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+          COCALC_MODE: single-user
+          COCALC_TEST_MODE: yes
+          DEBUG: 'cocalc:*,-cocalc:silly:*,hub:*,project:*'
+
+      - name: Wait for hub readiness
+        run: |
+          MAX_ATTEMPTS=30
+          READY=false
+          for i in $(seq 1 $MAX_ATTEMPTS); do
+            if curl -sf --max-time 3 http://localhost:5000/healthcheck > /dev/null; then
+              echo "Hub is ready"
+              READY=true
+              break
+            fi
+            echo "Waiting for hub... ($i/$MAX_ATTEMPTS)"
+            sleep 3
+          done
+          if [ "$READY" = "false" ]; then
+            echo "Hub failed to become ready after $MAX_ATTEMPTS attempts"
+            echo "Hub log:"
+            cat src/packages/hub/hub.log || echo "No log file found"
+            exit 1
+          fi
+
+      - name: Create CI admin user and API key
+        run: |
+          cd src/packages/hub
+          OUTPUT=$(node dist/run/test-create-admin.js)
+          # Split output into account_id and API key (format: UUID;api-key)
+          ACCOUNT_ID=$(echo "$OUTPUT" | cut -d';' -f1)
+          API_KEY=$(echo "$OUTPUT" | cut -d';' -f2)
+
+          # Store in separate files
+          echo "$ACCOUNT_ID" > ../../account_id.txt
+          echo "$API_KEY" > ../../api_key.txt
+
+          # Validate account ID (UUID format)
+          if ! echo "$ACCOUNT_ID" | grep -qE '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'; then
+            echo "Error: Invalid account ID format: $ACCOUNT_ID"
+            exit 1
+          fi
+
+          # Validate API key was created
+          if [ ! -s ../../api_key.txt ]; then
+            echo "Error: API key file is empty or missing"
+            exit 1
+          fi
+          if ! echo "$API_KEY" | grep -qE '^sk-[A-Za-z0-9]+$'; then
+            echo "Error: Invalid API key format: $API_KEY"
+            exit 1
+          fi
+
+          echo "Account ID: $ACCOUNT_ID"
+          echo "API key created successfully"
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+
+      - name: Restart CoCalc Hub
+        run: |
+            HUB_PID=$(cat src/packages/hub/hub.pid)
+            echo "Stopping hub with PID $HUB_PID"
+            kill $HUB_PID || true
+            # Wait a bit for graceful shutdown
+            sleep 5
+            # Force kill if still running
+            kill -9 $HUB_PID 2>/dev/null || true
+
+            # Read the admin account ID created in the previous step
+            cd src/packages/hub
+            ADMIN_ACCOUNT_ID=$(cat ../../account_id.txt)
+            echo "Using admin account ID: $ADMIN_ACCOUNT_ID"
+
+            # Export env vars for the hub process
+            export COCALC_SETTING_JUPYTER_API_ENABLED=yes
+            export COCALC_SETTING_JUPYTER_ACCOUNT_ID=$ADMIN_ACCOUNT_ID
+            export COCALC_SETTING_JUPYTER_PROJECT_POOL_SIZE=1
+
+            # Start hub with new configuration
+            pnpm run hub-project-dev-nobuild > hub.log 2>&1 &
+            HUB_PID=$!
+            echo $HUB_PID > hub.pid
+            echo "Hub restarted with PID $HUB_PID"
+
+            # Check if process is still running after a moment
+            sleep 2
+            if ! kill -0 $HUB_PID 2>/dev/null; then
+              echo "Error: Hub process died immediately after restarting"
+              echo "Hub log:"
+              cat hub.log
+              exit 1
+            fi
+
+            # Wait for hub to be ready
+            MAX_ATTEMPTS=30
+            READY=false
+            for i in $(seq 1 $MAX_ATTEMPTS); do
+              if curl -sf --max-time 3 http://localhost:5000/healthcheck > /dev/null; then
+                echo "Hub is ready after restart"
+                READY=true
+                break
+              fi
+              echo "Waiting for hub to be ready... ($i/$MAX_ATTEMPTS)"
+              sleep 3
+            done
+            if [ "$READY" = "false" ]; then
+              echo "Hub failed to become ready after restart"
+              echo "Hub log:"
+              cat hub.log
+              exit 1
+            fi
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+          COCALC_MODE: single-user
+          COCALC_TEST_MODE: yes
+          DEBUG: 'cocalc:*,-cocalc:silly:*,hub:*,project:*'
+
+      - name: Install uv for cocalc-api tests
+        run: curl -LsSf https://astral.sh/uv/install.sh | sh && echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Run cocalc-api tests
+        run: |
+          export COCALC_API_KEY=$(cat src/api_key.txt)
+          export COCALC_HOST=http://localhost:5000
+          export CI=true
+          cd src/python/cocalc-api && make ci
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+
+      - name: Run api/v2 exec e2e tests
+        run: |
+          export COCALC_API_KEY=$(cat src/api_key.txt)
+          export COCALC_HOST=http://localhost:5000
+          export COCALC_PROJECT_ID=$(cd src/python/cocalc-api && make ci-create-project)
+          cd src/packages/next && pnpm run test-apiv2-e2e
+        env:
+          PGDATABASE: smc
+          PGUSER: smc
+          PGHOST: localhost
+
+      - name: Stop CoCalc Hub
+        if: always()
+        run: |
+          if [ -f src/packages/hub/hub.pid ]; then
+            HUB_PID=$(cat src/packages/hub/hub.pid)
+            echo "Stopping hub with PID $HUB_PID"
+            kill $HUB_PID || true
+            # Wait a bit for graceful shutdown
+            sleep 5
+            # Force kill if still running
+            kill -9 $HUB_PID 2>/dev/null || true
+          fi
+
+      - name: Upload hub logs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "hub-logs-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
+          path: 'src/packages/hub/hub.log'
+
+      - name: Upload cocalc-api test results
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: "cocalc-api-test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
+          path: 'src/python/cocalc-api/test-results.xml'
 
   report:
     runs-on: ubuntu-latest
@@ -154,4 +349,3 @@ jobs:
           reporter: jest-junit
           use-actions-summary: 'true'
           fail-on-error: false
-

@@ -99,10 +99,10 @@ export interface ProjectStoreState {
   activity: any; // immutable,
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   page_number: number;
-  file_action?: string; // undefineds is meaningfully none here
+  starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
+  file_action?: string; // undefined is meaningfully none here
   file_search?: string;
   show_hidden?: boolean;
-  show_masked?: boolean;
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
@@ -300,7 +300,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
       show_upload: false,
       create_file_alert: false,
       displayed_listing: undefined, // computed(object),
-      show_masked: true,
       configuration: undefined,
       configuration_loading: false, // for UI feedback
       show_custom_software_reset: false,
@@ -382,8 +381,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "file_search",
         "other_settings",
         "show_hidden",
-        "show_masked",
         "compute_server_id",
+        "starred_files",
       ] as const,
       fn: () => {
         const search_escape_char = "/";
@@ -445,7 +444,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
 
         const sorter = (() => {
-          switch (this.get("active_file_sort").get("column_name")) {
+          const active_col = this.get("active_file_sort").get("column_name");
+          switch (active_col) {
             case "name":
               return _sort_on_string_field("name");
             case "time":
@@ -463,6 +463,32 @@ export class ProjectStore extends Store<ProjectStoreState> {
                     a.name.split(".").reverse(),
                     b.name.split(".").reverse(),
                   );
+                }
+              };
+            case "starred":
+              return (a, b) => {
+                const starredFiles = this.get("starred_files");
+                if (!starredFiles) return 0;
+
+                const pathA = misc.path_to_file(
+                  this.get("current_path"),
+                  a.name,
+                );
+                const pathB = misc.path_to_file(
+                  this.get("current_path"),
+                  b.name,
+                );
+                const starPathA = a.isdir ? `${pathA}/` : pathA;
+                const starPathB = b.isdir ? `${pathB}/` : pathB;
+                const starredA = starredFiles.includes(starPathA);
+                const starredB = starredFiles.includes(starPathB);
+
+                if (starredA && !starredB) {
+                  return -1;
+                } else if (!starredA && starredB) {
+                  return 1;
+                } else {
+                  return misc.cmp(a.name.toLowerCase(), b.name.toLowerCase());
                 }
               };
           }
@@ -484,20 +510,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
             }
             return result;
           })();
-        }
-
-        if (!this.get("show_masked", true)) {
-          // if we do not gray out files (and hence haven't computed the file mask yet)
-          // we do it now!
-          if (!this.get("other_settings").get("mask_files")) {
-            compute_file_masks(listing);
-          }
-
-          const filtered: DirectoryListing = [];
-          for (const f of listing) {
-            if (!f.mask) filtered.push(f);
-          }
-          listing = filtered;
         }
 
         const file_map = {};

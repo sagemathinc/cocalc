@@ -150,6 +150,7 @@ import {
   PauseCircleOutlined,
   PercentageOutlined,
   PicCenterOutlined,
+  PieChartOutlined,
   PlayCircleFilled,
   PlayCircleOutlined,
   PlaySquareOutlined,
@@ -192,7 +193,9 @@ import {
   StopFilled,
   StopOutlined,
   StrikethroughOutlined,
+  SwapLeftOutlined,
   SwapOutlined,
+  SwapRightOutlined,
   SyncOutlined,
   TableOutlined,
   TagFilled,
@@ -492,6 +495,7 @@ const IconSpec = {
   pencil: EditOutlined,
   "pencil-alt": EditOutlined,
   percentage: PercentageOutlined,
+  "pie-chart": PieChartOutlined,
   play: PlayCircleOutlined,
   "play-circle": PlayCircleFilled,
   "play-square": PlaySquareOutlined,
@@ -599,6 +603,8 @@ const IconSpec = {
   ungroup: { IconFont: "ungroup" },
   "signature-outlined": SignatureOutlined,
   swap: SwapOutlined,
+  "sync-left": SwapLeftOutlined,
+  "sync-right": SwapRightOutlined,
   unlink: { IconFont: "unlink" },
   upload: UploadOutlined,
   user: UserOutlined,
@@ -744,8 +750,24 @@ export const Icon: React.FC<Props> = (props: Props) => {
   if (!onFrontend) return null;
 
   if (props.unicode != null) {
+    const style: React.CSSProperties = { ...UNICODE_STYLE, ...props.style };
+
+    // Apply CSS transformations for unicode characters
+    if (props.rotate) {
+      style.display = style.display ?? "inline-block";
+      style.transform = `rotate(${props.rotate}deg)`;
+    }
+    if (props.flip) {
+      style.display = style.display ?? "inline-block";
+      const flipTransform =
+        props.flip === "horizontal" ? "scaleX(-1)" : "scaleY(-1)";
+      style.transform = style.transform
+        ? `${style.transform} ${flipTransform}`
+        : flipTransform;
+    }
+
     return (
-      <span style={{ ...UNICODE_STYLE, ...props.style }}>
+      <span style={style}>
         {String.fromCharCode(props.unicode!)}
       </span>
     );

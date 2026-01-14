@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: February 20, 2025</h2>
+              <h2>Last Updated: January 5, 2026</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -41,7 +41,8 @@ export default function Privacy({ customize }) {
                 Also, please note that, unless we define a term in this Privacy
                 Policy, all capitalized terms used in this Privacy Policy have
                 the same meanings as in our Terms of Service. So, please make
-                sure that you have read and understand our Terms of Service.{" "}
+                sure that you have read and understand our Terms of
+                Service.{" "}
               </p>
               <h1>Revisions to this Privacy Policy</h1>
               <p>
@@ -212,7 +213,8 @@ export default function Privacy({ customize }) {
                         including any Personal Information. If you choose to
                         submit content to any public area of the Site, such
                         content will be considered “public” and will not be
-                        subject to the privacy protections set forth herein.{" "}
+                        subject to the privacy protections set forth
+                        herein.{" "}
                       </p>{" "}
                     </li>{" "}
                   </ul>{" "}
@@ -222,7 +224,8 @@ export default function Privacy({ customize }) {
                     the following information automatically through our Services
                     or other methods of web analysis: your Internet protocol
                     (IP) address, cookie identifiers, details about your browser
-                    or device, and information about how you use the Services.{" "}
+                    or device, and information about how you use the
+                    Services.{" "}
                   </p>{" "}
                   <p>
                     {" "}
@@ -414,7 +417,8 @@ export default function Privacy({ customize }) {
                         direct marketing, marketing research, network and
                         information security, and fraud prevention and any other
                         purpose disclosed to you at the time you provide
-                        Personal Information or otherwise with your consent.{" "}
+                        Personal Information or otherwise with your
+                        consent.{" "}
                       </p>{" "}
                     </li>{" "}
                   </ul>{" "}
@@ -438,13 +442,75 @@ export default function Privacy({ customize }) {
                         {" "}
                         <strong>Cookies.</strong> Cookies are small text files
                         placed in visitors’ computer browsers to store their
-                        preferences. We use required cookies to make sure that
-                        the Services work properly, for example for
-                        authentication purposes. You may not opt-out of the use
-                        of these cookies since it would be impossible for us to
-                        provide the service otherwise. We do NOT use cookies for
-                        marketing or advertising purpuses.{" "}
+                        preferences. We use the following required cookies to
+                        make sure that the Services work properly.{" "}
                       </p>{" "}
+                      <table
+                        cellPadding="5px"
+                        style={{ margin: "12px 0", border: "1px solid black" }}
+                      >
+                        <thead>
+                          <tr>
+                            <th align="left"> Cookies </th>
+                            <th align="left"> Purpose </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td> remember_me </td>
+                            <td>
+                              {" "}
+                              Persistent auth token to keep you signed in.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> account_id </td>
+                            <td> Stores your account ID for the client UI. </td>
+                          </tr>
+                          <tr>
+                            <td> cocalc_version </td>
+                            <td>
+                              {" "}
+                              Client version for compatibility checks before
+                              project access.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> connect.sid </td>
+                            <td>
+                              {" "}
+                              Session cookie used for Passport/SSO login
+                              flows.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> get_api_key </td>
+                            <td>
+                              {" "}
+                              Temporary cookie used during SSO API key
+                              requests.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> PWRESET </td>
+                            <td> Short-lived password reset token. </td>
+                          </tr>
+                          <tr>
+                            <td> SMCSERVERID3 </td>
+                            <td>
+                              {" "}
+                              Load balancer stickiness cookie set by
+                              HAProxy.{" "}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      Please note that we do our best to keep this table
+                      updated, but the number and names of cookies may change
+                      from time to time. You may not opt-out of the use of these
+                      cookies since it would be impossible for us to provide the
+                      service otherwise. We do NOT use cookies for marketing or
+                      advertising purpuses.
                     </li>{" "}
                     <li>
                       {" "}
@@ -684,7 +750,8 @@ export default function Privacy({ customize }) {
                         physical harm or financial loss or in connection with an
                         investigation or prosecution of suspected or actual
                         illegal activity; or (vii) if we, in good faith, believe
-                        that disclosure is otherwise necessary or advisable.{" "}
+                        that disclosure is otherwise necessary or
+                        advisable.{" "}
                       </p>{" "}
                     </li>{" "}
                     <li>
@@ -813,8 +880,9 @@ export default function Privacy({ customize }) {
                     will use such Personal Information only for
                     employment-related purposes as more fully described above.
                     If Sagemath intends to use this Personal Information for any
-                    other purpose, Sagemath will notify the Individual and
-                    provide an opportunity to opt out of such uses.{" "}
+                    other purpose, Sagemath will contact the Individual and
+                    proceed only after obtaining affirmative express consent
+                    (opt in).{" "}
                   </p>{" "}
                 </div>{" "}
                 <div id="do-not-track">
@@ -1045,7 +1113,8 @@ export default function Privacy({ customize }) {
                     Privacy Policy, we will notify you as required by applicable
                     law. You understand and agree that you will be deemed to
                     have accepted the updated Privacy Policy if you continue to
-                    use the Services after the new Privacy Policy takes effect.{" "}
+                    use the Services after the new Privacy Policy takes
+                    effect.{" "}
                   </p>{" "}
                 </div>{" "}
                 <div id="california-privacy-rights">
@@ -1265,6 +1334,18 @@ export default function Privacy({ customize }) {
                     <tr>
                       <td>Update: clarify alignment with GDPR</td>
                       <td> 2025-02-20 </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        Update: HR data require explicit opt-in for any new use
+                      </td>
+                      <td> 2025-10-03 </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        Update: add the list of used cookies and their purpose
+                      </td>
+                      <td> 2026-01-06 </td>
                     </tr>
                   </tbody>
                 </table>

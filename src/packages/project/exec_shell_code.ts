@@ -28,7 +28,7 @@ export async function exec_shell_code(socket: CoCalcSocket, mesg) {
   D(`command=${mesg.command} args=${mesg.args} path=${mesg.path}`);
 
   try {
-    const ret = handleExecShellCode(mesg);
+    const ret = await handleExecShellCode(mesg);
     socket.write_mesg("json", message.project_exec_output(ret));
   } catch (err) {
     let error = `Error executing command '${mesg.command}' with args '${mesg.args}' -- ${err}`;
@@ -68,4 +68,3 @@ export async function handleExecShellCode(mesg) {
   }
   return ret;
 }
-

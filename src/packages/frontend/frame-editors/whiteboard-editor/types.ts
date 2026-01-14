@@ -3,10 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { IconName } from "@cocalc/frontend/components/icon";
+
 import { List as iList, Map as iMap } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { IconName } from "@cocalc/frontend/components/icon";
 import { TimerState } from "@cocalc/frontend/editors/stopwatch/actions";
 import { AspectRatio } from "./tools/frame";
 

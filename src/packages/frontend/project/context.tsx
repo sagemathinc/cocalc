@@ -1,9 +1,17 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Context, createContext, useContext, useMemo, useState } from "react";
+import {
+  Context,
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
+import * as immutable from "immutable";
 
 import {
   ProjectActions,
@@ -64,6 +72,7 @@ export const emptyProjectContext = {
     mistralai: false,
     anthropic: false,
     custom_openai: false,
+    xai: false,
     user: false,
   },
   flipTabs: [0, () => {}],
@@ -120,6 +129,15 @@ export function useProjectContextProvider({
   // not each time the active tab is opened!
   const manageStarredFiles = useStarredFilesManager(project_id);
 
+  // Sync starred files from conat to Redux store for use in computed values
+  useEffect(() => {
+    if (actions) {
+      actions.setState({
+        starred_files: immutable.List(manageStarredFiles.starred),
+      });
+    }
+  }, [manageStarredFiles.starred, actions]);
+
   const kucalc = useTypedRedux("customize", "kucalc");
   const onCoCalcCom = kucalc === KUCALC_COCALC_COM;
   const onCoCalcDocker = kucalc === KUCALC_DISABLED;
@@ -130,6 +148,7 @@ export function useProjectContextProvider({
   const haveCustomOpenAI = useTypedRedux("customize", "custom_openai_enabled");
   const haveMistral = useTypedRedux("customize", "mistral_enabled");
   const haveAnthropic = useTypedRedux("customize", "anthropic_enabled");
+  const haveXai = useTypedRedux("customize", "xai_enabled");
   const userDefinedLLM = useTypedRedux("customize", "user_defined_llm");
 
   const enabledLLMs = useMemo(() => {
@@ -142,6 +161,7 @@ export function useProjectContextProvider({
     haveMistral,
     haveOllama,
     haveOpenAI,
+    haveXai,
     userDefinedLLM,
   ]);
 

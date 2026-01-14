@@ -51,12 +51,19 @@ function Chat({ font_size, desc }: EditorComponentProps) {
   );
 }
 
+const commands: any = {};
+for (const x in chatroom.commands) {
+  if (x == "time_travel" || x == "show_search") {
+    continue;
+  }
+  commands[x] = true;
+}
 export const chat: EditorDescription = {
   type: "chat",
   short: labels.chat,
   name: labels.chat,
   icon: "comment",
-  commands: chatroom.commands,
+  commands,
   component: Chat,
 } as const;
 

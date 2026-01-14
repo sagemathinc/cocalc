@@ -4,6 +4,7 @@ import {
   Flex,
   Form,
   Input,
+  InputNumber,
   List,
   Modal,
   Popconfirm,
@@ -17,6 +18,7 @@ import { sortBy } from "lodash";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
+  CSS,
   useEffect,
   useState,
   useTypedRedux,
@@ -27,12 +29,12 @@ import {
   Icon,
   RawPrompt,
   Text,
-  Title,
 } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { OTHER_SETTINGS_USERDEFINED_LLM as KEY } from "@cocalc/util/db-schema/defaults";
+import { OTHER_SETTINGS_USER_DEFINED_LLM as KEY } from "@cocalc/util/db-schema/defaults";
 import {
+  FALLBACK_MAX_TOKENS,
   LLM_PROVIDER,
   SERVICES,
   UserDefinedLLM,
@@ -41,14 +43,16 @@ import {
   toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
 import { trunc, unreachable } from "@cocalc/util/misc";
+import { Panel } from "@cocalc/frontend/antd-bootstrap";
 
 // @cspell:ignore mixtral userdefined
 
 interface Props {
+  style?: CSS;
   on_change: (name: string, value: any) => void;
 }
 
-export function UserDefinedLLMComponent({ on_change }: Props) {
+export function UserDefinedLLMComponent({ style, on_change }: Props) {
   const intl = useIntl();
   const user_defined_llm = useTypedRedux("customize", "user_defined_llm");
   const other_settings = useTypedRedux("account", "other_settings");
@@ -263,6 +267,8 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
         return "'open-mixtral-8x22b'";
       case "google":
         return "'gemini-2.0-flash'";
+      case "xai":
+        return "'grok-4-1-fast-non-reasoning-16k'";
       default:
         unreachable(service);
         return "'llama3:latest'";
@@ -346,6 +352,26 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
           >
             <Input />
           </Form.Item>
+          <Form.Item
+            label="Max Tokens"
+            name="max_tokens"
+            help={`Context window size in tokens. Leave empty to use default (${FALLBACK_MAX_TOKENS}). Valid range: 1000-2000000.`}
+            rules={[
+              {
+                type: "number",
+                min: 1000,
+                max: 2000000,
+                message: "Must be between 1000 and 2000000",
+              },
+            ]}
+          >
+            <InputNumber
+              min={1000}
+              max={2000000}
+              placeholder={`${FALLBACK_MAX_TOKENS} (default)`}
+              style={{ width: "100%" }}
+            />
+          </Form.Item>
         </Form>
       </Modal>
     );
@@ -376,30 +402,40 @@ export function UserDefinedLLMComponent({ on_change }: Props) {
     }
   }
 
-  return (
-    <>
-      <Title level={5}>
-        {title}{" "}
-        <HelpIcon style={{ float: "right" }} maxWidth="300px" title={title}>
-          <FormattedMessage
-            id="account.user-defined-llm.info"
-            defaultMessage={`This allows you to call a {llm} of your own.
+  function renderHelpIcon() {
+    return (
+      <HelpIcon style={{ float: "right" }} maxWidth="300px" title={title}>
+        <FormattedMessage
+          id="account.user-defined-llm.info"
+          defaultMessage={`This allows you to call a {llm} of your own.
             You either need an API key or run it on your own server.
             Make sure to click on "Test" to check, that the communication to the API actually works.
             Most likely, the type you are looking for is "Custom OpenAI" or "Ollama".`}
-            values={{
-              llm: (
-                <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
-                  Large Language Model
-                </A>
-              ),
-            }}
-          />
-        </HelpIcon>
-      </Title>
+          values={{
+            llm: (
+              <A href={"https://en.wikipedia.org/wiki/Large_language_model"}>
+                Large Language Model
+              </A>
+            ),
+          }}
+        />
+      </HelpIcon>
+    );
+  }
 
+  return (
+    <Panel
+      style={style}
+      size={"small"}
+      header={
+        <>
+          {title}
+          {renderHelpIcon()}
+        </>
+      }
+    >
       {renderContent()}
-    </>
+    </Panel>
   );
 }
 

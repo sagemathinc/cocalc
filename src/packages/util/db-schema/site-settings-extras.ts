@@ -77,6 +77,7 @@ const anthropic_enabled = (conf: SiteSettings) =>
 const ollama_enabled = (conf: SiteSettings) => to_bool(conf.ollama_enabled);
 const custom_openai_enabled = (conf: SiteSettings) =>
   to_bool(conf.custom_openai_enabled);
+const xai_enabled = (conf: SiteSettings) => to_bool(conf.xai_enabled);
 const any_llm_enabled = (conf: SiteSettings) =>
   openai_enabled(conf) ||
   vertexai_enabled(conf) ||
@@ -184,6 +185,7 @@ function custom_llm_display(value: string): string {
 
 export type SiteSettingsExtrasKeys =
   | "pii_retention"
+  | "analytics_cookie"
   | "conat_heading"
   | "conat_password"
   | "stripe_heading"
@@ -209,6 +211,7 @@ export type SiteSettingsExtrasKeys =
   | "custom_openai_configuration"
   | "mistral_api_key"
   | "anthropic_api_key"
+  | "xai_api_key"
   | "salesloft_section"
   | "salesloft_api_key"
   | "jupyter_section"
@@ -325,6 +328,14 @@ export const EXTRAS: SettingsExtras = {
     show: anthropic_enabled,
     tags: ["AI LLM"],
   },
+  xai_api_key: {
+    name: "xAI API Key",
+    desc: "Create an API Key in the [xAI Console](https://console.x.ai/) and paste it here.",
+    default: "",
+    password: true,
+    show: xai_enabled,
+    tags: ["AI LLM"],
+  },
   ollama_configuration: {
     name: "Ollama Configuration",
     desc: 'Configure Ollama endpoints. e.g. Ollama has "gemma" installed and is available at localhost:11434: `{"gemma" : {"baseUrl": "http://localhost:11434/" , cocalc: {display: "Gemma", desc: "Google\'s Gemma Model", icon: "https://.../...png"}}`',
@@ -404,6 +415,13 @@ export const EXTRAS: SettingsExtras = {
     ],
     to_val: pii_retention_parse,
     to_display: pii_retention_display,
+  },
+  analytics_cookie: {
+    name: "Analytics Cookie",
+    desc: "Tag browser sessions visiting a website via an analytics.js script with a cookie",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
   },
   stripe_heading: {
     // this is consmetic, otherwise it looks weird.

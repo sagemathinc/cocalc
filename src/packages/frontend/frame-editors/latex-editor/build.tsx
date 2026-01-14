@@ -8,12 +8,12 @@ Show the last latex build log, i.e., output from last time we ran the LaTeX buil
 */
 
 import Ansi from "@cocalc/frontend/components/ansi-to-react";
-import { Button, Flex, Tooltip } from "antd";
+import { Button, Flex } from "antd";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
-import { Icon, r_join } from "@cocalc/frontend/components";
+import { Icon, r_join, Tip } from "@cocalc/frontend/components";
 import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split, tail } from "@cocalc/util/misc";
@@ -363,7 +363,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
             Active: {r_join(infos)}...
           </Flex>
           <Flex flex={0}>
-            <Tooltip title={"Stop building the document."}>
+            <Tip title={"Stop building the document."}>
               <Button
                 size="small"
                 onClick={() => actions.stop_build()}
@@ -372,7 +372,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
               >
                 Stop
               </Button>
-            </Tooltip>
+            </Tip>
           </Flex>
         </div>
         <div

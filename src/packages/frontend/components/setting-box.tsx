@@ -1,10 +1,11 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Card, Typography } from "antd";
 import { CSSProperties, ReactNode } from "react";
+
 import { CloseX2 } from "./close-x2";
 import { Icon, IconName } from "./icon";
 
@@ -41,8 +42,8 @@ export function SettingBox({
       title={
         show_header ? (
           <div style={{ whiteSpace: "normal" }}>
-            <Title level={4}>
-              {icon && <Icon name={icon} />}&nbsp;{title}
+            <Title level={4} style={{ display: "flex" }}>
+              {icon && <Icon name={icon} />}&nbsp;<span>{title}</span>
             </Title>
             {subtitle}
             {/* subtitle must be outside of the Typography.Title -- this is assumed, e.g., in frontend/project/new/project-new-form.tsx */}

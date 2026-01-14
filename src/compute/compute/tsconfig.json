@@ -8,6 +8,7 @@
   "references": [
     { "path": "../api-client" },
     { "path": "../backend" },
+    { "path": "../conat" },
     { "path": "../jupyter" },
     { "path": "../project" },
     { "path": "../sync" },

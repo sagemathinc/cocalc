@@ -26,6 +26,7 @@
 @use 'frame-editors/_style' as frame-editors-style
 @use 'notifications/_style' as notifications-style
 @use 'account-button'
+@use 'account/_account' as account-account
 @use 'admin/_style' as admin-style
 @use 'antd_fix'
 
@@ -268,9 +269,9 @@ ul.nav.pull-right.navbar-nav li
     z-index : 0
 
 footer
-  color : gray
+  color : colors.$COL_GRAY_M
   a
-    color : gray
+    color : colors.$COL_GRAY_M
 
 @keyframes pulse
   0%
@@ -421,4 +422,3 @@ span.cc-project-fixedtab-drag:hover
 
 div.cc-project-flyout-file-item:hover
   background-color: colors.$COL_BLUE_LLLL
-

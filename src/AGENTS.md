@@ -42,14 +42,24 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `cd packages/[package] && pnpm build` - Build and compile a specific package
   - For packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
-- To typecheck the frontend, it is best to run `cd packages/static && pnpm build` - this implicitly compiles the frontend and reports TypeScript errors
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 
 ### Development
 
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
-- After TypeScript or `*.tsx` changes, run `pnpm build` in the relevant package directory
-  - When editing the frontend, run `pnpm build-dev` in `packages/static` (this implicitly builds the frontend)
+
+#### When Working on Frontend Code
+
+After making changes to files in `packages/frontend`:
+
+1. **Typecheck**: Run `cd packages/frontend && pnpm tsc --noEmit` to check for TypeScript errors
+2. **Build**: Run `cd packages/static && pnpm build-dev` to compile the frontend for testing
+
+**DO NOT** run `pnpm build` in `packages/frontend` - it won't work as expected for frontend development.
+
+#### When Working on Other Packages
+
+- After TypeScript changes, run `pnpm build` in the relevant package directory
 
 ## Architecture Overview
 
@@ -105,6 +115,22 @@ CoCalc is organized as a monorepo with key packages:
   5. **Authentication**: Each conat request includes account_id and is subject to permission checks at the hub level
   6. **Subjects**: Messages are routed using hierarchical subjects like `hub.account.{uuid}.{service}` or `project.{uuid}.{compute_server_id}.{service}`
 
+#### CoCalc Conat Hub API Architecture
+
+**API Method Registration Pattern:**
+
+- **Registry**: `packages/conat/hub/api/projects.ts` contains `export const projects = { methodName: authFirstRequireAccount }`
+- **Implementation**: `packages/server/conat/api/projects.ts` contains `export async function methodName() { ... }`
+- **Flow**: Python client `@api_method("projects.methodName")` → POST `/api/conat/hub` → `hubBridge()` → conat subject `hub.account.{account_id}.api` → registry lookup → implementation
+
+**Example - projects.createProject:**
+
+1. **Python**: `@api_method("projects.createProject")` decorator
+2. **HTTP**: `POST /api/conat/hub {"name": "projects.createProject", "args": [...]}`
+3. **Bridge**: `hubBridge()` routes to conat subject
+4. **Registry**: `packages/conat/hub/api/projects.ts: createProject: authFirstRequireAccount`
+5. **Implementation**: `packages/server/conat/api/projects.ts: export { createProject }` → `@cocalc/server/projects/create`
+
 ### Key Technologies
 
 - **TypeScript**: Primary language for all new code
@@ -139,11 +165,11 @@ CoCalc is organized as a monorepo with key packages:
 
 ### Development Workflow
 
-1. Changes to TypeScript require compilation (`pnpm build` in relevant package)
-2. Database must be running before starting hub
-3. Hub coordinates all services and should be restarted after changes
-4. Use `pnpm clean && pnpm build-dev` when switching branches or after major changes
-5. **IMPORTANT**: After any frontend code changes, run `pnpm build-dev` in the `packages/static` directory to compile the frontend
+1. **Frontend changes**: After editing `packages/frontend`, typecheck with `cd packages/frontend && pnpm tsc --noEmit`, then build with `cd packages/static && pnpm build-dev`
+2. **Other package changes**: After TypeScript changes, run `pnpm build` in the relevant package directory
+3. Database must be running before starting hub
+4. Hub coordinates all services and should be restarted after changes
+5. Use `pnpm clean && pnpm build-dev` when switching branches or after major changes
 
 # Workflow
 
@@ -157,7 +183,6 @@ CoCalc is organized as a monorepo with key packages:
 - When creating a new file, run `git add [filename]` to track the file.
 - Prefix git commits with the package and general area. e.g. 'frontend/latex: ...' if it concerns latex editor changes in the packages/frontend/... code.
 - When pushing a new branch to Github, track it upstream. e.g. `git push --set-upstream origin feature-foo` for branch "feature-foo".
-
 
 ## React-intl / Internationalization (i18n)
 
@@ -176,7 +201,7 @@ Translation IDs follow a hierarchical pattern: `[directory].[subdir].[filename].
 
 Examples:
 
-- `labels.masked_files` - for common UI labels
+- `labels.account` - for common UI labels
 - `account.sign-out.button.title` - for account sign-out dialog
 - `command.generic.force_build.label` - for command labels
 
@@ -216,10 +241,41 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - Ignore everything in `node_modules` or `dist` directories
 - Ignore all files not tracked by Git, unless they are newly created files
 
-# Important Instruction Reminders
+# CoCalc Python API Client Investigation
 
-- Do what has been asked; nothing more, nothing less
-- NEVER create files unless they're absolutely necessary for achieving your goal
-- ALWAYS prefer editing an existing file to creating a new one
-- REFUSE to modify files when the git repository is on the `master` or `main` branch
-- NEVER proactively create documentation files (`*.md`) or README files. Only create documentation files if explicitly requested by the User
+## Overview
+
+The `python/cocalc-api/` directory contains a uv-based Python client library for the CoCalc API, published as the `cocalc-api` package on PyPI.
+
+It also contains a test framework (`python/cocalc-api/tests/README.md`) and an MCP client (`python/cocalc-api/src/cocalc_api/mcp/README.md`).
+For convenience, a `python/cocalc-api/Makefile` exists.
+
+## Client-Server Architecture Investigation
+
+### API Call Flow
+
+1. **cocalc-api Client** (Python) → HTTP POST requests
+2. **Next.js API Routes** (`/api/conat/{hub,project}`) → Bridge to conat messaging
+3. **ConatClient** (server-side) → NATS-like messaging protocol
+4. **Hub API Implementation** (`packages/conat/hub/api/`) → Actual business logic
+
+### Endpoints Discovered
+
+#### Hub API: `POST /api/conat/hub`
+
+- **Bridge**: `packages/next/pages/api/conat/hub.ts` → `hubBridge()` → conat subject `hub.account.{account_id}.api`
+- **Implementation**: `packages/conat/hub/api/projects.ts`
+- **Available Methods**: `createProject`, `start`, `stop`, `setQuotas`, `addCollaborator`, `removeCollaborator`, etc.
+
+#### Project API: `POST /api/conat/project`
+
+- **Bridge**: `packages/next/pages/api/conat/project.ts` → `projectBridge()` → conat project subjects
+- **Implementation**: `packages/conat/project/api/` (system.ping, system.exec, system.jupyterExecute)
+
+# important-instruction-reminders
+
+- Do what has been asked; nothing more, nothing less.
+- ALWAYS prefer editing an existing file to creating a new one.
+- NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
+- ALWAYS ask questions if something is unclear. Only proceed to the implementation step if you have no questions left.
+- When modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year.

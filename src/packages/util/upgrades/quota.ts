@@ -131,6 +131,7 @@ interface Settings {
   privileged?: number;
   network?: number;
   always_running?: number;
+  disableInternet?: boolean; // project setting to explicitly disable network
 }
 
 export interface Upgrades {
@@ -1053,6 +1054,11 @@ export function quota_with_reasons(
   if (pay_as_you_go != null) {
     // do this after any other processing or it would just go away, e.g., when min'ing with max's
     total_quota.pay_as_you_go = pay_as_you_go;
+  }
+
+  // Project-level setting to explicitly disable internet overrides any license/network grants.
+  if (settings?.disableInternet) {
+    total_quota.network = false;
   }
 
   return { quota: total_quota, reasons };

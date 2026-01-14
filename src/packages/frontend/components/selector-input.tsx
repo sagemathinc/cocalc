@@ -99,7 +99,7 @@ export const SelectorInput: React.FC<Props> = (props: Props) => {
       <Form.Item style={style}>
         <Select
           {...searchProps()}
-          defaultValue={selected}
+          value={selected}
           onChange={onChange}
           disabled={disabled}
         >

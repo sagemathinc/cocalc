@@ -6,6 +6,7 @@
 import { Button, Flex, Popconfirm, Typography } from "antd";
 import { Map } from "immutable";
 import { useIntl } from "react-intl";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   Gap,
@@ -148,7 +149,7 @@ export default function SSHKeyList({
     return renderBody();
   } else {
     return (
-      <SettingBox title={render_header()} icon={"list-ul"}>
+      <SettingBox title={render_header()} icon={"key"}>
         {renderBody()}
       </SettingBox>
     );

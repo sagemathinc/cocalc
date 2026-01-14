@@ -326,7 +326,12 @@ export class ManageCommands {
     }
 
     if (typeof data === "function") {
-      return data(this);
+      const result = data(this);
+      // Check if the function returned an IntlMessage
+      if (isIntlMessage(result)) {
+        return this.intl.formatMessage(result, this.formatMessageValues);
+      }
+      return result;
     }
 
     // react-intl defineMessage object

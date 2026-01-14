@@ -17,7 +17,6 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "tsc": "../node_modules/.bin/tsc --watch --pretty --preserveWatchOutput",
     "clean": "rm -rf node_modules dist",
     "test": "pnpm exec jest --forceExit --runInBand",
     "depcheck": "pnpx depcheck"

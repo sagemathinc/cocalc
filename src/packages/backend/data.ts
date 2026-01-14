@@ -171,14 +171,28 @@ export function sslConfigToPsqlEnv(config: SSLConfig): PsqlSSLEnvConfig {
 
 export const root: string = process.env.COCALC_ROOT ?? determineRootFromPath();
 export const data: string = process.env.DATA ?? join(root, "data");
+
+// Database Config
 export const pguser: string = process.env.PGUSER ?? "smc";
 export const pgdata: string = process.env.PGDATA ?? join(data, "postgres");
 export const pghost: string = process.env.PGHOST ?? join(pgdata, "socket");
 export const pgssl = sslConfigFromCoCalcEnv();
 export const pgdatabase: string =
   process.env.SMC_DB ?? process.env.PGDATABASE ?? "smc";
+
+// Database healthchecks
+export const pgConcurrentWarn: number = parseInt(
+  process.env.COCALC_HEALTH_PG_CONCURRENT_WARN ?? "300",
+);
+
+// Hub server configuration
+export const hubHostname: string =
+  process.env.COCALC_HUB_HOSTNAME ?? "127.0.0.1";
+export const agentPort: number = parseInt(process.env.COCALC_AGENT_PORT ?? "0");
+
 export const projects: string =
   process.env.PROJECTS ?? join(data, "projects", "[project_id]");
+
 export const secrets: string = process.env.SECRETS ?? join(data, "secrets");
 
 // Where the sqlite database files used for sync are stored.
@@ -250,8 +264,16 @@ export let conatSocketioCount = parseInt(
 // number of persist servers (if configured to run)
 export let conatPersistCount = parseInt(process.env.CONAT_PERSIST_COUNT ?? "1");
 
-// number of api servers (if configured to run)
+// number of api servers (if configured to run). The only reason to increase this
+// is for testing and development.  One is fine for a small server, and for kubernetes
+// we these in separate pods.
 export let conatApiCount = parseInt(process.env.CONAT_API_COUNT ?? "1");
+
+// number of changefeed servers to run in process.  The only reason to increase this
+// is for testing and development.
+export let conatChangefeedServerCount = parseInt(
+  process.env.CONAT_CHANGEFEED_SERVER_COUNT ?? "1",
+);
 
 // if configured, will create a socketio cluster using
 // the cluster adapter, listening on the given port.
