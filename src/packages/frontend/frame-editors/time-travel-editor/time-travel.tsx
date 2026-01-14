@@ -9,18 +9,14 @@ import { Button, Checkbox, Space, Tooltip } from "antd";
 import { Map, List } from "immutable";
 import { debounce } from "lodash";
 import { useEffect, useMemo, useState } from "react";
-import { ALWAYS_ALLOWED_TIMETRAVEL } from "@cocalc/util/db-schema/site-defaults";
 import { AccountState } from "@cocalc/frontend/account/types";
 import {
   redux,
   useAsyncEffect,
   useEditorRedux,
-  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
-import RequireLicense from "@cocalc/frontend/site-licenses/require-license";
-import useLicenses from "@cocalc/frontend/site-licenses/use-licenses";
 import type { Document } from "@cocalc/sync/editor/generic/types";
 import json_stable from "json-stable-stringify";
 import { to_ipynb } from "../../jupyter/history-viewer";
@@ -56,11 +52,6 @@ export function TimeTravel(props: Props) {
   const { project_id, path } = props;
 
   const useEditor = useEditorRedux<TimeTravelState>({ project_id, path });
-  const unlicensedLimit = useTypedRedux(
-    "customize",
-    "unlicensed_project_timetravel_limit",
-  );
-  const licenses = useLicenses({ project_id });
   const error = useEditor("error");
   const versions =
     (useEditor("versions") as List<string | number> | undefined) ??
@@ -580,17 +571,7 @@ export function TimeTravel(props: Props) {
   }
 
   let body;
-  if (
-    beyondTheLimit({ unlicensedLimit, gitMode, licenses, version, versions })
-  ) {
-    // need license to view this
-    body = (
-      <RequireLicense
-        project_id={project_id}
-        message={`Upgrade to view more than the last ${unlicensedLimit} days (or ${ALWAYS_ALLOWED_TIMETRAVEL} versions) of TimeTravel history.`}
-      />
-    );
-  } else if (doc != null && docpath != null && docext != null && !changesMode) {
+  if (doc != null && docpath != null && docext != null && !changesMode) {
     body = (
       <Viewer
         ext={docext}
@@ -631,25 +612,3 @@ const saveState = debounce((actions, obj) => {
     a.set_frame_tree(obj);
   }
 }, 2000);
-
-function beyondTheLimit({
-  unlicensedLimit,
-  gitMode,
-  licenses,
-  version,
-  versions,
-}) {
-  if (gitMode || (unlicensedLimit ?? 0) <= 0 || licenses.size > 0) {
-    return false;
-  }
-  const cutoff = Date.now() - unlicensedLimit * 24 * 60 * 60 * 1000;
-  if (version >= cutoff) {
-    return false;
-  }
-  // beyond the limit unless one of the last few
-  const n = versions.indexOf(version);
-  if (n >= versions.size - ALWAYS_ALLOWED_TIMETRAVEL) {
-    return false;
-  }
-  return true;
-}

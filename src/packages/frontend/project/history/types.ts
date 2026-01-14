@@ -6,7 +6,6 @@
 import { Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
 
 import type { ComputeServerEvent } from "@cocalc/util/compute/log";
 
@@ -38,7 +37,6 @@ export type ProjectEvent =
   | LibraryEvent
   | LLMEvent
   | UpgradeEvent
-  | LicenseEvent
   | OpenFile
   | MiniTermEvent
   | CollaboratorEvent
@@ -103,14 +101,6 @@ export type CollaboratorEvent = {
 export type UpgradeEvent = {
   event: "upgrade";
   upgrades: any;
-};
-
-export type LicenseEvent = {
-  event: "license";
-  action: "add" | "remove";
-  license_id: string;
-  title?: string;
-  quota?: SiteLicenseQuota;
 };
 
 export type LibraryEvent = {
@@ -222,7 +212,6 @@ export type PublicPathEvent = {
   unlisted?: boolean;
   disabled?: boolean;
   authenticated?: boolean;
-  site_license_id?: string;
   redirect?: string;
   jupyter_api?: boolean;
 };

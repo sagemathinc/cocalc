@@ -197,7 +197,6 @@ function useReduxEditorStore(
 
 export interface StoreStates {
   account: types.AccountState;
-  "admin-site-licenses": types.SiteLicensesState;
   "admin-users": types.AdminUsersState;
   billing: types.BillingState;
   compute_images: types.ComputeImagesState;
@@ -310,9 +309,6 @@ it's one of the other named actions or undefined.
 */
 
 export function useActions(name: "account"): types.AccountActions;
-export function useActions(
-  name: "admin-site-licenses",
-): types.SiteLicensesActions;
 export function useActions(name: "admin-users"): types.AdminUsersActions;
 export function useActions(name: "billing"): types.BillingActions;
 export function useActions(name: "file_use"): types.FileUseActions;
@@ -374,7 +370,6 @@ import { Store } from "@cocalc/util/redux/Store";
 import { isEqual } from "lodash";
 export interface Stores {
   account: types.AccountStore;
-  "admin-site-licenses": types.SiteLicensesStore;
   "admin-users": types.AdminUsersStore;
   billing: types.BillingStore;
   compute_images: types.ComputeImagesStore;

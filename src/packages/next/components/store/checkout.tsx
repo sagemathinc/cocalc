@@ -21,8 +21,8 @@ import {
 } from "antd";
 import { useContext, useEffect, useMemo, useState, type JSX } from "react";
 import { Icon } from "@cocalc/frontend/components/icon";
-import { money } from "@cocalc/util/licenses/purchase/utils";
-import { copy_without as copyWithout, isValidUUID } from "@cocalc/util/misc";
+import { money } from "@cocalc/util/purchases/quota/utils";
+import { copy_without as copyWithout } from "@cocalc/util/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
 import useIsMounted from "lib/hooks/mounted";
@@ -38,7 +38,6 @@ import {
 } from "@cocalc/frontend/purchases/api";
 import { currency, plural, round2up, round2down } from "@cocalc/util/misc";
 import { type CheckoutParams } from "@cocalc/server/purchases/shopping-cart-checkout";
-import { WORKSPACE_LABEL } from "@cocalc/util/i18n/terminology";
 import { ProductColumn } from "./cart";
 import ShowError from "@cocalc/frontend/components/error";
 import { StoreBalanceContext } from "../../lib/balance";
@@ -484,13 +483,7 @@ const MIN_AMOUNT = 100;
 function GetAQuote({ items }) {
   const router = useRouter();
   const [more, setMore] = useState<boolean>(false);
-  let isSub;
-  for (const item of items) {
-    if (item.description.period != "range" && item.product == "site-license") {
-      isSub = true;
-      break;
-    }
-  }
+  const isSub = items.some((item) => item.product === "membership");
 
   function createSupportRequest() {
     const x: any[] = [];
@@ -673,7 +666,7 @@ export function getColumns({
   return [
     {
       responsive: ["xs" as "xs"],
-      render: ({ cost, description, project_id }) => {
+      render: ({ cost, description }) => {
         return (
           <div>
             <DescriptionColumn
@@ -681,7 +674,6 @@ export function getColumns({
               description={description}
               voucherPeriod={voucherPeriod}
             />
-            <ProjectID project_id={project_id} />
             <div>
               <b style={{ fontSize: "11pt" }}>
                 <DisplayCost
@@ -705,7 +697,7 @@ export function getColumns({
     {
       responsive: ["sm" as "sm"],
       width: "60%",
-      render: (_, { cost, description, project_id }) => {
+      render: (_, { cost, description }) => {
         if (cost == null) {
           return null;
         }
@@ -715,8 +707,7 @@ export function getColumns({
               cost={cost}
               description={description}
               voucherPeriod={voucherPeriod}
-            />{" "}
-            <ProjectID project_id={project_id} />
+            />
           </>
         );
       },
@@ -732,13 +723,4 @@ export function getColumns({
       ),
     },
   ] as any;
-}
-
-function ProjectID({ project_id }: { project_id: string }): JSX.Element | null {
-  if (!project_id || !isValidUUID(project_id)) return null;
-  return (
-    <div>
-      For {WORKSPACE_LABEL.toLowerCase()}: <code>{project_id}</code>
-    </div>
-  );
 }

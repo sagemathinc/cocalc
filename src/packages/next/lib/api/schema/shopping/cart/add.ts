@@ -6,36 +6,10 @@ import {
   ProductType,
 } from "@cocalc/util/db-schema/shopping-cart-items";
 
-import { ProjectIdSchema } from "../../projects/common";
-import {
-  SiteLicenseQuotaSchema,
-  SiteLicenseRunLimitSchema,
-  SiteLicenseUptimeSchema,
-} from "../../licenses/common";
-
-const LicenseRangeSchema = z.tuple([z.string(), z.string()]).describe(
-  `Array of two ISO 8601-formatted timestamps. The first element indicates the start
-     date of the license, and the second indicates the end date. Used when the \`period\`
-     field is set to \`range\`.`,
-);
-
-const LicenseTitleSchema = z
-  .string()
-  .describe("Semantic license title.")
-  .optional();
-
-const LicenseDescriptionSchema = z
-  .string()
-  .describe("Semantic license description")
-  .optional();
-
 // OpenAPI spec
 //
 export const ShoppingCartAddInputSchema = z
   .object({
-    project_id: ProjectIdSchema.nullish().describe(
-      "If specified, this license is automatically added to an existing project.",
-    ),
     id: z
       .number()
       .min(0)
@@ -47,25 +21,13 @@ export const ShoppingCartAddInputSchema = z
       )
       .nullish(),
     product: z
-      .enum(["site-license", "cash-voucher", "membership"])
+      .enum(["cash-voucher", "membership"])
       .describe(
         "Product type to purchase. Must be populated if the `id` field is empty.",
       )
       .nullish(),
     description: z
       .union([
-        SiteLicenseQuotaSchema.extend({
-          title: LicenseTitleSchema.optional(),
-          description: LicenseDescriptionSchema.optional(),
-          range: LicenseRangeSchema.optional(),
-          period: z.enum(["range", "monthly", "yearly"]).describe(
-            `Period for which this license is to be applied. If \`range\` is selected,
-               the \`range\` field must be populated in this request.`,
-          ),
-          type: z.enum(["quota"]).describe("License type"),
-          run_limit: SiteLicenseRunLimitSchema,
-          uptime: SiteLicenseUptimeSchema,
-        }).describe("Project resource quota license."),
         z
           .object({
             type: z.enum(["cash-voucher"]),
@@ -91,13 +53,12 @@ export const ShoppingCartAddInputSchema = z
       ])
       .describe(
         `This field is used to specify details appropriate to the product being purchased.
-         For cash vouchers, this includes the voucher amount and for licenses, this is a
-         JSON object specifying license details (duration, memory, project count, etc.)`,
+         For cash vouchers, this includes the voucher amount and metadata for redemption.`,
       )
       .nullish(),
     purchased: z.boolean().nullish(),
   })
-  .describe("Adds a license to the shopping cart.");
+  .describe("Adds an item to the shopping cart.");
 
 export const ShoppingCartAddOutputSchema = z.union([
   FailedAPIOperationSchema,

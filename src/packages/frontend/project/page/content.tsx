@@ -46,7 +46,6 @@ import { useProjectContext } from "../context";
 import getAnchorTagComponent from "./anchor-tag-component";
 import HomePage from "./home-page";
 import { ProjectCollaboratorsPage } from "./project-collaborators";
-import { ProjectLicenses } from "./project-licenses";
 import getUrlTransform from "./url-transform";
 
 // Default width of chat window as a fraction of the
@@ -181,8 +180,6 @@ const TabContent: React.FC<TabContentProps> = (props: TabContentProps) => {
       return <ProjectInfo project_id={project_id} />;
     case "users":
       return <ProjectCollaboratorsPage />;
-    case "upgrades":
-      return <ProjectLicenses project_id={project_id} />;
     default:
       // check for "editor-[filename]"
       if (!tab_name.startsWith("editor-")) {

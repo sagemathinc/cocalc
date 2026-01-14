@@ -166,7 +166,6 @@ export const QUERIES = {
       last_saved: null,
       counter: null,
       compute_image: null,
-      site_license_id: null,
       redirect: null,
       jupyter_api: null,
     },
@@ -2824,7 +2823,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       license?: string;
       disabled?: boolean;
       authenticated?: boolean;
-      site_license_id?: string | null;
       jupyter_api?: boolean;
       redirect?: string;
     },
@@ -2895,8 +2893,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             log = true;
           } else if (k === "authenticated" && will_change) {
             log = true;
-          } else if (k === "site_license_id" && will_change) {
-            log = true;
           } else if (k === "jupyter_api" && will_change) {
             log = true;
           } else if (k === "redirect" && will_change) {
@@ -2921,7 +2917,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         disabled: !!obj.get("disabled"),
         unlisted: !!obj.get("unlisted"),
         authenticated: !!obj.get("authenticated"),
-        site_license_id: obj.get("site_license_id")?.slice(-8),
         jupyter_api: obj.get("jupyter_api"),
         redirect: obj.get("redirect"),
       });
@@ -3035,10 +3030,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.set_active_tab("users", {
           change_history: change_history,
         });
-        break;
-
-      case "upgrades":
-        this.set_active_tab("upgrades", { change_history: change_history });
         break;
 
       default:

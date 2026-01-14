@@ -1,8 +1,5 @@
 export const StorePages = [
   "membership",
-  "site-license",
-  "course",
-  "boost",
   "cart",
   "checkout",
   "processing",

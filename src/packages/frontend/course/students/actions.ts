@@ -8,7 +8,6 @@ Actions specific to manipulating the students in a course
 */
 
 import { delay, map } from "awaiting";
-import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { callback2 } from "@cocalc/util/async-utils";
 import { defaults, required, uuid } from "@cocalc/util/misc";
@@ -140,8 +139,7 @@ export class StudentsActions {
   ): void => {
     const project_id = student.get("project_id");
     if (project_id != null) {
-      // The student's project was created so let's clear any upgrades from it.
-      redux.getActions("projects").clear_project_licenses(project_id);
+      // no-op for legacy project licenses (removed)
     }
     if (noTrash) {
       this.course_actions.delete(

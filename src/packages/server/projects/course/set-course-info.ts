@@ -26,7 +26,7 @@ import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import getPool, { PoolClient } from "@cocalc/database/pool";
 import { isEqual } from "lodash";
 import type { CourseInfo } from "@cocalc/util/db-schema/projects";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { compute_cost } from "@cocalc/util/purchases/quota/compute-cost";
 
 interface Options {
   account_id: string; // who is setting the course field

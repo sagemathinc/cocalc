@@ -407,42 +407,23 @@ function projectStatusCoCalcCom({
       state,
     };
   }
-  const licenses = store.get_site_license_ids(project_id);
-  if (licenses.length > 0) {
-    const description = intl.formatMessage({
-      id: "course.util.status-cocalc-com.licensed.description",
-      defaultMessage: "Licensed",
-    });
-    const tip = intl.formatMessage(
-      {
-        id: "course.util.status-cocalc-com.licensed.tooltip",
-        defaultMessage:
-          "{projectLabel} is properly licensed and should work well. Thank you!",
-      },
-      { projectLabel },
-    );
-    return { description, icon: "check", state, tip };
-  } else {
-    const description = intl.formatMessage({
-      id: "course.util.status-cocalc-com.free.description",
-      defaultMessage: "Free Trial",
-    });
-    const tip = intl.formatMessage(
-      {
-        id: "course.util.status-cocalc-com.free.tooltip",
-        defaultMessage: `{projectLabel} is a trial {projectLabelLower} hosted on a free server,
-      so it may be overloaded and will be rebooted frequently.
-      Please upgrade in course configuration.`,
-      },
-      { projectLabel, projectLabelLower },
-    );
-    return {
-      description,
-      icon: "exclamation-triangle",
-      state,
-      tip,
-    };
-  }
+  const description = intl.formatMessage({
+    id: "course.util.status-cocalc-com.free.description",
+    defaultMessage: "Standard hosting",
+  });
+  const tip = intl.formatMessage(
+    {
+      id: "course.util.status-cocalc-com.free.tooltip",
+      defaultMessage: `{projectLabel} uses standard shared hosting.`,
+    },
+    { projectLabel, projectLabelLower },
+  );
+  return {
+    description,
+    icon: "info-circle",
+    state,
+    tip,
+  };
 }
 
 // the list of assignments, in particular with peer grading, has a large number of buttons

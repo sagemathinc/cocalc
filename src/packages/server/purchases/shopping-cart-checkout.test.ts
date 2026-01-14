@@ -16,7 +16,7 @@ const mockComputeCost = jest.fn() as jest.MockedFunction<typeof computeCost>;
 
 import { getTransactionClient } from "@cocalc/database/pool";
 import getCart from "@cocalc/server/shopping/cart/get";
-import { computeCost } from "@cocalc/util/licenses/store/compute-cost";
+import { computeCost } from "@cocalc/util/purchases/store/compute-cost";
 import { uuid } from "@cocalc/util/misc";
 import { CashVoucherCostProps } from "@cocalc/util/upgrades/shopping";
 
@@ -33,7 +33,7 @@ jest.mock("@cocalc/database/pool", () => ({
   __esModule: true,
   getTransactionClient: mockTransactionClient,
 }));
-jest.mock("@cocalc/util/licenses/store/compute-cost", () => ({
+jest.mock("@cocalc/util/purchases/store/compute-cost", () => ({
   __esModule: true,
   computeCost: mockComputeCost,
 }));

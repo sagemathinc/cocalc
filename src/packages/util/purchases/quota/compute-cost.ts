@@ -7,7 +7,7 @@ import { ONE_MONTH_MS } from "@cocalc/util/consts/billing";
 import {
   LicenseIdleTimeouts,
   requiresMemberhosting,
-} from "@cocalc/util/consts/site-license";
+} from "@cocalc/util/consts/quota-uptime";
 import { BASIC, getCosts, MAX, STANDARD } from "./consts";
 import type { Cost, PurchaseInfo } from "./types";
 import { round2up } from "@cocalc/util/misc";

@@ -21,7 +21,6 @@ import Menu from "./menu";
 import Memberships from "./memberships";
 import Overview from "./overview";
 import Processing from "./processing";
-import SiteLicense from "./site-license";
 import { StoreInplaceSignInOrUp } from "./store-inplace-signup";
 import { StorePagesTypes } from "./types";
 import Vouchers from "./vouchers";
@@ -119,8 +118,6 @@ export default function StoreLayout({ page }: Props) {
     switch (main) {
       case "membership":
         return requireAccount(Memberships);
-      case "course":
-        return <SiteLicense noAccount={noAccount} source="course" />;
       case "cart":
         return requireAccount(Cart);
       case "checkout":

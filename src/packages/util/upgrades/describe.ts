@@ -1,20 +1,20 @@
-import { CashVoucher } from "@cocalc/util/db-schema/shopping-cart-items";
-import { describe_quota } from "@cocalc/util/licenses/describe-quota";
-import { SiteLicenseDescriptionDB } from "@cocalc/util/upgrades/shopping";
+import {
+  CashVoucher,
+  MembershipSubscription,
+} from "@cocalc/util/db-schema/shopping-cart-items";
 import { currency, plural } from "@cocalc/util/misc";
 import type { LineItem } from "@cocalc/util/stripe/types";
 import { decimalMultiply } from "@cocalc/util/stripe/calc";
 
 export function toFriendlyDescription(
-  description: SiteLicenseDescriptionDB | CashVoucher,
+  description: CashVoucher | MembershipSubscription,
 ): string {
   switch (description.type) {
-    case "quota":
-      return describe_quota(description);
     case "cash-voucher":
       // see corresponding react code in next/components/store/site-license-cost.tsx
       return `${description.numVouchers ?? 1} ${plural(description.numVouchers ?? 1, "Voucher Code")} ${description.numVouchers > 1 ? " each " : ""}worth ${currency(description.amount)}. Total Value: ${currency(decimalMultiply(description.amount, description.numVouchers ?? 1))}${description.whenPay == "admin" ? " (admin: no charge)" : ""}`;
-      return `${currency((description as CashVoucher).amount)} account credit`;
+    case "membership":
+      return `Membership (${description.class})`;
     default:
       return "Credit account to complete store purchase";
   }

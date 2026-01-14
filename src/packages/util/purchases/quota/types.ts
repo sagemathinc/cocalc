@@ -3,12 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import type { Uptime } from "@cocalc/util/consts/site-license";
-import type {
-  CustomDescription,
-  LicenseSource,
-  Period,
-} from "@cocalc/util/upgrades/shopping";
+import type { Uptime } from "@cocalc/util/consts/quota-uptime";
+import type { CustomDescription, Period } from "@cocalc/util/upgrades/shopping";
 
 export type User = "academic" | "business";
 export type Upgrade = "basic" | "standard" | "max" | "custom";
@@ -84,12 +80,9 @@ interface PurchaseInfoQuota0 {
   run_limit?: number;
 }
 
-type PurchseInfoSource = { source?: LicenseSource };
-
 export type PurchaseInfoQuota = PurchaseInfoQuota0 &
   CustomDescription &
-  StartEndDates &
-  PurchseInfoSource;
+  StartEndDates;
 
 export type PurchaseInfoVoucher = {
   type: "vouchers";

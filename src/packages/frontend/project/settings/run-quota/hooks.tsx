@@ -21,7 +21,7 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import { round1, seconds2hms, server_time } from "@cocalc/util/misc";
 import { PROJECT_UPGRADES, FAIR_CPU_MODE } from "@cocalc/util/schema";
-import { GPU } from "@cocalc/util/types/site-licenses";
+import { GPU } from "@cocalc/util/types/gpu";
 import {
   Upgrades,
   quota2upgrade_key,

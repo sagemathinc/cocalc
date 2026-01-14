@@ -1,7 +1,7 @@
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { currency } from "@cocalc/util/misc";
 import { moneyRound2Up } from "@cocalc/util/money";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
+import { compute_cost } from "@cocalc/util/purchases/quota/compute-cost";
 
 export function getCost(purchaseInfo?: PurchaseInfo): number {
   if (purchaseInfo == null) {

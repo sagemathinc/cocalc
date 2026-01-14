@@ -22,7 +22,6 @@ import {
 } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
 import { course } from "@cocalc/frontend/i18n";
-import { KUCALC_ON_PREMISES } from "@cocalc/util/db-schema/site-defaults";
 import { contains_url } from "@cocalc/util/misc";
 import { CourseActions } from "../actions";
 import { CourseSettingsRecord, CourseStore } from "../store";
@@ -35,21 +34,18 @@ import { Nbgrader } from "./nbgrader";
 import { Parallel } from "./parallel";
 import StudentPay from "./student-pay";
 import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
-import { StudentProjectUpgrades } from "./upgrades";
 import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   name: string;
   project_id: string;
   settings: CourseSettingsRecord;
-  configuring_projects?: boolean;
 }
 
 export function ConfigurationPanel({
   name,
   project_id,
   settings,
-  configuring_projects,
 }: Props) {
   const actions = useActions<CourseActions>({ name });
 
@@ -63,9 +59,7 @@ export function ConfigurationPanel({
       <Row>
         <Col md={12} style={{ padding: "15px 15px 15px 0" }}>
           <UpgradeConfiguration
-            name={name}
             settings={settings}
-            configuring_projects={configuring_projects}
             actions={actions}
           />
           <br />
@@ -120,60 +114,10 @@ export function ConfigurationPanel({
 }
 
 export function UpgradeConfiguration({
-  name,
   settings,
-  configuring_projects,
   actions,
 }) {
   const is_commercial = useTypedRedux("customize", "is_commercial");
-  const kucalc = useTypedRedux("customize", "kucalc");
-
-  function render_require_institute_pay() {
-    if (!is_commercial) return;
-    return (
-      <>
-        <StudentProjectUpgrades
-          name={name}
-          is_onprem={false}
-          is_commercial={is_commercial}
-          institute_pay={settings?.get("institute_pay")}
-          student_pay={settings?.get("student_pay")}
-          site_license_id={settings?.get("site_license_id")}
-          site_license_strategy={settings?.get("site_license_strategy")}
-          shared_project_id={settings?.get("shared_project_id")}
-          disabled={configuring_projects}
-          settings={settings}
-          actions={actions.configuration}
-        />
-        <br />
-      </>
-    );
-  }
-
-  /**
-   * OnPrem instances support licenses to be distributed to all student projects.
-   */
-  function render_onprem_upgrade_projects() {
-    if (is_commercial || kucalc !== KUCALC_ON_PREMISES) {
-      return;
-    }
-    return (
-      <>
-        <StudentProjectUpgrades
-          name={name}
-          is_onprem={true}
-          is_commercial={false}
-          site_license_id={settings?.get("site_license_id")}
-          site_license_strategy={settings?.get("site_license_strategy")}
-          shared_project_id={settings?.get("shared_project_id")}
-          disabled={configuring_projects}
-          settings={settings}
-          actions={actions.configuration}
-        />
-        <br />
-      </>
-    );
-  }
 
   return (
     <Card
@@ -188,8 +132,6 @@ export function UpgradeConfiguration({
       }
     >
       {is_commercial && <StudentPay actions={actions} settings={settings} />}
-      {render_require_institute_pay()}
-      {render_onprem_upgrade_projects()}
     </Card>
   );
 }

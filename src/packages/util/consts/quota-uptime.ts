@@ -4,9 +4,8 @@
  */
 
 import { sortBy } from "lodash";
-import { SiteLicenseQuota } from "../types/site-licenses";
 
-type Keys = NonNullable<SiteLicenseQuota["idle_timeout"]>;
+type Keys = "short" | "medium" | "day";
 
 // Site Licenses related constants
 // the license timeouts combined with the default quota (either hardcoded or the one from the site_settings)

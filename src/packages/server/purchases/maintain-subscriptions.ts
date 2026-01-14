@@ -70,7 +70,6 @@ import adminAlert from "@cocalc/server/messages/admin-alert";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
-import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
 import { getUser } from "@cocalc/server/purchases/statements/email-statement";
 import { moneyToCurrency } from "@cocalc/util/money";
 import { RENEW_DAYS_BEFORE_END } from "@cocalc/util/db-schema/subscriptions";
@@ -167,18 +166,7 @@ async function describeSubscription(metadata): Promise<string> {
   if (metadata.type == "membership") {
     return `Membership (${metadata.class ?? "unknown"})`;
   }
-  if (metadata.type != "license" || !metadata.license_id) {
-    return "";
-  }
-  const pool = getPool();
-  const { rows } = await pool.query(
-    "select info->'purchased' as purchased from site_licenses where id=$1",
-    [metadata.license_id],
-  );
-  if (rows.length == 0) {
-    return "";
-  }
-  return describeQuotaFromInfo(rows[0].purchased);
+  return "";
 }
 
 // CREATE PAYMENTS (see above)

@@ -11,7 +11,7 @@ and storage with cost.  Why? Because I wrote all the code and tests that way, an
 too late to change t use amount internally.  That's the only reason.
 */
 
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import * as computeServers from "./compute-servers";
 import { CREATED_BY, ID } from "./crm";
 import type { MembershipClass } from "./subscriptions";

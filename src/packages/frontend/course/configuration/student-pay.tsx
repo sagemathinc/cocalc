@@ -17,9 +17,9 @@ import { labels } from "@cocalc/frontend/i18n";
 import LicenseEditor from "@cocalc/frontend/purchases/license-editor";
 import MoneyStatistic from "@cocalc/frontend/purchases/money-statistic";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
-import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pay";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { compute_cost } from "@cocalc/util/purchases/quota/compute-cost";
+import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/purchases/quota/student-pay";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { currency } from "@cocalc/util/misc";
 import ShowError from "@cocalc/frontend/components/error";
 

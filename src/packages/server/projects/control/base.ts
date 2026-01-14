@@ -236,7 +236,7 @@ export class BaseProject extends EventEmitter {
       return;
     }
     const site_settings = await getQuotaSiteSettings(); // this is quick, usually cached
-    const cur = quota(x.settings, undefined, undefined, site_settings);
+    const cur = quota(x.settings, undefined, site_settings);
     if (isEqual(x.run_quota, cur)) {
       dbg("running, but no quotas changed");
       return;
@@ -283,12 +283,7 @@ export class BaseProject extends EventEmitter {
         membershipDefaults,
       );
       const site_settings = await getQuotaSiteSettings(); // quick, usually cached
-      run_quota = quota(
-        settingsWithMembership,
-        undefined,
-        undefined,
-        site_settings,
-      );
+      run_quota = quota(settingsWithMembership, undefined, site_settings);
     }
 
     await query({

@@ -112,7 +112,6 @@ function Project({
   last_edited,
   created,
   users,
-  site_license,
 }) {
   return (
     <div
@@ -131,11 +130,6 @@ function Project({
         >
           {title}
         </a>
-        {site_license != null && len(site_license) > 0 && (
-          <div>
-            Licensed: <pre>{JSON.stringify(site_license, undefined, 2)}</pre>
-          </div>
-        )}
       </div>
       <div style={{ flex: 1, color: "#666" }}>
         active <TimeAgo date={last_edited} />, created{" "}
@@ -166,7 +160,6 @@ async function getRecentProjects(account_id: string) {
             last_active: null,
             last_edited: null,
             created: null,
-            site_license: null,
           },
         ],
       },
@@ -198,7 +191,6 @@ async function getAllProjects(account_id: string) {
             last_active: null,
             last_edited: null,
             created: null,
-            site_license: null,
           },
         ],
       },

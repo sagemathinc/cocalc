@@ -16,12 +16,22 @@ import {
 import dayjs from "dayjs";
 import { useMemo, useState } from "react";
 import { useIntl } from "react-intl";
-import { MAX } from "@cocalc/util/licenses/purchase/consts";
+import { MAX } from "@cocalc/util/purchases/quota/consts";
 import { MIN_DISK_GB } from "@cocalc/util/upgrades/consts";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
-import type { Changes } from "@cocalc/util/purchases/cost-to-edit-license";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { FAIR_CPU_MODE } from "@cocalc/util/upgrade-spec";
 import { labels } from "@cocalc/frontend/i18n";
+
+interface Changes {
+  end?: Date;
+  start?: Date;
+  quantity?: number;
+  custom_ram?: number;
+  custom_disk?: number;
+  custom_cpu?: number;
+  custom_member?: boolean;
+  custom_uptime?: "short" | "medium" | "day" | "always_running";
+}
 
 type Field =
   | "start"

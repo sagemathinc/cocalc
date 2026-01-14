@@ -2,7 +2,6 @@ import getPool from "@cocalc/database/pool";
 import userQuery from "@cocalc/database/user-query";
 import userIsInGroup from "@cocalc/server/accounts/is-in-group";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import removeAllLicensesFromProject from "@cocalc/server/licenses/remove-all-from-project";
 import { getProject } from "@cocalc/server/projects/control";
 import { getLogger } from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
@@ -36,8 +35,6 @@ export default async function deleteProject({
       throw Error("must be an owner to delete a project");
     }
   }
-
-  await removeAllLicensesFromProject({ project_id });
 
   const project = getProject(project_id);
   try {

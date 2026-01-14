@@ -1,6 +1,6 @@
 import { Alert, Button, Divider, Modal, Space, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import dayjs from "dayjs";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { zIndexPayAsGo } from "../zindex";

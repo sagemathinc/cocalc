@@ -12,7 +12,8 @@
     "./i18n": "./dist/i18n/index.js",
     "./sync/table": "./dist/sync/table/index.js",
     "./sync/editor/db": "./dist/sync/editor/db/index.js",
-    "./licenses/purchase/*": "./dist/licenses/purchase/*.js",
+    "./purchases/quota/*": "./dist/purchases/quota/*.js",
+    "./purchases/store/*": "./dist/purchases/store/*.js",
     "./redux/*": "./dist/redux/*.js",
     "./refcount/lease": "./dist/refcount/lease.js"
   },

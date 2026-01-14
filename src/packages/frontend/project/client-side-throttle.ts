@@ -81,12 +81,6 @@ export async function allow_project_to_run(
     return true;
   }
 
-  // maybe there is a license (valid or not -- we won't check at this point)
-  if (store.get_site_license_ids(project_id).length > 0) {
-    log("a license is applied");
-    return true;
-  }
-
   // last chance: if the limit of trial projects has not been reached, allow it.
   if (!(await too_many_free_projects())) {
     log("there are not too many free projects running");

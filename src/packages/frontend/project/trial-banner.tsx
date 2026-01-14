@@ -73,7 +73,6 @@ const ALERT_STYLE_EXPIRED: CSS = {
 
 interface BannerProps {
   project_id: string;
-  projectSiteLicenses: string[];
   // noMemberHosting = true means they do NOT have member hosting
   noMemberHosting: boolean;
   // noInternet = true means they do NOT have internet access (yes, this is backwards)
@@ -97,7 +96,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       noInternet,
       project_id,
       projectCreatedTS,
-      projectSiteLicenses,
       projectIsRunning,
       hasComputeServers,
     } = props;
@@ -113,7 +111,7 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
 
     // when to show the more intimidating red banner:
     // after $ELEVATED_DAYS days and no paid entitlements detected
-    const no_entitlements = projectSiteLicenses.length === 0;
+    const no_entitlements = noMemberHosting;
     const elevated =
       projectAgeDays >= EVALUATION_PERIOD_DAYS && no_entitlements;
     const expired =

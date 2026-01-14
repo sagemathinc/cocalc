@@ -12,9 +12,7 @@ query for everything for account with canceled if everything they decided not to
 
 import { Table } from "./types";
 import { SCHEMA as schema } from "./index";
-import { SiteLicenseDescriptionDB } from "../upgrades/shopping";
-
-export type ProductType = "site-license" | "cash-voucher" | "membership";
+export type ProductType = "cash-voucher" | "membership";
 
 export interface CashVoucher {
   type: "cash-voucher";
@@ -36,10 +34,7 @@ export interface MembershipSubscription {
   price?: number;
 }
 
-export type ProductDescription =
-  | SiteLicenseDescriptionDB
-  | CashVoucher
-  | MembershipSubscription;
+export type ProductDescription = CashVoucher | MembershipSubscription;
 
 export interface Item {
   id: number;
@@ -63,7 +58,6 @@ export interface Item {
   removed?: Date;
   product: ProductType;
   description: ProductDescription;
-  project_id?: string;
 }
 
 Table({
@@ -107,10 +101,6 @@ Table({
       desc: "Object that describes the product that was placed in the shopping cart.",
       render: { type: "json" },
     },
-    project_id: {
-      type: "string",
-      desc: "optionally, upon adding a license to the cart, we save the projrect_id for which this license is purchased for.",
-    },
   },
 
   rules: {
@@ -137,7 +127,6 @@ Table({
           purchased: null,
           product: null,
           description: null,
-          project_id: null,
         },
         options: [{ limit: 100 }],
       },

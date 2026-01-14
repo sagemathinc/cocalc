@@ -19,8 +19,6 @@ import Loading from "components/share/loading";
 import useDatabase from "lib/hooks/database";
 import TimeAgo from "timeago-react";
 import { field_cmp, plural } from "@cocalc/util/misc";
-import { r_join } from "@cocalc/frontend/components/r_join";
-import License from "components/licenses/license";
 import Help from "components/vouchers/help";
 
 const VOUCHER_CODES_QUERY = {
@@ -30,7 +28,6 @@ const VOUCHER_CODES_QUERY = {
       id: null,
       when_redeemed: null,
       canceled: null,
-      license_ids: null,
       purchase_ids: null,
     },
   ],
@@ -58,19 +55,6 @@ const COLUMNS = [
     key: "canceled",
     align: "center",
     render: (_, { canceled }) => (canceled ? "Yes" : "-"),
-  },
-  {
-    title: "Licenses",
-    dataIndex: "license_ids",
-    key: "license_ids",
-    render: (_, { license_ids }) => {
-      if (!license_ids || license_ids.length == 0) return null;
-      return r_join(
-        license_ids.map((license_id) => (
-          <License key={license_id} license_id={license_id} />
-        ))
-      );
-    },
   },
   {
     title: "Credits to Account",

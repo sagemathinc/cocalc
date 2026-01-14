@@ -1,60 +1,8 @@
 import dayjs from "dayjs";
 
 import type { Date0 } from "@cocalc/util/types/store";
-import type {
-  Period,
-  SiteLicenseDescriptionDB,
-} from "@cocalc/util/upgrades/shopping";
-import { CURRENT_VERSION } from "./consts";
-import type { PurchaseInfo, StartEndDates, Subscription } from "./types";
-
-// this ALWAYS returns purchaseInfo that is the *current* version.
-export default function getPurchaseInfo(
-  conf: SiteLicenseDescriptionDB,
-): PurchaseInfo {
-  conf.type = conf.type ?? "quota"; // backwards compatibility
-
-  const { title, description } = conf;
-
-  switch (conf.type) {
-    case "quota":
-      const {
-        type,
-        user,
-        run_limit,
-        period,
-        ram,
-        cpu,
-        disk,
-        member,
-        uptime,
-        source,
-        boost = false,
-      } = conf;
-      return {
-        version: CURRENT_VERSION,
-        type, // "quota"
-        user,
-        upgrade: "custom" as "custom",
-        quantity: run_limit,
-        subscription: (period == "range" ? "no" : period) as Subscription,
-        ...fixRange(conf.range, conf.period),
-        custom_ram: ram,
-        custom_dedicated_ram: 0,
-        custom_cpu: cpu,
-        custom_dedicated_cpu: 0,
-        custom_disk: disk,
-        custom_member: member,
-        custom_uptime: uptime,
-        boost,
-        title,
-        description,
-        source,
-      };
-    default:
-      throw new Error(`unsupported site license type "${conf.type}"`);
-  }
-}
+import type { Period } from "@cocalc/util/upgrades/shopping";
+import type { StartEndDates } from "./types";
 
 // Make sure both start and end dates defined as Date.  For all licenses we
 // always require that both are defined.  For a subscription, the end date must

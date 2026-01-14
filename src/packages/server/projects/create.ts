@@ -8,7 +8,6 @@ import { getSoftwareEnvironments } from "@cocalc/server/software-envs";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { isValidUUID } from "@cocalc/util/misc";
 import { v4 } from "uuid";
-import { associatedLicense } from "@cocalc/server/licenses/public-path";
 import getLogger from "@cocalc/backend/logger";
 import { getProject } from "@cocalc/server/projects/control";
 import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
@@ -46,25 +45,12 @@ export default async function createProject(opts: CreateProjectOptions) {
     description,
     image,
     rootfs_image,
-    public_path_id,
     start,
     src_project_id,
     ephemeral,
     host_id: requested_host_id,
     region: requested_region_raw_input,
   } = opts;
-
-  let license = opts.license;
-  if (public_path_id) {
-    const site_license_id = await associatedLicense(public_path_id);
-    if (site_license_id) {
-      if (!license) {
-        license = site_license_id;
-      } else {
-        license = license + "," + site_license_id;
-      }
-    }
-  }
   let project_id;
   if (opts.project_id) {
     if (!account_id || !(await isAdmin(account_id))) {
@@ -166,26 +152,16 @@ export default async function createProject(opts: CreateProjectOptions) {
   }
   const users =
     account_id == null ? null : { [account_id]: { group: "owner" } };
-  let site_license;
-  if (license) {
-    site_license = {};
-    for (const license_id of license.split(",")) {
-      site_license[license_id] = {};
-    }
-  } else {
-    site_license = undefined;
-  }
 
   const envs = await getSoftwareEnvironments("server");
 
   await pool.query(
-    "INSERT INTO projects (project_id, title, description, users, site_license, compute_image, created, last_edited, rootfs_image, ephemeral, host_id, host, region) VALUES($1, $2, $3, $4, $5, $6, NOW(), NOW(), $7, $8::BIGINT, $9, $10, $11)",
+    "INSERT INTO projects (project_id, title, description, users, compute_image, created, last_edited, rootfs_image, ephemeral, host_id, host, region) VALUES($1, $2, $3, $4, $5, NOW(), NOW(), $6, $7::BIGINT, $8, $9, $10)",
     [
       project_id,
       title ?? "No Title",
       description ?? "",
       users != null ? JSON.stringify(users) : users,
-      site_license != null ? JSON.stringify(site_license) : undefined,
       image ?? envs?.default ?? DEFAULT_COMPUTE_IMAGE,
       rootfs_image,
       ephemeral ?? null,

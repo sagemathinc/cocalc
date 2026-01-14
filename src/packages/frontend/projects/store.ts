@@ -4,7 +4,7 @@
  */
 
 import { List, Map, Set } from "immutable";
-import { fromPairs, isEmpty } from "lodash";
+import { fromPairs } from "lodash";
 import LRU from "lru-cache";
 import { redux, Store, TypedMap } from "@cocalc/frontend/app-framework";
 import { StudentProjectFunctionality } from "@cocalc/frontend/course/configuration/customize-student-project-functionality";
@@ -21,14 +21,9 @@ import {
   coerce_codomain_to_numbers,
   copy,
   is_valid_uuid_string,
-  keys,
-  map_sum,
   months_before,
-  parse_number_input,
 } from "@cocalc/util/misc";
 import { DEFAULT_QUOTAS, PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { GPU, SiteLicenseQuota } from "@cocalc/util/types/site-licenses";
-import { site_license_quota } from "@cocalc/util/upgrades/quota";
 import { Upgrades } from "@cocalc/util/upgrades/types";
 import { lite } from "@cocalc/frontend/lite";
 
@@ -348,11 +343,6 @@ export class ProjectsStore extends Store<ProjectsState> {
     let mintime =
       this.getIn(["project_map", project_id, "settings", "mintime"]) ?? 0;
 
-    // contribution from site license
-    const site_license =
-      this.get_total_site_license_upgrades_to_project(project_id);
-    mintime += site_license.mintime;
-
     return 1000 * mintime;
   }
 
@@ -370,78 +360,14 @@ export class ProjectsStore extends Store<ProjectsState> {
     return new Date(last_edited.valueOf() + idle_timeout);
   }
 
-  // Returns the TOTAL of the quotas contributed by all
-  // site licenses.  Does not return undefined, even if all
-  // contributions are 0.
-  public get_total_site_license_upgrades_to_project(
-    project_id: string,
-  ): Upgrades {
-    const site_license = this.getIn([
-      "project_map",
-      project_id,
-      "site_license",
-    ])?.toJS();
-    let upgrades = Object.assign({}, ZERO_QUOTAS);
-    if (site_license != null) {
-      // contributions from old-format site license contribution
-      for (let license_id in site_license) {
-        const info = site_license[license_id];
-        const object = info ?? {};
-        for (let prop in object) {
-          if (prop === "quota") continue;
-          const val = object[prop];
-          upgrades[prop] =
-            (upgrades[prop] ?? 0) + (parse_number_input(val) ?? 0);
-        }
-      }
-    }
-    return upgrades;
-  }
-
-  public get_total_site_license_gpu(project_id: string): GPU | false {
-    const site_license: any = this.getIn([
-      "project_map",
-      project_id,
-      "site_license",
-    ])?.toJS();
-    let gpu: GPU | false = false;
-    for (const license of Object.values(site_license ?? {})) {
-      // could be null in the moment when a license is removed!
-      if (license == null) continue;
-      const quota = (license as any).quota;
-      if (quota == null) continue;
-      if (!gpu && typeof quota.gpu === "object") {
-        gpu = quota.gpu;
-      }
-    }
-    return gpu;
-  }
-
-  // Return string array of the site licenses that are applied to this project.
-  public get_site_license_ids(project_id: string): string[] {
-    const site_license: undefined | Map<string, any> = this.getIn([
-      "project_map",
-      project_id,
-      "site_license",
-    ]);
-    if (site_license == null) {
-      return [];
-    }
-    return keys(site_license.toJS());
-  }
-
   // Get the total quotas for the given project, including free base
-  // values and site_license contribution.
+  // values and project settings contribution.
   public get_total_project_quotas(project_id: string): undefined | Upgrades {
     const base_values =
       this.getIn(["project_map", project_id, "settings"])?.toJS() ??
       copy(ZERO_QUOTAS);
     coerce_codomain_to_numbers(base_values);
-    const site_license_upgrades =
-      this.get_total_site_license_upgrades_to_project(project_id);
-    const quota = map_sum(base_values, site_license_upgrades as any);
-    this.new_format_license_quota(project_id, quota);
-    return quota;
+    return base_values;
   }
 
   // rough distinction between different types of projects
@@ -463,61 +389,11 @@ export class ProjectsStore extends Store<ProjectsState> {
   }
 
   public is_always_running(project_id: string): boolean {
-    // always_running can only be in settings (used by admins),
-    // or in quota field of some license
+    // always_running can only be in settings (used by admins).
     if (this.getIn(["project_map", project_id, "settings", "always_running"])) {
       return true;
     }
-    const site_license = this.getIn([
-      "project_map",
-      project_id,
-      "site_license",
-    ])?.toJS();
-    if (site_license != null) {
-      for (const license_id in site_license) {
-        if (site_license[license_id]?.quota?.always_running) {
-          return true;
-        }
-      }
-    }
     return false;
-  }
-
-  // include contribution from new format of quotas for licenses
-  private new_format_license_quota(project_id: string, quota): void {
-    const site_license = this.getIn([
-      "project_map",
-      project_id,
-      "site_license",
-    ])?.toJS();
-    // make sure to never iterate over licenses, if there aren't any
-    if (!isEmpty(site_license)) {
-      // TS: using "any" since we add some fields below
-      const license_quota: any = site_license_quota(site_license);
-      // Some different names/units are used for the frontend quota_console.
-      // It makes more sense to add them in here, rather than have confusing
-      // redundancy in the site_license_quota function.  Optimally, we would
-      // unify everything in the frontend ui and never have two different names
-      // and units for the same thing.
-      license_quota.cores = license_quota.cpu_limit;
-      delete license_quota["cpu_limit"];
-      license_quota.memory = license_quota.memory_limit;
-      delete license_quota["memory_limit"];
-      license_quota.cpu_shares = 1024 * (license_quota.cpu_request ?? 0);
-      delete license_quota["cpu_request"];
-      this.max_quota(quota, license_quota);
-    }
-  }
-
-  private max_quota(quota, license_quota: SiteLicenseQuota): void {
-    for (const field in license_quota) {
-      if (license_quota[field] == null) continue;
-      if (typeof license_quota[field] == "boolean") {
-        quota[field] = !!license_quota[field] || !!quota[field];
-      } else if (typeof license_quota[field] === "number") {
-        quota[field] = Math.max(license_quota[field] ?? 0, quota[field] ?? 0);
-      }
-    }
   }
 
   // we allow URLs in projects, which have member hosting or internet access

@@ -8,7 +8,6 @@ import { Button, Collapse, CollapseProps, Space, Tooltip } from "antd";
 import { useIntl } from "react-intl";
 import {
   redux,
-  useActions,
   useEffect,
   useState,
   useTypedRedux,
@@ -17,7 +16,6 @@ import {
   Icon,
   IconName,
   Loading,
-  Paragraph,
   Title,
 } from "@cocalc/frontend/components";
 import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -43,7 +41,6 @@ import {
   KUCALC_COCALC_COM,
   KUCALC_ON_PREMISES,
 } from "@cocalc/util/db-schema/site-defaults";
-import { FIX_BORDER } from "../common";
 import { FLYOUT_PADDING } from "./consts";
 import { getFlyoutSettings, storeFlyoutState } from "./state";
 import ProjectControlError from "@cocalc/frontend/project/settings/project-control-error";
@@ -58,7 +55,6 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
   const intl = useIntl();
   const { status, project } = useProjectContext();
   const account_id = useTypedRedux("account", "account_id");
-  const actions = useActions({ project_id });
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const projectIsVisible = active_top_tab === project_id;
   const [datastoreReload, setDatastoreReload] = useState<number>(0);
@@ -149,31 +145,6 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
     );
   }
 
-  function renderOther(): React.JSX.Element {
-    return (
-      <Paragraph
-        type="secondary"
-        style={{
-          padding: FLYOUT_PADDING,
-          borderTop: FIX_BORDER,
-          paddingTop: "20px",
-          marginTop: "20px",
-        }}
-      >
-        Where are Licenses and Quotas? They moved to their{" "}
-        <a
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            actions?.toggleFlyout("upgrades");
-          }}
-        >
-          dedicated panel
-        </a>
-        .
-      </Paragraph>
-    );
-  }
 
   function setExpandedPanelsHandler(keys: string[]) {
     setExpandedPanels(keys);
@@ -362,7 +333,6 @@ export function SettingsFlyout(_: Readonly<Props>): React.JSX.Element {
     <Space direction="vertical" style={{ padding: "0", width: "100%" }}>
       {renderStatus()}
       {renderSettings()}
-      {renderOther()}
     </Space>,
   );
 }

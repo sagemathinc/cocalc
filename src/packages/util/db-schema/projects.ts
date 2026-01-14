@@ -4,7 +4,7 @@
  */
 
 import { State } from "@cocalc/util/compute-states";
-import { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
+import { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { deep_copy } from "@cocalc/util/misc";
 import {
   ExecuteCodeOptions,
@@ -38,14 +38,13 @@ Table({
       "created", // TODO: this could have a fillfactor of 100
       "USING GIN (users)", // so get_collaborator_ids is fast
       "lti_id",
-      "USING GIN (state)", // so getting all running projects is fast (e.g. for site_license_usage_log... but also manage-state)
+      "USING GIN (state)", // so getting all running projects is fast (e.g. for manage-state)
       "((state #>> '{state}'))", // projecting the "state" (running, etc.) for its own index – the GIN index above still causes a scan, which we want to avoid.
       "((state ->> 'state'))", // same reason as above. both syntaxes appear and we have to index both.
       "((state IS NULL))", // not covered by the above
       "((settings ->> 'always_running'))", // to quickly know which projects have this setting
       "((run_quota ->> 'always_running'))", // same reason as above
       "deleted", // in various queries we quickly fiter deleted projects
-      "site_license", // for queries across projects related to site_license#>>{license_id}
       "host_id", // project-host placement lookup
     ],
 
@@ -76,7 +75,6 @@ Table({
           region: null,
           settings: DEFAULT_QUOTAS,
           run_quota: null,
-          site_license: null,
           status: null,
           // security model is anybody with access to the project should be allowed to know this token.
           secret_token: null,
@@ -117,7 +115,6 @@ Table({
           action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
           compute_image: true,
           rootfs_image: true,
-          site_license: true,
           env: true,
           sandbox: true,
           avatar_image_tiny: true,
@@ -231,10 +228,6 @@ Table({
     settings: {
       type: "map",
       desc: 'This is a map that defines the free base quotas that a project has. It is of the form {cores: 1.5, cpu_shares: 768, disk_quota: 1000, memory: 2000, mintime: 36000000, network: 0, ephemeral_state:0, ephemeral_disk:0, always_running:0}.  WARNING: some of the values are strings not numbers in the database right now, e.g., disk_quota:"1000".',
-    },
-    site_license: {
-      type: "map",
-      desc: "This is a map that defines site license allocations for a project when running. The format is {license_id:{memory:?, mintime:?, ...}} where the target of the license_id is the same as for the settings field. The license_id is the uuid of the license that contributed these quotas. To tell cocalc to use a license for a project, a user sets site_license to {license_id:{}}, and when it is requested to start the project, the backend decides what allocation license_id provides and changes the field accordingly, i.e., changes {license_id:{},...} to {license_id:{memory:?,...},...}",
     },
     status: {
       type: "map",

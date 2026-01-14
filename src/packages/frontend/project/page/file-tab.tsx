@@ -26,10 +26,7 @@ import { Icon, IconName, r_join } from "@cocalc/frontend/components";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
-import {
-  ICON_UPGRADES,
-  ICON_USERS,
-} from "@cocalc/frontend/project/servers/consts";
+import { ICON_USERS } from "@cocalc/frontend/project/servers/consts";
 import track from "@cocalc/frontend/user-tracking";
 import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -38,7 +35,6 @@ import { TITLE as SERVERS_TITLE } from "../servers";
 import {
   CollabsFlyout,
   FilesFlyout,
-  LicensesFlyout,
   LogFlyout,
   NewFlyout,
   ProjectInfoFlyout,
@@ -61,8 +57,7 @@ export type FixedTab =
   | "servers"
   | "settings"
   | "info"
-  | "users"
-  | "upgrades";
+  | "users";
 
 export function isFixedTab(tab?: any): tab is FixedTab {
   return typeof tab === "string" && tab in FIXED_PROJECT_TABS;
@@ -142,17 +137,6 @@ export const FIXED_PROJECT_TABS: FixedTabs = {
     label: labels.users,
     icon: ICON_USERS,
     flyout: CollabsFlyout,
-    noAnonymous: false,
-    noLite: true,
-  },
-  upgrades: {
-    label: labels.upgrades,
-    icon: ICON_UPGRADES,
-    flyout: LicensesFlyout,
-    flyoutTitle: defineMessage({
-      id: "project.page.file-tab.upgrades.flyoutTitle",
-      defaultMessage: `Workspace Upgrades`,
-    }),
     noAnonymous: false,
     noLite: true,
   },

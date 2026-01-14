@@ -31,9 +31,6 @@ export function ProjectWarningBanner() {
     computeServers.filter((x) => x.get("state") != "deprovisioned").size >= 1;
 
   const runQuota = useRunQuota(project_id, null);
-  // list of all licenses applied to this project
-  const projectSiteLicenses =
-    project_map?.get(project_id)?.get("site_license")?.keySeq().toJS() ?? [];
   const isPaidStudentPayProject = useMemo(
     () => projects_store.isPaidStudentPayProject(project_id),
     [project_map, project_id],
@@ -101,7 +98,6 @@ export function ProjectWarningBanner() {
     return (
       <TrialBanner
         project_id={project_id}
-        projectSiteLicenses={projectSiteLicenses}
         projectCreatedTS={project_map?.get(project_id)?.get("created")}
         noMemberHosting={noMemberHosting}
         noInternet={noInternet}
@@ -116,7 +112,6 @@ export function ProjectWarningBanner() {
 
     return (
       <NoInternetModal
-        projectSiteLicenses={projectSiteLicenses}
         isPaidStudentPayProject={isPaidStudentPayProject}
         hasComputeServers={hasComputeServers}
       />
