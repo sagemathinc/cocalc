@@ -279,6 +279,42 @@ export async function upsertCopyRow(
   return updated;
 }
 
+export async function insertCopyRowIfMissing(
+  row: ProjectCopyInsert,
+): Promise<ProjectCopyRow | undefined> {
+  await ensureCopySchema();
+  const {
+    src_project_id,
+    src_path,
+    dest_project_id,
+    dest_path,
+    op_id,
+    snapshot_id,
+    options,
+    expires_at,
+  } = row;
+  const { rows } = await pool().query(
+    `
+      INSERT INTO project_copies
+        (src_project_id, src_path, dest_project_id, dest_path, op_id, snapshot_id, options, status, attempt, last_attempt_at, expires_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',0,NULL,$8)
+      ON CONFLICT (src_project_id, src_path, dest_project_id, dest_path) DO NOTHING
+      RETURNING *
+    `,
+    [
+      src_project_id,
+      src_path,
+      dest_project_id,
+      dest_path,
+      op_id ?? null,
+      snapshot_id,
+      options ?? null,
+      expires_at,
+    ],
+  );
+  return rows[0] as ProjectCopyRow | undefined;
+}
+
 export async function listCopiesForProject({
   project_id,
   include_completed = false,
@@ -302,6 +338,24 @@ export async function listCopiesForProject({
       ORDER BY created_at DESC
     `,
     params,
+  );
+  return rows as ProjectCopyRow[];
+}
+
+export async function listCopiesByOpId({
+  op_id,
+}: {
+  op_id: string;
+}): Promise<ProjectCopyRow[]> {
+  await ensureCopySchema();
+  const { rows } = await pool().query(
+    `
+      SELECT *
+      FROM project_copies
+      WHERE op_id=$1
+      ORDER BY created_at DESC
+    `,
+    [op_id],
   );
   return rows as ProjectCopyRow[];
 }

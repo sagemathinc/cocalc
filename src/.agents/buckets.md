@@ -102,7 +102,7 @@
 11. **Docs / TODO alignment**
 12. another thing I just remembered \-\- we need to add a very clear warning in the move dialog that snapshots are NOT moved \(they get deleted\); only the backup history is preserved.
 
-### Phase 3: Copy files between hosts
+### \(done\) Phase 3: Copy files between hosts
 
 Notes:
 
@@ -188,3 +188,4 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
   - treat layout v2 as the only supported format
   - new snapshots must include metadata; restore logic assumes it
 - address issues with brokeness due to persist being temporarily not allowed until subvolume exists.
+

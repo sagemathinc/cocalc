@@ -1,14 +1,19 @@
 import path from "node:path";
 import getLogger from "@cocalc/backend/logger";
+import { conat } from "@cocalc/backend/conat";
 import getPool from "@cocalc/database/pool";
-import { client as fileServerClient } from "@cocalc/conat/files/file-server";
+import {
+  client as fileServerClient,
+  type Fileserver,
+} from "@cocalc/conat/files/file-server";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
-import { upsertCopyRow } from "./copy-db";
+import { insertCopyRowIfMissing, upsertCopyRow } from "./copy-db";
 
 const logger = getLogger("server:projects:copy");
 
 const COPY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 const MAX_BACKUPS_PER_PROJECT = 30;
+const COPY_FILES_TIMEOUT_MS = 30 * 60 * 1000;
 
 type CopyStep = {
   step: string;
@@ -20,6 +25,17 @@ type CopyProgress = (update: CopyStep) => void;
 
 type CopySource = { project_id: string; path: string | string[] };
 type CopyDest = { project_id: string; path: string };
+type QueueMode = "upsert" | "insert";
+
+function fileServerClientWithTimeout(
+  project_id: string,
+  timeout_ms?: number,
+): Fileserver {
+  if (!timeout_ms) return fileServerClient({ project_id });
+  return conat().call<Fileserver>(`file-server.${project_id}`, {
+    timeout: timeout_ms,
+  });
+}
 
 function report(progress: CopyProgress | undefined, update: CopyStep) {
   progress?.(update);
@@ -85,15 +101,17 @@ async function assertBackupContainsPath({
   project_id,
   snapshot_id,
   path: srcPath,
+  client,
 }: {
   project_id: string;
   snapshot_id: string;
   path: string;
+  client: Fileserver;
 }): Promise<void> {
   if (!srcPath) return;
   const parent = path.posix.dirname(srcPath);
   const base = path.posix.basename(srcPath);
-  const listing = await fileServerClient({ project_id }).getBackupFiles({
+  const listing = await client.getBackupFiles({
     project_id,
     id: snapshot_id,
     path: parent === "." ? "" : parent,
@@ -110,6 +128,10 @@ export async function copyProjectFiles({
   account_id,
   op_id,
   progress,
+  snapshot_id,
+  skip_queue = false,
+  queue_mode = "upsert",
+  timeout_ms = COPY_FILES_TIMEOUT_MS,
 }: {
   src: CopySource;
   dests: CopyDest[];
@@ -117,6 +139,10 @@ export async function copyProjectFiles({
   account_id: string;
   op_id?: string;
   progress?: CopyProgress;
+  snapshot_id?: string;
+  skip_queue?: boolean;
+  queue_mode?: QueueMode;
+  timeout_ms?: number;
 }): Promise<{ queued: number; local: number; snapshot_id?: string }> {
   if (!account_id) {
     throw new Error("account_id is required");
@@ -157,37 +183,48 @@ export async function copyProjectFiles({
 
   let queuedCount = 0;
   let localCount = 0;
-  let snapshot_id: string | undefined;
 
-  if (remoteDests.length) {
+  if (remoteDests.length && !skip_queue) {
     report(progress, { step: "backup" });
     // TODO: once last_edited is reliable, allow reusing a recent backup.
     const tags = [
       "purpose=copy",
       `src_project_id=${src.project_id}`,
+      ...(op_id ? [`op_id=${op_id}`] : []),
       ...srcPaths
         .filter((p) => p)
         .map((p) => `src_path=${encodeURIComponent(p)}`),
     ];
-    const backupClient = fileServerClient({ project_id: src.project_id });
-    const backup = await backupClient.createBackup({
-      project_id: src.project_id,
-      limit: MAX_BACKUPS_PER_PROJECT,
-      tags,
-    });
-    snapshot_id = backup.id;
+    const backupClient = fileServerClientWithTimeout(
+      src.project_id,
+      timeout_ms,
+    );
+    let createdBackup = false;
+    if (!snapshot_id) {
+      const backup = await backupClient.createBackup({
+        project_id: src.project_id,
+        limit: MAX_BACKUPS_PER_PROJECT,
+        tags,
+      });
+      snapshot_id = backup.id;
+      createdBackup = true;
+    }
+    if (!snapshot_id) {
+      throw new Error("backup creation failed (missing snapshot id)");
+    }
     try {
       for (const srcPath of srcPaths) {
         await assertBackupContainsPath({
           project_id: src.project_id,
-          snapshot_id: backup.id,
+          snapshot_id: snapshot_id,
           path: srcPath,
+          client: backupClient,
         });
       }
 
       report(progress, {
         step: "queue",
-        detail: { snapshot_id: backup.id, destinations: remoteDests.length },
+        detail: { snapshot_id, destinations: remoteDests.length },
       });
       const expiresAt = new Date(Date.now() + COPY_TTL_MS);
 
@@ -199,44 +236,74 @@ export async function copyProjectFiles({
               path.posix.join(dest.path, base),
               "dest.path",
             );
-            await upsertCopyRow({
-              src_project_id: src.project_id,
-              src_path: srcPath,
-              dest_project_id: dest.project_id,
-              dest_path: destPath,
-              op_id,
-              snapshot_id: backup.id,
-              options,
-              expires_at: expiresAt,
-            });
-            queuedCount += 1;
+            const inserted =
+              queue_mode === "insert"
+                ? await insertCopyRowIfMissing({
+                    src_project_id: src.project_id,
+                    src_path: srcPath,
+                    dest_project_id: dest.project_id,
+                    dest_path: destPath,
+                    op_id,
+                    snapshot_id,
+                    options,
+                    expires_at: expiresAt,
+                  })
+                : await upsertCopyRow({
+                    src_project_id: src.project_id,
+                    src_path: srcPath,
+                    dest_project_id: dest.project_id,
+                    dest_path: destPath,
+                    op_id,
+                    snapshot_id,
+                    options,
+                    expires_at: expiresAt,
+                  });
+            if (queue_mode === "upsert" || inserted) {
+              queuedCount += 1;
+            }
           }
         } else {
-          await upsertCopyRow({
-            src_project_id: src.project_id,
-            src_path: srcPaths[0],
-            dest_project_id: dest.project_id,
-            dest_path: dest.path,
-            op_id,
-            snapshot_id: backup.id,
-            options,
-            expires_at: expiresAt,
-          });
-          queuedCount += 1;
+          const inserted =
+            queue_mode === "insert"
+              ? await insertCopyRowIfMissing({
+                  src_project_id: src.project_id,
+                  src_path: srcPaths[0],
+                  dest_project_id: dest.project_id,
+                  dest_path: dest.path,
+                  op_id,
+                  snapshot_id,
+                  options,
+                  expires_at: expiresAt,
+                })
+              : await upsertCopyRow({
+                  src_project_id: src.project_id,
+                  src_path: srcPaths[0],
+                  dest_project_id: dest.project_id,
+                  dest_path: dest.path,
+                  op_id,
+                  snapshot_id,
+                  options,
+                  expires_at: expiresAt,
+                });
+          if (queue_mode === "upsert" || inserted) {
+            queuedCount += 1;
+          }
         }
       }
     } catch (err) {
-      try {
-        await backupClient.deleteBackup({
-          project_id: src.project_id,
-          id: backup.id,
-        });
-      } catch (cleanupErr) {
-        logger.warn("copyProjectFiles: backup cleanup failed", {
-          project_id: src.project_id,
-          snapshot_id: backup.id,
-          err: `${cleanupErr}`,
-        });
+      if (createdBackup && snapshot_id) {
+        try {
+          await backupClient.deleteBackup({
+            project_id: src.project_id,
+            id: snapshot_id,
+          });
+        } catch (cleanupErr) {
+          logger.warn("copyProjectFiles: backup cleanup failed", {
+            project_id: src.project_id,
+            snapshot_id,
+            err: `${cleanupErr}`,
+          });
+        }
       }
       throw err;
     }
@@ -247,7 +314,10 @@ export async function copyProjectFiles({
       step: "copy-local",
       detail: { count: localDests.length },
     });
-    const client = fileServerClient({ project_id: src.project_id });
+    const client = fileServerClientWithTimeout(
+      src.project_id,
+      timeout_ms,
+    );
     for (const dest of localDests) {
       await client.cp({ src, dest, options });
       localCount += srcPaths.length;
