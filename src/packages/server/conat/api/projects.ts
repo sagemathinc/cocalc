@@ -18,6 +18,9 @@ import {
   cancelCopy as cancelCopyDb,
   listCopiesForProject,
 } from "@cocalc/server/projects/copy-db";
+import { createLro, updateLro } from "@cocalc/server/lro/lro-db";
+import { publishLroEvent, publishLroSummary, lroStreamName } from "@cocalc/server/lro/stream";
+import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
 import { assertCollab } from "./util";
 import {
   getMove,
@@ -35,7 +38,13 @@ export async function copyPathBetweenProjects({
   dest: { project_id: string; path: string };
   options?: CopyOptions;
   account_id?: string;
-}): Promise<void> {
+}): Promise<{
+  op_id: string;
+  scope_type: "project";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+}> {
   if (!account_id) {
     throw Error("user must be signed in");
   }
@@ -43,12 +52,95 @@ export async function copyPathBetweenProjects({
   if (dest.project_id !== src.project_id) {
     await assertCollab({ account_id, project_id: dest.project_id });
   }
-  await copyProjectFiles({
-    src,
-    dests: [dest],
-    options,
-    account_id,
+  const op = await createLro({
+    kind: "copy-path-between-projects",
+    scope_type: "project",
+    scope_id: src.project_id,
+    created_by: account_id,
+    owner_type: "hub",
+    routing: "hub",
+    input: { src, dests: [dest], options },
+    status: "running",
   });
+  const progressSteps: Record<string, number> = {
+    validate: 5,
+    "stop-source": 20,
+    backup: 40,
+    queue: 70,
+    "copy-local": 90,
+    done: 100,
+  };
+  const progress = (update: {
+    step: string;
+    message?: string;
+    detail?: any;
+  }) => {
+    publishLroEvent({
+      scope_type: op.scope_type,
+      scope_id: op.scope_id,
+      op_id: op.op_id,
+      event: {
+        type: "progress",
+        ts: Date.now(),
+        phase: update.step,
+        message: update.message,
+        progress: progressSteps[update.step],
+        detail: update.detail,
+      },
+    }).catch(() => {});
+  };
+  try {
+    const result = await copyProjectFiles({
+      src,
+      dests: [dest],
+      options,
+      account_id,
+      op_id: op.op_id,
+      progress,
+    });
+    const progress_summary = {
+      phase: result.queued ? "queued" : "done",
+      queued: result.queued,
+      local: result.local,
+      total: result.queued + result.local,
+      snapshot_id: result.snapshot_id,
+    };
+    const status = result.queued ? "running" : "succeeded";
+    const updated = await updateLro({
+      op_id: op.op_id,
+      status,
+      progress_summary,
+      result: result.queued ? undefined : progress_summary,
+    });
+    if (updated) {
+      await publishLroSummary({
+        scope_type: updated.scope_type,
+        scope_id: updated.scope_id,
+        summary: updated,
+      });
+    }
+    return {
+      op_id: op.op_id,
+      scope_type: "project",
+      scope_id: src.project_id,
+      service: PERSIST_SERVICE,
+      stream_name: lroStreamName(op.op_id),
+    };
+  } catch (err) {
+    const updated = await updateLro({
+      op_id: op.op_id,
+      status: "failed",
+      error: `${err}`,
+    });
+    if (updated) {
+      await publishLroSummary({
+        scope_type: updated.scope_type,
+        scope_id: updated.scope_id,
+        summary: updated,
+      });
+    }
+    throw err;
+  }
 }
 
 export async function listPendingCopies({

@@ -13,6 +13,7 @@ import { type FileSync, fileSync } from "./file-sync";
 import { type Hosts, hosts } from "./hosts";
 import { type Software, software } from "./software";
 import { type Ai, ai } from "./ai";
+import { type LroApi, lro } from "./lro";
 
 export interface HubApi {
   system: System;
@@ -28,6 +29,7 @@ export interface HubApi {
   hosts: Hosts;
   software: Software;
   ai: Ai;
+  lro: LroApi;
 }
 
 const HubApiStructure = {
@@ -44,6 +46,7 @@ const HubApiStructure = {
   hosts,
   software,
   ai,
+  lro,
 } as const;
 
 export function transformArgs({

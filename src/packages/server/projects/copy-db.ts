@@ -5,6 +5,9 @@ import type {
   ProjectCopyRow,
   ProjectCopyState,
 } from "@cocalc/conat/hub/api/projects";
+import type { LroStatus } from "@cocalc/conat/hub/api/lro";
+import { updateLro } from "@cocalc/server/lro/lro-db";
+import { publishLroSummary } from "@cocalc/server/lro/stream";
 
 const logger = getLogger("server:projects:copy-db");
 
@@ -19,6 +22,71 @@ const TERMINAL_STATUSES: ProjectCopyState[] = [
   "expired",
 ];
 
+async function refreshCopyOperation(op_id: string): Promise<void> {
+  try {
+    const { rows } = await pool().query(
+      `
+        SELECT status, COUNT(*)::int AS count, MAX(last_error) AS last_error
+        FROM project_copies
+        WHERE op_id=$1
+        GROUP BY status
+      `,
+      [op_id],
+    );
+    if (!rows.length) return;
+    const summary: Record<string, number> = {};
+    let total = 0;
+    let failed = 0;
+    let lastError: string | null = null;
+    for (const row of rows) {
+      const count = Number(row.count ?? 0);
+      summary[row.status] = count;
+      total += count;
+      if (row.status === "failed") {
+        failed += count;
+        if (!lastError && row.last_error) {
+          lastError = row.last_error;
+        }
+      }
+    }
+    const queued = summary.queued ?? 0;
+    const applying = summary.applying ?? 0;
+    const done = summary.done ?? 0;
+    const canceled = summary.canceled ?? 0;
+    const expired = summary.expired ?? 0;
+    const remaining = queued + applying;
+    let status: LroStatus = "running";
+    if (remaining === 0) {
+      status = failed > 0 ? "failed" : "succeeded";
+    }
+    const progress_summary = {
+      total,
+      queued,
+      applying,
+      done,
+      failed,
+      canceled,
+      expired,
+    };
+    const updated = await updateLro({
+      op_id,
+      status,
+      progress_summary,
+      error: status === "failed" ? lastError : null,
+      result: status === "succeeded" ? progress_summary : undefined,
+    });
+    if (updated) {
+      await publishLroSummary({
+        scope_type: updated.scope_type,
+        scope_id: updated.scope_id,
+        summary: updated,
+      });
+    }
+  } catch (err) {
+    logger.warn("refreshCopyOperation failed", { op_id, err: `${err}` });
+  }
+}
+
 export type ProjectCopyKey = {
   src_project_id: string;
   src_path: string;
@@ -27,6 +95,7 @@ export type ProjectCopyKey = {
 };
 
 export type ProjectCopyInsert = ProjectCopyKey & {
+  op_id?: string;
   snapshot_id: string;
   options?: any;
   expires_at: Date;
@@ -41,6 +110,7 @@ export async function ensureCopySchema(): Promise<void> {
       src_path TEXT NOT NULL,
       dest_project_id UUID NOT NULL,
       dest_path TEXT NOT NULL,
+      op_id UUID,
       snapshot_id TEXT NOT NULL,
       options JSONB DEFAULT '{}'::jsonb,
       status TEXT NOT NULL,
@@ -54,10 +124,16 @@ export async function ensureCopySchema(): Promise<void> {
     )
   `);
   await pool().query(
+    "ALTER TABLE project_copies ADD COLUMN IF NOT EXISTS op_id UUID",
+  );
+  await pool().query(
     "CREATE INDEX IF NOT EXISTS project_copies_status_idx ON project_copies(status)",
   );
   await pool().query(
     "CREATE INDEX IF NOT EXISTS project_copies_snapshot_idx ON project_copies(snapshot_id)",
+  );
+  await pool().query(
+    "CREATE INDEX IF NOT EXISTS project_copies_op_idx ON project_copies(op_id)",
   );
   await pool().query(
     "CREATE INDEX IF NOT EXISTS project_copies_dest_idx ON project_copies(dest_project_id)",
@@ -119,6 +195,7 @@ export async function expireCopies(): Promise<ProjectCopyRow[]> {
   );
   const expired = rows as ProjectCopyRow[];
   const seen = new Set<string>();
+  const opIds = new Set<string>();
   for (const row of expired) {
     const key = `${row.src_project_id}:${row.snapshot_id}`;
     if (seen.has(key)) continue;
@@ -127,6 +204,12 @@ export async function expireCopies(): Promise<ProjectCopyRow[]> {
       src_project_id: row.src_project_id,
       snapshot_id: row.snapshot_id,
     });
+    if (row.op_id) {
+      opIds.add(row.op_id);
+    }
+  }
+  for (const op_id of opIds) {
+    await refreshCopyOperation(op_id);
   }
   return expired;
 }
@@ -140,6 +223,7 @@ export async function upsertCopyRow(
     src_path,
     dest_project_id,
     dest_path,
+    op_id,
     snapshot_id,
     options,
     expires_at,
@@ -159,10 +243,11 @@ export async function upsertCopyRow(
   const { rows } = await pool().query(
     `
       INSERT INTO project_copies
-        (src_project_id, src_path, dest_project_id, dest_path, snapshot_id, options, status, attempt, last_attempt_at, expires_at)
-      VALUES ($1,$2,$3,$4,$5,$6,'queued',0,NULL,$7)
+        (src_project_id, src_path, dest_project_id, dest_path, op_id, snapshot_id, options, status, attempt, last_attempt_at, expires_at)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,'queued',0,NULL,$8)
       ON CONFLICT (src_project_id, src_path, dest_project_id, dest_path) DO UPDATE
-        SET snapshot_id=EXCLUDED.snapshot_id,
+        SET op_id=EXCLUDED.op_id,
+            snapshot_id=EXCLUDED.snapshot_id,
             options=EXCLUDED.options,
             status='queued',
             last_error=NULL,
@@ -178,6 +263,7 @@ export async function upsertCopyRow(
       src_path,
       dest_project_id,
       dest_path,
+      op_id ?? null,
       snapshot_id,
       options ?? null,
       expires_at,
@@ -246,6 +332,9 @@ export async function cancelCopy(
       src_project_id: updated.src_project_id,
       snapshot_id: updated.snapshot_id,
     });
+    if (updated.op_id) {
+      await refreshCopyOperation(updated.op_id);
+    }
   }
   return updated;
 }
@@ -318,6 +407,15 @@ export async function claimPendingCopies({
       [...keyValues, ["queued", "failed"]],
     );
     await client.query("COMMIT");
+    const opIds = new Set<string>();
+    for (const row of updated.rows as ProjectCopyRow[]) {
+      if (row.op_id) {
+        opIds.add(row.op_id);
+      }
+    }
+    for (const op_id of opIds) {
+      await refreshCopyOperation(op_id);
+    }
     return updated.rows as ProjectCopyRow[];
   } catch (err) {
     await client.query("ROLLBACK");
@@ -362,6 +460,9 @@ export async function updateCopyStatus({
       src_project_id: updated.src_project_id,
       snapshot_id: updated.snapshot_id,
     });
+  }
+  if (updated?.op_id) {
+    await refreshCopyOperation(updated.op_id);
   }
   return updated;
 }

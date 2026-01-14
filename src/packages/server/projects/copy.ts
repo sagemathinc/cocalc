@@ -122,14 +122,16 @@ export async function copyProjectFiles({
   dests,
   options,
   account_id,
+  op_id,
   progress,
 }: {
   src: CopySource;
   dests: CopyDest[];
   options?: CopyOptions;
   account_id: string;
+  op_id?: string;
   progress?: CopyProgress;
-}): Promise<void> {
+}): Promise<{ queued: number; local: number; snapshot_id?: string }> {
   if (!account_id) {
     throw new Error("account_id is required");
   }
@@ -167,6 +169,10 @@ export async function copyProjectFiles({
     }
   }
 
+  let queuedCount = 0;
+  let localCount = 0;
+  let snapshot_id: string | undefined;
+
   if (remoteDests.length) {
     if ((await projectRunning(src.project_id)) && !(options?.force ?? false)) {
       report(progress, { step: "stop-source" });
@@ -192,6 +198,7 @@ export async function copyProjectFiles({
       limit: MAX_BACKUPS_PER_PROJECT,
       tags,
     });
+    snapshot_id = backup.id;
     try {
       for (const srcPath of srcPaths) {
         await assertBackupContainsPath({
@@ -220,10 +227,12 @@ export async function copyProjectFiles({
               src_path: srcPath,
               dest_project_id: dest.project_id,
               dest_path: destPath,
+              op_id,
               snapshot_id: backup.id,
               options,
               expires_at: expiresAt,
             });
+            queuedCount += 1;
           }
         } else {
           await upsertCopyRow({
@@ -231,10 +240,12 @@ export async function copyProjectFiles({
             src_path: srcPaths[0],
             dest_project_id: dest.project_id,
             dest_path: dest.path,
+            op_id,
             snapshot_id: backup.id,
             options,
             expires_at: expiresAt,
           });
+          queuedCount += 1;
         }
       }
     } catch (err) {
@@ -262,8 +273,10 @@ export async function copyProjectFiles({
     const client = fileServerClient({ project_id: src.project_id });
     for (const dest of localDests) {
       await client.cp({ src, dest, options });
+      localCount += srcPaths.length;
     }
   }
 
   report(progress, { step: "done" });
+  return { queued: queuedCount, local: localCount, snapshot_id };
 }

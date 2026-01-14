@@ -130,8 +130,16 @@ export class ProjectClient {
     src: { project_id: string; path: string | string[] };
     dest: { project_id: string; path: string };
     options?: CopyOptions;
-  }): Promise<void> => {
-    await this.client.conat_client.hub.projects.copyPathBetweenProjects(opts);
+  }): Promise<{
+    op_id: string;
+    scope_type: "project";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }> => {
+    return await this.client.conat_client.hub.projects.copyPathBetweenProjects(
+      opts,
+    );
   };
 
   // Set a quota parameter for a given project.
