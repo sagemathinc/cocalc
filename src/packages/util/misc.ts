@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -82,7 +82,6 @@ export function sha1base64(s) {
   return base16ToBase64(sha1(s));
 }
 
-import getRandomValues from "get-random-values";
 import * as lodash from "lodash";
 import * as immutable from "immutable";
 
@@ -773,7 +772,7 @@ export function secure_random_token(
     throw Error("impossible, since alphabet is empty");
   }
   const v = new Uint8Array(length);
-  getRandomValues(v); // secure random numbers
+  globalThis.crypto.getRandomValues(v); // secure random numbers
   for (const i of v) {
     s += alphabet[i % alphabet.length];
   }
