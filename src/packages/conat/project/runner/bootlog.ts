@@ -6,6 +6,8 @@ import { type Client } from "@cocalc/conat/core/client";
 import { type DStream } from "@cocalc/conat/sync/dstream";
 import { getLogger } from "@cocalc/conat/client";
 import { conat } from "@cocalc/conat/client";
+import type { LroEvent } from "@cocalc/conat/hub/api/lro";
+import { lroStreamName } from "@cocalc/conat/lro/names";
 
 const logger = getLogger("conat:project:runner:bootlog");
 
@@ -30,6 +32,7 @@ export interface Options extends Event {
   compute_server_id?: number; // legacy
   client?: Client;
   ttl?: number;
+  lro_op_id?: string;
 }
 
 function getName({
@@ -77,6 +80,31 @@ export async function resetBootlog({
 // publishing is not fatal
 // should be a TTL cache ([ ] todo)
 const start: { [key: string]: number } = {};
+const lroByProject = new Map<string, string>();
+
+export function setBootlogLro({
+  project_id,
+  op_id,
+}: {
+  project_id: string;
+  op_id: string;
+}) {
+  lroByProject.set(project_id, op_id);
+}
+
+export function clearBootlogLro({
+  project_id,
+  op_id,
+}: {
+  project_id: string;
+  op_id?: string;
+}) {
+  const current = lroByProject.get(project_id);
+  if (!current) return;
+  if (!op_id || current === op_id) {
+    lroByProject.delete(project_id);
+  }
+}
 export async function bootlog(opts: Options) {
   const {
     project_id,
@@ -86,6 +114,7 @@ export async function bootlog(opts: Options) {
     ttl = DEFAULT_TTL,
     min = 0,
     max = 100,
+    lro_op_id: lroOpIdOverride,
     ...event
   } = opts;
   const stream = client.sync.astream<Event>({
@@ -118,6 +147,41 @@ export async function bootlog(opts: Options) {
       compute_server_id,
       err,
     });
+  }
+
+  if (project_id) {
+    const lro_op_id = lroOpIdOverride ?? lroByProject.get(project_id);
+    if (lro_op_id) {
+      const lroStream = client.sync.astream<LroEvent>({
+        project_id,
+        name: lroStreamName(lro_op_id),
+      });
+      const detail: any = {};
+      if (event.elapsed != null) detail.elapsed = event.elapsed;
+      if (event.speed != null) detail.speed = event.speed;
+      if (event.eta != null) detail.eta = event.eta;
+      if (event.error != null) detail.error = event.error;
+      try {
+        await lroStream.publish(
+          {
+            type: "progress",
+            ts: Date.now(),
+            phase: event.type,
+            message: event.desc,
+            progress,
+            detail: Object.keys(detail).length ? detail : undefined,
+            level: event.error ? "error" : undefined,
+          },
+          { ttl },
+        );
+      } catch (err) {
+        logger.debug("ERROR publishing to lro stream", {
+          project_id,
+          op_id: lro_op_id,
+          err,
+        });
+      }
+    }
   }
 }
 

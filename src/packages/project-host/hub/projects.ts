@@ -200,7 +200,10 @@ export function ensureProjectRow({
 
 async function getRunnerConfig(
   project_id: string,
-  opts?: CreateProjectOptions & { restore?: "none" | "auto" | "required" },
+  opts?: CreateProjectOptions & {
+    restore?: "none" | "auto" | "required";
+    lro_op_id?: string;
+  },
 ) {
   const existing = getProject(project_id);
   const authorized_keys =
@@ -218,6 +221,7 @@ async function getRunnerConfig(
     ssh_proxy_public_key,
     run_quota,
     restore: opts?.restore,
+    lro_op_id: opts?.lro_op_id,
     ...limits,
     disk,
     scratch,
@@ -272,12 +276,14 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     run_quota,
     image,
     restore,
+    lro_op_id,
   }: {
     project_id: string;
     authorized_keys?: string;
     run_quota?: any;
     image?: string;
     restore?: "none" | "auto" | "required";
+    lro_op_id?: string;
   }): Promise<void> {
     // Mark as starting immediately so hub/clients see progress even if image pulls are slow.
     ensureProjectRow({
@@ -294,6 +300,7 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
           run_quota,
           image,
           restore,
+          lro_op_id,
         }),
       });
       ensureProjectRow({

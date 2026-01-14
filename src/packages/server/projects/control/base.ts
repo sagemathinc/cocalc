@@ -143,9 +143,9 @@ export class BaseProject extends EventEmitter {
     return {} as ProjectStatus;
   };
 
-  start = async (): Promise<void> => {
+  start = async (opts?: { lro_op_id?: string }): Promise<void> => {
     await this.computeQuota();
-    await startProjectOnHost(this.project_id);
+    await startProjectOnHost(this.project_id, opts);
   };
 
   save = async (): Promise<void> => {

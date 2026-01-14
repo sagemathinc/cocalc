@@ -167,7 +167,7 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
    - Support backup-only subpath to reduce size/time.
    - Allow reuse if `last_backup` is fresh *and* we have a reliable `last_edited` signal.
 
-### Long-running operations (LRO) spec (draft)
+### \(wip\) Long\-running operations \(LRO\) spec \(draft\)
 
 - **Goals**: async-first (no blocking RPC), durable state, low DB load, high-resolution progress via conat, works across hub/host/browser, supports arbitrary duration and retries.
 - **Operation record (authoritative)**: `id`, `kind`, `scope` (type+id), `status`, `created_by`, `owner` (hub/host), `routing` (hub|host_id|none), `input` (small JSON), `result` (small JSON or ref), `error`, `progress_summary`, `attempt`, `heartbeat_at`, `created_at/started_at/finished_at/updated_at`, `expires_at`, `dedupe_key`, `parent_id` (optional).

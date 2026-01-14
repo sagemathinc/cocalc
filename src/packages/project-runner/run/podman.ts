@@ -47,7 +47,12 @@ import {
   SSH_IDENTITY_FILE,
   START_PROJECT_SSH,
 } from "@cocalc/conat/project/runner/constants";
-import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
+import {
+  bootlog,
+  clearBootlogLro,
+  resetBootlog,
+  setBootlogLro,
+} from "@cocalc/conat/project/runner/bootlog";
 import getLogger from "@cocalc/backend/logger";
 import { writeStartupScripts } from "./startup-scripts";
 import { podman } from "@cocalc/backend/podman";
@@ -389,8 +394,12 @@ export async function start({
     return { state: "starting", ssh_port: 0, http_port: 0 };
   }
 
+  const lro_op_id = config?.lro_op_id;
   try {
     starting.add(project_id);
+    if (lro_op_id) {
+      setBootlogLro({ project_id, op_id: lro_op_id });
+    }
     resetBootlog({ project_id });
     bootlog({ project_id, type: "start-project", progress: 0 });
 
@@ -633,6 +642,9 @@ export async function start({
     bootlog({ project_id, type: "start-project", error: err });
     throw err;
   } finally {
+    if (lro_op_id) {
+      clearBootlogLro({ project_id, op_id: lro_op_id });
+    }
     starting.delete(project_id);
   }
 }

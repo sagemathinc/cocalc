@@ -190,7 +190,10 @@ async function ensurePlacement(project_id: string): Promise<HostPlacement> {
   return placement;
 }
 
-export async function startProjectOnHost(project_id: string): Promise<void> {
+export async function startProjectOnHost(
+  project_id: string,
+  opts?: { lro_op_id?: string },
+): Promise<void> {
   const placement = await ensurePlacement(project_id);
   const meta = await loadProject(project_id);
   const run_quota = await applyHostGpuToRunQuota(
@@ -213,6 +216,7 @@ export async function startProjectOnHost(project_id: string): Promise<void> {
       run_quota,
       image: meta.image,
       restore,
+      lro_op_id: opts?.lro_op_id,
     });
   } catch (err) {
     log.warn("startProjectOnHost failed", { project_id, host: placement, err });

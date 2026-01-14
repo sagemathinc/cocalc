@@ -32,6 +32,7 @@ export interface HostControlApi {
     run_quota?: any;
     image?: string;
     restore?: "none" | "auto" | "required";
+    lro_op_id?: string;
   }) => Promise<HostCreateProjectResponse>;
   stopProject: (opts: {
     project_id: string;

@@ -125,6 +125,7 @@ export async function startMasterRegistration({
         run_quota,
         image,
         restore,
+        lro_op_id,
       }) {
         if (!hubApi.projects?.start) {
           throw Error("start not available");
@@ -136,6 +137,7 @@ export async function startMasterRegistration({
           run_quota,
           image,
           restore,
+          lro_op_id,
         });
         return { project_id, state: (status as any)?.state };
       },
