@@ -45,7 +45,6 @@ read = require('read')
 {getStripeCustomerId} = require('./postgres/stripe')
 
 {site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
-{update_site_license_usage_log} = require('./postgres/site-license/usage-log')
 {site_license_public_info} = require('./postgres/site-license/public')
 {site_license_manager_set} = require('./postgres/site-license/manager')
 {matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
@@ -2226,10 +2225,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
     # async function
     site_license_manager_set: (license_id, info) =>
         return await site_license_manager_set(@, license_id, info)
-
-    # async function
-    update_site_license_usage_log: =>
-        return await update_site_license_usage_log(@)
 
     # async function
     matching_site_licenses: (...args) =>
