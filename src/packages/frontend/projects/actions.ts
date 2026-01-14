@@ -749,10 +749,11 @@ export class ProjectsActions extends Actions<ProjectsState> {
     webapp_client.project_client.touch_project(project_id);
     const actions = redux.getProjectActions(project_id);
     try {
-      await webapp_client.conat_client.hub.projects.start({
+      const resp = await webapp_client.conat_client.hub.projects.start({
         project_id,
         wait: false,
       });
+      actions.trackStartOp(resp);
     } catch (err) {
       actions.setState({ control_error: `Error starting project -- ${err}` });
       throw err;

@@ -26,11 +26,13 @@ import type { Configuration } from "@cocalc/conat/project/runner/types";
 import { ensureHostKey } from "../ssh/host-key";
 import { getSshpiperdPublicKey } from "../ssh/host-keys";
 import { getLocalHostId } from "../sqlite/hosts";
+import { lroStreamName } from "@cocalc/conat/lro/names";
 import {
   client as fileServerClient,
   type RestoreMode,
   type RestoreStagingHandle,
 } from "@cocalc/conat/files/file-server";
+import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
 import { runCmd, setupSshTempFiles } from "./util";
 import { applyPendingCopies } from "../pending-copies";
 
@@ -284,7 +286,14 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
     image?: string;
     restore?: "none" | "auto" | "required";
     lro_op_id?: string;
-  }): Promise<void> {
+  }): Promise<{
+    op_id: string;
+    scope_type: "project";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }> {
+    const op_id = lro_op_id ?? uuid();
     // Mark as starting immediately so hub/clients see progress even if image pulls are slow.
     ensureProjectRow({
       project_id,
@@ -300,7 +309,7 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
           run_quota,
           image,
           restore,
-          lro_op_id,
+          lro_op_id: op_id,
         }),
       });
       ensureProjectRow({
@@ -320,6 +329,13 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       });
       throw err;
     }
+    return {
+      op_id,
+      scope_type: "project",
+      scope_id: project_id,
+      service: PERSIST_SERVICE,
+      stream_name: lroStreamName(op_id),
+    };
   }
 
   async function stop({
