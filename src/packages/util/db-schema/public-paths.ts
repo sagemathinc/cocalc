@@ -25,7 +25,6 @@ export interface PublicPath {
   vhost?: string;
   auth?: string;
   compute_image?: string;
-  site_license_id?: string;
   redirect?: string;
   jupyter_api?: boolean;
 }
@@ -174,10 +173,6 @@ Table({
       type: "string",
       desc: "The underlying compute image, which defines the associated software stack. e.g. 'default', 'custom/some-id/latest', ...",
     },
-    site_license_id: {
-      type: "string",
-      desc: "Site license to apply to projects editing a copy of this.",
-    },
     url: {
       type: "string",
       desc: "If given, use this relative URL to open this share. ONLY set this for proxy urls!  For example: 'gist/darribas/4121857' or 'github/cocalc/sagemathinc' or 'url/wstein.org/Tables/modjac/curves.txt'.  The point is that we need to store the url somewhere, and don't want to end up using the ugly id in this case.  This is different than the urls that come from setting a name for the owner and public path, since that's for files shared *from* within cocalc.",
@@ -243,7 +238,6 @@ Table({
           counter: null,
           // don't use DEFAULT_COMPUTE_IMAGE, because old shares without that val set will always be "default"!
           compute_image: "default",
-          site_license_id: null,
           cross_origin_isolation: null,
           redirect: null,
           jupyter_api: null,
@@ -266,7 +260,6 @@ Table({
           last_edited: true,
           created: true,
           compute_image: true,
-          site_license_id: true, // user with write access to project can set this.
           cross_origin_isolation: true,
           redirect: true,
           jupyter_api: true,
@@ -393,28 +386,6 @@ Table({
   },
 });
 
-// This is the only way to get the site_license_id for a given public path.
-// Requester must have write access to the project.  This is just like the
-// public_paths table, but NOT anonymous, and only provides a get query
-// with access to the site_license_id.
-Table({
-  name: "public_paths_site_license_id",
-  rules: {
-    virtual: "public_paths",
-    user_query: {
-      get: {
-        pg_where: [{ "project_id = $::UUID": "project_id" }],
-        fields: {
-          id: null,
-          project_id: null,
-          path: null,
-          site_license_id: null,
-        },
-      },
-    },
-  },
-});
-
 Table({
   name: "crm_public_paths",
   fields: schema.public_paths.fields,
@@ -445,7 +416,6 @@ Table({
           last_edited: true,
           created: true,
           compute_image: true,
-          site_license_id: true,
           redirect: true,
           jupyter_api: true,
         },

@@ -86,7 +86,7 @@ describe("test studentPay behaves at it should in various scenarios", () => {
   });
 
   let purchase_id_from_student_pay: undefined | number = 0;
-  it("add a lot of money, so it finally works -- check that the license is applied to the project", async () => {
+  it("add a lot of money, so it finally works -- check that the course is marked paid", async () => {
     await createCredit({ account_id, amount: 1000 });
     const { purchase_id } = await studentPay({ account_id, project_id });
     // save for next test below.
@@ -96,22 +96,20 @@ describe("test studentPay behaves at it should in various scenarios", () => {
     // paid field is set
     const pool = getPool();
     const { rows } = await pool.query(
-      "SELECT course, site_license FROM projects WHERE project_id=$1",
+      "SELECT course FROM projects WHERE project_id=$1",
       [project_id],
     );
-    const { course, site_license } = rows[0];
+    const { course } = rows[0];
     expect(course.paid.length).toBeGreaterThanOrEqual(10);
     const paid = dayjs(course.paid);
     // paid timestamp is close to now
     expect(Math.abs(paid.diff(dayjs()))).toBeLessThanOrEqual(5000);
 
-    // also check that site_license on target project is properly set
     const x = await pool.query(
       "SELECT description FROM purchases WHERE id=$1",
       [purchase_id],
     );
-    const license_id = x.rows[0].description.license_id;
-    expect(site_license).toEqual({ [license_id]: {} });
+    expect(x.rows[0].description?.type).toBe("license");
   });
 
   it("try to pay again and DO NOT get an error that already paid -- it's an idempotent and just doesn't charge user. Allowing this avoids some annoying race condition.", async () => {

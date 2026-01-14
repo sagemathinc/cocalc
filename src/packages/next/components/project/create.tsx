@@ -16,7 +16,7 @@ interface Props {
   defaultTitle?: string;
   start?: boolean; // start as soon as it is created.
   onCreate: (project: { project_id: string; title: string }) => void;
-  public_path_id?: string; // if given, project is being created in order to use this public path, so a license might be applied.
+  public_path_id?: string; // if given, project is being created in order to use this public path.
 }
 
 export default function CreateProject({

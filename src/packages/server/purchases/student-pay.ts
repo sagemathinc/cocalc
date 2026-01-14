@@ -18,7 +18,6 @@ import { DEFAULT_PURCHASE_INFO } from "@cocalc/util/licenses/purchase/student-pa
 import type { CourseInfo } from "@cocalc/util/db-schema/projects";
 import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
-import createLicense from "@cocalc/server/licenses/purchase/create-license";
 import { assertPurchaseAllowed } from "./is-purchase-allowed";
 import setCourseInfo from "@cocalc/server/projects/course/set-course-info";
 import { restartProjectIfRunning } from "@cocalc/server/projects/control/util";
@@ -28,9 +27,7 @@ import createTokenAction, {
 } from "@cocalc/server/token-actions/create";
 import dayjs from "dayjs";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
-import { len } from "@cocalc/util/misc";
-import addLicenseToProject from "@cocalc/server/licenses/add-to-project";
-import removeLicenseFromProject from "@cocalc/server/licenses/remove-from-project";
+import { uuid } from "@cocalc/util/misc";
 import getConn from "@cocalc/server/stripe/connection";
 import { isValidUUID } from "@cocalc/util/misc";
 import { url } from "@cocalc/server/messages/send";
@@ -98,15 +95,7 @@ export default async function studentPay({
       amount,
     });
 
-    // Create the license, **owned by the student**
-    const license_id = await createLicense(
-      currentCourse?.account_id ?? account_id,
-      purchaseInfo,
-      client,
-    );
-
-    // Add license to the project.
-    await addLicenseToProject({ project_id, license_id, client });
+    const license_id = uuid();
 
     if (purchaseInfo.start == null || purchaseInfo.end == null) {
       throw Error("start and end must be set");
@@ -215,25 +204,12 @@ export async function studentPayTransfer({
   if (!paid.course.paid) {
     throw Error("paid project not paid");
   }
-  if (paid.site_license == null || len(paid.site_license) == 0) {
-    throw Error("paid project doesn't have a license");
-  }
-  const license_id = Object.keys(paid.site_license)[0];
-  if (!license_id) {
-    throw Error("problem with paid project license");
-  }
   const pool = getPool();
 
   await pool.query(
     "UPDATE projects SET course=jsonb_set(course, '{paid}', to_jsonb(NOW()::text)) WHERE project_id=$1",
     [project_id],
   );
-
-  // add license_id to new project
-  await addLicenseToProject({ project_id, license_id });
-
-  // remove license_id from paid project
-  await removeLicenseFromProject({ project_id: paid_project_id, license_id });
 
   // remove fact that paid from paid project
   // (should do this as a transaction but that is a pain and if things go wrong
@@ -247,7 +223,7 @@ export async function studentPayTransfer({
 async function getCourseInfo(project_id) {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT course, site_license FROM projects WHERE project_id=$1",
+    "SELECT course FROM projects WHERE project_id=$1",
     [project_id],
   );
   return rows[0];

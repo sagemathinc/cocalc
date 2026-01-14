@@ -28,7 +28,6 @@ import {
   Checkbox,
   Col,
   Input,
-  Popconfirm,
   Radio,
   Row,
   Space,
@@ -45,9 +44,6 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { useManagedLicenses } from "@cocalc/frontend/site-licenses/input";
-import SelectLicense from "@cocalc/frontend/site-licenses/select-license";
-import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import {
   SHARE_AUTHENTICATED_EXPLANATION,
   SHARE_AUTHENTICATED_ICON,
@@ -135,9 +131,6 @@ export default function Configure({
     return "private";
   });
 
-  const [licenseId, setLicenseId] = useState<string | null | undefined>(
-    publicInfo?.site_license_id,
-  );
   const kucalc = useTypedRedux("customize", "kucalc");
   const shareServer = useTypedRedux("customize", "share_server");
 
@@ -413,30 +406,6 @@ export default function Configure({
                     }
                   />
                 </Paragraph>
-
-                <Title level={4}>
-                  <Icon name="key" /> License Code - optional
-                </Title>
-                <Paragraph>
-                  <EnterLicenseCode
-                    licenseId={licenseId}
-                    setLicenseId={(licenseId) => {
-                      setLicenseId(licenseId);
-                      actions.set_public_path(path, {
-                        site_license_id: licenseId,
-                      });
-                    }}
-                  />
-                  <Paragraph type="secondary">
-                    When people edit a copy of your shared document in a new
-                    project, their project will get upgraded using{" "}
-                    <b>
-                      <i>your</i>
-                    </b>{" "}
-                    license. You can thus provide a high quality experience to
-                    the people you share this link with.
-                  </Paragraph>
-                </Paragraph>
               </div>
               <ConfigureJupyterApi
                 disabled={parentIsPublic}
@@ -516,52 +485,5 @@ function ConfigureJupyterApi({ jupyter_api, saveJupyterApi, disabled }) {
         of files.
       </Paragraph>
     </Paragraph>
-  );
-}
-
-function EnterLicenseCode({ licenseId, setLicenseId }) {
-  const managed = useManagedLicenses();
-  const [adding, setAdding] = useState<boolean>(false);
-  if (!adding) {
-    if (licenseId) {
-      return (
-        <Paragraph>
-          <Button.Group>
-            <Button
-              onClick={() => setAdding(true)}
-              style={{ marginBottom: "5px" }}
-            >
-              Change License...
-            </Button>
-            <Popconfirm
-              title="Are you sure you want to remove the license?"
-              onConfirm={() => setLicenseId(null)}
-              okText="Yes"
-              cancelText="No"
-            >
-              <Button style={{ marginBottom: "5px" }}>Remove License</Button>
-            </Popconfirm>
-          </Button.Group>
-          <SiteLicensePublicInfo license_id={licenseId} />
-        </Paragraph>
-      );
-    }
-    return (
-      <Button onClick={() => setAdding(true)}>Enter License Code...</Button>
-    );
-  }
-  return (
-    <SelectLicense
-      onSave={(licenseId) => {
-        setLicenseId(licenseId);
-        setAdding(false);
-      }}
-      onCancel={() => {
-        setAdding(false);
-      }}
-      onChange={setLicenseId}
-      managedLicenses={managed?.toJS() as any}
-      confirmLabel={"Use this license"}
-    />
   );
 }

@@ -12,7 +12,6 @@ import { LICENSES } from "@cocalc/frontend/share/licenses";
 import SaveButton from "components/misc/save-button";
 import EditRow from "components/misc/edit-row";
 import A from "components/misc/A";
-import SelectSiteLicense from "components/misc/select-site-license";
 import { Icon } from "@cocalc/frontend/components/icon";
 import LaTeX from "components/landing/latex";
 import {
@@ -47,7 +46,6 @@ interface Info {
   authenticated?: boolean;
   license?: string;
   compute_image?: string;
-  site_license_id?: string;
 }
 
 function get_visibility(edited) {
@@ -61,14 +59,6 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
   const publicPaths = useDatabase({
     public_paths: { ...QUERY, id, project_id, path },
   });
-  const siteLicense = useDatabase({
-    public_paths_site_license_id: {
-      site_license_id: null,
-      id,
-      project_id,
-      path,
-    },
-  });
   const { onCoCalcCom } = useCustomize();
   const [loaded, setLoaded] = useState<boolean>(false);
   const [edited, setEdited] = useState<Info>({});
@@ -77,22 +67,16 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
 
   // After loading finishes, either editor or error is set.
   useEffect(() => {
-    if (publicPaths.loading || siteLicense.loading) return;
+    if (publicPaths.loading) return;
     if (publicPaths.error) {
       setError(publicPaths.error);
       return;
     }
-    if (siteLicense.error) {
-      setError(siteLicense.error);
-      return;
-    }
-    const { site_license_id } = siteLicense.value.public_paths_site_license_id;
     const { public_paths } = publicPaths.value;
-    const x = { ...public_paths, site_license_id };
-    setEdited(x);
-    setOriginal(x);
+    setEdited(public_paths);
+    setOriginal(public_paths);
     setLoaded(true);
-  }, [publicPaths.loading, siteLicense.loading]);
+  }, [publicPaths.loading]);
 
   if (!loaded) {
     return <Loading delay={0.2} />;
@@ -165,7 +149,7 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
           description="You make files or directories public to the world, either indexed by
       search engines (listed), only visible with the link (unlisted), or only those who are authenticated.
       Public files are automatically copied to the public server within about 30 seconds
-      after you explicitly edit them.  You can also set a site license for unlisted public shares."
+      after you explicitly edit them."
         >
           <Space direction="vertical">
             <Radio.Group
@@ -209,23 +193,6 @@ export default function ConfigurePublicPath({ id, project_id, path }: Props) {
               </Space>
             </Radio.Group>
           </Space>
-        </EditRow>
-        <EditRow
-          label="Upgrade with a license?"
-          description={
-            <>
-              You can select a license that you manage, and anybody who edits a
-              copy of this share will have this license applied to their
-              project.
-            </>
-          }
-        >
-          <SelectSiteLicense
-            defaultLicenseId={original.site_license_id}
-            onChange={(site_license_id) => {
-              setEdited({ ...edited, site_license_id });
-            }}
-          />
         </EditRow>
         <EditRow
           label="Permission"
