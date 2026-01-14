@@ -92,7 +92,6 @@ export type SiteSettingsKeys =
   | "commercial"
   | "max_trial_projects"
   | "nonfree_countries"
-  | "limit_free_project_uptime"
   | "google_analytics"
   | "kucalc"
   | "i18n"
@@ -630,16 +629,6 @@ export const site_settings_conf: SiteSettings = {
     default: "",
     to_val: split_strings,
     show: only_cocalc_com,
-    tags: ["Commercialization"],
-  },
-  limit_free_project_uptime: {
-    name: "Limit Free Project Uptime",
-    desc: "If this number of minutes is >0, then projects running for longer than that must have a membership or some upgrade applied. This exposes a countdown timer in the trial banner. (0 means disabled)",
-    default: "0",
-    to_val: to_int,
-    valid: only_nonneg_int,
-    show: only_cocalc_com,
-    to_display: (val) => `${val} minutes`,
     tags: ["Commercialization"],
   },
   datastore: {

@@ -3,24 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Modal, Space, Tag, Tooltip } from "antd";
+import { Alert, Tag } from "antd";
 import humanizeList from "humanize-list";
-import { useInterval } from "react-interval-hook";
 
-import {
-  CSS,
-  React,
-  redux,
-  useForceUpdate,
-  useMemo,
-  useRef,
-  useState,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { CSS, React, useMemo } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph } from "@cocalc/frontend/components";
-import { TimeAmount } from "@cocalc/frontend/editors/stopwatch/time";
-import { open_new_tab } from "@cocalc/frontend/misc";
-import track from "@cocalc/frontend/user-tracking";
 import {
   BANNER_NON_DISMISSIBLE_DAYS,
   EVALUATION_PERIOD_DAYS,
@@ -29,14 +16,10 @@ import { server_time } from "@cocalc/util/misc";
 import { COLORS, DOC_URL } from "@cocalc/util/theme";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { join } from "path";
-import { CallToSupport } from "./call-to-support";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
-import { useProjectContext } from "./context";
 
 export const DOC_TRIAL = "https://doc.cocalc.com/trial.html";
 const MEMBERSHIP_URL = join(appBasePath, "/settings");
-
-const TRACK_KEY = "trial_banner";
 
 // explains implications for having no internet and/or no member hosting
 export const A_STYLE: CSS = {
@@ -237,12 +220,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       );
     }
 
-    function renderCountDown() {
-      if (closable) return;
-
-      return <CountdownProject fontSize={style.fontSize} />;
-    }
-
     return (
       <Alert
         type="warning"
@@ -269,7 +246,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
                 padding: 0,
               }}
             >
-              {renderCountDown()}
               {renderMessage()} {renderLearnMore(style.color)}
             </Paragraph>
           </>
@@ -278,101 +254,3 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
     );
   },
 );
-
-interface CountdownProjectProps {
-  fontSize: CSS["fontSize"];
-}
-
-function CountdownProject({ fontSize }: CountdownProjectProps) {
-  const { status, project, project_id, actions } = useProjectContext();
-  const limit_min = useTypedRedux("customize", "limit_free_project_uptime");
-  const [showInfo, setShowInfo] = useState<boolean>(false);
-  const openFiles = useTypedRedux({ project_id }, "open_files_order");
-  const triggered = useRef<boolean>(false);
-  const update = useForceUpdate();
-  useInterval(update, 1000);
-
-  if (
-    status.get("state") !== "running" ||
-    project == null ||
-    limit_min == null ||
-    limit_min <= 0
-  ) {
-    return null;
-  }
-
-  // start_ts is e.g. 1508576664416
-  const start_ts = project.getIn(["status", "start_ts"]);
-  if (start_ts == null && !showInfo) {
-    return null;
-  }
-
-  const shutdown_ts = start_ts + 1000 * 60 * limit_min;
-  const countdown = shutdown_ts - server_time().getTime();
-  const countdown0 = countdown > 0 ? countdown : 0;
-
-  if (countdown < 0 && !triggered.current) {
-    triggered.current = true;
-
-    // This closes all tabs and then stops the project.
-    openFiles.map((path) => actions?.close_tab(path));
-    redux.getActions("projects").stop_project(project_id);
-    track(TRACK_KEY, { what: "shutdown", project_id });
-  }
-
-  function renderInfo() {
-    return (
-      <Modal
-        title={
-          <Space>
-            <Icon name="hand-stop" /> Automatic Workspace Shutdown
-          </Space>
-        }
-        open={showInfo}
-        onOk={() => open_new_tab(MEMBERSHIP_URL)}
-        onCancel={() => setShowInfo(false)}
-      >
-        <Paragraph>
-          <A href={"https://doc.cocalc.com/trial.html"}>Free workspaces</A> have
-          a maximum uptime of {limit_min} minutes. After that period, the
-          workspace will stop and interrupt your work.
-        </Paragraph>
-        <Paragraph strong>
-          This shutdown timer only exists for workspaces without any upgrades!
-        </Paragraph>
-        <CallToSupport />
-      </Modal>
-    );
-  }
-
-  return (
-    <>
-      {renderInfo()}
-      <Tooltip title="Automatic Workspace Shutdown: click for details...">
-        <Tag
-          style={{
-            marginTop: "5px",
-            fontSize,
-            float: "right",
-            fontWeight: "bold",
-            cursor: "pointer",
-          }}
-          color={"red"}
-          onClick={() => {
-            setShowInfo(true);
-            track(TRACK_KEY, { what: "countdown-click", project_id });
-          }}
-        >
-          <TimeAmount
-            key={"time"}
-            amount={countdown0}
-            compact={true}
-            showIcon={true}
-            countdown={countdown0}
-            style={{ color: COLORS.ANTD_RED }}
-          />
-        </Tag>
-      </Tooltip>
-    </>
-  );
-}

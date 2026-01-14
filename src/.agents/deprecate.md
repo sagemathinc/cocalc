@@ -2,9 +2,6 @@
 
 Goal: Complete remove all code and functionality for the following:
 
-- [ ] project licenses
-- [ ] limit_free_project_uptime with the countdown timer (any other "freemium dials?")
-- [ ] copy\_paths 
 - [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [ ] payg LLM purchases
 - [ ] all code involving compute\_servers and cloud filesystems
@@ -15,6 +12,9 @@ Goal: Complete remove all code and functionality for the following:
 - [ ] project tokens \-\- join a project automatically using a token
 - [ ] vector database support code \-\- qdrant
 - [ ] all dynamic user\-specific content from the nextjs app: the store, the new items \(?\).
+- [x] copy\_paths 
+- [x] limit_free_project_uptime with the countdown timer (any other "freemium dials?")
+- [x] project licenses
 - [x] payg project upgrades
 - [x] legacy upgrades \(from 2020 and earlier\)
 - [x] dedicated\_vms and dedicated\_disks
