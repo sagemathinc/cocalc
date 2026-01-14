@@ -19,7 +19,8 @@ import {
   listCopiesForProject,
 } from "@cocalc/server/projects/copy-db";
 import { createLro, updateLro } from "@cocalc/server/lro/lro-db";
-import { publishLroEvent, publishLroSummary, lroStreamName } from "@cocalc/server/lro/stream";
+import { publishLroEvent, publishLroSummary } from "@cocalc/server/lro/stream";
+import { lroStreamName } from "@cocalc/conat/lro/names";
 import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
 import { assertCollab } from "./util";
 import {

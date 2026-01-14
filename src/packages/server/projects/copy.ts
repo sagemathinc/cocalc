@@ -3,7 +3,6 @@ import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import { client as fileServerClient } from "@cocalc/conat/files/file-server";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
-import { stopProjectOnHost } from "@cocalc/server/project-host/control";
 import { upsertCopyRow } from "./copy-db";
 
 const logger = getLogger("server:projects:copy");
@@ -80,19 +79,6 @@ async function getHostIds(
     }
   }
   return map;
-}
-
-async function projectRunning(project_id: string): Promise<boolean> {
-  const { rows } = await getPool().query<{ state: string | null }>(
-    `
-      SELECT state->>'state' AS state
-      FROM projects
-      WHERE project_id=$1
-    `,
-    [project_id],
-  );
-  const state = rows[0]?.state ?? "";
-  return state === "running" || state === "starting";
 }
 
 async function assertBackupContainsPath({
@@ -174,15 +160,6 @@ export async function copyProjectFiles({
   let snapshot_id: string | undefined;
 
   if (remoteDests.length) {
-    if ((await projectRunning(src.project_id)) && !(options?.force ?? false)) {
-      report(progress, { step: "stop-source" });
-      await stopProjectOnHost(src.project_id);
-    } else if (options?.force) {
-      logger.warn("copyProjectFiles: skipping stop due to force option", {
-        project_id: src.project_id,
-      });
-    }
-
     report(progress, { step: "backup" });
     // TODO: once last_edited is reliable, allow reusing a recent backup.
     const tags = [

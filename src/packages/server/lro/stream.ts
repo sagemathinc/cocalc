@@ -1,4 +1,5 @@
 import { conat } from "@cocalc/backend/conat";
+import { lroStreamName } from "@cocalc/conat/lro/names";
 import type {
   LroEvent,
   LroScopeType,
@@ -6,10 +7,6 @@ import type {
 } from "@cocalc/conat/hub/api/lro";
 
 const DEFAULT_EVENT_TTL_MS = 24 * 60 * 60 * 1000;
-
-export function lroStreamName(op_id: string): string {
-  return `lro.${op_id}`;
-}
 
 function scopeArgs(scope_type: LroScopeType, scope_id: string) {
   if (scope_type === "project") {
