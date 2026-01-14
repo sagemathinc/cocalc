@@ -46,7 +46,6 @@ interface SignUpProps {
   minimal?: boolean; // use a minimal interface with less explanation and instructions (e.g., for embedding in other pages)
   requiresToken?: boolean; // will be determined by API call if not given.
   onSuccess?: () => void; // if given, call after sign up *succeeds*.
-  has_site_license?: boolean;
   publicPathId?: string;
   showSignIn?: boolean;
   signInAction?: () => void; // if given, replaces the default sign-in link behavior.
@@ -72,7 +71,6 @@ function SignUp0({
   requiresToken,
   minimal,
   onSuccess,
-  has_site_license,
   publicPathId,
   signInAction,
   showSignIn,
@@ -80,7 +78,6 @@ function SignUp0({
 }: SignUpProps) {
   const {
     anonymousSignup,
-    anonymousSignupLicensedShares,
     siteName,
     emailSignup,
     accountCreationInstructions,
@@ -250,8 +247,7 @@ function SignUp0({
             <b>
               There is no method enabled for creating an account on this server.
             </b>
-            {(anonymousSignup ||
-              (anonymousSignupLicensedShares && has_site_license)) && (
+            {anonymousSignup && (
               <>
                 <br />
                 <br />

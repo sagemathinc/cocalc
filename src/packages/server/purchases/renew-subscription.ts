@@ -34,7 +34,7 @@ export default async function renewSubscription({
   }
   const end = addInterval(current_period_end, interval);
 
-  // Use a transaction so we either edit license and update subscription or do nothing.
+  // Use a transaction so we either record the renewal and update subscription or do nothing.
   const client = await getTransactionClient();
   try {
     const purchase_id = await createPurchase({

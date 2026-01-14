@@ -46,7 +46,6 @@ register({
         redeemed_by: null,
         notes: null,
         canceled: null,
-        license_ids: null,
       },
     ],
   },

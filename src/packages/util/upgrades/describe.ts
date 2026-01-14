@@ -11,7 +11,7 @@ export function toFriendlyDescription(
 ): string {
   switch (description.type) {
     case "cash-voucher":
-      // see corresponding react code in next/components/store/site-license-cost.tsx
+      // see corresponding react code in next/components/store/item-cost.tsx
       return `${description.numVouchers ?? 1} ${plural(description.numVouchers ?? 1, "Voucher Code")} ${description.numVouchers > 1 ? " each " : ""}worth ${currency(description.amount)}. Total Value: ${currency(decimalMultiply(description.amount, description.numVouchers ?? 1))}${description.whenPay == "admin" ? " (admin: no charge)" : ""}`;
     case "membership":
       return `Membership (${description.class})`;

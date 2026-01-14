@@ -1,22 +1,22 @@
 /*
-If the user is NOT a student in another course that they *have* paid the license for, then
+If the user is NOT a student in another course that they *have* paid for, then
 this component shows nothing.
 
-If the user is a student in at least one other course that they have paid for the license
-for, then a "Transfer License..." button shows up.  When clicked, it shows a description
+If the user is a student in at least one other course that they have paid for,
+then a "Transfer course fee..." button shows up. When clicked, it shows a description
 and buttons for each of the other courses that qualify.  Clicking on the button uses
-a backend api call to actually transfer the license, which makes the current course be
+a backend api call to transfer the payment, which makes the current course be
 paid for, but the other one is no longer paid for.
 
 The motivation for this is that students switch sections in large classes, and this
-minimizes friction.  Also, they pay for a license for the whole course, and getting a
+minimizes friction. Also, they pay the course fee for the whole course, and getting a
 prorated refund and making a new purchase isn't fair.
 
 NOTE: the api call just allows for transfering and doesn't do much of a check, at least for
 the first release. That's another way a malicious user could cheat.
 
 NOTE: a concern is that this assumes the student has not been removed from the original
-section. If that happens, they would have a license but no longer have the project,
+section. If that happens, they would have a paid course fee but no longer have the project,
 which breaks the logic below.  There's always a problem no matter what you do...
 */
 
@@ -45,9 +45,9 @@ export default function Transfer({ project_id }: Props) {
     return null;
   }
 
-  const transferLicense = async (paid_project_id) => {
+  const transferCoursePayment = async (paid_project_id) => {
     console.log(
-      "transfering license from ",
+      "transferring course payment from ",
       paid_project_id,
       " to ",
       project_id,
@@ -55,7 +55,7 @@ export default function Transfer({ project_id }: Props) {
     try {
       setLoading(true);
       await studentPayTransfer({ project_id, paid_project_id });
-      // success - restart projects so that they have the proper license setup.
+      // success - restart projects so that they pick up updated course settings.
       const actions = redux.getActions("projects");
       const store = redux.getStore("projects");
       for (const id of [project_id, paid_project_id]) {
@@ -73,14 +73,14 @@ export default function Transfer({ project_id }: Props) {
   return (
     <div>
       <Button disabled={loading} onClick={() => setOpen(true)}>
-        <Icon name="sync" /> Transfer license from another course...
+        <Icon name="sync" /> Transfer course fee from another course...
         {loading && <Spin />}
       </Button>
       {open && (
         <Card
           title={
             <>
-              Transfer license from another course
+              Transfer course fee from another course
               <Button
                 style={{ float: "right", marginLeft: "30px" }}
                 onClick={() => setOpen(false)}
@@ -92,7 +92,7 @@ export default function Transfer({ project_id }: Props) {
           style={{ maxWidth: "650px", margin: "30px auto" }}
         >
           You have paid for each of the comparable course projects listed below.
-          Select one of them to transfer the license from that project to{" "}
+          Select one of them to transfer the course fee from that project to{" "}
           <ProjectTitle project_id={project_id} noClick />:
           <br />
           <br />
@@ -101,7 +101,7 @@ export default function Transfer({ project_id }: Props) {
               key={project_id}
               disabled={loading}
               onClick={() => {
-                transferLicense(project_id);
+                transferCoursePayment(project_id);
               }}
             >
               <ProjectTitle noClick project_id={project_id} />
@@ -114,10 +114,10 @@ export default function Transfer({ project_id }: Props) {
   );
 }
 
-// returns project_id's of projects that are paid for and you can transfer the license
+// returns project_id's of projects that are paid for and you can transfer the fee
 function getAvailable(project_id): string[] {
   // projects = data about all projects you collaborate on (and used recently -- this might leave off old projects, but that
-  // should be fine for the purposes of transfering a license)
+  // should be fine for the purposes of transfering a paid course fee)
   const projects = redux.getStore("projects").get("project_map")?.toJS();
   if (projects == null) {
     return [];
@@ -130,7 +130,7 @@ function getAvailable(project_id): string[] {
   // We allow transferring if:
   //   (1) start and end dates are within 7 days
   //   (2) cost is within $5.
-  // At the end of the day we're just transferring a license and not actually giving away or taking anything, so there
+  // At the end of the day we're just transferring a paid course fee and not actually giving away or taking anything, so there
   // is no danger of some really clever attacker creating fake classes and stealing money.  The worst case is just that
   // the student "cheats themselves" out of what the instructor recommends that they purchase for the best experience.
 

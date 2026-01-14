@@ -93,9 +93,6 @@ export type SiteSettingsKeys =
   | "max_trial_projects"
   | "nonfree_countries"
   | "limit_free_project_uptime"
-  | "require_license_to_create_project"
-  | "unlicensed_project_collaborator_limit"
-  | "unlicensed_project_timetravel_limit"
   | "google_analytics"
   | "kucalc"
   | "i18n"
@@ -637,41 +634,12 @@ export const site_settings_conf: SiteSettings = {
   },
   limit_free_project_uptime: {
     name: "Limit Free Project Uptime",
-    desc: "If this number of minutes is >0, then projects running for longer than that must have a license applied, or some upgrade, etc. This exposes a countdown timer in the trial banner. (0 means disabled)",
+    desc: "If this number of minutes is >0, then projects running for longer than that must have a membership or some upgrade applied. This exposes a countdown timer in the trial banner. (0 means disabled)",
     default: "0",
     to_val: to_int,
     valid: only_nonneg_int,
     show: only_cocalc_com,
     to_display: (val) => `${val} minutes`,
-    tags: ["Commercialization"],
-  },
-  require_license_to_create_project: {
-    name: "Require License to Create Project",
-    desc: "If yes the 'New Project' creation form on the projects page requires the user to enter a valid license.  This has no other impact and only impacts the frontend UI.  Users can circumvent this via the API or a course.",
-    default: "no",
-    valid: only_booleans,
-    show: only_cocalc_com,
-    to_val: to_bool,
-    tags: ["Commercialization"],
-  },
-  unlicensed_project_collaborator_limit: {
-    name: "Require License to Add Unlimited Collaborators to Projects",
-    desc: "If this number is positive, then projects without a valid license can have at most this many total collaborators. E.g., set this to 3 to allow up to a total of 3 users of a an unlicensed project.",
-    default: "0",
-    to_val: to_int,
-    valid: only_nonneg_int,
-    show: only_cocalc_com,
-    to_display: (val) => `${val} users`,
-    tags: ["Commercialization"],
-  },
-  unlicensed_project_timetravel_limit: {
-    name: "Require License to View Unlimited TimeTravel History",
-    desc: `If this number is positive, then in projects without some upgrade can only view this many days of TimeTravel history.  Set this to 7 to allow up to one week of history.  NOTE: Users are always allowed to view at least ${ALWAYS_ALLOWED_TIMETRAVEL} revisions, even if the revisions are older than this, in order to recover from possible data loss.`,
-    default: "0",
-    to_val: to_int,
-    valid: only_nonneg_int,
-    show: only_cocalc_com,
-    to_display: (val) => `${val} days`,
     tags: ["Commercialization"],
   },
   datastore: {

@@ -14,9 +14,9 @@ be able to change the course field.
 
 - If the payInfo field is different than the current course.payInfo
 field (ignoring the cost fields for comparison), then we compute
-and fill in the cost.  This is used to lock in the purchase price
-when the instructor decides on what license the students should buy.
-It would be unfair to increase their price.
+and fill in the cost. This is used to lock in the course fee when
+the instructor decides on what students should pay. It would be
+unfair to increase their price.
 
 - If course.paid field is set currently in the database, then it is
 always maintained, rather than just being deleted.

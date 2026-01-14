@@ -45,7 +45,7 @@ describe("creates an account, then creates purchases and statements", () => {
     // a spend of 7
     await createPurchase({
       account_id,
-      service: "license",
+      service: "student-pay",
       description: {} as any,
       client: null,
       cost: 7,
@@ -97,7 +97,7 @@ describe("creates an account, then creates purchases and statements and ensures 
     // a spend of 7
     await createPurchase({
       account_id,
-      service: "license",
+      service: "student-pay",
       description: {} as any,
       client: null,
       cost: 7,
@@ -125,7 +125,7 @@ describe("creates an account, then creates purchases and statements and ensures 
     });
     const id2 = await createPurchase({
       account_id,
-      service: "license",
+      service: "student-pay",
       description: {} as any,
       client: null,
       cost: 1,

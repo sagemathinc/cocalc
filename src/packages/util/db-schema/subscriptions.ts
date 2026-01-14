@@ -7,17 +7,13 @@ import type { MoneyValue } from "@cocalc/util/money";
 export type Status = "active" | "canceled" | "unpaid" | "past_due";
 export type Interval = "month" | "year";
 export type MembershipClass = string;
-export interface LicenseMetadata {
-  type: "license";
-  license_id: string;
-}
 export interface MembershipMetadata {
   type: "membership";
   class: MembershipClass;
   source?: "self_pay" | "org" | "course" | "promo";
   source_id?: string;
 }
-export type Metadata = LicenseMetadata | MembershipMetadata;
+export type Metadata = MembershipMetadata;
 
 export const RENEW_DAYS_BEFORE_END = 5;
 
@@ -32,7 +28,7 @@ export interface SubscriptionPayment {
   // status of this payment: "active" --> "paid" or "active" --> "canceled"
   status: "active" | "paid" | "canceled";
   // when this payment gets paid, we change the expire date on the
-  // license to this (which is stored in ms since epoch):
+  // subscription to this (stored in ms since epoch):
   new_expires_ms: number;
 }
 
@@ -114,7 +110,7 @@ Table({
     },
     metadata: {
       title: "Metadata",
-      desc: "Metadata that describes what the subscription is for, e.g., {type:'license', license_id:'...'} or {type:'membership', class:'member'}",
+      desc: "Metadata that describes what the subscription is for, e.g., {type:'membership', class:'member'}",
       type: "map",
       pg_type: "jsonb",
     },

@@ -402,23 +402,12 @@ export function CoCalcComFeatures() {
                 {siteName}.
               </Paragraph>
               <Paragraph style={{ color: txtCol }}>
-                Upgrade your projects to unlock internet access, better hosting
-                quality, and other upgrades by purchasing a{" "}
-                <A style={link} href={"/store/site-license"}>
-                  license
+                Upgrade your workspaces with a{" "}
+                <A style={link} href={"/store/membership"}>
+                  membership
                 </A>{" "}
-                or upgrade via{" "}
-                <A style={link} href={"https://doc.cocalc.com/paygo.html"}>
-                  pay-as-you-go
-                </A>{" "}
-                and use GPUs and HPC resources via{" "}
-                <A
-                  style={link}
-                  href={"https://doc.cocalc.com/compute_server.html"}
-                >
-                  compute servers
-                </A>
-                !
+                to unlock internet access, better hosting quality, and other
+                upgrades.
               </Paragraph>
               {!width.md && productsLink}
             </Tool>

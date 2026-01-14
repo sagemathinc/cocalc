@@ -24,7 +24,7 @@ interface Options {
   unrounded_cost?: MoneyValue; // if given and we compute cost_per_hour, this will be used, since cost itself may be rounded!
   cost_per_hour?: MoneyValue;
   cost_so_far?: MoneyValue;
-  period_start?: Date; // options; used mainly for analytics, e.g., for a license with given start and end dates.
+  period_start?: Date; // options; used mainly for analytics, e.g., for a subscription with given start and end dates.
   period_end?: Date;
   invoice_id?: string;
   notes?: string;

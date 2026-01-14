@@ -28,7 +28,7 @@ import { isEqual } from "lodash";
 import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
 import { Quota, quota } from "@cocalc/util/upgrades/quota";
 import getLogger from "@cocalc/backend/logger";
-import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
+import { getQuotaSiteSettings } from "@cocalc/database/postgres/quota-site-settings";
 import getPool from "@cocalc/database/pool";
 import { query } from "@cocalc/database/postgres/query";
 import { getProjectSecretToken } from "./secret-token";
@@ -266,7 +266,9 @@ export class BaseProject extends EventEmitter {
   // to control at least idle timeout of projects; also it is very useful
   // for development since it is shown in the UI (in project settings).
   setRunQuota = async (run_quota: Quota | null): Promise<void> => {
-    // if null, there is no paygo quota, so we have to compute it based on the licenses
+    // if null we have to compute it based on membership and settings
+    // TODO: change this to only use the membership of the user starting the project, not all users.
+    // E.g., any user A can add any pro user B and magically get upgrades, even though B isn't involved!
     if (run_quota == null) {
       const { settings, users } = await query({
         db: db(),

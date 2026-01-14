@@ -8,7 +8,7 @@ import create from "@cocalc/server/projects/create";
 import getParams from "lib/api/get-params";
 
 export default async function handle(req, res) {
-  const { title, description, image, license, public_path_id } = getParams(req);
+  const { title, description, image, public_path_id } = getParams(req);
   const account_id = await getAccountId(req);
   try {
     const project_id = await createProject(
@@ -16,7 +16,6 @@ export default async function handle(req, res) {
       title,
       description,
       image,
-      license,
       public_path_id
     );
     res.json({ project_id });
@@ -30,7 +29,6 @@ async function createProject(
   title,
   description,
   image,
-  license,
   public_path_id?: string
 ): Promise<string> {
   if (!account_id) {
@@ -41,7 +39,6 @@ async function createProject(
     title,
     description,
     image,
-    license,
     public_path_id,
   });
 }

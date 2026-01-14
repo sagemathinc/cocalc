@@ -64,7 +64,7 @@ describe("creates and get purchases using various options", () => {
   it("tests cutoff param by creating another older purchase then gets it and also filters it using cutoff", async () => {
     const purchase_id = await createPurchase({
       account_id,
-      service: "license",
+      service: "student-pay",
       description: {} as any,
       client: null,
       cost: 5,

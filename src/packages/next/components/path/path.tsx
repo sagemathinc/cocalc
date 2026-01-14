@@ -59,7 +59,6 @@ export interface PublicPathProps {
   error?: string;
   customize: CustomizeType;
   disabled?: boolean;
-  has_site_license?: boolean;
   unlisted?: boolean;
   authenticated?: boolean;
   stars?: number;
@@ -93,7 +92,6 @@ export default function PublicPath({
   error,
   customize,
   disabled,
-  has_site_license,
   unlisted,
   authenticated,
   stars = 0,
@@ -390,7 +388,6 @@ export default function PublicPath({
             project_id={project_id}
             image={compute_image}
             description={description}
-            has_site_license={has_site_license}
           />
           <Space
             style={{

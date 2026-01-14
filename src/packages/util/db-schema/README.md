@@ -8,6 +8,5 @@ The most important tables are:
 - projects: id's and information (e.g., who can use) all projects
 - public\_paths: which paths in projects are public
 - server\_settings: how the server is configured
-- site\_licenses: all the site licenses that people have bought
 
 I think that if we had just those and nothing else then we could recreate the site, and only loose the history of editing files, the logs from what has happened in projects, and all analytics.

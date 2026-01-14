@@ -2,17 +2,22 @@
 
 Goal: Complete remove all code and functionality for the following:
 
-- [x] payg project upgrades
 - [ ] project licenses
-- [ ] copy_paths 
-- [x] legacy upgrades \(from 2020 and earlier\)
+- [ ] limit_free_project_uptime with the countdown timer (any other "freemium dials?")
+- [ ] copy\_paths 
 - [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [ ] payg LLM purchases
 - [ ] all code involving compute\_servers and cloud filesystems
-- [x] dedicated\_vms and dedicated\_disks
 - [ ] GPU licenses
 - [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
 - [ ] jitsi \-\- video chat
+- [ ] anonymous accounts / sign up
+- [ ] project tokens \-\- join a project automatically using a token
+- [ ] vector database support code \-\- qdrant
+- [ ] all dynamic user\-specific content from the nextjs app: the store, the new items \(?\).
+- [x] payg project upgrades
+- [x] legacy upgrades \(from 2020 and earlier\)
+- [x] dedicated\_vms and dedicated\_disks
 - [x] rename: "Project" \-\-&gt; "Workspace" in frontend UI
 
 ## Remove Project Licenses (replace with memberships)
@@ -59,7 +64,7 @@ Goal: Complete remove all code and functionality for the following:
 7. **Final audit.**  
    Ripgrep for site_license, licenses, and license_id across src and docs; confirm no references remain beyond software licenses.
 
-## Rename: Project -> Workspace in frontend UI
+## \(done\) Rename: Project \-&gt; Workspace in frontend UI
 
 1. **Terminology helper + i18n keys.**  
    Reuse labels.project and labels.projects, but update their values to "Workspace" and "Workspaces" in [src/packages/frontend/i18n/common.ts](./src/packages/frontend/i18n/common.ts), then propagate to locale files that mirror common labels.  

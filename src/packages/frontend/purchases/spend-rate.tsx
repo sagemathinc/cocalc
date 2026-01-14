@@ -18,7 +18,7 @@ export default function SpendRate({ style, spendRate }: Props) {
         title={`Pay as you go upgrades and compute servers cost ${moneyToCurrency(
           spendRateValue,
           3,
-        )}/hour.  Licenses and network data transfer costs are not included above.`}
+        )}/hour. Memberships, course fees, and network data transfer costs are not included above.`}
       >
         <Statistic
           title={"Compute Server Spend Rate (USD)"}

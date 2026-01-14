@@ -45,7 +45,7 @@ export default function PayNow({
     const costValue = toDecimal(getCost(purchaseInfo));
     try {
       const { chargeAmount = 0 } = await isPurchaseAllowed(
-        "license",
+        "student-pay",
         costValue.toNumber(),
       );
       const chargeAmountValue = toDecimal(chargeAmount);

@@ -6,8 +6,7 @@ render({ type: "purchased" }, ({ field, obj }) => {
   if (!purchased) return null;
   return (
     <div>
-      License id: {purchased.license_id}
-      <br />
+      Purchased{" "}
       <TimeAgo date={purchased.time} />
     </div>
   );

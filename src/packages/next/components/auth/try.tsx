@@ -46,13 +46,12 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
     siteName,
     anonymousSignup,
     reCaptchaKey,
-    anonymousSignupLicensedShares,
   } = useCustomize();
   const [state, setState] = useState<"wait" | "creating" | "done">("wait");
   const [error, setError] = useState<string>("");
   const { executeRecaptcha } = useGoogleReCaptcha();
 
-  if (!anonymousSignup && !(anonymousSignupLicensedShares && publicPathId)) {
+  if (!anonymousSignup) {
     return (
       <h1 style={{ textAlign: "center", margin: "45px auto" }}>
         Anonymous Trial of {siteName} Not Currently Available

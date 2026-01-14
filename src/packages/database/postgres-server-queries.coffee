@@ -44,10 +44,6 @@ read = require('read')
 {is_paying_customer, set_account_info_if_possible} = require('./postgres/account-queries')
 {getStripeCustomerId} = require('./postgres/stripe')
 
-{site_license_usage_stats, projects_using_site_license, number_of_projects_using_site_license} = require('./postgres/site-license/analytics')
-{site_license_public_info} = require('./postgres/site-license/public')
-{site_license_manager_set} = require('./postgres/site-license/manager')
-{matching_site_licenses, manager_site_licenses} = require('./postgres/site-license/search')
 {project_datastore_set, project_datastore_get, project_datastore_del} = require('./postgres/project-queries')
 {permanently_unlink_all_deleted_projects_of_user, unlink_old_deleted_projects} = require('./postgres/delete-projects')
 {get_all_public_paths, unlist_all_public_paths} = require('./postgres/public-paths')
@@ -2204,34 +2200,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
                         timeout_s: 300
                         cb    : cb
         ], opts.cb)
-
-    # async function
-    site_license_usage_stats: () =>
-        return await site_license_usage_stats(@)
-
-    # async function
-    projects_using_site_license: (opts) =>
-        return await projects_using_site_license(@, opts)
-
-    # async function
-    number_of_projects_using_site_license: (opts) =>
-        return await number_of_projects_using_site_license(@, opts)
-
-    # async function
-    site_license_public_info: (license_id) =>
-        return await site_license_public_info(@, license_id)
-
-    # async function
-    site_license_manager_set: (license_id, info) =>
-        return await site_license_manager_set(@, license_id, info)
-
-    # async function
-    matching_site_licenses: (...args) =>
-        return await matching_site_licenses(@, ...args)
-
-    # async function
-    manager_site_licenses: (...args) =>
-        return await manager_site_licenses(@, ...args)
 
     # async function
     project_datastore_set: (...args) =>

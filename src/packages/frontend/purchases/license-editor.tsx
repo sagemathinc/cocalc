@@ -1,7 +1,7 @@
 /*
-React component used from edit-license for editing the PurchaseInfo about one
-single license.  It doesn't manage actually coordinating purchases, showing prices
-or anything like that.
+React component for editing the PurchaseInfo about one quota purchase.
+It doesn't manage actually coordinating purchases, showing prices, or anything
+like that.
 */
 
 import {

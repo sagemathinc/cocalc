@@ -24,10 +24,9 @@ PROCESS PAYMENT:
   - When processed, add a 'subscription-credit' line item saying
     "this is for renewal of this subscription". Then create a
     "subscription-payment" service line item taking that money back.
-  - Extend the expire date on the license (so it keeps working), and save the
-    payment intent id with the license.
+  - Extend the subscription period and save the payment intent id with the subscription.
   - The frontend UI clearly surfaces this payment state, e.g., the
-    displayed license, the subscription, and the payment display in the frontend
+    displayed membership, the subscription, and the payment display in the frontend
     UI should all reflect this status.  In particular, the UI should clearly show
     the grace period status to avoid confusion.
   - Users have an account setting to apply any balance on their account
@@ -36,18 +35,17 @@ PROCESS PAYMENT:
 
 PAYMENT FOLLOW-UP:
 
-  - If the payment intent is not actually paid, then the license expire date doesn't
-    get updated and the license stops working. This doesn't require anybody doing anything
-    and it just happens.  Thus there is never any danger about somebody using a big
-    license and not paying for it.  There is no danger of abuse due to edits or refunds
-    involving a subscription.  At this point, when processing the canceled payment
-    intent we *do* also cancel the license, thus putting it in the right state
+  - If the payment intent is not actually paid, then the subscription isn't renewed
+    and membership benefits stop at the period end. This doesn't require anybody doing
+    anything and it just happens. There is no danger of abuse due to edits or refunds
+    involving a subscription. At this point, when processing the canceled payment
+    intent we *do* also cancel the subscription, thus putting it in the right state
     to be resumed with a new closing date, etc., and avoiding any further automated
-    attempts to collect money.   If the user wants to use the license, they just click
+    attempts to collect money. If the user wants to resume membership, they just click
     a button to resume it and they are back to work.
 
   - In particular, if a user doesn't pay their monthly subscription for 90 days (say),
-    then their license would have not worked during the last 90 days and we didn't
+    then their membership benefits would have not worked during the last 90 days and we didn't
     try to charge them during the second two periods, and moreover their payment
     got canceled/expired.  They can start their canceled subscription, paying for a
     full subscription period at this point, and the billing day for this subscription
