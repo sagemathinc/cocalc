@@ -20,7 +20,9 @@ uv run cocalc-mcp-server
 ```
 
 The server will detect your API key type and automatically register the appropriate tools/resources.
-If you supply `COCALC_PROJECT_ID` with an account-scoped key, the MCP server will also prepare a project client for that project. For project-scoped keys, `COCALC_PROJECT_ID` is ignored because the project is embedded in the key.
+If you supply `COCALC_PROJECT_ID` with an account-scoped key, the MCP server will also prepare a project client for that project. For project-scoped keys, `COCALC_PROJECT_ID` is ignored because the project is implied by the key.
+
+If the server fails to run, you have to install/setup everything first. Likely run `make install` in the `./cocalc-api` directory.
 
 ## Setup with Claude Code
 

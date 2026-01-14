@@ -7,9 +7,11 @@ import {
   LANGUAGE_MODEL_SERVICES,
   LANGUAGE_MODELS,
   LanguageService,
+  LLM_DESCR,
   LLM_COST,
   LLMServicesAvailable,
   model2vendor,
+  model2service,
   OLLAMA_PREFIX,
   SERVICES,
   USER_SELECTABLE_LANGUAGE_MODELS,
@@ -57,6 +59,22 @@ describe("llm", () => {
       expect(LANGUAGE_MODEL_SERVICES.includes(vendor.name)).toBe(true);
     },
   );
+
+  test("model2service handles xAI models", () => {
+    expect(model2service("grok-4-1-fast-non-reasoning-16k")).toBe(
+      "xai-grok-4-1-fast-non-reasoning-16k",
+    );
+  });
+
+  test("model2service handles gpt-5.2 models", () => {
+    expect(model2service("gpt-5.2-8k")).toBe("openai-gpt-5.2-8k");
+  });
+
+  test("Gemini 3 Flash description omits preview", () => {
+    expect(LLM_DESCR["gemini-3-flash-preview-16k"].toLowerCase()).not.toContain(
+      "preview",
+    );
+  });
 
   test(`check model by vendor`, () => {
     for (const vendor in USER_SELECTABLE_LLMS_BY_VENDOR) {
@@ -125,9 +143,9 @@ describe("llm", () => {
     expect(getModel(DEFAULT_MODEL)).toEqual(DEFAULT_MODEL);
     expect(getModel("magistral-medium-latest")).toEqual(DEFAULT_MODEL);
     expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");
-    expect(getModel("claude-3-5-haiku-8k")).toEqual("claude-3-5-haiku-8k");
+    expect(getModel("claude-4-5-haiku-8k")).toEqual("claude-4-5-haiku-8k");
     // anthropic service disabled
-    expect(getModel("claude-3-5-haiku-8k", "anthropic")).toEqual(DEFAULT_MODEL);
+    expect(getModel("claude-4-5-haiku-8k", "anthropic")).toEqual(DEFAULT_MODEL);
     // ollama
     expect(getModel("ollama-foo")).toEqual(DEFAULT_MODEL);
     expect(getModel("ollama-phi3")).toEqual("ollama-phi3");

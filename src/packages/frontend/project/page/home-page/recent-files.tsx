@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -42,6 +42,7 @@ export function HomeRecentFiles({
   style,
   mode = "box",
 }: Props): React.JSX.Element {
+  const intl = useIntl();
   const project_log = useTypedRedux({ project_id }, "project_log");
   const user_map = useTypedRedux("users", "user_map");
 
@@ -98,8 +99,7 @@ export function HomeRecentFiles({
     }
   }
 
-  function renderHeader(): React.JSX.Element | undefined {
-    const intl = useIntl();
+  function renderHeader(): React.JSX.Element {
     return (
       <Flex
         justify="space-between"
