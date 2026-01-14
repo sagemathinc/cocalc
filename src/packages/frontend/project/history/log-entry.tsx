@@ -139,6 +139,7 @@ export const LogEntry: React.FC<Props> = React.memo(
     } = props;
 
     const intl = useIntl();
+    const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
 
     const software_envs: SoftwareEnvironments | null = useTypedRedux(
       "customize",
@@ -841,7 +842,7 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "remove_collaborator":
           return render_remove_collaborator(event);
         case "open_project": // not used anymore???
-          return <span>opened this project</span>;
+          return <span>opened this {projectLabelLower}</span>;
         case "library":
           return render_library(event);
         case "assistant":
@@ -849,13 +850,13 @@ export const LogEntry: React.FC<Props> = React.memo(
         case "x11":
           return render_x11(event);
         case "delete_project":
-          return <span>deleted the project</span>;
+          return <span>deleted the {projectLabelLower}</span>;
         case "undelete_project":
-          return <span>undeleted the project</span>;
+          return <span>undeleted the {projectLabelLower}</span>;
         case "hide_project":
-          return <span>hid the project from themself</span>;
+          return <span>hid the {projectLabelLower} from themself</span>;
         case "unhide_project":
-          return <span>unhid the project from themself</span>;
+          return <span>unhid the {projectLabelLower} from themself</span>;
         case "public_path":
           return render_public_path(event);
         case "software_environment":

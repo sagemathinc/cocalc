@@ -14,20 +14,29 @@ export default function RemoveMyself({
 }) {
   const account_id = useTypedRedux("account", "account_id");
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectsLabel = intl.formatMessage(labels.projects);
+  const projectLabelLower = projectLabel.toLowerCase();
+  const projectsLabelLower = projectsLabel.toLowerCase();
 
   return (
     <Popconfirm
-      title={intl.formatMessage({
-        id: "projects.remove-myself.title",
-        defaultMessage: "Remove myself from projects",
-      })}
+      title={intl.formatMessage(
+        {
+          id: "projects.remove-myself.title",
+          defaultMessage: "Remove myself from {projectsLabel}",
+        },
+        { projectsLabel: projectsLabelLower },
+      )}
       description={
         <div style={{ maxWidth: "400px" }}>
           <FormattedMessage
             id="projects.remove-myself.description"
-            defaultMessage={`Are you sure to remove yourself from up to {count, plural, one {# project} other {# projects}}? You will no longer have access and cannot add yourself back. <b>You will not be removed from projects you own.</b>`}
+            defaultMessage={`Are you sure to remove yourself from up to {count, plural, one {# {projectLabel}} other {# {projectsLabel}}}? You will no longer have access and cannot add yourself back. <b>You will not be removed from {projectsLabel} you own.</b>`}
             values={{
               count: project_ids.length,
+              projectLabel: projectLabelLower,
+              projectsLabel: projectsLabelLower,
               b: (chunks) => <b>{chunks}</b>,
             }}
           />

@@ -4,10 +4,12 @@
  */
 
 import { Avatar } from "antd";
+import { useIntl } from "react-intl";
 
 import { React, redux, useRedux } from "@cocalc/frontend/app-framework";
 import { html_to_text } from "../misc";
 import * as misc from "@cocalc/util/misc";
+import { labels } from "@cocalc/frontend/i18n";
 
 interface Props {
   project_id: string;
@@ -24,6 +26,8 @@ export const ProjectTitle: React.FC<Props> = ({
   noClick = false,
   trunc,
 }: Props) => {
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
   const title = useRedux(["projects", "project_map", project_id, "title"]);
 
   const avatar = useRedux([
@@ -49,7 +53,7 @@ export const ProjectTitle: React.FC<Props> = ({
       // try to load all projects
       redux.getActions("projects").load_all_projects();
     }, 1);
-    return <span style={style}>(Private project)</span>;
+    return <span style={style}>(Private {projectLabelLower})</span>;
   }
 
   const body = (

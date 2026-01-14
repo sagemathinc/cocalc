@@ -124,6 +124,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
   const size = isFlyout ? "small" : undefined; // for buttons
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const project_actions = useActions({ project_id });
   const state = useProjectState(project_id);
   const has_internet = useProjectHasInternetAccess(project_id);
@@ -339,9 +340,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
             <Typography.Text strong>
               <FormattedMessage
                 id="project.settings.datastore.restart-instructions"
-                defaultMessage={
-                  "Restart your project for these changes to take effect."
-                }
+                defaultMessage="Restart your {projectLabelLower} for these changes to take effect."
+                values={{ projectLabelLower }}
               />
             </Typography.Text>
             <span style={{ float: "right" }}>
@@ -513,8 +513,8 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         <p>
           This configuration allows you to mount a cloud store (a remote
           collection of file-like objects) or a remote file-system into a
-          CoCalc project. The configuration is passed on to the back-end and
-          activated upon project startup. The project must have access to
+          CoCalc {projectLabelLower}. The configuration is passed on to the back-end and
+          activated upon {projectLabelLower} startup. The {projectLabelLower} must have access to
           the internet (via membership).
         </p>
         <p>
@@ -532,6 +532,7 @@ export const Datastore: React.FC<Props> = React.memo((props: Props) => {
         </p>`}
         values={{
           p: (c) => <p>{c}</p>,
+          projectLabelLower,
           doc: (
             <A href={DOC_CLOUD_STORAGE_URL}>
               {projectLabel} Settings / Cloud Storage & Remote File Systems

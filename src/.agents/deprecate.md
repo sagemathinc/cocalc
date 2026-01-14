@@ -4,6 +4,7 @@ Goal: Complete remove all code and functionality for the following:
 
 - [x] payg project upgrades
 - [ ] project licenses
+- [ ] copy_paths 
 - [x] legacy upgrades \(from 2020 and earlier\)
 - [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [ ] payg LLM purchases

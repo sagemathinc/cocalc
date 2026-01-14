@@ -25,6 +25,7 @@ export default function ProjectImage({ avatarImage, onChange }: Props) {
   const [error, setError] = useState<string>("");
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   return (
     <div>
       <ImgCrop
@@ -86,7 +87,9 @@ export default function ProjectImage({ avatarImage, onChange }: Props) {
               <InboxOutlined />
             </p>
           )}
-          <p className="ant-upload-text">Click or drag project image</p>
+          <p className="ant-upload-text">
+            Click or drag {projectLabelLower} image
+          </p>
         </Upload.Dragger>
       </ImgCrop>
       {error && (

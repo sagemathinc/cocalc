@@ -6,26 +6,30 @@
 // cSpell:ignore descr disp
 
 import { join } from "path";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Paragraph } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { labels } from "@cocalc/frontend/i18n";
 
 export function SoftwareEnvironmentInformation() {
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
 
   return (
     <>
       <Paragraph>
         <FormattedMessage
           id="project.settings.compute-image-selector.software-env-info"
-          defaultMessage={`A software environment provides all the software, this project can make use of.
-                If you need additional software, you can either install it in the project or contact support.
+          defaultMessage={`A software environment provides all the software this {projectLabelLower} can make use of.
+                If you need additional software, you can either install it in the {projectLabelLower} or contact support.
                 Learn about <A1>installing Python packages</A1>,
                 <A2>Python Jupyter Kernel</A2>,
                 <A3>R Packages</A3> and <A4>Julia packages</A4>.`}
           values={{
+            projectLabelLower,
             A1: (c) => (
               <A href={"https://doc.cocalc.com/howto/install-python-lib.html"}>
                 {c}

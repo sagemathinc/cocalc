@@ -20,6 +20,7 @@ import {
   Title,
 } from "@cocalc/frontend/components";
 import MembershipBadge from "@cocalc/frontend/account/membership-badge";
+import { labels } from "@cocalc/frontend/i18n";
 import { process_gpu_quota } from "@cocalc/util/types/gpu";
 import { GPU } from "@cocalc/util/types/site-licenses";
 import AdminQuotas from "./quota-editor/admin-quotas";
@@ -41,6 +42,7 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
     mode,
   }: Readonly<Props>) => {
     const intl = useIntl();
+    const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
     const account_groups: List<string> =
       useTypedRedux("account", "groups") ?? List<string>();
 
@@ -144,12 +146,15 @@ export const UpgradeUsage: React.FC<Props> = React.memo(
           type="secondary"
           ellipsis={{ rows: 1, expandable: true, symbol: "more" }}
         >
-          {intl.formatMessage({
-            id: "project.settings.upgrade-usage.intro",
-            defaultMessage: `This table lists project quotas, their current usage, and their value/limit.
+          {intl.formatMessage(
+            {
+              id: "project.settings.upgrade-usage.intro",
+              defaultMessage: `This table lists {projectLabelLower} quotas, their current usage, and their value/limit.
             Click on a row to show more details about it.
-            If the project is not running, you see the last known quota values.`,
-          })}
+            If the {projectLabelLower} is not running, you see the last known quota values.`,
+            },
+            { projectLabelLower },
+          )}
         </Paragraph>
         {render_run_quota()}
         {render_membership_note()}

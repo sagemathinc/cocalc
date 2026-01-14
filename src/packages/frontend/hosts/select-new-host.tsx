@@ -1,5 +1,5 @@
 // SelectNewHost is a small, reusable block used when creating a workspace
-// (and elsewhere) to choose which workspace host the new workspace should run on.
+// (and elsewhere) to choose which host the new workspace should run on.
 // It shows a compact summary of the current selection plus a button that
 // opens the HostPickerModal. Callers provide the current host (if any) and
 // get notified via onChange when the user picks or resets a host.
@@ -37,12 +37,12 @@ export function SelectNewHost({
                 <div
                   style={{
                     fontWeight: 600,
-                    display: "flex",
-                    gap: 8,
-                    alignItems: "center",
-                  }}
-                >
-                  <Icon name="servers" /> Workspace host
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                }}
+              >
+                  <Icon name="servers" /> Host
                 </div>
                 <div style={{ color: COLORS.GRAY_D }}>
                   {selectedHost ? (
@@ -91,9 +91,9 @@ export function SelectNewHost({
         </Col>
         <Col sm={12}>
           <Paragraph type="secondary">
-            Select where this workspace will run. Choose one of your workspace
-            hosts, a collaborator’s host, or leave it on auto to use the shared
-            pool in the nearest region.
+            Select where this will run. Choose one of your hosts, a
+            collaborator’s host, or leave it on auto to use the shared pool in
+            the nearest region.
           </Paragraph>
         </Col>
       </Row>

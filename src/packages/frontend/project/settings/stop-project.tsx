@@ -7,7 +7,7 @@
 
 import { StopOutlined } from "@ant-design/icons";
 import { Button, Popconfirm } from "antd";
-import { FormattedMessage } from "react-intl";
+import { FormattedMessage, useIntl } from "react-intl";
 import { useActions } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
@@ -21,20 +21,24 @@ interface Props {
 
 export function StopProject({ project_id, disabled, size, force }: Props) {
   const actions = useActions("projects");
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
 
   const text = (
     <div style={{ maxWidth: "300px" }}>
       {force ? (
         <>
-          Forcing the project to stop will shut it down even if it is stuck
-          trying to save some files. <b>This is potentially dangerous.</b>
+          Forcing the {projectLabelLower} to stop will shut it down even if it
+          is stuck trying to save some files.{" "}
+          <b>This is potentially dangerous.</b>
         </>
       ) : (
         <FormattedMessage
           id="project.settings.stop-project.explanation"
           defaultMessage={
-            "Stopping the project server will kill all processes. After stopping a project, it will not start until you or a collaborator restarts the project."
+            "Stopping the {projectLabelLower} server will kill all processes. After stopping a {projectLabelLower}, it will not start until you or a collaborator restarts the {projectLabelLower}."
           }
+          values={{ projectLabelLower }}
         />
       )}
     </div>

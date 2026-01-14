@@ -22,7 +22,7 @@ import { labels } from "@cocalc/frontend/i18n";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
 import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
-import { LICENSE_INFORMATION } from "@cocalc/frontend/site-licenses/rules";
+import { LicenseInformation } from "@cocalc/frontend/site-licenses/rules";
 import { SiteLicensePublicInfoTable } from "@cocalc/frontend/site-licenses/site-license-public-info";
 import { SiteLicenses } from "@cocalc/frontend/site-licenses/types";
 import track from "@cocalc/frontend/user-tracking";
@@ -69,6 +69,8 @@ export function SiteLicense({
   const isFlyout = mode === "flyout";
 
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
 
   const haveLicenses = useMemo(
     () => (site_license?.size ?? 0) > 0,
@@ -144,10 +146,10 @@ export function SiteLicense({
     return (
       <Paragraph style={{ marginTop: "20px" }}>
         Enter a license key below to apply upgrades from that license to this
-        project.{" "}
+        {projectLabelLower}.{" "}
         <strong>
-          Warning: this will cause the project to restart and interrupt any
-          running computations.
+          Warning: this will cause the {projectLabelLower} to restart and
+          interrupt any running computations.
         </strong>{" "}
         If you want to purchase a license, click the "Buy a license" button
         below, or click "Redeem a voucher" to redeem a voucher.
@@ -217,7 +219,7 @@ export function SiteLicense({
           Tutorial
         </Button>
         <Popover
-          content={LICENSE_INFORMATION}
+          content={<LicenseInformation />}
           trigger={["click"]}
           placement="rightTop"
           title="License information"

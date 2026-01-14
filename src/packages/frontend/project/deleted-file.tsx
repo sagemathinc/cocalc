@@ -5,11 +5,13 @@
 
 import { Modal } from "antd";
 import { useCallback, useState } from "react";
+import { useIntl } from "react-intl";
 import { redux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { path_split } from "@cocalc/util/misc";
 import { TimeAgo } from "@cocalc/frontend/components";
 import { log_file_open } from "@cocalc/frontend/project/open-file";
+import { labels } from "@cocalc/frontend/i18n";
 
 interface Props {
   project_id: string;
@@ -18,6 +20,8 @@ interface Props {
 }
 
 export default function DeletedFile({ project_id, path, time }: Props) {
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
   const [open, setOpen] = useState<boolean>(true);
   const isMountedRef = useIsMountedRef();
   const { tail: filename } = path_split(path);
@@ -49,7 +53,11 @@ export default function DeletedFile({ project_id, path, time }: Props) {
         }}
       >
         {!path?.endsWith(".term") && (
-          <> You can always restore later using the project log.  If you restore {path}, use TimeTravel to get past versions.</>
+          <>
+            {" "}
+            You can always restore later using the {projectLabelLower} log. If
+            you restore {path}, use TimeTravel to get past versions.
+          </>
         )}
       </Modal>
     </div>

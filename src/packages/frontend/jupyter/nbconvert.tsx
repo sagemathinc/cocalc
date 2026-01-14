@@ -9,9 +9,11 @@ NBConvert dialog -- for running nbconvert
 import { Button, Modal } from "antd";
 import * as immutable from "immutable";
 import React, { useEffect, useRef } from "react";
+import { useIntl } from "react-intl";
 
 import { redux } from "@cocalc/frontend/app-framework";
 import { A, Icon, Loading, TimeAgo } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import * as misc from "@cocalc/util/misc";
 import { JupyterActions } from "./browser-actions";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
@@ -76,6 +78,8 @@ interface ErrorProps {
 const Error: React.FC<ErrorProps> = (props: ErrorProps) => {
   const { nbconvert } = props;
   const preNode = useRef<HTMLPreElement>(null);
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
 
   useEffect(() => {
     const t = setTimeout(() => scroll(), 10);
@@ -125,7 +129,8 @@ const Error: React.FC<ErrorProps> = (props: ErrorProps) => {
         Running nbconvert failed with an error {render_time()}.{" "}
         {error.toLowerCase().includes("exporter") ? (
           <>
-            You probably need to <b>restart your project</b> in project
+            You probably need to <b>restart your {projectLabelLower}</b> in
+            {projectLabelLower}{" "}
             settings.
           </>
         ) : (

@@ -7,11 +7,13 @@ import { Alert, Checkbox, Popconfirm } from "antd";
 import { Map } from "immutable";
 import { join } from "path";
 import { useState } from "react";
+import { useIntl } from "react-intl";
 
 import { redux } from "@cocalc/frontend/app-framework";
 import { CopyToClipBoard, Icon } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { CancelText } from "@cocalc/frontend/i18n/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 interface Props {
@@ -20,6 +22,8 @@ interface Props {
 
 export default function Sandbox({ project }: Props) {
   const [expanded, setExpanded] = useState<boolean>(false);
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
 
   if (!redux.getStore("customize")?.get("sandbox_projects_enabled")) {
     return null;
@@ -83,7 +87,9 @@ export default function Sandbox({ project }: Props) {
     }
     return (
       <div>
-        <p>Share this URL, or the URL of any file in your project:</p>
+        <p>
+          Share this URL, or the URL of any file in your {projectLabelLower}:
+        </p>
         <CopyToClipBoard
           value={`${document.location.origin}${join(
             appBasePath,
@@ -93,7 +99,7 @@ export default function Sandbox({ project }: Props) {
         />
         <p>
           When somebody with an account visits that URL, they will automatically
-          be added as a collaborator to this project.
+          be added as a collaborator to this {projectLabelLower}.
         </p>
       </div>
     );

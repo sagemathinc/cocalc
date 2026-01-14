@@ -8,6 +8,8 @@ const { HelpEmailLink } = require("../customize");
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { Panel } from "@cocalc/frontend/antd-bootstrap";
 import { render_project_quota } from "./util";
+import { FormattedMessage } from "react-intl";
+import { labels } from "@cocalc/frontend/i18n";
 
 export class ProjectQuotaBoundsTable extends Component {
   public render(): Rendered {
@@ -16,8 +18,11 @@ export class ProjectQuotaBoundsTable extends Component {
       <Panel
         header={
           <span>
-            Maximum possible quotas <strong>per project</strong> (if you need
-            more, contact us at <HelpEmailLink />)
+            Maximum possible quotas{" "}
+            <strong>
+              per <FormattedMessage {...labels.project} />
+            </strong>{" "}
+            (if you need more, contact us at <HelpEmailLink />)
           </span>
         }
       >

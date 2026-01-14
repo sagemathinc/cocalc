@@ -25,6 +25,8 @@ import { query } from "@cocalc/frontend/frame-editors/generic/client";
 import { Card } from "antd";
 import { Row, Col } from "@cocalc/frontend/antd-bootstrap";
 import { Button } from "antd";
+import { FormattedMessage } from "react-intl";
+import { labels } from "@cocalc/frontend/i18n";
 
 interface Project {
   project_id: string;
@@ -193,13 +195,28 @@ export class Projects extends Component<Props, State> {
   private render_load_projects_button(): Rendered {
     if (this.props.account_id || this.state.load_projects) return;
     if (this.state.number != null && this.state.number == 0) {
-      return <div>No projects</div>;
+      return (
+        <div>
+          <FormattedMessage
+            id="admin.users.projects.none"
+            defaultMessage="No {projectsLabel}"
+            values={{ projectsLabel: <FormattedMessage {...labels.projects} /> }}
+          />
+        </div>
+      );
     }
 
+    const count = this.state.number;
+    const label =
+      count === 1 ? (
+        <FormattedMessage {...labels.project} />
+      ) : (
+        <FormattedMessage {...labels.projects} />
+      );
     return (
       <Button onClick={() => this.click_load_projects_button()}>
-        Show {this.state.number != null ? `${this.state.number} ` : ""}project
-        {this.state.number != 1 ? "s" : ""}...
+        Show {count != null ? `${count} ` : ""}
+        {label}...
       </Button>
     );
   }
@@ -226,7 +243,15 @@ export class Projects extends Component<Props, State> {
     }
 
     if (this.state.projects.length == 0) {
-      return <div>No projects</div>;
+      return (
+        <div>
+          <FormattedMessage
+            id="admin.users.projects.none"
+            defaultMessage="No {projectsLabel}"
+            values={{ projectsLabel: <FormattedMessage {...labels.projects} /> }}
+          />
+        </div>
+      );
     }
 
     const v: Rendered[] = [this.render_header()];

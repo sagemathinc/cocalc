@@ -1,10 +1,12 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MutableRefObject } from "react";
 import { Button, Input, Popconfirm, Spin, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { redux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
 import BootLog from "../bootlog";
+import { useIntl } from "react-intl";
+import { labels } from "@cocalc/frontend/i18n";
 
 interface Props {
   project_id: string;
@@ -15,6 +17,8 @@ export default function CloneProject({ project_id, flyout }: Props) {
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<any>(null);
   const titleRef = useRef<string>("");
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
   return (
     <Popconfirm
       title={
@@ -24,7 +28,11 @@ export default function CloneProject({ project_id, flyout }: Props) {
       }
       description={() => (
         <>
-          <Description project_id={project_id} titleRef={titleRef} />
+          <Description
+            project_id={project_id}
+            titleRef={titleRef}
+            projectLabelLower={projectLabelLower}
+          />
           <ShowError error={error} setError={setError} />
           <BootLog />
         </>
@@ -71,11 +79,19 @@ export default function CloneProject({ project_id, flyout }: Props) {
   );
 }
 
-function Description({ project_id, titleRef }) {
+function Description({
+  project_id,
+  titleRef,
+  projectLabelLower,
+}: {
+  project_id: string;
+  titleRef: MutableRefObject<string>;
+  projectLabelLower: string;
+}) {
   const [title, setTitle] = useState<string>(
     `Clone of ${
       redux.getStore("projects").getIn(["project_map", project_id, "title"]) ??
-      "project"
+      projectLabelLower
     }`,
   );
   useEffect(() => {
@@ -83,10 +99,10 @@ function Description({ project_id, titleRef }) {
   }, []);
   return (
     <div style={{ maxWidth: "500px" }}>
-      A clone is a copy of a project, both the HOME directory and customizations
-      to the root filesystem /. Cloning a project allows you to make changes
-      without affecting the original project. Snapshots and collaborators are
-      not included.
+      A clone is a copy of a {projectLabelLower}, both the HOME directory and
+      customizations to the root filesystem /. Cloning a {projectLabelLower}{" "}
+      allows you to make changes without affecting the original{" "}
+      {projectLabelLower}. Snapshots and collaborators are not included.
       <Input
         placeholder="Title of clone... (you can change this later)"
         allowClear

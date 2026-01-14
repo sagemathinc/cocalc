@@ -44,7 +44,7 @@ import {
   licenseStatusProvidesUpgrades,
 } from "@cocalc/util/upgrades/quota";
 import { DisplayUpgrades, scale_by_display_factors } from "./admin/upgrades";
-import { LICENSE_ACTIVATION_RULES } from "./rules";
+import { LicenseActivationRules } from "./rules";
 import type {
   SiteLicensePublicInfo as Info,
   SiteLicensePublicInfo as SiteLicensePublicInfoType,
@@ -76,6 +76,10 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     refresh,
   } = props;
   const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectsLabel = intl.formatMessage(labels.projects);
+  const projectLabelLower = projectLabel.toLowerCase();
+  const projectsLabelLower = projectsLabel.toLowerCase();
   const [info, set_info] = useState<Info | undefined>(undefined);
   const [err, set_err] = useState<string | undefined>(undefined);
   const [loading, set_loading] = useState<boolean>(true);
@@ -323,12 +327,16 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     if (!info.run_limit) {
       return (
         <li>
-          Can upgrade an unlimited number of simultaneous running projects.
+          Can upgrade an unlimited number of simultaneous running{" "}
+          {projectsLabelLower}.
         </li>
       );
     }
     return (
-      <li>Can upgrade up to {info.run_limit} simultaneous running projects.</li>
+      <li>
+        Can upgrade up to {info.run_limit} simultaneous running{" "}
+        {projectsLabelLower}.
+      </li>
     );
   }
 
@@ -337,7 +345,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     return (
       <li>
         Actively used by {info.running} running{" "}
-        {plural(info.running, "project")}.
+        {plural(info.running, projectLabelLower)}.
       </li>
     );
   }
@@ -346,7 +354,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     if (info?.applied == null) return;
     return (
       <li>
-        Applied to {info.applied} {plural(info.applied, "project")}.
+        Applied to {info.applied} {plural(info.applied, projectLabelLower)}.
       </li>
     );
   }
@@ -355,10 +363,16 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     if (!info) return;
     if (!info.run_limit) {
       return (
-        <span>to an unlimited number of simultaneous running projects</span>
+        <span>
+          to an unlimited number of simultaneous running {projectsLabelLower}
+        </span>
       );
     }
-    return <span>to up to {info.run_limit} simultaneous running projects</span>;
+    return (
+      <span>
+        to up to {info.run_limit} simultaneous running {projectsLabelLower}
+      </span>
+    );
   }
 
   function render_what_license_provides_overall(): React.JSX.Element | undefined {
@@ -406,7 +420,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
   function render_why(): React.JSX.Element {
     return (
       <Popover
-        content={LICENSE_ACTIVATION_RULES}
+        content={<LicenseActivationRules />}
         trigger="click"
         placement="rightTop"
         title="Licenses activation rules"
@@ -454,18 +468,23 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       // not providing any upgrades -- tell them why
       if (info.running == null) {
         // not loaded yet...
-        provides = <li>Currently providing no upgrades to this project.</li>;
+        provides = (
+          <li>
+            Currently providing no upgrades to this {projectLabelLower}.
+          </li>
+        );
       } else {
         if (!info.run_limit || info.running < info.run_limit) {
           provides = (
             <>
               <li>
-                Currently providing no upgrades to this project. {render_why()}
+                Currently providing no upgrades to this {projectLabelLower}.{" "}
+                {render_why()}
               </li>
               <li>
                 Try <Icon name="sync" />{" "}
                 <a onClick={() => restart_project(false)}>
-                  restarting this project
+                  restarting this {projectLabelLower}
                 </a>{" "}
                 to attempt using the upgrades provided by this license.
               </li>
@@ -475,13 +494,16 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
         } else {
           provides = (
             <>
-              <li>Currently providing no upgrades to this project.</li>
+              <li>
+                Currently providing no upgrades to this {projectLabelLower}.
+              </li>
               <li>
                 <Icon name="warning" /> License is already being used to upgrade{" "}
-                {info.running} other running projects, which is the limit. If
-                possible, stop one of those projects, then{" "}
+                {info.running} other running {projectsLabelLower}, which is the
+                limit. If possible, stop one of those {projectsLabelLower},
+                then{" "}
                 <a onClick={() => restart_project(false)}>
-                  restart this project.
+                  restart this {projectLabelLower}.
                 </a>
               </li>
             </>
@@ -571,7 +593,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     return (
       <>
         <br />
-        The project will no longer get upgraded using this license.{" "}
+        The {projectLabelLower} will no longer get upgraded using this license.{" "}
         {restartAfterRemove && (
           <>
             <br />
@@ -592,7 +614,8 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       <Popconfirm
         title={
           <div>
-            Are you sure you want to remove this license from the project?
+            Are you sure you want to remove this license from the{" "}
+            {projectLabelLower}?
             {extra}
           </div>
         }
@@ -883,7 +906,7 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
               They will no longer see this license listed under licenses they
               manage.
               <br /> License will <i>not</i> be automatically removed from any
-              projects they applied it to.
+              {projectsLabelLower} they applied it to.
             </>
           }
           onConfirm={() => do_remove_manager(account_id)}

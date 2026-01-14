@@ -44,7 +44,7 @@ import {
   R2_REGIONS,
   type R2Region,
 } from "@cocalc/util/consts";
-import { isValidUUID } from "@cocalc/util/misc";
+import { capitalize, isValidUUID } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { SelectNewHost } from "@cocalc/frontend/hosts/select-new-host";
@@ -254,7 +254,7 @@ export function NewProjectCreator({
             style={{ width: "100%" }}
           >
             <Icon name="plus-circle" />{" "}
-            {intl.formatMessage(labels.create_project)}
+            {capitalize(intl.formatMessage(labels.create))}
           </Button>
         </Col>
       </Row>
@@ -410,7 +410,7 @@ export function NewProjectCreator({
             <Paragraph type="secondary">
               <FormattedMessage
                 id="projects.create-project.explanation"
-                defaultMessage={`A <A1>{projectLabel}</A1> is a private computational workspace,
+                defaultMessage={`A <A1>{projectLabel}</A1> is a private computational environment
                   where you can work with collaborators that you explicitly invite.
                   {compute_servers_enabled, select,
                   true {You can attach powerful <A2>GPUs, CPUs</A2> and <A3>storage</A3> to a {projectLabel}.}
@@ -475,11 +475,10 @@ export function NewProjectCreator({
       {
         id: "projects.create-project.create",
         defaultMessage:
-          "Create {projectLabel} {requireLicense, select, true {(select license above)} other {}}",
+          "Create{requireLicense, select, true { (select license above)} other {}}",
       },
       {
         requireLicense: requireLicense && !license_id,
-        projectLabel,
       },
     );
   }
