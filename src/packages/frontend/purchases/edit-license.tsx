@@ -26,6 +26,8 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { compute_cost } from "@cocalc/util/licenses/purchase/compute-cost";
 import { CURRENT_VERSION } from "@cocalc/util/licenses/purchase/consts";
 import type { LicenseFromApi } from "@cocalc/util/db-schema/site-licenses";
+import { useIntl } from "react-intl";
+import { labels } from "@cocalc/frontend/i18n";
 
 interface Props {
   license_id: string;
@@ -33,6 +35,8 @@ interface Props {
 }
 
 export default function EditLicense({ license_id, refresh }: Props) {
+  const intl = useIntl();
+  const projectsLabelLower = intl.formatMessage(labels.projects).toLowerCase();
   const [license, setLicense] = useState<LicenseFromApi | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
@@ -318,7 +322,7 @@ export default function EditLicense({ license_id, refresh }: Props) {
           />
           <div style={{ marginTop: "15px" }}>
             You may edit a license at any time, but{" "}
-            <b>projects using the license might be restarted</b>.
+            <b>{projectsLabelLower} using the license might be restarted</b>.
             {cost != 0 && (
               <span>
                 {" "}

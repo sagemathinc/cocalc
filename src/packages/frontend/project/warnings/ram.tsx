@@ -23,6 +23,8 @@ import {
 } from "../../app-framework";
 import { useEffect, useState } from "react";
 import { A, Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
+import { useIntl } from "react-intl";
 
 const OOM_INFO_PAGE = "https://doc.cocalc.com/howto/low-memory.html";
 const OOM_VIDEO = "https://youtu.be/i5qGwXlo-2I";
@@ -95,6 +97,8 @@ function toMB(s) {
 
 function Banner({ memory, project_id, onClose }) {
   const actions = useActions({ project_id });
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
   const rss_mb = toMB(memory?.get("rss"));
   const limit_mb = toMB(memory?.get("limit"));
   return (
@@ -107,9 +111,9 @@ function Banner({ memory, project_id, onClose }) {
       message={
         <b style={{ color: "#666" }}>
           {rss_mb < limit_mb ? (
-            <>This project is running low on RAM memory</>
+            <>This {projectLabelLower} is running low on RAM memory</>
           ) : (
-            <>This project is out of RAM memory</>
+            <>This {projectLabelLower} is out of RAM memory</>
           )}{" "}
           {!!rss_mb && (
             <>
@@ -122,7 +126,7 @@ function Banner({ memory, project_id, onClose }) {
         <div>
           Increase the RAM memory in{" "}
           <a onClick={() => actions?.set_active_tab("upgrades")}>
-            project upgrades
+            {projectLabelLower} upgrades
           </a>
           , read about{" "}
           <A href={OOM_INFO_PAGE}>how to reduce your memory usage</A> and watch{" "}

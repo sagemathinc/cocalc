@@ -45,6 +45,7 @@ export const CustomSoftwareReset: React.FC<Props> = (props: Props) => {
   const site_name = useTypedRedux("customize", "site_name");
 
   const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
 
   function reset() {
     actions.custom_software_reset();
@@ -75,7 +76,7 @@ export const CustomSoftwareReset: React.FC<Props> = (props: Props) => {
             <p>
               Clicking on "Reset" copies all accompanying files of this custom
               software environment into your home directory. This was done once when
-              this project was created and you can repeat this action right now. If
+              this {projectLabel} was created and you can repeat this action right now. If
               these accompanying files hosted on {NAME} did update in the meantime,
               you'll recieve the newer versions.
             </p>
@@ -85,9 +86,10 @@ export const CustomSoftwareReset: React.FC<Props> = (props: Props) => {
               However, nothing is lost: you can still access the previous version
               via <A1>Snapshots</A1> or <A2>TimeTravel</A2>.
             </p>
-            <p>This action will also restart your project!</p>`}
+            <p>This action will also restart your {projectLabel}!</p>`}
           values={{
             NAME,
+            projectLabel: projectLabelLower,
             A1: (c) => <A href={doc_snap}>{c}</A>,
             A2: (c) => <A href={doc_tt}>{c}</A>,
           }}

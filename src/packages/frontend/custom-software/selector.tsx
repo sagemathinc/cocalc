@@ -69,6 +69,8 @@ interface Props {
 export function SoftwareEnvironment(props: Props) {
   const { onChange, default_image } = props;
   const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
+  const projectsLabelLower = intl.formatMessage(labels.projects).toLowerCase();
   const images: ComputeImages | undefined = useTypedRedux(
     "compute_images",
     "images",
@@ -140,10 +142,12 @@ export function SoftwareEnvironment(props: Props) {
             id="custom-software.selector.select-custom-image"
             defaultMessage={`<p>Specialized software environment are provided by 3rd parties and usually contain accompanying files to work with.</p>
 
-            <p>Note: A <em>specialized</em> software environment is tied to the project.
-            In order to work in a different environment, create another project.
-            You can always <A>copy files between projects</A> as well.</p>`}
+            <p>Note: A <em>specialized</em> software environment is tied to the {projectLabel}.
+            In order to work in a different environment, create another {projectLabel}.
+            You can always <A>copy files between {projectsLabel}</A> as well.</p>`}
             values={{
+              projectLabel: projectLabelLower,
+              projectsLabel: projectsLabelLower,
               em: (c) => <em>{c}</em>,
               p: (c) => <Paragraph type="secondary">{c}</Paragraph>,
               A: (c) => (

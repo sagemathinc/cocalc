@@ -56,6 +56,7 @@ export function NoInternetModal(props: NoInternetBannerProps) {
   const { isPaidStudentPayProject, hasComputeServers } = props;
   const { project_id, project } = useProjectContext();
   const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
 
@@ -71,7 +72,7 @@ export function NoInternetModal(props: NoInternetBannerProps) {
         <Paragraph>
           <FormattedMessage
             id="project.no-internet-modal.info"
-            defaultMessage={`<strong>Internet access is disabled for this project.</strong>
+            defaultMessage={`<strong>Internet access is disabled for this {projectLabel}.</strong>
             This restriction prevents installing Python packages (pip, conda) or R packages,
             using Git to clone repositories, downloading datasets or accessing APIs.
             Commands that attempt to access the internet may hang or fail to complete,
@@ -79,6 +80,7 @@ export function NoInternetModal(props: NoInternetBannerProps) {
             values={{
               strong: (c) => <strong>{c}</strong>,
               A: (c) => <A href={INET_QUOTA_URL}>{c}</A>,
+              projectLabel: projectLabelLower,
             }}
           />
         </Paragraph>
