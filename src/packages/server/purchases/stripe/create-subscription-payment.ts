@@ -2,11 +2,9 @@ import getLogger from "@cocalc/backend/logger";
 import { getStripeCustomerId } from "./util";
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import { SUBSCRIPTION_RENEWAL } from "@cocalc/util/db-schema/purchases";
-import { isValidUUID } from "@cocalc/util/misc";
 import { moneyRound2Down, moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import dayjs from "dayjs";
 import { ALLOWED_SLACK } from "@cocalc/server/purchases/shopping-cart-checkout";
-import editLicense from "@cocalc/server/purchases/edit-license";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
 import createPaymentIntent from "./create-payment-intent";
 import {
@@ -65,26 +63,11 @@ export default async function createSubscriptionPayment({
     );
   }
 
-  if (metadata?.type != "license" && metadata?.type != "membership") {
-    throw Error("subscription must be for a license or membership");
+  if (metadata?.type != "membership") {
+    throw Error("subscription must be for a membership");
   }
-  let start = new Date(current_period_end);
   const now = new Date();
-  if (metadata.type == "license") {
-    if (!isValidUUID(metadata.license_id)) {
-      throw Error("subscription must be for a valid license");
-    }
-    const { rows: licenses } = await pool.query(
-      "SELECT expires FROM site_licenses WHERE id=$1",
-      [metadata.license_id],
-    );
-    if (licenses.length == 0) {
-      throw Error(
-        `subscription must be for a valid license, but there isn't one with id ${metadata.license_id}`,
-      );
-    }
-    start = new Date(licenses[0].expires);
-  }
+  let start = new Date(current_period_end);
   if (start < now) {
     start = now;
   }
@@ -249,8 +232,8 @@ export async function processSubscriptionRenewal({
     metadata,
     interval,
   });
-  if (metadata?.type != "license" && metadata?.type != "membership") {
-    throw Error("unsupported subscription metadata");
+  if (metadata?.type != "membership") {
+    throw Error("subscription must be for a membership");
   }
   if (!force && amountValue.add(ALLOWED_SLACK).lte(costValue)) {
     logger.debug("processSubscriptionRenewal: SUSPICIOUS! -- not doing it.");
@@ -264,8 +247,8 @@ export async function processSubscriptionRenewal({
     // postgresql semantics, etc.  I also can't reproduce it by putting
     // in delays.   However, payment==null *did* happen in production
     // once, so we just do it manually in this case :-(
-    // We also ensure new_expires_ms is in the future so the extension of
-    // end period of license happens for sure.
+    // We also ensure new_expires_ms is in the future so the period update
+    // happens for sure.
     // this code is same as resumeSubscriptionSetPaymentIntent below:
     const new_expires_ms = addInterval(
       new Date(),
@@ -276,41 +259,23 @@ export async function processSubscriptionRenewal({
 
   const end = new Date(payment.new_expires_ms);
 
-  let purchase_id: number | undefined;
-  if (metadata.type == "license") {
-    logger.debug(
-      `processSubscriptionRenewal: extend the license to ${payment.new_expires_ms}`,
-    );
-    const result = await editLicense({
-      account_id,
-      license_id: metadata.license_id,
-      changes: { end },
-      cost: costValue.toNumber(),
-      note: "This is a subscription with a fixed cost per period.",
-      isSubscriptionRenewal: true,
-      force: true,
-      client,
-    });
-    purchase_id = result.purchase_id;
-  } else {
-    purchase_id = await createPurchase({
-      account_id,
-      service: "membership",
-      description: {
-        type: "membership",
-        subscription_id:
-          typeof subscription_id != "number"
-            ? parseInt(subscription_id)
-            : subscription_id,
-        class: metadata.class,
-        interval,
-      },
-      client,
-      cost: costValue,
-      period_start: subtractInterval(end, interval),
-      period_end: end,
-    });
-  }
+  const purchase_id = await createPurchase({
+    account_id,
+    service: "membership",
+    description: {
+      type: "membership",
+      subscription_id:
+        typeof subscription_id != "number"
+          ? parseInt(subscription_id)
+          : subscription_id,
+      class: metadata.class,
+      interval,
+    },
+    client,
+    cost: costValue,
+    period_start: subtractInterval(end, interval),
+    period_end: end,
+  });
 
   logger.debug(
     "processSubscriptionRenewal: mark payment done, and update period",

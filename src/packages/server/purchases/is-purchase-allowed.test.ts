@@ -23,7 +23,7 @@ afterAll(after);
 describe("test checking whether or not purchase is allowed under various conditions", () => {
   const account_id = uuid();
 
-  it("check small purchase not allowed for a new user", async () => {
+  it("check small membership purchase not allowed for a new user", async () => {
     await createAccount({
       email: "",
       password: "xyz",
@@ -34,7 +34,7 @@ describe("test checking whether or not purchase is allowed under various conditi
 
     const { allowed, chargeAmount } = await isPurchaseAllowed({
       account_id,
-      service: "license",
+      service: "membership",
       cost: 1,
     });
     expect(allowed).toBe(false);
@@ -42,18 +42,18 @@ describe("test checking whether or not purchase is allowed under various conditi
     expect(chargeAmount).toBe(pay_as_you_go_min_payment);
   });
 
-  it("check larger purchase also not allowed for new user", async () => {
+  it("check larger membership purchase also not allowed for new user", async () => {
     const { pay_as_you_go_min_payment } = await getServerSettings();
     const { allowed, chargeAmount } = await isPurchaseAllowed({
       account_id,
-      service: "license",
+      service: "membership",
       cost: 10 + pay_as_you_go_min_payment,
     });
     expect(allowed).toBe(false);
     expect(chargeAmount).toBe(10 + pay_as_you_go_min_payment);
   });
 
-  it("small purchase is allowed after we add some credit, but user has to pay the min", async () => {
+  it("small membership purchase is allowed after we add some credit, but user has to pay the min", async () => {
     await createPurchase({
       account_id,
       service: "credit",
@@ -63,17 +63,17 @@ describe("test checking whether or not purchase is allowed under various conditi
     });
     const { allowed } = await isPurchaseAllowed({
       account_id,
-      service: "license",
+      service: "membership",
       cost: 1,
     });
     expect(allowed).toBe(true);
   });
 
-  it("larger purchase is also allowed", async () => {
+  it("larger membership purchase is also allowed", async () => {
     const { pay_as_you_go_min_payment } = await getServerSettings();
     const { allowed } = await isPurchaseAllowed({
       account_id,
-      service: "license",
+      service: "membership",
       cost: 10 + pay_as_you_go_min_payment,
     });
     expect(allowed).toBe(true);
@@ -84,7 +84,7 @@ describe("test checking whether or not purchase is allowed under various conditi
     const nonExistentAccountId = uuid();
     const { allowed, reason } = await isPurchaseAllowed({
       account_id: nonExistentAccountId,
-      service: "license",
+      service: "membership",
       cost: 1,
     });
     expect(allowed).toBe(false);
@@ -104,7 +104,7 @@ describe("test checking whether or not purchase is allowed under various conditi
   it("says 'no' for non-finite cost", async () => {
     const { allowed, reason } = await isPurchaseAllowed({
       account_id,
-      service: "license",
+      service: "membership",
       cost: 1 / 0,
     });
     expect(allowed).toBe(false);
@@ -135,20 +135,13 @@ describe("test checking whether or not purchase is allowed under various conditi
     expect(y.allowed).toBe(true);
   });
 
-  it("allows edit-license to have cost 0, but not other services", async () => {
+  it("does not allow zero-cost membership purchases", async () => {
     const { allowed } = await isPurchaseAllowed({
       account_id,
-      service: "edit-license",
+      service: "membership",
       cost: 0,
     });
-    expect(allowed).toBe(true);
-
-    const x = await isPurchaseAllowed({
-      account_id,
-      service: "license",
-      cost: 0,
-    });
-    expect(x.allowed).toBe(false);
+    expect(allowed).toBe(false);
   });
 
   it("allows but DISCOURAGES purchase for service with a quota even though our balance is large, since the quota default is 0", async () => {

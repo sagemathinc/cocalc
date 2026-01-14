@@ -147,9 +147,7 @@ export async function getCheckoutCart(
     filter ??
       ((item) =>
         item.checked &&
-        (item.product == "site-license" ||
-          item.product == "cash-voucher" ||
-          item.product == "membership")),
+        (item.product == "cash-voucher" || item.product == "membership")),
   );
   const membershipItems = cart.filter((item) => item.product == "membership");
   if (membershipItems.length > 1) {

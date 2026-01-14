@@ -33,7 +33,6 @@ import {
 import { SiteLicense } from "@cocalc/util/types/site-licenses";
 import { actions } from "./actions";
 import { Managers } from "./managers";
-import Owner from "./owner";
 import { DisplayQuota, EditQuota } from "./quota";
 import { license_field_type, license_fields, ManagerInfo } from "./types";
 import {
@@ -402,7 +401,6 @@ export const License: React.FC<Props> = (props: Props) => {
         const value = toJsonString(val);
         x = (
           <div>
-            <Owner info={value} license_id={license.get("id")} />
             <pre style={{ margin: 0, padding: "5px" }}>{value}</pre>
           </div>
         );

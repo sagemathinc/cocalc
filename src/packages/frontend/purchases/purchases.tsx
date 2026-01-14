@@ -39,7 +39,6 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { load_target } from "@cocalc/frontend/history";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
-import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import getSupportURL from "@cocalc/frontend/support/url";
 import {
   ANTHROPIC_PREFIX,
@@ -51,8 +50,6 @@ import {
 import { QUOTA_SPEC, type Service } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
-import { describeQuotaFromInfo } from "@cocalc/util/licenses/describe-quota";
-import type { PurchaseInfo } from "@cocalc/util/licenses/purchase/types";
 import {
   capitalize,
   cmp,
@@ -914,7 +911,7 @@ function PurchaseModal({ purchase, onClose, admin }) {
   );
 }
 
-// "credit" | "openai-gpt-4" | "license" | "edit-license", etc.
+// "credit" | "openai-gpt-4" | "membership", etc.
 
 function Description({ description, period_end, service }) {
   if (description == null) {
@@ -1048,40 +1045,6 @@ function Description({ description, period_end, service }) {
       </div>
     );
   }
-  if (service === "edit-license") {
-    const { license_id } = description;
-    return (
-      <Popover
-        title={
-          <div style={{ fontSize: "13pt" }}>
-            <Icon name="pencil" /> Edited License
-          </div>
-        }
-        content={() => (
-          <div style={{ width: "500px" }}>
-            <b>From:</b> {describeQuotaFromInfo(description.origInfo)}{" "}
-            <LicenseDates info={description.origInfo} />
-            <br />
-            <br />
-            <b>To:</b> {describeQuotaFromInfo(description.modifiedInfo)}{" "}
-            <LicenseDates info={description.modifiedInfo} />
-            {description.note != null && (
-              <div>
-                <br />
-                NOTE: {description.note}
-              </div>
-            )}
-          </div>
-        )}
-      >
-        Edit License: <License license_id={license_id} />
-        <div>
-          {describeQuotaFromInfo(description.modifiedInfo)}
-          <LicenseDates info={description.modifiedInfo} />
-        </div>
-      </Popover>
-    );
-  }
   // generic fallback...
   return (
     <>
@@ -1091,18 +1054,6 @@ function Description({ description, period_end, service }) {
         {capitalize(service)}
       </Popover>
     </>
-  );
-}
-
-function LicenseDates({ info }: { info: PurchaseInfo }) {
-  if (info.type == "vouchers") {
-    return null;
-  }
-  return (
-    <span>
-      (<TimeAgo date={info.start} /> to{" "}
-      {info.end ? <TimeAgo date={info.end} /> : "-"})
-    </span>
   );
 }
 
@@ -1335,16 +1286,5 @@ function getFilter(purchase) {
 }
 
 function License({ license_id }) {
-  const [open, setOpen] = useState<boolean>(false);
-
-  return (
-    <span>
-      <Button onClick={() => setOpen(!open)}>{license_id}</Button>
-      {open && (
-        <div style={{ maxWidth: "100%", minWidth: "700px" }}>
-          <SiteLicensePublicInfo license_id={license_id} />
-        </div>
-      )}
-    </span>
-  );
+  return <span>{license_id}</span>;
 }

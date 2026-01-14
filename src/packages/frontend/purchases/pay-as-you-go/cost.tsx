@@ -63,13 +63,6 @@ export default function Cost({ inline, service, cost: cost0 }: Props) {
         completion_tokens={cost.completion_tokens}
       />
     );
-  } else if (service == "edit-license") {
-    return (
-      <div style={TEXT_STYLE}>
-        The prorated difference between the cost of the original license and the
-        edited one.
-      </div>
-    );
   } else if (service == "compute-server") {
     return (
       <div style={TEXT_STYLE}>

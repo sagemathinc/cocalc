@@ -1,20 +1,11 @@
 /*
-Right now cocalc subscriptions are ONLY for licenses and nothing else.
-Of course, licenses are for a lot of things: upgrading projects, dedicated vm's, dedicated disks.
-
-Renewing a subscription means that two big things happen:
-
- - the license end date is increased by the period: 'month' or 'year'
- - a purchase is created to pay for that period.
-
-Also, the current_period dates for the subscription are updated, and
-the status is active.
+Renewing a membership subscription creates a new purchase for the next period
+and updates current_period dates and status.
 */
 
 import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
 import dayjs from "dayjs";
-import editLicense from "./edit-license";
 import type { Status } from "@cocalc/util/db-schema/subscriptions";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
 import createPurchase from "./create-purchase";
@@ -25,13 +16,11 @@ const logger = getLogger("purchases:renew-subscription");
 interface Options {
   account_id: string;
   subscription_id: number;
-  force?: boolean; // subscription renews even if we are out of money.
 }
 
 export default async function renewSubscription({
   account_id,
   subscription_id,
-  force,
 }: Options): Promise<number | null | undefined> {
   // might not be a purchase in case there's no fee
   logger.debug({ account_id, subscription_id });
@@ -40,43 +29,28 @@ export default async function renewSubscription({
     throw Error("you must be signed in as the owner of the subscription");
   }
   const { metadata, interval, current_period_end, cost } = subscription;
-  if (metadata?.type != "license" && metadata?.type != "membership") {
-    throw Error("unsupported subscription metadata");
+  if (metadata?.type != "membership") {
+    throw Error("subscription must be a membership");
   }
   const end = addInterval(current_period_end, interval);
 
   // Use a transaction so we either edit license and update subscription or do nothing.
   const client = await getTransactionClient();
   try {
-    let purchase_id: number | undefined;
-    if (metadata.type == "license") {
-      const { purchase_id: license_purchase_id } = await editLicense({
-        account_id,
-        license_id: metadata.license_id,
-        changes: { end },
-        cost,
-        note: "This is a subscription with a fixed cost per period.",
-        isSubscriptionRenewal: true,
-        client,
-        force,
-      });
-      purchase_id = license_purchase_id;
-    } else {
-      purchase_id = await createPurchase({
-        account_id,
-        service: "membership",
-        description: {
-          type: "membership",
-          subscription_id,
-          class: metadata.class,
-          interval,
-        },
-        client,
-        cost,
-        period_start: subtractInterval(end, interval),
-        period_end: end,
-      });
-    }
+    const purchase_id = await createPurchase({
+      account_id,
+      service: "membership",
+      description: {
+        type: "membership",
+        subscription_id,
+        class: metadata.class,
+        interval,
+      },
+      client,
+      cost,
+      period_start: subtractInterval(end, interval),
+      period_end: end,
+    });
 
     await client.query(
       "UPDATE subscriptions SET status='active',current_period_start=$1,current_period_end=$2,latest_purchase_id=$3 WHERE id=$4",

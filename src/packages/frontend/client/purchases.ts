@@ -11,7 +11,6 @@ import type { Service } from "@cocalc/util/db-schema/purchases";
 import { redux } from "@cocalc/frontend/app-framework";
 import { once } from "@cocalc/util/async-utils";
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
-import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 import { moneyRound2Up, type MoneyValue } from "@cocalc/util/money";
 import type { WebappClient } from "./client";
 
@@ -65,10 +64,6 @@ export class PurchasesClient {
     group?: boolean;
   }) {
     return await purchasesApi.getPurchases(opts);
-  }
-
-  async editLicense(opts: { license_id: string; changes: EditLicenseChanges }) {
-    return await purchasesApi.editLicense(opts);
   }
 
   async getInvoice(invoice_id: string) {
@@ -143,10 +138,6 @@ export class PurchasesClient {
 
   async adminSetMinBalance(account_id: string, minBalance: number) {
     await purchasesApi.adminSetMinBalance(account_id, minBalance);
-  }
-
-  async getLicense(license_id: string) {
-    return await purchasesApi.getLicense({ license_id });
   }
 
   async renewSubscription(

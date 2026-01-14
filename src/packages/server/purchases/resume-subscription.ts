@@ -1,21 +1,13 @@
 /*
-Resume a canceled subscription, which does all of the following in a single ATOMIC transaction.
+Resume a canceled membership subscription, which does all of the following in a single ATOMIC transaction.
 
 - Changes the status of the subscription to active, so it'll get renewed each month.
 - Sets the current_period_start/end dates for the subscription with current_period_start=midnight today.
   and current_period_end an interval (='month' or 'year') from now.
-- Edits the license so that start date is now and end date is current_period_end.
-  Doing this edit involves a charge and will fail if user doesn't have sufficient
-  credit.
 */
 
-import getPool, { getTransactionClient } from "@cocalc/database/pool";
-import editLicense from "./edit-license";
+import { getTransactionClient } from "@cocalc/database/pool";
 import { getSubscription, addInterval } from "./renew-subscription";
-import {
-  compute_cost,
-  periodicCost as getPeriodicCost,
-} from "@cocalc/util/licenses/purchase/compute-cost";
 import dayjs from "dayjs";
 import send, { support, url, name } from "@cocalc/server/messages/send";
 import {
@@ -25,7 +17,7 @@ import {
 import adminAlert from "@cocalc/server/messages/admin-alert";
 import getBalance from "./get-balance";
 import createPurchase from "./create-purchase";
-import { moneyToDbString, toDecimal } from "@cocalc/util/money";
+import { toDecimal } from "@cocalc/util/money";
 
 interface Options {
   account_id: string;
@@ -43,34 +35,20 @@ export default async function resumeSubscription({
   try {
     if (current_period_end <= new Date()) {
       // make purchase, if needed
-      if (metadata.type == "license") {
-        purchase_id = (
-          await editLicense({
-            account_id,
-            license_id: metadata.license_id,
-            changes: { end },
-            note: `This is to pay for subscription id=${subscription_id}.  The owner of the subscription manually resumed it.   This purchase pays for the cost of one period of the subscription.`,
-            isSubscriptionRenewal: true,
-            client,
-            cost: periodicCost,
-          })
-        ).purchase_id;
-      } else {
-        purchase_id = await createPurchase({
-          account_id,
-          service: "membership",
-          description: {
-            type: "membership",
-            subscription_id,
-            class: metadata.class,
-            interval,
-          },
-          client,
-          cost: periodicCost,
-          period_start: start,
-          period_end: end,
-        });
-      }
+      purchase_id = await createPurchase({
+        account_id,
+        service: "membership",
+        description: {
+          type: "membership",
+          subscription_id,
+          class: metadata.class,
+          interval,
+        },
+        client,
+        cost: periodicCost,
+        period_start: start,
+        period_end: end,
+      });
 
       if (purchase_id) {
         await client.query(
@@ -152,9 +130,7 @@ error. An admin should check in on this.
 }
 
 async function getSubscriptionRenewalData(subscription_id): Promise<{
-  metadata:
-    | { type: "license"; license_id: string }
-    | { type: "membership"; class: MembershipClass };
+  metadata: { type: "membership"; class: MembershipClass };
   start: Date;
   end: Date;
   periodicCost: number;
@@ -168,8 +144,8 @@ async function getSubscriptionRenewalData(subscription_id): Promise<{
     status,
     current_period_end,
   } = await getSubscription(subscription_id);
-  if (metadata?.type != "license" && metadata?.type != "membership") {
-    throw Error("unsupported subscription metadata");
+  if (metadata?.type != "membership") {
+    throw Error("subscription must be a membership");
   }
   if (status != "canceled") {
     throw Error(
@@ -178,29 +154,6 @@ async function getSubscriptionRenewalData(subscription_id): Promise<{
   }
   const currentCostValue = toDecimal(currentCost ?? 0);
   let periodicCostValue = currentCostValue;
-  if (metadata.type == "license") {
-    const pool = getPool();
-    const { rows } = await pool.query(
-      "SELECT info FROM site_licenses where id=$1",
-      [metadata.license_id],
-    );
-    const purchaseInfo = rows[0]?.info?.purchased;
-    if (purchaseInfo != null) {
-      const computedCost = compute_cost({
-        ...purchaseInfo,
-        start: null,
-        end: null,
-      });
-      const newCostValue = toDecimal(getPeriodicCost(computedCost));
-      if (!newCostValue.eq(currentCostValue)) {
-        await pool.query(`UPDATE subscriptions SET cost=$1 WHERE id=$2`, [
-          moneyToDbString(newCostValue),
-          subscription_id,
-        ]);
-        periodicCostValue = newCostValue;
-      }
-    }
-  }
   const start = dayjs().startOf("day").toDate();
   const end = addInterval(start, interval);
   return {

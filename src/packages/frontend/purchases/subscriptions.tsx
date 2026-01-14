@@ -24,7 +24,6 @@ The subscriptions look like this in the database:
 import {
   Alert,
   Button,
-  Collapse,
   Flex,
   Input,
   Modal,
@@ -40,7 +39,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { SettingBox } from "@cocalc/frontend/components/setting-box";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { labels } from "@cocalc/frontend/i18n";
-import { SiteLicensePublicInfo } from "@cocalc/frontend/site-licenses/site-license-public-info-component";
 import {
   type Subscription,
   STATUS_TO_COLOR,
@@ -59,13 +57,11 @@ import ResumeSubscription from "./resume-subscription";
 
 function SubscriptionActions({
   subscription_id,
-  metadata,
   status,
   refresh,
   interval,
 }: {
   subscription_id: number;
-  metadata: Subscription["metadata"];
   status: Subscription["status"];
   refresh: () => void;
   interval: Subscription["interval"];
@@ -74,8 +70,6 @@ function SubscriptionActions({
   const [loading, setLoading] = useState<boolean>(false);
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [showResume, setShowResume] = useState<boolean>(false);
-  const isLicense = metadata?.type == "license";
-
   const reasonRef = useRef<string>("");
   const handleCancel = async () => {
     try {
@@ -123,9 +117,8 @@ function SubscriptionActions({
       title={"Cancel this subscription at period end?"}
       description={
         <div style={{ maxWidth: "450px" }}>
-          {isLicense
-            ? "The license will still be valid until the subscription period ends. You can always restart the subscription or edit the license to change the subscription price."
-            : "Your subscription will remain active until the current period ends. You can restart the subscription later if needed."}
+          Your subscription will remain active until the current period ends.
+          You can restart the subscription later if needed.
           <br />
           <Input.TextArea
             rows={4}
@@ -175,15 +168,8 @@ function SubscriptionActions({
         >
           <div style={{ maxWidth: "450px" }}>
             Are you sure you want to cancel this subscription? The corresponding
-            {isLicense ? " license " : " membership "} will not be renewed.
+            membership will not be renewed.
             <ul style={{ margin: "15px 0" }}>
-              {isLicense && (
-                <li>
-                  Instead of cancelling, <b>you can edit your license</b>, which
-                  will change the subscription price. Click the license code to
-                  the left, then click "Edit License".
-                </li>
-              )}
               <li>
                 Select "Cancel at Period End" to cancel your subscription. You
                 have already paid for your subscription, so it will continue to
@@ -228,10 +214,8 @@ function SubscriptionActions({
 
 function SubscriptionDescription({
   metadata,
-  refresh,
 }: {
   metadata: Subscription["metadata"];
-  refresh: () => void;
 }) {
   if (metadata?.type == "membership") {
     return (
@@ -240,32 +224,7 @@ function SubscriptionDescription({
       </div>
     );
   }
-  if (metadata?.type != "license" || !metadata.license_id) {
-    return null;
-  }
-  return (
-    <Collapse
-      items={[
-        {
-          key: "license",
-          label: (
-            <Flex>
-              <Icon name="key" style={{ marginRight: "15px" }} /> License Id:{" "}
-              {metadata.license_id}
-              <div style={{ flex: 1 }} />
-              <div>(expand to edit)</div>
-            </Flex>
-          ),
-          children: (
-            <SiteLicensePublicInfo
-              license_id={metadata.license_id}
-              refresh={refresh}
-            />
-          ),
-        },
-      ]}
-    />
-  );
+  return null;
 }
 
 export default function Subscriptions() {
@@ -375,14 +334,6 @@ export default function Subscriptions() {
         key: "desc",
         render: (_, subscription) => {
           const { metadata } = subscription;
-          if (metadata.type == "license" && metadata.license_id) {
-            return (
-              <Button onClick={() => setCurrent(subscription)}>
-                <Icon name="key" style={{ marginRight: "15px" }} />
-                License Id: {metadata.license_id}
-              </Button>
-            );
-          }
           if (metadata.type == "membership") {
             return (
               <Button onClick={() => setCurrent(subscription)}>
@@ -430,11 +381,10 @@ export default function Subscriptions() {
       {
         title: "Manage",
         key: "manage",
-        render: (_, { id, metadata, status, interval }) => (
+        render: (_, { id, status, interval }) => (
           <>
             <SubscriptionActions
               subscription_id={id}
-              metadata={metadata}
               status={status}
               refresh={getSubscriptions}
               interval={interval}
@@ -561,7 +511,6 @@ function SubscriptionModal({ subscription, getSubscriptions, onClose }) {
       <Space style={{ width: "100%" }} direction="vertical">
         <SubscriptionDescription
           metadata={subscription.metadata}
-          refresh={getSubscriptions}
         />
         <div>
           Status: <SubscriptionStatus status={subscription.status} />
@@ -582,7 +531,6 @@ function SubscriptionModal({ subscription, getSubscriptions, onClose }) {
           Manage:{" "}
           <SubscriptionActions
             subscription_id={subscription.id}
-            metadata={subscription.metadata}
             status={subscription.status}
             refresh={() => {
               onClose();

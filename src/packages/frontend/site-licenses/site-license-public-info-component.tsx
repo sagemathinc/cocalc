@@ -32,8 +32,6 @@ import {
   query,
   user_search,
 } from "@cocalc/frontend/frame-editors/generic/client";
-import EditLicense from "@cocalc/frontend/purchases/edit-license";
-import Subscription from "@cocalc/frontend/purchases/subscription";
 import { User } from "@cocalc/frontend/users";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { describe_quota } from "@cocalc/util/licenses/describe-quota";
@@ -73,7 +71,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
     warn_if,
     restartAfterRemove = false,
     tableMode = false,
-    refresh,
   } = props;
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
@@ -103,7 +100,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
   >(false);
   const user_map = useTypedRedux("users", "user_map");
   const managedLicenses = useTypedRedux("billing", "managed_licenses");
-  const is_commercial = useTypedRedux("customize", "is_commercial");
 
   function getLicenseStatus(): LicenseStatus | undefined {
     const status = upgrades?.get("status");
@@ -947,29 +943,6 @@ export const SiteLicensePublicInfo: React.FC<Props> = (
       {render_upgrades()}
       {render_err()}
       {render_warning()}
-      {is_commercial &&
-        license_id &&
-        managedLicenses?.getIn([
-          license_id,
-          "info",
-          "purchased",
-          "account_id",
-        ]) == redux.getStore("account").get("account_id") && (
-          <div>
-            {info?.subscription_id && (
-              <div style={{ marginTop: "15px" }}>
-                <Subscription subscription_id={info.subscription_id} />
-              </div>
-            )}
-            <EditLicense
-              license_id={license_id}
-              refresh={() => {
-                fetch_info(true);
-                refresh?.();
-              }}
-            />
-          </div>
-        )}
     </div>
   );
   return (

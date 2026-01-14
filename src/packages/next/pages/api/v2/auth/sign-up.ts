@@ -41,7 +41,6 @@ import passwordStrength from "@cocalc/server/auth/password-strength";
 import reCaptcha from "@cocalc/server/auth/recaptcha";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
-import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
 import {
   isLaunchpadMode,
   isSoftwareLicenseActivated,
@@ -76,7 +75,6 @@ export async function signUp(req, res) {
     lastName,
     registrationToken,
     tags,
-    publicPathId,
     signupReason,
   } = getParams(req);
 
@@ -123,8 +121,7 @@ export async function signUp(req, res) {
   // The UI doesn't let users try to make an account via signUp if
   // email isn't enabled.  However, they might try to directly POST
   // to the API, so we check here as well.
-  const { email_signup, anonymous_signup, anonymous_signup_licensed_shares } =
-    await getServerSettings();
+  const { email_signup, anonymous_signup } = await getServerSettings();
 
   const owner_id = await getAccountId(req);
   if (owner_id) {
@@ -165,20 +162,12 @@ export async function signUp(req, res) {
   if (isAnonymous) {
     // Check anonymous sign up conditions.
     if (!anonymous_signup) {
-      if (
-        anonymous_signup_licensed_shares &&
-        publicPathId &&
-        (await hasSiteLicenseId(publicPathId))
-      ) {
-        // an unlisted public path with a license when anonymous_signup_licensed_shares is set is allowed
-      } else {
-        res.json({
-          issues: {
-            email: "Anonymous account creation is disabled.",
-          },
-        });
-        return;
-      }
+      res.json({
+        issues: {
+          email: "Anonymous account creation is disabled.",
+        },
+      });
+      return;
     }
   } else {
     // Check the email sign up conditions.
@@ -308,10 +297,6 @@ export function checkObviousConditions({
     }
   }
   return issues;
-}
-
-async function hasSiteLicenseId(id: string): Promise<boolean> {
-  return !!(await getSiteLicenseId(id));
 }
 
 export default apiRoute({

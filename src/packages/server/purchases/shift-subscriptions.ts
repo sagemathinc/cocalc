@@ -12,7 +12,6 @@ import type {
 } from "@cocalc/util/db-schema/subscriptions";
 import dayjs from "dayjs";
 import { nextDateWithDay, prevDateWithDay } from "./closing-date";
-import editLicense from "./edit-license";
 
 const logger = getLogger("purchase:shift-subscriptions");
 
@@ -40,12 +39,11 @@ export default async function shiftAllSubscriptionsToEndOnDay(
     return;
   }
   for (const row of rows) {
-    await shiftSubscriptionToEndOnDay(account_id, row, day, client);
+    await shiftSubscriptionToEndOnDay(row, day, client);
   }
 }
 
 async function shiftSubscriptionToEndOnDay(
-  account_id: string,
   sub: Pick<
     Subscription,
     "id" | "interval" | "current_period_end" | "status" | "metadata"
@@ -86,20 +84,7 @@ async function shiftSubscriptionToEndOnDay(
       [current_period_start, current_period_end, sub.id]
     );
 
-    if (sub.status != "canceled") {
-      // change underlying license end date to match (could result in credit or charge)
-      if (sub.metadata?.type == "license") {
-        await editLicense({
-          account_id,
-          license_id: sub.metadata.license_id,
-          changes: { end: current_period_end },
-          note: "Edit to this license due to modifying the current period end of the subscription.",
-          isSubscriptionRenewal: true,
-          client,
-          force: true,
-        });
-      }
-    }
+    // license subscriptions are deprecated; no license-side updates here.
   }
 }
 

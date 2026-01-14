@@ -3,7 +3,6 @@ import { CSSProperties, useEffect, useMemo, useState } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
 import { CancelText } from "@cocalc/frontend/i18n/components";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { currency, plural } from "@cocalc/util/misc";
 import { toDecimal } from "@cocalc/util/money";
 import {
@@ -75,15 +74,7 @@ export default function UnpaidSubscriptions({
       setLoading(true);
       setError("");
       for (const { id } of unpaidSubscriptions) {
-        try {
-          await renewSubscription(id);
-        } catch (_) {
-          await webapp_client.purchases_client.quotaModal({
-            service: "edit-license",
-            cost,
-          });
-          await renewSubscription(id);
-        }
+        await renewSubscription(id);
       }
     } catch (error) {
       setError(`${error}`);

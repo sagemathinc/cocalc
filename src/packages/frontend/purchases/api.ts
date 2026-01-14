@@ -12,9 +12,7 @@ import type {
   Service,
 } from "@cocalc/util/db-schema/purchases";
 import LRU from "lru-cache";
-import type { Changes as EditLicenseChanges } from "@cocalc/util/purchases/cost-to-edit-license";
 import type { Subscription } from "@cocalc/util/db-schema/subscriptions";
-import type { LicenseFromApi } from "@cocalc/util/db-schema/site-licenses";
 import type { Interval, Statement } from "@cocalc/util/db-schema/statements";
 import { hoursInInterval } from "@cocalc/util/stripe/timecalcs";
 import { toDecimal, type MoneyValue } from "@cocalc/util/money";
@@ -280,20 +278,6 @@ export async function emailStatement(statement_id: number) {
   return await api("purchases/email-statement", { statement_id });
 }
 
-export async function editLicense(opts: {
-  license_id: string;
-  changes: EditLicenseChanges;
-}) {
-  return await api("purchases/edit-license", opts);
-}
-
-export async function editLicenseOwner(opts: {
-  license_id: string;
-  new_account_id: string;
-}) {
-  return await api("purchases/edit-license-owner", opts);
-}
-
 export async function getInvoice(invoice_id: string) {
   return await api("billing/get-invoice", { invoice_id });
 }
@@ -477,15 +461,6 @@ export async function adminCreateRefund(opts: {
   notes?: string;
 }) {
   return await api("purchases/create-refund", opts);
-}
-
-// can get a license by either its full uuid or the subscription_id number,
-// if it is provided by a subscription.  In the case of a subscription_id,
-// this user has to be a manager of the license.
-export async function getLicense(
-  opts: { license_id: string } | { subscription_id: number },
-): Promise<LicenseFromApi> {
-  return await api("licenses/get-license", opts);
 }
 
 export async function cancelSubscription({

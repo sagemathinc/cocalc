@@ -26,7 +26,7 @@ export function isRefundable(service, invoice_id) {
   if (service == "credit" || service == "auto-credit") {
     return !!invoice_id;
   }
-  return service == "license" || service == "edit-license";
+  return false;
 }
 
 const labelStyle = { width: "60px" } as const;
@@ -91,22 +91,6 @@ export default function AdminRefund({
             The corresponding payment intent will be fully refunded and the
             amount {currency(amount, 2)} of this credit will be deducted from
             the account and listed as a new refund transaction "Refund
-            Transaction {purchase_id}".
-          </>
-        )}
-        {service == "license" && (
-          <>
-            The license will be immediately expired, and the{" "}
-            <b>full amount {currency(amount, 2)} paid for this license</b> will
-            be credited to the account as a new credit "Credit for Refunded
-            Transaction {purchase_id}".
-          </>
-        )}
-        {service == "edit-license" && (
-          <>
-            The effect of this edit to the license will be fully reversed, and
-            the <b>full cost {currency(amount, 2)} of this edit</b> will be
-            credited to the account as a new credit "Credit for Refunded
             Transaction {purchase_id}".
           </>
         )}

@@ -10,8 +10,6 @@ import createPurchase from "./create-purchase";
 import type { Reason, Refund } from "@cocalc/util/db-schema/purchases";
 import { moneyToCurrency, toDecimal } from "@cocalc/util/money";
 import send, { support, url } from "@cocalc/server/messages/send";
-import { changeLicense } from "./edit-license";
-import cancelSubscription from "./cancel-subscription";
 
 const logger = getLogger("purchase:create-refund");
 
@@ -54,13 +52,10 @@ export default async function createRefund(opts: {
   logger.debug("got ", purchases);
   if (service == "credit" || service == "auto-credit") {
     return await refundCredit(account_id, reason, notes, purchases[0]);
-  } else if (service == "license" || service == "edit-license") {
-    return await refundLicense(account_id, reason, notes, purchases[0]);
-  } else {
-    throw Error(
-      `Only credits and license purchases can be refunded, but this purchase is of service type '${service}'`,
-    );
   }
+  throw Error(
+    `Only credits can be refunded, but this purchase is of service type '${service}'`,
+  );
 }
 
 async function refundCredit(
@@ -167,130 +162,6 @@ Your credit of ${moneyToCurrency(
 
 This refund will appear immediately in [your account](${await url("settings", "purchases")}),
 and should post on your credit card or bank statement within 5-10 days.
-
----
-
-- REASON: ${reason}
-
-- NOTES: ${notes}
-
-${await support()}
-`;
-    await send({ to_ids: [account_id], subject, body });
-  } catch (err) {
-    logger.debug("WARNING -- issue sending email", err);
-  }
-
-  return refund_purchase_id;
-}
-
-async function refundLicense(
-  admin_account_id,
-  reason,
-  notes,
-  { description, id: purchase_id, service, cost, account_id },
-) {
-  logger.debug("refundLicense", admin_account_id, {
-    notes,
-    reason,
-    purchase_id,
-    service,
-    cost,
-    account_id,
-  });
-  const costValue = toDecimal(cost);
-
-  if (description.refund_purchase_id) {
-    // UI should never allow this, but just in case (or api mistake usage)
-    throw Error(
-      `this license purchase has already been refunded -- purchase_id=${description.refund_purchase_id}`,
-    );
-  }
-
-  const client = await getTransactionClient();
-  let refund_purchase_id;
-  let action;
-  try {
-    const { license_id } = description;
-    if (service == "license") {
-      // a purchase of a new license.  just set the expire to now, making this worthless
-      action = `The license ${license_id} is now expired.`;
-
-      await client.query("UPDATE site_licenses SET expires=NOW() WHERE id=$1", [
-        license_id,
-      ]);
-    } else if (service == "edit-license") {
-      action = "The changes to the license have been reverted.";
-      await changeLicense(license_id, description.origInfo, client);
-    }
-
-    refund_purchase_id = await createPurchase({
-      account_id,
-      service: "refund",
-      cost: costValue.neg(),
-      description: {
-        type: "refund",
-        purchase_id,
-        notes,
-        reason,
-      },
-      client,
-    });
-
-    // we also update license purchase to have refund_purchase_id set, so
-    // UI can clearly show this is already refunded and also so we can't
-    // refund the same thing twice!
-    await client.query("UPDATE purchases SET description=$2 WHERE id=$1", [
-      purchase_id,
-      { ...description, refund_purchase_id },
-    ]);
-
-    // if there is a corresponding active subscription, cancel it.  That's the most likely thing we want, and it's trivial to resume.
-    const { rows } = await client.query(
-      "select id from subscriptions where status='active' AND metadata#>>'{license_id}' = $1",
-      [license_id],
-    );
-    if (rows.length > 0) {
-      const subscription_id = rows[0].id;
-      await cancelSubscription({
-        client,
-        account_id,
-        subscription_id,
-        reason,
-      });
-      // a special case for admin refunds is we edit current_period_end
-      await client.query(
-        "UPDATE subscriptions SET current_period_end=NOW() WHERE id=$1",
-        [subscription_id],
-      );
-
-      notes += `
-
-The corresponding subscription with id ${rows[0].id} was also canceled.
-
-`;
-    }
-
-    await client.query("COMMIT");
-  } catch (err) {
-    logger.debug("error creating refund", { account_id, purchase_id }, err);
-    await client.query("ROLLBACK");
-    throw err;
-  } finally {
-    client.release();
-  }
-
-  // send confirmation message
-  try {
-    const subject = `Refund of Transaction ${purchase_id} for ${moneyToCurrency(
-      costValue.abs(),
-    )} + tax`;
-    const body = `
-Your license purchase of ${moneyToCurrency(
-      costValue.abs(),
-    )} + tax from transaction ${purchase_id} has been refunded.
-
-${action}
 
 ---
 
