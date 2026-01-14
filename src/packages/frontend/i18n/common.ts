@@ -80,9 +80,8 @@ export const labels = defineMessages({
   },
   create_project: {
     id: "labels.create_project",
-    defaultMessage: "Create Workspace...",
-    description:
-      "Label on buttons to open dialog to create a project, with 3 dots",
+    defaultMessage: "Create a Workspace",
+    description: "Label on dialog titles to create a project",
   },
   relative: {
     id: "labels.relative",
