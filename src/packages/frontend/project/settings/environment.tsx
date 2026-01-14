@@ -55,6 +55,7 @@ export const Environment: React.FC<Props> = ({
 }: Props) => {
   const isFlyout = mode === "flyout";
   const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
   const env = useRedux(["projects", "project_map", project_id, "env"]);
   const [focused, set_focused] = useState<boolean>(false);
   const [editing, set_editing] = useState<string>(to_json(env?.toJS()));
@@ -84,9 +85,10 @@ export const Environment: React.FC<Props> = ({
     <>
       Enter custom environment variables as a JSON map from string to string,
       e.g., <code>{'{"foo":"bar","x":"y"}'}</code>. Unlike environment variables
-      in .bashrc, these will be available to anything that runs in your project
-      (e.g., Jupyter kernels). Delete a variable by setting it to the empty
-      string. Restart your project for these changes to take effect.
+      in .bashrc, these will be available to anything that runs in your{" "}
+      {projectLabelLower} (e.g., Jupyter kernels). Delete a variable by setting
+      it to the empty string. Restart your {projectLabelLower} for these changes
+      to take effect.
       <br />
       Note: special care is taken for the <code>PATH</code> variable: your
       values are prepended to the existing <code>PATH</code>, unless your value

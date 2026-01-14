@@ -4,6 +4,7 @@
  */
 
 import React from "react";
+import { useIntl } from "react-intl";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { useIsMountedRef } from "@cocalc/frontend/app-framework";
@@ -14,6 +15,7 @@ import {
   SettingBox,
   Text,
 } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -25,6 +27,8 @@ interface Props {
 export const SagewsControl: React.FC<Props> = (props: Props) => {
   const { project_id, mode = "project" } = props;
   const isFlyout = mode === "flyout";
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
 
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<string | undefined>(undefined);
@@ -53,7 +57,7 @@ export const SagewsControl: React.FC<Props> = (props: Props) => {
       alert_message({
         type: "error",
         message:
-          "Error trying to restart worksheet server. Try restarting the entire project instead.",
+          `Error trying to restart worksheet server. Try restarting the entire ${projectLabelLower} instead.`,
       });
     }
     if (isMounted) {

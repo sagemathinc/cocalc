@@ -62,6 +62,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
   const isFlyout = mode === "flyout";
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
   const customize_kucalc = useTypedRedux("customize", "kucalc");
   const [computeImgChanging, setComputeImgChanging] = useState<boolean>(false);
 
@@ -89,8 +90,8 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
         <Icon name="hourglass-half" />{" "}
         <FormattedMessage
           id="project.settings.control.idle_timeout.info"
-          defaultMessage={`<b>About {ago}</b> project will stop unless somebody actively edits.`}
-          values={{ ago: <TimeAgo date={date} /> }}
+          defaultMessage={`<b>About {ago}</b> {projectLabelLower} will stop unless somebody actively edits.`}
+          values={{ ago: <TimeAgo date={date} />, projectLabelLower }}
         />
       </span>
     );
@@ -231,8 +232,8 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           <Icon name="calculator" />{" "}
           <FormattedMessage
             id="project.settings.control.cpu_usage.info"
-            defaultMessage={`used <b>{cpu_str}</b> of CPU time since project started`}
-            values={{ cpu_str }}
+            defaultMessage={`used <b>{cpu_str}</b> of CPU time since {projectLabelLower} started`}
+            values={{ cpu_str, projectLabelLower }}
           />
         </span>
       </LabeledRow>
@@ -294,7 +295,7 @@ export const ProjectControl: React.FC<ReactProps> = (props: ReactProps) => {
           &nbsp;
           <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
             <br /> You cannot change a custom software image. Instead, create a
-            new project and select it there.{" "}
+            new {projectLabelLower} and select it there.{" "}
             <a
               href={CUSTOM_SOFTWARE_HELP_URL}
               target={"_blank"}

@@ -5,12 +5,14 @@
 
 import { ReloadOutlined } from "@ant-design/icons";
 import { Button } from "antd";
+import { useIntl } from "react-intl";
 import { keys, sortBy } from "lodash";
 import React from "react";
 
 import { Rendered, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, Loading, SettingBox } from "@cocalc/frontend/components";
 import { CUSTOM_SOFTWARE_HELP_URL } from "@cocalc/frontend/custom-software/util";
+import { labels } from "@cocalc/frontend/i18n";
 import { tool2display } from "@cocalc/util/code-formatter";
 import { R_IDE } from "@cocalc/util/consts/ui";
 import * as misc from "@cocalc/util/misc";
@@ -28,6 +30,8 @@ interface ReactProps {
 export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
   (props: ReactProps) => {
     const { project, project_id, mode = "project" } = props;
+    const intl = useIntl();
+    const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
 
     const available_features = useTypedRedux(
       { project_id },
@@ -146,10 +150,11 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
         <>
           <hr />
           <div style={{ color: COLORS.GRAY }}>
-            Some features are not available, because this project runs a small{" "}
+            Some features are not available, because this {projectLabelLower}{" "}
+            runs a small{" "}
             <A href={CUSTOM_SOFTWARE_HELP_URL}>customized stack of software</A>.
-            To enable all features, please create a new project using the
-            default software environment.
+            To enable all features, please create a new {projectLabelLower}{" "}
+            using the default software environment.
           </div>
         </>
       );

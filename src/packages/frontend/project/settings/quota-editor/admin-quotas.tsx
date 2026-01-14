@@ -28,6 +28,7 @@ interface Props {
 export default function AdminQuotas({ project_id, style }: Props) {
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
 
   const projectSettings: ProjectSettings | undefined = useRedux([
     "projects",
@@ -137,7 +138,7 @@ export default function AdminQuotas({ project_id, style }: Props) {
                   onConfirm={handleSave}
                   onCancel={handleCancel}
                   title="Change Quotas?"
-                  description="This will modify the base free quotas and restart the project."
+                  description={`This will modify the base free quotas and restart the ${projectLabelLower}.`}
                 >
                   <Button type="primary" disabled={!isModified()}>
                     <Icon name="save" /> Save
@@ -159,8 +160,8 @@ export default function AdminQuotas({ project_id, style }: Props) {
           content={
             <div style={{ maxWidth: "400px" }}>
               Use your admin privileges to set the <b>base free quotas</b> for
-              this project to anything you want. Licenses, user upgrades, etc.,
-              are combined with these base free quotas.
+              this {projectLabelLower} to anything you want. Licenses, user
+              upgrades, etc., are combined with these base free quotas.
             </div>
           }
           trigger={["click"]}

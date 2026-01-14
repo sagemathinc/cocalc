@@ -315,7 +315,7 @@ export const AboutBox: React.FC<Props> = (props: Readonly<Props>) => {
                     await actions.setProjectColor(project_id, "");
                     setColor(undefined);
                   } catch (err) {
-                    setError(`Error removing project color: ${err}`);
+                    setError(`Error removing ${projectLabelLower} color: ${err}`);
                   }
                 }}
               >

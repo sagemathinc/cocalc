@@ -118,32 +118,7 @@ const ProjectSettings0 = rclass<ReactProps>(
     }
 
     render_admin_message() {
-      return (
-        <Alert
-          type="warning"
-          style={{ margin: "10px" }}
-          message={
-            <>
-              <strong>Warning:</strong> you are editing the project settings as
-              an <strong>administrator</strong>. This is deprecated and should
-              hardly work.
-            </>
-          }
-          description={
-            <ul>
-              <li>
-                You are not a collaborator on this project, but some things
-                might still work since you are a site admin.
-              </li>
-              <li>
-                You should probably impersonate a collaborator on this project
-                instead.
-              </li>
-              <li>Actions will not be logged to the project log.</li>
-            </ul>
-          }
-        />
-      );
+      return <AdminProjectSettingsWarning />;
     }
 
     render() {
@@ -223,6 +198,38 @@ export function SandboxProjectSettingsWarning() {
           clicking on the "{projectsLabel}" button then "Create new{" "}
           {projectLabelLower}". Copy any files to it from the Files tab here.
         </div>
+      }
+    />
+  );
+}
+
+function AdminProjectSettingsWarning() {
+  const intl = useIntl();
+  const projectLabel = intl.formatMessage(labels.project);
+  const projectLabelLower = projectLabel.toLowerCase();
+  return (
+    <Alert
+      type="warning"
+      style={{ margin: "10px" }}
+      message={
+        <>
+          <strong>Warning:</strong> you are editing the {projectLabelLower}{" "}
+          settings as an <strong>administrator</strong>. This is deprecated and
+          should hardly work.
+        </>
+      }
+      description={
+        <ul>
+          <li>
+            You are not a collaborator on this {projectLabelLower}, but some
+            things might still work since you are a site admin.
+          </li>
+          <li>
+            You should probably impersonate a collaborator on this{" "}
+            {projectLabelLower} instead.
+          </li>
+          <li>Actions will not be logged to the {projectLabelLower} log.</li>
+        </ul>
       }
     />
   );

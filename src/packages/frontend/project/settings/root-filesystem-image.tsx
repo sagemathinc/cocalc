@@ -5,15 +5,19 @@ import {
 } from "@cocalc/util/db-schema/defaults";
 import { Button, Input, Modal, Spin, Tag } from "antd";
 import { useEffect, useState } from "react";
+import { useIntl } from "react-intl";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import ShowError from "@cocalc/frontend/components/error";
 import { redux } from "@cocalc/frontend/app-framework";
 import { dirname, join } from "path";
 import { A, Icon } from "@cocalc/frontend/components";
+import { labels } from "@cocalc/frontend/i18n";
 import { split } from "@cocalc/util/misc";
 
 export default function RootFilesystemImage() {
   const { project } = useProjectContext();
+  const intl = useIntl();
+  const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
   const [open, setOpen] = useState<boolean>(false);
   const [saving, setSaving] = useState<boolean>(false);
   const [value, setValue] = useState<string>(getImage(project));
@@ -104,7 +108,7 @@ export default function RootFilesystemImage() {
           {help && (
             <div style={{ color: "#666", marginBottom: "8px" }}>
               <p>
-                You can try to run your project using{" "}
+                You can try to run your {projectLabelLower} using{" "}
                 <A href="https://hub.docker.com/search">any container image</A>.
                 You can change the image at any time.
               </p>
@@ -119,25 +123,25 @@ export default function RootFilesystemImage() {
                 invalid.
               </p>
               <p>
-                Using a large image can make project startup slower, especially
-                the first time. Also, images can contain literally anything, so
-                there is no guarantee they will work. If you try one and it
-                doesn't work for you, just switch back -- it's safe. Selecting
-                an image determines the root filesystem and also impacts
-                environment variables. For example,{" "}
+                Using a large image can make {projectLabelLower} startup slower,
+                especially the first time. Also, images can contain literally
+                anything, so there is no guarantee they will work. If you try
+                one and it doesn't work for you, just switch back -- it's safe.
+                Selecting an image determines the root filesystem and also
+                impacts environment variables. For example,{" "}
                 <A href="https://hub.docker.com/_/julia">
                   the official Julia image
                 </A>{" "}
                 installs julia in <code>/usr/local/julia/bin</code>.
               </p>
               <p>
-                If you fork a project, any changes that you make to the root
-                image are also immediately visible in the fork. Thus you can
-                install whatever you want anywhere in your project, then fork it
-                to get an exact copy with everything preserved. You can of
-                course also create your own images and publish them to any
-                container registry, then your or anybody else can use them on
-                CoCalc.
+                If you fork a {projectLabelLower}, any changes that you make to
+                the root image are also immediately visible in the fork. Thus
+                you can install whatever you want anywhere in your{" "}
+                {projectLabelLower}, then fork it to get an exact copy with
+                everything preserved. You can of course also create your own
+                images and publish them to any container registry, then your or
+                anybody else can use them on CoCalc.
               </p>
             </div>
           )}
