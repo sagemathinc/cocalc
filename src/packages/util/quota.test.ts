@@ -2744,3 +2744,39 @@ describe("test pay-you-go-quota inclusion", () => {
     });
   });
 });
+
+describe("ephemeral projects", () => {
+  it("disables network when project settings request no internet", () => {
+    const projectSettings = { disableInternet: true };
+    const licenses = {
+      "abcd1234-0000-0000-0000-000000000001": {
+        quota: {
+          cpu: 1,
+          ram: 1,
+          disk: 1,
+          network: 1,
+        },
+        status: "active",
+      },
+    };
+    const q = quota(projectSettings, {}, licenses, {});
+    expect(q.network).toBe(false);
+  });
+
+  it("still enables network when project settings have, but don't request, no internet", () => {
+    const projectSettings = { disableInternet: false };
+    const licenses = {
+      "abcd1234-0000-0000-0000-000000000001": {
+        quota: {
+          cpu: 1,
+          ram: 1,
+          disk: 1,
+          network: 1,
+        },
+        status: "active",
+      },
+    };
+    const q = quota(projectSettings, {}, licenses, {});
+    expect(q.network).toBe(true);
+  });
+});

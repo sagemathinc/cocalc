@@ -136,6 +136,7 @@ export function ExportGrades({ actions, close }: { actions; close? }) {
             A: (c) => (
               <a
                 target="_blank"
+                rel="noopener noreferrer"
                 href="https://support.microsoft.com/en-us/office/import-or-export-text-txt-or-csv-files-5250ac4c-663c-47ce-937b-339e391393ba?ui=en-us&rs=en-us&ad=us"
               >
                 {c}

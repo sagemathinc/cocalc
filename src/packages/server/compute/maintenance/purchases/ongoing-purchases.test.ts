@@ -20,6 +20,7 @@ import {
   MAX_PURCHASE_LENGTH_MS,
 } from "./manage-purchases";
 import createPurchase from "@cocalc/server/purchases/create-purchase";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -49,12 +50,15 @@ describe("creates account, project, test compute server, and purchase", () => {
       firstName: "User",
       lastName: "One",
       account_id,
+      noFirstProject: true,
     });
     // Only User One:
     project_id = await createProject({
       account_id,
       title: "My First Project",
+      start: false,
     });
+    await waitToAvoidTestFailure();
   });
 
   let id;
@@ -69,6 +73,7 @@ describe("creates account, project, test compute server, and purchase", () => {
       project_id,
       ...s,
     });
+    await waitToAvoidTestFailure();
   });
 
   it("runs ongoingPurchases and confirms that our new server did NOT get flagged", async () => {

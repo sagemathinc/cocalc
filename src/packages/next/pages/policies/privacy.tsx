@@ -28,7 +28,7 @@ export default function Privacy({ customize }) {
           >
             <div style={{ textAlign: "center", color: "#444" }}>
               <h1 style={{ fontSize: "28pt" }}>CoCalc - Privacy Policy</h1>
-              <h2>Last Updated: October 3, 2025</h2>
+              <h2>Last Updated: January 5, 2026</h2>
             </div>
             <div style={{ fontSize: "12pt" }}>
               <p>
@@ -442,13 +442,75 @@ export default function Privacy({ customize }) {
                         {" "}
                         <strong>Cookies.</strong> Cookies are small text files
                         placed in visitors’ computer browsers to store their
-                        preferences. We use required cookies to make sure that
-                        the Services work properly, for example for
-                        authentication purposes. You may not opt-out of the use
-                        of these cookies since it would be impossible for us to
-                        provide the service otherwise. We do NOT use cookies for
-                        marketing or advertising purpuses.{" "}
+                        preferences. We use the following required cookies to
+                        make sure that the Services work properly.{" "}
                       </p>{" "}
+                      <table
+                        cellPadding="5px"
+                        style={{ margin: "12px 0", border: "1px solid black" }}
+                      >
+                        <thead>
+                          <tr>
+                            <th align="left"> Cookies </th>
+                            <th align="left"> Purpose </th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          <tr>
+                            <td> remember_me </td>
+                            <td>
+                              {" "}
+                              Persistent auth token to keep you signed in.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> account_id </td>
+                            <td> Stores your account ID for the client UI. </td>
+                          </tr>
+                          <tr>
+                            <td> cocalc_version </td>
+                            <td>
+                              {" "}
+                              Client version for compatibility checks before
+                              project access.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> connect.sid </td>
+                            <td>
+                              {" "}
+                              Session cookie used for Passport/SSO login
+                              flows.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> get_api_key </td>
+                            <td>
+                              {" "}
+                              Temporary cookie used during SSO API key
+                              requests.{" "}
+                            </td>
+                          </tr>
+                          <tr>
+                            <td> PWRESET </td>
+                            <td> Short-lived password reset token. </td>
+                          </tr>
+                          <tr>
+                            <td> SMCSERVERID3 </td>
+                            <td>
+                              {" "}
+                              Load balancer stickiness cookie set by
+                              HAProxy.{" "}
+                            </td>
+                          </tr>
+                        </tbody>
+                      </table>
+                      Please note that we do our best to keep this table
+                      updated, but the number and names of cookies may change
+                      from time to time. You may not opt-out of the use of these
+                      cookies since it would be impossible for us to provide the
+                      service otherwise. We do NOT use cookies for marketing or
+                      advertising purpuses.
                     </li>{" "}
                     <li>
                       {" "}
@@ -1274,8 +1336,16 @@ export default function Privacy({ customize }) {
                       <td> 2025-02-20 </td>
                     </tr>
                     <tr>
-                      <td>Update: HR data require explicit opt-in for any new use</td>
+                      <td>
+                        Update: HR data require explicit opt-in for any new use
+                      </td>
                       <td> 2025-10-03 </td>
+                    </tr>
+                    <tr>
+                      <td>
+                        Update: add the list of used cookies and their purpose
+                      </td>
+                      <td> 2026-01-06 </td>
                     </tr>
                   </tbody>
                 </table>

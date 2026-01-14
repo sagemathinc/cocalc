@@ -234,6 +234,20 @@ The authoritative build order is defined in [workspaces.py:105-135](workspaces.p
 | Edit util types/code                   | `pnpm clean && pnpm build-dev` | util is foundational; affects all dependents |
 | Edit backend/database                  | `pnpm clean && pnpm build-dev` | Rebuild to ensure all deps are correct       |
 | Check TypeScript errors everywhere     | `pnpm tsc-all`                 | Parallel type checking from root             |
+- **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
+
+#### When Working on Frontend Code
+
+After making changes to files in `packages/frontend`:
+
+1. **Typecheck**: Run `cd packages/frontend && pnpm tsc --noEmit` to check for TypeScript errors
+2. **Build**: Run `cd packages/static && pnpm build-dev` to compile the frontend for testing
+
+**DO NOT** run `pnpm build` in `packages/frontend` - it won't work as expected for frontend development.
+
+#### When Working on Other Packages
+
+- After TypeScript changes, run `pnpm build` in the relevant package directory
 
 ## Architecture Overview
 
@@ -341,11 +355,11 @@ CoCalc is organized as a monorepo with key packages:
 
 ### Development Workflow
 
-1. Changes to TypeScript require compilation (`pnpm build` in relevant package)
-2. Database must be running before starting hub
-3. Hub coordinates all services and should be restarted after changes
-4. Use `pnpm clean && pnpm build-dev` when switching branches or after major changes
-5. **IMPORTANT**: After any frontend code changes, run `pnpm build-dev` in the `packages/static` directory to compile the frontend
+1. **Frontend changes**: After editing `packages/frontend`, typecheck with `cd packages/frontend && pnpm tsc --noEmit`, then build with `cd packages/static && pnpm build-dev`
+2. **Other package changes**: After TypeScript changes, run `pnpm build` in the relevant package directory
+3. Database must be running before starting hub
+4. Hub coordinates all services and should be restarted after changes
+5. Use `pnpm clean && pnpm build-dev` when switching branches or after major changes
 
 # Workflow
 
@@ -451,7 +465,6 @@ For convenience, a `python/cocalc-api/Makefile` exists.
 # important-instruction-reminders
 
 - Do what has been asked; nothing more, nothing less.
-- NEVER create files unless they're absolutely necessary for achieving your goal.
 - ALWAYS prefer editing an existing file to creating a new one.
 - NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
 - ALWAYS ask questions if something is unclear. Only proceed to the implementation step if you have no questions left.

@@ -7,13 +7,13 @@
 Progress indicator for assigning/collecting/etc. a particular assignment or handout.
 */
 
-import { Icon, Gap } from "@cocalc/frontend/components";
+import { Space } from "antd";
+import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 
 const progress_info = {
   color: COLORS.GRAY_D,
-  marginLeft: "10px",
-  whiteSpace: "normal",
+  paddingLeft: "5px",
 } as const;
 
 const progress_info_done = {
@@ -29,45 +29,12 @@ interface ProgressProps {
 }
 
 export function Progress({ done, not_done, step, skipped }: ProgressProps) {
-  function render_checkbox() {
-    if (not_done === 0) {
-      return (
-        <span style={{ fontSize: "12pt" }}>
-          <Icon name="check-circle" />
-          <Gap />
-        </span>
-      );
-    }
-  }
-
-  function render_status() {
-    if (!skipped) {
-      return (
-        <>
-          ({done} / {not_done + done} {step})
-        </>
-      );
-    } else {
-      return <>Skipped</>;
-    }
-  }
-
-  function style() {
-    if (not_done === 0) {
-      return progress_info_done;
-    } else {
-      return progress_info;
-    }
-  }
-
-  if (done == null || not_done == null || step == null) {
-    return <span />;
-  } else {
-    return (
-      <div style={style()}>
-        {render_checkbox()}
-        {render_status()}
-      </div>
-    );
-  }
+  if (done == null || not_done == null || step == null) return <span />;
+  const style = not_done === 0 ? progress_info_done : progress_info;
+  return (
+    <Space style={style}>
+      <Icon name={not_done === 0 ? "check-circle" : "pie-chart"} />
+      {skipped ? "Skipped" : `${done} / ${not_done + done}`}
+    </Space>
+  );
 }
