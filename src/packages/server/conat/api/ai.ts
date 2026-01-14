@@ -14,19 +14,17 @@ import type {
 import { createFullControlAgentRunner } from "@cocalc/server/control-agent";
 import type { ControlAgentContext } from "@cocalc/ai/control-agent";
 import getLogger from "@cocalc/backend/logger";
+import { z } from "zod";
 
 const logger = getLogger("control-agent:dev");
 
-const TOOL_PARAMETERS_SCHEMA = {
-  type: "object",
-  required: ["requestId"],
-  properties: {
-    requestId: { type: "string" },
-    dryRun: { type: "boolean" },
-    confirmToken: { type: "string" },
-  },
-  additionalProperties: true,
-} as const;
+const TOOL_PARAMETERS_SCHEMA = z
+  .object({
+    requestId: z.string(),
+    dryRun: z.boolean().optional(),
+    confirmToken: z.string().optional(),
+  })
+  .passthrough();
 
 function ensureDevEnabled(): void {
   const enabled =
