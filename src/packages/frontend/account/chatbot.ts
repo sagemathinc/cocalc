@@ -8,9 +8,7 @@ When new models are added, e.g., Claude soon (!), they will go here.
 */
 
 import { redux } from "@cocalc/frontend/app-framework";
-import {
-  getUserDefinedLLMByModel
-} from "@cocalc/frontend/frame-editors/llm/use-userdefined-llm";
+import { getUserDefinedLLMByModel } from "@cocalc/frontend/frame-editors/llm/use-userdefined-llm";
 import {
   LANGUAGE_MODELS,
   LANGUAGE_MODEL_PREFIXES,
@@ -19,11 +17,13 @@ import {
   fromCustomOpenAIModel,
   fromMistralService,
   fromOllamaModel,
+  fromXaiService,
   isAnthropicService,
   isCustomOpenAI,
   isMistralService,
   isOllamaLLM,
-  isUserDefinedModel
+  isUserDefinedModel,
+  isXaiService,
 } from "@cocalc/util/db-schema/llm-utils";
 
 // we either check if the prefix is one of the known ones (used in some circumstances)
@@ -52,6 +52,9 @@ export function chatBotName(account_id?: string): string {
   }
   if (isMistralService(account_id)) {
     return LLM_USERNAMES[fromMistralService(account_id)] ?? "Mistral";
+  }
+  if (isXaiService(account_id)) {
+    return LLM_USERNAMES[fromXaiService(account_id)] ?? "xAI";
   }
   if (isAnthropicService(account_id)) {
     return LLM_USERNAMES[fromAnthropicService(account_id)] ?? "Anthropic";

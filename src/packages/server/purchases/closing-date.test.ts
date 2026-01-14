@@ -37,6 +37,7 @@ describe("basic consistency checks for closing date functions", () => {
       firstName: "Test",
       lastName: "User",
       account_id,
+      noFirstProject: true,
     });
     const d = await getClosingDay(account_id);
     expect(d).toBeGreaterThanOrEqual(1);

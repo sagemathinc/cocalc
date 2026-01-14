@@ -7,6 +7,7 @@
 
 import jsonic from "jsonic";
 import { isEqual } from "lodash";
+
 import { LOCALE } from "@cocalc/util/consts/locale";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import {
@@ -70,6 +71,7 @@ export type SiteSettingsKeys =
   | "anthropic_enabled"
   | "ollama_enabled"
   | "custom_openai_enabled"
+  | "xai_enabled"
   | "selectable_llms"
   | "default_llm"
   | "user_defined_llm"
@@ -113,6 +115,7 @@ export type SiteSettingsKeys =
   | "anonymous_signup"
   | "anonymous_signup_licensed_shares"
   | "share_server"
+  | "strict_collaborator_management"
   | "landing_pages"
   | "sandbox_projects_enabled"
   | "sandbox_project_id"
@@ -249,6 +252,7 @@ export const to_default_llm: ToValFunc<ToVal> = (val: string, conf) => {
     mistralai: to_bool(conf.mistral_enabled),
     anthropic: to_bool(conf.anthropic_enabled),
     custom_openai: to_bool(conf.custom_openai_enabled),
+    xai: to_bool(conf.xai_enabled),
     user: conf.kucalc !== KUCALC_COCALC_COM,
   } as const;
   const ollama = from_json((conf as any)?.ollama);
@@ -786,6 +790,13 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: to_bool,
   },
+  strict_collaborator_management: {
+    name: "Only project owners can manage collaborators",
+    desc: "Force collaborator management to owners only across all projects. When enabled, per-project controls are disabled and only owners can add, remove, or change collaborator roles.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
   landing_pages: {
     name: "Landing pages",
     desc: "Host landing pages about the functionality of CoCalc.",
@@ -857,6 +868,14 @@ export const site_settings_conf: SiteSettings = {
   custom_openai_enabled: {
     name: "Custom OpenAI LLM UI",
     desc: "Controls visibility of UI elements related to Custom OpenAI integration.  To make this actually work, configure the list of API/model endpoints in the Custom OpenAI configuration.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["AI LLM"],
+  },
+  xai_enabled: {
+    name: "xAI Grok UI",
+    desc: "Controls visibility of UI elements related to xAI's Grok integration.  You must **also set your xAI API key** below for this functionality to work.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

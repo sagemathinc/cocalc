@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -33,18 +33,26 @@ export async function sagetex_hash(
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
   status(`sha1sum ${s}`);
+
+  // Check if file exists and compute hash only if it does; otherwise return unique value
   const output = await exec(
     {
       timeout: 10,
-      command: "sha1sum",
-      args: [s],
+      command: `test -f '${s}' && sha1sum '${s}' || true`,
+      bash: true,
       project_id: project_id,
       path: output_directory || directory,
-      err_on_exit: true,
+      err_on_exit: false,
       aggregate: time,
     },
     path,
   );
+
+  // If file doesn't exist, return unique timestamp-based value to ensure rebuild
+  if (!output.stdout.trim()) {
+    return `missing-${Date.now()}`;
+  }
+
   return output.stdout.split(" ")[0];
 }
 

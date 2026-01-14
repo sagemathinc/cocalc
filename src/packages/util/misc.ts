@@ -160,6 +160,14 @@ export function change_filename_extension(
   return `${name}.${new_ext}`;
 }
 
+// Check if a filename contains characters that are problematic for LaTeX compilation.
+// Returns true if the filename contains:
+// - Two or more consecutive spaces (breaks LaTeX processing, see #3230)
+// - Single quotes (breaks bash string interpolation in build commands)
+export function is_bad_latex_filename(path: string): boolean {
+  return /\s\s+|'/.test(path);
+}
+
 // Takes parts to a path and intelligently merges them on '/'.
 // Continuous non-'/' portions of each part will have at most
 // one '/' on either side.

@@ -9,15 +9,16 @@
 
 import { useState } from "react";
 import { Alert, Input } from "antd";
+
 import {
   React,
   redux,
   useActions,
   useRedux,
   useTypedRedux,
-} from "../app-framework";
-import { Icon, Gap } from "../components";
-const { SiteName } = require("../customize");
+} from "@cocalc/frontend/app-framework";
+import { Icon, Gap } from "@cocalc/frontend/components";
+const { SiteName } = require("@cocalc/frontend/customize");
 const HOUR_MS = 60 * 60 * 1000;
 
 function formatTimeDelta(ms: number | undefined): string {
@@ -46,7 +47,7 @@ interface Props {
 export const AnonymousName: React.FC<Props> = React.memo(({ project_id }) => {
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   if (!is_anonymous) {
-    // no need to do thisencourage a name -- they are by themself.
+    // no need to encourage a name -- they are by themselves.
     return <></>;
   }
   return <AnonymousNameInput project_id={project_id} />;
@@ -156,6 +157,7 @@ const AnonymousNameInput: React.FC<Props> = React.memo(({ project_id }) => {
       style={{ marginBottom: "5px" }}
       type="warning"
       message={mesg}
-    ></Alert>
+      banner
+    />
   );
 });

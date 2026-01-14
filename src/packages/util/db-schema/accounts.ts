@@ -12,8 +12,10 @@ import {
   DEFAULT_FONT_SIZE,
   DEFAULT_NEW_FILENAMES,
   NEW_FILENAMES,
-  OTHER_SETTINGS_USERDEFINED_LLM,
+  OTHER_SETTINGS_USER_DEFINED_LLM,
 } from "./defaults";
+
+import { isUserDefinedModelType } from "./llm-utils";
 
 import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
 
@@ -58,9 +60,9 @@ export const AUTOBALANCE_RANGES = {
   max_day: [5, 1000],
   max_week: [5, 5000],
   max_month: [5, 10000],
-};
+} as const;
 
-export const AUTOBALANCE_DEFAULTS = {
+export const AUTOBALANCE_DEFAULTS: AutoBalance = {
   trigger: 10,
   amount: 20,
   max_day: 200,
@@ -68,7 +70,7 @@ export const AUTOBALANCE_DEFAULTS = {
   max_month: 2500,
   period: "week",
   enabled: true,
-} as AutoBalance;
+} as const;
 
 export const DARK_MODE_DEFAULTS = {
   brightness: 100,
@@ -136,6 +138,100 @@ export function ensureAutoBalanceValid(obj) {
     }
     if (value > range[1]) {
       throw Error(`${key} must be at most ${range[1]}`);
+    }
+  }
+}
+
+// throw error if not valid; also clamps max_tokens to safe range
+export function ensureUserDefinedLLMValid(configs: any): void {
+  if (!Array.isArray(configs)) {
+    throw new Error("user_defined_llm must be an array");
+  }
+
+  const maxLengths = {
+    display: 128,
+    model: 256,
+    endpoint: 256,
+    apiKey: 1024,
+    icon: 1024,
+  };
+
+  for (const llm of configs) {
+    // Validate required fields
+    if (typeof llm.id !== "number") {
+      throw new Error("user_defined_llm: id must be a number");
+    }
+    if (!isUserDefinedModelType(llm.service)) {
+      throw new Error(
+        `user_defined_llm: service must be one of the supported services, got '${llm.service}'`,
+      );
+    }
+    if (typeof llm.model !== "string" || !llm.model) {
+      throw new Error("user_defined_llm: model is required");
+    }
+    if (typeof llm.display !== "string" || !llm.display) {
+      throw new Error("user_defined_llm: display is required");
+    }
+    if (typeof llm.endpoint !== "string") {
+      throw new Error("user_defined_llm: endpoint must be a string");
+    }
+    if (typeof llm.apiKey !== "string") {
+      throw new Error("user_defined_llm: apiKey must be a string");
+    }
+    if (llm.display.length > maxLengths.display) {
+      throw new Error(
+        `user_defined_llm: display must be at most ${maxLengths.display} characters`,
+      );
+    }
+    if (llm.model.length > maxLengths.model) {
+      throw new Error(
+        `user_defined_llm: model must be at most ${maxLengths.model} characters`,
+      );
+    }
+    if (llm.endpoint.length > maxLengths.endpoint) {
+      throw new Error(
+        `user_defined_llm: endpoint must be at most ${maxLengths.endpoint} characters`,
+      );
+    }
+    if (llm.apiKey.length > maxLengths.apiKey) {
+      throw new Error(
+        `user_defined_llm: apiKey must be at most ${maxLengths.apiKey} characters`,
+      );
+    }
+    // apiKey is required for most services, but optional for ollama and custom_openai
+    const requiresApiKey =
+      llm.service !== "ollama" && llm.service !== "custom_openai";
+    if (requiresApiKey && !llm.apiKey) {
+      throw new Error("user_defined_llm: apiKey is required for this service");
+    }
+
+    // Validate and clamp max_tokens
+    if (llm.max_tokens != null) {
+      if (typeof llm.max_tokens !== "number") {
+        throw new Error("user_defined_llm: max_tokens must be a number");
+      }
+      if (!Number.isInteger(llm.max_tokens)) {
+        throw new Error("user_defined_llm: max_tokens must be an integer");
+      }
+      // Clamp to safe range
+      if (llm.max_tokens < 1000) {
+        llm.max_tokens = 1000;
+      }
+      if (llm.max_tokens > 2000000) {
+        llm.max_tokens = 2000000;
+      }
+    }
+
+    // Validate optional icon
+    if (llm.icon != null) {
+      if (typeof llm.icon !== "string") {
+        throw new Error("user_defined_llm: icon must be a string");
+      }
+      if (llm.icon.length > maxLengths.icon) {
+        throw new Error(
+          `user_defined_llm: icon must be at most ${maxLengths.icon} characters`,
+        );
+      }
     }
   }
 }
@@ -523,7 +619,7 @@ Table({
             hide_project_popovers: false,
             hide_file_popovers: false,
             hide_button_tooltips: false,
-            [OTHER_SETTINGS_USERDEFINED_LLM]: "[]",
+            [OTHER_SETTINGS_USER_DEFINED_LLM]: "[]",
             i18n: DEFAULT_LOCALE,
             no_email_new_messages: false,
             [USE_BALANCE_TOWARD_SUBSCRIPTIONS]:
@@ -628,6 +724,25 @@ Table({
               return;
             }
           }
+
+          // Validate user-defined LLM configs
+          if (
+            obj["other_settings"]?.[OTHER_SETTINGS_USER_DEFINED_LLM] != null
+          ) {
+            try {
+              const configs = JSON.parse(
+                obj["other_settings"][OTHER_SETTINGS_USER_DEFINED_LLM],
+              );
+              ensureUserDefinedLLMValid(configs);
+              // Save back the validated/clamped configs (mutates obj)
+              obj["other_settings"][OTHER_SETTINGS_USER_DEFINED_LLM] =
+                JSON.stringify(configs);
+            } catch (err) {
+              cb(`Invalid user_defined_llm configuration: ${err}`);
+              return;
+            }
+          }
+
           cb();
         },
       },

@@ -17,6 +17,7 @@ import {
   closePurchase,
 } from "./close";
 import { getPurchase } from "./util";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -39,12 +40,15 @@ describe("creates account, project, test compute server, and purchase, then clos
       firstName: "User",
       lastName: "One",
       account_id,
+      noFirstProject: true,
     });
     // Only User One:
     project_id = await createProject({
       account_id,
       title: "My First Project",
+      start: false,
     });
+    await waitToAvoidTestFailure();
   });
 
   it("creates compute server on the 'test' cloud", async () => {
@@ -58,6 +62,7 @@ describe("creates account, project, test compute server, and purchase, then clos
       project_id,
       ...s,
     });
+    await waitToAvoidTestFailure();
   });
 
   it("creates a purchase", async () => {
