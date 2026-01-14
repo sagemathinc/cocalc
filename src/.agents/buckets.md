@@ -109,71 +109,78 @@ Notes:
 - we want to allow more than one dst_project_id, since distributing content (e.g., a handout to all 100 students in a course) is a key use case, and we don't want to have create and delete the corresponding backup 100 times.  It's fine for the dst_path to be the same for all targets.
 
 - the actual function we need to support is copyPathBetweenProjects in src/packages/conat/hub/api/projects.ts, in the case then when the dest project_id is on a different host:
-``` 
+
+```
   copyPathBetweenProjects: (opts: {
     src: { project_id: string; path: string | string[] };
     dest: { project_id: string; path: string };
     options?: CopyOptions;
   }) => Promise<void>;
 ```
-There is no "safe mode" and no need for one due to extensive snapshots; this is basically supposed to be like "cp -r" on a filesystem. For a single project host it is that with reflink support for dedup.  Note CopyOptions...
 
-**Phase 3 Detailed Plan**
+There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `force`) and treat this like `cp -r` with snapshots as the safety net. For a single host it remains a reflink `cp`. For cross-host copies we only use the bucket/restore path (no direct host-to-host pull), so this works even when the destination host is offline.
+
+**Phase 3 Detailed Plan (bucket-only, async/offline aware)**
 
 1. **New entrypoint**
    - Add [src/packages/server/projects/copy.ts](./src/packages/server/projects/copy.ts).
-   - Export `copyProjectFiles({ src_project_id, dst_project_id, src_path, dst_path, account_id, mode })`.
-   - `mode` defaults to safe (no overwrite unless explicitly requested).
+   - Export `copyProjectFiles({ src_project_id, dests, src_path, dst_path, account_id, options })`.
+   - `dests` is an array of `{ project_id, path }`; keep the single-dest call shape for compatibility.
 
 2. **API wiring**
-   - Add a conat API handler in [src/packages/server/conat/api/projects.ts](./src/packages/server/conat/api/projects.ts) to call the new entrypoint.
-   - Reuse `assertCollab` for both source and destination projects.
+   - Update [src/packages/server/conat/api/projects.ts](./src/packages/server/conat/api/projects.ts) to call the new entrypoint.
+   - Reuse `assertCollab` for source and each destination project.
 
 3. **Validation & safety**
-   - Require both projects to be in the **same backup region** (use project region mapping).
-   - Normalize `src_path` and `dst_path` to **project‑relative** paths; reject absolute paths or `..` traversal.
-   - Fail fast if `src_path` does not exist on the source host (use file‑server stat).
-   - Decide whether project must be stopped:
-     - Default: allow if project is not running.
-     - Optional: allow with `force=true` (warn about possible inconsistency).
+   - Allow global copies across regions (no backup-region restriction).
+   - Normalize `src_path`/`dst_path` as project-relative; reject absolute paths or `..`.
+   - For bucket-based copies, verify `src_path` exists in the chosen backup (using rustic `ls`) rather than hitting the source host.
+   - If source project is running, stop it unless `options.force` (warn about possible inconsistency).
+   - Note: `last_edited` is currently unreliable; for now always create a fresh backup for copy unless we add a deliberate override. Add a TODO to relax once `last_edited` is fixed.
 
-4. **Backup requirement**
-   - If source project is running, stop it (unless `force=true`).
-   - If `last_backup` is missing or older than `last_edited`, trigger a backup **of the whole project** (simple and safe).
-   - Later optimization: backup only the requested subpath (see step 6).
+4. **Create a copy snapshot (source)**
+   - Trigger a backup and record the snapshot id.
+   - Expose rustic tags in the wrapper and tag the snapshot with `purpose=copy` plus `{src_project_id, src_path}`.
+   - If tags are delayed, temporarily use a distinct rustic host string for copy snapshots and document the tradeoffs.
 
-5. **Generate a temporary “copy snapshot”**
-   - Create a **temporary backup snapshot** tagged with metadata:
-     - `purpose=copy`
-     - `src_project_id`, `src_path`, `dst_project_id`, `dst_path`
-   - Use a deterministic tag so repeats can reuse or cleanup.
+5. **Persist pending copies (master DB)**
+   - Add a `project_copies` table (or similar) keyed by `{src_project_id, src_path, dest_project_id, dest_path}`.
+   - Store `snapshot_id`, `options`, `created_at`, `expires_at` (default +7 days), `status`, `last_error`, `last_attempt_at`.
+   - New copy for the same tuple overwrites the old one (mark old as superseded/canceled).
 
-6. **Restore onto destination**
-   - Call restore on the destination host with:
-     - `restore=required`
-     - `restore_subpath` = `src_path`
-     - `restore_target` = `dst_path`
-   - For now: restore into a **temporary staging dir** under the destination project, then atomically move into place (mirrors Phase 2 staging logic).
-   - Respect `mode`:
-     - `safe` → fail if target exists
-     - `overwrite` → replace target
+6. **Apply copy on destination host (when online)**
+   - Add an API to fetch pending copies for a project/host, and to mark success/failure.
+   - On host startup and before project start, apply pending copies for that project:
+     - `ensureVolume` on destination.
+     - Restore into a temp dir inside the project subvolume (not a separate subvolume).
+     - Atomically rename into place; respect `CopyOptions` (`errorOnExist`, `force`).
 
-7. **Cleanup**
-   - If copy succeeds: delete the temporary snapshot (or let retention trim it).
-   - If copy fails: leave snapshot for inspection; log clearly.
+7. **Cleanup snapshot**
+   - Track per-destination completion; delete the snapshot when all pending dests complete/cancel/expire.
+   - Add `listPendingCopies`/`cancelPendingCopy` APIs; cancel updates ref counts and triggers cleanup if last.
 
-8. **Progress (first pass)**
-   - Log each step in `copy.ts`; no conat progress channel yet.
-   - Later: add a progress subject for UI.
+8. **Progress + errors**
+   - Use an explicit step callback for progress (no streaming channel yet); log all steps in `copy.ts`.
+   - On failure, store `status=failed` with `last_error` and keep snapshot for inspection until TTL.
 
-9. **Failure handling**
-   - Any error should **not** change project placement.
-   - Always return a structured error with step name + reason.
+9. **Future optimization**
+   - Support backup-only subpath to reduce size/time.
+   - Allow reuse if `last_backup` is fresh *and* we have a reliable `last_edited` signal.
 
-10. **Future optimization**
+### Long-running operations (LRO) spec (draft)
 
-   - Add “backup only subpath” support in rustic wrapper to reduce size/time.
-   - Add optional restore‑only if `last_backup` is fresh and `src_path` unchanged.
+- **Goals**: async-first (no blocking RPC), durable state, low DB load, high-resolution progress via conat, works across hub/host/browser, supports arbitrary duration and retries.
+- **Operation record (authoritative)**: `id`, `kind`, `scope` (type+id), `status`, `created_by`, `owner` (hub/host), `routing` (hub|host_id|none), `input` (small JSON), `result` (small JSON or ref), `error`, `progress_summary`, `attempt`, `heartbeat_at`, `created_at/started_at/finished_at/updated_at`, `expires_at`, `dedupe_key`, `parent_id` (optional).
+- **State machine**: `queued -> running -> succeeded/failed/canceled/expired`. Stale heartbeat can move `running -> queued` (retry) or `running -> failed` (max attempts).
+- **Storage split**: DB table `long_running_operations` stores summary; conat persistence holds high-frequency progress events plus latest summary snapshot. DB updates only on state transitions or every N seconds.
+- **Subjects and routing**: use a new prefix (e.g., `lro.*`) to avoid project-subject routing. If the op is tied to a project, also publish an alias project-scoped subject for nearby clients. Hub/host/browser can all publish and subscribe depending on routing. Extend conat auth rules in [src/packages/server/conat/socketio/auth.ts](./src/packages/server/conat/socketio/auth.ts).
+- **Progress events**: `{ts, phase, message, progress?, detail?, level?}`. `progress` can be percent or `(current,total,unit,weight)` for bootlog-style bars. Keep a ring buffer of last N events and a "latest summary" object for late subscribers.
+- **API surface**: `create({kind, scope, input, routing, dedupe_key, ttl}) -> {op_id, status, subject}`; `get({op_id}) -> summary`; `list({scope, kind, status}) -> summaries`; `wait({op_id, timeout}) -> final or timeout`; `cancel({op_id}) -> status`; `retry({op_id})` optional.
+- **Worker lease**: claim queued rows with `SKIP LOCKED`; set `running` + heartbeat; update progress; on finish update DB summary + final conat event.
+- **Idempotency**: dedupe by `(scope, kind, dedupe_key)`; create returns existing active op unless `force`.
+- **Retention**: TTL per op; DB keeps summary until expiration; conat ring can be shorter (hours/days).
+- **Security**: read access by scope (project collab, host admin, account owner); write access only by owner; op_id opaque.
+- **Bootlog reuse**: treat bootlog as an LRO instance and reuse its UI for backup/restore/copy/start.
 
 ### Phase 4: Cleanup / compatibility
 
@@ -181,4 +188,3 @@ There is no "safe mode" and no need for one due to extensive snapshots; this is 
   - treat layout v2 as the only supported format
   - new snapshots must include metadata; restore logic assumes it
 - address issues with brokeness due to persist being temporarily not allowed until subvolume exists.
-

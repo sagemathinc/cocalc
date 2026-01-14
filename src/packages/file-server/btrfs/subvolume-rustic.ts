@@ -58,13 +58,22 @@ export class SubvolumeRustic {
   backup = async ({
     limit,
     timeout = 30 * 60 * 1000,
-  }: { timeout?: number; limit?: number } = {}): Promise<Snapshot> => {
+    tags,
+  }: {
+    timeout?: number;
+    limit?: number;
+    tags?: string[];
+  } = {}): Promise<Snapshot> => {
     if (limit != null && (await this.snapshots()).length >= limit) {
       // 507 = "insufficient storage" for http
       throw new ConatError(`there is a limit of ${limit} backups`, {
         code: 507,
       });
     }
+    const tagArgs = (tags ?? [])
+      .map((tag) => tag.trim())
+      .filter((tag) => tag.length > 0)
+      .flatMap((tag) => ["--tag", tag]);
     if (await this.subvolume.snapshots.exists(RUSTIC_SNAPSHOT)) {
       logger.debug(`backup: deleting existing ${RUSTIC_SNAPSHOT}`);
       await this.subvolume.snapshots.delete(RUSTIC_SNAPSHOT);
@@ -79,10 +88,13 @@ export class SubvolumeRustic {
       // already includes persistent metadata under ~/.local/share/cocalc/persist.
       logger.debug(`backup: backing up ${RUSTIC_SNAPSHOT} using rustic`);
       const { stdout } = parseOutput(
-        await this.subvolume.fs.rustic(["backup", "-x", "--json", "."], {
+        await this.subvolume.fs.rustic(
+          ["backup", "-x", "--json", ...tagArgs, "."],
+          {
           timeout,
           cwd: target,
-        }),
+          },
+        ),
       );
       const { time, id, summary } = JSON.parse(stdout);
       return { time: new Date(time), id, summary };

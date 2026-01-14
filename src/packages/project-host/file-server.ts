@@ -261,7 +261,7 @@ async function ensureBackupConfig(project_id: string): Promise<string | null> {
   }
 }
 
-async function resolveRusticRepo(project_id?: string): Promise<string> {
+export async function resolveRusticRepo(project_id?: string): Promise<string> {
   if (!project_id) return rusticRepo;
   const profilePath = await ensureBackupConfig(project_id);
   if (profilePath) return profilePath;
@@ -428,13 +428,15 @@ async function allSnapshotUsage({
 async function createBackup({
   project_id,
   limit,
+  tags,
 }: {
   project_id: string;
   limit?: number;
+  tags?: string[];
 }): Promise<{ time: Date; id: string }> {
   const vol = await getVolume(project_id);
   vol.fs.rusticRepo = await resolveRusticRepo(project_id);
-  const result = await vol.rustic.backup({ limit });
+  const result = await vol.rustic.backup({ limit, tags });
   try {
     await reportBackupSuccess(project_id, result.time);
   } catch (err) {

@@ -37,6 +37,7 @@ import { setPreferContainerExecutor } from "@cocalc/lite/hub/acp/workspace-root"
 import { sandboxExec } from "@cocalc/project-runner/run/sandbox-exec";
 import { getOrCreateSelfSigned } from "@cocalc/lite/tls";
 import { handleDaemonCli } from "./daemon";
+import { startCopyWorker } from "./pending-copies";
 
 const logger = getLogger("project-host:main");
 
@@ -229,6 +230,8 @@ export async function main(
     process.exit(1);
   }
 
+  const stopCopyWorker = startCopyWorker();
+
   logger.info("project-host ready");
 
   const close = () => {
@@ -236,6 +239,7 @@ export async function main(
     fsServer?.close?.();
     stopMasterRegistration?.();
     stopReconciler?.();
+    stopCopyWorker?.();
   };
   process.once("exit", close);
   ["SIGINT", "SIGTERM", "SIGQUIT"].forEach((sig) => process.once(sig, close));

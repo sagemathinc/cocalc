@@ -6,6 +6,7 @@ import type {
   HostCatalog,
   HostSoftwareUpgradeTarget,
 } from "@cocalc/conat/hub/api/hosts";
+import type { ProjectCopyRow, ProjectCopyState } from "@cocalc/conat/hub/api/projects";
 import getLogger from "@cocalc/backend/logger";
 import getPool from "@cocalc/database/pool";
 import {
@@ -35,6 +36,10 @@ import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { revokeBootstrapTokensForHost } from "@cocalc/server/project-host/bootstrap-token";
+import {
+  claimPendingCopies as claimPendingCopiesDb,
+  updateCopyStatus as updateCopyStatusDb,
+} from "@cocalc/server/projects/copy-db";
 import {
   machineHasGpu,
   normalizeMachineGpuInPlace,
@@ -273,6 +278,48 @@ function requireCreateHosts(entitlements: any) {
 }
 
 export { getBackupConfig, recordProjectBackup } from "@cocalc/server/project-backup";
+
+export async function claimPendingCopies({
+  host_id,
+  project_id,
+  limit,
+}: {
+  host_id?: string;
+  project_id?: string;
+  limit?: number;
+}): Promise<ProjectCopyRow[]> {
+  if (!host_id) {
+    throw new Error("host_id must be specified");
+  }
+  return await claimPendingCopiesDb({ host_id, project_id, limit });
+}
+
+export async function updateCopyStatus({
+  host_id,
+  src_project_id,
+  src_path,
+  dest_project_id,
+  dest_path,
+  status,
+  last_error,
+}: {
+  host_id?: string;
+  src_project_id: string;
+  src_path: string;
+  dest_project_id: string;
+  dest_path: string;
+  status: ProjectCopyState;
+  last_error?: string;
+}): Promise<void> {
+  if (!host_id) {
+    throw new Error("host_id must be specified");
+  }
+  await updateCopyStatusDb({
+    key: { src_project_id, src_path, dest_project_id, dest_path },
+    status,
+    last_error,
+  });
+}
 
 export async function listHosts({
   account_id,

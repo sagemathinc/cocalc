@@ -116,6 +116,7 @@ export interface Fileserver {
   createBackup: (opts: {
     project_id: string;
     limit?: number;
+    tags?: string[];
   }) => Promise<{ time: Date; id: string }>;
   // restore the given path in the backup to the given dest.  The default
   // path is '' (the whole project) and the default destination is the

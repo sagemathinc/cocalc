@@ -32,6 +32,7 @@ import {
   type RestoreStagingHandle,
 } from "@cocalc/conat/files/file-server";
 import { runCmd, setupSshTempFiles } from "./util";
+import { applyPendingCopies } from "../pending-copies";
 
 const logger = getLogger("project-host:hub:projects");
 const MB = 1_000_000;
@@ -285,6 +286,7 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       state: "starting",
     });
     try {
+      await applyPendingCopies({ project_id });
       const status = await runnerApi.start({
         project_id,
         config: await getRunnerConfig(project_id, {
