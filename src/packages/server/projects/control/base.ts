@@ -28,7 +28,6 @@ import { isEqual } from "lodash";
 import { ProjectState, ProjectStatus } from "@cocalc/util/db-schema/projects";
 import { Quota, quota } from "@cocalc/util/upgrades/quota";
 import getLogger from "@cocalc/backend/logger";
-import { site_license_hook } from "@cocalc/database/postgres/site-license/hook";
 import { getQuotaSiteSettings } from "@cocalc/database/postgres/site-license/quota-site-settings";
 import getPool from "@cocalc/database/pool";
 import { query } from "@cocalc/database/postgres/query";
@@ -102,9 +101,6 @@ export class BaseProject extends EventEmitter {
     }
   }
 
-  protected async siteLicenseHook(havePAYGO: boolean): Promise<void> {
-    await site_license_hook(db(), this.project_id, havePAYGO);
-  }
 
   async saveStateToDatabase(state: ProjectState): Promise<void> {
     await callback2(db().set_project_state, {
@@ -230,17 +226,17 @@ export class BaseProject extends EventEmitter {
     //     - if running, what quotas it was started with and what its quotas are now
     // 2. If quotas differ *AND* project is running, restarts project.
     // There is also a fix for https://github.com/sagemathinc/cocalc/issues/5633
-    // in here, because we get the site_licenses and site_settings as well.
+    // in here, because we get the site_settings as well.
     const x = await callback2(db().get_project, {
       project_id: this.project_id,
-      columns: ["state", "users", "settings", "run_quota", "site_license"],
+      columns: ["state", "users", "settings", "run_quota"],
     });
     if (!["running", "starting", "pending"].includes(x.state?.state)) {
       dbg("project not active so nothing to do");
       return;
     }
     const site_settings = await getQuotaSiteSettings(); // this is quick, usually cached
-    const cur = quota(x.settings, undefined, x.site_license, site_settings);
+    const cur = quota(x.settings, undefined, undefined, site_settings);
     if (isEqual(x.run_quota, cur)) {
       dbg("running, but no quotas changed");
       return;
@@ -263,7 +259,6 @@ export class BaseProject extends EventEmitter {
   };
 
   computeQuota = async () => {
-    await this.siteLicenseHook(false);
     await this.setRunQuota(null);
   };
 
@@ -273,9 +268,9 @@ export class BaseProject extends EventEmitter {
   setRunQuota = async (run_quota: Quota | null): Promise<void> => {
     // if null, there is no paygo quota, so we have to compute it based on the licenses
     if (run_quota == null) {
-      const { settings, users, site_license } = await query({
+      const { settings, users } = await query({
         db: db(),
-        select: ["site_license", "settings", "users"],
+        select: ["settings", "users"],
         table: "projects",
         where: { project_id: this.project_id },
         one: true,
@@ -291,7 +286,7 @@ export class BaseProject extends EventEmitter {
       run_quota = quota(
         settingsWithMembership,
         undefined,
-        site_license,
+        undefined,
         site_settings,
       );
     }

@@ -95,16 +95,6 @@ async function init_update_stats(): Promise<void> {
   await update();
 }
 
-// This calculates and updates the site_license_usage_log.
-// It's important that we call this periodically, if we want
-// to be able to monitor site license usage. This is enabled
-// by default only for dev mode (so for development).
-async function init_update_site_license_usage_log() {
-  logger.info("init updating site license usage log periodically");
-  const update = async () => await database.update_site_license_usage_log();
-  setInterval(update, 31000);
-  await update();
-}
 
 async function initMetrics() {
   logger.info("Initializing Metrics Recorder...");
@@ -252,7 +242,6 @@ async function startServer(): Promise<void> {
 
     if (program.mode != "kucalc") {
       await init_update_stats();
-      await init_update_site_license_usage_log();
       // This is async but runs forever, so don't wait for it.
       logger.info("init starting always running projects");
       init_start_always_running_projects(database);
