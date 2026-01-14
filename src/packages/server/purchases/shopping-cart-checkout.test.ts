@@ -93,7 +93,7 @@ describe("shopping-cart-checkout", () => {
       };
       const testCart = [
         {
-          product: "site-license",
+          product: "cash-voucher",
           lineItemAmount: 1.5,
           checked: true,
           description: testDescription,
@@ -130,7 +130,7 @@ describe("shopping-cart-checkout", () => {
       //
       const testCart = [
         {
-          product: "site-license",
+          product: "cash-voucher",
           checked: true,
           description: {
             type: "cash-voucher",
@@ -138,7 +138,7 @@ describe("shopping-cart-checkout", () => {
           },
         },
         {
-          product: "site-license",
+          product: "cash-voucher",
           checked: true,
           description: {
             type: "cash-voucher",
@@ -169,7 +169,7 @@ describe("shopping-cart-checkout", () => {
       //
       const testCart = [
         {
-          product: "site-license",
+          product: "cash-voucher",
           checked: false,
           description: {
             type: "cash-voucher",
@@ -177,7 +177,7 @@ describe("shopping-cart-checkout", () => {
           },
         },
         {
-          product: "site-license",
+          product: "cash-voucher",
           checked: true,
           description: {
             type: "cash-voucher",
@@ -203,12 +203,12 @@ describe("shopping-cart-checkout", () => {
       expect(total).toEqual(3.0);
     });
 
-    it("filters items which aren't site licenses from cart", async () => {
+    it("filters items which aren't checkout products from cart", async () => {
       // Arrange
       //
       const testCart = [
         {
-          product: "site-license",
+          product: "cash-voucher",
           checked: true,
           description: {
             type: "cash-voucher",
@@ -247,7 +247,7 @@ describe("shopping-cart-checkout", () => {
       //
       const testCart = [
         {
-          product: "site-license",
+          product: "cash-voucher",
           checked: true,
           description: {
             type: "cash-voucher",

@@ -11,62 +11,15 @@ import renewSubscription, { getSubscription } from "./renew-subscription";
 import {
   createTestAccount,
   createTestMembershipSubscription,
-  createTestSubscription,
 } from "./test-data";
 import dayjs from "dayjs";
-import createCredit from "./create-credit";
-import getBalance from "./get-balance";
 import getPool from "@cocalc/database/pool";
 import { before, after } from "@cocalc/server/test";
-import { toDecimal } from "@cocalc/util/money";
 
 beforeAll(async () => {
   await before({ noConat: true });
 }, 15000);
 afterAll(after);
-
-describe("create a subscription, then renew it", () => {
-  const account_id = uuid();
-  let subscription_id = -1;
-  let cost = -1;
-  it("creates an account, license and subscription", async () => {
-    await createTestAccount(account_id);
-    ({ subscription_id, cost } = await createTestSubscription(account_id));
-  });
-
-  it("runs renewSubscription which fails due to spending limit", async () => {
-    expect.assertions(1);
-    try {
-      await renewSubscription({ account_id, subscription_id });
-    } catch (e) {
-      expect(e.message).toMatch("Please pay");
-    }
-    //const sub = await getSubscription(subscription_id);
-  });
-
-  it("add money and then renewSubscription, which works and charges the right amount", async () => {
-    await createCredit({ account_id, amount: cost });
-    await renewSubscription({ account_id, subscription_id });
-    const sub = await getSubscription(subscription_id);
-    expect(
-      dayjs(sub.current_period_end).diff(dayjs(), "day"),
-    ).toBeGreaterThanOrEqual(50); // another month added...
-    expect(toDecimal(await getBalance({ account_id })).toNumber()).toBeCloseTo(
-      0,
-    );
-  });
-
-  it("renews the subscription again but with force set to true, so that the subscription renews (even though we are out of money)", async () => {
-    await renewSubscription({ account_id, subscription_id, force: true });
-    expect(toDecimal(await getBalance({ account_id })).toNumber()).toBeCloseTo(
-      -cost,
-    );
-    const sub = await getSubscription(subscription_id);
-    expect(
-      dayjs(sub.current_period_end).diff(dayjs(), "day"),
-    ).toBeGreaterThanOrEqual(80); // about 2 months added...
-  });
-});
 
 describe("adding and subtracting month and year to a date", () => {
   it("adds a month to Feb 2 and gets March 2", () => {

@@ -10,6 +10,7 @@ jest.mock("@cocalc/database/pool", () => ({
 
 jest.mock("@cocalc/backend/data", () => ({
   secrets: "/tmp/secrets",
+  logs: "/tmp/logs",
 }));
 
 jest.mock("fs/promises", () => ({
