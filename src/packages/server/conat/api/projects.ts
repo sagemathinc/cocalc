@@ -17,7 +17,7 @@ import {
   cancelCopy as cancelCopyDb,
   listCopiesForProject,
 } from "@cocalc/server/projects/copy-db";
-import { createLro } from "@cocalc/server/lro/lro-db";
+import { createLro, updateLro } from "@cocalc/server/lro/lro-db";
 import { publishLroEvent, publishLroSummary } from "@cocalc/server/lro/stream";
 import { lroStreamName } from "@cocalc/conat/lro/names";
 import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
@@ -189,12 +189,94 @@ export async function start({
   wait?: boolean;
 }): Promise<void> {
   await assertCollab({ account_id, project_id });
-  log.debug("start", { project_id });
+  const op = await createLro({
+    kind: "project-start",
+    scope_type: "project",
+    scope_id: project_id,
+    created_by: account_id,
+    routing: "hub",
+    input: { project_id },
+    status: "queued",
+  });
+  await publishLroSummary({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    summary: op,
+  });
+  publishLroEvent({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    op_id: op.op_id,
+    event: {
+      type: "progress",
+      ts: Date.now(),
+      phase: "queued",
+      message: "queued",
+      progress: 0,
+    },
+  }).catch(() => {});
+
+  log.debug("start", { project_id, op_id: op.op_id });
   const project = await getProject(project_id);
+  const runStart = async () => {
+    const running = await updateLro({
+      op_id: op.op_id,
+      status: "running",
+      error: null,
+    });
+    if (running) {
+      await publishLroSummary({
+        scope_type: running.scope_type,
+        scope_id: running.scope_id,
+        summary: running,
+      });
+    }
+    try {
+      await project.start({ lro_op_id: op.op_id });
+      const progress_summary = {
+        done: 1,
+        total: 1,
+        failed: 0,
+        queued: 0,
+        expired: 0,
+        applying: 0,
+        canceled: 0,
+      };
+      const updated = await updateLro({
+        op_id: op.op_id,
+        status: "succeeded",
+        progress_summary,
+        result: progress_summary,
+        error: null,
+      });
+      if (updated) {
+        await publishLroSummary({
+          scope_type: updated.scope_type,
+          scope_id: updated.scope_id,
+          summary: updated,
+        });
+      }
+    } catch (err) {
+      const updated = await updateLro({
+        op_id: op.op_id,
+        status: "failed",
+        error: `${err}`,
+      });
+      if (updated) {
+        await publishLroSummary({
+          scope_type: updated.scope_type,
+          scope_id: updated.scope_id,
+          summary: updated,
+        });
+      }
+      throw err;
+    }
+  };
+
   if (wait) {
-    await project.start();
+    await runStart();
   } else {
-    project.start().catch((err) =>
+    runStart().catch((err) =>
       log.warn("async start failed", { project_id, err: `${err}` }),
     );
   }
