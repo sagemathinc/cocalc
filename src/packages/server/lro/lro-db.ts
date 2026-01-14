@@ -229,3 +229,83 @@ export async function listLro({
   );
   return rows as LroSummary[];
 }
+
+export async function claimLroOps({
+  kind,
+  owner_type,
+  owner_id,
+  limit = 10,
+  lease_ms = 120_000,
+}: {
+  kind: string;
+  owner_type: "hub" | "host";
+  owner_id: string;
+  limit?: number;
+  lease_ms?: number;
+}): Promise<LroSummary[]> {
+  await ensureLroSchema();
+  const client = await pool().connect();
+  try {
+    await client.query("BEGIN");
+    const { rows } = await client.query(
+      `
+        WITH candidate AS (
+          SELECT op_id
+          FROM long_running_operations
+          WHERE kind=$1
+            AND (
+              status='queued'
+              OR (
+                status='running'
+                AND (heartbeat_at IS NULL OR heartbeat_at < now() - ($2::text || ' milliseconds')::interval)
+              )
+            )
+          ORDER BY updated_at
+          FOR UPDATE SKIP LOCKED
+          LIMIT $3
+        )
+        UPDATE long_running_operations
+        SET owner_type=$4,
+            owner_id=$5,
+            heartbeat_at=now(),
+            status=CASE WHEN status='queued' THEN 'running' ELSE status END,
+            started_at=COALESCE(started_at, now()),
+            attempt=attempt+1,
+            updated_at=now()
+        WHERE op_id IN (SELECT op_id FROM candidate)
+        RETURNING *
+      `,
+      [kind, lease_ms, limit, owner_type, owner_id],
+    );
+    await client.query("COMMIT");
+    return rows as LroSummary[];
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
+}
+
+export async function touchLro({
+  op_id,
+  owner_type,
+  owner_id,
+}: {
+  op_id: string;
+  owner_type: "hub" | "host";
+  owner_id: string;
+}): Promise<void> {
+  await ensureLroSchema();
+  await pool().query(
+    `
+      UPDATE long_running_operations
+      SET heartbeat_at=now(),
+          updated_at=now()
+      WHERE op_id=$1
+        AND owner_type=$2
+        AND owner_id=$3
+    `,
+    [op_id, owner_type, owner_id],
+  );
+}

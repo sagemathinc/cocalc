@@ -23,6 +23,12 @@ This document defines a long-running operations (LRO) system for CoCalc. The goa
 - A summary is stored in Postgres and mirrored to conat for quick reads.
 - Clients subscribe to a canonical subject and (optionally) a project-scoped alias for locality.
 
+## Orchestration placement (important)
+
+- Keep orchestration in the hub (or a dedicated control-plane worker). Project hosts can be off, restarted, or moved, so they are not reliable orchestrators.
+- Host-side workers should only run data-plane steps tied to the host (e.g., apply pending copies, restore snapshots). These steps must be idempotent and resumable.
+- The hub owns LRO leasing/heartbeats and the canonical summary state; hosts only emit step-level progress for the work they execute.
+
 ## Data model (authoritative summary)
 
 Postgres table: `long_running_operations` (summary only, not full logs).
@@ -135,6 +141,39 @@ Configurable defaults:
 - Heartbeat periodically (e.g., every 30s).
 - Stale heartbeat -> retry or fail.
 
+## LRO worker pattern
+
+The LRO worker is a hub-side control-plane loop that owns orchestration and leases. It should:
+
+- Claim work via DB leases (queued or stale-running).
+- Emit progress events to conat (short-lived, high-resolution).
+- Update the LRO summary in Postgres (durable, low frequency).
+- Delegate data-plane steps to hosts when needed (apply copy, restore).
+
+Durability strategy:
+
+- Workers are stateless; the database is the source of truth for op state.
+- Leases use heartbeat_at so other workers can reclaim stale ops after restarts.
+- Steps are idempotent and resumable (e.g., reuse snapshot_id, requeue only missing rows).
+- Progress events are best-effort; the summary is what guarantees recovery.
+
+```mermaid
+flowchart TD
+  A[Worker tick] --> B{claim ops}
+  B -- none --> A
+  B -- claimed --> C[set running + heartbeat]
+  C --> D{needs host step?}
+  D -- yes --> E[call host data-plane API]
+  D -- no --> F[run hub step]
+  E --> G[publish progress events]
+  F --> G
+  G --> H[update LRO summary in DB]
+  H --> I{finished?}
+  I -- no --> C
+  I -- yes --> J[final summary + done]
+  J --> A
+```
+
 ## Progress event format
 
 Event example:
@@ -161,7 +200,8 @@ sequenceDiagram
   participant Client
   participant Hub
   participant DB as Postgres
-  participant LRO as LRO Worker (Hub/Host)
+  participant LRO as LRO Worker (Hub)
+  participant Host
   participant Conat
 
   Client->>Hub: create(kind, scope, input)
@@ -170,6 +210,7 @@ sequenceDiagram
   Hub-->>Client: op_id + subjects
 
   LRO->>DB: claim op (running)
+  LRO->>Host: run data-plane step (optional)
   LRO->>Conat: publish progress events
   LRO->>DB: heartbeat
   LRO->>Conat: publish summary (running)
@@ -201,8 +242,8 @@ sequenceDiagram
    - Provide dedupe support and return canonical + alias subjects.
 
 5. **Worker runtime**
-   - Add a worker lease/heartbeat loop for queued ops.
-   - Provide host-side helper functions to emit progress and finalize.
+   - Add a hub-side worker lease/heartbeat loop for queued ops.
+   - Use host-side workers only for data-plane apply steps and progress emission.
 
 6. **First integration**
    - Migrate one operation (copy or backup) to LRO.
