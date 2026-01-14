@@ -47,8 +47,10 @@ import {
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
 import { get as getBootlog } from "@cocalc/conat/project/runner/bootlog";
+import { get as getLroStream } from "@cocalc/conat/lro/client";
 import { terminalClient } from "@cocalc/conat/project/terminal";
 import { lite } from "@cocalc/frontend/lite";
+import type { LroScopeType } from "@cocalc/conat/hub/api/lro";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
@@ -585,6 +587,15 @@ export class ConatClient extends EventEmitter {
   }) => {
     // Bootlog now supports either project_id or host_id; at least one must be set by caller.
     return getBootlog({ client: this.conat(), ...opts } as any);
+  };
+
+  lroStream = (opts: {
+    op_id?: string;
+    stream_name?: string;
+    scope_type: LroScopeType;
+    scope_id?: string;
+  }) => {
+    return getLroStream({ client: this.conat(), ...opts });
   };
 
   terminalClient = (opts: {
