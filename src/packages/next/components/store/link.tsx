@@ -37,14 +37,7 @@ export function LinkToStore(props: Props) {
 
   const router = useRouter();
 
-  const params =
-    conf != null
-      ? Object.entries(conf)
-          .map(([key, value]) => `${key}=${value}`)
-          .join("&")
-      : "";
-
-  const url = `/store/site-license?${params}`;
+  const url = "/store/membership";
 
   const label = conf != null ? "Select" : `Store`;
 

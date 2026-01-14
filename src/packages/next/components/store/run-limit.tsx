@@ -79,10 +79,8 @@ export function RunLimit({
             one more seat than the number of students. One for each student,
             and one for the shared {WORKSPACE_LABEL.toLowerCase()}. Regarding
             your instructor {WORKSPACE_LABEL.toLowerCase()}, you need one
-            additional seat or purchase a regular{" "}
-            <a onClick={() => router.push("/store/site-license")}>
-              site license
-            </a>{" "}
+            additional seat or purchase a{" "}
+            <a onClick={() => router.push("/store/membership")}>membership</a>{" "}
             to cover it.
           </div>
         );

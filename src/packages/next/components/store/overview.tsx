@@ -4,8 +4,6 @@
  */
 
 import { Divider } from "antd";
-import { useRouter } from "next/router";
-import { useEffect } from "react";
 
 import { Icon, PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
 import { Paragraph } from "components/misc";
@@ -20,13 +18,7 @@ import {
 } from "lib/styles/layouts";
 
 export default function Overview() {
-  const router = useRouter();
   const { supportVideoCall } = useCustomize();
-
-  // most likely, user will go to the cart next
-  useEffect(() => {
-    router.prefetch("/store/site-license");
-  }, []);
 
   return (
     <div style={OVERVIEW_STYLE}>
@@ -36,7 +28,7 @@ export default function Overview() {
       </h2>
       <Paragraph style={{ fontSize: "13pt" }}>
         Shop below for <A href="/store/membership">memberships</A>,{" "}
-        <A href="/store/site-license">licenses</A>, and{" "}
+        <A href="/store/course">courses</A>, and{" "}
         <A href="/store/vouchers">vouchers</A> or explore{" "}
         <A href="/pricing">all available products and pricing</A>.
       </Paragraph>
@@ -80,7 +72,7 @@ export default function Overview() {
       <Paragraph style={{ marginBottom: "4em" }}>
         You can also browse your{" "}
         <A href="/settings/purchases">purchase history</A>,{" "}
-        <A href="/settings/licenses">licenses</A>, and{" "}
+        <A href="/settings/licenses">software licenses</A>, and{" "}
         <A href="/vouchers/created">vouchers</A>.
       </Paragraph>
     </div>

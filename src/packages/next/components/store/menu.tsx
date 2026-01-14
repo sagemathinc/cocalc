@@ -67,11 +67,6 @@ export default function ConfigMenu({ main }: ConfigMenuProps) {
       key: "membership",
       icon: <Icon name="user" />,
     },
-    {
-      label: "Licenses",
-      key: "site-license",
-      icon: <Icon name="key" />,
-    },
     { label: "Course", key: "course", icon: <Icon name="graduation-cap" /> },
     {
       label: "Vouchers",

@@ -17,8 +17,6 @@ all async (no callbacks!).
 import { fromJS, Map } from "immutable";
 import { redux, Actions, Store } from "../app-framework";
 import { reuse_in_flight_methods } from "@cocalc/util/async-utils";
-import { server_days_ago } from "@cocalc/util/misc";
-import { getManagedLicenses } from "../account/licenses/util";
 
 import { BillingStoreState } from "./store";
 
@@ -91,26 +89,10 @@ export class BillingActions extends Actions<BillingStoreState> {
   }
 
   public async update_managed_licenses(): Promise<void> {
-    // Update the license state in the frontend
-    const v = await getManagedLicenses();
-    const all_managed_license_ids = fromJS(v.map((x) => x.id)) as any;
-
-    const day_ago = server_days_ago(1);
-    const managed_license_ids = fromJS(
-      v
-        .filter((x) => x.expires == null || x.expires >= day_ago)
-        .map((x) => x.id),
-    ) as any;
-
-    const x: { [license_id: string]: object } = {};
-    for (const license of v) {
-      x[license.id] = license;
-    }
-    const managed_licenses = fromJS(x) as any;
     this.setState({
-      managed_licenses,
-      managed_license_ids,
-      all_managed_license_ids,
+      managed_licenses: fromJS({}) as any,
+      managed_license_ids: fromJS([]) as any,
+      all_managed_license_ids: fromJS([]) as any,
     });
   }
 }

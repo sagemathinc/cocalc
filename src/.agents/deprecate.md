@@ -8,12 +8,12 @@ Goal: Complete remove all code and functionality for the following:
 - [x] legacy upgrades \(from 2020 and earlier\)
 - [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [ ] payg LLM purchases
-- [ ] all code involving compute\_servers
+- [ ] all code involving compute\_servers and cloud filesystems
 - [x] dedicated\_vms and dedicated\_disks
 - [ ] GPU licenses
 - [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
 - [ ] jitsi \-\- video chat
-- [ ] rename: "Project" \-\-&gt; "Workspace" in frontend UI
+- [x] rename: "Project" \-\-&gt; "Workspace" in frontend UI
 
 ## Remove Project Licenses (replace with memberships)
 
@@ -88,3 +88,4 @@ Goal: Complete remove all code and functionality for the following:
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
+

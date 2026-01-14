@@ -20,6 +20,7 @@
     "./conat/file-server": "./dist/conat/file-server/index.js",
     "./conat/socketio": "./dist/conat/socketio/index.js",
     "./conat/project/*": "./dist/conat/project/*.js",
+    "./control-agent": "./dist/control-agent/index.js",
     "./project-backup": "./dist/project-backup/index.js",
     "./purchases/*": "./dist/purchases/*.js",
     "./stripe/*": "./dist/stripe/*.js",

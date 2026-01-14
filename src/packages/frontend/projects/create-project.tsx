@@ -12,7 +12,6 @@ import { delay } from "awaiting";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import {
-  CSS,
   redux,
   useEffect,
   useIsMountedRef,
@@ -29,14 +28,8 @@ import {
 } from "@cocalc/frontend/custom-software/selector";
 import { labels } from "@cocalc/frontend/i18n";
 // import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
-import { SiteLicenseInput } from "@cocalc/frontend/site-licenses/input";
-import { BuyLicenseForProject } from "@cocalc/frontend/site-licenses/purchase/buy-license-for-project";
 import track from "@cocalc/frontend/user-tracking";
 // import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
-import {
-  KUCALC_COCALC_COM,
-  KUCALC_ON_PREMISES,
-} from "@cocalc/util/db-schema/site-defaults";
 import {
   DEFAULT_R2_REGION,
   mapCloudRegionToR2Region,
@@ -44,14 +37,10 @@ import {
   R2_REGIONS,
   type R2Region,
 } from "@cocalc/util/consts";
-import { capitalize, isValidUUID } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
+import { capitalize } from "@cocalc/util/misc";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { SelectNewHost } from "@cocalc/frontend/hosts/select-new-host";
 
-const TOGGLE_STYLE: CSS = { margin: "10px 0" } as const;
-const TOGGLE_BUTTON_STYLE: CSS = { padding: "0" } as const;
-const CARD_STYLE: CSS = { margin: "10px 0" } as const;
 
 interface Props {
   noProjects: boolean;
@@ -81,22 +70,13 @@ export function NewProjectCreator({
   const [title_manually, set_title_manually] = useState<boolean>(
     default_value.length > 0,
   );
-  const [license_id, set_license_id] = useState<string>("");
   const [selected, setSelected] = useState<SoftwareEnvironmentState>({});
   const new_project_title_ref = useRef<any>(null);
   const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const customize_kucalc = useTypedRedux("customize", "kucalc");
   const compute_servers_enabled = useTypedRedux(
     "customize",
     "compute_servers_enabled",
   );
-  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
-  // only require a license on cocalc.com when configured to require a license
-  const requireLicense =
-    isCoCalcCom &&
-    !!useTypedRedux("customize", "require_license_to_create_project");
-  const [show_add_license, set_show_add_license] =
-    useState<boolean>(requireLicense);
   const [selectedHost, setSelectedHost] = useState<Host | undefined>();
   const [projectRegion, setProjectRegion] =
     useState<R2Region>(DEFAULT_R2_REGION);
@@ -107,12 +87,6 @@ export function NewProjectCreator({
         label: R2_REGION_LABELS[region],
       })),
     [],
-  );
-
-  // onprem and cocalc.com use licenses to adjust quota configs – but only cocalc.com has custom software images
-  const show = useMemo(
-    () => [KUCALC_COCALC_COM, KUCALC_ON_PREMISES].includes(customize_kucalc),
-    [customize_kucalc],
   );
 
   const [form] = Form.useForm();
@@ -166,9 +140,7 @@ export function NewProjectCreator({
     set_title_text(default_value || getDefaultTitle());
     set_error("");
     setSelected({});
-    set_show_add_license(requireLicense);
     set_title_manually(false);
-    set_license_id("");
     setSelectedHost(undefined);
     setProjectRegion(DEFAULT_R2_REGION);
   }
@@ -189,7 +161,6 @@ export function NewProjectCreator({
       title: title_text,
       image: await derive_project_img_name(selected),
       start: true,
-      license: license_id,
       host_id: selectedHost?.id,
       region: projectRegion,
     };
@@ -204,7 +175,6 @@ export function NewProjectCreator({
     track("create-project", {
       how: "projects-page",
       project_id,
-      license_id,
       ...opts,
     });
     // switch_to=true is perhaps suggested by #4088
@@ -262,9 +232,6 @@ export function NewProjectCreator({
   }
 
   function isDisabled() {
-    if (requireLicense && !license_id) {
-      return true;
-    }
     return (
       // no name of new project
       !title_text?.trim() ||
@@ -302,74 +269,6 @@ export function NewProjectCreator({
       }
     }
     setSelected(obj);
-  }
-
-  function addSiteLicense(lic: string): void {
-    set_license_id(lic);
-  }
-
-  function render_add_license() {
-    if (!show) return;
-    if (!show_add_license) {
-      return (
-        <div style={TOGGLE_STYLE}>
-          <Button
-            disabled={requireLicense}
-            onClick={() => set_show_add_license(true)}
-            type="link"
-            style={TOGGLE_BUTTON_STYLE}
-          >
-            <Icon name="plus" /> Add a license key...
-          </Button>
-        </div>
-      );
-    } else {
-      return (
-        <Card
-          size="small"
-          title={
-            <h4>
-              <div style={{ float: "right" }}>
-                <BuyLicenseForProject />
-              </div>
-              <Icon name="key" /> Select License
-            </h4>
-          }
-          style={CARD_STYLE}
-        >
-          <SiteLicenseInput
-            requireValid
-            confirmLabel={"Add this license"}
-            onChange={addSiteLicense}
-            requireLicense={requireLicense}
-            requireMessage={intl.formatMessage({
-              id: "projects.create-project.requireLicense",
-              defaultMessage:
-                "A license is required to create additional workspaces.",
-            })}
-          />
-        </Card>
-      );
-    }
-  }
-
-  function render_license() {
-    if (isValidUUID(license_id)) {
-      return (
-        <div style={{ color: COLORS.GRAY }}>
-          This {projectLabelLower} will have the license{" "}
-          <code>{license_id}</code> applied to. You can{" "}
-          <A
-            href={
-              "https://doc.cocalc.com/project-settings.html#project-add-license"
-            }
-          >
-            add/remove licenses
-          </A>{" "}
-          in {projectLabelLower} settings later.
-        </div>
-      );
-    }
   }
 
   function render_input_section(): React.JSX.Element | undefined {
@@ -463,24 +362,13 @@ export function NewProjectCreator({
           regionFilter={projectRegion}
           regionLabel={R2_REGION_LABELS[projectRegion]}
         />
-        {render_add_license()}
-        {render_license()}
         {render_error()}
       </>
     );
   }
 
   function renderOKButtonText() {
-    return intl.formatMessage(
-      {
-        id: "projects.create-project.create",
-        defaultMessage:
-          "Create{requireLicense, select, true { (select license above)} other {}}",
-      },
-      {
-        requireLicense: requireLicense && !license_id,
-      },
-    );
+    return capitalize(intl.formatMessage(labels.create));
   }
 
   function render_project_creation(): React.JSX.Element | undefined {

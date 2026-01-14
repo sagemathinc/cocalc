@@ -44,12 +44,11 @@ export default function Overview() {
 
         <Product
           icon="edit"
-          title="Manage Licenses"
+          title="Software Licenses"
           href={join(basePath, "/settings/licenses")}
           external
         >
-          View and manage your licenses and see licensed projects you
-          collaborate on
+          View and manage your software licenses.
         </Product>
 
         <Product
@@ -63,10 +62,10 @@ export default function Overview() {
       </OverviewRow>
 
       <p>
-        You can also <A href="/store/site-license">buy a license</A> at{" "}
+        You can also <A href="/store/membership">buy a membership</A> at{" "}
         <A href="/store">the store</A> and browse{" "}
         <A external href="/settings/licenses">
-          your existing licenses
+          your software licenses
         </A>{" "}
         and <A href="/vouchers/redeemed">vouchers you have redeemed</A>.
       </p>

@@ -3,7 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 import { Alert, Layout } from "antd";
-import { useRouter } from "next/router";
 import { useEffect, useState, type JSX } from "react";
 
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
@@ -35,7 +34,6 @@ interface Props {
 
 export default function StoreLayout({ page }: Props) {
   const { isCommercial } = useCustomize();
-  const router = useRouter();
   const profile = useProfile({ noCache: true });
 
   const [loading, setLoading] = useState<boolean>(false);
@@ -59,10 +57,6 @@ export default function StoreLayout({ page }: Props) {
       setLoading(false);
     }
   };
-
-  useEffect(() => {
-    router.prefetch("/store/site-license");
-  }, []);
 
   useEffect(() => {
     refreshBalance();
@@ -125,8 +119,6 @@ export default function StoreLayout({ page }: Props) {
     switch (main) {
       case "membership":
         return requireAccount(Memberships);
-      case "site-license":
-        return <SiteLicense noAccount={noAccount} source="site-license" />;
       case "course":
         return <SiteLicense noAccount={noAccount} source="course" />;
       case "cart":
