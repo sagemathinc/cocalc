@@ -34,6 +34,7 @@ import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ActionBar } from "./action-bar";
 import { ActionBox } from "./action-box";
+import CopyOps from "./copy-ops";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
 import { MiscSideButtons } from "./misc-side-buttons";
@@ -395,6 +396,7 @@ export function Explorer() {
           on_clear={() => actions.clear_all_activity()}
           style={{ top: "100px" }}
         />
+        <CopyOps project_id={project_id} />
         <div
           style={{
             display: "flex",

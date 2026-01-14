@@ -109,6 +109,7 @@ import {
 } from "@cocalc/frontend/project/listing/use-files";
 import { search } from "@cocalc/frontend/project/search/run";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
+import { CopyOpsManager } from "@cocalc/frontend/project/copy-ops";
 import { getFileTemplate } from "./project/templates";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import {
@@ -309,11 +310,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public open_files?: OpenFiles;
   private computeServerManager?: ComputeServerManager;
   private projectStatusSub?;
+  private copyOpsManager: CopyOpsManager;
 
   constructor(name, b) {
     super(name, b);
     this.project_id = reduxNameToProjectId(name);
     this.open_files = new OpenFiles(this);
+    this.copyOpsManager = new CopyOpsManager({
+      project_id: this.project_id,
+      setState: (state) => this.setState(state),
+      isClosed: () => this.isClosed(),
+      listLro: (opts) => webapp_client.conat_client.hub.lro.list(opts),
+      getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+      log: (message, err) => console.warn(message, err),
+    });
     // console.log("create project actions", this.project_id);
     // console.trace("create project actions", this.project_id)
     this.expensiveLoop();
@@ -394,6 +404,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.initComputeServerManager();
     this.initComputeServersTable();
     this.initProjectStatus();
+    this.copyOpsManager.init();
     this.initSnapshots();
     this.initBackups();
     const store = this.get_store();
@@ -407,6 +418,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux.removeProjectReferences(this.project_id);
     this.closeComputeServerManager();
     this.closeComputeServerTable();
+    this.copyOpsManager.close();
     this.projectStatusSub?.close();
     delete this.projectStatusSub;
     must_define(this.redux);
@@ -2300,7 +2312,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
     let error: any = undefined;
     try {
-      await webapp_client.project_client.copyPathBetweenProjects(opts);
+      const resp =
+        await webapp_client.project_client.copyPathBetweenProjects(opts);
+      this.copyOpsManager.track(resp);
       const withSlashes = await this.appendSlashToDirectoryPaths(files, 0);
       this.log({
         event: "file_action",
