@@ -35,7 +35,6 @@ import "./cloud-vm-work";
 import "./collaborators";
 import "./compute-images";
 import "./compute-servers";
-import "./copy-paths";
 import "./crm";
 import "./email-counter";
 import "./file-access-log";

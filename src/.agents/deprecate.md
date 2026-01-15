@@ -2,19 +2,19 @@
 
 Goal: Complete remove all code and functionality for the following:
 
-- [ ] project licenses
-- [ ] limit_free_project_uptime with the countdown timer (any other "freemium dials?")
-- [ ] copy\_paths 
+- [ ] project tokens \-\- join a project automatically using a token
 - [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [ ] payg LLM purchases
 - [ ] all code involving compute\_servers and cloud filesystems
-- [ ] GPU licenses
-- [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
-- [ ] jitsi \-\- video chat
 - [ ] anonymous accounts / sign up
-- [ ] project tokens \-\- join a project automatically using a token
+- [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
 - [ ] vector database support code \-\- qdrant
 - [ ] all dynamic user\-specific content from the nextjs app: the store, the new items \(?\).
+- [x] jitsi \-\- video chat
+- [x] GPU licenses
+- [x] copy\_paths 
+- [x] limit_free_project_uptime with the countdown timer (any other "freemium dials?")
+- [x] project licenses
 - [x] payg project upgrades
 - [x] legacy upgrades \(from 2020 and earlier\)
 - [x] dedicated\_vms and dedicated\_disks

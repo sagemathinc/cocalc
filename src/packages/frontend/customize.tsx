@@ -138,7 +138,6 @@ export interface CustomizeState {
   // Be sure to also update disableCommercializationParameters
   // below if you change these:
   nonfree_countries?: List<string>;
-  limit_free_project_uptime: number; // minutes
 
   onprem_quota_heading: string;
   organization_email: string;
@@ -261,7 +260,6 @@ export class CustomizeActions extends Actions<CustomizeState> {
 
   disableCommercializationParameters = () => {
     this.setState({
-      limit_free_project_uptime: undefined,
     });
   };
 

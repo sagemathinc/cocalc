@@ -93,8 +93,8 @@ export const GetPurchasesOutputSchema = z.union([
          when active.`,
           ),
           period_start: z.string().describe(
-            `When the purchase starts being active (e.g., a 1 week license starts and ends on
-         specific days; for metered purchases it is when the purchased started charging) `,
+            `When the purchase starts being active (e.g., a 1-week purchase starts and ends on
+         specific days; for metered purchases it is when charging starts) `,
           ),
           period_end: z.string().describe(
             `When the purchase stops being active. For metered purchases, it's when the

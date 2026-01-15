@@ -192,7 +192,6 @@ export const COMPUTE_STATES: ComputeStates = {
       "start",
       "close",
       "save",
-      "copy_path",
       "mkdir",
       "directory_listing",
       "read_file",
@@ -244,7 +243,6 @@ export const COMPUTE_STATES: ComputeStates = {
     timeout: 60,
     commands: [
       "save",
-      "copy_path",
       "mkdir",
       "directory_listing",
       "read_file",
@@ -270,7 +268,6 @@ export const COMPUTE_STATES: ComputeStates = {
     to: {},
     commands: [
       "save",
-      "copy_path",
       "mkdir",
       "directory_listing",
       "read_file",
@@ -300,7 +297,6 @@ export const COMPUTE_STATES: ComputeStates = {
       "stop",
       "save",
       "address",
-      "copy_path",
       "mkdir",
       "directory_listing",
       "read_file",

@@ -47,10 +47,17 @@ import {
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
 import { get as getBootlog } from "@cocalc/conat/project/runner/bootlog";
-import { get as getLroStream } from "@cocalc/conat/lro/client";
+import {
+  get as getLroStream,
+  waitForCompletion as waitForLroCompletion,
+} from "@cocalc/conat/lro/client";
 import { terminalClient } from "@cocalc/conat/project/terminal";
 import { lite } from "@cocalc/frontend/lite";
-import type { LroScopeType } from "@cocalc/conat/hub/api/lro";
+import type {
+  LroEvent,
+  LroScopeType,
+  LroSummary,
+} from "@cocalc/conat/hub/api/lro";
 
 export interface ConatConnectionStatus {
   state: "connected" | "disconnected";
@@ -596,6 +603,18 @@ export class ConatClient extends EventEmitter {
     scope_id?: string;
   }) => {
     return getLroStream({ client: this.conat(), ...opts });
+  };
+
+  lroWait = (opts: {
+    op_id?: string;
+    stream_name?: string;
+    scope_type: LroScopeType;
+    scope_id?: string;
+    timeout_ms?: number;
+    onProgress?: (event: Extract<LroEvent, { type: "progress" }>) => void;
+    onSummary?: (summary: LroSummary) => void;
+  }) => {
+    return waitForLroCompletion({ client: this.conat(), ...opts });
   };
 
   terminalClient = (opts: {

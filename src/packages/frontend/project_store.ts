@@ -83,6 +83,7 @@ export interface ProjectStoreState {
   // Project Files
   activity: any; // immutable,
   copy_ops?: immutable.Map<string, any>;
+  start_lro?: immutable.Map<string, any>;
   file_action?: FileAction;
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
   file_search?: string;
@@ -303,6 +304,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project Files
       activity: undefined,
       copy_ops: undefined,
+      start_lro: undefined,
       checked_files: immutable.Set(),
       show_library: false,
       file_listing_scroll_top: undefined,

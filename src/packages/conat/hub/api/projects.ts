@@ -336,7 +336,13 @@ export interface Projects {
     // When false, enqueue start and return immediately; callers can watch
     // bootlog/changefeed for progress.
     wait?: boolean;
-  }) => Promise<void>;
+  }) => Promise<{
+    op_id: string;
+    scope_type: "project";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }>;
   stop: (opts: { account_id?: string; project_id: string }) => Promise<void>;
   updateAuthorizedKeysOnHost: (opts: {
     project_id: string;

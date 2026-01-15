@@ -1,7 +1,12 @@
 import { conat } from "@cocalc/conat/client";
 import type { Client } from "@cocalc/conat/core/client";
 import type { DStream } from "@cocalc/conat/sync/dstream";
-import type { LroEvent, LroScopeType } from "@cocalc/conat/hub/api/lro";
+import type {
+  LroEvent,
+  LroScopeType,
+  LroStatus,
+  LroSummary,
+} from "@cocalc/conat/hub/api/lro";
 import { isValidUUID } from "@cocalc/util/misc";
 import { lroStreamName } from "./names";
 
@@ -60,5 +65,110 @@ export async function get({
   return await client.sync.dstream<LroEvent>({
     ...location,
     name,
+  });
+}
+
+const TERMINAL_STATUSES = new Set<LroStatus>([
+  "succeeded",
+  "failed",
+  "canceled",
+  "expired",
+]);
+
+export async function waitForCompletion({
+  op_id,
+  stream_name,
+  scope_type,
+  scope_id,
+  client = conat(),
+  timeout_ms,
+  onProgress,
+  onSummary,
+}: {
+  op_id?: string;
+  stream_name?: string;
+  scope_type: LroScopeType;
+  scope_id?: string;
+  client?: Client;
+  timeout_ms?: number;
+  onProgress?: (event: Extract<LroEvent, { type: "progress" }>) => void;
+  onSummary?: (summary: LroSummary) => void;
+}): Promise<LroSummary> {
+  const stream = await get({
+    op_id,
+    stream_name,
+    scope_type,
+    scope_id,
+    client,
+  });
+  let lastIndex = 0;
+  let done = false;
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  return await new Promise<LroSummary>((resolve, reject) => {
+    const finish = (summary: LroSummary) => {
+      if (done) return;
+      done = true;
+      cleanup();
+      resolve(summary);
+    };
+
+    const fail = (err: Error) => {
+      if (done) return;
+      done = true;
+      cleanup();
+      reject(err);
+    };
+
+    const handleChange = () => {
+      if (done) return;
+      let events: LroEvent[];
+      try {
+        events = stream.getAll();
+      } catch (err) {
+        fail(err as Error);
+        return;
+      }
+      if (events.length < lastIndex) {
+        lastIndex = 0;
+      }
+      for (let i = lastIndex; i < events.length; i += 1) {
+        const event = events[i];
+        if (event.type === "progress") {
+          onProgress?.(event);
+        }
+        if (event.type === "summary") {
+          onSummary?.(event.summary);
+          if (TERMINAL_STATUSES.has(event.summary.status)) {
+            finish(event.summary);
+            return;
+          }
+        }
+      }
+      lastIndex = events.length;
+    };
+
+    const handleClosed = () => {
+      fail(new Error("lro stream closed before completion"));
+    };
+
+    const cleanup = () => {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+      stream.removeListener("change", handleChange);
+      stream.removeListener("closed", handleClosed);
+      stream.close();
+    };
+
+    stream.on("change", handleChange);
+    stream.on("closed", handleClosed);
+    handleChange();
+
+    if (timeout_ms && timeout_ms > 0) {
+      timeoutId = setTimeout(() => {
+        fail(new Error("timeout waiting for lro completion"));
+      }, timeout_ms);
+    }
   });
 }

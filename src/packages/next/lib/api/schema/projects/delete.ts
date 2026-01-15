@@ -12,11 +12,9 @@ export const DeleteProjectInputSchema = z
   })
   .describe(
     `Deletes a specific project. This causes three operations to occur in succession.
-     Firstly, all project licenses associated with the project are removed. Next, the 
-     project is stopped. Finally, the project's \`delete\` flag in the database is 
+     First, the project is stopped. Finally, the project's \`delete\` flag in the database is 
      set, which removes it from the user interface. This operation may be reversed by 
-     restoring the project via the API, with the proviso that all information about 
-     applied project licenses is lost in the delete operation.`,
+     restoring the project via the API.`,
   );
 
 export const DeleteProjectOutputSchema = z.union([
