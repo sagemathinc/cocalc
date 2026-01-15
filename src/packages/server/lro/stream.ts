@@ -38,6 +38,7 @@ export async function publishLroEvent({
   const stream = client.sync.astream<LroEvent>({
     ...scopeArgs(scope_type, scope_id),
     name: lroStreamName(op_id),
+    ephemeral: true,
   });
   await stream.publish(event, { ttl });
 }
