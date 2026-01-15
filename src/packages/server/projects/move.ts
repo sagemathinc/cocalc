@@ -7,6 +7,8 @@ import {
 } from "@cocalc/util/consts";
 import {
   loadHostFromRegistry,
+  selectActiveHost,
+  deleteProjectDataOnHost,
   savePlacement,
   startProjectOnHost,
   stopProjectOnHost,
@@ -17,7 +19,7 @@ const log = getLogger("server:projects:move");
 
 export type MoveProjectToHostInput = {
   project_id: string;
-  dest_host_id: string;
+  dest_host_id?: string;
   account_id: string;
 };
 
@@ -33,10 +35,16 @@ type MoveProjectContext = {
   project_state?: string | null;
 };
 
+export type MoveProjectProgressUpdate = {
+  step: string;
+  message?: string;
+  detail?: Record<string, any>;
+};
+
 async function buildMoveProjectContext(
   input: MoveProjectToHostInput,
 ): Promise<MoveProjectContext> {
-  const { project_id, dest_host_id, account_id } = input;
+  const { project_id, account_id } = input;
   const pool = getPool();
   const projectResult = await pool.query<{
     project_id: string;
@@ -53,21 +61,27 @@ async function buildMoveProjectContext(
   if (!projectRow) {
     throw new Error(`project ${project_id} not found`);
   }
-  const hostResult = await pool.query<{
-    id: string;
-    region: string | null;
-    status: string | null;
-  }>(
-    "SELECT id, region, status FROM project_hosts WHERE id=$1 AND deleted IS NULL",
-    [dest_host_id],
-  );
-  const hostRow = hostResult.rows[0];
-  if (!hostRow) {
-    throw new Error(`host ${dest_host_id} not found`);
+  let dest_host_id = input.dest_host_id;
+  const destHost =
+    dest_host_id != null
+      ? await loadHostFromRegistry(dest_host_id)
+      : await selectActiveHost(projectRow.host_id ?? undefined);
+  if (!destHost) {
+    throw new Error(
+      dest_host_id
+        ? `host ${dest_host_id} not found`
+        : "no running project-host available",
+    );
+  }
+  if (!dest_host_id) {
+    dest_host_id = (destHost as { id?: string }).id;
+  }
+  if (!dest_host_id) {
+    throw new Error("destination host id not available");
   }
   const project_region =
     parseR2Region(projectRow.region) ?? DEFAULT_R2_REGION;
-  const dest_region = mapCloudRegionToR2Region(hostRow.region);
+  const dest_region = mapCloudRegionToR2Region(destHost.region);
   if (project_region !== dest_region) {
     throw new Error(
       `project region ${project_region} does not match host region ${dest_region}`,
@@ -88,8 +102,9 @@ async function buildMoveProjectContext(
 
 export async function moveProjectToHost(
   input: MoveProjectToHostInput,
+  opts?: { progress?: (update: MoveProjectProgressUpdate) => void },
 ): Promise<void> {
-  // Implementation planned in src/.agents/buckets.md (Phase 2).
+  const progress = opts?.progress ?? (() => {});
   const context = await buildMoveProjectContext(input);
   log.debug("moveProjectToHost context", {
     project_id: context.project_id,
@@ -101,10 +116,23 @@ export async function moveProjectToHost(
     last_backup: context.last_backup,
     last_edited: context.last_edited,
   });
+  progress({
+    step: "validate",
+    message: "validated move request",
+    detail: {
+      source_host_id: context.project_host_id ?? undefined,
+      dest_host_id: context.dest_host_id,
+    },
+  });
   const projectRunning = ["running", "starting"].includes(
     String(context.project_state ?? ""),
   );
   if (projectRunning) {
+    progress({
+      step: "stop-source",
+      message: "stopping source project",
+      detail: { project_state: context.project_state },
+    });
     log.info("moveProjectToHost stopping project before move", {
       project_id: context.project_id,
       project_state: context.project_state,
@@ -120,6 +148,11 @@ export async function moveProjectToHost(
       throw err;
     }
   } else {
+    progress({
+      step: "stop-source",
+      message: "source project already stopped",
+      detail: { project_state: context.project_state },
+    });
     log.info("moveProjectToHost skip stop (project not running)", {
       project_id: context.project_id,
       project_state: context.project_state,
@@ -138,13 +171,29 @@ export async function moveProjectToHost(
     last_edited: lastEdited ? lastEdited.toISOString() : null,
   });
   if (backupNeeded) {
+    progress({
+      step: "backup",
+      message: "creating backup snapshot",
+      detail: {
+        last_backup: lastBackup ? lastBackup.toISOString() : null,
+        last_edited: lastEdited ? lastEdited.toISOString() : null,
+      },
+    });
     log.info("moveProjectToHost creating backup", {
       project_id: context.project_id,
     });
     try {
-      await createBackup({
+      const backup = await createBackup({
         account_id: context.account_id,
         project_id: context.project_id,
+      });
+      progress({
+        step: "backup",
+        message: "backup created",
+        detail: {
+          backup_id: backup.id,
+          backup_time: backup.time.toISOString(),
+        },
       });
       log.info("moveProjectToHost backup created", {
         project_id: context.project_id,
@@ -157,6 +206,14 @@ export async function moveProjectToHost(
       throw err;
     }
   } else {
+    progress({
+      step: "backup",
+      message: "backup already current",
+      detail: {
+        last_backup: lastBackup ? lastBackup.toISOString() : null,
+        last_edited: lastEdited ? lastEdited.toISOString() : null,
+      },
+    });
     log.info("moveProjectToHost backup not needed", {
       project_id: context.project_id,
     });
@@ -165,6 +222,11 @@ export async function moveProjectToHost(
   if (!destHost) {
     throw new Error(`host ${context.dest_host_id} not found`);
   }
+  progress({
+    step: "placement",
+    message: "updating project placement",
+    detail: { dest_host_id: context.dest_host_id },
+  });
   try {
     await savePlacement(context.project_id, {
       host_id: context.dest_host_id,
@@ -182,6 +244,11 @@ export async function moveProjectToHost(
     });
     throw err;
   }
+  progress({
+    step: "start-dest",
+    message: "starting project on destination host",
+    detail: { dest_host_id: context.dest_host_id },
+  });
   try {
     await startProjectOnHost(context.project_id);
     log.info("moveProjectToHost started project on destination host", {
@@ -196,4 +263,47 @@ export async function moveProjectToHost(
     });
     throw err;
   }
+  if (
+    context.project_host_id &&
+    context.project_host_id !== context.dest_host_id
+  ) {
+    progress({
+      step: "cleanup",
+      message: "removing source data",
+      detail: { source_host_id: context.project_host_id },
+    });
+    try {
+      await deleteProjectDataOnHost({
+        project_id: context.project_id,
+        host_id: context.project_host_id,
+      });
+      progress({
+        step: "cleanup",
+        message: "source data removed",
+        detail: { source_host_id: context.project_host_id },
+      });
+    } catch (err) {
+      log.warn("moveProjectToHost cleanup failed", {
+        project_id: context.project_id,
+        source_host_id: context.project_host_id,
+        err,
+      });
+      progress({
+        step: "cleanup",
+        message: "source cleanup failed",
+        detail: { source_host_id: context.project_host_id, error: `${err}` },
+      });
+    }
+  } else {
+    progress({
+      step: "cleanup",
+      message: "no source cleanup needed",
+      detail: { source_host_id: context.project_host_id ?? undefined },
+    });
+  }
+  progress({
+    step: "done",
+    message: "move complete",
+    detail: { dest_host_id: context.dest_host_id },
+  });
 }

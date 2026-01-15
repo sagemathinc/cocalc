@@ -4,11 +4,6 @@ import { createHostControlClient } from "@cocalc/conat/project-host/api";
 import sshKeys from "../projects/get-ssh-keys";
 import { notifyProjectHostUpdate } from "../conat/route-project";
 import { conatWithProjectRouting } from "../conat/route-client";
-import {
-  ensureMoveSchema,
-  upsertMove,
-  updateMove,
-} from "./move-db";
 import { normalizeHostTier } from "./placement";
 import { machineHasGpu } from "../cloud/host-gpu";
 
@@ -264,56 +259,16 @@ export async function updateAuthorizedKeysOnHost(
   }
 }
 
-export async function moveProjectToHost({
+export async function deleteProjectDataOnHost({
   project_id,
-  dest_host_id,
+  host_id,
 }: {
   project_id: string;
-  dest_host_id: string;
+  host_id: string;
 }): Promise<void> {
-  await requestMoveToHost({ project_id, dest_host_id });
-}
-
-export async function requestMoveToHost({
-  project_id,
-  dest_host_id,
-  op_id,
-}: {
-  project_id: string;
-  dest_host_id?: string;
-  op_id?: string;
-}): Promise<void> {
-  await ensureMoveSchema();
-  const meta = await loadProject(project_id);
-  if (!meta.host_id) {
-    throw Error("project has no current host");
-  }
-  const dest =
-    dest_host_id ??
-    (await selectActiveHost(meta.host_id))?.id ??
-    (() => {
-      throw Error("no running project-host available");
-    })();
-
-  if (dest === meta.host_id) {
-    // Nothing to do; clear any prior move state.
-    await updateMove(project_id, {
-      state: "done",
-      status_reason: "already on destination host",
-      dest_host_id: dest,
-      source_host_id: meta.host_id,
-    });
-    return;
-  }
-
-  await upsertMove({
-    project_id,
-    source_host_id: meta.host_id,
-    dest_host_id: dest,
-    op_id: op_id ?? null,
-    state: "queued",
-    status_reason: null,
-    snapshot_name: null,
-    progress: { phase: "queued" },
+  const client = createHostControlClient({
+    host_id,
+    client: conatWithProjectRouting(),
   });
+  await client.deleteProjectData({ project_id });
 }

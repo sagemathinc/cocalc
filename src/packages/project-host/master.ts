@@ -15,15 +15,11 @@ import {
 } from "./ssh/host-keys";
 import { ensureSshpiperdKey } from "./ssh/sshpiperd-key";
 import { updateAuthorizedKeys, copyPaths } from "./hub/projects";
-import {
-  sendProject,
-  finalizeReceiveProject,
-  cleanupAfterMove,
-  prepareMove,
-} from "./hub/move";
+import { deleteVolume } from "./file-server";
 import { getSoftwareVersions } from "./software";
 import { upgradeSoftware } from "./upgrade";
 import { executeCode } from "@cocalc/backend/execute-code";
+import { deleteProjectLocal } from "./sqlite/projects";
 
 const logger = getLogger("project-host:master");
 
@@ -154,13 +150,11 @@ export async function startMasterRegistration({
           authorized_keys,
         });
       },
-      async prepareMove({ project_id }) {
-        await prepareMove({ project_id });
+      async deleteProjectData({ project_id }) {
+        await deleteVolume(project_id);
+        deleteProjectLocal(project_id);
       },
       copyPaths,
-      sendProject,
-      receiveProject: finalizeReceiveProject,
-      cleanupAfterMove,
       upgradeSoftware,
       async growBtrfs({ disk_gb }) {
         const args = ["/usr/local/sbin/cocalc-grow-btrfs"];

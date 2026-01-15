@@ -35,7 +35,6 @@ import initIdleTimeout from "@cocalc/server/projects/control/stop-idle-projects"
 import initPurchasesMaintenanceLoop from "@cocalc/server/purchases/maintenance";
 import initEphemeralMaintenance from "@cocalc/server/ephemeral-maintenance";
 import initSalesloftMaintenance from "@cocalc/server/salesloft/init";
-import { startProjectMoveWorker } from "@cocalc/server/project-host/move-worker";
 import {
   cloudHostHandlers,
   startCloudCatalogWorker,
@@ -162,8 +161,6 @@ async function startServer(): Promise<void> {
     initHandleMentions();
     logger.info("enabling handling of messaging...");
     initMessageMaintenance();
-    logger.info("starting project move worker...");
-    startProjectMoveWorker();
   }
 
   // Project control

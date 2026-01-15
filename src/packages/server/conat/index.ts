@@ -16,6 +16,7 @@ import { conat } from "@cocalc/backend/conat";
 import { initHostRegistryService } from "./host-registry";
 import { initHostStatusService } from "./host-status";
 import { startCopyLroWorker } from "@cocalc/server/projects/copy-worker";
+import { startMoveLroWorker } from "@cocalc/server/projects/move-worker";
 
 export { loadConatConfiguration };
 
@@ -44,6 +45,7 @@ export async function initConatApi() {
     initAPI();
   }
   startCopyLroWorker();
+  startMoveLroWorker();
   initLLM();
   if (process.env.COCALC_MODE !== "launchpad") {
     const { init: initProjectRunner } = lazyRequire(

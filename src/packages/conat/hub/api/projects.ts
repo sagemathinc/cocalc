@@ -8,28 +8,6 @@ import {
   type RestoreStagingHandle,
 } from "@cocalc/conat/files/file-server";
 
-export type ProjectMoveState =
-  | "queued"
-  | "preparing"
-  | "sending"
-  | "finalizing"
-  | "done"
-  | "failing";
-
-export interface ProjectMoveRow {
-  project_id: string;
-  source_host_id: string | null;
-  dest_host_id: string | null;
-  op_id?: string | null;
-  state: ProjectMoveState;
-  status_reason: string | null;
-  snapshot_name: string | null;
-  progress: any;
-  attempt: number;
-  created_at: Date;
-  updated_at: Date;
-}
-
 export type ProjectCopyState =
   | "queued"
   | "applying"
@@ -94,7 +72,6 @@ export const projects = {
   getSshKeys: authFirstRequireProject,
 
   moveProject: authFirstRequireAccount,
-  getMoveStatus: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -368,9 +345,4 @@ export interface Projects {
     service: string;
     stream_name: string;
   }>;
-
-  getMoveStatus: (opts: {
-    account_id?: string;
-    project_id: string;
-  }) => Promise<ProjectMoveRow | undefined>;
 }

@@ -66,9 +66,12 @@ export default function CreateBackup() {
           ]}
         >
           <p>
-            Backups are deduplicated archives that include your project files
-            and persisted state. Creating a backup runs in the background and
-            does not interrupt your work.
+            Backups are archives that include your workspace files, any
+            software you have installed, and TimeTravel edit history, but not
+            the contents of /tmp or /scratch. Backups
+            are state stored separately from workspace hosts.
+            Creating a backup runs in the background and does
+            not interrupt your work.
           </p>
           <ShowError style={{ marginTop: "10px" }} error={error} setError={setError} />
         </Modal>

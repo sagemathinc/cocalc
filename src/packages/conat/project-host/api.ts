@@ -41,6 +41,7 @@ export interface HostControlApi {
     project_id: string;
     authorized_keys?: string;
   }) => Promise<void>;
+  deleteProjectData: (opts: { project_id: string }) => Promise<void>;
   copyPaths: (opts: {
     src: {
       host_id: string;
@@ -50,29 +51,6 @@ export interface HostControlApi {
     };
     dest: { host_id: string; project_id: string; path: string };
   }) => Promise<void>;
-  sendProject: (opts: {
-    project_id: string;
-    dest_host_id: string;
-    dest_ssh_server: string;
-    snapshot: string;
-    progress_subject?: string;
-    lro_op_id?: string;
-  }) => Promise<void>;
-  receiveProject: (opts: {
-    project_id: string;
-    snapshot: string;
-    run_quota?: any;
-    title?: string;
-    users?: any;
-    image?: string;
-    authorized_keys?: string;
-  }) => Promise<void>;
-  cleanupAfterMove: (opts: {
-    project_id: string;
-    snapshot: string;
-    delete_original?: boolean;
-  }) => Promise<void>;
-  prepareMove: (opts: { project_id: string }) => Promise<void>;
   upgradeSoftware: (opts: UpgradeSoftwareRequest) => Promise<UpgradeSoftwareResponse>;
   growBtrfs: (opts: { disk_gb?: number }) => Promise<{ ok: boolean }>;
   // Later: updateProject to adjust title/users/etc.

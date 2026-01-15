@@ -110,6 +110,7 @@ import {
 import { search } from "@cocalc/frontend/project/search/run";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { CopyOpsManager } from "@cocalc/frontend/project/copy-ops";
+import { MoveOpsManager } from "@cocalc/frontend/project/move-ops";
 import { StartOpsManager } from "@cocalc/frontend/project/start-ops";
 import { getFileTemplate } from "./project/templates";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
@@ -312,6 +313,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private projectStatusSub?;
   private copyOpsManager: CopyOpsManager;
   private startOpsManager: StartOpsManager;
+  private moveOpsManager: MoveOpsManager;
 
   constructor(name, b) {
     super(name, b);
@@ -326,6 +328,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       log: (message, err) => console.warn(message, err),
     });
     this.startOpsManager = new StartOpsManager({
+      project_id: this.project_id,
+      setState: (state) => this.setState(state),
+      isClosed: () => this.isClosed(),
+      listLro: (opts) => webapp_client.conat_client.hub.lro.list(opts),
+      getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+      log: (message, err) => console.warn(message, err),
+    });
+    this.moveOpsManager = new MoveOpsManager({
       project_id: this.project_id,
       setState: (state) => this.setState(state),
       isClosed: () => this.isClosed(),
@@ -415,6 +425,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.initProjectStatus();
     this.copyOpsManager.init();
     this.startOpsManager.init();
+    this.moveOpsManager.init();
     this.initSnapshots();
     this.initBackups();
     const store = this.get_store();
@@ -430,6 +441,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.closeComputeServerTable();
     this.copyOpsManager.close();
     this.startOpsManager.close();
+    this.moveOpsManager.close();
     this.projectStatusSub?.close();
     delete this.projectStatusSub;
     must_define(this.redux);
@@ -452,6 +464,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     scope_id?: string;
   }) => {
     this.startOpsManager.track(op);
+  };
+
+  trackMoveOp = (op: {
+    op_id?: string;
+    scope_type?: "project" | "account" | "host" | "hub";
+    scope_id?: string;
+  }) => {
+    this.moveOpsManager.track(op);
   };
 
   isClosed = () => this.state == "closed";
