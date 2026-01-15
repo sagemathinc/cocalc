@@ -110,6 +110,7 @@ import {
 import { search } from "@cocalc/frontend/project/search/run";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { CopyOpsManager } from "@cocalc/frontend/project/copy-ops";
+import { StartOpsManager } from "@cocalc/frontend/project/start-ops";
 import { getFileTemplate } from "./project/templates";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import {
@@ -310,12 +311,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private computeServerManager?: ComputeServerManager;
   private projectStatusSub?;
   private copyOpsManager: CopyOpsManager;
+  private startOpsManager: StartOpsManager;
 
   constructor(name, b) {
     super(name, b);
     this.project_id = reduxNameToProjectId(name);
     this.open_files = new OpenFiles(this);
     this.copyOpsManager = new CopyOpsManager({
+      project_id: this.project_id,
+      setState: (state) => this.setState(state),
+      isClosed: () => this.isClosed(),
+      listLro: (opts) => webapp_client.conat_client.hub.lro.list(opts),
+      getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+      log: (message, err) => console.warn(message, err),
+    });
+    this.startOpsManager = new StartOpsManager({
       project_id: this.project_id,
       setState: (state) => this.setState(state),
       isClosed: () => this.isClosed(),
@@ -404,6 +414,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.initComputeServersTable();
     this.initProjectStatus();
     this.copyOpsManager.init();
+    this.startOpsManager.init();
     this.initSnapshots();
     this.initBackups();
     const store = this.get_store();
@@ -418,6 +429,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.closeComputeServerManager();
     this.closeComputeServerTable();
     this.copyOpsManager.close();
+    this.startOpsManager.close();
     this.projectStatusSub?.close();
     delete this.projectStatusSub;
     must_define(this.redux);
@@ -433,6 +445,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   public async api(): Promise<API> {
     return await webapp_client.project_client.api(this.project_id);
   }
+
+  trackStartOp = (op: {
+    op_id?: string;
+    scope_type?: "project" | "account" | "host" | "hub";
+    scope_id?: string;
+  }) => {
+    this.startOpsManager.track(op);
+  };
 
   isClosed = () => this.state == "closed";
 

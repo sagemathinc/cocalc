@@ -20,22 +20,31 @@ import {
   A,
   Icon,
   ProjectState,
+  TimeElapsed,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { server_seconds_ago } from "@cocalc/util/misc";
+import { capitalize, server_seconds_ago } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useAllowedFreeProjectToRun } from "./client-side-throttle";
 import { useProjectContext } from "./context";
 import { DOC_TRIAL } from "./project-banner";
 import { lite } from "@cocalc/frontend/lite";
 import Bootlog from "./bootlog";
+import type { StartLroState } from "./start-ops";
 
 const STYLE: CSSProperties = {
   fontSize: "40px",
   textAlign: "center",
   color: COLORS.GRAY_M,
 } as const;
+
+function toTimestamp(value?: Date | string | null): number | undefined {
+  if (!value) return undefined;
+  const date = new Date(value as any);
+  const ts = date.getTime();
+  return Number.isFinite(ts) ? ts : undefined;
+}
 
 export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   const intl = useIntl();
@@ -45,6 +54,22 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   const project_map = useTypedRedux("projects", "project_map");
   const lastNotRunningRef = useRef<null | number>(null);
   const allowed = useAllowedFreeProjectToRun(project_id);
+  const startLro = redux.useProjectStore(
+    (store) => store?.get("start_lro")?.toJS() as StartLroState | undefined,
+    project_id,
+  );
+  const startLroActive =
+    startLro != null &&
+    (!startLro.summary ||
+      startLro.summary.status === "queued" ||
+      startLro.summary.status === "running");
+  const startLroSummary = startLro?.summary;
+  const startLroStatus = startLroSummary?.status
+    ? capitalize(startLroSummary.status)
+    : undefined;
+  const startLroStartTs = startLroSummary
+    ? toTimestamp(startLroSummary.started_at ?? startLroSummary.created_at)
+    : undefined;
 
   const state = useMemo(() => {
     const state = project_map?.get(project_id)?.get("state");
@@ -60,6 +85,9 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   // Making the UI depend on this instead of *just* the state
   // makes things feel more responsive.
   const starting = useMemo(() => {
+    if (startLroActive) {
+      return true;
+    }
     if (state?.get("state") === "starting" || state?.get("state") === "opening")
       return true;
     if (state?.get("state") === "running") return false;
@@ -84,7 +112,7 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
     // action is start and it didn't quite get taken care of yet by backend server,
     // but keep disabled so the user doesn't keep making the request.
     return true;
-  }, [project_map]);
+  }, [project_map, startLroActive]);
 
   // in lite mode cocalc *is* being served directly from the project so it makes no sense
   // to start or stop the project.
@@ -169,6 +197,17 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
             {render_not_allowed()}
             {starting && (
               <div style={{ background: "white" }}>
+                {startLroSummary && (
+                  <div style={{ fontSize: "12px", color: COLORS.GRAY_M }}>
+                    LRO: {startLroStatus ?? "Unknown"}
+                    {startLroStartTs != null && (
+                      <>
+                        {" "}
+                        &middot; <TimeElapsed start_ts={startLroStartTs} longform={false} />
+                      </>
+                    )}
+                  </div>
+                )}
                 <Bootlog
                   style={{
                     border: "1px solid #ddd",
