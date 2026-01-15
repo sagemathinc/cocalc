@@ -4,6 +4,7 @@ import { Progress, Space, Spin, Switch, Tooltip } from "antd";
 import { useProjectContext } from "./context";
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
 import type { Event } from "@cocalc/conat/project/runner/bootlog";
+import type { LroEvent, LroScopeType } from "@cocalc/conat/hub/api/lro";
 import ShowError from "@cocalc/frontend/components/error";
 import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
 import { namespaceToColor } from "@cocalc/util/color";
@@ -14,10 +15,16 @@ export default function Bootlog({
   style,
   compute_server_id,
   host_id,
+  lro,
 }: {
   compute_server_id?: number;
   host_id?: string;
   style?;
+  lro?: {
+    op_id: string;
+    scope_type: LroScopeType;
+    scope_id: string;
+  };
 }) {
   const { project_id, isRunning } = useProjectContext();
   const [log, setLog] = useState<null | Event[]>(null);
@@ -26,22 +33,38 @@ export default function Bootlog({
   );
 
   useAsyncEffect(async () => {
-    const log = await webapp_client.conat_client.projectBootlog({
+    if (lro) {
+      const stream = await webapp_client.conat_client.lroStream({
+        op_id: lro.op_id,
+        scope_type: lro.scope_type,
+        scope_id: lro.scope_id,
+      });
+      const update = () => {
+        const events = stream.getAll();
+        setLog(convertLroEvents(events));
+      };
+      update();
+      stream.on("change", update);
+      return () => {
+        stream.close();
+      };
+    }
+    const stream = await webapp_client.conat_client.projectBootlog({
       project_id: !host_id ? project_id : undefined,
       compute_server_id,
       host_id,
     });
     // maximally DUMB for now!
-    setLog(log.getAll().reverse());
-    log.on("change", () => {
-      setLog(log.getAll().reverse());
+    setLog(stream.getAll().reverse());
+    stream.on("change", () => {
+      setLog(stream.getAll().reverse());
     });
 
     return () => {
       // free up reference to the dstream
-      log.close();
+      stream.close();
     };
-  }, [host_id, project_id, compute_server_id]);
+  }, [host_id, project_id, compute_server_id, lro?.op_id, lro?.scope_type, lro?.scope_id]);
 
   if (log == null) {
     return <Spin />;
@@ -192,4 +215,24 @@ function msToString(t?: number): string {
     const n = Math.round(t / 1000 / 60);
     return `${n} ${plural(n, "minute")}`;
   }
+}
+
+function convertLroEvents(events: LroEvent[]): Event[] {
+  const out: Event[] = [];
+  for (const event of events) {
+    if (event.type !== "progress") {
+      continue;
+    }
+    const detail = event.detail ?? {};
+    out.push({
+      type: event.phase ?? "progress",
+      desc: event.message,
+      progress: event.progress,
+      elapsed: detail.elapsed,
+      speed: detail.speed,
+      eta: detail.eta,
+      error: detail.error,
+    });
+  }
+  return out.reverse();
 }

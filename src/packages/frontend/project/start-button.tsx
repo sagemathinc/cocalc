@@ -214,6 +214,15 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
                     padding: "15px",
                     boxShadow: "5px 5px 5px grey",
                   }}
+                  lro={
+                    startLroSummary
+                      ? {
+                          op_id: startLroSummary.op_id,
+                          scope_type: startLroSummary.scope_type,
+                          scope_id: startLroSummary.scope_id,
+                        }
+                      : undefined
+                  }
                 />
               </div>
             )}
