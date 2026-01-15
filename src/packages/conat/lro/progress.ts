@@ -49,6 +49,7 @@ export async function lroProgress({
     account_id,
     host_id,
     name: lroStreamName(op_id),
+    ephemeral: true,
   });
 
   const errorMessage =

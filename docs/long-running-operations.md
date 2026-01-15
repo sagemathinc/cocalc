@@ -74,6 +74,13 @@ Summary stream:
 - small summary JSON can be published to the same stream as a distinct event type, or to a separate summary stream.
 - do not use dkv; dstream already provides persistence and replay.
 
+### Ephemeral LRO streams (important)
+
+LRO progress streams are intentionally **ephemeral** (in-memory):
+
+- progress events are high-volume and short-lived; the durable summary is in Postgres.
+- the first client to open a stream fixes the storage mode, so every LRO client must set `ephemeral: true` to avoid a race that could force on-disk storage and require a project root before it exists (e.g., during restore).
+
 ## Subject naming and locality
 
 We want a canonical persist subject that works with existing auth and routes to the project host.
@@ -191,7 +198,7 @@ Keep a ring buffer of recent events for late subscribers.
 
 Treat bootlog as a special case of LRO. Its progress and UI should work with the same event format and stream semantics.
 
-See [src/packages/conat/project/runner/bootlog.ts](./src/packages/conat/project/runner/bootlog.ts) for the current bootlog pattern.
+See [src/packages/frontend/project/bootlog.tsx](./src/packages/frontend/project/bootlog.tsx) for the current bootlog-style UI.
 
 ## Mermaid diagram
 

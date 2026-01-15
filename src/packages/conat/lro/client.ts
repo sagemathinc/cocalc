@@ -62,9 +62,13 @@ export async function get({
     throw new Error("op_id or stream_name must be set");
   }
   const location = scopeLocation({ scope_type, scope_id });
+  // LRO progress streams must be ephemeral: they are high-volume, short-lived,
+  // and the first client to open the stream fixes the storage mode (avoiding
+  // a race that could require a project root before it exists).
   return await client.sync.dstream<LroEvent>({
     ...location,
     name,
+    ephemeral: true,
   });
 }
 
