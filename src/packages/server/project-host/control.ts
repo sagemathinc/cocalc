@@ -277,9 +277,11 @@ export async function moveProjectToHost({
 export async function requestMoveToHost({
   project_id,
   dest_host_id,
+  op_id,
 }: {
   project_id: string;
   dest_host_id?: string;
+  op_id?: string;
 }): Promise<void> {
   await ensureMoveSchema();
   const meta = await loadProject(project_id);
@@ -308,6 +310,7 @@ export async function requestMoveToHost({
     project_id,
     source_host_id: meta.host_id,
     dest_host_id: dest,
+    op_id: op_id ?? null,
     state: "queued",
     status_reason: null,
     snapshot_name: null,

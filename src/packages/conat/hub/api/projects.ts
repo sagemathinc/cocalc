@@ -20,6 +20,7 @@ export interface ProjectMoveRow {
   project_id: string;
   source_host_id: string | null;
   dest_host_id: string | null;
+  op_id?: string | null;
   state: ProjectMoveState;
   status_reason: string | null;
   snapshot_name: string | null;
@@ -360,7 +361,13 @@ export interface Projects {
     account_id?: string;
     project_id: string;
     dest_host_id?: string;
-  }) => Promise<void>;
+  }) => Promise<{
+    op_id: string;
+    scope_type: "project";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }>;
 
   getMoveStatus: (opts: {
     account_id?: string;

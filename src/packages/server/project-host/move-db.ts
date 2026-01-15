@@ -13,6 +13,7 @@ export async function ensureMoveSchema(): Promise<void> {
       project_id UUID PRIMARY KEY,
       source_host_id UUID,
       dest_host_id UUID,
+      op_id UUID,
       state TEXT NOT NULL,
       status_reason TEXT,
       snapshot_name TEXT,
@@ -28,6 +29,9 @@ export async function ensureMoveSchema(): Promise<void> {
   await pool().query(
     "ALTER TABLE projects ADD COLUMN IF NOT EXISTS move_status JSONB",
   );
+  await pool().query(
+    "ALTER TABLE project_moves ADD COLUMN IF NOT EXISTS op_id UUID",
+  );
 }
 
 function buildStatusPayload(row: ProjectMoveRow | undefined): any | null {
@@ -39,6 +43,7 @@ function buildStatusPayload(row: ProjectMoveRow | undefined): any | null {
     snapshot_name: row.snapshot_name ?? undefined,
     source_host_id: row.source_host_id ?? undefined,
     dest_host_id: row.dest_host_id ?? undefined,
+    op_id: row.op_id ?? undefined,
     updated_at: row.updated_at ?? new Date(),
   };
 }
@@ -61,6 +66,7 @@ export async function upsertMove(
     project_id,
     source_host_id = null,
     dest_host_id = null,
+    op_id = null,
     state = "queued",
     status_reason = null,
     snapshot_name = null,
@@ -70,11 +76,12 @@ export async function upsertMove(
   const { rows } = await pool().query(
     `
       INSERT INTO project_moves
-        (project_id, source_host_id, dest_host_id, state, status_reason, snapshot_name, progress, attempt)
-      VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        (project_id, source_host_id, dest_host_id, op_id, state, status_reason, snapshot_name, progress, attempt)
+      VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
       ON CONFLICT (project_id) DO UPDATE
         SET source_host_id=EXCLUDED.source_host_id,
             dest_host_id=EXCLUDED.dest_host_id,
+            op_id=EXCLUDED.op_id,
             state=EXCLUDED.state,
             status_reason=EXCLUDED.status_reason,
             snapshot_name=EXCLUDED.snapshot_name,
@@ -87,6 +94,7 @@ export async function upsertMove(
       project_id,
       source_host_id,
       dest_host_id,
+      op_id,
       state,
       status_reason,
       snapshot_name,
@@ -174,7 +182,7 @@ export async function fetchActiveMoves(
 
 export async function recycleStaleMoves(
   staleMs = 120_000,
-): Promise<number> {
+): Promise<ProjectMoveRow[]> {
   // Mark stale in-flight moves as failing instead of retrying automatically.
   // This avoids silent bandwidth churn if hosts restart or links are unreliable.
   const { rows } = await pool().query(
@@ -195,5 +203,5 @@ export async function recycleStaleMoves(
   for (const row of rows as ProjectMoveRow[]) {
     await writeMoveStatusToProject(row.project_id, row);
   }
-  return rows.length;
+  return rows as ProjectMoveRow[];
 }

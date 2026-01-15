@@ -12,7 +12,7 @@ import {
   updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl,
 } from "@cocalc/server/project-host/control";
 import { getProject } from "@cocalc/server/projects/control";
-import { moveProjectToHost } from "@cocalc/server/projects/move";
+import { requestMoveToHost } from "@cocalc/server/project-host/control";
 import {
   cancelCopy as cancelCopyDb,
   listCopiesForProject,
@@ -328,16 +328,72 @@ export async function moveProject({
   account_id: string;
   project_id: string;
   dest_host_id?: string;
-}): Promise<void> {
+}): Promise<{
+  op_id: string;
+  scope_type: "project";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+}> {
   await assertCollab({ account_id, project_id });
   if (!dest_host_id) {
     throw Error("dest_host_id must be specified");
   }
-  await moveProjectToHost({
-    project_id,
-    dest_host_id,
-    account_id,
+  const op = await createLro({
+    kind: "project-move",
+    scope_type: "project",
+    scope_id: project_id,
+    created_by: account_id,
+    routing: "hub",
+    input: { project_id, dest_host_id },
+    status: "queued",
   });
+  await publishLroSummary({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    summary: op,
+  });
+  publishLroEvent({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    op_id: op.op_id,
+    event: {
+      type: "progress",
+      ts: Date.now(),
+      phase: "queued",
+      message: "queued",
+      progress: 0,
+    },
+  }).catch(() => {});
+
+  try {
+    await requestMoveToHost({
+      project_id,
+      dest_host_id,
+      op_id: op.op_id,
+    });
+    return {
+      op_id: op.op_id,
+      scope_type: "project",
+      scope_id: project_id,
+      service: PERSIST_SERVICE,
+      stream_name: lroStreamName(op.op_id),
+    };
+  } catch (err) {
+    const updated = await updateLro({
+      op_id: op.op_id,
+      status: "failed",
+      error: `${err}`,
+    });
+    if (updated) {
+      await publishLroSummary({
+        scope_type: updated.scope_type,
+        scope_id: updated.scope_id,
+        summary: updated,
+      });
+    }
+    throw err;
+  }
 }
 
 export async function getMoveStatus({

@@ -56,6 +56,7 @@ export interface HostControlApi {
     dest_ssh_server: string;
     snapshot: string;
     progress_subject?: string;
+    lro_op_id?: string;
   }) => Promise<void>;
   receiveProject: (opts: {
     project_id: string;

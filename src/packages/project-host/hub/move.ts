@@ -263,6 +263,7 @@ export async function sendProject(opts: {
   dest_ssh_server: string;
   snapshot: string;
   progress_subject?: string;
+  lro_op_id?: string;
 }): Promise<void> {
   const {
     project_id,
@@ -307,12 +308,14 @@ async function _sendProject({
   dest_ssh_server,
   snapshot,
   progress_subject,
+  lro_op_id,
 }: {
   project_id: string;
   dest_host_id: string;
   dest_ssh_server: string;
   snapshot: string;
   progress_subject?: string;
+  lro_op_id?: string;
 }) {
   const moveMode: string = MOVE_MODE;
   logger.debug("sendProject", {
@@ -558,6 +561,7 @@ async function _sendProject({
       project_id,
       totalSnapshots: 1, // will update after we know count
       mode: moveMode,
+      op_id: lro_op_id,
     });
     await publishProgress({ type: "start", snapshot });
     startHeartbeat();

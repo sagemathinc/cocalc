@@ -7,6 +7,8 @@ import {
   updateMove,
   type ProjectMoveRow,
 } from "./move-db";
+import { updateLro } from "@cocalc/server/lro/lro-db";
+import { publishLroEvent, publishLroSummary } from "@cocalc/server/lro/stream";
 import { conatWithProjectRouting } from "../conat/route-client";
 import {
   loadHostFromRegistry,
@@ -21,7 +23,69 @@ const MAX_PARALLEL_MOVES = 50;
 
 const logger = getLogger("server:project-host:move-worker");
 
+const MOVE_PROGRESS: Record<string, number> = {
+  queued: 0,
+  preparing: 15,
+  sending: 60,
+  finalizing: 90,
+  done: 100,
+  failing: 100,
+};
+
 let running = false;
+
+async function syncMoveLro(row: ProjectMoveRow | undefined) {
+  if (!row?.op_id) return;
+  try {
+    const phase = row.progress?.phase ?? row.state;
+    const progress =
+      phase && MOVE_PROGRESS[phase] != null ? MOVE_PROGRESS[phase] : undefined;
+    const detail = {
+      ...(row.progress ?? {}),
+      source_host_id: row.source_host_id ?? undefined,
+      dest_host_id: row.dest_host_id ?? undefined,
+      snapshot_name: row.snapshot_name ?? undefined,
+    };
+    const status =
+      row.state === "queued"
+        ? "queued"
+        : row.state === "done"
+          ? "succeeded"
+          : row.state === "failing"
+            ? "failed"
+            : "running";
+    const updated = await updateLro({
+      op_id: row.op_id,
+      status,
+      progress_summary: { phase, ...detail },
+      result: status === "succeeded" ? { phase, ...detail } : undefined,
+      error: status === "failed" ? row.status_reason ?? "move failed" : null,
+    });
+    if (updated) {
+      await publishLroSummary({
+        scope_type: updated.scope_type,
+        scope_id: updated.scope_id,
+        summary: updated,
+      });
+    }
+    await publishLroEvent({
+      scope_type: "project",
+      scope_id: row.project_id,
+      op_id: row.op_id,
+      event: {
+        type: "progress",
+        ts: Date.now(),
+        phase,
+        message: row.status_reason ?? phase,
+        progress,
+        detail,
+        level: status === "failed" ? "error" : undefined,
+      },
+    }).catch(() => {});
+  } catch (err) {
+    logger.warn("syncMoveLro failed", { project_id: row.project_id, err });
+  }
+}
 
 async function chooseDestination(
   source_host_id: string,
@@ -44,6 +108,7 @@ async function transition(
     project_id,
     dest_host_id: row?.dest_host_id,
   });
+  await syncMoveLro(row);
   return row;
 }
 
@@ -193,6 +258,7 @@ async function handleSending(row: ProjectMoveRow) {
         dest_ssh_server: destHost.ssh_server,
         snapshot,
         progress_subject: progressSubject,
+        lro_op_id: row.op_id ?? undefined,
       }),
       waitForProgress(),
     ]);
@@ -318,8 +384,9 @@ export async function startProjectMoveWorker() {
     ticking = true;
     try {
       const recycled = await recycleStaleMoves();
-      if (recycled) {
-        logger.info("recycled stale moves", { count: recycled });
+      if (recycled.length) {
+        logger.info("recycled stale moves", { count: recycled.length });
+        await Promise.all(recycled.map((row) => syncMoveLro(row)));
       }
       const rows = await fetchActiveMoves(MAX_PARALLEL_MOVES);
       if (rows.length) {
