@@ -2,11 +2,11 @@
 
 **Updated: Feb 2025**
 
-CoCalc is a pretty large and complicated project, and it will only work with the current standard LTS release of node.js \( at least 18.17.1\) and a recent version of [pnpm](https://pnpm.io/). Also, you will need a LOT of RAM, a minimum of 16 GB. **It's very painful to do development with less than 32 GB of RAM.**
+CoCalc is a pretty large and complicated project, and it will only work with the current standard LTS release of node.js \( 20+\) and a recent version of [pnpm](https://pnpm.io/). Also, you will need a LOT of RAM, a minimum of 16 GB. **It's very painful to do development with less than 32 GB of RAM.**
 
 **Node.js and NPM Version Requirements:**
 
-- You must be using Node version 18.17.1 or newer. **CoCalc will definitely NOT work with any older version!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in `~/.bashrc` to get a valid node version:
+- You must be using Node version 20 or newer. **CoCalc will definitely NOT work with any older version!** In a [CoCalc.com](http://CoCalc.com) project, you can put this in `~/.bashrc` to get a valid node version:
 
 ```sh
 . /cocalc/nvm/nvm.sh

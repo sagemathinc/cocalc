@@ -2,7 +2,6 @@
   "permissions": {
     "allow": [
       "Bash(../node_modules/.bin/tsc:*)",
-      "Bash(NODE_OPTIONS=--max-old-space-size=8192 ../node_modules/.bin/tsc --noEmit)",
       "Bash(bash:*)",
       "Bash(cat:*)",
       "Bash(chmod:*)",
@@ -50,6 +49,8 @@
       "Bash(pnpm info:*)",
       "Bash(pnpm install:*)",
       "Bash(pnpm list:*)",
+      "Bash(pnpm patch:*)",
+      "Bash(pnpm patch-commit:*)",
       "Bash(pnpm remove:*)",
       "Bash(pnpm run:*)",
       "Bash(pnpm test:*)",
@@ -69,6 +70,7 @@
       "WebFetch",
       "WebSearch",
       "mcp__cclsp__find_definition",
+      "mcp__cocalc__*",
       "mcp__cclsp__find_references",
       "mcp__cocalc__*",
       "mcp__github__get_issue",
