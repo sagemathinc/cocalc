@@ -6,8 +6,6 @@
 import { PostgreSQL } from "@cocalc/database/postgres/types";
 import { is_array, is_valid_uuid_string } from "@cocalc/util/misc";
 import { callback2 } from "@cocalc/util/async-utils";
-import isSandbox from "@cocalc/server/projects/is-sandbox";
-import idleSandboxUsers from "@cocalc/server/projects/idle-sandbox-users";
 
 const GROUPS = ["owner", "collaborator"] as const;
 
@@ -142,14 +140,6 @@ async function verify_write_access_to_projects(
         groups: GROUPS,
       }))
     ) {
-      if (await isSandbox(project_id)) {
-        // It's a sandbox project, so... (1) we allow adding the collaborator,
-        // and (2) we might do maintenance on it.  We do await this since we
-        // don't want to add and remove at the exact same time.
-        await sandboxMaintenance(db, project_id);
-        return;
-      }
-
       throw Error(
         `user ${account_id} does not have write access to project ${project_id}`,
       );
@@ -263,29 +253,5 @@ async function verify_course_access_to_project(
     throw Error(
       `cannot add self to "${project_id}" -- must be owner or collaborator on course project`,
     );
-  }
-}
-
-/*
-Maintain a sandbox project.  Right now the only thing this does
-is remove idle users, since if we don't do that, then within a day
-there could easily be 5000 users on one project, and our implementation
-of changefeeds, etc., doesn't scale well to that size, and also the UI
-gets overwhelmed.  This is better.
-*/
-async function sandboxMaintenance(
-  db: PostgreSQL,
-  project_id: string,
-): Promise<void> {
-  const idleUsers = await idleSandboxUsers(project_id);
-  // remove them
-  // TODO: obviously we could easily rewrite remove_user_from_project
-  // here and make it take a list so as to do all removes in a single
-  // call.  Can wait, since this is still trivial effort.
-  for (const account_id of idleUsers) {
-    await callback2(db.remove_user_from_project, {
-      project_id,
-      account_id,
-    });
   }
 }

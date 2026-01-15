@@ -230,10 +230,6 @@ export class ProjectsStore extends Store<ProjectsState> {
     return !!this.getIn(["project_map", project_id, "deleted"]);
   }
 
-  public isSandbox(project_id: string): boolean {
-    return !!this.getIn(["project_map", project_id, "sandbox"]);
-  }
-
   public is_hidden_from(project_id: string, account_id: string): boolean {
     return !!this.getIn([
       "project_map",

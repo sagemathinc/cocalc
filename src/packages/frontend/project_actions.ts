@@ -2496,21 +2496,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  private checkForSandboxError(message): boolean {
-    const projectsStore = this.redux.getStore("projects");
-    if (projectsStore.isSandbox(this.project_id)) {
-      const group = projectsStore.get_my_group(this.project_id);
-      if (group != "owner" && group != "admin") {
-        alert_message({
-          type: "error",
-          message,
-        });
-        return true;
-      }
-    }
-    return false;
-  }
-
   deleteFiles = async ({
     paths,
     compute_server_id,
@@ -2847,15 +2832,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       redirect?: string;
     },
   ) => {
-    if (
-      this.checkForSandboxError(
-        "Publishing files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left.",
-      )
-    ) {
-      console.warn("set_public_path: sandbox");
-      return;
-    }
-
     const store = this.get_store();
     if (!store) {
       console.warn("set_public_path: no store");

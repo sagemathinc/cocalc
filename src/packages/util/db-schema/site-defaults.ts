@@ -117,8 +117,6 @@ export type SiteSettingsKeys =
   | "anonymous_signup_licensed_shares"
   | "share_server"
   | "landing_pages"
-  | "sandbox_projects_enabled"
-  | "sandbox_project_id"
   | "compute_servers_enabled"
   | "compute_servers_google-cloud_enabled"
   | "compute_servers_onprem_enabled"
@@ -751,18 +749,6 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_bool,
     show: only_cocalc_com,
     cocalc_only: true,
-  },
-  sandbox_projects_enabled: {
-    name: "Enable Public Sandbox Projects",
-    desc: "If enabled, this makes it possible for users to set a project to be a public sandbox.  There are significant negative security implications to sandbox projects, so only use this with a trusted group of users, e.g., on a private network.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-  },
-  sandbox_project_id: {
-    name: "Systemwide Public Sandbox Project ID",
-    desc: "The `project_id` (a UUIDv4) of a sandbox project on your server for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
-    default: "",
   },
   openai_enabled: {
     name: "OpenAI ChatGPT UI",

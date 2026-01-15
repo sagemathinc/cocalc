@@ -467,17 +467,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
     const project_actions = redux.getProjectActions(opts.project_id);
     let relation = store.get_my_group(opts.project_id);
-    if (relation == "public" && webapp_client.account_id) {
-      // try adding ourselves, e.g., maybe project is a sandbox.
-      try {
-        await webapp_client.project_collaborators.add_collaborator({
-          project_id: opts.project_id,
-          account_id: webapp_client.account_id,
-        });
-      } catch (err) {
-        console.log(err);
-      }
-    }
     if (relation == null || ["public", "admin"].includes(relation)) {
       this.fetch_public_project_title(opts.project_id);
     }
@@ -967,17 +956,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
     const account_id = this.redux.getStore("account").get_account_id();
     const hide = store.is_hidden_from(project_id, account_id);
     await this.set_project_hide(account_id, project_id, !hide);
-  }
-
-  public async set_project_sandbox(
-    project_id: string,
-    sandbox: boolean,
-  ): Promise<void> {
-    await this.projects_table_set({
-      project_id,
-      sandbox,
-    });
-    await this.project_log(project_id, { event: "sandbox_project", sandbox });
   }
 
   public async delete_project(project_id: string): Promise<void> {

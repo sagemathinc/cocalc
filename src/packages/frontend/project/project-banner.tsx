@@ -36,7 +36,6 @@ export function ProjectWarningBanner() {
     [project_map, project_id],
   );
   const is_commercial = useTypedRedux("customize", "is_commercial");
-  const isSandbox = project_map?.getIn([project_id, "sandbox"]);
   const dismissedInternetWarning = useInternetWarningClosed(project_id)[0];
 
   const noMemberHosting: boolean = !runQuota?.member_host;
@@ -48,10 +47,6 @@ export function ProjectWarningBanner() {
       return true;
     }
     if (!is_commercial) {
-      return true;
-    }
-    if (isSandbox) {
-      // don't bother for sandbox project, since users can't upgrade it anyways.
       return true;
     }
     if (is_anonymous) {

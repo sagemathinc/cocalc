@@ -113,8 +113,6 @@ export interface Customize {
   imprint_html?: string;
   policies_html?: string;
   reCaptchaKey?: string;
-  sandboxProjectsEnabled?: boolean;
-  sandboxProjectId?: string;
   verifyEmailAddresses?: boolean;
   strategies?: Strategy[];
   openaiEnabled?: boolean;

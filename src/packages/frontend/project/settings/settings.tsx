@@ -129,13 +129,6 @@ const ProjectSettings0 = rclass<ReactProps>(
         return <Loading />;
       }
       let project = this.props.project_map.get(this.props.project_id);
-      if (
-        this.props.group != "admin" &&
-        this.props.group != "owner" &&
-        project?.get("sandbox")
-      ) {
-        return <SandboxProjectSettingsWarning />;
-      }
       if (this.props.group === "admin") {
         project = this.state.admin_project;
         if (
@@ -171,37 +164,6 @@ const ProjectSettings0 = rclass<ReactProps>(
     }
   },
 );
-
-export function SandboxProjectSettingsWarning() {
-  const intl = useIntl();
-  const projectLabel = intl.formatMessage(labels.project);
-  const projectLabelLower = projectLabel.toLowerCase();
-  const projectsLabel = intl.formatMessage(labels.projects);
-  const projectsLabelLower = projectsLabel.toLowerCase();
-  return (
-    <Alert
-      showIcon
-      style={{ margin: "auto", fontSize: "14pt" }}
-      type="warning"
-      message={`Sandboxed ${projectLabel}`}
-      description={
-        <div style={{ maxWidth: "700px" }}>
-          Settings are disabled for non-owners of sandboxed{" "}
-          {projectsLabelLower}.
-          <br />
-          <br />
-          You will automatically be removed as a collaborator of this{" "}
-          {projectLabelLower} when you stop actively using it.
-          <br />
-          <br />
-          You can easily make your own new private {projectLabelLower} by
-          clicking on the "{projectsLabel}" button then "Create new{" "}
-          {projectLabelLower}". Copy any files to it from the Files tab here.
-        </div>
-      }
-    />
-  );
-}
 
 function AdminProjectSettingsWarning() {
   const intl = useIntl();

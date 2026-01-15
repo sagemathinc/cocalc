@@ -7,11 +7,9 @@ import { Col, Row, Space } from "antd";
 import { ReactNode, type JSX } from "react";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { COLORS } from "@cocalc/util/theme";
-import Path from "components/app/path";
 import { CSS, Paragraph, Title } from "components/misc";
 import SanitizedMarkdown from "components/misc/sanitized-markdown";
 import { MAX_WIDTH_LANDING } from "lib/config";
-import useCustomize from "lib/use-customize";
 import Image from "./image";
 import SignIn from "./sign-in";
 import LiveDemo from "components/landing/live-demo";
@@ -72,8 +70,6 @@ export default function Content(props: Props) {
     subtitleBelow = false,
     title,
   } = props;
-
-  const { sandboxProjectId } = useCustomize();
 
   function renderIndexInfo() {
     if (!imageAlternative) return;
@@ -156,20 +152,6 @@ export default function Content(props: Props) {
     if (aboveImage != null) return aboveImage;
   }
 
-  function renderBelowImage() {
-    if (aboveImage == null && sandboxProjectId) {
-      return (
-        <div style={{ margin: "15px" }}>
-          <Path
-            style={{ marginBottom: "15px" }}
-            project_id={sandboxProjectId}
-            description="Public Sandbox"
-          />
-        </div>
-      );
-    }
-  }
-
   function renderLogo() {
     if (typeof body === "string" || (body as StaticImageData)?.src != null) {
       return <Logo logo={body} title={title} />;
@@ -231,7 +213,6 @@ export default function Content(props: Props) {
         <Col sm={14} xs={24}>
           {renderAboveImage()}
           {renderImage()}
-          {renderBelowImage()}
         </Col>
         {subtitle && renderSubtitleBelow()}
       </Row>
