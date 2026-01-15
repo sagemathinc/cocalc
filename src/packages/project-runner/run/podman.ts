@@ -47,12 +47,7 @@ import {
   SSH_IDENTITY_FILE,
   START_PROJECT_SSH,
 } from "@cocalc/conat/project/runner/constants";
-import {
-  bootlog,
-  clearBootlogLro,
-  resetBootlog,
-  setBootlogLro,
-} from "@cocalc/conat/project/runner/bootlog";
+import { lroProgress } from "@cocalc/conat/lro/progress";
 import getLogger from "@cocalc/backend/logger";
 import { writeStartupScripts } from "./startup-scripts";
 import { podman } from "@cocalc/backend/podman";
@@ -82,6 +77,42 @@ const STOP_ON_STATUS_ERROR = false;
 // projects we are definitely starting right now
 export const starting = new Set<string>();
 
+type ProgressEvent = {
+  type: string;
+  progress?: number;
+  min?: number;
+  max?: number;
+  error?: unknown;
+  desc?: string;
+  elapsed?: number;
+  speed?: string;
+  eta?: number;
+};
+
+function reportProgress({
+  project_id,
+  op_id,
+  event,
+}: {
+  project_id: string;
+  op_id?: string;
+  event: ProgressEvent;
+}) {
+  void lroProgress({
+    project_id,
+    op_id,
+    phase: event.type,
+    message: event.desc,
+    progress: event.progress,
+    min: event.min,
+    max: event.max,
+    error: event.error,
+    elapsed: event.elapsed,
+    speed: event.speed,
+    eta: event.eta,
+  });
+}
+
 function formatKeys(keys?: string): string | undefined {
   if (!keys) return;
   const trimmed = keys.trim();
@@ -93,10 +124,12 @@ async function maybeRestoreFromBackup({
   project_id,
   home,
   restore,
+  lro_op_id,
 }: {
   project_id: string;
   home: string;
   restore?: RestoreMode;
+  lro_op_id?: string;
 }): Promise<void> {
   if (!restore || restore === "none") return;
   const fs = fileServerClient();
@@ -104,9 +137,10 @@ async function maybeRestoreFromBackup({
   if (!handle) return;
 
   let cleanupStaging = false;
+  const report = (event: ProgressEvent) =>
+    reportProgress({ project_id, op_id: lro_op_id, event });
   try {
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 8,
       desc: "checking backups...",
@@ -118,8 +152,7 @@ async function maybeRestoreFromBackup({
       if (restore === "required") {
         throw Error("no backups available for restore");
       }
-      bootlog({
-        project_id,
+      report({
         type: "start-project",
         progress: 10,
         desc: "no backups found; continuing",
@@ -132,8 +165,7 @@ async function maybeRestoreFromBackup({
         ? current
         : best,
     );
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 12,
       desc: "restoring from backup...",
@@ -147,15 +179,13 @@ async function maybeRestoreFromBackup({
     });
     await fs.finalizeRestoreStaging({ handle });
 
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 18,
       desc: "restore complete",
     });
   } catch (err) {
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 18,
       desc: "restore failed",
@@ -395,13 +425,11 @@ export async function start({
   }
 
   const lro_op_id = config?.lro_op_id;
+  const report = (event: ProgressEvent) =>
+    reportProgress({ project_id, op_id: lro_op_id, event });
   try {
     starting.add(project_id);
-    if (lro_op_id) {
-      setBootlogLro({ project_id, op_id: lro_op_id });
-    }
-    resetBootlog({ project_id });
-    bootlog({ project_id, type: "start-project", progress: 0 });
+    report({ type: "start-project", progress: 0 });
 
     let { home, scratch } = await localPath({
       project_id,
@@ -414,8 +442,7 @@ export async function start({
       home,
       scratch,
     });
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 5,
       desc: "resolved home and scratch paths",
@@ -425,6 +452,7 @@ export async function start({
       project_id,
       home,
       restore: config?.restore,
+      lro_op_id,
     });
 
     ({ home, scratch } = await localPath({
@@ -435,16 +463,14 @@ export async function start({
     }));
 
     const image = getImage(config);
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 20,
       desc: "mounting rootfs...",
     });
 
     const rootfs = await mountRootFs({ project_id, home, config });
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 40,
       desc: "mounted rootfs",
@@ -489,8 +515,7 @@ export async function start({
         : PROJECT_BUNDLE_BIN_PATH;
     }
 
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 42,
       desc: "got env variables",
@@ -498,16 +523,14 @@ export async function start({
 
     await mkdir(home, { recursive: true });
     logger.debug("start: created home", { project_id });
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 48,
       desc: "created HOME",
     });
 
     await ensureConfFilesExists(home);
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 50,
       desc: "created conf files",
@@ -517,8 +540,7 @@ export async function start({
     await writeStartupScripts(home);
     logger.debug("start: wrote startup scripts", { project_id });
 
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 52,
       desc: "wrote startup scripts",
@@ -533,8 +555,7 @@ export async function start({
 
     await setupDataPath(home);
 
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 55,
       desc: "setup project directories",
@@ -553,8 +574,7 @@ export async function start({
       await setQuota(project_id, config.disk!);
       logger.debug("start: set disk quota", { project_id });
     }
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 80,
       desc: "configured quotas",
@@ -622,16 +642,14 @@ export async function start({
 
     await podman(args);
 
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 85,
       desc: "launched project container",
     });
 
     await initSshServer(name);
-    bootlog({
-      project_id,
+    report({
       type: "start-project",
       progress: 100,
       desc: "started",
@@ -639,12 +657,9 @@ export async function start({
 
     return { state: "running", ssh_port, http_port };
   } catch (err) {
-    bootlog({ project_id, type: "start-project", error: err });
+    report({ type: "start-project", error: err });
     throw err;
   } finally {
-    if (lro_op_id) {
-      clearBootlogLro({ project_id, op_id: lro_op_id });
-    }
     starting.delete(project_id);
   }
 }
@@ -671,13 +686,6 @@ export async function stop({
   }
   try {
     stopping.add(project_id);
-    resetBootlog({ project_id });
-    bootlog({
-      project_id,
-      type: "stop-project",
-      progress: 0,
-    });
-
     try {
       const name = projectContainerName(project_id);
       if (await containerExists(name)) {
@@ -689,19 +697,8 @@ export async function stop({
           name,
         });
       }
-      bootlog({
-        project_id,
-        type: "stop-project",
-        progress: 100,
-        desc: "stopped",
-      });
     } catch (err) {
       logger.debug("stop", { err });
-      bootlog({
-        project_id,
-        type: "stop-project",
-        error: err,
-      });
       throw err;
     }
   } finally {

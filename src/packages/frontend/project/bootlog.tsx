@@ -2,23 +2,29 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useState } from "react";
 import { Progress, Space, Spin, Switch, Tooltip } from "antd";
 import { useProjectContext } from "./context";
-import { useAsyncEffect } from "@cocalc/frontend/app-framework";
-import type { Event } from "@cocalc/conat/project/runner/bootlog";
+import { redux, useAsyncEffect } from "@cocalc/frontend/app-framework";
 import type { LroEvent, LroScopeType } from "@cocalc/conat/hub/api/lro";
 import ShowError from "@cocalc/frontend/components/error";
 import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
 import { namespaceToColor } from "@cocalc/util/color";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { TimeAgo } from "@cocalc/frontend/components";
+import type { StartLroState } from "./start-ops";
+
+type ProgressEvent = {
+  type: string;
+  progress?: number;
+  error?: string;
+  desc?: string;
+  elapsed?: number;
+  speed?: string;
+  eta?: number;
+};
 
 export default function Bootlog({
   style,
-  compute_server_id,
-  host_id,
   lro,
 }: {
-  compute_server_id?: number;
-  host_id?: string;
   style?;
   lro?: {
     op_id: string;
@@ -27,49 +33,62 @@ export default function Bootlog({
   };
 }) {
   const { project_id, isRunning } = useProjectContext();
-  const [log, setLog] = useState<null | Event[]>(null);
+  const [log, setLog] = useState<null | ProgressEvent[]>(null);
   const [rawBootlog, setRawBootlog] = useState<boolean>(
     !!localStorage.rawBootlog,
   );
+  const startLro = redux.useProjectStore(
+    (store) => store?.get("start_lro")?.toJS() as StartLroState | undefined,
+    project_id,
+  );
+  const fallbackLro =
+    startLro?.summary != null
+      ? {
+          op_id: startLro.summary.op_id,
+          scope_type: startLro.summary.scope_type,
+          scope_id: startLro.summary.scope_id,
+        }
+      : startLro?.op_id
+        ? {
+            op_id: startLro.op_id,
+            scope_type: "project" as const,
+            scope_id: project_id,
+          }
+        : undefined;
+  const resolvedLro = lro ?? fallbackLro;
 
   useAsyncEffect(async () => {
-    if (lro) {
-      const stream = await webapp_client.conat_client.lroStream({
-        op_id: lro.op_id,
-        scope_type: lro.scope_type,
-        scope_id: lro.scope_id,
-      });
-      const update = () => {
-        const events = stream.getAll();
-        setLog(convertLroEvents(events));
-      };
-      update();
-      stream.on("change", update);
-      return () => {
-        stream.close();
-      };
+    if (!resolvedLro?.op_id) {
+      setLog(null);
+      return;
     }
-    const stream = await webapp_client.conat_client.projectBootlog({
-      project_id: !host_id ? project_id : undefined,
-      compute_server_id,
-      host_id,
+    const stream = await webapp_client.conat_client.lroStream({
+      op_id: resolvedLro.op_id,
+      scope_type: resolvedLro.scope_type,
+      scope_id: resolvedLro.scope_id,
     });
-    // maximally DUMB for now!
-    setLog(stream.getAll().reverse());
-    stream.on("change", () => {
-      setLog(stream.getAll().reverse());
-    });
-
+    const update = () => {
+      const events = stream.getAll();
+      setLog(convertLroEvents(events));
+    };
+    update();
+    stream.on("change", update);
     return () => {
-      // free up reference to the dstream
       stream.close();
     };
-  }, [host_id, project_id, compute_server_id, lro?.op_id, lro?.scope_type, lro?.scope_id]);
+  }, [
+    resolvedLro?.op_id,
+    resolvedLro?.scope_type,
+    resolvedLro?.scope_id,
+  ]);
 
+  if (!resolvedLro?.op_id) {
+    return null;
+  }
   if (log == null) {
     return <Spin />;
   }
-  const newest: { [type: string]: Event } = {};
+  const newest: { [type: string]: ProgressEvent } = {};
   for (const x of log) {
     const t = x.type.toLowerCase();
     if (newest[t] == null) {
@@ -131,7 +150,7 @@ function ProgressEntry({
   desc,
   elapsed,
   error,
-}: Event & { isRunning?: boolean }) {
+}: ProgressEvent & { isRunning?: boolean }) {
   const remaining = estimateRemainingTime({ elapsed, progress });
   return (
     <div>
@@ -217,15 +236,24 @@ function msToString(t?: number): string {
   }
 }
 
-function convertLroEvents(events: LroEvent[]): Event[] {
-  const out: Event[] = [];
+function convertLroEvents(events: LroEvent[]): ProgressEvent[] {
+  const out: ProgressEvent[] = [];
+  const hasNonQueued = events.some(
+    (event) =>
+      event.type === "progress" &&
+      (event.phase ?? "progress").toLowerCase() !== "queued",
+  );
   for (const event of events) {
     if (event.type !== "progress") {
       continue;
     }
+    const phase = event.phase ?? "progress";
+    if (hasNonQueued && phase.toLowerCase() === "queued") {
+      continue;
+    }
     const detail = event.detail ?? {};
     out.push({
-      type: event.phase ?? "progress",
+      type: phase,
       desc: event.message,
       progress: event.progress,
       elapsed: detail.elapsed,

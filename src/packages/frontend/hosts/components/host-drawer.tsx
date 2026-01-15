@@ -13,7 +13,6 @@ import {
 } from "antd";
 import { SyncOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
-import Bootlog from "@cocalc/frontend/project/bootlog";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { labels } from "@cocalc/frontend/i18n";
@@ -447,7 +446,6 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
           )}
           <Divider />
           <Typography.Title level={5}>Activity</Typography.Title>
-          <Bootlog host_id={host.id} style={{ maxWidth: "100%" }} />
         </Space>
       ) : (
         <Typography.Text type="secondary">

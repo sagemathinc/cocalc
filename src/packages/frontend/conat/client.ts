@@ -46,7 +46,6 @@ import {
   deleteRememberMe,
   setRememberMe,
 } from "@cocalc/frontend/misc/remember-me";
-import { get as getBootlog } from "@cocalc/conat/project/runner/bootlog";
 import {
   get as getLroStream,
   waitForCompletion as waitForLroCompletion,
@@ -586,15 +585,6 @@ export class ConatClient extends EventEmitter {
   };
 
   refCacheInfo = () => refCacheInfo();
-
-  projectBootlog = (opts: {
-    project_id?: string;
-    host_id?: string;
-    compute_server_id?: number;
-  }) => {
-    // Bootlog now supports either project_id or host_id; at least one must be set by caller.
-    return getBootlog({ client: this.conat(), ...opts } as any);
-  };
 
   lroStream = (opts: {
     op_id?: string;
