@@ -9,7 +9,9 @@ import {
   setTracingDisabled,
   setTracingExportApiKey,
   tool,
+  user,
 } from "@openai/agents";
+import type { AgentInputItem } from "@openai/agents";
 import type {
   ControlAgentDevResponse,
   ControlAgentTranscriptItem,
@@ -24,6 +26,25 @@ import { getLiteServerSettings } from "./settings";
 import { createLiteControlAgentRunner } from "./control-agent/runner";
 
 const logger = getLogger("lite:control-agent:dev");
+
+const historyStore = new Map<string, AgentInputItem[]>();
+
+function createThreadId(): string {
+  return `thread-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function getThreadHistory(threadId?: string): {
+  threadId: string;
+  history: AgentInputItem[];
+} {
+  if (threadId && historyStore.has(threadId)) {
+    return { threadId, history: historyStore.get(threadId)! };
+  }
+  const nextId = threadId ?? createThreadId();
+  const history: AgentInputItem[] = [];
+  historyStore.set(nextId, history);
+  return { threadId: nextId, history };
+}
 
 type ToolParametersSchema = {
   type: "object";
@@ -239,12 +260,14 @@ export async function controlAgentDev({
   maxTurns,
   model,
   dryRun,
+  threadId,
 }: {
   account_id?: string;
   message: string;
   maxTurns?: number;
   model?: string;
   dryRun?: boolean;
+  threadId?: string;
 }): Promise<ControlAgentDevResponse> {
   const settings = await loadControlAgentSettings();
   ensureDevEnabled(settings);
@@ -268,6 +291,7 @@ export async function controlAgentDev({
   const toolDefs = await runner.listTools();
   const dryRunEnabled = normalizeDryRun(dryRun);
   const runId = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const thread = getThreadHistory(threadId);
   const tools = toolDefs.map((def) =>
     createTool(def.name, def.description, async (input) => {
       const requestId =
@@ -303,15 +327,18 @@ export async function controlAgentDev({
   attachDevLogging(agent, runId);
   logger.debug("controlAgentDev run", {
     runId,
+    threadId: thread.threadId,
     account_id,
     maxTurns,
     model,
     dryRun,
     tools: toolDefs.map((def) => def.name),
   });
-  const result = await run(agent, message, {
+  const runHistory = [...thread.history, user(message)];
+  const result = await run(agent, runHistory, {
     maxTurns,
   });
+  historyStore.set(thread.threadId, result.history);
   const transcript: ControlAgentTranscriptItem[] = [
     { role: "user", content: message },
   ];
@@ -319,6 +346,7 @@ export async function controlAgentDev({
     appendTranscript(transcript, item);
   }
   return {
+    threadId: thread.threadId,
     transcript,
     finalOutput: result.finalOutput,
     lastResponseId: result.lastResponseId,

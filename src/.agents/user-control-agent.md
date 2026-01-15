@@ -90,3 +90,7 @@ User intent: "Clone repo X, create a `codex.chat`, and open it."
 9. **Minimal tests and telemetry**
    - Unit tests for permission gating, confirm tokens, and idempotency keys.
    - Log and trace all tool calls (who, what, params, result).
+   
+## To NOT forget
+
+- [ ] we're using in-memory persistence now, but need something durable
