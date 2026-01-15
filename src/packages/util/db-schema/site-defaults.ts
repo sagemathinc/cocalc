@@ -72,6 +72,7 @@ export type SiteSettingsKeys =
   | "support"
   | "support_video_call"
   | "openai_enabled"
+  | "agent_openai_control_agent_enabled"
   | "agent_openai_codex_enabled"
   | "google_vertexai_enabled"
   | "mistral_enabled"
@@ -767,6 +768,14 @@ export const site_settings_conf: SiteSettings = {
   openai_enabled: {
     name: "OpenAI ChatGPT UI",
     desc: "Controls visibility of UI elements related to OpenAI ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["OpenAI", "AI LLM"],
+  },
+  agent_openai_control_agent_enabled: {
+    name: "OpenAI Control Agent UI",
+    desc: "Controls visibility of UI elements related to the OpenAI control-plane agent.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

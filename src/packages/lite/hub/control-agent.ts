@@ -20,7 +20,7 @@ import type {
 } from "@cocalc/ai/control-agent/tools";
 import type { ControlAgentContext } from "@cocalc/ai/control-agent";
 import getLogger from "@cocalc/backend/logger";
-import { listRows } from "./sqlite/database";
+import { getCustomizePayload } from "./settings";
 import { createLiteControlAgentRunner } from "./control-agent/runner";
 
 const logger = getLogger("lite:control-agent:dev");
@@ -47,27 +47,33 @@ const TOOL_PARAMETERS_SCHEMA: ToolParametersSchema = {
   additionalProperties: true,
 };
 
-function ensureDevEnabled(): void {
-  const enabled =
-    process.env.COCALC_CONTROL_AGENT_DEV === "1" ||
-    process.env.COCALC_CONTROL_AGENT_DEV === "true";
-  if (!enabled) {
-    throw Error("control agent dev API is disabled");
+type ControlAgentSettings = {
+  enabled: boolean;
+  openaiApiKey?: string;
+};
+
+async function loadControlAgentSettings(): Promise<ControlAgentSettings> {
+  const payload = await getCustomizePayload();
+  const config = payload.configuration ?? {};
+  return {
+    enabled: !!config.agent_openai_control_agent_enabled,
+    openaiApiKey:
+      typeof config.openai_api_key === "string" ? config.openai_api_key : "",
+  };
+}
+
+function ensureDevEnabled(settings: ControlAgentSettings): void {
+  if (!settings.enabled) {
+    throw Error("control agent dev API is disabled in server settings");
   }
 }
 
-function ensureApiKey(): void {
-  const rows = listRows("server_settings") as {
-    name?: string;
-    value?: string;
-  }[];
-  const openaiKey =
-    rows.find((row) => row.name === "openai_api_key")?.value ?? "";
-  if (!openaiKey) {
+function ensureApiKey(settings: ControlAgentSettings): void {
+  if (!settings.openaiApiKey) {
     throw Error("openai_api_key is not configured in server settings");
   }
-  setDefaultOpenAIKey(openaiKey);
-  setTracingExportApiKey(openaiKey);
+  setDefaultOpenAIKey(settings.openaiApiKey);
+  setTracingExportApiKey(settings.openaiApiKey);
 }
 
 function normalizeDryRun(dryRun?: boolean): boolean {
@@ -241,8 +247,9 @@ export async function controlAgentDev({
   model?: string;
   dryRun?: boolean;
 }): Promise<ControlAgentDevResponse> {
-  ensureDevEnabled();
-  ensureApiKey();
+  const settings = await loadControlAgentSettings();
+  ensureDevEnabled(settings);
+  ensureApiKey(settings);
   if (!account_id) {
     throw Error("account_id is required");
   }
