@@ -122,7 +122,6 @@ export interface CustomizeState {
   dns: string; // e.g. "cocalc.com"
   email_enabled: false;
   email_signup: boolean;
-  anonymous_signup: boolean;
   google_analytics: string;
   help_email: string;
   iframe_comm_hosts: string[];

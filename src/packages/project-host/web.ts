@@ -11,7 +11,6 @@ const DEFAULT_CONFIGURATION = {
   project_host: true,
   site_name: "CoCalc Project Host",
   compute_servers_enabled: false,
-  anonymous_signup: true,
 };
 
 export async function initHttp({

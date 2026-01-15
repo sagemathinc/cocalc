@@ -113,8 +113,6 @@ export type SiteSettingsKeys =
   | "email_enabled"
   | "verify_emails"
   | "email_signup"
-  | "anonymous_signup"
-  | "anonymous_signup_licensed_shares"
   | "share_server"
   | "landing_pages"
   | "compute_servers_enabled"
@@ -717,20 +715,6 @@ export const site_settings_conf: SiteSettings = {
     name: "Allow email signup",
     desc: "Users can sign up via email & password. Could be subject to an 'account creation token'.",
     default: "yes",
-    valid: only_booleans,
-    to_val: to_bool,
-  },
-  anonymous_signup: {
-    name: "Allow anonymous signup",
-    desc: "Users can create a temporary account with no email, password or single sign on.  This won't work if you have any registration tokens set below.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-  },
-  anonymous_signup_licensed_shares: {
-    name: "Allow anonymous signup for licensed shared files",
-    desc: "Users can create a temporary account with no email, password or single sign on when editing a copy of content shared on the share server that has a corresponding license.",
-    default: "no",
     valid: only_booleans,
     to_val: to_bool,
   },

@@ -38,8 +38,6 @@ const DEFAULT_CONFIGURATION = {
   organization_email: "",
   help_email: "",
   email_enabled: false,
-  anonymous_signup: true,
-  anonymous_signup_licensed_shares: true,
   share_server: true,
   i18n: ["en"],
   dns: "",
