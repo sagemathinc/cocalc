@@ -1,5 +1,6 @@
 import { listRows } from "./sqlite/database";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
+import { buildPublicSiteSettings } from "@cocalc/util/db-schema/site-settings-public";
 import { EXTRAS as SITE_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
 import { keys } from "@cocalc/util/misc";
 
@@ -92,10 +93,16 @@ function getProcessedSettings(table: string): Record<string, any> {
   return out;
 }
 
+export function getLiteServerSettings(): Record<string, any> {
+  return getProcessedSettings("server_settings");
+}
+
 export async function getCustomizePayload(): Promise<CustomizePayload> {
+  const allSettings = getProcessedSettings("server_settings");
+  const { configuration: publicSettings } = buildPublicSiteSettings(allSettings);
   const configuration: Record<string, any> = {
     ...DEFAULT_CONFIGURATION,
-    ...getProcessedSettings("server_settings"),
+    ...publicSettings,
   };
 
   return {

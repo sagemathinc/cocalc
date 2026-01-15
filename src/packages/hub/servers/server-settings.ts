@@ -10,6 +10,7 @@ Synchronized table that tracks server settings.
 import { isEmpty } from "lodash";
 import { once } from "@cocalc/util/async-utils";
 import { EXTRAS as SERVER_SETTINGS_EXTRAS } from "@cocalc/util/db-schema/site-settings-extras";
+import { buildPublicSiteSettings } from "@cocalc/util/db-schema/site-settings-public";
 import { AllSiteSettings } from "@cocalc/util/db-schema/types";
 import { startswith } from "@cocalc/util/misc";
 import { site_settings_conf as SITE_SETTINGS_CONF } from "@cocalc/util/schema";
@@ -62,18 +63,14 @@ export default async function getServerSettings(): Promise<ServerSettingsDynamic
         }
       }
 
-      // export certain fields to "pub[...]" and some old code regarding the version numbers
-      if (SITE_SETTINGS_CONF[field]) {
-        if (startswith(field, "version_")) {
-          const field_val: number = (all[field] = parseInt(all[field]));
-          if (isNaN(field_val) || field_val * 1000 >= new Date().getTime()) {
-            // Guard against horrible error in which version is in future (so impossible) or NaN (e.g., an invalid string pasted by admin).
-            // In this case, just use 0, which is always satisifed.
-            all[field] = 0;
-          }
-          version[field] = all[field];
+      // Normalize version fields (used elsewhere too)
+      if (SITE_SETTINGS_CONF[field] && startswith(field, "version_")) {
+        const field_val: number = (all[field] = parseInt(all[field]));
+        if (isNaN(field_val) || field_val * 1000 >= new Date().getTime()) {
+          // Guard against horrible error in which version is in future (so impossible) or NaN (e.g., an invalid string pasted by admin).
+          // In this case, just use 0, which is always satisifed.
+          all[field] = 0;
         }
-        pub[field] = all[field];
       }
     });
 
@@ -93,17 +90,9 @@ export default async function getServerSettings(): Promise<ServerSettingsDynamic
           )
             continue;
           all[field] = fallbackVal;
-          // site-settings end up in the "pub" object as well
-          // while "all" is the one we keep to us, contains secrets
-          if (SITE_SETTINGS_CONF === config) {
-            pub[field] = all[field];
-          }
         }
       }
     }
-
-    // Since we want to tell users about the estimated LLM interaction price, we have to send the markup as well.
-    pub["_llm_markup"] = all.pay_as_you_go_openai_markup_percentage;
 
     // PRECAUTION: never make the required version bigger than version_recommended_browser. Very important
     // not to stupidly completely eliminate all cocalc users by a typo...
@@ -111,7 +100,21 @@ export default async function getServerSettings(): Promise<ServerSettingsDynamic
       const field = `version_min_${x}`;
       const minver = all[field] || 0;
       const recomm = all["version_recommended_browser"] || 0;
-      pub[field] = version[field] = all[field] = Math.min(minver, recomm);
+      all[field] = Math.min(minver, recomm);
+    }
+
+    const { configuration, version: nextVersion } =
+      buildPublicSiteSettings(all);
+    for (const key of Object.keys(pub)) {
+      delete pub[key];
+    }
+    Object.assign(pub, configuration);
+    for (const key of Object.keys(version)) {
+      delete version[key];
+    }
+    Object.assign(version, nextVersion);
+    for (const [key, value] of Object.entries(nextVersion)) {
+      all[key] = value;
     }
   };
   table.on("change", update);

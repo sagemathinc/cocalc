@@ -20,7 +20,7 @@ import type {
 } from "@cocalc/ai/control-agent/tools";
 import type { ControlAgentContext } from "@cocalc/ai/control-agent";
 import getLogger from "@cocalc/backend/logger";
-import { getCustomizePayload } from "./settings";
+import { getLiteServerSettings } from "./settings";
 import { createLiteControlAgentRunner } from "./control-agent/runner";
 
 const logger = getLogger("lite:control-agent:dev");
@@ -53,12 +53,11 @@ type ControlAgentSettings = {
 };
 
 async function loadControlAgentSettings(): Promise<ControlAgentSettings> {
-  const payload = await getCustomizePayload();
-  const config = payload.configuration ?? {};
+  const settings = getLiteServerSettings();
   return {
-    enabled: !!config.agent_openai_control_agent_enabled,
+    enabled: !!settings.agent_openai_control_agent_enabled,
     openaiApiKey:
-      typeof config.openai_api_key === "string" ? config.openai_api_key : "",
+      typeof settings.openai_api_key === "string" ? settings.openai_api_key : "",
   };
 }
 
