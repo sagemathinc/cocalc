@@ -272,7 +272,7 @@ importers:
         specifier: ^7.18.3
         version: 7.18.3
       pg:
-        specifier: ^8.7.1
+        specifier: ^8.16.3
         version: 8.16.3
       random-key:
         specifier: ^0.3.2
@@ -294,7 +294,7 @@ importers:
         specifier: ^18.16.14
         version: 18.19.122
       '@types/pg':
-        specifier: ^8.6.1
+        specifier: ^8.15.4
         version: 8.15.5
       coffeescript:
         specifier: ^2.5.1
@@ -957,6 +957,9 @@ importers:
       '@openapitools/openapi-generator-cli':
         specifier: ^2.19.1
         version: 2.22.0(@types/node@18.19.122)(encoding@0.1.13)
+      '@types/pg':
+        specifier: ^8.11.10
+        version: 8.15.5
       '@vscode/vscode-languagedetection':
         specifier: ^1.0.22
         version: 1.0.22
@@ -1006,7 +1009,7 @@ importers:
         specifier: ^1.2.2
         version: 1.2.2
       pg:
-        specifier: ^8.7.1
+        specifier: ^8.16.3
         version: 8.16.3
       react:
         specifier: ^19.1.1
@@ -15818,7 +15821,7 @@ snapshots:
 
   '@types/pg@8.15.5':
     dependencies:
-      '@types/node': 18.19.122
+      '@types/node': 18.19.130
       pg-protocol: 1.10.3
       pg-types: 2.2.0
 

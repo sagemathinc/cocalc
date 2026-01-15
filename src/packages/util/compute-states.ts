@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -55,7 +55,8 @@ export type ComputeStateIcon =
   | "times-rectangle"
   | "flash"
   | "hand-stop"
-  | "run";
+  | "run"
+  | "trash";
 
 export type ComputeState = {
   desc: IntlMessage; // shows up in the UI (default)
