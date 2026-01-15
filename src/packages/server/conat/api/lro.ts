@@ -2,6 +2,8 @@ import getPool from "@cocalc/database/pool";
 import type { LroScopeType, LroSummary } from "@cocalc/conat/hub/api/lro";
 import { assertCollab } from "./util";
 import { getLro, listLro, updateLro } from "@cocalc/server/lro/lro-db";
+import { publishLroSummary } from "@cocalc/server/lro/stream";
+import { cancelCopiesByOpId } from "@cocalc/server/projects/copy-db";
 
 async function assertScopeAccess({
   account_id,
@@ -90,9 +92,19 @@ export async function cancel({
     scope_type: row.scope_type,
     scope_id: row.scope_id,
   });
-  await updateLro({
+  const updated = await updateLro({
     op_id,
     status: "canceled",
     error: row.error ?? "canceled",
   });
+  if (updated) {
+    await publishLroSummary({
+      scope_type: updated.scope_type,
+      scope_id: updated.scope_id,
+      summary: updated,
+    });
+  }
+  if (row.kind === "copy-path-between-projects") {
+    await cancelCopiesByOpId({ op_id });
+  }
 }

@@ -1,7 +1,8 @@
-import { Progress, Space, Spin } from "antd";
+import { Button, Popconfirm, Progress, Space, Spin } from "antd";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { LroEvent, LroStatus, LroSummary } from "@cocalc/conat/hub/api/lro";
-import { plural } from "@cocalc/util/misc";
+import { human_readable_size, plural } from "@cocalc/util/misc";
 
 type CopyLroState = {
   op_id: string;
@@ -55,6 +56,7 @@ function CopyOpRow({ op }: { op: CopyLroState }) {
   const percent = progressPercent(op);
   const statusText = formatStatusLine(op);
   const progressStatus = progressBarStatus(summary?.status);
+  const canCancel = summary && !TERMINAL_STATUSES.has(summary.status);
 
   return (
     <div style={{ marginBottom: "6px" }}>
@@ -71,6 +73,20 @@ function CopyOpRow({ op }: { op: CopyLroState }) {
           />
         )}
         <span style={{ fontSize: "11px", color: "#666" }}>{statusText}</span>
+        {canCancel && (
+          <Popconfirm
+            title="Cancel this copy operation?"
+            okText="Cancel"
+            cancelText="Keep"
+            onConfirm={() =>
+              webapp_client.conat_client.hub.lro.cancel({ op_id: op.op_id })
+            }
+          >
+            <Button type="link" size="small">
+              Cancel
+            </Button>
+          </Popconfirm>
+        )}
       </Space>
     </div>
   );
@@ -98,14 +114,18 @@ function formatStatusLine(op: CopyLroState): string {
   const progress = op.last_progress;
   const message = progress?.message ?? progress?.phase;
   const counts = formatCounts(summary?.progress_summary ?? {});
+  const detail = formatProgressDetail(progress?.detail);
   if (message && counts) {
-    return `${message} • ${counts}`;
+    return detail ? `${message} • ${counts} • ${detail}` : `${message} • ${counts}`;
   }
   if (message) {
-    return message;
+    return detail ? `${message} • ${detail}` : message;
   }
   if (counts) {
-    return counts;
+    return detail ? `${counts} • ${detail}` : counts;
+  }
+  if (detail) {
+    return detail;
   }
   return summary?.status ?? "running";
 }
@@ -154,6 +174,32 @@ function progressBarStatus(status?: LroStatus): "active" | "exception" | "succes
     return "success";
   }
   return "active";
+}
+
+function formatProgressDetail(detail?: any): string | undefined {
+  if (!detail) return undefined;
+  const parts: string[] = [];
+  const speed = formatSpeed(detail.speed);
+  if (speed) parts.push(speed);
+  const eta = formatEta(detail.eta);
+  if (eta) parts.push(`ETA ${eta}`);
+  return parts.length ? parts.join(", ") : undefined;
+}
+
+function formatSpeed(speed?: string): string | undefined {
+  if (!speed) return undefined;
+  const numeric = Number.parseFloat(speed);
+  if (!Number.isFinite(numeric)) {
+    return speed;
+  }
+  return `${human_readable_size(numeric, true)}/s`;
+}
+
+function formatEta(eta?: number): string | undefined {
+  if (eta == null || eta <= 0) return undefined;
+  if (eta < 1000) return `${Math.round(eta)} ms`;
+  if (eta < 60_000) return `${Math.round(eta / 1000)} s`;
+  return `${Math.round(eta / 1000 / 60)} min`;
 }
 
 function getUpdatedAt(op: CopyLroState): number {

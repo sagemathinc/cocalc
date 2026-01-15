@@ -16,9 +16,11 @@ export type ControlAgentDevRequest = {
   maxTurns?: number;
   model?: string;
   dryRun?: boolean;
+  threadId?: string;
 };
 
 export type ControlAgentDevResponse = {
+  threadId: string;
   transcript: ControlAgentTranscriptItem[];
   finalOutput?: unknown;
   lastResponseId?: string;

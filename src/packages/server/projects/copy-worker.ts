@@ -1,9 +1,14 @@
 import { randomUUID } from "node:crypto";
 import getLogger from "@cocalc/backend/logger";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
-import { claimLroOps, touchLro, updateLro } from "@cocalc/server/lro/lro-db";
+import {
+  claimLroOps,
+  getLro,
+  touchLro,
+  updateLro,
+} from "@cocalc/server/lro/lro-db";
 import { publishLroEvent, publishLroSummary } from "@cocalc/server/lro/stream";
-import { copyProjectFiles } from "./copy";
+import { COPY_CANCELED_CODE, copyProjectFiles } from "./copy";
 import { listCopiesByOpId } from "./copy-db";
 
 const logger = getLogger("server:projects:copy-worker");
@@ -116,6 +121,17 @@ async function handleCopyOp(op: LroSummary): Promise<void> {
     );
   };
 
+  let canceled = false;
+  const shouldAbort = async () => {
+    if (canceled) return true;
+    const current = await getLro(op_id);
+    if (current?.status === "canceled" || current?.status === "expired") {
+      canceled = true;
+      return true;
+    }
+    return false;
+  };
+
   try {
     const existing = await listCopiesByOpId({ op_id });
     const existingSnapshot = existing[0]?.snapshot_id;
@@ -132,6 +148,7 @@ async function handleCopyOp(op: LroSummary): Promise<void> {
       progress,
       snapshot_id,
       queue_mode,
+      shouldAbort,
     });
 
     if (result.snapshot_id && !storedSnapshot) {
@@ -187,6 +204,19 @@ async function handleCopyOp(op: LroSummary): Promise<void> {
     }
 
   } catch (err) {
+    const isCanceled = (err as any)?.code === COPY_CANCELED_CODE;
+    if (isCanceled) {
+      const updated = await updateLro({
+        op_id,
+        status: "canceled",
+        error: "canceled",
+      });
+      if (updated) {
+        await publishSummary(updated);
+      }
+      progress({ step: "done", message: "canceled" });
+      return;
+    }
     logger.warn("copy op failed", { op_id, err: `${err}` });
     const updated = await updateLro({
       op_id,
