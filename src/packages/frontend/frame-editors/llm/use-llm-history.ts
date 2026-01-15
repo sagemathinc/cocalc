@@ -16,7 +16,7 @@ stream.push("New prompt")
 stream.on('change', (prompt) => console.log('New prompt:', prompt))
 */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 
 import type { DStream } from "@cocalc/conat/sync/dstream";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -35,8 +35,47 @@ interface LLMHistoryEntry {
   prompt: string;
 }
 
+type Listener = (newEntry: LLMHistoryEntry) => void;
+
 // Single cache for the shared dstream
 let streamCache: DStream<LLMHistoryEntry> | null = null;
+const historySubscribers = new Set<Listener>();
+let sharedListener: Listener | null = null;
+// The single stream instance that currently has the shared listener attached.
+let attachedStream: DStream<LLMHistoryEntry> | null = null;
+
+function getSharedListener() {
+  if (!sharedListener) {
+    sharedListener = (newEntry: LLMHistoryEntry) => {
+      for (const subscriber of historySubscribers) {
+        subscriber(newEntry);
+      }
+    };
+  }
+  return sharedListener;
+}
+
+function attachSharedListener(stream: DStream<LLMHistoryEntry>) {
+  if (attachedStream === stream) {
+    return;
+  }
+
+  const listener = getSharedListener();
+
+  if (attachedStream) {
+    attachedStream.off("change", listener);
+  }
+
+  attachedStream = stream;
+  attachedStream.on("change", listener);
+}
+
+function detachSharedListener() {
+  if (attachedStream && sharedListener) {
+    attachedStream.off("change", sharedListener);
+  }
+  attachedStream = null;
+}
 
 // Get or create the single shared dstream
 const getDStream = reuseInFlight(async () => {
@@ -75,11 +114,6 @@ const getDStream = reuseInFlight(async () => {
 export function useLLMHistory(type: LLMHistoryType = "general") {
   const [prompts, setPrompts] = useState<string[]>([]);
 
-  // Use ref to store stable listener function
-  const listenerRef = useRef<((newEntry: LLMHistoryEntry) => void) | null>(
-    null,
-  );
-
   // Filter prompts by type and extract just the prompt strings (newest first)
   function filterPromptsByType(entries: LLMHistoryEntry[]): string[] {
     return entries
@@ -91,11 +125,11 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
   // Initialize dstream and set up listeners
   useEffect(() => {
     let isMounted = true;
-    let stream: DStream<LLMHistoryEntry> | null = null;
+    let unsubscribe: (() => void) | null = null;
 
     const initializeStream = async () => {
       try {
-        stream = await getDStream();
+        const stream = await getDStream();
 
         // Check if component was unmounted while we were waiting
         if (!isMounted) {
@@ -105,10 +139,11 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
         const allEntries = stream.getAll();
         setPrompts(filterPromptsByType(allEntries));
 
-        // Create stable listener function
-        listenerRef.current = (newEntry: LLMHistoryEntry) => {
+        const subscriber: Listener = (newEntry: LLMHistoryEntry) => {
           // Only update if the new entry matches our type
-          if (newEntry.type !== type) return;
+          if (newEntry.type !== type) {
+            return;
+          }
 
           setPrompts((prev) => {
             // Remove duplicate if exists, then add to front
@@ -117,8 +152,14 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
           });
         };
 
-        // Add our listener to the stream
-        stream.on("change", listenerRef.current);
+        historySubscribers.add(subscriber);
+        attachSharedListener(stream);
+        unsubscribe = () => {
+          historySubscribers.delete(subscriber);
+          if (historySubscribers.size === 0) {
+            detachSharedListener();
+          }
+        };
       } catch (err) {
         console.warn(`LLM history hook initialization error -- ${err}`);
       }
@@ -129,10 +170,7 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
     // Cleanup function for useEffect
     return () => {
       isMounted = false;
-      if (stream && listenerRef.current) {
-        stream.off("change", listenerRef.current);
-        listenerRef.current = null;
-      }
+      unsubscribe?.();
     };
   }, [type]);
 
@@ -172,6 +210,10 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
 
       // Remove from cache so a new stream will be created
       streamCache = null;
+      detachSharedListener();
+      if (historySubscribers.size > 0) {
+        attachSharedListener(await getDStream());
+      }
     } catch (err) {
       console.warn(`Error clearing LLM history -- ${err}`);
       // Reload prompts on error
