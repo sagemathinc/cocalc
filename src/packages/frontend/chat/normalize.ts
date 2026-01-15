@@ -15,10 +15,6 @@ export interface NormalizedChatMessage {
 export function normalizeChatMessage(base: any): NormalizedChatMessage {
   if (!base || base.event !== "chat")
     return { message: undefined, upgraded: false };
-  // Drop legacy video chat payloads
-  if (base.video_chat?.is_video_chat)
-    return { message: undefined, upgraded: false };
-
   // Work on a shallow copy so we never mutate readonly/frozen inputs.
   const x = { ...base };
   let upgraded = false;
