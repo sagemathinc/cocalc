@@ -11,7 +11,7 @@ When you want to edit an existing public share, here's the flow of what happens.
   - If you are NOT signed in it gives you the option to:
     - Sign in, then start this flowchart over
     - Sign up, then start this over
-    - Create a new anonymous project and anonymously edit this content.
+    - Create a new project and edit this content.
   - If you are signed in, it gives you these options:
     - Create a new project and copy this content to that project (and it opens the project in a new tab).
     - Copy this content to one of your existing projects.
