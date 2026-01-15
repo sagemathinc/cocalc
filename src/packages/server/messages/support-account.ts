@@ -16,20 +16,23 @@ export async function getSupportAccountId(): Promise<string> {
 }
 
 async function createSupportAccount() {
-  let email = "";
   const account_id = uuid();
   const password = randomBytes(20).toString("hex");
   const pool = getPool();
 
   const { help_email } = await getServerSettings();
-  if (help_email) {
+  let email = help_email?.trim() ?? "";
+  if (email) {
     const { rows } = await pool.query(
       "SELECT COUNT(*) AS count FROM accounts WHERE email_address=$1",
-      [help_email],
+      [email],
     );
-    if (rows[0].count == 0) {
-      email = help_email;
+    if (rows[0].count != 0) {
+      email = "";
     }
+  }
+  if (!email) {
+    email = `support+${account_id}@cocalc.local`;
   }
   await createAccount({
     email,
