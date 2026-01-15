@@ -47,22 +47,31 @@ const TOOL_PARAMETERS_SCHEMA: ToolParametersSchema = {
   additionalProperties: true,
 };
 
-function ensureDevEnabled(): void {
-  const enabled =
-    process.env.COCALC_CONTROL_AGENT_DEV === "1" ||
-    process.env.COCALC_CONTROL_AGENT_DEV === "true";
-  if (!enabled) {
-    throw Error("control agent dev API is disabled");
+type ControlAgentSettings = {
+  enabled: boolean;
+  openaiApiKey?: string;
+};
+
+async function loadControlAgentSettings(): Promise<ControlAgentSettings> {
+  const settings = await getServerSettings();
+  return {
+    enabled: !!settings.agent_openai_control_agent_enabled,
+    openaiApiKey: settings.openai_api_key,
+  };
+}
+
+function ensureDevEnabled(settings: ControlAgentSettings): void {
+  if (!settings.enabled) {
+    throw Error("control agent dev API is disabled in server settings");
   }
 }
 
-async function ensureApiKey(): Promise<void> {
-  const { openai_api_key } = await getServerSettings();
-  if (!openai_api_key) {
+function ensureApiKey(settings: ControlAgentSettings): void {
+  if (!settings.openaiApiKey) {
     throw Error("openai_api_key is not configured in server settings");
   }
-  setDefaultOpenAIKey(openai_api_key);
-  setTracingExportApiKey(openai_api_key);
+  setDefaultOpenAIKey(settings.openaiApiKey);
+  setTracingExportApiKey(settings.openaiApiKey);
 }
 
 function normalizeDryRun(dryRun?: boolean): boolean {
@@ -236,8 +245,9 @@ export async function controlAgentDev({
   model?: string;
   dryRun?: boolean;
 }): Promise<ControlAgentDevResponse> {
-  ensureDevEnabled();
-  await ensureApiKey();
+  const settings = await loadControlAgentSettings();
+  ensureDevEnabled(settings);
+  ensureApiKey(settings);
   if (!account_id) {
     throw Error("account_id is required");
   }
