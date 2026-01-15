@@ -90,7 +90,6 @@ export interface AccountState {
   remember_me?: boolean;
   has_remember_me?: boolean;
   passports?: Map<string, any>;
-  is_anonymous: boolean;
   is_admin: boolean;
   is_ready: boolean; // user signed in and account settings have been loaded.
   lti_id?: List<string>;

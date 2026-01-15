@@ -28,7 +28,6 @@ import StudentPayUpgrade from "@cocalc/frontend/purchases/student-pay";
 import track from "@cocalc/frontend/user-tracking";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { AnonymousName } from "../anonymous-name";
 import {
   ProjectContext,
   useProjectContext,
@@ -395,7 +394,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     <ProjectContext.Provider value={projectCtx}>
       <div className="container-content" style={PAGE_STYLE}>
         <StudentPayUpgrade project_id={project_id} />
-        <AnonymousName project_id={project_id} />
         <DiskSpaceWarning project_id={project_id} />
         <RamWarning project_id={project_id} />
         <OOMWarning project_id={project_id} />

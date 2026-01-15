@@ -111,7 +111,6 @@ export function VerticalFixedTabs({
   const actBar = getValidActivityBarOption(
     other_settings.get(ACTIVITY_BAR_KEY),
   );
-  const isAnonymous = useTypedRedux("account", "is_anonymous");
   const parent = useRef<HTMLDivElement>(null);
   const gap = useRef<HTMLDivElement>(null);
   const breakPoint = useRef<number>(0);
@@ -184,9 +183,6 @@ export function VerticalFixedTabs({
   for (const nameStr in FIXED_PROJECT_TABS) {
     const name: FixedTab = nameStr as FixedTab; // helping TS a little bit
     const v = FIXED_PROJECT_TABS[name];
-    if (isAnonymous && v.noAnonymous) {
-      continue;
-    }
     if (lite && v.noLite) {
       continue;
     }
@@ -414,13 +410,8 @@ function ChatIndicatorTab({ activeTab, project_id }): React.JSX.Element | null {
 }
 
 function ShareIndicatorTab({ activeTab, project_id }) {
-  const isAnonymous = useTypedRedux("account", "is_anonymous");
   const currentPath = useTypedRedux({ project_id }, "current_path");
 
-  if (isAnonymous) {
-    // anon users can't share anything
-    return null;
-  }
   const path = activeTab === "files" ? currentPath : tab_to_path(activeTab);
   if (path == null) {
     // nothing specifically to share

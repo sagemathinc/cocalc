@@ -8,7 +8,6 @@ import { List, Map } from "immutable";
 import { join } from "path";
 import { FormattedMessage, useIntl } from "react-intl";
 import {
-  Alert,
   Button,
   ButtonToolbar,
   Checkbox,
@@ -17,21 +16,9 @@ import {
   Row,
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
-import {
-  React,
-  Rendered,
-  TypedMap,
-  redux,
-  useState,
-} from "@cocalc/frontend/app-framework";
-import {
-  A,
-  ErrorDisplay,
-  Gap,
-  Icon,
-  TimeAgo,
-} from "@cocalc/frontend/components";
-import { SiteName, TermsOfService } from "@cocalc/frontend/customize";
+import { Rendered, TypedMap, redux, useState } from "@cocalc/frontend/app-framework";
+import { ErrorDisplay, Gap, Icon, TimeAgo } from "@cocalc/frontend/components";
+import { SiteName } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
@@ -40,7 +27,6 @@ import {
   PassportStrategyIcon,
   strategy2display,
 } from "@cocalc/frontend/passports";
-import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { keys, startswith } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -70,7 +56,6 @@ interface Props {
   sign_out_error?: string;
   delete_account_error?: string;
   other_settings?: AccountState["other_settings"];
-  is_anonymous?: boolean;
   email_enabled?: boolean;
   verify_emails?: boolean;
   created?: Date;
@@ -86,7 +71,6 @@ export function AccountSettings(props: Readonly<Props>) {
   const [remove_strategy_button, set_remove_strategy_button] = useState<
     string | undefined
   >(undefined);
-  const [terms_checkbox, set_terms_checkbox] = useState<boolean>(false);
   const [show_delete_confirmation, set_show_delete_confirmation] =
     useState<boolean>(false);
   const [username, set_username] = useState<boolean>(false);
@@ -131,12 +115,6 @@ export function AccountSettings(props: Readonly<Props>) {
             target="_blank"
             onClick={() => {
               set_add_strategy_link(undefined);
-              if (props.is_anonymous) {
-                log("add_passport", {
-                  passport: name,
-                  source: "anonymous_account",
-                });
-              }
             }}
           >
             <Icon name="external-link" /> Link My {name} Account
@@ -230,7 +208,6 @@ export function AccountSettings(props: Readonly<Props>) {
       const strategy_js = strategy.toJS();
       const btn = (
         <Button
-          disabled={props.is_anonymous && !terms_checkbox}
           onClick={() => {
             if (is_configured) {
               set_remove_strategy_button(strategy.get("name"));
@@ -279,8 +256,8 @@ export function AccountSettings(props: Readonly<Props>) {
         <Col xs={12}>
           <div className="pull-right">
             <SignOut everywhere={false} highlight={true} />
-            {!props.is_anonymous ? <Gap /> : undefined}
-            {!props.is_anonymous ? <SignOut everywhere={true} /> : undefined}
+            <Gap />
+            <SignOut everywhere={true} />
           </div>
         </Col>
       </Row>
@@ -356,15 +333,10 @@ export function AccountSettings(props: Readonly<Props>) {
     );
     if (any_hidden === false && not_linked.size === 0) return;
 
-    const heading = intl.formatMessage(
-      {
-        id: "account.settings.sso.link_your_account",
-        defaultMessage: `{is_anonymous, select,
-          true {Sign up using your account at}
-          other {Click to link your account}}`,
-      },
-      { is_anonymous: props.is_anonymous },
-    );
+    const heading = intl.formatMessage({
+      id: "account.settings.sso.link_your_account",
+      defaultMessage: "Click to link your account",
+    });
 
     const btns = not_linked
       .map((strategy) => render_strategy(strategy, account_passports))
@@ -394,32 +366,8 @@ export function AccountSettings(props: Readonly<Props>) {
     );
   }
 
-  function render_anonymous_warning(): Rendered {
-    if (!props.is_anonymous || lite) {
-      return;
-    }
-    // makes no sense to delete an account that is anonymous; it'll
-    // get automatically deleted.
-    return (
-      <div>
-        <Alert bsStyle="warning" style={{ marginTop: "10px" }}>
-          <h4>Sign up</h4>
-          Signing up is free, avoids losing access to your work, you get added
-          to projects you were invited to, and you unlock{" "}
-          <A href="https://doc.cocalc.com/">many additional features</A>!
-          <br />
-          <br />
-          <h4>Sign in</h4>
-          If you already have a <SiteName /> account, <SignOut sign_in={true} />
-          . Note that you will lose any work you've done anonymously here.
-        </Alert>
-        <hr />
-      </div>
-    );
-  }
-
   function render_delete_account(): Rendered {
-    if (props.is_anonymous || lite) {
+    if (lite) {
       return;
     }
     return (
@@ -446,46 +394,16 @@ export function AccountSettings(props: Readonly<Props>) {
     return <PasswordSetting />;
   }
 
-  function render_terms_of_service(): Rendered {
-    if (!props.is_anonymous || lite) {
-      return;
-    }
-    const style: React.CSSProperties = { padding: "10px 20px" };
-    if (terms_checkbox) {
-      style.border = "2px solid #ccc";
-    } else {
-      style.border = "2px solid red";
-    }
+  function render_header(): Rendered {
     return (
-      <div style={style}>
-        <Checkbox
-          checked={terms_checkbox}
-          onChange={(e) => set_terms_checkbox(e.target.checked)}
-        >
-          <TermsOfService style={{ display: "inline" }} />
-        </Checkbox>
-      </div>
+      <>
+        <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> {intl.formatMessage(labels.account)}
+      </>
     );
   }
 
-  function render_header(): Rendered {
-    if (props.is_anonymous) {
-      return (
-        <b>
-          Thank you for using <SiteName />!
-        </b>
-      );
-    } else {
-      return (
-        <>
-          <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> {intl.formatMessage(labels.account)}
-        </>
-      );
-    }
-  }
-
   function render_created(): Rendered {
-    if (props.is_anonymous || !props.created) {
+    if (!props.created) {
       return;
     }
     return (
@@ -513,7 +431,6 @@ export function AccountSettings(props: Readonly<Props>) {
           onBlur={(e) => save_change(e, "first_name")}
           onPressEnter={(e) => save_change(e, "first_name")}
           maxLength={254}
-          disabled={props.is_anonymous && !terms_checkbox}
         />
         <TextSetting
           label={intl.formatMessage(labels.account_last_name)}
@@ -522,7 +439,6 @@ export function AccountSettings(props: Readonly<Props>) {
           onBlur={(e) => save_change(e, "last_name")}
           onPressEnter={(e) => save_change(e, "last_name")}
           maxLength={254}
-          disabled={props.is_anonymous && !terms_checkbox}
         />
         <TextSetting
           label={intl.formatMessage({
@@ -551,7 +467,6 @@ export function AccountSettings(props: Readonly<Props>) {
             }
           }}
           maxLength={39}
-          disabled={props.is_anonymous && !terms_checkbox}
         />
         {username && (
           <AntdAlert
@@ -583,8 +498,6 @@ will no longer work (automatic redirects are not implemented), so change with ca
     return (
       <EmailAddressSetting
         email_address={props.email_address}
-        is_anonymous={props.is_anonymous}
-        disabled={props.is_anonymous && !terms_checkbox}
         verify_emails={props.verify_emails}
       />
     );
@@ -612,7 +525,7 @@ will no longer work (automatic redirects are not implemented), so change with ca
   }
 
   function render_email_verification(): Rendered {
-    if (props.email_enabled && props.verify_emails && !props.is_anonymous) {
+    if (props.email_enabled && props.verify_emails) {
       return (
         <EmailVerification
           email_address={props.email_address}
@@ -624,8 +537,6 @@ will no longer work (automatic redirects are not implemented), so change with ca
 
   return (
     <Panel header={render_header()}>
-      {render_anonymous_warning()}
-      {render_terms_of_service()}
       {render_name()}
       {render_email_address()}
       {render_unlisted()}

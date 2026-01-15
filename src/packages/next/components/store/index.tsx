@@ -90,7 +90,7 @@ export default function StoreLayout({ page }: Props) {
   const { account_id } = profile;
   const noAccount = account_id == null;
 
-  // wrapper: only the pages showing the prices will be shown to the general public or anonymous users
+  // wrapper: only the pages showing the prices will be shown to the general public
   function requireAccount(StorePage): JSX.Element {
     if (noAccount) {
       return (

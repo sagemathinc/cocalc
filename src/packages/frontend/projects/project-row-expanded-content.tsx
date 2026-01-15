@@ -67,7 +67,6 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
   const images = useTypedRedux("compute_images", "images");
   const kucalc = useTypedRedux("customize", "kucalc");
   const software = useTypedRedux("customize", "software");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
   const project_log = useTypedRedux({ project_id }, "project_log");
 
   // Get recent files - always enabled since component only renders when expanded
@@ -159,8 +158,6 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
   }
 
   function renderCollaborators() {
-    if (is_anonymous) return null;
-
     return (
       <div>
         <div style={{ marginBottom: "8px" }}>
@@ -348,16 +345,12 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
           </Space.Compact>
         </Descriptions.Item>
 
-        {!is_anonymous && (
-          <>
-            <Descriptions.Item
-              label={intl.formatMessage(labels.collaborators)}
-              span={3}
-            >
-              {renderCollaborators()}
-            </Descriptions.Item>
-          </>
-        )}
+        <Descriptions.Item
+          label={intl.formatMessage(labels.collaborators)}
+          span={3}
+        >
+          {renderCollaborators()}
+        </Descriptions.Item>
 
         <Descriptions.Item label="Software Image" span={2}>
           {renderSoftwareImage()}

@@ -3,9 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { List, Map } from "immutable";
-
-import { store as customizeStore } from "@cocalc/frontend/customize";
 import { make_valid_name } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
 import type { AccountState } from "./types";
@@ -30,22 +27,6 @@ export class AccountStore extends Store<AccountState> {
   }
 
   selectors = {
-    is_anonymous: {
-      fn: () => {
-        return is_anonymous(
-          this.get("is_logged_in"),
-          this.get("email_address"),
-          this.get("passports"),
-          this.get("lti_id"),
-        );
-      },
-      dependencies: [
-        "email_address",
-        "passports",
-        "is_logged_in",
-        "lti_id",
-      ] as const,
-    },
     is_admin: {
       fn: () => {
         const groups = this.get("groups");
@@ -115,32 +96,4 @@ export class AccountStore extends Store<AccountState> {
   showSymbolBarLabels(): boolean {
     return this.getIn(["other_settings", "show_symbol_bar_labels"], false);
   }
-}
-
-// A user is anonymous if they have not provided a way to sign
-// in later (besides their cookie), i.e., if they have no
-// passport strategies and have not provided an email address.
-// In is_personal mode, user is never anonymous.
-function is_anonymous(
-  is_logged_in: boolean,
-  email_address: string | undefined | null,
-  passports: Map<string, any> | undefined | null,
-  lti_id: List<string> | undefined | null,
-): boolean {
-  if (!is_logged_in) {
-    return false;
-  }
-  if (email_address) {
-    return false;
-  }
-  if (passports != null && passports.size > 0) {
-    return false;
-  }
-  if (lti_id != null && lti_id.size > 0) {
-    return false;
-  }
-  if (customizeStore.get("is_personal")) {
-    return false;
-  }
-  return true;
 }

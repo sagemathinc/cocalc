@@ -60,7 +60,6 @@ export function NewProjectCreator({
   const projectLabel = intl.formatMessage(labels.project);
   const projectLabelLower = projectLabel.toLowerCase();
   const projectsLabel = intl.formatMessage(labels.projects);
-  const projectsLabelLower = projectsLabel.toLowerCase();
   // view --> edit --> saving --> view
   const [state, set_state] = useState<EditState>(noProjects ? "edit" : "view");
   const [title_text, set_title_text] = useState<string>(
@@ -72,7 +71,6 @@ export function NewProjectCreator({
   );
   const [selected, setSelected] = useState<SoftwareEnvironmentState>({});
   const new_project_title_ref = useRef<any>(null);
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
   const compute_servers_enabled = useTypedRedux(
     "customize",
     "compute_servers_enabled",
@@ -194,25 +192,7 @@ export function NewProjectCreator({
     );
   }
 
-  function show_account_tab() {
-    redux.getActions("page").set_active_tab("account");
-  }
-
   function render_new_project_button(): React.JSX.Element | undefined {
-    if (is_anonymous) {
-      // anonymous users can't create projects...
-      return (
-        <Button
-          type="primary"
-          size="large"
-          onClick={show_account_tab}
-          style={{ width: "100%", margin: "30px 0" }}
-        >
-          Sign up now so you can create more {projectsLabelLower} and not lose
-          your work!
-        </Button>
-      );
-    }
     return (
       <Row>
         <Col xs={24}>

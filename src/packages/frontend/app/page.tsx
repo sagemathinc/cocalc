@@ -16,7 +16,6 @@ import { Spin } from "antd";
 import { useIntl } from "react-intl";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { Button } from "@cocalc/frontend/antd-bootstrap";
 import {
   CSS,
   React,
@@ -117,18 +116,13 @@ export const Page: React.FC = () => {
   const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
   const is_logged_in = useTypedRedux("account", "is_logged_in");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
-  const ephemeral = useTypedRedux("account", "ephemeral");
-  const when_account_created = useTypedRedux("account", "created");
   const groups = useTypedRedux("account", "groups");
   const show_i18n = useShowI18NBanner();
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const insecure_test_mode = useTypedRedux("customize", "insecure_test_mode");
 
   function account_tab_icon(): IconName | React.JSX.Element {
-    if (is_anonymous) {
-      return <></>;
-    } else if (account_id) {
+    if (account_id) {
       return (
         <Avatar
           size={20}
@@ -151,41 +145,9 @@ export const Page: React.FC = () => {
       );
     }
     const icon = account_tab_icon();
-    let label, style;
-    if (is_anonymous && !ephemeral) {
-      let mesg;
-      style = { fontWeight: "bold", opacity: 0 };
-      if (
-        when_account_created &&
-        Date.now() - when_account_created.valueOf() >= 1000 * 60 * 60
-      ) {
-        mesg = "Sign Up NOW to avoid losing all of your work!";
-        style.width = "400px";
-      } else {
-        mesg = "Sign Up!";
-      }
-      label = (
-        <Button id="anonymous-sign-up" bsStyle="success" style={style}>
-          {mesg}
-        </Button>
-      );
-      style = { marginTop: "-1px" }; // compensate for using a button
-      /* We only actually show the button if it is still there a few
-        seconds later.  This avoids flickering it for a moment during
-        normal sign in.  This feels like a hack, but was super
-        quick to implement.
-      */
-      setTimeout(() => $("#anonymous-sign-up").css("opacity", 1), 3000);
-    } else {
-      label = undefined;
-      style = undefined;
-    }
-
     return (
       <NavTab
         name="account"
-        label={label}
-        style={style}
         label_class={NAV_CLASS}
         icon={icon}
         active_top_tab={active_top_tab}
@@ -276,14 +238,14 @@ export const Page: React.FC = () => {
   }
 
   function render_bell(): React.JSX.Element | undefined {
-    if (!is_logged_in || is_anonymous) return;
+    if (!is_logged_in) return;
     return (
       <Notification type="bell" active={show_file_use} pageStyle={pageStyle} />
     );
   }
 
   function render_notification(): React.JSX.Element | undefined {
-    if (!is_logged_in || is_anonymous) return;
+    if (!is_logged_in) return;
     return (
       <Notification
         type="notifications"
@@ -294,7 +256,7 @@ export const Page: React.FC = () => {
   }
 
   function render_fullscreen(): React.JSX.Element | undefined {
-    if (isNarrow || is_anonymous) return;
+    if (isNarrow) return;
 
     return <FullscreenButton pageStyle={pageStyle} />;
   }
@@ -319,12 +281,7 @@ export const Page: React.FC = () => {
         {render_balance()}
         {render_notification()}
         {render_bell()}
-        {!is_anonymous && (
-          <ConnectionIndicator
-            height={pageStyle.height}
-            pageStyle={pageStyle}
-          />
-        )}
+        <ConnectionIndicator height={pageStyle.height} pageStyle={pageStyle} />
         {render_fullscreen()}
       </div>
     );

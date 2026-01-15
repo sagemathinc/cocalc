@@ -62,7 +62,6 @@ export function ProjectsTableControls({
   const deleted = useTypedRedux("projects", "deleted");
   const selected_hashtags = useTypedRedux("projects", "selected_hashtags");
   const project_map = useTypedRedux("projects", "project_map");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
 
   // Get filter key for current state
   const filter = useMemo(() => {
@@ -121,70 +120,64 @@ export function ProjectsTableControls({
           allowClear
         />
 
-        {!is_anonymous && (
-          <Select
-            mode="multiple"
-            allowClear
-            showSearch
-            disabled={hashtagOptions.length === 0}
-            style={{ width: IS_MOBILE ? 100 : 200 }}
-            placeholder={intl.formatMessage({
-              id: "projects.table-controls.hashtags.placeholder",
-              defaultMessage: "Filter by hashtags...",
-            })}
-            value={selectedHashtagsArray}
-            onChange={handleHashtagChange}
-            options={hashtagOptions}
-            maxTagCount="responsive"
-          />
-        )}
+        <Select
+          mode="multiple"
+          allowClear
+          showSearch
+          disabled={hashtagOptions.length === 0}
+          style={{ width: IS_MOBILE ? 100 : 200 }}
+          placeholder={intl.formatMessage({
+            id: "projects.table-controls.hashtags.placeholder",
+            defaultMessage: "Filter by hashtags...",
+          })}
+          value={selectedHashtagsArray}
+          onChange={handleHashtagChange}
+          options={hashtagOptions}
+          maxTagCount="responsive"
+        />
         {/* Filter switches */}
-        {!is_anonymous && (
-          <Space ref={filtersRef}>
-            <Switch
-              checked={hidden}
-              onChange={(checked) => actions.display_hidden_projects(checked)}
-              checkedChildren={intl.formatMessage({
-                id: "projects.table-controls.hidden.label",
-                defaultMessage: "Hidden",
-              })}
-              unCheckedChildren={intl.formatMessage({
-                id: "projects.table-controls.hidden.label",
-                defaultMessage: "Hidden",
-              })}
-            />
-            <Switch
-              checked={deleted}
-              onChange={(checked) => actions.display_deleted_projects(checked)}
-              checkedChildren={intl.formatMessage({
-                id: "projects.table-controls.deleted.label",
-                defaultMessage: "Deleted",
-              })}
-              unCheckedChildren={intl.formatMessage({
-                id: "projects.table-controls.deleted.label",
-                defaultMessage: "Deleted",
-              })}
-            />
-          </Space>
-        )}
+        <Space ref={filtersRef}>
+          <Switch
+            checked={hidden}
+            onChange={(checked) => actions.display_hidden_projects(checked)}
+            checkedChildren={intl.formatMessage({
+              id: "projects.table-controls.hidden.label",
+              defaultMessage: "Hidden",
+            })}
+            unCheckedChildren={intl.formatMessage({
+              id: "projects.table-controls.hidden.label",
+              defaultMessage: "Hidden",
+            })}
+          />
+          <Switch
+            checked={deleted}
+            onChange={(checked) => actions.display_deleted_projects(checked)}
+            checkedChildren={intl.formatMessage({
+              id: "projects.table-controls.deleted.label",
+              defaultMessage: "Deleted",
+            })}
+            unCheckedChildren={intl.formatMessage({
+              id: "projects.table-controls.deleted.label",
+              defaultMessage: "Deleted",
+            })}
+          />
+        </Space>
       </Space>
 
       {/* Right section: Create button */}
-      {!is_anonymous && (
-        <Space>
-          {tour}
-          <Button
-            ref={createNewRef}
-            type="primary"
-            onClick={onCreateProject}
-            icon={<Icon name="plus-circle" />}
-          >
-            {IS_MOBILE
-              ? intl.formatMessage(labels.new)
-              : capitalize(intl.formatMessage(labels.create))}
-          </Button>
-        </Space>
-      )}
+      <Space>
+        {tour}
+        <Button
+          ref={createNewRef}
+          type="primary"
+          onClick={onCreateProject}
+          icon={<Icon name="plus-circle" />}
+        >
+          {IS_MOBILE
+            ? intl.formatMessage(labels.new)
+            : capitalize(intl.formatMessage(labels.create))}
+        </Button>
+      </Space>
     </Space>
   );
 }

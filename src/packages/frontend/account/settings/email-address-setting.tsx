@@ -10,7 +10,6 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { ErrorDisplay, LabeledRow, Saving } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
 import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
@@ -18,14 +17,12 @@ import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 interface Props {
   email_address?: string;
   disabled?: boolean;
-  is_anonymous?: boolean;
   verify_emails?: boolean;
 }
 
 export const EmailAddressSetting = ({
   email_address: email_address0,
   disabled,
-  is_anonymous,
   verify_emails,
 }: Props) => {
   const intl = useIntl();
@@ -64,21 +61,15 @@ export const EmailAddressSetting = ({
       setError(`Error -- ${error}`);
       return;
     }
-    if (is_anonymous) {
-      log("email_sign_up", { source: "anonymous_account" });
-    }
     setState("view");
     setError("");
     setPassword("");
     // if email verification is enabled, send out a token
-    // in any case, send a welcome email to an anonymous user, possibly
-    // including an email verification link
-    if (!(verify_emails || is_anonymous)) {
+    if (!verify_emails) {
       return;
     }
     try {
-      // anonymouse users will get the "welcome" email
-      await webapp_client.account_client.send_verification_email(!is_anonymous);
+      await webapp_client.account_client.send_verification_email();
     } catch (error) {
       const err_msg = `Problem sending welcome email: ${error}`;
       console.log(err_msg);
@@ -171,24 +162,17 @@ export const EmailAddressSetting = ({
     return intl.formatMessage(
       {
         id: "account.settings.email_address.button_label",
-        defaultMessage: `{type, select,
-      anonymous {Sign up using an email address and password}
-      have_email {Change email address}
+        defaultMessage: `{have_email, select,
+      true {Change email address}
       other {Set email address and password}}`,
       },
       {
-        type: is_anonymous ? "anonymous" : email_address ? "have_email" : "",
+        have_email: !!email_address,
       },
     );
   }
 
-  const label = is_anonymous ? (
-    <h5 style={{ color: COLORS.GRAY_M }}>
-      Sign up using an email address and password
-    </h5>
-  ) : (
-    intl.formatMessage(labels.email_address)
-  );
+  const label = intl.formatMessage(labels.email_address);
 
   return (
     <LabeledRow

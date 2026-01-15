@@ -15,14 +15,13 @@ import type { IconName } from "@cocalc/frontend/components/icon";
 export const KEYS_ICON_NAME: IconName = "key";
 
 export function AccountPreferencesSecurity() {
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
   const kucalc = useTypedRedux("customize", "kucalc");
   const ssh_gateway = useTypedRedux("customize", "ssh_gateway");
 
   return (
     <>
       {(ssh_gateway || kucalc === KUCALC_COCALC_COM) && <GlobalSSHKeys />}
-      {!is_anonymous && <ApiKeys />}
+      <ApiKeys />
     </>
   );
 }
