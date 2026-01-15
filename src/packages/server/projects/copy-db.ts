@@ -6,7 +6,7 @@ import type {
   ProjectCopyState,
 } from "@cocalc/conat/hub/api/projects";
 import type { LroStatus } from "@cocalc/conat/hub/api/lro";
-import { updateLro } from "@cocalc/server/lro/lro-db";
+import { getLro, updateLro } from "@cocalc/server/lro/lro-db";
 import { publishLroSummary } from "@cocalc/server/lro/stream";
 
 const logger = getLogger("server:projects:copy-db");
@@ -24,6 +24,11 @@ const TERMINAL_STATUSES: ProjectCopyState[] = [
 
 async function refreshCopyOperation(op_id: string): Promise<void> {
   try {
+    const lro = await getLro(op_id);
+    const frozenStatus =
+      lro?.status === "canceled" || lro?.status === "expired"
+        ? lro.status
+        : undefined;
     const { rows } = await pool().query(
       `
         SELECT status, COUNT(*)::int AS count, MAX(last_error) AS last_error
@@ -70,10 +75,20 @@ async function refreshCopyOperation(op_id: string): Promise<void> {
     };
     const updated = await updateLro({
       op_id,
-      status,
+      status: frozenStatus ?? status,
       progress_summary,
-      error: status === "failed" ? lastError : null,
-      result: status === "succeeded" ? progress_summary : undefined,
+      error:
+        frozenStatus != null
+          ? undefined
+          : status === "failed"
+            ? lastError
+            : null,
+      result:
+        frozenStatus != null
+          ? undefined
+          : status === "succeeded"
+            ? progress_summary
+            : undefined,
     });
     if (updated) {
       await publishLroSummary({
@@ -391,6 +406,42 @@ export async function cancelCopy(
     }
   }
   return updated;
+}
+
+export async function cancelCopiesByOpId({
+  op_id,
+  include_applying = false,
+}: {
+  op_id: string;
+  include_applying?: boolean;
+}): Promise<ProjectCopyRow[]> {
+  await expireCopies();
+  const statuses = include_applying ? ["queued", "failed", "applying"] : ["queued", "failed"];
+  const { rows } = await pool().query(
+    `
+      UPDATE project_copies
+      SET status='canceled',
+          last_error=COALESCE(last_error, 'canceled'),
+          updated_at=now()
+      WHERE op_id=$1
+        AND status = ANY($2::text[])
+      RETURNING *
+    `,
+    [op_id, statuses],
+  );
+  const updatedRows = rows as ProjectCopyRow[];
+  const seen = new Set<string>();
+  for (const row of updatedRows) {
+    const key = `${row.src_project_id}:${row.snapshot_id}`;
+    if (seen.has(key)) continue;
+    seen.add(key);
+    await maybeCleanupSnapshot({
+      src_project_id: row.src_project_id,
+      snapshot_id: row.snapshot_id,
+    });
+  }
+  await refreshCopyOperation(op_id);
+  return updatedRows;
 }
 
 export async function claimPendingCopies({

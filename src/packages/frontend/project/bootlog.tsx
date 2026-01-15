@@ -5,7 +5,7 @@ import { useProjectContext } from "./context";
 import { redux, useAsyncEffect } from "@cocalc/frontend/app-framework";
 import type { LroEvent, LroScopeType } from "@cocalc/conat/hub/api/lro";
 import ShowError from "@cocalc/frontend/components/error";
-import { capitalize, field_cmp, plural } from "@cocalc/util/misc";
+import { capitalize, field_cmp, human_readable_size, plural } from "@cocalc/util/misc";
 import { namespaceToColor } from "@cocalc/util/color";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { TimeAgo } from "@cocalc/frontend/components";
@@ -149,9 +149,12 @@ function ProgressEntry({
   progress,
   desc,
   elapsed,
+  speed,
+  eta,
   error,
 }: ProgressEvent & { isRunning?: boolean }) {
-  const remaining = estimateRemainingTime({ elapsed, progress });
+  const remaining = estimateRemainingTime({ elapsed, progress, eta });
+  const speedLabel = formatSpeed(speed);
   return (
     <div>
       <Tooltip
@@ -160,6 +163,12 @@ function ProgressEntry({
             {typeToString(type)}
             <br />
             Elapsed: {msToString(elapsed)}
+            {speedLabel ? (
+              <>
+                <br />
+                Speed: {speedLabel}
+              </>
+            ) : null}
             {remaining ? (
               <>
                 <br />
@@ -178,6 +187,7 @@ function ProgressEntry({
           />
           <div>
             {desc}
+            {speedLabel ? ` (${speedLabel})` : ""}
             {remaining ? (
               <>
                 {" "}
@@ -198,10 +208,15 @@ function ProgressEntry({
 function estimateRemainingTime({
   elapsed,
   progress,
+  eta,
 }: {
   elapsed?: number;
   progress?: number;
+  eta?: number;
 }): number | undefined {
+  if (eta != null && eta >= 0) {
+    return eta;
+  }
   if (elapsed == null || progress == null) {
     return undefined;
   }
@@ -213,6 +228,15 @@ function estimateRemainingTime({
   }
   const timePerUnit = elapsed / progress;
   return Math.round((100 - progress) * timePerUnit);
+}
+
+function formatSpeed(speed?: string): string | undefined {
+  if (!speed) return undefined;
+  const numeric = Number.parseFloat(speed);
+  if (!Number.isFinite(numeric)) {
+    return speed;
+  }
+  return `${human_readable_size(numeric, true)}/s`;
 }
 
 function typeToString(type: string) {

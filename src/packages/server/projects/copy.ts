@@ -27,6 +27,15 @@ type CopySource = { project_id: string; path: string | string[] };
 type CopyDest = { project_id: string; path: string };
 type QueueMode = "upsert" | "insert";
 
+export const COPY_CANCELED_CODE = "copy-canceled";
+
+function copyCanceledError(): Error {
+  const err = new Error("copy canceled");
+  // @ts-ignore
+  err.code = COPY_CANCELED_CODE;
+  return err;
+}
+
 function fileServerClientWithTimeout(
   project_id: string,
   timeout_ms?: number,
@@ -132,6 +141,7 @@ export async function copyProjectFiles({
   skip_queue = false,
   queue_mode = "upsert",
   timeout_ms = COPY_FILES_TIMEOUT_MS,
+  shouldAbort,
 }: {
   src: CopySource;
   dests: CopyDest[];
@@ -143,6 +153,7 @@ export async function copyProjectFiles({
   skip_queue?: boolean;
   queue_mode?: QueueMode;
   timeout_ms?: number;
+  shouldAbort?: () => Promise<boolean>;
 }): Promise<{ queued: number; local: number; snapshot_id?: string }> {
   if (!account_id) {
     throw new Error("account_id is required");
@@ -152,10 +163,16 @@ export async function copyProjectFiles({
   }
 
   report(progress, { step: "validate" });
+  if (shouldAbort && (await shouldAbort())) {
+    throw copyCanceledError();
+  }
 
   const srcPaths = normalizeSrcPaths(src);
   if (srcPaths.length > 1 && srcPaths.some((p) => !p)) {
     throw new Error("empty src path not allowed when copying multiple paths");
+  }
+  if (shouldAbort && (await shouldAbort())) {
+    throw copyCanceledError();
   }
 
   const normalizedDests = dests.map((dest, idx) => ({
@@ -185,7 +202,13 @@ export async function copyProjectFiles({
   let localCount = 0;
 
   if (remoteDests.length && !skip_queue) {
-    report(progress, { step: "backup" });
+    if (shouldAbort && (await shouldAbort())) {
+      throw copyCanceledError();
+    }
+    report(progress, {
+      step: "backup",
+      detail: { paths: srcPaths.length, destinations: remoteDests.length },
+    });
     // TODO: once last_edited is reliable, allow reusing a recent backup.
     const tags = [
       "purpose=copy",
@@ -212,8 +235,14 @@ export async function copyProjectFiles({
     if (!snapshot_id) {
       throw new Error("backup creation failed (missing snapshot id)");
     }
+    if (shouldAbort && (await shouldAbort())) {
+      throw copyCanceledError();
+    }
     try {
       for (const srcPath of srcPaths) {
+        if (shouldAbort && (await shouldAbort())) {
+          throw copyCanceledError();
+        }
         await assertBackupContainsPath({
           project_id: src.project_id,
           snapshot_id: snapshot_id,
@@ -224,11 +253,15 @@ export async function copyProjectFiles({
 
       report(progress, {
         step: "queue",
+        message: "queueing remote copies",
         detail: { snapshot_id, destinations: remoteDests.length },
       });
       const expiresAt = new Date(Date.now() + COPY_TTL_MS);
 
       for (const dest of remoteDests) {
+        if (shouldAbort && (await shouldAbort())) {
+          throw copyCanceledError();
+        }
         if (srcPaths.length > 1) {
           for (const srcPath of srcPaths) {
             const base = path.posix.basename(srcPath);
@@ -290,6 +323,16 @@ export async function copyProjectFiles({
           }
         }
       }
+      report(progress, {
+        step: "queue",
+        message: `queued ${queuedCount} remote copies`,
+        detail: {
+          snapshot_id,
+          queued: queuedCount,
+          local: localCount,
+          total: queuedCount + localCount,
+        },
+      });
     } catch (err) {
       if (createdBackup && snapshot_id) {
         try {
@@ -310,9 +353,12 @@ export async function copyProjectFiles({
   }
 
   if (localDests.length) {
+    if (shouldAbort && (await shouldAbort())) {
+      throw copyCanceledError();
+    }
     report(progress, {
       step: "copy-local",
-      detail: { count: localDests.length },
+      detail: { count: localDests.length, paths: srcPaths.length },
     });
     const client = fileServerClientWithTimeout(
       src.project_id,
