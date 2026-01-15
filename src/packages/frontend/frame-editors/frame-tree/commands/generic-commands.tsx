@@ -1118,18 +1118,6 @@ addCommands({
       redux.getProjectActions(props.project_id).open_chat({ path: props.path });
     },
   },
-  videoChat: {
-    alwaysShow: true,
-    pos: 0,
-    icon: "video-camera",
-    group: "show-frames",
-    label: "Video Chat",
-    button: "Video",
-    title: "Video chat about this file with collaborators on this project",
-    onClick: ({ props }) => {
-      props.actions.getVideoChat().startChatting();
-    },
-  },
   foldAIThreads: {
     group: "fold",
     pos: 1,

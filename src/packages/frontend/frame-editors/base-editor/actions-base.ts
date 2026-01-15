@@ -32,7 +32,6 @@ import {
   redux,
 } from "@cocalc/frontend/app-framework";
 import type { PageActions } from "@cocalc/frontend/app/actions";
-import { VideoChat } from "@cocalc/frontend/chat/video/video-chat";
 import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { filenameMode } from "@cocalc/frontend/file-associations";
@@ -192,8 +191,6 @@ export class BaseEditorActions<
   protected terminals: TerminalManager<T>;
   private code_editors: CodeEditorManager<T>;
 
-  private videoChat: VideoChat;
-
   protected doctype: string = "syncstring";
 
   ////////
@@ -322,7 +319,6 @@ export class BaseEditorActions<
     this.project_id = project_id;
     this.path = path;
     this.applyDoctypeForPath(path);
-    this.videoChat = new VideoChat({ project_id, path });
     this.store = store;
     this.is_public = is_public;
     this.terminals = new TerminalManager<T>(this);
@@ -724,7 +720,6 @@ export class BaseEditorActions<
     this.terminals.close();
     // Free up stuff related to code editors with different path
     this.code_editors.close();
-    this.videoChat.close();
   }
 
   private async close_syncstring(): Promise<void> {
@@ -3381,10 +3376,6 @@ export class BaseEditorActions<
 
   settings = () => {
     this.redux.getActions("page").settings("editor-settings");
-  };
-
-  getVideoChat = () => {
-    return this.videoChat;
   };
 
   // NOTE: can't be an arrow function because gets called in derived classes

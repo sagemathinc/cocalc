@@ -4,7 +4,7 @@
  */
 
 import type { MutableRefObject } from "react";
-import { Button, Popconfirm, Select, Tooltip } from "antd";
+import { Button, Select, Tooltip } from "antd";
 import { FormattedMessage } from "react-intl";
 import { Icon } from "@cocalc/frontend/components";
 import { LLMUsageStatus } from "@cocalc/frontend/misc/llm-cost-estimation";
@@ -154,25 +154,7 @@ export function ChatRoomComposer({
                 />
               </div>
             ) : (
-              <Popconfirm
-                title="Start a video chat in this thread?"
-                okText="Start"
-                cancelText="Cancel"
-                placement="topRight"
-                onConfirm={() => {
-                  const message = actions?.frameTreeActions
-                    ?.getVideoChat()
-                    .startChatting(actions);
-                  if (!message) {
-                    return;
-                  }
-                  sendMessage(undefined, "\n\n" + message);
-                }}
-              >
-                <Button style={{ height: "47.5px" }}>
-                  <Icon name="video-camera" /> Video
-                </Button>
-              </Popconfirm>
+              <div />
             )}
             <div style={{ height: "5px" }} />
             <Tooltip

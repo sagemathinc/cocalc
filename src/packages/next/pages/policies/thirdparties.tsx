@@ -222,18 +222,6 @@ export default function TermsOfService({ customize }) {
                     </li>
                   </ul>
                 </li>
-                <li>
-                  <A href="https://meet.jit.si/">Jitsi Video Conferencing</A>
-                  <ul>
-                    <li>Usage: embedded video conferencing.</li>
-                    <li>Shared PII: IP address to establish connection.</li>
-                    <li>
-                      <A href="https://jitsi.org/meet-jit-si-privacy/">
-                        Privacy Policy
-                      </A>
-                    </li>
-                  </ul>
-                </li>
               </ul>
               <h2>AI Services</h2>
               <p>

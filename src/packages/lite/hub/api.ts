@@ -12,6 +12,7 @@ import {
 } from "@cocalc/util/misc";
 import { callRemoteHub, hasRemote, project_id } from "../remote";
 import { join } from "node:path";
+import { controlAgentDev } from "./control-agent";
 
 const logger = getLogger("lite:hub:api");
 
@@ -115,6 +116,7 @@ export const hubApi: HubApi = {
   db: { touch: () => {}, userQuery },
   purchases: {},
   jupyter: {},
+  controlAgent: { controlAgentDev },
 } as any;
 
 async function getResponse({ name, args, account_id, project_id }) {

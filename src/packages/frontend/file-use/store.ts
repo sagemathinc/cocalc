@@ -350,33 +350,4 @@ export class FileUseStore extends Store<FileUseState> {
     return users;
   }
 
-  get_video_chat_users(opts: {
-    project_id: string;
-    path: string;
-    ttl?: number; // time in ms; if timestamp of video chat is older than this, ignore
-  }) {
-    if (!opts.ttl) {
-      opts.ttl = 120000;
-    }
-    const users: { [account_id: string]: Date } = {};
-    const cutoff: number = webapp_client.server_time().valueOf() - opts.ttl;
-    const file_use: iMap<string, any> | undefined = this.get("file_use");
-    if (file_use == null) {
-      return users;
-    }
-    const users_map: iMap<string, any> = file_use.getIn([
-      sha1(opts.project_id, opts.path),
-      "users",
-    ]) as any;
-    if (users_map == null) {
-      return users;
-    }
-    users_map.forEach(function (info: iMap<string, any>, account_id: string) {
-      const timestamp = info.get("video");
-      if (timestamp != null && timestamp.valueOf() >= cutoff) {
-        users[account_id] = timestamp;
-      }
-    });
-    return users;
-  }
 }
