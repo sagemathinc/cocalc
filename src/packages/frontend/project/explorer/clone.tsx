@@ -4,7 +4,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { redux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
-import BootLog from "../bootlog";
 import { useIntl } from "react-intl";
 import { labels } from "@cocalc/frontend/i18n";
 
@@ -34,7 +33,6 @@ export default function CloneProject({ project_id, flyout }: Props) {
             projectLabelLower={projectLabelLower}
           />
           <ShowError error={error} setError={setError} />
-          <BootLog />
         </>
       )}
       onConfirm={async () => {

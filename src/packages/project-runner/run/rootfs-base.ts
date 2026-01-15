@@ -6,7 +6,7 @@ import { spawn } from "node:child_process";
 import { readFile, rm, writeFile } from "fs/promises";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import pullImage from "./pull-image";
-import { shiftProgress } from "@cocalc/conat/project/runner/bootlog";
+import { shiftProgress } from "@cocalc/conat/lro/progress";
 import { PROGRESS_ARGS, rsyncProgressReporter } from "./rsync-progress";
 import getLogger from "@cocalc/backend/logger";
 

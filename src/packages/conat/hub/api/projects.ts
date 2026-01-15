@@ -334,7 +334,7 @@ export interface Projects {
     restore?: "none" | "auto" | "required";
     lro_op_id?: string;
     // When false, enqueue start and return immediately; callers can watch
-    // bootlog/changefeed for progress.
+    // LRO/changefeed for progress.
     wait?: boolean;
   }) => Promise<{
     op_id: string;
