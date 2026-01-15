@@ -1,4 +1,4 @@
-import { bootlog, resetBootlog } from "@cocalc/conat/project/runner/bootlog";
+import { lroProgress } from "@cocalc/conat/lro/progress";
 
 type Phase =
   | "preparing"
@@ -18,28 +18,30 @@ type SnapshotEvent = {
 
 /**
  * Lightweight progress publisher for project moves.
- * Emits bootlog events with type="move" so the frontend can render a live log.
+ * Emits LRO progress events when an op_id is provided.
  */
 export class MoveProgress {
   private project_id: string;
   private total: number;
   private completed = 0;
   private mode: string;
+  private op_id?: string;
 
   constructor({
     project_id,
     totalSnapshots,
     mode,
+    op_id,
   }: {
     project_id: string;
     totalSnapshots: number;
     mode: string;
+    op_id?: string;
   }) {
     this.project_id = project_id;
     this.total = Math.max(1, totalSnapshots);
     this.mode = mode;
-    // fresh log for each move
-    resetBootlog({ project_id, compute_server_id: 0 }).catch(() => {});
+    this.op_id = op_id;
   }
 
   private progressPercent() {
@@ -51,34 +53,37 @@ export class MoveProgress {
   }
 
   async snapshotProgress(evt: SnapshotEvent) {
+    if (!this.op_id) return;
     const mb =
       evt.bytes != null ? Math.round(evt.bytes / 1_000_000) : undefined;
-    await bootlog({
+    await lroProgress({
       project_id: this.project_id,
-      compute_server_id: 0,
-      type: "move",
+      op_id: this.op_id,
+      phase: "move",
       progress: this.progressPercent(),
-      desc: `[sending] ${evt.index + 1}/${evt.total} ${evt.name} MB=${mb}`,
+      message: `[sending] ${evt.index + 1}/${evt.total} ${evt.name} MB=${mb}`,
     }).catch(() => {});
   }
 
   async phase(phase: Phase, desc?: string) {
-    await bootlog({
+    if (!this.op_id) return;
+    await lroProgress({
       project_id: this.project_id,
-      compute_server_id: 0,
-      type: "move",
+      op_id: this.op_id,
+      phase: "move",
       progress: phase === "done" ? 100 : this.progressPercent(),
-      desc: `[${phase}]${desc ? " " + desc : ""} (mode=${this.mode})`,
+      message: `[${phase}]${desc ? " " + desc : ""} (mode=${this.mode})`,
     }).catch(() => {});
   }
 
   async snapshotStarted(evt: SnapshotEvent) {
-    await bootlog({
+    if (!this.op_id) return;
+    await lroProgress({
       project_id: this.project_id,
-      compute_server_id: 0,
-      type: "move",
+      op_id: this.op_id,
+      phase: "move",
       progress: this.progressPercent(),
-      desc: `[sending] snapshot ${evt.index + 1}/${
+      message: `[sending] snapshot ${evt.index + 1}/${
         evt.total
       }: ${evt.name} (parent=${evt.parent ?? "none"})`,
     }).catch(() => {});
@@ -86,12 +91,13 @@ export class MoveProgress {
 
   async snapshotFinished(evt: SnapshotEvent) {
     this.completed += 1;
-    await bootlog({
+    if (!this.op_id) return;
+    await lroProgress({
       project_id: this.project_id,
-      compute_server_id: 0,
-      type: "move",
+      op_id: this.op_id,
+      phase: "move",
       progress: this.progressPercent(),
-      desc: `[sending] sent snapshot ${evt.index + 1}/${
+      message: `[sending] sent snapshot ${evt.index + 1}/${
         evt.total
       }: ${evt.name} (parent=${evt.parent ?? "none"}, bytes=${
         evt.bytes ?? "?"
@@ -104,12 +110,13 @@ export class MoveProgress {
   }
 
   async fail(err: any) {
-    await bootlog({
+    if (!this.op_id) return;
+    await lroProgress({
       project_id: this.project_id,
-      compute_server_id: 0,
-      type: "move",
+      op_id: this.op_id,
+      phase: "move",
       progress: this.progressPercent(),
-      desc: "[failing] move failed",
+      message: "[failing] move failed",
       error: `${err}`,
     }).catch(() => {});
   }

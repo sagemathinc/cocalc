@@ -15,7 +15,7 @@ import { replace_all } from "@cocalc/util/misc";
 import { PROJECT_IMAGE_PATH } from "@cocalc/util/db-schema/defaults";
 import { getImage } from "./podman";
 import { extractBaseImage, IMAGE_CACHE, registerProgress } from "./rootfs-base";
-import { bootlog } from "@cocalc/conat/project/runner/bootlog";
+import { lroProgress } from "@cocalc/conat/lro/progress";
 import { RefcountLeaseManager } from "@cocalc/util/refcount/lease";
 
 import getLogger from "@cocalc/backend/logger";
@@ -119,10 +119,35 @@ export async function mount({
   config?: Configuration;
 }) {
   const release = await leases.acquire(project_id);
+  const op_id = config?.lro_op_id;
+  const report = (event: {
+    type: string;
+    progress?: number;
+    min?: number;
+    max?: number;
+    desc?: string;
+    error?: unknown;
+    elapsed?: number;
+    speed?: string;
+    eta?: number;
+  }) => {
+    void lroProgress({
+      project_id,
+      op_id,
+      phase: event.type,
+      message: event.desc,
+      progress: event.progress,
+      min: event.min,
+      max: event.max,
+      error: event.error,
+      elapsed: event.elapsed,
+      speed: event.speed,
+      eta: event.eta,
+    });
+  };
   try {
     // release will be kept for caller to drop later via unmount.
-    bootlog({
-      project_id,
+    report({
       type: "mount-rootfs",
       progress: 0,
       desc: "",
@@ -132,8 +157,7 @@ export async function mount({
     logger.debug("mount", { project_id, home, image });
 
     registerProgress(image, ({ progress, desc }) => {
-      bootlog({
-        project_id,
+      report({
         type: "mount-rootfs",
         progress,
         max: 70,
@@ -144,8 +168,7 @@ export async function mount({
     // uses the above registerProgress
     const lowerdir = await extractBaseImage(image);
 
-    bootlog({
-      project_id,
+    report({
       type: "mount-rootfs",
       progress: 70,
       desc: "extracted base image",
@@ -176,15 +199,13 @@ export async function mount({
     // Persist image info for later lookup (e.g., ephemeral exec when the container is stopped).
     await writeFile(imageName, image);
 
-    bootlog({
-      project_id,
+    report({
       type: "mount-rootfs",
       progress: 80,
       desc: "created directories",
     });
     await mountOverlayFs({ lowerdir, upperdir, workdir, merged });
-    bootlog({
-      project_id,
+    report({
       type: "mount-rootfs",
       progress: 100,
       desc: "mounted",
