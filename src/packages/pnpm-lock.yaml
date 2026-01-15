@@ -1079,6 +1079,9 @@ importers:
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
+      '@openai/agents':
+        specifier: ^0.3.7
+        version: 0.3.7(@cfworker/json-schema@4.1.1)(bufferutil@4.0.9)(hono@4.11.4)(utf-8-validate@6.0.5)(ws@8.18.3(bufferutil@4.0.9)(utf-8-validate@6.0.5))(zod@3.25.76)
       '@types/compression':
         specifier: ^1.8.1
         version: 1.8.1
@@ -1106,6 +1109,9 @@ importers:
       selfsigned:
         specifier: ^3.0.1
         version: 3.0.1
+      zod:
+        specifier: 3.25.76
+        version: 3.25.76
     devDependencies:
       '@types/jest':
         specifier: ^30.0.0
@@ -17475,7 +17481,7 @@ snapshots:
 
   accepts@2.0.0:
     dependencies:
-      mime-types: 3.0.1
+      mime-types: 3.0.2
       negotiator: 1.0.0
     optional: true
 
@@ -17989,7 +17995,7 @@ snapshots:
       http-errors: 2.0.1
       iconv-lite: 0.4.24
       on-finished: 2.4.1
-      qs: 6.14.0
+      qs: 6.14.1
       raw-body: 2.5.3
       type-is: 1.6.18
       unpipe: 1.0.0
@@ -19887,12 +19893,12 @@ snapshots:
       fresh: 2.0.0
       http-errors: 2.0.1
       merge-descriptors: 2.0.0
-      mime-types: 3.0.1
+      mime-types: 3.0.2
       on-finished: 2.4.1
       once: 1.4.0
       parseurl: 1.3.3
       proxy-addr: 2.0.7
-      qs: 6.14.0
+      qs: 6.14.1
       range-parser: 1.2.1
       router: 2.2.0
       send: 1.2.1
@@ -23937,7 +23943,6 @@ snapshots:
   qs@6.14.1:
     dependencies:
       side-channel: 1.1.0
-    optional: true
 
   quansync@0.2.11: {}
 
@@ -25598,7 +25603,7 @@ snapshots:
     dependencies:
       content-type: 1.0.5
       media-typer: 1.1.0
-      mime-types: 3.0.1
+      mime-types: 3.0.2
     optional: true
 
   type@2.7.3: {}
