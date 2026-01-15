@@ -53,10 +53,6 @@ export const AccountProfileOutputSchema = z.union([
           .boolean()
           .describe("_Included when the full profile is returned.")
           .optional(),
-        is_anonymous: z
-          .boolean()
-          .describe("_Included when the full profile is returned.")
-          .optional(),
         email_address: z.string().describe("The account e-mail address."),
       })
       .describe("An object containing account profile information."),

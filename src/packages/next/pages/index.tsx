@@ -93,7 +93,7 @@ export default function Home(props: Props) {
           </Tooltip>
         </Title>
         <Paragraph style={{ fontSize: "11pt", margin: "15px 0" }}>
-          {isCommercial && account && !account.is_anonymous && (
+          {isCommercial && account && (
             <>
               <a href={join(basePath, "store")} style={TOP_LINK_STYLE}>
                 Store

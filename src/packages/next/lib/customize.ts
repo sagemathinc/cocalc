@@ -46,7 +46,6 @@ interface Customize extends ServerCustomize {
     account_id: string;
     email_address?: string;
     first_name?: string;
-    is_anonymous?: boolean;
     last_name?: string;
     name?: string;
   };

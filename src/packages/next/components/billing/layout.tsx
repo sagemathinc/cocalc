@@ -7,7 +7,6 @@ import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Alert, Layout } from "antd";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
 import { MAX_WIDTH } from "lib/config";
 import useProfile from "lib/hooks/profile";
@@ -48,7 +47,7 @@ export default function ConfigLayout({ page }: Props) {
   if (!profile) {
     return <Loading large center />;
   }
-  const { account_id, is_anonymous } = profile;
+  const { account_id } = profile;
 
   if (!account_id) {
     return (
@@ -66,10 +65,6 @@ export default function ConfigLayout({ page }: Props) {
         }
       />
     );
-  }
-
-  if (is_anonymous) {
-    return <Anonymous />;
   }
 
   // page could be an empty array, then main is undefined → overview page
