@@ -12,9 +12,6 @@ interface EnabledPageBranch {
 }
 
 interface EnabledPageTree extends EnabledPageBranch {
-  auth: {
-    try: boolean | undefined;
-  };
   about: {
     index: boolean | undefined;
     events: boolean | undefined;

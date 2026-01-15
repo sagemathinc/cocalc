@@ -76,9 +76,6 @@ export default async function withCustomize(
     softwareEnvs?.default ?? DEFAULT_COMPUTE_IMAGE;
 
   customize.enabledPages = {
-    auth: {
-      try: !customize.account && customize.anonymousSignup,
-    },
     about: {
       index: customize.landingPages,
       events: customize.isCommercial,

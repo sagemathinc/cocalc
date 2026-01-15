@@ -234,15 +234,6 @@ export default function Header(props: Props) {
             </A>
           </>
         )}
-        {enabledPages?.auth.try && (
-          <A
-            style={page === "try" ? SelectedStyle : LinkStyle}
-            href={"/auth/try"}
-            title={`Try ${siteName} immediately without creating an account.`}
-          >
-            Try
-          </A>
-        )}{" "}
       </Layout.Header>
       <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
       {openaiEnabled &&

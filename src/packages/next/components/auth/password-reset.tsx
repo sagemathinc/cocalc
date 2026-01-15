@@ -49,8 +49,6 @@ export default function PasswordReset() {
         <p>
           Don't have an account? <A href="/auth/sign-up">Sign Up</A>
         </p>
-        You can also {" "}
-        <A href="/auth/try">try {siteName} without creating an account</A>
       </>
     );
   }

@@ -27,8 +27,8 @@ const STYLE: CSSProperties = {
   marginBottom: "0",
 } as const;
 
-export default function SignIn({ startup, hideFree, style, emphasize }: Props) {
-  const { anonymousSignup, siteName, account, emailSignup } = useCustomize();
+export default function SignIn({ hideFree, style, emphasize }: Props) {
+  const { siteName, account, emailSignup } = useCustomize();
   style = { ...STYLE, ...style };
   const router = useRouter();
 
@@ -92,17 +92,6 @@ export default function SignIn({ startup, hideFree, style, emphasize }: Props) {
 
   return (
     <Paragraph style={style}>
-      {anonymousSignup && (
-        <Button
-          size="large"
-          type="primary"
-          style={{ margin: "10px" }}
-          title={"Try now without creating an account!"}
-          onClick={() => router.push("/auth/try")}
-        >
-          Try&nbsp;{startup ?? siteName}&nbsp;Now
-        </Button>
-      )}
       {renderAccountRegistration()}
       {!hideFree ? (
         <div style={{ padding: "15px 0 0 0" }}>

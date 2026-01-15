@@ -77,7 +77,6 @@ function SignUp0({
   requireTags,
 }: SignUpProps) {
   const {
-    anonymousSignup,
     siteName,
     emailSignup,
     accountCreationInstructions,
@@ -247,16 +246,6 @@ function SignUp0({
             <b>
               There is no method enabled for creating an account on this server.
             </b>
-            {anonymousSignup && (
-              <>
-                <br />
-                <br />
-                However, you can still{" "}
-                <A href="/auth/try">
-                  try {siteName} without creating an account.
-                </A>
-              </>
-            )}
           </div>
         }
       />
@@ -274,15 +263,6 @@ function SignUp0({
             ) : (
               <A href="/auth/sign-in">Sign In</A>
             )}{" "}
-            {anonymousSignup && (
-              <>
-                or{" "}
-                <A href="/auth/try">
-                  {" "}
-                  try {siteName} without creating an account.{" "}
-                </A>
-              </>
-            )}
           </div>
         </>
       )

@@ -2,7 +2,6 @@
 
 Goal: Complete remove all code and functionality for the following:
 
-- [ ] project tokens \-\- join a project automatically using a token
 - [ ] public jupyter api
 - [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [ ] payg LLM purchases
@@ -21,6 +20,41 @@ Goal: Complete remove all code and functionality for the following:
 - [x] legacy upgrades \(from 2020 and earlier\)
 - [x] dedicated\_vms and dedicated\_disks
 - [x] rename: "Project" \-\-&gt; "Workspace" in frontend UI
+
+## Remove Anonymous Accounts (no email/passport auth)
+
+Scope: remove anonymous accounts and signup. Public share viewing stays. SSO/LTI accounts are fine (not anonymous).
+
+1. **Remove /auth/try route and entry points.**  
+   Delete the page and remove all links to it from landing/auth flows and routing docs.  
+   Targets: [src/packages/next/pages/auth/try.tsx](./src/packages/next/pages/auth/try.tsx), [src/packages/next/components/landing/header.tsx](./src/packages/next/components/landing/header.tsx), [src/packages/next/components/landing/sign-in.tsx](./src/packages/next/components/landing/sign-in.tsx), [src/packages/next/components/auth/sign-in.tsx](./src/packages/next/components/auth/sign-in.tsx), [src/packages/next/components/auth/sign-up.tsx](./src/packages/next/components/auth/sign-up.tsx), [src/packages/next/components/auth/password-reset.tsx](./src/packages/next/components/auth/password-reset.tsx), [src/packages/next/components/auth/redeem-password-reset.tsx](./src/packages/next/components/auth/redeem-password-reset.tsx), [src/packages/next/pages/auth/ROUTING.md](./src/packages/next/pages/auth/ROUTING.md), [src/packages/next/lib/with-customize.ts](./src/packages/next/lib/with-customize.ts).
+
+2. **Remove anonymous signup settings and customize wiring.**  
+   Drop `anonymous_signup` and `anonymous_signup_licensed_shares` from site defaults and customize payloads.  
+   Targets: [src/packages/util/db-schema/site-defaults.ts](./src/packages/util/db-schema/site-defaults.ts), [src/packages/util/db-schema/server-settings.ts](./src/packages/util/db-schema/server-settings.ts), [src/packages/database/settings/customize.ts](./src/packages/database/settings/customize.ts), [src/packages/frontend/customize.tsx](./src/packages/frontend/customize.tsx), [src/packages/lite/hub/settings.ts](./src/packages/lite/hub/settings.ts), [src/packages/project-host/web.ts](./src/packages/project-host/web.ts).
+
+3. **Require authenticated account creation.**  
+   Remove anonymous branch in signup API; add server-side guard to reject account creation without email or passport.  
+   Targets: [src/packages/next/pages/api/v2/auth/sign-up.ts](./src/packages/next/pages/api/v2/auth/sign-up.ts), [src/packages/server/accounts/create-account.ts](./src/packages/server/accounts/create-account.ts).
+
+4. **Remove anonymous share/edit flows.**  
+   Delete “open anonymously” UI and anonymous edit URL handling.  
+   Targets: [src/packages/next/components/share/edit/open-anonymously.tsx](./src/packages/next/components/share/edit/open-anonymously.tsx), [src/packages/next/components/share/edit/edit-options.tsx](./src/packages/next/components/share/edit/edit-options.tsx), [src/packages/next/lib/share/edit-url.ts](./src/packages/next/lib/share/edit-url.ts), [src/packages/next/components/app/path.tsx](./src/packages/next/components/app/path.tsx).
+
+5. **Remove `is_anonymous` from profile payloads.**  
+   Drop from private profile, share account info, and API schemas/OpenAPI.  
+   Targets: [src/packages/server/accounts/profile/private.ts](./src/packages/server/accounts/profile/private.ts), [src/packages/server/accounts/profile/types.ts](./src/packages/server/accounts/profile/types.ts), [src/packages/next/lib/share/get-account-info.ts](./src/packages/next/lib/share/get-account-info.ts), [src/packages/next/lib/api/schema/accounts/profile.ts](./src/packages/next/lib/api/schema/accounts/profile.ts), [src/packages/next/public/openapi.json](./src/packages/next/public/openapi.json).
+
+6. **Remove anonymous UI branches (frontend + next).**  
+   Delete `is_anonymous` logic and related warnings, gating, and special pages.  
+   Targets: [src/packages/frontend/account](./src/packages/frontend/account), [src/packages/frontend/project/anonymous-name.tsx](./src/packages/frontend/project/anonymous-name.tsx), [src/packages/frontend/project/page/activity-bar-tabs.tsx](./src/packages/frontend/project/page/activity-bar-tabs.tsx), [src/packages/frontend/projects/create-project.tsx](./src/packages/frontend/projects/create-project.tsx), [src/packages/frontend/app/page.tsx](./src/packages/frontend/app/page.tsx), [src/packages/next/components/account/config/layout.tsx](./src/packages/next/components/account/config/layout.tsx), [src/packages/next/components/account/config/anonymous](./src/packages/next/components/account/config/anonymous), [src/packages/next/components/account/navtab.tsx](./src/packages/next/components/account/navtab.tsx), [src/packages/next/components/store/index.tsx](./src/packages/next/components/store/index.tsx), [src/packages/next/components/billing/layout.tsx](./src/packages/next/components/billing/layout.tsx), [src/packages/next/components/misc/anonymous.tsx](./src/packages/next/components/misc/anonymous.tsx).
+
+7. **I18n cleanup.**  
+   Remove anonymous-only copy and translation variants in extracted/compiled strings.  
+   Targets: [src/packages/frontend/i18n](./src/packages/frontend/i18n), [src/packages/frontend/account/settings/account-settings.tsx](./src/packages/frontend/account/settings/account-settings.tsx), [src/packages/frontend/account/sign-out.tsx](./src/packages/frontend/account/sign-out.tsx).
+
+8. **Final sweep + validation.**  
+   Ripgrep for `anonymous_signup` and `is_anonymous` in src/docs; run pnpm tsc --build.
 
 ## Remove Project Licenses (replace with memberships)
 
@@ -95,4 +129,3 @@ Goal: Complete remove all code and functionality for the following:
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
-
