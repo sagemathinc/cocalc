@@ -12,7 +12,7 @@ import { type Compute, compute } from "./compute";
 import { type FileSync, fileSync } from "./file-sync";
 import { type Hosts, hosts } from "./hosts";
 import { type Software, software } from "./software";
-import { type Ai, ai } from "./ai";
+import { type ControlAgent, controlAgent } from "./control-agent";
 import { type LroApi, lro } from "./lro";
 
 export interface HubApi {
@@ -28,7 +28,7 @@ export interface HubApi {
   fileSync: FileSync;
   hosts: Hosts;
   software: Software;
-  ai: Ai;
+  controlAgent: ControlAgent;
   lro: LroApi;
 }
 
@@ -45,7 +45,7 @@ const HubApiStructure = {
   fileSync,
   hosts,
   software,
-  ai,
+  controlAgent,
   lro,
 } as const;
 

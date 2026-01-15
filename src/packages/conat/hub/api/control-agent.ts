@@ -1,6 +1,6 @@
 import { authFirstRequireAccount } from "./util";
 
-export const ai = {
+export const controlAgent = {
   controlAgentDev: authFirstRequireAccount,
 };
 
@@ -24,7 +24,7 @@ export type ControlAgentDevResponse = {
   lastResponseId?: string;
 };
 
-export interface Ai {
+export interface ControlAgent {
   controlAgentDev: (
     opts: ControlAgentDevRequest & { account_id?: string },
   ) => Promise<ControlAgentDevResponse>;

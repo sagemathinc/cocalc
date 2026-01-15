@@ -52,7 +52,7 @@ import * as compute from "./compute";
 import * as fileSync from "./file-sync";
 import * as hosts from "./hosts";
 import * as software from "./software";
-import * as ai from "./ai";
+import * as controlAgent from "../../ai/control-agent";
 import * as lro from "./lro";
 
 import getLogger from "@cocalc/backend/logger";
@@ -77,7 +77,7 @@ export const hubApi: HubApi = {
   fileSync,
   hosts,
   software,
-  ai,
+  controlAgent,
   lro,
 };
 

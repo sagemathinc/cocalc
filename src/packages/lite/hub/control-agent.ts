@@ -1,5 +1,5 @@
 /*
-Dev-only control-agent API for quick end-to-end testing.
+Dev-only control-agent API for CoCalc+Plus (lite hub).
 */
 
 import {
@@ -13,17 +13,17 @@ import {
 import type {
   ControlAgentDevResponse,
   ControlAgentTranscriptItem,
-} from "@cocalc/conat/hub/api/ai";
+} from "@cocalc/conat/hub/api/control-agent";
 import type {
   ControlAgentToolDefinition,
   ControlAgentToolName,
 } from "@cocalc/ai/control-agent/tools";
-import { createFullControlAgentRunner } from "@cocalc/server/control-agent";
 import type { ControlAgentContext } from "@cocalc/ai/control-agent";
 import getLogger from "@cocalc/backend/logger";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
+import { listRows } from "./sqlite/database";
+import { createLiteControlAgentRunner } from "./control-agent/runner";
 
-const logger = getLogger("control-agent:dev");
+const logger = getLogger("lite:control-agent:dev");
 
 type ToolParametersSchema = {
   type: "object";
@@ -56,13 +56,18 @@ function ensureDevEnabled(): void {
   }
 }
 
-async function ensureApiKey(): Promise<void> {
-  const { openai_api_key } = await getServerSettings();
-  if (!openai_api_key) {
+function ensureApiKey(): void {
+  const rows = listRows("server_settings") as {
+    name?: string;
+    value?: string;
+  }[];
+  const openaiKey =
+    rows.find((row) => row.name === "openai_api_key")?.value ?? "";
+  if (!openaiKey) {
     throw Error("openai_api_key is not configured in server settings");
   }
-  setDefaultOpenAIKey(openai_api_key);
-  setTracingExportApiKey(openai_api_key);
+  setDefaultOpenAIKey(openaiKey);
+  setTracingExportApiKey(openaiKey);
 }
 
 function normalizeDryRun(dryRun?: boolean): boolean {
@@ -237,7 +242,7 @@ export async function controlAgentDev({
   dryRun?: boolean;
 }): Promise<ControlAgentDevResponse> {
   ensureDevEnabled();
-  await ensureApiKey();
+  ensureApiKey();
   if (!account_id) {
     throw Error("account_id is required");
   }
@@ -250,10 +255,10 @@ export async function controlAgentDev({
   }
 
   const context: ControlAgentContext = {
-    environment: "full",
+    environment: "lite",
     actor: { accountId: account_id },
   };
-  const runner = createFullControlAgentRunner({ context });
+  const runner = createLiteControlAgentRunner({ context });
   const toolDefs = await runner.listTools();
   const dryRunEnabled = normalizeDryRun(dryRun);
   const runId = `dev-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
@@ -273,7 +278,7 @@ export async function controlAgentDev({
   );
 
   const instructions = [
-    "You are the CoCalc control-plane dev agent.",
+    "You are the CoCalc control-plane dev agent for CoCalc+Plus.",
     "Use tools when needed to satisfy requests.",
     "Always include requestId, dryRun, and confirmToken when calling tools.",
     "Use an empty string for confirmToken when no confirmation token is available.",
@@ -283,7 +288,7 @@ export async function controlAgentDev({
   ].join("\n");
 
   const agent = new Agent({
-    name: "CoCalc Control Agent (Dev)",
+    name: "CoCalc Control Agent (Dev, Lite)",
     instructions,
     tools,
     ...(model ? { model } : {}),
