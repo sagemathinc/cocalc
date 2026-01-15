@@ -10,7 +10,6 @@ import { useEffect, useState, type JSX } from "react";
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { DOC_AI } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
-import Path from "components/app/path";
 import DemoCell from "components/demo-cell";
 import { AvailableTools, Tool } from "components/landing/available-tools";
 import Info from "components/landing/info";
@@ -34,7 +33,6 @@ export function CoCalcComFeatures() {
   const {
     siteName = "CoCalc",
     openaiEnabled,
-    sandboxProjectId,
     jupyterApiEnabled,
     shareServer = false,
     onCoCalcCom,
@@ -161,24 +159,6 @@ export function CoCalcComFeatures() {
     );
   }
 
-  function renderSandbox() {
-    if (!sandboxProjectId) return;
-    return (
-      <Info
-        level={LANDING_HEADER_LEVEL}
-        title={<>The Public {siteName} Sandbox</>}
-        icon="share-square"
-        anchor="a-sandbox"
-        style={{ backgroundColor: COLORS.GRAY_LLL }}
-      >
-        <Path
-          style={{ marginBottom: "15px" }}
-          project_id={sandboxProjectId}
-          description="Public Sandbox"
-        />
-      </Info>
-    );
-  }
 
   function renderShareServer() {
     if (!shareServer) return;
@@ -581,7 +561,6 @@ export function CoCalcComFeatures() {
       <ComputeServers />
       {renderChatGPT()}
       {renderDemoCell()}
-      {renderSandbox()}
       {renderCollaboration()}
       <AvailableTools style={{ backgroundColor: COLORS.YELL_LLL }} />
       {renderTeaching()}

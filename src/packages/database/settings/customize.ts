@@ -99,10 +99,6 @@ export default async function getCustomize(
       // obviously only the public key here too!
       reCaptchaKey: settings.re_captcha_v3_publishable_key,
 
-      // a sandbox project
-      sandboxProjectId: settings.sandbox_project_id,
-      sandboxProjectsEnabled: settings.sandbox_projects_enabled,
-
       // true if openai integration is enabled -- this impacts the UI only, and can be
       // turned on and off independently of whether there is an api key set.
       openaiEnabled: settings.openai_enabled,
@@ -111,8 +107,6 @@ export default async function getCustomize(
       mistralEnabled: settings.mistral_enabled,
       anthropicEnabled: settings.anthropic_enabled,
       ollamaEnabled: settings.ollama_enabled,
-
-      neuralSearchEnabled: settings.neural_search_enabled,
 
       // if extra Jupyter API functionality for sandboxed ephemeral code execution is available.
       jupyterApiEnabled: settings.jupyter_api_enabled,

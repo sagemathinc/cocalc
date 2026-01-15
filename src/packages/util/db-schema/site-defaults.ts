@@ -83,7 +83,6 @@ export type SiteSettingsKeys =
   | "default_llm"
   | "user_defined_llm"
   | "llm_default_quota"
-  | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
   | "organization_email"
@@ -118,8 +117,6 @@ export type SiteSettingsKeys =
   | "anonymous_signup_licensed_shares"
   | "share_server"
   | "landing_pages"
-  | "sandbox_projects_enabled"
-  | "sandbox_project_id"
   | "compute_servers_enabled"
   | "compute_servers_google-cloud_enabled"
   | "compute_servers_onprem_enabled"
@@ -753,18 +750,6 @@ export const site_settings_conf: SiteSettings = {
     show: only_cocalc_com,
     cocalc_only: true,
   },
-  sandbox_projects_enabled: {
-    name: "Enable Public Sandbox Projects",
-    desc: "If enabled, this makes it possible for users to set a project to be a public sandbox.  There are significant negative security implications to sandbox projects, so only use this with a trusted group of users, e.g., on a private network.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-  },
-  sandbox_project_id: {
-    name: "Systemwide Public Sandbox Project ID",
-    desc: "The `project_id` (a UUIDv4) of a sandbox project on your server for people who visit CoCalc to play around with.  This is potentially dangerous, so use with care!  This project MUST have 'Sandbox' enabled in project settings, so that anybody can access it.",
-    default: "",
-  },
   openai_enabled: {
     name: "OpenAI ChatGPT UI",
     desc: "Controls visibility of UI elements related to OpenAI ChatGPT integration.  You must **also set your OpenAI API key** below for this functionality to work.",
@@ -867,14 +852,6 @@ export const site_settings_conf: SiteSettings = {
     valid: only_nonneg_int,
     show: only_commercial,
     tags: ["AI LLM"],
-  },
-  neural_search_enabled: {
-    name: "DEPRECATED - OpenAI Neural Search UI",
-    desc: "Controls visibility of UI elements related to Neural Search integration.  You must **also set your OpenAI API key** below and fully configure the **Qdrant vector database** for neural search to work.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    tags: ["OpenAI"],
   },
   jupyter_api_enabled: {
     name: "Jupyter API",

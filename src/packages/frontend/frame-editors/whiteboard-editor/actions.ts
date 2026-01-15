@@ -77,11 +77,6 @@ export interface State extends CodeEditorState {
 }
 
 export class Actions<T extends State = State> extends BaseActions<T | State> {
-  protected searchEmbeddings = {
-    primaryKey: "id",
-    textColumn: "str",
-    metaColumns: ["type"],
-  };
   private keyHandler?: (event) => void;
   readonly mainFrameType: MainFrameType = "whiteboard";
   // fixedElements are on every page automatically.

@@ -62,7 +62,6 @@ interface Customize extends ServerCustomize {
   noindex?: boolean; // tell search engines to not index that page
   onCoCalcCom?: boolean; // true, if kucalc server settings flag is set to yes (i.e. for cocalc.com only!)
   policies?: string; // HTML/MD for a policy page
-  sandboxProjectId?: string; // a sandbox project to put on landing pages...
   serverTime?: number; // the time on the server, in milliseconds since the epoch
   openaiEnabled?: boolean; // backend is configured to provide openai integration.
   googleVertexaiEnabled?: boolean; // if enabled, e.g. Google Gemini is available

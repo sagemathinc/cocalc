@@ -31,11 +31,6 @@ const FRAME_TYPE = "tasks";
 export type Store = BaseStore<TaskEditorState>;
 
 export class Actions extends CodeEditorActions<TaskEditorState> {
-  protected searchEmbeddings = {
-    primaryKey: "task_id",
-    textColumn: "desc",
-    metaColumns: ["due_date", "done"],
-  };
   taskActions: { [frameId: string]: TaskActions } = {};
   auxPath: string;
 

@@ -88,7 +88,6 @@ Table({
           created: null,
           ephemeral: null,
           env: null,
-          sandbox: null,
           avatar_image_tiny: null,
           // do NOT add avatar_image_full here or it will get included in changefeeds, which we don't want.
           // instead it gets its own virtual table.
@@ -116,7 +115,6 @@ Table({
           compute_image: true,
           rootfs_image: true,
           env: true,
-          sandbox: true,
           avatar_image_tiny: true,
           avatar_image_full: true,
           snapshots: true,
@@ -336,11 +334,6 @@ Table({
       type: "map",
       desc: "Additional environment variables (TS: {[key:string]:string})",
       render: { type: "json", editable: true },
-    },
-    sandbox: {
-      type: "boolean",
-      desc: "If set to true, then any user who attempts to access this project is automatically added as a collaborator to it.   Only the project owner can change this setting.",
-      render: { type: "boolean", editable: true },
     },
     avatar_image_tiny: {
       title: "Image",

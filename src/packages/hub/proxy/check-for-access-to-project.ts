@@ -7,8 +7,6 @@ const {
   user_has_read_access_to_project,
 } = require("../access");
 import generateHash from "@cocalc/server/auth/hash";
-import addUserToProject from "@cocalc/server/projects/add-user-to-project";
-import isSandboxProject from "@cocalc/server/projects/is-sandbox";
 import { getAccountWithApiKey } from "@cocalc/server/api/manage";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 import isBanned from "@cocalc/server/accounts/is-banned";
@@ -153,16 +151,6 @@ async function checkForRememberMeAccess({
       project_id,
       account_id,
     });
-    if (!access) {
-      // if the project is a sandbox project, we add the user as a collaborator
-      // and grant access.
-      if (await isSandboxProject(project_id)) {
-        dbg("granting sandbox access");
-        await addUserToProject({ project_id, account_id });
-        access = true;
-      }
-    }
-
     if (access) {
       // Record that user is going to actively access
       // this project.  This is important since it resets

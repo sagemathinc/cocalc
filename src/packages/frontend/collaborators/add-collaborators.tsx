@@ -39,7 +39,6 @@ import { Avatar } from "../account/avatar/avatar";
 import { ProjectInviteTokens } from "./project-invite-tokens";
 import { alert_message } from "../alerts";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import Sandbox from "./sandbox";
 import track from "@cocalc/frontend/user-tracking";
 
 interface RegisteredUser {
@@ -690,7 +689,6 @@ export const AddCollaborators: React.FC<Props> = ({
       {render_send_email()}
       {render_invite_result()}
       <ProjectInviteTokens project_id={project?.get("project_id")} />
-      <Sandbox project={project} />
     </div>
   );
 };

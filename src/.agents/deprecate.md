@@ -3,13 +3,15 @@
 Goal: Complete remove all code and functionality for the following:
 
 - [ ] project tokens \-\- join a project automatically using a token
+- [ ] public jupyter api
 - [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [ ] payg LLM purchases
 - [ ] all code involving compute\_servers and cloud filesystems
 - [ ] anonymous accounts / sign up
 - [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
-- [ ] vector database support code \-\- qdrant
 - [ ] all dynamic user\-specific content from the nextjs app: the store, the new items \(?\).
+- [x] public sandbox projects
+- [x] vector database support code \-\- qdrant, "DEPRECATED - OpenAI Neural Search UI"
 - [x] jitsi \-\- video chat
 - [x] GPU licenses
 - [x] copy\_paths 

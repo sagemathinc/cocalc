@@ -22,7 +22,6 @@ import { getStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { ICON_USERS, ROOT_STYLE } from "../servers/consts";
-import { SandboxProjectSettingsWarning } from "../settings/settings";
 import { useProject } from "./common";
 
 export function ProjectCollaboratorsPage(): React.JSX.Element {
@@ -70,10 +69,6 @@ export function ProjectCollaboratorsPage(): React.JSX.Element {
   function renderAdmin() {
     if (group !== "admin") return;
     return <AdminWarning />;
-  }
-
-  if (group != "admin" && group != "owner" && project?.get("sandbox")) {
-    return <SandboxProjectSettingsWarning />;
   }
 
   return (
