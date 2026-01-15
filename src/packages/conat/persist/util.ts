@@ -51,9 +51,6 @@ export const MAX_PER_USER = 500;
 export const MAX_GLOBAL = 10000;
 export const RESOURCE = "persistent storage";
 
-//import { getLogger } from "@cocalc/conat/client";
-//const logger = getLogger("persist:util");
-
 export const SERVICE = "persist";
 
 export type User = {
@@ -71,7 +68,10 @@ function resolveTemplateBase(base: string, token: string, id: string): string {
   return join(base, id);
 }
 
-function resolveLocalPath(storagePath: string): string {
+function resolveLocalPath(
+  storagePath: string,
+  { ephemeral }: { ephemeral?: boolean },
+): string {
   const projectMatch = storagePath.match(/^projects\/([^/]+)(?:\/(.*))?$/);
   if (projectMatch) {
     const [, projectId, rest = ""] = projectMatch;
@@ -85,10 +85,12 @@ function resolveLocalPath(storagePath: string): string {
             return `${prefix}${projectId}${suffixRoot}`;
           })()
         : base;
-      try {
-        statSync(projectRoot);
-      } catch {
-        throw new Error(`project root does not exist: ${projectRoot}`);
+      if (!ephemeral) {
+        try {
+          statSync(projectRoot);
+        } catch {
+          throw new Error(`project root does not exist: ${projectRoot}`);
+        }
       }
       return rest ? join(base, rest) : base;
     }
@@ -161,18 +163,23 @@ export async function getStream({
     service,
   });
   // Project/host/account paths can be redirected to per-subject roots.
-  const path = resolveLocalPath(storage.path);
-  const archive = syncFiles.archive
-    ? join(syncFiles.archive, storage.path)
-    : undefined;
-  const backup = syncFiles.backup
-    ? join(syncFiles.backup, storage.path)
-    : undefined;
-  const archiveInterval = syncFiles.archiveInterval;
-  await Promise.all(
-    [path, archive, backup]
-      .filter((x) => x)
-      .map(ensureContainingDirectoryExists),
-  );
+  const ephemeral = !!storage.ephemeral;
+  const path = resolveLocalPath(storage.path, { ephemeral });
+  const archive =
+    !ephemeral && syncFiles.archive
+      ? join(syncFiles.archive, storage.path)
+      : undefined;
+  const backup =
+    !ephemeral && syncFiles.backup
+      ? join(syncFiles.backup, storage.path)
+      : undefined;
+  const archiveInterval = ephemeral ? undefined : syncFiles.archiveInterval;
+  if (!ephemeral) {
+    await Promise.all(
+      [path, archive, backup]
+        .filter((x) => x)
+        .map(ensureContainingDirectoryExists),
+    );
+  }
   return pstream({ ...storage, path, archive, backup, archiveInterval });
 }

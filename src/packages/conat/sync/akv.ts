@@ -51,7 +51,11 @@ export class AKV<T = any> {
       project_id: options.project_id,
       host_id: options.host_id,
     };
-    this.storage = { path: storagePath(options) };
+    this.storage = {
+      path: storagePath(options),
+      ephemeral: options.ephemeral,
+      sync: options.sync,
+    };
     const client = options.client ?? connect();
     this.stream = stream({
       client,

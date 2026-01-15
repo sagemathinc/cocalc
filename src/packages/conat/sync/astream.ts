@@ -55,7 +55,11 @@ export class AStream<T = any> {
       project_id: options.project_id,
       host_id: options.host_id,
     };
-    this.storage = { path: storagePath(options) };
+    this.storage = {
+      path: storagePath(options),
+      ephemeral: options.ephemeral,
+      sync: options.sync,
+    };
     this.client = options.client ?? connect();
     this.stream = stream({
       client: this.client,
