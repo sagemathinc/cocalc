@@ -122,7 +122,6 @@ export interface Customize {
   mistralEnabled?: boolean;
   anthropicEnabled?: boolean;
   ollamaEnabled?: boolean;
-  neuralSearchEnabled?: boolean;
   jupyterApiEnabled?: boolean;
   computeServersEnabled?: boolean;
   cloudFilesystemsEnabled?: boolean;

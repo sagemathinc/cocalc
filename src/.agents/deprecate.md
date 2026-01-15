@@ -8,8 +8,8 @@ Goal: Complete remove all code and functionality for the following:
 - [ ] all code involving compute\_servers and cloud filesystems
 - [ ] anonymous accounts / sign up
 - [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
-- [ ] vector database support code \-\- qdrant
 - [ ] all dynamic user\-specific content from the nextjs app: the store, the new items \(?\).
+- [x] vector database support code \-\- qdrant, "DEPRECATED - OpenAI Neural Search UI"
 - [x] jitsi \-\- video chat
 - [x] GPU licenses
 - [x] copy\_paths 

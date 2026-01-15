@@ -199,13 +199,6 @@ export class BaseEditorActions<
   protected string_cols: string[] = [];
   protected syncDocOptions: Partial<SyncOpts> = {};
   protected disable_cursors: boolean = false;
-  // If this is set, then we get automatic computation of
-  // search embeddings
-  protected searchEmbeddings?: {
-    primaryKey: string;
-    textColumn: string;
-    metaColumns?: string[];
-  };
   ////////
 
   public project_id: string;
@@ -420,22 +413,6 @@ export class BaseEditorActions<
           cursors: !this.disable_cursors,
           ...this.syncDocOptions,
         });
-        if (this.searchEmbeddings != null) {
-          if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
-            throw Error(
-              `search embedding primaryKey must be in ${JSON.stringify(
-                this.primary_keys,
-              )}`,
-            );
-          }
-          if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
-            throw Error(
-              `search embedding textColumn must be in ${JSON.stringify(
-                this.string_cols,
-              )}`,
-            );
-          }
-        }
       } else if (this.doctype == "immer") {
         if (
           this.primary_keys == null ||
@@ -453,22 +430,6 @@ export class BaseEditorActions<
           cursors: !this.disable_cursors,
           ...this.syncDocOptions,
         });
-        if (this.searchEmbeddings != null) {
-          if (!this.primary_keys.includes(this.searchEmbeddings.primaryKey)) {
-            throw Error(
-              `search embedding primaryKey must be in ${JSON.stringify(
-                this.primary_keys,
-              )}`,
-            );
-          }
-          if (!this.string_cols.includes(this.searchEmbeddings.textColumn)) {
-            throw Error(
-              `search embedding textColumn must be in ${JSON.stringify(
-                this.string_cols,
-              )}`,
-            );
-          }
-        }
       } else {
         throw Error(`invalid doctype="${this.doctype}"`);
       }

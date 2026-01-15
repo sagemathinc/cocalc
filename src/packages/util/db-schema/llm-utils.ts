@@ -119,7 +119,6 @@ export const MODELS_OPENAI = [
   "gpt-4.1-mini",
   "gpt-4-32k",
   "gpt-3.5-turbo-16k",
-  "text-embedding-ada-002", // TODO: this is for embeddings, should be moved to a different place
   "o1-mini-8k",
   "o1-mini",
   "o1-8k",
@@ -522,8 +521,7 @@ export type LanguageServiceCore =
   | `${typeof OPENAI_PREFIX}${OpenAIModel}`
   | `${typeof GOOGLE_PREFIX}${
       | "text-bison-001"
-      | "chat-bison-001"
-      | "embedding-gecko-001"}`
+      | "chat-bison-001"}`
   | `${typeof GOOGLE_PREFIX}${GoogleModel}`
   | AnthropicService
   | MistralService;
@@ -541,9 +539,6 @@ export const LANGUAGE_MODEL_PREFIXES = [
 
 // we encode the in the frontend and elsewhere with the service name as a prefix
 export function model2service(model: LanguageModel): LanguageService {
-  if (model === "text-embedding-ada-002") {
-    return `${OPENAI_PREFIX}${model}`;
-  }
   if (
     isOllamaLLM(model) ||
     isCustomOpenAI(model) ||
@@ -561,7 +556,6 @@ export function model2service(model: LanguageModel): LanguageService {
     if (
       model === "text-bison-001" ||
       model === "chat-bison-001" ||
-      model === "embedding-gecko-001" ||
       isGoogleModel(model)
     ) {
       return `${GOOGLE_PREFIX}${model}`;
@@ -751,7 +745,6 @@ export const LLM_USERNAMES: LLM2String = {
   "o1-8k": "OpenAI o1",
   "o1-mini": "OpenAI o1-mini",
   o1: "OpenAI o1",
-  "text-embedding-ada-002": "Text Embedding Ada 002", // TODO: this is for embeddings, should be moved to a different place
   "text-bison-001": "PaLM 2",
   "chat-bison-001": "PaLM 2",
   "gemini-pro": "Gemini 1.0 Pro",
@@ -819,7 +812,6 @@ export const LLM_DESCR: LLM2String = {
   "gpt-4.1-mini": "Most cost-efficient small model (OpenAI, 8k token context)",
   "gpt-4o-mini": "Most cost-efficient small model (OpenAI, 128k token context)",
   "codex-agent": "OpenAI Codex local coding agent (uses Codex CLI)",
-  "text-embedding-ada-002": "Text embedding Ada 002 by OpenAI", // TODO: this is for embeddings, should be moved to a different place
   "o1-8k": "Spends more time thinking (8k token context)",
   "o1-mini-8k": "A cost-efficient reasoning model (8k token context)",
   o1: "Spends more time thinking (8k token context)",
@@ -1078,13 +1070,6 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(1.1),
     completion_tokens: usd1Mtokens(4.4),
     max_tokens: 8192, // like gpt-4-turbo-8k
-    free: false,
-  },
-  // also OpenAI
-  "text-embedding-ada-002": {
-    prompt_tokens: usd1Mtokens(0.05),
-    completion_tokens: usd1Mtokens(0.05), // NOTE: this isn't a thing with embeddings
-    max_tokens: 8191,
     free: false,
   },
   // https://ai.google.dev/pricing

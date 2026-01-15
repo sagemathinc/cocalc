@@ -83,7 +83,6 @@ export type SiteSettingsKeys =
   | "default_llm"
   | "user_defined_llm"
   | "llm_default_quota"
-  | "neural_search_enabled"
   | "jupyter_api_enabled"
   | "organization_name"
   | "organization_email"
@@ -867,14 +866,6 @@ export const site_settings_conf: SiteSettings = {
     valid: only_nonneg_int,
     show: only_commercial,
     tags: ["AI LLM"],
-  },
-  neural_search_enabled: {
-    name: "DEPRECATED - OpenAI Neural Search UI",
-    desc: "Controls visibility of UI elements related to Neural Search integration.  You must **also set your OpenAI API key** below and fully configure the **Qdrant vector database** for neural search to work.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    tags: ["OpenAI"],
   },
   jupyter_api_enabled: {
     name: "Jupyter API",

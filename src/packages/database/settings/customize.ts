@@ -112,8 +112,6 @@ export default async function getCustomize(
       anthropicEnabled: settings.anthropic_enabled,
       ollamaEnabled: settings.ollama_enabled,
 
-      neuralSearchEnabled: settings.neural_search_enabled,
-
       // if extra Jupyter API functionality for sandboxed ephemeral code execution is available.
       jupyterApiEnabled: settings.jupyter_api_enabled,
 

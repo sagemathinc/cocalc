@@ -43,15 +43,6 @@ describe("get some service costs", () => {
     expect(cost.prompt_tokens).toBeLessThan(0.0001);
   });
 
-  //   it("get service cost of text-embedding-ada-002", async () => {
-  //     const cost = await getServiceCost("text-embedding-ada-002");
-  //     console.log(cost);
-  //     expect(cost.completion_tokens).toBeGreaterThan(0);
-  //     expect(cost.prompt_tokens).toBeGreaterThan(0);
-  //     expect(cost.completion_tokens).toBeLessThan(0.0001);
-  //     expect(cost.prompt_tokens).toBeLessThan(0.0001);
-  //   });
-
   it("gets cost of a credit, i.e., the min allowed", async () => {
     // this depends on the default server settings, but it should be not too small
     // due to stripe cutoffs:

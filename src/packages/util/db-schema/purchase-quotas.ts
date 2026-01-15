@@ -228,12 +228,6 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: OPENAI_COLOR,
     category: "ai",
   },
-  "openai-text-embedding-ada-002": {
-    display: "OpenAI Text Embedding Ada 002",
-    color: OPENAI_COLOR,
-    noSet: true, // because this model is not user visible yet
-    category: "ai",
-  },
   "openai-gpt-4-32k": {
     display: "OpenAI GPT-4 32k",
     color: OPENAI_COLOR,
@@ -270,12 +264,6 @@ export const QUOTA_SPEC: QuotaSpec = {
   },
   "google-chat-bison-001": {
     display: "Google Palm 2 (Chat)",
-    color: GOOGLE_AI_COLOR,
-    noSet: true, // deprecated, will be removed
-    category: "ai",
-  },
-  "google-embedding-gecko-001": {
-    display: "Google Gecko (Embedding)",
     color: GOOGLE_AI_COLOR,
     noSet: true, // deprecated, will be removed
     category: "ai",
