@@ -15,7 +15,7 @@ import getLogger from "@cocalc/backend/logger";
 import { reportProjectStateToMaster } from "../master-status";
 import { secretsPath as sshProxySecretsPath } from "@cocalc/project-proxy/ssh-server";
 import { readFile } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import {
   writeManagedAuthorizedKeys,
   getVolume,
@@ -23,9 +23,6 @@ import {
 } from "../file-server";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import type { Configuration } from "@cocalc/conat/project/runner/types";
-import { ensureHostKey } from "../ssh/host-key";
-import { getSshpiperdPublicKey } from "../ssh/host-keys";
-import { getLocalHostId } from "../sqlite/hosts";
 import { lroStreamName } from "@cocalc/conat/lro/names";
 import {
   client as fileServerClient,
@@ -35,7 +32,6 @@ import {
 import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
 import { publishLroEvent, publishLroSummary } from "@cocalc/conat/lro/stream";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
-import { runCmd, setupSshTempFiles } from "./util";
 import { applyPendingCopies } from "../pending-copies";
 
 const logger = getLogger("project-host:hub:projects");
@@ -85,8 +81,7 @@ function runnerConfigFromQuota(run_quota?: any): Partial<Configuration> {
     limits.scratch = disk;
   }
 
-  const hasGpu =
-    run_quota.gpu === true || (run_quota.gpu_count ?? 0) > 0;
+  const hasGpu = run_quota.gpu === true || (run_quota.gpu_count ?? 0) > 0;
   if (hasGpu) {
     limits.gpu = true;
   }
@@ -452,98 +447,6 @@ export async function getSshKeys({
   return Array.from(keys);
 }
 
-// this function gets run on the destination, copying
-// files from the source.  This direction means that
-// only the initiating side has to be writeable, which is
-// a potentially more secure orientation.
-export async function copyPaths({
-  src,
-  dest,
-}: {
-  src: {
-    host_id: string;
-    ssh_server?: string;
-    project_id: string;
-    paths: string[];
-  };
-  dest: { host_id: string; project_id: string; path: string };
-}) {
-  logger.debug("copyPaths", { src, dest });
-  if (!isValidUUID(src.project_id) || !isValidUUID(dest.project_id)) {
-    throw Error("invalid project_id");
-  }
-  if (!src.ssh_server) {
-    throw Error("source ssh_server is required");
-  }
-
-  const destVol = await getVolume(dest.project_id);
-  const destRoot = destVol.path;
-  const destAbs = resolve(destRoot, dest.path);
-  if (!destAbs.startsWith(destRoot)) {
-    throw Error("destination path escapes project");
-  }
-
-  const srcPaths = Array.isArray(src.paths) ? src.paths : [src.paths];
-  if (!srcPaths.length) {
-    return;
-  }
-
-  const [sshHost, sshPort] = src.ssh_server.includes(":")
-    ? src.ssh_server.split(":")
-    : [src.ssh_server, "22"];
-  const tmp = await setupSshTempFiles({
-    prefix: "ph-rsync-",
-    privateKey: (() => {
-      const hostId = getLocalHostId();
-      if (!hostId) {
-        throw Error("host id not set");
-      }
-      const hostKey = ensureHostKey(hostId);
-      return hostKey.privateKey;
-    })(),
-    knownHostsContent: (() => {
-      // For known_hosts we use sshpiperd's public key for the src node.
-      const sshPiperdKey = getSshpiperdPublicKey(src.host_id);
-      if (!sshPiperdKey) {
-        throw Error(`missing sshpiperd host key for ${src.host_id}`);
-      }
-      return `[${sshHost}]:${sshPort} ${sshPiperdKey.trim()}\n`;
-    })(),
-  });
-  const { keyFile, knownHosts, cleanup } = tmp;
-  try {
-    const remoteBase = `/btrfs/project-${src.project_id}`;
-    const sources: string[] = [];
-    for (const p of srcPaths) {
-      const remotePath = resolve(remoteBase, p);
-      if (!remotePath.startsWith(remoteBase)) {
-        throw Error(`source path escapes project: ${p}`);
-      }
-      sources.push(`project-host-${dest.host_id}@${sshHost}:${remotePath}`);
-    }
-
-    const sshCmd = [
-      "ssh",
-      "-p",
-      sshPort,
-      "-i",
-      keyFile,
-      "-o",
-      "StrictHostKeyChecking=yes",
-      "-o",
-      `UserKnownHostsFile=${knownHosts}`,
-      "-o",
-      "IdentitiesOnly=yes",
-    ].join(" ");
-
-    const args = ["-a", "-z", "-e", sshCmd, ...sources, destAbs];
-    logger.debug("rsync copyPaths");
-    await runCmd(logger, "rsync", args, { stdio: "pipe" });
-  } finally {
-    await cleanup();
-  }
-}
-
 export async function createBackup({
   account_id: _account_id,
   project_id,
@@ -618,7 +521,10 @@ export async function createBackup({
           status: "succeeded",
           result: {
             id: backup.id,
-            time: backup.time instanceof Date ? backup.time.toISOString() : backup.time,
+            time:
+              backup.time instanceof Date
+                ? backup.time.toISOString()
+                : backup.time,
             duration_ms,
           },
           progress_summary: {

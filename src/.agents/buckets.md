@@ -16,7 +16,7 @@
 - [ ] On project start, if backup exists but local data is missing, restore from backup \(lambda hosts\).
 - [ ] Improve backup browsing UX in file explorer \(prefetch tree, loading states\).
 - [ ] Sharing files \(new share server\), but use bucket.
-- [ ] update last\_edited for projects properly, so it is dependable for project moves
+- [ ] update last_edited for projects properly, so it is dependable for project moves
 
 ## Plan to implement full backup/restore and copy using rustic and buckets
 
@@ -34,7 +34,7 @@
   - record last possible data change time \(project running, FS API, codex edits\)
   - if last\-change &gt; last\-backup, warn about potential data loss if skipping backup
 
-### \(mostly done\) Phase 2: Move project between hosts \(same region\)
+### \(done\) Phase 2: Move project between hosts \(same region\)
 
 **Phase 2 Detailed Plan**
 
@@ -106,7 +106,7 @@
 
 Notes:
 
-- we want to allow more than one dst_project_id, since distributing content (e.g., a handout to all 100 students in a course) is a key use case, and we don't want to have create and delete the corresponding backup 100 times.  It's fine for the dst_path to be the same for all targets.
+- we want to allow more than one dst_project_id, since distributing content (e.g., a handout to all 100 students in a course) is a key use case, and we don't want to have create and delete the corresponding backup 100 times. It's fine for the dst_path to be the same for all targets.
 
 - the actual function we need to support is copyPathBetweenProjects in src/packages/conat/hub/api/projects.ts, in the case then when the dest project_id is on a different host:
 
@@ -165,9 +165,9 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
 
 9. **Future optimization**
    - Support backup-only subpath to reduce size/time.
-   - Allow reuse if `last_backup` is fresh *and* we have a reliable `last_edited` signal.
+   - Allow reuse if `last_backup` is fresh _and_ we have a reliable `last_edited` signal.
 
-### \(wip\) Long\-running operations \(LRO\) spec \(draft\)
+### \(done\) Long\-running operations \(LRO\) spec \(draft\)
 
 - **Goals**: async-first (no blocking RPC), durable state, low DB load, high-resolution progress via conat, works across hub/host/browser, supports arbitrary duration and retries.
 - **Operation record (authoritative)**: `id`, `kind`, `scope` (type+id), `status`, `created_by`, `owner` (hub/host), `routing` (hub|host_id|none), `input` (small JSON), `result` (small JSON or ref), `error`, `progress_summary`, `attempt`, `heartbeat_at`, `created_at/started_at/finished_at/updated_at`, `expires_at`, `dedupe_key`, `parent_id` (optional).
@@ -188,4 +188,9 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
   - treat layout v2 as the only supported format
   - new snapshots must include metadata; restore logic assumes it
 - address issues with brokeness due to persist being temporarily not allowed until subvolume exists.
-
+- **Remove legacy ssh/rsync transfers (keep user SSH intact)**:
+  - delete project-host rsync copy path (`copyPaths`) and related helpers
+  - drop host/btrfs SSH targets from sshpiperd auth; keep project targets
+  - remove host/btrfs SSH proxy containers and startup wiring
+  - remove host-to-host key generation/storage and related sqlite fields
+  - sweep docs/scripts for rsync/btrfs transfer mentions

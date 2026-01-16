@@ -41,11 +41,7 @@ import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { isValidUUID } from "@cocalc/util/misc";
 import { getProject } from "./sqlite/projects";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
-import { ensureHostContainer } from "./ssh/host-container";
-import { ensureBtrfsContainer } from "./ssh/btrfs-container";
-import { ensureHostKey } from "./ssh/host-key";
 import { ensureSshpiperdKey } from "./ssh/sshpiperd-key";
-import { getHostPublicKey } from "./ssh/host-keys";
 import { getLocalHostId } from "./sqlite/hosts";
 import { setContainerFileIO } from "@cocalc/lite/hub/acp/executor/container";
 import {
@@ -59,10 +55,7 @@ import path from "node:path";
 import { getMasterConatClient } from "./master-status";
 import callHub from "@cocalc/conat/hub/call-hub";
 
-type SshTarget =
-  | { type: "project"; project_id: string }
-  | { type: "host"; host_id: string }
-  | { type: "btrfs"; host_id: string };
+type SshTarget = { type: "project"; project_id: string };
 
 const logger = getLogger("project-host:file-server");
 const RESTORE_STAGING_ROOT = ".restore-staging";
@@ -832,9 +825,6 @@ export async function initFileServer({
   if (enableSsh) {
     logger.debug("initFileServer: configure ssh proxy");
 
-    let proxyPublicKey: string | undefined;
-    let hostSshPort: number | null = null;
-    let btrfsSshPort: number | null = null;
     logger.debug("initFileServer: get host id...");
     const hostId = requireHostId();
     logger.debug("initFileServer: hostId", hostId);
@@ -848,61 +838,12 @@ export async function initFileServer({
     await writeFile(hostKeyPath, sshpiperdKey.privateKey, { mode: 0o600 });
     await chmod(hostKeyPath, 0o600);
     logger.debug("initFileServer: ssh configured");
-    async function startHostContainer() {
-      if (!proxyPublicKey) {
-        throw Error("proxy public key not yet available");
-      }
-      const hostKey = ensureHostKey(hostId).publicKey;
-      const ports = await ensureHostContainer({
-        path: fs!.subvolumes.fs.path,
-        publicKey: proxyPublicKey,
-        authorizedKeys: [proxyPublicKey, hostKey].join("\n"),
-      });
-      hostSshPort = ports.sshd ?? null;
-      if (!hostSshPort) {
-        throw Error("failed to start ssh host container -- no sshd port");
-      }
-    }
-
-    async function startBtrfsServer() {
-      const ports = await ensureBtrfsContainer({
-        path: fs!.subvolumes.fs.path,
-        publicKey: proxyPublicKey!,
-      });
-      btrfsSshPort = ports.sshd ?? null;
-    }
-
     const getSshdPort = (target: SshTarget): number | null => {
-      if (target.type === "project") {
-        const project_id = target.project_id;
-        const row = getProject(project_id);
-        return row?.ssh_port ?? null;
-      } else if (target.type == "host") {
-        // right now there is just one container/target:
-        return hostSshPort;
-      } else if (target.type === "btrfs") {
-        return btrfsSshPort;
-      } else {
-        return null;
-      }
+      const row = getProject(target.project_id);
+      return row?.ssh_port ?? null;
     };
 
     const getAuthorizedKeys = async (target: SshTarget): Promise<string> => {
-      // Host-level connections: authorize only the requested host's key.
-      if (target.type == "host") {
-        const key = getHostPublicKey(target.host_id);
-        return key?.trim() ?? "";
-      }
-      if (target.type === "btrfs") {
-        const key = getHostPublicKey(target.host_id);
-        return key?.trim() ?? "";
-      }
-      if (target.type != "project") {
-        throw Error(
-          `SshTarget type must be 'host' or 'project', but is '${(target as any).type}'`,
-        );
-      }
-
       const project_id = target.project_id;
       const keys: string[] = [];
 
@@ -946,20 +887,6 @@ export async function initFileServer({
       getAuthorizedKeys,
       hostKeyPath,
     });
-
-    proxyPublicKey = ssh.publicKey;
-    try {
-      logger.debug("initFileServer: start host container");
-      await startHostContainer();
-    } catch (err) {
-      logger.warn("failed to start host ssh container", { err: `${err}` });
-    }
-    try {
-      logger.debug("initFileServer: start btrfs container");
-      await startBtrfsServer();
-    } catch (err) {
-      logger.warn("failed to start btrfs ssh server", { err: `${err}` });
-    }
   }
 
   logger.debug("initFileServer: success");
