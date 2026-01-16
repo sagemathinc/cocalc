@@ -106,7 +106,7 @@ async function ensureContainer(projectId: string): Promise<ContainerInfo> {
   }
 
   const args: string[] = [];
-  args.push("run", "--detach", "--rm");
+  args.push("run", "--runtime", "/usr/bin/crun", "--detach", "--rm");
   args.push(networkArgument());
   if (hasGpu) {
     args.push("--device", "nvidia.com/gpu=all");

@@ -121,7 +121,7 @@ export const start = reuseInFlight(
       }
     } catch {}
     // container does not exist -- create it
-    const args = ["run"];
+    const args = ["run", "--runtime", "/usr/bin/crun"];
     args.push("--detach");
     // the container is named in a way that is determined by the volume name,
     // but we also use labels.
