@@ -241,7 +241,13 @@ export interface Hosts {
     machine?: HostMachine;
   }) => Promise<Host>;
 
-  startHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
+  startHost: (opts: { account_id?: string; id: string }) => Promise<{
+    op_id: string;
+    scope_type: "host";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }>;
   stopHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
   restartHost: (opts: {
     account_id?: string;

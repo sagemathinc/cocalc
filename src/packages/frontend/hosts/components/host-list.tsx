@@ -10,6 +10,8 @@ import {
   getProviderDescriptor,
   isKnownProvider,
 } from "../providers/registry";
+import type { HostLroState } from "../hooks/use-host-ops";
+import { HostStartProgress } from "./host-start-progress";
 import type {
   HostListViewMode,
   HostSortDirection,
@@ -108,6 +110,7 @@ function sortHosts(
 
 type HostListViewModel = {
   hosts: Host[];
+  hostOps?: Record<string, HostLroState>;
   onStart: (id: string) => void;
   onStop: (id: string) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
@@ -138,6 +141,7 @@ type HostListViewModel = {
 export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
   const {
     hosts,
+    hostOps,
     onStart,
     onStop,
     onRestart,
@@ -474,37 +478,43 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
         const showStaleTag = host.status === "running" && !hostOnline;
         const showSpinner = isHostTransitioning(host.status);
         const statusLabel = host.deleted ? "deleted" : host.status;
+        const op = hostOps?.[host.id];
         return (
-          <Space size="small">
-            <Tooltip
-              title={getHostStatusTooltip(
-                host.status,
-                Boolean(host.deleted),
-                host.provider_observed_at,
-              )}
-              placement="top"
-            >
-              <Tag color={host.deleted ? "default" : STATUS_COLOR[host.status]}>
-                {showSpinner ? (
-                  <Space size={4}>
-                    <SyncOutlined spin />
-                    <span>{statusLabel}</span>
-                  </Space>
-                ) : (
-                  statusLabel
+          <Space direction="vertical" size={2}>
+            <Space size="small">
+              <Tooltip
+                title={getHostStatusTooltip(
+                  host.status,
+                  Boolean(host.deleted),
+                  host.provider_observed_at,
                 )}
-              </Tag>
-            </Tooltip>
-            {showOnlineTag && (
-              <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
-                <Tag color="green">online</Tag>
+                placement="top"
+              >
+                <Tag
+                  color={host.deleted ? "default" : STATUS_COLOR[host.status]}
+                >
+                  {showSpinner ? (
+                    <Space size={4}>
+                      <SyncOutlined spin />
+                      <span>{statusLabel}</span>
+                    </Space>
+                  ) : (
+                    statusLabel
+                  )}
+                </Tag>
               </Tooltip>
-            )}
-            {showStaleTag && (
-              <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
-                <Tag color="orange">offline</Tag>
-              </Tooltip>
-            )}
+              {showOnlineTag && (
+                <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
+                  <Tag color="green">online</Tag>
+                </Tooltip>
+              )}
+              {showStaleTag && (
+                <Tooltip title={getHostOnlineTooltip(host.last_seen)}>
+                  <Tag color="orange">offline</Tag>
+                </Tooltip>
+              )}
+            </Space>
+            <HostStartProgress op={op} compact />
           </Space>
         );
       },
@@ -514,6 +524,13 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       key: "actions",
       render: (_: string, host: Host) => {
         const isDeleted = !!host.deleted;
+        const op = hostOps?.[host.id];
+        const startOpActive =
+          !!op &&
+          (!op.summary ||
+            !["succeeded", "failed", "canceled", "expired"].includes(
+              op.summary.status,
+            ));
         const isSelfHost = host.machine?.cloud === "self-host";
         const connectorOnline =
           !isSelfHost ||
@@ -526,7 +543,8 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           host.status === "running" ||
           host.status === "starting" ||
           host.status === "restarting" ||
-          !connectorOnline;
+          !connectorOnline ||
+          startOpActive;
         const startLabel =
           host.status === "starting"
             ? "Starting"
@@ -832,6 +850,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             <Col xs={24} md={12} lg={8} key={host.id}>
               <HostCard
                 host={host}
+                hostOp={hostOps?.[host.id]}
                 onStart={onStart}
                 onStop={onStop}
                 onRestart={(id, _mode) => {

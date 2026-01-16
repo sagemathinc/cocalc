@@ -18,6 +18,7 @@ import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { labels } from "@cocalc/frontend/i18n";
 import { useIntl } from "react-intl";
 import type { HostLogEntry } from "../hooks/use-host-log";
+import type { HostLroState } from "../hooks/use-host-ops";
 import { mapCloudRegionToR2Region, R2_REGION_LABELS } from "@cocalc/util/consts";
 import {
   STATUS_COLOR,
@@ -27,10 +28,12 @@ import {
   isHostTransitioning,
 } from "../constants";
 import { getProviderDescriptor, isKnownProvider } from "../providers/registry";
+import { HostStartProgress } from "./host-start-progress";
 
 type HostDrawerViewModel = {
   open: boolean;
   host?: Host;
+  hostOps?: Record<string, HostLroState>;
   onClose: () => void;
   onEdit: (host: Host) => void;
   onUpgrade?: (host: Host) => void;
@@ -131,6 +134,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
   const {
     open,
     host,
+    hostOps,
     onClose,
     onEdit,
     onUpgrade,
@@ -256,6 +260,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               </Tooltip>
             )}
           </Space>
+          <HostStartProgress op={hostOps?.[host.id]} />
           <Typography.Text copyable={{ text: host.id }}>
             Host ID: {host.id}
           </Typography.Text>

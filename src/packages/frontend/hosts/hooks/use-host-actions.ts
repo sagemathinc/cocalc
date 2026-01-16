@@ -3,7 +3,13 @@ import type { Host } from "@cocalc/conat/hub/api/hosts";
 
 type HubClient = {
   hosts: {
-    startHost: (opts: { id: string }) => Promise<unknown>;
+    startHost: (opts: { id: string }) => Promise<{
+      op_id: string;
+      scope_type: "host";
+      scope_id: string;
+      service: string;
+      stream_name: string;
+    }>;
     stopHost: (opts: { id: string }) => Promise<unknown>;
     restartHost?: (opts: {
       id: string;
@@ -34,12 +40,14 @@ type UseHostActionsOptions = {
   hub: HubClient;
   setHosts: React.Dispatch<React.SetStateAction<Host[]>>;
   refresh: () => Promise<Host[]>;
+  onStartOp?: (host_id: string, op: { op_id: string; scope_id?: string }) => void;
 };
 
 export const useHostActions = ({
   hub,
   setHosts,
   refresh,
+  onStartOp,
 }: UseHostActionsOptions) => {
   const setStatus = async (id: string, action: "start" | "stop") => {
     try {
@@ -51,7 +59,8 @@ export const useHostActions = ({
         ),
       );
       if (action === "start") {
-        await hub.hosts.startHost({ id });
+        const op = await hub.hosts.startHost({ id });
+        onStartOp?.(id, op);
       } else {
         await hub.hosts.stopHost({ id });
       }

@@ -1,9 +1,11 @@
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import type { HostLogEntry } from "./use-host-log";
+import type { HostLroState } from "./use-host-ops";
 
 type UseHostDrawerViewModelArgs = {
   open: boolean;
   host: Host | undefined;
+  hostOps?: Record<string, HostLroState>;
   onClose: () => void;
   onEdit: (host: Host) => void;
   onUpgrade?: (host: Host) => void;
@@ -22,6 +24,7 @@ type UseHostDrawerViewModelArgs = {
 export const useHostDrawerViewModel = ({
   open,
   host,
+  hostOps,
   onClose,
   onEdit,
   onUpgrade,
@@ -33,6 +36,7 @@ export const useHostDrawerViewModel = ({
   return {
     open,
     host,
+    hostOps,
     onClose,
     onEdit,
     onUpgrade,
