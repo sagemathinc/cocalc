@@ -112,11 +112,12 @@ after:
 SyncTeX result end
 */
 
+// see https://stackoverflow.com/questions/9011524/javascript-regexp-number-only-check for this regexp.
+const numberReSnippet =
+  "(?:NaN|-?(?:(?:\\d+|\\d*\\.\\d+)(?:[E|e][+|-]?\\d+)?|Infinity))";
+const matchOnlyNumberRe = new RegExp("^(" + numberReSnippet + ")$");
+
 function parse_synctex_output(output: string): SyncTex {
-  // see https://stackoverflow.com/questions/9011524/javascript-regexp-number-only-check for this regexp.
-  const numberReSnippet =
-    "(?:NaN|-?(?:(?:\\d+|\\d*\\.\\d+)(?:[E|e][+|-]?\\d+)?|Infinity))";
-  const matchOnlyNumberRe = new RegExp("^(" + numberReSnippet + ")$");
   const BEGIN = "SyncTeX result begin";
   const END = "SyncTeX result end";
   const i = output.indexOf(BEGIN);
