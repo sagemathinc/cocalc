@@ -112,7 +112,21 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
   }, HEARTBEAT_MS);
   heartbeat.unref?.();
 
+  let lastProgressKey: string | null = null;
   const progress = async (update: MoveProjectProgressUpdate) => {
+    let detailKey = "";
+    if (update.detail !== undefined) {
+      try {
+        detailKey = JSON.stringify(update.detail);
+      } catch {
+        detailKey = String(update.detail);
+      }
+    }
+    const progressKey = `${update.step}|${update.message ?? ""}|${detailKey}`;
+    if (progressKey === lastProgressKey) {
+      return;
+    }
+    lastProgressKey = progressKey;
     logger.info("move op step", {
       op_id,
       step: update.step,

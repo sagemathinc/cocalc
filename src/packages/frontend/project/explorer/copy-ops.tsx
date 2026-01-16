@@ -112,7 +112,10 @@ function formatTitle(summary?: LroSummary): string {
 function formatStatusLine(op: CopyLroState): string {
   const summary = op.summary;
   const progress = op.last_progress;
-  const message = progress?.message ?? progress?.phase;
+  const message =
+    summary?.progress_summary?.phase ??
+    progress?.phase ??
+    progress?.message;
   const counts = formatCounts(summary?.progress_summary ?? {});
   const detail = formatProgressDetail(progress?.detail);
   if (message && counts) {

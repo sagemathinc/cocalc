@@ -67,14 +67,14 @@ function formatStatusLine(op: MoveLroState): string {
   if (summary?.status === "expired") {
     return "expired";
   }
-  const progress = op.last_progress;
-  const message = progress?.message ?? progress?.phase;
-  if (message) {
-    return message;
-  }
   const phase = summary?.progress_summary?.phase;
   if (phase) {
     return phase;
+  }
+  const progress = op.last_progress;
+  const message = progress?.phase ?? progress?.message;
+  if (message) {
+    return message;
   }
   return summary?.status ?? "running";
 }

@@ -327,9 +327,9 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
 
 function MoveProgressInline({ moveLro }: { moveLro: MoveLroState }) {
   const message =
-    moveLro.last_progress?.message ??
-    moveLro.last_progress?.phase ??
     moveLro.summary?.progress_summary?.phase ??
+    moveLro.last_progress?.phase ??
+    moveLro.last_progress?.message ??
     "Moving workspace";
   const progress = moveLro.last_progress?.progress;
   const percent =
