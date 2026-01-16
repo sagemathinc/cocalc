@@ -10,6 +10,7 @@ type UseHostDrawerViewModelArgs = {
   onEdit: (host: Host) => void;
   onUpgrade?: (host: Host) => void;
   canUpgrade?: boolean;
+  onCancelOp?: (op_id: string) => void;
   hostLog: HostLogEntry[];
   loadingLog: boolean;
   selfHost?: {
@@ -29,6 +30,7 @@ export const useHostDrawerViewModel = ({
   onEdit,
   onUpgrade,
   canUpgrade,
+  onCancelOp,
   hostLog,
   loadingLog,
   selfHost,
@@ -41,6 +43,7 @@ export const useHostDrawerViewModel = ({
     onEdit,
     onUpgrade,
     canUpgrade,
+    onCancelOp,
     hostLog,
     loadingLog,
     selfHost,

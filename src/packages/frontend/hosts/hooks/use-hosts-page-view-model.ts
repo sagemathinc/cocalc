@@ -189,6 +189,17 @@ export const useHostsPageViewModel = () => {
     },
     [hub, refresh, trackHostOp],
   );
+  const cancelHostOp = React.useCallback(
+    async (op_id: string) => {
+      try {
+        await hub.lro.cancel({ op_id });
+      } catch (err) {
+        console.error(err);
+        message.error("Failed to cancel host operation");
+      }
+    },
+    [hub],
+  );
   const [editingHost, setEditingHost] =
     React.useState<(typeof hosts)[number]>();
   const [editOpen, setEditOpen] = React.useState(false);
@@ -491,9 +502,10 @@ export const useHostsPageViewModel = () => {
     hosts,
     hostOps,
     onStart: (id: string) => setStatus(id, "start"),
-    onStop: (id: string) => setStatus(id, "stop"),
+    onStop: (id: string, opts) => setStatus(id, "stop", opts),
     onRestart: restartHost,
-    onDelete: removeHost,
+    onDelete: (id: string, opts) => removeHost(id, opts),
+    onCancelOp: cancelHostOp,
     onUpgrade: isAdmin ? upgradeHostSoftware : undefined,
     onDetails: openDetails,
     onEdit: openEdit,
@@ -526,6 +538,7 @@ export const useHostsPageViewModel = () => {
     onEdit: openEdit,
     onUpgrade: isAdmin ? upgradeHostSoftware : undefined,
     canUpgrade: isAdmin,
+    onCancelOp: cancelHostOp,
     hostLog,
     loadingLog,
     selfHost: {

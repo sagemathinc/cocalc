@@ -2,6 +2,7 @@ import { Button, Card, Popconfirm, Space, Tag, Tooltip, Typography } from "antd"
 import { SyncOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
+import type { HostDeleteOptions, HostStopOptions } from "../types";
 import { labels } from "@cocalc/frontend/i18n";
 import { useIntl } from "react-intl";
 import {
@@ -16,15 +17,18 @@ import {
   isKnownProvider,
 } from "../providers/registry";
 import { isHostOpActive, type HostLroState } from "../hooks/use-host-ops";
-import { HostOpProgress } from "./host-op-progress";
+import { getHostOpPhase, HostOpProgress } from "./host-op-progress";
+import { HostBackupStatus } from "./host-backup-status";
+import { confirmHostDeprovision, confirmHostStop } from "./host-confirm";
 
 type HostCardProps = {
   host: Host;
   hostOp?: HostLroState;
   onStart: (id: string) => void;
-  onStop: (id: string) => void;
+  onStop: (id: string, opts?: HostStopOptions) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, opts?: HostDeleteOptions) => void;
+  onCancelOp?: (op_id: string) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
   providerCapabilities?: HostCatalog["provider_capabilities"];
@@ -41,6 +45,7 @@ export const HostCard: React.FC<HostCardProps> = ({
   onStop,
   onRestart,
   onDelete,
+  onCancelOp,
   onDetails,
   onEdit,
   providerCapabilities,
@@ -102,6 +107,10 @@ export const HostCard: React.FC<HostCardProps> = ({
       ? "Delete this host?"
       : "Deprovision this host?";
   const deleteOkText = host.status === "deprovisioned" ? "Delete" : "Deprovision";
+  const isDeprovisioned = host.status === "deprovisioned";
+  const opPhase = getHostOpPhase(hostOp);
+  const canCancelBackups =
+    !!hostOp?.op_id && hostOpActive && opPhase === "backups" && !!onCancelOp;
   const actions = [
     <Button
       key="start"
@@ -122,15 +131,18 @@ export const HostCard: React.FC<HostCardProps> = ({
       </Button>
     ) : null,
     allowStop ? (
-      <Popconfirm
+      <Button
         key="stop"
-        title="Stop this host?"
-        okText="Stop"
-        cancelText="Cancel"
-        onConfirm={() => onStop(host.id)}
+        type="link"
+        onClick={() =>
+          confirmHostStop({
+            hostName: host.name ?? "Host",
+            onConfirm: (opts) => onStop(host.id, opts),
+          })
+        }
       >
-        <Button type="link">{stopLabel}</Button>
-      </Popconfirm>
+        {stopLabel}
+      </Button>
     ) : (
       <Button key="stop" type="link" disabled>
         {stopLabel}
@@ -149,6 +161,17 @@ export const HostCard: React.FC<HostCardProps> = ({
         Restart
       </Button>
     ),
+    canCancelBackups && hostOp ? (
+      <Popconfirm
+        key="cancel"
+        title="Cancel backups for this host?"
+        okText="Cancel backups"
+        cancelText="Keep running"
+        onConfirm={() => onCancelOp?.(hostOp.op_id)}
+      >
+        <Button type="link">Cancel</Button>
+      </Popconfirm>
+    ) : null,
     <Button
       key="edit"
       type="link"
@@ -160,19 +183,36 @@ export const HostCard: React.FC<HostCardProps> = ({
     <Button key="details" type="link" onClick={() => onDetails(host)}>
       Details
     </Button>,
-    <Popconfirm
-      key="delete"
-      title={deleteTitle}
-      okText={deleteOkText}
-      cancelText="Cancel"
-      okButtonProps={{ danger: true }}
-      onConfirm={() => onDelete(host.id)}
-      disabled={isDeleted || hostOpActive}
-    >
-      <Button type="link" danger disabled={isDeleted || hostOpActive}>
+    isDeprovisioned ? (
+      <Popconfirm
+        key="delete"
+        title={deleteTitle}
+        okText={deleteOkText}
+        cancelText="Cancel"
+        okButtonProps={{ danger: true }}
+        onConfirm={() => onDelete(host.id)}
+        disabled={isDeleted || hostOpActive}
+      >
+        <Button type="link" danger disabled={isDeleted || hostOpActive}>
+          {deleteLabel}
+        </Button>
+      </Popconfirm>
+    ) : (
+      <Button
+        key="delete"
+        type="link"
+        danger
+        disabled={isDeleted || hostOpActive}
+        onClick={() =>
+          confirmHostDeprovision({
+            host,
+            onConfirm: (opts) => onDelete(host.id, opts),
+          })
+        }
+      >
         {deleteLabel}
       </Button>
-    </Popconfirm>,
+    ),
   ];
 
   return (
@@ -213,39 +253,40 @@ export const HostCard: React.FC<HostCardProps> = ({
       }
       actions={actions.filter(Boolean) as React.ReactNode[]}
     >
-    <Space direction="vertical" size="small">
+      <Space direction="vertical" size="small">
         {host.reprovision_required && (
           <Tooltip title="Host config changed while stopped; will reprovision on next start.">
             <Tag color="orange">Reprovision on next start</Tag>
           </Tooltip>
         )}
-      <HostOpProgress op={hostOp} compact />
-      <Typography.Text>
+        <HostOpProgress op={hostOp} compact />
+        <HostBackupStatus host={host} />
+        <Typography.Text>
         Provider:{" "}
         {host.machine?.cloud
           ? isKnownProvider(host.machine.cloud)
             ? getProviderDescriptor(host.machine.cloud).label
             : host.machine.cloud
           : "n/a"}
-      </Typography.Text>
-      <Typography.Text>
-        {isSelfHost ? "Connector" : "Region"}: {host.region}
-      </Typography.Text>
-      <Typography.Text>Size: {host.size}</Typography.Text>
-      <Typography.Text>GPU: {host.gpu ? "Yes" : "No"}</Typography.Text>
-      <Typography.Text>
-        {projectsLabel}: {host.projects ?? 0}
-      </Typography.Text>
-      {host.last_action && (
-        <Typography.Text type="secondary">
-          Last action: {host.last_action}
-          {host.last_action_status ? ` (${host.last_action_status})` : ""}
-          {host.last_action_at
-            ? ` · ${new Date(host.last_action_at).toLocaleString()}`
-            : ""}
         </Typography.Text>
-      )}
-      {host.status === "error" && host.last_error && (
+        <Typography.Text>
+          {isSelfHost ? "Connector" : "Region"}: {host.region}
+        </Typography.Text>
+        <Typography.Text>Size: {host.size}</Typography.Text>
+        <Typography.Text>GPU: {host.gpu ? "Yes" : "No"}</Typography.Text>
+        <Typography.Text>
+          {projectsLabel}: {host.projects ?? 0}
+        </Typography.Text>
+        {host.last_action && (
+          <Typography.Text type="secondary">
+            Last action: {host.last_action}
+            {host.last_action_status ? ` (${host.last_action_status})` : ""}
+            {host.last_action_at
+              ? ` · ${new Date(host.last_action_at).toLocaleString()}`
+              : ""}
+          </Typography.Text>
+        )}
+        {host.status === "error" && host.last_error && (
         <div
           style={{
             maxHeight: "4.8em",
@@ -259,7 +300,7 @@ export const HostCard: React.FC<HostCardProps> = ({
         >
           {host.last_error}
         </div>
-      )}
+        )}
     </Space>
     </Card>
   );

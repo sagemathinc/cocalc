@@ -4,12 +4,12 @@ import type { Host, HostLroResponse } from "@cocalc/conat/hub/api/hosts";
 type HubClient = {
   hosts: {
     startHost: (opts: { id: string }) => Promise<HostLroResponse>;
-    stopHost: (opts: { id: string }) => Promise<HostLroResponse>;
+    stopHost: (opts: { id: string; skip_backups?: boolean }) => Promise<HostLroResponse>;
     restartHost?: (opts: {
       id: string;
       mode?: "reboot" | "hard";
     }) => Promise<HostLroResponse>;
-    deleteHost: (opts: { id: string }) => Promise<HostLroResponse>;
+    deleteHost: (opts: { id: string; skip_backups?: boolean }) => Promise<HostLroResponse>;
     forceDeprovisionHost?: (opts: { id: string }) => Promise<HostLroResponse>;
     removeSelfHostConnector?: (opts: { id: string }) => Promise<HostLroResponse>;
     renameHost?: (opts: { id: string; name: string }) => Promise<unknown>;
@@ -43,7 +43,11 @@ export const useHostActions = ({
   refresh,
   onHostOp,
 }: UseHostActionsOptions) => {
-  const setStatus = async (id: string, action: "start" | "stop") => {
+  const setStatus = async (
+    id: string,
+    action: "start" | "stop",
+    opts?: { skip_backups?: boolean },
+  ) => {
     try {
       setHosts((prev) =>
         prev.map((h) =>
@@ -56,7 +60,10 @@ export const useHostActions = ({
         const op = await hub.hosts.startHost({ id });
         onHostOp?.(id, op);
       } else {
-        const op = await hub.hosts.stopHost({ id });
+        const op = await hub.hosts.stopHost({
+          id,
+          skip_backups: opts?.skip_backups,
+        });
         onHostOp?.(id, op);
       }
     } catch (err) {
@@ -96,9 +103,12 @@ export const useHostActions = ({
     }
   };
 
-  const removeHost = async (id: string) => {
+  const removeHost = async (id: string, opts?: { skip_backups?: boolean }) => {
     try {
-      const op = await hub.hosts.deleteHost({ id });
+      const op = await hub.hosts.deleteHost({
+        id,
+        skip_backups: opts?.skip_backups,
+      });
       onHostOp?.(id, op);
       await refresh();
     } catch (err) {

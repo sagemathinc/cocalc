@@ -28,7 +28,7 @@ import {
   isHostTransitioning,
 } from "../constants";
 import { getProviderDescriptor, isKnownProvider } from "../providers/registry";
-import { HostOpProgress } from "./host-op-progress";
+import { getHostOpPhase, HostOpProgress } from "./host-op-progress";
 import { UpgradeConfirmContent } from "./upgrade-confirmation";
 
 type HostDrawerViewModel = {
@@ -39,6 +39,7 @@ type HostDrawerViewModel = {
   onEdit: (host: Host) => void;
   onUpgrade?: (host: Host) => void;
   canUpgrade?: boolean;
+  onCancelOp?: (op_id: string) => void;
   hostLog: HostLogEntry[];
   loadingLog: boolean;
   selfHost?: {
@@ -135,15 +136,16 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
   const {
     open,
     host,
-    hostOps,
-    onClose,
-    onEdit,
-    onUpgrade,
-    canUpgrade,
-    hostLog,
-    loadingLog,
-    selfHost,
-  } = vm;
+  hostOps,
+  onClose,
+  onEdit,
+  onUpgrade,
+  canUpgrade,
+  onCancelOp,
+  hostLog,
+  loadingLog,
+  selfHost,
+} = vm;
   const isSelfHost = host?.machine?.cloud === "self-host";
   const readPositive = (value: unknown) => {
     const parsed = Number(value);
@@ -183,6 +185,9 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
   const statusLabel = host ? (host.deleted ? "deleted" : host.status) : "";
   const activeOp = host ? hostOps?.[host.id] : undefined;
   const hostOpActive = host ? isHostOpActive(activeOp) : false;
+  const opPhase = getHostOpPhase(activeOp);
+  const canCancelBackups =
+    !!activeOp?.op_id && hostOpActive && opPhase === "backups" && !!onCancelOp;
   const showUpgradeProgress =
     activeOp?.summary?.kind === "host-upgrade-software" ||
     activeOp?.kind === "host-upgrade-software";
@@ -272,7 +277,23 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               </Tooltip>
             )}
           </Space>
-          {!showUpgradeProgress && <HostOpProgress op={activeOp} />}
+          {!showUpgradeProgress && (
+            <Space direction="vertical" size="small">
+              <HostOpProgress op={activeOp} />
+              {canCancelBackups && (
+                <Popconfirm
+                  title="Cancel backups for this host?"
+                  okText="Cancel backups"
+                  cancelText="Keep running"
+                  onConfirm={() => onCancelOp?.(activeOp!.op_id)}
+                >
+                  <Button size="small" type="link">
+                    Cancel backups
+                  </Button>
+                </Popconfirm>
+              )}
+            </Space>
+          )}
           <Typography.Text copyable={{ text: host.id }}>
             Host ID: {host.id}
           </Typography.Text>
