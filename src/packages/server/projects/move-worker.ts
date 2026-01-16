@@ -3,11 +3,16 @@ import getLogger from "@cocalc/backend/logger";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
 import {
   claimLroOps,
+  getLro,
   touchLro,
   updateLro,
 } from "@cocalc/server/lro/lro-db";
 import { publishLroEvent, publishLroSummary } from "@cocalc/server/lro/stream";
-import { moveProjectToHost, type MoveProjectProgressUpdate } from "./move";
+import {
+  MOVE_CANCELED_CODE,
+  moveProjectToHost,
+  type MoveProjectProgressUpdate,
+} from "./move";
 
 const logger = getLogger("server:projects:move-worker");
 
@@ -159,6 +164,16 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
   };
 
   try {
+    let canceled = false;
+    const shouldAbort = async () => {
+      if (canceled) return true;
+      const current = await getLro(op_id);
+      if (current?.status === "canceled" || current?.status === "expired") {
+        canceled = true;
+        return true;
+      }
+      return false;
+    };
     await progress({
       step: "validate",
       message: "starting move",
@@ -170,7 +185,7 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
         dest_host_id,
         account_id,
       },
-      { progress },
+      { progress, shouldCancel: shouldAbort },
     );
 
     const updated = await updateLro({
@@ -184,6 +199,20 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
       await publishSummary(updated);
     }
   } catch (err) {
+    const isCanceled = (err as any)?.code === MOVE_CANCELED_CODE;
+    if (isCanceled) {
+      logger.info("move op canceled", { op_id });
+      const updated = await updateLro({
+        op_id,
+        status: "canceled",
+        error: "canceled",
+      });
+      if (updated) {
+        await publishSummary(updated);
+      }
+      await progress({ step: "done", message: "canceled" });
+      return;
+    }
     logger.warn("move op failed", { op_id, err: `${err}` });
     const updated = await updateLro({
       op_id,
