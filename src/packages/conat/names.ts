@@ -3,11 +3,11 @@ Names we use with conat.
 
 For Jetstream:
 
-project-{project_id}-{compute_server_id}[.-service][.-{encodeBase64(path)}]
+project-{project_id}[.-service][.-{encodeBase64(path)}]
 
 For Subjects:
 
- project.{project-id}.{compute_server_id}[.{service}][.{path}]
+ project.{project-id}[.{service}][.{path}]
 
 */
 
@@ -51,19 +51,13 @@ export function jsName({
   }
 }
 
-export function localLocationName({
-  compute_server_id,
-  browser_id,
-  path,
-}: Location): string {
+export function localLocationName({ browser_id, path }: Location): string {
   // !!CRITICAL WARNING!! If you ever modify this code, only do so in a way that adds a new field
   // so that the default value of that field leaves the output of this function UNCHANGED!
   // Otherwise, it gets used for defining the location of kv stores, and if it changes
   // on existing inputs, then all user data across all of cocalc would just go ** POOF ** !
   const v: string[] = [];
-  if (compute_server_id) {
-    v.push(`id=${compute_server_id}`);
-  } else if (browser_id) {
+  if (browser_id) {
     v.push(`id=${browser_id}`);
   }
   if (path) {
@@ -120,13 +114,11 @@ export function streamSubject({
 export function projectSubject({
   service,
   project_id,
-  compute_server_id = 0,
   // path = optional name of specific path for that microservice -- replaced by its base64 encoding
   path,
 }: {
   project_id: string;
   service: string;
-  compute_server_id?: number;
   path?: string;
 }): string {
   if (!project_id) {
@@ -135,7 +127,6 @@ export function projectSubject({
   const segments = [
     "project",
     project_id,
-    compute_server_id ?? "-",
     service ?? "-",
     path ? encodeBase64(path) : "-",
   ];

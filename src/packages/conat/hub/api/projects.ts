@@ -189,7 +189,6 @@ export interface Projects {
   getDiskQuota: (opts: {
     account_id?: string;
     project_id: string;
-    compute_server_id?: number;
   }) => Promise<{ used: number; size: number }>;
 
   /////////////

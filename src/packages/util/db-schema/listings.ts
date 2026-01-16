@@ -30,7 +30,6 @@ import type { DirectoryListingEntry } from "@cocalc/util/types";
 export interface Listing {
   path: string;
   project_id?: string;
-  compute_server_id?: number;
   listing?: DirectoryListingEntry[];
   time?: Date;
   interest?: Date;
@@ -45,10 +44,6 @@ Table({
     project_id: {
       type: "uuid",
       desc: "The project id.",
-    },
-    compute_server_id: {
-      type: "integer",
-      desc: "The compute server id.  0 or not given means 'the main project'.",
     },
     path: {
       type: "string",
@@ -83,16 +78,13 @@ Table({
   },
   rules: {
     desc: "Directory listings in projects",
-    primary_key: ["project_id", "path", "compute_server_id"],
-    // this is necessary only for schema migration from befor we had compute_server_id as a column.
-    default_primary_key_value: { compute_server_id: 0 },
+    primary_key: ["project_id", "path"],
     user_query: {
       get: {
         pg_where: ["projects"],
         options: [{ order_by: "-interest" }, { limit: MAX_PATHS }],
         fields: {
           project_id: null,
-          compute_server_id: null,
           path: null,
           time: null,
           listing: null,
@@ -103,12 +95,10 @@ Table({
         },
       },
       set: {
-        // same privs as project, since compute servers are treated as a user.  Plus listings isn't a
-        // security risk.
+        // same privs as project; listings isn't a security risk.
         delete: true,
         fields: {
           project_id: "project_id",
-          compute_server_id: true,
           path: true,
           listing: true,
           missing: true,
@@ -126,7 +116,6 @@ Table({
         options: [{ order_by: "-interest" }, { limit: 3 }],
         fields: {
           project_id: null,
-          compute_server_id: null,
           path: null,
           time: null,
           listing: null,
@@ -142,7 +131,6 @@ Table({
         delete: true,
         fields: {
           project_id: "project_id",
-          compute_server_id: true,
           path: true,
           listing: true,
           missing: true,

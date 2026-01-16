@@ -36,7 +36,6 @@ interface MesgExec {
 interface MesgDeleteFiles {
   cmd: "delete_files";
   paths: string[];
-  compute_server_id?: number;
 }
 
 interface MesgFormatterString {
@@ -60,21 +59,18 @@ interface MesgListing {
   cmd: "listing";
   path: string;
   hidden: boolean;
-  compute_server_id?: number;
 }
 
 interface MesgMoveFiles {
   cmd: "move_files";
   paths: string[];
   dest: string;
-  compute_server_id: number | undefined;
 }
 
 interface MesgRenameFile {
   cmd: "rename_file";
   src: string;
   dest: string;
-  compute_server_id: number | undefined;
 }
 
 interface MesgCanonicalPaths {

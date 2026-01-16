@@ -84,7 +84,6 @@ class System:
         bash: Optional[bool] = None,
         env: Optional[dict[str, Any]] = None,
         async_call: Optional[bool] = None,
-        compute_server_id: Optional[int] = None,
     ) -> ExecuteCodeOutput:
         """
         Execute an arbitrary shell command in the project.
@@ -99,7 +98,6 @@ class System:
             max_output (Optional[int]): bound on size of stdout and stderr; further output ignored
             bash (Optional[bool]): if True, ignore args and evaluate command as a bash command
             env (Optional[dict[str, Any]]): if given, added to exec environment
-            compute_server_id (Optional[number]): compute server to run code on (instead of home base project)
 
         Returns:
             ExecuteCodeOutput: Result of executing the command.

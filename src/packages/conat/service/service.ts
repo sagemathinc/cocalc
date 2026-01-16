@@ -94,7 +94,6 @@ export function serviceSubject({
   browser_id,
 
   project_id,
-  compute_server_id,
 
   path,
 
@@ -117,13 +116,7 @@ export function serviceSubject({
       service,
     ];
   } else if (project_id) {
-    segments = [
-      "services",
-      `project-${project_id}`,
-      compute_server_id ?? "_",
-      service,
-      path,
-    ];
+    segments = ["services", `project-${project_id}`, service, path];
   }
   return segments.join(".");
 }
@@ -135,7 +128,6 @@ export function serviceName({
   browser_id,
 
   project_id,
-  compute_server_id,
 }: ServiceDescription): string {
   let segments;
   if (!project_id && !account_id) {
@@ -143,7 +135,7 @@ export function serviceName({
   } else if (account_id) {
     segments = [`account-${account_id}`, browser_id ?? "-", service];
   } else if (project_id) {
-    segments = [`project-${project_id}`, compute_server_id ?? "-", service];
+    segments = [`project-${project_id}`, service];
   }
   return segments.join("-");
 }

@@ -714,8 +714,7 @@ type ExecOptsCommon = {
 };
 
 export type ExecOptsBlocking = ExecOptsCommon & {
-  compute_server_id?: number; // if true, run on the compute server (if available)
-  filesystem?: boolean; // run in fileserver container on compute server; otherwise, runs on main compute container.
+  filesystem?: boolean; // run in fileserver container; otherwise, runs on main compute container.
   path?: string;
   command: string;
   args?: string[];
