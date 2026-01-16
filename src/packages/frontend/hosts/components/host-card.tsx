@@ -136,7 +136,7 @@ export const HostCard: React.FC<HostCardProps> = ({
         type="link"
         onClick={() =>
           confirmHostStop({
-            hostName: host.name ?? "Host",
+            host,
             onConfirm: (opts) => onStop(host.id, opts),
           })
         }

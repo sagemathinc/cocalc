@@ -26,6 +26,9 @@ let hostInfo: Pick<HostProjectStatus, "host_id" | "host"> | undefined;
 const logger = getLogger("project-host:master-status");
 let resendTimer: NodeJS.Timeout | undefined;
 let masterClient: Client | undefined;
+let pendingInventory:
+  | { project_ids: string[]; checked_at: number }
+  | null = null;
 
 export function setMasterStatusClient({
   client,
@@ -41,9 +44,6 @@ export function setMasterStatusClient({
   hostInfo = { host_id, host };
   reportPendingStates().catch((err) =>
     logger.debug("reportPendingStates initial send failed", { err }),
-  );
-  reportPendingProvisioning().catch((err) =>
-    logger.debug("reportPendingProvisioning initial send failed", { err }),
   );
   if (!resendTimer) {
     resendTimer = setInterval(reportPendingStates, 15_000).unref();
@@ -74,6 +74,32 @@ export async function reportProjectStateToMaster(
     markProjectStateReported(project_id);
   } catch (err) {
     logger.debug("reportProjectStateToMaster failed", { project_id, err });
+  }
+}
+
+export function queueProvisionedInventory(project_ids: string[]) {
+  const checked_at = Date.now();
+  pendingInventory = { project_ids, checked_at };
+  reportProvisionedInventory().catch((err) =>
+    logger.debug("reportProvisionedInventory failed", { err }),
+  );
+}
+
+async function reportProvisionedInventory() {
+  if (!statusClient || !hostInfo || !pendingInventory) return;
+  const payload = pendingInventory;
+  try {
+    logger.debug("reportHostProvisionedInventory", {
+      count: payload.project_ids.length,
+    });
+    await statusClient.reportHostProvisionedInventory({
+      ...hostInfo,
+      project_ids: payload.project_ids,
+      checked_at: payload.checked_at,
+    });
+    pendingInventory = null;
+  } catch (err) {
+    logger.debug("reportHostProvisionedInventory failed", { err });
   }
 }
 
@@ -175,4 +201,5 @@ async function reportPendingProvisioning() {
       });
     }
   }
+  await reportProvisionedInventory();
 }

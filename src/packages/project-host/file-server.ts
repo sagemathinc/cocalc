@@ -180,6 +180,21 @@ export function getMountPoint(): string {
   return fs.opts.mount;
 }
 
+export async function listProvisionedProjects(): Promise<string[]> {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  const names = await fs.subvolumes.list();
+  const ids = new Set<string>();
+  for (const name of names) {
+    if (!name.startsWith("project-")) continue;
+    const project_id = name.slice("project-".length);
+    if (!isValidUUID(project_id)) continue;
+    ids.add(project_id);
+  }
+  return Array.from(ids);
+}
+
 function getFileSync() {
   if (fs == null) {
     throw Error("file server not initialized");

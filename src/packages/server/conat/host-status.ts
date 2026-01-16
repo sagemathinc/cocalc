@@ -78,6 +78,35 @@ export async function initHostStatusService() {
           [project_id, provisioned, checkedAt],
         );
       },
+      async reportHostProvisionedInventory({
+        host_id,
+        project_ids,
+        checked_at,
+      }) {
+        if (!host_id || !Array.isArray(project_ids)) {
+          throw Error("host_id and project_ids are required");
+        }
+        const pool = getPool();
+        let checkedAt = new Date();
+        if (checked_at != null) {
+          const parsed = new Date(checked_at);
+          if (!Number.isNaN(parsed.valueOf())) {
+            checkedAt = parsed;
+          }
+        }
+        await pool.query(
+          `
+            UPDATE projects
+            SET
+              provisioned = (project_id = ANY($2)),
+              provisioned_checked_at = $3
+            WHERE host_id=$1
+              AND deleted IS NOT true
+              AND provisioned IS DISTINCT FROM (project_id = ANY($2))
+          `,
+          [host_id, project_ids, checkedAt],
+        );
+      },
     },
   });
 }
