@@ -119,11 +119,6 @@ export default function Footer() {
           hide: !enabledPages?.info,
         },
         {
-          text: "Compute Servers",
-          url: "https://doc.cocalc.com/compute_server.html",
-          hide: !enabledPages?.compute,
-        },
-        {
           text: "Public Share",
           url: "/share/public_paths/page/1",
           hide: !enabledPages?.share,

@@ -201,89 +201,6 @@ function Features() {
     );
   }
 
-  function softwareCompute() {
-    return (
-      <Pitch
-        style={{ backgroundColor: COLORS.YELL_LLL }}
-        col1={
-          <Info
-            level={HEADER_LEVEL}
-            title={t("many-languages")}
-            icon="flow-chart"
-            anchor="a-many-languages"
-            icons={[
-              { icon: "julia", link: "/features/julia" },
-              { icon: "linux", link: "/features/linux" },
-              { icon: "python", link: "/features/python" },
-              { icon: "r", link: "/features/r-statistical-software" },
-              { icon: "sagemath", title: "SageMath", link: "/features/sage" },
-              { icon: "octave", link: "/features/octave" },
-            ]}
-          >
-            <Trans
-              i18nKey="index:many-languages-text"
-              components={{
-                strong: <strong />,
-                a: <A href="https://doc.cocalc.com/howto/index.html" />,
-              }}
-            />
-          </Info>
-        }
-        col2={
-          <Info
-            level={HEADER_LEVEL}
-            title={t("compute-servers-title")}
-            icon="server"
-            anchor="a-compute-servers"
-            icons={[
-              {
-                icon: "nvidia",
-                title: "GPUs",
-                link: "https://doc.cocalc.com/compute_server.html",
-              },
-              {
-                icon: "pytorch",
-                title: "PyTorch",
-                link: "https://doc.cocalc.com/compute_server.html",
-              },
-              {
-                icon: "tensorflow",
-                title: "TensorFlow",
-                link: "https://doc.cocalc.com/compute_server.html",
-              },
-              {
-                icon: "vscode",
-                title: "VS Code",
-                link: "https://doc.cocalc.com/vscode.html",
-              },
-              {
-                icon: "desktop",
-                title: "X11 Desktop",
-                link: "features/x11",
-              },
-              {
-                icon: "terminal",
-                title: "Linux Terminal",
-                link: "features/terminal",
-              },
-            ]}
-          >
-            <Trans
-              i18nKey="index:compute-servers-text"
-              components={{
-                strong: <strong />,
-                p: <Paragraph />,
-                A1: <A href="https://doc.cocalc.com/compute_server.html" />,
-                A2: (
-                  <A href="https://github.com/sagemathinc/cocalc-howto/blob/main/README.md" />
-                ),
-              }}
-            />
-          </Info>
-        }
-      />
-    );
-  }
 
   function jupyterLatex() {
     return (
@@ -554,12 +471,11 @@ function Features() {
     }
   }
 
-  return (
-    <>
-      {realtimeChat()}
-      {softwareCompute()}
-      {jupyterLatex()}
-      {vendorOpenWorld()}
+      return (
+        <>
+          {realtimeChat()}
+          {jupyterLatex()}
+          {vendorOpenWorld()}
       {teachingLinux()}
       {gettingStarted()}
     </>

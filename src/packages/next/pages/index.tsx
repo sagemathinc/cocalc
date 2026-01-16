@@ -208,5 +208,4 @@ const YOUTUBE_IDS: Readonly<Video[]> = [
     id: "Uwn3ngzXD0Y",
     title: "JAX Quickstart on CoCalc using a GPU (or on CPU)",
   },
-  { id: "NkNx6tx3nu0", title: "Running On-Prem Compute Servers on CoCalc" },
 ] as const;

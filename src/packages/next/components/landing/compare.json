@@ -108,7 +108,7 @@
       },
       {
         "feature": "Disk space",
-        "cocalc": "3GB/project for free, and can buy up to 65TB disks via compute servers",
+        "cocalc": "3GB/workspace for free, with higher limits available via memberships",
         "mybinder": "Ephemeral",
         "colab": "Uses your Google Drive storage",
         "datalore": "Limit of two simultaneously running notebooks",
@@ -116,7 +116,7 @@
       },
       {
         "feature": "Memory",
-        "cocalc": "1GB/project for free, and can buy TB's of RAM via compute servers",
+        "cocalc": "1GB/workspace for free, with higher limits available via memberships",
         "datalore": "Limit of two simultaneously running notebooks",
         "deepnote": "several GB for free"
       },
@@ -127,7 +127,7 @@
       },
       {
         "feature": "Network access",
-        "cocalc": "Only for non-free projects; also compute servers provide network access",
+        "cocalc": "Only for non-free workspaces",
         "colab": true,
         "datalore": true,
         "mybinder": true,
@@ -143,7 +143,7 @@
       {
         "feature": "Self hosting",
         "cocalc": {
-          "note": "Docker image, Kubernetes Helm charts, on Prem compute servers",
+          "note": "Docker image and Kubernetes Helm charts",
           "type": true,
           "link": "https://doc.cocalc.com/on-premises.html"
         },
@@ -183,8 +183,7 @@
         "feature": "GPUs",
         "cocalc": {
           "type": true,
-          "note": "YES -- pay as you go via compute servers and on prem",
-          "link": "https://doc.cocalc.com/compute_server.html"
+          "note": "YES -- available with memberships"
         },
         "mybinder": "Only when self hosted",
         "colab": "Yes, for free and paid.",

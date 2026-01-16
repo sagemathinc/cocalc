@@ -241,17 +241,17 @@ export default function TermsOfService({ customize }) {
               </p>
               <h2>CoCalc Credit and Pay-As-You-Go Services</h2>
               <p>
-                Some Services, such as compute servers, may require you to put
-                CoCalc Credit on your Account before you can access them. CoCalc
-                Credit has no cash value and is given on a non-refundable basis.
-                It may be used, however, towards any of the Pay-As-You-Go
-                services or to purchase licenses and subscriptions.
-                Pay-As-You-Go services may be suspended or terminated
-                immediately, if your CoCalc credit balance becomes negative. The
-                fees for Pay-As-You-Go Services are subject to change without
-                any advance notice at any time by posting the changes to the
-                Site or the Service itself. Typically these changes mirror fee
-                changes by cloud providers that we utilize.
+                Some Services may require you to put CoCalc Credit on your
+                Account before you can access them. CoCalc Credit has no cash
+                value and is given on a non-refundable basis. It may be used,
+                however, towards any of the Pay-As-You-Go services or to
+                purchase licenses and subscriptions. Pay-As-You-Go services may
+                be suspended or terminated immediately, if your CoCalc credit
+                balance becomes negative. The fees for Pay-As-You-Go Services
+                are subject to change without any advance notice at any time by
+                posting the changes to the Site or the Service itself.
+                Typically these changes mirror fee changes by cloud providers
+                that we utilize.
               </p>
               <h1>Feedback</h1>
               <p>

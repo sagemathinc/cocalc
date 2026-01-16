@@ -14,7 +14,6 @@ import LaTeX from "components/landing/latex";
 import A from "components/misc/A";
 import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
-import ComputeServerInfographic from "public/features/running-compute-server.png";
 import juliaScreenshot from "public/features/julia-jupyter.png";
 import juliaLogo from "public/features/julia-logo.svg";
 import sageScreenshot from "public/features/sage-worksheet.png";
@@ -44,29 +43,8 @@ import x11Screenshot from "/public/features/x11-01.png";
 import x11Logo from "/public/features/x11-logo.svg";
 
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import {
-  title as compueServerTitle,
-  logo as computeServerLogo,
-  component as computeServerName,
-} from "./compute-server";
 
 const dataSource = [
-  {
-    link: "/features/compute-server",
-    title: computeServerName,
-    logo: computeServerLogo,
-    logoBackground: "white",
-    image: ComputeServerInfographic,
-    description: (
-      <>
-        {compueServerTitle}. Read more in the{" "}
-        <A href="https://doc.cocalc.com/compute_server.html">
-          Compute Server documentation
-        </A>
-        .
-      </>
-    ),
-  },
   {
     link: "/features/jupyter-notebook",
     title: "Jupyter Notebooks",
