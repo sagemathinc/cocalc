@@ -2,7 +2,7 @@ import getPool from "@cocalc/database/pool";
 import type { LroScopeType, LroSummary } from "@cocalc/conat/hub/api/lro";
 import { assertCollab } from "./util";
 import { getLro, listLro, updateLro } from "@cocalc/server/lro/lro-db";
-import { publishLroSummary } from "@cocalc/server/lro/stream";
+import { publishLroSummary } from "@cocalc/conat/lro/stream";
 import { cancelCopiesByOpId } from "@cocalc/server/projects/copy-db";
 
 async function assertScopeAccess({

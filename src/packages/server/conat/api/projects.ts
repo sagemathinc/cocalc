@@ -12,20 +12,15 @@ import {
   updateAuthorizedKeysOnHost as updateAuthorizedKeysOnHostControl,
 } from "@cocalc/server/project-host/control";
 import { getProject } from "@cocalc/server/projects/control";
-import { moveProjectToHost } from "@cocalc/server/projects/move";
 import {
   cancelCopy as cancelCopyDb,
   listCopiesForProject,
 } from "@cocalc/server/projects/copy-db";
 import { createLro, updateLro } from "@cocalc/server/lro/lro-db";
-import { publishLroEvent, publishLroSummary } from "@cocalc/server/lro/stream";
+import { publishLroEvent, publishLroSummary } from "@cocalc/conat/lro/stream";
 import { lroStreamName } from "@cocalc/conat/lro/names";
 import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
 import { assertCollab } from "./util";
-import {
-  getMove,
-  type ProjectMoveRow,
-} from "@cocalc/server/project-host/move-db";
 import type { ProjectCopyRow } from "@cocalc/conat/hub/api/projects";
 
 export async function copyPathBetweenProjects({
@@ -328,24 +323,48 @@ export async function moveProject({
   account_id: string;
   project_id: string;
   dest_host_id?: string;
-}): Promise<void> {
+}): Promise<{
+  op_id: string;
+  scope_type: "project";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+}> {
   await assertCollab({ account_id, project_id });
-  if (!dest_host_id) {
-    throw Error("dest_host_id must be specified");
-  }
-  await moveProjectToHost({
-    project_id,
-    dest_host_id,
-    account_id,
+  const op = await createLro({
+    kind: "project-move",
+    scope_type: "project",
+    scope_id: project_id,
+    created_by: account_id,
+    routing: "hub",
+    input: dest_host_id ? { project_id, dest_host_id } : { project_id },
+    status: "queued",
   });
-}
+  await publishLroSummary({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    summary: op,
+  });
+  publishLroEvent({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    op_id: op.op_id,
+    event: {
+      type: "progress",
+      ts: Date.now(),
+      phase: "queued",
+      message: "queued",
+      progress: 0,
+    },
+  }).catch(() => {});
 
-export async function getMoveStatus({
-  account_id,
-  project_id,
-}): Promise<ProjectMoveRow | undefined> {
-  await assertCollab({ account_id, project_id });
-  return await getMove(project_id);
+  return {
+    op_id: op.op_id,
+    scope_type: "project",
+    scope_id: project_id,
+    service: PERSIST_SERVICE,
+    stream_name: lroStreamName(op.op_id),
+  };
 }
 
 export async function getSshKeys({

@@ -2,17 +2,18 @@ import path from "node:path";
 import getLogger from "@cocalc/backend/logger";
 import { conat } from "@cocalc/backend/conat";
 import getPool from "@cocalc/database/pool";
+import { waitForCompletion as waitForLroCompletion } from "@cocalc/conat/lro/client";
 import {
   client as fileServerClient,
   type Fileserver,
 } from "@cocalc/conat/files/file-server";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
+import { createBackup as createBackupLro } from "@cocalc/server/conat/api/project-backups";
 import { insertCopyRowIfMissing, upsertCopyRow } from "./copy-db";
 
 const logger = getLogger("server:projects:copy");
 
 const COPY_TTL_MS = 7 * 24 * 60 * 60 * 1000;
-const MAX_BACKUPS_PER_PROJECT = 30;
 const COPY_FILES_TIMEOUT_MS = 30 * 60 * 1000;
 
 type CopyStep = {
@@ -48,6 +49,34 @@ function fileServerClientWithTimeout(
 
 function report(progress: CopyProgress | undefined, update: CopyStep) {
   progress?.(update);
+}
+
+async function createBackupAndWait({
+  account_id,
+  project_id,
+  tags,
+}: {
+  account_id: string;
+  project_id: string;
+  tags?: string[];
+}): Promise<{ id: string; time?: string }> {
+  const op = await createBackupLro({ account_id, project_id, tags });
+  const summary = await waitForLroCompletion({
+    op_id: op.op_id,
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    client: conat(),
+  });
+  if (summary.status !== "succeeded") {
+    const reason = summary.error ?? summary.status;
+    throw new Error(`backup failed: ${reason}`);
+  }
+  const result = summary.result ?? {};
+  const id = result.id ?? result.backup_id;
+  if (!id) {
+    throw new Error("backup completed without snapshot id");
+  }
+  return { id, time: result.time ?? result.backup_time };
 }
 
 function normalizeRelativePath(raw: string, label: string): string {
@@ -224,9 +253,9 @@ export async function copyProjectFiles({
     );
     let createdBackup = false;
     if (!snapshot_id) {
-      const backup = await backupClient.createBackup({
+      const backup = await createBackupAndWait({
+        account_id,
         project_id: src.project_id,
-        limit: MAX_BACKUPS_PER_PROJECT,
         tags,
       });
       snapshot_id = backup.id;

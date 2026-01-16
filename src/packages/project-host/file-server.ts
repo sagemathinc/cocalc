@@ -119,6 +119,28 @@ export async function ensureVolume(project_id: string) {
   return await fs.subvolumes.ensure(volName(project_id));
 }
 
+export async function deleteVolume(project_id: string) {
+  if (fs == null) {
+    throw Error("file server not initialized");
+  }
+  const vol = await fs.subvolumes.get(volName(project_id));
+  if (!(await exists(vol.path))) {
+    return;
+  }
+  try {
+    const snapshots = await vol.snapshots.readdir();
+    for (const name of snapshots) {
+      await vol.snapshots.delete(name);
+    }
+  } catch (err) {
+    logger.warn("deleteVolume: snapshot cleanup failed", {
+      project_id,
+      err: `${err}`,
+    });
+  }
+  await fs.subvolumes.delete(volName(project_id));
+}
+
 async function getVolumeUnchecked(project_id: string) {
   if (fs == null) {
     throw Error("file server not initialized");

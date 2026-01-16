@@ -15,12 +15,12 @@ import type { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { allow_project_to_run } from "@cocalc/frontend/project/client-side-throttle";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { once } from "@cocalc/util/async-utils";
+import type { LroSummary } from "@cocalc/conat/hub/api/lro";
 import type { StudentProjectFunctionality } from "@cocalc/util/db-schema/projects";
 import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import {
   defaults,
   is_valid_uuid_string,
-  uuid,
 } from "@cocalc/util/misc";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
@@ -805,6 +805,47 @@ export class ProjectsActions extends Actions<ProjectsState> {
     }
   };
 
+  private watchMoveLro = (
+    actions: ReturnType<typeof redux.getProjectActions> | undefined,
+    op: {
+      op_id?: string;
+      scope_type?: LroSummary["scope_type"];
+      scope_id?: string;
+    },
+    logInfo: { project_id: string; dest_host_id?: string },
+  ) => {
+    if (!actions || !op?.op_id || !op.scope_type) {
+      return;
+    }
+    const scope_id =
+      op.scope_id ??
+      (op.scope_type === "project" ? actions.project_id : undefined);
+    if (!scope_id && op.scope_type !== "hub") {
+      return;
+    }
+    void webapp_client.conat_client.lroWait({
+      op_id: op.op_id,
+      scope_type: op.scope_type,
+      scope_id,
+    })
+      .then((summary) => {
+        if (summary.status !== "succeeded") {
+          const reason = summary.error ?? summary.status;
+          const error = `Error move project -- ${reason}`;
+          actions.setState({ control_error: error });
+          return;
+        }
+        this.project_log(logInfo.project_id, {
+          event: "project_moved",
+          dest_host_id: logInfo.dest_host_id,
+        });
+      })
+      .catch((err) => {
+        const error = `Error move project -- ${err}`;
+        actions.setState({ control_error: error });
+      });
+  };
+
   // returns true, if it actually stopped the project
   stop_project = reuseInFlight(
     async (project_id: string, _force?: boolean): Promise<boolean> => {
@@ -831,40 +872,18 @@ export class ProjectsActions extends Actions<ProjectsState> {
   );
 
   move_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
-    const host_id = store.getIn(["project_map", project_id, "host_id"]);
     const actions = redux.getProjectActions(project_id);
-    const id = uuid();
-    const status = `Moving Workspace`;
-    actions.set_activity({ id, status });
     try {
       // start the move going
-      await webapp_client.conat_client.hub.projects.moveProject({ project_id });
-      // wait for it to finish
-      while (store.getIn(["project_map", project_id, "host_id"]) == host_id) {
-        try {
-          await once(store, "change", 1000);
-        } catch {}
-        const status =
-          await webapp_client.conat_client.hub.projects.getMoveStatus({
-            project_id,
-          });
-        if (status?.state == "done") {
-          break;
-        }
-        if (status?.state == "failing") {
-          throw Error(status.status_reason ?? "failed");
-        }
-      }
-      actions.set_activity({ id, stop: "", error: "" });
+      const resp =
+        await webapp_client.conat_client.hub.projects.moveProject({ project_id });
+      actions.trackMoveOp(resp);
+      this.watchMoveLro(actions, resp, { project_id });
     } catch (err) {
       const error = `Error move project -- ${err}`;
       actions.setState({ control_error: error });
-      actions.set_activity({ id, stop: "", error });
       throw err;
     }
-    this.project_log(project_id, {
-      event: "project_moved",
-    });
     return true;
   });
 
@@ -873,44 +892,19 @@ export class ProjectsActions extends Actions<ProjectsState> {
       const current_host = store.getIn(["project_map", project_id, "host_id"]);
       if (dest_host_id === current_host) return true;
       const actions = redux.getProjectActions(project_id);
-      const id = uuid();
-      const status = `Moving Workspace`;
-      actions?.set_activity({ id, status });
       try {
-        await webapp_client.conat_client.hub.projects.moveProject({
+        const resp = await webapp_client.conat_client.hub.projects.moveProject({
           project_id,
           dest_host_id,
         });
-        // wait until host_id changes or move reports done/failing
-        while (
-          store.getIn(["project_map", project_id, "host_id"]) == current_host
-        ) {
-          try {
-            await once(store, "change", 1000);
-          } catch {}
-          const status =
-            await webapp_client.conat_client.hub.projects.getMoveStatus({
-              project_id,
-            });
-          if (status?.state == "done") {
-            break;
-          }
-          if (status?.state == "failing") {
-            throw Error(status.status_reason ?? "failed");
-          }
-        }
-        actions?.set_activity({ id, stop: "", error: "" });
+        actions?.trackMoveOp(resp);
+        this.watchMoveLro(actions, resp, { project_id, dest_host_id });
       } catch (err) {
         const error = `Error move project -- ${err}`;
         console.log(error);
         actions?.setState({ control_error: error });
-        actions?.set_activity({ id, stop: "", error });
         throw err;
       }
-      this.project_log(project_id, {
-        event: "project_moved",
-        dest_host_id,
-      });
       return true;
     },
   );

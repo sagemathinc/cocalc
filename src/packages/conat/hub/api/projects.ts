@@ -8,27 +8,6 @@ import {
   type RestoreStagingHandle,
 } from "@cocalc/conat/files/file-server";
 
-export type ProjectMoveState =
-  | "queued"
-  | "preparing"
-  | "sending"
-  | "finalizing"
-  | "done"
-  | "failing";
-
-export interface ProjectMoveRow {
-  project_id: string;
-  source_host_id: string | null;
-  dest_host_id: string | null;
-  state: ProjectMoveState;
-  status_reason: string | null;
-  snapshot_name: string | null;
-  progress: any;
-  attempt: number;
-  created_at: Date;
-  updated_at: Date;
-}
-
 export type ProjectCopyState =
   | "queued"
   | "applying"
@@ -93,7 +72,6 @@ export const projects = {
   getSshKeys: authFirstRequireProject,
 
   moveProject: authFirstRequireAccount,
-  getMoveStatus: authFirstRequireAccount,
 };
 
 export type AddCollaborator =
@@ -220,7 +198,13 @@ export interface Projects {
   createBackup: (opts: {
     account_id?: string;
     project_id: string;
-  }) => Promise<{ time: Date; id: string }>;
+  }) => Promise<{
+    op_id: string;
+    scope_type: "project";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }>;
 
   deleteBackup: (opts: {
     account_id?: string;
@@ -360,10 +344,11 @@ export interface Projects {
     account_id?: string;
     project_id: string;
     dest_host_id?: string;
-  }) => Promise<void>;
-
-  getMoveStatus: (opts: {
-    account_id?: string;
-    project_id: string;
-  }) => Promise<ProjectMoveRow | undefined>;
+  }) => Promise<{
+    op_id: string;
+    scope_type: "project";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }>;
 }

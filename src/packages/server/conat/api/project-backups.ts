@@ -5,6 +5,10 @@ import {
 } from "@cocalc/conat/files/file-server";
 import { type SnapshotCounts } from "@cocalc/util/db-schema/projects";
 import { assertCollab } from "./util";
+import { createLro } from "@cocalc/server/lro/lro-db";
+import { publishLroEvent, publishLroSummary } from "@cocalc/conat/lro/stream";
+import { lroStreamName } from "@cocalc/conat/lro/names";
+import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
 
 // just *some* limit to avoid bugs/abuse
 
@@ -19,13 +23,47 @@ export async function createBackup({
   project_id: string;
   name?: string;
   tags?: string[];
-}): Promise<{ time: Date; id: string }> {
+}): Promise<{
+  op_id: string;
+  scope_type: "project";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+}> {
   await assertCollab({ account_id, project_id });
-  return await fileServerClient({ project_id }).createBackup({
-    project_id,
-    limit: MAX_BACKUPS_PER_PROJECT,
-    tags,
+  const op = await createLro({
+    kind: "project-backup",
+    scope_type: "project",
+    scope_id: project_id,
+    created_by: account_id,
+    routing: "hub",
+    input: { project_id, tags },
+    status: "queued",
   });
+  await publishLroSummary({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    summary: op,
+  });
+  publishLroEvent({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    op_id: op.op_id,
+    event: {
+      type: "progress",
+      ts: Date.now(),
+      phase: "queued",
+      message: "queued",
+      progress: 0,
+    },
+  }).catch(() => {});
+  return {
+    op_id: op.op_id,
+    scope_type: "project",
+    scope_id: project_id,
+    service: PERSIST_SERVICE,
+    stream_name: lroStreamName(op.op_id),
+  };
 }
 
 export async function deleteBackup({

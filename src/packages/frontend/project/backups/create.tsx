@@ -23,9 +23,18 @@ export default function CreateBackup() {
     try {
       setLoading(true);
       setError("");
-      await webapp_client.conat_client.hub.projects.createBackup({
+      const op = await webapp_client.conat_client.hub.projects.createBackup({
         project_id,
       });
+      const summary = await webapp_client.conat_client.lroWait({
+        op_id: op.op_id,
+        scope_type: op.scope_type,
+        scope_id: op.scope_id,
+      });
+      if (summary.status !== "succeeded") {
+        const reason = summary.error ?? summary.status;
+        throw new Error(`backup failed: ${reason}`);
+      }
       setOpen(false);
     } catch (err) {
       setError(err);
@@ -66,9 +75,12 @@ export default function CreateBackup() {
           ]}
         >
           <p>
-            Backups are deduplicated archives that include your project files
-            and persisted state. Creating a backup runs in the background and
-            does not interrupt your work.
+            Backups are archives that include your workspace files, any
+            software you have installed, and TimeTravel edit history, but not
+            the contents of /tmp or /scratch. Backups
+            are state stored separately from workspace hosts.
+            Creating a backup runs in the background and does
+            not interrupt your work.
           </p>
           <ShowError style={{ marginTop: "10px" }} error={error} setError={setError} />
         </Modal>

@@ -12,7 +12,7 @@ It's really more than just that button, since it gives info as starting/stopping
 happens, and also when the system is heavily loaded.
 */
 
-import { Alert, Button, Space, Tooltip } from "antd";
+import { Alert, Button, Progress, Space, Spin, Tooltip } from "antd";
 import { CSSProperties, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -32,6 +32,7 @@ import { DOC_TRIAL } from "./project-banner";
 import { lite } from "@cocalc/frontend/lite";
 import Bootlog from "./bootlog";
 import type { StartLroState } from "./start-ops";
+import type { MoveLroState } from "./move-ops";
 
 const STYLE: CSSProperties = {
   fontSize: "40px",
@@ -58,6 +59,10 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
     (store) => store?.get("start_lro")?.toJS() as StartLroState | undefined,
     project_id,
   );
+  const moveLro = redux.useProjectStore(
+    (store) => store?.get("move_lro")?.toJS() as MoveLroState | undefined,
+    project_id,
+  );
   const startLroActive =
     startLro != null &&
     (!startLro.summary ||
@@ -70,6 +75,11 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
   const startLroStartTs = startLroSummary
     ? toTimestamp(startLroSummary.started_at ?? startLroSummary.created_at)
     : undefined;
+  const moveActive =
+    moveLro != null &&
+    (!moveLro.summary ||
+      moveLro.summary.status === "queued" ||
+      moveLro.summary.status === "running");
 
   const state = useMemo(() => {
     const state = project_map?.get(project_id)?.get("state");
@@ -190,65 +200,72 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
     );
 
     return (
-      <Tooltip
-        title={
-          <div>
-            <ProjectState state={state} show_desc={allowed} />
-            {render_not_allowed()}
-            {starting && (
-              <div style={{ background: "white" }}>
-                {startLroSummary && (
-                  <div style={{ fontSize: "12px", color: COLORS.GRAY_M }}>
-                    LRO: {startLroStatus ?? "Unknown"}
-                    {startLroStartTs != null && (
-                      <>
-                        {" "}
-                        &middot; <TimeElapsed start_ts={startLroStartTs} longform={false} />
-                      </>
-                    )}
-                  </div>
-                )}
-                <Bootlog
-                  style={{
-                    border: "1px solid #ddd",
-                    padding: "15px",
-                    boxShadow: "5px 5px 5px grey",
-                  }}
-                  lro={
-                    startLroSummary
-                      ? {
-                          op_id: startLroSummary.op_id,
-                          scope_type: startLroSummary.scope_type,
-                          scope_id: startLroSummary.scope_id,
-                        }
-                      : undefined
-                  }
-                />
-              </div>
-            )}
-          </div>
-        }
-      >
-        <Button
-          type="primary"
-          size={minimal ? undefined : "large"}
-          style={minimal ? style : undefined}
-          disabled={!enabled}
-          onClick={async () => {
-            try {
-              await redux.getActions("projects").start_project(project_id);
-            } catch (err) {
-              // maybe ui should show this some other way
-              console.warn("WARNING -- issue starting project ", err);
-            }
-          }}
+      <Space size="small" align="center">
+        <Tooltip
+          title={
+            <div>
+              <ProjectState state={state} show_desc={allowed} />
+              {render_not_allowed()}
+              {starting && (
+                <div style={{ background: "white" }}>
+                  {startLroSummary && (
+                    <div style={{ fontSize: "12px", color: COLORS.GRAY_M }}>
+                      LRO: {startLroStatus ?? "Unknown"}
+                      {startLroStartTs != null && (
+                        <>
+                          {" "}
+                          &middot;{" "}
+                          <TimeElapsed
+                            start_ts={startLroStartTs}
+                            longform={false}
+                          />
+                        </>
+                      )}
+                    </div>
+                  )}
+                  <Bootlog
+                    style={{
+                      border: "1px solid #ddd",
+                      padding: "15px",
+                      boxShadow: "5px 5px 5px grey",
+                    }}
+                    lro={
+                      startLroSummary
+                        ? {
+                            op_id: startLroSummary.op_id,
+                            scope_type: startLroSummary.scope_type,
+                            scope_id: startLroSummary.scope_id,
+                          }
+                        : undefined
+                    }
+                  />
+                </div>
+              )}
+            </div>
+          }
         >
-          <Space>
-            {starting ? <Icon name="cocalc-ring" spin /> : <Icon name="play" />}
-            {txt}
-          </Space>
-        </Button>
-      </Tooltip>
+          <Button
+            type="primary"
+            size={minimal ? undefined : "large"}
+            style={minimal ? style : undefined}
+            disabled={!enabled}
+            onClick={async () => {
+              try {
+                await redux.getActions("projects").start_project(project_id);
+              } catch (err) {
+                // maybe ui should show this some other way
+                console.warn("WARNING -- issue starting project ", err);
+              }
+            }}
+          >
+            <Space>
+              {starting ? <Icon name="cocalc-ring" spin /> : <Icon name="play" />}
+              {txt}
+            </Space>
+          </Button>
+        </Tooltip>
+        {moveActive && moveLro && <MoveProgressInline moveLro={moveLro} />}
+      </Space>
     );
   }
 
@@ -305,5 +322,42 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
         ? render_admin_view()
         : render_normal_view()}
     </div>
+  );
+}
+
+function MoveProgressInline({ moveLro }: { moveLro: MoveLroState }) {
+  const message =
+    moveLro.last_progress?.message ??
+    moveLro.last_progress?.phase ??
+    moveLro.summary?.progress_summary?.phase ??
+    "Moving workspace";
+  const progress = moveLro.last_progress?.progress;
+  const percent =
+    progress == null
+      ? undefined
+      : Math.max(0, Math.min(100, Math.round(progress)));
+  const status = moveLro.summary?.status;
+
+  return (
+    <Space size="small" align="center">
+      <span style={{ fontSize: "11px", color: COLORS.GRAY_M }}>{message}</span>
+      {percent == null ? (
+        <Spin size="small" />
+      ) : (
+        <Progress
+          percent={percent}
+          size="small"
+          showInfo={false}
+          status={
+            status === "failed" || status === "canceled" || status === "expired"
+              ? "exception"
+              : status === "succeeded"
+                ? "success"
+                : "active"
+          }
+          style={{ width: "120px" }}
+        />
+      )}
+    </Space>
   );
 }
