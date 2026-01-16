@@ -14,6 +14,11 @@ import {
   listUnreportedProjects,
   markProjectStateReported,
 } from "./sqlite/projects";
+import {
+  listUnreportedProvisioning,
+  markProjectProvisionedReported,
+  setProjectProvisioned,
+} from "./sqlite/provisioning";
 import { deleteProjectLocal } from "./sqlite/projects";
 
 let statusClient: HostStatusApi | undefined;
@@ -36,6 +41,9 @@ export function setMasterStatusClient({
   hostInfo = { host_id, host };
   reportPendingStates().catch((err) =>
     logger.debug("reportPendingStates initial send failed", { err }),
+  );
+  reportPendingProvisioning().catch((err) =>
+    logger.debug("reportPendingProvisioning initial send failed", { err }),
   );
   if (!resendTimer) {
     resendTimer = setInterval(reportPendingStates, 15_000).unref();
@@ -69,6 +77,50 @@ export async function reportProjectStateToMaster(
   }
 }
 
+export function queueProjectProvisioned(
+  project_id: string,
+  provisioned: boolean,
+) {
+  setProjectProvisioned(project_id, provisioned);
+  reportProjectProvisionedToMaster(project_id, provisioned).catch((err) =>
+    logger.debug("reportProjectProvisionedToMaster failed", {
+      project_id,
+      provisioned,
+      err,
+    }),
+  );
+}
+
+async function reportProjectProvisionedToMaster(
+  project_id: string,
+  provisioned: boolean,
+) {
+  if (!statusClient || !hostInfo) return;
+  try {
+    logger.debug("reportProjectProvisionedToMaster", {
+      project_id,
+      provisioned,
+    });
+    const res = await statusClient.reportProjectProvisioned({
+      ...hostInfo,
+      project_id,
+      provisioned,
+    });
+    if ((res as any)?.action === "delete") {
+      logger.debug("master requested local project deletion", { project_id });
+      deleteProjectLocal(project_id);
+      return;
+    }
+    markProjectProvisionedReported(project_id);
+  } catch (err) {
+    logger.debug("reportProjectProvisionedToMaster failed", {
+      project_id,
+      provisioned,
+      err,
+    });
+  }
+}
+
 async function reportPendingStates() {
   if (!statusClient || !hostInfo) return;
   const pending = listUnreportedProjects();
@@ -90,6 +142,34 @@ async function reportPendingStates() {
       markProjectStateReported(row.project_id);
     } catch (err) {
       logger.debug("reportPendingStates failed", {
+        project_id: row.project_id,
+        err,
+      });
+    }
+  }
+  await reportPendingProvisioning();
+}
+
+async function reportPendingProvisioning() {
+  if (!statusClient || !hostInfo) return;
+  const pending = listUnreportedProvisioning();
+  for (const row of pending) {
+    try {
+      const res = await statusClient.reportProjectProvisioned({
+        ...hostInfo,
+        project_id: row.project_id,
+        provisioned: row.provisioned,
+      });
+      if ((res as any)?.action === "delete") {
+        logger.debug("master requested local project deletion", {
+          project_id: row.project_id,
+        });
+        deleteProjectLocal(row.project_id);
+        continue;
+      }
+      markProjectProvisionedReported(row.project_id);
+    } catch (err) {
+      logger.debug("reportPendingProvisioning failed", {
         project_id: row.project_id,
         err,
       });

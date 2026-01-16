@@ -198,16 +198,17 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
 ### Phase 5: Manage Backup Status
 
 - **Goal**: make host stop/deprovision safe and scalable by tracking whether projects are actually provisioned on a host, and by surfacing clear aggregate + per-project backup status for admins.
-- **New host-project inventory table**:
-  - table keyed by `(host_id, project_id)` with `present` (bool) + `updated_at`
-  - authoritative source for “provisioned” status (volume exists locally)
+- **Projects columns (single-host invariant)**:
+  - add `projects.provisioned` (bool, nullable) and `projects.provisioned_checked_at` (timestamp)
+  - `NULL` means “unknown/not yet scanned”; `false` means assigned but not present on host
+  - this is the authoritative source for “provisioned” status and flows to the frontend changefeed
 - **Host reporting**:
-  - on volume create/delete, report `present=true/false` to hub
-  - on host startup, run a single inventory scan (`/btrfs/project-*`) and batch update
-  - on host deprovision, clear inventory for that host
+  - on volume create/delete, enqueue a local durable update (sqlite outbox), report to hub, and mark complete on ack; retry until success
+  - on host startup, run a single inventory scan (`/btrfs/project-*`) and bulk update the hub
+  - on host deprovision, clear provisioning for that host (`provisioned=false`, `provisioned_checked_at=now()`)
 - **Hub aggregates (no per-project RPCs)**:
   - total assigned (`projects.host_id = host_id`)
-  - provisioned (`host_project_inventory.present`)
+  - provisioned (`projects.provisioned`)
   - running (`projects.state in running/starting`)
   - provisioned + up-to-date (`last_backup >= last_edited` or `last_edited` null)
 - **Stop/deprovision dialog**:

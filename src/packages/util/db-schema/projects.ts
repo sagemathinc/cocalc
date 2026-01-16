@@ -72,6 +72,8 @@ Table({
           deleted: null,
           host_id: null,
           host: null,
+          provisioned: null,
+          provisioned_checked_at: null,
           region: null,
           settings: DEFAULT_QUOTAS,
           run_quota: null,
@@ -218,6 +220,14 @@ Table({
       type: "map",
       desc: "This is a map {host:'hostname_of_server', assigned:timestamp of when assigned to that server}.",
       date: ["assigned"],
+    },
+    provisioned: {
+      type: "boolean",
+      desc: "Whether the project's data is present on its assigned host.",
+    },
+    provisioned_checked_at: {
+      type: "timestamp",
+      desc: "When provisioned status was last confirmed by the host.",
     },
     region: {
       type: "string",

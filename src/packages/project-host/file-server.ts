@@ -53,7 +53,7 @@ import {
 } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import path from "node:path";
-import { getMasterConatClient } from "./master-status";
+import { getMasterConatClient, queueProjectProvisioned } from "./master-status";
 import callHub from "@cocalc/conat/hub/call-hub";
 import {
   createRusticProgressHandler,
@@ -130,7 +130,9 @@ export async function ensureVolume(project_id: string) {
   if (fs == null) {
     throw Error("file server not initialized");
   }
-  return await fs.subvolumes.ensure(volName(project_id));
+  const vol = await fs.subvolumes.ensure(volName(project_id));
+  queueProjectProvisioned(project_id, true);
+  return vol;
 }
 
 export async function deleteVolume(project_id: string) {
@@ -139,6 +141,7 @@ export async function deleteVolume(project_id: string) {
   }
   const vol = await fs.subvolumes.get(volName(project_id));
   if (!(await exists(vol.path))) {
+    queueProjectProvisioned(project_id, false);
     return;
   }
   try {
@@ -153,6 +156,7 @@ export async function deleteVolume(project_id: string) {
     });
   }
   await fs.subvolumes.delete(volName(project_id));
+  queueProjectProvisioned(project_id, false);
 }
 
 async function getVolumeUnchecked(project_id: string) {
@@ -345,6 +349,7 @@ async function clone({
     throw Error("file server not initialized");
   }
   await fs.subvolumes.clone(volName(src_project_id), volName(project_id));
+  queueProjectProvisioned(project_id, true);
 }
 
 async function getUsage({ project_id }: { project_id: string }): Promise<{

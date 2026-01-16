@@ -42,6 +42,42 @@ export async function initHostStatusService() {
           stateObj,
         ]);
       },
+      async reportProjectProvisioned({
+        project_id,
+        provisioned,
+        host_id,
+        checked_at,
+      }) {
+        if (!project_id || provisioned === undefined) {
+          throw Error("project_id and provisioned are required");
+        }
+        const pool = getPool();
+        if (host_id) {
+          const { rows } = await pool.query<{
+            host_id: string | null;
+          }>("SELECT host_id FROM projects WHERE project_id=$1", [project_id]);
+          const currentHost = rows[0]?.host_id ?? null;
+          if (currentHost && currentHost !== host_id) {
+            logger.debug("ignoring provisioned update from non-owner host", {
+              project_id,
+              currentHost,
+              host_id,
+            });
+            return { action: "delete" as const };
+          }
+        }
+        let checkedAt = new Date();
+        if (checked_at != null) {
+          const parsed = new Date(checked_at);
+          if (!Number.isNaN(parsed.valueOf())) {
+            checkedAt = parsed;
+          }
+        }
+        await pool.query(
+          "UPDATE projects SET provisioned=$2, provisioned_checked_at=$3 WHERE project_id=$1",
+          [project_id, provisioned, checkedAt],
+        );
+      },
     },
   });
 }
