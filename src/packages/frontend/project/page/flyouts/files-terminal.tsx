@@ -66,7 +66,6 @@ export function TerminalFlyout({
   const [terminalExists, setTerminalExists] = useState<boolean>(false);
   const [error, setError] = useState("");
   const syncRef = useRef<boolean>(sync);
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   useEffect(() => {
     currentPathRef.current = current_path;
@@ -81,19 +80,9 @@ export function TerminalFlyout({
   // However, if the "current_path" changes, we update the terminal's cwd and vice versa.
   // The last aspect is why it is per user, not one terminal for everyone.
   // Also, having a different terminal for each directory is a bit confusing.
-  // We do have a different one for each compute server though.
-  const hash = sha1(`${project_id}::${account_id}::${compute_server_id}`);
+  const hash = sha1(`${project_id}::${account_id}`);
   const terminal_path = `/tmp/cocalc-${hash}.term`;
   const id = `flyout::${hash}`; // TODO what exactly is the ID? arbitrary or a path?
-  useEffect(() => {
-    if (compute_server_id) {
-      redux.getProjectActions(project_id).setComputeServerIdForFile({
-        path: terminal_path,
-        compute_server_id,
-        confirm: false,
-      });
-    }
-  }, [terminal_path]);
 
   function delete_terminal(): void {
     if (terminalRef.current == null) return; // already deleted or never created
@@ -158,12 +147,10 @@ export function TerminalFlyout({
         dir?;
         first?: boolean;
         pos?: number;
-        compute_server_id?: number;
       }) {
         // we just open the file
         actions?.open_file({
           path: opts.path,
-          compute_server_id: opts.compute_server_id,
         });
       },
     };

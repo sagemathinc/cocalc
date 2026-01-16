@@ -122,7 +122,7 @@ export function useProjectContextProvider({
     { project_id },
     "active_project_tab",
   );
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  const compute_server_id = 0;
   // shared data: used to flip through the open tabs in the active files flyout
   const flipTabs = useState<number>(0);
 

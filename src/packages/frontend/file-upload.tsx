@@ -124,16 +124,13 @@ function postUrl(
   path: string,
   compute_server_id?: number,
 ): string {
+  void compute_server_id;
   if (!project_id) {
     return join(appBasePath, "blobs");
   }
-  if (compute_server_id == null) {
-    compute_server_id =
-      redux.getProjectStore(project_id).get("compute_server_id") ?? 0;
-  }
   return join(
     appBasePath,
-    `upload?project_id=${project_id}&compute_server_id=${compute_server_id}&path=${encodeURIComponent(path)}`,
+    `upload?project_id=${project_id}&path=${encodeURIComponent(path)}`,
   );
   //   return join(
   //     appBasePath,

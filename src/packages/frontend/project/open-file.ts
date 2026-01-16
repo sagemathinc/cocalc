@@ -24,7 +24,6 @@ import { isChatExtension } from "@cocalc/frontend/chat/paths";
 import { normalize } from "./utils";
 import { syncdbPath as ipynbSyncdbPath } from "@cocalc/util/jupyter/names";
 import { termPath } from "@cocalc/util/terminal/names";
-import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 
 // if true, PRELOAD_BACKGROUND_TABS makes it so all tabs have their file editing
 // preloaded, even background tabs.  This can make the UI much more responsive,
@@ -80,8 +79,9 @@ export async function open_file(
     new_browser_window: false,
     change_history: true,
     explicit: false,
-    compute_server_id: undefined,
+    compute_server_id: 0,
   });
+  opts.compute_server_id = 0;
   opts.path = normalize(opts.path);
 
   if (opts.line != null && !opts.fragmentId) {
@@ -156,7 +156,7 @@ export async function open_file(
   }
 
   try {
-    const fs = actions.fs(opts.compute_server_id);
+    const fs = actions.fs(0);
     // cocalc assumes the path is not a symlink
     const realpath = await fs.realpath(opts.path);
     if (!tabIsOpened()) {
@@ -262,52 +262,7 @@ export async function open_file(
 
   actions.open_files.set(opts.path, "fragmentId", opts.fragmentId ?? "");
 
-  const noComputeServer = excludeFromComputeServer(opts.path);
-
-  if (noComputeServer && actions.getComputeServerIdForFile(opts.path)) {
-    // this won't work so if such a file is somehow on a compute server, move it back:
-    opts.compute_server_id = 0;
-    await actions.setComputeServerIdForFile({
-      path: opts.path,
-      compute_server_id: opts.compute_server_id,
-      confirm: false,
-    });
-  } else {
-    if ((opts.compute_server_id != null || opts.explicit) && !alreadyOpened) {
-      let path = opts.path;
-      path = canonicalPath(path);
-      try {
-        if (noComputeServer) {
-          if (opts.compute_server_id) {
-            throw Error(
-              `Opening '${path}' on a compute server is not yet supported -- copy it to the Home Base and open it there instead.`,
-            );
-          } else {
-            opts.compute_server_id = 0;
-            await actions.setComputeServerIdForFile({
-              path,
-              compute_server_id: opts.compute_server_id,
-              confirm: false,
-            });
-          }
-        } else {
-          await actions.setComputeServerIdForFile({
-            path,
-            compute_server_id: opts.compute_server_id,
-            confirm: true,
-          });
-        }
-      } catch (err) {
-        actions.open_files.delete(opts.path);
-        alert_message({
-          type: "error",
-          message: `${err}`,
-          timeout: 20,
-        });
-        return;
-      }
-    }
-  }
+  void opts.explicit;
 
   if (!tabIsOpened()) {
     return;

@@ -16,10 +16,11 @@ export default function DiskUsage({
   compute_server_id?: number;
   style?;
 }) {
+  void compute_server_id;
   const [expand, setExpand] = useState<boolean>(false);
   const { usage, loading, error, setError, refresh, quota } = useDiskUsage({
     project_id,
-    compute_server_id,
+    compute_server_id: 0,
   });
 
   if (!quota?.size) {
@@ -116,7 +117,7 @@ export default function DiskUsage({
                         style={{ flex: 1 }}
                         onClick={async () => {
                           const actions = redux.getProjectActions(project_id);
-                          const fs = actions.fs(compute_server_id);
+                          const fs = actions.fs(0);
                           const stats = await fs.stat(path);
                           const p = stats.isDirectory() ? path : dirname(path);
                           actions.set_current_path(p);

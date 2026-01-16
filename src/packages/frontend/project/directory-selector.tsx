@@ -22,7 +22,7 @@ import {
 import { Icon, Loading } from "@cocalc/frontend/components";
 import { path_split } from "@cocalc/util/misc";
 import { alert_message } from "@cocalc/frontend/alerts";
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux } from "@cocalc/frontend/app-framework";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import ShowError from "@cocalc/frontend/components/error";
 import useFs from "@cocalc/frontend/project/listing/use-fs";
@@ -41,7 +41,6 @@ interface Props {
   style?: CSSProperties;
   bodyStyle?: CSSProperties;
   project_id?: string;
-  compute_server_id?: number;
   startingPath?: string;
   isExcluded?: (path: string) => boolean; // grey out directories that return true.  Relative to home directory.
   onSelect?: (path: string) => void; // called when user chooses a directory; only when multi is false.
@@ -57,7 +56,6 @@ export default function DirectorySelector({
   style,
   bodyStyle,
   project_id,
-  compute_server_id,
   startingPath,
   isExcluded,
   onSelect,
@@ -70,11 +68,7 @@ export default function DirectorySelector({
 }: Props) {
   const frameContext = useFrameContext(); // optionally used to define project_id and startingPath, when in a frame
   project_id ??= frameContext.project_id;
-  const fallbackComputeServerId = useTypedRedux(
-    { project_id },
-    "compute_server_id",
-  );
-  const computeServerId = compute_server_id ?? fallbackComputeServerId;
+  const computeServerId = 0;
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
     const expandedPaths: string[] = [""];
     if (startingPath == null) {
@@ -376,10 +370,9 @@ function Subdirs(props) {
     style,
     toggleSelection,
   } = props;
-  const fs = useFs({ project_id, computeServerId });
+  const fs = useFs({ project_id });
   const cacheId = getCacheId({
     project_id,
-    compute_server_id: computeServerId,
   });
   const { files, error, refresh } = useFiles({
     fs,

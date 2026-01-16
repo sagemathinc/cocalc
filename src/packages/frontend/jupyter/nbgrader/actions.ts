@@ -188,13 +188,12 @@ export class NBGraderActions {
   ): Promise<void> => {
     // Create a copy of the current notebook at the location specified by
     // filename, and modify by applying the assign transformations.
-    const { path, project_id } = this.jupyter_actions;
+    const { project_id } = this.jupyter_actions;
     const project_actions = this.redux.getProjectActions(project_id);
-    const compute_server_id = project_actions.getComputeServerIdForFile(path);
     await project_actions.createFile({
       name: filename,
       foreground: true,
-      compute_server_id,
+      compute_server_id: 0,
     });
     let actions = this.redux.getEditorActions(project_id, filename);
     while (actions == null) {

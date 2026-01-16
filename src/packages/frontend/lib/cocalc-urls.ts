@@ -19,16 +19,10 @@ export function fileURL({
   compute_server_id?: number;
   param?: string;
 }): string {
+  void compute_server_id;
   let url = join(appBasePath, project_id, "files", encode_path(path));
-  if (compute_server_id) {
-    url += `?id=${compute_server_id}`;
-  }
   if (param) {
-    if (compute_server_id) {
-      url += "&" + param;
-    } else {
-      url += "?" + param;
-    }
+    url += "?" + param;
   }
   return url;
 }

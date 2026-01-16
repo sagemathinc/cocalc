@@ -28,6 +28,7 @@ export default function useListing({
   path: string;
   compute_server_id: number;
 }): Listing | undefined {
+  void compute_server_id;
   const { project_id } = useProjectContext();
   const [listing, setListing] = useState<Listing | undefined>(undefined);
   const listingsRef = useRef<undefined | ListingsClient>(undefined);
@@ -40,7 +41,7 @@ export default function useListing({
     }
     listingsRef.current = await listingsClient({
       project_id,
-      compute_server_id,
+      compute_server_id: 0,
     });
     const handleChange = (path) => {
       if (path == pathRef.current) {
@@ -54,7 +55,7 @@ export default function useListing({
       listingsRef.current?.close();
       listingsRef.current = undefined;
     };
-  }, [project_id, compute_server_id]);
+  }, [project_id]);
 
   useEffect(() => {
     pathRef.current = path;

@@ -52,7 +52,6 @@ export function FileListing({
   publicFiles,
   sort_by,
 }: Props) {
-  const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
   const selected_file_index =
     useTypedRedux({ project_id }, "selected_file_index") ?? 0;
   const name = actions.name;
@@ -78,7 +77,7 @@ export function FileListing({
         current_path={current_path}
         actions={actions}
         no_select={shiftIsDown}
-        computeServerId={computeServerId}
+        computeServerId={0}
         listing={listing}
       />
     );

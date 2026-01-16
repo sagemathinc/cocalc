@@ -101,7 +101,7 @@ export function Explorer() {
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
   const projectLabelLower = projectLabel.toLowerCase();
-  const { actions, project_id, compute_server_id } = useProjectContext();
+  const { actions, project_id } = useProjectContext();
 
   const newFileRef = useRef<any>(null);
   const searchAndTerminalBar = useRef<any>(null);
@@ -148,12 +148,11 @@ export function Explorer() {
       getSort({
         project_id,
         path: current_path,
-        compute_server_id,
       }),
-    [sort, current_path, compute_server_id, project_id],
+    [sort, current_path, project_id],
   );
 
-  const fs = useFs({ project_id, compute_server_id });
+  const fs = useFs({ project_id });
   const isBackupsPath =
     current_path === ".backups" || current_path?.startsWith(".backups/");
   let {
@@ -164,7 +163,7 @@ export function Explorer() {
     fs: isBackupsPath ? null : fs,
     path: current_path,
     ...sortDesc(active_file_sort),
-    cacheId: actions?.getCacheId(compute_server_id),
+    cacheId: actions?.getCacheId(),
     mask,
   });
   const {
@@ -478,7 +477,6 @@ export function Explorer() {
               <DiskUsage
                 style={{ marginRight: "5px" }}
                 project_id={project_id}
-                compute_server_id={compute_server_id}
               />
             )}
             {listing != null && (
@@ -623,7 +621,6 @@ export function Explorer() {
                     column_name,
                     project_id,
                     path: current_path,
-                    compute_server_id,
                   })
                 }
                 listing={listing}

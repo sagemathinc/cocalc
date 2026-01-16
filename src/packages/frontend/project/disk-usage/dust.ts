@@ -4,7 +4,8 @@ import TTLCache from "@isaacs/ttlcache";
 const dustCache = new TTLCache<string, any>({ ttl: 1000 * 60 });
 
 export function key({ project_id, path, compute_server_id }) {
-  return `${project_id}-${compute_server_id}-${path}`;
+  void compute_server_id;
+  return `${project_id}-0-${path}`;
 }
 
 // Very Obvious TODO, depending on how we use this, which doesn't change the API:
@@ -14,19 +15,17 @@ export function key({ project_id, path, compute_server_id }) {
 export default async function dust({
   project_id,
   path = "",
-  compute_server_id = 0,
   cache = true,
 }: {
   project_id: string;
   path?: string;
-  compute_server_id?: number;
   cache?: boolean;
 }) {
-  const k = key({ project_id, path, compute_server_id });
+  const k = key({ project_id, path, compute_server_id: 0 });
   if (cache && dustCache.has(k)) {
     return dustCache.get(k);
   }
-  const fs = redux.getProjectActions(project_id).fs(compute_server_id);
+  const fs = redux.getProjectActions(project_id).fs(0);
   const { stdout, stderr, code } = await fs.dust(path, {
     options: ["-j", "-x", "-d", "1", "-s", "-o", "b"],
     timeout: 3000,

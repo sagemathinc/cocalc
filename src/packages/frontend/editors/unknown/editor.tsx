@@ -28,11 +28,7 @@ interface Props {
 async function get_mime({ project_id, path, set_mime, set_err, set_snippet }) {
   try {
     let mime = "";
-    const compute_server_id =
-      (await webapp_client.project_client.getServerIdForPath({
-        project_id,
-        path,
-      })) ?? 0;
+    const compute_server_id = 0;
     const { stdout: mime_raw, exit_code: exit_code1 } =
       await webapp_client.project_client.exec({
         project_id,

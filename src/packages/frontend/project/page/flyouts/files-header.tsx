@@ -109,7 +109,6 @@ export function FilesHeader({
   const [mode, setMode] = modeState;
 
   const uploadClassName = `upload-button-flyout-${project_id}`;
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const kucalc = useTypedRedux("customize", "kucalc");
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
   const hidden = useTypedRedux({ project_id }, "show_hidden");
@@ -233,7 +232,6 @@ export function FilesHeader({
             column_name: name,
             project_id,
             path: current_path,
-            compute_server_id,
           })
         }
       >

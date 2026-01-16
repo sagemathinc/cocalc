@@ -11,11 +11,9 @@ import { labels } from "@cocalc/frontend/i18n";
 
 export default function useProjectInfo({
   project_id,
-  compute_server_id = 0,
   interval = 4000,
 }: {
   project_id: string;
-  compute_server_id?: number;
   interval?: number;
 }): {
   info: ProjectInfo | null;
@@ -33,7 +31,7 @@ export default function useProjectInfo({
   const update = async () => {
     // console.log("update", { project_id });
     try {
-      const info = await get({ project_id, compute_server_id: 0 });
+      const info = await get({ project_id });
       setInfo(info);
       setDisconnected(false);
       setError("");
@@ -52,7 +50,7 @@ export default function useProjectInfo({
 
   useEffect(() => {
     update();
-  }, [project_id, compute_server_id]);
+  }, [project_id]);
 
   return { info, error, setError, disconnected };
 }

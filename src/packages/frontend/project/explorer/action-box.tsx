@@ -454,7 +454,6 @@ export function ActionBox({
                 project_id={copy_destination_project_id}
                 style={{ width: "100%" }}
                 bodyStyle={{ maxHeight: "250px" }}
-                compute_server_id={0}
               />
             </Col>
           </Row>

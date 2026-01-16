@@ -14,6 +14,7 @@ export default function useDiskUsage({
   path?: string;
   compute_server_id?: number;
 }) {
+  void compute_server_id;
   const [counter, setCounter] = useState<number>(0);
   const lastCounterRef = useRef<number>(0);
   const [usage, setUsage] = useState<any>(null);
@@ -22,8 +23,8 @@ export default function useDiskUsage({
   const [quota, setQuota] = useState<{ used: number; size: number } | null>(
     null,
   );
-  const currentRef = useRef<any>(`${project_id}-${path}-${compute_server_id}`);
-  currentRef.current = key({ project_id, path, compute_server_id });
+  const currentRef = useRef<any>(`${project_id}-${path}-0`);
+  currentRef.current = key({ project_id, path, compute_server_id: 0 });
 
   useAsyncEffect(async () => {
     try {
@@ -32,17 +33,15 @@ export default function useDiskUsage({
       const x = await dust({
         project_id,
         path,
-        compute_server_id,
         cache: counter == lastCounterRef.current,
       });
-      if (!key({ project_id, path, compute_server_id }) == currentRef.current) {
+      if (!key({ project_id, path, compute_server_id: 0 }) == currentRef.current) {
         return;
       }
       setUsage(x);
       setQuota(
         await getQuota({
           project_id,
-          compute_server_id,
           cache: counter == lastCounterRef.current,
         }),
       );
@@ -52,7 +51,7 @@ export default function useDiskUsage({
       setLoading(false);
     }
     lastCounterRef.current = counter;
-  }, [project_id, path, compute_server_id, counter]);
+  }, [project_id, path, counter]);
 
   return {
     quota,

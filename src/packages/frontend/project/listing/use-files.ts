@@ -53,7 +53,7 @@ export default function useFiles({
   path: string;
   throttleUpdate?: number;
   // cacheId -- if given, save most recently loaded Files for a path in an in-memory LRU cache.
-  // An example cacheId could be {project_id, compute_server_id}.
+  // An example cacheId could be {project_id}.
   // This is used to speed up the first load, and can also be fetched synchronously.
   cacheId?: JSONValue;
 }): { files: Files | null; error: null | ConatError; refresh: () => void } {
@@ -179,12 +179,6 @@ async function cacheNeighbors({
   await Promise.all(v.map(f));
 }
 
-export function getCacheId({
-  project_id,
-  compute_server_id = 0,
-}: {
-  project_id: string;
-  compute_server_id?: number;
-}) {
-  return { project_id, compute_server_id };
+export function getCacheId({ project_id }: { project_id: string }) {
+  return { project_id };
 }

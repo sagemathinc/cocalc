@@ -97,6 +97,7 @@ export default function Configure({
   has_network_access,
   compute_server_id,
 }: Props) {
+  void compute_server_id;
   const publicPaths = useTypedRedux({ project_id }, "public_paths");
   const publicInfo: null | PublicPath = useMemo(() => {
     for (const x of publicPaths?.valueSeq() ?? []) {
@@ -132,23 +133,6 @@ export default function Configure({
 
   const kucalc = useTypedRedux("customize", "kucalc");
   const shareServer = useTypedRedux("customize", "share_server");
-
-  if (compute_server_id) {
-    return (
-      <Alert
-        type="warning"
-        style={{ padding: "30px", margin: "30px" }}
-        description={
-          <>
-            <h3>Publicly sharing files on a compute server is not supported</h3>
-            <div style={{ fontSize: "12pt" }}>
-              Copy the files to the project, then share them.
-            </div>
-          </>
-        }
-      />
-    );
-  }
 
   const handleSharingOptionsChange = (e) => {
     const state: States = e.target.value;

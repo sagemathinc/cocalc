@@ -92,7 +92,6 @@ export function FilesFlyout({
   );
   const current_path = useTypedRedux({ project_id }, "current_path");
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
 
   const sort = useTypedRedux({ project_id }, "active_file_sort");
@@ -101,9 +100,8 @@ export function FilesFlyout({
       getSort({
         project_id,
         path: current_path,
-        compute_server_id,
       }),
-    [sort, current_path, compute_server_id, project_id],
+    [sort, current_path, project_id],
   );
 
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
@@ -139,7 +137,7 @@ export function FilesFlyout({
 
   const isBackupsPath =
     current_path === ".backups" || current_path?.startsWith(".backups/");
-  const fs = useFs({ project_id, compute_server_id });
+  const fs = useFs({ project_id });
   const {
     listing: directoryListing,
     error: listingError,

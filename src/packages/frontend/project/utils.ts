@@ -295,6 +295,7 @@ export function url_href(
   path: string,
   compute_server_id?: number,
 ): string {
+  void compute_server_id;
   return fileURL({ project_id, path, compute_server_id });
 }
 
@@ -304,12 +305,9 @@ export function download_href(
   path: string,
   compute_server_id?: number,
 ): string {
-  const u = url_href(project_id, path, compute_server_id);
-  if (!compute_server_id) {
-    return `${u}?download`;
-  }
-  // there's already a ?id=[number], so use &.
-  return `${u}&download`;
+  void compute_server_id;
+  const u = url_href(project_id, path);
+  return `${u}?download`;
 }
 
 export function in_snapshot_path(path: string): boolean {

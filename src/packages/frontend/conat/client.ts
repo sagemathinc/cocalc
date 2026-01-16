@@ -388,10 +388,11 @@ export class ConatClient extends EventEmitter {
     mesg,
     timeout = DEFAULT_TIMEOUT,
   }) => {
+    void compute_server_id;
     const cn = this.conat();
     const subject = projectSubject({
       project_id,
-      compute_server_id,
+      compute_server_id: 0,
       service: "browser-api",
     });
     const resp = await cn.request(subject, mesg, {
@@ -446,22 +447,14 @@ export class ConatClient extends EventEmitter {
     // IMPORTANT: this timeout is only AFTER user is connected.
     timeout?: number;
   }): ProjectApi => {
+    void compute_server_id;
+    void path;
     if (!isValidUUID(project_id)) {
       throw Error(`project_id = '${project_id}' must be a valid uuid`);
     }
-    if (compute_server_id == null) {
-      const actions = redux.getProjectActions(project_id);
-      if (path != null) {
-        compute_server_id =
-          actions.getComputeServerIdForFile(path) ??
-          actions.getComputeServerId();
-      } else {
-        compute_server_id = actions.getComputeServerId();
-      }
-    }
     return projectApiClient({
       project_id,
-      compute_server_id,
+      compute_server_id: 0,
       timeout,
       client: this.conat(),
     });
@@ -488,9 +481,10 @@ export class ConatClient extends EventEmitter {
     compute_server_id?: number;
     channel?: string;
   }) => {
+    void compute_server_id;
     let subject = projectSubject({
       project_id,
-      compute_server_id,
+      compute_server_id: 0,
       service: "primus",
     });
     if (channel) {
@@ -559,7 +553,7 @@ export class ConatClient extends EventEmitter {
     project_id: string;
     compute_server_id?: number;
   }) => {
-    return await listingsClient(opts);
+    return await listingsClient({ ...opts, compute_server_id: 0 });
   };
 
   getTime = (): number => {
@@ -615,6 +609,7 @@ export class ConatClient extends EventEmitter {
     return terminalClient({
       client: this.conat(),
       ...opts,
+      compute_server_id: 0,
     });
   };
 }

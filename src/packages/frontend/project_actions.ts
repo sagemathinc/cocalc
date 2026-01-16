@@ -50,7 +50,6 @@ import {
 } from "@cocalc/frontend/project/history/types";
 import {
   OpenFileOpts,
-  canonicalPath,
   log_file_open,
   log_opened_time,
   open_file,
@@ -2388,7 +2387,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   dust = async (path: string, _compute_server_id?: number) => {
     void _compute_server_id;
-    return await dust({ project_id: this.project_id, path, compute_server_id: 0 });
+    return await dust({ project_id: this.project_id, path });
   };
 
   // if available in cache, this returns the filenames in the current directory,
@@ -2410,7 +2409,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     void _compute_server_id;
     return getCacheId({
       project_id: this.project_id,
-      compute_server_id: 0,
     });
   };
 

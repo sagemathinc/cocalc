@@ -16,7 +16,6 @@ import {
   React,
   redux,
   useRedux,
-  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useRef } from "react";
 
@@ -30,7 +29,6 @@ import { A } from "@cocalc/frontend/components/A";
 import { Loading } from "@cocalc/frontend/components/loading";
 import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
-import { syncdbPath } from "@cocalc/util/jupyter/names";
 import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
@@ -192,13 +190,11 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "pendingCells",
   ]);
 
-  const computeServerId = path
-    ? useTypedRedux({ project_id }, "compute_server_ids")?.get(syncdbPath(path))
-    : undefined;
+  const computeServerId = 0;
 
   useEffect(() => {
     actions.fetch_jupyter_kernels();
-  }, [computeServerId]);
+  }, [actions]);
 
   // this is confusing: it's here because the "nbviewer" code reuses a subset of components
   // and this is here to pass down AI tools related functionality to those, which are used by the frontend

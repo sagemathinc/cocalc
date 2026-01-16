@@ -47,7 +47,6 @@ import * as projects from "./projects";
 import * as sync from "./sync";
 import * as org from "./org";
 import * as messages from "./messages";
-import * as compute from "./compute";
 import * as fileSync from "./file-sync";
 import * as hosts from "./hosts";
 import * as software from "./software";
@@ -71,7 +70,6 @@ export const hubApi: HubApi = {
   sync,
   org,
   messages,
-  compute,
   fileSync,
   hosts,
   software,

@@ -32,16 +32,15 @@ export type ImmutableListing = TypedMap<Listing>;
 
 export class Listings extends EventEmitter {
   private project_id: string;
-  private compute_server_id: number;
   private state: State = "init";
   private listingsClient?: ListingsClient;
   private api: ListingsApi;
 
   constructor(project_id: string, compute_server_id: number = 0) {
     super();
+    void compute_server_id;
     this.project_id = project_id;
-    this.compute_server_id = compute_server_id;
-    this.api = createListingsApiClient({ project_id, compute_server_id });
+    this.api = createListingsApiClient({ project_id, compute_server_id: 0 });
     this.init();
   }
 
@@ -52,7 +51,7 @@ export class Listings extends EventEmitter {
       try {
         this.listingsClient = await listingsClient({
           project_id: this.project_id,
-          compute_server_id: this.compute_server_id,
+          compute_server_id: 0,
         });
         // success!
         return;
@@ -247,5 +246,6 @@ export function listings(
   project_id: string,
   compute_server_id: number = 0,
 ): Listings {
-  return new Listings(project_id, compute_server_id);
+  void compute_server_id;
+  return new Listings(project_id, 0);
 }

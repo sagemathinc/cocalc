@@ -10,12 +10,8 @@ import { useMemo } from "react";
 // the typing for now)
 export default function useFs({
   project_id,
-  compute_server_id,
-  computeServerId,
 }: {
   project_id: string;
-  compute_server_id?: number;
-  computeServerId?: number;
 }): FilesystemClient | null {
   return useMemo<FilesystemClient>(
     () =>
@@ -23,6 +19,6 @@ export default function useFs({
         project_id,
         compute_server_id: 0,
       }),
-    [project_id, compute_server_id, computeServerId],
+    [project_id],
   );
 }

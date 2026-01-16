@@ -224,7 +224,7 @@ export class JupyterActions extends JupyterActions0 {
       try {
         const kernel_usage = await getUsageInfo({
           project_id: this.project_id,
-          compute_server_id: this.getComputeServerIdSync(),
+          compute_server_id: 0,
           path: this.path,
         });
         if (this._state == ("closed" as any)) return;
@@ -989,21 +989,11 @@ export class JupyterActions extends JupyterActions0 {
   }
 
   getComputeServerIdSync = (): number => {
-    return (
-      webapp_client.project_client.getServerIdForPathSync({
-        project_id: this.project_id,
-        path: this.syncdbPath,
-      }) ?? 0
-    );
+    return 0;
   };
 
   getComputeServerId = async (): Promise<number> => {
-    return (
-      (await webapp_client.project_client.getServerIdForPath({
-        project_id: this.project_id,
-        path: this.syncdbPath,
-      })) ?? 0
-    );
+    return 0;
   };
 
   waitUntilProjectIsRunning = reuseInFlight(async () => {
@@ -1036,7 +1026,7 @@ export class JupyterActions extends JupyterActions0 {
         try {
           data = await getKernelSpec({
             project_id: this.project_id,
-            compute_server_id: this.getComputeServerIdSync(),
+            compute_server_id: 0,
             noCache,
           });
           return true;
@@ -1429,10 +1419,9 @@ export class JupyterActions extends JupyterActions0 {
   // functionality.
 
   private jupyterApi = async () => {
-    const compute_server_id = await this.getComputeServerId();
     const api = webapp_client.project_client.conatApi(
       this.project_id,
-      compute_server_id,
+      0,
     );
     return api.jupyter;
   };
@@ -1523,7 +1512,7 @@ export class JupyterActions extends JupyterActions0 {
 
   private jupyterClients: { [compute_server_id: number]: JupyterClient } = {};
   private getJupyterClient = async (): Promise<JupyterClient | null> => {
-    const compute_server_id = await this.getComputeServerId();
+    const compute_server_id = 0;
     if (this.isClosed()) return null;
     let c = this.jupyterClients[compute_server_id];
     if (c != null && c.socket.state != "closed") {

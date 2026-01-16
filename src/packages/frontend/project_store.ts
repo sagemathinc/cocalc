@@ -15,7 +15,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { useMemo } from "react";
 import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
-import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
@@ -272,14 +271,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         QueryParams.remove("compute-server-template");
       }
     }
-    let compute_server_id;
-    try {
-      const key = this.computeServerIdLocalStorageKey;
-      const value = get_local_storage(key);
-      compute_server_id = parseInt((value as any) ?? "0");
-    } catch (_) {
-      compute_server_id = 0;
-    }
+    const compute_server_id = 0;
     return {
       // Shared
       current_path: "",
@@ -365,10 +357,11 @@ export class ProjectStore extends Store<ProjectStoreState> {
   };
 
   fileURL = (path, compute_server_id?: number) => {
+    void compute_server_id;
     return fileURL({
       project_id: this.project_id,
       path,
-      compute_server_id: compute_server_id ?? this.get("compute_server_id"),
+      compute_server_id: 0,
     });
   };
 

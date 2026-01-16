@@ -1,6 +1,5 @@
 import LRU from "lru-cache";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { redux } from "@cocalc/frontend/app-framework";
 import type { KernelSpec } from "@cocalc/jupyter/types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
@@ -18,14 +17,11 @@ const getKernelSpec = reuseInFlight(
     noCache,
   }: {
     project_id: string;
-    // uses current default compute_server_id if not defined
     compute_server_id?: number;
     noCache?: boolean;
   }): Promise<KernelSpec[]> => {
-    compute_server_id =
-      compute_server_id ??
-      redux.getProjectActions(project_id).getComputeServerId();
-    const key = JSON.stringify({ project_id, compute_server_id });
+    void compute_server_id;
+    const key = JSON.stringify({ project_id, compute_server_id: 0 });
     // console.log({ key, noCache });
     if (!noCache) {
       const spec = cache.get(key);
@@ -35,7 +31,7 @@ const getKernelSpec = reuseInFlight(
     }
     const api = webapp_client.conat_client.projectApi({
       project_id,
-      compute_server_id,
+      compute_server_id: 0,
       timeout: 7500,
     });
     const spec = await api.jupyter.kernels();
