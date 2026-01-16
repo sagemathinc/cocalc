@@ -118,7 +118,7 @@ export class ConatSyncClient extends EventEmitter implements SyncClient {
     return new FileWatcher(opts.path);
   };
 
-  touch_project = (_): void => {};
+  touch_project = (_project_id: string): void => {};
 
   query_cancel = (_): void => {};
 

@@ -12,7 +12,6 @@ too late to change t use amount internally.  That's the only reason.
 */
 
 import { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
-import * as computeServers from "./compute-servers";
 import { CREATED_BY, ID } from "./crm";
 import type { MembershipClass } from "./subscriptions";
 import { SCHEMA as schema } from "./index";
@@ -58,14 +57,11 @@ export type Reason =
 // monthly quota on each one in purchase-quotas.
 // The service names for openai are of the form "openai-[model name]"
 
-// todo: why is this "compute"? makes no sense.
+// Non-LLM services we bill for.
 export type ComputeService =
   | "credit"
   | "auto-credit"
   | "refund"
-  | "compute-server"
-  | "compute-server-network-usage"
-  | "compute-server-storage"
   | "membership"
   | "student-pay"
   | "voucher";
@@ -83,54 +79,6 @@ export interface LLMDescription {
   last_updated?: number; // also in purchases/close.ts, a timestamp (Date.valueOf())
 }
 
-export interface ComputeServer {
-  type: "compute-server";
-  state: computeServers.State;
-  compute_server_id: number;
-  configuration: computeServers.Configuration;
-}
-
-export interface ComputeServerNetworkUsage {
-  type: "compute-server-network-usage";
-  cost?: MoneyValue;
-  compute_server_id: number;
-  amount: number; // amount of data used in GB
-  last_updated?: number;
-}
-
-// describes how the charges for GCS for a period time break down
-// into components.  Of course there is much more detail than this
-// in billing data, e.g., exactly how much of each kind of network.
-// But at least this breakdown is probably helpful as a start to
-// better understand charges.
-export interface GoogleCloudStorageBucketCost {
-  network: MoneyValue;
-  storage: MoneyValue;
-  classA: MoneyValue;
-  classB: MoneyValue;
-  autoclass: MoneyValue;
-  other: MoneyValue;
-}
-
-// This is used to support cloud file systems; however, it's generic
-// enough it could be for any bucket storage.
-export interface ComputeServerStorage {
-  type: "compute-server-storage";
-  cloud: "google-cloud"; // only google-cloud currently supported
-  bucket: string; // SUPER important -- the name of the bucket
-  cloud_filesystem_id: number;
-  // once the purchase is done and finalized, we put the final cost here:
-  cost?: MoneyValue;
-  // this is a breakdown of the cost, which is cloud-specific
-  cost_breakdown?: GoogleCloudStorageBucketCost;
-  // filesystem the bucket is used for.
-  // an estimated cost for the given period of time -- we try to make this
-  // based on collected metrics, and it may or may not be close to the
-  // actual cost.
-  estimated_cost?: { min: MoneyValue; max: MoneyValue };
-  // when the estimated cost was set.
-  last_updated?: number;
-}
 
 export interface Membership {
   type: "membership";
@@ -180,9 +128,6 @@ export interface Refund {
 
 export type Description =
   | LLMDescription
-  | ComputeServer
-  | ComputeServerNetworkUsage
-  | ComputeServerStorage
   | Credit
   | Refund
   | Membership

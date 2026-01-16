@@ -8,8 +8,8 @@ const logger = getLogger("server:cloud:dns");
 
 async function getConfig(): Promise<{ token?: string; dns?: string }> {
   const {
-    compute_servers_dns: dns,
-    compute_servers_cloudflare_api_key: token,
+    project_hosts_dns: dns,
+    project_hosts_cloudflare_tunnel_api_token: token,
   } = await getServerSettings();
   return { token, dns };
 }

@@ -105,27 +105,4 @@ export default class API implements API_Interface {
     return await this.call({ cmd: "query", opts }, timeout_ms);
   }
 
-  async compute_filesystem_cache(opts, timeout_ms = 30000) {
-    return await this.call(
-      { cmd: "compute_filesystem_cache", opts },
-      timeout_ms,
-    );
-  }
-
-  async syncFS(opts, timeout_ms = 1000 * 15 * 60) {
-    return await this.call({ cmd: "sync_fs", opts }, timeout_ms);
-  }
-
-  async computeServerSyncRegister(compute_server_id) {
-    return await this.call(
-      { cmd: "compute_server_sync_register", opts: { compute_server_id } },
-      15000,
-    );
-  }
-  async computeServerComputeRegister(compute_server_id) {
-    return await this.call(
-      { cmd: "compute_server_compute_register", opts: { compute_server_id } },
-      15000,
-    );
-  }
 }

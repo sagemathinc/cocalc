@@ -173,24 +173,6 @@ export const QUOTA_SPEC: QuotaSpec = {
     description:
       "Money that was refunded to your account as a result of a support request.",
   },
-  "compute-server": {
-    display: "Compute Server",
-    color: "#2196f3",
-    category: "compute",
-    description: "Charge for creating or using a compute server.",
-  },
-  "compute-server-network-usage": {
-    display: "Network Data",
-    color: "#2196f3",
-    category: "compute",
-    description: "Charge due to network traffic out of a compute server.",
-  },
-  "compute-server-storage": {
-    display: "Cloud Storage",
-    color: "#fbbd05",
-    category: "compute",
-    description: "Charge due to storage of data on a cloud filesystem.",
-  },
   membership: {
     display: "Membership",
     color: "cyan",
@@ -436,7 +418,7 @@ Table({
     account_id: CREATED_BY,
     service: {
       title: "Service Category",
-      desc: "The service being charged for, e.g., openai-gpt-4, compute-server, etc.",
+      desc: "The service being charged for, e.g., openai-gpt-4, membership, etc.",
       type: "string",
       pg_type: "varchar(127)",
     },

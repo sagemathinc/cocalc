@@ -155,13 +155,11 @@ export interface CustomizeState {
   // flag to signal data stored in the Store.
   software: SoftwareEnvironments;
   _is_configured: boolean;
-  compute_servers_enabled?: boolean;
-  ["compute_servers_google-cloud_enabled"]?: boolean;
-  compute_servers_hyperstack_enabled?: boolean;
-  compute_servers_lambda_enabled?: boolean;
   project_hosts_nebius_enabled?: boolean;
-  compute_servers_dns_enabled?: boolean;
-  compute_servers_dns?: string;
+  project_hosts_dns?: string;
+  "project_hosts_google-cloud_enabled"?: boolean;
+  "project_hosts_hyperstack_enabled"?: boolean;
+  "project_hosts_lambda_enabled"?: boolean;
 
   llm_markup: number;
 

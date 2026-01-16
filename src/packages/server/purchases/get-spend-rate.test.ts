@@ -19,7 +19,7 @@ describe("get the spend rate of a user under various circumstances", () => {
 
   it("create an account, and spend rate of course still 0", async () => {
     await createAccount({
-      email: "",
+      email: `${account_id}@example.com`,
       password: "xyz",
       firstName: "Test",
       lastName: "User",
@@ -47,11 +47,14 @@ describe("get the spend rate of a user under various circumstances", () => {
       client: null,
       account_id,
       project_id,
-      service: "compute-server",
+      service: "membership",
       period_start: new Date(),
       cost_per_hour: cost_per_hour1,
       description: {
-        type: "compute-server",
+        type: "membership",
+        subscription_id: 1,
+        class: "member",
+        interval: "month",
       } as any,
     });
     expect(toDecimal(await getSpendRate(account_id, "")).toNumber()).toBe(
@@ -68,11 +71,14 @@ describe("get the spend rate of a user under various circumstances", () => {
       client: null,
       account_id,
       project_id,
-      service: "compute-server",
+      service: "membership",
       period_start: new Date(),
       cost_per_hour: cost_per_hour2,
       description: {
-        type: "compute-server",
+        type: "membership",
+        subscription_id: 2,
+        class: "member",
+        interval: "month",
       } as any,
     });
     expect(toDecimal(await getSpendRate(account_id, "")).toNumber()).toBe(

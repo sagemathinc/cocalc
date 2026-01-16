@@ -6,7 +6,6 @@ import type {
   HostCatalogRegion,
   HostCatalogZone,
 } from "@cocalc/conat/hub/api/hosts";
-import { getMachineTypeArchitecture } from "@cocalc/util/db-schema/compute-servers";
 import {
   formatCpuRamLabel,
   formatGpuLabel,
@@ -77,6 +76,14 @@ type NebiusImage = {
   region?: string | null;
   created_at?: string | null;
   updated_at?: string | null;
+};
+
+const getMachineTypeArchitecture = (machineType: string): "arm64" | "x86_64" => {
+  const parts = machineType.split("-");
+  if (parts[0]?.endsWith("a")) {
+    return "arm64";
+  }
+  return "x86_64";
 };
 type NebiusPriceItem = {
   service: string;
@@ -1376,7 +1383,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   gcp: {
     id: "gcp",
     label: "Google Cloud",
-    featureFlagKey: "compute_servers_google-cloud_enabled",
+    featureFlagKey: "project_hosts_google-cloud_enabled",
     summarizeCatalog: summarizeGcpCatalog,
     supports: {
       region: true,
@@ -1452,7 +1459,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   hyperstack: {
     id: "hyperstack",
     label: "Hyperstack Cloud",
-    featureFlagKey: "compute_servers_hyperstack_enabled",
+    featureFlagKey: "project_hosts_hyperstack_enabled",
     summarizeCatalog: summarizeHyperstackCatalog,
     supports: {
       region: true,
@@ -1508,7 +1515,7 @@ export const PROVIDER_REGISTRY: Record<HostProvider, HostProviderDescriptor> = {
   lambda: {
     id: "lambda",
     label: "Lambda Cloud",
-    featureFlagKey: "compute_servers_lambda_enabled",
+    featureFlagKey: "project_hosts_lambda_enabled",
     summarizeCatalog: summarizeLambdaCatalog,
     supports: {
       region: true,

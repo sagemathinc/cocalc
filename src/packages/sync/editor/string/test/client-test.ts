@@ -144,7 +144,7 @@ export class Client extends EventEmitter implements Client0 {
     return true;
   }
 
-  public touch_project(_): void {}
+  public touch_project(_project_id: string): void {}
 
   public query_cancel(_): void {}
 

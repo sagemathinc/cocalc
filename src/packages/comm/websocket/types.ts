@@ -156,67 +156,6 @@ interface MesgQuery {
   opts: any;
 }
 
-export type ComputeFilesystemOptions =
-  | {
-      func: "filesToDelete";
-      allComputeFiles: string;
-    }
-  | { func: "deleteWhiteouts"; whiteouts: { [path: string]: number } };
-
-interface MesgComputeFilesystemCache {
-  cmd: "compute_filesystem_cache";
-  opts: ComputeFilesystemOptions;
-}
-
-export interface MesgSyncFSOptions {
-  compute_server_id: number;
-  computeStateJson?: string;
-  computeStateDiffJson?: string; // TODO: this is NOT fully implemented
-  exclude?: string[];
-  now: number;
-}
-
-interface MesgSyncFS {
-  cmd: "sync_fs";
-  opts: MesgSyncFSOptions;
-}
-
-interface MesgComputeServerSyncRegister {
-  cmd: "compute_server_sync_register";
-  opts: { compute_server_id: number };
-}
-
-interface MesgComputeServerComputeRegister {
-  cmd: "compute_server_compute_register";
-  opts: { compute_server_id: number };
-}
-
-interface MesgComputeServerSyncRequest {
-  cmd: "compute_server_sync_request";
-  opts: { compute_server_id: number };
-}
-
-interface MesgCopyFromProjectToComputeServer {
-  cmd: "copy_from_project_to_compute_server";
-  opts: {
-    compute_server_id: number;
-    paths: string[];
-    home?: string; // alternate home directory -- if relative, then is relative to actual HOME
-    dest?: string;
-    timeout?: number;
-  };
-}
-
-interface MesgCopyFromComputeServerToProject {
-  cmd: "copy_from_compute_server_to_project";
-  opts: {
-    compute_server_id: number;
-    paths: string[];
-    home?: string; // alternate home directory -- if relative, then is relative to actual HOME
-    dest?: string;
-    timeout?: number;
-  };
-}
 
 export type Mesg =
   | MesgVersion
@@ -242,10 +181,4 @@ export type Mesg =
   | MesgJupyterNbconvert
   | MesgJupyterRunNotebook
   | MesgProjectInfo
-  | MesgComputeFilesystemCache
-  | MesgSyncFS
-  | MesgComputeServerSyncRegister
-  | MesgComputeServerComputeRegister
-  | MesgComputeServerSyncRequest
-  | MesgCopyFromProjectToComputeServer
-  | MesgCopyFromComputeServerToProject;
+  ;

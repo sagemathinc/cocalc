@@ -29,7 +29,7 @@ import { bind_methods, isValidUUID, uuid } from "@cocalc/util/misc";
 import { project } from "@cocalc/api-client";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
-export type Role = "project" | "browser" | "compute_server";
+export type Role = "project" | "browser";
 
 interface Options {
   project_id: string;
@@ -85,7 +85,7 @@ export default class Client extends EventEmitter implements AppClient {
   };
 
   is_compute_server = () => {
-    return this.role == "compute_server";
+    return false;
   };
 
   dbg = (str: string) => {
@@ -150,7 +150,7 @@ export default class Client extends EventEmitter implements AppClient {
     }
   });
 
-  touch_project = (project_id: string, _compute_server_id?: number) => {
+  touch_project = (project_id: string) => {
     this._touchProject(project_id);
   };
 }

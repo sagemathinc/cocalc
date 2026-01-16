@@ -41,19 +41,6 @@ export async function setPurchaseQuota({
       "INSERT INTO purchase_quotas(account_id,service,value) VALUES($1,$2,$3)",
       [account_id, service, moneyToDbString(value)],
     );
-    if (
-      service == "compute-server" &&
-      services["compute-server-network-usage"] == null
-    ) {
-      // special case -- when you set the compute-server quota for the first time, the
-      // compute-server-network-usage also gets set if it isn't set already.  This is
-      // mainly to avoid confusion, but also just because I don't want to have to make
-      // the new user frontend UI complicated right now with multiple quotas to buy one thing.
-      await pool.query(
-        "INSERT INTO purchase_quotas(account_id,service,value) VALUES($1,$2,$3)",
-        [account_id, "compute-server-network-usage", moneyToDbString(value)],
-      );
-    }
   }
 }
 

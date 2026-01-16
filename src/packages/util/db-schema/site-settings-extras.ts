@@ -82,16 +82,14 @@ const any_llm_enabled = (conf: SiteSettings) =>
   ollama_enabled(conf) ||
   mistral_enabled(conf);
 
-const compute_servers_enabled = (conf: SiteSettings) =>
-  to_bool(conf.compute_servers_enabled);
-const compute_servers_google_enabled = (conf: SiteSettings) =>
-  to_bool(conf["compute_servers_google-cloud_enabled"]);
-const compute_servers_lambda_enabled = (conf: SiteSettings) =>
-  to_bool(conf["compute_servers_lambda_enabled"]);
-const compute_servers_hyperstack_enabled = (conf: SiteSettings) =>
-  to_bool(conf["compute_servers_hyperstack_enabled"]);
 const project_hosts_nebius_enabled = (conf: SiteSettings) =>
   to_bool(conf["project_hosts_nebius_enabled"]);
+const project_hosts_google_cloud_enabled = (conf: SiteSettings) =>
+  to_bool(conf["project_hosts_google-cloud_enabled"]);
+const project_hosts_hyperstack_enabled = (conf: SiteSettings) =>
+  to_bool(conf["project_hosts_hyperstack_enabled"]);
+const project_hosts_lambda_enabled = (conf: SiteSettings) =>
+  to_bool(conf["project_hosts_lambda_enabled"]);
 
 // Ollama and Custom OpenAI have the same schema
 function custom_llm_valid(value: string): boolean {
@@ -243,8 +241,6 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_openai_markup_percentage"
   | "pay_as_you_go_max_project_upgrades"
   | "pay_as_you_go_price_project_upgrades"
-  | "compute_servers_section"
-  | "compute_servers_markup_percentage"
   | "lambda_cloud_api_key"
   | "project_hosts_lambda_prefix"
   | "nebius_credentials_json"
@@ -253,7 +249,6 @@ export type SiteSettingsExtrasKeys =
   | "project_hosts_nebius_prefix"
   | "hyperstack_api_key"
   | "project_hosts_hyperstack_prefix"
-  | "hyperstack_compute_servers_markup_percentage"
   | "hyperstack_balance_alert_thresh"
   | "hyperstack_balance_alert_emails"
   | "control_plane_ssh_private_key_path"
@@ -269,18 +264,12 @@ export type SiteSettingsExtrasKeys =
   | "software_license_token"
   | "software_license_server_url"
   | "software_license_instance_id"
-  | "google_cloud_compute_servers_image_prefix"
-  | "compute_servers_cloudflare_api_key"
-  | "compute_servers_images_spec_url"
   //   | "coreweave_kubeconfig"
   //   | "amazon_web_services_access_key"
   //   | "amazon_web_services_secret_access_key"
   | "subscription_maintenance";
 
 export type SettingsExtras = Record<SiteSettingsExtrasKeys, Config>;
-
-const DEFAULT_COMPUTE_SERVER_IMAGES_JSON =
-  "https://raw.githubusercontent.com/sagemathinc/cocalc-compute-docker/main/images.json";
 
 // not public, but admins can edit them
 export const EXTRAS: SettingsExtras = {
@@ -824,54 +813,28 @@ export const EXTRAS: SettingsExtras = {
     valid: onlyNonnegFloat,
     tags: ["Pay as you Go"],
   },
-  compute_servers_section: {
-    name: "Cloud Compute Service Providers",
-    desc: "Configure the cloud services that provide computer servers.",
-    default: "",
-    show: compute_servers_enabled,
-    type: "header",
-    tags: ["Compute Servers"],
-  },
-  compute_servers_markup_percentage: {
-    name: "Compute Servers - Markup Percentage",
-    desc: "The default markup percentage that we add to the cost we pay to the cloud service providers.  This accounts for maintenance, dev, servers, and *bandwidth* (which can be massive). For example, '30' would mean we add 30% to the price that the cloud service provides charge us for compute, and we currently gamble regarding bandwidth costs.  There may be more customized pricing and markups for specific providers configured elsewhere.",
-    default: "30",
-    show: (conf) => only_commercial(conf) && compute_servers_enabled(conf),
-    to_val: toFloat,
-    valid: onlyNonnegFloat,
-    tags: ["Compute Servers"],
-  },
   hyperstack_api_key: {
-    name: "Compute Servers: Hyperstack - API Key",
-    desc: "Your [Hyperstack API Key](https://console.hyperstack.cloud/api-keys).  This supports managing compute servers on the [Hyperstack Cloud](https://www.hyperstack.cloud/).  REQUIRED or Hyperstack will not work.",
+    name: "Project Hosts: Hyperstack - API Key",
+    desc: "Your [Hyperstack API Key](https://console.hyperstack.cloud/api-keys). This supports managing project hosts on the [Hyperstack Cloud](https://www.hyperstack.cloud/). REQUIRED or Hyperstack will not work.",
     default: "",
     password: true,
-    show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers", "Hyperstack"],
+    show: project_hosts_hyperstack_enabled,
+    tags: ["Project Hosts", "Hyperstack"],
   },
   project_hosts_hyperstack_prefix: {
     name: "Project Hosts: Hyperstack - Resource Prefix",
     desc: "Prepend this string to all Hyperstack resources that are created, e.g., VM names, disks, etc. If the prefix is 'cocalc', then the project host with id 17 will be called 'cocalc-17'. REQUIRED or Hyperstack will not work.",
     default: "cocalc",
     to_val: to_trimmed_str,
-    show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers", "Hyperstack"],
-  },
-  hyperstack_compute_servers_markup_percentage: {
-    name: "Compute Servers: Hyperstack - Markup Percentage",
-    desc: "Markup percentage specifically for hyperstack.  If not given (i.e., empty string), the global compute server markup is used.  This is always the markup on the public list price, and has nothing to do with negotiated wholesale pricing.",
-    default: "",
-    show: compute_servers_hyperstack_enabled,
-    to_val: to_trimmed_str,
-    valid: () => true,
-    tags: ["Compute Servers", "Hyperstack"],
+    show: project_hosts_hyperstack_enabled,
+    tags: ["Project Hosts", "Hyperstack"],
   },
   control_plane_ssh_private_key_path: {
     name: "Control Plane: SSH Private Key Path",
     desc: "Filesystem path to the control-plane SSH private key. When set, this overrides the database key. All hub processes must be able to read this file.",
     default: "",
     to_val: to_trimmed_str,
-    tags: ["Compute Servers", "Security"],
+    tags: ["Project Hosts", "Security"],
     valid: () => true,
   },
   control_plane_ssh_private_key: {
@@ -880,31 +843,31 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     to_val: to_trimmed_str,
-    tags: ["Compute Servers", "Security"],
+    tags: ["Project Hosts", "Security"],
     valid: () => true,
   },
   hyperstack_balance_alert_thresh: {
-    name: "Compute Servers: Hyperstack - Balance Alert Threshold",
+    name: "Project Hosts: Hyperstack - Balance Alert Threshold",
     desc: "If your credit balance goes below this amount on the Hyperstack site, then you will be emailed (assuming email is configured).",
     default: "25",
     to_val: to_int,
-    show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers", "Hyperstack"],
+    show: project_hosts_hyperstack_enabled,
+    tags: ["Project Hosts", "Hyperstack"],
   },
   hyperstack_balance_alert_emails: {
-    name: "(DEPRECATED) Compute Servers: Hyperstack - Balance Email Addresses",
+    name: "(DEPRECATED) Project Hosts: Hyperstack - Balance Email Addresses",
     desc: "If your credit balance goes below your configured threshold, then these email addresses will get an alert message.  Separate addresses by commas.",
     default: "",
-    show: compute_servers_hyperstack_enabled,
-    tags: ["Compute Servers", "Hyperstack"],
+    show: project_hosts_hyperstack_enabled,
+    tags: ["Project Hosts", "Hyperstack"],
   },
 
   lambda_cloud_api_key: {
     name: "Project Hosts: Lambda Cloud API Key",
     desc: "Your [Lambda Cloud](https://lambdalabs.com/service/gpu-cloud) API Key from https://cloud.lambda.ai/api-keys/cloud-api.  This supports managing project hosts on Lambda Cloud.",
     default: "",
-    show: compute_servers_lambda_enabled,
     password: true,
+    show: project_hosts_lambda_enabled,
     tags: ["Project Hosts"],
   },
   project_hosts_lambda_prefix: {
@@ -912,7 +875,7 @@ export const EXTRAS: SettingsExtras = {
     desc: "Prepend this string to all Lambda Cloud resources that are created, e.g., instance names. Keep this short. If the prefix is 'cocalc', then a project host with id 17 will be called 'cocalc-17'.",
     default: "cocalc-host",
     to_val: to_trimmed_str,
-    show: compute_servers_lambda_enabled,
+    show: project_hosts_lambda_enabled,
     tags: ["Project Hosts"],
     valid: () => true,
   },
@@ -963,38 +926,38 @@ export const EXTRAS: SettingsExtras = {
   //     show: compute_servers_enabled,
   //   },
   google_cloud_service_account_json: {
-    name: "Compute Servers: Google Cloud - Service Account Json",
-    desc: 'A Google Cloud [Service Account](https://console.cloud.google.com/iam-admin/serviceaccounts) with the following IAM Roles: "Editor" (for compute servers) AND "Project IAM Admin" (for cloud file system).  This supports managing compute servers on Google Cloud, and you must (1) [enable the Compute Engine API](https://console.cloud.google.com/apis/library/compute.googleapis.com) and [the Monitoring API](https://console.cloud.google.com/apis/library/monitoring.googleapis.com) for this Google Cloud project.  This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
+    name: "Project Hosts: Google Cloud - Service Account Json",
+    desc: 'A Google Cloud [Service Account](https://console.cloud.google.com/iam-admin/serviceaccounts) with the following IAM Roles: "Editor". This supports managing project hosts on Google Cloud, and you must [enable the Compute Engine API](https://console.cloud.google.com/apis/library/compute.googleapis.com) and [the Monitoring API](https://console.cloud.google.com/apis/library/monitoring.googleapis.com) for this Google Cloud project. This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
     default: "",
     multiline: 5,
     password: true,
-    show: compute_servers_google_enabled,
-    tags: ["Compute Servers", "Google Cloud"],
+    show: project_hosts_google_cloud_enabled,
+    tags: ["Project Hosts", "Google Cloud"],
   },
   google_cloud_bigquery_billing_service_account_json: {
-    name: "Compute Servers: Google Cloud BigQuery Service Account Json",
-    desc: "Another Google Cloud Service Account that has read access to the regularly updated detailed billing data.  You have to [enable *detailed* billing export to BigQuery](https://cloud.google.com/billing/docs/how-to/export-data-bigquery), then provides a service account here that provides: 'BigQuery Data Viewer' and 'BigQuery Job User'.  NOTE: When I setup detailed billing export for cocalc.com it took about 3 days (!) before I started seeing any detailed billing data!",
+    name: "Project Hosts: Google Cloud BigQuery Service Account Json",
+    desc: "Another Google Cloud Service Account that has read access to the regularly updated detailed billing data. You have to [enable *detailed* billing export to BigQuery](https://cloud.google.com/billing/docs/how-to/export-data-bigquery), then provide a service account here that provides: 'BigQuery Data Viewer' and 'BigQuery Job User'. NOTE: When I setup detailed billing export for cocalc.com it took about 3 days (!) before I started seeing any detailed billing data!",
     default: "",
     multiline: 5,
     password: true,
-    show: compute_servers_google_enabled,
-    tags: ["Compute Servers", "Google Cloud"],
+    show: project_hosts_google_cloud_enabled,
+    tags: ["Project Hosts", "Google Cloud"],
   },
   google_cloud_bigquery_detailed_billing_table: {
-    name: "Compute Servers: Google Cloud Detailed Billing BigQuery Table Name",
-    desc: "The name of your BigQuery detailed billing exports table. See remarks about BigQuery Service Account above.  This might look like 'sage-math-inc.detailed_billing.gcp_billing_export_resource_v1_00D083_5513BD_B6E72F'",
+    name: "Project Hosts: Google Cloud Detailed Billing BigQuery Table Name",
+    desc: "The name of your BigQuery detailed billing exports table. See remarks about BigQuery Service Account above. This might look like 'sage-math-inc.detailed_billing.gcp_billing_export_resource_v1_00D083_5513BD_B6E72F'",
     default: "",
     to_val: to_trimmed_str,
-    show: compute_servers_google_enabled,
     valid: (x) => !x || x.includes(".detailed_billing."),
-    tags: ["Compute Servers", "Google Cloud"],
+    show: project_hosts_google_cloud_enabled,
+    tags: ["Project Hosts", "Google Cloud"],
   },
   project_hosts_google_prefix: {
     name: "Project Hosts: Google Cloud - Resource Prefix",
     desc: "Prepend this string to all Google Cloud resources that are created, e.g., VM names, disks, etc. Keep this short. If the prefix is 'cocalc', then a project host with id 17 will be called 'cocalc-17'. You should change this if you manage multiple CoCalc installations in the same Google Cloud project.",
     default: "cocalc-host",
     to_val: to_trimmed_str,
-    show: compute_servers_google_enabled,
+    show: project_hosts_google_cloud_enabled,
     tags: ["Project Hosts", "Google Cloud"],
     valid: () => true,
   },
@@ -1029,31 +992,6 @@ export const EXTRAS: SettingsExtras = {
     password: true,
     to_val: to_trimmed_str,
     tags: ["Project Hosts", "Cloud"],
-  },
-  google_cloud_compute_servers_image_prefix: {
-    name: "Compute Servers: Google Cloud - Image Prefix",
-    desc: "Prepend this string to the Google cloud images that are created.  You should probably leave this as the default, keep it very short, and it's fine to share these between CoCalc servers using the same project.",
-    default: "cocalc",
-    to_val: to_trimmed_str,
-    show: compute_servers_google_enabled,
-    tags: ["Compute Servers", "Google Cloud"],
-    valid: () => true,
-  },
-
-  compute_servers_cloudflare_api_key: {
-    name: "Compute Servers: CloudFlare API Token",
-    desc: 'A CloudFlare [API Token](https://dash.cloudflare.com/profile/api-tokens) that has the "Edit zone DNS" capability for the domain that you set as "Compute Servers: Domain name" above.  This is used for custom subdomains, i.e., so users can make a compute server and connect to it at https://custom.cocalc.io (say).',
-    default: "",
-    password: true,
-    show: (conf) => to_bool(conf.compute_servers_dns_enabled),
-    tags: ["Compute Servers"],
-  },
-  compute_servers_images_spec_url: {
-    name: "Compute Servers: Images Spec URL",
-    desc: `The URL of the compute server "images.json" spec file.  By default this is [${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}](here), which is managed by SageMath, Inc.  However, you may replace this with your own json spec file, if you want to manage your own compute server images. Note that [${DEFAULT_COMPUTE_SERVER_IMAGES_JSON}](here) is cached for a long time for better control, use a raw URL to a specific commit.  To clear the internal cache of images.json, open any compute server config, click the Advanced checkbox next to Images, then click "Refresh Images".  Live version: [image.json](api/v2/compute/get-images).`,
-    default: DEFAULT_COMPUTE_SERVER_IMAGES_JSON,
-    show: compute_servers_enabled,
-    tags: ["Compute Servers"],
   },
   //   amazon_web_services_access_key: {
   //     name: "Compute Servers: Amazon Web Services - IAM Access Key (not implemented)",

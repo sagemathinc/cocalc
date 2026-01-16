@@ -10,7 +10,6 @@ const DEFAULT_CONFIGURATION = {
   lite: false,
   project_host: true,
   site_name: "CoCalc Project Host",
-  compute_servers_enabled: false,
 };
 
 export async function initHttp({

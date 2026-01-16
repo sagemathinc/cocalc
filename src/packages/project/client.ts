@@ -606,7 +606,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
   }
 
   // no-op; assumed async api
-  touch_project(_project_id: string, _compute_server_id?: number) {}
+  touch_project(_project_id: string) {}
 
   // Return true if the file was explicitly deleted.
   // Returns unknown if don't know

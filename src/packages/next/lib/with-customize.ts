@@ -81,7 +81,6 @@ export default async function withCustomize(
       events: customize.isCommercial,
       team: customize.landingPages,
     },
-    compute: customize.computeServersEnabled,
     contact: !!customize.contactEmail,
     features: customize.landingPages,
     info: true,

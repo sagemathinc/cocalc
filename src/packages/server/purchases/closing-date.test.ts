@@ -29,7 +29,7 @@ describe("basic consistency checks for closing date functions", () => {
 
   it("'make account and get closing day", async () => {
     await createAccount({
-      email: "",
+      email: `${account_id}@example.com`,
       password: "xyz",
       firstName: "Test",
       lastName: "User",

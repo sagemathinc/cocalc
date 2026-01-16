@@ -3,7 +3,6 @@ Returns an object that describes the cost of a given service.
 */
 
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
-import { DATA_TRANSFER_OUT_COST_PER_GiB } from "@cocalc/util/compute/cloud/google-cloud/compute-cost";
 import {
   getLLMCost,
   isCoreLanguageModel,
@@ -29,19 +28,13 @@ export default async function getServiceCost(service: Service) {
   }
 
   switch (service) {
+    case "auto-credit":
     case "credit":
       // returns the minimum allowed credit.
       const { pay_as_you_go_min_payment } = await getServerSettings();
       return pay_as_you_go_min_payment;
 
-    case "compute-server":
-    case "compute-server-storage":
-      const { compute_servers_markup_percentage } = await getServerSettings();
-      return compute_servers_markup_percentage;
-
-    case "compute-server-network-usage":
-      return DATA_TRANSFER_OUT_COST_PER_GiB;
-
+    case "membership":
     case "refund":
     case "student-pay":
     case "voucher":

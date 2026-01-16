@@ -17,7 +17,6 @@ interface EnabledPageTree extends EnabledPageBranch {
     events: boolean | undefined;
     team: boolean | undefined;
   };
-  compute: boolean | undefined;
   contact: boolean | undefined;
   features: boolean | undefined;
   info: boolean | undefined;
@@ -61,7 +60,6 @@ interface Customize extends ServerCustomize {
   serverTime?: number; // the time on the server, in milliseconds since the epoch
   openaiEnabled?: boolean; // backend is configured to provide openai integration.
   googleVertexaiEnabled?: boolean; // if enabled, e.g. Google Gemini is available
-  computeServersEnabled?: boolean; // backend configured to run on external compute servers
   enabledPages?: EnabledPageTree; // tree structure which specifies supported routes for this install
   support?: string; // HTML/MD to replace the generic support pages
   supportVideoCall?: string;

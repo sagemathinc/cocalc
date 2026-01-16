@@ -37,7 +37,6 @@ export const TAGS = [
   "Licensing",
   "GitHub",
   "Pay as you Go",
-  "Compute Servers",
   "Google Cloud",
   "Cloud",
   "Project Hosts",
@@ -101,8 +100,6 @@ export type SiteSettingsKeys =
   | "ssh_gateway_fingerprint"
   | "versions"
   | "version_min_project"
-  | "version_min_compute_server"
-  | "version_compute_server_min_project"
   | "version_min_browser"
   | "version_recommended_browser"
   | "iframe_comm_hosts"
@@ -114,15 +111,11 @@ export type SiteSettingsKeys =
   | "email_signup"
   | "share_server"
   | "landing_pages"
-  | "compute_servers_enabled"
-  | "compute_servers_google-cloud_enabled"
-  | "compute_servers_onprem_enabled"
-  | "compute_servers_dns_enabled"
-  | "compute_servers_dns"
-  | "compute_servers_hyperstack_enabled"
-  | "compute_servers_lambda_enabled"
+  | "project_hosts_google-cloud_enabled"
+  | "project_hosts_hyperstack_enabled"
+  | "project_hosts_lambda_enabled"
   | "project_hosts_nebius_enabled"
-  | "cloud_filesystems_enabled"
+  | "project_hosts_dns"
   | "insecure_test_mode"
   | "samesite_remember_me"
   | "user_tracking";
@@ -278,6 +271,8 @@ export const displayJson = (conf) =>
 
 // TODO a cheap'n'dirty validation is good enough
 export const valid_dns_name = (val) => val.match(/^[a-zA-Z0-9.-]+$/g);
+export const valid_dns_name_or_empty = (val) =>
+  !val || valid_dns_name(val);
 
 export const split_iframe_comm_hosts: ToValFunc<string[]> = (hosts) =>
   (hosts ?? "").match(/[a-z0-9.-]+/g) || [];
@@ -369,7 +364,7 @@ export const site_settings_conf: SiteSettings = {
   // ========= THEMING ===============
   dns: {
     name: "External Domain Name",
-    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  **Do NOT include the basePath or the https:// prefix.**  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is used for password resets, invitation, sign up emails and also for external compute servers connecting back, since they need to know a link to the site.",
+    desc: "DNS for your server, e.g. `cocalc.universe.edu`.  **Do NOT include the basePath or the https:// prefix.**  It optionally can start with `http://` (for non SSL) and end in a `:number` for a port.  This is used for password resets, invitation, sign up emails and also for external project hosts connecting back, since they need to know a link to the site.",
     default: "",
     to_val: to_trimmed_str,
     //valid: valid_dns_name,
@@ -544,14 +539,6 @@ export const site_settings_conf: SiteSettings = {
   version_min_project: {
     name: "Required project version",
     desc: "Minimal version required by projects (if older, will terminate).",
-    default: "0",
-    valid: only_nonneg_int,
-    show: () => true,
-    tags: ["Version"],
-  },
-  version_min_compute_server: {
-    name: "Required compute server version",
-    desc: "Minimal version required by compute server (if older, will terminate).",
     default: "0",
     valid: only_nonneg_int,
     show: () => true,
@@ -836,65 +823,6 @@ export const site_settings_conf: SiteSettings = {
     show: only_commercial,
     tags: ["AI LLM"],
   },
-  compute_servers_enabled: {
-    name: "Enable Compute Servers",
-    desc: "Whether or not to include user interface elements related to compute servers.  Set to 'yes' to include these elements.  You will also need to configure 'Compute Servers -- remote cloud services' elsewhere.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    tags: ["Compute Servers"],
-  },
-  cloud_filesystems_enabled: {
-    name: "Enable Cloud File Systems",
-    desc: "CoCalc Cloud File Systems are scalable distributed POSIX shared file systems with fast local caching built using [JuiceFS](https://juicefs.com/), [KeyDB](https://docs.keydb.dev/) and [Google Cloud Storage](https://cloud.google.com/storage).  You must enable the following API's in the Google Cloud project: [Storage Transfer API](https://console.cloud.google.com/apis/library/storagetransfer.googleapis.com), [Identity and Access Management (IAM) API](https://console.cloud.google.com/apis/library/iam.googleapis.com), [Cloud Resource Manger API](https://console.cloud.google.com/apis/library/cloudresourcemanager.googleapis.com).",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    show: (conf) =>
-      to_bool(conf.compute_servers_enabled) &&
-      to_bool(conf["compute_servers_google-cloud_enabled"]),
-    tags: ["Compute Servers"],
-  },
-  version_compute_server_min_project: {
-    name: "Required project version for compute server",
-    desc: "Minimal *project* version required when starting a compute servers (if project older, error is displayed in frontend when user tries to start compute server).",
-    default: "0",
-    valid: only_nonneg_int,
-    show: () => true,
-    tags: ["Compute Servers"],
-  },
-  "compute_servers_google-cloud_enabled": {
-    name: "Enable Compute Servers - Google Cloud",
-    desc: "Whether or not to include google cloud compute servers.  You must also configure a Google service account below.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    tags: ["Compute Servers"],
-  },
-  compute_servers_onprem_enabled: {
-    name: "Enable Compute Servers - Self Hosted",
-    desc: "Whether or not to allow self hosted compute servers.  These are VM's that must be manually managed by a user.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    tags: ["Compute Servers"],
-  },
-  compute_servers_hyperstack_enabled: {
-    name: "Enable Compute Servers - Hyperstack Cloud",
-    desc: "Whether or not to include [Hyperstack cloud](https://www.hyperstack.cloud/) compute servers.  You must also configure an API key below.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    tags: ["Compute Servers"],
-  },
-  compute_servers_lambda_enabled: {
-    name: "Enable Compute Servers - Lambda Cloud",
-    desc: "Whether or not to include Lambda cloud compute servers. You must also configure an API key below.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    tags: ["Compute Servers"],
-  },
   project_hosts_nebius_enabled: {
     name: "Enable Project Hosts - Nebius Cloud",
     desc: "Whether or not to include Nebius cloud project hosts. You must also configure credentials below.",
@@ -903,24 +831,37 @@ export const site_settings_conf: SiteSettings = {
     to_val: to_bool,
     tags: ["Project Hosts", "Cloud", "Nebius"],
   },
-  compute_servers_dns_enabled: {
-    name: "Enable Compute Servers - Cloudflare DNS",
-    desc: "Whether or not to include user interface elements related to Cloudflare DNS for compute servers, for automatic configuration of sites like https://foo.cocalc.io.  Set to 'yes' to include these elements.  You will also need to configure 'Compute Servers -- Domain Name, and Cloudflare API token' below.",
+  "project_hosts_google-cloud_enabled": {
+    name: "Enable Project Hosts - Google Cloud",
+    desc: "Whether or not to include Google Cloud project hosts. You must also configure credentials below.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
-    tags: ["Compute Servers"],
+    tags: ["Project Hosts", "Cloud", "Google Cloud"],
   },
-  compute_servers_dns: {
-    name: "Compute Servers: Domain name",
-    desc: "Base domain name for your compute servers, e.g. 'cocalc.io'.  This is used along with the 'CloudFlare API Token' below so that compute servers get a custom stable subdomain name foo.cocalc.io (say) along with an https certificate.  It's more secure for this to be different than the main site dns.",
-    default: "change me!",
-    valid: valid_dns_name,
+  project_hosts_hyperstack_enabled: {
+    name: "Enable Project Hosts - Hyperstack",
+    desc: "Whether or not to include Hyperstack cloud project hosts. You must also configure credentials below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Project Hosts", "Cloud", "Hyperstack"],
+  },
+  project_hosts_lambda_enabled: {
+    name: "Enable Project Hosts - Lambda Cloud",
+    desc: "Whether or not to include Lambda Cloud project hosts. You must also configure credentials below.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Project Hosts", "Cloud"],
+  },
+  project_hosts_dns: {
+    name: "Project Hosts: Domain name",
+    desc: "Base domain name for project hosts, e.g. 'cocalc.io'. This is used with the Cloudflare token to create stable host subdomains like host-123.cocalc.io.",
+    default: "",
+    valid: valid_dns_name_or_empty,
     to_val: to_trimmed_str,
-    show: (conf) =>
-      to_bool(conf.compute_servers_enabled) &&
-      to_bool(conf.compute_servers_dns_enabled),
-    tags: ["Compute Servers"],
+    tags: ["Project Hosts", "Cloud"],
   },
   insecure_test_mode: {
     name: "Insecure Test Mode",

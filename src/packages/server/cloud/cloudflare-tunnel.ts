@@ -66,11 +66,9 @@ async function getConfig(): Promise<TunnelConfig | undefined> {
   if (!isEnabled(settings.project_hosts_cloudflare_tunnel_enabled)) {
     return undefined;
   }
-  const dns = clean(settings.compute_servers_dns);
+  const dns = clean(settings.project_hosts_dns);
   const accountId = clean(settings.project_hosts_cloudflare_tunnel_account_id);
-  const token =
-    clean(settings.project_hosts_cloudflare_tunnel_api_token) ||
-    clean(settings.compute_servers_cloudflare_api_key);
+  const token = clean(settings.project_hosts_cloudflare_tunnel_api_token);
   if (!dns || !accountId || !token) return undefined;
   return { dns, accountId, token };
 }

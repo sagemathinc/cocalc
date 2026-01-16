@@ -25,7 +25,7 @@ describe("test checking whether or not purchase is allowed under various conditi
 
   it("check small membership purchase not allowed for a new user", async () => {
     await createAccount({
-      email: "",
+      email: `${account_id}@example.com`,
       password: "xyz",
       firstName: "Test",
       lastName: "User",
@@ -144,10 +144,15 @@ describe("test checking whether or not purchase is allowed under various conditi
     expect(allowed).toBe(false);
   });
 
-  it("allows but DISCOURAGES purchase for service with a quota even though our balance is large, since the quota default is 0", async () => {
+  it("allows but DISCOURAGES purchase when the per-service quota is set to 0", async () => {
+    await setPurchaseQuota({
+      account_id,
+      service: "openai-gpt-4.1",
+      value: 0,
+    });
     const { allowed, reason, discouraged } = await isPurchaseAllowed({
       account_id,
-      service: "compute-server",
+      service: "openai-gpt-4.1",
       cost: 0.5,
     });
     expect(allowed).toBe(true);
@@ -158,7 +163,7 @@ describe("test checking whether or not purchase is allowed under various conditi
   it("allows and does not DISCOURAGES purchase for an LLM with a quota even though our balance is large, since the quota default is 10 ", async () => {
     const { allowed } = await isPurchaseAllowed({
       account_id,
-      service: "openai-gpt-4.1",
+      service: "openai-gpt-4",
       cost: 0.5,
     });
     expect(allowed).toBe(true);
@@ -167,12 +172,12 @@ describe("test checking whether or not purchase is allowed under various conditi
   it("raise the quota and now purchase *is* not discouraged", async () => {
     await setPurchaseQuota({
       account_id,
-      service: "compute-server",
+      service: "openai-gpt-4.1",
       value: 2,
     });
     const { allowed, discouraged } = await isPurchaseAllowed({
       account_id,
-      service: "compute-server",
+      service: "openai-gpt-4.1",
       cost: 0.5,
     });
     expect(allowed).toBe(true);
@@ -182,12 +187,12 @@ describe("test checking whether or not purchase is allowed under various conditi
   it("raise the quota and now purchase *is* allowed BUT ONLY UP TO A POINT", async () => {
     await setPurchaseQuota({
       account_id,
-      service: "compute-server",
+      service: "openai-gpt-4.1",
       value: 5000,
     });
     const { allowed } = await isPurchaseAllowed({
       account_id,
-      service: "compute-server",
+      service: "openai-gpt-4.1",
       cost: 5000,
     });
     expect(allowed).toBe(false); // because balance
@@ -196,12 +201,12 @@ describe("test checking whether or not purchase is allowed under various conditi
   it("raise the quota to well beyond the purchase limit, and now purchase *is* not allowed because of purchase limit", async () => {
     await setPurchaseQuota({
       account_id,
-      service: "compute-server",
+      service: "openai-gpt-4.1",
       value: 10 * MAX_COST,
     });
     const { allowed } = await isPurchaseAllowed({
       account_id,
-      service: "compute-server",
+      service: "openai-gpt-4.1",
       cost: MAX_COST,
     });
     expect(allowed).toBe(false); // because balance
@@ -212,7 +217,7 @@ describe("test checking whether or not purchase is allowed under various conditi
       async () =>
         await assertPurchaseAllowed({
           account_id,
-          service: "compute-server",
+          service: "openai-gpt-4.1",
           cost: 100000,
         }),
     ).rejects.toThrow();

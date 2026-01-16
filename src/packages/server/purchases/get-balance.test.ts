@@ -74,8 +74,13 @@ describe("test computing balance under various conditions", () => {
     const period_start = dayjs().subtract(hours, "hour").toDate();
     await createPurchase({
       account_id,
-      service: "compute-server",
-      description: { type: "compute-server" } as any,
+      service: "membership",
+      description: {
+        type: "membership",
+        subscription_id: 1,
+        class: "member",
+        interval: "month",
+      } as any,
       client: null,
       cost_per_hour: 1.25,
       period_start,
@@ -92,8 +97,13 @@ describe("test computing balance under various conditions", () => {
     const period_start = dayjs().subtract(hours, "hour").toDate();
     await createPurchase({
       account_id,
-      service: "compute-server-network-usage",
-      description: { amount: 100 } as any,
+      service: "membership",
+      description: {
+        type: "membership",
+        subscription_id: 2,
+        class: "member",
+        interval: "year",
+      } as any,
       client: null,
       cost_so_far: 1.25,
       period_start,
@@ -110,8 +120,13 @@ describe("test computing balance under various conditions", () => {
     const account_id = uuid();
     await createPurchase({
       account_id,
-      service: "compute-server",
-      description: { type: "compute-server" } as any,
+      service: "membership",
+      description: {
+        type: "membership",
+        subscription_id: 3,
+        class: "member",
+        interval: "month",
+      } as any,
       client: null,
       cost_per_hour: 1.25,
       period_start,

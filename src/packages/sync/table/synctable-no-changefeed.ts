@@ -76,11 +76,8 @@ class ClientNoChangefeed extends EventEmitter {
     return this.client.is_compute_server();
   }
 
-  public async touch_project(
-    project_id: string,
-    compute_server_id?: number,
-  ): Promise<void> {
-    await this.client.touch_project(project_id, compute_server_id);
+  public async touch_project(project_id: string): Promise<void> {
+    await this.client.touch_project(project_id);
   }
 
   public is_connected(): boolean {

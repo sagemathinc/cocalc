@@ -2,8 +2,8 @@ let fetchMock: jest.Mock;
 
 jest.mock("@cocalc/database/settings/server-settings", () => ({
   getServerSettings: jest.fn(async () => ({
-    compute_servers_dns: "example.com",
-    compute_servers_cloudflare_api_key: "token",
+    project_hosts_dns: "example.com",
+    project_hosts_cloudflare_tunnel_api_token: "token",
   })),
 }));
 

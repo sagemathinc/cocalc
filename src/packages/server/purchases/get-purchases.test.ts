@@ -26,7 +26,7 @@ describe("creates and get purchases using various options", () => {
 
   it("creates account and a purchase and gets it", async () => {
     await createAccount({
-      email: "",
+      email: `${account_id}@example.com`,
       password: "xyz",
       firstName: "Test",
       lastName: "User",

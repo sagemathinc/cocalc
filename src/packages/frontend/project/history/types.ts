@@ -7,7 +7,6 @@ import { Map } from "immutable";
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
 
-import type { ComputeServerEvent } from "@cocalc/util/compute/log";
 
 import type { Mode as JupyterCellLLMMode } from "@cocalc/frontend/jupyter/llm/cell-tool";
 import { Ext } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
@@ -31,7 +30,6 @@ export type ProjectLogMap = Map<string, EventRecordMap>;
 export type ProjectEvent =
   | UnknownEvent
   | AssistantEvent
-  | ComputeServerEvent
   | ProjectControlEvent
   | FileActionEvent
   | LibraryEvent
