@@ -112,6 +112,13 @@ export interface HostProviderCapabilities {
   requiresZone?: boolean;
 }
 
+export interface HostBackupStatus {
+  total: number;
+  running: number;
+  up_to_date: number;
+  needs_backup: number;
+}
+
 export interface HostCatalog {
   provider: string;
   entries: HostCatalogEntry[];
@@ -147,6 +154,7 @@ export interface Host {
   last_action_error?: string;
   provider_observed_at?: string;
   deleted?: string;
+  backup_status?: HostBackupStatus;
 }
 
 export interface HostLogEntry {
@@ -265,7 +273,11 @@ export interface Hosts {
   }) => Promise<Host>;
 
   startHost: (opts: { account_id?: string; id: string }) => Promise<HostLroResponse>;
-  stopHost: (opts: { account_id?: string; id: string }) => Promise<HostLroResponse>;
+  stopHost: (opts: {
+    account_id?: string;
+    id: string;
+    skip_backups?: boolean;
+  }) => Promise<HostLroResponse>;
   restartHost: (opts: {
     account_id?: string;
     id: string;
@@ -306,5 +318,9 @@ export interface Hosts {
     targets: HostSoftwareUpgradeTarget[];
     base_url?: string;
   }) => Promise<HostLroResponse>;
-  deleteHost: (opts: { account_id?: string; id: string }) => Promise<HostLroResponse>;
+  deleteHost: (opts: {
+    account_id?: string;
+    id: string;
+    skip_backups?: boolean;
+  }) => Promise<HostLroResponse>;
 }

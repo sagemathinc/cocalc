@@ -11,13 +11,17 @@ import {
   isKnownProvider,
 } from "../providers/registry";
 import type { HostLroState } from "../hooks/use-host-ops";
-import { HostOpProgress } from "./host-op-progress";
+import { getHostOpPhase, HostOpProgress } from "./host-op-progress";
+import { HostBackupStatus } from "./host-backup-status";
+import { confirmHostDeprovision, confirmHostStop } from "./host-confirm";
 import { isHostOpActive } from "../hooks/use-host-ops";
 import { UpgradeConfirmContent } from "./upgrade-confirmation";
 import type {
   HostListViewMode,
   HostSortDirection,
   HostSortField,
+  HostStopOptions,
+  HostDeleteOptions,
 } from "../types";
 
 const STATUS_ORDER = [
@@ -115,9 +119,10 @@ type HostListViewModel = {
   hosts: Host[];
   hostOps?: Record<string, HostLroState>;
   onStart: (id: string) => void;
-  onStop: (id: string) => void;
+  onStop: (id: string, opts?: HostStopOptions) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
-  onDelete: (id: string) => void;
+  onDelete: (id: string, opts?: HostDeleteOptions) => void;
+  onCancelOp?: (op_id: string) => void;
   onUpgrade?: (host: Host) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
@@ -149,7 +154,8 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     onStart,
     onStop,
     onRestart,
-    onDelete,
+  onDelete,
+  onCancelOp,
     onUpgrade,
     onDetails,
     onEdit,
@@ -533,6 +539,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               )}
             </Space>
             <HostOpProgress op={op} compact />
+            <HostBackupStatus host={host} compact />
           </Space>
         );
       },
@@ -593,6 +600,10 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             : "Deprovision this host?";
         const deleteOkText =
           host.status === "deprovisioned" ? "Delete" : "Deprovision";
+        const isDeprovisioned = host.status === "deprovisioned";
+        const opPhase = getHostOpPhase(op);
+        const canCancelBackups =
+          !!op?.op_id && hostOpActive && opPhase === "backups";
 
         const actions = [
           <Button
@@ -616,17 +627,19 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             </Button>
           ) : null,
           allowStop ? (
-            <Popconfirm
+            <Button
               key="stop"
-              title="Stop this host?"
-              okText="Stop"
-              cancelText="Cancel"
-              onConfirm={() => onStop(host.id)}
+              size="small"
+              type="link"
+              onClick={() =>
+                confirmHostStop({
+                  hostName: host.name ?? "Host",
+                  onConfirm: (opts) => onStop(host.id, opts),
+                })
+              }
             >
-              <Button size="small" type="link">
-                {stopLabel}
-              </Button>
-            </Popconfirm>
+              {stopLabel}
+            </Button>
           ) : (
             <Button key="stop" size="small" type="link" disabled>
               {stopLabel}
@@ -646,6 +659,19 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               Restart
             </Button>
           ),
+          canCancelBackups && onCancelOp ? (
+            <Popconfirm
+              key="cancel"
+              title="Cancel backups for this host?"
+              okText="Cancel backups"
+              cancelText="Keep running"
+              onConfirm={() => onCancelOp(op!.op_id)}
+            >
+              <Button size="small" type="link">
+                Cancel
+              </Button>
+            </Popconfirm>
+          ) : null,
           <Button
             key="edit"
             size="small"
@@ -655,24 +681,42 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           >
             Edit
           </Button>,
-          <Popconfirm
-            key="delete"
-            title={deleteTitle}
-            okText={deleteOkText}
-            cancelText="Cancel"
-            okButtonProps={{ danger: true }}
-            onConfirm={() => onDelete(host.id)}
-            disabled={isDeleted || hostOpActive}
-          >
+          isDeprovisioned ? (
+            <Popconfirm
+              key="delete"
+              title={deleteTitle}
+              okText={deleteOkText}
+              cancelText="Cancel"
+              okButtonProps={{ danger: true }}
+              onConfirm={() => onDelete(host.id)}
+              disabled={isDeleted || hostOpActive}
+            >
+              <Button
+                size="small"
+                type="link"
+                danger
+                disabled={isDeleted || hostOpActive}
+              >
+                {deleteLabel}
+              </Button>
+            </Popconfirm>
+          ) : (
             <Button
+              key="delete"
               size="small"
               type="link"
               danger
               disabled={isDeleted || hostOpActive}
+              onClick={() =>
+                confirmHostDeprovision({
+                  host,
+                  onConfirm: (opts) => onDelete(host.id, opts),
+                })
+              }
             >
               {deleteLabel}
             </Button>
-          </Popconfirm>,
+          ),
         ];
 
         return (
@@ -901,6 +945,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
                   setRestartTarget(target);
                 }}
                 onDelete={onDelete}
+                onCancelOp={onCancelOp}
                 onDetails={onDetails}
                 onEdit={onEdit}
                 selfHost={selfHost}

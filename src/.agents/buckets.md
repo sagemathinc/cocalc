@@ -195,3 +195,28 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
   - remove host-to-host key generation/storage and related sqlite fields
   - sweep docs/scripts for rsync/btrfs transfer mentions
 
+### Phase 5: Manage Backup Status
+
+- **Goal**: make host stop/deprovision safe and scalable by tracking whether projects are actually provisioned on a host, and by surfacing clear aggregate + per-project backup status for admins.
+- **New host-project inventory table**:
+  - table keyed by `(host_id, project_id)` with `present` (bool) + `updated_at`
+  - authoritative source for “provisioned” status (volume exists locally)
+- **Host reporting**:
+  - on volume create/delete, report `present=true/false` to hub
+  - on host startup, run a single inventory scan (`/btrfs/project-*`) and batch update
+  - on host deprovision, clear inventory for that host
+- **Hub aggregates (no per-project RPCs)**:
+  - total assigned (`projects.host_id = host_id`)
+  - provisioned (`host_project_inventory.present`)
+  - running (`projects.state in running/starting`)
+  - provisioned + up-to-date (`last_backup >= last_edited` or `last_edited` null)
+- **Stop/deprovision dialog**:
+  - show counts: total assigned, provisioned, running, provisioned+up-to-date
+  - include a table of “at risk” projects (running or provisioned+dirty)
+  - if host is off, explain backups can’t run and show last known counts
+- **Backup worker**:
+  - only consider provisioned projects (skip unprovisioned at scale)
+  - low concurrency, cancelable, report progress using counts above
+- **Future: better dirty tracking**:
+  - use btrfs subvolume generation/snapshot metadata to detect changes
+  - make `last_edited` reliable and update on FS writes/agent runs/stop

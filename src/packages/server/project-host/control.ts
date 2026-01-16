@@ -228,12 +228,35 @@ export async function stopProjectOnHost(project_id: string): Promise<void> {
   if (!host_id) {
     throw Error("project has no host_id");
   }
+  let wasRunning = false;
+  try {
+    const { rows } = await pool().query<{ state: { state?: string } | null }>(
+      "SELECT state FROM projects WHERE project_id=$1",
+      [project_id],
+    );
+    const rawState = rows[0]?.state ?? null;
+    const parsedState =
+      typeof rawState === "string" ? JSON.parse(rawState) : rawState;
+    const stateValue = parsedState?.state;
+    wasRunning = stateValue === "running" || stateValue === "starting";
+  } catch (err) {
+    log.debug("stopProjectOnHost unable to read project state", {
+      project_id,
+      err: `${err}`,
+    });
+  }
   const client = createHostControlClient({
     host_id,
     client: conatWithProjectRouting(),
   });
   try {
     await client.stopProject({ project_id });
+    if (wasRunning) {
+      await pool().query(
+        "UPDATE projects SET last_edited=NOW() WHERE project_id=$1",
+        [project_id],
+      );
+    }
   } catch (err) {
     log.warn("stopProjectOnHost failed", { project_id, host_id, err });
     throw err;

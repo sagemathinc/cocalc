@@ -1,6 +1,7 @@
 import { randomUUID } from "crypto";
 import type {
   Host,
+  HostBackupStatus,
   HostMachine,
   HostStatus,
   HostCatalog,
@@ -99,6 +100,7 @@ function parseRow(
     can_start?: boolean;
     can_place?: boolean;
     reason_unavailable?: string;
+    backup_status?: HostBackupStatus;
   } = {},
 ): Host {
   const metadata = row.metadata ?? {};
@@ -138,7 +140,57 @@ function parseRow(
     last_action_error: metadata.last_action_error,
     provider_observed_at: metadata.runtime?.observed_at,
     deleted: row.deleted ? new Date(row.deleted).toISOString() : undefined,
+    backup_status: opts.backup_status,
   };
+}
+
+async function loadHostBackupStatus(
+  hostIds: string[],
+): Promise<Map<string, HostBackupStatus>> {
+  if (!hostIds.length) return new Map();
+  const { rows } = await pool().query<{
+    host_id: string;
+    total: string;
+    running: string;
+    up_to_date: string;
+    needs_backup: string;
+  }>(
+    `
+      SELECT
+        host_id,
+        COUNT(*) AS total,
+        COUNT(*) FILTER (
+          WHERE COALESCE(state->>'state', '') IN ('running','starting')
+        ) AS running,
+        COUNT(*) FILTER (
+          WHERE COALESCE(state->>'state', '') NOT IN ('running','starting')
+            AND last_backup IS NOT NULL
+            AND (last_edited IS NULL OR last_edited <= last_backup)
+        ) AS up_to_date,
+        COUNT(*) FILTER (
+          WHERE COALESCE(state->>'state', '') NOT IN ('running','starting')
+            AND (
+              last_backup IS NULL
+              OR (last_edited IS NOT NULL AND last_edited > last_backup)
+            )
+        ) AS needs_backup
+      FROM projects
+      WHERE deleted IS NOT true
+        AND host_id = ANY($1)
+      GROUP BY host_id
+    `,
+    [hostIds],
+  );
+  const map = new Map<string, HostBackupStatus>();
+  for (const row of rows) {
+    map.set(row.host_id, {
+      total: Number(row.total ?? 0),
+      running: Number(row.running ?? 0),
+      up_to_date: Number(row.up_to_date ?? 0),
+      needs_backup: Number(row.needs_backup ?? 0),
+    });
+  }
+  return map;
 }
 
 async function loadOwnedHost(id: string, account_id?: string): Promise<any> {
@@ -365,6 +417,7 @@ export async function listHosts({
     `SELECT * FROM project_hosts ${whereClause} ORDER BY updated DESC NULLS LAST, created DESC NULLS LAST`,
     params,
   );
+  const backupStatus = await loadHostBackupStatus(rows.map((row) => row.id));
 
   const membership = await loadMembership(owner);
   const userTier = getUserHostTier(membership.entitlements);
@@ -408,6 +461,7 @@ export async function listHosts({
         can_place,
         can_start,
         reason_unavailable,
+        backup_status: backupStatus.get(row.id),
       }),
     );
   }
@@ -743,16 +797,18 @@ export async function startHostInternal({
 export async function stopHost({
   account_id,
   id,
+  skip_backups,
 }: {
   account_id?: string;
   id: string;
+  skip_backups?: boolean;
 }): Promise<HostLroResponse> {
   const row = await loadHostForStartStop(id, account_id);
   return await createHostLro({
     kind: HOST_STOP_LRO_KIND,
     row,
     account_id,
-    input: { id: row.id, account_id },
+    input: { id: row.id, account_id, skip_backups: !!skip_backups },
     dedupe_key: `${HOST_STOP_LRO_KIND}:${row.id}`,
   });
 }
@@ -1429,9 +1485,11 @@ export async function upgradeHostSoftwareInternal({
 export async function deleteHost({
   account_id,
   id,
+  skip_backups,
 }: {
   account_id?: string;
   id: string;
+  skip_backups?: boolean;
 }): Promise<HostLroResponse> {
   const row = await loadOwnedHost(id, account_id);
   const kind =
@@ -1442,7 +1500,7 @@ export async function deleteHost({
     kind,
     row,
     account_id,
-    input: { id: row.id, account_id },
+    input: { id: row.id, account_id, skip_backups: !!skip_backups },
     dedupe_key: `${kind}:${row.id}`,
   });
 }

@@ -18,6 +18,14 @@ export type HostSortField =
 
 export type HostSortDirection = "asc" | "desc";
 
+export type HostStopOptions = {
+  skip_backups?: boolean;
+};
+
+export type HostDeleteOptions = {
+  skip_backups?: boolean;
+};
+
 export type HostRecommendation = {
   title?: string;
   provider: HostProvider;

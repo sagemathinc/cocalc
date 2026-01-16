@@ -32,6 +32,15 @@ function progressPercent(op: HostLroState): number | undefined {
   return undefined;
 }
 
+export function getHostOpPhase(op?: HostLroState): string | undefined {
+  if (!op) return undefined;
+  return (
+    op.summary?.progress_summary?.phase ??
+    op.last_progress?.phase ??
+    op.last_progress?.message
+  );
+}
+
 function opLabel(op: HostLroState): string {
   const summary = op.summary;
   const kind = summary?.kind ?? op.kind;
@@ -63,10 +72,7 @@ export function HostOpProgress({
   if (summary && !ACTIVE_STATUSES.has(summary.status)) {
     return null;
   }
-  const phase =
-    summary?.progress_summary?.phase ??
-    op.last_progress?.phase ??
-    op.last_progress?.message;
+  const phase = getHostOpPhase(op);
   const label = phase ? capitalize(phase) : capitalize(status);
   const created_ts = toTimestamp(summary?.created_at);
   const started_ts = toTimestamp(summary?.started_at);

@@ -1,10 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { delay } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
+import { conat } from "@cocalc/backend/conat";
+import { client as fileServerClient } from "@cocalc/conat/files/file-server";
 import getPool from "@cocalc/database/pool";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
+import { waitForCompletion as waitForLroCompletion } from "@cocalc/conat/lro/client";
 import {
   claimLroOps,
+  createLro,
+  getLro,
   touchLro,
   updateLro,
 } from "@cocalc/server/lro/lro-db";
@@ -28,6 +33,11 @@ const TICK_MS = 5_000;
 const MAX_PARALLEL = 2;
 const MAX_WAIT_MS = 2 * 60 * 60 * 1000;
 const POLL_MS = 5_000;
+const BACKUP_PARALLEL = 2;
+const BACKUP_WAIT_MS = 6 * 60 * 60 * 1000;
+const BACKUP_PROGRESS_MAX = 60;
+const BACKUP_LRO_KIND = "project-backup";
+const VOLUME_CHECK_PARALLEL = 5;
 
 const HOST_OP_KINDS = [
   "host-start",
@@ -45,10 +55,32 @@ type HostOpKind = (typeof HOST_OP_KINDS)[number];
 const WORKER_ID = randomUUID();
 
 const progressSteps: Record<string, number> = {
+  backups: 20,
   requesting: 35,
   waiting: 75,
   done: 100,
+  canceled: 100,
 };
+
+type HostProjectRow = {
+  project_id: string;
+  last_edited: Date | null;
+  last_backup: Date | null;
+  state: { state?: string } | null;
+};
+
+type BackupCandidate = {
+  project_id: string;
+  reason: "running" | "dirty";
+};
+
+class HostOpCanceledError extends Error {
+  code = "host-op-canceled";
+
+  constructor(message = "host op canceled") {
+    super(message);
+  }
+}
 
 let running = false;
 let inFlight = 0;
@@ -66,14 +98,16 @@ function progressEvent({
   step,
   message,
   detail,
+  progress,
 }: {
   op: LroSummary;
   step: string;
   message: string;
   detail?: any;
+  progress?: number;
 }) {
-  const progress =
-    progressSteps[step] != null ? progressSteps[step] : undefined;
+  const resolved =
+    progress ?? (progressSteps[step] != null ? progressSteps[step] : undefined);
   void publishLroEvent({
     scope_type: op.scope_type,
     scope_id: op.scope_id,
@@ -83,7 +117,7 @@ function progressEvent({
       ts: Date.now(),
       phase: step,
       message,
-      progress,
+      progress: resolved,
       detail,
     },
   });
@@ -176,6 +210,239 @@ async function waitForHostHeartbeat({
     await delay(POLL_MS);
   }
   throw new Error("timeout waiting for host heartbeat");
+}
+
+async function loadHostProjects(host_id: string): Promise<HostProjectRow[]> {
+  const { rows } = await getPool().query<HostProjectRow>(
+    `
+      SELECT project_id, last_edited, last_backup, state
+      FROM projects
+      WHERE host_id=$1
+        AND deleted IS NOT true
+    `,
+    [host_id],
+  );
+  return rows;
+}
+
+function isProjectRunning(state?: string | null): boolean {
+  return state === "running" || state === "starting";
+}
+
+function needsBackup(row: HostProjectRow): BackupCandidate | undefined {
+  const state = row.state?.state ?? null;
+  if (isProjectRunning(state)) {
+    return { project_id: row.project_id, reason: "running" };
+  }
+  const lastEdited = row.last_edited ? new Date(row.last_edited).getTime() : 0;
+  const lastBackup = row.last_backup ? new Date(row.last_backup).getTime() : 0;
+  if (!lastEdited) {
+    return { project_id: row.project_id, reason: "dirty" };
+  }
+  if (!lastBackup || lastEdited > lastBackup) {
+    return { project_id: row.project_id, reason: "dirty" };
+  }
+  return undefined;
+}
+
+async function filterCandidatesWithVolumes(
+  candidates: BackupCandidate[],
+): Promise<{ available: BackupCandidate[]; skipped: string[] }> {
+  const available: BackupCandidate[] = [];
+  const skipped: string[] = [];
+  const queue = [...candidates];
+
+  const worker = async () => {
+    while (queue.length) {
+      const next = queue.shift();
+      if (!next) return;
+      const fs = fileServerClient({ project_id: next.project_id, timeout: 10_000 });
+      const exists = await fs.volumeExists({ project_id: next.project_id });
+      if (exists) {
+        available.push(next);
+      } else {
+        skipped.push(next.project_id);
+      }
+    }
+  };
+
+  const workers = Array.from(
+    { length: Math.min(VOLUME_CHECK_PARALLEL, candidates.length) },
+    () => worker(),
+  );
+
+  await Promise.all(workers);
+
+  return { available, skipped };
+}
+
+async function createProjectBackupOp({
+  project_id,
+  account_id,
+}: {
+  project_id: string;
+  account_id: string;
+}): Promise<LroSummary> {
+  const op = await createLro({
+    kind: BACKUP_LRO_KIND,
+    scope_type: "project",
+    scope_id: project_id,
+    created_by: account_id,
+    routing: "hub",
+    input: { project_id },
+    status: "queued",
+  });
+  await publishLroSummary({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    summary: op,
+  });
+  publishLroEvent({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    op_id: op.op_id,
+    event: {
+      type: "progress",
+      ts: Date.now(),
+      phase: "queued",
+      message: "queued",
+      progress: 0,
+    },
+  }).catch(() => {});
+  return op;
+}
+
+async function ensureHostBackups({
+  host_id,
+  account_id,
+  skip_backups,
+  progressStep,
+  shouldCancel,
+}: {
+  host_id: string;
+  account_id: string;
+  skip_backups: boolean;
+  progressStep: (
+    step: string,
+    message: string,
+    detail?: any,
+    progress?: number,
+  ) => Promise<void>;
+  shouldCancel: () => Promise<boolean>;
+}): Promise<void> {
+  if (await shouldCancel()) {
+    throw new HostOpCanceledError();
+  }
+  const projects = await loadHostProjects(host_id);
+  const candidates = projects
+    .map((row) => needsBackup(row))
+    .filter((row): row is BackupCandidate => !!row);
+  if (!candidates.length) {
+    return;
+  }
+
+  if (skip_backups) {
+    await progressStep("backups", "backups skipped", {
+      host_id,
+      total: candidates.length,
+      skipped: candidates.length,
+    });
+    return;
+  }
+
+  const statusRow = await loadHostStatus(host_id);
+  const status = String(statusRow?.status ?? "");
+  if (!["running", "starting", "restarting", "error"].includes(status)) {
+    throw new Error("host is not running; use force to skip backups");
+  }
+
+  const { available, skipped } = await filterCandidatesWithVolumes(candidates);
+  if (skipped.length) {
+    logger.info("host backup skip: missing project volumes", {
+      host_id,
+      count: skipped.length,
+    });
+  }
+  if (!available.length) {
+    await progressStep("backups", "backups skipped (no local data)", {
+      host_id,
+      total: candidates.length,
+      skipped: candidates.length,
+      skipped_missing: skipped.length,
+    });
+    return;
+  }
+
+  const total = available.length;
+  let completed = 0;
+  let failed = 0;
+
+  const updateProgress = async () => {
+    const done = completed + failed;
+    const progress = total
+      ? Math.round((done / total) * BACKUP_PROGRESS_MAX)
+      : 0;
+    const skippedNote = skipped.length ? ` (skipped ${skipped.length})` : "";
+    await progressStep(
+      "backups",
+      `backups ${done}/${total}${skippedNote}`,
+      {
+        host_id,
+        total,
+        completed,
+        failed,
+        skipped_missing: skipped.length,
+      },
+      progress,
+    );
+  };
+
+  await updateProgress();
+
+  const queue = [...available];
+  let abortError: Error | null = null;
+  const worker = async () => {
+    while (queue.length && !abortError) {
+      if (await shouldCancel()) {
+        abortError = new HostOpCanceledError();
+        throw abortError;
+      }
+      const next = queue.shift();
+      if (!next) return;
+      try {
+        const backupOp = await createProjectBackupOp({
+          project_id: next.project_id,
+          account_id,
+        });
+        const summary = await waitForLroCompletion({
+          op_id: backupOp.op_id,
+          scope_type: backupOp.scope_type,
+          scope_id: backupOp.scope_id,
+          client: conat(),
+          timeout_ms: BACKUP_WAIT_MS,
+        });
+        if (summary.status !== "succeeded") {
+          throw new Error(
+            summary.error ?? `backup ${summary.status} for ${next.project_id}`,
+          );
+        }
+        completed += 1;
+      } catch (err) {
+        failed += 1;
+        abortError = err as Error;
+        throw err;
+      } finally {
+        await updateProgress();
+      }
+    }
+  };
+
+  const workers = Array.from(
+    { length: Math.min(BACKUP_PARALLEL, total) },
+    () => worker(),
+  );
+
+  await Promise.all(workers);
 }
 
 function opLabel(kind: HostOpKind, input: any): string {
@@ -323,18 +590,49 @@ async function handleOp(op: LroSummary): Promise<void> {
   }, HEARTBEAT_MS);
   heartbeat.unref?.();
 
-  let lastStep: string | null = null;
-  const progressStep = async (step: string, message: string, detail?: any) => {
-    if (step === lastStep) {
+  let lastProgressKey: string | null = null;
+  const progressStep = async (
+    step: string,
+    message: string,
+    detail?: any,
+    progress?: number,
+  ) => {
+    let detailKey = "";
+    if (detail !== undefined) {
+      try {
+        detailKey = JSON.stringify(detail);
+      } catch {
+        detailKey = String(detail);
+      }
+    }
+    const progressKey = `${step}|${message}|${detailKey}|${progress ?? ""}`;
+    if (progressKey === lastProgressKey) {
       return;
     }
-    lastStep = step;
+    lastProgressKey = progressKey;
     logger.info("host op step", { op_id, kind, step, message, detail });
-    progressEvent({ op, step, message, detail });
+    progressEvent({ op, step, message, detail, progress });
     touchLro({ op_id, owner_type: OWNER_TYPE, owner_id: WORKER_ID }).catch(
       () => {},
     );
     await updateProgressSummary(op, { step, detail }).catch(() => {});
+  };
+
+  const cancelState = {
+    lastCheck: 0,
+    canceled: false,
+  };
+
+  const shouldCancel = async () => {
+    if (cancelState.canceled) return true;
+    const now = Date.now();
+    if (now - cancelState.lastCheck < 2_000) {
+      return cancelState.canceled;
+    }
+    cancelState.lastCheck = now;
+    const latest = await getLro(op_id);
+    cancelState.canceled = latest?.status === "canceled";
+    return cancelState.canceled;
   };
 
   try {
@@ -349,6 +647,24 @@ async function handleOp(op: LroSummary): Promise<void> {
 
     const actionLabel = opLabel(kind, input);
     const actionLower = actionLabel.toLowerCase();
+
+    if (await shouldCancel()) {
+      throw new HostOpCanceledError();
+    }
+
+    const skipBackups = !!input?.skip_backups;
+    const needsBackupPhase =
+      kind === "host-stop" || kind === "host-deprovision";
+    if (needsBackupPhase) {
+      await ensureHostBackups({
+        host_id,
+        account_id,
+        skip_backups: skipBackups,
+        progressStep,
+        shouldCancel,
+      });
+    }
+
     await progressStep("requesting", `requesting ${actionLower}`, {
       host_id,
       action: actionLower,
@@ -402,6 +718,10 @@ async function handleOp(op: LroSummary): Promise<void> {
       return;
     }
 
+    if (await shouldCancel()) {
+      throw new HostOpCanceledError();
+    }
+
     await runHostAction(kind, host_id, account_id, input);
 
     const wait = waitConfig(kind);
@@ -441,19 +761,39 @@ async function handleOp(op: LroSummary): Promise<void> {
       status: final.status,
     });
   } catch (err) {
-    logger.warn("host op failed", { op_id, kind, err: `${err}` });
-    const updated = await updateLro({
-      op_id,
-      status: "failed",
-      error: `${err}`,
-    });
-    if (updated) {
-      await publishSummary(updated);
+    const canceled =
+      err instanceof HostOpCanceledError ||
+      (typeof err === "object" &&
+        err !== null &&
+        (err as { code?: string }).code === "host-op-canceled");
+    if (canceled) {
+      logger.info("host op canceled", { op_id, kind });
+      const updated = await updateLro({
+        op_id,
+        status: "canceled",
+        error: `${err}`,
+      });
+      if (updated) {
+        await publishSummary(updated);
+      }
+      await progressStep("canceled", "operation canceled", {
+        host_id,
+      });
+    } else {
+      logger.warn("host op failed", { op_id, kind, err: `${err}` });
+      const updated = await updateLro({
+        op_id,
+        status: "failed",
+        error: `${err}`,
+      });
+      if (updated) {
+        await publishSummary(updated);
+      }
+      await progressStep("done", "operation failed", {
+        host_id,
+        error: `${err}`,
+      });
     }
-    await progressStep("done", "operation failed", {
-      host_id,
-      error: `${err}`,
-    });
   } finally {
     clearInterval(heartbeat);
   }

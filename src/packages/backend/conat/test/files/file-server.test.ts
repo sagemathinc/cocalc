@@ -28,6 +28,9 @@ describe("create basic mocked file server and test it out", () => {
       ensureVolume: async ({ project_id }): Promise<void> => {
         volumes.add(project_id);
       },
+      volumeExists: async ({ project_id }): Promise<boolean> => {
+        return volumes.has(project_id);
+      },
 
       // create project_id as an exact lightweight clone of src_project_id
       clone: async (opts: {
