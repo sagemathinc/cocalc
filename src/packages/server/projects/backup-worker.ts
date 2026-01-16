@@ -99,11 +99,25 @@ async function handleBackupOp(op: LroSummary): Promise<void> {
   }, HEARTBEAT_MS);
   heartbeat.unref?.();
 
+  let lastProgressKey: string | null = null;
   const progress = (update: {
     step: string;
     message?: string;
     detail?: any;
   }) => {
+    let detailKey = "";
+    if (update.detail !== undefined) {
+      try {
+        detailKey = JSON.stringify(update.detail);
+      } catch {
+        detailKey = String(update.detail);
+      }
+    }
+    const progressKey = `${update.step}|${update.message ?? ""}|${detailKey}`;
+    if (progressKey === lastProgressKey) {
+      return;
+    }
+    lastProgressKey = progressKey;
     logger.info("backup op step", {
       op_id,
       step: update.step,
