@@ -8,6 +8,7 @@ export type SoftwareVersions = {
 };
 
 const DEFAULT_BUNDLE_ROOT = "/opt/cocalc/project-bundles";
+const DEFAULT_PROJECT_HOST_ROOT = "/opt/cocalc/project-host";
 const DEFAULT_TOOLS_CURRENT = "/opt/cocalc/tools/current";
 
 function versionFromCurrentPath(currentPath: string): string | undefined {
@@ -36,7 +37,10 @@ function getToolsVersion(): string | undefined {
 }
 
 function getProjectHostVersion(): string | undefined {
+  const root = process.env.COCALC_PROJECT_HOST_ROOT ?? DEFAULT_PROJECT_HOST_ROOT;
+  const fromLink = versionFromCurrentPath(path.join(root, "current"));
   return (
+    fromLink ??
     process.env.COCALC_PROJECT_HOST_VERSION ??
     process.env.npm_package_version ??
     undefined

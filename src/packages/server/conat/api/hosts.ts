@@ -5,6 +5,7 @@ import type {
   HostStatus,
   HostCatalog,
   HostSoftwareUpgradeTarget,
+  HostSoftwareUpgradeResponse,
   HostLroResponse,
   HostLroKind,
 } from "@cocalc/conat/hub/api/hosts";
@@ -67,6 +68,7 @@ const SELF_HOST_RESIZE_TIMEOUT_MS = 5 * 60 * 1000;
 const HOST_START_LRO_KIND = "host-start";
 const HOST_STOP_LRO_KIND = "host-stop";
 const HOST_RESTART_LRO_KIND = "host-restart";
+const HOST_UPGRADE_LRO_KIND = "host-upgrade-software";
 const HOST_DEPROVISION_LRO_KIND = "host-deprovision";
 const HOST_DELETE_LRO_KIND = "host-delete";
 const HOST_FORCE_DEPROVISION_LRO_KIND = "host-force-deprovision";
@@ -1349,8 +1351,47 @@ export async function upgradeHostSoftware({
   id: string;
   targets: HostSoftwareUpgradeTarget[];
   base_url?: string;
-}) {
-  await loadHostForStartStop(id, account_id);
+}): Promise<HostLroResponse> {
+  const row = await loadHostForStartStop(id, account_id);
+  assertHostRunningForUpgrade(row);
+  return await createHostLro({
+    kind: HOST_UPGRADE_LRO_KIND,
+    row,
+    account_id,
+    input: { id: row.id, account_id, targets, base_url },
+    dedupe_key: `${HOST_UPGRADE_LRO_KIND}:${row.id}`,
+  });
+}
+
+function assertHostRunningForUpgrade(row: any) {
+  const status = String(row.status ?? "");
+  if (status !== "active" && status !== "running") {
+    throw new Error("host must be running to upgrade software");
+  }
+}
+
+function mapUpgradeArtifact(artifact: string): "project_host" | "project_bundle" | "tools" | undefined {
+  if (artifact === "project-host") return "project_host";
+  if (artifact === "project" || artifact === "project-bundle") {
+    return "project_bundle";
+  }
+  if (artifact === "tools") return "tools";
+  return undefined;
+}
+
+export async function upgradeHostSoftwareInternal({
+  account_id,
+  id,
+  targets,
+  base_url,
+}: {
+  account_id?: string;
+  id: string;
+  targets: HostSoftwareUpgradeTarget[];
+  base_url?: string;
+}): Promise<HostSoftwareUpgradeResponse> {
+  const row = await loadHostForStartStop(id, account_id);
+  assertHostRunningForUpgrade(row);
   const { project_hosts_software_base_url } = await getServerSettings();
   const resolvedBaseUrl =
     base_url ??
@@ -1361,10 +1402,28 @@ export async function upgradeHostSoftware({
     host_id: id,
     client: conatWithProjectRouting(),
   });
-  return await client.upgradeSoftware({
+  const response = await client.upgradeSoftware({
     targets,
     base_url: resolvedBaseUrl,
   });
+  const results = response.results ?? [];
+  if (results.length) {
+    const metadata = row.metadata ?? {};
+    const software = { ...(metadata.software ?? {}) } as Record<string, string>;
+    for (const result of results) {
+      const key = mapUpgradeArtifact(result.artifact);
+      if (key) {
+        software[key] = result.version;
+      }
+    }
+    const nextMetadata = { ...metadata, software };
+    const nextVersion = software.project_host ?? row.version ?? null;
+    await pool().query(
+      `UPDATE project_hosts SET metadata=$2, version=$3, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
+      [row.id, nextMetadata, nextVersion],
+    );
+  }
+  return response;
 }
 
 export async function deleteHost({

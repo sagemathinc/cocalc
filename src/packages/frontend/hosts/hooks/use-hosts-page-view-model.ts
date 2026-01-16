@@ -139,10 +139,14 @@ export const useHostsPageViewModel = () => {
     includeDeleted: showDeleted,
     pollMs: fastPoll ? 3000 : 15000,
   });
+  const handleUpgradeComplete = React.useCallback(() => {
+    refresh().catch(() => {});
+  }, [refresh]);
   const { hostOps, trackHostOp } = useHostOps({
     hosts,
     listLro: (opts) => hub.lro.list(opts),
     getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+    onUpgradeComplete: handleUpgradeComplete,
   });
   const {
     setStatus,
@@ -164,8 +168,11 @@ export const useHostsPageViewModel = () => {
         message.error("Host upgrades are not available");
         return;
       }
+      if (host.status !== "running") {
+        return;
+      }
       try {
-        await hub.hosts.upgradeHostSoftware({
+        const op = await hub.hosts.upgradeHostSoftware({
           id: host.id,
           targets: [
             { artifact: "project-host", channel: "latest" },
@@ -173,14 +180,14 @@ export const useHostsPageViewModel = () => {
             { artifact: "tools", channel: "latest" },
           ],
         });
-        message.success("Upgrade requested");
+        trackHostOp(host.id, op);
         await refresh();
       } catch (err) {
         console.error(err);
         message.error("Failed to upgrade host software");
       }
     },
-    [hub, refresh],
+    [hub, refresh, trackHostOp],
   );
   const [editingHost, setEditingHost] =
     React.useState<(typeof hosts)[number]>();
@@ -487,6 +494,7 @@ export const useHostsPageViewModel = () => {
     onStop: (id: string) => setStatus(id, "stop"),
     onRestart: restartHost,
     onDelete: removeHost,
+    onUpgrade: isAdmin ? upgradeHostSoftware : undefined,
     onDetails: openDetails,
     onEdit: openEdit,
     selfHost: {

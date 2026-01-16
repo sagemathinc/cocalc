@@ -29,6 +29,7 @@ import {
 } from "../constants";
 import { getProviderDescriptor, isKnownProvider } from "../providers/registry";
 import { HostOpProgress } from "./host-op-progress";
+import { UpgradeConfirmContent } from "./upgrade-confirmation";
 
 type HostDrawerViewModel = {
   open: boolean;
@@ -180,7 +181,17 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
   const showStaleTag = host?.status === "running" && !hostOnline;
   const showSpinner = host ? isHostTransitioning(host.status) : false;
   const statusLabel = host ? (host.deleted ? "deleted" : host.status) : "";
-  const hostOpActive = host ? isHostOpActive(hostOps?.[host.id]) : false;
+  const activeOp = host ? hostOps?.[host.id] : undefined;
+  const hostOpActive = host ? isHostOpActive(activeOp) : false;
+  const showUpgradeProgress =
+    activeOp?.summary?.kind === "host-upgrade-software" ||
+    activeOp?.kind === "host-upgrade-software";
+  const upgradeConfirmContent = (
+    <div>
+      <div>Upgrade host software to latest?</div>
+      <UpgradeConfirmContent />
+    </div>
+  );
   const onlineTag =
     host && !host.deleted ? (
       showOnlineTag ? (
@@ -261,7 +272,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               </Tooltip>
             )}
           </Space>
-          <HostOpProgress op={hostOps?.[host.id]} />
+          {!showUpgradeProgress && <HostOpProgress op={activeOp} />}
           <Typography.Text copyable={{ text: host.id }}>
             Host ID: {host.id}
           </Typography.Text>
@@ -305,17 +316,17 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
             host.tools_version) && (
             <Space direction="vertical" size="small">
               <Typography.Text strong>Software</Typography.Text>
-              {host.version && (
-                <Typography.Text>Workspace host: {host.version}</Typography.Text>
-              )}
-              {host.project_bundle_version && (
-                <Typography.Text>
-                  Workspace bundle: {host.project_bundle_version}
-                </Typography.Text>
-              )}
-              {host.tools_version && (
-                <Typography.Text>Tools: {host.tools_version}</Typography.Text>
-              )}
+              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                {[
+                  host.version ? `Host ${host.version}` : null,
+                  host.project_bundle_version
+                    ? `Workspace ${host.project_bundle_version}`
+                    : null,
+                  host.tools_version ? `Tools ${host.tools_version}` : null,
+                ]
+                  .filter(Boolean)
+                  .join(" | ")}
+              </Typography.Text>
             </Space>
           )}
           {showConnectorWarning && selfHost && (
@@ -367,14 +378,21 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
           )}
           {canUpgrade && host && !host.deleted && onUpgrade && (
             <Popconfirm
-              title="Upgrade host software to latest?"
+              title={upgradeConfirmContent}
               okText="Upgrade"
               cancelText="Cancel"
               onConfirm={() => onUpgrade(host)}
+              disabled={hostOpActive || host.status !== "running"}
             >
-              <Button size="small">Upgrade software</Button>
+              <Button
+                size="small"
+                disabled={hostOpActive || host.status !== "running"}
+              >
+                Upgrade software
+              </Button>
             </Popconfirm>
           )}
+          {showUpgradeProgress && <HostOpProgress op={activeOp} />}
           <Typography.Text type="secondary">
             Last seen:{" "}
             {host.last_seen ? new Date(host.last_seen).toLocaleString() : "n/a"}

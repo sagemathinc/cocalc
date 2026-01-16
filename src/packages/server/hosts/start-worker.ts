@@ -16,6 +16,7 @@ import {
   restartHostInternal,
   startHostInternal,
   stopHostInternal,
+  upgradeHostSoftwareInternal,
 } from "@cocalc/server/conat/api/hosts";
 
 const logger = getLogger("server:hosts:ops-worker");
@@ -32,6 +33,7 @@ const HOST_OP_KINDS = [
   "host-start",
   "host-stop",
   "host-restart",
+  "host-upgrade-software",
   "host-deprovision",
   "host-delete",
   "host-force-deprovision",
@@ -105,7 +107,7 @@ async function updateProgressSummary(
 
 async function loadHostStatus(id: string) {
   const { rows } = await getPool().query(
-    "SELECT id, status, metadata, deleted FROM project_hosts WHERE id=$1",
+    "SELECT id, status, metadata, deleted, last_seen FROM project_hosts WHERE id=$1",
     [id],
   );
   return rows[0];
@@ -154,6 +156,28 @@ async function waitForHostStatus({
   throw new Error(`timeout waiting for host: ${desired.join(", ")}`);
 }
 
+async function waitForHostHeartbeat({
+  host_id,
+  since,
+}: {
+  host_id: string;
+  since: number;
+}) {
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < MAX_WAIT_MS) {
+    const row = await loadHostStatus(host_id);
+    if (!row || row.deleted) {
+      throw new Error("host not found");
+    }
+    const lastSeen = row.last_seen ? new Date(row.last_seen as any).getTime() : 0;
+    if (lastSeen && lastSeen >= since) {
+      return { last_seen: row.last_seen };
+    }
+    await delay(POLL_MS);
+  }
+  throw new Error("timeout waiting for host heartbeat");
+}
+
 function opLabel(kind: HostOpKind, input: any): string {
   switch (kind) {
     case "host-start":
@@ -162,6 +186,8 @@ function opLabel(kind: HostOpKind, input: any): string {
       return "Stop";
     case "host-restart":
       return input?.mode === "hard" ? "Hard restart" : "Restart";
+    case "host-upgrade-software":
+      return "Upgrade";
     case "host-deprovision":
       return "Deprovision";
     case "host-delete":
@@ -203,7 +229,7 @@ function waitConfig(kind: HostOpKind) {
       };
     case "host-delete":
       return {
-        desired: [],
+        desired: ["deprovisioned"],
         failOn: ["error"],
         allowDeleted: true,
         message: "waiting for host deletion",
@@ -327,6 +353,55 @@ async function handleOp(op: LroSummary): Promise<void> {
       host_id,
       action: actionLower,
     });
+
+    if (kind === "host-upgrade-software") {
+      const upgradeStartedAt = Date.now();
+      await progressStep("waiting", "running upgrade", {
+        host_id,
+        targets: input?.targets,
+      });
+      const response = await upgradeHostSoftwareInternal({
+        account_id,
+        id: host_id,
+        targets: input?.targets ?? [],
+        base_url: input?.base_url,
+      });
+      const requiresRestart = (response.results ?? []).some(
+        (result) =>
+          result.artifact === "project-host" && result.status === "updated",
+      );
+      if (requiresRestart) {
+        const row = await loadHostStatus(host_id);
+        const baselineSeen = row?.last_seen
+          ? new Date(row.last_seen as any).getTime()
+          : 0;
+        const since = Math.max(baselineSeen, upgradeStartedAt);
+        await progressStep("waiting", "waiting for host to return", {
+          host_id,
+        });
+        await waitForHostHeartbeat({ host_id, since });
+      }
+      const updated = await updateLro({
+        op_id,
+        status: "succeeded",
+        progress_summary: {
+          phase: "done",
+          host_id,
+          results: response.results ?? [],
+        },
+        result: { host_id, ...response },
+        error: null,
+      });
+      if (updated) {
+        await publishSummary(updated);
+      }
+      await progressStep("done", "upgrade complete", {
+        host_id,
+        results: response.results ?? [],
+      });
+      return;
+    }
+
     await runHostAction(kind, host_id, account_id, input);
 
     const wait = waitConfig(kind);

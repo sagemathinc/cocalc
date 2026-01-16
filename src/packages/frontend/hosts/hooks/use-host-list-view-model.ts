@@ -14,6 +14,7 @@ type UseHostListViewModelArgs = {
   onStop: (id: string) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
   onDelete: (id: string) => void;
+  onUpgrade?: (host: Host) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
   selfHost?: {
@@ -44,6 +45,7 @@ export const useHostListViewModel = ({
   onStop,
   onRestart,
   onDelete,
+  onUpgrade,
   onDetails,
   onEdit,
   selfHost,
@@ -69,6 +71,7 @@ export const useHostListViewModel = ({
     onStop,
     onRestart,
     onDelete,
+    onUpgrade,
     onDetails,
     onEdit,
     selfHost,

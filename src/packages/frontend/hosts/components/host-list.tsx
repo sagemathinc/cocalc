@@ -13,6 +13,7 @@ import {
 import type { HostLroState } from "../hooks/use-host-ops";
 import { HostOpProgress } from "./host-op-progress";
 import { isHostOpActive } from "../hooks/use-host-ops";
+import { UpgradeConfirmContent } from "./upgrade-confirmation";
 import type {
   HostListViewMode,
   HostSortDirection,
@@ -117,6 +118,7 @@ type HostListViewModel = {
   onStop: (id: string) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
   onDelete: (id: string) => void;
+  onUpgrade?: (host: Host) => void;
   onDetails: (host: Host) => void;
   onEdit: (host: Host) => void;
   selfHost?: {
@@ -148,6 +150,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     onStop,
     onRestart,
     onDelete,
+    onUpgrade,
     onDetails,
     onEdit,
     selfHost,
@@ -332,13 +335,25 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       ),
     [selectedHosts],
   );
+  const upgradeTargets = React.useMemo(
+    () =>
+      selectedHosts.filter((host) => {
+        if (host.deleted) return false;
+        if (host.status !== "running") return false;
+        if (isHostOpActive(hostOps?.[host.id])) return false;
+        return true;
+      }),
+    [selectedHosts, hostOps],
+  );
+
+  const upgradeNotice = <UpgradeConfirmContent />;
 
   const runBulkAction = React.useCallback(
     async (
       actionLabel: string,
       targets: Host[],
-      handler: (id: string) => Promise<void> | void,
-      opts?: { danger?: boolean },
+      handler: (host: Host) => Promise<void> | void,
+      opts?: { danger?: boolean; notice?: React.ReactNode },
     ) => {
       if (!targets.length) return;
       Modal.confirm({
@@ -357,13 +372,14 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
                 </li>
               ))}
             </ul>
+            {opts?.notice}
           </div>
         ),
         okText: actionLabel,
         okButtonProps: opts?.danger ? { danger: true } : undefined,
         onOk: async () => {
           for (const host of targets) {
-            await handler(host.id);
+            await handler(host);
           }
           setSelectedRowKeys([]);
         },
@@ -691,7 +707,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           <Button
             size="small"
             onClick={() =>
-              runBulkAction("Start", startTargets, onStart)
+              runBulkAction("Start", startTargets, (host) => onStart(host.id))
             }
             disabled={!startTargets.length}
           >
@@ -700,17 +716,34 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           <Button
             size="small"
             onClick={() =>
-              runBulkAction("Stop", stopTargets, onStop)
+              runBulkAction("Stop", stopTargets, (host) => onStop(host.id))
             }
             disabled={!stopTargets.length}
           >
             Stop ({stopTargets.length})
           </Button>
+          {onUpgrade && (
+            <Button
+              size="small"
+              onClick={() =>
+                runBulkAction("Upgrade", upgradeTargets, onUpgrade, {
+                  notice: upgradeNotice,
+                })
+              }
+              disabled={!upgradeTargets.length}
+            >
+              Upgrade ({upgradeTargets.length})
+            </Button>
+          )}
           <Button
             size="small"
             danger
             onClick={() =>
-              runBulkAction("Deprovision", deprovisionTargets, onDelete, {
+              runBulkAction(
+                "Deprovision",
+                deprovisionTargets,
+                (host) => onDelete(host.id),
+                {
                 danger: true,
               })
             }
@@ -722,7 +755,11 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             size="small"
             danger
             onClick={() =>
-              runBulkAction("Delete", deleteTargets, onDelete, {
+              runBulkAction(
+                "Delete",
+                deleteTargets,
+                (host) => onDelete(host.id),
+                {
                 danger: true,
               })
             }

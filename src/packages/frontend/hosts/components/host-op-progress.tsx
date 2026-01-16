@@ -1,4 +1,4 @@
-import { Progress, Space, Spin, Typography } from "antd";
+import { Progress, Space, Typography } from "antd";
 import { TimeElapsed } from "@cocalc/frontend/components";
 import type { LroStatus } from "@cocalc/conat/hub/api/lro";
 import { capitalize } from "@cocalc/util/misc";
@@ -10,6 +10,7 @@ const KIND_LABELS: Record<string, string> = {
   "host-start": "Start",
   "host-stop": "Stop",
   "host-restart": "Restart",
+  "host-upgrade-software": "Upgrade",
   "host-deprovision": "Deprovision",
   "host-delete": "Delete",
   "host-force-deprovision": "Force deprovision",
@@ -67,7 +68,12 @@ export function HostOpProgress({
     op.last_progress?.phase ??
     op.last_progress?.message;
   const label = phase ? capitalize(phase) : capitalize(status);
-  const start_ts = toTimestamp(summary?.started_at ?? summary?.created_at);
+  const created_ts = toTimestamp(summary?.created_at);
+  const started_ts = toTimestamp(summary?.started_at);
+  const start_ts =
+    created_ts != null && started_ts != null
+      ? Math.min(created_ts, started_ts)
+      : created_ts ?? started_ts;
   const percent = progressPercent(op);
   const actionLabel = opLabel(op);
 
@@ -97,6 +103,9 @@ export function HostOpProgress({
     );
   }
 
+  const isIndeterminate = percent == null;
+  const displayPercent = percent ?? 0;
+
   return (
     <Space direction="vertical" size={2} style={{ width: "100%" }}>
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -108,11 +117,12 @@ export function HostOpProgress({
           </>
         )}
       </Typography.Text>
-      {percent != null ? (
-        <Progress percent={percent} size="small" />
-      ) : (
-        <Spin size="small" />
-      )}
+      <Progress
+        percent={displayPercent}
+        size="small"
+        status={isIndeterminate ? "active" : undefined}
+        showInfo={false}
+      />
     </Space>
   );
 }

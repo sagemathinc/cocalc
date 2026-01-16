@@ -18,6 +18,7 @@ export const HOST_LRO_KINDS = [
   "host-start",
   "host-stop",
   "host-restart",
+  "host-upgrade-software",
   "host-deprovision",
   "host-delete",
   "host-force-deprovision",
@@ -304,6 +305,6 @@ export interface Hosts {
     id: string;
     targets: HostSoftwareUpgradeTarget[];
     base_url?: string;
-  }) => Promise<HostSoftwareUpgradeResponse>;
+  }) => Promise<HostLroResponse>;
   deleteHost: (opts: { account_id?: string; id: string }) => Promise<HostLroResponse>;
 }

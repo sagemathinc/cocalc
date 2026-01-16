@@ -38,6 +38,7 @@ type UseHostOpsOptions = {
     scope_type: LroSummary["scope_type"];
     scope_id: string;
   }) => Promise<DStream<LroEvent>>;
+  onUpgradeComplete?: (summary: LroSummary) => void;
 };
 
 function toTime(summary: LroSummary): number {
@@ -52,6 +53,7 @@ export function useHostOps({
   hosts,
   listLro,
   getLroStream,
+  onUpgradeComplete,
 }: UseHostOpsOptions) {
   const [hostOps, setHostOps] = useState<Record<string, HostLroState>>({});
   const streamsRef = useRef(new Map<string, DStream<LroEvent>>());
@@ -59,6 +61,7 @@ export function useHostOps({
   const hostIdsRef = useRef<string[]>([]);
   const refreshInFlight = useRef<Promise<void> | null>(null);
   const closedRef = useRef(false);
+  const completedRef = useRef(new Set<string>());
 
   const closeStream = useCallback((op_id: string) => {
     const stream = streamsRef.current.get(op_id);
@@ -105,6 +108,19 @@ export function useHostOps({
             lastEventTs = event.ts;
           }
         }
+        if (
+          summary &&
+          TERMINAL_STATUSES.has(summary.status) &&
+          !completedRef.current.has(summary.op_id)
+        ) {
+          completedRef.current.add(summary.op_id);
+          if (
+            summary.kind === "host-upgrade-software" &&
+            summary.status === "succeeded"
+          ) {
+            setTimeout(() => onUpgradeComplete?.(summary), 0);
+          }
+        }
         const next: Record<string, HostLroState> = {
           ...prev,
           [host_id]: {
@@ -122,7 +138,7 @@ export function useHostOps({
         return next;
       });
     },
-    [closeStream],
+    [closeStream, onUpgradeComplete],
   );
 
   const ensureStream = useCallback(
@@ -184,7 +200,23 @@ export function useHostOps({
           }
         }),
       );
-      setHostOps(next);
+      setHostOps((prev) => {
+        const merged: Record<string, HostLroState> = {};
+        for (const [hostId, entry] of Object.entries(next)) {
+          const previous = prev[hostId];
+          if (previous && previous.op_id === entry.op_id) {
+            merged[hostId] = {
+              ...entry,
+              last_progress: previous.last_progress ?? entry.last_progress,
+              last_event: previous.last_event ?? entry.last_event,
+              kind: entry.kind ?? previous.kind,
+            };
+          } else {
+            merged[hostId] = entry;
+          }
+        }
+        return merged;
+      });
       for (const op_id of streamsRef.current.keys()) {
         if (!activeOpIds.has(op_id)) {
           closeStream(op_id);
