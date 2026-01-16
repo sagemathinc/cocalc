@@ -1,29 +1,23 @@
 import { Button, Popconfirm, Progress, Space, Spin } from "antd";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import type { LroEvent, LroStatus, LroSummary } from "@cocalc/conat/hub/api/lro";
+import type { LroSummary } from "@cocalc/conat/hub/api/lro";
 import { human_readable_size, plural } from "@cocalc/util/misc";
-
-type CopyLroState = {
-  op_id: string;
-  summary?: LroSummary;
-  last_progress?: Extract<LroEvent, { type: "progress" }>;
-  last_event?: LroEvent;
-};
-
-const TERMINAL_STATUSES = new Set<LroStatus>([
-  "succeeded",
-  "failed",
-  "canceled",
-  "expired",
-]);
+import {
+  LRO_TERMINAL_STATUSES,
+  isDismissed,
+  progressBarStatus,
+} from "@cocalc/frontend/lro/utils";
+import type { CopyLroState } from "@cocalc/frontend/project/copy-ops";
 
 export default function CopyOps({ project_id }: { project_id: string }) {
-  const copyOps =
-    useTypedRedux({ project_id }, "copy_ops")?.toJS() ?? {};
+  const copyOps = useTypedRedux({ project_id }, "copy_ops")?.toJS() ?? {};
   const entries = Object.values(copyOps) as CopyLroState[];
   const active = entries.filter(
-    (op) => !op.summary || !TERMINAL_STATUSES.has(op.summary.status),
+    (op) =>
+      !op.summary ||
+      (!LRO_TERMINAL_STATUSES.has(op.summary.status) &&
+        !isDismissed(op.summary)),
   );
   if (!active.length) {
     return null;
@@ -56,7 +50,7 @@ function CopyOpRow({ op }: { op: CopyLroState }) {
   const percent = progressPercent(op);
   const statusText = formatStatusLine(op);
   const progressStatus = progressBarStatus(summary?.status);
-  const canCancel = summary && !TERMINAL_STATUSES.has(summary.status);
+  const canCancel = summary && !LRO_TERMINAL_STATUSES.has(summary.status);
 
   return (
     <div style={{ marginBottom: "6px" }}>
@@ -113,13 +107,13 @@ function formatStatusLine(op: CopyLroState): string {
   const summary = op.summary;
   const progress = op.last_progress;
   const message =
-    summary?.progress_summary?.phase ??
-    progress?.phase ??
-    progress?.message;
+    summary?.progress_summary?.phase ?? progress?.phase ?? progress?.message;
   const counts = formatCounts(summary?.progress_summary ?? {});
   const detail = formatProgressDetail(progress?.detail);
   if (message && counts) {
-    return detail ? `${message} • ${counts} • ${detail}` : `${message} • ${counts}`;
+    return detail
+      ? `${message} • ${counts} • ${detail}`
+      : `${message} • ${counts}`;
   }
   if (message) {
     return detail ? `${message} • ${detail}` : message;
@@ -167,16 +161,6 @@ function progressPercent(op: CopyLroState): number | undefined {
     return Math.max(0, Math.min(100, Math.round((done / total) * 100)));
   }
   return undefined;
-}
-
-function progressBarStatus(status?: LroStatus): "active" | "exception" | "success" {
-  if (status === "failed" || status === "canceled" || status === "expired") {
-    return "exception";
-  }
-  if (status === "succeeded") {
-    return "success";
-  }
-  return "active";
 }
 
 function formatProgressDetail(detail?: any): string | undefined {

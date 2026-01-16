@@ -313,6 +313,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       isClosed: () => this.isClosed(),
       listLro: (opts) => webapp_client.conat_client.hub.lro.list(opts),
       getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+      dismissLro: (opts) => webapp_client.conat_client.hub.lro.dismiss(opts),
       log: (message, err) => console.warn(message, err),
     });
     this.startOpsManager = new StartOpsManager({
@@ -321,6 +322,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       isClosed: () => this.isClosed(),
       listLro: (opts) => webapp_client.conat_client.hub.lro.list(opts),
       getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+      dismissLro: (opts) => webapp_client.conat_client.hub.lro.dismiss(opts),
       log: (message, err) => console.warn(message, err),
     });
     this.moveOpsManager = new MoveOpsManager({
