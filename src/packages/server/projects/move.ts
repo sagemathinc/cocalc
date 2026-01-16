@@ -39,6 +39,7 @@ export type MoveProjectProgressUpdate = {
   step: string;
   message?: string;
   detail?: Record<string, any>;
+  progress?: number;
 };
 
 async function revertPlacementIfPossible(
@@ -284,6 +285,14 @@ export async function moveProjectToHost(
       scope_type: startOp.scope_type,
       scope_id: startOp.scope_id,
       client: conat(),
+      onProgress: (event) => {
+        progress({
+          step: "start-dest",
+          message: event.message ?? event.phase ?? "starting destination",
+          detail: event.detail,
+          progress: event.progress,
+        });
+      },
     });
     if (summary.status !== "succeeded") {
       const reason = summary.error ?? summary.status;

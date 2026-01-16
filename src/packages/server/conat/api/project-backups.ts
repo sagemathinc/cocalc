@@ -108,14 +108,47 @@ export async function restoreBackup({
   id: string;
   path?: string;
   dest?: string;
-}) {
+}): Promise<{
+  op_id: string;
+  scope_type: "project";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+}> {
   await assertCollab({ account_id, project_id });
-  await fileServerClient({ project_id }).restoreBackup({
-    project_id,
-    id,
-    path,
-    dest,
+  const op = await createLro({
+    kind: "project-restore",
+    scope_type: "project",
+    scope_id: project_id,
+    created_by: account_id,
+    routing: "hub",
+    input: { project_id, id, path, dest },
+    status: "queued",
   });
+  await publishLroSummary({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    summary: op,
+  });
+  publishLroEvent({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    op_id: op.op_id,
+    event: {
+      type: "progress",
+      ts: Date.now(),
+      phase: "queued",
+      message: "queued",
+      progress: 0,
+    },
+  }).catch(() => {});
+  return {
+    op_id: op.op_id,
+    scope_type: "project",
+    scope_id: project_id,
+    service: PERSIST_SERVICE,
+    stream_name: lroStreamName(op.op_id),
+  };
 }
 
 export async function beginRestoreStaging({

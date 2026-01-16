@@ -218,7 +218,13 @@ export interface Projects {
     path?: string;
     dest?: string;
     id: string;
-  }) => Promise<void>;
+  }) => Promise<{
+    op_id: string;
+    scope_type: "project";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }>;
 
   beginRestoreStaging: (opts: {
     account_id?: string;

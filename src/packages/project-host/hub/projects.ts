@@ -605,11 +605,106 @@ export async function restoreBackup({
   id: string;
   path?: string;
   dest?: string;
-}): Promise<void> {
+}): Promise<{
+  op_id: string;
+  scope_type: "project";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+}> {
   if (!isValidUUID(project_id)) {
     throw Error("invalid project_id");
   }
-  await fileServer(project_id).restoreBackup({ project_id, id, path, dest });
+  const op_id = uuid();
+  const now = new Date();
+  const baseSummary: LroSummary = {
+    op_id,
+    kind: "project-restore",
+    scope_type: "project",
+    scope_id: project_id,
+    status: "running",
+    created_by: account_id ?? null,
+    owner_type: "hub",
+    owner_id: null,
+    routing: "hub",
+    input: { project_id, id, path, dest },
+    result: {},
+    error: null,
+    progress_summary: { phase: "restore" },
+    attempt: 0,
+    heartbeat_at: null,
+    created_at: now,
+    started_at: now,
+    finished_at: null,
+    dismissed_at: null,
+    dismissed_by: null,
+    updated_at: now,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    dedupe_key: null,
+    parent_id: null,
+  };
+
+  publishLroEvent({
+    scope_type: "project",
+    scope_id: project_id,
+    op_id,
+    event: {
+      type: "progress",
+      ts: Date.now(),
+      phase: "queued",
+      message: "queued",
+      progress: 0,
+    },
+  }).catch(() => {});
+
+  void (async () => {
+    const started = Date.now();
+    try {
+      await fileServer(project_id).restoreBackup({
+        project_id,
+        id,
+        path,
+        dest,
+        lro: { op_id, scope_type: "project", scope_id: project_id },
+      });
+      const duration_ms = Date.now() - started;
+      const finished = new Date();
+      await publishLroSummary({
+        scope_type: "project",
+        scope_id: project_id,
+        summary: {
+          ...baseSummary,
+          status: "succeeded",
+          result: { id, path, dest, duration_ms },
+          progress_summary: { phase: "done", id, path, dest, duration_ms },
+          finished_at: finished,
+          updated_at: finished,
+        },
+      });
+    } catch (err) {
+      const finished = new Date();
+      await publishLroSummary({
+        scope_type: "project",
+        scope_id: project_id,
+        summary: {
+          ...baseSummary,
+          status: "failed",
+          error: `${err}`,
+          progress_summary: { phase: "failed" },
+          finished_at: finished,
+          updated_at: finished,
+        },
+      });
+    }
+  })();
+
+  return {
+    op_id,
+    scope_type: "project",
+    scope_id: project_id,
+    service: PERSIST_SERVICE,
+    stream_name: lroStreamName(op_id),
+  };
 }
 
 export async function beginRestoreStaging({
