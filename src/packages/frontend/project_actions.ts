@@ -337,6 +337,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       isClosed: () => this.isClosed(),
       listLro: (opts) => webapp_client.conat_client.hub.lro.list(opts),
       getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+      dismissLro: (opts) => webapp_client.conat_client.hub.lro.dismiss(opts),
       log: (message, err) => console.warn(message, err),
     });
     // console.log("create project actions", this.project_id);
@@ -468,6 +469,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     scope_id?: string;
   }) => {
     this.moveOpsManager.track(op);
+  };
+
+  dismissMoveLro = (op_id?: string) => {
+    this.moveOpsManager.dismiss(op_id);
   };
 
   isClosed = () => this.state == "closed";

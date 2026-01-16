@@ -485,6 +485,8 @@ export async function createBackup({
     created_at: now,
     started_at: now,
     finished_at: null,
+    dismissed_at: null,
+    dismissed_by: null,
     updated_at: now,
     expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
     dedupe_key: null,

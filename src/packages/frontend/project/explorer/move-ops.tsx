@@ -1,6 +1,11 @@
-import { Progress, Space, Spin } from "antd";
+import { Button, Progress, Space, Spin } from "antd";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import type { LroEvent, LroStatus, LroSummary } from "@cocalc/conat/hub/api/lro";
+import type {
+  LroEvent,
+  LroStatus,
+  LroSummary,
+} from "@cocalc/conat/hub/api/lro";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 
 type MoveLroState = {
   op_id: string;
@@ -10,8 +15,10 @@ type MoveLroState = {
 };
 
 const HIDE_STATUSES = new Set<LroStatus>(["succeeded"]);
+const DISMISS_STATUSES = new Set<LroStatus>(["failed", "canceled", "expired"]);
 
 export default function MoveOps({ project_id }: { project_id: string }) {
+  const { actions } = useProjectContext();
   const moveOp = useTypedRedux({ project_id }, "move_lro")?.toJS() as
     | MoveLroState
     | undefined;
@@ -22,6 +29,10 @@ export default function MoveOps({ project_id }: { project_id: string }) {
   if (summary && HIDE_STATUSES.has(summary.status)) {
     return null;
   }
+  if (summary?.dismissed_at) {
+    return null;
+  }
+  const canDismiss = summary && DISMISS_STATUSES.has(summary.status);
   const percent = progressPercent(moveOp);
   const statusText = formatStatusLine(moveOp);
   const progressStatus = progressBarStatus(summary?.status);
@@ -51,6 +62,15 @@ export default function MoveOps({ project_id }: { project_id: string }) {
           />
         )}
         <span style={{ fontSize: "11px", color: "#666" }}>{statusText}</span>
+        {canDismiss ? (
+          <Button
+            size="small"
+            type="link"
+            onClick={() => actions?.dismissMoveLro(moveOp.op_id)}
+          >
+            Dismiss
+          </Button>
+        ) : null}
       </Space>
     </div>
   );
@@ -87,7 +107,9 @@ function progressPercent(op: MoveLroState): number | undefined {
   return undefined;
 }
 
-function progressBarStatus(status?: LroStatus): "active" | "exception" | "success" {
+function progressBarStatus(
+  status?: LroStatus,
+): "active" | "exception" | "success" {
   if (status === "failed" || status === "canceled" || status === "expired") {
     return "exception";
   }

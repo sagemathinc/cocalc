@@ -29,6 +29,8 @@ export interface LroSummary {
   created_at: Date;
   started_at: Date | null;
   finished_at: Date | null;
+  dismissed_at: Date | null;
+  dismissed_by: string | null;
   updated_at: Date;
   expires_at: Date;
   dedupe_key: string | null;
@@ -55,10 +57,14 @@ export const lro = {
   get: authFirstRequireAccount,
   list: authFirstRequireAccount,
   cancel: authFirstRequireAccount,
+  dismiss: authFirstRequireAccount,
 };
 
 export interface LroApi {
-  get: (opts: { account_id?: string; op_id: string }) => Promise<LroSummary | undefined>;
+  get: (opts: {
+    account_id?: string;
+    op_id: string;
+  }) => Promise<LroSummary | undefined>;
   list: (opts: {
     account_id?: string;
     scope_type: LroScopeType;
@@ -66,4 +72,5 @@ export interface LroApi {
     include_completed?: boolean;
   }) => Promise<LroSummary[]>;
   cancel: (opts: { account_id?: string; op_id: string }) => Promise<void>;
+  dismiss: (opts: { account_id?: string; op_id: string }) => Promise<void>;
 }

@@ -1,9 +1,25 @@
 import getPool from "@cocalc/database/pool";
-import type { LroScopeType, LroSummary } from "@cocalc/conat/hub/api/lro";
+import type {
+  LroScopeType,
+  LroStatus,
+  LroSummary,
+} from "@cocalc/conat/hub/api/lro";
 import { assertCollab } from "./util";
-import { getLro, listLro, updateLro } from "@cocalc/server/lro/lro-db";
+import {
+  dismissLro,
+  getLro,
+  listLro,
+  updateLro,
+} from "@cocalc/server/lro/lro-db";
 import { publishLroSummary } from "@cocalc/conat/lro/stream";
 import { cancelCopiesByOpId } from "@cocalc/server/projects/copy-db";
+
+const DISMISSABLE_STATUSES: LroStatus[] = [
+  "succeeded",
+  "failed",
+  "canceled",
+  "expired",
+];
 
 async function assertScopeAccess({
   account_id,
@@ -106,5 +122,35 @@ export async function cancel({
   }
   if (row.kind === "copy-path-between-projects") {
     await cancelCopiesByOpId({ op_id });
+  }
+}
+
+export async function dismiss({
+  account_id,
+  op_id,
+}: {
+  account_id?: string;
+  op_id: string;
+}): Promise<void> {
+  const row = await getLro(op_id);
+  if (!row) return;
+  await assertScopeAccess({
+    account_id,
+    scope_type: row.scope_type,
+    scope_id: row.scope_id,
+  });
+  if (!DISMISSABLE_STATUSES.includes(row.status)) {
+    throw new Error("can only dismiss completed operations");
+  }
+  const updated = await dismissLro({
+    op_id,
+    dismissed_by: account_id ?? null,
+  });
+  if (updated) {
+    await publishLroSummary({
+      scope_type: updated.scope_type,
+      scope_id: updated.scope_id,
+      summary: updated,
+    });
   }
 }
