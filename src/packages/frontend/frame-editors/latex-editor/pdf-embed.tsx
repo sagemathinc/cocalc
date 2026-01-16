@@ -29,7 +29,6 @@ export const PDFEmbed: React.FC<Props> = React.memo((props: Props) => {
     let src = raw_url(
       project_id,
       pdf_path(path),
-      0,
       `param=${reload}`,
     );
     return (

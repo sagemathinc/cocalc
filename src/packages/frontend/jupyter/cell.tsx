@@ -55,7 +55,6 @@ interface Props {
   height?: number; // optional fixed height
   delayRendering?: number;
   llmTools?: LLMTools;
-  computeServerId?: number;
   is_visible?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
@@ -88,7 +87,6 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.height !== props.height ||
     nextProps.isFirst !== props.isFirst ||
     nextProps.isLast !== props.isLast ||
-    nextProps.computeServerId !== props.computeServerId ||
     (nextProps.llmTools?.model ?? "") !== (props.llmTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current)) ||
@@ -139,7 +137,6 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         input_is_readonly={!props.cell.getIn(["metadata", "editable"], true)}
         is_scrolling={props.is_scrolling}
         llmTools={props.llmTools}
-        computeServerId={props.computeServerId}
         setShowAICellGen={setShowAICellGen}
         dragHandle={props.dragHandle}
         isPending={props.isPending}

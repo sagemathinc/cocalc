@@ -22,16 +22,13 @@ async function init() {
 
 interface Location {
   project_id: string;
-  compute_server_id?: number;
   path?: string;
 }
 
 function key({
   project_id,
-  compute_server_id: _compute_server_id = 0,
   path = "",
 }: Location) {
-  void _compute_server_id;
   return `${project_id}-${path}`;
 }
 

@@ -9,18 +9,14 @@ import { dirname } from "path";
 
 export default function DiskUsage({
   project_id,
-  compute_server_id = 0,
   style,
 }: {
   project_id: string;
-  compute_server_id?: number;
   style?;
 }) {
-  void compute_server_id;
   const [expand, setExpand] = useState<boolean>(false);
   const { usage, loading, error, setError, refresh, quota } = useDiskUsage({
     project_id,
-    compute_server_id: 0,
   });
 
   if (!quota?.size) {

@@ -8,13 +8,10 @@ import { useRef, useState } from "react";
 export default function useDiskUsage({
   project_id,
   path = "",
-  compute_server_id = 0,
 }: {
   project_id: string;
   path?: string;
-  compute_server_id?: number;
 }) {
-  void compute_server_id;
   const [counter, setCounter] = useState<number>(0);
   const lastCounterRef = useRef<number>(0);
   const [usage, setUsage] = useState<any>(null);
@@ -24,7 +21,7 @@ export default function useDiskUsage({
     null,
   );
   const currentRef = useRef<any>(`${project_id}-${path}-0`);
-  currentRef.current = key({ project_id, path, compute_server_id: 0 });
+  currentRef.current = key({ project_id, path });
 
   useAsyncEffect(async () => {
     try {
@@ -35,7 +32,7 @@ export default function useDiskUsage({
         path,
         cache: counter == lastCounterRef.current,
       });
-      if (!key({ project_id, path, compute_server_id: 0 }) == currentRef.current) {
+      if (!key({ project_id, path }) == currentRef.current) {
         return;
       }
       setUsage(x);

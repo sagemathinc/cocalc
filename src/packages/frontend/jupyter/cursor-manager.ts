@@ -5,8 +5,6 @@
 
 import { List, Map } from "immutable";
 type CursorMap = Map<string, any>;
-import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
-import { decodeUUIDtoNum } from "@cocalc/util/compute/manager";
 
 export class CursorManager {
   private last_cursors: CursorMap = Map();
@@ -89,15 +87,5 @@ export class CursorManager {
     }
   }
 
-  computeServerId = (cursors) => {
-    let minId = Infinity;
-    for (const [client_id, cursor] of cursors) {
-      if (cursor.getIn(["locs", 0, "type"]) == COMPUTER_SERVER_CURSOR_TYPE) {
-        try {
-          minId = Math.min(minId, decodeUUIDtoNum(client_id));
-        } catch (_) {}
-      }
-    }
-    return isFinite(minId) ? minId : 0;
-  };
+  // compute servers are deprecated; cursor grouping is no longer needed.
 }

@@ -56,7 +56,6 @@ export function url_to_pdf(
   return raw_url(
     project_id,
     pdf_path(path),
-    0,
     `param=${reload}`,
   );
 }

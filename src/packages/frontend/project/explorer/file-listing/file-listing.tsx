@@ -77,7 +77,6 @@ export function FileListing({
         current_path={current_path}
         actions={actions}
         no_select={shiftIsDown}
-        computeServerId={0}
         listing={listing}
       />
     );

@@ -293,19 +293,15 @@ export function url_fullpath(project_id: string, path: string): string {
 export function url_href(
   project_id: string,
   path: string,
-  compute_server_id?: number,
 ): string {
-  void compute_server_id;
-  return fileURL({ project_id, path, compute_server_id });
+  return fileURL({ project_id, path });
 }
 
 // returns the download URL for a file at a given path
 export function download_href(
   project_id: string,
   path: string,
-  compute_server_id?: number,
 ): string {
-  void compute_server_id;
   const u = url_href(project_id, path);
   return `${u}?download`;
 }

@@ -478,7 +478,6 @@ export function ActionBox({
       <ConfigureShare
         project_id={project_id}
         path={path}
-        compute_server_id={0}
         close={cancel_action}
         onKeyUp={action_key}
         actions={actions}

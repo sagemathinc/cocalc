@@ -2625,10 +2625,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     if (auto && !print) {
-      url = download_href(this.project_id, path, compute_server_id);
+      url = download_href(this.project_id, path);
       download_file(url);
     } else {
-      url = url_href(this.project_id, path, compute_server_id);
+      url = url_href(this.project_id, path);
       const tab = open_new_tab(url);
       if (tab != null && print) {
         // "?" since there might be no print method -- could depend on browser API

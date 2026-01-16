@@ -3,8 +3,7 @@ import TTLCache from "@isaacs/ttlcache";
 
 const dustCache = new TTLCache<string, any>({ ttl: 1000 * 60 });
 
-export function key({ project_id, path, compute_server_id }) {
-  void compute_server_id;
+export function key({ project_id, path }: { project_id: string; path: string }) {
   return `${project_id}-0-${path}`;
 }
 
@@ -21,7 +20,7 @@ export default async function dust({
   path?: string;
   cache?: boolean;
 }) {
-  const k = key({ project_id, path, compute_server_id: 0 });
+  const k = key({ project_id, path });
   if (cache && dustCache.has(k)) {
     return dustCache.get(k);
   }

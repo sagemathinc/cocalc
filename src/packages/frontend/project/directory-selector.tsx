@@ -68,7 +68,6 @@ export default function DirectorySelector({
 }: Props) {
   const frameContext = useFrameContext(); // optionally used to define project_id and startingPath, when in a frame
   project_id ??= frameContext.project_id;
-  const computeServerId = 0;
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(() => {
     const expandedPaths: string[] = [""];
     if (startingPath == null) {
@@ -146,7 +145,6 @@ export default function DirectorySelector({
         path={""}
         tail={""}
         isSelected={selectedPaths.has("")}
-        computeServerId={computeServerId}
         toggleSelection={toggleSelection}
         isExcluded={isExcluded?.("")}
         expand={() => {}}
@@ -161,7 +159,6 @@ export default function DirectorySelector({
         showHidden={showHidden}
         project_id={project_id}
         path={""}
-        computeServerId={computeServerId}
       />
       <Checkbox
         style={{ fontWeight: "400", marginTop: "15px" }}
@@ -181,7 +178,6 @@ function SelectablePath({
   path,
   tail,
   isSelected,
-  computeServerId,
   toggleSelection,
   isExcluded,
   expand,
@@ -195,7 +191,7 @@ function SelectablePath({
       }
       try {
         const actions = redux.getProjectActions(project_id);
-        const fs = actions.fs(computeServerId);
+        const fs = actions.fs(0);
         const { head } = path_split(path);
         await fs.rename(join(head, tail), join(head, editedTail));
         setEditedTail(null);
@@ -303,7 +299,6 @@ function Directory(props) {
     isExcluded,
     expandedPaths,
     setExpandedPaths,
-    computeServerId,
   } = props;
   const isExpanded = expandedPaths.has(path);
   const { tail } = path_split(path);
@@ -319,7 +314,6 @@ function Directory(props) {
       expand={() => {
         setExpandedPaths(new Set(expandedPaths.add(path)));
       }}
-      computeServerId={computeServerId}
     />
   );
 
@@ -363,7 +357,6 @@ function Directory(props) {
 // Show the directories in path
 function Subdirs(props) {
   const {
-    computeServerId,
     path,
     project_id,
     showHidden,
@@ -404,7 +397,6 @@ function Subdirs(props) {
   const createProps = {
     project_id,
     path,
-    computeServerId,
     toggleSelection,
   };
   w.push(<CreateDirectory key="create1" {...createProps} />);
@@ -421,10 +413,10 @@ function Subdirs(props) {
   );
 }
 
-async function getValidPath(project_id, target, computeServerId) {
-  if (await pathExists(project_id, target, computeServerId)) {
+async function getValidPath(project_id, target) {
+  if (await pathExists(project_id, target)) {
     let i: number = 1;
-    while (await pathExists(project_id, target + ` (${i})`, computeServerId)) {
+    while (await pathExists(project_id, target + ` (${i})`)) {
       i += 1;
     }
     target += ` (${i})`;
@@ -433,7 +425,6 @@ async function getValidPath(project_id, target, computeServerId) {
 }
 
 function CreateDirectory({
-  computeServerId,
   project_id,
   path,
   toggleSelection,
@@ -450,7 +441,7 @@ function CreateDirectory({
     const target = path + (path != "" ? "/" : "") + value;
     (async () => {
       try {
-        const path1 = await getValidPath(project_id, target, computeServerId);
+        const path1 = await getValidPath(project_id, target);
         setValue(path_split(path1).tail);
         setTimeout(() => {
           input_ref.current?.select();
@@ -466,7 +457,7 @@ function CreateDirectory({
     if (!value?.trim()) return;
     try {
       const actions = redux.getProjectActions(project_id);
-      const fs = actions.fs(computeServerId);
+      const fs = actions.fs(0);
       await fs.mkdir(join(path, value));
       toggleSelection(join(path, value));
     } catch (err) {
@@ -517,9 +508,8 @@ function CreateDirectory({
 export async function pathExists(
   project_id: string,
   path: string,
-  computeServerId?,
 ): Promise<boolean> {
   const actions = redux.getProjectActions(project_id);
-  const fs = actions.fs(computeServerId);
+  const fs = actions.fs(0);
   return await fs.exists(path);
 }

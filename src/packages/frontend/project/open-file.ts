@@ -50,9 +50,6 @@ export interface OpenFileOpts {
   change_history?: boolean;
   // opened via an explicit click
   explicit?: boolean;
-  // if specified, open the file on the specified compute server; if not given,
-  // opens it on whatever compute server it is currently set to open on.
-  compute_server_id?: number;
 }
 
 export async function open_file(
@@ -79,9 +76,7 @@ export async function open_file(
     new_browser_window: false,
     change_history: true,
     explicit: false,
-    compute_server_id: 0,
   });
-  opts.compute_server_id = 0;
   opts.path = normalize(opts.path);
 
   if (opts.line != null && !opts.fragmentId) {

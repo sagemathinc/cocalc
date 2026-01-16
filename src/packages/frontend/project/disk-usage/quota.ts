@@ -5,8 +5,7 @@ const quotaCache = new TTLCache<string, { size: number; used: number }>({
   ttl: 1000 * 60,
 });
 
-export function key({ project_id, compute_server_id }) {
-  void compute_server_id;
+export function key({ project_id }: { project_id: string }) {
   return `${project_id}-0`;
 }
 
@@ -23,7 +22,7 @@ export default async function quota({
   size: number;
   cache?: boolean;
 }> {
-  const k = key({ project_id, compute_server_id: 0 });
+  const k = key({ project_id });
   if (cache && quotaCache.has(k)) {
     return quotaCache.get(k)!;
   }

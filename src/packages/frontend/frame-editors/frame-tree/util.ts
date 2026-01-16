@@ -23,14 +23,11 @@ export function parse_path(path: string): {
 export function raw_url(
   project_id: string,
   path: string,
-  _compute_server_id?: number,
   param?: string,
 ): string {
-  void _compute_server_id;
   return fileURL({
     project_id,
     path,
-    compute_server_id: 0,
     param,
   });
 }

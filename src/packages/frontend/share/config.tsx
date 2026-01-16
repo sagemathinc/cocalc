@@ -68,7 +68,6 @@ interface Props {
   onKeyUp?: (event: any) => void;
   actions: ProjectActions;
   has_network_access?: boolean;
-  compute_server_id?: number;
 }
 
 // ensures the custom font sizes in the text of the first row is consistent
@@ -95,9 +94,7 @@ export default function Configure({
   onKeyUp,
   actions,
   has_network_access,
-  compute_server_id,
 }: Props) {
-  void compute_server_id;
   const publicPaths = useTypedRedux({ project_id }, "public_paths");
   const publicInfo: null | PublicPath = useMemo(() => {
     for (const x of publicPaths?.valueSeq() ?? []) {

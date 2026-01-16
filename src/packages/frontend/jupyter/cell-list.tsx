@@ -91,7 +91,6 @@ interface CellListProps {
   trust?: boolean;
   use_windowed_list?: boolean;
   llmTools?: LLMTools;
-  computeServerId?: number;
   read_only?: boolean;
   pendingCells?: immutable.Set<string>;
 }
@@ -123,7 +122,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     trust,
     use_windowed_list,
     llmTools,
-    computeServerId,
     read_only,
     pendingCells,
   } = props;
@@ -478,7 +476,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           is_scrolling={isScrolling}
           delayRendering={delayRendering}
           llmTools={llmTools}
-          computeServerId={computeServerId}
           isFirst={isFirst}
           isLast={isLast}
           dragHandle={dragHandle}

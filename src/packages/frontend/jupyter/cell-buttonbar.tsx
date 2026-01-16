@@ -42,7 +42,6 @@ interface Props {
   actions?: JupyterActions;
   cell: Map<string, any>;
   is_current: boolean;
-  computeServerId?: number;
   llmTools?: LLMTools;
   haveLLMCellTools: boolean; // decides if we show the LLM Tools, depends on student project in a course, etc.
   index: number;
@@ -58,7 +57,6 @@ function areEqual(prev: Props, next: Props): boolean {
     next.index !== prev.index ||
     next.cell !== prev.cell ||
     next.is_current !== prev.is_current ||
-    next.computeServerId !== prev.computeServerId ||
     (next.llmTools?.model ?? "") !== (prev.llmTools?.model ?? "") ||
     next.is_current !== prev.is_current ||
     next.is_readonly !== prev.is_readonly ||

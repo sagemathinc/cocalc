@@ -190,8 +190,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "pendingCells",
   ]);
 
-  const computeServerId = 0;
-
   useEffect(() => {
     actions.fetch_jupyter_kernels();
   }, [actions]);
@@ -308,7 +306,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         trust={trust}
         use_windowed_list={useWindowedListRef.current}
         llmTools={llmTools}
-        computeServerId={computeServerId}
         pendingCells={pendingCells}
       />
     );

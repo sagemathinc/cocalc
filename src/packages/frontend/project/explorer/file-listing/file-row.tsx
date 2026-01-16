@@ -56,9 +56,6 @@ interface Props {
   actions: ProjectActions;
   no_select: boolean;
   linkTarget?: string;
-  // if given, include a little 'server' tag in this color, and tooltip etc using id.
-  // Also important for download and preview links!
-  computeServerId?: number;
   listing: DirectoryListing;
   isStarred?: boolean;
   onToggleStar?: (path: string, starred: boolean) => void;
@@ -80,7 +77,6 @@ export function FileRow({
   actions,
   no_select,
   linkTarget,
-  computeServerId,
   listing,
   isStarred,
   onToggleStar,
@@ -386,7 +382,7 @@ export function FileRow({
 
   // See https://github.com/sagemathinc/cocalc/issues/1020
   // support right-click → copy url for the download button
-  const url = url_href(actions.project_id, full_path(), computeServerId);
+  const url = url_href(actions.project_id, full_path());
 
   return (
     <Row

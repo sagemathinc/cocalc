@@ -86,7 +86,6 @@ export interface CellInputProps {
   id: string;
   index: number;
   llmTools?: LLMTools;
-  computeServerId?: number;
   setShowAICellGen?: (show: Position) => void;
   dragHandle?: React.JSX.Element;
   isPending?: boolean;
@@ -450,7 +449,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           is_current={props.is_current}
           is_readonly={props.is_readonly}
           input_is_readonly={props.input_is_readonly}
-          computeServerId={props.computeServerId}
           llmTools={props.llmTools}
           haveLLMCellTools={haveLLMCellTools}
           showControls={showButtons}
@@ -525,7 +523,6 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
       next.cell_toolbar !== cur.cell_toolbar ||
       (next.llmTools?.model ?? "") !== (cur.llmTools?.model ?? "") ||
       next.index !== cur.index ||
-      next.computeServerId != cur.computeServerId ||
       next.dragHandle !== cur.dragHandle ||
       next.isPending !== cur.isPending ||
       (next.cell_toolbar === "slideshow" &&

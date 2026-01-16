@@ -226,8 +226,6 @@ export class XpraServer {
     (opts as any).project_id = this.project_id;
     return await exec({
       ...(opts as ExecOpts),
-      // no support for compute servers yet.
-      compute_server_id: 0,
     });
   }
 
