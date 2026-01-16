@@ -8,7 +8,6 @@
 // help users selecting a kernel
 import type { TabsProps } from "antd";
 import {
-  Alert,
   Button,
   Card,
   Checkbox,
@@ -21,24 +20,13 @@ import {
 } from "antd";
 import { Map as ImmutableMap, List, OrderedMap } from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
-import {
-  CSS,
-  Rendered,
-  useActions,
-  useRedux,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework";
+import { CSS, Rendered, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useState } from "react";
-import { useAppContext } from "@cocalc/frontend/app/context";
 import {
-  A,
   Icon,
-  isIconName,
-  Markdown,
   Paragraph,
   Text,
 } from "@cocalc/frontend/components";
-import { useImages } from "@cocalc/frontend/compute/images-hook";
 import { SiteName } from "@cocalc/frontend/customize";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
@@ -47,8 +35,6 @@ import { Kernel as KernelType } from "@cocalc/jupyter/util/misc";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { KernelStar } from "../components/run-button/kernel-star";
-import { useProjectContext } from "../project/context";
-import { FIXED_PROJECT_TABS } from "../project/page/file-tab";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 
@@ -105,11 +91,6 @@ export function KernelSelector({ actions }: KernelSelectorProps) {
   ]);
   const kernels_by_language: undefined | OrderedMap<string, List<string>> =
     useRedux([actions.name, "kernels_by_language"]);
-
-  const compute_servers_enabled = useTypedRedux(
-    "customize",
-    "compute_servers_enabled",
-  );
 
   function kernel_name(name: string): string | undefined {
     return kernel_attr(name, "display_name");
@@ -295,20 +276,6 @@ export function KernelSelector({ actions }: KernelSelectorProps) {
     return all;
   }
 
-  function showComputeServersTab(items) {
-    if (!compute_servers_enabled) return;
-
-    items.push({
-      key: "compute_servers",
-      label: (
-        <>
-          <Icon name="servers" /> Compute servers
-        </>
-      ),
-      children: <ComputeServerInfo />,
-    });
-  }
-
   function render_select_all() {
     const all = render_all_langs();
 
@@ -327,10 +294,6 @@ export function KernelSelector({ actions }: KernelSelectorProps) {
         ),
       },
     ];
-
-    if (!IS_MOBILE) {
-      showComputeServersTab(items);
-    }
 
     return (
       <Tabs
@@ -644,113 +607,6 @@ a horrific disaster.  This one component though is maybe usable.
       >
         {render_body()}
       </Card>
-    </div>
-  );
-}
-
-function ComputeServerInfo() {
-  const { formatIntl } = useAppContext();
-  const { project_id } = useProjectContext();
-  const actions = useActions({ project_id });
-  const [IMAGES, ImagesError] = useImages();
-  if (ImagesError) {
-    return ImagesError;
-  }
-  if (IMAGES == null) {
-    return <Spin />;
-  }
-
-  // sort all enabled non-system images with a jupyter kernel by priority first, then
-  // IMAGES[key].label
-  const sortedImageKeys = Object.keys(IMAGES)
-    .filter(
-      (key) =>
-        !IMAGES[key].disabled &&
-        !IMAGES[key].system &&
-        IMAGES[key].jupyterKernels !== false,
-    )
-    .sort((x, y) => {
-      const xp = IMAGES[x].priority ?? 0;
-      const yp = IMAGES[y].priority ?? 0;
-      if (xp > yp) {
-        return -1;
-      }
-      if (xp < yp) {
-        return 1;
-      }
-      const xl = IMAGES[x].label;
-      const yl = IMAGES[y].label;
-      if (xl < yl) {
-        return -1;
-      }
-      if (xl > yl) {
-        return 1;
-      }
-      return 0;
-    });
-
-  const computeImages: Rendered[] = sortedImageKeys.map((key) => {
-    const image = IMAGES[key];
-
-    const label = (
-      <div style={{ ...ALL_LANGS_LABEL_STYLE, textAlign: "center" }}>
-        {isIconName(image.icon) && (
-          <>
-            <Icon name={image.icon} style={{ fontSize: "24pt" }} />
-            <br />
-          </>
-        )}{" "}
-        {image.label}
-      </div>
-    );
-
-    return (
-      <Descriptions.Item key={key} label={label}>
-        <Markdown value={image.description} />
-      </Descriptions.Item>
-    );
-  });
-
-  return (
-    <div>
-      <Paragraph>
-        Besides all locally available kernels inside this project, you can also
-        instantiate a{" "}
-        <Text strong>
-          <A href={"https://doc.cocalc.com/compute_server.html"}>
-            Compute Server
-          </A>
-        </Text>{" "}
-        and configure this notebook to connect to one of its kernels. This is
-        useful if you want to get access to a{" "}
-        <Text strong>GPU accelerator</Text>, run a kernel that is{" "}
-        <Text strong>not available locally</Text>, or if you want to make use of{" "}
-        <Text strong>a much more powerful machine</Text>.
-      </Paragraph>
-      <Paragraph>
-        Compute servers are not only more powerful, but also much more
-        configurable. You can install any software you want and also connect via
-        a <A href="https://doc.cocalc.com/terminal.html">Terminal</A>.
-      </Paragraph>
-      <Alert
-        type="info"
-        message={
-          <>
-            To get started, open the{" "}
-            <Button onClick={() => actions?.showComputeServers()}>
-              <Icon name={FIXED_PROJECT_TABS.servers.icon} />{" "}
-              {formatIntl(FIXED_PROJECT_TABS.servers.label)}
-            </Button>{" "}
-            panel and instantiate and start your compute machine. Then, select
-            the machine for this notebook, and pick one of the available kernels
-            of that machine.
-          </>
-        }
-      />
-
-      <Descriptions bordered column={1} style={SELECTION_STYLE}>
-        {computeImages}
-      </Descriptions>
     </div>
   );
 }

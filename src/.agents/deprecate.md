@@ -21,7 +21,7 @@ Goal: Complete remove all code and functionality for the following:
 - [x] dedicated\_vms and dedicated\_disks
 - [x] rename: "Project" \-\-&gt; "Workspace" in frontend UI
 
-## Remove Anonymous Accounts (no email/passport auth)
+## \(done\) Remove Anonymous Accounts \(no email/passport auth\)
 
 Scope: remove anonymous accounts and signup. Public share viewing stays. SSO/LTI accounts are fine (not anonymous).
 
@@ -56,8 +56,7 @@ Scope: remove anonymous accounts and signup. Public share viewing stays. SSO/LTI
 8. **Final sweep + validation.**  
    Ripgrep for `anonymous_signup` and `is_anonymous` in src/docs; run pnpm tsc --build.
 
-
-## Remove Public Jupyter API (stateless execution)
+## \(done\) Remove Public Jupyter API \(stateless execution\)
 
 Scope: remove stateless Jupyter API used for public share demos and unauthenticated code execution. Keep project Jupyter kernels intact.
 
@@ -83,7 +82,52 @@ Scope: remove stateless Jupyter API used for public share demos and unauthentica
 6. **Final sweep + validation.**  
    Ripgrep for `jupyter_api` and `jupyterApiEnabled` across src and docs; run pnpm tsc --build.
 
-## Remove Project Licenses (replace with memberships)
+## Remove Compute Servers + Cloud Filesystems
+
+Scope: remove all compute server and cloud filesystem functionality. No migration needed (clean break). Project hosts remain the only replacement. Delete all documentation/marketing/policy references.
+
+1. **Inventory touchpoints.**  
+   Schema + settings: [src/packages/util/db-schema/compute-servers.ts](./src/packages/util/db-schema/compute-servers.ts), [src/packages/util/db-schema/cloud-filesystems.ts](./src/packages/util/db-schema/cloud-filesystems.ts), [src/packages/util/db-schema/site-defaults.ts](./src/packages/util/db-schema/site-defaults.ts), [src/packages/util/db-schema/site-settings-extras.ts](./src/packages/util/db-schema/site-settings-extras.ts), [src/packages/util/db-schema/purchases.ts](./src/packages/util/db-schema/purchases.ts), [src/packages/util/db-schema/purchase-quotas.ts](./src/packages/util/db-schema/purchase-quotas.ts), [src/packages/util/db-schema/index.ts](./src/packages/util/db-schema/index.ts).  
+   Server services: [src/packages/server/compute](./src/packages/server/compute), [src/packages/server/compute/cloud-filesystem](./src/packages/server/compute/cloud-filesystem), [src/packages/server/compute/maintenance](./src/packages/server/compute/maintenance), [src/packages/server/compute/check-in.ts](./src/packages/server/compute/check-in.ts), [src/packages/server/compute/control.ts](./src/packages/server/compute/control.ts).  
+   API routes + clients: [src/packages/next/pages/api/v2/compute](./src/packages/next/pages/api/v2/compute), [src/packages/next/pages/api/v2/internal/compute](./src/packages/next/pages/api/v2/internal/compute), [src/packages/conat/hub/api/compute.ts](./src/packages/conat/hub/api/compute.ts), [src/packages/frontend/compute](./src/packages/frontend/compute).  
+   Frontend UI: [src/packages/frontend/project/servers](./src/packages/frontend/project/servers), [src/packages/frontend/project/page/flyouts](./src/packages/frontend/project/page/flyouts), [src/packages/frontend/account/account-page.tsx](./src/packages/frontend/account/account-page.tsx), [src/packages/frontend/frame-editors](./src/packages/frontend/frame-editors).  
+   Marketing/docs/policies: [src/packages/next/pages/features/compute-server.tsx](./src/packages/next/pages/features/compute-server.tsx), [src/packages/next/pages/features/index.tsx](./src/packages/next/pages/features/index.tsx), [src/packages/next/pages/pricing/products.tsx](./src/packages/next/pages/pricing/products.tsx), [src/packages/next/pages/policies](./src/packages/next/pages/policies).
+
+2. **Remove frontend compute server + cloud filesystem UI.**  
+   Delete tabs, selectors, panels, and CRM tables for compute servers/cloud filesystems.  
+   Targets: [src/packages/frontend/compute](./src/packages/frontend/compute), [src/packages/frontend/project/servers/project-servers.tsx](./src/packages/frontend/project/servers/project-servers.tsx), [src/packages/frontend/project/page/flyouts/servers.tsx](./src/packages/frontend/project/page/flyouts/servers.tsx), [src/packages/frontend/account/account-page.tsx](./src/packages/frontend/account/account-page.tsx), [src/packages/frontend/frame-editors/crm-editor/tables](./src/packages/frontend/frame-editors/crm-editor/tables).
+
+3. **Remove marketing/docs/policies references.**  
+   Delete compute-server feature pages, pricing entries, language page sections, and policy mentions.  
+   Targets: [src/packages/next/pages/features/compute-server.tsx](./src/packages/next/pages/features/compute-server.tsx), [src/packages/next/pages/features/index.tsx](./src/packages/next/pages/features/index.tsx), [src/packages/next/pages/pricing/products.tsx](./src/packages/next/pages/pricing/products.tsx), [src/packages/next/pages/lang](./src/packages/next/pages/lang), [src/packages/next/pages/policies](./src/packages/next/pages/policies).
+
+4. **Remove API routes + client plumbing.**  
+   Delete compute/cloud-filesystem API endpoints and internal metrics endpoints; remove frontend API helpers.  
+   Targets: [src/packages/next/pages/api/v2/compute](./src/packages/next/pages/api/v2/compute), [src/packages/next/pages/api/v2/internal/compute](./src/packages/next/pages/api/v2/internal/compute), [src/packages/frontend/compute/cloud-filesystem/api.ts](./src/packages/frontend/compute/cloud-filesystem/api.ts), [src/packages/conat/hub/api/compute.ts](./src/packages/conat/hub/api/compute.ts).  
+   Remove `compute_server_id` propagation through client calls (exec/search/editors) using targeted rg results in [src/packages/frontend](./src/packages/frontend) and [src/packages/next](./src/packages/next).
+
+5. **Remove server compute + cloud filesystem services.**  
+   Delete compute server provisioning/control/check-in/maintenance and cloud filesystem create/edit/delete/mount/metrics services.  
+   Targets: [src/packages/server/compute](./src/packages/server/compute), [src/packages/server/compute/cloud-filesystem](./src/packages/server/compute/cloud-filesystem), [src/packages/server/compute/maintenance](./src/packages/server/compute/maintenance).
+
+6. **Schema + DB cleanup.**  
+   Remove compute server and cloud filesystem tables and settings; update schema registry.  
+   Targets: [src/packages/util/db-schema/compute-servers.ts](./src/packages/util/db-schema/compute-servers.ts), [src/packages/util/db-schema/cloud-filesystems.ts](./src/packages/util/db-schema/cloud-filesystems.ts), [src/packages/util/db-schema/site-defaults.ts](./src/packages/util/db-schema/site-defaults.ts), [src/packages/util/db-schema/site-settings-extras.ts](./src/packages/util/db-schema/site-settings-extras.ts), [src/packages/util/db-schema/purchases.ts](./src/packages/util/db-schema/purchases.ts), [src/packages/util/db-schema/purchase-quotas.ts](./src/packages/util/db-schema/purchase-quotas.ts), [src/packages/util/db-schema/index.ts](./src/packages/util/db-schema/index.ts).  
+   Drop related virtual tables (compute_servers_by_course, crm_*), caches, and metrics.
+
+7. **Billing + maintenance cleanup.**  
+   Remove compute-server/cloud-filesystem purchase handling and cost estimation utilities.  
+   Targets: [src/packages/server/compute/maintenance](./src/packages/server/compute/maintenance), [src/packages/util/compute](./src/packages/util/compute), [src/packages/util/db-schema/purchase-quotas.ts](./src/packages/util/db-schema/purchase-quotas.ts).
+
+8. **I18n cleanup.**  
+   Remove compute server/cloud filesystem strings and related keys from extracted/compiled translations.  
+   Targets: [src/packages/frontend/i18n](./src/packages/frontend/i18n).
+
+9. **Final sweep + validation.**  
+   Ripgrep for `compute_server`, `compute-server`, `cloud_filesystem`, and `cloud-filesystem` in src/docs; confirm only unrelated cloud storage usage remains.  
+   Run pnpm tsc --build (use NODE_OPTIONS if needed).
+
+## \(done\) Remove Project Licenses \(replace with memberships\)
 
 0. **Scope confirmation (from scan).**  
    Data model: [src/packages/util/db-schema/site-licenses.ts](./src/packages/util/db-schema/site-licenses.ts), [src/packages/util/db-schema/projects.ts](./src/packages/util/db-schema/projects.ts), [src/packages/util/db-schema/public-paths.ts](./src/packages/util/db-schema/public-paths.ts), [src/packages/util/types/site-licenses.ts](./src/packages/util/types/site-licenses.ts), [src/packages/util/consts/site-license.ts](./src/packages/util/consts/site-license.ts).  
@@ -156,3 +200,4 @@ Scope: remove stateless Jupyter API used for public share demos and unauthentica
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
+

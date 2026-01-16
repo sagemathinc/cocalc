@@ -23,7 +23,6 @@ import {
   SettingBox,
   Tip,
 } from "@cocalc/frontend/components";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { FileUpload, UploadLink } from "@cocalc/frontend/file-upload";
 import { labels } from "@cocalc/frontend/i18n";
@@ -69,7 +68,6 @@ export default function NewFilePage(props: Props) {
     }, 1);
   }, []);
   const { project_id } = props;
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const actions = useActions({ project_id });
   const availableFeatures = useAvailableFeatures(project_id);
   const [extensionWarning, setExtensionWarning] = useState<boolean>(false);
@@ -378,12 +376,6 @@ export default function NewFilePage(props: Props) {
             project_id={project_id}
             style={{ display: "inline-block", fontSize: "20px" }}
           />
-          {!!compute_server_id && (
-            <h4 style={{ display: "inline-block", fontSize: "20px" }}>
-              {" on "}
-              <ComputeServer id={compute_server_id} />
-            </h4>
-          )}
         </div>
       }
       close={closeNewPage}

@@ -8,7 +8,6 @@ Jupyter Frame Editor Actions
 */
 
 import { delay } from "awaiting";
-import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { toFragmentId } from "@cocalc/frontend/jupyter/heading-tag";
@@ -269,7 +268,6 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       if (this._state == "closed") {
         return;
       }
-      syncAllComputeServers(this.project_id);
     } catch (err) {
       console.warn("save_to_disk", this.path, "ERROR", err);
       if (this._state == "closed") {

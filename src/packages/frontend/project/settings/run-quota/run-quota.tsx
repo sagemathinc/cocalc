@@ -7,11 +7,9 @@ import { PoweroffOutlined } from "@ant-design/icons";
 import { Table, Typography } from "antd";
 import { useIntl } from "react-intl";
 
-import { React, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
+import { React } from "@cocalc/frontend/app-framework";
+import { NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
-import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
 import { COLORS } from "@cocalc/util/theme";
 import { Upgrades, upgrade2quota_key } from "@cocalc/util/upgrades/quota";
@@ -55,8 +53,6 @@ export const RunQuota: React.FC<Props> = React.memo(
     const projectLabelLower = projectLabel.toLowerCase();
     //const projectStatus = project.get("status");
     const currentUsage = useCurrentUsage({ project_id, shortStr: isFlyout });
-    const kucalc = useTypedRedux("customize", "kucalc");
-    const cocalcCom = kucalc === KUCALC_COCALC_COM;
     const runQuota = useRunQuota(project_id, null);
     const maxUpgrades = useMaxUpgrades();
     const displayedFields = useDisplayedFields();
@@ -102,23 +98,6 @@ export const RunQuota: React.FC<Props> = React.memo(
     }
 
     function renderExtraExplanation(record: QuotaData): React.JSX.Element {
-      const dedicatedVM = (
-        <>
-          If you need more RAM or CPU, consider using a{" "}
-          <A href={"https://doc.cocalc.com/compute_server.html"}>
-            Compute Server
-          </A>
-          .
-        </>
-      );
-
-      const dedicatedDisk = (
-        <>
-          It is possible to attach{" "}
-          <A href={DOC_CLOUD_STORAGE_URL}>files hosted online</A>.
-        </>
-      );
-
       const idleTimeoutInfo = (
         <>
           To increase the idle timeout, upgrade your membership or enable the
@@ -127,13 +106,6 @@ export const RunQuota: React.FC<Props> = React.memo(
       );
 
       switch (record.key) {
-        case "memory_request":
-        case "memory_limit":
-        case "cpu_limit":
-        case "cpu_request":
-          return cocalcCom ? dedicatedVM : <></>;
-        case "disk_quota":
-          return cocalcCom ? dedicatedDisk : <></>;
         case "idle_timeout":
           // special case: if we have always running, don't tell the user to increase idle timeout (stupid)
           return record.quota != INFINITY_CHAR ? idleTimeoutInfo : <></>;

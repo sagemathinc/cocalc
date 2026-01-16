@@ -12,7 +12,6 @@ import {
   SearchInput,
   SelectorInput,
 } from "@cocalc/frontend/components";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { IS_TOUCH } from "@cocalc/frontend/feature";
 import { NewFilenameFamilies } from "@cocalc/frontend/project/utils";
@@ -31,7 +30,6 @@ export default function AskNewFilename({ project_id }: Props) {
   const new_filename = useTypedRedux({ project_id }, "new_filename");
   const rfn = other_settings.get(NEW_FILENAMES);
   const selected = rfn ?? DEFAULT_NEW_FILENAMES;
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   useEffect(() => {
     shuffle();
@@ -103,12 +101,6 @@ export default function AskNewFilename({ project_id }: Props) {
         <div>
           Enter name for new {filename()}{" "}
           {ext_selection == "/" ? "folder" : "file"}
-          {!!compute_server_id && (
-            <>
-              , which will be created on{" "}
-              <ComputeServer id={compute_server_id} />
-            </>
-          )}
         </div>
         <div style={{ marginTop: "5px" }}>
           <SearchInput

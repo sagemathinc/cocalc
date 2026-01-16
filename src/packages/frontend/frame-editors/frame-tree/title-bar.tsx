@@ -32,12 +32,8 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { DropdownMenu } from "@cocalc/frontend/components/dropdown-menu";
-import { computeServersEnabled } from "@cocalc/frontend/compute/config";
-import SelectComputeServerForFile from "@cocalc/frontend/compute/select-server-for-file";
-import { StandaloneComputeServerDocStatus } from "@cocalc/frontend/compute/standalone-doc-status";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 import { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
@@ -68,7 +64,6 @@ import {
 import { SaveButton } from "./save-button";
 import TitleBarTour from "./title-bar-tour";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
-import { TITLE_BAR_BORDER } from "./style";
 
 const ALWAYS_HIDE_AI = new Set<string>(['sagews']);
 function alwaysHideAi(ext:string) {
@@ -695,7 +690,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     if ((x = renderSaveButton(noLabel))) v.push(x);
     if ((x = renderTimeTravel(noLabel))) v.push(x);
     if ((x = renderAssistant(noLabel, where))) v.push(x);
-    if ((x = renderComputeServer(noLabel))) v.push(x);
     if (v.length == 1) return v[0];
     if (v.length > 0) {
       return (
@@ -976,32 +970,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
-  function renderComputeServer(noLabel) {
-    if (!computeServersEnabled() || excludeFromComputeServer(props.path)) {
-      return null;
-    }
-    const { type } = props;
-    return (
-      <SelectComputeServerForFile
-        actions={props.actions}
-        frame_id={props.id}
-        key="compute-server-selector"
-        type={type}
-        project_id={props.project_id}
-        path={props.path}
-        style={{
-          height: button_height(),
-          overflow: "hidden",
-          borderRight: TITLE_BAR_BORDER,
-          borderTop: TITLE_BAR_BORDER,
-          borderBottom: TITLE_BAR_BORDER,
-          borderTopRightRadius: "5px",
-          borderBottomRightRadius: "5px",
-        }}
-        noLabel={noLabel}
-      />
-    );
-  }
 
   function spec2display(
     spec: EditorDescription,
@@ -1227,23 +1195,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
   }
 
-  function renderComputeServerDocStatus() {
-    if (!computeServersEnabled() || excludeFromComputeServer(props.path)) {
-      return null;
-    }
-    const { type } = props;
-    if (type == "terminal" || type == "jupyter_cell_notebook") {
-      // these are handled in a more sophisticated way due to compute
-      // in their own editor.
-      return null;
-    }
-    return (
-      <StandaloneComputeServerDocStatus
-        project_id={props.project_id}
-        path={props.path}
-      />
-    );
-  }
 
   function renderPage() {
     if (
@@ -1385,7 +1336,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           <TitleBarTour refs={tourRefs} />
         )}
       </div>
-      {renderComputeServerDocStatus()}
     </>
   );
 }

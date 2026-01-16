@@ -23,7 +23,6 @@ const INET_QUOTA_URL = "https://doc.cocalc.com/upgrades.html#internet-access";
 
 interface NoInternetBannerProps {
   isPaidStudentPayProject?: boolean;
-  hasComputeServers: boolean;
 }
 
 export function useInternetWarningClosed(
@@ -52,7 +51,7 @@ export function useInternetWarningClosed(
 }
 
 export function NoInternetModal(props: NoInternetBannerProps) {
-  const { isPaidStudentPayProject, hasComputeServers } = props;
+  const { isPaidStudentPayProject } = props;
   const { project_id, project } = useProjectContext();
   const intl = useIntl();
   const projectLabelLower = intl.formatMessage(labels.project).toLowerCase();
@@ -83,11 +82,6 @@ export function NoInternetModal(props: NoInternetBannerProps) {
             }}
           />
         </Paragraph>
-        {hasComputeServers && (
-          <Paragraph>
-            NOTE: Compute servers always have internet access.
-          </Paragraph>
-        )}
         {!isPaidStudentPayProject && (
           <Paragraph>
             <FormattedMessage

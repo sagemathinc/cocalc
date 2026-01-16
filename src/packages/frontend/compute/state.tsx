@@ -2,7 +2,6 @@ import { Button, Divider, Popover, Progress, Spin, Tooltip } from "antd";
 import { CSSProperties, useEffect, useState } from "react";
 
 import { A, Icon, isIconName, TimeAgo } from "@cocalc/frontend/components";
-import { GoogleNetworkCost } from "@cocalc/frontend/purchases/pay-as-you-go/cost";
 import { User } from "@cocalc/frontend/users";
 import type {
   Configuration,
@@ -145,7 +144,7 @@ function NetworkUsageCostEstimate({ period_end }) {
   return (
     <>
       The{" "}
-      <Tooltip title={<GoogleNetworkCost />}>
+      <Tooltip title="Network egress pricing varies by destination.">
         <span>
           <A href="https://cloud.google.com/vpc/network-pricing">rate</A>
         </span>

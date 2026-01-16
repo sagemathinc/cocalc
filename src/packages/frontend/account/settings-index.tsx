@@ -11,7 +11,6 @@ import { defineMessages, useIntl } from "react-intl";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
 import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 import {
@@ -347,18 +346,6 @@ export function SettingsOverview() {
           />
         </Card>
 
-        {cloudFilesystemsEnabled() && (
-          <Card
-            {...CARD_PROPS}
-            onClick={() => handleNavigate("settings/cloud-filesystems")}
-          >
-            <Card.Meta
-              avatar={<Icon name="server" />}
-              title={intl.formatMessage(labels.cloud_file_system)}
-              description={intl.formatMessage(MESSAGES.cloud)}
-            />
-          </Card>
-        )}
       </Flex>
 
       {is_commercial && (

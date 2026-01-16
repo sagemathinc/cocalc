@@ -23,7 +23,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, r_join } from "@cocalc/frontend/components";
-import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { ICON_USERS } from "@cocalc/frontend/project/servers/consts";
@@ -422,7 +421,6 @@ export function FileTab(props: Readonly<Props>) {
           path={path}
           label={label}
           inline={!isFixedTab}
-          project_id={project_id}
         />
       ) : null}
       {tags}
@@ -533,7 +531,7 @@ const FULLPATH_LABEL_STYLE: CSS = {
   padding: "0 1px", // need less since have ..
 } as const;
 
-function DisplayedLabel({ path, label, inline = true, project_id }) {
+function DisplayedLabel({ path, label, inline = true }) {
   const otherSettings = useTypedRedux("account", "other_settings");
   const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
   if (path == null) {
@@ -554,9 +552,6 @@ function DisplayedLabel({ path, label, inline = true, project_id }) {
     return (
       <>
         <E style={style}>{label}</E>
-        {label == FIXED_PROJECT_TABS.servers.label && (
-          <ComputeServerSpendRate project_id={project_id} />
-        )}
       </>
     );
   }

@@ -41,7 +41,6 @@ import { StudentListForAssignment } from "./assignment-student-list";
 import { ConfigurePeerGrading } from "./configure-peer";
 import { STUDENT_SUBDIR } from "./consts";
 import { SkipCopy } from "./skip";
-import { ComputeServerButton } from "../compute";
 
 interface AssignmentProps {
   active_feedback_edits: IsGradingMap;
@@ -279,10 +278,6 @@ export function Assignment({
               <Row>
                 <Col md={10}>{render_peer_button()}</Col>
                 <Col md={14}>
-                  <ComputeServerButton
-                    actions={actions}
-                    unit={assignment as any}
-                  />
                   <span className="pull-right">{render_delete_button()}</span>
                 </Col>
               </Row>

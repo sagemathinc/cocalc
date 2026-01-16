@@ -9,7 +9,7 @@ import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
 import { Button, ButtonProps, Popconfirm } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { redux, useActions } from "@cocalc/frontend/app-framework";
+import { useActions } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { useProjectState } from "../page/project-state-hook";
@@ -47,17 +47,6 @@ export function RestartProject({
     <div style={{ maxWidth: "300px" }}>
       <FormattedMessage
         {...labels.project_settings_restart_project_confirm_explanation}
-        values={{
-          a: (ch) => (
-            <a
-              onClick={() => {
-                redux.getProjectActions(project_id)?.showComputeServers();
-              }}
-            >
-              {ch}
-            </a>
-          ),
-        }}
       />
     </div>
   );

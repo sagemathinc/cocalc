@@ -24,10 +24,6 @@ export function ProjectWarningBanner() {
   const other_settings = useTypedRedux("account", "other_settings");
   const project_map = useTypedRedux("projects", "project_map");
   const projects_store = useStore("projects");
-  const computeServers = useTypedRedux({ project_id }, "compute_servers");
-  const hasComputeServers =
-    computeServers != null &&
-    computeServers.filter((x) => x.get("state") != "deprovisioned").size >= 1;
 
   const runQuota = useRunQuota(project_id, null);
   const isPaidStudentPayProject = useMemo(
@@ -90,7 +86,6 @@ export function ProjectWarningBanner() {
         noMemberHosting={noMemberHosting}
         noInternet={noInternet}
         projectIsRunning={projectIsRunning}
-        hasComputeServers={hasComputeServers}
       />
     );
   }
@@ -101,7 +96,6 @@ export function ProjectWarningBanner() {
     return (
       <NoInternetModal
         isPaidStudentPayProject={isPaidStudentPayProject}
-        hasComputeServers={hasComputeServers}
       />
     );
   }

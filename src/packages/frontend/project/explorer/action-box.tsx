@@ -5,7 +5,7 @@
 
 // cSpell: ignore isdir
 
-import { Button as AntdButton, Radio, Space } from "antd";
+import { Button as AntdButton, Space } from "antd";
 import * as immutable from "immutable";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -17,11 +17,9 @@ import {
   Row,
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
-import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useRedux } from "@cocalc/frontend/app-framework";
 import { Icon, LoginLink } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import SelectServer from "@cocalc/frontend/compute/select-server";
-import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
 import {
   file_actions,
@@ -71,21 +69,14 @@ export function ActionBox({
   const projectLabel = intl.formatMessage(labels.project);
   const runQuota = useRunQuota(project_id, null);
   const get_user_type: () => string = useRedux("account", "get_user_type");
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
-
   const [copy_destination_directory, set_copy_destination_directory] =
     useState<string>("");
   const [copy_destination_project_id, set_copy_destination_project_id] =
     useState<string>(project_id);
-  const [copy_from_compute_server_to, set_copy_from_compute_server_to] =
-    useState<"compute-server" | "project">("compute-server");
   const [move_destination, set_move_destination] = useState<string>("");
   const [show_different_project, set_show_different_project] =
     useState<boolean>(false);
   const [overwrite, set_overwrite] = useState<boolean>(true);
-  const [dest_compute_server_id, set_dest_compute_server_id] = useState<number>(
-    compute_server_id ?? 0,
-  );
 
   function clear() {
     actions.set_all_files_unchecked();
@@ -161,34 +152,31 @@ export function ActionBox({
         </Row>
         <Row style={{ marginBottom: "10px" }}>
           <Col sm={12}>
-            Deleting a file immediately deletes it from the disk{" "}
-            {compute_server_id ? <>on the compute server</> : <></>} freeing up
+            Deleting a file immediately deletes it from the disk, freeing up
             space.
-            {!compute_server_id && (
-              <div>
-                Older backups of your files may still be available in the{" "}
-                <a
-                  href=""
-                  onClick={(e) => {
-                    e.preventDefault();
-                    actions.open_directory(SNAPSHOTS);
-                  }}
-                >
-                  {SNAPSHOTS}
-                </a>{" "}
-                and{" "}
-                <a
-                  href=""
-                  onClick={(e) => {
-                    e.preventDefault();
-                    actions.open_directory(BACKUPS);
-                  }}
-                >
-                  {BACKUPS}
-                </a>{" "}
-                directories.
-              </div>
-            )}
+            <div>
+              Older backups of your files may still be available in the{" "}
+              <a
+                href=""
+                onClick={(e) => {
+                  e.preventDefault();
+                  actions.open_directory(SNAPSHOTS);
+                }}
+              >
+                {SNAPSHOTS}
+              </a>{" "}
+              and{" "}
+              <a
+                href=""
+                onClick={(e) => {
+                  e.preventDefault();
+                  actions.open_directory(BACKUPS);
+                }}
+              >
+                {BACKUPS}
+              </a>{" "}
+              directories.
+            </div>
           </Col>
         </Row>
         <Row>
@@ -310,12 +298,6 @@ export function ActionBox({
     }
   }
 
-  function getDestinationComputeServerId() {
-    return copy_from_compute_server_to == "compute-server"
-      ? compute_server_id
-      : 0;
-  }
-
   function copy_click(): void {
     const destination_project_id = copy_destination_project_id;
     const destination_directory = copy_destination_directory;
@@ -333,21 +315,12 @@ export function ActionBox({
         options: { force: overwrite, recursive: true },
       });
     } else {
-      if (compute_server_id) {
-        actions.copyPaths({
-          src: paths,
-          dest: destination_directory,
-          src_compute_server_id: compute_server_id,
-          dest_compute_server_id: getDestinationComputeServerId(),
-        });
-      } else {
-        actions.copyPaths({
-          src: paths,
-          dest: destination_directory,
-          src_compute_server_id: 0,
-          dest_compute_server_id: dest_compute_server_id,
-        });
-      }
+      actions.copyPaths({
+        src: paths,
+        dest: destination_directory,
+        src_compute_server_id: 0,
+        dest_compute_server_id: 0,
+      });
     }
 
     clear();
@@ -357,8 +330,8 @@ export function ActionBox({
     const src_path = misc.path_split(checked_files.first()).head;
     const input = copy_destination_directory;
 
-    const src_compute_server_id = compute_server_id ?? 0;
-    const dest_compute_server_id = getDestinationComputeServerId();
+    const src_compute_server_id = 0;
+    const dest_compute_server_id = 0;
 
     if (
       input === src_path &&
@@ -396,45 +369,22 @@ export function ActionBox({
     }
     return (
       <>
-        {!compute_server_id ? (
-          <div style={{ display: "flex" }}>
-            <h4>Items </h4>
+        <div style={{ display: "flex" }}>
+          <h4>Items </h4>
 
-            <div style={{ flex: 1, textAlign: "right" }}>
-              <AntdButton
-                onClick={() => {
-                  const show = !show_different_project;
-                  set_show_different_project(show);
-                  if (show_different_project) {
-                    set_dest_compute_server_id(0);
-                  }
-                }}
-              >
-                {show_different_project
-                  ? "Copy to this project..."
-                  : "Copy to a different project..."}
-              </AntdButton>
-            </div>
-          </div>
-        ) : (
-          <h4>
-            <div style={{ display: "inline-block", marginRight: "15px" }}>
-              Copy to{" "}
-            </div>
-            <Radio.Group
-              optionType="button"
-              buttonStyle="solid"
-              value={copy_from_compute_server_to}
-              onChange={(e) => {
-                set_copy_from_compute_server_to(e.target.value);
+          <div style={{ flex: 1, textAlign: "right" }}>
+            <AntdButton
+              onClick={() => {
+                const show = !show_different_project;
+                set_show_different_project(show);
               }}
-              options={[
-                { label: "Compute Server", value: "compute-server" },
-                { label: "Home Base", value: "project" },
-              ]}
-            />
-          </h4>
-        )}
+            >
+              {show_different_project
+                ? "Copy to this project..."
+                : "Copy to a different project..."}
+            </AntdButton>
+          </div>
+        </div>
         <div>{render_selected_files_list()}</div>
       </>
     );
@@ -495,31 +445,7 @@ export function ActionBox({
                   : copy_destination_directory}
               </h4>
               <DirectorySelector
-                title={
-                  compute_server_id ? (
-                    `Destination ${
-                      copy_from_compute_server_to == "compute-server"
-                        ? "on the Compute Server"
-                        : "in the Home Base"
-                    }`
-                  ) : (
-                    <div style={{ display: "flex" }}>
-                      Destination{" "}
-                      {compute_server_id == 0 && !show_different_project && (
-                        <div style={{ flex: 1, textAlign: "right" }}>
-                          <SelectServer
-                            fullLabel
-                            project_id={project_id}
-                            value={dest_compute_server_id}
-                            setValue={(dest_compute_server_id) =>
-                              set_dest_compute_server_id(dest_compute_server_id)
-                            }
-                          />
-                        </div>
-                      )}
-                    </div>
-                  )
-                }
+                title={"Destination"}
                 onSelect={(value: string) =>
                   set_copy_destination_directory(value)
                 }
@@ -528,13 +454,7 @@ export function ActionBox({
                 project_id={copy_destination_project_id}
                 style={{ width: "100%" }}
                 bodyStyle={{ maxHeight: "250px" }}
-                compute_server_id={
-                  compute_server_id
-                    ? copy_from_compute_server_to == "compute-server"
-                      ? compute_server_id
-                      : 0
-                    : dest_compute_server_id
-                }
+                compute_server_id={0}
               />
             </Col>
           </Row>
@@ -559,7 +479,7 @@ export function ActionBox({
       <ConfigureShare
         project_id={project_id}
         path={path}
-        compute_server_id={compute_server_id}
+        compute_server_id={0}
         close={cancel_action}
         onKeyUp={action_key}
         actions={actions}
@@ -621,12 +541,6 @@ export function ActionBox({
               <Icon name="times" />
             </AntdButton>
           </div>
-          {!!compute_server_id && (
-            <ComputeServerTag
-              id={compute_server_id}
-              style={{ float: "right", top: "5px" }}
-            />
-          )}
         </Col>
         <Col sm={12}>{render_action_box(action)}</Col>
       </Row>

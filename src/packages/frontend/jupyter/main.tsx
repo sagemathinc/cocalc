@@ -28,7 +28,6 @@ import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageMod
 import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
 import { A } from "@cocalc/frontend/components/A";
 import { Loading } from "@cocalc/frontend/components/loading";
-import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import { syncdbPath } from "@cocalc/util/jupyter/names";
@@ -418,10 +417,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           overflowY: "hidden",
         }}
       >
-        <ComputeServerDocStatus
-          id={computeServerId ?? 0}
-          project_id={project_id}
-        />
         {!read_only && <KernelWarning name={name} actions={actions} />}
         {render_error()}
         {render_modals()}
@@ -431,7 +426,6 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
             actions={actions}
             usage={usage}
             expected_cell_runtime={expected_cell_runtime}
-            computeServerId={computeServerId}
           />
         )}
         {cell_toolbar === "create_assignment" && (

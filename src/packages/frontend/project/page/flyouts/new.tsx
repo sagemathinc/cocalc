@@ -24,7 +24,6 @@ import {
   Tip,
 } from "@cocalc/frontend/components";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { labels } from "@cocalc/frontend/i18n";
 import { DELAY_SHOW_MS } from "@cocalc/frontend/project//new/consts";
@@ -75,7 +74,6 @@ export function NewFlyout({
     { project_id },
     "file_creation_error",
   );
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   // the controlled value in the filename/basename input box
   const [filename, setFilename] = useState<string>("");
@@ -387,11 +385,6 @@ export function NewFlyout({
             className={"cc-project-flyout-path-navigator"}
           />
         </Space>
-        {!!compute_server_id && (
-          <div style={padding}>
-            on <ComputeServer id={compute_server_id} />
-          </div>
-        )}
         <Input
           allowClear
           placeholder={intl.formatMessage({
