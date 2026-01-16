@@ -23,16 +23,19 @@ export function init(opts: { client: ConatClient }) {
 }
 
 let fsclient: Fileserver | null = null;
-function getFsClient() {
+function getFsClient(timeout?: number) {
   if (client == null) {
     throw Error("client not initialized");
   }
-  fsclient ??= createFileClient({ client });
-  return fsclient;
+  if (!timeout) {
+    fsclient ??= createFileClient({ client });
+    return fsclient;
+  }
+  return createFileClient({ client, timeout });
 }
 
-export function fileServerClient() {
-  return getFsClient();
+export function fileServerClient(opts?: { timeout?: number }) {
+  return getFsClient(opts?.timeout);
 }
 
 export async function setQuota(project_id: string, size: number | string) {

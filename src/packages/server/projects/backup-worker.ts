@@ -154,6 +154,7 @@ async function handleBackupOp(op: LroSummary): Promise<void> {
       project_id,
       limit: MAX_BACKUPS_PER_PROJECT,
       tags,
+      lro: { op_id, scope_type: op.scope_type, scope_id: op.scope_id },
     });
     const duration_ms = Date.now() - started;
     const backup_time =

@@ -348,7 +348,17 @@ export class SandboxedFilesystem {
       timeout = 120_000,
       maxSize = 10_000_000, // the json output can be quite large
       cwd,
-    }: { timeout?: number; maxSize?: number; cwd?: string } = {},
+      env,
+      onStdoutLine,
+      onStderrLine,
+    }: {
+      timeout?: number;
+      maxSize?: number;
+      cwd?: string;
+      env?: { [name: string]: string };
+      onStdoutLine?: (line: string) => void;
+      onStderrLine?: (line: string) => void;
+    } = {},
   ): Promise<ExecOutput> => {
     return await rustic(args, {
       repo: this.rusticRepo,
@@ -357,6 +367,9 @@ export class SandboxedFilesystem {
       maxSize,
       host: this.host,
       cwd,
+      env,
+      onStdoutLine,
+      onStderrLine,
     });
   };
 

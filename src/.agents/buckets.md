@@ -194,3 +194,4 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
   - remove host/btrfs SSH proxy containers and startup wiring
   - remove host-to-host key generation/storage and related sqlite fields
   - sweep docs/scripts for rsync/btrfs transfer mentions
+

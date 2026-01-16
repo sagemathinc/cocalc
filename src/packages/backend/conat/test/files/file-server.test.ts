@@ -76,6 +76,7 @@ describe("create basic mocked file server and test it out", () => {
 
       createBackup: async (_opts: {
         project_id: string;
+        lro?: { op_id: string; scope_type: any; scope_id: string };
       }): Promise<{ time: Date; id: string }> => {
         return { time: new Date(), id: "0" };
       },
@@ -85,6 +86,7 @@ describe("create basic mocked file server and test it out", () => {
         id: string;
         path?: string;
         dest?: string;
+        lro?: { op_id: string; scope_type: any; scope_id: string };
       }): Promise<void> => {},
 
       beginRestoreStaging: async (_opts: {

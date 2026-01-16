@@ -81,6 +81,7 @@ export interface ProjectStoreState {
 
   // Project Files
   activity: any; // immutable,
+  backup_ops?: immutable.Map<string, any>;
   copy_ops?: immutable.Map<string, any>;
   start_lro?: immutable.Map<string, any>;
   move_lro?: immutable.Map<string, any>;
@@ -287,6 +288,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Files
       activity: undefined,
+      backup_ops: undefined,
       copy_ops: undefined,
       start_lro: undefined,
       move_lro: undefined,

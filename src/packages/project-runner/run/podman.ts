@@ -54,6 +54,8 @@ import { podman } from "@cocalc/backend/podman";
 import getPort from "@cocalc/backend/get-port";
 
 const logger = getLogger("project-runner:podman");
+// Restores can be large; allow the RPC to stay open while rustic runs.
+const RESTORE_RPC_TIMEOUT_MS = 6 * 60 * 60 * 1000;
 
 const DEFAULT_PROJECT_SCRIPT = join(
   COCALC_SRC,
@@ -132,7 +134,7 @@ async function maybeRestoreFromBackup({
   lro_op_id?: string;
 }): Promise<void> {
   if (!restore || restore === "none") return;
-  const fs = fileServerClient();
+  const fs = fileServerClient({ timeout: RESTORE_RPC_TIMEOUT_MS });
   const handle = await fs.beginRestoreStaging({ project_id, home, restore });
   if (!handle) return;
 
@@ -176,6 +178,9 @@ async function maybeRestoreFromBackup({
       project_id,
       id: latest.id,
       dest: handle.stagingPath,
+      lro: lro_op_id
+        ? { op_id: lro_op_id, scope_type: "project", scope_id: project_id }
+        : undefined,
     });
     await fs.finalizeRestoreStaging({ handle });
 

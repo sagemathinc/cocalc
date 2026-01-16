@@ -47,6 +47,10 @@ export interface Options {
   // by default the environment is EMPTY, which is usually what we want for fairly
   // locked down execution.  Use this to add something nontrivial to the default empty.
   env?: { [name: string]: string };
+
+  // optional streaming handlers for line-oriented output
+  onStdoutLine?: (line: string) => void;
+  onStderrLine?: (line: string) => void;
 }
 
 type ValidateFunction = (value: string) => void;
@@ -65,6 +69,8 @@ export default async function exec({
   cwd,
   username,
   env = {},
+  onStdoutLine,
+  onStderrLine,
 }: Options): Promise<ExecOutput> {
   if (arch() == "darwin") {
     options = options.concat(darwin);
@@ -80,6 +86,8 @@ export default async function exec({
     let truncated = false;
     let stdoutSize = 0;
     let stderrSize = 0;
+    let stdoutLineBuffer = "";
+    let stderrLineBuffer = "";
 
     let args = prefixArgs.concat(options);
     if (positionalArgs.length > 0) {
@@ -121,6 +129,13 @@ export default async function exec({
         return;
       }
       stdoutChunks.push(chunk);
+      if (onStdoutLine) {
+        stdoutLineBuffer = feedLines(
+          stdoutLineBuffer,
+          chunk.toString("utf8"),
+          onStdoutLine,
+        );
+      }
     });
 
     child.stderr.on("data", (chunk: Buffer) => {
@@ -131,6 +146,13 @@ export default async function exec({
         return;
       }
       stderrChunks.push(chunk);
+      if (onStderrLine) {
+        stderrLineBuffer = feedLines(
+          stderrLineBuffer,
+          chunk.toString("utf8"),
+          onStderrLine,
+        );
+      }
     });
 
     child.on("error", (err) => {
@@ -144,6 +166,12 @@ export default async function exec({
       if (timeoutHandle) {
         clearTimeout(timeoutHandle);
       }
+      if (onStdoutLine && stdoutLineBuffer.trim()) {
+        safeLineCallback(onStdoutLine, stdoutLineBuffer.trim());
+      }
+      if (onStderrLine && stderrLineBuffer.trim()) {
+        safeLineCallback(onStderrLine, stderrLineBuffer.trim());
+      }
 
       resolve({
         stdout: Buffer.concat(stdoutChunks),
@@ -153,6 +181,30 @@ export default async function exec({
       });
     });
   });
+}
+
+function feedLines(
+  buffer: string,
+  chunk: string,
+  onLine: (line: string) => void,
+): string {
+  const combined = (buffer + chunk).replace(/\r/g, "\n");
+  const parts = combined.split("\n");
+  const remainder = parts.pop() ?? "";
+  for (const line of parts) {
+    const trimmed = line.trimEnd();
+    if (!trimmed) continue;
+    safeLineCallback(onLine, trimmed);
+  }
+  return remainder;
+}
+
+function safeLineCallback(onLine: (line: string) => void, line: string) {
+  try {
+    onLine(line);
+  } catch (err) {
+    logger.debug("exec onLine callback failed", { err: `${err}` });
+  }
 }
 
 export function parseAndValidateOptions(
