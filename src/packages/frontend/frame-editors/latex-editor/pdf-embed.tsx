@@ -10,7 +10,6 @@ This is a renderer using the embed tag, so works with browsers that have a PDF v
 import { React } from "@cocalc/frontend/app-framework";
 import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import { pdf_path } from "./util";
-import { getComputeServerId } from "@cocalc/frontend/frame-editors/generic/client";
 
 export interface Props {
   actions: any;
@@ -30,7 +29,7 @@ export const PDFEmbed: React.FC<Props> = React.memo((props: Props) => {
     let src = raw_url(
       project_id,
       pdf_path(path),
-      getComputeServerId({ project_id, path }),
+      0,
       `param=${reload}`,
     );
     return (

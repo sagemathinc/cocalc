@@ -11,7 +11,6 @@ import { sanitize_nbconvert_path } from "@cocalc/util/sanitize-nbconvert";
 export async function revealjs_slideshow_html(
   project_id: string,
   path: string,
-  compute_server_id?: number,
 ): Promise<string> {
   const split = path_split(path);
   // The _ bewlo is because of https://github.com/sagemathinc/cocalc/issues/4066, i.e., otherwise
@@ -36,5 +35,5 @@ export async function revealjs_slideshow_html(
   const html_filename = split.head
     ? [split.head, base + ext].join("/")
     : base + ext;
-  return fileURL({ project_id, path: html_filename, compute_server_id });
+  return fileURL({ project_id, path: html_filename });
 }

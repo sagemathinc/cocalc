@@ -76,13 +76,12 @@ export async function tex_to_pdf(opts: {
   dir: string; // directory that contains the synctex file
   knitr: boolean;
   source_dir: string;
-  compute_server_id?: number;
 }): Promise<SyncTex> {
   if (opts.knitr) {
     opts.tex_path = change_filename_extension(opts.tex_path, "Rnw");
   }
   const projectAPI = await project_api(opts.project_id);
-  const HOME = await projectAPI.getHomeDirectory(opts.compute_server_id);
+  const HOME = await projectAPI.getHomeDirectory();
   const output = await exec_synctex(opts.project_id, opts.dir, [
     "view",
     "-i",

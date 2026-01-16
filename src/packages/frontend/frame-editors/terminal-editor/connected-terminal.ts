@@ -6,8 +6,7 @@
 /*
 Wrapper object around xterm.js's Terminal, which adds
 extra support for being connected to:
-  - a backend server pty via a sonat socket, which can be on a
-    project or compute server
+  - a backend server pty via a conat socket for the workspace
   - react/redux
   - frame-editor (via actions)
 */
@@ -42,7 +41,6 @@ import { asyncDebounce, asyncThrottle } from "@cocalc/util/async-utils";
 import { path_split } from "@cocalc/util/misc";
 import { join } from "path";
 import { randomId } from "@cocalc/conat/names";
-import { lite } from "@cocalc/frontend/lite";
 //import { argsJoin } from "@cocalc/util/args";
 
 declare const $: any;
@@ -295,7 +293,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     if (touch) {
-      touch_project(this.project_id, this.compute_server_id);
+      touch_project(this.project_id);
     }
     if (this.ptyExited) {
       this.ptyExited = false;
@@ -329,7 +327,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     this.pty?.close();
     this.pty = null;
-    this.compute_server_id = null;
     this.set_connection_status("disconnected");
     this.state = "closed";
     this.account_store.removeListener("change", this.update_settings);
@@ -368,34 +365,24 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   };
 
   private ptyExited = false;
-  private compute_server_id: number | null = null;
 
   connect = reuseInFlight(async () => {
     if (this.isClosed() || this.ptyExited) return;
 
     try {
-      this.compute_server_id = null;
       if (this.pty != null) {
         this.pty.close();
         this.pty = null;
       }
 
       this.terminal.reset();
-      this.compute_server_id = await this.getComputeServerId();
       await this.handleDataFromProject(
-        CONNECTING_MESSAGE.replace(
-          "{TARGET}",
-          lite
-            ? ""
-            : this.compute_server_id
-              ? " TO COMPUTE SERVER"
-              : " TO HOME BASE",
-        ),
+        CONNECTING_MESSAGE.replace("{TARGET}", ""),
       );
 
       const pty = webapp_client.conat_client.terminalClient({
         project_id: this.project_id,
-        compute_server_id: this.compute_server_id!,
+        compute_server_id: 0,
         getSize: () => {
           if (this.is_visible) {
             return this.fitAddon.proposeDimensions();
@@ -517,19 +504,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       // is not running or offline.
       //      console.log("error spawning pty", err);
       setTimeout(this.connect, 2000);
-    } finally {
-      if (this.isClosed()) {
-        return;
-      }
-      // NOTE: a tricky situation is that a user will start connect with one
-      // compute server id, it doesn't work, so they change it - thus they
-      // change the compute server id midway through connecting. So we always
-      // call this update after connecting, in case something changed.
-      if (this.compute_server_id != (await this.getComputeServerId())) {
-        // it changed during connect, so connect again with the right one.
-        setTimeout(this.connect, 1000);
-        this.connect();
-      }
     }
   });
 
@@ -881,7 +855,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
     let i = 0;
     let foreground = false;
-    const compute_server_id = this.compute_server_id ?? 0;
     for (const x of paths) {
       i += 1;
       if (i === paths.length) {
@@ -890,18 +863,16 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
       if (x.file != null) {
         const path = x.file;
         if (this.use_subframe(path)) {
-          this.actions.open_code_editor_frame({ path, compute_server_id });
+          this.actions.open_code_editor_frame({ path });
         } else {
           project_actions.open_file({
             path,
             foreground,
-            compute_server_id,
             explicit: true,
           });
         }
       }
       if (x.directory != null && foreground) {
-        project_actions.setComputeServerId(compute_server_id);
         project_actions.open_directory(x.directory);
       }
     }
@@ -1122,20 +1093,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal.scrollToBottom();
   };
 
-  // definitely gets the correct assigned compute server, even if it has to wait:
-  private getComputeServerId = async (): Promise<number> => {
-    return 0;
-  };
-
-  updateComputeServerId = async () => {
-    if (
-      !this.isClosed() &&
-      (await this.getComputeServerId()) != this.compute_server_id
-    ) {
-      // it changed
-      this.connect();
-    }
-  };
+  // compute servers are deprecated; terminals always connect to the workspace host.
 }
 
 async function touchPath(project_id: string, path: string): Promise<void> {

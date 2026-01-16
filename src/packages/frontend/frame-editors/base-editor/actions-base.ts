@@ -379,7 +379,6 @@ export class BaseEditorActions<
         this._syncstring = syncstring({
           project_id: this.project_id,
           path: this.path,
-          compute_server_id: this.getComputeServerId(),
           cursors: !this.disable_cursors,
           before_change_hook: () => this.set_syncstring_to_codemirror(),
           after_change_hook: () => this.set_codemirror_to_syncstring(),
@@ -391,7 +390,6 @@ export class BaseEditorActions<
         this._syncstring = syncstring2({
           project_id: this.project_id,
           path: this.path,
-          compute_server_id: this.getComputeServerId(),
           cursors: !this.disable_cursors,
           ...this.syncDocOptions,
         });
@@ -406,7 +404,6 @@ export class BaseEditorActions<
         this._syncstring = syncdb2({
           project_id: this.project_id,
           path: this.path,
-          compute_server_id: this.getComputeServerId(),
           primary_keys: this.primary_keys,
           string_cols: this.string_cols,
           cursors: !this.disable_cursors,
@@ -423,7 +420,6 @@ export class BaseEditorActions<
         this._syncstring = immerdb2({
           project_id: this.project_id,
           path: this.path,
-          compute_server_id: this.getComputeServerId(),
           primary_keys: this.primary_keys,
           string_cols: this.string_cols,
           cursors: !this.disable_cursors,
@@ -3032,15 +3028,12 @@ export class BaseEditorActions<
     dir = "col",
     first = false,
     pos,
-    compute_server_id: _compute_server_id,
   }: {
     path: string;
     dir?: FrameDirection;
     first?: boolean;
     pos?: number;
-    compute_server_id?: number;
   }): string => {
-    void _compute_server_id;
     // See if there is already a frame for path, and if so show
     // display and focus it.
     for (let id in this._get_leaf_ids()) {
@@ -3087,7 +3080,7 @@ export class BaseEditorActions<
       if (node == null) return id;
       if (node.get("path") == path) return id; // already done;
       // Change it --
-      await this.setFrameToCodeEditor({ id, path });
+    await this.setFrameToCodeEditor({ id, path });
       return id;
     }
 
@@ -3115,13 +3108,10 @@ export class BaseEditorActions<
   private setFrameToCodeEditor = async ({
     id,
     path,
-    compute_server_id: _compute_server_id,
   }: {
     id: string;
     path: string;
-    compute_server_id?: number;
   }): Promise<void> => {
-    void _compute_server_id;
     const node = this._get_frame_node(id);
     if (node == null) {
       throw Error(`no frame with id ${id}`);

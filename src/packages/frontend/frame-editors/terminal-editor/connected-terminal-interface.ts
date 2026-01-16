@@ -36,7 +36,6 @@ export interface ConnectedTerminalInterface {
     dir?;
     first?: boolean;
     pos?: number;
-    compute_server_id?: number;
   });
 
   store?;

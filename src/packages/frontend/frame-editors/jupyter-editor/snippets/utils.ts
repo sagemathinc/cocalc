@@ -187,7 +187,6 @@ async function fetchCustomSnippetsData(
     project_id,
     bash: true,
     err_on_exit: false,
-    compute_server_id: 0,
   });
 
   if (res.exit_code === 0) {

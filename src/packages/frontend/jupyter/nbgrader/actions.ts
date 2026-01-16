@@ -193,7 +193,6 @@ export class NBGraderActions {
     await project_actions.createFile({
       name: filename,
       foreground: true,
-      compute_server_id: 0,
     });
     let actions = this.redux.getEditorActions(project_id, filename);
     while (actions == null) {

@@ -389,14 +389,7 @@ export function KernelSelector({ actions }: KernelSelectorProps) {
         msg = (
           <>
             Your notebook kernel <code>"{kernel}"</code> does not exist on{" "}
-            {actions.getComputeServerIdSync() ? (
-              "this compute server"
-            ) : (
-              <>
-                the <SiteName /> Home Base environment
-              </>
-            )}
-            .
+            this workspace.
           </>
         );
       } else {

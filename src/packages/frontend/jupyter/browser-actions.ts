@@ -334,10 +334,8 @@ export class JupyterActions extends JupyterActions0 {
   public async close(): Promise<void> {
     try {
       if (this.isClosed()) return;
-      for (const c of Object.values(this.jupyterClients)) {
-        c.close();
-      }
-      this.jupyterClients = {};
+      this.jupyterClient?.close();
+      this.jupyterClient = undefined;
       super.close();
     } catch {}
   }
@@ -988,14 +986,6 @@ export class JupyterActions extends JupyterActions0 {
     this.check_select_kernel();
   }
 
-  getComputeServerIdSync = (): number => {
-    return 0;
-  };
-
-  getComputeServerId = async (): Promise<number> => {
-    return 0;
-  };
-
   waitUntilProjectIsRunning = reuseInFlight(async () => {
     if (lite) {
       return;
@@ -1026,7 +1016,6 @@ export class JupyterActions extends JupyterActions0 {
         try {
           data = await getKernelSpec({
             project_id: this.project_id,
-            compute_server_id: 0,
             noCache,
           });
           return true;
@@ -1510,23 +1499,20 @@ export class JupyterActions extends JupyterActions0 {
     this.runQueue.length = 0;
   }
 
-  private jupyterClients: { [compute_server_id: number]: JupyterClient } = {};
+  private jupyterClient?: JupyterClient;
   private getJupyterClient = async (): Promise<JupyterClient | null> => {
-    const compute_server_id = 0;
     if (this.isClosed()) return null;
-    let c = this.jupyterClients[compute_server_id];
+    let c = this.jupyterClient;
     if (c != null && c.socket.state != "closed") {
       return c;
     }
-    if (compute_server_id == 0) {
-      await this.waitUntilProjectIsRunning();
-      if (this.isClosed()) return null;
-    }
+    await this.waitUntilProjectIsRunning();
+    if (this.isClosed()) return null;
     c = jupyterClient({
       path: this.syncdbPath,
       client: webapp_client.conat_client.conat(),
       project_id: this.project_id,
-      compute_server_id,
+      compute_server_id: 0,
       stdin: async ({ id, prompt, password }) => {
         // set the redux store so that it is known we would like some stdin,
         // wait for the user to respond, and return the result.
@@ -1541,12 +1527,12 @@ export class JupyterActions extends JupyterActions0 {
       },
     });
     c.socket.on("closed", () => {
-      delete this.jupyterClients[compute_server_id];
+      this.jupyterClient = undefined;
       // TODO: doing this is not ideal, but it's probably less confusing.
       this.clearRunQueue();
       this.runningNow = false;
     });
-    this.jupyterClients[compute_server_id] = c;
+    this.jupyterClient = c;
     return c;
   };
 
@@ -1957,16 +1943,9 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   signal = async (signal = "SIGINT"): Promise<void> => {
-    const v: any[] = [];
-    for (const compute_server_id in this.jupyterClients) {
-      const api = webapp_client.project_client.conatApi(
-        this.project_id,
-        parseInt(compute_server_id),
-      );
-      v.push(api.jupyter.signal({ path: this.path, signal }));
-    }
+    const api = webapp_client.project_client.conatApi(this.project_id, 0);
     try {
-      await Promise.all(v);
+      await api.jupyter.signal({ path: this.path, signal });
     } catch {}
     this.clear_all_cell_run_state();
   };

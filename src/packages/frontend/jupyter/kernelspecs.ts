@@ -4,7 +4,7 @@ import type { KernelSpec } from "@cocalc/jupyter/types";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 
 const cache = new LRU<string, KernelSpec[]>({
-  // up to 15 compute servers at once cached
+  // up to 15 workspaces cached
   max: 15,
   // cache for 5 minutes; when user explicitly clicks refresh it doesn't use cache.
   ttl: 1000 * 5 * 60,
@@ -13,15 +13,12 @@ const cache = new LRU<string, KernelSpec[]>({
 const getKernelSpec = reuseInFlight(
   async ({
     project_id,
-    compute_server_id,
     noCache,
   }: {
     project_id: string;
-    compute_server_id?: number;
     noCache?: boolean;
   }): Promise<KernelSpec[]> => {
-    void compute_server_id;
-    const key = JSON.stringify({ project_id, compute_server_id: 0 });
+    const key = JSON.stringify({ project_id });
     // console.log({ key, noCache });
     if (!noCache) {
       const spec = cache.get(key);
