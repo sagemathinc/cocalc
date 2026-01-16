@@ -2,19 +2,18 @@
 
 Goal: Complete remove all code and functionality for the following:
 
-- [ ] public jupyter api
-- [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
-- [ ] payg LLM purchases
 - [ ] all code involving compute\_servers and cloud filesystems
-- [x] anonymous accounts / sign up
+- [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
+- [ ] payg LLM purchases; we still must track usage and costs for throttling and analytic, but nothing regarding actual transactions/billing shown to users.
 - [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
-- [ ] all dynamic user\-specific content from the nextjs app: the store, the new items \(?\).
-- [x] public sandbox projects
-- [x] vector database support code \-\- qdrant, "DEPRECATED - OpenAI Neural Search UI"
+- [x] public jupyter api
+- [x] anonymous accounts / sign up
+- [ ] public sandbox projects
+- [x] vector database support code \-\- qdrant, "DEPRECATED \- OpenAI Neural Search UI"
 - [x] jitsi \-\- video chat
 - [x] GPU licenses
 - [x] copy\_paths 
-- [x] limit_free_project_uptime with the countdown timer (any other "freemium dials?")
+- [x] limit\_free\_project\_uptime with the countdown timer \(any other "freemium dials?"\)
 - [x] project licenses
 - [x] payg project upgrades
 - [x] legacy upgrades \(from 2020 and earlier\)

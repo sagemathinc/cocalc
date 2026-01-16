@@ -48,11 +48,11 @@ import { getSearch, setSearch } from "@cocalc/frontend/project/explorer/config";
 export const ProjectSearchBody: React.FC<{
   mode: "project" | "flyout";
 }> = ({ mode = "project" }) => {
-  const { project_id, compute_server_id } = useProjectContext();
+  const { project_id } = useProjectContext();
   const path = useTypedRedux({ project_id }, "current_path");
   const search = useTypedRedux({ project_id }, "search_page"); // updates on change
   const currentSearch = useMemo(() => {
-    return getSearch({ project_id, compute_server_id, path });
+    return getSearch({ project_id, path });
   }, [search, project_id, path]);
 
   const { subdirectories, case_sensitive, regexp, hidden_files, git_grep } =
@@ -61,7 +61,6 @@ export const ProjectSearchBody: React.FC<{
   const toggle = (field: string) => {
     setSearch({
       project_id,
-      compute_server_id,
       path,
       search: { [field]: !currentSearch[field] },
     });
@@ -437,7 +436,6 @@ function ProjectSearchResultLine({
       fragmentId: fragment_id ?? { line: line_number ?? 0 },
       chat,
       explicit: true,
-      compute_server_id: actions.getComputeServerId(),
     });
   }
 

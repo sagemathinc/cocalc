@@ -55,10 +55,11 @@ export class ProjectClient {
     this.client = client;
   }
 
-  conatApi = (project_id: string, compute_server_id = 0): ProjectApi => {
+  conatApi = (project_id: string, _compute_server_id = 0): ProjectApi => {
+    void _compute_server_id;
     return this.client.conat_client.projectApi({
       project_id,
-      compute_server_id,
+      compute_server_id: 0,
     });
   };
 
@@ -120,9 +121,6 @@ export class ProjectClient {
       base_path,
       `${opts.project_id}/files/${encode_path(opts.path)}`,
     );
-    if (opts.compute_server_id) {
-      url += `?id=${opts.compute_server_id}`;
-    }
     return url;
   };
 
@@ -282,7 +280,7 @@ export class ProjectClient {
       const cn = await this.client.conat_client.conat();
       const subject = projectSubject({
         project_id: opts.project_id,
-        compute_server_id: opts.compute_server_id ?? 0,
+        compute_server_id: 0,
         service: EXEC_STREAM_SERVICE,
       });
       let lastSeq = -1;
@@ -365,7 +363,6 @@ export class ProjectClient {
     if ("async_get" in opts) {
       opts = defaults(opts, {
         project_id: required,
-        compute_server_id: undefined,
         async_get: required,
         async_stats: undefined,
         async_await: undefined,
@@ -376,7 +373,6 @@ export class ProjectClient {
     } else {
       opts = defaults(opts, {
         project_id: required,
-        compute_server_id: undefined,
         filesystem: undefined,
         path: "",
         command: required,
@@ -411,7 +407,11 @@ export class ProjectClient {
 
     try {
       const ws = await this.websocket(opts.project_id);
-      const exec_opts = copy_without(opts, ["project_id", "cb"]);
+      const exec_opts = copy_without(opts, [
+        "project_id",
+        "cb",
+        "compute_server_id",
+      ]);
       const msg = await ws.api.exec(exec_opts);
       if (msg.status && msg.status == "error") {
         throw new Error(msg.error);
@@ -463,7 +463,7 @@ export class ProjectClient {
       opts.path,
       opts.hidden,
       opts.timeout * 1000,
-      opts.compute_server_id,
+      0,
     );
     return { files: listing };
   };
@@ -558,25 +558,15 @@ export class ProjectClient {
       project_id: string,
       // optional global id of a compute server (in the given project), in which case we also mark
       // that compute server as active, which keeps it running in case it has idle timeout configured.
-      compute_server_id?: number | null,
+      _compute_server_id?: number | null,
     ): Promise<void> => {
+      void _compute_server_id;
       if (!is_valid_uuid_string(project_id)) {
         console.warn("WARNING -- touch_project takes a project_id, but got ", {
           project_id,
         });
         return;
       }
-      if (compute_server_id) {
-        // this is independent of everything below.
-        touchComputeServer({
-          project_id,
-          compute_server_id,
-          client: this.client,
-        });
-        // that said, we do still touch the project, since if a user is actively
-        // using a compute server, the project should also be considered active.
-      }
-
       try {
         await this.client.conat_client.hub.db.touch({ project_id });
       } catch (err) {
@@ -646,61 +636,34 @@ export class ProjectClient {
     return await this.client.conat_client.hub.system.manageApiKeys(opts);
   };
 
-  computeServers = (project_id) => {
-    const cs = redux.getProjectActions(project_id)?.computeServers();
-    if (cs == null) {
-      // this happens if something tries to access the compute server info after the project
-      // tab is closed.  It shouldn't do that.
-      throw Error("compute server information not available");
-    }
-    return cs;
+  computeServers = (_project_id) => {
+    void _project_id;
+    return {
+      state: "connected",
+      get: () => 0,
+      getServerIdForPath: async () => 0,
+    } as any;
   };
 
   getServerIdForPath = async ({
-    project_id,
-    path,
+    project_id: _project_id,
+    path: _path,
   }): Promise<number | undefined> => {
-    return await this.computeServers(project_id)?.getServerIdForPath(path);
+    void _project_id;
+    void _path;
+    return 0;
   };
 
   // will return undefined if compute servers not yet initialized
-  getServerIdForPathSync = ({ project_id, path }): number | undefined => {
-    const cs = this.computeServers(project_id);
-    if (cs?.state != "connected") {
-      return undefined;
-    }
-    return cs.get(path);
+  getServerIdForPathSync = ({
+    project_id: _project_id,
+    path: _path,
+  }): number | undefined => {
+    void _project_id;
+    void _path;
+    return 0;
   };
 }
-
-// (NOTE: this won't throw an exception)
-const touchComputeServer = throttle(
-  async ({ project_id, compute_server_id, client }) => {
-    if (!compute_server_id) {
-      // nothing to do
-      return;
-    }
-    try {
-      await client.async_query({
-        query: {
-          compute_servers: {
-            project_id,
-            id: compute_server_id,
-            last_edited_user: client.server_time(),
-          },
-        },
-      });
-    } catch (err) {
-      // just a warning -- if we can't connect then touching isn't something we should be doing anyways.
-      console.log(
-        "WARNING: failed to touch compute server -- ",
-        { compute_server_id },
-        err,
-      );
-    }
-  },
-  30000,
-);
 
 // Polyfill for Safari: Add async iterator support to ReadableStream if missing.
 // E.g., this is missing in all versions of Safari as of May 2025 according to

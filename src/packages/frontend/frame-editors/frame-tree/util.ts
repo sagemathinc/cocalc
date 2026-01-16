@@ -9,7 +9,6 @@ Utility functions useful for frame-tree editors.
 
 import { path_split, separate_file_extension } from "@cocalc/util/misc";
 import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
-import { getComputeServerId } from "@cocalc/frontend/frame-editors/generic/client";
 
 export function parse_path(path: string): {
   directory: string;
@@ -24,14 +23,14 @@ export function parse_path(path: string): {
 export function raw_url(
   project_id: string,
   path: string,
-  compute_server_id?: number,
+  _compute_server_id?: number,
   param?: string,
 ): string {
+  void _compute_server_id;
   return fileURL({
     project_id,
     path,
-    compute_server_id:
-      compute_server_id ?? getComputeServerId({ project_id, path }),
+    compute_server_id: 0,
     param,
   });
 }

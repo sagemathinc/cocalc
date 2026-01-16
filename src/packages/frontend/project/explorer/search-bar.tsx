@@ -6,7 +6,6 @@
 import { memo, useEffect, useRef, useState, type CSSProperties } from "react";
 import { Alert, Flex } from "antd";
 import { useIntl } from "react-intl";
-import { redux } from "@cocalc/frontend/app-framework";
 import { Icon, SearchInput } from "@cocalc/frontend/components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -89,9 +88,6 @@ export const SearchBar = memo(
       if (cmd == null) return;
       const { input, id } = cmd;
       const input0 = input + '\necho $HOME "`pwd`"';
-      const compute_server_id = redux
-        .getProjectStore(project_id)
-        ?.get("compute_server_id");
       webapp_client.exec({
         project_id,
         command: input0,
@@ -100,7 +96,6 @@ export const SearchBar = memo(
         bash: true,
         path: current_path,
         err_on_exit: false,
-        compute_server_id,
         filesystem: true,
         cb(err, output) {
           if (id !== _id.current) {
@@ -115,8 +110,6 @@ export const SearchBar = memo(
               // Find the current path
               // after the command is executed, and strip
               // the output of "pwd" from the output:
-              // NOTE: for compute servers which can in theory use a totally different HOME, this won't work.
-              // However, by default on cocalc.com they use the same HOME, so it should work.
               let s = output.stdout.trim();
               let i = s.lastIndexOf("\n");
               if (i === -1) {
