@@ -26,7 +26,6 @@ export interface PublicPath {
   auth?: string;
   compute_image?: string;
   redirect?: string;
-  jupyter_api?: boolean;
 }
 
 // Get publicly available information about a project.
@@ -190,14 +189,7 @@ Table({
         editable: true,
       },
     },
-    jupyter_api: {
-      type: "boolean",
-      desc: "If true, enable stateless jupyter api so users can evaluate code",
-      render: {
-        type: "boolean",
-        editable: true,
-      },
-    },
+
   },
   rules: {
     primary_key: "id",
@@ -240,7 +232,6 @@ Table({
           compute_image: "default",
           cross_origin_isolation: null,
           redirect: null,
-          jupyter_api: null,
         },
       },
       set: {
@@ -262,7 +253,6 @@ Table({
           compute_image: true,
           cross_origin_isolation: true,
           redirect: true,
-          jupyter_api: true,
         },
         required_fields: {
           id: true,
@@ -344,7 +334,6 @@ Table({
           counter: null,
           compute_image: null,
           redirect: null,
-          jupyter_api: null,
         },
       },
     },
@@ -417,7 +406,6 @@ Table({
           created: true,
           compute_image: true,
           redirect: true,
-          jupyter_api: true,
         },
         // not doing this since don't want to require project_id and path to
         // be set, and this is for admin use only anyways:

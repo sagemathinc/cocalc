@@ -12,7 +12,6 @@ import { SoftwareEnvNames } from "@cocalc/util/consts/software-envs";
 import { COLORS } from "@cocalc/util/theme";
 import AccountNavTab from "components/account/navtab";
 import Analytics from "components/analytics";
-import DemoCell from "components/demo-cell";
 import LiveDemo from "components/landing/live-demo";
 import Logo from "components/logo";
 import A from "components/misc/A";
@@ -43,19 +42,17 @@ const SelectedStyle: React.CSSProperties = {
 interface Props {
   page?: Page;
   subPage?: SubPage;
-  runnableTag?: string; // if on cocalc.com and have jupyter api use this tag for a little runable editable demo Jupyter cell.
   softwareEnv?: SoftwareEnvNames;
 }
 
 export default function Header(props: Props) {
-  const { page, subPage, softwareEnv, runnableTag } = props;
+  const { page, subPage, softwareEnv } = props;
   const {
     siteName,
     termsOfServiceURL,
     account,
     onCoCalcCom,
     openaiEnabled,
-    jupyterApiEnabled,
     enabledPages,
   } = useCustomize();
 
@@ -234,15 +231,6 @@ export default function Header(props: Props) {
             </A>
           </>
         )}
-        {enabledPages?.auth.try && (
-          <A
-            style={page === "try" ? SelectedStyle : LinkStyle}
-            href={"/auth/try"}
-            title={`Try ${siteName} immediately without creating an account.`}
-          >
-            Try
-          </A>
-        )}{" "}
       </Layout.Header>
       <SubNav page={page} subPage={subPage} softwareEnv={softwareEnv} />
       {openaiEnabled &&
@@ -257,9 +245,6 @@ export default function Header(props: Props) {
             tag={`features-${subPage}`}
           />
         </div>
-      ) : undefined}
-      {jupyterApiEnabled && onCoCalcCom && runnableTag ? (
-        <DemoCell tag={runnableTag} />
       ) : undefined}
     </>
   );

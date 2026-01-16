@@ -48,8 +48,6 @@ export default function PasswordReset({ passwordResetId }) {
         <p>
           Remember your password? <A href="/auth/sign-in">Sign In</A>
         </p>
-        You can also{" "}
-        <A href="/auth/try">use {siteName} without creating an account</A>
       </>
     );
   }

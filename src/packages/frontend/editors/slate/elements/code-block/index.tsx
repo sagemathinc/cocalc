@@ -155,7 +155,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
     throw Error("bug");
   }
 
-  const { disableMarkdownCodebar, jupyterApiEnabled } = useFileContext();
+  const { disableMarkdownCodebar, project_id } = useFileContext();
 
   // we need both a ref and state, because editing is used both for the UI
   // state and also at once point directly to avoid saving the last change
@@ -237,7 +237,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
               setEditing(true);
             }
           }}
-          canEdit={!!jupyterApiEnabled}
+          canEdit={!!project_id}
           content={newValue ?? element.value}
           onDownload={() => {
             const blob = new Blob([newValue ?? element.value], {

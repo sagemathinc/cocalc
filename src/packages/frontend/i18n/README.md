@@ -153,15 +153,10 @@ Below, there are 3 usages of different types of translations. Below are their ex
 {everywhere, select,
 true {on all web browsers? Every web browser will have to reauthenticate before using this account again.}
 other {on this web browser?}
-}
-{is_anonymous, select,
-true {Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted!  If you would like to save your work to a new account, click cancel and sign up below.}
-other {}
 }`}
         values={{
           account,
           everywhere,
-          is_anonymous: store.get("is_anonymous"),
         }}
       />
     </div>

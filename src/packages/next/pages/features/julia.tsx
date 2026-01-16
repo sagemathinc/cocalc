@@ -34,7 +34,7 @@ export default function Julia({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header page="features" subPage="julia" runnableTag="jl" />
+        <Header page="features" subPage="julia" />
         <Layout.Content>
           <Content
             landing

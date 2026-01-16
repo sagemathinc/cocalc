@@ -39,7 +39,7 @@ export default function Python({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header page="features" subPage="python" runnableTag="py" />
+        <Header page="features" subPage="python" />
         <Layout.Content>
           <Content
             landing

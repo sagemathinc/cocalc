@@ -11,7 +11,7 @@ import { join } from "path";
 import { CSSProperties } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { WORKSPACE_LABEL, WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
+import { WORKSPACES_LABEL } from "@cocalc/util/i18n/terminology";
 import {
   type PreferencesSubTabType,
   type SettingsPageType,
@@ -72,14 +72,13 @@ export default function AccountNavTab({ style }: Props) {
     );
   }
 
-  const { first_name, last_name, name, account_id, is_admin, is_anonymous } =
-    profile;
+  const { first_name, last_name, name, account_id, is_admin } = profile;
 
   const profile_url = name ? `/${name}` : `/share/accounts/${account_id}`;
 
   const signedIn = menuItem(
     "signed-in",
-    <A href={is_anonymous ? "/config/search/input" : profile_url}>
+    <A href={profile_url}>
       Signed into {siteName} as
       <br />
       <b>
@@ -177,17 +176,6 @@ export default function AccountNavTab({ style }: Props) {
     if (!profile) return [];
     const ret: MenuItems = [];
     ret.push(signedIn);
-    if (is_anonymous) {
-      ret.push(
-        menuItem(
-          "sign-up",
-          <A href="/config/search/input">
-            <b>Sign Up (save your work)!</b>
-          </A>,
-          "user",
-        ),
-      );
-    }
     ret.push(docs);
     if (isCommercial) {
       ret.push(menuItem("store", <A href="/store">Store</A>, "shopping-cart"));
@@ -204,78 +192,74 @@ export default function AccountNavTab({ style }: Props) {
       menuItem(
         "projects",
         <a href={join(basePath, "projects")}>
-          {is_anonymous ? WORKSPACE_LABEL : WORKSPACES_LABEL}
+          {WORKSPACES_LABEL}
         </a>,
         "edit",
       ),
     );
 
-    if (!is_anonymous) {
+    yours.push(
+      menuItem(
+        "messages",
+        <A href="/notifications#page=messages-inbox">Messages</A>,
+        "mail",
+      ),
+    );
+    yours.push(
+      menuItem(
+        "mentions",
+        <A href="/notifications#page=unread">@-Mentions</A>,
+        "comment",
+      ),
+    );
+    yours.push(
+      menuItem(
+        "support",
+        <A href={createSettingsLink("/settings/support")}>Support Tickets</A>,
+        "medkit",
+      ),
+    );
+
+    if (sshGateway) {
       yours.push(
         menuItem(
-          "messages",
-          <A href="/notifications#page=messages-inbox">Messages</A>,
-          "mail",
+          "ssh",
+          <A href={createSettingsLink("/settings/preferences/keys")}>
+            SSH Keys
+          </A>,
+          "key",
         ),
       );
+    }
+
+    if (shareServer) {
       yours.push(
         menuItem(
-          "mentions",
-          <A href="/notifications#page=unread">@-Mentions</A>,
-          "comment",
+          "shared",
+          <A
+            href={name ? `/${name}` : `/share/accounts/${account_id}`}
+            external
+          >
+            Shared Files
+          </A>,
+          "bullhorn",
         ),
       );
+
+      // TODO: redundant with the above?
+      // yours.push(
+      //   menuItem(
+      //     "shared",
+      //     <A href={createSettingsLink("/settings/public-files")}>
+      //       Published Files
+      //     </A>,
+      //     "share-square",
+      //   ),
+      // );
+
       yours.push(
-        menuItem(
-          "support",
-          <A href={createSettingsLink("/settings/support")}>Support Tickets</A>,
-          "medkit",
-        ),
+        menuItem("stars", <A href="/stars">Starred Files</A>, "star-filled"),
       );
-
-      if (sshGateway) {
-        yours.push(
-          menuItem(
-            "ssh",
-            <A href={createSettingsLink("/settings/preferences/keys")}>
-              SSH Keys
-            </A>,
-            "key",
-          ),
-        );
-      }
-
-      if (shareServer) {
-        yours.push(
-          menuItem(
-            "shared",
-            <A
-              href={
-                profile?.name ? `/${name}` : `/share/accounts/${account_id}`
-              }
-              external
-            >
-              Shared Files
-            </A>,
-            "bullhorn",
-          ),
-        );
-
-        // TODO: redundant with the above?
-        // yours.push(
-        //   menuItem(
-        //     "shared",
-        //     <A href={createSettingsLink("/settings/public-files")}>
-        //       Published Files
-        //     </A>,
-        //     "share-square",
-        //   ),
-        // );
-
-        yours.push(
-          menuItem("stars", <A href="/stars">Starred Files</A>, "star-filled"),
-        );
-      }
     }
 
     return [

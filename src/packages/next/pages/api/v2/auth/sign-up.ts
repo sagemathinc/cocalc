@@ -95,11 +95,7 @@ export async function signUp(req, res) {
     return;
   }
 
-  // if email is empty, then trying to create an anonymous account,
-  // which may be allowed, depending on server settings.
-  const isAnonymous = !email;
-
-  if (!isAnonymous && email && password) {
+  if (email && password) {
     // Maybe there is already an account with this email and password?
     try {
       const account_id = await getAccount(email, password);
@@ -110,29 +106,19 @@ export async function signUp(req, res) {
     }
   }
 
-  if (!isAnonymous) {
-    const issues = checkObviousConditions({ terms, email, password });
-    if (len(issues) > 0) {
-      res.json({ issues });
-      return;
-    }
+  const issues = checkObviousConditions({ terms, email, password });
+  if (len(issues) > 0) {
+    res.json({ issues });
+    return;
   }
 
   // The UI doesn't let users try to make an account via signUp if
   // email isn't enabled.  However, they might try to directly POST
   // to the API, so we check here as well.
-  const { email_signup, anonymous_signup } = await getServerSettings();
+  const { email_signup } = await getServerSettings();
 
   const owner_id = await getAccountId(req);
   if (owner_id) {
-    if (isAnonymous) {
-      res.json({
-        issues: {
-          api: "Creation of anonymous accounts via the API is not allowed.",
-        },
-      });
-      return;
-    }
     // no captcha required -- api access
     // We ONLY allow creation without checking the captcha
     // for trusted users.
@@ -159,42 +145,30 @@ export async function signUp(req, res) {
     }
   }
 
-  if (isAnonymous) {
-    // Check anonymous sign up conditions.
-    if (!anonymous_signup) {
-      res.json({
-        issues: {
-          email: "Anonymous account creation is disabled.",
-        },
-      });
-      return;
-    }
-  } else {
-    // Check the email sign up conditions.
-    if (!email_signup) {
-      res.json({
-        issues: {
-          email: "Email account creation is disabled.",
-        },
-      });
-      return;
-    }
-    const exclusive = await isDomainExclusiveSSO(email);
-    if (exclusive) {
-      res.json({
-        issues: {
-          email: `To sign up with "@${exclusive}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
-        },
-      });
-      return;
-    }
+  // Check the email sign up conditions.
+  if (!email_signup) {
+    res.json({
+      issues: {
+        email: "Email account creation is disabled.",
+      },
+    });
+    return;
+  }
+  const exclusive = await isDomainExclusiveSSO(email);
+  if (exclusive) {
+    res.json({
+      issues: {
+        email: `To sign up with "@${exclusive}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
+      },
+    });
+    return;
+  }
 
-    if (!(await isAccountAvailable(email))) {
-      res.json({
-        issues: { email: `Email address "${email}" already in use.` },
-      });
-      return;
-    }
+  if (!(await isAccountAvailable(email))) {
+    res.json({
+      issues: { email: `Email address "${email}" already in use.` },
+    });
+    return;
   }
 
   let tokenInfo;

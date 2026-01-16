@@ -27,7 +27,6 @@ register({
         counter: null,
         compute_image: null,
         redirect: null,
-        jupyter_api: null,
       },
     ],
   },

@@ -121,7 +121,6 @@ export function MembershipStatusPanel({
   showHeader?: boolean;
 }): ReactElement | null {
   const account_id = useTypedRedux("account", "account_id");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
   const projectLabelLower = projectLabel.toLowerCase();
@@ -172,7 +171,7 @@ export function MembershipStatusPanel({
     );
   }, [tiers]);
 
-  if (!account_id || is_anonymous) {
+  if (!account_id) {
     return null;
   }
 

@@ -104,8 +104,6 @@ export interface Customize {
   dns?: string;
   siteURL?: string;
   googleAnalytics?: string;
-  anonymousSignup?: boolean;
-  anonymousSignupLicensedShares?: boolean;
   emailSignup?: boolean;
   accountCreationInstructions?: string;
   zendesk?: boolean; // true if zendesk support is configured.
@@ -120,7 +118,6 @@ export interface Customize {
   mistralEnabled?: boolean;
   anthropicEnabled?: boolean;
   ollamaEnabled?: boolean;
-  jupyterApiEnabled?: boolean;
   computeServersEnabled?: boolean;
   cloudFilesystemsEnabled?: boolean;
   githubProjectId?: string;

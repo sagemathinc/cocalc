@@ -6,13 +6,6 @@
 import { join } from "path";
 import basePath from "lib/base-path";
 
-interface AnonymousOptions {
-  id: string;
-  path: string;
-  relativePath: string;
-  type: "anonymous";
-}
-
 interface CollaboratorOptions {
   project_id: string;
   path?: string; // no path means link to project
@@ -20,13 +13,11 @@ interface CollaboratorOptions {
   type?: "collaborator";
 }
 
-type Options = AnonymousOptions | CollaboratorOptions;
+type Options = CollaboratorOptions;
 
 export default function editURL(options: Options): string {
   const type = options["type"];
   switch (type) {
-    case "anonymous":
-      return anonymousURL(options);
     case "collaborator":
     default:
       return collaboratorURL(options);
@@ -36,18 +27,6 @@ export default function editURL(options: Options): string {
 // needed since we're making a link outside of the nextjs server.
 function withBasePath(url: string): string {
   return join(basePath, url);
-}
-
-function anonymousURL({ id, path, relativePath }): string {
-  const app = "/static/app.html";
-  return withBasePath(
-    encodeURI(
-      `${app}?anonymous=true&launch=share/${id}/${join(
-        path,
-        relativePath ?? ""
-      )}`
-    )
-  );
 }
 
 function collaboratorURL({

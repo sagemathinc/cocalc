@@ -83,7 +83,6 @@ export type SiteSettingsKeys =
   | "default_llm"
   | "user_defined_llm"
   | "llm_default_quota"
-  | "jupyter_api_enabled"
   | "organization_name"
   | "organization_email"
   | "organization_url"
@@ -113,8 +112,6 @@ export type SiteSettingsKeys =
   | "email_enabled"
   | "verify_emails"
   | "email_signup"
-  | "anonymous_signup"
-  | "anonymous_signup_licensed_shares"
   | "share_server"
   | "landing_pages"
   | "compute_servers_enabled"
@@ -720,20 +717,6 @@ export const site_settings_conf: SiteSettings = {
     valid: only_booleans,
     to_val: to_bool,
   },
-  anonymous_signup: {
-    name: "Allow anonymous signup",
-    desc: "Users can create a temporary account with no email, password or single sign on.  This won't work if you have any registration tokens set below.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-  },
-  anonymous_signup_licensed_shares: {
-    name: "Allow anonymous signup for licensed shared files",
-    desc: "Users can create a temporary account with no email, password or single sign on when editing a copy of content shared on the share server that has a corresponding license.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-  },
   share_server: {
     name: "Allow public file sharing",
     desc: "Users are allowed to publicly share files on the public share server (`https://yourserver/share`).  If this is disabled, then the share server will not run and users will not be allowed to share files from their projects.",
@@ -852,14 +835,6 @@ export const site_settings_conf: SiteSettings = {
     valid: only_nonneg_int,
     show: only_commercial,
     tags: ["AI LLM"],
-  },
-  jupyter_api_enabled: {
-    name: "Jupyter API",
-    desc: "If true, the public Jupyter API is enabled. This provides stateless evaluation of Jupyter code from the landing page and share server by users that may not be signed in.  This requires further configuration of the <i>Jupyter API Account Id</i>.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    tags: ["Jupyter"],
   },
   compute_servers_enabled: {
     name: "Enable Compute Servers",

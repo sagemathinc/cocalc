@@ -55,8 +55,6 @@ export default async function getCustomize(
       sshGateway: settings.ssh_gateway,
       sshGatewayDNS: settings.ssh_gateway_dns,
 
-      anonymousSignup: settings.anonymous_signup,
-      anonymousSignupLicensedShares: settings.anonymous_signup_licensed_shares,
       emailSignup: settings.email_signup,
       accountCreationInstructions: settings.account_creation_email_instructions,
 
@@ -108,8 +106,6 @@ export default async function getCustomize(
       anthropicEnabled: settings.anthropic_enabled,
       ollamaEnabled: settings.ollama_enabled,
 
-      // if extra Jupyter API functionality for sandboxed ephemeral code execution is available.
-      jupyterApiEnabled: settings.jupyter_api_enabled,
 
       computeServersEnabled: settings.compute_servers_enabled,
       cloudFilesystemsEnabled: settings.cloud_filesystems_enabled,

@@ -22,7 +22,6 @@ export const AccountPreferences: React.FC = () => {
   const passports = useTypedRedux("account", "passports");
   const sign_out_error = useTypedRedux("account", "sign_out_error");
   const other_settings = useTypedRedux("account", "other_settings");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
   const created = useTypedRedux("account", "created");
   const strategies = useTypedRedux("account", "strategies");
   const unlisted = useTypedRedux("account", "unlisted");
@@ -42,7 +41,6 @@ export const AccountPreferences: React.FC = () => {
         passports={passports}
         sign_out_error={sign_out_error}
         other_settings={other_settings}
-        is_anonymous={is_anonymous}
         email_enabled={email_enabled}
         verify_emails={verify_emails}
         created={created}

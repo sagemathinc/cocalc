@@ -43,7 +43,7 @@
     "defaultMessage": "Created"
   },
   "account.settings.email_address.button_label": {
-    "defaultMessage": "{type, select, anonymous {Sign up using an email address and password} have_email {Change email address} other {Set email address and password}}"
+    "defaultMessage": "{have_email, select, true {Change email address} other {Set email address and password}}"
   },
   "account.settings.email_address.new_email_address_label": {
     "defaultMessage": "New email address"
@@ -64,7 +64,7 @@
     "defaultMessage": "Yes, sign out{everywhere, select, true { everywhere} other {}}"
   },
   "account.sign-out.button.title": {
-    "defaultMessage": "Are you sure you want to sign {account} out {everywhere, select, true {on all web browsers? Every web browser will have to reauthenticate before using this account again.} other {on this web browser?} } {is_anonymous, select, true {Everything you have done using this TEMPORARY ACCOUNT will be immediately deleted! If you would like to save your work to a new account, click cancel and sign up below.} other {} }",
+    "defaultMessage": "Are you sure you want to sign {account} out {everywhere, select, true {on all web browsers? Every web browser will have to reauthenticate before using this account again.} other {on this web browser?} }",
     "description": "Sign out/Sign out everyhwere button in account settings"
   },
   "account.sign_out.body.sign_in": {

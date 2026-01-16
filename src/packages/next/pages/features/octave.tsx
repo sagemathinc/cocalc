@@ -31,7 +31,7 @@ export default function Octave({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header page="features" subPage="octave" runnableTag="octave" />
+        <Header page="features" subPage="octave" />
         <Layout.Content>
           <Content
             landing

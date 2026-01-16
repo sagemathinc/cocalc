@@ -135,7 +135,7 @@ class System:
 
         Args:
             input (str): Code to execute.
-            kernel (Optional[str]): Name of kernel to use. Get options using jupyter.kernels()
+            kernel (Optional[str]): Name of kernel to use (e.g. "python3").
             history (Optional[list[str]]): Array of previous inputs (they get evaluated every time, but without output being captured).
             path (Optional[str]): File path context for execution.
 
@@ -146,9 +146,9 @@ class System:
             Execute a simple sum using a Jupyter kernel:
 
             >>> import cocalc_api;  project = cocalc_api.Project(api_key="sk-...")
-            >>> project.jupyter.execute(history=['a=100;print(a)'],
-                         input='sum(range(a+1))',
-                         kernel='python3')
+            >>> project.system.jupyter_execute(history=['a=100;print(a)'],
+            ...     input='sum(range(a+1))',
+            ...     kernel='python3')
             {'output': [{'data': {'text/plain': '5050'}}], ...}
         """
         ...

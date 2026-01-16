@@ -44,6 +44,9 @@ export default async function createAccount({
   ephemeral,
   customize,
 }: Params): Promise<void> {
+  if (!email) {
+    throw Error("Email address is required for account creation.");
+  }
   try {
     log.debug(
       "creating account",

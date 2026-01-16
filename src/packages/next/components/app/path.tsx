@@ -12,7 +12,6 @@ import { join } from "path";
 import { CSSProperties } from "react";
 
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
-import OpenAnonymously from "components/share/edit/open-anonymously";
 import basePath from "lib/base-path";
 import editURL from "lib/share/edit-url";
 import useCustomize from "lib/use-customize";
@@ -32,7 +31,7 @@ export default function Path(props: Props) {
   const { project_id, path, style, fullscreen, embed, description, start } =
     props;
 
-  const { account, anonymousSignup } = useCustomize();
+  const { account } = useCustomize();
 
   if (!account) {
     return (
@@ -42,7 +41,6 @@ export default function Path(props: Props) {
         message={
           <div>
             <InPlaceSignInOrUp title={`To use ${description ?? "this"}...`} />
-            {anonymousSignup && <OpenAnonymously />}
           </div>
         }
       />

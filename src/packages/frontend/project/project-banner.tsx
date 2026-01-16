@@ -22,7 +22,6 @@ export function ProjectWarningBanner() {
     is_active,
   } = useProjectContext();
   const other_settings = useTypedRedux("account", "other_settings");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
   const project_map = useTypedRedux("projects", "project_map");
   const projects_store = useStore("projects");
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
@@ -47,12 +46,6 @@ export function ProjectWarningBanner() {
       return true;
     }
     if (!is_commercial) {
-      return true;
-    }
-    if (is_anonymous) {
-      // No need to provide all these warnings and scare anonymous users, who are just
-      // playing around for the first time (and probably wouldn't read this, and should
-      // assume strong limitations since they didn't even make an account).
       return true;
     }
     return false;

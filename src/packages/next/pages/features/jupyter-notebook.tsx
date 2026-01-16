@@ -114,7 +114,7 @@ export default function JupyterNotebook({ customize }) {
     <Customize value={customize}>
       <Head title="Online Jupyter Notebooks" />
       <Layout>
-        <Header page="features" subPage="jupyter-notebook" runnableTag="py" />
+        <Header page="features" subPage="jupyter-notebook" />
         <Layout.Content>
           <Content
             landing

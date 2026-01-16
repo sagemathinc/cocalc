@@ -20,7 +20,6 @@ import basePath from "lib/base-path";
 import useIsBrowser from "lib/hooks/is-browser";
 import useProfile from "lib/hooks/profile";
 import { useRouter } from "next/router";
-import Anonymous from "./anonymous";
 import ConfigMenu from "./menu";
 import { menu } from "./register";
 import Search from "./search/component";
@@ -45,7 +44,7 @@ export default function ConfigLayout({ page }: Props) {
       </div>
     );
   }
-  const { account_id, is_anonymous } = profile;
+  const { account_id } = profile;
 
   if (!account_id) {
     return (
@@ -63,10 +62,6 @@ export default function ConfigLayout({ page }: Props) {
         }
       />
     );
-  }
-
-  if (is_anonymous) {
-    return <Anonymous />;
   }
 
   const [main, sub] = page;

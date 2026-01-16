@@ -21,7 +21,6 @@ import { isIOS, isSafari } from "lib/share/feature";
 import rawURL from "lib/share/raw-url";
 import getUrlTransform from "lib/share/url-transform";
 import { containingPath, getExtension } from "lib/share/util";
-import useCustomize from "lib/use-customize";
 import getAnchorTagComponent from "./anchor-tag-component";
 import CodeMirror from "./codemirror";
 import SageWorksheet from "./sage-worksheet";
@@ -34,7 +33,6 @@ interface Props {
   relativePath: string;
   path: string;
   truncated?: boolean;
-  jupyter_api?: boolean;
 }
 
 export default function FileContents({
@@ -42,19 +40,16 @@ export default function FileContents({
   content,
   path,
   relativePath,
-  jupyter_api,
 }: Props): JSX.Element {
   const filename = relativePath ? relativePath : path;
   const ext = getExtension(filename);
   const raw = rawURL({ id, path, relativePath });
-  const { jupyterApiEnabled } = useCustomize();
 
   const withFileContext = (x) => {
     const relPath = containingPath(relativePath);
     const value = {
       urlTransform: getUrlTransform({ id, path, relativePath: relPath }),
       AnchorTagComponent: getAnchorTagComponent({ id, relativePath: relPath }),
-      jupyterApiEnabled: jupyterApiEnabled && jupyter_api,
       noSanitize: false, // We **MUST** sanitize, since we users could launch XSS attacks, mess up style, etc.,
       // This will, of course, break things, in which case users will have to open them in their own projects.
     };

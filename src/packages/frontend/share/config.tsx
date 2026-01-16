@@ -25,14 +25,13 @@ const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 import {
   Alert,
   Button,
-  Checkbox,
   Col,
   Input,
   Radio,
   Row,
   Space,
 } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
@@ -407,13 +406,6 @@ export default function Configure({
                   />
                 </Paragraph>
               </div>
-              <ConfigureJupyterApi
-                disabled={parentIsPublic}
-                jupyter_api={publicInfo?.jupyter_api}
-                saveJupyterApi={(jupyter_api) => {
-                  actions.set_public_path(path, { jupyter_api });
-                }}
-              />
             </Space>
           </Col>
           <Col span={12}>
@@ -452,38 +444,5 @@ export default function Configure({
       ) : undefined}
       <Paragraph style={{ float: "right" }}>{renderFinishedButton()}</Paragraph>
     </>
-  );
-}
-
-function ConfigureJupyterApi({ jupyter_api, saveJupyterApi, disabled }) {
-  const [jupyterApi, setJupyterApi] = useState<boolean>(jupyter_api);
-  useEffect(() => {
-    setJupyterApi(jupyter_api);
-  }, [jupyter_api]);
-  const jupyterApiEnabled = useTypedRedux("customize", "jupyter_api_enabled");
-  if (!jupyterApiEnabled) return null;
-  return (
-    <Paragraph style={{ marginTop: "15px" }}>
-      <Title level={4}>
-        <Icon name="jupyter" /> Stateless Jupyter Code Evaluation
-      </Title>
-      <Checkbox
-        disabled={disabled}
-        checked={jupyterApi}
-        onChange={(e) => {
-          setJupyterApi(e.target.checked);
-          saveJupyterApi(e.target.checked);
-        }}
-      >
-        Enable Stateless Jupyter Code Evaluation
-      </Checkbox>
-      <Paragraph type="secondary">
-        Enable stateless Jupyter code evaluation if the documents you are
-        sharing containing code that can be evaluated using a heavily sandboxed
-        Jupyter kernel, with no network access or access to related files. This
-        can be quickly used by people without having to sign in or make a copy
-        of files.
-      </Paragraph>
-    </Paragraph>
   );
 }

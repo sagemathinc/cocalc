@@ -6,7 +6,6 @@ In particular it deals with the custom SSO endpoint strategy goes through its au
 There are only a few exceptions for these next.js pages. **DO NOT ADD ANY MORE**!
 
 - `/auth/sign-in` and `/auth/sign-up`: user can sign in or up for cocalc via a form
-- `/auth/try`: optionally, anonymous "sign in" to test cocalc
 - `/auth/verify/*`: verification of email address – but this is **not** working and not used. No idea what's the plan.
   - `/auth/verify?email=...&token=...` is handled by `hub-next`, but it's the old code in `./hub/auth.ts`, registered before `hub-next`'s routes.
 - `/auth/password-reset/*`: password reset

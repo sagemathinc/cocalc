@@ -132,7 +132,6 @@ export const AccountPage: React.FC = () => {
       : undefined);
   const is_logged_in = useTypedRedux("account", "is_logged_in");
   const account_id = useTypedRedux("account", "account_id");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
   const kucalc = useTypedRedux("customize", "kucalc");
   const is_commercial = useTypedRedux("customize", "is_commercial");
   const get_api_key = useTypedRedux("page", "get_api_key");
@@ -320,10 +319,6 @@ export const AccountPage: React.FC = () => {
       });
     }
     // adds a few conditional tabs
-    if (is_anonymous) {
-      // None of the rest make any sense for a temporary anonymous account.
-      return items;
-    }
     items.push({ type: "divider" });
 
     if (is_commercial) {
@@ -539,20 +534,6 @@ export const AccountPage: React.FC = () => {
         </div>
       );
     }
-    if (is_anonymous) {
-      return (
-        <div
-          style={{
-            margin: "15px  0 0 0",
-            padding: "0 10% 0 10%",
-            overflow: "auto",
-          }}
-        >
-          <AccountPreferencesProfile />
-        </div>
-      );
-    }
-
     function handleHideToggle() {
       setHidden(!hidden);
     }

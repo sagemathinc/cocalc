@@ -57,9 +57,6 @@ export interface IFileContext {
   // updates, the images may change, by their names don't, so we have to break the browser cache.
   reloadImages?: boolean;
 
-  // If true, then the jupyter code execution
-  jupyterApiEnabled?: boolean;
-
   // Disable markdown run button
   disableMarkdownCodebar?: boolean;
 

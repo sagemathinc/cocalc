@@ -213,7 +213,6 @@ export type PublicPathEvent = {
   disabled?: boolean;
   authenticated?: boolean;
   redirect?: string;
-  jupyter_api?: boolean;
 };
 
 export type SoftwareEnvironmentEvent = {

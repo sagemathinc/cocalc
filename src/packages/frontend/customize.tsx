@@ -122,7 +122,6 @@ export interface CustomizeState {
   dns: string; // e.g. "cocalc.com"
   email_enabled: false;
   email_signup: boolean;
-  anonymous_signup: boolean;
   google_analytics: string;
   help_email: string;
   iframe_comm_hosts: string[];
@@ -162,8 +161,6 @@ export interface CustomizeState {
   // flag to signal data stored in the Store.
   software: SoftwareEnvironments;
   _is_configured: boolean;
-  jupyter_api_enabled?: boolean;
-
   compute_servers_enabled?: boolean;
   ["compute_servers_google-cloud_enabled"]?: boolean;
   compute_servers_hyperstack_enabled?: boolean;

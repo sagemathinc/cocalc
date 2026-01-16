@@ -43,8 +43,7 @@ export default function SignIn(props: SignInProps) {
 
 function SignIn0(props: SignInProps) {
   const { minimal = false, onSuccess, showSignUp, signUpAction } = props;
-  const { anonymousSignup, reCaptchaKey, siteName, strategies } =
-    useCustomize();
+  const { reCaptchaKey, siteName, strategies } = useCustomize();
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [signingIn, setSigningIn] = useState<boolean>(false);
@@ -96,17 +95,7 @@ function SignIn0(props: SignInProps) {
           ) : (
             <A href="/auth/sign-up">Sign Up</A>
           )}{" "}
-          {anonymousSignup ? (
-            <>
-              or{" "}
-              <A href="/auth/try">
-                {" "}
-                try {siteName} without creating an account.{" "}
-              </A>
-            </>
-          ) : (
-            "today."
-          )}
+          today.
         </>
       )
     );

@@ -59,7 +59,6 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
 
   const [add_collab, set_add_collab] = useState<boolean>(false);
   const images = useTypedRedux("compute_images", "images");
-  const is_anonymous = useTypedRedux("account", "is_anonymous");
   const kucalc = useTypedRedux("customize", "kucalc");
   const software = useTypedRedux("customize", "software");
 
@@ -203,7 +202,6 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
 
   function open_project_settings(e): void {
     if (add_collab) return;
-    if (is_anonymous) return;
     actions.open_project({
       project_id,
       switch_to: !(e.which === 2 || e.ctrlKey || e.metaKey),
@@ -248,7 +246,7 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
             alignSelf: "flex-start",
           }}
         >
-          {!is_anonymous && render_star()}
+          {render_star()}
         </Col>
         <Col
           onClick={handle_click}
@@ -280,13 +278,11 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
         >
           {render_project_description()}
         </Col>
-        <Col sm={3}>{!is_anonymous && render_collab()}</Col>
+        <Col sm={3}>{render_collab()}</Col>
         <Col sm={1} onClick={open_project_settings}>
-          {!is_anonymous && (
-            <a>
-              <ProjectState state={project.get("state")} />
-            </a>
-          )}
+          <a>
+            <ProjectState state={project.get("state")} />
+          </a>
         </Col>
         <Col sm={2}>
           {project.get("avatar_image_tiny") && (
@@ -299,15 +295,13 @@ export const ProjectRow: React.FC<Props> = ({ project_id, index }: Props) => {
           )}
         </Col>
         <Col sm={1}>
-          {!is_anonymous && (
-            <Tooltip
-              title={`Cloning ${project.get("title")} makes an exact complete copy of the project, including any customization to the root filesystem / (e.g., systemwide software install).  It has the same root filesystem image.`}
-            >
-              <Button>
-                <Icon name="fork-outlined" /> Clone
-              </Button>
-            </Tooltip>
-          )}
+          <Tooltip
+            title={`Cloning ${project.get("title")} makes an exact complete copy of the project, including any customization to the root filesystem / (e.g., systemwide software install).  It has the same root filesystem image.`}
+          >
+            <Button>
+              <Icon name="fork-outlined" /> Clone
+            </Button>
+          </Tooltip>
         </Col>
       </Row>
     </Well>

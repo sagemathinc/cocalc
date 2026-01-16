@@ -7,7 +7,6 @@ import { useEffect, useState, type JSX } from "react";
 
 import * as purchasesApi from "@cocalc/frontend/purchases/api";
 import { COLORS } from "@cocalc/util/theme";
-import Anonymous from "components/misc/anonymous";
 import Loading from "components/share/loading";
 import SiteName from "components/share/site-name";
 import { StoreBalanceContext } from "lib/balance";
@@ -88,10 +87,10 @@ export default function StoreLayout({ page }: Props) {
   if (!profile) {
     return <Loading large center />;
   }
-  const { account_id, is_anonymous } = profile;
+  const { account_id } = profile;
   const noAccount = account_id == null;
 
-  // wrapper: only the pages showing the prices will be shown to the general public or anonymous users
+  // wrapper: only the pages showing the prices will be shown to the general public
   function requireAccount(StorePage): JSX.Element {
     if (noAccount) {
       return (
@@ -110,10 +109,6 @@ export default function StoreLayout({ page }: Props) {
 
   function body() {
     if (main == null) return <Overview />;
-
-    if (is_anonymous) {
-      return <Anonymous />;
-    }
 
     switch (main) {
       case "membership":

@@ -9,7 +9,6 @@ import { Button, Card, Checkbox, Tooltip } from "antd";
 import { Icon } from "@cocalc/frontend/components/icon";
 import useCustomize from "lib/use-customize";
 import OpenDirectly from "./open-directly";
-import OpenAnonymously from "./open-anonymously";
 import ChooseProject from "./choose-project";
 import { Props } from "./index";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
@@ -128,7 +127,6 @@ function SignedInOptions({
 }
 
 function NotSignedInOptions({ path, id }) {
-  const { anonymousSignup } = useCustomize();
   return (
     <div>
       <InPlaceSignInOrUp
@@ -138,7 +136,6 @@ function NotSignedInOptions({ path, id }) {
         }`}
         publicPathId={id}
       />
-      {anonymousSignup && <OpenAnonymously />}
     </div>
   );
 }
