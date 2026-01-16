@@ -14,6 +14,7 @@ import { useHostFormValues } from "./use-host-form-values";
 import { useHostListViewModel } from "./use-host-list-view-model";
 import { useHosts } from "./use-hosts";
 import { useHostLog } from "./use-host-log";
+import { useHostOps } from "./use-host-ops";
 import { useHostProviders } from "./use-host-providers";
 import { useHostSelection } from "./use-host-selection";
 import { buildRegionGroupOptions } from "../utils/normalize-catalog";
@@ -138,6 +139,11 @@ export const useHostsPageViewModel = () => {
     includeDeleted: showDeleted,
     pollMs: fastPoll ? 3000 : 15000,
   });
+  const { hostOps, trackStartOp } = useHostOps({
+    hosts,
+    listLro: (opts) => hub.lro.list(opts),
+    getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+  });
   const {
     setStatus,
     restartHost,
@@ -150,6 +156,7 @@ export const useHostsPageViewModel = () => {
     hub,
     setHosts,
     refresh,
+    onStartOp: trackStartOp,
   });
   const upgradeHostSoftware = React.useCallback(
     async (host: Host) => {
@@ -475,6 +482,7 @@ export const useHostsPageViewModel = () => {
   });
   const hostListVm = useHostListViewModel({
     hosts,
+    hostOps,
     onStart: (id: string) => setStatus(id, "start"),
     onStop: (id: string) => setStatus(id, "stop"),
     onRestart: restartHost,
@@ -505,6 +513,7 @@ export const useHostsPageViewModel = () => {
   const hostDrawerVm = useHostDrawerViewModel({
     open: drawerOpen,
     host: selected,
+    hostOps,
     onClose: closeDetails,
     onEdit: openEdit,
     onUpgrade: isAdmin ? upgradeHostSoftware : undefined,

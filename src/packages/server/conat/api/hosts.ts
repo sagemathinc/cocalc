@@ -40,6 +40,10 @@ import {
   claimPendingCopies as claimPendingCopiesDb,
   updateCopyStatus as updateCopyStatusDb,
 } from "@cocalc/server/projects/copy-db";
+import { createLro } from "@cocalc/server/lro/lro-db";
+import { publishLroEvent, publishLroSummary } from "@cocalc/conat/lro/stream";
+import { lroStreamName } from "@cocalc/conat/lro/names";
+import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
 import {
   machineHasGpu,
   normalizeMachineGpuInPlace,
@@ -58,6 +62,7 @@ function pool() {
 }
 
 const SELF_HOST_RESIZE_TIMEOUT_MS = 5 * 60 * 1000;
+const HOST_START_LRO_KIND = "host-start";
 const logger = getLogger("server:conat:api:hosts");
 
 function logStatusUpdate(id: string, status: string, source: string) {
@@ -606,6 +611,57 @@ export async function createHost({
 }
 
 export async function startHost({
+  account_id,
+  id,
+}: {
+  account_id?: string;
+  id: string;
+}): Promise<{
+  op_id: string;
+  scope_type: "host";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+}> {
+  const row = await loadHostForStartStop(id, account_id);
+  const op = await createLro({
+    kind: HOST_START_LRO_KIND,
+    scope_type: "host",
+    scope_id: row.id,
+    created_by: account_id,
+    routing: "hub",
+    input: { id: row.id, account_id },
+    dedupe_key: `${HOST_START_LRO_KIND}:${row.id}`,
+    status: "queued",
+  });
+  await publishLroSummary({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    summary: op,
+  });
+  publishLroEvent({
+    scope_type: op.scope_type,
+    scope_id: op.scope_id,
+    op_id: op.op_id,
+    event: {
+      type: "progress",
+      ts: Date.now(),
+      phase: "queued",
+      message: "queued",
+      progress: 0,
+      detail: { id: row.id },
+    },
+  }).catch(() => {});
+  return {
+    op_id: op.op_id,
+    scope_type: "host",
+    scope_id: row.id,
+    service: PERSIST_SERVICE,
+    stream_name: lroStreamName(op.op_id),
+  };
+}
+
+export async function startHostInternal({
   account_id,
   id,
 }: {

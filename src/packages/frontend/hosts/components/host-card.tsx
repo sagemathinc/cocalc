@@ -15,9 +15,12 @@ import {
   getProviderDescriptor,
   isKnownProvider,
 } from "../providers/registry";
+import type { HostLroState } from "../hooks/use-host-ops";
+import { HostStartProgress } from "./host-start-progress";
 
 type HostCardProps = {
   host: Host;
+  hostOp?: HostLroState;
   onStart: (id: string) => void;
   onStop: (id: string) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
@@ -33,6 +36,7 @@ type HostCardProps = {
 
 export const HostCard: React.FC<HostCardProps> = ({
   host,
+  hostOp,
   onStart,
   onStop,
   onRestart,
@@ -57,12 +61,19 @@ export const HostCard: React.FC<HostCardProps> = ({
   const showStaleTag = host.status === "running" && !hostOnline;
   const showSpinner = isHostTransitioning(host.status);
   const statusLabel = host.deleted ? "deleted" : host.status;
+  const startOpActive =
+    !!hostOp &&
+    (!hostOp.summary ||
+      !["succeeded", "failed", "canceled", "expired"].includes(
+        hostOp.summary.status,
+      ));
   const startDisabled =
     isDeleted ||
     host.status === "running" ||
     host.status === "starting" ||
     host.status === "restarting" ||
-    !connectorOnline;
+    !connectorOnline ||
+    startOpActive;
   const startLabel =
     host.status === "starting"
       ? "Starting"
@@ -210,6 +221,7 @@ export const HostCard: React.FC<HostCardProps> = ({
             <Tag color="orange">Reprovision on next start</Tag>
           </Tooltip>
         )}
+      <HostStartProgress op={hostOp} compact />
       <Typography.Text>
         Provider:{" "}
         {host.machine?.cloud

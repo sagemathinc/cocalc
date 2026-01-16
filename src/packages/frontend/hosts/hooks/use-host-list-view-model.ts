@@ -5,9 +5,11 @@ import type {
   HostSortField,
 } from "../types";
 import type { HostCatalog } from "@cocalc/conat/hub/api/hosts";
+import type { HostLroState } from "./use-host-ops";
 
 type UseHostListViewModelArgs = {
   hosts: Host[];
+  hostOps?: Record<string, HostLroState>;
   onStart: (id: string) => void;
   onStop: (id: string) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
@@ -37,6 +39,7 @@ type UseHostListViewModelArgs = {
 
 export const useHostListViewModel = ({
   hosts,
+  hostOps,
   onStart,
   onStop,
   onRestart,
@@ -61,6 +64,7 @@ export const useHostListViewModel = ({
 }: UseHostListViewModelArgs) => {
   return {
     hosts,
+    hostOps,
     onStart,
     onStop,
     onRestart,
