@@ -15,7 +15,6 @@ import { FormattedMessage, useIntl } from "react-intl";
 
 import { useFrameContext } from "@cocalc/frontend/app-framework";
 import { Icon, isIconName } from "@cocalc/frontend/components";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { jupyter, labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
@@ -74,8 +73,6 @@ export const CellButtonBar: React.FC<Props> = React.memo(
     cell_type,
     actions,
     cell,
-    is_current,
-    computeServerId,
     llmTools,
     index,
     is_readonly,
@@ -175,11 +172,6 @@ export const CellButtonBar: React.FC<Props> = React.memo(
           </Dropdown.Button>
         </div>
       );
-    }
-
-    function renderCodeBarComputeServer() {
-      if (!is_current || !isCodeCell || !computeServerId || is_readonly) return;
-      return <ComputeServerPrompt id={computeServerId} />;
     }
 
     function renderCodeBarCellTiming() {
@@ -299,7 +291,6 @@ export const CellButtonBar: React.FC<Props> = React.memo(
       <div className="hidden-xs" style={MINI_BUTTONS_STYLE_INNER}>
         <div style={{ display: "flex", alignItems: "center", gap: "3px" }}>
           {showControls ? renderCodeBarRunStop() : null}
-          {showControls ? renderCodeBarComputeServer() : null}
           {showControls ? renderCodeBarLLMButtons() : null}
           {showControls ? renderMarkdownEditButton() : null}
           {showControls ? renderCodeBarFormatButton() : null}
@@ -321,34 +312,3 @@ export const CellButtonBar: React.FC<Props> = React.memo(
   },
   areEqual,
 );
-
-function ComputeServerPrompt({ id }) {
-  return (
-    <Tooltip
-      title={
-        <>
-          This cell will run on <ComputeServer id={id} />.
-        </>
-      }
-    >
-      <div
-        style={{
-          fontSize: CODE_BAR_BTN_STYLE.fontSize,
-          margin: "2px 5px 0 0",
-        }}
-      >
-        <ComputeServer
-          id={id}
-          titleOnly
-          style={{
-            overflow: "hidden",
-            whiteSpace: "nowrap",
-            textOverflow: "ellipsis",
-            display: "inline-block",
-            maxWidth: "125px",
-          }}
-        />
-      </div>
-    </Tooltip>
-  );
-}

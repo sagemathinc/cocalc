@@ -32,7 +32,6 @@ import {
   redux,
 } from "@cocalc/frontend/app-framework";
 import type { PageActions } from "@cocalc/frontend/app/actions";
-import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { filenameMode } from "@cocalc/frontend/file-associations";
 import {
@@ -1399,7 +1398,7 @@ export class BaseEditorActions<
       this.explicit_save();
     }
     if (hasUnsavedChanges) {
-      syncAllComputeServers(this.project_id);
+      // No secondary compute servers to sync; main workspace is authoritative.
     }
   }
 

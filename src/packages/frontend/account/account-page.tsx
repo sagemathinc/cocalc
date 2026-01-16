@@ -29,8 +29,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, Loading, Title } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import { cloudFilesystemsEnabled } from "@cocalc/frontend/compute";
-import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { Footer } from "@cocalc/frontend/customize";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -404,19 +402,6 @@ export const AccountPage: React.FC = () => {
         children: active_page === "public-files" && <PublicPaths />,
       });
     }
-    if (cloudFilesystemsEnabled()) {
-      items.push({
-        key: "cloud-filesystems",
-        label: (
-          <>
-            <Icon name="server" style={{ marginRight: "5px" }} />
-            {intl.formatMessage(labels.cloud_file_system)}
-          </>
-        ),
-        children: <CloudFilesystems noTitle />,
-      });
-    }
-
     if (
       kucalc === KUCALC_COCALC_COM ||
       kucalc === KUCALC_ON_PREMISES ||

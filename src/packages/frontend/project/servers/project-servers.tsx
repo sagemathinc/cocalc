@@ -3,23 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Modal, Row, Tabs, TabsProps } from "antd";
+import { Col, Modal, Row } from "antd";
 import { Gutter } from "antd/es/grid/row";
 import { FormattedMessage } from "react-intl";
 import { useState } from "@cocalc/frontend/app-framework";
 import { A, Icon, Paragraph, Text, Title } from "@cocalc/frontend/components";
-import {
-  cloudFilesystemsEnabled,
-  ComputeServerDocs,
-  ComputeServers,
-  computeServersEnabled,
-} from "@cocalc/frontend/compute";
-import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
-import {
-  getServerTab,
-  setServerTab,
-  TabName,
-} from "@cocalc/frontend/compute/tab";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { HelpEmailLink } from "@cocalc/frontend/customize";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -167,85 +155,26 @@ export function ProjectServers() {
     );
   }
 
-
-  const items: TabsProps["items"] = [];
-  items.push({
-    key: "notebooks",
-    label: (
-      <span style={{ fontSize: "14pt" }}>
-        <Icon name="jupyter" /> Notebook Servers
-      </span>
-    ),
-    children: (
-      <>
-        <Paragraph>
-          <FormattedMessage
-            id="project.servers.project-servers.description"
-            defaultMessage={`Run various notebook servers inside this project.
-            They run in the same environment, have access to the same files,
-            and stop when the project stops.
-            You can also <A>run your own servers</A>.`}
-            values={{
-              A: (c) => (
-                <A href={"https://doc.cocalc.com/howto/webserver.html"}>{c}</A>
-              ),
-            }}
-          />
-        </Paragraph>
-        {renderNamedServers()}
-      </>
-    ),
-  });
-  if (computeServersEnabled()) {
-    items.push({
-      key: "compute-servers",
-      label: (
-        <span style={{ fontSize: "14pt" }}>
-          <Icon name="server" /> Compute Servers
-        </span>
-      ),
-      children: (
-        <>
-          <h2>
-            <ComputeServerDocs style={{ float: "right" }} />
-            Compute Servers
-          </h2>
-          <div style={{ marginBottom: "15px" }}>
-            Compute servers provide powerful computing capabilities, allowing
-            you to scale up to 400+ CPU cores, terabytes of RAM, advanced GPUs,
-            extensive storage options and integration with multiple cloud
-            services for flexible use. The platform features real-time
-            collaboration, pre-configured software, and clear, minute-by-minute
-            billing for efficient project management and cost control.
-          </div>
-          <ComputeServers project_id={project_id} />
-        </>
-      ),
-    });
-  }
-  if (cloudFilesystemsEnabled()) {
-    items.push({
-      key: "cloud-filesystems",
-      label: (
-        <span style={{ fontSize: "14pt" }}>
-          <Icon name="disk-round" /> Cloud File Systems
-        </span>
-      ),
-      children: <CloudFilesystems project_id={project_id} />,
-    });
-  }
-
   return (
     <div style={ROOT_STYLE}>
       <Title level={2}>
         <Icon name={ICON_NAME} /> {TITLE}
       </Title>
-      <Tabs
-        style={{ maxWidth: "1100px" }}
-        items={items}
-        defaultActiveKey={getServerTab(project_id)}
-        onChange={(tab) => setServerTab(project_id, tab as TabName)}
-      />
+      <Paragraph>
+        <FormattedMessage
+          id="project.servers.project-servers.description"
+          defaultMessage={`Run various notebook servers inside this project.
+            They run in the same environment, have access to the same files,
+            and stop when the project stops.
+            You can also <A>run your own servers</A>.`}
+          values={{
+            A: (c) => (
+              <A href={"https://doc.cocalc.com/howto/webserver.html"}>{c}</A>
+            ),
+          }}
+        />
+      </Paragraph>
+      {renderNamedServers()}
     </div>
   );
 }

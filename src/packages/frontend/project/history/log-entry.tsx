@@ -23,8 +23,6 @@ import {
   Tip,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
-import ComputeLogEntry from "@cocalc/frontend/compute/log-entry";
-import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { modelToName } from "@cocalc/frontend/frame-editors/llm/llm-selector";
@@ -415,19 +413,12 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_file_action(e: FileActionEvent): React.JSX.Element {
-      const computeServer = e.compute_server_id ? (
-        <ComputeServerTag
-          id={e.compute_server_id}
-          style={{ float: "right", maxWidth: "125px" }}
-        />
-      ) : undefined;
       switch (e.action) {
         case "deleted":
           return (
             <span>
               {intl.formatMessage(labels.deleted)} {multi_file_links(e, true)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
-              {computeServer}
             </span>
           );
         case "downloaded":
@@ -436,7 +427,6 @@ export const LogEntry: React.FC<Props> = React.memo(
               {intl.formatMessage(labels.downloaded)}{" "}
               {multi_file_links(e, true)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
-              {computeServer}
             </span>
           );
         case "moved":
@@ -444,7 +434,6 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               {intl.formatMessage(labels.moved)} {multi_file_links(e, false)}{" "}
               {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
-              {computeServer}
             </span>
           );
         case "renamed":
@@ -452,7 +441,6 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               {intl.formatMessage(labels.renamed)} {file_link(e.src, false, 0)}{" "}
               to {file_link(e.dest, true, 1)}
-              {computeServer}
             </span>
           );
         case "copied":
@@ -460,28 +448,6 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               {intl.formatMessage(labels.copied)} {multi_file_links(e)}{" "}
               {e.count != null ? `(${e.count} total)` : ""} to {to_link(e)}
-              {computeServer}
-              {e.src_compute_server_id != null &&
-                e.src_compute_server_id != e.dest_compute_server_id && (
-                  <span style={{ float: "right" }}>
-                    <ComputeServerTag
-                      id={e.src_compute_server_id}
-                      style={{ maxWidth: "125px" }}
-                    />
-                    <Icon
-                      name="arrow-right"
-                      style={{
-                        top: "-5px",
-                        position: "relative",
-                        marginRight: "5px",
-                      }}
-                    />
-                    <ComputeServerTag
-                      id={e.dest_compute_server_id ?? 0}
-                      style={{ maxWidth: "125px" }}
-                    />
-                  </span>
-                )}
             </span>
           );
         case "shared":
@@ -489,21 +455,18 @@ export const LogEntry: React.FC<Props> = React.memo(
             <span>
               {intl.formatMessage(labels.shared)} {multi_file_links(e)}{" "}
               {e.count != null ? `(${e.count} total)` : ""}
-              {computeServer}
             </span>
           );
         case "uploaded":
           return (
             <span>
               {intl.formatMessage(labels.uploaded)} {file_link(e.file, true, 0)}{" "}
-              {computeServer}
             </span>
           );
         case "created":
           return (
             <span>
               {intl.formatMessage(labels.created)} {multi_file_links(e)}{" "}
-              {computeServer}
             </span>
           );
       }
@@ -789,8 +752,6 @@ export const LogEntry: React.FC<Props> = React.memo(
       }
 
       switch (event.event) {
-        case "compute-server":
-          return <ComputeLogEntry event={event} project_id={project_id} />;
         case "start_project":
           return render_start_project(event);
         case "project_stop_requested":
@@ -876,8 +837,6 @@ export const LogEntry: React.FC<Props> = React.memo(
       }
 
       switch (event.event) {
-        case "compute-server":
-          return "server";
         case "open_project":
           return "folder-open";
         case "open": // open a file

@@ -6,10 +6,8 @@
 import { Button } from "antd";
 import { useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Paragraph, Text } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 import { labels } from "@cocalc/frontend/i18n";
 import { FileTypeSelector } from "@cocalc/frontend/project/new";
 import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-features";
@@ -40,7 +38,6 @@ export default function NoFiles({
 }: Props) {
   const intl = useIntl();
   const availableFeatures = useAvailableFeatures(project_id);
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const { buttonText, actualNewFilename } = useMemo(() => {
     const actualNewFilename =
       file_search.length === 0
@@ -57,17 +54,11 @@ export default function NoFiles({
         })}...`
       ) : (
         <>
-          {capitalize(intl.formatMessage(labels.create))} {actualNewFilename}{" "}
-          {!!compute_server_id && (
-            <>
-              {` ${intl.formatMessage(labels.on)} `}
-              <ComputeServer id={compute_server_id} />
-            </>
-          )}
+          {capitalize(intl.formatMessage(labels.create))} {actualNewFilename}
         </>
       );
     return { buttonText, actualNewFilename };
-  }, [file_search.length, compute_server_id]);
+  }, [file_search, configuration_main?.disabled_ext, intl]);
 
   if (configuration_main == null) return null;
 

@@ -165,7 +165,7 @@ export const labels = defineMessages({
   project_settings_restart_project_confirm_explanation: {
     id: "labels.project.settings.restart-project.confirm.explanation",
     defaultMessage:
-      "Restarting the project server will terminate all processes in the project, update the project code, and start the project running again. Running <a>compute servers</a> are not affected. It takes a few seconds, and can fix some issues in case things are not working properly. You'll not lose any files, but you have to start your notebooks and worksheets again.",
+      "Restarting the project server will terminate all processes in the project, update the project code, and start the project running again. It takes a few seconds, and can fix some issues in case things are not working properly. You'll not lose any files, but you have to start your notebooks and worksheets again.",
   },
   project_settings_restart_project_confirm_ok: {
     id: "labels.project.settings.restart-project.confirm.ok",

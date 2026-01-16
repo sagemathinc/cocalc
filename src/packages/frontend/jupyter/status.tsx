@@ -7,7 +7,6 @@
 
 import { CSS, React, useRedux } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName, Loading } from "@cocalc/frontend/components";
-import ComputeServer from "@cocalc/frontend/compute/inline";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import type {
   AlertLevel,
@@ -82,7 +81,6 @@ interface KernelProps {
   usage?: Usage;
   expected_cell_runtime?: number;
   style?: CSS;
-  computeServerId?: number;
   is_fullscreen?: boolean;
 }
 
@@ -91,7 +89,6 @@ export function Kernel({
   expected_cell_runtime,
   style,
   usage,
-  computeServerId,
   is_fullscreen,
 }: KernelProps) {
   const intl = useIntl();
@@ -361,15 +358,7 @@ export function Kernel({
         description: "The kernel of a Jupyter Notebook is starting",
       });
     }
-    return (
-      <>
-        {computeServerId ? (
-          <ComputeServer id={computeServerId} noColor />
-        ) : (
-          "Home Base"
-        )}
-      </>
-    );
+    return <>Home Base</>;
   }
 
   function get_kernel_name(): React.JSX.Element {
@@ -413,19 +402,14 @@ export function Kernel({
         ""
       ) : (
         <>
-          Backend is {BACKEND_STATE_HUMAN[backend_state] ?? backend_state} in{" "}
-          {computeServerId ? (
-            <ComputeServer id={computeServerId} noColor />
-          ) : (
-            " the project "
-          )}
-          .
+          Backend is {BACKEND_STATE_HUMAN[backend_state] ?? backend_state} in the
+          project.
           <br />
         </>
       );
     const kernel_tip = kernelState();
 
-    const usage_tip = computeServerId ? null : (
+    const usage_tip = (
       <FormattedMessage
         id="jupyter.status.usage_tip"
         defaultMessage={`
@@ -505,11 +489,6 @@ export function Kernel({
 
   function renderUsage() {
     if (kernel == null) return;
-
-    if (computeServerId) {
-      // [ ] TODO: implement usage info for compute servers!
-      return;
-    }
 
     const style: CSS = {
       display: "flex",
@@ -631,7 +610,6 @@ export function Kernel({
   // this ends up in the popover tip. it contains the actual values and the same color coded usage levels
   function render_usage_text() {
     if (usage == null) return;
-    if (computeServerId) return;
 
     const cpu_style = usage_text_style_level(usage.cpu_alert);
     const memory_style = usage_text_style_level(usage.mem_alert);

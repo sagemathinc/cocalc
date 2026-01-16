@@ -22,8 +22,6 @@ import {
   Loading,
   SettingBox,
 } from "@cocalc/frontend/components";
-import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
-import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
@@ -416,11 +414,6 @@ export function Explorer() {
             }}
           >
             <div style={{ display: "flex", flex: "1 1 auto" }}>
-              <SelectComputeServerForFileExplorer
-                project_id={project_id}
-                key="compute-server"
-                style={{ marginRight: "5px", borderRadius: "5px" }}
-              />
               <div
                 ref={currentDirectoryRef}
                 className="cc-project-files-path-nav"
@@ -428,21 +421,6 @@ export function Explorer() {
                 <PathNavigator project_id={project_id} />
               </div>
             </div>
-            {!!compute_server_id && (
-              <div
-                style={{
-                  fontSize: "10pt",
-                  marginBottom: "5px",
-                }}
-              >
-                <ComputeServerDocStatus
-                  standalone
-                  id={compute_server_id}
-                  requestedId={compute_server_id}
-                  project_id={project_id}
-                />
-              </div>
-            )}
           </div>
           {!IS_MOBILE && (
             <div

@@ -15,7 +15,6 @@ import type { CourseActions } from "../actions";
 import { CourseStore, HandoutRecord, StudentsMap } from "../store";
 import * as styles from "../styles";
 import { StudentListForHandout } from "./handout-student-list";
-import { ComputeServerButton } from "../compute";
 
 // Could be merged with steps system of assignments.
 // Probably not a good idea mixing the two.
@@ -116,7 +115,6 @@ export function Handout({
           <Icon name="folder-open" /> Open
         </Button>
         <div style={{ flex: 1 }} />
-        <ComputeServerButton unit={handout as any} actions={actions} />
         <div style={{ flex: 1 }} />
         {render_delete_button()}
       </div>

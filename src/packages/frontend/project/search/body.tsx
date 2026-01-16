@@ -40,7 +40,6 @@ import {
 } from "@cocalc/util/misc";
 import { isChatExtension } from "@cocalc/frontend/chat/paths";
 import { COLORS } from "@cocalc/util/theme";
-import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { Virtuoso } from "react-virtuoso";
 import { A } from "@cocalc/frontend/components/A";
 import ShowError from "@cocalc/frontend/components/error";
@@ -83,10 +82,6 @@ export const ProjectSearchBody: React.FC<{
           ) : undefined}
         </Col>
         <Col sm={10} offset={2} style={{ fontSize: "16px" }}>
-          <SelectComputeServerForFileExplorer
-            project_id={project_id}
-            style={{ borderRadius: "5px", float: "right", marginTop: "5px" }}
-          />
           <Checkbox
             checked={subdirectories}
             onChange={() => toggle("subdirectories")}
@@ -128,10 +123,6 @@ export const ProjectSearchBody: React.FC<{
           project_id={project_id}
           small={true}
           regexp={regexp}
-        />
-        <SelectComputeServerForFileExplorer
-          project_id={project_id}
-          style={{ borderRadius: "5px", float: "right", marginTop: "5px" }}
         />
         <Checkbox
           checked={subdirectories}

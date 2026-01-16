@@ -30,11 +30,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import Next from "@cocalc/frontend/components/next";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { labels } from "@cocalc/frontend/i18n";
-import {
-  ComputeServerDescription,
-  ComputeServerNetworkUsageDescription,
-  ComputeServerStorageDescription,
-} from "@cocalc/frontend/compute/purchases";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { load_target } from "@cocalc/frontend/history";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
@@ -785,7 +780,6 @@ function PurchaseDescription({
   description,
   invoice_id,
   notes,
-  period_end,
   service,
   admin,
   cost,
@@ -796,7 +790,6 @@ function PurchaseDescription({
       <Description
         service={service}
         description={description}
-        period_end={period_end}
       />
       {description?.credit_id != null && (
         <div>
@@ -913,7 +906,7 @@ function PurchaseModal({ purchase, onClose, admin }) {
 
 // "credit" | "openai-gpt-4" | "membership", etc.
 
-function Description({ description, period_end, service }) {
+function Description({ description, service }) {
   if (description == null) {
     return null;
   }
@@ -1004,33 +997,6 @@ function Description({ description, period_end, service }) {
           )}
         </div>
       </div>
-    );
-  }
-
-  if (service === "compute-server") {
-    return (
-      <ComputeServerDescription
-        description={description}
-        period_end={period_end}
-      />
-    );
-  }
-
-  if (service === "compute-server-network-usage") {
-    return (
-      <ComputeServerNetworkUsageDescription
-        description={description}
-        period_end={period_end}
-      />
-    );
-  }
-
-  if (service === "compute-server-storage") {
-    return (
-      <ComputeServerStorageDescription
-        description={description}
-        period_end={period_end}
-      />
     );
   }
 

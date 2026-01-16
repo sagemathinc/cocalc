@@ -19,10 +19,7 @@ import {
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Terminal } from "./connected-terminal";
 import { background_color } from "./themes";
-import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import useResizeObserver from "use-resize-observer";
-import useComputeServerId from "@cocalc/frontend/compute/file-hook";
-import { termPath } from "@cocalc/util/terminal/names";
 
 interface Props {
   actions: any;
@@ -55,20 +52,6 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   const student_project_functionality = useStudentProjectFunctionality(
     props.project_id,
   );
-
-  const node = props.actions._get_frame_node(props.id);
-  const computeServerId = useComputeServerId({
-    project_id: props.project_id,
-    path: termPath({
-      path: props.path,
-      number: node.get("number"),
-      cmd: node.get("command"),
-    }),
-  });
-
-  useEffect(() => {
-    terminalRef.current?.updateComputeServerId();
-  }, [computeServerId]);
 
   useEffect(() => {
     return delete_terminal; // clean up on unmount
@@ -203,12 +186,6 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
 
   return (
     <div className={"smc-vfill"}>
-      {computeServerId != null && (
-        <ComputeServerDocStatus
-          id={computeServerId}
-          project_id={props.project_id}
-        />
-      )}
       {render_command()}
       <div
         className={"smc-vfill"}

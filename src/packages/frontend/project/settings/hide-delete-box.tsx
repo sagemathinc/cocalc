@@ -65,11 +65,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
         <span>
           <FormattedMessage
             id="project.settings.hide-delete-box.delete.explanation"
-            defaultMessage={`Delete this {projectLabel} for everyone.
-            You can undo this for a few days after which it becomes permanent and all data in this {projectLabel} is lost.
-            Any running compute servers stop shortly after the {projectLabel} is deleted,
-            and the compute servers will be permanently deleted in a few days,
-            if the {projectLabel} is not undeleted.`}
+            defaultMessage={`Delete this {projectLabel} for everyone. You can undo this for a few days after which it becomes permanent and all data in this {projectLabel} is lost.`}
             values={{ projectLabel: projectLabelLower }}
           />
         </span>

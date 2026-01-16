@@ -62,8 +62,6 @@ interface BannerProps {
   noInternet: boolean;
   projectIsRunning: boolean;
   projectCreatedTS?: Date;
-  // true if have a paid for compute server
-  hasComputeServers: boolean;
 }
 
 // string and URLs
@@ -80,7 +78,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       project_id,
       projectCreatedTS,
       projectIsRunning,
-      hasComputeServers,
     } = props;
 
     const allow_run = useAllowedFreeProjectToRun(project_id);
@@ -195,7 +192,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
 
     // allow users to close the banner, if there is either internet or host upgrade
     const closable =
-      hasComputeServers ||
       !noMemberHosting ||
       !noInternet ||
       !no_entitlements ||

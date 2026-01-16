@@ -9,8 +9,6 @@ import { FormattedMessage, useIntl } from "react-intl";
 import { TourName } from "@cocalc/frontend/account/tours";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
-import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 import { isIntlMessage } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { PathNavigator } from "@cocalc/frontend/project/explorer/path-navigator";
@@ -38,7 +36,6 @@ export function FlyoutHeader(_: Readonly<Props>) {
   const { flyout, flyoutWidth, narrowerPX = 0 } = _;
   const intl = useIntl();
   const { actions, project_id, is_active } = useProjectContext();
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
   const tours = useTypedRedux("account", "tours");
   const [highlightFullpage, setHighlightFullpage] = useState<boolean>(false);
@@ -172,16 +169,6 @@ export function FlyoutHeader(_: Readonly<Props>) {
         return (
           <div style={{ width: "100%" }}>
             <div style={{ display: "flex" }}>
-              <SelectComputeServerForFileExplorer
-                size="small"
-                project_id={project_id}
-                key="compute-server"
-                noLabel={true}
-                style={{
-                  borderRadius: "5px",
-                  marginRight: "5px",
-                }}
-              />
               <PathNavigator
                 style={{ flex: 1 }}
                 mode={"flyout"}
@@ -195,16 +182,6 @@ export function FlyoutHeader(_: Readonly<Props>) {
                 />
               )}
             </div>
-            {!!compute_server_id && (
-              <div style={{ fontSize: "10pt" }}>
-                <ComputeServerDocStatus
-                  id={compute_server_id}
-                  requestedId={compute_server_id}
-                  project_id={project_id}
-                  noSync
-                />
-              </div>
-            )}
           </div>
         );
       case "log":

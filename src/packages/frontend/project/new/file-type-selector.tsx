@@ -11,7 +11,6 @@ import { CSS } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { Tip } from "@cocalc/frontend/components/tip";
-import { computeServersEnabled } from "@cocalc/frontend/compute/config";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { Ext } from "@cocalc/frontend/project/page/home-page/ai-generate-examples";
@@ -202,27 +201,6 @@ export function FileTypeSelector({
               </Tip>
             </Col>
           )}
-          {computeServersEnabled() && (
-            <Col sm={doubleSm} md={doubleMd}>
-              <Tip
-                delayShow={DELAY_SHOW_MS}
-                title={"Create a Compute Server"}
-                placement="left"
-                icon={"cloud"}
-                tip={"Affordable GPUs and high-end compute servers."}
-              >
-                <NewFileButton
-                  name={"Compute Server: GPUs and VM's"}
-                  icon="servers"
-                  on_click={() => {
-                    projectActions?.setServerTab("compute-servers");
-                  }}
-                  size={btnSize}
-                />
-              </Tip>
-            </Col>
-          )}
-
           {projectActions != null && (
             <Col sm={doubleSm} md={doubleMd}>
               <NewFileButton
