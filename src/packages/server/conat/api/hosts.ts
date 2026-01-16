@@ -1412,10 +1412,10 @@ export async function deleteHostInternal({
       action: "delete",
       payload: { provider: machineCloud },
     });
-    logStatusUpdate(id, "stopping", "api");
+    logStatusUpdate(id, "deprovisioning", "api");
     await pool().query(
       `UPDATE project_hosts SET status=$2, updated=NOW() WHERE id=$1 AND deleted IS NULL`,
-      [id, "stopping"],
+      [id, "deprovisioning"],
     );
     return;
   }

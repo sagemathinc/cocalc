@@ -25,6 +25,7 @@ const STATUS_ORDER = [
   "restarting",
   "off",
   "stopping",
+  "deprovisioning",
   "error",
   "deprovisioned",
   "deleted",

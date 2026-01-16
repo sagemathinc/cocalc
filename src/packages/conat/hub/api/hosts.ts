@@ -6,6 +6,7 @@ import {
 
 export type HostStatus =
   | "deprovisioned"
+  | "deprovisioning"
   | "off"
   | "error"
   | "starting"
