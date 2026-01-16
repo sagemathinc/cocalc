@@ -1,21 +1,26 @@
-import { useCallback, useEffect, useRef, useState } from "@cocalc/frontend/app-framework";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "@cocalc/frontend/app-framework";
 import type { DStream } from "@cocalc/conat/sync/dstream";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
-import type { LroEvent, LroStatus, LroSummary } from "@cocalc/conat/hub/api/lro";
+import type { LroEvent, LroSummary } from "@cocalc/conat/hub/api/lro";
+import {
+  applyLroEvents,
+  isDismissed,
+  isTerminal,
+  toTime,
+} from "@cocalc/frontend/lro/utils";
 
 const HOST_LRO_REFRESH_MS = 30_000;
-const TERMINAL_STATUSES = new Set<LroStatus>([
-  "succeeded",
-  "failed",
-  "canceled",
-  "expired",
-]);
 
 export function isHostOpActive(op?: HostLroState): boolean {
   if (!op) return false;
   const status = op.summary?.status;
   if (!status) return true;
-  return !TERMINAL_STATUSES.has(status);
+  return !isTerminal(status);
 }
 
 export type HostLroState = {
@@ -40,14 +45,6 @@ type UseHostOpsOptions = {
   }) => Promise<DStream<LroEvent>>;
   onUpgradeComplete?: (summary: LroSummary) => void;
 };
-
-function toTime(summary: LroSummary): number {
-  const candidate = summary.updated_at ?? summary.created_at;
-  const date = new Date(candidate as any);
-  const ts = date.getTime();
-  if (Number.isFinite(ts)) return ts;
-  return 0;
-}
 
 export function useHostOps({
   hosts,
@@ -83,34 +80,23 @@ export function useHostOps({
         if (!current || current.op_id !== op_id) {
           return prev;
         }
-        let summary = current.summary;
-        let kind = current.kind;
-        let lastProgress = current.last_progress;
-        let lastEvent = current.last_event;
-        let lastProgressTs = lastProgress?.ts ?? -1;
-        let lastEventTs = lastEvent?.ts ?? -1;
-        let lastSummaryTs = -1;
-        for (const event of events) {
-          if (event.type === "summary") {
-            if (event.ts >= lastSummaryTs) {
-              summary = event.summary;
-              kind = event.summary.kind ?? kind;
-              lastSummaryTs = event.ts;
-            }
-          } else if (event.type === "progress") {
-            if (event.ts >= lastProgressTs) {
-              lastProgress = event;
-              lastProgressTs = event.ts;
-            }
-          }
-          if (event.ts >= lastEventTs) {
-            lastEvent = event;
-            lastEventTs = event.ts;
-          }
+        const updates = applyLroEvents({
+          events,
+          summary: current.summary,
+          last_progress: current.last_progress,
+          last_event: current.last_event,
+        });
+        const summary = updates.summary;
+        if (isDismissed(summary)) {
+          closeStream(op_id);
+          const next = { ...prev };
+          delete next[host_id];
+          return next;
         }
+        const kind = summary?.kind ?? current.kind;
         if (
           summary &&
-          TERMINAL_STATUSES.has(summary.status) &&
+          isTerminal(summary.status) &&
           !completedRef.current.has(summary.op_id)
         ) {
           completedRef.current.add(summary.op_id);
@@ -128,11 +114,11 @@ export function useHostOps({
             op_id,
             kind,
             summary,
-            last_progress: lastProgress,
-            last_event: lastEvent,
+            last_progress: updates.last_progress,
+            last_event: updates.last_event,
           },
         };
-        if (summary && TERMINAL_STATUSES.has(summary.status)) {
+        if (summary && isTerminal(summary.status)) {
           closeStream(op_id);
         }
         return next;
@@ -186,13 +172,19 @@ export function useHostOps({
               scope_id: id,
               include_completed: false,
             });
-            const hostOps = ops.filter((op) => op.kind?.startsWith("host-"));
+            const hostOps = ops.filter(
+              (op) => op.kind?.startsWith("host-") && !isDismissed(op),
+            );
             if (!hostOps.length) {
               return;
             }
             const latest = hostOps.sort((a, b) => toTime(b) - toTime(a))[0];
             if (!latest) return;
-            next[id] = { op_id: latest.op_id, summary: latest, kind: latest.kind };
+            next[id] = {
+              op_id: latest.op_id,
+              summary: latest,
+              kind: latest.kind,
+            };
             activeOpIds.add(latest.op_id);
             await ensureStream(id, latest.op_id, latest.scope_id);
           } catch (err) {

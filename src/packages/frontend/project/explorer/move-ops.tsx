@@ -1,21 +1,15 @@
 import { Button, Progress, Space, Spin } from "antd";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import type {
-  LroEvent,
-  LroStatus,
-  LroSummary,
-} from "@cocalc/conat/hub/api/lro";
+import type { LroStatus } from "@cocalc/conat/hub/api/lro";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-
-type MoveLroState = {
-  op_id: string;
-  summary?: LroSummary;
-  last_progress?: Extract<LroEvent, { type: "progress" }>;
-  last_event?: LroEvent;
-};
+import {
+  LRO_DISMISSABLE_STATUSES,
+  isDismissed,
+  progressBarStatus,
+} from "@cocalc/frontend/lro/utils";
+import type { MoveLroState } from "@cocalc/frontend/project/move-ops";
 
 const HIDE_STATUSES = new Set<LroStatus>(["succeeded"]);
-const DISMISS_STATUSES = new Set<LroStatus>(["failed", "canceled", "expired"]);
 
 export default function MoveOps({ project_id }: { project_id: string }) {
   const { actions } = useProjectContext();
@@ -29,10 +23,11 @@ export default function MoveOps({ project_id }: { project_id: string }) {
   if (summary && HIDE_STATUSES.has(summary.status)) {
     return null;
   }
-  if (summary?.dismissed_at) {
+  if (isDismissed(summary)) {
     return null;
   }
-  const canDismiss = summary && DISMISS_STATUSES.has(summary.status);
+  const canDismiss =
+    summary != null && LRO_DISMISSABLE_STATUSES.has(summary.status);
   const percent = progressPercent(moveOp);
   const statusText = formatStatusLine(moveOp);
   const progressStatus = progressBarStatus(summary?.status);
@@ -105,16 +100,4 @@ function progressPercent(op: MoveLroState): number | undefined {
     return Math.max(0, Math.min(100, Math.round(progress)));
   }
   return undefined;
-}
-
-function progressBarStatus(
-  status?: LroStatus,
-): "active" | "exception" | "success" {
-  if (status === "failed" || status === "canceled" || status === "expired") {
-    return "exception";
-  }
-  if (status === "succeeded") {
-    return "success";
-  }
-  return "active";
 }

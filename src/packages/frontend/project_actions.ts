@@ -321,6 +321,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       isClosed: () => this.isClosed(),
       listLro: (opts) => webapp_client.conat_client.hub.lro.list(opts),
       getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+      dismissLro: (opts) => webapp_client.conat_client.hub.lro.dismiss(opts),
       log: (message, err) => console.warn(message, err),
     });
     this.startOpsManager = new StartOpsManager({
@@ -329,6 +330,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       isClosed: () => this.isClosed(),
       listLro: (opts) => webapp_client.conat_client.hub.lro.list(opts),
       getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+      dismissLro: (opts) => webapp_client.conat_client.hub.lro.dismiss(opts),
       log: (message, err) => console.warn(message, err),
     });
     this.moveOpsManager = new MoveOpsManager({
@@ -2780,7 +2782,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // we do when user is explicitly opening the file
         explicit: true,
         foreground: true,
-        compute_server_id,
       });
     }
   };
