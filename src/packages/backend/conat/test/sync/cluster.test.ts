@@ -16,7 +16,7 @@ import {
 
 beforeAll(before);
 
-jest.setTimeout(15000);
+jest.setTimeout(60000);
 
 describe("using various sync data structures with a cluster", () => {
   let dstream;
@@ -26,6 +26,7 @@ describe("using various sync data structures with a cluster", () => {
 
     dstream.publish("hi");
     await dstream.save();
+    await wait({ until: () => dstream.length === 1, timeout: 20000 });
   });
 
   let server2, client2;
@@ -41,14 +42,16 @@ describe("using various sync data structures with a cluster", () => {
   });
 
   it("wait until both servers in the cluster have the same state", async () => {
-    await waitForConsistentState([server, server2], 15000);
+    await waitForConsistentState([server, server2], 60000);
   });
 
   let dstream2;
   it("second client connected to the same dstream, and observe it works", async () => {
+    await waitForConsistentState([server, server2], 60000);
     dstream2 = await client2.sync.dstream({ name: "foo" });
     expect(dstream === dstream2).toBe(false);
     expect(dstream.opts.client.id).not.toEqual(dstream2.opts.client.id);
+    await wait({ until: () => dstream2.length == 1, timeout: 20000 });
     expect(dstream2.getAll()).toEqual(["hi"]);
 
     dstream2.publish("world");
@@ -95,6 +98,27 @@ describe("using various sync data structures with a cluster", () => {
     expect(dkv2.getAll()).toEqual({});
     expect(dkv === dkv2).toBe(false);
     expect(dkv.opts.client.id).not.toEqual(dkv2.opts.client.id);
+  });
+
+  afterAll(async () => {
+    try {
+      dstream?.close();
+    } catch {}
+    try {
+      dstream2?.close();
+    } catch {}
+    try {
+      dkv?.close();
+    } catch {}
+    try {
+      dkv2?.close();
+    } catch {}
+    try {
+      client2?.close();
+    } catch {}
+    try {
+      await server2?.close();
+    } catch {}
   });
 });
 

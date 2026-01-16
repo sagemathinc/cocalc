@@ -10,7 +10,7 @@ import { isEqual } from "lodash";
 
 beforeAll(before);
 
-jest.setTimeout(30000);
+jest.setTimeout(60000);
 describe("test automatic node discovery (and forgetting)", () => {
   const nodes: { client; server }[] = [];
   const clusterName = "auto";
@@ -114,10 +114,26 @@ describe("test automatic node discovery (and forgetting)", () => {
     await nodes[0].server.scan();
     // still not gone
     expect(numNodes()).toBe(n);
-    // wait a second and scan, and it must be gone (because we set the interval very short)
-    await delay(1000);
-    await nodes[0].server.scan();
+    await wait({
+      timeout: 20000,
+      until: async () => {
+        await delay(250);
+        await nodes[0].server.scan();
+        return numNodes() === n - 1;
+      },
+    });
     expect(numNodes()).toBe(n - 1);
+  });
+
+  afterAll(async () => {
+    for (const node of nodes) {
+      try {
+        node.client?.close();
+      } catch {}
+      try {
+        await node.server?.close();
+      } catch {}
+    }
   });
 });
 

@@ -444,23 +444,19 @@ export class PersistentStream extends EventEmitter {
 
     const tx = this.db.transaction(
       (time, compress, encoding, raw, headers, key, size, ttl) => {
-        let deletedSeqs: { seq: number }[] = [];
         if (key !== undefined) {
           // insert with key -- delete all previous messages, as they will
           // never be needed again and waste space.
-          deletedSeqs = this.db
-            .prepare("DELETE FROM messages WHERE key = ? RETURNING seq")
-            .all(key) as { seq: number }[];
+          this.db.prepare("DELETE FROM messages WHERE key = ?").run(key);
         }
-        const row = this.db
+        return this.db
           .prepare(
             "INSERT INTO messages(time, compress, encoding, raw, headers, key, size, ttl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)  RETURNING seq",
           )
           .get(time / 1000, compress, encoding, raw, headers, key, size, ttl);
-        return { row, deletedSeqs };
       },
     );
-    const { row, deletedSeqs } = tx(
+    const row = tx(
       time,
       compressedRaw.compress,
       encoding,
@@ -471,9 +467,6 @@ export class PersistentStream extends EventEmitter {
       ttl,
     );
     const seq = Number((row as any).seq);
-    if (deletedSeqs.length > 0) {
-      this.emitDelete(deletedSeqs);
-    }
     // lastInsertRowid - is a bigint from sqlite, but we won't hit that limit
     this.emit("change", {
       seq,

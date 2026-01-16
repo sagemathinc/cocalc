@@ -10,7 +10,7 @@ pnpm test ./dkv-merge.test.ts
 import { dkv as createDkv } from "@cocalc/backend/conat/sync";
 import { once } from "@cocalc/util/async-utils";
 import { DiffMatchPatch } from "@cocalc/util/dmp";
-import { before, after } from "@cocalc/backend/conat/test/setup";
+import { before, after, wait } from "@cocalc/backend/conat/test/setup";
 
 beforeAll(before);
 
@@ -130,19 +130,25 @@ describe("test a 3-way merge of strings conflict resolution function", () => {
     )[0];
   };
   it("sets up and resolves a merge conflict", async () => {
+    let lastMerge:
+      | { prev?: string; local?: string; remote?: string }
+      | undefined;
     const { kv1, kv2 } = await getKvs({
       merge: ({ local, remote, prev = "" }) => {
+        lastMerge = { local, remote, prev };
         // our merge strategy is to replace the value by 'conflict'
         return threeWayMerge({ local, remote, prev });
       },
     });
     kv1.set("x", "cocalc");
     await kv1.save();
+    await wait({ until: () => kv1.seq("x") != null });
     if (kv2["x"] != "cocalc") {
       // might have to wait
       await once(kv2, "change");
     }
     expect(kv2["x"]).toEqual("cocalc");
+    await wait({ until: () => kv2.seq("x") != null });
     await kv2.save();
 
     kv2.set("x", "cocalc!");
@@ -152,6 +158,7 @@ describe("test a 3-way merge of strings conflict resolution function", () => {
       await once(kv1, "change");
     }
     expect(kv1.get("x")).toEqual("LOVE cocalc!");
+    expect(lastMerge?.prev).toEqual("cocalc");
     await kv1.save();
     if (kv2.get("x") != "LOVE cocalc!") {
       await once(kv2, "change");
@@ -173,6 +180,7 @@ describe("test a 3-way merge of that merges objects", () => {
       await once(kv2, "change");
     }
     expect(kv2["x"]).toEqual({ a: 5 });
+    await wait({ until: () => kv2.seq("x") != null });
 
     kv1.set("x", { a: 5, b: 15, c: 12 });
     kv2.set("x", { a: 5, b: 7, d: 3 });
@@ -182,6 +190,7 @@ describe("test a 3-way merge of that merges objects", () => {
     }
     expect(kv1.get("x")).toEqual({ a: 5, b: 15, c: 12, d: 3 });
     await kv1.save();
+    await wait({ until: () => kv2.get("x") != null });
     if (kv2.get("x").b != 15) {
       await once(kv2, "change");
     }

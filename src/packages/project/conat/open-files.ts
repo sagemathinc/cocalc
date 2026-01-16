@@ -108,6 +108,7 @@ import { chdir } from "node:process";
 
 const logger = getLogger("project:conat:open-files");
 
+// @ts-ignore
 function startOpenFilesStatsLoop(openFiles: OpenFiles) {
   const intervalMs = 15000;
   logger.debug("open-files stats enabled", { intervalMs });
@@ -159,7 +160,9 @@ export async function init() {
   }
 
   openFiles = await createOpenFiles();
-  startOpenFilesStatsLoop(openFiles);
+  // Use this to debug potential memory leaks
+  // https://github.com/sagemathinc/cocalc/issues/8702
+  // startOpenFilesStatsLoop(openFiles);
 
   computeServers = computeServerManager({ project_id });
   await computeServers.waitUntilReady();

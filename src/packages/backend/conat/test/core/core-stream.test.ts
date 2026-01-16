@@ -58,9 +58,9 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
   });
 
   it("publishing undefined is not allowed", async () => {
-    await expect(
-      async () => await stream.publish(undefined),
-    ).rejects.toThrow("must not be 'undefined'");
+    await expect(async () => await stream.publish(undefined)).rejects.toThrow(
+      "must not be 'undefined'",
+    );
   });
 
   it("a second client has the same messages", async () => {
@@ -192,23 +192,48 @@ describe("test basic key:value functionality for persistent core stream", () => 
     await wait({ until: () => stream.getKv("key") == "value2" });
   });
 
-  it("verify that the overwritten message is cleared to save space in both streams", () => {
-    expect(stream.get(0)).not.toBe(undefined);
-    expect(stream2.get(0)).not.toBe(undefined);
+  // https://github.com/sagemathinc/cocalc/issues/8702
+  it("repeated keyed updates do not grow the stream length", async () => {
+    const length = stream.length;
+    await stream2.setKv("key", "value3");
+    await wait({
+      until: () =>
+        stream.getKv("key") == "value3" &&
+        stream2.getKv("key") == "value3" &&
+        stream.length === length &&
+        stream2.length === length,
+    });
+    expect(stream.length).toBe(length);
+    expect(stream2.length).toBe(length);
+  });
+
+  it("verify that the overwritten message is removed in both streams", async () => {
+    await wait({ until: () => stream.length === 1 && stream2.length === 1 });
+    expect(stream.get(0)).toBe("value3");
+    expect(stream2.get(0)).toBe("value3");
     stream.gcKv();
     stream2.gcKv();
-    expect(stream.get(0)).toBe(undefined);
-    expect(stream2.get(0)).toBe(undefined);
+    expect(stream.get(0)).toBe("value3");
+    expect(stream2.get(0)).toBe("value3");
     expect(stream.headers(0)).toBe(undefined);
     expect(stream2.headers(0)).toBe(undefined);
   });
 
   it("write a large key:value, then write it again to cause automatic garbage collection", async () => {
     await stream.setKv("key", Buffer.from("x".repeat(KEY_GC_THRESH + 10)));
-    expect(stream.get(stream.length - 1).length).toBe(KEY_GC_THRESH + 10);
+    await wait({
+      until: () =>
+        stream.length >= 1 && Buffer.isBuffer(stream.get(stream.length - 1)),
+    });
+    expect((stream.get(stream.length - 1) as Buffer).length).toBe(
+      KEY_GC_THRESH + 10,
+    );
     await stream.setKv("key", Buffer.from("x".repeat(KEY_GC_THRESH + 10)));
-    // it's gone
-    expect(stream.get(stream.length - 2)).toBe(undefined);
+    await wait({
+      until: () => stream.length === 1 && Buffer.isBuffer(stream.get(0)),
+    });
+    expect(stream.length).toBe(1);
+    expect((stream.get(0) as Buffer).length).toBe(KEY_GC_THRESH + 10);
   });
 
   it("close and reload and note there is only one item in the stream (the first message was removed since it is no longer needed)", async () => {

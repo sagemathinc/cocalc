@@ -103,29 +103,28 @@ describe("create open file tracker and do some basic operations", () => {
 
   it("sets an error", async () => {
     o2.setError(file2, Error("test error"));
-    expect(o2.get(file2).error.error).toBe("Error: test error");
-    expect(typeof o2.get(file2).error.time == "number").toBe(true);
-    expect(Math.abs(Date.now() - o2.get(file2).error.time)).toBeLessThan(10000);
+    await wait({ until: () => o2.get(file2)?.error != null });
+    expect(o2.get(file2)?.error?.error).toBe("Error: test error");
+    expect(typeof o2.get(file2)?.error?.time == "number").toBe(true);
+    expect(Math.abs(Date.now() - o2.get(file2)?.error?.time)).toBeLessThan(
+      10000,
+    );
     try {
       // get a conflict due to above so resolve it...
       await o2.save();
     } catch {
       await o2.save();
     }
-    if (!o1.get(file2).error) {
-      await once(o1, "change", 250);
-    }
-    expect(o1.get(file2).error.error).toBe("Error: test error");
+    await wait({ until: () => o1.get(file2)?.error != null });
+    expect(o1.get(file2)?.error?.error).toBe("Error: test error");
   });
 
   it("clears the error", async () => {
     o1.setError(file2);
-    expect(o1.get(file2).error).toBe(undefined);
+    expect(o1.get(file2)?.error).toBe(undefined);
     await o1.save();
-    if (o2.get(file2).error) {
-      await once(o2, "change", 250);
-    }
-    expect(o2.get(file2).error).toBe(undefined);
+    await wait({ until: () => o2.get(file2)?.error == null });
+    expect(o2.get(file2)?.error).toBe(undefined);
   });
 });
 
