@@ -6,6 +6,16 @@ import type { HostLroState } from "../hooks/use-host-ops";
 
 const ACTIVE_STATUSES = new Set<LroStatus>(["queued", "running"]);
 
+const KIND_LABELS: Record<string, string> = {
+  "host-start": "Start",
+  "host-stop": "Stop",
+  "host-restart": "Restart",
+  "host-deprovision": "Deprovision",
+  "host-delete": "Delete",
+  "host-force-deprovision": "Force deprovision",
+  "host-remove-connector": "Remove connector",
+};
+
 function toTimestamp(value?: Date | string | null): number | undefined {
   if (!value) return undefined;
   const date = new Date(value as any);
@@ -21,7 +31,23 @@ function progressPercent(op: HostLroState): number | undefined {
   return undefined;
 }
 
-export function HostStartProgress({
+function opLabel(op: HostLroState): string {
+  const summary = op.summary;
+  const kind = summary?.kind ?? op.kind;
+  if (kind === "host-restart" && summary?.input?.mode === "hard") {
+    return "Hard restart";
+  }
+  if (kind && KIND_LABELS[kind]) {
+    return KIND_LABELS[kind];
+  }
+  if (kind) {
+    const cleaned = kind.replace(/^host-/, "").replace(/-/g, " ");
+    return capitalize(cleaned);
+  }
+  return "Host op";
+}
+
+export function HostOpProgress({
   op,
   compact = false,
 }: {
@@ -43,6 +69,7 @@ export function HostStartProgress({
   const label = phase ? capitalize(phase) : capitalize(status);
   const start_ts = toTimestamp(summary?.started_at ?? summary?.created_at);
   const percent = progressPercent(op);
+  const actionLabel = opLabel(op);
 
   if (compact) {
     return (
@@ -59,7 +86,7 @@ export function HostStartProgress({
           fontVariantNumeric: "tabular-nums",
         }}
       >
-        Start: {label}
+        {actionLabel}: {label}
         {start_ts != null && (
           <>
             {" "}
@@ -73,7 +100,7 @@ export function HostStartProgress({
   return (
     <Space direction="vertical" size={2} style={{ width: "100%" }}>
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        Start: {label}
+        {actionLabel}: {label}
         {start_ts != null && (
           <>
             {" "}

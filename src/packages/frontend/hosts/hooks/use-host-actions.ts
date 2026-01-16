@@ -1,23 +1,17 @@
 import { message } from "antd";
-import type { Host } from "@cocalc/conat/hub/api/hosts";
+import type { Host, HostLroResponse } from "@cocalc/conat/hub/api/hosts";
 
 type HubClient = {
   hosts: {
-    startHost: (opts: { id: string }) => Promise<{
-      op_id: string;
-      scope_type: "host";
-      scope_id: string;
-      service: string;
-      stream_name: string;
-    }>;
-    stopHost: (opts: { id: string }) => Promise<unknown>;
+    startHost: (opts: { id: string }) => Promise<HostLroResponse>;
+    stopHost: (opts: { id: string }) => Promise<HostLroResponse>;
     restartHost?: (opts: {
       id: string;
       mode?: "reboot" | "hard";
-    }) => Promise<unknown>;
-    deleteHost: (opts: { id: string }) => Promise<unknown>;
-    forceDeprovisionHost?: (opts: { id: string }) => Promise<unknown>;
-    removeSelfHostConnector?: (opts: { id: string }) => Promise<unknown>;
+    }) => Promise<HostLroResponse>;
+    deleteHost: (opts: { id: string }) => Promise<HostLroResponse>;
+    forceDeprovisionHost?: (opts: { id: string }) => Promise<HostLroResponse>;
+    removeSelfHostConnector?: (opts: { id: string }) => Promise<HostLroResponse>;
     renameHost?: (opts: { id: string; name: string }) => Promise<unknown>;
     updateHostMachine?: (opts: {
       id: string;
@@ -40,14 +34,14 @@ type UseHostActionsOptions = {
   hub: HubClient;
   setHosts: React.Dispatch<React.SetStateAction<Host[]>>;
   refresh: () => Promise<Host[]>;
-  onStartOp?: (host_id: string, op: { op_id: string; scope_id?: string }) => void;
+  onHostOp?: (host_id: string, op: HostLroResponse) => void;
 };
 
 export const useHostActions = ({
   hub,
   setHosts,
   refresh,
-  onStartOp,
+  onHostOp,
 }: UseHostActionsOptions) => {
   const setStatus = async (id: string, action: "start" | "stop") => {
     try {
@@ -60,9 +54,10 @@ export const useHostActions = ({
       );
       if (action === "start") {
         const op = await hub.hosts.startHost({ id });
-        onStartOp?.(id, op);
+        onHostOp?.(id, op);
       } else {
-        await hub.hosts.stopHost({ id });
+        const op = await hub.hosts.stopHost({ id });
+        onHostOp?.(id, op);
       }
     } catch (err) {
       console.error(err);
@@ -87,7 +82,8 @@ export const useHostActions = ({
           host.id === id ? { ...host, status: "restarting" } : host,
         ),
       );
-      await hub.hosts.restartHost({ id, mode });
+      const op = await hub.hosts.restartHost({ id, mode });
+      onHostOp?.(id, op);
     } catch (err) {
       console.error(err);
       message.error("Failed to restart host");
@@ -102,7 +98,8 @@ export const useHostActions = ({
 
   const removeHost = async (id: string) => {
     try {
-      await hub.hosts.deleteHost({ id });
+      const op = await hub.hosts.deleteHost({ id });
+      onHostOp?.(id, op);
       await refresh();
     } catch (err) {
       console.error(err);
@@ -167,7 +164,8 @@ export const useHostActions = ({
       return;
     }
     try {
-      await hub.hosts.forceDeprovisionHost({ id });
+      const op = await hub.hosts.forceDeprovisionHost({ id });
+      onHostOp?.(id, op);
       await refresh();
     } catch (err) {
       console.error(err);
@@ -181,7 +179,8 @@ export const useHostActions = ({
       return;
     }
     try {
-      await hub.hosts.removeSelfHostConnector({ id });
+      const op = await hub.hosts.removeSelfHostConnector({ id });
+      onHostOp?.(id, op);
       await refresh();
     } catch (err) {
       console.error(err);

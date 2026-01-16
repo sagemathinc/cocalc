@@ -16,13 +16,17 @@ export const STATUS_COLOR = {
   starting: "blue",
   restarting: "blue",
   stopping: "orange",
+  deprovisioning: "orange",
   deprovisioned: "default",
   off: "red",
 } as const;
 
 export function isHostTransitioning(status?: string): boolean {
   return (
-    status === "starting" || status === "stopping" || status === "restarting"
+    status === "starting" ||
+    status === "stopping" ||
+    status === "restarting" ||
+    status === "deprovisioning"
   );
 }
 
@@ -35,6 +39,7 @@ const STATUS_TOOLTIP: Record<string, string> = {
   provisioning: "Provider reports provisioning in progress; host may not be reachable yet.",
   restarting: "Restart requested; waiting for provider to report running.",
   stopping: "Stop requested; waiting for provider to report stopped.",
+  deprovisioning: "Deprovision requested; waiting for provider to delete disks.",
   off: "VM is stopped or deleted; data disk retained.",
   stopped: "VM is stopped; data disk retained.",
   deprovisioned: "VM and data disk deleted; data exists only in backups.",

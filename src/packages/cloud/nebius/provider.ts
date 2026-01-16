@@ -113,6 +113,18 @@ function isAlreadyExistsError(err: unknown): boolean {
   );
 }
 
+function isNotFoundError(err: unknown): boolean {
+  const message = String((err as any)?.message ?? err);
+  const code = (err as any)?.code;
+  return (
+    message.includes("NOT_FOUND") ||
+    message.includes("ResourceNotFound") ||
+    message.toLowerCase().includes("not found") ||
+    code === "NOT_FOUND" ||
+    code === 5
+  );
+}
+
 async function findDiskIdByName(
   client: NebiusClient,
   parentId: string,
@@ -439,10 +451,19 @@ export class NebiusProvider implements CloudProvider {
 
   async stopHost(runtime: HostRuntime, creds: NebiusProviderCreds) {
     const client = new NebiusClient(creds);
-    const op = await client.instances.stop(
-      StopInstanceRequest.create({ id: runtime.instance_id }),
-    );
-    await op.wait();
+    try {
+      const op = await client.instances.stop(
+        StopInstanceRequest.create({ id: runtime.instance_id }),
+      );
+      await op.wait();
+    } catch (err) {
+      if (!isNotFoundError(err)) {
+        throw err;
+      }
+      logger.info("nebius: stop ignored; instance missing", {
+        instance_id: runtime.instance_id,
+      });
+    }
   }
 
   async restartHost(runtime: HostRuntime, creds: NebiusProviderCreds) {
@@ -463,10 +484,19 @@ export class NebiusProvider implements CloudProvider {
     opts?: { preserveDataDisk?: boolean },
   ) {
     const client = new NebiusClient(creds);
-    const op = await client.instances.delete(
-      DeleteInstanceRequest.create({ id: runtime.instance_id }),
-    );
-    await op.wait();
+    try {
+      const op = await client.instances.delete(
+        DeleteInstanceRequest.create({ id: runtime.instance_id }),
+      );
+      await op.wait();
+    } catch (err) {
+      if (!isNotFoundError(err)) {
+        throw err;
+      }
+      logger.info("nebius: instance already deleted", {
+        instance_id: runtime.instance_id,
+      });
+    }
     const diskIds = (runtime.metadata as NebiusRuntimeMeta | undefined)?.diskIds;
     const disksToDelete = opts?.preserveDataDisk
       ? [diskIds?.boot]
@@ -516,9 +546,20 @@ export class NebiusProvider implements CloudProvider {
     creds: NebiusProviderCreds,
   ): Promise<RemoteInstance | undefined> {
     const client = new NebiusClient(creds);
-    const instance = await client.instances.get(
-      GetInstanceRequest.create({ id: runtime.instance_id }),
-    );
+    let instance;
+    try {
+      instance = await client.instances.get(
+        GetInstanceRequest.create({ id: runtime.instance_id }),
+      );
+    } catch (err) {
+      if (isNotFoundError(err)) {
+        logger.info("nebius: instance not found", {
+          instance_id: runtime.instance_id,
+        });
+        return undefined;
+      }
+      throw err;
+    }
     const status = instance.status?.state?.name;
     const publicIp = normalizeIp(
       instance.status?.networkInterfaces?.[0]?.publicIpAddress?.address,
@@ -536,6 +577,9 @@ export class NebiusProvider implements CloudProvider {
     creds: NebiusProviderCreds,
   ): Promise<"starting" | "running" | "stopped" | "error"> {
     const instance = await this.getInstance(runtime, creds);
+    if (!instance) {
+      return "stopped";
+    }
     const state = instance?.status ?? "";
     if (state === InstanceStatus_InstanceState.RUNNING.name) return "running";
     if (state === InstanceStatus_InstanceState.STOPPED.name) return "stopped";

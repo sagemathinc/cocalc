@@ -18,7 +18,7 @@ import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { labels } from "@cocalc/frontend/i18n";
 import { useIntl } from "react-intl";
 import type { HostLogEntry } from "../hooks/use-host-log";
-import type { HostLroState } from "../hooks/use-host-ops";
+import { isHostOpActive, type HostLroState } from "../hooks/use-host-ops";
 import { mapCloudRegionToR2Region, R2_REGION_LABELS } from "@cocalc/util/consts";
 import {
   STATUS_COLOR,
@@ -28,7 +28,7 @@ import {
   isHostTransitioning,
 } from "../constants";
 import { getProviderDescriptor, isKnownProvider } from "../providers/registry";
-import { HostStartProgress } from "./host-start-progress";
+import { HostOpProgress } from "./host-op-progress";
 
 type HostDrawerViewModel = {
   open: boolean;
@@ -180,6 +180,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
   const showStaleTag = host?.status === "running" && !hostOnline;
   const showSpinner = host ? isHostTransitioning(host.status) : false;
   const statusLabel = host ? (host.deleted ? "deleted" : host.status) : "";
+  const hostOpActive = host ? isHostOpActive(hostOps?.[host.id]) : false;
   const onlineTag =
     host && !host.deleted ? (
       showOnlineTag ? (
@@ -228,7 +229,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
             <Button
               type="link"
               size="small"
-              disabled={!!host.deleted}
+              disabled={!!host.deleted || hostOpActive}
               onClick={() => onEdit(host)}
             >
               Edit
@@ -260,7 +261,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               </Tooltip>
             )}
           </Space>
-          <HostStartProgress op={hostOps?.[host.id]} />
+          <HostOpProgress op={hostOps?.[host.id]} />
           <Typography.Text copyable={{ text: host.id }}>
             Host ID: {host.id}
           </Typography.Text>
@@ -333,10 +334,19 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
             <Space direction="vertical" size="small">
               <Typography.Text strong>Connector actions</Typography.Text>
               <Space wrap>
-                <Button size="small" onClick={() => selfHost.onSetup(host)}>
+                <Button
+                  size="small"
+                  disabled={hostOpActive}
+                  onClick={() => selfHost.onSetup(host)}
+                >
                   Setup or reconnect
                 </Button>
-                <Button size="small" danger onClick={() => selfHost.onRemove(host)}>
+                <Button
+                  size="small"
+                  danger
+                  disabled={hostOpActive}
+                  onClick={() => selfHost.onRemove(host)}
+                >
                   Remove connector
                 </Button>
                 {canForceDeprovision && (
@@ -347,7 +357,9 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
                     onConfirm={() => selfHost.onForceDeprovision(host)}
                     okButtonProps={{ danger: true }}
                   >
-                    <Button size="small">Force deprovision</Button>
+                    <Button size="small" disabled={hostOpActive}>
+                      Force deprovision
+                    </Button>
                   </Popconfirm>
                 )}
               </Space>

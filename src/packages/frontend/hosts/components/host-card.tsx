@@ -15,8 +15,8 @@ import {
   getProviderDescriptor,
   isKnownProvider,
 } from "../providers/registry";
-import type { HostLroState } from "../hooks/use-host-ops";
-import { HostStartProgress } from "./host-start-progress";
+import { isHostOpActive, type HostLroState } from "../hooks/use-host-ops";
+import { HostOpProgress } from "./host-op-progress";
 
 type HostCardProps = {
   host: Host;
@@ -61,19 +61,14 @@ export const HostCard: React.FC<HostCardProps> = ({
   const showStaleTag = host.status === "running" && !hostOnline;
   const showSpinner = isHostTransitioning(host.status);
   const statusLabel = host.deleted ? "deleted" : host.status;
-  const startOpActive =
-    !!hostOp &&
-    (!hostOp.summary ||
-      !["succeeded", "failed", "canceled", "expired"].includes(
-        hostOp.summary.status,
-      ));
+  const hostOpActive = isHostOpActive(hostOp);
   const startDisabled =
     isDeleted ||
     host.status === "running" ||
     host.status === "starting" ||
     host.status === "restarting" ||
     !connectorOnline ||
-    startOpActive;
+    hostOpActive;
   const startLabel =
     host.status === "starting"
       ? "Starting"
@@ -87,14 +82,16 @@ export const HostCard: React.FC<HostCardProps> = ({
     !isDeleted &&
     (host.status === "running" || host.status === "error") &&
     caps?.supportsStop !== false &&
-    host.machine?.storage_mode !== "ephemeral";
+    host.machine?.storage_mode !== "ephemeral" &&
+    !hostOpActive;
   const supportsRestart = caps?.supportsRestart ?? true;
   const supportsHardRestart = caps?.supportsHardRestart ?? false;
   const allowRestart =
     !isDeleted &&
     connectorOnline &&
     (host.status === "running" || host.status === "error") &&
-    (supportsRestart || supportsHardRestart);
+    (supportsRestart || supportsHardRestart) &&
+    !hostOpActive;
   const deleteLabel = isDeleted
     ? "Deleted"
     : host.status === "deprovisioned"
@@ -118,6 +115,7 @@ export const HostCard: React.FC<HostCardProps> = ({
       <Button
         key="setup"
         type="link"
+        disabled={hostOpActive}
         onClick={() => selfHost.onSetup(host)}
       >
         Setup
@@ -169,9 +167,9 @@ export const HostCard: React.FC<HostCardProps> = ({
       cancelText="Cancel"
       okButtonProps={{ danger: true }}
       onConfirm={() => onDelete(host.id)}
-      disabled={isDeleted}
+      disabled={isDeleted || hostOpActive}
     >
-      <Button type="link" danger disabled={isDeleted}>
+      <Button type="link" danger disabled={isDeleted || hostOpActive}>
         {deleteLabel}
       </Button>
     </Popconfirm>,
@@ -221,7 +219,7 @@ export const HostCard: React.FC<HostCardProps> = ({
             <Tag color="orange">Reprovision on next start</Tag>
           </Tooltip>
         )}
-      <HostStartProgress op={hostOp} compact />
+      <HostOpProgress op={hostOp} compact />
       <Typography.Text>
         Provider:{" "}
         {host.machine?.cloud

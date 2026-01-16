@@ -6,12 +6,34 @@ import {
 
 export type HostStatus =
   | "deprovisioned"
+  | "deprovisioning"
   | "off"
   | "error"
   | "starting"
   | "restarting"
   | "running"
   | "stopping";
+
+export const HOST_LRO_KINDS = [
+  "host-start",
+  "host-stop",
+  "host-restart",
+  "host-deprovision",
+  "host-delete",
+  "host-force-deprovision",
+  "host-remove-connector",
+] as const;
+
+export type HostLroKind = (typeof HOST_LRO_KINDS)[number];
+
+export type HostLroResponse = {
+  op_id: string;
+  scope_type: "host";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+  kind: HostLroKind;
+};
 
 export interface HostMachine {
   cloud?: string; // e.g., gcp, hyperstack, lambda, nebius, self-host, local
@@ -241,27 +263,21 @@ export interface Hosts {
     machine?: HostMachine;
   }) => Promise<Host>;
 
-  startHost: (opts: { account_id?: string; id: string }) => Promise<{
-    op_id: string;
-    scope_type: "host";
-    scope_id: string;
-    service: string;
-    stream_name: string;
-  }>;
-  stopHost: (opts: { account_id?: string; id: string }) => Promise<Host>;
+  startHost: (opts: { account_id?: string; id: string }) => Promise<HostLroResponse>;
+  stopHost: (opts: { account_id?: string; id: string }) => Promise<HostLroResponse>;
   restartHost: (opts: {
     account_id?: string;
     id: string;
     mode?: "reboot" | "hard";
-  }) => Promise<Host>;
+  }) => Promise<HostLroResponse>;
   forceDeprovisionHost: (opts: {
     account_id?: string;
     id: string;
-  }) => Promise<void>;
+  }) => Promise<HostLroResponse>;
   removeSelfHostConnector: (opts: {
     account_id?: string;
     id: string;
-  }) => Promise<void>;
+  }) => Promise<HostLroResponse>;
   renameHost: (opts: {
     account_id?: string;
     id: string;
@@ -289,5 +305,5 @@ export interface Hosts {
     targets: HostSoftwareUpgradeTarget[];
     base_url?: string;
   }) => Promise<HostSoftwareUpgradeResponse>;
-  deleteHost: (opts: { account_id?: string; id: string }) => Promise<void>;
+  deleteHost: (opts: { account_id?: string; id: string }) => Promise<HostLroResponse>;
 }
