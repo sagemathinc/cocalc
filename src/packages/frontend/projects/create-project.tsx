@@ -18,7 +18,6 @@ import {
   useMemo,
   useRef,
   useState,
-  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { A, ErrorDisplay, Icon, Paragraph } from "@cocalc/frontend/components";
 import {
@@ -71,10 +70,7 @@ export function NewProjectCreator({
   );
   const [selected, setSelected] = useState<SoftwareEnvironmentState>({});
   const new_project_title_ref = useRef<any>(null);
-  const compute_servers_enabled = useTypedRedux(
-    "customize",
-    "compute_servers_enabled",
-  );
+  const compute_servers_enabled = false;
   const [selectedHost, setSelectedHost] = useState<Host | undefined>();
   const [projectRegion, setProjectRegion] =
     useState<R2Region>(DEFAULT_R2_REGION);
@@ -290,10 +286,7 @@ export function NewProjectCreator({
               <FormattedMessage
                 id="projects.create-project.explanation"
                 defaultMessage={`A <A1>{projectLabel}</A1> is a private computational environment
-                  where you can work with collaborators that you explicitly invite.
-                  {compute_servers_enabled, select,
-                  true {You can attach powerful <A2>GPUs, CPUs</A2> and <A3>storage</A3> to a {projectLabel}.}
-                  other {}}`}
+                  where you can work with collaborators that you explicitly invite.`}
                 values={{
                   compute_servers_enabled,
                   projectLabel: projectLabelLower,
