@@ -1,7 +1,7 @@
 import type { CourseActions } from "../actions";
 import type { Unit } from "../store";
 import type { ComputeServerConfig } from "../types";
-import type { Command } from "./students";
+type Command = string;
 
 const COMPUTE_SERVER_REMOVED_MESSAGE =
   "Compute servers have been removed from CoCalc.";

@@ -13,7 +13,6 @@
     "./i18n": "./dist/i18n/index.js",
     "./i18n/trans/*": "./i18n/trans/*",
     "./tracker": "./dist/tracker/index.js",
-    "./compute": "./dist/compute/index.js",
     "./misc/*": "./dist/misc/*.js",
     "./course": "./dist/course/index.js",
     "./billing": "./dist/billing/index.js",

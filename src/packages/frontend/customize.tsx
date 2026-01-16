@@ -30,7 +30,6 @@ import {
   smc_version,
   UNIT,
 } from "@cocalc/frontend/components";
-import { getGoogleCloudImages, getImages } from "@cocalc/frontend/compute/api";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { labels, Locale } from "@cocalc/frontend/i18n";
 import { callback2, retry_until_success } from "@cocalc/util/async-utils";
@@ -40,10 +39,6 @@ import {
   FALLBACK_SOFTWARE_ENV,
 } from "@cocalc/util/compute-images";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
-import type {
-  GoogleCloudImages,
-  Images,
-} from "@cocalc/util/db-schema/compute-servers";
 import { LLMServicesAvailable } from "@cocalc/util/db-schema/llm-utils";
 import {
   Config,
@@ -53,7 +48,6 @@ import {
   site_settings_conf,
 } from "@cocalc/util/db-schema/site-defaults";
 import { deep_copy, dict, YEAR } from "@cocalc/util/misc";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { sanitizeSoftwareEnv } from "@cocalc/util/sanitize-software-envs";
 import * as theme from "@cocalc/util/theme";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
@@ -168,8 +162,6 @@ export interface CustomizeState {
   project_hosts_nebius_enabled?: boolean;
   compute_servers_dns_enabled?: boolean;
   compute_servers_dns?: string;
-  compute_servers_images?: TypedMap<Images> | string | null;
-  compute_servers_images_google?: TypedMap<GoogleCloudImages> | string | null;
 
   llm_markup: number;
 
@@ -223,37 +215,6 @@ export class CustomizeStore extends Store<CustomizeState> {
 }
 
 export class CustomizeActions extends Actions<CustomizeState> {
-  // reload is admin only
-  updateComputeServerImages = reuseInFlight(async (reload?) => {
-    if (!store.get("compute_servers_enabled")) {
-      this.setState({ compute_servers_images: fromJS({}) as any });
-      return;
-    }
-    try {
-      this.setState({
-        compute_servers_images: fromJS(await getImages(reload)) as any,
-      });
-    } catch (err) {
-      this.setState({ compute_servers_images: `${err}` });
-    }
-  });
-
-  updateComputeServerImagesGoogle = reuseInFlight(async (reload?) => {
-    if (!store.get("compute_servers_google-cloud_enabled")) {
-      this.setState({ compute_servers_images_google: fromJS({}) as any });
-      return;
-    }
-    try {
-      this.setState({
-        compute_servers_images_google: fromJS(
-          await getGoogleCloudImages(reload),
-        ) as any,
-      });
-    } catch (err) {
-      this.setState({ compute_servers_images_google: `${err}` });
-    }
-  });
-
   disableCommercializationParameters = () => {
     this.setState({
     });
