@@ -74,6 +74,9 @@ export interface RusticOptions {
   safeAbsPath?: (path: string) => Promise<string>;
   host?: string;
   cwd?: string;
+  env?: { [name: string]: string };
+  onStdoutLine?: (line: string) => void;
+  onStderrLine?: (line: string) => void;
 }
 
 export default async function rustic(
@@ -86,6 +89,9 @@ export default async function rustic(
     repo = rusticRepo,
     safeAbsPath,
     host = "host",
+    env,
+    onStdoutLine,
+    onStderrLine,
   } = options;
 
   const common = getCommonArgs(repo);
@@ -99,6 +105,9 @@ export default async function rustic(
       safety: [...common, args[0], ...sanitizedArgs],
       maxSize,
       timeout,
+      env,
+      onStdoutLine,
+      onStderrLine,
     });
   };
 

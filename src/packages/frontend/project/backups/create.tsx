@@ -26,15 +26,7 @@ export default function CreateBackup() {
       const op = await webapp_client.conat_client.hub.projects.createBackup({
         project_id,
       });
-      const summary = await webapp_client.conat_client.lroWait({
-        op_id: op.op_id,
-        scope_type: op.scope_type,
-        scope_id: op.scope_id,
-      });
-      if (summary.status !== "succeeded") {
-        const reason = summary.error ?? summary.status;
-        throw new Error(`backup failed: ${reason}`);
-      }
+      actions?.trackBackupOp(op);
       setOpen(false);
     } catch (err) {
       setError(err);

@@ -27,6 +27,10 @@ import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConatError } from "@cocalc/conat/core/client";
 import { DEFAULT_BACKUP_COUNTS } from "@cocalc/util/consts/snapshots";
+import {
+  createRusticProgressHandler,
+  type RusticProgressUpdate,
+} from "./rustic-progress";
 
 export const RUSTIC = "rustic";
 
@@ -59,10 +63,12 @@ export class SubvolumeRustic {
     limit,
     timeout = 30 * 60 * 1000,
     tags,
+    progress,
   }: {
     timeout?: number;
     limit?: number;
     tags?: string[];
+    progress?: (update: RusticProgressUpdate) => void;
   } = {}): Promise<Snapshot> => {
     if (limit != null && (await this.snapshots()).length >= limit) {
       // 507 = "insufficient storage" for http
@@ -91,8 +97,12 @@ export class SubvolumeRustic {
         await this.subvolume.fs.rustic(
           ["backup", "-x", "--json", ...tagArgs, "."],
           {
-          timeout,
-          cwd: target,
+            timeout,
+            cwd: target,
+            env: progress ? { RUSTIC_PROGRESS_INTERVAL: "1s" } : undefined,
+            onStderrLine: progress
+              ? createRusticProgressHandler({ onProgress: progress })
+              : undefined,
           },
         ),
       );
@@ -112,18 +122,26 @@ export class SubvolumeRustic {
     path = "",
     dest,
     timeout = 30 * 60 * 1000,
+    progress,
   }: {
     id: string;
     path?: string;
     dest?: string;
     timeout?: number;
+    progress?: (update: RusticProgressUpdate) => void;
   }) => {
     logger.debug("restore", { id, path, dest });
     dest ??= path;
     const { stdout } = parseOutput(
       await this.subvolume.fs.rustic(
         ["restore", `${id}${path != null ? ":" + path : ""}`, dest],
-        { timeout },
+        {
+          timeout,
+          env: progress ? { RUSTIC_PROGRESS_INTERVAL: "1s" } : undefined,
+          onStderrLine: progress
+            ? createRusticProgressHandler({ onProgress: progress })
+            : undefined,
+        },
       ),
     );
     return stdout;

@@ -9,6 +9,7 @@ import {
   client as createFileClient,
   type Fileserver,
   type CopyOptions,
+  type LroRef,
   type RestoreMode,
   type RestoreStagingHandle,
   type SnapshotUsage,
@@ -54,6 +55,11 @@ import { constants as fsConstants } from "node:fs";
 import path from "node:path";
 import { getMasterConatClient } from "./master-status";
 import callHub from "@cocalc/conat/hub/call-hub";
+import {
+  createRusticProgressHandler,
+  type RusticProgressUpdate,
+} from "@cocalc/file-server/btrfs/rustic-progress";
+import { publishLroEvent } from "@cocalc/conat/lro/stream";
 
 type SshTarget = { type: "project"; project_id: string };
 
@@ -439,19 +445,50 @@ async function allSnapshotUsage({
   return await vol.snapshots.allUsage();
 }
 
+function createLroRusticReporter(
+  lro: LroRef | undefined,
+  phase: string,
+): ((update: RusticProgressUpdate) => void) | undefined {
+  if (!lro) return undefined;
+  const start = Date.now();
+  return (update: RusticProgressUpdate) => {
+    const ts = Date.now();
+    const detail = { ...(update.detail ?? {}) };
+    if (detail.elapsed == null) {
+      detail.elapsed = ts - start;
+    }
+    void publishLroEvent({
+      scope_type: lro.scope_type,
+      scope_id: lro.scope_id,
+      op_id: lro.op_id,
+      event: {
+        type: "progress",
+        ts,
+        phase,
+        message: update.message,
+        progress: update.progress,
+        detail: Object.keys(detail).length ? detail : undefined,
+      },
+    }).catch(() => {});
+  };
+}
+
 // Rustic backups
 async function createBackup({
   project_id,
   limit,
   tags,
+  lro,
 }: {
   project_id: string;
   limit?: number;
   tags?: string[];
+  lro?: LroRef;
 }): Promise<{ time: Date; id: string }> {
   const vol = await getVolume(project_id);
   vol.fs.rusticRepo = await resolveRusticRepo(project_id);
-  const result = await vol.rustic.backup({ limit, tags });
+  const progress = createLroRusticReporter(lro, "backup");
+  const result = await vol.rustic.backup({ limit, tags, progress });
   try {
     await reportBackupSuccess(project_id, result.time);
   } catch (err) {
@@ -465,11 +502,13 @@ async function restoreBackup({
   id,
   path: backupPath,
   dest,
+  lro,
 }: {
   project_id: string;
   id: string;
   path?: string;
   dest?: string;
+  lro?: LroRef;
 }): Promise<void> {
   const vol = await getVolumeForBackup(project_id);
   const home = projectMountpoint(project_id);
@@ -525,9 +564,16 @@ async function restoreBackup({
           host: vol.name,
         });
 
+  const progress = createLroRusticReporter(lro, "restore");
   await restoreFs.rustic(
     ["restore", `${id}${restorePath ? ":" + restorePath : ""}`, relDest],
-    { timeout: 30 * 60 * 1000 },
+    {
+      timeout: 30 * 60 * 1000,
+      env: lro ? { RUSTIC_PROGRESS_INTERVAL: "1s" } : undefined,
+      onStderrLine: progress
+        ? createRusticProgressHandler({ onProgress: progress })
+        : undefined,
+    },
   );
 }
 

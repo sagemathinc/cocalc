@@ -29,6 +29,7 @@ import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "./fs";
 export { type CopyOptions };
 import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
+import { type LroScopeType } from "@cocalc/conat/hub/api/lro";
 
 const SUBJECT = "file-server";
 
@@ -53,6 +54,12 @@ export interface RestoreStagingHandle {
   stagingRoot: string;
   stagingPath: string;
   markerPath: string;
+}
+
+export interface LroRef {
+  op_id: string;
+  scope_type: LroScopeType;
+  scope_id: string;
 }
 
 export interface Fileserver {
@@ -117,6 +124,7 @@ export interface Fileserver {
     project_id: string;
     limit?: number;
     tags?: string[];
+    lro?: LroRef;
   }) => Promise<{ time: Date; id: string }>;
   // restore the given path in the backup to the given dest.  The default
   // path is '' (the whole project) and the default destination is the
@@ -126,6 +134,7 @@ export interface Fileserver {
     id: string;
     path?: string;
     dest?: string;
+    lro?: LroRef;
   }) => Promise<void>;
   // staged restore helpers (filesystem-specific implementation)
   beginRestoreStaging: (opts: {
@@ -225,11 +234,13 @@ export async function server({ client, ...impl }: Options) {
 export function client({
   client,
   project_id,
+  timeout,
 }: {
   client?: Client;
   // provide project_id so that client is automatically selected to
   // be the one for the project-host that contains the project.
   project_id?: string;
+  timeout?: number;
 } = {}): Fileserver {
   client ??= conat();
   // we use this subject so that requests get routed to the
@@ -237,5 +248,6 @@ export function client({
   // src/packages/server/conat/route-client.ts
   return client.call<Fileserver>(
     `${SUBJECT}.${project_id ? project_id : "api"}`,
+    timeout ? { timeout } : undefined,
   );
 }

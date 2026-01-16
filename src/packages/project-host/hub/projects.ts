@@ -512,6 +512,7 @@ export async function createBackup({
       const backup = await fileServer(project_id).createBackup({
         project_id,
         limit: MAX_BACKUPS_PER_PROJECT,
+        lro: { op_id, scope_type: "project", scope_id: project_id },
       });
       const duration_ms = Date.now() - started;
       const finished = new Date();
