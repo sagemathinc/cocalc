@@ -21,13 +21,11 @@ const logger = getLogger("project:conat:index");
 
 export default async function init(opts?: {
   client?: ConatClient;
-  compute_server_id?: number;
   project_id?: string;
 }) {
   opts = getIdentity(opts);
   logger.debug("starting Conat project services", {
     project_id: opts.project_id,
-    compute_server_id: opts.compute_server_id,
     address: opts.client?.options.address,
   });
 

@@ -4,8 +4,8 @@ import { API_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 
 const logger = getLogger("lite:hub:proxy");
 
-export function initComputeServerProxy({ apiKey, address, httpServer }) {
-  logger.debug(`initComputeServerProxy`, { address });
+export function initProxy({ apiKey, address, httpServer }) {
+  logger.debug(`initProxy`, { address });
   const Cookie = `${API_COOKIE_NAME}=${apiKey}`;
   const headers = { Cookie };
   httpServer.on("upgrade", (req, socket, head) => {
@@ -14,7 +14,7 @@ export function initComputeServerProxy({ apiKey, address, httpServer }) {
     }
     req.url = req.url.slice("/conat-remote".length);
     const target = address;
-    logger.debug(`initComputeServerProxy: handle upgrade`, {
+    logger.debug(`initProxy: handle upgrade`, {
       url: req.url,
       address,
       target,
@@ -27,7 +27,7 @@ export function initComputeServerProxy({ apiKey, address, httpServer }) {
     });
 
     proxy.on("error", (err) => {
-      logger.debug(`WARNING: compute server proxy error -- ${err}`, address);
+      logger.debug(`WARNING: proxy error -- ${err}`, address);
     });
 
     proxy.ws(req, socket, head);

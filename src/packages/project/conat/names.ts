@@ -4,15 +4,13 @@ import { projectSubject, projectStreamName } from "@cocalc/conat/names";
 export function getSubject({
   path,
   service,
-  compute_server_id = data.compute_server_id,
   project_id = data.project_id,
 }: {
   path?: string;
   service: string;
-  compute_server_id?: number;
   project_id?: string;
 }) {
-  return projectSubject({ compute_server_id, project_id, path, service });
+  return projectSubject({ project_id, path, service });
 }
 
 export function getStreamName({

@@ -28,7 +28,13 @@ export async function get({
   return await c.call(subject).get();
 }
 
-function getSubject({ project_id, compute_server_id }) {
+function getSubject({
+  project_id,
+  compute_server_id = 0,
+}: {
+  project_id: string;
+  compute_server_id?: number;
+}) {
   return projectSubject({
     project_id,
     compute_server_id,
@@ -39,7 +45,7 @@ function getSubject({ project_id, compute_server_id }) {
 export function createService(opts: {
   infoServer;
   project_id: string;
-  compute_server_id: number;
+  compute_server_id?: number;
 }) {
   return new ProjectInfoService(opts);
 }
@@ -50,7 +56,7 @@ class ProjectInfoService {
   private readonly subject: string;
   info?: ProjectInfo | null = null;
 
-  constructor({ infoServer, project_id, compute_server_id }) {
+  constructor({ infoServer, project_id, compute_server_id = 0 }) {
     logger.debug("register");
     this.subject = getSubject({ project_id, compute_server_id });
     // initializing project info server + reacting when it has something to say

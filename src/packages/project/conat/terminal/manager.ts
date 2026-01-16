@@ -4,14 +4,10 @@ import {
   createTerminalServer,
   type ConatService,
 } from "@cocalc/conat/service/terminal";
-import { project_id, compute_server_id } from "@cocalc/project/data";
+import { project_id } from "@cocalc/project/data";
 import { isEqual } from "lodash";
 import ensureContainingDirectoryExists from "@cocalc/backend/misc/ensure-containing-directory-exists";
 import { Session } from "./session";
-import {
-  computeServerManager,
-  ComputeServerManager,
-} from "@cocalc/conat/compute/manager";
 const logger = getLogger("project:conat:terminal:manager");
 import type { CreateTerminalOptions } from "@cocalc/conat/project/api/editor";
 
@@ -35,43 +31,14 @@ export function pidToPath(pid: number): string | undefined {
 export class TerminalManager {
   private services: { [termPath: string]: ConatService } = {};
   private sessions: { [termPath: string]: Session } = {};
-  private computeServers?: ComputeServerManager;
-
-  constructor() {
-    this.computeServers = computeServerManager({ project_id });
-    this.computeServers.on("change", this.handleComputeServersChange);
-  }
-
-  private handleComputeServersChange = async ({ path: termPath, id = 0 }) => {
-    const service = this.services[termPath];
-    if (service == null) return;
-    if (id != compute_server_id) {
-      logger.debug(
-        `terminal '${termPath}' moved: ${compute_server_id} --> ${id}:  Stopping`,
-      );
-      this.sessions[termPath]?.close();
-      service.close();
-      delete this.services[termPath];
-      delete this.sessions[termPath];
-    }
-  };
 
   close = () => {
     logger.debug("close");
-    if (this.computeServers == null) {
-      return;
-    }
     for (const termPath in this.services) {
       this.services[termPath].close();
     }
     this.services = {};
     this.sessions = {};
-    this.computeServers.removeListener(
-      "change",
-      this.handleComputeServersChange,
-    );
-    this.computeServers.close();
-    delete this.computeServers;
   };
 
   private getSession = async (

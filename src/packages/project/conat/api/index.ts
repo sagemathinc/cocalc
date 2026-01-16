@@ -17,8 +17,6 @@ How to do development (so in a dev project doing cc-in-cc dev).
 
     # CRITICAL: make sure to create and set an api key!  Otherwise you will be blocked:
     export API_KEY=sk-OUwxAN8d0n7Ecd48000055
-    export COMPUTE_SERVER_ID=0
-
     # optional for more logging
     export DEBUG=cocalc:*
     export DEBUG_CONSOLE=yes
@@ -62,9 +60,9 @@ const logger = getLogger("conat:api");
 
 let terminate = false;
 export async function init(opts?) {
-  const { client, compute_server_id, project_id } = getIdentity(opts);
+  const { client, project_id } = getIdentity(opts);
   logger.debug("serve: create project conat api service");
-  const subject = getSubject({ service: "api", project_id, compute_server_id });
+  const subject = getSubject({ service: "api", project_id });
   // @ts-ignore
   const name = `project-${project_id}`;
   logger.debug(`serve: creating api service ${name}`);

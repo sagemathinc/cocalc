@@ -2,7 +2,7 @@
 
 ## Overview
 
-`@cocalc/lite` is a **standalone, single-machine CoCalc instance** that can run completely offline or optionally sync with a remote CoCalc hub as a compute server. This package essentially provides a "CoCalc in a box" that mirrors the full architecture but in a simplified, single-machine format.
+`@cocalc/lite` is a **standalone, single-machine CoCalc instance** that can run completely offline. This package essentially provides a "CoCalc in a box" that mirrors the full architecture but in a simplified, single-machine format.
 
 ## Role and Boundaries
 
@@ -17,7 +17,6 @@
 - **SQLite-based**: Uses SQLite instead of PostgreSQL for local data storage
 - **Self-contained**: Includes HTTP server, authentication, blob storage, and project services
 - **Desktop-ready**: Can be wrapped in Electron for desktop app distribution
-- **Dual-mode**: Works standalone OR as a compute server connected to remote CoCalc
 
 ### Architecture
 
@@ -50,7 +49,7 @@ packages/lite/
 │   ├── acp.ts                # Agent/AI prompt execution service
 │   ├── changefeeds.ts        # Real-time data change notifications
 │   ├── llm.ts                # LLM (Language Model) integration
-│   ├── proxy.ts              # HTTP proxy for remote connections
+│   ├── proxy.ts              # WebSocket proxy for /conat-remote upgrades
 │   ├── settings.ts           # Configuration/customization payload
 │   ├── blobs/                # File blob storage
 │   │   ├── download.ts       # Download blob handler
@@ -66,7 +65,6 @@ packages/lite/
 ├── auth-token.ts            # Cookie/token authentication
 ├── http.ts                   # Express HTTP server setup
 ├── main.ts                   # Application entry point & initialization
-├── remote.ts                 # Remote CoCalc connection handler
 ├── index.js                  # Electron wrapper for desktop app
 └── package.json              # Dependencies and build scripts
 ```
@@ -122,6 +120,10 @@ packages/lite/
   - Loads API keys from settings (OpenAI, Google Vertex AI, Anthropic, Mistral)
   - Provides token counting via heuristics
 
+- **`hub/proxy.ts`**: WebSocket upgrade proxy
+  - Proxies `/conat-remote` upgrade requests to an upstream hub
+  - Attaches auth cookie headers for the proxied connection
+
 - **`hub/acp/`**: Agent Client Protocol (AI prompt execution)
   - Manages CodexAcpAgent for code execution
   - Falls back to EchoAgent if CodexAcpAgent unavailable
@@ -156,25 +158,11 @@ packages/lite/
   - Supports inline view or download (attachment header)
   - Long cache lifetime (1 year)
 
-### Remote Connection
-
-- **`remote.ts`**: Remote CoCalc instance integration
-  - Reads COMPUTE_SERVER env variable (URL with apiKey and compute_server_id)
-  - Initializes compute server connection if present
-  - Sets up HTTP proxy for WebSocket upgrade requests
-  - Allows lite instance to act as a compute server for remote CoCalc
-
-- **`hub/proxy.ts`**: HTTP proxy for remote connections
-  - Uses http-proxy-3 library
-  - Proxies /conat-remote requests to remote hub
-  - Handles WebSocket upgrades with authentication cookie
-
 ## Environment Variables
 
 - **`PORT`**: Server port (auto-detected if not set)
 - **`HOST`**: Server hostname (supports https://hostname syntax)
 - **`AUTH_TOKEN`**: Optional authentication token for access control
-- **`COMPUTE_SERVER`**: URL for remote connection (format: `http://host:port?apiKey=KEY&id=ID`)
 - **`DATA`**: Storage directory for SQLite and local files
 
 ## Use Cases
@@ -182,8 +170,6 @@ packages/lite/
 1. **Offline Development**: Run CoCalc completely offline on your laptop
 2. **Edge Computing**: Deploy as a binary on edge devices
 3. **Desktop App**: Package as Electron app for Mac/Windows/Linux
-4. **Compute Server**: Connect to remote CoCalc hub as additional compute capacity
-
 ## Packaging & Builds
 
 - Distribution-focused workflows (bundle, tarball, SEA, Electron) now live in [../plus](../plus/README.md) to keep Lite lean. Use the Plus package for shipping artifacts.
@@ -210,8 +196,6 @@ The lite package is designed as a **simplified, standalone architecture** that m
 
 - **Monolithic vs Microservice**: Unlike the full CoCalc which uses PostgreSQL and multiple services, lite uses SQLite and co-located services
 - **Conat Integration**: Uses the same Conat messaging system as full CoCalc for internal communication
-- **Project Services**: Runs project services (computation) directly, similar to compute servers
-- **Dual-mode Operation**:
-  - **Standalone**: Works completely offline with local SQLite
-  - **Remote-connected**: Can act as a compute server for a remote CoCalc instance
+- **Project Services**: Runs project services (computation) directly
+- **Standalone**: Works completely offline with local SQLite
 - **Frontend Agnostic**: Uses the same frontend from `packages/static` as full CoCalc

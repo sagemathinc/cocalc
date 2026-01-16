@@ -13,7 +13,7 @@ import {
 import getLogger from "@cocalc/backend/logger";
 import port0 from "@cocalc/backend/port";
 import { once } from "node:events";
-import { project_id, compute_server_id } from "@cocalc/project/data";
+import { project_id } from "@cocalc/project/data";
 import { handleFileDownload } from "@cocalc/conat/files/file-download";
 import { join } from "node:path";
 import initBlobUpload from "./hub/blobs/upload";
@@ -25,7 +25,6 @@ import {
 } from "@cocalc/util/misc";
 import fs from "node:fs";
 import { initAuth } from "./auth-token";
-import { hasRemote } from "./remote";
 import { getCustomizePayload } from "./hub/settings";
 import { getOrCreateSelfSigned } from "./tls";
 
@@ -92,9 +91,6 @@ export async function initHttpServer({ AUTH_TOKEN }): Promise<{
   if (account_id != FALLBACK_ACCOUNT_UUID) {
     info.account_id = account_id;
   }
-  if (compute_server_id) {
-    info.compute_server_id = compute_server_id;
-  }
   if (Object.keys(info).length > 0) {
     console.log(JSON.stringify(info, undefined, 2));
   }
@@ -135,8 +131,6 @@ export async function initApp({ app, conatClient, AUTH_TOKEN, isHttps }) {
     const payload = await getCustomizePayload();
     payload.configuration.project_id = project_id;
     payload.configuration.account_id = account_id;
-    payload.configuration.compute_server_id = compute_server_id;
-    payload.configuration.remote_sync = hasRemote;
     res.json(payload);
   });
 

@@ -15,13 +15,9 @@ which uses /base_url/proxy/PORT/ for *exactly* what we have /base_url/server/POR
 This uses the http-proxy-3 library, which is a modern supported version
 of the old http-proxy nodejs npm library, with the same API.
 
-For our application the base_url is the project_id, optionally followed
-by the compute_server_id, so url's look like
+For our application the base_url is the project_id, so url's look like
 
-    /{project_id}[/{compute_server_id}]/[server|port]
-
-Notes:
-- <base_url> is typically `${project_id}` or `${project_id}/${compute_server_id}`.
+    /{project_id}/[server|port]
 - We set xfwd headers and support WebSockets.
 
 This proxy gets typically exposed externally via the proxy in
@@ -33,7 +29,7 @@ import * as http from "node:http";
 import { userInfo } from "node:os";
 import httpProxy from "http-proxy-3";
 import { getLogger } from "@cocalc/project/logger";
-import { project_id, compute_server_id } from "@cocalc/project/data";
+import { project_id } from "@cocalc/project/data";
 import listen from "@cocalc/backend/misc/async-server-listen";
 
 const logger = getLogger("project:servers:proxy");
@@ -45,7 +41,7 @@ interface StartOptions {
 }
 
 export async function startProxyServer({
-  base_url = getProxyBaseUrl({ project_id, compute_server_id }),
+  base_url = getProxyBaseUrl({ project_id }),
   port,
   host = process.env.COCALC_PROXY_HOST ?? "127.0.0.1",
 }: StartOptions = {}) {
@@ -145,18 +141,8 @@ export async function startProxyServer({
 }
 
 // Build the default base_url from project/compute ids.
-function getProxyBaseUrl({
-  project_id,
-  compute_server_id,
-}: {
-  project_id: string;
-  compute_server_id?: number;
-}): string {
-  let base_url = `${project_id}`;
-  if (compute_server_id) {
-    base_url += `/${compute_server_id}`;
-  }
-  return base_url;
+function getProxyBaseUrl({ project_id }: { project_id: string }): string {
+  return `${project_id}`;
 }
 
 // Ensure base_url has no leading/trailing slashes; proxy matches start after a single slash.

@@ -12,7 +12,6 @@ export DATA=$HOME/.smc
 # optional for more flexibility
 
 export API_KEY=sk-OUwxAN8d0n7Ecd48000055
-export COMPUTE_SERVER_ID=0
 
 # optional for more logging
 

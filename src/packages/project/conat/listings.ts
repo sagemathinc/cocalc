@@ -1,7 +1,7 @@
 /* Directory Listings
 
-- A service "listings" in each project and compute server that users call to express
-  interest in a directory.  When there is recent interest in a
+- A service "listings" in each project that users call to express interest in a
+  directory.  When there is recent interest in a
   directory, we watch it for changes.
 
 - A DKV store keys paths in the filesystem and values the first
@@ -39,7 +39,7 @@ import {
   type Listing,
   type Times,
 } from "@cocalc/conat/service/listings";
-import { compute_server_id, project_id } from "@cocalc/project/data";
+import { project_id } from "@cocalc/project/data";
 import { init as initClient } from "@cocalc/project/client";
 import { delay } from "awaiting";
 import { type DKV } from "./sync";
@@ -57,7 +57,6 @@ export async function init() {
 
   service = await createListingsService({
     project_id,
-    compute_server_id,
     impl,
   });
   const L = new Listings();
@@ -107,8 +106,8 @@ class Listings {
 
   init = async () => {
     logger.debug("Listings.init: start");
-    this.listings = await getListingsKV({ project_id, compute_server_id });
-    this.times = await getListingsTimesKV({ project_id, compute_server_id });
+    this.listings = await getListingsKV({ project_id });
+    this.times = await getListingsTimesKV({ project_id });
     // start watching paths with recent interest
     const cutoff = Date.now() - INTEREST_CUTOFF_MS;
     const times = this.times.getAll();

@@ -10,7 +10,7 @@ import {
   createBrowserClient,
   SIZE_TIMEOUT_MS,
 } from "@cocalc/conat/service/terminal";
-import { project_id, compute_server_id } from "@cocalc/project/data";
+import { project_id } from "@cocalc/project/data";
 import { throttle } from "lodash";
 import { ThrottleString } from "@cocalc/util/throttle";
 import { join } from "path";
@@ -32,8 +32,6 @@ const INPUT_CHUNK_SIZE = 50;
 const EXIT_MESSAGE = "\r\n\r\n[Process completed - press any key]\r\n\r\n";
 
 const HARD_RESET = "reset";
-
-const COMPUTE_SERVER_INIT = `PS1="(\\h) \\w$ "; ${HARD_RESET}; history -d $(history 1);\n`;
 
 const PROJECT_INIT = `${HARD_RESET}; history -d $(history 1);\n`;
 
@@ -240,13 +238,7 @@ export class Session {
     });
     this.pid = this.pty.pid;
     if (command.endsWith("bash")) {
-      if (compute_server_id) {
-        // set the prompt to show the remote hostname explicitly,
-        // then clear the screen.
-        this.pty.write(COMPUTE_SERVER_INIT);
-      } else {
-        this.pty.write(PROJECT_INIT);
-      }
+      this.pty.write(PROJECT_INIT);
     }
     this.state = "running";
     logger.debug("creating stream");

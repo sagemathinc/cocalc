@@ -15,7 +15,6 @@
     "./hub/changefeeds": "./dist/hub/changefeeds/index.js",
     "./hub/api": "./dist/hub/api/index.js",
     "./hub/api/*": "./dist/hub/api/*.js",
-    "./compute/*": "./dist/compute/*.js",
     "./sync-files": "./dist/sync-files/index.js",
     "./service": "./dist/service/index.js",
     "./project/api": "./dist/project/api/index.js",

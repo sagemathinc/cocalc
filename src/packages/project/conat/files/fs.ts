@@ -5,7 +5,7 @@ so the security is off.
 
 import { localPathFileserver } from "@cocalc/backend/conat/files/local-path";
 import { getService } from "@cocalc/conat/files/fs";
-import { compute_server_id, project_id } from "@cocalc/project/data";
+import { project_id } from "@cocalc/project/data";
 import { connectToConat } from "@cocalc/project/conat/connection";
 
 let server: any = undefined;
@@ -14,7 +14,7 @@ export async function init() {
     return;
   }
   const client = connectToConat();
-  const service = getService({ compute_server_id });
+  const service = getService({});
   server = await localPathFileserver({
     client,
     service,

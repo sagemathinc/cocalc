@@ -9,7 +9,7 @@ Project information
 
 import { ProjectInfoServer } from "./server";
 import { createService } from "@cocalc/conat/project/project-info";
-import { project_id, compute_server_id } from "@cocalc/project/data";
+import { project_id } from "@cocalc/project/data";
 
 // singleton, we instantiate it when we need it
 let info: ProjectInfoServer | null = null;
@@ -20,7 +20,7 @@ export function get_ProjectInfoServer(): ProjectInfoServer {
     return info;
   }
   info = new ProjectInfoServer();
-  service = createService({ infoServer: info, project_id, compute_server_id });
+  service = createService({ infoServer: info, project_id });
 
   return info;
 }

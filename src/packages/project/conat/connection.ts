@@ -1,6 +1,6 @@
 /*
-Create a connection to a conat server authenticated as a project or compute
-server, via an api key or the project secret token.
+Create a connection to a conat server authenticated as a project, via an api
+key or the project secret token.
 */
 
 import * as backendData from "@cocalc/backend/data";
@@ -26,19 +26,16 @@ const logger = getLogger("conat:connection");
 
 export function getIdentity({
   client = connectToConat(),
-  compute_server_id = data.compute_server_id,
   project_id,
 }: {
   client?: ConatClient;
-  compute_server_id?: number;
   project_id?: string;
 } = {}): {
   client: ConatClient;
-  compute_server_id: number;
   project_id: string;
 } {
   project_id ??= client.info?.user?.project_id ?? data.project_id;
-  return { client, compute_server_id, project_id: project_id! };
+  return { client, project_id: project_id! };
 }
 
 export function connectToConat(
@@ -85,7 +82,6 @@ export function init() {
   setConatClient({
     conat: connectToConat,
     project_id: data.project_id,
-    compute_server_id: data.compute_server_id,
     getLogger,
   });
 }

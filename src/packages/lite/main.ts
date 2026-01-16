@@ -1,14 +1,7 @@
 /*
 Launching it like this:
 
-PORT=30000 COMPUTE_SERVER='http://localhost:9001?apiKey=sk-p2P7iMlc5sJ4pbQ9000005&id=1'  pnpm app
-
-make it:
-
-- serve cocalc-lite on port 30000, AND
-- also at the same time be a compute server (id=1) for the cocalc instance running at port 9001,
-  identified as the project that sk-p2P7iMlc5sJ4pbQ9000005 gives access to.
-
+PORT=30000 pnpm app
 */
 
 import startProjectServices from "@cocalc/project/conat";
@@ -31,7 +24,6 @@ import { init as initHubApi } from "./hub/api";
 import { init as initLLM } from "./hub/llm";
 import { init as initAcp } from "./hub/acp";
 import { account_id } from "@cocalc/backend/data";
-import { init as initRemote } from "./remote";
 import { getAuthToken } from "./auth-token";
 import getLogger from "@cocalc/backend/logger";
 import compression from "compression";
@@ -118,11 +110,6 @@ export async function main(): Promise<number> {
     project_id,
     unsafeMode: true,
   });
-
-  logger.debug("start remote connection (if enabled)");
-  // TODO: I think initRemote messes up the default conat
-  // client thus we have to run it last right now.
-  await initRemote({ httpServer, path });
 
   process.once("exit", () => {
     conatServer?.close();

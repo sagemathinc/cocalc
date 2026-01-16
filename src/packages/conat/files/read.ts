@@ -50,7 +50,15 @@ import { getLogger } from "@cocalc/conat/client";
 const logger = getLogger("conat:files:read");
 
 let subs: { [name: string]: Subscription } = {};
-export async function close({ project_id, compute_server_id, name = "" }) {
+export async function close({
+  project_id,
+  compute_server_id = 0,
+  name = "",
+}: {
+  project_id: string;
+  compute_server_id?: number;
+  name?: string;
+}) {
   const subject = getSubject({ project_id, compute_server_id, name });
   if (subs[subject] == null) {
     return;
@@ -60,7 +68,15 @@ export async function close({ project_id, compute_server_id, name = "" }) {
   await sub.drain();
 }
 
-function getSubject({ project_id, compute_server_id, name = "" }) {
+function getSubject({
+  project_id,
+  compute_server_id = 0,
+  name = "",
+}: {
+  project_id: string;
+  compute_server_id?: number;
+  name?: string;
+}) {
   return projectSubject({
     project_id,
     compute_server_id,

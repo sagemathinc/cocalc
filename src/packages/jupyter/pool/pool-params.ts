@@ -19,9 +19,7 @@ const PREFIX = "COCALC_JUPYTER_POOL";
 const MAX_POOL_SIZE = 10;
 
 // the defaults
-const CONFIG_FILENAME = `cocalc-jupyter-pool${
-  process.env.COMPUTE_SERVER_ID ?? ""
-}`;
+const CONFIG_FILENAME = "cocalc-jupyter-pool";
 const CONFIG_DIR = join(homedir(), ".config");
 const CONFIG = join(CONFIG_DIR, CONFIG_FILENAME);
 // size of pool, set to 0 to disable it.

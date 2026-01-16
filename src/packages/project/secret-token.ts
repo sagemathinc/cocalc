@@ -7,28 +7,25 @@ so the hubs can connect to the project.   It is also used internally to secure s
 communications (e.g., sage worksheets).  The secret token must be written
 to a file whose path is either $COCALC_SECRET_TOKEN *or* $DATA/secret-token.
 
-For a compute server, hubs do not connect to it and shouldn't be able to;
-instead compute servers connect to cocalc.  In that case the secret token
-will always be set to a random value on startup, and used only for internal
-communications.
+In test mode, the token is not loaded from disk, since tests typically do not
+set up the secret token file.
 */
 
 import { readFileSync } from "fs";
 import { getLogger } from "./logger";
 import { join } from "path";
 import { data } from "@cocalc/backend/data";
-import { compute_server_id } from "./data";
 
 const logger = getLogger("data");
 
 export let secretToken: string = "";
 
 function init() {
-  if (compute_server_id || process.env.COCALC_TEST_MODE) {
-    // it's a compute server or in test mode -- leave blank
+  if (process.env.COCALC_TEST_MODE) {
+    // test mode -- leave blank
     return;
   }
-  // not a compute server -- read from file
+  // read from file
   logger.debug(`COCALC_SECRET_TOKEN = ${process.env.COCALC_SECRET_TOKEN}`);
   const secretTokenPath =
     process.env.COCALC_SECRET_TOKEN ?? join(data, "secret-token");

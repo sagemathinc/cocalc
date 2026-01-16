@@ -79,7 +79,13 @@ import { type Readable } from "node:stream";
 import { getLogger } from "@cocalc/conat/client";
 const logger = getLogger("conat:files:write");
 
-function getWriteSubject({ project_id, compute_server_id }) {
+function getWriteSubject({
+  project_id,
+  compute_server_id = 0,
+}: {
+  project_id: string;
+  compute_server_id?: number;
+}) {
   return projectSubject({
     project_id,
     compute_server_id,
@@ -88,7 +94,13 @@ function getWriteSubject({ project_id, compute_server_id }) {
 }
 
 let subs: { [name: string]: Subscription } = {};
-export async function close({ project_id, compute_server_id }) {
+export async function close({
+  project_id,
+  compute_server_id = 0,
+}: {
+  project_id: string;
+  compute_server_id?: number;
+}) {
   const subject = getWriteSubject({ project_id, compute_server_id });
   if (subs[subject] == null) {
     return;
@@ -101,12 +113,12 @@ export async function close({ project_id, compute_server_id }) {
 export async function createServer({
   client = conat(),
   project_id,
-  compute_server_id,
+  compute_server_id = 0,
   createWriteStream,
 }: {
   client?: ConatClient;
   project_id: string;
-  compute_server_id: number;
+  compute_server_id?: number;
   // createWriteStream returns a writeable stream
   // for writing the specified path to disk.  It
   // can be an async function.

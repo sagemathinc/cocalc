@@ -21,7 +21,6 @@ async function serve() {
   const cn = connectToConat();
   const subject = projectSubject({
     project_id,
-    compute_server_id: 0, // This is the project home base, always 0
     service: EXEC_STREAM_SERVICE,
   });
 
