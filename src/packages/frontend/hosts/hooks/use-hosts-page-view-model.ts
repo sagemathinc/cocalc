@@ -139,7 +139,7 @@ export const useHostsPageViewModel = () => {
     includeDeleted: showDeleted,
     pollMs: fastPoll ? 3000 : 15000,
   });
-  const { hostOps, trackStartOp } = useHostOps({
+  const { hostOps, trackHostOp } = useHostOps({
     hosts,
     listLro: (opts) => hub.lro.list(opts),
     getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
@@ -156,7 +156,7 @@ export const useHostsPageViewModel = () => {
     hub,
     setHosts,
     refresh,
-    onStartOp: trackStartOp,
+    onHostOp: trackHostOp,
   });
   const upgradeHostSoftware = React.useCallback(
     async (host: Host) => {

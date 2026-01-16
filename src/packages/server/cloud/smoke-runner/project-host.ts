@@ -81,9 +81,9 @@ import { start as startProject } from "@cocalc/server/conat/api/projects";
 import { fsClient, fsSubject } from "@cocalc/conat/files/fs";
 import {
   createHost,
-  deleteHost,
+  deleteHostInternal,
   startHost,
-  stopHost,
+  stopHostInternal,
   updateHostMachine,
 } from "@cocalc/server/conat/api/hosts";
 import { conatWithProjectRouting } from "@cocalc/server/conat/route-client";
@@ -547,7 +547,7 @@ async function runSmokeSteps({
 
     await runStep("stop_host", async () => {
       if (!host_id) throw new Error("missing host_id");
-      await stopHost({ account_id, id: host_id });
+      await stopHostInternal({ account_id, id: host_id });
       await waitForHostStatus(
         host_id,
         ["off", "deprovisioned"],
@@ -634,7 +634,7 @@ async function runSmokeSteps({
         }
         if (cleanup_host ?? createdHost) {
           if (!host_id) throw new Error("missing host_id for cleanup");
-          await deleteHost({ account_id, id: host_id });
+          await deleteHostInternal({ account_id, id: host_id });
         }
       });
     }

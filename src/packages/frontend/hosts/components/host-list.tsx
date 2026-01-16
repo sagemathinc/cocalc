@@ -11,7 +11,8 @@ import {
   isKnownProvider,
 } from "../providers/registry";
 import type { HostLroState } from "../hooks/use-host-ops";
-import { HostStartProgress } from "./host-start-progress";
+import { HostOpProgress } from "./host-op-progress";
+import { isHostOpActive } from "../hooks/use-host-ops";
 import type {
   HostListViewMode,
   HostSortDirection,
@@ -514,7 +515,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
                 </Tooltip>
               )}
             </Space>
-            <HostStartProgress op={op} compact />
+            <HostOpProgress op={op} compact />
           </Space>
         );
       },
@@ -525,12 +526,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       render: (_: string, host: Host) => {
         const isDeleted = !!host.deleted;
         const op = hostOps?.[host.id];
-        const startOpActive =
-          !!op &&
-          (!op.summary ||
-            !["succeeded", "failed", "canceled", "expired"].includes(
-              op.summary.status,
-            ));
+        const hostOpActive = isHostOpActive(op);
         const isSelfHost = host.machine?.cloud === "self-host";
         const connectorOnline =
           !isSelfHost ||
@@ -544,7 +540,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           host.status === "starting" ||
           host.status === "restarting" ||
           !connectorOnline ||
-          startOpActive;
+          hostOpActive;
         const startLabel =
           host.status === "starting"
             ? "Starting"
@@ -559,14 +555,16 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           !isDeleted &&
           (statusValue === "running" || statusValue === "error") &&
           caps?.supportsStop !== false &&
-          host.machine?.storage_mode !== "ephemeral";
+          host.machine?.storage_mode !== "ephemeral" &&
+          !hostOpActive;
         const supportsRestart = caps?.supportsRestart ?? true;
         const supportsHardRestart = caps?.supportsHardRestart ?? false;
         const allowRestart =
           !isDeleted &&
           connectorOnline &&
           (statusValue === "running" || statusValue === "error") &&
-          (supportsRestart || supportsHardRestart);
+          (supportsRestart || supportsHardRestart) &&
+          !hostOpActive;
         const deleteLabel = isDeleted
           ? "Deleted"
           : host.status === "deprovisioned"
@@ -594,6 +592,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               key="setup"
               size="small"
               type="link"
+              disabled={hostOpActive}
               onClick={() => selfHost.onSetup(host)}
             >
               Setup
@@ -646,9 +645,14 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
             cancelText="Cancel"
             okButtonProps={{ danger: true }}
             onConfirm={() => onDelete(host.id)}
-            disabled={isDeleted}
+            disabled={isDeleted || hostOpActive}
           >
-            <Button size="small" type="link" danger disabled={isDeleted}>
+            <Button
+              size="small"
+              type="link"
+              danger
+              disabled={isDeleted || hostOpActive}
+            >
               {deleteLabel}
             </Button>
           </Popconfirm>,

@@ -5,6 +5,8 @@ import type {
   HostStatus,
   HostCatalog,
   HostSoftwareUpgradeTarget,
+  HostLroResponse,
+  HostLroKind,
 } from "@cocalc/conat/hub/api/hosts";
 import type { ProjectCopyRow, ProjectCopyState } from "@cocalc/conat/hub/api/projects";
 import getLogger from "@cocalc/backend/logger";
@@ -63,6 +65,12 @@ function pool() {
 
 const SELF_HOST_RESIZE_TIMEOUT_MS = 5 * 60 * 1000;
 const HOST_START_LRO_KIND = "host-start";
+const HOST_STOP_LRO_KIND = "host-stop";
+const HOST_RESTART_LRO_KIND = "host-restart";
+const HOST_DEPROVISION_LRO_KIND = "host-deprovision";
+const HOST_DELETE_LRO_KIND = "host-delete";
+const HOST_FORCE_DEPROVISION_LRO_KIND = "host-force-deprovision";
+const HOST_REMOVE_CONNECTOR_LRO_KIND = "host-remove-connector";
 const logger = getLogger("server:conat:api:hosts");
 
 function logStatusUpdate(id: string, status: string, source: string) {
@@ -610,28 +618,27 @@ export async function createHost({
   });
 }
 
-export async function startHost({
+async function createHostLro({
+  kind,
+  row,
   account_id,
-  id,
+  input,
+  dedupe_key,
 }: {
+  kind: HostLroKind;
+  row: { id: string };
   account_id?: string;
-  id: string;
-}): Promise<{
-  op_id: string;
-  scope_type: "host";
-  scope_id: string;
-  service: string;
-  stream_name: string;
-}> {
-  const row = await loadHostForStartStop(id, account_id);
+  input: any;
+  dedupe_key?: string;
+}): Promise<HostLroResponse> {
   const op = await createLro({
-    kind: HOST_START_LRO_KIND,
+    kind,
     scope_type: "host",
     scope_id: row.id,
     created_by: account_id,
     routing: "hub",
-    input: { id: row.id, account_id },
-    dedupe_key: `${HOST_START_LRO_KIND}:${row.id}`,
+    input,
+    dedupe_key,
     status: "queued",
   });
   await publishLroSummary({
@@ -649,7 +656,7 @@ export async function startHost({
       phase: "queued",
       message: "queued",
       progress: 0,
-      detail: { id: row.id },
+      detail: input,
     },
   }).catch(() => {});
   return {
@@ -658,7 +665,25 @@ export async function startHost({
     scope_id: row.id,
     service: PERSIST_SERVICE,
     stream_name: lroStreamName(op.op_id),
+    kind,
   };
+}
+
+export async function startHost({
+  account_id,
+  id,
+}: {
+  account_id?: string;
+  id: string;
+}): Promise<HostLroResponse> {
+  const row = await loadHostForStartStop(id, account_id);
+  return await createHostLro({
+    kind: HOST_START_LRO_KIND,
+    row,
+    account_id,
+    input: { id: row.id, account_id },
+    dedupe_key: `${HOST_START_LRO_KIND}:${row.id}`,
+  });
 }
 
 export async function startHostInternal({
@@ -719,6 +744,23 @@ export async function stopHost({
 }: {
   account_id?: string;
   id: string;
+}): Promise<HostLroResponse> {
+  const row = await loadHostForStartStop(id, account_id);
+  return await createHostLro({
+    kind: HOST_STOP_LRO_KIND,
+    row,
+    account_id,
+    input: { id: row.id, account_id },
+    dedupe_key: `${HOST_STOP_LRO_KIND}:${row.id}`,
+  });
+}
+
+export async function stopHostInternal({
+  account_id,
+  id,
+}: {
+  account_id?: string;
+  id: string;
 }): Promise<Host> {
   const row = await loadHostForStartStop(id, account_id);
   const metadata = row.metadata ?? {};
@@ -752,6 +794,25 @@ export async function stopHost({
 }
 
 export async function restartHost({
+  account_id,
+  id,
+  mode,
+}: {
+  account_id?: string;
+  id: string;
+  mode?: "reboot" | "hard";
+}): Promise<HostLroResponse> {
+  const row = await loadHostForStartStop(id, account_id);
+  return await createHostLro({
+    kind: HOST_RESTART_LRO_KIND,
+    row,
+    account_id,
+    input: { id: row.id, account_id, mode },
+    dedupe_key: `${HOST_RESTART_LRO_KIND}:${row.id}:${mode ?? "reboot"}`,
+  });
+}
+
+export async function restartHostInternal({
   account_id,
   id,
   mode,
@@ -823,6 +884,27 @@ export async function forceDeprovisionHost({
 }: {
   account_id?: string;
   id: string;
+}): Promise<HostLroResponse> {
+  const row = await loadOwnedHost(id, account_id);
+  const machineCloud = normalizeProviderId(row.metadata?.machine?.cloud);
+  if (machineCloud !== "self-host") {
+    throw new Error("force deprovision is only supported for self-hosted VMs");
+  }
+  return await createHostLro({
+    kind: HOST_FORCE_DEPROVISION_LRO_KIND,
+    row,
+    account_id,
+    input: { id: row.id, account_id },
+    dedupe_key: `${HOST_FORCE_DEPROVISION_LRO_KIND}:${row.id}`,
+  });
+}
+
+export async function forceDeprovisionHostInternal({
+  account_id,
+  id,
+}: {
+  account_id?: string;
+  id: string;
 }): Promise<void> {
   const row = await loadOwnedHost(id, account_id);
   const machineCloud = normalizeProviderId(row.metadata?.machine?.cloud);
@@ -833,6 +915,27 @@ export async function forceDeprovisionHost({
 }
 
 export async function removeSelfHostConnector({
+  account_id,
+  id,
+}: {
+  account_id?: string;
+  id: string;
+}): Promise<HostLroResponse> {
+  const row = await loadOwnedHost(id, account_id);
+  const machineCloud = normalizeProviderId(row.metadata?.machine?.cloud);
+  if (machineCloud !== "self-host") {
+    throw new Error("host is not self-hosted");
+  }
+  return await createHostLro({
+    kind: HOST_REMOVE_CONNECTOR_LRO_KIND,
+    row,
+    account_id,
+    input: { id: row.id, account_id },
+    dedupe_key: `${HOST_REMOVE_CONNECTOR_LRO_KIND}:${row.id}`,
+  });
+}
+
+export async function removeSelfHostConnectorInternal({
   account_id,
   id,
 }: {
@@ -1265,6 +1368,27 @@ export async function upgradeHostSoftware({
 }
 
 export async function deleteHost({
+  account_id,
+  id,
+}: {
+  account_id?: string;
+  id: string;
+}): Promise<HostLroResponse> {
+  const row = await loadOwnedHost(id, account_id);
+  const kind =
+    row.status === "deprovisioned"
+      ? HOST_DELETE_LRO_KIND
+      : HOST_DEPROVISION_LRO_KIND;
+  return await createHostLro({
+    kind,
+    row,
+    account_id,
+    input: { id: row.id, account_id },
+    dedupe_key: `${kind}:${row.id}`,
+  });
+}
+
+export async function deleteHostInternal({
   account_id,
   id,
 }: {
