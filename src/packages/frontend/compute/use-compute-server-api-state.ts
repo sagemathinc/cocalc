@@ -50,7 +50,6 @@ export default function useComputeServerApiState({
       currentRef.current.compute_server_id == compute_server_id;
     const projectApi = webapp_client.conat_client.projectApi({
       project_id,
-      compute_server_id,
     });
     (async () => {
       await until(

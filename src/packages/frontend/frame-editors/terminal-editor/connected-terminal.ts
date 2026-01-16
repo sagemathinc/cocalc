@@ -382,7 +382,6 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
       const pty = webapp_client.conat_client.terminalClient({
         project_id: this.project_id,
-        compute_server_id: 0,
         getSize: () => {
           if (this.is_visible) {
             return this.fitAddon.proposeDimensions();

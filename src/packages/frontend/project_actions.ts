@@ -13,10 +13,6 @@ import { isEqual, throttle } from "lodash";
 import { basename, dirname, join } from "path";
 import { defineMessage } from "react-intl";
 import type { IconName } from "@cocalc/frontend/components/icon";
-import {
-  computeServerManager,
-  type ComputeServerManager,
-} from "@cocalc/conat/compute/manager";
 import { get as getProjectStatus } from "@cocalc/conat/project/project-status";
 import { default_filename } from "@cocalc/frontend/account";
 import { alert_message } from "@cocalc/frontend/alerts";
@@ -27,8 +23,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import { initChat } from "@cocalc/frontend/chat/register";
-import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
-import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
 import {
@@ -40,7 +34,6 @@ import {
   download_file,
   open_new_tab,
   open_popup_window,
-  set_local_storage,
 } from "@cocalc/frontend/misc";
 import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import * as project_file from "@cocalc/frontend/project-file";
@@ -305,7 +298,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // these are all potentially expensive
   public open_files?: OpenFiles;
-  private computeServerManager?: ComputeServerManager;
   private projectStatusSub?;
   private copyOpsManager: CopyOpsManager;
   private startOpsManager: StartOpsManager;
@@ -417,8 +409,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (this.initialized) return;
     // console.log("initExpensive", this.project_id);
     this.initialized = true;
-    this.initComputeServerManager();
-    this.initComputeServersTable();
     this.initProjectStatus();
     this.copyOpsManager.init();
     this.startOpsManager.init();
@@ -434,8 +424,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // console.log("closeExpensive", this.project_id);
     this.initialized = false;
     redux.removeProjectReferences(this.project_id);
-    this.closeComputeServerManager();
-    this.closeComputeServerTable();
     this.copyOpsManager.close();
     this.startOpsManager.close();
     this.moveOpsManager.close();
@@ -486,7 +474,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.open_files?.close();
     delete this.open_files;
     this.state = "closed";
-    this._filesystem = {};
+    this.filesystem = undefined;
   };
 
   private save_session(): void {
@@ -501,12 +489,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // using this project and wakes up the project.
   // This resets the idle timeout, among other things.
   // This is throttled, so multiple calls are spaced out.
-  touch = async (compute_server_id?: number): Promise<void> => {
+  touch = async (): Promise<void> => {
     try {
-      await webapp_client.project_client.touch_project(
-        this.project_id,
-        compute_server_id,
-      );
+      await webapp_client.project_client.touch_project(this.project_id);
     } catch (err) {
       // nonfatal.
       console.warn(`unable to touch ${this.project_id} -- ${err}`);
@@ -1142,7 +1127,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   open_file = async (opts: OpenFileOpts): Promise<void> => {
     // Log that we *started* opening the file.
     log_file_open(this.project_id, opts.path);
-    await this.waitUntilComputeServersKnown();
     if (this.state == "closed") return;
     await open_file(this, opts);
   };
@@ -1547,23 +1531,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   };
 
-  setComputeServerId = (_compute_server_id: number) => {
-    void _compute_server_id;
-    const compute_server_id = 0;
-    const store = this.get_store();
-    if (store == null) return;
-    if (store.get("compute_server_id") == compute_server_id) {
-      // already set
-      return;
-    }
-    this.setState({
-      compute_server_id,
-      checked_files: store.get("checked_files").clear(), // always clear on compute_server_id change
-    });
-    set_local_storage(
-      store.computeServerIdLocalStorageKey,
-      `${compute_server_id}`,
-    );
+  setComputeServerId = (_computeServerId: number) => {
+    void _computeServerId;
   };
 
   // sets the side chat compute server id properly for the given path.
@@ -1876,20 +1845,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   private appendSlashToDirectoryPaths = async (
     paths: string[],
-    compute_server_id?: number,
   ): Promise<string[]> => {
     const f = async (path: string) => {
       if (path.endsWith("/")) {
         return path;
       }
-      const isDir = this.isDirViaCache(path, compute_server_id);
+      const isDir = this.isDirViaCache(path);
       if (isDir === false) {
         return path;
       }
       if (isDir === true) {
         return path + "/";
       }
-      if (await this.isDir(path, compute_server_id)) {
+      if (await this.isDir(path)) {
         return path + "/";
       } else {
         return path;
@@ -2200,27 +2168,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     dest,
     id,
     only_contents,
-    src_compute_server_id = this.get_store()?.get("compute_server_id") ?? 0,
-    dest_compute_server_id = this.get_store()?.get("compute_server_id") ?? 0,
   }: {
     src: string[];
     dest: string;
     id?: string;
     only_contents?: boolean;
-    // defaults to the currently selected compute server
-    src_compute_server_id?: number;
-    // defaults to the currently selected compute server
-    dest_compute_server_id?: number;
-    // NOTE: right now src_compute_server_id and dest_compute_server_id
-    // must be the same or one of them must be 0.  We don't implement
-    // copying directly from one compute server to another.
   }) => {
-    src_compute_server_id = 0;
-    dest_compute_server_id = 0;
-    const withSlashes = await this.appendSlashToDirectoryPaths(
-      src,
-      src_compute_server_id,
-    );
+    const withSlashes = await this.appendSlashToDirectoryPaths(src);
 
     this.log({
       event: "file_action",
@@ -2228,14 +2182,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       files: withSlashes,
       count: src.length,
       dest: dest + (only_contents ? "" : "/"),
-      ...(src_compute_server_id != dest_compute_server_id
-        ? {
-            src_compute_server_id: src_compute_server_id,
-            dest_compute_server_id: dest_compute_server_id,
-          }
-        : src_compute_server_id
-          ? { compute_server_id: src_compute_server_id }
-          : undefined),
     });
 
     if (only_contents) {
@@ -2260,46 +2206,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       )} to ${dest}`,
     });
 
-    if (src_compute_server_id != dest_compute_server_id) {
-      // Copying from/to a compute server from/to a project.  This uses
-      // an api, which behind the scenes uses lz4 compression and tar
-      // proxied via a websocket, but no use of rsync or ssh.
-
-      // do it.
-      try {
-        const api = await this.api();
-        if (src_compute_server_id) {
-          // from compute server to project
-          await api.copyFromComputeServerToHomeBase({
-            compute_server_id: src_compute_server_id,
-            paths: src,
-            dest: dest,
-            timeout: 60 * 15 * 1000,
-          });
-        } else if (dest_compute_server_id) {
-          // from project to compute server
-          await api.copyFromHomeBaseToComputeServer({
-            compute_server_id: dest_compute_server_id,
-            paths: src,
-            dest: dest,
-            timeout: 60 * 15 * 1000,
-          });
-        } else {
-          // Not implemented between two distinct compute servers yet.
-          throw Error(
-            "copying directly between compute servers is not yet implemented",
-          );
-        }
-        this._finish_exec(id)();
-      } catch (err) {
-        this._finish_exec(id)(`${err}`);
-      }
-
-      return;
-    }
-
-    // Copying directly on project or on compute server.
-    const fs = this.fs(src_compute_server_id);
+    const fs = this.fs();
     try {
       await fs.cp(src, dest, { recursive: true, reflink: true });
       this._finish_exec(id)();
@@ -2329,7 +2236,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const resp =
         await webapp_client.project_client.copyPathBetweenProjects(opts);
       this.copyOpsManager.track(resp);
-      const withSlashes = await this.appendSlashToDirectoryPaths(files, 0);
+      const withSlashes = await this.appendSlashToDirectoryPaths(files);
       this.log({
         event: "file_action",
         action: "copied",
@@ -2348,25 +2255,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   renameFile = async ({
     src,
     dest,
-    compute_server_id,
   }: {
     src: string;
     dest: string;
-    compute_server_id?: number;
   }): Promise<void> => {
     let error: any = undefined;
     const id = misc.uuid();
     const status = `Renaming ${src} to ${dest}`;
     this.set_activity({ id, status });
     try {
-      const fs = this.fs(compute_server_id);
+      const fs = this.fs();
       await fs.rename(src, dest);
       this.log({
         event: "file_action",
         action: "renamed",
         src,
         dest: dest + ((await this.isDir(dest)) ? "/" : ""),
-        compute_server_id,
       });
     } catch (err) {
       error = err;
@@ -2377,18 +2281,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   // note: there is no need to explicitly close or await what is returned by
   // fs(...) since it's just a lightweight wrapper object to format appropriate RPC calls.
-  private _filesystem: { [compute_server_id: number]: FilesystemClient } = {};
-  fs = (_compute_server_id?: number): FilesystemClient => {
-    void _compute_server_id;
-    const normalizedComputeServerId = 0;
-    this._filesystem[normalizedComputeServerId] ??= webapp_client.conat_client
+  private filesystem?: FilesystemClient;
+  fs = (): FilesystemClient => {
+    this.filesystem ??= webapp_client.conat_client
       .conat()
-      .fs({ project_id: this.project_id, compute_server_id: 0 });
-    return this._filesystem[normalizedComputeServerId];
+      .fs({ project_id: this.project_id });
+    return this.filesystem;
   };
 
-  dust = async (path: string, _compute_server_id?: number) => {
-    void _compute_server_id;
+  dust = async (path: string) => {
     return await dust({ project_id: this.project_id, path });
   };
 
@@ -2407,34 +2308,27 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return this.getFilesCache(path);
   };
 
-  getCacheId = (_compute_server_id?: number) => {
-    void _compute_server_id;
+  getCacheId = () => {
     return getCacheId({
       project_id: this.project_id,
     });
   };
 
-  private getFilesCache = (
-    path: string,
-    compute_server_id?: number,
-  ): Files | null => {
+  private getFilesCache = (path: string): Files | null => {
     return getFiles({
-      cacheId: this.getCacheId(compute_server_id),
+      cacheId: this.getCacheId(),
       path: path == "." ? "" : path,
     });
   };
 
   // using listings cache, attempt to tell if path is a directory;
   // undefined if no data about path in the cache.
-  isDirViaCache = (
-    path: string,
-    compute_server_id?: number,
-  ): boolean | undefined => {
+  isDirViaCache = (path: string): boolean | undefined => {
     if (!path) {
       return true;
     }
     const { head: dir, tail: base } = misc.path_split(path);
-    const files = this.getFilesCache(dir, compute_server_id);
+    const files = this.getFilesCache(dir);
     const data = files?.[base];
     if (data == null) {
       return undefined;
@@ -2446,23 +2340,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // return true if exists and is a directory
   // error if doesn't exist or can't find out.
   // Use isDirViaCache for more of a fast hint.
-  isDir = async (
-    path: string,
-    compute_server_id?: number,
-  ): Promise<boolean> => {
+  isDir = async (path: string): Promise<boolean> => {
     if (path == "") return true; // easy special case
-    const stats = await this.fs(compute_server_id).stat(path);
+    const stats = await this.fs().stat(path);
     return stats.isDirectory();
   };
 
   moveFiles = async ({
     src,
     dest,
-    compute_server_id,
   }: {
     src: string[];
     dest: string;
-    compute_server_id?: number;
   }): Promise<void> => {
     const id = misc.uuid();
     const status = `Moving ${src.length} ${misc.plural(
@@ -2472,7 +2361,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status });
     let error: any = undefined;
     try {
-      const fs = this.fs(compute_server_id);
+      const fs = this.fs();
       await Promise.all(
         src.map(async (path) =>
           fs.move(path, join(dest, basename(path)), { overwrite: true }),
@@ -2483,7 +2372,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         action: "moved",
         files: src,
         dest: dest + "/" /* target is assumed to be a directory */,
-        compute_server_id,
       });
     } catch (err) {
       error = err;
@@ -2494,10 +2382,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
   deleteFiles = async ({
     paths,
-    compute_server_id,
   }: {
     paths: string[];
-    compute_server_id?: number;
   }): Promise<void> => {
     if (paths.length == 0) {
       // nothing to do
@@ -2534,7 +2420,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
       }
       if (nonSnapshotPaths.length > 0) {
-        const fs = this.fs(compute_server_id);
+        const fs = this.fs();
         await fs.rm(nonSnapshotPaths, { force: true, recursive: true });
       }
 
@@ -2542,7 +2428,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         event: "file_action",
         action: "deleted",
         files: paths,
-        compute_server_id,
       });
       this.set_activity({
         id,
@@ -2567,14 +2452,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     path,
     filter,
     recursive,
-    compute_server_id,
   }: {
     path: string;
     filter: (path: string) => boolean;
     recursive?: boolean;
-    compute_server_id?: number;
   }): Promise<string[]> => {
-    const fs = this.fs(compute_server_id);
+    const fs = this.fs();
     const options: string[] = ["-H", "-I"];
     if (!recursive) {
       options.push("-d", "1");
@@ -2587,7 +2470,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       .map((p) => join(path, p))
       .filter(filter);
     if (paths.length > 0) {
-      await this.deleteFiles({ paths, compute_server_id });
+      await this.deleteFiles({ paths });
     }
     return paths;
   };
@@ -2597,16 +2480,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     log = false,
     auto = true,
     print = false,
-    compute_server_id,
   }: {
     path: string;
     log?: boolean | string[];
     auto?: boolean;
     print?: boolean;
-    compute_server_id?: number;
   }): Promise<void> => {
     let url;
-    compute_server_id = this.getComputeServerId(compute_server_id);
     if (
       !(await ensure_project_running(
         this.project_id,
@@ -2675,16 +2555,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     name,
     current_path,
     switch_over = true,
-    compute_server_id,
   }: {
     name: string;
     current_path?: string;
     // Whether or not to switch to the new folder (default: true)
     switch_over?: boolean;
-    compute_server_id?: number;
   }): Promise<void> => {
     const path = current_path ? join(current_path, name) : name;
-    const fs = this.fs(compute_server_id);
+    const fs = this.fs();
     try {
       await fs.mkdir(path, { recursive: true });
     } catch (err) {
@@ -2702,13 +2580,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     ext,
     current_path,
     switch_over = true,
-    compute_server_id,
   }: {
     name: string;
     ext?: string;
     current_path?: string;
     switch_over?: boolean;
-    compute_server_id?: number;
   }) => {
     this.setState({ file_creation_error: undefined }); // clear any create file display state
     if ((name === ".." || name === ".") && ext == null) {
@@ -2727,7 +2603,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this.createFolder({
           name,
           current_path,
-          compute_server_id,
         });
         return;
       } else {
@@ -2759,8 +2634,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
     }
     const content = getFileTemplate(ext);
-    await this.ensureContainingDirectoryExists(path, compute_server_id);
-    const fs = this.fs(compute_server_id);
+    await this.ensureContainingDirectoryExists(path);
+    const fs = this.fs();
     try {
       await fs.writeFile(path, content);
     } catch (err) {
@@ -2776,11 +2651,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (switch_over) {
       this.open_file({
         path,
-        // so opens on current compute server, and because switch_over is only something
+        // so opens immediately, since switch_over is only something
         // we do when user is explicitly opening the file
         explicit: true,
         foreground: true,
-        compute_server_id,
       });
     }
   };
@@ -3100,26 +2974,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.hide_file(misc.tab_to_path(a));
   }
 
-  ensureContainingDirectoryExists = async (
-    path: string,
-    compute_server_id?: number,
-  ) => {
-    await this.ensureDirectoryExists(dirname(path), compute_server_id);
+  ensureContainingDirectoryExists = async (path: string) => {
+    await this.ensureDirectoryExists(dirname(path));
   };
 
-  ensureDirectoryExists = async (
-    path: string,
-    compute_server_id?: number,
-  ): Promise<void> => {
-    compute_server_id = this.getComputeServerId(compute_server_id);
-    const v = this.getFilesCache(dirname(path), compute_server_id);
+  ensureDirectoryExists = async (path: string): Promise<void> => {
+    const v = this.getFilesCache(dirname(path));
     if (v?.[basename(path)]) {
       // already exists
       return;
     }
     // create it -- just make it and if it already exists, not an error
     // (this avoids race conditions and is the right way)
-    const fs = this.fs(compute_server_id);
+    const fs = this.fs();
     try {
       await fs.mkdir(path, { recursive: true });
     } catch (err) {
@@ -3199,22 +3066,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  getComputeServerId = (_id?: number): number => {
-    void _id;
-    return 0;
-  };
+  showComputeServers = () => {};
 
-  showComputeServers = () => {
-    this.setServerTab("compute-servers");
-  };
+  createComputeServerDialog = () => {};
 
-  createComputeServerDialog = () => {
-    this.setState({ create_compute_server: true });
-    this.showComputeServers();
-  };
-
-  setServerTab = (name: TabName) => {
-    setServerTab(this.project_id, name);
+  setServerTab = (_name: string) => {
     this.set_active_tab("servers", {
       change_history: true,
     });
@@ -3243,7 +3099,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     try {
       this.projectStatusSub = await getProjectStatus({
         project_id: this.project_id,
-        compute_server_id: 0,
       });
     } catch (err) {
       // happens if you open a project you are not a collab on
@@ -3254,118 +3109,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       const status = mesg.data;
       this.setState({ status });
     }
-  };
-
-  private initComputeServersTable = () => {
-    // table of information about all the compute servers in this project
-    computeServers.init(this.project_id);
-  };
-
-  private closeComputeServerTable = () => {
-    computeServers.close(this.project_id);
-  };
-
-  private initComputeServerManager = () => {
-    // console.log("initComputeServerManager");
-    if (this.state == "closed") {
-      return;
-    }
-    // table mapping paths to the id of the compute server it is hosted on
-    this.computeServerManager = computeServerManager({
-      project_id: this.project_id,
-    });
-    this.computeServerManager.once("connected", () => {
-      if (this.state == "closed" || this.computeServerManager == null) {
-        return;
-      }
-      const compute_server_ids = {
-        ...this.computeServerManager.getAll(),
-      } as any;
-      for (const path in compute_server_ids) {
-        compute_server_ids[path] = compute_server_ids[path].id;
-      }
-      this.setState({ compute_server_ids });
-    });
-    this.computeServerManager.on(
-      "change",
-      this.handleComputeServerManagerChange,
-    );
-  };
-
-  // Wait until we know what compute servers all paths are
-  // currently assigned to (or closed), so it's safe to open
-  // files.  Otherwise, we might try to open a file on the home
-  // base when it's supposed to be opened on a compute server.
-  private computeServersKnown = false;
-  waitUntilComputeServersKnown = reuseInFlight(async () => {
-    if (this.computeServersKnown) return;
-    await until(async () => {
-      const store = this.get_store();
-      if (store?.get("compute_server_ids") || this.state == "closed") {
-        return true;
-      }
-      try {
-        this.initExpensive();
-        if (store) {
-          await once(store, "change");
-        }
-      } catch {
-        // closed
-        return true;
-      }
-      return false;
-    });
-    this.computeServersKnown = true;
-  });
-
-  private closeComputeServerManager = () => {
-    // console.log("closeComputeServerManager");
-    if (this.computeServerManager == null) {
-      return;
-    }
-    this.computeServerManager.removeListener(
-      "change",
-      this.handleComputeServerManagerChange,
-    );
-    this.computeServerManager.close();
-    delete this.computeServerManager;
-  };
-
-  computeServers = () => {
-    return this.computeServerManager;
-  };
-
-  private handleComputeServerManagerChange = ({ path, id }) => {
-    const store = this.get_store();
-    if (store == undefined) return;
-    const compute_servers_ids: any =
-      store.get("compute_server_ids") ?? fromJS({});
-    this.setState({ compute_server_ids: compute_servers_ids.set(path, id) });
-  };
-
-  // undefined if not specified or not known
-  getComputeServerIdForFile = (_path: string): number | undefined => {
-    void _path;
-    return 0;
-  };
-
-  // In case of confirmation, returns true on success or false if user says "no"
-  // Also, no matter what, we NEVER explicitly request confirmation if the
-  // file doesn't involve backend state that could be reset, e.g., we basically
-  // only confirm for terminals and jupyter notebooks.
-  setComputeServerIdForFile = async ({
-    path: _path,
-    compute_server_id: _compute_server_id,
-    confirm: _confirm,
-  }: {
-    path: string;
-    compute_server_id?: number;
-    confirm?: boolean;
-  }): Promise<boolean> => {
-    void _path;
-    void _compute_server_id;
-    void _confirm;
-    return true;
   };
 
   projectApi = (opts?) => {

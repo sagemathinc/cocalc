@@ -91,7 +91,7 @@ export interface WebappClient extends EventEmitter {
   pubsub_conat: Function;
   prettier: Function;
   exec: Function;
-  touch_project: (project_id: string, compute_server_id?: number) => void;
+  touch_project: (project_id: string) => void;
   log_error: (any) => void;
   user_tracking: Function;
   send: Function;
@@ -166,7 +166,7 @@ class Client extends EventEmitter implements WebappClient {
   pubsub_conat: Function;
   prettier: Function;
   exec: Function;
-  touch_project: (project_id: string, compute_server_id?: number) => void;
+  touch_project: (project_id: string) => void;
 
   log_error: (any) => void;
   user_tracking: Function;

@@ -36,11 +36,10 @@ export class Listings extends EventEmitter {
   private listingsClient?: ListingsClient;
   private api: ListingsApi;
 
-  constructor(project_id: string, compute_server_id: number = 0) {
+  constructor(project_id: string) {
     super();
-    void compute_server_id;
     this.project_id = project_id;
-    this.api = createListingsApiClient({ project_id, compute_server_id: 0 });
+    this.api = createListingsApiClient({ project_id });
     this.init();
   }
 
@@ -51,7 +50,6 @@ export class Listings extends EventEmitter {
       try {
         this.listingsClient = await listingsClient({
           project_id: this.project_id,
-          compute_server_id: 0,
         });
         // success!
         return;
@@ -242,10 +240,6 @@ export class Listings extends EventEmitter {
   };
 }
 
-export function listings(
-  project_id: string,
-  compute_server_id: number = 0,
-): Listings {
-  void compute_server_id;
-  return new Listings(project_id, 0);
+export function listings(project_id: string): Listings {
+  return new Listings(project_id);
 }

@@ -35,7 +35,6 @@ jest.mock(
     lite: false,
     project_id: "",
     account_id: "",
-    compute_server_id: 0,
   }),
   { virtual: true },
 );

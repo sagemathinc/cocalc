@@ -189,7 +189,6 @@ export interface CustomizeState {
   lite?: boolean;
   account_id?: string;
   project_id?: string;
-  compute_server_id?: number;
   remote_sync?: boolean;
 }
 

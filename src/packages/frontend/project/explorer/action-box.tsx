@@ -318,8 +318,6 @@ export function ActionBox({
       actions.copyPaths({
         src: paths,
         dest: destination_directory,
-        src_compute_server_id: 0,
-        dest_compute_server_id: 0,
       });
     }
 
@@ -330,13 +328,9 @@ export function ActionBox({
     const src_path = misc.path_split(checked_files.first()).head;
     const input = copy_destination_directory;
 
-    const src_compute_server_id = 0;
-    const dest_compute_server_id = 0;
-
     if (
       input === src_path &&
-      project_id === copy_destination_project_id &&
-      src_compute_server_id == dest_compute_server_id
+      project_id === copy_destination_project_id
     ) {
       return false;
     }
@@ -345,8 +339,7 @@ export function ActionBox({
     }
     if (
       input === current_path &&
-      project_id === copy_destination_project_id &&
-      src_compute_server_id == dest_compute_server_id
+      project_id === copy_destination_project_id
     ) {
       return false;
     }

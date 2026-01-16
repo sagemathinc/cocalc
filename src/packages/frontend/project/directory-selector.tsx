@@ -191,7 +191,7 @@ function SelectablePath({
       }
       try {
         const actions = redux.getProjectActions(project_id);
-        const fs = actions.fs(0);
+        const fs = actions.fs();
         const { head } = path_split(path);
         await fs.rename(join(head, tail), join(head, editedTail));
         setEditedTail(null);
@@ -457,7 +457,7 @@ function CreateDirectory({
     if (!value?.trim()) return;
     try {
       const actions = redux.getProjectActions(project_id);
-      const fs = actions.fs(0);
+      const fs = actions.fs();
       await fs.mkdir(join(path, value));
       toggleSelection(join(path, value));
     } catch (err) {
@@ -510,6 +510,6 @@ export async function pathExists(
   path: string,
 ): Promise<boolean> {
   const actions = redux.getProjectActions(project_id);
-  const fs = actions.fs(0);
+  const fs = actions.fs();
   return await fs.exists(path);
 }

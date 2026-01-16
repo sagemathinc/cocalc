@@ -28,7 +28,6 @@ const getKernelSpec = reuseInFlight(
     }
     const api = webapp_client.conat_client.projectApi({
       project_id,
-      compute_server_id: 0,
       timeout: 7500,
     });
     const spec = await api.jupyter.kernels();

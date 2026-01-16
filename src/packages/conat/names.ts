@@ -120,7 +120,7 @@ export function streamSubject({
 export function projectSubject({
   service,
   project_id,
-  compute_server_id,
+  compute_server_id = 0,
   // path = optional name of specific path for that microservice -- replaced by its base64 encoding
   path,
 }: {

@@ -183,7 +183,6 @@ export type FileActionEvent =
       action: "renamed";
       src: string;
       dest: string;
-      compute_server_id?: number;
     }
   | ((
       | { action: "deleted" }
@@ -191,8 +190,6 @@ export type FileActionEvent =
       | { action: "moved" }
       | {
           action: "copied";
-          src_compute_server_id?: number;
-          dest_compute_server_id?: number;
         }
       | { action: "shared" }
       | { action: "uploaded"; file: string }
@@ -203,7 +200,6 @@ export type FileActionEvent =
       count?: number;
       project?: string;
       dest?: string;
-      compute_server_id?: number;
     });
 
 export type PublicPathEvent = {

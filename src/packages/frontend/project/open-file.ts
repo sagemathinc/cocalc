@@ -151,7 +151,7 @@ export async function open_file(
   }
 
   try {
-    const fs = actions.fs(0);
+    const fs = actions.fs();
     // cocalc assumes the path is not a symlink
     const realpath = await fs.realpath(opts.path);
     if (!tabIsOpened()) {

@@ -158,12 +158,6 @@ export interface ProjectStoreState {
   create_compute_server?: boolean;
   create_compute_server_template_id?: number;
 
-  // Default compute server id to use when browsing and
-  // working with files.
-  compute_server_id: number;
-  // Map from path to the id of the compute server that the file is supposed to opened on right now.
-  compute_server_ids?: TypedMap<{ [path: string]: number }>;
-
   // while true, explorer keyhandler will not be enabled
   disableExplorerKeyhandler?: boolean;
 
@@ -177,7 +171,6 @@ export interface ProjectStoreState {
 export class ProjectStore extends Store<ProjectStoreState> {
   public project_id: string;
   private previous_runstate: string | undefined;
-  public readonly computeServerIdLocalStorageKey: string;
 
   // Function to call to initialize one of the tables in this store.
   // This is purely an optimization, so project_log, project_log_all and public_paths
@@ -193,7 +186,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
   constructor(name: string, _redux) {
     super(name, _redux);
     this.project_id = name.slice("project-".length);
-    this.computeServerIdLocalStorageKey = `project-compute-server-id-${this.project_id}`;
     this._projects_store_change = this._projects_store_change.bind(this);
     this.setup_selectors();
   }
@@ -271,7 +263,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
         QueryParams.remove("compute-server-template");
       }
     }
-    const compute_server_id = 0;
     return {
       // Shared
       current_path: "",
@@ -316,11 +307,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       // Project Settings
       other_settings: undefined,
 
-      compute_server_id,
       create_compute_server,
       create_compute_server_template_id,
-      // compute_server_ids -- starts out NOT set so we know the data is NOT known:
-      compute_server_ids: undefined,
     };
   };
 
@@ -356,12 +344,10 @@ export class ProjectStore extends Store<ProjectStoreState> {
     return this.getIn(["open_files", path]) != null;
   };
 
-  fileURL = (path, compute_server_id?: number) => {
-    void compute_server_id;
+  fileURL = (path) => {
     return fileURL({
       project_id: this.project_id,
       path,
-      compute_server_id: 0,
     });
   };
 

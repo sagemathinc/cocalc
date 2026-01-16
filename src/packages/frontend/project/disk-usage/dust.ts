@@ -24,7 +24,7 @@ export default async function dust({
   if (cache && dustCache.has(k)) {
     return dustCache.get(k);
   }
-  const fs = redux.getProjectActions(project_id).fs(0);
+  const fs = redux.getProjectActions(project_id).fs();
   const { stdout, stderr, code } = await fs.dust(path, {
     options: ["-j", "-x", "-d", "1", "-s", "-o", "b"],
     timeout: 3000,

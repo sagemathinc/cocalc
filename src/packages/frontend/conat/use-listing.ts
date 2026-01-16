@@ -5,8 +5,8 @@ This is NOT used yet, but seems like the right way to do directly listings in a 
 clean dynamic way.  It would be used like this:
 
 import useListing from "@cocalc/frontend/conat/use-listing";
-function ListingTest({ path, compute_server_id }) {
-  const listing = useListing({ path, compute_server_id });
+function ListingTest({ path }) {
+  const listing = useListing({ path });
   return <div>{JSON.stringify(listing)}</div>;
 }
 
@@ -23,12 +23,9 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 
 export default function useListing({
   path = "",
-  compute_server_id = 0,
 }: {
   path: string;
-  compute_server_id: number;
 }): Listing | undefined {
-  void compute_server_id;
   const { project_id } = useProjectContext();
   const [listing, setListing] = useState<Listing | undefined>(undefined);
   const listingsRef = useRef<undefined | ListingsClient>(undefined);
@@ -41,7 +38,6 @@ export default function useListing({
     }
     listingsRef.current = await listingsClient({
       project_id,
-      compute_server_id: 0,
     });
     const handleChange = (path) => {
       if (path == pathRef.current) {

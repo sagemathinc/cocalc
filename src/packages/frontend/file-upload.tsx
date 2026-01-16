@@ -122,9 +122,7 @@ function Header({ close_preview }: { close_preview?: Function }) {
 function postUrl(
   project_id: string,
   path: string,
-  compute_server_id?: number,
 ): string {
-  void compute_server_id;
   if (!project_id) {
     return join(appBasePath, "blobs");
   }
@@ -132,11 +130,6 @@ function postUrl(
     appBasePath,
     `upload?project_id=${project_id}&path=${encodeURIComponent(path)}`,
   );
-  //   return join(
-  //     appBasePath,
-  //     project_id,
-  //     `raw/.smc/upload?dest_dir=${dest_dir}&compute_server_id=${compute_server_id}`,
-  //   );
 }
 
 interface FileUploadProps {

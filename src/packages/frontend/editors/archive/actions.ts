@@ -96,10 +96,8 @@ export class ArchiveActions extends Actions<State> {
 
   private exec = async (opts) => {
     const { project_id } = this;
-    const compute_server_id = 0;
     return await webapp_client.exec({
       filesystem: true,
-      compute_server_id,
       project_id,
       ...opts,
     });

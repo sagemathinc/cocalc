@@ -186,12 +186,12 @@ function getImage(project) {
   return image ? image : DEFAULT_PROJECT_IMAGE;
 }
 
-async function getImages(project_id: string, compute_server_id = 0) {
+async function getImages(project_id: string) {
   // [ ] TODO: this should really be the fs in the sandbox that runs on the file-server ALWAYS
   // but I don't have a way to express that yet.
-  const fs = redux.getProjectActions(project_id).fs(0);
+  const fs = redux.getProjectActions(project_id).fs();
   const { stdout } = await fs.fd(
-    join(PROJECT_IMAGE_PATH, `${compute_server_id}`),
+    join(PROJECT_IMAGE_PATH, "0"),
     {
       options: ["-E", "workdir", "-E", "upperdir"],
     },

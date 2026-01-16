@@ -38,7 +38,7 @@ export class PDFWatcher {
 
   async init(): Promise<void> {
     try {
-      this.directory_listings = listings(this.project_id, 0);
+      this.directory_listings = listings(this.project_id);
       await this.directory_listings.watch(this.watch_dir);
 
       // Get initial mtime

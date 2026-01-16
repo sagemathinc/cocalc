@@ -10,16 +10,13 @@ import { encode_path } from "@cocalc/util/misc";
 // that you collaborate on.
 export function fileURL({
   project_id,
-  compute_server_id,
   path,
   param,
 }: {
   project_id: string;
   path: string;
-  compute_server_id?: number;
   param?: string;
 }): string {
-  void compute_server_id;
   let url = join(appBasePath, project_id, "files", encode_path(path));
   if (param) {
     url += "?" + param;

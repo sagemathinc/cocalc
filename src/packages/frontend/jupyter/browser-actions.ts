@@ -224,7 +224,6 @@ export class JupyterActions extends JupyterActions0 {
       try {
         const kernel_usage = await getUsageInfo({
           project_id: this.project_id,
-          compute_server_id: 0,
           path: this.path,
         });
         if (this._state == ("closed" as any)) return;
@@ -1408,10 +1407,7 @@ export class JupyterActions extends JupyterActions0 {
   // functionality.
 
   private jupyterApi = async () => {
-    const api = webapp_client.project_client.conatApi(
-      this.project_id,
-      0,
-    );
+    const api = webapp_client.project_client.conatApi(this.project_id);
     return api.jupyter;
   };
 
@@ -1512,7 +1508,6 @@ export class JupyterActions extends JupyterActions0 {
       path: this.syncdbPath,
       client: webapp_client.conat_client.conat(),
       project_id: this.project_id,
-      compute_server_id: 0,
       stdin: async ({ id, prompt, password }) => {
         // set the redux store so that it is known we would like some stdin,
         // wait for the user to respond, and return the result.
@@ -1943,7 +1938,7 @@ export class JupyterActions extends JupyterActions0 {
   };
 
   signal = async (signal = "SIGINT"): Promise<void> => {
-    const api = webapp_client.project_client.conatApi(this.project_id, 0);
+    const api = webapp_client.project_client.conatApi(this.project_id);
     try {
       await api.jupyter.signal({ path: this.path, signal });
     } catch {}

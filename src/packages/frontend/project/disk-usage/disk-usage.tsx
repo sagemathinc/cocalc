@@ -113,7 +113,7 @@ export default function DiskUsage({
                         style={{ flex: 1 }}
                         onClick={async () => {
                           const actions = redux.getProjectActions(project_id);
-                          const fs = actions.fs(0);
+                          const fs = actions.fs();
                           const stats = await fs.stat(path);
                           const p = stats.isDirectory() ? path : dirname(path);
                           actions.set_current_path(p);

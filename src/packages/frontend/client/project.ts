@@ -55,11 +55,9 @@ export class ProjectClient {
     this.client = client;
   }
 
-  conatApi = (project_id: string, _compute_server_id = 0): ProjectApi => {
-    void _compute_server_id;
+  conatApi = (project_id: string): ProjectApi => {
     return this.client.conat_client.projectApi({
       project_id,
-      compute_server_id: 0,
     });
   };
 
@@ -110,7 +108,6 @@ export class ProjectClient {
   read_file = (opts: {
     project_id: string; // string or array of strings
     path: string; // string or array of strings
-    compute_server_id?: number;
   }): string => {
     const base_path = appBasePath;
     if (opts.path[0] === "/") {
@@ -280,7 +277,6 @@ export class ProjectClient {
       const cn = await this.client.conat_client.conat();
       const subject = projectSubject({
         project_id: opts.project_id,
-        compute_server_id: 0,
         service: EXEC_STREAM_SERVICE,
       });
       let lastSeq = -1;
@@ -407,11 +403,7 @@ export class ProjectClient {
 
     try {
       const ws = await this.websocket(opts.project_id);
-      const exec_opts = copy_without(opts, [
-        "project_id",
-        "cb",
-        "compute_server_id",
-      ]);
+      const exec_opts = copy_without(opts, ["project_id", "cb"]);
       const msg = await ws.api.exec(exec_opts);
       if (msg.status && msg.status == "error") {
         throw new Error(msg.error);
@@ -453,7 +445,6 @@ export class ProjectClient {
   directory_listing = async (opts: {
     project_id: string;
     path: string;
-    compute_server_id: number;
     timeout?: number;
     hidden?: boolean;
   }): Promise<{ files: DirectoryListingEntry[] }> => {
@@ -463,7 +454,6 @@ export class ProjectClient {
       opts.path,
       opts.hidden,
       opts.timeout * 1000,
-      0,
     );
     return { files: listing };
   };
@@ -556,11 +546,7 @@ export class ProjectClient {
     async (
       // project_id where activity occured
       project_id: string,
-      // optional global id of a compute server (in the given project), in which case we also mark
-      // that compute server as active, which keeps it running in case it has idle timeout configured.
-      _compute_server_id?: number | null,
     ): Promise<void> => {
-      void _compute_server_id;
       if (!is_valid_uuid_string(project_id)) {
         console.warn("WARNING -- touch_project takes a project_id, but got ", {
           project_id,

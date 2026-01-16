@@ -10,7 +10,7 @@ import { type Subscription } from "@cocalc/conat/core/client";
 const SERVICE_NAME = "project-status";
 const logger = getLogger("project:project-status");
 
-function getSubject({ project_id, compute_server_id }) {
+function getSubject({ project_id, compute_server_id = 0 }) {
   return projectSubject({
     project_id,
     compute_server_id,
@@ -22,7 +22,7 @@ function getSubject({ project_id, compute_server_id }) {
 export async function createPublisher({
   client = conat(),
   project_id,
-  compute_server_id,
+  compute_server_id = 0,
   projectStatusServer,
 }) {
   const subject = getSubject({ project_id, compute_server_id });
@@ -37,7 +37,7 @@ export async function createPublisher({
 export async function get({
   client = conat(),
   project_id,
-  compute_server_id,
+  compute_server_id = 0,
 }): Promise<Subscription> {
   const subject = getSubject({ project_id, compute_server_id });
   return await client.subscribe(subject);

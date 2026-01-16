@@ -627,7 +627,6 @@ ${details}
         await actions.deleteMatchingFiles({
           path: assignment.get("graded_path"),
           recursive: true,
-          compute_server_id: 0,
           filter: (p) => p.includes("GRADER"),
         });
       }
@@ -1359,7 +1358,6 @@ ${details}
       await actions.deleteMatchingFiles({
         path: target_path,
         recursive: true,
-        compute_server_id: 0,
         filter: (path) =>
           path.includes("STUDENT") || path.includes(DUE_DATE_FILENAME),
       });
@@ -1559,7 +1557,6 @@ ${details}
         project_id,
         path,
         hidden: false,
-        compute_server_id: 0, // TODO
       });
       listing = files;
     } catch (err) {

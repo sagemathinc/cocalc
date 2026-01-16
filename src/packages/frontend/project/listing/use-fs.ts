@@ -17,7 +17,6 @@ export default function useFs({
     () =>
       webapp_client.conat_client.conat().fs({
         project_id,
-        compute_server_id: 0,
       }),
     [project_id],
   );

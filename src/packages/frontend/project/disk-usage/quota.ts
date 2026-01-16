@@ -28,7 +28,6 @@ export default async function quota({
   }
   const x = await webapp_client.conat_client.hub.projects.getDiskQuota({
     project_id,
-    compute_server_id: 0,
   });
   quotaCache.set(k, x);
   return x;

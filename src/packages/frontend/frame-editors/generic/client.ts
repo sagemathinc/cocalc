@@ -23,18 +23,6 @@ export function server_time(): Date {
   return webapp_client.time_client.server_time();
 }
 
-export function getComputeServerId({
-  project_id,
-  path,
-}: {
-  project_id: string;
-  path: string;
-}) {
-  void project_id;
-  void path;
-  return 0;
-}
-
 // async version of the webapp_client exec -- let's you run any code in a project!
 // If the second argument filePath is the file this is being used for as a second argument,
 // it always runs code on the compute server that the given file is on.
@@ -58,11 +46,7 @@ export async function touch(project_id: string, path: string): Promise<void> {
 }
 
 // Resets the idle timeout timer and makes it known we are using the project.
-export async function touch_project(
-  project_id: string,
-  _compute_server_id?: number | null,
-): Promise<void> {
-  void _compute_server_id;
+export async function touch_project(project_id: string): Promise<void> {
   try {
     await webapp_client.project_client.touch_project(project_id);
   } catch (err) {
@@ -143,7 +127,6 @@ export function log_error(error: string | object): void {
 interface SyncstringOpts {
   project_id: string;
   path: string;
-  compute_server_id?: number;
   cursors?: boolean;
   before_change_hook?: Function;
   after_change_hook?: Function;
@@ -158,7 +141,6 @@ export function syncstring(opts: SyncstringOpts): any {
   } else {
     delete opts.fake;
   }
-  opts1.compute_server_id = 0;
   opts1.id = schema.client_db.sha1(opts.project_id, opts.path);
   return webapp_client.conat_client.conat().sync.string(opts1);
 }
@@ -170,7 +152,6 @@ import type { SyncString } from "@cocalc/sync/editor/string/sync";
 interface SyncstringOpts2 {
   project_id: string;
   path: string;
-  compute_server_id?: number;
   cursors?: boolean;
   save_interval?: number; // amount to debounce saves (in ms)
   patch_interval?: number;
@@ -181,14 +162,12 @@ interface SyncstringOpts2 {
 export function syncstring2(opts: SyncstringOpts2): SyncString {
   return webapp_client.conat_client.conat().sync.string({
     ...opts,
-    compute_server_id: 0,
   });
 }
 
 export interface SyncDBOpts {
   project_id: string;
   path: string;
-  compute_server_id?: number;
   primary_keys: string[];
   string_cols?: string[];
   cursors?: boolean;
@@ -203,7 +182,6 @@ export interface SyncDBOpts {
 export function syncdb(opts: SyncDBOpts): any {
   return webapp_client.conat_client.conat().sync.db({
     ...opts,
-    compute_server_id: 0,
   });
 }
 
@@ -215,7 +193,6 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
     throw Error("primary_keys must be array of positive length");
   }
   const opts1: any = opts;
-  opts1.compute_server_id = 0;
   opts1.client = webapp_client;
   return webapp_client.conat_client.conat().sync.db(opts1);
 }
@@ -227,7 +204,6 @@ export function immerdb2(opts: ImmerDBOpts): ImmerDB {
     throw Error("primary_keys must be array of positive length");
   }
   const opts1: any = opts;
-  opts1.compute_server_id = 0;
   opts1.client = webapp_client;
   return webapp_client.conat_client.conat().sync.immer(opts1);
 }

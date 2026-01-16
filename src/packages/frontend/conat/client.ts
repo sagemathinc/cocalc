@@ -384,15 +384,12 @@ export class ConatClient extends EventEmitter {
 
   projectWebsocketApi = async ({
     project_id,
-    compute_server_id,
     mesg,
     timeout = DEFAULT_TIMEOUT,
   }) => {
-    void compute_server_id;
     const cn = this.conat();
     const subject = projectSubject({
       project_id,
-      compute_server_id: 0,
       service: "browser-api",
     });
     const resp = await cn.request(subject, mesg, {
@@ -432,29 +429,19 @@ export class ConatClient extends EventEmitter {
   };
 
   // Returns api for RPC calls to the project with typescript support!
-  // if compute_server_id is NOT given then:
-  //    if path is given use compute server id for path (assuming mapping is loaded)
-  //    if path is not given, use current project default
   projectApi = ({
     project_id,
-    compute_server_id,
-    path,
     timeout = DEFAULT_TIMEOUT,
   }: {
     project_id: string;
-    path?: string;
-    compute_server_id?: number;
     // IMPORTANT: this timeout is only AFTER user is connected.
     timeout?: number;
   }): ProjectApi => {
-    void compute_server_id;
-    void path;
     if (!isValidUUID(project_id)) {
       throw Error(`project_id = '${project_id}' must be a valid uuid`);
     }
     return projectApiClient({
       project_id,
-      compute_server_id: 0,
       timeout,
       client: this.conat(),
     });
@@ -474,17 +461,13 @@ export class ConatClient extends EventEmitter {
 
   primus = ({
     project_id,
-    compute_server_id = 0,
     channel,
   }: {
     project_id: string;
-    compute_server_id?: number;
     channel?: string;
   }) => {
-    void compute_server_id;
     let subject = projectSubject({
       project_id,
-      compute_server_id: 0,
       service: "primus",
     });
     if (channel) {
@@ -549,11 +532,8 @@ export class ConatClient extends EventEmitter {
   akv = akv;
   dko = dko;
 
-  listings = async (opts: {
-    project_id: string;
-    compute_server_id?: number;
-  }) => {
-    return await listingsClient({ ...opts, compute_server_id: 0 });
+  listings = async (opts: { project_id: string }) => {
+    return await listingsClient({ project_id: opts.project_id });
   };
 
   getTime = (): number => {
@@ -603,13 +583,11 @@ export class ConatClient extends EventEmitter {
 
   terminalClient = (opts: {
     project_id: string;
-    compute_server_id?: number;
     getSize?: () => undefined | { rows: number; cols: number };
   }) => {
     return terminalClient({
       client: this.conat(),
       ...opts,
-      compute_server_id: 0,
     });
   };
 }
