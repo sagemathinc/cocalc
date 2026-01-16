@@ -7,14 +7,9 @@ import { createHostControlService } from "@cocalc/conat/project-host/api";
 import { hubApi } from "@cocalc/lite/hub/api";
 import { account_id } from "@cocalc/backend/data";
 import { setMasterStatusClient } from "./master-status";
-import { ensureHostKey } from "./ssh/host-key";
-import {
-  setHostPublicKey,
-  setSshpiperdPublicKey,
-  upsertRemoteHostKey,
-} from "./ssh/host-keys";
+import { setSshpiperdPublicKey } from "./ssh/host-keys";
 import { ensureSshpiperdKey } from "./ssh/sshpiperd-key";
-import { updateAuthorizedKeys, copyPaths } from "./hub/projects";
+import { updateAuthorizedKeys } from "./hub/projects";
 import { deleteVolume } from "./file-server";
 import { getSoftwareVersions } from "./software";
 import { upgradeSoftware } from "./upgrade";
@@ -32,7 +27,6 @@ interface HostRegistration {
   public_url?: string;
   internal_url?: string;
   ssh_server?: string;
-  host_to_host_public_key?: string;
   sshpiperd_public_key?: string;
   status?: string;
   version?: string;
@@ -84,9 +78,6 @@ export async function startMasterRegistration({
   // [ ] TODO: will have to worry about auth secret
   const client = conat({ address: masterAddress });
 
-  // Stable host SSH keypair for inter-host operations (rsync/reflect-sync).
-  const hostKey = ensureHostKey(id);
-  setHostPublicKey(id, hostKey.publicKey);
   // Stable sshpiperd keypair for inbound SSH ingress.
   const sshpiperdKey = ensureSshpiperdKey(id);
   setSshpiperdPublicKey(id, sshpiperdKey.publicKey);
@@ -154,7 +145,6 @@ export async function startMasterRegistration({
         await deleteVolume(project_id);
         deleteProjectLocal(project_id);
       },
-      copyPaths,
       upgradeSoftware,
       async growBtrfs({ disk_gb }) {
         const args = ["/usr/local/sbin/cocalc-grow-btrfs"];
@@ -181,7 +171,6 @@ export async function startMasterRegistration({
     public_url,
     internal_url,
     ssh_server,
-    host_to_host_public_key: hostKey.publicKey,
     sshpiperd_public_key: sshpiperdKey.publicKey,
     metadata: {
       runnerId,
@@ -228,9 +217,6 @@ export async function startMasterRegistration({
       for await (const msg of sub) {
         const data = msg.data as HostRegistration | undefined;
         if (data?.id) {
-          if (data.host_to_host_public_key) {
-            upsertRemoteHostKey(data.id, data.host_to_host_public_key);
-          }
           if (data.sshpiperd_public_key) {
             setSshpiperdPublicKey(data.id, data.sshpiperd_public_key);
           }

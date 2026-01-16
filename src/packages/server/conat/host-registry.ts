@@ -11,7 +11,6 @@ const logger = getLogger("server:conat:host-registry");
 const pool = () => getPool();
 
 export interface HostRegistration extends ProjectHostRecord {
-  host_to_host_public_key?: string;
   sshpiperd_public_key?: string;
 }
 
@@ -25,9 +24,7 @@ const SUBJECT = "project-hosts";
 export async function initHostRegistryService() {
   logger.info("starting host registry service");
   const client = conat();
-  const loadCurrentStatus = async (
-    id: string,
-  ): Promise<string | undefined> => {
+  const loadCurrentStatus = async (id: string): Promise<string | undefined> => {
     const { rows } = await pool().query(
       "SELECT status FROM project_hosts WHERE id=$1 AND deleted IS NULL",
       [id],
@@ -39,7 +36,6 @@ export async function initHostRegistryService() {
     try {
       await client.publish(`${SUBJECT}.keys`, {
         id: info.id,
-        host_to_host_public_key: info.host_to_host_public_key,
         sshpiperd_public_key: info.sshpiperd_public_key,
       });
     } catch (err) {

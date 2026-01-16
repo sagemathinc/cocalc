@@ -42,16 +42,9 @@ export interface HostControlApi {
     authorized_keys?: string;
   }) => Promise<void>;
   deleteProjectData: (opts: { project_id: string }) => Promise<void>;
-  copyPaths: (opts: {
-    src: {
-      host_id: string;
-      ssh_server?: string;
-      project_id: string;
-      paths: string[];
-    };
-    dest: { host_id: string; project_id: string; path: string };
-  }) => Promise<void>;
-  upgradeSoftware: (opts: UpgradeSoftwareRequest) => Promise<UpgradeSoftwareResponse>;
+  upgradeSoftware: (
+    opts: UpgradeSoftwareRequest,
+  ) => Promise<UpgradeSoftwareResponse>;
   growBtrfs: (opts: { disk_gb?: number }) => Promise<{ ok: boolean }>;
   // Later: updateProject to adjust title/users/etc.
 }

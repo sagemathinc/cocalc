@@ -13,10 +13,7 @@ const logger = getLogger("project-proxy:ssh:auth");
 
 const SECRET_TOKEN_LENGTH = 32;
 
-export type SshTarget =
-  | { type: "project"; project_id: string }
-  | { type: "host"; host_id: string }
-  | { type: "btrfs"; host_id: string };
+export type SshTarget = { type: "project"; project_id: string };
 
 export async function ensureProxyKey() {
   let sshKey;
@@ -136,24 +133,9 @@ The patterns that we support here:
 - project-{uuid} --> project_id={uuid}
 - {uuid} --> project_id={uuid}
 - {uuid with dashes removed} --> project_id={uuid with dashes put back}
-- project-host-{uuid} --> host_id={uuid}
 */
 function parseUser(user: string): SshTarget {
   let prefix;
-  if (user?.startsWith("btrfs-")) {
-    const host_id = user.slice("btrfs-".length);
-    if (!isValidUUID(host_id)) {
-      throw Error(`unknown user ${user}`);
-    }
-    return { type: "btrfs", host_id };
-  }
-  if (user?.startsWith("project-host-")) {
-    const host_id = user.slice("project-host-".length);
-    if (!isValidUUID(host_id)) {
-      throw Error(`unknown user ${user}`);
-    }
-    return { type: "host", host_id };
-  }
   if (user?.startsWith("project-")) {
     prefix = "project-";
   } else if (isValidUUID(user)) {

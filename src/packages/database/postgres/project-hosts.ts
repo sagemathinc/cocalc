@@ -8,7 +8,6 @@ export interface ProjectHostRecord {
   public_url?: string;
   internal_url?: string;
   ssh_server?: string;
-  host_to_host_public_key?: string;
   sshpiperd_public_key?: string;
   status?: string;
   version?: string;
@@ -33,13 +32,11 @@ export async function upsertProjectHost({
   capacity,
   metadata,
   last_seen,
-  host_to_host_public_key,
   sshpiperd_public_key,
 }: ProjectHostRecord): Promise<void> {
   const now = last_seen ?? new Date();
   const mergedMetadata = {
     ...(metadata ?? {}),
-    ...(host_to_host_public_key ? { host_to_host_public_key } : {}),
     ...(sshpiperd_public_key ? { sshpiperd_public_key } : {}),
   };
   await pool().query(

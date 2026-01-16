@@ -19,7 +19,7 @@ const MOVE_LRO_TERMINAL = new Set<LroStatus>([
   "canceled",
   "expired",
 ]);
-
+const isDismissed = (summary?: LroSummary) => summary?.dismissed_at != null;
 export type MoveLroState = {
   op_id: string;
   summary?: LroSummary;
@@ -41,6 +41,7 @@ export type MoveOpsManagerOptions = {
     scope_type: LroSummary["scope_type"];
     scope_id: string;
   }) => Promise<DStream<LroEvent>>;
+  dismissLro: (opts: { op_id: string }) => Promise<void>;
   log?: (message: string, err?: unknown) => void;
 };
 
@@ -83,6 +84,26 @@ export class MoveOpsManager {
     this.opts.setState({ move_lro: undefined });
   };
 
+  dismiss = (op_id?: string) => {
+    const target = op_id ?? this.state?.op_id ?? this.currentOpId;
+    if (!target) {
+      return;
+    }
+    void this.opts
+      .dismissLro({ op_id: target })
+      .then(() => {
+        this.closeStream();
+        this.state = undefined;
+        this.opts.setState({ move_lro: undefined });
+      })
+      .catch((err) => {
+        this.log("unable to dismiss move operation", err);
+        this.refresh().catch((refreshErr) => {
+          this.log("unable to refresh move operations", refreshErr);
+        });
+      });
+  };
+
   track = (op: {
     op_id?: string;
     scope_type?: LroSummary["scope_type"];
@@ -118,7 +139,9 @@ export class MoveOpsManager {
     if (!this.initialized || this.opts.isClosed()) {
       return;
     }
-    const moveOps = ops.filter((op) => op.kind === MOVE_LRO_KIND);
+    const moveOps = ops.filter(
+      (op) => op.kind === MOVE_LRO_KIND && !isDismissed(op),
+    );
     if (!moveOps.length) {
       this.closeStream();
       this.state = undefined;
@@ -177,7 +200,11 @@ export class MoveOpsManager {
         scope_type,
         scope_id,
       });
-      if (!this.initialized || this.opts.isClosed() || this.currentOpId !== op_id) {
+      if (
+        !this.initialized ||
+        this.opts.isClosed() ||
+        this.currentOpId !== op_id
+      ) {
         stream.close();
         return;
       }
@@ -221,6 +248,12 @@ export class MoveOpsManager {
       last_event: lastEvent,
     };
     this.setState(next);
+    if (isDismissed(summary)) {
+      this.closeStream();
+      this.state = undefined;
+      this.opts.setState({ move_lro: undefined });
+      return;
+    }
     if (summary && MOVE_LRO_TERMINAL.has(summary.status)) {
       this.closeStream();
     }

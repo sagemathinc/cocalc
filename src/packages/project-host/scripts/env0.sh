@@ -1,8 +1,3 @@
-# Useful setup on laptop:
-# reflect-sync forward create root@35.212.165.34:9001 localhost:9001
-# reflect-sync forward create localhost:9004 35.212.165.34:9004
-# reflect-sync forward create localhost:2224 35.212.165.34:2224
-
 export PORT=9002
 export COCALC_DATA=/home/wstein/scratch/cocalc-lite/data-0
 export COCALC_RUSTIC=/home/wstein/scratch/cocalc-lite/data-0/rustic
@@ -26,5 +21,4 @@ export COCALC_PROJECT_BUNDLE=/home/wstein/build/cocalc-lite/src/packages/project
 #rm -f $DEBUG_FILE
 
 #./cocalc-project-host-0.1.4-x86_64-linux/cocalc-project-host
-
 

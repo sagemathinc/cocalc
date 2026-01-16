@@ -36,6 +36,8 @@ export async function ensureLroSchema(): Promise<void> {
       created_at TIMESTAMPTZ DEFAULT now(),
       started_at TIMESTAMPTZ,
       finished_at TIMESTAMPTZ,
+      dismissed_at TIMESTAMPTZ,
+      dismissed_by UUID,
       updated_at TIMESTAMPTZ DEFAULT now(),
       expires_at TIMESTAMPTZ NOT NULL,
       dedupe_key TEXT,
@@ -54,6 +56,16 @@ export async function ensureLroSchema(): Promise<void> {
   await pool().query(
     "CREATE INDEX IF NOT EXISTS lro_updated_idx ON long_running_operations(updated_at)",
   );
+  try {
+    await pool().query(
+      "ALTER TABLE long_running_operations ADD COLUMN dismissed_at TIMESTAMPTZ",
+    );
+  } catch {}
+  try {
+    await pool().query(
+      "ALTER TABLE long_running_operations ADD COLUMN dismissed_by UUID",
+    );
+  } catch {}
 }
 
 export async function createLro({
@@ -134,6 +146,8 @@ export async function updateLro({
   progress_summary,
   attempt,
   heartbeat_at,
+  dismissed_at,
+  dismissed_by,
 }: {
   op_id: string;
   status?: LroStatus;
@@ -142,6 +156,8 @@ export async function updateLro({
   progress_summary?: any;
   attempt?: number;
   heartbeat_at?: Date | null;
+  dismissed_at?: Date | null;
+  dismissed_by?: string | null;
 }): Promise<LroSummary | undefined> {
   await ensureLroSchema();
   const sets: string[] = [];
@@ -177,6 +193,14 @@ export async function updateLro({
     sets.push(`heartbeat_at=$${idx++}`);
     values.push(heartbeat_at);
   }
+  if (dismissed_at !== undefined) {
+    sets.push(`dismissed_at=$${idx++}`);
+    values.push(dismissed_at);
+  }
+  if (dismissed_by !== undefined) {
+    sets.push(`dismissed_by=$${idx++}`);
+    values.push(dismissed_by);
+  }
   if (!sets.length) {
     const row = await getLro(op_id);
     return row ?? undefined;
@@ -189,9 +213,21 @@ export async function updateLro({
   return rows[0] as LroSummary | undefined;
 }
 
-export async function getLro(
-  op_id: string,
-): Promise<LroSummary | undefined> {
+export async function dismissLro({
+  op_id,
+  dismissed_by,
+}: {
+  op_id: string;
+  dismissed_by?: string | null;
+}): Promise<LroSummary | undefined> {
+  return await updateLro({
+    op_id,
+    dismissed_at: new Date(),
+    dismissed_by: dismissed_by ?? null,
+  });
+}
+
+export async function getLro(op_id: string): Promise<LroSummary | undefined> {
   await ensureLroSchema();
   const { rows } = await pool().query(
     "SELECT * FROM long_running_operations WHERE op_id=$1",
@@ -212,6 +248,7 @@ export async function listLro({
   await ensureLroSchema();
   const values: any[] = [scope_type, scope_id];
   let statusClause = "";
+  let dismissClause = "AND dismissed_at IS NULL";
   if (!include_completed) {
     values.push(TERMINAL_STATUSES);
     statusClause = "AND status <> ALL($3::text[])";
@@ -222,6 +259,7 @@ export async function listLro({
       FROM long_running_operations
       WHERE scope_type=$1
         AND scope_id=$2
+        ${dismissClause}
         ${statusClause}
       ORDER BY created_at DESC
     `,
