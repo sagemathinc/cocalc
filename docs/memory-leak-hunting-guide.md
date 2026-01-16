@@ -2,6 +2,10 @@
 
 This guide captures a practical workflow for finding slow memory leaks in a long-running process.
 
+## Frontend
+
+Be sure to also test with a *production* build of the static app, not the devel build.  The devel build is expected to use a lot more memory.
+
 ## Backend
 
 ### 1) Reproduce in a controlled window
