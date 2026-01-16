@@ -5,7 +5,8 @@ Provides the 'jupyter_execute' tool that allows running code using Jupyter kerne
 in the target CoCalc project environment.
 """
 
-import time
+import asyncio
+import functools
 from typing import Optional, TYPE_CHECKING, Callable, TypeVar
 
 if TYPE_CHECKING:
@@ -20,28 +21,25 @@ def _is_retryable_error(error: Exception) -> bool:
     return any(keyword in error_msg for keyword in ["timeout", "closed", "connection", "reset", "broken"])
 
 
-def _retry_with_backoff(
+async def _async_retry_with_backoff(
     func: Callable[[], T],
     max_retries: int = 3,
     retry_delay: int = 5,
     error_condition: Callable[[Exception], bool] | None = None,
 ) -> T:
     """
-    Retry a function call with exponential backoff for transient failures.
-
-    Useful for operations that may timeout on cold starts (e.g., kernel launches)
-    or fail due to transient connection issues.
+    Async retry function call with exponential backoff for transient failures.
     """
     if error_condition is None:
         error_condition = _is_retryable_error
 
     for attempt in range(max_retries):
         try:
-            return func()
+            return await asyncio.to_thread(func)
         except Exception as e:
             is_retryable = error_condition(e)
             if is_retryable and attempt < max_retries - 1:
-                time.sleep(retry_delay)
+                await asyncio.sleep(retry_delay)
             else:
                 raise
 
@@ -105,8 +103,9 @@ def register_jupyter_tool(mcp) -> None:
             # Use retry logic to handle cold starts and transient connection failures
             # The jupyter_execute call may timeout if the project is not running,
             # so we retry multiple times with delays to allow the project to start.
-            result = _retry_with_backoff(
-                lambda: project.system.jupyter_execute(
+            result = await _async_retry_with_backoff(
+                functools.partial(
+                    project.system.jupyter_execute,
                     input=input,
                     kernel=kernel,
                     history=history,
