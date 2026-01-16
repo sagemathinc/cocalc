@@ -212,7 +212,10 @@ export function useLLMHistory(type: LLMHistoryType = "general") {
       streamCache = null;
       detachSharedListener();
       if (historySubscribers.size > 0) {
-        attachSharedListener(await getDStream());
+        const nextStream = await getDStream();
+        if (historySubscribers.size > 0) {
+          attachSharedListener(nextStream);
+        }
       }
     } catch (err) {
       console.warn(`Error clearing LLM history -- ${err}`);
