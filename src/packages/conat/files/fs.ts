@@ -646,34 +646,27 @@ function bufferToHex(bytes: Uint8Array): string {
 }
 
 export function getService({
-  compute_server_id,
   service = DEFAULT_FILE_SERVICE,
 }: {
-  compute_server_id?: number;
   service?: string;
-}) {
-  return compute_server_id ? `${service}/${compute_server_id}` : service;
+} = {}) {
+  return service;
 }
 
 export function fsSubject({
   project_id,
-  compute_server_id = 0,
   service = DEFAULT_FILE_SERVICE,
 }: {
   project_id: string;
-  compute_server_id?: number;
   service?: string;
 }) {
   if (!isValidUUID(project_id)) {
     throw Error(`project_id must be a valid uuid -- ${project_id}`);
   }
-  if (typeof compute_server_id != "number") {
-    throw Error("compute_server_id must be a number");
-  }
   if (typeof service != "string") {
     throw Error("service must be a string");
   }
-  return `${getService({ service, compute_server_id })}.project-${project_id}`;
+  return `${getService({ service })}.project-${project_id}`;
 }
 
 const DEFAULT_FS_CALL_TIMEOUT = 5 * 60_000;

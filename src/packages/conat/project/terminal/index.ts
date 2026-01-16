@@ -33,14 +33,8 @@ import { EventEmitter } from "events";
 
 const logger = getLogger("conat:project:terminal");
 
-function getSubject({
-  project_id,
-  compute_server_id = 0,
-}: {
-  project_id: string;
-  compute_server_id?: number;
-}) {
-  return `terminal.project-${project_id}.${compute_server_id}`;
+function getSubject({ project_id }: { project_id: string }) {
+  return `terminal.project-${project_id}.0`;
 }
 
 export interface Options {
@@ -196,7 +190,6 @@ function normalizeIncoming(data: any): TerminalIncomingMessage | null {
 export function terminalServer({
   client,
   project_id,
-  compute_server_id = 0,
   spawn,
   cwd,
   preHook,
@@ -204,7 +197,6 @@ export function terminalServer({
 }: {
   client: ConatClient;
   project_id: string;
-  compute_server_id?: number;
   // spawn a pseudo tty:
   spawn: (
     command: string,
@@ -225,7 +217,7 @@ export function terminalServer({
     pty;
   }) => Promise<void>;
 }) {
-  const subject = getSubject({ project_id, compute_server_id });
+  const subject = getSubject({ project_id });
   const server: ConatSocketServer = client.socket.listen(subject, {
     keepAlive: 5000,
     keepAliveTimeout: 5000,
@@ -580,7 +572,6 @@ export class TerminalClient extends EventEmitter {
 
 export function terminalClient(opts: {
   project_id: string;
-  compute_server_id?: number;
   client: ConatClient;
   getSize?: () => undefined | { rows: number; cols: number };
 }): TerminalClient {

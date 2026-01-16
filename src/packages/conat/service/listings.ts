@@ -1,5 +1,5 @@
 /*
-Service for watching directory listings in a project or compute server.
+Service for watching directory listings in a project.
 */
 
 import { createServiceClient, createServiceHandler } from "./typed";
@@ -35,16 +35,11 @@ export interface ListingsApi {
 
 interface ListingsOptions {
   project_id: string;
-  compute_server_id?: number;
 }
 
-export function createListingsApiClient({
-  project_id,
-  compute_server_id = 0,
-}: ListingsOptions) {
+export function createListingsApiClient({ project_id }: ListingsOptions) {
   return createServiceClient<ListingsApi>({
     project_id,
-    compute_server_id,
     service: "listings",
   });
 }
@@ -53,15 +48,12 @@ export type ListingsServiceApi = ReturnType<typeof createListingsApiClient>;
 
 export async function createListingsService({
   project_id,
-  compute_server_id = 0,
   impl,
 }: ListingsOptions & { impl }) {
-  const c = compute_server_id ? ` (compute server: ${compute_server_id})` : "";
   return await createServiceHandler<ListingsApi>({
     project_id,
-    compute_server_id,
     service: "listings",
-    description: `Directory listing service: ${c}`,
+    description: "Directory listing service",
     impl,
   });
 }
@@ -109,20 +101,14 @@ export async function getListingsTimesKV(
 /* Unified interface to the above components for clients */
 
 export class ListingsClient extends EventEmitter {
-  options: { project_id: string; compute_server_id: number };
+  options: { project_id: string };
   api: Awaited<ReturnType<typeof createListingsApiClient>>;
   times?: DKV<Times>;
   listings?: DKV<Listing>;
 
-  constructor({
-    project_id,
-    compute_server_id = 0,
-  }: {
-    project_id: string;
-    compute_server_id?: number;
-  }) {
+  constructor({ project_id }: { project_id: string }) {
     super();
-    this.options = { project_id, compute_server_id };
+    this.options = { project_id };
   }
 
   init = async () => {

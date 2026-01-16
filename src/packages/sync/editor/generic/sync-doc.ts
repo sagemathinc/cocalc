@@ -33,12 +33,6 @@ const FILESYSTEM_CLIENT_ID = "__filesystem__";
 export const DELETED_THRESHOLD = 2000;
 export const DELETED_CHECK_INTERVAL = 750;
 
-import {
-  COMPUTE_THRESH_MS,
-  COMPUTER_SERVER_CURSOR_TYPE,
-  decodeUUIDtoNum,
-} from "@cocalc/util/compute/manager";
-
 const STAT_DEBOUNCE = 10000;
 
 import { DEFAULT_SNAPSHOT_INTERVAL } from "@cocalc/util/db-schema/syncstring-schema";
@@ -100,7 +94,6 @@ export interface SyncOpts0 {
   client: Client;
   fs: Filesystem;
 
-  compute_server_id?: number;
   patch_interval?: number;
 
   // file_use_interval defaults to 60000.
@@ -164,7 +157,6 @@ export class SyncDoc extends EventEmitter {
   static lite = false;
 
   public readonly opts: SyncOpts;
-  public readonly compute_server_id: number;
   public readonly project_id: string; // project_id that contains the doc
   public readonly path: string; // path of the file corresponding to the doc
   private string_id: string;
@@ -255,7 +247,6 @@ export class SyncDoc extends EventEmitter {
   constructor(opts: SyncOpts) {
     super();
     this.opts = opts;
-    this.compute_server_id = opts.compute_server_id ?? 0;
 
     if (opts.string_id === undefined) {
       this.string_id = schema.client_db.sha1(opts.project_id, opts.path);
@@ -378,52 +369,6 @@ export class SyncDoc extends EventEmitter {
     }
     this.emit_change(); // from nothing to something.
   });
-
-  // Return id of ACTIVE remote compute server, if one is connected and pinging, or 0
-  // if none is connected.  This is used by Jupyter to determine who
-  // should evaluate code.
-  // We always take the smallest id of the remote
-  // compute servers, in case there is more than one, so exactly one of them
-  // takes control.  Always returns 0 if cursors are not enabled for this
-  // document, since cursor presence is used to coordinate the compute server.
-  getComputeServerId = (): number => {
-    if (!this.cursors) {
-      return 0;
-    }
-    // This info is in the "cursors" table instead of the document itself
-    // to avoid wasting space in the database longterm.  Basically a remote
-    // Jupyter client that can provide compute announces this by reporting it's
-    // cursor to look a certain way.
-    const cursors = this.get_cursors({
-      maxAge: COMPUTE_THRESH_MS,
-      // don't exclude self since getComputeServerId called from the compute
-      // server also to know if it is the chosen one.
-      excludeSelf: "never",
-    });
-    const dbg = this.dbg("getComputeServerId");
-    dbg("num cursors = ", cursors.size);
-    let minId = Infinity;
-    // NOTE: similar code is in frontend/jupyter/cursor-manager.ts
-    for (const [client_id, cursor] of cursors) {
-      if (cursor.getIn(["locs", 0, "type"]) == COMPUTER_SERVER_CURSOR_TYPE) {
-        try {
-          minId = Math.min(minId, decodeUUIDtoNum(client_id));
-        } catch (err) {
-          // this should never happen unless a client were being malicious.
-          dbg(
-            "WARNING -- client_id should encode server id, but is",
-            client_id,
-          );
-        }
-      }
-    }
-
-    return isFinite(minId) ? minId : 0;
-  };
-
-  registerAsComputeServer = () => {
-    this.setCursorLocsNoThrottle([{ type: COMPUTER_SERVER_CURSOR_TYPE }]);
-  };
 
   /* Set this user's cursors to the given locs. */
   setCursorLocsNoThrottle = async (

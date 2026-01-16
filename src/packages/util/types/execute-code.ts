@@ -56,9 +56,7 @@ export interface ExecuteCodeOptions {
   aggregate?: string | number; // if given, aggregates multiple calls with same sequence number into one -- see @cocalc/util/aggregate; typically make this a timestamp for compiling code (e.g., latex).
   verbose?: boolean; // default true -- impacts amount of logging
   async_call?: boolean; // default false -- if true, return right after the process started (to get the PID) or when it fails.
-  // for compute servers:
-  compute_server_id?: number;
-  // in the filesystem container of a compute server
+  // in the filesystem container (if available)
   filesystem?: boolean;
   // streaming callback for real-time updates (only used with async_call)
   streamCB?: (event: ExecuteCodeStreamEvent) => void;

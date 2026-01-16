@@ -3,7 +3,8 @@
 Goal: Complete remove all code and functionality for the following:
 
 - [ ] all code involving compute\_servers and cloud filesystems
-- [ ] replace "home base" terminology with "the workspace" (final cleanup after compute server removal)
+- [ ] the jupyter pool.
+- [ ] replace "home base" terminology with "the workspace" \(final cleanup after compute server removal\)
 - [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [ ] payg LLM purchases; we still must track usage and costs for throttling and analytic, but nothing regarding actual transactions/billing shown to users.
 - [ ] public projects, i.e., most anything involving an is\_project flag in the frontend
@@ -200,3 +201,4 @@ Scope: remove all compute server and cloud filesystem functionality. No migratio
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
+

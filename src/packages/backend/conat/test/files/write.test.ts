@@ -21,11 +21,9 @@ import { delay } from "awaiting";
 
 describe("do a basic test that the file writing service works", () => {
   const project_id = "00000000-0000-4000-8000-000000000000";
-  const compute_server_id = 0;
   it("create the write server", async () => {
     await createServer({
       project_id,
-      compute_server_id,
       createWriteStream,
     });
   });
@@ -50,7 +48,6 @@ describe("do a basic test that the file writing service works", () => {
     const { bytes, chunks } = await writeFile({
       stream,
       project_id,
-      compute_server_id,
       path,
     });
     expect(chunks).toBe(1);
@@ -64,7 +61,7 @@ describe("do a basic test that the file writing service works", () => {
   });
 
   it("closes the write server", async () => {
-    close({ project_id, compute_server_id });
+    close({ project_id });
     for (const f of cleanups) {
       f();
     }
@@ -73,12 +70,10 @@ describe("do a basic test that the file writing service works", () => {
 
 describe("do a more challenging test that involves a larger file that has to be broken into many chunks", () => {
   const project_id = "00000000-0000-4000-8000-000000000000";
-  const compute_server_id = 1;
 
   it("create the write server", async () => {
     await createServer({
       project_id,
-      compute_server_id,
       createWriteStream,
     });
   });
@@ -106,7 +101,6 @@ describe("do a more challenging test that involves a larger file that has to be 
     const { bytes, chunks } = await writeFile({
       stream,
       project_id,
-      compute_server_id,
       path,
     });
     expect(chunks).toBeGreaterThan(1);
@@ -128,7 +122,7 @@ describe("do a more challenging test that involves a larger file that has to be 
   });
 
   it("closes the write server", async () => {
-    close({ project_id, compute_server_id });
+    close({ project_id });
     for (const f of cleanups) {
       f();
     }

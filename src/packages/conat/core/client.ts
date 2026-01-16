@@ -1547,7 +1547,6 @@ export class Client extends EventEmitter {
 
   fs = (opts: {
     project_id: string;
-    compute_server_id?: number;
     service?: string;
   }) => {
     return fsClient({
@@ -1576,11 +1575,9 @@ export class Client extends EventEmitter {
       immerdb({ ...opts, client: this }),
     mutagen: ({
       project_id,
-      compute_server_id = 0,
     }: {
       project_id: string;
-      compute_server_id?: number;
-    }) => mutagen({ client: this, project_id, compute_server_id }),
+    }) => mutagen({ client: this, project_id }),
   };
 
   socket = {

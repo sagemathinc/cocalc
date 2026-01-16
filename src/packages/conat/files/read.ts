@@ -1,5 +1,5 @@
 /*
-Read a file from a project/compute server via an async generator, so it is memory
+Read a file from a project via an async generator, so it is memory
 efficient.
 
 This is a conat service that uses requestMany, takes as input a filename path, and streams all
@@ -18,8 +18,7 @@ IDEAS:
 as input, runs compressed tar on it, and pipes the output into
 response messages.  We could then implement streaming download of
 a tarball of a directory tree, or also copying a directory tree from
-one place to another (without using rsync).  I've done this already
-over a websocket for compute servers, so would just copy that code.
+one place to another (without using rsync).
 
 
 DEVELOPMENT:
@@ -28,12 +27,12 @@ See src/packages/backend/conat/test/files/read.test.ts for unit tests.
 
 ~/cocalc/src/packages/backend$ node
 
-require('@cocalc/backend/conat'); a = require('@cocalc/conat/files/read'); a.createServer({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,createReadStream:require('fs').createReadStream})
+require('@cocalc/backend/conat'); a = require('@cocalc/conat/files/read'); a.createServer({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',createReadStream:require('fs').createReadStream})
 
-for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,path:'/tmp/a'})) { console.log({chunk}); }
+for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',path:'/tmp/a'})) { console.log({chunk}); }
 
 
-for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',compute_server_id:0,path:'/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/cocalc/.git/objects/pack/pack-771f7fe4ee855601463be070cf9fb9afc91f84ac.pack'})) { console.log({chunk}); }
+for await (const chunk of await a.readFile({project_id:'00847397-d6a8-4cb0-96a8-6ef64ac3e6cf',path:'/projects/6b851643-360e-435e-b87e-f9a6ab64a8b1/cocalc/.git/objects/pack/pack-771f7fe4ee855601463be070cf9fb9afc91f84ac.pack'})) { console.log({chunk}); }
 
 
 */
@@ -52,14 +51,12 @@ const logger = getLogger("conat:files:read");
 let subs: { [name: string]: Subscription } = {};
 export async function close({
   project_id,
-  compute_server_id = 0,
   name = "",
 }: {
   project_id: string;
-  compute_server_id?: number;
   name?: string;
 }) {
-  const subject = getSubject({ project_id, compute_server_id, name });
+  const subject = getSubject({ project_id, name });
   if (subs[subject] == null) {
     return;
   }
@@ -68,18 +65,9 @@ export async function close({
   await sub.drain();
 }
 
-function getSubject({
-  project_id,
-  compute_server_id = 0,
-  name = "",
-}: {
-  project_id: string;
-  compute_server_id?: number;
-  name?: string;
-}) {
+function getSubject({ project_id, name = "" }: { project_id: string; name?: string }) {
   return projectSubject({
     project_id,
-    compute_server_id,
     service: `files:read${name ?? ""}`,
   });
 }
@@ -87,21 +75,15 @@ function getSubject({
 export async function createServer({
   createReadStream,
   project_id,
-  compute_server_id = 0,
   name = "",
   client = conat(),
 }: {
   createReadStream;
   project_id: string;
-  compute_server_id?: number;
   name?: string;
   client?: ConatClient;
 }) {
-  const subject = getSubject({
-    project_id,
-    compute_server_id,
-    name,
-  });
+  const subject = getSubject({ project_id, name });
   logger.debug("createServer", { subject });
   const sub = await client.subscribe(subject);
   subs[subject] = sub;
@@ -182,7 +164,6 @@ async function sendData(mesg, createReadStream) {
 
 export interface ReadFileOptions {
   project_id: string;
-  compute_server_id?: number;
   path: string;
   name?: string;
   maxWait?: number;
@@ -192,17 +173,12 @@ export interface ReadFileOptions {
 export async function* readFile({
   client = conat(),
   project_id,
-  compute_server_id = 0,
   path,
   name = "",
   maxWait = 1000 * 60 * 10, // 10 minutes
 }: ReadFileOptions) {
-  logger.debug("readFile", { project_id, compute_server_id, path });
-  const subject = getSubject({
-    project_id,
-    compute_server_id,
-    name,
-  });
+  logger.debug("readFile", { project_id, path });
+  const subject = getSubject({ project_id, name });
   const v: any = [];
   let seq = 0;
   let bytes = 0;

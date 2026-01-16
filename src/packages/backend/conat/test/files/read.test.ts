@@ -20,11 +20,9 @@ import { sha1 } from "@cocalc/backend/sha1";
 
 describe("do a basic test that the file read service works", () => {
   const project_id = "00000000-0000-4000-8000-000000000000";
-  const compute_server_id = 0;
   it("create the read server", async () => {
     await createServer({
       project_id,
-      compute_server_id,
       createReadStream,
     });
   });
@@ -40,7 +38,7 @@ describe("do a basic test that the file read service works", () => {
   });
 
   it("reads the file into memory", async () => {
-    const r = await readFile({ project_id, compute_server_id, path: source });
+    const r = await readFile({ project_id, path: source });
     // will get just one chunk
     for await (const chunk of r) {
       expect(chunk.toString()).toEqual(CONTENT);
@@ -48,7 +46,7 @@ describe("do a basic test that the file read service works", () => {
   });
 
   it("closes the write server", async () => {
-    close({ project_id, compute_server_id });
+    close({ project_id });
     for (const f of cleanups) {
       f();
     }
@@ -57,12 +55,10 @@ describe("do a basic test that the file read service works", () => {
 
 describe("do a larger test that involves multiple chunks and a different name", () => {
   const project_id = "00000000-0000-4000-8000-000000000000";
-  const compute_server_id = 0;
   const name = "b";
   it("create the read server", async () => {
     await createServer({
       project_id,
-      compute_server_id,
       createReadStream,
       name,
     });
@@ -84,7 +80,6 @@ describe("do a larger test that involves multiple chunks and a different name", 
   it("reads the file into memory", async () => {
     const r = await readFile({
       project_id,
-      compute_server_id,
       path: source,
       name,
     });
@@ -100,7 +95,7 @@ describe("do a larger test that involves multiple chunks and a different name", 
   });
 
   it("closes the write server", async () => {
-    close({ project_id, compute_server_id, name });
+    close({ project_id, name });
     for (const f of cleanups) {
       f();
     }

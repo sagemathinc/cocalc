@@ -321,7 +321,6 @@ export class IpywidgetsState extends EventEmitter {
     }
     return await this.client.ipywidgetsGetBuffer({
       project_id: this.syncdoc.project_id,
-      compute_server_id: this.syncdoc.compute_server_id,
       path: auxFileToOriginal(this.syncdoc.path),
       model_id,
       buffer_path,

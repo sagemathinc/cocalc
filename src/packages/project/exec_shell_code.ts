@@ -48,10 +48,9 @@ export async function exec_shell_code(socket: CoCalcSocket, mesg) {
 }
 
 export async function handleExecShellCode(mesg) {
-  const { compute_server_id: _computeServerId, ...rest } = mesg;
   const out = await execCode({
     path: abspath(mesg.path ?? ""),
-    ...rest,
+    ...mesg,
   });
   let ret: ExecuteCodeOutput & { id: string } = {
     id: mesg.id,

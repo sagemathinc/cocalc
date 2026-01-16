@@ -169,8 +169,8 @@ export const mutagenSync = refCacheSync<
   MutagenSync
 >({
   name: "mutagen-sync",
-  createKey: ({ project_id, compute_server_id, client }: Options) =>
-    JSON.stringify([project_id, compute_server_id, client.id]),
+  createKey: ({ project_id, client }: Options) =>
+    JSON.stringify([project_id, client.id]),
   createObject: (opts: Options & { noCache?: boolean }) => {
     return new MutagenSync(opts);
   },

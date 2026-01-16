@@ -36,14 +36,13 @@ export async function handleFileDownload({
     return;
   }
   const i = url.indexOf("files/");
-  const compute_server_id = parseInt(req.query.id ?? "0");
   let j = url.lastIndexOf("?");
   if (j == -1) {
     j = url.length;
   }
   const path = decodeURIComponent(url.slice(i + "files/".length, j));
   const project_id = url.split("/").slice(1)[0];
-  logger.debug("conat: get file", { project_id, path, compute_server_id, url });
+  logger.debug("conat: get file", { project_id, path, url });
   const fileName = path_split(path).tail;
   const contentType = mime.lookup(fileName);
   if (
@@ -68,7 +67,6 @@ export async function handleFileDownload({
     for await (const chunk of await readFile({
       client,
       project_id,
-      compute_server_id,
       path,
       maxWait,
     })) {
@@ -83,7 +81,7 @@ export async function handleFileDownload({
   } catch (err) {
     logger.debug(
       "ERROR streaming file",
-      { project_id, compute_server_id, path },
+      { project_id, path },
       err,
     );
     if (!headersSent) {

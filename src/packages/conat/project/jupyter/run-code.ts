@@ -18,14 +18,8 @@ const MAX_MSGS_PER_SECOND = parseInt(
 );
 const logger = getLogger("conat:project:jupyter:run-code");
 
-function getSubject({
-  project_id,
-  compute_server_id = 0,
-}: {
-  project_id: string;
-  compute_server_id?: number;
-}) {
-  return `jupyter.project-${project_id}.${compute_server_id}`;
+function getSubject({ project_id }: { project_id: string }) {
+  return `jupyter.project-${project_id}.0`;
 }
 
 export interface InputCell {
@@ -80,7 +74,6 @@ type CreateOutputHandler = (opts: {
 export function jupyterServer({
   client,
   project_id,
-  compute_server_id = 0,
   // run takes a path and cells to run and returns an async iterator
   // over the outputs.
   run,
@@ -93,7 +86,6 @@ export function jupyterServer({
 }: {
   client: ConatClient;
   project_id: string;
-  compute_server_id?: number;
   run: JupyterCodeRunner;
   outputHandler?: CreateOutputHandler;
   getKernelStatus: (opts: { path: string }) => Promise<{
@@ -107,7 +99,7 @@ export function jupyterServer({
     kernel_state: "idle" | "busy" | "running";
   }>;
 }) {
-  const subject = getSubject({ project_id, compute_server_id });
+  const subject = getSubject({ project_id });
   const server: ConatSocketServer = client.socket.listen(subject, {
     keepAlive: 5000,
     keepAliveTimeout: 5000,
@@ -379,7 +371,6 @@ export class JupyterClient {
 export function jupyterClient(opts: {
   path: string;
   project_id: string;
-  compute_server_id?: number;
   client: ConatClient;
   stdin?: (opts: {
     id: string;

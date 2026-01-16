@@ -6,7 +6,6 @@ const DEFAULT_TIMEOUT = 1000 * 15;
 
 export interface Options {
   project_id: string;
-  compute_server_id: number;
   client: Client;
 }
 
@@ -129,8 +128,8 @@ export const mutagenForward = refCacheSync<
   MutagenForward
 >({
   name: "mutagen-forward",
-  createKey: ({ project_id, compute_server_id, client }: Options) =>
-    JSON.stringify([project_id, compute_server_id, client.id]),
+  createKey: ({ project_id, client }: Options) =>
+    JSON.stringify([project_id, client.id]),
   createObject: (opts: Options & { noCache?: boolean }) => {
     return new MutagenForward(opts);
   },

@@ -16,28 +16,15 @@ interface Api {
   get: () => Promise<ProjectInfo | null>;
 }
 
-export async function get({
-  project_id,
-  compute_server_id = 0,
-}: {
-  project_id: string;
-  compute_server_id?: number;
-}) {
+export async function get({ project_id }: { project_id: string }) {
   const c = await conat();
-  const subject = getSubject({ project_id, compute_server_id });
+  const subject = getSubject({ project_id });
   return await c.call(subject).get();
 }
 
-function getSubject({
-  project_id,
-  compute_server_id = 0,
-}: {
-  project_id: string;
-  compute_server_id?: number;
-}) {
+function getSubject({ project_id }: { project_id: string }) {
   return projectSubject({
     project_id,
-    compute_server_id,
     service: SERVICE_NAME,
   });
 }
@@ -45,7 +32,6 @@ function getSubject({
 export function createService(opts: {
   infoServer;
   project_id: string;
-  compute_server_id?: number;
 }) {
   return new ProjectInfoService(opts);
 }
@@ -56,9 +42,9 @@ class ProjectInfoService {
   private readonly subject: string;
   info?: ProjectInfo | null = null;
 
-  constructor({ infoServer, project_id, compute_server_id = 0 }) {
+  constructor({ infoServer, project_id }: { infoServer; project_id: string }) {
     logger.debug("register");
-    this.subject = getSubject({ project_id, compute_server_id });
+    this.subject = getSubject({ project_id });
     // initializing project info server + reacting when it has something to say
     this.infoServer = infoServer;
     this.infoServer.start();

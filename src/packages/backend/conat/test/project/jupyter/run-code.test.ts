@@ -126,7 +126,6 @@ describe("create simple mocked jupyter runner that does actually eval an express
 
   let server;
   const project_id = uuid();
-  const compute_server_id = 3;
   it("create jupyter code run server", () => {
     // running code with this just results in two responses: the path and the cells
     async function run({ cells }) {
@@ -142,7 +141,6 @@ describe("create simple mocked jupyter runner that does actually eval an express
       client: client1,
       project_id,
       run,
-      compute_server_id,
       getKernelStatus,
     });
   });
@@ -158,7 +156,6 @@ describe("create simple mocked jupyter runner that does actually eval an express
       path,
       project_id,
       client: client2,
-      compute_server_id,
     });
     const iter = await client.run(cells);
     const v: any[] = [];

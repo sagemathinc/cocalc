@@ -24,16 +24,9 @@ const SERVICE_NAME = "usage-info";
 // and even it times out, everything starts again in 2-3 seconds.  So this is fine.
 const SERVER_TIMEOUT = 15000;
 
-function getSubject({
-  project_id,
-  compute_server_id = 0,
-}: {
-  project_id: string;
-  compute_server_id?: number;
-}) {
+function getSubject({ project_id }: { project_id: string }) {
   return projectSubject({
     project_id,
-    compute_server_id,
     service: SERVICE_NAME,
   });
 }
@@ -45,22 +38,19 @@ interface Api {
 export async function get({
   client = conat(),
   project_id,
-  compute_server_id = 0,
   path,
 }: {
   client?: ConatClient;
   project_id: string;
-  compute_server_id?: number;
   path: string;
 }) {
-  const subject = getSubject({ project_id, compute_server_id });
+  const subject = getSubject({ project_id });
   return await client.call(subject).get(path);
 }
 
 interface Options {
   client?: ConatClient;
   project_id: string;
-  compute_server_id?: number;
   createUsageInfoServer: Function;
 }
 

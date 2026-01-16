@@ -145,7 +145,7 @@ export interface ProjectClient extends EventEmitter {
   callConatService?: CallConatServiceFunction;
   createConatService?: CreateConatServiceFunction;
 
-  // account_id or project_id or compute_server_id (encoded as a UUID - use decodeUUIDtoNum to decode)
+  // account_id or project_id (encoded as a UUID - use decodeUUIDtoNum to decode)
   client_id: () => string;
 
   is_deleted: (
@@ -178,7 +178,6 @@ export interface Client extends ProjectClient {
 
   ipywidgetsGetBuffer?: (opts: {
     project_id: string;
-    compute_server_id?: number;
     path: string;
     model_id: string;
     buffer_path: string | string[];

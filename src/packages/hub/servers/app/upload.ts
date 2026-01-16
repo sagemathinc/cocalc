@@ -1,16 +1,16 @@
 /*
 Support user uploading files directly to CoCalc from their browsers.
 
-- uploading to projects and compute servers, with full support for potentially
-  very LARGE file uploads that stream via Conat.  This checks users is authenticated
-  with write access.
+- uploading to projects, with full support for potentially very LARGE file
+  uploads that stream via Conat. This checks users is authenticated with write
+  access.
 
 - uploading blobs to our database.
 
 Which of the above happens depends on query params.
 
-NOTE:  Code for downloading files from projects/compute servers
-is in the middle of packages/hub/proxy/handle-request.ts
+NOTE: Code for downloading files from projects is in the middle of
+packages/hub/proxy/handle-request.ts
 
 I'm sorry the code below is so insane.  It was extremely hard to write
 and involves tricky state in subtle ways all over the place, due to
@@ -40,7 +40,7 @@ export default function init(router: Router) {
       res.status(500).send("user must be signed in to upload files");
       return;
     }
-    const { project_id, compute_server_id, path = "", ttl, blob } = req.query;
+    const { project_id, path = "", ttl, blob } = req.query;
     try {
       if (blob) {
         //await handleBlobUpload({ ttl, req, res });
@@ -50,7 +50,6 @@ export default function init(router: Router) {
         await handleUploadToProject({
           account_id,
           project_id,
-          compute_server_id,
           path,
           req,
           res,
@@ -73,7 +72,6 @@ const finished: { [key: string]: { state: boolean; cb: () => void } } = {};
 async function handleUploadToProject({
   account_id,
   project_id,
-  compute_server_id: compute_server_id0,
   path,
   req,
   res,
@@ -81,7 +79,6 @@ async function handleUploadToProject({
   logger.debug({
     account_id,
     project_id,
-    compute_server_id0,
     path,
   });
 
@@ -91,10 +88,6 @@ async function handleUploadToProject({
   ) {
     throw Error("user must be collaborator on project");
   }
-  if (typeof compute_server_id0 != "string") {
-    throw Error("compute_server_id must be given");
-  }
-  const compute_server_id = parseInt(compute_server_id0);
   if (typeof path != "string") {
     throw Error("path must be given");
   }
@@ -110,7 +103,6 @@ async function handleUploadToProject({
       filename = file?.["originalFilename"] ?? "noname.txt";
       const { chunkStream: chunkStream0, totalStream } = getWriteStream({
         project_id,
-        compute_server_id,
         path,
         filename,
       });
@@ -135,7 +127,7 @@ async function handleUploadToProject({
 
   const index = parseInt(fields.dzchunkindex?.[0] ?? "0");
   const count = parseInt(fields.dztotalchunkcount?.[0] ?? "1");
-  const key = JSON.stringify({ path, filename, compute_server_id, project_id });
+  const key = JSON.stringify({ path, filename, project_id });
   if (index > 0 && errors?.[key]?.length > 0) {
     res.status(500).send(`upload failed -- ${errors[key].join(", ")}`);
     return;
@@ -151,7 +143,6 @@ async function handleUploadToProject({
         await writeFileToProject({
           stream,
           project_id,
-          compute_server_id,
           path: join(path, fields.fullPath?.[0] ?? filename),
           maxWait: MAX_UPLOAD_TIME_MS,
         });
@@ -163,7 +154,6 @@ async function handleUploadToProject({
         // console.log("conat: freeing write stream");
         freeWriteStream({
           project_id,
-          compute_server_id,
           path,
           filename,
         });

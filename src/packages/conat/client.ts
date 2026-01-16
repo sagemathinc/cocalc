@@ -15,7 +15,6 @@ interface Client {
   conat: (opts?) => ConatClient;
   account_id?: string;
   project_id?: string;
-  compute_server_id?: number;
   getLogger?: (name) => Logger;
   // if defined, causes a client-defined version of reconnecting.
   reconnect?: () => Promise<void>;
@@ -42,7 +41,6 @@ export class ClientWithState extends EventEmitter {
   conatClient?: ConatClient;
   account_id?: string;
   project_id?: string;
-  compute_server_id?: number;
   state: State = "disconnected";
   _getLogger?: (name) => Logger;
   _reconnect?: () => Promise<void>;
@@ -65,7 +63,6 @@ export class ClientWithState extends EventEmitter {
     };
     this.account_id = client.account_id;
     this.project_id = client.project_id;
-    this.compute_server_id = client.compute_server_id;
     this._getLogger = client.getLogger;
     this._reconnect = client.reconnect;
   }

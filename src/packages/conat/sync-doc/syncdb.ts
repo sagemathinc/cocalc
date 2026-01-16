@@ -20,7 +20,6 @@ export function syncdb({ client, service, ...opts }: SyncDBOptions): SyncDB {
     client.fs({
       service,
       project_id: opts.project_id,
-      compute_server_id: opts.compute_server_id,
     });
   const syncClient = new SyncClient(client);
   return new SyncDB({ ...opts, fs, client: syncClient });

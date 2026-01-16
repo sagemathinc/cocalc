@@ -12,19 +12,17 @@ const service = "api";
 
 export function projectApiClient({
   project_id,
-  compute_server_id = 0,
   client = connect(),
   timeout = DEFAULT_TIMEOUT,
 }: {
   project_id: string;
-  compute_server_id?: number;
   client?: Client;
   timeout?: number;
 }): ProjectApi {
   if (!isValidUUID(project_id)) {
     throw Error(`project_id = '${project_id}' must be a valid uuid`);
   }
-  const subject = projectSubject({ project_id, compute_server_id, service });
+  const subject = projectSubject({ project_id, service });
 
   const isReady = async () => {
     return await client.interest(subject);

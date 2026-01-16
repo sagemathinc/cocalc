@@ -32,7 +32,6 @@ export interface ExecuteStreamOptions {
   command?: string;
   args?: string[];
   path?: string;
-  compute_server_id?: number;
   bash?: boolean;
   env?: { [key: string]: string };
   timeout?: number;
@@ -133,7 +132,7 @@ export async function executeStream(
     // Start an async execution job with streaming callback
     job = await executeCode({
       command: opts.command || "",
-      path: !!opts.compute_server_id ? opts.path : abspath(opts.path ?? ""),
+      path: abspath(opts.path ?? ""),
       ...opts,
       async_call: true, // Force async mode for streaming
       streamCB, // Add the streaming callback
