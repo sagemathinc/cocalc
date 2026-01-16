@@ -4,7 +4,7 @@
  */
 
 /*
-Use synctex to go back and forth between latex files and pdfs.
+Use synctex to go back and forth between latex files and PDFs.
 */
 
 import {
