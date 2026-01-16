@@ -8,13 +8,11 @@ const DEFAULT_TIMEOUT = 15000;
 let client: ConatClient | null = null;
 export default async function projectBridge({
   project_id,
-  compute_server_id,
   name,
   args,
   timeout,
 }: {
   project_id: string;
-  compute_server_id?: number;
   name: string;
   args?: any[];
   timeout?: number;
@@ -23,7 +21,6 @@ export default async function projectBridge({
   return await callProject({
     client,
     project_id,
-    compute_server_id,
     name,
     args,
     timeout,
@@ -33,21 +30,18 @@ export default async function projectBridge({
 async function callProject({
   client,
   project_id,
-  compute_server_id = 0,
   name,
   args = [],
   timeout = DEFAULT_TIMEOUT,
 }: {
   client: ConatClient;
   project_id: string;
-  compute_server_id?: number;
   name: string;
   args?: any[];
   timeout?: number;
 }) {
   const subject = projectSubject({
     project_id,
-    compute_server_id,
     service: "api",
   });
   try {
