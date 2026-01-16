@@ -35,6 +35,7 @@ import { ActionBox } from "./action-box";
 import BackupOps from "./backup-ops";
 import CopyOps from "./copy-ops";
 import MoveOps from "./move-ops";
+import RestoreOps from "./restore-ops";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
 import { MiscSideButtons } from "./misc-side-buttons";
@@ -396,6 +397,7 @@ export function Explorer() {
           style={{ top: "100px" }}
         />
         <BackupOps project_id={project_id} />
+        <RestoreOps project_id={project_id} />
         <MoveOps project_id={project_id} />
         <CopyOps project_id={project_id} />
         <div

@@ -3,11 +3,16 @@ import getLogger from "@cocalc/backend/logger";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
 import {
   claimLroOps,
+  getLro,
   touchLro,
   updateLro,
 } from "@cocalc/server/lro/lro-db";
 import { publishLroEvent, publishLroSummary } from "@cocalc/server/lro/stream";
-import { moveProjectToHost, type MoveProjectProgressUpdate } from "./move";
+import {
+  MOVE_CANCELED_CODE,
+  moveProjectToHost,
+  type MoveProjectProgressUpdate,
+} from "./move";
 
 const logger = getLogger("server:projects:move-worker");
 
@@ -32,6 +37,10 @@ const progressSteps: Record<string, number> = {
   done: 100,
 };
 
+const progressRanges: Record<string, { start: number; end: number }> = {
+  "start-dest": { start: progressSteps["start-dest"], end: progressSteps.cleanup },
+};
+
 let running = false;
 let inFlight = 0;
 
@@ -50,8 +59,18 @@ function progressEvent({
   op: LroSummary;
   update: MoveProjectProgressUpdate;
 }) {
-  const progress =
-    progressSteps[update.step] != null ? progressSteps[update.step] : undefined;
+  let progress = progressSteps[update.step];
+  if (update.progress != null) {
+    const range = progressRanges[update.step];
+    if (range) {
+      const clamped = Math.max(0, Math.min(100, update.progress));
+      progress = Math.round(
+        range.start + (clamped / 100) * (range.end - range.start),
+      );
+    } else {
+      progress = Math.round(Math.max(0, Math.min(100, update.progress)));
+    }
+  }
   void publishLroEvent({
     scope_type: op.scope_type,
     scope_id: op.scope_id,
@@ -71,7 +90,7 @@ async function updateProgressSummary(op: LroSummary, update: MoveProjectProgress
   const updated = await updateLro({
     op_id: op.op_id,
     progress_summary: {
-      phase: update.step,
+      phase: update.message ?? update.step,
       ...(update.detail ?? {}),
     },
   });
@@ -122,16 +141,20 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
         detailKey = String(update.detail);
       }
     }
-    const progressKey = `${update.step}|${update.message ?? ""}|${detailKey}`;
+    const progressKey = `${update.step}|${update.message ?? ""}|${detailKey}|${
+      update.progress ?? ""
+    }`;
     if (progressKey === lastProgressKey) {
       return;
     }
     lastProgressKey = progressKey;
-    logger.info("move op step", {
+    const log = update.progress != null ? logger.debug : logger.info;
+    log("move op step", {
       op_id,
       step: update.step,
       message: update.message,
       detail: update.detail,
+      progress: update.progress,
     });
     progressEvent({ op, update });
     touchLro({ op_id, owner_type: OWNER_TYPE, owner_id: WORKER_ID }).catch(
@@ -141,6 +164,16 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
   };
 
   try {
+    let canceled = false;
+    const shouldAbort = async () => {
+      if (canceled) return true;
+      const current = await getLro(op_id);
+      if (current?.status === "canceled" || current?.status === "expired") {
+        canceled = true;
+        return true;
+      }
+      return false;
+    };
     await progress({
       step: "validate",
       message: "starting move",
@@ -152,7 +185,7 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
         dest_host_id,
         account_id,
       },
-      { progress },
+      { progress, shouldCancel: shouldAbort },
     );
 
     const updated = await updateLro({
@@ -166,6 +199,20 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
       await publishSummary(updated);
     }
   } catch (err) {
+    const isCanceled = (err as any)?.code === MOVE_CANCELED_CODE;
+    if (isCanceled) {
+      logger.info("move op canceled", { op_id });
+      const updated = await updateLro({
+        op_id,
+        status: "canceled",
+        error: "canceled",
+      });
+      if (updated) {
+        await publishSummary(updated);
+      }
+      await progress({ step: "done", message: "canceled" });
+      return;
+    }
     logger.warn("move op failed", { op_id, err: `${err}` });
     const updated = await updateLro({
       op_id,

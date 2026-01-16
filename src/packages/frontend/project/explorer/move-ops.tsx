@@ -1,9 +1,11 @@
-import { Button, Progress, Space, Spin } from "antd";
+import { Button, Popconfirm, Progress, Space, Spin } from "antd";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { LroStatus } from "@cocalc/conat/hub/api/lro";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   LRO_DISMISSABLE_STATUSES,
+  LRO_TERMINAL_STATUSES,
   isDismissed,
   progressBarStatus,
 } from "@cocalc/frontend/lro/utils";
@@ -28,6 +30,7 @@ export default function MoveOps({ project_id }: { project_id: string }) {
   }
   const canDismiss =
     summary != null && LRO_DISMISSABLE_STATUSES.has(summary.status);
+  const canCancel = summary != null && !LRO_TERMINAL_STATUSES.has(summary.status);
   const percent = progressPercent(moveOp);
   const statusText = formatStatusLine(moveOp);
   const progressStatus = progressBarStatus(summary?.status);
@@ -57,6 +60,20 @@ export default function MoveOps({ project_id }: { project_id: string }) {
           />
         )}
         <span style={{ fontSize: "11px", color: "#666" }}>{statusText}</span>
+        {canCancel ? (
+          <Popconfirm
+            title="Cancel this move operation?"
+            okText="Cancel"
+            cancelText="Keep"
+            onConfirm={() =>
+              webapp_client.conat_client.hub.lro.cancel({ op_id: moveOp.op_id })
+            }
+          >
+            <Button size="small" type="link">
+              Cancel
+            </Button>
+          </Popconfirm>
+        ) : null}
         {canDismiss ? (
           <Button
             size="small"

@@ -101,6 +101,7 @@ import { search } from "@cocalc/frontend/project/search/run";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import { CopyOpsManager } from "@cocalc/frontend/project/copy-ops";
 import { BackupOpsManager } from "@cocalc/frontend/project/backup-ops";
+import { RestoreOpsManager } from "@cocalc/frontend/project/restore-ops";
 import { MoveOpsManager } from "@cocalc/frontend/project/move-ops";
 import { StartOpsManager } from "@cocalc/frontend/project/start-ops";
 import { getFileTemplate } from "./project/templates";
@@ -302,6 +303,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   private projectStatusSub?;
   private copyOpsManager: CopyOpsManager;
   private backupOpsManager: BackupOpsManager;
+  private restoreOpsManager: RestoreOpsManager;
   private startOpsManager: StartOpsManager;
   private moveOpsManager: MoveOpsManager;
 
@@ -319,6 +321,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       log: (message, err) => console.warn(message, err),
     });
     this.backupOpsManager = new BackupOpsManager({
+      project_id: this.project_id,
+      setState: (state) => this.setState(state),
+      isClosed: () => this.isClosed(),
+      listLro: (opts) => webapp_client.conat_client.hub.lro.list(opts),
+      getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+      dismissLro: (opts) => webapp_client.conat_client.hub.lro.dismiss(opts),
+      log: (message, err) => console.warn(message, err),
+    });
+    this.restoreOpsManager = new RestoreOpsManager({
       project_id: this.project_id,
       setState: (state) => this.setState(state),
       isClosed: () => this.isClosed(),
@@ -425,6 +436,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.initProjectStatus();
     this.copyOpsManager.init();
     this.backupOpsManager.init();
+    this.restoreOpsManager.init();
     this.startOpsManager.init();
     this.moveOpsManager.init();
     this.initSnapshots();
@@ -440,6 +452,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     redux.removeProjectReferences(this.project_id);
     this.copyOpsManager.close();
     this.backupOpsManager.close();
+    this.restoreOpsManager.close();
     this.startOpsManager.close();
     this.moveOpsManager.close();
     this.projectStatusSub?.close();
@@ -480,6 +493,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     scope_id?: string;
   }) => {
     this.backupOpsManager.track(op);
+  };
+
+  trackRestoreOp = (op: {
+    op_id?: string;
+    scope_type?: "project" | "account" | "host" | "hub";
+    scope_id?: string;
+  }) => {
+    this.restoreOpsManager.track(op);
   };
 
   dismissMoveLro = (op_id?: string) => {

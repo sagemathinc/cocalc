@@ -19,6 +19,19 @@ import { waitForCompletion as waitForLroCompletion } from "@cocalc/conat/lro/cli
 
 const log = getLogger("server:projects:move");
 
+export const MOVE_CANCELED_CODE = "move-canceled";
+
+class MoveCanceledError extends Error {
+  code = MOVE_CANCELED_CODE;
+  stage: string;
+
+  constructor(stage: string) {
+    super(`move canceled (${stage})`);
+    this.name = "MoveCanceledError";
+    this.stage = stage;
+  }
+}
+
 export type MoveProjectToHostInput = {
   project_id: string;
   dest_host_id?: string;
@@ -39,6 +52,7 @@ export type MoveProjectProgressUpdate = {
   step: string;
   message?: string;
   detail?: Record<string, any>;
+  progress?: number;
 };
 
 async function revertPlacementIfPossible(
@@ -153,9 +167,13 @@ async function buildMoveProjectContext(
 
 export async function moveProjectToHost(
   input: MoveProjectToHostInput,
-  opts?: { progress?: (update: MoveProjectProgressUpdate) => void },
+  opts?: {
+    progress?: (update: MoveProjectProgressUpdate) => void;
+    shouldCancel?: () => Promise<boolean>;
+  },
 ): Promise<void> {
   const progress = opts?.progress ?? (() => {});
+  const shouldCancel = opts?.shouldCancel;
   const context = await buildMoveProjectContext(input);
   log.debug("moveProjectToHost context", {
     project_id: context.project_id,
@@ -165,6 +183,61 @@ export async function moveProjectToHost(
     project_host_id: context.project_host_id,
     project_state: context.project_state,
   });
+
+  let placementUpdated = false;
+  const checkCanceled = async (stage: string) => {
+    if (!shouldCancel) {
+      return;
+    }
+    if (await shouldCancel()) {
+      throw new MoveCanceledError(stage);
+    }
+  };
+
+  const handleCancel = async (stage: string) => {
+    log.info("moveProjectToHost canceled", {
+      project_id: context.project_id,
+      dest_host_id: context.dest_host_id,
+      stage,
+    });
+    if (placementUpdated) {
+      try {
+        await revertPlacementIfPossible(context, progress);
+      } catch (err) {
+        log.warn("moveProjectToHost cancel placement revert failed", {
+          project_id: context.project_id,
+          source_host_id: context.project_host_id,
+          err,
+        });
+        progress({
+          step: "revert-placement",
+          message: "source placement revert failed",
+          detail: { source_host_id: context.project_host_id, error: `${err}` },
+        });
+      }
+      try {
+        await cleanupDestinationOnFailure(context, progress);
+      } catch (cleanupErr) {
+        log.warn("moveProjectToHost cancel destination cleanup failed", {
+          project_id: context.project_id,
+          dest_host_id: context.dest_host_id,
+          err: cleanupErr,
+        });
+        progress({
+          step: "cleanup-dest",
+          message: "destination cleanup failed",
+          detail: { dest_host_id: context.dest_host_id, error: `${cleanupErr}` },
+        });
+      }
+    }
+    progress({
+      step: "done",
+      message: "canceled",
+      detail: { stage },
+    });
+  };
+
+  try {
   progress({
     step: "validate",
     message: "validated move request",
@@ -173,6 +246,7 @@ export async function moveProjectToHost(
       dest_host_id: context.dest_host_id,
     },
   });
+  await checkCanceled("validate");
   progress({
     step: "stop-source",
     message: "stopping source project",
@@ -192,6 +266,7 @@ export async function moveProjectToHost(
     });
     throw err;
   }
+  await checkCanceled("stop-source");
 
   progress({
     step: "backup",
@@ -241,6 +316,7 @@ export async function moveProjectToHost(
     });
     throw err;
   }
+  await checkCanceled("backup");
 
   const destHost = await loadHostFromRegistry(context.dest_host_id);
   if (!destHost) {
@@ -256,6 +332,7 @@ export async function moveProjectToHost(
       host_id: context.dest_host_id,
       host: destHost,
     });
+    placementUpdated = true;
     log.info("moveProjectToHost placement updated", {
       project_id: context.project_id,
       dest_host_id: context.dest_host_id,
@@ -268,6 +345,7 @@ export async function moveProjectToHost(
     });
     throw err;
   }
+  await checkCanceled("placement");
   progress({
     step: "start-dest",
     message: "starting project on destination host",
@@ -284,6 +362,14 @@ export async function moveProjectToHost(
       scope_type: startOp.scope_type,
       scope_id: startOp.scope_id,
       client: conat(),
+      onProgress: (event) => {
+        progress({
+          step: "start-dest",
+          message: event.message ?? event.phase ?? "starting destination",
+          detail: event.detail,
+          progress: event.progress,
+        });
+      },
     });
     if (summary.status !== "succeeded") {
       const reason = summary.error ?? summary.status;
@@ -299,6 +385,9 @@ export async function moveProjectToHost(
       dest_host_id: context.dest_host_id,
     });
   } catch (err) {
+    if ((err as any)?.code === MOVE_CANCELED_CODE) {
+      throw err;
+    }
     log.warn("moveProjectToHost start failed after placement update", {
       project_id: context.project_id,
       dest_host_id: context.dest_host_id,
@@ -339,10 +428,12 @@ export async function moveProjectToHost(
     }
     throw err;
   }
+  await checkCanceled("start-dest");
   if (
     context.project_host_id &&
     context.project_host_id !== context.dest_host_id
   ) {
+    await checkCanceled("cleanup");
     progress({
       step: "cleanup",
       message: "removing source data",
@@ -382,4 +473,11 @@ export async function moveProjectToHost(
     message: "move complete",
     detail: { dest_host_id: context.dest_host_id },
   });
+  } catch (err) {
+    if ((err as any)?.code === MOVE_CANCELED_CODE) {
+      await handleCancel((err as any).stage ?? "unknown");
+      throw err;
+    }
+    throw err;
+  }
 }

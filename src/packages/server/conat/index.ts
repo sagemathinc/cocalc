@@ -18,6 +18,7 @@ import { initHostStatusService } from "./host-status";
 import { startBackupLroWorker } from "@cocalc/server/projects/backup-worker";
 import { startCopyLroWorker } from "@cocalc/server/projects/copy-worker";
 import { startMoveLroWorker } from "@cocalc/server/projects/move-worker";
+import { startRestoreLroWorker } from "@cocalc/server/projects/restore-worker";
 import { startHostLroWorker } from "@cocalc/server/hosts/start-worker";
 
 export { loadConatConfiguration };
@@ -49,6 +50,7 @@ export async function initConatApi() {
   startBackupLroWorker();
   startCopyLroWorker();
   startMoveLroWorker();
+  startRestoreLroWorker();
   startHostLroWorker();
   initLLM();
   if (process.env.COCALC_MODE !== "launchpad") {

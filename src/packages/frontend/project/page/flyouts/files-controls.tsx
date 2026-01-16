@@ -348,12 +348,13 @@ export function FilesSelectedControls({
               restoreMode === "scratch"
                 ? path.posix.join("/scratch", rel ?? "")
                 : undefined;
-            await webapp_client.conat_client.hub.projects.restoreBackup({
+            const op = await webapp_client.conat_client.hub.projects.restoreBackup({
               project_id,
               id: entry.id,
               path: rel || undefined,
               dest,
             });
+            actions?.trackRestoreOp?.(op);
           }
         }
         message.success("Restore started");
