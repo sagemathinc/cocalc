@@ -9,8 +9,6 @@
     "./hub/*": "./dist/hub/*.js",
     "./accounts/*": "./dist/accounts/*.js",
     "./bookmarks/*": "./dist/bookmarks/*.js",
-    "./compute/*": "./dist/compute/*.js",
-    "./compute/maintenance": "./dist/compute/maintenance/index.js",
     "./cloud": "./dist/cloud/index.js",
     "./database/*": "./dist/database/*.js",
     "./mentions/*": "./dist/mentions/*.js",

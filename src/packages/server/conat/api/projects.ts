@@ -152,17 +152,11 @@ export async function setQuotas(opts: {
 export async function getDiskQuota({
   account_id,
   project_id,
-  compute_server_id = 0,
 }: {
   account_id: string;
   project_id: string;
-  compute_server_id?: number;
 }): Promise<{ used: number; size: number }> {
   await assertCollab({ account_id, project_id });
-  if (compute_server_id) {
-    // I'm not sure how this will work...
-    throw Error(`getDiskQuota: disk quota for compute server not implemented`);
-  }
   // Route directly to the project-host that owns this project so quota reflects
   // the correct btrfs volume.
   const client = filesystemClient({ project_id });
