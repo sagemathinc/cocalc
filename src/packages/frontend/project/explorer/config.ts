@@ -26,8 +26,13 @@ interface Location {
   path?: string;
 }
 
-function key({ project_id, compute_server_id = 0, path = "" }: Location) {
-  return `${project_id}-${compute_server_id}-${path}`;
+function key({
+  project_id,
+  compute_server_id: _compute_server_id = 0,
+  path = "",
+}: Location) {
+  void _compute_server_id;
+  return `${project_id}-${path}`;
 }
 
 // if field is given, goes up the path searching for something with field set

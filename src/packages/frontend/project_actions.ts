@@ -28,11 +28,9 @@ import {
 import type { ChatState } from "@cocalc/frontend/chat/chat-indicator";
 import { initChat } from "@cocalc/frontend/chat/register";
 import * as computeServers from "@cocalc/frontend/compute/compute-servers-table";
-import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
-import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import {
   query as client_query,
   exec,
@@ -1399,19 +1397,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.touchActiveFileIfOnComputeServer(filename);
   }
 
-  private touchActiveFileIfOnComputeServer = throttle(async (path: string) => {
-    if (this.state == "closed") {
+  private touchActiveFileIfOnComputeServer = throttle(
+    async (_path: string) => {
+      void _path;
       return;
-    }
-    const computeServerAssociations =
-      webapp_client.project_client.computeServers(this.project_id);
-    // this is what is currently configured:
-    const compute_server_id =
-      await computeServerAssociations.getServerIdForPath(path);
-    if (compute_server_id) {
-      await this.touch(compute_server_id);
-    }
-  }, 15000);
+    },
+    15000,
+  );
 
   private async convert_docx_file(filename): Promise<string> {
     const conf = await this.init_configuration("main");
@@ -1554,10 +1546,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   };
 
-  setComputeServerId = (compute_server_id: number) => {
-    if (compute_server_id == null) {
-      throw Error("bug");
-    }
+  setComputeServerId = (_compute_server_id: number) => {
+    void _compute_server_id;
+    const compute_server_id = 0;
     const store = this.get_store();
     if (store == null) return;
     if (store.get("compute_server_id") == compute_server_id) {
@@ -1575,27 +1566,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   // sets the side chat compute server id properly for the given path.
-  setSideChatComputeServerId = async (path) => {
-    const computeServerAssociations =
-      webapp_client.project_client.computeServers(this.project_id);
-    const sidePath = chatFile(path);
-    const currentId =
-      await computeServerAssociations.getServerIdForPath(sidePath);
-    if (currentId != null) {
-      // already set
-      return;
-    }
-    const id = await computeServerAssociations.getServerIdForPath(path);
-    if (!id) {
-      // nothing to set -- default is fine
-      return;
-    }
-    // set it
-    computeServerAssociations.connectComputeServerToPath({
-      id,
-      path: sidePath,
-    });
-    await computeServerAssociations.save();
+  setSideChatComputeServerId = async (_path) => {
+    void _path;
+    return;
   };
 
   set_file_search(search): void {
@@ -2241,6 +2214,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // must be the same or one of them must be 0.  We don't implement
     // copying directly from one compute server to another.
   }) => {
+    src_compute_server_id = 0;
+    dest_compute_server_id = 0;
     const withSlashes = await this.appendSlashToDirectoryPaths(
       src,
       src_compute_server_id,
@@ -2402,16 +2377,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // note: there is no need to explicitly close or await what is returned by
   // fs(...) since it's just a lightweight wrapper object to format appropriate RPC calls.
   private _filesystem: { [compute_server_id: number]: FilesystemClient } = {};
-  fs = (compute_server_id?: number): FilesystemClient => {
-    compute_server_id ??= this.get_store()?.get("compute_server_id") ?? 0;
-    this._filesystem[compute_server_id] ??= webapp_client.conat_client
+  fs = (_compute_server_id?: number): FilesystemClient => {
+    void _compute_server_id;
+    const normalizedComputeServerId = 0;
+    this._filesystem[normalizedComputeServerId] ??= webapp_client.conat_client
       .conat()
-      .fs({ project_id: this.project_id, compute_server_id });
-    return this._filesystem[compute_server_id];
+      .fs({ project_id: this.project_id, compute_server_id: 0 });
+    return this._filesystem[normalizedComputeServerId];
   };
 
-  dust = async (path: string, compute_server_id?: number) => {
-    return await dust({ project_id: this.project_id, path, compute_server_id });
+  dust = async (path: string, _compute_server_id?: number) => {
+    void _compute_server_id;
+    return await dust({ project_id: this.project_id, path, compute_server_id: 0 });
   };
 
   // if available in cache, this returns the filenames in the current directory,
@@ -2429,11 +2406,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return this.getFilesCache(path);
   };
 
-  getCacheId = (compute_server_id?: number) => {
+  getCacheId = (_compute_server_id?: number) => {
+    void _compute_server_id;
     return getCacheId({
       project_id: this.project_id,
-      compute_server_id:
-        compute_server_id ?? this.get_store()?.get("compute_server_id") ?? 0,
+      compute_server_id: 0,
     });
   };
 
@@ -3222,9 +3199,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
-  getComputeServerId = (id?: number): number => {
-    const store = this.get_store();
-    return id ?? store?.get("compute_server_id") ?? 0;
+  getComputeServerId = (_id?: number): number => {
+    void _id;
+    return 0;
   };
 
   showComputeServers = () => {
@@ -3367,13 +3344,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   // undefined if not specified or not known
-  getComputeServerIdForFile = (path: string): number | undefined => {
-    if (this.computeServerManager?.state != "connected") {
-      // don't know anything yet.
-      // TODO: maybe we should change this to be async and guarantee answer known -- not sure.
-      return;
-    }
-    return this.computeServerManager.get(canonicalPath(path));
+  getComputeServerIdForFile = (_path: string): number | undefined => {
+    void _path;
+    return 0;
   };
 
   // In case of confirmation, returns true on success or false if user says "no"
@@ -3381,60 +3354,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // file doesn't involve backend state that could be reset, e.g., we basically
   // only confirm for terminals and jupyter notebooks.
   setComputeServerIdForFile = async ({
-    path,
-    compute_server_id,
-    confirm,
+    path: _path,
+    compute_server_id: _compute_server_id,
+    confirm: _confirm,
   }: {
     path: string;
     compute_server_id?: number;
     confirm?: boolean;
   }): Promise<boolean> => {
-    if (confirm) {
-      if (!path.endsWith(".term") && !path.endsWith(".ipynb")) {
-        // ONLY confirm when there is some danger is loss of state.  Otherwise,
-        // this is very annoying.
-        confirm = false;
-      }
-    }
-    const selectedComputeServerId = this.getComputeServerId(compute_server_id);
-    const computeServerAssociations =
-      webapp_client.project_client.computeServers(this.project_id);
-    // this is what is currently configured:
-    const currentId =
-      (await computeServerAssociations.getServerIdForPath(path)) ?? 0;
-    if (currentId == selectedComputeServerId) {
-      // no need to set anything since we have what we want already
-      return true;
-    }
-    if (confirm) {
-      // (currently we only confirm this jupyter and terminals, which are
-      // the only supported file types with backend state).
-      if (
-        !(await redux.getActions("page").popconfirm(
-          modalParams({
-            current: currentId,
-            target: selectedComputeServerId,
-            path,
-          }),
-        ))
-      ) {
-        return false;
-      }
-    }
-    // Explicitly set the compute server id to what we want.
-    computeServerAssociations.connectComputeServerToPath({
-      id: selectedComputeServerId,
-      path,
-    });
-    // Now we save: why?
-    // Because we need to be sure the backend actually knows we want to use the compute
-    // server for the file before opening it; otherwise, it'll first get opened
-    // in the project, then later on the compute server, which is potentially VERY
-    // disconcerting and annoying, especially if the file doesn't exist.  It does
-    // work without doing this (because our design is robust to switching compute servers
-    // at any time), but it ends up with a blank file for a moment, and lots of empty files
-    // being created.
-    await computeServerAssociations.save();
+    void _path;
+    void _compute_server_id;
+    void _confirm;
     return true;
   };
 
@@ -3462,7 +3392,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const path = store.get("current_path");
     const options = getSearch({
       project_id: this.project_id,
-      compute_server_id: this.get_store()?.get("compute_server_id"),
       path,
     });
     try {

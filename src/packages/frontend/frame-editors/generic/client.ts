@@ -14,7 +14,6 @@ import { callback2 } from "@cocalc/util/async-utils";
 import { FakeSyncstring } from "./syncstring-fake";
 import { type UserSearchResult as User } from "@cocalc/util/db-schema/accounts";
 export { type User };
-import { excludeFromComputeServer } from "@cocalc/frontend/file-associations";
 import type { ExecOpts, ExecOutput } from "@cocalc/util/db-schema/projects";
 export type { ExecOpts, ExecOutput };
 import * as schema from "@cocalc/util/schema";
@@ -31,12 +30,9 @@ export function getComputeServerId({
   project_id: string;
   path: string;
 }) {
-  let compute_server_id =
-    redux.getProjectActions(project_id).getComputeServerIdForFile(path) ?? 0;
-  if (compute_server_id && excludeFromComputeServer(path)) {
-    compute_server_id = 0;
-  }
-  return compute_server_id;
+  void project_id;
+  void path;
+  return 0;
 }
 
 // async version of the webapp_client exec -- let's you run any code in a project!
@@ -44,15 +40,9 @@ export function getComputeServerId({
 // it always runs code on the compute server that the given file is on.
 export async function exec(
   opts: ExecOpts,
-  filePath?: string,
+  _filePath?: string,
 ): Promise<ExecOutput> {
-  if (filePath) {
-    const compute_server_id = getComputeServerId({
-      project_id: opts.project_id,
-      path: filePath,
-    });
-    opts = { ...opts, compute_server_id };
-  }
+  void _filePath;
   return await webapp_client.project_client.exec(opts);
 }
 
@@ -70,13 +60,11 @@ export async function touch(project_id: string, path: string): Promise<void> {
 // Resets the idle timeout timer and makes it known we are using the project.
 export async function touch_project(
   project_id: string,
-  compute_server_id?: number | null,
+  _compute_server_id?: number | null,
 ): Promise<void> {
+  void _compute_server_id;
   try {
-    await webapp_client.project_client.touch_project(
-      project_id,
-      compute_server_id,
-    );
+    await webapp_client.project_client.touch_project(project_id);
   } catch (err) {
     console.warn(`unable to touch '${project_id}' -- ${err}`);
   }
@@ -170,6 +158,7 @@ export function syncstring(opts: SyncstringOpts): any {
   } else {
     delete opts.fake;
   }
+  opts1.compute_server_id = 0;
   opts1.id = schema.client_db.sha1(opts.project_id, opts.path);
   return webapp_client.conat_client.conat().sync.string(opts1);
 }
@@ -190,7 +179,10 @@ interface SyncstringOpts2 {
 }
 
 export function syncstring2(opts: SyncstringOpts2): SyncString {
-  return webapp_client.conat_client.conat().sync.string(opts);
+  return webapp_client.conat_client.conat().sync.string({
+    ...opts,
+    compute_server_id: 0,
+  });
 }
 
 export interface SyncDBOpts {
@@ -209,7 +201,10 @@ export interface SyncDBOpts {
 }
 
 export function syncdb(opts: SyncDBOpts): any {
-  return webapp_client.conat_client.conat().sync.db(opts);
+  return webapp_client.conat_client.conat().sync.db({
+    ...opts,
+    compute_server_id: 0,
+  });
 }
 
 import type { SyncDB } from "@cocalc/sync/editor/db/sync";
@@ -220,6 +215,7 @@ export function syncdb2(opts: SyncDBOpts): SyncDB {
     throw Error("primary_keys must be array of positive length");
   }
   const opts1: any = opts;
+  opts1.compute_server_id = 0;
   opts1.client = webapp_client;
   return webapp_client.conat_client.conat().sync.db(opts1);
 }
@@ -231,6 +227,7 @@ export function immerdb2(opts: ImmerDBOpts): ImmerDB {
     throw Error("primary_keys must be array of positive length");
   }
   const opts1: any = opts;
+  opts1.compute_server_id = 0;
   opts1.client = webapp_client;
   return webapp_client.conat_client.conat().sync.immer(opts1);
 }

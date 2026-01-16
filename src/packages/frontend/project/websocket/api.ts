@@ -34,10 +34,15 @@ import type {
   ExecuteCodeOutput,
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
-import { syncFsClientClient } from "@cocalc/conat/service/syncfs-client";
+const COMPUTE_SERVER_REMOVED_MESSAGE =
+  "Compute servers have been removed from CoCalc.";
 
 const log = (...args) => {
   console.log("project:websocket: ", ...args);
+};
+
+const ignoreComputeServerId = (_compute_server_id?: number) => {
+  void _compute_server_id;
 };
 
 export class API {
@@ -56,15 +61,13 @@ export class API {
     compute_server_id?: number;
     timeout?: number;
   }) => {
-    if (compute_server_id == null) {
-      compute_server_id =
-        redux.getProjectActions(this.project_id).getComputeServerId() ?? 0;
-    }
-    const key = `${compute_server_id}-${timeout}`;
+    ignoreComputeServerId(compute_server_id);
+    const normalizedComputeServerId = 0;
+    const key = `${normalizedComputeServerId}-${timeout}`;
     if (this.apiCache[key] == null) {
       this.apiCache[key] = webapp_client.conat_client.projectApi({
         project_id: this.project_id,
-        compute_server_id,
+        compute_server_id: normalizedComputeServerId,
         timeout,
       });
     }
@@ -76,10 +79,11 @@ export class API {
     timeout: number,
     compute_server_id = 0,
   ): Promise<any> => {
+    ignoreComputeServerId(compute_server_id);
     log("_call (NEW conat call)", mesg);
     const resp = await webapp_client.conat_client.projectWebsocketApi({
       project_id: this.project_id,
-      compute_server_id,
+      compute_server_id: 0,
       mesg,
       timeout,
     });
@@ -91,9 +95,10 @@ export class API {
     channel: string,
     compute_server_id?: number,
   ): Channel => {
+    ignoreComputeServerId(compute_server_id);
     return webapp_client.conat_client.primus({
       project_id: this.project_id,
-      compute_server_id,
+      compute_server_id: 0,
       channel,
     }) as unknown as Channel;
   };
@@ -103,17 +108,13 @@ export class API {
   };
 
   getComputeServerId = (path: string) => {
-    return redux
-      .getProjectActions(this.project_id)
-      .getComputeServerIdForFile(path);
+    void path;
+    return 0;
   };
 
   version = async (compute_server_id?: number): Promise<number> => {
-    if (compute_server_id) {
-      throw Error("version only implemented right now for home base");
-    }
-    compute_server_id = 0;
-    const api = this.getApi({ compute_server_id });
+    ignoreComputeServerId(compute_server_id);
+    const api = this.getApi({ compute_server_id: 0 });
     return await api.system.version();
   };
 
@@ -124,7 +125,8 @@ export class API {
     dest: string,
     compute_server_id?: number,
   ): Promise<void> => {
-    const api = this.getApi({ compute_server_id, timeout: 60000 });
+    ignoreComputeServerId(compute_server_id);
+    const api = this.getApi({ compute_server_id: 0, timeout: 60000 });
     return await api.system.moveFiles({ paths, dest });
   };
 
@@ -137,7 +139,8 @@ export class API {
     dest: string,
     compute_server_id?: number,
   ): Promise<void> => {
-    const api = this.getApi({ compute_server_id, timeout: 60000 });
+    ignoreComputeServerId(compute_server_id);
+    const api = this.getApi({ compute_server_id: 0, timeout: 60000 });
     return await api.system.renameFile({ src, dest });
   };
 
@@ -147,7 +150,8 @@ export class API {
     timeout: number = 15000,
     compute_server_id: number = 0,
   ): Promise<DirectoryListingEntry[]> => {
-    const api = this.getApi({ compute_server_id, timeout });
+    ignoreComputeServerId(compute_server_id);
+    const api = this.getApi({ compute_server_id: 0, timeout });
     return await api.system.listing({ path, hidden });
   };
 
@@ -160,6 +164,7 @@ export class API {
     path: string,
     compute_server_id?: number,
   ): Promise<string> => {
+    ignoreComputeServerId(compute_server_id);
     const v = await this.canonical_paths([path], compute_server_id);
     const x = v[0];
     if (typeof x != "string") {
@@ -171,7 +176,8 @@ export class API {
     paths: string[],
     compute_server_id?: number,
   ): Promise<string[]> => {
-    const api = this.getApi({ compute_server_id });
+    ignoreComputeServerId(compute_server_id);
+    const api = this.getApi({ compute_server_id: 0 });
     return await api.system.canonicalPaths(paths);
   };
 
@@ -180,29 +186,20 @@ export class API {
     no_cache = false,
     compute_server_id?: number,
   ): Promise<Configuration> => {
-    if (compute_server_id == null) {
-      // TODO: this is home base configuration for now by default no matter what is
-      // selected in the explorer.  Someday it might be for compute servers,
-      // but right now that info is just not used/known elsewhere in our code. So by
-      // default use home base!
-      compute_server_id = 0;
-    }
-    const api = this.getApi({ compute_server_id });
+    ignoreComputeServerId(compute_server_id);
+    const api = this.getApi({ compute_server_id: 0 });
     return await api.system.configuration(aspect, no_cache);
   };
 
   private homeDirectory: { [key: string]: string } = {};
   getHomeDirectory = async (compute_server_id?: number) => {
-    if (compute_server_id == null) {
-      compute_server_id =
-        redux.getProjectActions(this.project_id).getComputeServerId() ?? 0;
-    }
-    const key = `${compute_server_id}`;
+    ignoreComputeServerId(compute_server_id);
+    const key = "0";
     if (this.homeDirectory[key] == null) {
       const { capabilities } = await this.configuration(
         "main",
         false,
-        compute_server_id,
+        0,
       );
       this.homeDirectory[key] = capabilities.homeDirectory as string;
     }
@@ -255,8 +252,9 @@ export class API {
     timeout: number = 15000,
     compute_server_id?: number,
   ): Promise<string> => {
+    ignoreComputeServerId(compute_server_id);
     const options: FormatterOptions = this.check_formatter_available(config);
-    const api = this.getApi({ compute_server_id, timeout });
+    const api = this.getApi({ compute_server_id: 0, timeout });
     return await api.editor.formatString({ str, options });
   };
 
@@ -268,9 +266,10 @@ export class API {
     }
     // we explicitly remove compute_server_id since we don't need
     // to pass that to opts, since exec is not proxied anymore through the project.
-    const { compute_server_id, ...options } = opts;
+    const { compute_server_id: _compute_server_id, ...options } = opts;
+    void _compute_server_id;
     const api = this.getApi({
-      compute_server_id,
+      compute_server_id: 0,
       timeout: timeout_ms,
     });
     return await api.system.exec(options);
@@ -280,8 +279,9 @@ export class API {
     path: string,
     compute_server_id?: number,
   ): Promise<string> => {
+    ignoreComputeServerId(compute_server_id);
     const api = this.getApi({
-      compute_server_id: compute_server_id ?? this.getComputeServerId(path),
+      compute_server_id: 0,
     });
     return await api.system.realpath(path);
   };
@@ -293,9 +293,9 @@ export class API {
     opts: NbconvertParams,
     compute_server_id?: number,
   ): Promise<any> => {
+    ignoreComputeServerId(compute_server_id);
     const api = this.getApi({
-      compute_server_id:
-        compute_server_id ?? this.getComputeServerId(opts.args[0]),
+      compute_server_id: 0,
       timeout: (opts.timeout ?? 60) * 1000 + 5000,
     });
     return await api.jupyter.nbconvert(opts);
@@ -306,9 +306,9 @@ export class API {
     ipynb_path: string,
     compute_server_id?: number,
   ): Promise<any> => {
+    ignoreComputeServerId(compute_server_id);
     const api = this.getApi({
-      compute_server_id:
-        compute_server_id ?? this.getComputeServerId(ipynb_path),
+      compute_server_id: 0,
     });
     return await api.jupyter.stripNotebook(ipynb_path);
   };
@@ -322,12 +322,13 @@ export class API {
     opts: RunNotebookOptions,
     compute_server_id?: number,
   ): Promise<string> => {
+    ignoreComputeServerId(compute_server_id);
     const max_total_time_ms = opts.limits?.max_total_time_ms ?? 20 * 60 * 1000;
     // a bit of extra time -- it's better to let the internal project
     // timer do the job, than have to wait for this generic timeout here,
     // since we want to at least get output for problems that ran.
     const api = this.getApi({
-      compute_server_id,
+      compute_server_id: 0,
       timeout: 60 + 2 * max_total_time_ms,
     });
     return await api.jupyter.runNotebook(opts);
@@ -349,49 +350,28 @@ export class API {
 
   // Copying files to/from compute servers:
 
-  computeServerSyncRequest = async (compute_server_id: number) => {
-    const client = syncFsClientClient({
-      project_id: this.project_id,
-      compute_server_id,
-    });
-    return await client.sync();
+  computeServerSyncRequest = async (_compute_server_id: number) => {
+    void _compute_server_id;
+    throw new Error(COMPUTE_SERVER_REMOVED_MESSAGE);
   };
 
-  copyFromHomeBaseToComputeServer = async ({
-    paths,
-    dest,
-    compute_server_id,
-    timeout = 60 * 1000,
-  }: {
+  copyFromHomeBaseToComputeServer = async (_opts: {
     compute_server_id: number;
     paths: string[];
     dest?: string;
     timeout?: number;
   }) => {
-    const client = syncFsClientClient({
-      project_id: this.project_id,
-      compute_server_id,
-      timeout,
-    });
-    return await client.copyFilesFromHomeBase({ paths, dest });
+    void _opts;
+    throw new Error(COMPUTE_SERVER_REMOVED_MESSAGE);
   };
 
-  copyFromComputeServerToHomeBase = async ({
-    compute_server_id,
-    paths,
-    dest,
-    timeout = 60 * 1000,
-  }: {
+  copyFromComputeServerToHomeBase = async (_opts: {
     compute_server_id: number;
     paths: string[];
     dest?: string;
     timeout?: number;
   }) => {
-    const client = syncFsClientClient({
-      project_id: this.project_id,
-      compute_server_id,
-      timeout,
-    });
-    return await client.copyFilesToHomeBase({ paths, dest });
+    void _opts;
+    throw new Error(COMPUTE_SERVER_REMOVED_MESSAGE);
   };
 }

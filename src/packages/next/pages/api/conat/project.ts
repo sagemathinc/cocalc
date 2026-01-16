@@ -31,7 +31,6 @@ export default async function handle(req, res) {
     }
     const {
       project_id = project_id0,
-      compute_server_id,
       name,
       args,
       timeout,
@@ -53,7 +52,6 @@ export default async function handle(req, res) {
     }
     const resp = await projectBridge({
       project_id,
-      compute_server_id,
       name,
       args,
       timeout,

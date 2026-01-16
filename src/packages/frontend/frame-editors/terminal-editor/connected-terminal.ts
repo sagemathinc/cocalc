@@ -1124,11 +1124,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   // definitely gets the correct assigned compute server, even if it has to wait:
   private getComputeServerId = async (): Promise<number> => {
-    const computeServerAssociations =
-      webapp_client.project_client.computeServers(this.project_id);
-    return (
-      (await computeServerAssociations.getServerIdForPath(this.termPath)) ?? 0
-    );
+    return 0;
   };
 
   updateComputeServerId = async () => {

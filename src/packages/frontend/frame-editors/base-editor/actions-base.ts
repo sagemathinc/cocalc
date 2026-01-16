@@ -3032,7 +3032,7 @@ export class BaseEditorActions<
     dir = "col",
     first = false,
     pos,
-    compute_server_id,
+    compute_server_id: _compute_server_id,
   }: {
     path: string;
     dir?: FrameDirection;
@@ -3040,6 +3040,7 @@ export class BaseEditorActions<
     pos?: number;
     compute_server_id?: number;
   }): string => {
+    void _compute_server_id;
     // See if there is already a frame for path, and if so show
     // display and focus it.
     for (let id in this._get_leaf_ids()) {
@@ -3068,7 +3069,7 @@ export class BaseEditorActions<
     if (id == null) {
       throw Error("BUG -- failed to make frame");
     }
-    this.setFrameToCodeEditor({ id, path, compute_server_id });
+    this.setFrameToCodeEditor({ id, path });
 
     if (pos != null) {
       const parent_id = this.get_parent_id(id);
@@ -3114,12 +3115,13 @@ export class BaseEditorActions<
   private setFrameToCodeEditor = async ({
     id,
     path,
-    compute_server_id,
+    compute_server_id: _compute_server_id,
   }: {
     id: string;
     path: string;
     compute_server_id?: number;
   }): Promise<void> => {
+    void _compute_server_id;
     const node = this._get_frame_node(id);
     if (node == null) {
       throw Error(`no frame with id ${id}`);
@@ -3132,10 +3134,6 @@ export class BaseEditorActions<
     // while rendering, as that causes a state transition which
     // react does NOT appreciate.
     await this.code_editors.init_code_editor(id, path);
-    await this._get_project_actions().setComputeServerIdForFile({
-      path,
-      compute_server_id,
-    });
 
     // Now actually change the path field of the frame tree, which causes
     // a render.
@@ -3383,13 +3381,11 @@ export class BaseEditorActions<
   }
 
   getComputeServerId = (): number | undefined => {
-    return this.redux
-      .getProjectActions(this.project_id)
-      .getComputeServerIdForFile(this.path);
+    return 0;
   };
 
   fs = () => {
     const a = this.redux.getProjectActions(this.project_id);
-    return a.fs(a.getComputeServerIdForFile(this.path));
+    return a.fs(0);
   };
 }

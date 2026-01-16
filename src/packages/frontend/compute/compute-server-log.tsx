@@ -93,7 +93,6 @@ export function LogModal({ id, close }) {
           setLog(await getLog({ id, type }));
         } else if (type == "purchases") {
           const { purchases } = await getPurchases({
-            compute_server_id: id,
             limit: LIMIT,
             group,
           });

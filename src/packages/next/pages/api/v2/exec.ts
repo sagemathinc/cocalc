@@ -30,7 +30,6 @@ async function get(req) {
   // See ExecOpts from @cocalc/util/db-schema/projects
   const {
     project_id,
-    compute_server_id,
     filesystem,
     path,
     command,
@@ -65,7 +64,7 @@ async function get(req) {
   };
 
   // this *does* do permissions check
-  return await exec({ account_id, project_id, compute_server_id, execOpts });
+  return await exec({ account_id, project_id, execOpts });
 }
 
 export default apiRoute({

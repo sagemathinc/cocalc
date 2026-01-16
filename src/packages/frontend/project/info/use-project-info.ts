@@ -33,7 +33,7 @@ export default function useProjectInfo({
   const update = async () => {
     // console.log("update", { project_id });
     try {
-      const info = await get({ project_id, compute_server_id });
+      const info = await get({ project_id, compute_server_id: 0 });
       setInfo(info);
       setDisconnected(false);
       setError("");

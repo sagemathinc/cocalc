@@ -164,7 +164,6 @@ interface PurchasesOptions {
   day_statement_id?: number;
   month_statement_id?: number;
   no_statement?: boolean;
-  compute_server_id?: number;
 }
 
 function parsePurchaseDates(v) {
@@ -185,12 +184,7 @@ type PurchasesFunction = (
 export const getPurchases: PurchasesFunction = shortCache(
   async (opts: PurchasesOptions) => {
     return parsePurchaseDates(
-      await api(
-        "purchases/get-purchases",
-        opts,
-        // do not throttle when getting purchases for a compute server for now.
-        !!opts?.compute_server_id,
-      ),
+      await api("purchases/get-purchases", opts),
     );
   },
   "get-purchases",

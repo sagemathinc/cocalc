@@ -13,11 +13,12 @@ import type {
 } from "@cocalc/util/compute/templates";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import TTL from "@isaacs/ttlcache";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { type Compute } from "@cocalc/conat/hub/api/compute";
 
-function compute(): Compute {
-  return webapp_client.conat_client.hub.compute;
+const COMPUTE_REMOVED_MESSAGE =
+  "Compute servers have been removed from CoCalc.";
+
+function compute(): any {
+  throw new Error(COMPUTE_REMOVED_MESSAGE);
 }
 
 export async function createServer(opts): Promise<number> {

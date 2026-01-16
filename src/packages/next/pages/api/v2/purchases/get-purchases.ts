@@ -37,16 +37,11 @@ async function get(req) {
     day_statement_id,
     month_statement_id,
     no_statement,
-    compute_server_id,
   } = getParams(req);
-  if (!compute_server_id) {
-    // for now we are only throttling when compute_server_id is NOT set.  There are several cases -- course management etc
-    // where a client calls get-purchases for each compute server separately with group -- it's not much load.
-    throttle({
-      account_id,
-      endpoint: "purchases/get-purchases",
-    });
-  }
+  throttle({
+    account_id,
+    endpoint: "purchases/get-purchases",
+  });
   return await getPurchases({
     cutoff,
     thisMonth,
@@ -59,7 +54,6 @@ async function get(req) {
     day_statement_id,
     month_statement_id,
     no_statement,
-    compute_server_id,
   });
 }
 

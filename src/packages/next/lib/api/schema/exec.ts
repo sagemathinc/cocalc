@@ -7,7 +7,6 @@ import { z } from "../framework";
 
 import { PROJECT_EXEC_DEFAULT_TIMEOUT_S } from "@cocalc/util/consts/project";
 import { FailedAPIOperationSchema } from "./common";
-import { ComputeServerIdSchema } from "./compute/common";
 import { ProjectIdSchema } from "./projects/common";
 
 const ExecInputCommon = z.object({
@@ -16,16 +15,12 @@ const ExecInputCommon = z.object({
 
 const ExecInputSchemaBlocking = ExecInputCommon.merge(
   z.object({
-    compute_server_id: ComputeServerIdSchema.describe(
-      `If provided, the desired shell command will be run on the compute server whose id
-         is specified in this field (if available).`,
-    ).optional(),
     filesystem: z
       .boolean()
       .optional()
       .describe(
-        `If \`true\`, this shell command runs in the fileserver container on the compute
-           server; otherwise, it runs on the main compute container.`,
+        `If \`true\`, this shell command runs in the fileserver container; otherwise,
+           it runs on the main project container.`,
       ),
     path: z
       .string()
@@ -108,7 +103,7 @@ In such a call, you also have to set the \`project_id\`, because the results are
 
 Additionally and if not specified, \`max_output\` is set to 1MB and and \`timeout\` to 10 minutes.
 
-NOTE: This does not support executing code on compute servers – only inside the project itself.
+NOTE: This executes inside the project environment.
 
 HINT: set \`err_on_exit=false\`, to recieve the real \`exit_code\` of the executed command and status ends with "completed", unless there is a fundamental problem running the command.
 `),
@@ -155,7 +150,7 @@ export const ExecInputSchema = z
       return ExecInputSchemaBlocking.safeParse(data).success;
     }
   })
-  .describe("Perform arbitrary shell commands in a compute server or project.");
+  .describe("Perform arbitrary shell commands in a project.");
 
 const ExecOutputBlocking = z.object({
   type: z.literal("blocking"),

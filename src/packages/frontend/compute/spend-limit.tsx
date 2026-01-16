@@ -248,7 +248,6 @@ export function SpendLimitStatus({ server, horizontal = false }) {
     // spend limit not enabled, so put total spend over all time:
     (async () => {
       const { purchases } = await getPurchases({
-        compute_server_id: server.id,
         group: true,
       });
       let totalValue = toDecimal(0);

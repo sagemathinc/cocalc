@@ -1,53 +1,41 @@
-import api from "@cocalc/frontend/client/api";
-import LRU from "lru-cache";
 import type {
   CreateCloudFilesystem,
   CloudFilesystem,
   EditCloudFilesystem,
 } from "@cocalc/util/db-schema/cloud-filesystems";
-import {
-  CHANGE_MOUNTED,
-  CHANGE_UNMOUNTED,
-} from "@cocalc/util/db-schema/cloud-filesystems";
+
+const CLOUD_FILESYSTEMS_REMOVED_MESSAGE =
+  "Cloud filesystems have been removed from CoCalc.";
 
 export async function createCloudFilesystem(
-  opts: CreateCloudFilesystem,
+  _opts: CreateCloudFilesystem,
 ): Promise<number> {
-  return await api("compute/cloud-filesystem/create", opts);
+  void _opts;
+  throw new Error(CLOUD_FILESYSTEMS_REMOVED_MESSAGE);
 }
 
 export async function deleteCloudFilesystem({
-  id,
-  lock,
+  id: _id,
+  lock: _lock,
 }: {
   id: number;
   lock: string;
 }): Promise<void> {
-  await api("compute/cloud-filesystem/delete", { id, lock });
+  void _id;
+  void _lock;
+  throw new Error(CLOUD_FILESYSTEMS_REMOVED_MESSAGE);
 }
 
 export async function editCloudFilesystem(
-  opts: EditCloudFilesystem,
+  _opts: EditCloudFilesystem,
 ): Promise<void> {
-  for (const field in opts) {
-    if (field == "id") {
-      continue;
-    }
-    if (!CHANGE_MOUNTED.has(field) && !CHANGE_UNMOUNTED.has(field)) {
-      throw Error(`invalid field '${field}' for edit`);
-    }
-  }
-  return await api("compute/cloud-filesystem/edit", opts);
+  void _opts;
+  throw new Error(CLOUD_FILESYSTEMS_REMOVED_MESSAGE);
 }
-
-const cloudFilesystemCache = new LRU<string, CloudFilesystem[]>({
-  max: 100,
-  ttl: 1000 * 30,
-});
 
 export async function getCloudFilesystems(
   // give no options to get all file systems that YOU own across all your projects
-  opts: {
+  _opts: {
     // id = specific on
     id?: number;
     // project_id = all in a given project (owned by anybody)
@@ -56,31 +44,21 @@ export async function getCloudFilesystems(
     cache?: boolean;
   } = {},
 ): Promise<CloudFilesystem[]> {
-  const key = `${opts.id}${opts.project_id}`;
-  if (opts.cache && cloudFilesystemCache.has(key)) {
-    return cloudFilesystemCache.get(key)!;
-  }
-  const filesystems = await api("compute/cloud-filesystem/get", {
-    id: opts.id,
-    project_id: opts.project_id,
-  });
-  // always save in cache
-  cloudFilesystemCache.set(key, filesystems);
-  return filesystems;
+  void _opts;
+  throw new Error(CLOUD_FILESYSTEMS_REMOVED_MESSAGE);
 }
 
 export async function getMetrics({
-  id,
-  limit,
-  offset,
+  id: _id,
+  limit: _limit,
+  offset: _offset,
 }: {
   id: number;
   limit?: number;
   offset?: number;
 }) {
-  return await api("compute/cloud-filesystem/get-metrics", {
-    cloud_filesystem_id: id,
-    limit,
-    offset,
-  });
+  void _id;
+  void _limit;
+  void _offset;
+  throw new Error(CLOUD_FILESYSTEMS_REMOVED_MESSAGE);
 }
