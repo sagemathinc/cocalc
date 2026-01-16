@@ -725,8 +725,8 @@ export default function Privacy({ customize }) {
                   </p>{" "}
                   <p>
                     If you use Services that require you to select a geographic
-                    location explicitly, such as compute servers or cloud file
-                    systems, your data will be sent to the chosen location.
+                    location explicitly, your data will be sent to the chosen
+                    location.
                   </p>
                 </div>{" "}
               </div>{" "}

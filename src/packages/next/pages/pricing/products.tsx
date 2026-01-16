@@ -117,16 +117,6 @@ function Body({ siteName }): JSX.Element {
       </Paragraph>
 
       <Title level={2}>
-        <Icon name="servers" /> Compute Servers
-      </Title>
-      <Paragraph>
-        You can use Jupyter notebooks and terminals with access to GPUs,
-        hundreds of CPUs, and thousands of GB of RAM by creating{" "}
-        <A href="https://doc.cocalc.com/compute_server.html">compute servers</A>{" "}
-        associated to a {WORKSPACE_LABEL.toLowerCase()}.
-      </Paragraph>
-
-      <Title level={2}>
         <Icon name="key" /> License Keys
       </Title>
       <Paragraph>
@@ -205,12 +195,7 @@ function Body({ siteName }): JSX.Element {
       <Paragraph>
         It's also possible to run {siteName} on your own hardware. Please see{" "}
         <A href={"./onprem"}>on premises licenses options</A> for more
-        information. You can also use your existing on premises servers
-        collaboratively on {siteName} using{" "}
-        <A href="https://doc.cocalc.com/compute_server.html">
-          OnPrem Compute Servers
-        </A>
-        .
+        information.
       </Paragraph>
 
       <Title level={2}>Frequently Asked Questions</Title>

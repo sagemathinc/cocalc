@@ -24,7 +24,6 @@ import basePath from "lib/base-path";
 import { useCustomize } from "lib/customize";
 import assignments from "public/features/cocalc-course-assignments-2019.png";
 import RTC from "public/features/cocalc-real-time-jupyter.png";
-import ComputeServers from "./compute-servers";
 import { LANDING_HEADER_LEVEL } from "./constants";
 
 // NOTE: This component is only rendered if the onCoCalcCom customization variable is "true"
@@ -429,27 +428,12 @@ export function CoCalcComFeatures() {
             >
               <Paragraph style={{ color: txtCol }}>
                 It is very easy to run {siteName} on your own computer or
-                cluster. The available options are:
-                <ol>
-                  <li>
-                    Make your computer available in a {siteName} project via an{" "}
-                    <A
-                      style={link}
-                      href={"https://doc.cocalc.com/compute_server.html"}
-                    >
-                      on-prem compute server
-                    </A>
-                    .
-                  </li>
-                  <li>
-                    Deploy a highly scalable variant of {siteName} on your{" "}
-                    <strong>Kubernetes cluster</strong> via{" "}
-                    <A style={link} href="https://onprem.cocalc.com/">
-                      <strong>CoCalc OnPrem</strong>
-                    </A>
-                    .
-                  </li>
-                </ol>
+                cluster. Deploy a highly scalable variant of {siteName} on your{" "}
+                <strong>Kubernetes cluster</strong> via{" "}
+                <A style={link} href="https://onprem.cocalc.com/">
+                  <strong>CoCalc OnPrem</strong>
+                </A>
+                .
               </Paragraph>
               {!width.md && onpremLink}
             </Tool>
@@ -525,7 +509,6 @@ export function CoCalcComFeatures() {
 
   return (
     <>
-      <ComputeServers />
       {renderChatGPT()}
       {renderCollaboration()}
       <AvailableTools style={{ backgroundColor: COLORS.YELL_LLL }} />

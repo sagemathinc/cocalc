@@ -203,25 +203,6 @@ export default function TermsOfService({ customize }) {
                     </li>
                   </ul>
                 </li>
-                <li>
-                  <A href="https://www.hyperstack.cloud/">Hyperstack</A>
-                  <ul>
-                    <li>Usage: compute servers.</li>
-                    <li>
-                      Shared PII: any files that the user chooses to process on
-                      Hyperstack.
-                    </li>
-                    <li>
-                      <A href="https://www.hyperstack.cloud/privacy-policy">
-                        Privacy Policy
-                      </A>{" "}
-                      and{" "}
-                      <A href="https://www.hyperstack.cloud/data-processing">
-                        Data Processing Agreement
-                      </A>
-                    </li>
-                  </ul>
-                </li>
               </ul>
               <h2>AI Services</h2>
               <p>

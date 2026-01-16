@@ -5,7 +5,7 @@
 
 import { Divider } from "antd";
 
-import { Icon, PAYASYOUGO_ICON } from "@cocalc/frontend/components/icon";
+import { Icon } from "@cocalc/frontend/components/icon";
 import { Paragraph } from "components/misc";
 import A from "components/misc/A";
 import SiteName from "components/share/site-name";
@@ -51,14 +51,6 @@ export default function Overview() {
           to make <SiteName /> credit easily available to somebody else.
         </Paragraph>
         <Divider />
-        <Product
-          href={"/features/compute-server"}
-          icon={PAYASYOUGO_ICON}
-          title="Compute Servers"
-        >
-          Run Jupyter Notebooks and Linux Terminals on GPUs and high-powered CPU
-          machines with full admin privileges. Pay as you go.
-        </Product>
         <Product href={"/pricing/onprem"} icon="server" title="On-Premises">
           Self-host <SiteName /> on your own compute resources in order to keep
           your data on-site.

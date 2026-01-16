@@ -84,7 +84,6 @@ const features = {
   whiteboard: { label: "Whiteboard" },
   x11: { label: "X11" },
   div1: { type: "divider" },
-  "compute-server": { label: "Compute" },
   ai: { label: "AI Assistant" },
   compare: { label: "Compare" },
   api: { label: "API" },

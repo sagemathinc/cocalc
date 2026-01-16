@@ -33,11 +33,7 @@ export function Tagline({ value, style }: { value?: string; style? }) {
           <A href="/features/terminal" style={A_STYLE}>
             Linux Terminals
           </A>{" "}
-          using Powerful{" "}
-          <A href="/features/compute-server" style={A_STYLE}>
-            CPUs and GPUs
-          </A>
-          !
+          with powerful resources.
         </div>
       );
     }
