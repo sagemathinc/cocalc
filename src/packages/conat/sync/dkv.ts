@@ -451,6 +451,22 @@ export class DKV<T = any> extends EventEmitter {
     }
   };
 
+  debugStats = () => {
+    const kv = this.kv;
+    if (kv == null) {
+      return { name: this.name, state: "closed" as const };
+    }
+    return {
+      name: this.name,
+      state: "open" as const,
+      rawLength: kv.raw.length,
+      messagesLength: kv.messages.length,
+      kvLength: kv.lengthKv,
+      localKeys: Object.keys(this.local).length,
+      changedKeys: this.changed.size,
+    };
+  };
+
   set = (key: string, value: T, options?: SetOptions) => {
     const obj = this.toValue(value);
     this.local[key] = obj;
