@@ -1005,7 +1005,11 @@ export class SyncDoc extends EventEmitter {
 
   private syncstring_table_get_one = (): Map<string, any> => {
     if (this.syncstring_table == null) {
-      throw Error("syncstring_table must be defined");
+      logger.warn("syncstring_table missing", {
+        path: this.path,
+        state: this.state,
+      });
+      return Map();
     }
     const t = this.syncstring_table.get_one();
     if (t == null) {
@@ -2703,6 +2707,13 @@ export class SyncDoc extends EventEmitter {
 
   private handle_syncstring_update = async (): Promise<void> => {
     if (this.state === "closed") {
+      return;
+    }
+    if (this.syncstring_table == null) {
+      logger.warn("handle_syncstring_update without syncstring_table", {
+        path: this.path,
+        state: this.state,
+      });
       return;
     }
     const dbg = this.dbg("handle_syncstring_update");
