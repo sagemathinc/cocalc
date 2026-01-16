@@ -35,7 +35,7 @@ export default async function getPublicPathInfo({
   // Get the database entry that describes the public path
   const { rows } = await pool.query(
     `SELECT project_id, path, description, compute_image, license, disabled, unlisted,
-    authenticated, url, jupyter_api, redirect, created, last_edited,
+    authenticated, url, redirect, created, last_edited,
     counter::INT,
     (SELECT COUNT(*)::INT FROM public_path_stars WHERE public_path_id=id) AS stars
     FROM public_paths WHERE vhost IS NULL AND id=$1`,

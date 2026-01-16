@@ -161,8 +161,6 @@ export interface CustomizeState {
   // flag to signal data stored in the Store.
   software: SoftwareEnvironments;
   _is_configured: boolean;
-  jupyter_api_enabled?: boolean;
-
   compute_servers_enabled?: boolean;
   ["compute_servers_google-cloud_enabled"]?: boolean;
   compute_servers_hyperstack_enabled?: boolean;

@@ -17,7 +17,6 @@ nav:
   - API Reference:
       - System: api/system.md
       - Projects: api/projects.md
-      - Jupyter: api/jupyter.md
       - Database: api/database.md
       - Messages: api/messages.md
       - Organizations: api/organizations.md

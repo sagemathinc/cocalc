@@ -6,8 +6,6 @@ import { CodeMirrorStatic } from "../codemirror-static";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { InputPrompt } from "../prompt/input-nbviewer";
 import ActionButtons from "@cocalc/frontend/editors/slate/elements/code-block/action-buttons";
-import { Button, Tooltip } from "antd";
-import { Icon } from "@cocalc/frontend/components/icon";
 import { useRef, useState } from "react";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import CodeEditor from "@cocalc/frontend/components/code-editor";
@@ -38,7 +36,7 @@ export default function CellInput({
   const value = edits?.[cell["id"] ?? ""] ?? cell["input"] ?? "";
   const [editing, setEditing] = useState<boolean>(false);
   const [newValue, setNewValue] = useState<string>(value);
-  const { jupyterApiEnabled, disableExtraButtons } = useFileContext();
+  const { disableExtraButtons } = useFileContext();
   const runRef = useRef<any>(null);
 
   const save = (run) => {
@@ -61,38 +59,6 @@ export default function CellInput({
       }}
     >
       <div style={{ flex: 1 }} />
-      {jupyterApiEnabled && (
-        <Tooltip
-          placement="top"
-          title={
-            <>
-              Make a <i>temporary</i> change to this code.{" "}
-              <b>This is not saved permanently anywhere!</b>
-              'Edit your own copy...' for much more powerful editing and
-              to save your changes!
-            </>
-          }
-        >
-          <Button
-            size="small"
-            type={editing && newValue != value ? undefined : "text"}
-            style={
-              editing && newValue != value
-                ? { background: "#5cb85c", color: "white" }
-                : { color: "#666" }
-            }
-            onClick={() => {
-              if (editing) {
-                save(false);
-              } else {
-                setEditing(!editing);
-              }
-            }}
-          >
-            <Icon name={"pencil"} /> {editing ? "Save" : "Edit"}
-          </Button>
-        </Tooltip>
-      )}
       <ActionButtons
         size="small"
         input={newValue}

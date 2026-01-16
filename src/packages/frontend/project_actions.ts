@@ -168,7 +168,6 @@ export const QUERIES = {
       counter: null,
       compute_image: null,
       redirect: null,
-      jupyter_api: null,
     },
   },
 };
@@ -2828,7 +2827,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       license?: string;
       disabled?: boolean;
       authenticated?: boolean;
-      jupyter_api?: boolean;
       redirect?: string;
     },
   ) => {
@@ -2889,8 +2887,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             log = true;
           } else if (k === "authenticated" && will_change) {
             log = true;
-          } else if (k === "jupyter_api" && will_change) {
-            log = true;
           } else if (k === "redirect" && will_change) {
             log = true;
           }
@@ -2913,7 +2909,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         disabled: !!obj.get("disabled"),
         unlisted: !!obj.get("unlisted"),
         authenticated: !!obj.get("authenticated"),
-        jupyter_api: obj.get("jupyter_api"),
         redirect: obj.get("redirect"),
       });
     }

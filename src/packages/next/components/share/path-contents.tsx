@@ -16,7 +16,6 @@ interface Props {
   relativePath: string;
   path: string;
   truncated?: string;
-  jupyter_api?: boolean;
 }
 
 export default function PathContents({
@@ -27,7 +26,6 @@ export default function PathContents({
   relativePath,
   path,
   truncated,
-  jupyter_api,
 }: Props) {
   if (isdir) {
     if (listing == null) return <Loading style={{ fontSize: "30px" }} />;
@@ -54,7 +52,6 @@ export default function PathContents({
           content={content}
           path={path}
           relativePath={relativePath}
-          jupyter_api={jupyter_api}
         />
       </div>
     );

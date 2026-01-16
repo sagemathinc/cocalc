@@ -45,11 +45,6 @@ class Hub:
         return Projects(self)
 
     @property
-    def jupyter(self):
-        """Access jupyter-related API functions."""
-        return Jupyter(self)
-
-    @property
     def sync(self):
         """Access sync engine related functions."""
         return Sync(self)
@@ -274,65 +269,6 @@ class Projects:
 
         Args:
             project_id (str): project_id of the project to stop
-        """
-        ...
-
-
-class Jupyter:
-
-    def __init__(self, parent: "Hub"):
-        self._parent = parent
-
-    @api_method("jupyter.kernels")
-    def kernels(self, project_id: Optional[str] = None):
-        """
-        Get specifications of available Jupyter kernels.
-
-        Args:
-            project_id (Optional[str]): If provided, return kernel specs for this project.
-                If not given, a global anonymous project may be used.
-
-        Returns:
-            Any: JSON response containing kernel specs.
-        """
-        ...
-
-    @api_method("jupyter.execute")
-    def execute(
-        self,
-        input: str,
-        kernel: str,
-        history: Optional[list[str]] = None,
-        project_id: Optional[str] = None,
-        path: Optional[str] = None,
-    ):
-        """
-        Execute code using a Jupyter kernel.
-
-        Args:
-            input (str): Code to execute.
-            kernel (Optional[str]): Name of kernel to use. Get options using jupyter.kernels()
-            history (Optional[list[str]]): Array of previous inputs (they get evaluated every time, but without output being captured).
-            project_id (Optional[str]): Project in which to run the code -- if not given, global anonymous project is used, if available.
-            path (Optional[str]): File path context for execution.
-
-        Returns:
-            Any: JSON response containing execution results.
-
-        Examples:
-            Execute a simple sum using a Jupyter kernel:
-
-            >>> import cocalc_api;  hub = cocalc_api.Hub(api_key="sk-...")
-            >>> hub.jupyter.execute(history=['a=100;print(a)'],
-                           input='sum(range(a+1))',
-                           kernel='python3')
-            {'output': [{'data': {'text/plain': '5050'}}], ...}
-
-            Factor a number using the sagemath kernel in a specific project:
-
-            >>> hub.jupyter.execute(history=['a=2025'], input='factor(a)', kernel='sagemath',
-            ...     project_id='6e75dbf1-0342-4249-9dce-6b21648656e9')
-            {'output': [{'data': {'text/plain': '3^4 * 5^2'}}], ...}
         """
         ...
 

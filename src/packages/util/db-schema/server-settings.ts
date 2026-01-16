@@ -118,7 +118,6 @@ export interface Customize {
   mistralEnabled?: boolean;
   anthropicEnabled?: boolean;
   ollamaEnabled?: boolean;
-  jupyterApiEnabled?: boolean;
   computeServersEnabled?: boolean;
   cloudFilesystemsEnabled?: boolean;
   githubProjectId?: string;

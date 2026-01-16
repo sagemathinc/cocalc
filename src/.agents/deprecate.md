@@ -56,6 +56,33 @@ Scope: remove anonymous accounts and signup. Public share viewing stays. SSO/LTI
 8. **Final sweep + validation.**  
    Ripgrep for `anonymous_signup` and `is_anonymous` in src/docs; run pnpm tsc --build.
 
+
+## Remove Public Jupyter API (stateless execution)
+
+Scope: remove stateless Jupyter API used for public share demos and unauthenticated code execution. Keep project Jupyter kernels intact.
+
+1. **Inventory touchpoints.**  
+   Settings/customize: [src/packages/util/db-schema/site-defaults.ts](./src/packages/util/db-schema/site-defaults.ts), [src/packages/util/db-schema/site-settings-extras.ts](./src/packages/util/db-schema/site-settings-extras.ts), [src/packages/util/db-schema/server-settings.ts](./src/packages/util/db-schema/server-settings.ts), [src/packages/lite/hub/settings.ts](./src/packages/lite/hub/settings.ts), [src/packages/database/settings/customize.ts](./src/packages/database/settings/customize.ts), [src/packages/frontend/customize.tsx](./src/packages/frontend/customize.tsx), [src/packages/next/lib/customize.ts](./src/packages/next/lib/customize.ts).  
+   Public paths + share: [src/packages/util/db-schema/public-paths.ts](./src/packages/util/db-schema/public-paths.ts), [src/packages/frontend/share/config.tsx](./src/packages/frontend/share/config.tsx), [src/packages/frontend/project_actions.ts](./src/packages/frontend/project_actions.ts), [src/packages/next/lib/share/get-public-path-info.ts](./src/packages/next/lib/share/get-public-path-info.ts), [src/packages/next/components/share/path-contents.tsx](./src/packages/next/components/share/path-contents.tsx), [src/packages/next/components/share/file-contents.tsx](./src/packages/next/components/share/file-contents.tsx), [src/packages/next/components/path/path.tsx](./src/packages/next/components/path/path.tsx), [src/packages/frontend/frame-editors/crm-editor/tables/public-paths.ts](./src/packages/frontend/frame-editors/crm-editor/tables/public-paths.ts).  
+   Frontend usage: [src/packages/frontend/jupyter/browser-actions.ts](./src/packages/frontend/jupyter/browser-actions.ts), [src/packages/frontend/jupyter/nbviewer/cell-input.tsx](./src/packages/frontend/jupyter/nbviewer/cell-input.tsx), [src/packages/frontend/editors/slate/elements/code-block/index.tsx](./src/packages/frontend/editors/slate/elements/code-block/index.tsx), [src/packages/frontend/components/run-button/index.tsx](./src/packages/frontend/components/run-button/index.tsx), [src/packages/frontend/project/page/content.tsx](./src/packages/frontend/project/page/content.tsx), [src/packages/frontend/messages/index.tsx](./src/packages/frontend/messages/index.tsx), [src/packages/frontend/lib/file-context.ts](./src/packages/frontend/lib/file-context.ts), [src/packages/jupyter/redux/actions.ts](./src/packages/jupyter/redux/actions.ts).  
+   Next/marketing UI: [src/packages/next/components/landing/header.tsx](./src/packages/next/components/landing/header.tsx), [src/packages/next/components/landing/cocalc-com-features.tsx](./src/packages/next/components/landing/cocalc-com-features.tsx), [src/packages/next/components/demo-cell.tsx](./src/packages/next/components/demo-cell.tsx), [src/packages/next/components/openai/chatgpt-help.tsx](./src/packages/next/components/openai/chatgpt-help.tsx).  
+   Backend Jupyter API: [src/packages/server/jupyter/execute.ts](./src/packages/server/jupyter/execute.ts), [src/packages/server/jupyter/kernels.ts](./src/packages/server/jupyter/kernels.ts).
+
+2. **Remove settings/customize flags.**  
+   Drop `jupyter_api_enabled` and `jupyterApiEnabled` from schema and customize payloads; remove any admin UI toggles tied to it.
+
+3. **Remove public path `jupyter_api` flag.**  
+   Delete the field from public-path schema and remove share UI toggle, API payloads, and CRM table references.
+
+4. **Remove stateless Jupyter API backend.**  
+   Delete server handlers and any API routes that expose stateless execution or kernel listing.
+
+5. **Remove UI surfaces that depend on Jupyter API.**  
+   Remove demo cell and public share run buttons that require the Jupyter API; simplify file context plumbing.
+
+6. **Final sweep + validation.**  
+   Ripgrep for `jupyter_api` and `jupyterApiEnabled` across src and docs; run pnpm tsc --build.
+
 ## Remove Project Licenses (replace with memberships)
 
 0. **Scope confirmation (from scan).**  

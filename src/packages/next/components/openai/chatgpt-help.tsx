@@ -5,7 +5,6 @@ import { CSSProperties, useRef, useState } from "react";
 import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import Markdown from "@cocalc/frontend/editors/slate/static-markdown";
-import { FileContext } from "@cocalc/frontend/lib/file-context";
 import InPlaceSignInOrUp from "components/auth/in-place-sign-in-or-up";
 import A from "components/misc/A";
 import Loading from "components/share/loading";
@@ -43,7 +42,7 @@ export default function ChatGPTHelp({
   const router = useRouter();
 
   const counterRef = useRef<number>(0);
-  const { account, jupyterApiEnabled, siteName } = useCustomize();
+  const { account, siteName } = useCustomize();
 
   const chatgpt = async (value?) => {
     if (value == null) {
@@ -88,7 +87,6 @@ export default function ChatGPTHelp({
   }
 
   return (
-    <FileContext.Provider value={{ jupyterApiEnabled }}>
       <Row style={{ margin: "5px 0", ...style }}>
         <Col
           xs={{ span: 24 }}
@@ -200,6 +198,5 @@ export default function ChatGPTHelp({
           )}
         </Col>
       </Row>
-    </FileContext.Provider>
   );
 }

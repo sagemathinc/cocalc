@@ -10,7 +10,6 @@ import { useEffect, useState, type JSX } from "react";
 import { SOFTWARE_ENVIRONMENT_ICON } from "@cocalc/frontend/project/settings/software-consts";
 import { DOC_AI } from "@cocalc/util/consts/ui";
 import { COLORS } from "@cocalc/util/theme";
-import DemoCell from "components/demo-cell";
 import { AvailableTools, Tool } from "components/landing/available-tools";
 import Info from "components/landing/info";
 import { CSS, Paragraph, Text } from "components/misc";
@@ -33,7 +32,6 @@ export function CoCalcComFeatures() {
   const {
     siteName = "CoCalc",
     openaiEnabled,
-    jupyterApiEnabled,
     shareServer = false,
     onCoCalcCom,
   } = useCustomize();
@@ -524,43 +522,11 @@ export function CoCalcComFeatures() {
     );
   }
 
-  function renderDemoCell() {
-    if (!jupyterApiEnabled) return;
-
-    return (
-      <Info
-        level={LANDING_HEADER_LEVEL}
-        title="Many Programming Languages"
-        icon="flow-chart"
-        imageComponent={<DemoCell tag={"sage"} style={{ width: "100%" }} />}
-        anchor="a-realtimesync"
-        alt={"Two browser windows editing the same Jupyter notebook"}
-        style={{ backgroundColor: COLORS.YELL_LLL }}
-        icons={[
-          { icon: "julia", link: "/features/julia" },
-          { icon: "linux", link: "/features/linux" },
-          { icon: "python", link: "/features/python" },
-          { icon: "r", link: "/features/r-statistical-software" },
-          { icon: "sagemath", title: "SageMath", link: "/features/sage" },
-          { icon: "octave", link: "/features/octave" },
-        ]}
-      >
-        <Paragraph>
-          {siteName} supports many{" "}
-          <A href={"/software"}>programming languages</A>. Edit the demo cell on
-          the left and evaluate it by pressing "Run". You can also select a
-          different "kernel", i.e. the programming language that is used to
-          evaluate the cell.
-        </Paragraph>
-      </Info>
-    );
-  }
 
   return (
     <>
       <ComputeServers />
       {renderChatGPT()}
-      {renderDemoCell()}
       {renderCollaboration()}
       <AvailableTools style={{ backgroundColor: COLORS.YELL_LLL }} />
       {renderTeaching()}

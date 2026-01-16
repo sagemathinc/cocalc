@@ -62,7 +62,6 @@ export default function exportToHTML({
         disableMarkdownCodebar: true,
         disableExtraButtons: true,
         hasLanguageModel: false,
-        jupyterApiEnabled: false,
       },
     },
     [notebook],

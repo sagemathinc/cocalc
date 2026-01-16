@@ -35,7 +35,7 @@ export default function Sage({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header page="features" subPage="sage" runnableTag="sage" />
+        <Header page="features" subPage="sage" />
         <Layout.Content>
           <Content
             landing

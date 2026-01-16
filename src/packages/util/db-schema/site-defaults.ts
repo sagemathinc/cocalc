@@ -83,7 +83,6 @@ export type SiteSettingsKeys =
   | "default_llm"
   | "user_defined_llm"
   | "llm_default_quota"
-  | "jupyter_api_enabled"
   | "organization_name"
   | "organization_email"
   | "organization_url"
@@ -836,14 +835,6 @@ export const site_settings_conf: SiteSettings = {
     valid: only_nonneg_int,
     show: only_commercial,
     tags: ["AI LLM"],
-  },
-  jupyter_api_enabled: {
-    name: "Jupyter API",
-    desc: "If true, the public Jupyter API is enabled. This provides stateless evaluation of Jupyter code from the landing page and share server by users that may not be signed in.  This requires further configuration of the <i>Jupyter API Account Id</i>.",
-    default: "no",
-    valid: only_booleans,
-    to_val: to_bool,
-    tags: ["Jupyter"],
   },
   compute_servers_enabled: {
     name: "Enable Compute Servers",

@@ -3,7 +3,6 @@ import { type Purchases, purchases } from "./purchases";
 import { type System, system } from "./system";
 import { type Projects, projects } from "./projects";
 import { type DB, db } from "./db";
-import { type Jupyter, jupyter } from "./jupyter";
 import { handleErrorMessage } from "@cocalc/conat/util";
 import { type Sync, sync } from "./sync";
 import { type Org, org } from "./org";
@@ -20,7 +19,6 @@ export interface HubApi {
   projects: Projects;
   db: DB;
   purchases: Purchases;
-  jupyter: Jupyter;
   sync: Sync;
   org: Org;
   messages: Messages;
@@ -37,7 +35,6 @@ const HubApiStructure = {
   projects,
   db,
   purchases,
-  jupyter,
   sync,
   org,
   messages,

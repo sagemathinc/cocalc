@@ -34,7 +34,7 @@ export default function Terminal({ customize }) {
     <Customize value={customize}>
       <Head title={title} />
       <Layout>
-        <Header page="features" subPage="terminal" runnableTag="term" />
+        <Header page="features" subPage="terminal" />
         <Layout.Content>
           <Content
             landing

@@ -27,7 +27,6 @@ import { kernelDisplayName, kernelLanguage } from "./kernel-info";
 import Output from "./output";
 import SelectKernel from "./select-kernel";
 import LRU from "lru-cache";
-import nextApi from "./api";
 
 // ATTN[i18n]: it's tempting to translate this, but it is a dependency of next (vouchers/notes → slate/code-block → buttons)
 
@@ -81,7 +80,6 @@ export default function RunButton({
 
   const {
     disableMarkdownCodebar,
-    jupyterApiEnabled,
     project_id,
     path: filename,
     is_visible,
@@ -130,7 +128,7 @@ export default function RunButton({
   useEffect(() => {
     if (
       noRun ||
-      (!project_id && !jupyterApiEnabled) ||
+      !project_id ||
       setOutput == null ||
       running ||
       !info.trim()
@@ -159,7 +157,7 @@ export default function RunButton({
     }
   }, []);
 
-  if (noRun || (!jupyterApiEnabled && !project_id)) {
+  if (noRun || !project_id) {
     // run button is not enabled when no project_id given, or no info at all.
     return null;
   }
@@ -198,12 +196,8 @@ export default function RunButton({
           path,
           tag,
         };
-        if (project_id) {
-          const api = projectApiClient({ project_id, timeout });
-          messages = await api.jupyter.apiExecute(opts);
-        } else {
-          ({ output: messages } = await nextApi("execute", opts));
-        }
+        const api = projectApiClient({ project_id, timeout });
+        messages = await api.jupyter.apiExecute(opts);
         saveInCache({ input, history, info, messages });
       } catch (err) {
         setOutput({ error: `${err}` });

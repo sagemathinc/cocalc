@@ -70,7 +70,6 @@ export interface PublicPathProps {
   // visiting this by following a link from within the share server that
   // doesn't use the names. See https://github.com/sagemathinc/cocalc/issues/6115
   redirect?: string;
-  jupyter_api: boolean;
   created: string | null; // ISO 8601 string
   last_edited: string | null; // ISO 8601 string
   ogUrl?: string; // Open Graph URL for social media sharing
@@ -100,7 +99,6 @@ export default function PublicPath({
   githubRepo,
   projectAvatarImage,
   redirect,
-  jupyter_api,
   ogUrl,
 }: PublicPathProps) {
   useCounter(id);
@@ -484,7 +482,6 @@ export default function PublicPath({
             id={id}
             relativePath={relativePath}
             path={path}
-            jupyter_api={jupyter_api}
             {...contents}
           />
         )}

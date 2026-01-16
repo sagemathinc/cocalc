@@ -33,7 +33,6 @@ const DEFAULT_CONFIGURATION = {
   ollama_enabled: false,
   agent_openai_control_agent_enabled: false,
   agent_openai_codex_enabled: false,
-  jupyter_api_enabled: false,
   organization_name: "",
   organization_email: "",
   help_email: "",
