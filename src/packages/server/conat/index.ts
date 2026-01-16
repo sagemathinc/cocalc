@@ -15,6 +15,7 @@ import * as Module from "module";
 import { conat } from "@cocalc/backend/conat";
 import { initHostRegistryService } from "./host-registry";
 import { initHostStatusService } from "./host-status";
+import { startBackupLroWorker } from "@cocalc/server/projects/backup-worker";
 import { startCopyLroWorker } from "@cocalc/server/projects/copy-worker";
 import { startMoveLroWorker } from "@cocalc/server/projects/move-worker";
 
@@ -44,6 +45,7 @@ export async function initConatApi() {
   for (let i = 0; i < conatApiCount; i++) {
     initAPI();
   }
+  startBackupLroWorker();
   startCopyLroWorker();
   startMoveLroWorker();
   initLLM();

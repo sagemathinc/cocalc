@@ -113,7 +113,7 @@ export class MoveOpsManager {
     const ops = await this.opts.listLro({
       scope_type: "project",
       scope_id: this.opts.project_id,
-      include_completed: false,
+      include_completed: true,
     });
     if (!this.initialized || this.opts.isClosed()) {
       return;
@@ -129,6 +129,12 @@ export class MoveOpsManager {
     if (!latest) {
       return;
     }
+    if (latest.status === "succeeded") {
+      this.closeStream();
+      this.state = undefined;
+      this.opts.setState({ move_lro: undefined });
+      return;
+    }
     if (this.currentOpId && this.currentOpId !== latest.op_id) {
       this.closeStream();
     }
@@ -139,11 +145,15 @@ export class MoveOpsManager {
       summary: latest,
     };
     this.setState(next);
-    this.ensureStream({
-      op_id: latest.op_id,
-      scope_type: latest.scope_type,
-      scope_id: latest.scope_id,
-    });
+    if (!MOVE_LRO_TERMINAL.has(latest.status)) {
+      this.ensureStream({
+        op_id: latest.op_id,
+        scope_type: latest.scope_type,
+        scope_id: latest.scope_id,
+      });
+    } else {
+      this.closeStream();
+    }
   });
 
   private ensureStream = ({

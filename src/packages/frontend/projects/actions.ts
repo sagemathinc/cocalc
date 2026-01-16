@@ -21,7 +21,6 @@ import type { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import {
   defaults,
   is_valid_uuid_string,
-  uuid,
 } from "@cocalc/util/misc";
 import { ProjectsState, store } from "./store";
 import { load_all_projects, switch_to_project } from "./table";
@@ -808,7 +807,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   private watchMoveLro = (
     actions: ReturnType<typeof redux.getProjectActions> | undefined,
-    activityId: string,
     op: {
       op_id?: string;
       scope_type?: LroSummary["scope_type"];
@@ -831,12 +829,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
       scope_id,
     })
       .then((summary) => {
-        actions.set_activity({ id: activityId, stop: "" });
         if (summary.status !== "succeeded") {
           const reason = summary.error ?? summary.status;
           const error = `Error move project -- ${reason}`;
           actions.setState({ control_error: error });
-          actions.set_activity({ id: activityId, error });
           return;
         }
         this.project_log(logInfo.project_id, {
@@ -847,7 +843,6 @@ export class ProjectsActions extends Actions<ProjectsState> {
       .catch((err) => {
         const error = `Error move project -- ${err}`;
         actions.setState({ control_error: error });
-        actions.set_activity({ id: activityId, stop: "", error });
       });
   };
 
@@ -878,19 +873,15 @@ export class ProjectsActions extends Actions<ProjectsState> {
 
   move_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
     const actions = redux.getProjectActions(project_id);
-    const id = uuid();
-    const status = `Moving Workspace`;
-    actions.set_activity({ id, status });
     try {
       // start the move going
       const resp =
         await webapp_client.conat_client.hub.projects.moveProject({ project_id });
       actions.trackMoveOp(resp);
-      this.watchMoveLro(actions, id, resp, { project_id });
+      this.watchMoveLro(actions, resp, { project_id });
     } catch (err) {
       const error = `Error move project -- ${err}`;
       actions.setState({ control_error: error });
-      actions.set_activity({ id, stop: "", error });
       throw err;
     }
     return true;
@@ -901,21 +892,17 @@ export class ProjectsActions extends Actions<ProjectsState> {
       const current_host = store.getIn(["project_map", project_id, "host_id"]);
       if (dest_host_id === current_host) return true;
       const actions = redux.getProjectActions(project_id);
-      const id = uuid();
-      const status = `Moving Workspace`;
-      actions?.set_activity({ id, status });
       try {
         const resp = await webapp_client.conat_client.hub.projects.moveProject({
           project_id,
           dest_host_id,
         });
         actions?.trackMoveOp(resp);
-        this.watchMoveLro(actions, id, resp, { project_id, dest_host_id });
+        this.watchMoveLro(actions, resp, { project_id, dest_host_id });
       } catch (err) {
         const error = `Error move project -- ${err}`;
         console.log(error);
         actions?.setState({ control_error: error });
-        actions?.set_activity({ id, stop: "", error });
         throw err;
       }
       return true;

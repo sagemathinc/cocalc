@@ -1,5 +1,6 @@
 import getPool from "@cocalc/database/pool";
 import getLogger from "@cocalc/backend/logger";
+import { conat } from "@cocalc/backend/conat";
 import {
   DEFAULT_R2_REGION,
   mapCloudRegionToR2Region,
@@ -10,10 +11,11 @@ import {
   selectActiveHost,
   deleteProjectDataOnHost,
   savePlacement,
-  startProjectOnHost,
   stopProjectOnHost,
 } from "../project-host/control";
 import { createBackup } from "../conat/api/project-backups";
+import { start as startProjectLro } from "../conat/api/projects";
+import { waitForCompletion as waitForLroCompletion } from "@cocalc/conat/lro/client";
 
 const log = getLogger("server:projects:move");
 
@@ -30,8 +32,6 @@ type MoveProjectContext = {
   project_region: string;
   dest_region: string;
   project_host_id?: string | null;
-  last_backup?: string | null;
-  last_edited?: string | null;
   project_state?: string | null;
 };
 
@@ -40,6 +40,61 @@ export type MoveProjectProgressUpdate = {
   message?: string;
   detail?: Record<string, any>;
 };
+
+async function revertPlacementIfPossible(
+  context: MoveProjectContext,
+  progress: (update: MoveProjectProgressUpdate) => void,
+) {
+  if (!context.project_host_id || context.project_host_id === context.dest_host_id) {
+    return;
+  }
+  const sourceHost = await loadHostFromRegistry(context.project_host_id);
+  if (!sourceHost) {
+    progress({
+      step: "revert-placement",
+      message: "source host unavailable; placement not restored",
+      detail: { source_host_id: context.project_host_id },
+    });
+    return;
+  }
+  progress({
+    step: "revert-placement",
+    message: "restoring source placement",
+    detail: { source_host_id: context.project_host_id },
+  });
+  await savePlacement(context.project_id, {
+    host_id: context.project_host_id,
+    host: sourceHost,
+  });
+  progress({
+    step: "revert-placement",
+    message: "source placement restored",
+    detail: { source_host_id: context.project_host_id },
+  });
+}
+
+async function cleanupDestinationOnFailure(
+  context: MoveProjectContext,
+  progress: (update: MoveProjectProgressUpdate) => void,
+) {
+  if (!context.dest_host_id || context.dest_host_id === context.project_host_id) {
+    return;
+  }
+  progress({
+    step: "cleanup-dest",
+    message: "removing destination data after failed move",
+    detail: { dest_host_id: context.dest_host_id },
+  });
+  await deleteProjectDataOnHost({
+    project_id: context.project_id,
+    host_id: context.dest_host_id,
+  });
+  progress({
+    step: "cleanup-dest",
+    message: "destination data removed",
+    detail: { dest_host_id: context.dest_host_id },
+  });
+}
 
 async function buildMoveProjectContext(
   input: MoveProjectToHostInput,
@@ -50,11 +105,9 @@ async function buildMoveProjectContext(
     project_id: string;
     host_id: string | null;
     region: string | null;
-    last_backup: string | null;
-    last_edited: string | null;
     project_state: string | null;
   }>(
-    "SELECT project_id, host_id, region, last_backup, last_edited, state->>'state' AS project_state FROM projects WHERE project_id=$1",
+    "SELECT project_id, host_id, region, state->>'state' AS project_state FROM projects WHERE project_id=$1",
     [project_id],
   );
   const projectRow = projectResult.rows[0];
@@ -94,8 +147,6 @@ async function buildMoveProjectContext(
     project_region,
     dest_region,
     project_host_id: projectRow.host_id,
-    last_backup: projectRow.last_backup,
-    last_edited: projectRow.last_edited,
     project_state: projectRow.project_state,
   };
 }
@@ -113,8 +164,6 @@ export async function moveProjectToHost(
     dest_region: context.dest_region,
     project_host_id: context.project_host_id,
     project_state: context.project_state,
-    last_backup: context.last_backup,
-    last_edited: context.last_edited,
   });
   progress({
     step: "validate",
@@ -124,100 +173,75 @@ export async function moveProjectToHost(
       dest_host_id: context.dest_host_id,
     },
   });
-  const projectRunning = ["running", "starting"].includes(
-    String(context.project_state ?? ""),
-  );
-  if (projectRunning) {
-    progress({
-      step: "stop-source",
-      message: "stopping source project",
-      detail: { project_state: context.project_state },
-    });
-    log.info("moveProjectToHost stopping project before move", {
-      project_id: context.project_id,
-      project_state: context.project_state,
-    });
-    try {
-      await stopProjectOnHost(context.project_id);
-    } catch (err) {
-      log.error("moveProjectToHost failed to stop project", {
-        project_id: context.project_id,
-        project_state: context.project_state,
-        err,
-      });
-      throw err;
-    }
-  } else {
-    progress({
-      step: "stop-source",
-      message: "source project already stopped",
-      detail: { project_state: context.project_state },
-    });
-    log.info("moveProjectToHost skip stop (project not running)", {
-      project_id: context.project_id,
-      project_state: context.project_state,
-    });
-  }
-  const lastEdited =
-    context.last_edited != null ? new Date(context.last_edited) : undefined;
-  const lastBackup =
-    context.last_backup != null ? new Date(context.last_backup) : undefined;
-  const backupNeeded =
-    !lastBackup || (lastEdited && lastEdited > lastBackup);
-  log.info("moveProjectToHost backup requirement", {
-    project_id: context.project_id,
-    backup_needed: backupNeeded,
-    last_backup: lastBackup ? lastBackup.toISOString() : null,
-    last_edited: lastEdited ? lastEdited.toISOString() : null,
+  progress({
+    step: "stop-source",
+    message: "stopping source project",
+    detail: { project_state: context.project_state },
   });
-  if (backupNeeded) {
-    progress({
-      step: "backup",
-      message: "creating backup snapshot",
-      detail: {
-        last_backup: lastBackup ? lastBackup.toISOString() : null,
-        last_edited: lastEdited ? lastEdited.toISOString() : null,
-      },
-    });
-    log.info("moveProjectToHost creating backup", {
+  log.info("moveProjectToHost stopping project before move", {
+    project_id: context.project_id,
+    project_state: context.project_state,
+  });
+  try {
+    await stopProjectOnHost(context.project_id);
+  } catch (err) {
+    log.error("moveProjectToHost failed to stop project", {
       project_id: context.project_id,
+      project_state: context.project_state,
+      err,
     });
-    try {
-      const backup = await createBackup({
-        account_id: context.account_id,
-        project_id: context.project_id,
-      });
-      progress({
-        step: "backup",
-        message: "backup created",
-        detail: {
-          backup_id: backup.id,
-          backup_time: backup.time.toISOString(),
-        },
-      });
-      log.info("moveProjectToHost backup created", {
-        project_id: context.project_id,
-      });
-    } catch (err) {
-      log.error("moveProjectToHost backup failed", {
-        project_id: context.project_id,
-        err,
-      });
-      throw err;
-    }
-  } else {
-    progress({
-      step: "backup",
-      message: "backup already current",
-      detail: {
-        last_backup: lastBackup ? lastBackup.toISOString() : null,
-        last_edited: lastEdited ? lastEdited.toISOString() : null,
-      },
-    });
-    log.info("moveProjectToHost backup not needed", {
-      project_id: context.project_id,
-    });
+    throw err;
   }
+
+  progress({
+    step: "backup",
+    message: "creating final backup (always)",
+  });
+  log.info("moveProjectToHost creating final backup", {
+    project_id: context.project_id,
+  });
+  try {
+    const backupOp = await createBackup({
+      account_id: context.account_id,
+      project_id: context.project_id,
+    });
+    const backupStart = Date.now();
+    const summary = await waitForLroCompletion({
+      op_id: backupOp.op_id,
+      scope_type: backupOp.scope_type,
+      scope_id: backupOp.scope_id,
+      client: conat(),
+    });
+    if (summary.status !== "succeeded") {
+      const reason = summary.error ?? summary.status;
+      throw new Error(`backup failed: ${reason}`);
+    }
+    const result = summary.result ?? {};
+    const backup_id = result.id ?? result.backup_id;
+    const backup_time = result.time ?? result.backup_time;
+    const duration_ms = Date.now() - backupStart;
+    progress({
+      step: "backup",
+      message: "final backup created",
+      detail: {
+        backup_id,
+        backup_time,
+        duration_ms,
+      },
+    });
+    log.info("moveProjectToHost backup created", {
+      project_id: context.project_id,
+      backup_id,
+      duration_ms,
+    });
+  } catch (err) {
+    log.error("moveProjectToHost backup failed", {
+      project_id: context.project_id,
+      err,
+    });
+    throw err;
+  }
+
   const destHost = await loadHostFromRegistry(context.dest_host_id);
   if (!destHost) {
     throw new Error(`host ${context.dest_host_id} not found`);
@@ -250,7 +274,26 @@ export async function moveProjectToHost(
     detail: { dest_host_id: context.dest_host_id },
   });
   try {
-    await startProjectOnHost(context.project_id);
+    const startOp = await startProjectLro({
+      account_id: context.account_id,
+      project_id: context.project_id,
+      wait: false,
+    });
+    const summary = await waitForLroCompletion({
+      op_id: startOp.op_id,
+      scope_type: startOp.scope_type,
+      scope_id: startOp.scope_id,
+      client: conat(),
+    });
+    if (summary.status !== "succeeded") {
+      const reason = summary.error ?? summary.status;
+      throw new Error(`destination start failed: ${reason}`);
+    }
+    progress({
+      step: "start-dest",
+      message: "destination project started",
+      detail: { dest_host_id: context.dest_host_id },
+    });
     log.info("moveProjectToHost started project on destination host", {
       project_id: context.project_id,
       dest_host_id: context.dest_host_id,
@@ -261,6 +304,39 @@ export async function moveProjectToHost(
       dest_host_id: context.dest_host_id,
       err,
     });
+    progress({
+      step: "start-dest",
+      message: "destination start failed",
+      detail: { dest_host_id: context.dest_host_id, error: `${err}` },
+    });
+    try {
+      await revertPlacementIfPossible(context, progress);
+    } catch (revertErr) {
+      log.warn("moveProjectToHost placement revert failed", {
+        project_id: context.project_id,
+        source_host_id: context.project_host_id,
+        err: revertErr,
+      });
+      progress({
+        step: "revert-placement",
+        message: "source placement revert failed",
+        detail: { source_host_id: context.project_host_id, error: `${revertErr}` },
+      });
+    }
+    try {
+      await cleanupDestinationOnFailure(context, progress);
+    } catch (cleanupErr) {
+      log.warn("moveProjectToHost destination cleanup failed", {
+        project_id: context.project_id,
+        dest_host_id: context.dest_host_id,
+        err: cleanupErr,
+      });
+      progress({
+        step: "cleanup-dest",
+        message: "destination cleanup failed",
+        detail: { dest_host_id: context.dest_host_id, error: `${cleanupErr}` },
+      });
+    }
     throw err;
   }
   if (

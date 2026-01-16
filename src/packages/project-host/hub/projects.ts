@@ -33,6 +33,8 @@ import {
   type RestoreStagingHandle,
 } from "@cocalc/conat/files/file-server";
 import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
+import { publishLroEvent, publishLroSummary } from "@cocalc/conat/lro/stream";
+import type { LroSummary } from "@cocalc/conat/hub/api/lro";
 import { runCmd, setupSshTempFiles } from "./util";
 import { applyPendingCopies } from "../pending-copies";
 
@@ -543,17 +545,115 @@ export async function copyPaths({
 }
 
 export async function createBackup({
+  account_id: _account_id,
   project_id,
 }: {
+  account_id?: string;
   project_id: string;
-}): Promise<{ time: Date; id: string }> {
+}): Promise<{
+  op_id: string;
+  scope_type: "project";
+  scope_id: string;
+  service: string;
+  stream_name: string;
+}> {
   if (!isValidUUID(project_id)) {
     throw Error("invalid project_id");
   }
-  return await fileServer(project_id).createBackup({
-    project_id,
-    limit: MAX_BACKUPS_PER_PROJECT,
-  });
+  const createdBy = _account_id ?? account_id ?? null;
+  const op_id = uuid();
+  const now = new Date();
+  const baseSummary: LroSummary = {
+    op_id,
+    kind: "project-backup",
+    scope_type: "project",
+    scope_id: project_id,
+    status: "running",
+    created_by: createdBy,
+    owner_type: "hub",
+    owner_id: null,
+    routing: "hub",
+    input: { project_id },
+    result: {},
+    error: null,
+    progress_summary: { phase: "backup" },
+    attempt: 0,
+    heartbeat_at: null,
+    created_at: now,
+    started_at: now,
+    finished_at: null,
+    updated_at: now,
+    expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+    dedupe_key: null,
+    parent_id: null,
+  };
+
+  publishLroEvent({
+    scope_type: "project",
+    scope_id: project_id,
+    op_id,
+    event: {
+      type: "progress",
+      ts: Date.now(),
+      phase: "queued",
+      message: "queued",
+      progress: 0,
+    },
+  }).catch(() => {});
+
+  void (async () => {
+    const started = Date.now();
+    try {
+      const backup = await fileServer(project_id).createBackup({
+        project_id,
+        limit: MAX_BACKUPS_PER_PROJECT,
+      });
+      const duration_ms = Date.now() - started;
+      const finished = new Date();
+      await publishLroSummary({
+        scope_type: "project",
+        scope_id: project_id,
+        summary: {
+          ...baseSummary,
+          status: "succeeded",
+          result: {
+            id: backup.id,
+            time: backup.time instanceof Date ? backup.time.toISOString() : backup.time,
+            duration_ms,
+          },
+          progress_summary: {
+            phase: "done",
+            id: backup.id,
+            duration_ms,
+          },
+          finished_at: finished,
+          updated_at: finished,
+        },
+      });
+    } catch (err) {
+      const finished = new Date();
+      await publishLroSummary({
+        scope_type: "project",
+        scope_id: project_id,
+        summary: {
+          ...baseSummary,
+          status: "failed",
+          error: `${err}`,
+          progress_summary: { phase: "failed" },
+          finished_at: finished,
+          updated_at: finished,
+        },
+      });
+    }
+  })();
+
+  return {
+    op_id,
+    scope_type: "project",
+    scope_id: project_id,
+    service: PERSIST_SERVICE,
+    stream_name: lroStreamName(op_id),
+  };
 }
 
 export async function deleteBackup({

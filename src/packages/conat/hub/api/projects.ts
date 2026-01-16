@@ -198,7 +198,13 @@ export interface Projects {
   createBackup: (opts: {
     account_id?: string;
     project_id: string;
-  }) => Promise<{ time: Date; id: string }>;
+  }) => Promise<{
+    op_id: string;
+    scope_type: "project";
+    scope_id: string;
+    service: string;
+    stream_name: string;
+  }>;
 
   deleteBackup: (opts: {
     account_id?: string;

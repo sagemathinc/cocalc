@@ -1,34 +1,31 @@
 import { randomUUID } from "node:crypto";
 import getLogger from "@cocalc/backend/logger";
+import { conat } from "@cocalc/backend/conat";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
+import { type Fileserver } from "@cocalc/conat/files/file-server";
 import {
   claimLroOps,
   touchLro,
   updateLro,
 } from "@cocalc/server/lro/lro-db";
-import { publishLroEvent, publishLroSummary } from "@cocalc/server/lro/stream";
-import { moveProjectToHost, type MoveProjectProgressUpdate } from "./move";
+import { publishLroEvent, publishLroSummary } from "@cocalc/conat/lro/stream";
 
-const logger = getLogger("server:projects:move-worker");
+const logger = getLogger("server:projects:backup-worker");
 
-const MOVE_LRO_KIND = "project-move";
+const BACKUP_LRO_KIND = "project-backup";
 const OWNER_TYPE = "hub" as const;
 const LEASE_MS = 120_000;
 const HEARTBEAT_MS = 15_000;
 const TICK_MS = 5_000;
 const MAX_PARALLEL = 1;
+const MAX_BACKUPS_PER_PROJECT = 30;
+const BACKUP_TIMEOUT_MS = 6 * 60 * 60 * 1000;
 
 const WORKER_ID = randomUUID();
 
 const progressSteps: Record<string, number> = {
   validate: 5,
-  "stop-source": 15,
-  backup: 55,
-  placement: 70,
-  "start-dest": 85,
-  "revert-placement": 88,
-  "cleanup-dest": 90,
-  cleanup: 95,
+  backup: 80,
   done: 100,
 };
 
@@ -45,13 +42,15 @@ function publishSummary(summary: LroSummary) {
 
 function progressEvent({
   op,
-  update,
+  step,
+  message,
+  detail,
 }: {
   op: LroSummary;
-  update: MoveProjectProgressUpdate;
+  step: string;
+  message?: string;
+  detail?: any;
 }) {
-  const progress =
-    progressSteps[update.step] != null ? progressSteps[update.step] : undefined;
   void publishLroEvent({
     scope_type: op.scope_type,
     scope_id: op.scope_id,
@@ -59,39 +58,31 @@ function progressEvent({
     event: {
       type: "progress",
       ts: Date.now(),
-      phase: update.step,
-      message: update.message,
-      progress,
-      detail: update.detail,
+      phase: step,
+      message,
+      progress: progressSteps[step],
+      detail,
     },
   });
 }
 
-async function updateProgressSummary(op: LroSummary, update: MoveProjectProgressUpdate) {
-  const updated = await updateLro({
-    op_id: op.op_id,
-    progress_summary: {
-      phase: update.step,
-      ...(update.detail ?? {}),
-    },
+function fileServerClientWithTimeout(project_id: string): Fileserver {
+  return conat().call<Fileserver>(`file-server.${project_id}`, {
+    timeout: BACKUP_TIMEOUT_MS,
   });
-  if (updated) {
-    await publishSummary(updated);
-  }
 }
 
-async function handleMoveOp(op: LroSummary): Promise<void> {
+async function handleBackupOp(op: LroSummary): Promise<void> {
   const { op_id } = op;
   const input = op.input ?? {};
   const project_id = input.project_id;
-  const dest_host_id = input.dest_host_id;
-  const account_id = op.created_by ?? input.account_id;
+  const tags = Array.isArray(input.tags) ? input.tags : undefined;
 
-  if (!project_id || !account_id) {
+  if (!project_id) {
     const updated = await updateLro({
       op_id,
       status: "failed",
-      error: "move op missing project_id or account",
+      error: "backup op missing project_id",
     });
     if (updated) {
       await publishSummary(updated);
@@ -99,60 +90,92 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
     return;
   }
 
-  logger.info("move op start", {
-    op_id,
-    project_id,
-    dest_host_id,
-  });
+  logger.info("backup op start", { op_id, project_id });
 
   const heartbeat = setInterval(() => {
     touchLro({ op_id, owner_type: OWNER_TYPE, owner_id: WORKER_ID }).catch(
-      (err) => logger.debug("move op heartbeat failed", { op_id, err }),
+      (err) => logger.debug("backup op heartbeat failed", { op_id, err }),
     );
   }, HEARTBEAT_MS);
   heartbeat.unref?.();
 
-  const progress = async (update: MoveProjectProgressUpdate) => {
-    logger.info("move op step", {
+  const progress = (update: {
+    step: string;
+    message?: string;
+    detail?: any;
+  }) => {
+    logger.info("backup op step", {
       op_id,
       step: update.step,
       message: update.message,
       detail: update.detail,
     });
-    progressEvent({ op, update });
+    progressEvent({ op, ...update });
     touchLro({ op_id, owner_type: OWNER_TYPE, owner_id: WORKER_ID }).catch(
       () => {},
     );
-    await updateProgressSummary(op, update).catch(() => {});
   };
 
   try {
-    await progress({
-      step: "validate",
-      message: "starting move",
-      detail: { dest_host_id },
+    const running = await updateLro({
+      op_id,
+      status: "running",
+      error: null,
+      progress_summary: { phase: "validate" },
     });
-    await moveProjectToHost(
-      {
-        project_id,
-        dest_host_id,
-        account_id,
-      },
-      { progress },
-    );
+    if (running) {
+      await publishSummary(running);
+    }
+    progress({
+      step: "validate",
+      message: "starting backup",
+      detail: { project_id },
+    });
+
+    const started = Date.now();
+    progress({ step: "backup", message: "creating backup snapshot", detail: { tags } });
+
+    const client = fileServerClientWithTimeout(project_id);
+    const backup = await client.createBackup({
+      project_id,
+      limit: MAX_BACKUPS_PER_PROJECT,
+      tags,
+    });
+    const duration_ms = Date.now() - started;
+    const backup_time =
+      backup.time instanceof Date
+        ? backup.time.toISOString()
+        : new Date(backup.time as any).toISOString();
+
+    logger.info("backup op done", {
+      op_id,
+      project_id,
+      backup_id: backup.id,
+      duration_ms,
+    });
 
     const updated = await updateLro({
       op_id,
       status: "succeeded",
-      progress_summary: { phase: "done" },
-      result: { project_id, dest_host_id },
+      result: { id: backup.id, time: backup_time, duration_ms },
+      progress_summary: {
+        phase: "done",
+        id: backup.id,
+        time: backup_time,
+        duration_ms,
+      },
       error: null,
     });
     if (updated) {
       await publishSummary(updated);
     }
+    progress({
+      step: "done",
+      message: "backup complete",
+      detail: { backup_id: backup.id, duration_ms },
+    });
   } catch (err) {
-    logger.warn("move op failed", { op_id, err: `${err}` });
+    logger.warn("backup op failed", { op_id, err: `${err}` });
     const updated = await updateLro({
       op_id,
       status: "failed",
@@ -161,42 +184,42 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
     if (updated) {
       await publishSummary(updated);
     }
-    await progress({ step: "done", message: "failed", detail: { error: `${err}` } });
+    progress({ step: "done", message: "failed" });
   } finally {
     clearInterval(heartbeat);
-    logger.info("move op done", { op_id });
+    logger.info("backup op cleanup", { op_id });
   }
 }
 
-export function startMoveLroWorker({
+export function startBackupLroWorker({
   intervalMs = TICK_MS,
   maxParallel = MAX_PARALLEL,
 } = {}) {
   if (running) return () => undefined;
   running = true;
-  logger.info("starting move LRO worker", { worker_id: WORKER_ID });
+  logger.info("starting backup LRO worker", { worker_id: WORKER_ID });
 
   const tick = async () => {
     if (inFlight >= maxParallel) return;
     let ops: LroSummary[] = [];
     try {
       ops = await claimLroOps({
-        kind: MOVE_LRO_KIND,
+        kind: BACKUP_LRO_KIND,
         owner_type: OWNER_TYPE,
         owner_id: WORKER_ID,
         limit: Math.max(1, maxParallel - inFlight),
         lease_ms: LEASE_MS,
       });
     } catch (err) {
-      logger.warn("move op claim failed", { err });
+      logger.warn("backup op claim failed", { err });
       return;
     }
 
     for (const op of ops) {
       inFlight += 1;
-      void handleMoveOp(op)
+      void handleBackupOp(op)
         .catch(async (err) => {
-          logger.warn("move op handler failed", { op_id: op.op_id, err });
+          logger.warn("backup op handler failed", { op_id: op.op_id, err });
           const updated = await updateLro({
             op_id: op.op_id,
             status: "failed",

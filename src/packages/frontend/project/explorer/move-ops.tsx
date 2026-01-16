@@ -9,12 +9,7 @@ type MoveLroState = {
   last_event?: LroEvent;
 };
 
-const TERMINAL_STATUSES = new Set<LroStatus>([
-  "succeeded",
-  "failed",
-  "canceled",
-  "expired",
-]);
+const HIDE_STATUSES = new Set<LroStatus>(["succeeded"]);
 
 export default function MoveOps({ project_id }: { project_id: string }) {
   const moveOp = useTypedRedux({ project_id }, "move_lro")?.toJS() as
@@ -24,8 +19,7 @@ export default function MoveOps({ project_id }: { project_id: string }) {
     return null;
   }
   const summary = moveOp.summary;
-  const terminal = summary && TERMINAL_STATUSES.has(summary.status);
-  if (terminal) {
+  if (summary && HIDE_STATUSES.has(summary.status)) {
     return null;
   }
   const percent = progressPercent(moveOp);
@@ -64,6 +58,15 @@ export default function MoveOps({ project_id }: { project_id: string }) {
 
 function formatStatusLine(op: MoveLroState): string {
   const summary = op.summary;
+  if (summary?.status === "failed") {
+    return summary.error ? `failed: ${summary.error}` : "failed";
+  }
+  if (summary?.status === "canceled") {
+    return "canceled";
+  }
+  if (summary?.status === "expired") {
+    return "expired";
+  }
   const progress = op.last_progress;
   const message = progress?.message ?? progress?.phase;
   if (message) {

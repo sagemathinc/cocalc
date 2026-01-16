@@ -8,6 +8,8 @@ import { normalizeHostTier } from "./placement";
 import { machineHasGpu } from "../cloud/host-gpu";
 
 const log = getLogger("server:project-host:control");
+// Project starts can include large restores, so allow a long RPC timeout.
+const START_PROJECT_TIMEOUT_MS = 60 * 60 * 1000;
 
 type HostPlacement = {
   host_id: string;
@@ -203,6 +205,7 @@ export async function startProjectOnHost(
   const client = createHostControlClient({
     host_id: placement.host_id,
     client: conatWithProjectRouting(),
+    timeout: START_PROJECT_TIMEOUT_MS,
   });
   try {
     await client.startProject({
