@@ -118,10 +118,12 @@ function sortHosts(
 type HostListViewModel = {
   hosts: Host[];
   hostOps?: Record<string, HostLroState>;
+  createPanelOpen?: boolean;
   onStart: (id: string) => void;
   onStop: (id: string, opts?: HostStopOptions) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
   onDelete: (id: string, opts?: HostDeleteOptions) => void;
+  onToggleCreatePanel?: () => void;
   onRefresh: () => void;
   onCancelOp?: (op_id: string) => void;
   onUpgrade?: (host: Host) => void;
@@ -152,10 +154,12 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
   const {
     hosts,
     hostOps,
+    createPanelOpen,
     onStart,
     onStop,
     onRestart,
     onDelete,
+    onToggleCreatePanel,
     onRefresh,
     onCancelOp,
     onUpgrade,
@@ -821,9 +825,16 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
       <Space size="large" align="center">
         <Space size="middle" align="center">
-          <Typography.Title level={5} style={{ margin: 0 }}>
-            Workspace Hosts
-          </Typography.Title>
+          <Space size="small" align="center">
+            <Typography.Title level={5} style={{ margin: 0 }}>
+              Workspace Hosts
+            </Typography.Title>
+            {onToggleCreatePanel && !createPanelOpen && (
+              <Button size="small" type="primary" onClick={onToggleCreatePanel}>
+                Create
+              </Button>
+            )}
+          </Space>
           <Space size="small" align="center">
             <Typography.Text>Sort by</Typography.Text>
             <Select
