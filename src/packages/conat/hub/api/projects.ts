@@ -349,6 +349,7 @@ export interface Projects {
     account_id?: string;
     project_id: string;
     dest_host_id?: string;
+    allow_offline?: boolean;
   }) => Promise<{
     op_id: string;
     scope_type: "project";

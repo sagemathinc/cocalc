@@ -184,6 +184,7 @@ async function handleMoveOp(op: LroSummary): Promise<void> {
         project_id,
         dest_host_id,
         account_id,
+        allow_offline: input.allow_offline,
       },
       { progress, shouldCancel: shouldAbort },
     );

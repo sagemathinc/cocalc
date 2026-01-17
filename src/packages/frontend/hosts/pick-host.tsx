@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
+  Alert,
   Button,
   Divider,
   Dropdown,
@@ -38,6 +39,7 @@ export function HostPickerModal({
   currentHostId,
   regionFilter,
   lockRegion,
+  showOfflineMoveWarning,
 }: {
   open: boolean;
   currentHostId?: string;
@@ -45,6 +47,7 @@ export function HostPickerModal({
   onSelect: (host_id: string, host?: Host) => void;
   regionFilter?: string;
   lockRegion?: boolean;
+  showOfflineMoveWarning?: boolean;
 }) {
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
@@ -56,6 +59,19 @@ export function HostPickerModal({
   const [regionFilterState, setRegionFilterState] = useState<string | undefined>(
     regionFilter,
   );
+
+  const currentHost = useMemo(
+    () => hosts.find((host) => host.id === currentHostId),
+    [hosts, currentHostId],
+  );
+  const currentHostAvailable = useMemo(() => {
+    if (!currentHostId) return true;
+    if (!currentHost) return false;
+    if (currentHost.deleted) return false;
+    return ["running", "starting", "restarting", "error"].includes(
+      currentHost.status,
+    );
+  }, [currentHost, currentHostId]);
 
   const grouped = useMemo(() => {
     const groups: { label: string; items: Host[] }[] = [];
@@ -176,6 +192,19 @@ export function HostPickerModal({
       }
       destroyOnClose
     >
+      {showOfflineMoveWarning && currentHostId && !currentHostAvailable && (
+        <Alert
+          type="warning"
+          showIcon
+          message={
+            currentHost
+              ? `Source host is ${currentHost.status}`
+              : "Source host is unavailable"
+          }
+          description="Moving now will use the most recent backup. If it is older than the last edit, you will be asked to confirm."
+          style={{ marginBottom: 12 }}
+        />
+      )}
       <Typography.Paragraph type="secondary">
         Pick a workspace host to move this workspace to. Files in{" "}
         <code>/scratch</code> (if any) will be discarded.

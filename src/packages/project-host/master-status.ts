@@ -20,6 +20,7 @@ import {
   setProjectProvisioned,
 } from "./sqlite/provisioning";
 import { deleteProjectLocal } from "./sqlite/projects";
+import { deleteVolume } from "./file-server";
 
 let statusClient: HostStatusApi | undefined;
 let hostInfo: Pick<HostProjectStatus, "host_id" | "host"> | undefined;
@@ -29,6 +30,19 @@ let masterClient: Client | undefined;
 let pendingInventory:
   | { project_ids: string[]; checked_at: number }
   | null = null;
+
+async function deleteProjectDataLocal(project_id: string) {
+  try {
+    await deleteVolume(project_id);
+  } catch (err) {
+    logger.debug("deleteVolume failed", { project_id, err });
+  }
+  try {
+    deleteProjectLocal(project_id);
+  } catch (err) {
+    logger.debug("deleteProjectLocal failed", { project_id, err });
+  }
+}
 
 export function setMasterStatusClient({
   client,
@@ -68,7 +82,7 @@ export async function reportProjectStateToMaster(
     });
     if ((res as any)?.action === "delete") {
       logger.debug("master requested local project deletion", { project_id });
-      deleteProjectLocal(project_id);
+      await deleteProjectDataLocal(project_id);
       return;
     }
     markProjectStateReported(project_id);
@@ -92,11 +106,18 @@ async function reportProvisionedInventory() {
     logger.debug("reportHostProvisionedInventory", {
       count: payload.project_ids.length,
     });
-    await statusClient.reportHostProvisionedInventory({
+    const res = await statusClient.reportHostProvisionedInventory({
       ...hostInfo,
       project_ids: payload.project_ids,
       checked_at: payload.checked_at,
     });
+    const deleteIds = (res as any)?.delete_project_ids ?? [];
+    if (Array.isArray(deleteIds) && deleteIds.length) {
+      logger.info("deleting stale project data", { count: deleteIds.length });
+      for (const project_id of deleteIds) {
+        await deleteProjectDataLocal(project_id);
+      }
+    }
     pendingInventory = null;
   } catch (err) {
     logger.debug("reportHostProvisionedInventory failed", { err });
@@ -134,7 +155,7 @@ async function reportProjectProvisionedToMaster(
     });
     if ((res as any)?.action === "delete") {
       logger.debug("master requested local project deletion", { project_id });
-      deleteProjectLocal(project_id);
+      await deleteProjectDataLocal(project_id);
       return;
     }
     markProjectProvisionedReported(project_id);
@@ -162,7 +183,7 @@ async function reportPendingStates() {
         logger.debug("master requested local project deletion", {
           project_id: row.project_id,
         });
-        deleteProjectLocal(row.project_id);
+        await deleteProjectDataLocal(row.project_id);
         continue;
       }
       markProjectStateReported(row.project_id);
@@ -190,7 +211,7 @@ async function reportPendingProvisioning() {
         logger.debug("master requested local project deletion", {
           project_id: row.project_id,
         });
-        deleteProjectLocal(row.project_id);
+        await deleteProjectDataLocal(row.project_id);
         continue;
       }
       markProjectProvisionedReported(row.project_id);
