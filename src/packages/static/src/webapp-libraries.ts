@@ -13,15 +13,9 @@ import "./webapp-error-reporter";
 // TODO: get rid of bootstrap!  We intend to switch to antd entirely!
 import "bootstrap/dist/css/bootstrap.min.css";
 
-// jQuery UI widgets
-import "jquery-ui/dist/jquery-ui"; // needed when switched to rspack
-import "jquery-ui/ui/widgets/draggable"; // used by legacy editors
-import "jquery-ui/ui/widgets/slider"; // used by legacy editors
-import "jquery-ui/ui/widgets/resizable"; // used by legacy editors
-// // this is a require since it must happen after window.jQuery above (and imports happen before code).
-import "jquery-tooltip/jquery.tooltip"; // used by legacy editors
-// // Hack to make jQuery UI work on mobile devices: http://touchpunch.furf.com/
-import "jquery-ui-touch-punch";
+// jQuery plugins
+// this is a require since it must happen after window.jQuery above (and imports happen before code).
+import "jquery-tooltip/jquery.tooltip";
 
 // // Hack we wrote to make jQuery hide and show not break with Bootstrap 3
 import "@cocalc/assets/jquery/plugins/bootstrap_hide_show";

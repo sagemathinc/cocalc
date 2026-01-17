@@ -82,8 +82,6 @@
     "imports-loader": "^3.0.0",
     "jquery": "^3.6.0",
     "jquery-tooltip": "^0.2.1",
-    "jquery-ui": "^1.14.0",
-    "jquery-ui-touch-punch": "^0.2",
     "jquery.scrollintoview": "^1.9",
     "json-loader": "^0.5.7",
     "less": "^4.1.1",

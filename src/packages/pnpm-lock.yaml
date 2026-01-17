@@ -1870,12 +1870,6 @@ importers:
       jquery-tooltip:
         specifier: ^0.2.1
         version: 0.2.1(jquery-focus-flyout@0.0.5(jquery-focus-exit@1.0.1(jquery@3.7.1))(jquery-next-id@1.0.1(jquery@3.7.1))(jquery@3.7.1))(jquery-hover-flyout@0.0.5(jquery-mouse-exit@1.0.1(jquery@3.7.1))(jquery-next-id@1.0.1(jquery@3.7.1))(jquery@3.7.1))(jquery@3.7.1)
-      jquery-ui:
-        specifier: ^1.14.0
-        version: 1.14.1
-      jquery-ui-touch-punch:
-        specifier: ^0.2
-        version: 0.2.3
       jquery.scrollintoview:
         specifier: ^1.9
         version: 1.9.4
@@ -9196,12 +9190,6 @@ packages:
       jquery: '>=1.11'
       jquery-focus-flyout: ~0.0
       jquery-hover-flyout: ~0.0
-
-  jquery-ui-touch-punch@0.2.3:
-    resolution: {integrity: sha512-Q/7aAd+SjbV0SspHO7Kuk96NJIbLwJAS0lD81U1PKcU2T5ZKayXMORH+Y5qvYLuy41xqVQbWimsRKDn1v3oI2Q==}
-
-  jquery-ui@1.14.1:
-    resolution: {integrity: sha512-DhzsYH8VeIvOaxwi+B/2BCsFFT5EGjShdzOcm5DssWjtcpGWIMsn66rJciDA6jBruzNiLf1q0KvwMoX1uGNvnQ==}
 
   jquery.scrollintoview@1.9.4:
     resolution: {integrity: sha512-mAeLHnu6HA01W4BWWZgovLE5Gr8qgs6BGCaMB5oha3YfAKZ2mJhAqd1CbDZsFnXMvgxQj70JYXzyftolQLAwFg==}
@@ -22071,12 +22059,6 @@ snapshots:
       jquery: 3.7.1
       jquery-focus-flyout: 0.0.5(jquery-focus-exit@1.0.1(jquery@3.7.1))(jquery-next-id@1.0.1(jquery@3.7.1))(jquery@3.7.1)
       jquery-hover-flyout: 0.0.5(jquery-mouse-exit@1.0.1(jquery@3.7.1))(jquery-next-id@1.0.1(jquery@3.7.1))(jquery@3.7.1)
-
-  jquery-ui-touch-punch@0.2.3: {}
-
-  jquery-ui@1.14.1:
-    dependencies:
-      jquery: 3.7.1
 
   jquery.scrollintoview@1.9.4:
     dependencies:
