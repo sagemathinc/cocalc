@@ -313,10 +313,12 @@ export async function moveProject({
   account_id,
   project_id,
   dest_host_id,
+  allow_offline,
 }: {
   account_id: string;
   project_id: string;
   dest_host_id?: string;
+  allow_offline?: boolean;
 }): Promise<{
   op_id: string;
   scope_type: "project";
@@ -325,13 +327,18 @@ export async function moveProject({
   stream_name: string;
 }> {
   await assertCollab({ account_id, project_id });
+  if (!allow_offline) {
+    await ensureMoveOfflineAllowed({ project_id });
+  }
   const op = await createLro({
     kind: "project-move",
     scope_type: "project",
     scope_id: project_id,
     created_by: account_id,
     routing: "hub",
-    input: dest_host_id ? { project_id, dest_host_id } : { project_id },
+    input: dest_host_id
+      ? { project_id, dest_host_id, allow_offline }
+      : { project_id, allow_offline },
     status: "queued",
   });
   await publishLroSummary({
@@ -359,6 +366,63 @@ export async function moveProject({
     service: PERSIST_SERVICE,
     stream_name: lroStreamName(op.op_id),
   };
+}
+
+const HOST_SEEN_TTL_MS = 2 * 60 * 1000;
+const OFFLINE_MOVE_CONFIRM_CODE = "MOVE_OFFLINE_CONFIRMATION_REQUIRED";
+
+async function ensureMoveOfflineAllowed({
+  project_id,
+}: {
+  project_id: string;
+}): Promise<void> {
+  const pool = getPool();
+  const { rows } = await pool.query<{
+    host_id: string | null;
+    last_edited: Date | null;
+    last_backup: Date | null;
+  }>(
+    "SELECT host_id, last_edited, last_backup FROM projects WHERE project_id=$1",
+    [project_id],
+  );
+  const row = rows[0];
+  if (!row?.host_id) {
+    return;
+  }
+  const hostRow = await pool.query<{
+    status: string | null;
+    deleted: Date | null;
+    last_seen: Date | null;
+  }>("SELECT status, deleted, last_seen FROM project_hosts WHERE id=$1", [
+    row.host_id,
+  ]);
+  const host = hostRow.rows[0];
+  const status = String(host?.status ?? "");
+  const lastSeenMs = host?.last_seen
+    ? new Date(host.last_seen as any).getTime()
+    : 0;
+  const seenRecently = lastSeenMs
+    ? Date.now() - lastSeenMs <= HOST_SEEN_TTL_MS
+    : false;
+  const hostAvailable =
+    !!host &&
+    !host.deleted &&
+    ["running", "starting", "restarting", "error"].includes(status) &&
+    seenRecently;
+  if (hostAvailable) {
+    return;
+  }
+  const lastEdited = row.last_edited ? new Date(row.last_edited).getTime() : 0;
+  const lastBackup = row.last_backup ? new Date(row.last_backup).getTime() : 0;
+  if (!lastEdited) {
+    return;
+  }
+  if (!lastBackup || lastEdited > lastBackup) {
+    const detail = `source host is offline (status=${status || "unknown"}) and last backup is older than last edit (last_backup=${
+      row.last_backup ? row.last_backup.toISOString?.() ?? row.last_backup : "none"
+    }, last_edited=${row.last_edited?.toISOString?.() ?? row.last_edited})`;
+    throw new Error(`${OFFLINE_MOVE_CONFIRM_CODE}: ${detail}`);
+  }
 }
 
 export async function getSshKeys({

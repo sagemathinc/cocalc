@@ -4,6 +4,7 @@
  */
 
 import { Set, fromJS } from "immutable";
+import { Modal } from "antd";
 import { isEqual } from "lodash";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { Actions, redux } from "@cocalc/frontend/app-framework";
@@ -846,6 +847,67 @@ export class ProjectsActions extends Actions<ProjectsState> {
       });
   };
 
+  private isOfflineMoveConfirmError = (err: unknown): string | null => {
+    const message = `${err ?? ""}`;
+    const code = "MOVE_OFFLINE_CONFIRMATION_REQUIRED";
+    if (!message.includes(code)) {
+      return null;
+    }
+    const parts = message.split(code);
+    const detail = parts.slice(1).join(code).replace(/^[:\s-]+/, "");
+    return detail || message;
+  };
+
+  private confirmOfflineMove = async (detail?: string): Promise<boolean> => {
+    const base =
+      "The source host appears to be offline, so this move will use the most recent backup and may miss newer changes.";
+    const content = detail ? `${base}\n\n${detail}` : base;
+    return await new Promise((resolve) => {
+      Modal.confirm({
+        title: "Move from offline host?",
+        content,
+        okText: "Move anyway",
+        cancelText: "Cancel",
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false),
+      });
+    });
+  };
+
+  private requestMoveProject = async ({
+    project_id,
+    dest_host_id,
+    allow_offline,
+  }: {
+    project_id: string;
+    dest_host_id?: string;
+    allow_offline?: boolean;
+  }) => {
+    try {
+      return await webapp_client.conat_client.hub.projects.moveProject({
+        project_id,
+        dest_host_id,
+        allow_offline,
+      });
+    } catch (err) {
+      if (!allow_offline) {
+        const detail = this.isOfflineMoveConfirmError(err);
+        if (detail != null) {
+          const proceed = await this.confirmOfflineMove(detail);
+          if (!proceed) {
+            return null;
+          }
+          return await this.requestMoveProject({
+            project_id,
+            dest_host_id,
+            allow_offline: true,
+          });
+        }
+      }
+      throw err;
+    }
+  };
+
   // returns true, if it actually stopped the project
   stop_project = reuseInFlight(
     async (project_id: string, _force?: boolean): Promise<boolean> => {
@@ -874,9 +936,10 @@ export class ProjectsActions extends Actions<ProjectsState> {
   move_project = reuseInFlight(async (project_id: string): Promise<boolean> => {
     const actions = redux.getProjectActions(project_id);
     try {
-      // start the move going
-      const resp =
-        await webapp_client.conat_client.hub.projects.moveProject({ project_id });
+      const resp = await this.requestMoveProject({ project_id });
+      if (!resp) {
+        return false;
+      }
       actions.trackMoveOp(resp);
       this.watchMoveLro(actions, resp, { project_id });
     } catch (err) {
@@ -888,15 +951,21 @@ export class ProjectsActions extends Actions<ProjectsState> {
   });
 
   move_project_to_host = reuseInFlight(
-    async (project_id: string, dest_host_id: string): Promise<boolean> => {
+    async (
+      project_id: string,
+      dest_host_id: string,
+    ): Promise<boolean> => {
       const current_host = store.getIn(["project_map", project_id, "host_id"]);
       if (dest_host_id === current_host) return true;
       const actions = redux.getProjectActions(project_id);
       try {
-        const resp = await webapp_client.conat_client.hub.projects.moveProject({
+        const resp = await this.requestMoveProject({
           project_id,
           dest_host_id,
         });
+        if (!resp) {
+          return false;
+        }
         actions?.trackMoveOp(resp);
         this.watchMoveLro(actions, resp, { project_id, dest_host_id });
       } catch (err) {

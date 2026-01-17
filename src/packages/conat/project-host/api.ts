@@ -134,7 +134,7 @@ export interface HostStatusApi {
   ) => Promise<{ action?: "delete" } | void>;
   reportHostProvisionedInventory: (
     opts: HostProvisionedInventory,
-  ) => Promise<void>;
+  ) => Promise<{ delete_project_ids?: string[] } | void>;
 }
 
 export function createHostStatusClient({

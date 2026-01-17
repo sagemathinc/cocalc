@@ -318,6 +318,7 @@ export function ProjectActionsMenu({ record }: Props) {
           currentHostId={currentHostId}
           regionFilter={projectRegion}
           lockRegion
+          showOfflineMoveWarning
           onCancel={() => setMoveOpen(false)}
           onSelect={async (dest_host_id) => {
             setMoveOpen(false);

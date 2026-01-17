@@ -106,6 +106,20 @@ export async function initHostStatusService() {
           `,
           [host_id, project_ids, checkedAt],
         );
+        if (!project_ids.length) {
+          return { delete_project_ids: [] };
+        }
+        const { rows } = await pool.query<{ project_id: string }>(
+          `
+            SELECT project_id
+            FROM projects
+            WHERE project_id = ANY($1)
+              AND host_id IS DISTINCT FROM $2
+          `,
+          [project_ids, host_id],
+        );
+        const delete_project_ids = rows.map((row) => row.project_id);
+        return { delete_project_ids };
       },
     },
   });
