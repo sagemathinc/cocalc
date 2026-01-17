@@ -342,7 +342,6 @@ export async function getUnpaidInvoices(): Promise<any[]> {
 
 // OUTPUT:
 //   If service is 'credit', then returns the min allowed credit.
-//   If service is 'openai...' it returns an object {prompt_tokens: number; completion_tokens: number} with the current cost per token in USD.
 //   service can be an array, in which case returns map from service name to cost.
 export const getServiceCost = longCache(async (service: Service) => {
   return await api("purchases/get-service-cost", { service });

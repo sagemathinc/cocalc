@@ -1,5 +1,5 @@
 /*
-Let user get purchase quotas.
+Return the cost metadata for a service.
 
 service - a single service name or an array of service names.
         - if array, returns map from service name to cost.
