@@ -1,4 +1,4 @@
-import { Layout } from "antd";
+import { Button, Layout } from "antd";
 import { React } from "@cocalc/frontend/app-framework";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { Resizable } from "re-resizable";
@@ -6,6 +6,7 @@ import { Resizable } from "re-resizable";
 type HostCreatePanelProps = {
   width: number;
   setWidth: (value: number) => void;
+  onHide?: () => void;
   children: React.ReactNode;
 };
 
@@ -19,7 +20,12 @@ const PANEL_STYLE: React.CSSProperties = {
   transition: "none",
 };
 
-export function HostCreatePanel({ width, setWidth, children }: HostCreatePanelProps) {
+export function HostCreatePanel({
+  width,
+  setWidth,
+  onHide,
+  children,
+}: HostCreatePanelProps) {
   const minWidth = 250;
   const maxWidth = 640;
   const handleStyles = {
@@ -33,6 +39,13 @@ export function HostCreatePanel({ width, setWidth, children }: HostCreatePanelPr
 
   const sider = (
     <Layout.Sider width={width} style={PANEL_STYLE} collapsible={false}>
+      {onHide && (
+        <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+          <Button size="small" onClick={onHide}>
+            Hide Panel
+          </Button>
+        </div>
+      )}
       {children}
     </Layout.Sider>
   );

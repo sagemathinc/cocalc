@@ -3,8 +3,6 @@ import { SyncOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
 import type { Host, HostCatalog } from "@cocalc/conat/hub/api/hosts";
 import type { HostDeleteOptions, HostStopOptions } from "../types";
-import { labels } from "@cocalc/frontend/i18n";
-import { useIntl } from "react-intl";
 import {
   STATUS_COLOR,
   getHostOnlineTooltip,
@@ -19,6 +17,7 @@ import {
 import { isHostOpActive, type HostLroState } from "../hooks/use-host-ops";
 import { getHostOpPhase, HostOpProgress } from "./host-op-progress";
 import { HostBackupStatus } from "./host-backup-status";
+import { HostWorkspaceStatus } from "./host-workspace-status";
 import { confirmHostDeprovision, confirmHostStop } from "./host-confirm";
 
 type HostCardProps = {
@@ -51,8 +50,6 @@ export const HostCard: React.FC<HostCardProps> = ({
   providerCapabilities,
   selfHost,
 }) => {
-  const intl = useIntl();
-  const projectsLabel = intl.formatMessage(labels.projects);
   const isDeleted = !!host.deleted;
   const isSelfHost = host.machine?.cloud === "self-host";
   const connectorOnline =
@@ -260,6 +257,7 @@ export const HostCard: React.FC<HostCardProps> = ({
           </Tooltip>
         )}
         <HostOpProgress op={hostOp} compact />
+        <HostWorkspaceStatus host={host} fontSize={14} />
         <HostBackupStatus host={host} />
         <Typography.Text>
         Provider:{" "}
@@ -274,9 +272,6 @@ export const HostCard: React.FC<HostCardProps> = ({
         </Typography.Text>
         <Typography.Text>Size: {host.size}</Typography.Text>
         <Typography.Text>GPU: {host.gpu ? "Yes" : "No"}</Typography.Text>
-        <Typography.Text>
-          {projectsLabel}: {host.projects ?? 0}
-        </Typography.Text>
         {host.last_action && (
           <Typography.Text type="secondary">
             Last action: {host.last_action}

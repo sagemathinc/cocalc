@@ -1,4 +1,4 @@
-import { Button, Card, Col, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Tooltip, Typography } from "antd";
+import { Alert, Button, Card, Col, Input, Modal, Popconfirm, Popover, Radio, Row, Select, Space, Switch, Table, Tag, Tooltip, Typography } from "antd";
 import { SyncOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -13,9 +13,11 @@ import {
 import type { HostLroState } from "../hooks/use-host-ops";
 import { getHostOpPhase, HostOpProgress } from "./host-op-progress";
 import { HostBackupStatus } from "./host-backup-status";
+import { HostWorkspaceStatus } from "./host-workspace-status";
 import { confirmHostDeprovision, confirmHostStop } from "./host-confirm";
 import { isHostOpActive } from "../hooks/use-host-ops";
 import { UpgradeConfirmContent } from "./upgrade-confirmation";
+import { search_match, search_split } from "@cocalc/util/misc";
 import type {
   HostListViewMode,
   HostSortDirection,
@@ -39,6 +41,28 @@ const STATUS_ORDER = [
 const STATUS_RANK = new Map(
   STATUS_ORDER.map((status, index) => [status, index]),
 );
+
+const HOSTS_SEARCH_STORAGE_KEY = "cocalc:hosts:search";
+
+function readHostsSearch(): string {
+  if (typeof window === "undefined") {
+    return "";
+  }
+  try {
+    return window.localStorage.getItem(HOSTS_SEARCH_STORAGE_KEY) ?? "";
+  } catch {
+    return "";
+  }
+}
+
+function persistHostsSearch(value: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  try {
+    window.localStorage.setItem(HOSTS_SEARCH_STORAGE_KEY, value);
+  } catch {}
+}
 
 function getProviderLabel(host: Host): string {
   const cloud = host.machine?.cloud;
@@ -118,10 +142,12 @@ function sortHosts(
 type HostListViewModel = {
   hosts: Host[];
   hostOps?: Record<string, HostLroState>;
+  createPanelOpen?: boolean;
   onStart: (id: string) => void;
   onStop: (id: string, opts?: HostStopOptions) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
   onDelete: (id: string, opts?: HostDeleteOptions) => void;
+  onToggleCreatePanel?: () => void;
   onRefresh: () => void;
   onCancelOp?: (op_id: string) => void;
   onUpgrade?: (host: Host) => void;
@@ -152,10 +178,12 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
   const {
     hosts,
     hostOps,
+    createPanelOpen,
     onStart,
     onStop,
     onRestart,
     onDelete,
+    onToggleCreatePanel,
     onRefresh,
     onCancelOp,
     onUpgrade,
@@ -180,6 +208,10 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
 
   const [selectedRowKeys, setSelectedRowKeys] = React.useState<string[]>([]);
   const [restartTarget, setRestartTarget] = React.useState<Host | null>(null);
+  const [searchText, setSearchText] = React.useState<string>(readHostsSearch);
+  React.useEffect(() => {
+    persistHostsSearch(searchText);
+  }, [searchText]);
 
   const [showHardRestartHelp, setShowHardRestartHelp] = React.useState(false);
 
@@ -222,6 +254,28 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
   const [dynamicOrder, setDynamicOrder] = React.useState<string[]>([]);
   const sortKeyRef = React.useRef<string>("");
   const isDynamicSort = sortField === "status" || sortField === "changed";
+  const searchTerms = React.useMemo(() => {
+    const trimmed = searchText.trim();
+    return trimmed ? search_split(trimmed) : [];
+  }, [searchText]);
+  const filteredHosts = React.useMemo(() => {
+    if (!searchTerms.length) return hosts;
+    return hosts.filter((host) => {
+      const statusLabel = host.deleted ? "deleted" : host.status;
+      const haystack = [
+        host.name,
+        getProviderLabel(host),
+        host.region,
+        host.size,
+        statusLabel,
+      ]
+        .filter(Boolean)
+        .join(" ");
+      return search_match(haystack, searchTerms);
+    });
+  }, [hosts, searchTerms]);
+  const filterActive = !!searchText.trim();
+  const visibleHosts = filteredHosts;
 
   React.useEffect(() => {
     if (viewMode !== "list" && selectedRowKeys.length) {
@@ -231,9 +285,9 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
 
   React.useEffect(() => {
     if (!selectedRowKeys.length) return;
-    const hostIds = new Set(hosts.map((host) => host.id));
+    const hostIds = new Set(visibleHosts.map((host) => host.id));
     setSelectedRowKeys((prev) => prev.filter((id) => hostIds.has(id)));
-  }, [hosts, selectedRowKeys.length]);
+  }, [visibleHosts, selectedRowKeys.length]);
 
   React.useEffect(() => {
     if (!isDynamicSort) {
@@ -246,15 +300,15 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     sortKeyRef.current = sortKey;
     setDynamicOrder((prev) => {
       if (autoResort || prev.length === 0 || sortChanged) {
-        const next = sortHosts(hosts, sortField, sortDirection).map(
+        const next = sortHosts(visibleHosts, sortField, sortDirection).map(
           (host) => host.id,
         );
         return arraysEqual(prev, next) ? prev : next;
       }
-      const hostIds = new Set(hosts.map((host) => host.id));
+      const hostIds = new Set(visibleHosts.map((host) => host.id));
       const current = prev.filter((id) => hostIds.has(id));
       const currentSet = new Set(current);
-      const missing = hosts.filter((host) => !currentSet.has(host.id));
+      const missing = visibleHosts.filter((host) => !currentSet.has(host.id));
       if (!missing.length && current.length === prev.length) {
         return prev;
       }
@@ -264,42 +318,42 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       const next = [...current, ...sortedMissing];
       return arraysEqual(prev, next) ? prev : next;
     });
-  }, [hosts, sortField, sortDirection, autoResort, isDynamicSort]);
+  }, [visibleHosts, sortField, sortDirection, autoResort, isDynamicSort]);
 
   const sortedHosts = React.useMemo(() => {
     if (isDynamicSort && !autoResort && dynamicOrder.length) {
-      const hostMap = new Map(hosts.map((host) => [host.id, host]));
+      const hostMap = new Map(visibleHosts.map((host) => [host.id, host]));
       const ordered = dynamicOrder
         .map((id) => hostMap.get(id))
         .filter((host): host is Host => !!host);
       const orderedIds = new Set(ordered.map((host) => host.id));
-      if (ordered.length === hosts.length) {
+      if (ordered.length === visibleHosts.length) {
         return ordered;
       }
-      const missing = hosts.filter((host) => !orderedIds.has(host.id));
+      const missing = visibleHosts.filter((host) => !orderedIds.has(host.id));
       if (!missing.length) return ordered;
       return ordered.concat(sortHosts(missing, sortField, sortDirection));
     }
-    return sortHosts(hosts, sortField, sortDirection);
-  }, [hosts, sortField, sortDirection, autoResort, dynamicOrder, isDynamicSort]);
+    return sortHosts(visibleHosts, sortField, sortDirection);
+  }, [visibleHosts, sortField, sortDirection, autoResort, dynamicOrder, isDynamicSort]);
 
   const resortNow = React.useCallback(() => {
     if (!isDynamicSort) return;
     setDynamicOrder((prev) => {
-      const next = sortHosts(hosts, sortField, sortDirection).map(
+      const next = sortHosts(visibleHosts, sortField, sortDirection).map(
         (host) => host.id,
       );
       return arraysEqual(prev, next) ? prev : next;
     });
-  }, [hosts, sortField, sortDirection, isDynamicSort]);
+  }, [visibleHosts, sortField, sortDirection, isDynamicSort]);
 
   const selectedHosts = React.useMemo(() => {
     if (!selectedRowKeys.length) return [] as Host[];
-    const hostMap = new Map(hosts.map((host) => [host.id, host]));
+    const hostMap = new Map(visibleHosts.map((host) => [host.id, host]));
     return selectedRowKeys
       .map((id) => hostMap.get(id))
       .filter((host): host is Host => !!host);
-  }, [hosts, selectedRowKeys]);
+  }, [visibleHosts, selectedRowKeys]);
 
   const startTargets = React.useMemo(
     () =>
@@ -458,6 +512,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       title: "Region",
       dataIndex: "region",
       key: "region",
+      width: 140,
       sorter: true,
       sortDirections: ["ascend", "descend"],
       sortOrder:
@@ -490,6 +545,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     {
       title: "Status",
       key: "status",
+      width: 320,
       sorter: true,
       sortDirections: ["ascend", "descend"],
       sortOrder:
@@ -541,6 +597,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               )}
             </Space>
             <HostOpProgress op={op} compact />
+            <HostWorkspaceStatus host={host} compact />
             <HostBackupStatus host={host} compact />
           </Space>
         );
@@ -817,13 +874,46 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
       </div>
     ) : null;
 
+  const filterNotice = filterActive ? (
+    <Alert
+      type="warning"
+      showIcon
+      message={
+        visibleHosts.length === 0
+          ? "No hosts match this filter."
+          : `Showing ${visibleHosts.length} of ${hosts.length} hosts.`
+      }
+      action={
+        <Button size="small" type="link" onClick={() => setSearchText("")}>
+          Clear filter
+        </Button>
+      }
+      style={{ marginBottom: 12 }}
+    />
+  ) : null;
+
   const header = (
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
       <Space size="large" align="center">
         <Space size="middle" align="center">
-          <Typography.Title level={5} style={{ margin: 0 }}>
-            Workspace Hosts
-          </Typography.Title>
+          <Space size="small" align="center">
+            <Typography.Title level={5} style={{ margin: 0 }}>
+              Workspace Hosts
+            </Typography.Title>
+            {onToggleCreatePanel && !createPanelOpen && (
+              <Button size="small" type="primary" onClick={onToggleCreatePanel}>
+                Create
+              </Button>
+            )}
+          </Space>
+          <Input.Search
+            allowClear
+            size="small"
+            value={searchText}
+            onChange={(event) => setSearchText(event.target.value)}
+            placeholder="Filter hosts..."
+            style={{ width: 220 }}
+          />
           <Space size="small" align="center">
             <Typography.Text>Sort by</Typography.Text>
             <Select
@@ -908,6 +998,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
   return (
     <div>
       {header}
+      {filterNotice}
       {bulkActions}
       {viewMode === "list" ? (
         <Table
