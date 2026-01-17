@@ -2,17 +2,20 @@
 
 Goal: Complete remove all code and functionality for the following:
 
-- [ ] share server \-\- but we would need to replace it with something first
-- [ ] public paths allowing viewing by non\-collabs in the frontend; deprecated but code remains \("is\_public"\)
-- [x] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [ ] jquery ui
+- [ ] public paths allowing viewing by non\-collabs in the frontend; deprecated but code remains \("is\_public"\)
+- [ ] examples/snippets submodule \(src/examples\)
+- [ ] terminal guide panel
+- [ ] jupyter code snippets panel
+- [ ] share server \-\- but we would need to replace it with something first
+- [x] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [x] payg LLM purchases; we still must track usage and costs for throttling and analytic, but nothing regarding actual transactions/billing shown to users.
 - [x] the jupyter pool.
 - [x] replace "home base" terminology with "the workspace" \(final cleanup after compute server removal\)
 - [x] all code involving compute\_servers and cloud filesystems
 - [x] public jupyter api
 - [x] anonymous accounts / sign up
-- [ ] public sandbox projects
+- [x] public sandbox projects
 - [x] vector database support code \-\- qdrant, "DEPRECATED \- OpenAI Neural Search UI"
 - [x] jitsi \-\- video chat
 - [x] GPU licenses
@@ -73,6 +76,31 @@ LLM usage logging + throttling intact. Clean break; no legacy purchase rendering
 6. **Final sweep + validation.**  
    Ripgrep for LLM purchase service names in src/docs; update tests and run
    pnpm tsc --build.
+
+## Remove examples/snippets submodule (src/examples)
+
+Scope: remove built-in browseable code examples/snippets sourced from the `src/examples` submodule and the `@cocalc/assets/examples/examples.json` bundle. Clean break; no need to preserve example catalogs.
+
+1. **Inventory all touchpoints.**  
+   Submodule + build: [src/examples](./src/examples), [src/packages/assets/build.sh](./src/packages/assets/build.sh), [src/scripts/ignore-examples](./src/scripts/ignore-examples), [.gitmodules](./.gitmodules).  
+   Jupyter snippets UI: [src/packages/frontend/frame-editors/jupyter-editor/snippets](./src/packages/frontend/frame-editors/jupyter-editor/snippets), [src/packages/frontend/frame-editors/jupyter-editor/editor.ts](./src/packages/frontend/frame-editors/jupyter-editor/editor.ts), [src/packages/frontend/frame-editors/frame-tree/types.ts](./src/packages/frontend/frame-editors/frame-tree/types.ts), [src/packages/frontend/_jupyter.sass](./src/packages/frontend/_jupyter.sass).  
+   I18n labels + copy: [src/packages/frontend/i18n/common.ts](./src/packages/frontend/i18n/common.ts), [src/packages/frontend/i18n/trans](./src/packages/frontend/i18n/trans).
+
+2. **Remove the snippets panel and tab.**  
+   Delete the snippets editor type, the “guide/snippets” tab/button, and the snippets UI components and styles.  
+   Targets: [src/packages/frontend/frame-editors/jupyter-editor/editor.ts](./src/packages/frontend/frame-editors/jupyter-editor/editor.ts), [src/packages/frontend/frame-editors/jupyter-editor/snippets](./src/packages/frontend/frame-editors/jupyter-editor/snippets), [src/packages/frontend/frame-editors/frame-tree/types.ts](./src/packages/frontend/frame-editors/frame-tree/types.ts), [src/packages/frontend/_jupyter.sass](./src/packages/frontend/_jupyter.sass).
+
+3. **Remove bundled examples asset.**  
+   Delete the examples.json asset, remove the lazy import, and stop building it.  
+   Targets: [src/packages/assets/examples](./src/packages/assets/examples), [src/packages/frontend/frame-editors/jupyter-editor/snippets/main.tsx](./src/packages/frontend/frame-editors/jupyter-editor/snippets/main.tsx), [src/packages/assets/build.sh](./src/packages/assets/build.sh).
+
+4. **Remove the submodule wiring.**  
+   Drop the `src/examples` submodule, remove the `.gitmodules` entry, and delete helper scripts that reference it.  
+   Targets: [src/examples](./src/examples), [.gitmodules](./.gitmodules), [src/scripts/ignore-examples](./src/scripts/ignore-examples).
+
+5. **I18n cleanup + final sweep.**  
+   Remove snippets labels/tooltips from extracted/compiled translations; ripgrep for “snippets” references that are no longer used.  
+   Targets: [src/packages/frontend/i18n](./src/packages/frontend/i18n).
 
 ## \(done\) Remove Anonymous Accounts \(no email/passport auth\)
 
