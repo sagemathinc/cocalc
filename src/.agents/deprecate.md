@@ -22,6 +22,41 @@ Goal: Complete remove all code and functionality for the following:
 - [x] dedicated\_vms and dedicated\_disks
 - [x] rename: "Project" \-\-&gt; "Workspace" in frontend UI
 
+## Remove payg LLM purchases (keep usage tracking for throttling/analytics)
+
+Scope: remove all LLM billing/transaction UI and purchase handling, while keeping
+LLM usage logging + throttling intact. Clean break; no legacy purchase rendering.
+
+1. **Remove LLM purchase history UI + payg cost widgets.**  
+   Filter LLM purchases out of the purchases table and delete LLM-specific
+   descriptions/tooltips and payg LLM cost widgets. Keep LLM usage status in the
+   balance modal.  
+   Targets: [src/packages/frontend/purchases/purchases.tsx](./src/packages/frontend/purchases/purchases.tsx), [src/packages/frontend/purchases/pay-as-you-go/cost.tsx](./src/packages/frontend/purchases/pay-as-you-go/cost.tsx), [src/packages/frontend/purchases/balance-modal.tsx](./src/packages/frontend/purchases/balance-modal.tsx).
+
+2. **Remove LLM services from purchase schema + quotas.**  
+   Drop LLM services from the quota spec and purchase service types; remove
+   LLM-specific quota presets.  
+   Targets: [src/packages/util/db-schema/purchase-quotas.ts](./src/packages/util/db-schema/purchase-quotas.ts), [src/packages/util/db-schema/purchases.ts](./src/packages/util/db-schema/purchases.ts), [src/packages/frontend/purchases/all-quotas-config.tsx](./src/packages/frontend/purchases/all-quotas-config.tsx), [src/packages/frontend/purchases/quota-config.tsx](./src/packages/frontend/purchases/quota-config.tsx).
+
+3. **Remove LLM purchase handling on the server.**  
+   Delete LLM branches in purchase allowed checks, service cost, and default
+   quota handling.  
+   Targets: [src/packages/server/purchases/is-purchase-allowed.ts](./src/packages/server/purchases/is-purchase-allowed.ts), [src/packages/server/purchases/purchase-quotas.ts](./src/packages/server/purchases/purchase-quotas.ts), [src/packages/server/purchases/get-service-cost.ts](./src/packages/server/purchases/get-service-cost.ts), [src/packages/server/purchases/get-service-cost.test.ts](./src/packages/server/purchases/get-service-cost.test.ts), [src/packages/server/purchases/is-purchase-allowed.test.ts](./src/packages/server/purchases/is-purchase-allowed.test.ts).
+
+4. **Remove LLM purchase API surfaces + frontend calls.**  
+   Drop any API endpoints and client calls related to LLM purchases/quotas while
+   keeping the LLM usage status endpoint.  
+   Targets: [src/packages/frontend/purchases/api.ts](./src/packages/frontend/purchases/api.ts), [src/packages/next/pages/api/v2/purchases](./src/packages/next/pages/api/v2/purchases), [src/packages/next/pages/api/v2/purchases/get-llm-usage.ts](./src/packages/next/pages/api/v2/purchases/get-llm-usage.ts).
+
+5. **Remove payg LLM settings.**  
+   Remove `llm_default_quota` and `pay_as_you_go_openai_markup_percentage` from
+   settings/schema.  
+   Targets: [src/packages/util/db-schema/site-settings-extras.ts](./src/packages/util/db-schema/site-settings-extras.ts), [src/packages/util/db-schema/site-defaults.ts](./src/packages/util/db-schema/site-defaults.ts), [src/packages/util/db-schema/server-settings.ts](./src/packages/util/db-schema/server-settings.ts).
+
+6. **Final sweep + validation.**  
+   Ripgrep for LLM purchase service names in src/docs; update tests and run
+   pnpm tsc --build.
+
 ## \(done\) Remove Anonymous Accounts \(no email/passport auth\)
 
 Scope: remove anonymous accounts and signup. Public share viewing stays. SSO/LTI accounts are fine (not anonymous).
@@ -201,4 +236,3 @@ Scope: remove all compute server and cloud filesystem functionality. No migratio
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
-

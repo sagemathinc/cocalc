@@ -35,14 +35,8 @@ import { load_target } from "@cocalc/frontend/history";
 import { open_new_tab } from "@cocalc/frontend/misc/open-browser-tab";
 import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import getSupportURL from "@cocalc/frontend/support/url";
-import {
-  ANTHROPIC_PREFIX,
-  GOOGLE_PREFIX,
-  LLM_USERNAMES,
-  MISTRAL_PREFIX,
-  service2model,
-} from "@cocalc/util/db-schema/llm-utils";
-import { QUOTA_SPEC, type Service } from "@cocalc/util/db-schema/purchase-quotas";
+import { isLanguageModelService } from "@cocalc/util/db-schema/llm-utils";
+import { type Service } from "@cocalc/util/db-schema/purchase-quotas";
 import type { Purchase } from "@cocalc/util/db-schema/purchases";
 import { getAmountStyle } from "@cocalc/util/db-schema/purchases";
 import {
@@ -278,13 +272,15 @@ export function PurchasesTable({
       let { purchases: x, balance } = account_id
         ? await api.getPurchasesAdmin({ ...opts, account_id })
         : await api.getPurchases(opts);
+      const rawLength = x.length;
+      x = x.filter((purchase) => !isLanguageModelService(purchase.service));
       setBalance(balance);
       for (const purchase of x) {
         getFilter(purchase);
       }
 
       // TODO: need getPurchases to tell if there are more or not.
-      setHasMore(x.length == limit0 + 1);
+      setHasMore(rawLength == limit0 + 1);
       x = x.slice(0, limit0);
 
       if (init) {
@@ -914,42 +910,6 @@ function Description({ description, service }) {
   if (typeof service !== "string") {
     // service should be DescriptionType["type"]
     return null;
-  }
-
-  if (service.startsWith("openai-gpt-")) {
-    return (
-      <Tooltip
-        title={() => (
-          <div>
-            Prompt tokens: {description.prompt_tokens}
-            <br />
-            Completion tokens: {description.completion_tokens}
-          </div>
-        )}
-      >
-        {QUOTA_SPEC[service].display ?? service}
-      </Tooltip>
-    );
-  }
-
-  if (
-    service.startsWith(MISTRAL_PREFIX) ||
-    service.startsWith(ANTHROPIC_PREFIX) ||
-    service.startsWith(GOOGLE_PREFIX)
-  ) {
-    return (
-      <Tooltip
-        title={() => (
-          <div>
-            Prompt tokens: {description.prompt_tokens}
-            <br />
-            Completion tokens: {description.completion_tokens}
-          </div>
-        )}
-      >
-        {LLM_USERNAMES[service2model(service)] ?? service}
-      </Tooltip>
-    );
   }
 
   // <pre>{JSON.stringify(description, undefined, 2)}</pre>
