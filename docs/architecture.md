@@ -2,7 +2,7 @@
 
 > Updated to reflect the new project-host model (Dec 2025). This is a working draft; keep it in sync with the code.
 
-At a glance: The control hub handles auth/config and keeps project placement in Postgres, then routes both conat and HTTP/WS traffic directly to the project\-host that owns a project. Each project\-host combines file\-server, project\-runner, HTTP/WS proxy, conat with persistence, sshpiperd and a local btrfs volume with per\-project subvolumes, quotas, snapshots, and backups \(rustic\). Projects run in podman with overlayfs uppers stored inside the project, so user changes are captured in snapshots/backups and survive moves. Moves stream btrfs sends over sshpiperd to another host; backups push snapshots to a rustic repo. Host keys and placement are distributed over conat so routing stays correct after moves/restarts.
+At a glance: The control hub handles auth/config and keeps project placement in Postgres, then routes both conat and HTTP/WS traffic directly to the project\-host that owns a project. Each project\-host combines file\-server, project\-runner, HTTP/WS proxy, conat with persistence, sshpiperd and a local btrfs volume with per\-project subvolumes, quotas, snapshots, and backups \(rustic\). Projects run in podman with overlayfs uppers stored inside the project, so user changes are captured in snapshots/backups and survive moves. Moves use rustic backup/restore with restore staging for atomicity; there is no host\-to\-host SSH path for moves.
 
 ---
 
@@ -36,7 +36,7 @@ At a glance: The control hub handles auth/config and keeps project placement in 
 2) **Project Hosts**
 
 - Combined file-server + project-runner + proxies on a btrfs volume.
-- SQLite state per host: projects table (ports, users, image, quotas, auth keys), host keys, backup jobs.
+- SQLite state per host: projects table (ports, users, image, quotas, auth keys), sshpiperd keys, backup jobs.
 - Services:
   - File server (btrfs operations, quotas, snapshots, backups).
   - Project runner (podman) with overlayfs rootfs per image.
@@ -54,7 +54,7 @@ At a glance: The control hub handles auth/config and keeps project placement in 
 4) **Proxies**
 
 - HTTP: master proxies `/PROJECT/port/<p>/...` to the owning host; project-host proxies to container:80 with `prependPath:false`.
-- SSH: sshpiperd on each host terminates SSH and forwards to the project sshd (user-level) or host-level btrfs/host-ssh endpoints with forced commands.
+- SSH: sshpiperd on each host terminates SSH and forwards to the project sshd (user-level).
 
 ---
 
@@ -144,12 +144,13 @@ flowchart TB
 
 ## Moves (host ↔ host)
 
-- Orchestrated by the control hub (Postgres-backed state machine `project_moves`, mirrored into `projects.move_status`).
-- Data paths:
-  - Pipe (default): `btrfs send | sshpiperd | forced-command btrfs receive` into `/btrfs/_incoming`, then re-home snapshots and clone the latest snapshot to become the live subvolume.
-  - Staged (optional): write send streams to disk, rsync to dest, then receive.
-- SSH auth: source connects to dest sshpiperd as `btrfs-<source_host_id>`; dest sshd runs forced `btrfs receive` and only trusts the dest’s sshpiperd key; host-to-host public keys distributed by the hub.
-- Post-move: host_id/host updated in Postgres; snapshots preserved; persist store copied; quotas re-assigned on dest.
+- Orchestrated by the control hub via LRO (`project-move`).
+- Flow:
+  - Stop the project and always take a final rustic backup on the source host.
+  - Restore on the destination host using restore staging for atomicity.
+  - Start the project on the destination.
+  - Cleanup source data after destination start succeeds (or defer cleanup if the source is offline).
+- Post-move: host_id updated in Postgres; backups remain in the repo; snapshots are not transferred directly.
 
 ---
 
@@ -172,7 +173,7 @@ flowchart TB
 
 **Move**
 
-- Hub enqueues move; maintenance worker drives the state machine; source streams to dest; dest re-homes and registers; hub updates `projects` and publishes status.
+- Hub enqueues move; the worker drives stop + backup, destination restore, and start. Cleanup of source data happens after the destination start succeeds.
 
 ---
 
@@ -180,7 +181,7 @@ flowchart TB
 
 - Hard quotas via qgroups; ENOSPC scoped to the project subvolume.
 - Overlay upperdirs are part of the project footprint (snapshots/backups include them).
-- Forced-command SSH for btrfs receive; single exposed sshpiperd port per host; known-hosts pinning possible.
+- Restore staging prevents half-restored projects after crashes; progress is visible via LRO streams.
 - Restart-safe orchestration: hub state in Postgres; workers use `FOR UPDATE SKIP LOCKED`; progress/status surfaced to UI.
 
 ---
@@ -191,4 +192,3 @@ flowchart TB
 - Tunable snapshot/backup retention; pruning policies per host/project.
 - Stronger story for untrusted hosts (per-bucket backups, limited key distribution).
 - Observability: richer progress metrics for moves/backups; host health surfacing.
-

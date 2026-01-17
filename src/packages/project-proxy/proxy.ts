@@ -4,7 +4,6 @@ import httpProxy from "http-proxy-3";
 import type express from "express";
 import { getLogger } from "@cocalc/backend/logger";
 import { isValidUUID } from "@cocalc/util/misc";
-import { getPorts } from "./container";
 import TTLCache from "@isaacs/ttlcache";
 import listen from "@cocalc/backend/misc/async-server-listen";
 
@@ -48,20 +47,14 @@ async function defaultResolveTarget(
   if (cache.has(project_id)) {
     const { proxy, err } = cache.get(project_id)!;
     if (err) throw err;
-    return { target: { host: "localhost", port: proxy! }, handled: true };
-  }
-  let proxy: number | undefined;
-  try {
-    ({ proxy } = await getPorts({ volume: `project-${project_id}` }));
-    if (!proxy) {
-      throw Error("no proxy server");
+    if (proxy == null) {
+      return { handled: false };
     }
-  } catch (err) {
-    cache.set(project_id, { err });
-    throw err;
+    return { target: { host: "localhost", port: proxy }, handled: true };
   }
-  cache.set(project_id, { proxy });
-  return { target: { host: "localhost", port: proxy }, handled: true };
+  // No default resolver in this package; callers should provide resolveTarget.
+  cache.set(project_id, { proxy: undefined });
+  return { handled: false };
 }
 
 export async function startProxyServer({

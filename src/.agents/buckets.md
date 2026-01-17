@@ -184,40 +184,40 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
 
 ### Phase 4: Cleanup / compatibility
 
-- **No backward compatibility**:
-  - treat layout v2 as the only supported format
-  - new snapshots must include metadata; restore logic assumes it
-- address issues with brokeness due to persist being temporarily not allowed until subvolume exists.
+- **(pending) No backward compatibility**:
+  - (pending) treat layout v2 as the only supported format
+  - (pending) new snapshots must include metadata; restore logic assumes it
+- (done) address issues with brokeness due to persist being temporarily not allowed until subvolume exists.
 - **Remove legacy ssh/rsync transfers (keep user SSH intact)**:
-  - delete project-host rsync copy path (`copyPaths`) and related helpers
-  - drop host/btrfs SSH targets from sshpiperd auth; keep project targets
-  - remove host/btrfs SSH proxy containers and startup wiring
-  - remove host-to-host key generation/storage and related sqlite fields
-  - sweep docs/scripts for rsync/btrfs transfer mentions
+  - (done) delete project-host rsync copy path (`copyPaths`) and related helpers
+  - (done) drop host/btrfs SSH targets from sshpiperd auth; keep project targets
+  - (done) remove host/btrfs SSH proxy containers and startup wiring
+  - (done) remove host-to-host key generation/storage and related sqlite fields
+  - (pending) sweep docs/scripts for rsync/btrfs transfer mentions
 
 ### Phase 5: Manage Backup Status
 
 - **Goal**: make host stop/deprovision safe and scalable by tracking whether projects are actually provisioned on a host, and by surfacing clear aggregate + per-project backup status for admins.
 - **Projects columns (single-host invariant)**:
-  - add `projects.provisioned` (bool, nullable) and `projects.provisioned_checked_at` (timestamp)
-  - `NULL` means “unknown/not yet scanned”; `false` means assigned but not present on host
-  - this is the authoritative source for “provisioned” status and flows to the frontend changefeed
+  - (done) add `projects.provisioned` (bool, nullable) and `projects.provisioned_checked_at` (timestamp)
+  - (done) `NULL` means “unknown/not yet scanned”; `false` means assigned but not present on host
+  - (done) this is the authoritative source for “provisioned” status and flows to the frontend changefeed
 - **Host reporting**:
-  - on volume create/delete, enqueue a local durable update (sqlite outbox), report to hub, and mark complete on ack; retry until success
-  - on host startup, run a single inventory scan (`/btrfs/project-*`) and bulk update the hub
-  - on host deprovision, clear provisioning for that host (`provisioned=false`, `provisioned_checked_at=now()`)
+  - (done) on volume create/delete, enqueue a local durable update (sqlite outbox), report to hub, and mark complete on ack; retry until success
+  - (done) on host startup, run a single inventory scan (`/btrfs/project-*`) and bulk update the hub
+  - (done) on host deprovision, clear provisioning for that host (`provisioned=false`, `provisioned_checked_at=now()`)
 - **Hub aggregates (no per-project RPCs)**:
-  - total assigned (`projects.host_id = host_id`)
-  - provisioned (`projects.provisioned`)
-  - running (`projects.state in running/starting`)
-  - provisioned + up-to-date (`last_backup >= last_edited` or `last_edited` null)
+  - (done) total assigned (`projects.host_id = host_id`)
+  - (done) provisioned (`projects.provisioned`)
+  - (done) running (`projects.state in running/starting`)
+  - (done) provisioned + up-to-date (`last_backup >= last_edited` or `last_edited` null)
 - **Stop/deprovision dialog**:
-  - show counts: total assigned, provisioned, running, provisioned+up-to-date
-  - include a table of “at risk” projects (running or provisioned+dirty)
-  - if host is off, explain backups can’t run and show last known counts
+  - (done) show counts: total assigned, provisioned, running, provisioned+up-to-date
+  - (pending) include a table of “at risk” projects (running or provisioned+dirty)
+  - (done) if host is off, explain backups can’t run and show last known counts
 - **Backup worker**:
-  - only consider provisioned projects (skip unprovisioned at scale)
-  - low concurrency, cancelable, report progress using counts above
+  - (done) only consider provisioned projects (skip unprovisioned at scale)
+  - (done) low concurrency, cancelable, report progress using counts above
 - **Future: better dirty tracking**:
-  - use btrfs subvolume generation/snapshot metadata to detect changes
-  - make `last_edited` reliable and update on FS writes/agent runs/stop
+  - (pending) use btrfs subvolume generation/snapshot metadata to detect changes
+  - (pending) make `last_edited` reliable and update on FS writes/agent runs/stop
