@@ -122,6 +122,7 @@ type HostListViewModel = {
   onStop: (id: string, opts?: HostStopOptions) => void;
   onRestart: (id: string, mode: "reboot" | "hard") => void;
   onDelete: (id: string, opts?: HostDeleteOptions) => void;
+  onRefresh: () => void;
   onCancelOp?: (op_id: string) => void;
   onUpgrade?: (host: Host) => void;
   onDetails: (host: Host) => void;
@@ -154,8 +155,9 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
     onStart,
     onStop,
     onRestart,
-  onDelete,
-  onCancelOp,
+    onDelete,
+    onRefresh,
+    onCancelOp,
     onUpgrade,
     onDetails,
     onEdit,
@@ -861,17 +863,22 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
           </Space>
         </Space>
       </Space>
-      <Radio.Group
-        value={viewMode}
-        onChange={(event) =>
-          setViewMode(event.target.value as HostListViewMode)
-        }
-        optionType="button"
-        buttonStyle="solid"
-      >
-        <Radio.Button value="grid">Cards</Radio.Button>
-        <Radio.Button value="list">List</Radio.Button>
-      </Radio.Group>
+      <Space size="small" align="center">
+        <Button size="small" icon={<SyncOutlined />} onClick={onRefresh}>
+          Refresh
+        </Button>
+        <Radio.Group
+          value={viewMode}
+          onChange={(event) =>
+            setViewMode(event.target.value as HostListViewMode)
+          }
+          optionType="button"
+          buttonStyle="solid"
+        >
+          <Radio.Button value="grid">Cards</Radio.Button>
+          <Radio.Button value="list">List</Radio.Button>
+        </Radio.Group>
+      </Space>
     </div>
   );
 
