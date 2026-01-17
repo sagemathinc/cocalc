@@ -161,14 +161,11 @@ export interface CustomizeState {
   "project_hosts_hyperstack_enabled"?: boolean;
   "project_hosts_lambda_enabled"?: boolean;
 
-  llm_markup: number;
-
   ollama?: TypedMap<{ [key: string]: TypedMap<CustomLLMPublic> }>;
   custom_openai?: TypedMap<{ [key: string]: TypedMap<CustomLLMPublic> }>;
   selectable_llms: List<string>;
   default_llm?: string;
   user_defined_llm: boolean;
-  llm_default_quota?: number;
 
   insecure_test_mode?: boolean;
 
@@ -304,9 +301,6 @@ function process_customize(obj) {
     obj[k] =
       obj[k] != null ? obj[k] : (v.to_val?.(v.default, obj_orig) ?? v.default);
   }
-  // the llm markup special case
-  obj.llm_markup = obj_orig._llm_markup ?? 30;
-
   // always set time, so other code can know for sure that customize was loaded.
   // it also might be helpful to know when
   obj["time"] = Date.now();

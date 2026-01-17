@@ -2,7 +2,6 @@ import getPool from "@cocalc/database/pool";
 import { Service, QUOTA_SPEC } from "@cocalc/util/db-schema/purchase-quotas";
 import getMinBalance from "./get-min-balance";
 import type { PoolClient } from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/database/settings";
 import { moneyToDbString, toDecimal, type MoneyValue } from "@cocalc/util/money";
 
 export async function setPurchaseQuota({
@@ -61,9 +60,7 @@ export async function getPurchaseQuotas(
 
   const services: { [service: string]: MoneyValue } = {};
   for (const { service, value } of rows) {
-    const isLLM = QUOTA_SPEC[service]?.category === "ai";
-    const { llm_default_quota } = await getServerSettings();
-    services[service] = value ?? (isLLM ? llm_default_quota : 0);
+    services[service] = value ?? 0;
   }
   const minBalance = await getMinBalance(account_id, client);
   return { services, minBalance };
@@ -79,13 +76,5 @@ export async function getPurchaseQuota(
     "SELECT value FROM purchase_quotas WHERE account_id=$1 AND service=$2",
     [account_id, service],
   );
-  const isLLM = QUOTA_SPEC[service]?.category === "ai";
-  if (isLLM) {
-    const { llm_default_quota } = await getServerSettings();
-    return toDecimal(rows[0]?.value ?? llm_default_quota).toNumber();
-  } else {
-    return rows[0]?.value == null
-      ? null
-      : toDecimal(rows[0]?.value).toNumber();
-  }
+  return rows[0]?.value == null ? null : toDecimal(rows[0]?.value).toNumber();
 }

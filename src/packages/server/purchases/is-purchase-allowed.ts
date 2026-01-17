@@ -3,12 +3,6 @@ import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import isBanned from "@cocalc/server/accounts/is-banned";
 import isValidAccount from "@cocalc/server/accounts/is-valid-account";
 import {
-  getMaxCost,
-  isCoreLanguageModel,
-  isLanguageModelService,
-  service2model,
-} from "@cocalc/util/db-schema/llm-utils";
-import {
   QUOTA_SPEC,
   Service,
   isPaygService,
@@ -122,9 +116,7 @@ export async function isPurchaseAllowed({
   if (costValue.lte(0)) {
     return { allowed: false, reason: `cost must be positive` };
   }
-  const { services, minBalance } = await getPurchaseQuotas(account_id, client);
-  const { pay_as_you_go_min_payment, llm_default_quota } =
-    await getServerSettings();
+  const { pay_as_you_go_min_payment } = await getServerSettings();
   const minPayment = toDecimal(pay_as_you_go_min_payment ?? 0);
 
   if (!isPaygService(service)) {
@@ -150,6 +142,7 @@ export async function isPurchaseAllowed({
   }
 
   // Below this is payg services only:
+  const { services, minBalance } = await getPurchaseQuotas(account_id, client);
 
   // First check that making purchase won't reduce our balance below the minBalance.
   // Also, we round balance down since fractional pennies don't count, and
@@ -194,9 +187,7 @@ export async function isPurchaseAllowed({
   // This is a self-imposed limit by the user to control what they
   // explicitly authorized.
   if (!QUOTA_SPEC[service]?.noSet) {
-    const isLLM = QUOTA_SPEC[service]?.category === "ai";
-    const defaultQuota = isLLM ? llm_default_quota : 0;
-    const quotaForService = toDecimal(services[service] ?? defaultQuota).add(
+    const quotaForService = toDecimal(services[service] ?? 0).add(
       marginValue,
     );
     if (quotaForService.lte(0)) {
@@ -263,17 +254,6 @@ export async function assertPurchaseAllowed(opts: AssertOptions) {
 }
 
 async function getCostEstimate(service: Service): Promise<number | undefined> {
-  if (isLanguageModelService(service)) {
-    const { pay_as_you_go_openai_markup_percentage } =
-      await getServerSettings();
-    const model = service2model(service);
-    if (isCoreLanguageModel(model)) {
-      return getMaxCost(model, pay_as_you_go_openai_markup_percentage);
-    } else {
-      return undefined;
-    }
-  }
-
   switch (service) {
     case "credit":
       const { pay_as_you_go_min_payment } = await getServerSettings();

@@ -4,9 +4,9 @@ service via pay-as-you-go, given all quotas and current balance.
 
 PARAMS:
 
-  - service (required): one of the services, e.g., openai-gpt-4
-  - cost (optional): cost in dollars of that service; if not given, some amount may be
-    chosen based on the service, e.g., for gpt-4 it is the maximum cost of a single API call.
+  - service (required): one of the services, e.g., membership or credit
+  - cost (optional): cost in dollars of that service; if not given, an estimate
+    may be chosen based on the service.
 
 RETURNS:
 
