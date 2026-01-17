@@ -30,8 +30,7 @@ as { and } in C-like languages, cause the current line to be reindented.`,
     "Visibly display any trailing whitespace at the ends of lines.  This is useful so that such whitespace isn't invisible.",
   spaces_instead_of_tabs:
     "Send spaces instead of a tab character when the tab key is pressed.  Use this if you prefer, e.g., 4 spaces instead of a tab in your code.  The number of spaces depends on the type of code you are editing.",
-  extra_button_bar:
-    "Show additional editing functionality  (mainly in Sage worksheets)",
+  extra_button_bar: "Show additional editing functionality",
   build_on_save: `Trigger a build of LaTex, Rmd, etc. files whenever they are saved to disk, instead of only building when you click the Build button. This is fine for small documents, but can be annoying for large documents, especially if you are a "compulsive saver".`,
   show_exec_warning:
     "Show a warning if you hit shift+enter (or other keys) when editing certain files, e.g., Python code, that is not directly executable.  This is just to avoid confusion if you create a .py file and think it is a Jupyter notebook.",

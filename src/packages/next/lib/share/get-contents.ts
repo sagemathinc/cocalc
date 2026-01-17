@@ -14,7 +14,6 @@ const MB: number = 1000000;
 const LISTED_LIMITS = {
   listing: 3000, // directory listing is truncated after this many files
   ipynb: 7 * MB,
-  sagews: 5 * MB,
   whiteboard: 3 * MB,
   slides: 3 * MB,
   other: 1 * MB,
@@ -26,7 +25,6 @@ const LISTED_LIMITS = {
 const UNLISTED_LIMITS = {
   ...LISTED_LIMITS,
   ipynb: 15 * MB,
-  sagews: 10 * MB,
   whiteboard: 10 * MB,
   slides: 10 * MB,
   other: 5 * MB,

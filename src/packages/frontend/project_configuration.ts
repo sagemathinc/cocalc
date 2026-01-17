@@ -197,7 +197,7 @@ export async function get_configuration(
     if (!caps.rmd) disabled_ext.push("rmd");
     if (!caps.qmd) disabled_ext.push("qmd");
     if (!caps.latex) disabled_ext.push(...KNITR_EXTS.concat(["tex"]));
-    if (!caps.sage) disabled_ext.push("sagews", "sage");
+    if (!caps.sage) disabled_ext.push("sage");
     if (!caps.x11) disabled_ext.push("x11");
   }
 

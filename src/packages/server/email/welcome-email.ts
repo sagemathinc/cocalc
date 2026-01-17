@@ -81,7 +81,7 @@ You can run your computations through the web interface, via interactive workshe
 and notebooks, or by executing a program in a terminal. ${site_name} supports
 online editing of
     <a href="https://cocalc.com/features/jupyter-notebook">Jupyter Notebooks</a>,
-    <a href="https://cocalc.com/features/sage">Sage Worksheets</a>,
+    <a href="https://cocalc.com/features/sage">SageMath</a>,
     <a href="https://cocalc.com/features/latex-editor">LaTeX files</a>, etc.
 </p>
 
@@ -95,9 +95,6 @@ online editing of
 </li>
 <li style="margin-top:0;margin-bottom:10px;">
     <a href="https://doc.cocalc.com/jupyter.html">Working with Jupyter Notebooks</a>
-</li>
-<li style="margin-top:0;margin-bottom:10px;">
-    <a href="https://doc.cocalc.com/sagews.html">Working with SageMath Worksheets</a>
 </li>
 <li style="margin-top:0;margin-bottom:10px;">
     <strong><a href="https://cocalc.com/policies/pricing.html">Subscriptions:</a></strong> make hosting more robust and increase project quotas
@@ -177,15 +174,13 @@ In ${site_name} your work happens inside private projects.  These are personal
 workspaces which contain your files, computational worksheets, and data.
 You can run your computations through the web interface, via interactive worksheets
 and notebooks, or by executing a program in a terminal. ${site_name} supports
-online editing of Jupyter Notebooks, Sage Worksheets, LaTeX files, and much more.
+online editing of Jupyter Notebooks, SageMath, LaTeX files, and much more.
 
 HOW TO GET FROM 0 to 100:
 
 CoCalc Manual: https://doc.cocalc.com/
 
 Working with Jupyter Notebooks: https://doc.cocalc.com/jupyter.html
-
-Working with SageMath Worksheets: https://doc.cocalc.com/sagews.html
 
 Subscriptions: https://cocalc.com/policies/pricing.html
 

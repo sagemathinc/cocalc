@@ -4,7 +4,7 @@
  */
 
 // TODO: for a frame tree it really only makes sense for this button
-// to always show the chat.  For sagews and old stuff it should hide
+// to always show the chat. For older legacy content it should hide
 // and show it.  But it's very hard to know from here which doc type
 // this is... so for now it still sort of toggles.  For now things
 // do work properly via a hack in close_chat in project_actions.
@@ -25,7 +25,7 @@ import { lite } from "@cocalc/frontend/lite";
 export type ChatState =
   | "" // not opened (also undefined counts as not open)
   | "internal" // chat is open and managed internally (via frame tree)
-  | "external" // chat is open and managed externally (e.g., legacy sage worksheet)
+  | "external" // chat is open and managed externally (e.g., legacy editor)
   | "pending"; // chat should be opened when the file itself is actually initialized.
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {

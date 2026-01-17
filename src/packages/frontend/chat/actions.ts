@@ -73,7 +73,7 @@ export class ChatActions extends Actions<ChatState> {
   // this prevents that at least.
   public chatStreams: Set<string> = new Set([]);
   public frameId: string = "";
-  // this might not be set e.g., for deprecated side chat on sagews:
+  // this might not be set for deprecated side chat:
   public frameTreeActions?: CodeEditorActions;
   // Shared message cache for this actions instance; used by both React and actions.
   public messageCache?: ChatMessageCache;
@@ -1352,4 +1352,3 @@ function getLanguageModel(input?: string): false | LanguageModel {
   }
   return false;
 }
-

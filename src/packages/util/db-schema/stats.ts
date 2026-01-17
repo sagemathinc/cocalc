@@ -83,7 +83,6 @@ export const EXTENSIONS = [
   "chat",
   "sage-chat",
   "sage",
-  "sagews",
   "slides",
   "svg",
   "tasks",

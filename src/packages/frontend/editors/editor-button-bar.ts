@@ -1208,9 +1208,6 @@ print(MyClass(5))\
     sagesyntaxerrors: {
       url: "https://github.com/sagemathinc/cocalc/wiki/MathematicalSyntaxErrors",
     },
-    cocalcwiki: {
-      url: "https://doc.cocalc.com/sagews.html",
-    },
     sagequestion: {
       url: "https://github.com/sagemathinc/cocalc/wiki/SageQuestion",
     },
@@ -1978,64 +1975,17 @@ function add_icon(bar, inner: string, href: string, comment: string) {
 //
 
 // Initialize fonts for the editor
-const initialize_sagews_editor = function () {
-  let item;
-  const bar = $(".webapp-editor-codemirror-worksheet-editable-buttons");
-  let elt = bar.find(".sagews-output-editor-font").find(".dropdown-menu");
-  for (let font of "Serif,Sans,Arial,Arial Black,Courier,Courier New,Comic Sans MS,Georgia,Helvetica,Impact,Lucida Grande,Lucida Sans,Monaco,Palatino,Tahoma,Times New Roman,Verdana".split(
-    ",",
-  )) {
-    item = $(`<li><a href='#fontName' data-args='${font}'>${font}</a></li>`);
-    item.css("font-family", font);
-    elt.append(item);
-  }
-
-  elt = bar.find(".sagews-output-editor-font-size").find(".dropdown-menu");
-  for (let size = 1; size <= 7; size++) {
-    item = $(
-      `<li><a href='#fontSize' data-args='${size}'><font size=${size}>Size ${size}</font></a></li>`,
-    );
-    elt.append(item);
-  }
-
-  elt = bar.find(".sagews-output-editor-block-type").find(".dropdown-menu");
-  for (i = 1; i <= 6; i++) {
-    item = $(
-      `<li><a href='#formatBlock' data-args='<H${i}>'><H${i} style='margin:0'>Heading</H${i}></a></li>`,
-    );
-    elt.append(item);
-  }
-
-  elt.prepend('<li role="presentation" class="divider"></li>');
-
-  // trick so that data is retained even when editor is cloned:
-  const args = JSON.stringify([
-    null,
-    { normalize: true, elementTagName: "code", applyToEditableOnly: true },
-  ]);
-  item = $(
-    `<li><a href='#ClassApplier' data-args='${args}'><i class='fa fa-code'></i> <code>Code</code></a></li>`,
-  );
-  elt.prepend(item);
-
-  elt.prepend('<li role="presentation" class="divider"></li>');
-  item = $(`<li><a href='#removeFormat'><i class='fa fa-remove'></i> \
-Normal</a></li>`);
-  return elt.prepend(item);
-};
-
-// Initialize fonts for the editor
 const initialize_md_html_editor = function () {
   let item;
   const bar = $(".webapp-editor-textedit-buttonbar");
-  let elt = bar.find(".sagews-output-editor-font-face").find(".dropdown-menu");
+  let elt = bar.find(".output-editor-font-face").find(".dropdown-menu");
   for (let font of FONT_FACES) {
     item = $(`<li><a href='#font_face' data-args='${font}'>${font}</a></li>`);
     item.css("font-family", font);
     elt.append(item);
   }
 
-  elt = bar.find(".sagews-output-editor-font-size").find(".dropdown-menu");
+  elt = bar.find(".output-editor-font-size").find(".dropdown-menu");
   const v = [1, 2, 3, 4, 5, 6, 7];
   v.reverse();
   for (let size of v) {
@@ -2047,7 +1997,7 @@ const initialize_md_html_editor = function () {
     elt.append(item);
   }
 
-  elt = bar.find(".sagews-output-editor-block-type").find(".dropdown-menu");
+  elt = bar.find(".output-editor-block-type").find(".dropdown-menu");
   for (i = 1; i <= 4; i++) {
     elt.append(
       $(
@@ -2097,7 +2047,7 @@ const initialize_sage_python_r_toolbar = function () {
 
   const help_list = [
     "<i class='fa fa-question-circle'></i> Help",
-    "Sage Worksheet Help",
+    "SageMath Help",
     [
       ["SageMath help"],
       ["Overview", "#sagemathdoc"],
@@ -2105,8 +2055,6 @@ const initialize_sage_python_r_toolbar = function () {
       ["Reference", "#sagemathreference"],
       ["Keyboard shortcuts", "#sagemathkeyboardshortcuts"],
       ["Common syntax problems", "#sagesyntaxerrors"],
-      ["Sage worksheet commands"],
-      ["Worksheets in CoCalc", "#cocalcwiki"],
       ["I have a question about Sage", "#sagequestion"],
       ["General help", "#help"],
       ["Mode commands", "#modes"],
@@ -2114,37 +2062,6 @@ const initialize_sage_python_r_toolbar = function () {
     ],
   ];
   add_menu(system_bar, help_list);
-
-  const mode_list = [
-    "Modes",
-    "Sage Worksheet Modes",
-    [
-      ["General"],
-      ["Auto execute cell on startup", "#mode_auto"],
-      ["Hide input", "#mode_hide"],
-      ["Set default mode", "#mode_default_mode"],
-      ["Typeset output", "#mode_typeset"],
-      ["Timing"],
-      ["Benchmark code repeatedly", "#mode_timeit"],
-      ["Time code once", "#mode_time"],
-      ["Language modes"],
-      ["Anaconda", "#mode_anaconda"],
-      ["Cython", "#mode_cython"],
-      ["Gap", "#mode_gap"],
-      ["PARI/GP", "#mode_gp"],
-      ["HTML", "#mode_html"],
-      ["Javascript", "#mode_javascript"],
-      ["Julia", "#mode_julia"],
-      ["Jupyter bridge", "#mode_jupyter_bridge"],
-      ["Markdown", "#mode_md"],
-      ["Octave", "#mode_octave"],
-      ["Python", "#mode_python"],
-      ["Python 3", "#mode_python3"],
-      ["R", "#mode_r"],
-      ["Shell", "#mode_sh"],
-    ],
-  ];
-  add_menu(system_bar, mode_list);
 
   //# MAYBE ADD THESE in another menu:
   //axiom
@@ -2179,14 +2096,6 @@ const initialize_sage_python_r_toolbar = function () {
   //typeset_mode
   //var
   //wiki
-  //mode_list = ["More", "More Sage Worksheet Modes",
-  //    [
-  //      ["Axiom", "#mode_axiom"],
-  //      ["Scilab", "#mode_scilab"],
-  //      ["Shell script", "#mode_sh"],
-  //      []
-  //    ]]
-  //add_menu(system_bar, mode_list)
   codebar.append(system_bar);
 
   // -- python specific --
@@ -2690,7 +2599,6 @@ function initialize_latex_buttonbar() {
 
 // must get called before using the button bars.
 export function init_buttonbars() {
-  initialize_sagews_editor();
   initialize_md_html_editor();
   return initialize_sage_python_r_toolbar();
 }

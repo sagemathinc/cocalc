@@ -80,8 +80,6 @@ type EditorType =
   | "qmd-log"
   | "rmd-build"
   | "rst-view"
-  | "sagews-cells"
-  | "sagews-document"
   | "search"
   | "settings"
   | "slate"

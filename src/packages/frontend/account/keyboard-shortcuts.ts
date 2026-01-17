@@ -111,13 +111,6 @@ export default function keyboardShortcuts(
     },
     {
       command: defineMessage({
-        id: "account.keyboard-shortcuts.shortcut.split-view-sagews",
-        defaultMessage: "Split view in Sage worksheet",
-      }),
-      shortcut: "shift+control+I",
-    },
-    {
-      command: defineMessage({
         id: "account.keyboard-shortcuts.shortcut.autoindent",
         defaultMessage: "Autoindent selection",
       }),
@@ -154,7 +147,7 @@ export default function keyboardShortcuts(
     {
       command: defineMessage({
         id: "account.keyboard-shortcuts.shortcut.split-cell",
-        defaultMessage: "Split cell in Sage worksheet",
+        defaultMessage: "Split cell in notebook",
       }),
       shortcut: "control+;",
     },

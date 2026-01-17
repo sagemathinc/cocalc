@@ -10,9 +10,8 @@ exports.MathJaxConfig = {
   skipStartupTypeset: true,
   extensions: ["tex2jax.js", "asciimath2jax.js", "Safe.js"], // "static/mathjax_extensions/xypic.js"
   // NOTE: "output/CommonHTML" is the output default: http://docs.mathjax.org/en/latest/output.html
-  // However, **DO NOT** use "output/CommonHTML" for the output JAX; it completely breaks
-  // Sage worksheet output right now.  Maybe when/if worksheets are rewritten
-  // using React, we can change, but not now.  Using "output/SVG" works just fine.
+  // However, **DO NOT** use "output/CommonHTML" for the output JAX; it breaks
+  // some output rendering. Using "output/SVG" works just fine.
   //   https://github.com/sagemathinc/cocalc/issues/1962
   jax: ["input/TeX", "input/AsciiMath", "output/SVG"],
   // http://docs.mathjax.org/en/latest/options/tex2jax.html

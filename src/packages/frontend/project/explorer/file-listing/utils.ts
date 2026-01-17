@@ -9,7 +9,6 @@ import { file_actions, type FileAction } from "@cocalc/frontend/project_store";
 export const TERM_MODE_CHAR = "/";
 
 type Extension =
-  | "sagews"
   | "ipynb"
   | "tex"
   | "term"
@@ -36,7 +35,6 @@ export const EXTs: ReadonlyArray<Extension> = Object.freeze([
   "board",
   "slides",
   "md",
-  "sagews",
   "tex",
   "course",
   "py",
@@ -63,7 +61,7 @@ export function default_ext(disabled_ext: string[] | undefined): Extension {
 
 // Returns the full file_search text in addition to the default extension if applicable
 // disabled_ext contains such file extensions, which aren't available in the project.
-// e.g. do not autocomplete to "sagews" if it is ["sagews", "tex"]
+// e.g. do not autocomplete to a disabled extension
 export function full_path_text(file_search: string, disabled_ext: string[]) {
   let ext;
   if (file_search.lastIndexOf(".") <= file_search.lastIndexOf("/")) {

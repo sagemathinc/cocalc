@@ -16,6 +16,7 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 import {
   defaults,
   filename_extension,
+  path_split,
   path_to_tab,
   required,
   uuid,
@@ -209,9 +210,8 @@ export async function open_file(
     }
   }
 
-  if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
-    // NOTE: This is REALLY REALLY ANCIENT support for a 20-year old format...
-    await open_sagenb_worksheet({ ...opts, project_id: actions.project_id });
+  if (!is_public && ext === "sagews") {
+    await open_sagews_worksheet(actions, opts);
     return;
   }
 
@@ -305,61 +305,65 @@ async function get_my_group(project_id: string): Promise<string> {
   });
 }
 
-async function open_sagenb_worksheet(opts: {
-  project_id: string;
-  path: string;
-  foreground?: boolean;
-  foreground_project?: boolean;
-  chat?: boolean;
-}): Promise<void> {
-  // sagenb worksheet (or backup of it created during unzip of
-  // multiple worksheets with same name)
-  alert_message({
-    type: "info",
-    message: `Opening converted CoCalc worksheet file instead of '${opts.path}...`,
-  });
-  const actions = redux.getProjectActions(opts.project_id);
+async function open_sagews_worksheet(
+  actions: ProjectActions,
+  opts: OpenFileOpts,
+): Promise<void> {
+  const ipynb_path = opts.path.replace(/\.sagews$/i, ".ipynb");
+  const clear_sagews_tab = async () => {
+    if (!actions.open_files?.has(opts.path)) {
+      return;
+    }
+    actions.open_files.delete(opts.path);
+    await remove(opts.path, redux, actions.project_id, false);
+  };
+
   try {
-    const path: string = await convert_sagenb_worksheet(
-      opts.project_id,
-      opts.path,
-    );
-    await open_file(actions, {
-      path,
-      foreground: opts.foreground,
-      foreground_project: opts.foreground_project,
-      chat: opts.chat,
-    });
+    if (!(await file_exists(actions.project_id, ipynb_path))) {
+      alert_message({
+        type: "info",
+        message: `Converting '${opts.path}' to a Jupyter notebook...`,
+      });
+      const raw = await webapp_client.project_client.read_text_file({
+        project_id: actions.project_id,
+        path: opts.path,
+      });
+      const { default: sagewsToIpynb } = await import(
+        "@cocalc/frontend/frame-editors/sagews-editor/sagews-to-ipynb"
+      );
+      const ipynb = sagewsToIpynb(raw);
+      await webapp_client.project_client.write_text_file({
+        project_id: actions.project_id,
+        path: ipynb_path,
+        content: JSON.stringify(ipynb, undefined, 2),
+      });
+    }
+    await clear_sagews_tab();
+    const { ext: _ext, ...open_opts } = opts;
+    await open_file(actions, { ...open_opts, path: ipynb_path });
   } catch (err) {
+    await clear_sagews_tab();
     alert_message({
       type: "error",
-      message: `Error converting Sage Notebook sws file -- ${err}`,
+      message: `Error converting legacy worksheet -- ${err}`,
     });
   }
 }
 
-async function convert_sagenb_worksheet(
-  project_id: string,
-  filename: string,
-): Promise<string> {
-  const ext = filename_extension(filename);
-  if (ext != "sws") {
-    const i = filename.length - ext.length;
-    const new_filename = filename.slice(0, i - 1) + ext.slice(3) + ".sws";
+async function file_exists(project_id: string, path: string): Promise<boolean> {
+  const f = path_split(path);
+  try {
     await webapp_client.project_client.exec({
       project_id,
-      command: "cp",
-      args: [filename, new_filename],
+      command: "test",
+      args: ["-e", f.tail],
+      path: f.head,
+      err_on_exit: true,
     });
-    filename = new_filename;
+    return true;
+  } catch (err) {
+    return false;
   }
-  await webapp_client.project_client.exec({
-    project_id,
-    command: "smc-sws2sagews",
-    args: [filename],
-  });
-
-  return filename.slice(0, filename.length - 3) + "sagews";
 }
 
 const log_open_time: { [path: string]: { id: string; start: number } } = {};

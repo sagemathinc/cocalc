@@ -62,7 +62,6 @@ import { GROUP_STYLE, randomBorder } from "./utils";
 
 const FILE_TYPE_PRIORITY = [
   "ipynb",
-  "sagews",
   "term",
   "md",
   "tex",

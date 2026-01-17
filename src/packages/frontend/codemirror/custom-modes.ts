@@ -5,13 +5,12 @@
 
 // Multiplex'd worksheet mode
 
-import { MARKERS } from "@cocalc/util/sagews";
 import { clone, object } from "underscore";
 import CodeMirror from "./codemirror";
 import "codemirror/addon/mode/multiplex";
 import "./multiplex";
 
-export const sagews_decorator_modes: [string, string][] = [
+export const decorator_modes: [string, string][] = [
   ["cjsx", "text/cjsx"],
   ["coffeescript", "coffeescript"],
   ["cython", "cython"],
@@ -97,13 +96,13 @@ CodeMirror.defineMode("stex2", function (config) {
     options.push({
       open: `\\begin{${x}}`,
       close: `\\end{${x}}`,
-      mode: CodeMirror.getMode(config, "sagews"),
+      mode: CodeMirror.getMode(config, "python"),
     });
   }
   options.push({
     open: "\\sage{",
     close: "}",
-    mode: CodeMirror.getMode(config, "sagews"),
+    mode: CodeMirror.getMode(config, "python"),
   });
   return (CodeMirror as any).multiplexingMode(
     CodeMirror.getMode(config, "stex"),
@@ -164,33 +163,10 @@ CodeMirror.defineMode("mojo", (config) => {
   );
 });
 
-CodeMirror.defineMode("sagews", function (config) {
-  const options: MultiplexOption[] = [];
-  const close = new RegExp(`[${MARKERS.output}${MARKERS.cell}]`);
-  for (const x of sagews_decorator_modes) {
-    // NOTE: very important to close on both MARKERS.output *and* MARKERS.cell,
-    // rather than just MARKERS.cell, or it will try to
-    // highlight the *hidden* output message line, which can
-    // be *enormous*, and could take a very very long time, but is
-    // a complete waste, since we never see that markup.
-    options.push({
-      open: "%" + x[0],
-      start: true, // must be at beginning of line
-      close,
-      mode: CodeMirror.getMode(config, x[1]),
-    });
-  }
-
-  return (CodeMirror as any).cocalcMultiplexingMode(
-    CodeMirror.getMode(config, "python"),
-    ...options
-  );
-});
-
 CodeMirror.defineMode("rmd", function (config) {
-  // derived from the sagews modes with some additions
+  // derived from the decorated modes with some additions
   let mode, open;
-  const modes = clone(object(sagews_decorator_modes));
+  const modes = clone(object(decorator_modes));
   modes["fortran95"] = modes["fortran"];
   modes["octave"] = "octave";
   modes["bash"] = modes["sh"];

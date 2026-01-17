@@ -172,7 +172,7 @@ function doSearch(cm, rev, persistent, immediate) {
 /* Return true if the given position is part of a collapsed mark.
    See https://github.com/sagemathinc/cocalc/issues/522
    We need this since codemirror's own search doesn't ignore
-   collapsed ranges, e.g., the output in sage worksheets.
+   collapsed ranges, e.g., output in notebooks.
 */
 function isCollapsedPos(cm, pos) {
   var marks = cm.findMarksAt(pos);
@@ -312,4 +312,3 @@ CodeMirror.commands.findPersistentPrev = function(cm) {doSearch(cm, true, true, 
 CodeMirror.commands.clearSearch = clearSearch;
 CodeMirror.commands.replace = replace;
 CodeMirror.commands.replaceAll = function(cm) {replace(cm, true);};
-

@@ -15,7 +15,6 @@ import { isObjectDoc } from "./view-document";
 export const HAS_SPECIAL_VIEWER = new Set([
   "tasks",
   "ipynb",
-  "sagews",
   "board",
   "slides",
   "md",

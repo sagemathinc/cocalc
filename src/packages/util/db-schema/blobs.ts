@@ -76,7 +76,7 @@ Table({
     },
   },
   rules: {
-    desc: "Table that stores blobs mainly generated as output of Sage worksheets.",
+    desc: "Table that stores blobs mainly generated as output of notebooks.",
     primary_key: "id",
     // these indices speed up the search been done in 'copy_all_blobs_to_gcloud'
     // less important to make this query fast, but we want to avoid thrashing cache

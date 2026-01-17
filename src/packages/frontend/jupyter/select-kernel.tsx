@@ -560,7 +560,7 @@ export function KernelSelector({ actions }: KernelSelectorProps) {
     if (!name) return false;
     if (kernel != "sagemath") return false;
     // just do it -- this happens when automatically converting
-    // a sage worksheet to jupyter via the "Jupyter" button.
+    // a legacy worksheet to a notebook.
     setTimeout(() => actions.select_kernel(name), 0);
     return true;
   }

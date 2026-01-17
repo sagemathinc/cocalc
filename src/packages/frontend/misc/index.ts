@@ -11,7 +11,6 @@ export * from "./language";
 export * from "./iframe";
 export * from "./cookies";
 export * from "./tracking";
-export * from "./sagews-canonical-mode";
 export * from "./show-react-modal";
 
 import "./bootstrap-fixes";

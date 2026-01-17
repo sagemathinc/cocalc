@@ -7,7 +7,9 @@ import type { SelectProps } from "antd";
 import { Select, Space, Tag, Tooltip } from "antd";
 import type { ConfigProviderProps } from "antd/lib/config-provider";
 import { isEmpty } from "lodash";
+import { useEffect, useState } from "react";
 
+import api from "@cocalc/frontend/client/api";
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { HelpIcon, Paragraph, Text } from "@cocalc/frontend/components";
 import { LanguageModelVendorAvatar } from "@cocalc/frontend/components/language-model-icon";
@@ -30,7 +32,6 @@ import {
   fromCustomOpenAIModel,
   fromOllamaModel,
   isCustomOpenAI,
-  isFreeModel,
   isLLMServiceName,
   isOllamaLLM,
   isUserDefinedModel,
@@ -310,9 +311,8 @@ export default function LLMSelector({
         id="llm-selector.help.message2"
         defaultMessage={`
         <Paragraph>
-          The models marked as "{FREE}" consume fewer usage units and are more tightly rate limited.
-          The more capable models are marked "{PREMIUM}" and consume more usage units, so they
-          reach your membership limits sooner.
+          The tags next to each model indicate relative usage. Higher usage models consume
+          more of your membership limits, so you reach those limits sooner.
         </Paragraph>
         <Paragraph>
           Usage is throttled using short-term and long-term windows. Upgrade your membership
@@ -320,8 +320,6 @@ export default function LLMSelector({
         </Paragraph>`}
         values={{
           Paragraph: (c) => <Paragraph>{c}</Paragraph>,
-          FREE,
-          PREMIUM,
         }}
       />
     );
@@ -392,8 +390,114 @@ export function modelToMention(model: LanguageModel): string {
   )}</span>`;
 }
 
-const FREE = "free";
-const PREMIUM = "premium";
+type ModelCostEntry = {
+  prompt_units_per_1k: number;
+  completion_units_per_1k: number;
+  display: string;
+  free: boolean;
+};
+
+type ModelCostResponse = {
+  units_per_dollar: number;
+  models: Record<string, ModelCostEntry>;
+};
+
+type UsageTier = "low" | "medium" | "high";
+
+const USAGE_TIER_LABELS: Record<UsageTier, string> = {
+  low: "Low",
+  medium: "Medium",
+  high: "High",
+};
+
+const USAGE_TIER_COLORS: Record<UsageTier, string> = {
+  low: "green",
+  medium: "orange",
+  high: "red",
+};
+
+const modelCostCache: {
+  data?: ModelCostResponse;
+  tiers?: Record<string, UsageTier>;
+  promise?: Promise<ModelCostResponse>;
+} = {};
+
+function getUsageScore(entry: ModelCostEntry): number {
+  return (entry.prompt_units_per_1k + entry.completion_units_per_1k) / 2;
+}
+
+function buildUsageTierMap(
+  models: Record<string, ModelCostEntry>,
+): Record<string, UsageTier> {
+  const entries = Object.entries(models);
+  if (entries.length === 0) {
+    return {};
+  }
+  const scores = entries.map(([, entry]) => getUsageScore(entry));
+  const sorted = [...scores].sort((a, b) => a - b);
+  if (sorted.length < 3) {
+    return Object.fromEntries(entries.map(([model]) => [model, "medium"]));
+  }
+  const lowMax = sorted[Math.floor((sorted.length - 1) / 3)];
+  const medMax = sorted[Math.floor((sorted.length - 1) * 2 / 3)];
+  const tiers: Record<string, UsageTier> = {};
+  for (const [model, entry] of entries) {
+    const score = getUsageScore(entry);
+    tiers[model] =
+      score <= lowMax ? "low" : score <= medMax ? "medium" : "high";
+  }
+  return tiers;
+}
+
+async function loadModelCosts(): Promise<ModelCostResponse> {
+  if (modelCostCache.data) {
+    return modelCostCache.data;
+  }
+  if (!modelCostCache.promise) {
+    modelCostCache.promise = api("llm/model-costs")
+      .then((data: ModelCostResponse) => {
+        modelCostCache.data = data;
+        modelCostCache.tiers = buildUsageTierMap(data.models ?? {});
+        return data;
+      })
+      .catch((err) => {
+        modelCostCache.promise = undefined;
+        throw err;
+      });
+  }
+  return modelCostCache.promise;
+}
+
+function useModelCostTiers(enabled: boolean) {
+  const [tiers, setTiers] = useState<Record<string, UsageTier> | null>(
+    modelCostCache.tiers ?? null,
+  );
+
+  useEffect(() => {
+    if (!enabled) return;
+    if (modelCostCache.tiers) {
+      setTiers(modelCostCache.tiers);
+      return;
+    }
+    let cancelled = false;
+    loadModelCosts()
+      .then(() => {
+        if (!cancelled) {
+          setTiers(modelCostCache.tiers ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTiers(null);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [enabled]);
+
+  return tiers;
+}
 
 export function LLMModelPrice({
   model,
@@ -403,6 +507,7 @@ export function LLMModelPrice({
   floatRight?: boolean;
 }) {
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
+  const tiers = useModelCostTiers(is_cocalc_com);
 
   // on non-cocalc.com pages, all models are free, hence we do not need to show the price
   if (!is_cocalc_com) return null;
@@ -412,13 +517,21 @@ export function LLMModelPrice({
     props.style = { float: "right", marginLeft: "20px" };
   }
 
-  return isFreeModel(model, is_cocalc_com) ? (
-    <Tag color="success" {...props}>
-      {FREE}
-    </Tag>
-  ) : (
-    <Tag color="warning" {...props}>
-      {PREMIUM}
-    </Tag>
+  if (isOllamaLLM(model) || isCustomOpenAI(model) || isUserDefinedModel(model)) {
+    return <Tag {...props}>External</Tag>;
+  }
+
+  const tier = typeof model === "string" ? tiers?.[model] : undefined;
+  if (!tier) return null;
+
+  const label = USAGE_TIER_LABELS[tier];
+  const tooltip = `Relative usage: ${label}. Higher usage consumes more of your membership limits.`;
+
+  return (
+    <Tooltip title={tooltip}>
+      <Tag color={USAGE_TIER_COLORS[tier]} {...props}>
+        {label}
+      </Tag>
+    </Tooltip>
   );
 }

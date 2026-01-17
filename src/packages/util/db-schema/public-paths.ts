@@ -129,7 +129,7 @@ Table({
       // though maybe they have to prove they own it.  This will be like "github pages", basically.
       // For now we will only serve the vhost files statically with no special support, except we do support
       // basic http auth.   However, we will add
-      // special server support for certain file types (e.g., math typesetting, markdown, sagews, ipynb, etc.)
+      // special server support for certain file types (e.g., math typesetting, markdown, ipynb, etc.)
       // so static websites can just be written in a mix of md, html, ipynb, etc. files with no javascript needed.
       // This could be a non-default option.
       // IMPORTANT: right now if vhost is set, then the share is not visible at all to the normal share server.

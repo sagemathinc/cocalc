@@ -1,7 +1,7 @@
 /* Here we define a jQuery plugin that turns the old font-awesome css elements
-   into react-rendered Icon's.  This is, of course, meant to be some temporary
-   code until Jupyter classic and Sage worksheets are rewritten using React.
-   Also, this is only defined when jQuery itself is defined.
+   into react-rendered Icon's. This is meant to be temporary code until legacy
+   editors are rewritten using React. Also, this is only defined when jQuery
+   itself is defined.
 */
 
 import { Icon } from "@cocalc/frontend/components/icon";

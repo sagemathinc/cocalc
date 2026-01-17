@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { FormattedMessage, useIntl } from "react-intl";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
 import { Panel } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -28,6 +28,11 @@ const EVALUATE_KEYS = {
 } as const;
 
 const LABEL_COLS = 8;
+const EVALUATE_KEY_LABEL = defineMessage({
+  id: "account.keyboard-settings.evaluate-key",
+  defaultMessage: "Evaluate key",
+  description: "Label for choosing the evaluation shortcut key",
+});
 
 export const KeyboardSettings: React.FC = () => {
   const intl = useIntl();
@@ -55,10 +60,7 @@ export const KeyboardSettings: React.FC = () => {
     if (evaluate_key == null) {
       return <Loading />;
     }
-    const label = intl.formatMessage({
-      id: "account.keyboard-settings.sagews-eval-key",
-      defaultMessage: "Sage Worksheet evaluate key",
-    });
+    const label = intl.formatMessage(EVALUATE_KEY_LABEL);
     return (
       <LabeledRow label={label} label_cols={LABEL_COLS}>
         <SelectorInput

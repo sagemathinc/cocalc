@@ -65,11 +65,6 @@ import { SaveButton } from "./save-button";
 import TitleBarTour from "./title-bar-tour";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
 
-const ALWAYS_HIDE_AI = new Set<string>(['sagews']);
-function alwaysHideAi(ext:string) {
-  return ALWAYS_HIDE_AI.has(ext);
-}
-
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
 // In all cases, we check these are actually defined before calling
@@ -617,8 +612,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   function renderAssistant(noLabel, where: "main" | "popover"): Rendered {
     if (
       !manageCommands.isVisible("chatgpt") ||
-      !redux.getStore("projects").hasLanguageModelEnabled(props.project_id) ||
-      alwaysHideAi(filename_extension(props.path))
+      !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
     ) {
       return;
     }

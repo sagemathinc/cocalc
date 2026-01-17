@@ -157,8 +157,6 @@ export class NewFilenames {
         return ["folder"];
       case "ipynb":
         return ["notebook"];
-      case "sagews":
-        return ["worksheet"];
       case "md":
         return ["notes"];
       case "tex":

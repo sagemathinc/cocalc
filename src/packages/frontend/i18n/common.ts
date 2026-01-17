@@ -436,11 +436,6 @@ export const labels = defineMessages({
     description:
       "Indicating a LaTeX Documents on a button label or frame title",
   },
-  sagemath_worksheet: {
-    id: "labels.sagemath_worksheet",
-    defaultMessage: "SageMath Worksheet",
-    description: "A SageMath Worksheet label on a button or frame title",
-  },
   linux_terminal: {
     id: "labels.linux_terminal",
     defaultMessage: "Linux Terminal",

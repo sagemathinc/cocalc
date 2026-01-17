@@ -21,14 +21,12 @@ CodeMirror.defineExtension("get_edit_mode", function (cur?: {
       return "mediawiki";
     case "stex":
       return "tex";
-    case "python": // FUTURE how to tell it to return sage when in a sagews file?
+    case "python":
       return "python";
     case "r":
       return "r";
     case "julia":
       return "julia";
-    case "sagews": // WARNING: this doesn't work
-      return "sage";
     default:
       const { name } = editor.getOption("mode");
       if (name.slice(0, 3) === "gfm" || name == "yaml-frontmatter") {
@@ -43,9 +41,7 @@ CodeMirror.defineExtension("get_edit_mode", function (cur?: {
         return "tex";
       }
       if (
-        ["md", "html", "tex", "rst", "mediawiki", "sagews", "r"].indexOf(
-          name
-        ) == -1
+        ["md", "html", "tex", "rst", "mediawiki", "r"].indexOf(name) == -1
       ) {
         return "html";
       }

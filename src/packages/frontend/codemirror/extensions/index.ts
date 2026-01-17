@@ -14,7 +14,6 @@ import "./fold-code-selection";
 import "./latex-completions";
 import "./align-assignments";
 import "./find-in-line";
-import "./sagews";
 import "./edit-selection";
 import "./insert-link";
 import "./insert-image";

@@ -4,8 +4,7 @@
  */
 
 /*
-Frame for working with a Jupyter notebook as a single document,
-like Sage worksheets.
+Frame for working with a Jupyter notebook as a single document.
 */
 
 import { Rendered, Component } from "../../app-framework";

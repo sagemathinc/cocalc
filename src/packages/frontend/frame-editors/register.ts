@@ -14,9 +14,6 @@ import "./html-editor/register";
 import "./latex-editor/register";
 import "./pdf-editor/register";
 
-// Work in progress -- uncomment to use new sagews support.
-import "./sagews-editor/register";
-
 import "./terminal-editor/register";
 import "./x11-editor/register";
 import "./jupyter-editor/register";

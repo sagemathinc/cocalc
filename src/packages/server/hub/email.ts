@@ -716,7 +716,7 @@ These are personal workspaces which contain your files, computational worksheets
 You can run your computations through the web interface, via interactive worksheets and notebooks, or by executing a program in a terminal.
 ${site_name} supports online editing of
     <a href="https://jupyter.org/">Jupyter Notebooks</a>,
-    <a href="https://www.sagemath.org/">Sage Worksheets</a>,
+    <a href="https://www.sagemath.org/">SageMath</a>,
     <a href="https://en.wikibooks.org/wiki/LaTeX">Latex files</a>, etc.
 </p>
 
@@ -730,9 +730,6 @@ ${site_name} supports online editing of
 </li>
 <li style="margin-top:0;margin-bottom:10px;">
     <a href="https://doc.cocalc.com/jupyter.html">Working with Jupyter Notebooks</a>
-</li>
-<li style="margin-top:0;margin-bottom:10px;">
-    <a href="https://doc.cocalc.com/sagews.html">Working with SageMath Worksheets</a>
 </li>
 <li style="margin-top:0;margin-bottom:10px;">
     <strong><a href="https://cocalc.com/policies/pricing.html">Subscriptions:</a></strong> make hosting more robust and increase project quotas
