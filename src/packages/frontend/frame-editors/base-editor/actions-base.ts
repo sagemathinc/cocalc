@@ -3370,10 +3370,6 @@ export class BaseEditorActions<
     actions?.foldAllThreads();
   }
 
-  getComputeServerId = (): number | undefined => {
-    return 0;
-  };
-
   fs = () => {
     const a = this.redux.getProjectActions(this.project_id);
     return a.fs(0);
