@@ -18,7 +18,6 @@ import getChargeAmount from "@cocalc/util/purchases/charge-amount";
 import { toDecimal, type MoneyValue } from "@cocalc/util/money";
 import Quotas, {
   PRESETS,
-  PRESETS_LLM,
   Preset,
   QUOTA_LIMIT_ICON_NAME,
   STEP,
@@ -84,7 +83,7 @@ export default function QuotaConfig({
     saveRef.current = saveServiceQuota;
   }
 
-  const presets = QUOTA_SPEC[service]?.category === "ai" ? PRESETS_LLM : PRESETS;
+  const presets = PRESETS;
 
   return (
     <div>
