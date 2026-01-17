@@ -89,6 +89,39 @@ const SPEC_LABELS: Record<keyof HostConfigSpec, string> = {
   storage_mode: "Storage",
 };
 
+const DRAWER_SIZE_STORAGE_KEY = "cocalc:hosts:drawerWidth";
+const MIN_DRAWER_WIDTH = 360;
+const MAX_DRAWER_WIDTH = 960;
+
+function clampDrawerWidth(width: number): number {
+  return Math.min(MAX_DRAWER_WIDTH, Math.max(MIN_DRAWER_WIDTH, width));
+}
+
+function readDrawerWidth(): number | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+  const raw = window.localStorage.getItem(DRAWER_SIZE_STORAGE_KEY);
+  if (raw == null) {
+    return undefined;
+  }
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return undefined;
+  }
+  return clampDrawerWidth(parsed);
+}
+
+function persistDrawerWidth(width: number) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(
+    DRAWER_SIZE_STORAGE_KEY,
+    String(clampDrawerWidth(width)),
+  );
+}
+
 const normalizeSpecValue = (
   key: keyof HostConfigSpec,
   value: HostConfigSpec[keyof HostConfigSpec],
@@ -133,6 +166,16 @@ const describeSpecChange = (
 export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
   const intl = useIntl();
   const projectsLabel = intl.formatMessage(labels.projects);
+  const [drawerWidth, setDrawerWidth] = React.useState<number | undefined>(
+    readDrawerWidth,
+  );
+  const handleResize = React.useCallback((next: number) => {
+    const clamped = clampDrawerWidth(next);
+    setDrawerWidth(clamped);
+    try {
+      persistDrawerWidth(clamped);
+    } catch {}
+  }, []);
   const {
     open,
     host,
@@ -216,7 +259,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
     host.status !== "deprovisioned";
   return (
     <Drawer
-      resizable
+      size={drawerWidth}
       title={
         <Space>
           <Icon name="server" /> {host?.name ?? "Host details"}
@@ -254,6 +297,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
         </Space>
       }
       onClose={onClose}
+      resizable={{ onResize: handleResize }}
       open={open && !!host}
     >
       {host ? (
