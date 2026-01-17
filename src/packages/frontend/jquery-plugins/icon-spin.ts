@@ -3,8 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// TODO: this is used by the two jquery-based editors: sage worksheets and jupyter
-// rewrite those and get rid of this.
+// TODO: this is used by legacy jquery-based editors; rewrite those and remove it.
 
 import $ from "jquery";
 

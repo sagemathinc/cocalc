@@ -1238,10 +1238,6 @@
     "defaultMessage": "Restart",
     "description": "Label on a button to restart a job, or Jupyter Notebook kernel, etc."
   },
-  "labels.sagemath_worksheet": {
-    "defaultMessage": "SageMath Worksheet",
-    "description": "A SageMath Worksheet label on a button or frame title"
-  },
   "labels.save": {
     "defaultMessage": "Save",
     "description": "In the context of saving files, in a menu or on a button"
@@ -1440,9 +1436,6 @@
   },
   "new.file-type-selector.markdown.tooltip": {
     "defaultMessage": "Create a rich editable text document backed by markdown and Jupyter code that contains mathematical formulas, lists, headings, images and run code."
-  },
-  "new.file-type-selector.sagews.tooltip": {
-    "defaultMessage": "Create an interactive worksheet for using the SageMath mathematical software, Python, R, and many other systems. Do sophisticated mathematics, draw plots, compute integrals, work with matrices, etc."
   },
   "new.file-type-selector.x11.tooltip": {
     "defaultMessage": "Create an X11 desktop for running graphical applications. CoCalc lets you collaboratively run any graphical Linux application in your browser."

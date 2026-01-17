@@ -16,7 +16,7 @@ import { Customize } from "lib/customize";
 import withCustomize from "lib/with-customize";
 import juliaScreenshot from "public/features/julia-jupyter.png";
 import juliaLogo from "public/features/julia-logo.svg";
-import sageScreenshot from "public/features/sage-worksheet.png";
+import sagemathJupyter from "public/features/sagemath-jupyter.png";
 import apiScreenshot from "/public/features/api-screenshot.png";
 import ChatGptInChatroom from "/public/features/chatgpt-fix-code.png";
 import teachingScreenshot from "/public/features/cocalc-course-assignments-2019.png";
@@ -133,7 +133,7 @@ const dataSource = [
     link: "/features/sage",
     title: "SageMath Online",
     logo: sageLogo,
-    image: sageScreenshot,
+    image: sagemathJupyter,
     logoBackground: "white",
     description: (
       <>
@@ -272,15 +272,15 @@ const dataSource = [
     link: "https://doc.cocalc.com",
     title: "There is much more to explore",
     logo: "flash",
-    image: sageScreenshot,
+    image: sagemathJupyter,
     logoBackground: COLORS.BS_GREEN_BGRND,
     description: (
       <>
-        Use <A href="https://doc.cocalc.com/sagews.html">Sage Worksheets</A>,{" "}
+        Use{" "}
         <A href="https://doc.cocalc.com/teaching-instructors.html">
-          Course management
+          course management
         </A>
-        , <A href="https://doc.cocalc.com/tasks.html">Task management</A>,{" "}
+        , <A href="https://doc.cocalc.com/tasks.html">task management</A>,{" "}
         <A href="https://doc.cocalc.com/chat.html">Chat</A>,{" "}
         <A href="https://about.cocalc.com/">and more...</A>
       </>

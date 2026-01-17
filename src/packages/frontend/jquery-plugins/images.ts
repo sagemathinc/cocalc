@@ -23,8 +23,8 @@ export function init() {
     });
   };
 
-  // Pluging to support smc-image-scale attribute, which is used to implement certain
-  // Jupyter kernels for Sage worksheets.
+  // Pluging to support smc-image-scale attribute, which is used for some
+  // notebook output rendering.
   // See https://github.com/sagemathinc/cocalc/issues/1192 and
   //     https://github.com/sagemathinc/cocalc/issues/4421
   // @ts-ignore

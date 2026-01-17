@@ -77,7 +77,6 @@ export function defaultToRaw(ext: string): boolean {
 export function hasSpecialViewer(ext: string): boolean {
   return (
     ext === "ipynb" ||
-    ext === "sagews" ||
     ext === "board" ||
     ext == "slides" ||
     isMarkdown(ext) ||

@@ -5,7 +5,6 @@ import { file_associations } from "@cocalc/frontend/file-associations";
 export const NEW_FILETYPE_ICONS = {
   "/": "folder-open",
   ipynb: "jupyter",
-  sagews: "sagemath-bold",
   sage: "sagemath-bold",
   tex: "tex-file",
   x11: "window-restore",

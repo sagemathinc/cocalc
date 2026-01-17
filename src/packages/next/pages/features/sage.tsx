@@ -24,7 +24,6 @@ import SiteName from "components/share/site-name";
 import sagetexScreenshot from "public/features/cocalc-sagemath-sagetex.png";
 import sageLogo from "public/features/sage-circular-v2.svg";
 import sageNbgrader from "public/features/sage-nbgrader.png";
-import sageScreenshot from "public/features/sage-worksheet.png";
 import juypterScreenshot from "public/features/sagemath-jupyter.png";
 
 const component = "SageMath";
@@ -58,7 +57,7 @@ export default function Sage({ customize }) {
             }
             subtitleBelow={true}
             image={juypterScreenshot}
-            alt={"Using Sage in a Worksheet"}
+            alt={"Using Sage in a Jupyter notebook"}
           />
 
           <Pitch
@@ -89,7 +88,6 @@ export default function Sage({ customize }) {
                       <A href="/features/jupyter-notebook">Jupyter Notebooks</A>{" "}
                       file,
                     </li>
-                    <li>a Sage Worksheet,</li>
                     <li>
                       a <LaTeX /> document, or
                     </li>
@@ -170,28 +168,6 @@ export default function Sage({ customize }) {
           >
             Feature Overview
           </Info.Heading>
-
-          <Info
-            title={"SageMath Worksheets"}
-            image={sageScreenshot}
-            alt={"Using SageMath in a Worksheet"}
-            anchor="sagews"
-            icon="sagemath"
-            wide
-          >
-            <Paragraph>
-              CoCalc's{" "}
-              <A href="https://doc.cocalc.com/sagews.html">
-                SageMath Worksheets
-              </A>{" "}
-              are a single document experience that can be more friendly than
-              the Jupyter notebook "multiple cells" approach.
-            </Paragraph>
-            <Paragraph>
-              They are a great way to teach SageMath, since you can easily
-              include text, code, and output in a single document.
-            </Paragraph>
-          </Info>
 
           <Info
             title={

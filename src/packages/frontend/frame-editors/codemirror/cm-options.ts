@@ -132,7 +132,7 @@ export function cm_options(
       } else {
         if (get_editor_settings().get("show_exec_warning")) {
           frame_tree_actions.set_error(
-            "You can evaluate code in a file with the extension 'sagews' or 'ipynb'.   Please create a Sage Worksheet or Jupyter notebook instead.",
+            "You can evaluate code in a Jupyter notebook (.ipynb). Please create one instead.",
           );
         }
       }

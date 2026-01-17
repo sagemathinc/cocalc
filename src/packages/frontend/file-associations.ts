@@ -560,15 +560,6 @@ file_associations["sage"].name = "sage code";
 file_associations["sage"].icon = "sagemath-bold";
 file_associations["sage"].ext = "sage";
 
-file_associations["sagews"] = {
-  editor: "sagews",
-  binary: false,
-  icon: "sagemath-file",
-  opts: { mode: "sagews" },
-  name: "sagews",
-  exclude_from_menu: true,
-};
-
 // some things in ~/.ssh
 for (const m of ["authorized_keys", "config", "id_ed25519.pub"]) {
   file_associations["noext-" + m] = {

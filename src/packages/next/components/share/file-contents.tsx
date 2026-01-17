@@ -23,7 +23,6 @@ import getUrlTransform from "lib/share/url-transform";
 import { containingPath, getExtension } from "lib/share/util";
 import getAnchorTagComponent from "./anchor-tag-component";
 import CodeMirror from "./codemirror";
-import SageWorksheet from "./sage-worksheet";
 
 import type { JSX } from "react";
 
@@ -117,8 +116,6 @@ export default function FileContents({
     //     return withFileContext(
     //       <HTML value={content} style={{ width: "100%", height: "100vh" }} />
     //     );
-  } else if (ext == "sagews") {
-    return withFileContext(<SageWorksheet content={content} />);
   } else if (ext == "ipynb") {
     return withFileContext(<JupyterNotebook content={content} />);
   } else if (ext == "board") {

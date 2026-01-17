@@ -5,12 +5,10 @@
 
 /*
 Export collected homework assignments in a format that is easy to
-use in an external tool that knows nothing about Sage worksheets
-or Jupyter notebooks and with the directory structure removed.
-In practice, this means that sagews and ipynb files are converted
-to pdf, the special txt files indicated the student name are removed,
-files in subdirectories are ignored, and filenames are prefixed with
-the student name.
+use in an external tool and with the directory structure removed.
+In practice, this means that ipynb files are converted to pdf, the
+special txt files indicated the student name are removed, files in
+subdirectories are ignored, and filenames are prefixed with the student name.
 */
 
 import { endswith, len, startswith } from "@cocalc/util/misc";
@@ -117,26 +115,6 @@ async function export_one_directory(
       } catch (err) {
         log(`WARNING: Conversion ipynb to PDF failed. ${err}`);
       }
-    } else if (endswith(name, ".sagews")) {
-      try {
-        // convert, then move pdf
-        const pdf = name.slice(0, name.length - "sagews".length) + "pdf";
-        await exec({
-          command: "cc-sagews2pdf",
-          args: [source + "/" + name],
-          project_id,
-          timeout,
-        });
-        await exec({
-          command: "mv",
-          args: [source + "/" + pdf, target + "/" + prefix + "-" + pdf],
-          project_id,
-        });
-      } catch (err) {
-        // Failed to convert sagews to pdf, so do nothing.
-        log(`WARNING -- problem copying ${name} -- ${err}`);
-      }
-    }
     try {
       // Always copy original file over (failure is NON fatal)
       await exec({

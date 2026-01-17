@@ -25,7 +25,7 @@ export const NBGraderMetadata: React.FC<Props> = React.memo((props: Props) => {
     // validated their answer based on start, state, output, etc., info.
     // TODO: maybe we need to track last time the input was modified
     // or set a flag when input changes after last eval.  That's very
-    // useful anyways (like in sagews)!
+    // useful anyways!
     return false;
   }*/
 

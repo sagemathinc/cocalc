@@ -68,7 +68,7 @@ export function CoCalcComFeatures() {
             <strong>Jupyter Notebooks</strong>
           </A>
           , <A href={"/features/latex-editor"}>LaTeX files</A>,{" "}
-          <A href="/features/sage">SageMath Worksheets</A>,{" "}
+          <A href="/features/sage">SageMath</A>,{" "}
           <A href={"/features/whiteboard"}>Computational Whiteboards</A>, and
           much more. We have an{" "}
           <A href={"https://doc.cocalc.com/why.html#open-world-approach"}>

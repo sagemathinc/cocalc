@@ -213,7 +213,7 @@ export function Assignment({
         <Col xs={4}>
           <Tip
             title="Export collected student files"
-            tip="Export all student work to files in a single directory that are easy to grade or archive outside of CoCalc.  Any Jupyter notebooks or Sage worksheets are first converted to PDF (if possible), and all files are renamed with the student as a filename prefix."
+            tip="Export all student work to files in a single directory that are easy to grade or archive outside of CoCalc. Any Jupyter notebooks are first converted to PDF (if possible), and all files are renamed with the student as a filename prefix."
           >
             Export collected student files
             <br />

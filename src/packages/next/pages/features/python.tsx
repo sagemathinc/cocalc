@@ -180,7 +180,6 @@ export default function Python({ customize }) {
               As the name suggests, CoCalc's strength is{" "}
               <strong>online code collaboration</strong>. Collaboration applies
               to editing plain Python files,{" "}
-              <A href="https://doc.cocalc.com/sagews.html">Sage Worksheets</A>,{" "}
               <A href="/features/jupyter-notebook">Jupyter Notebooks</A>, and
               much more.
             </Paragraph>

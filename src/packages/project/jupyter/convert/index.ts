@@ -50,20 +50,11 @@ export async function nbconvert(opts: NbconvertParams): Promise<void> {
       opts.args = ["--template", "classic"].concat(opts.args);
     }
 
-    let command: string;
-    let args: string[];
-    if (to === "sagews") {
-      // support sagews converter, which is its own script, not in nbconvert.
-      // NOTE that if to is set, then j must be set.
-      command = "smc-ipynb2sagews";
-      args = opts.args.slice(0, j).concat(opts.args.slice(j + 3)); // j+3 cuts out --to and --.
-    } else {
-      command = "jupyter";
-      args = ["nbconvert"].concat(opts.args);
-      // This is the **one and only case** where we sanitize the input filename.  Doing so when not calling
-      // nbconvert would actually break everything.
-      args[args.length - 1] = sanitize_nbconvert_path(args[args.length - 1]);
-    }
+    const command = "jupyter";
+    const args = ["nbconvert"].concat(opts.args);
+    // This is the **one and only case** where we sanitize the input filename.  Doing so when not calling
+    // nbconvert would actually break everything.
+    args[args.length - 1] = sanitize_nbconvert_path(args[args.length - 1]);
 
     log.debug("running ", { command, args });
     // Note about bash/ulimit_timeout below.  This is critical since nbconvert
@@ -96,4 +87,3 @@ function htmlPath(path: string): string {
   const { dir, name } = parse(path);
   return join(dir, name + ".html");
 }
-

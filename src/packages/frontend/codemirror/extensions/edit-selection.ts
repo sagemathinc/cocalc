@@ -12,7 +12,7 @@ import {
 } from "@cocalc/frontend/editors/editor-button-bar";
 import { getLocale } from "@cocalc/frontend/i18n";
 import { markdown_to_html } from "@cocalc/frontend/markdown";
-import { open_new_tab, sagews_canonical_mode } from "@cocalc/frontend/misc";
+import { open_new_tab } from "@cocalc/frontend/misc";
 import { defaults, required, startswith } from "@cocalc/util/misc";
 import { ai_gen_formula } from "./ai-formula";
 
@@ -56,7 +56,7 @@ CodeMirror.defineExtension(
     }
 
     const default_mode = opts.mode ?? cm.get_edit_mode();
-    const canonical_mode = (name) => sagews_canonical_mode(name, default_mode);
+    const canonical_mode = (name) => name ?? default_mode;
 
     const { args, cmd, project_id } = opts;
 

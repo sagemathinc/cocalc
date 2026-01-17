@@ -70,9 +70,8 @@ function Body({ siteName }): JSX.Element {
         files,
         computational worksheets, and data. You typically run computations
         through a web browser, either via a{" "}
-        <A href="https://doc.cocalc.com/sagews.html">Sage Worksheet</A>,{" "}
-        <A href="https://doc.cocalc.com/jupyter.html">Jupyter Notebook</A>, or
-        by executing a program in a{" "}
+        <A href="https://doc.cocalc.com/jupyter.html">Jupyter Notebook</A> or by
+        executing a program in a{" "}
         <A href="https://doc.cocalc.com/terminal.html">terminal</A>. You can
         also{" "}
         <A href="https://doc.cocalc.com/project-settings.html#add-new-collaborators">

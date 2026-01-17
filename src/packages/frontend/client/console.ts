@@ -11,7 +11,7 @@ For security reasons, only available in DEBUG mode (e.g,. when doing cc-in-cc de
 not in production.
 
 Security note: not easily exposing this to the global scope would make it harder
-for an attacker who is eval'ing dangerous code in a Sage worksheet (say).
+for an attacker who is eval'ing dangerous code in a notebook (say).
 However, even if it were not exposed, the attacker could just do
    "conn = new Primus(url, opts)"
 and make a Primus connection, and start sending/receiving messages.  This would work,

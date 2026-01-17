@@ -204,8 +204,7 @@ export class OutputHandler extends EventEmitter {
     // clear output message -- we delete all the outputs
     // reset the counter n, save, and are done.
     // IMPORTANT: In Jupyter the clear_output message and everything
-    // before it is NOT saved in the notebook output itself
-    // (like in Sage worksheets).
+    // before it is NOT saved in the notebook output itself.
     this._opts.cell.output = null;
     this._n = 0;
     this._output_length = 0;

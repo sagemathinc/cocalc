@@ -36,9 +36,6 @@ export async function exec_shell_code(socket: CoCalcSocket, mesg) {
       error +=
         "-- Email help@cocalc.com if you need full internet access, which is disabled by default.";
     }
-    // Too annoying and doesn't work.
-    //if error.indexOf("=") != -1
-    //    error += "-- This is a BASH terminal, not a Sage worksheet.  For Sage, use +New and create a Sage worksheet."
     const err_mesg = message.error({
       id: mesg.id,
       error,

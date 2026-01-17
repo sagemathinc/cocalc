@@ -22,7 +22,7 @@ import withCustomize from "lib/with-customize";
 
 // Images
 import juliaLogo from "public/features/julia-logo.svg";
-import sageScreenshot from "public/features/sage-worksheet.png";
+import sagemathJupyter from "public/features/sagemath-jupyter.png";
 import executablesScreenshot from "public/software/executables.png";
 import octaveJupyter from "/public/features/cocalc-octave-jupyter-20200511.png";
 import RJupyter from "/public/features/cocalc-r-jupyter.png";
@@ -122,7 +122,7 @@ const dataSource: DataSource = [
     title: "SageMath Packages",
     logo: sageLogo,
     logoBackground: "white",
-    image: sageScreenshot,
+    image: sagemathJupyter,
     description: (
       <>
         <Paragraph>

@@ -121,7 +121,7 @@ const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     prev.filename == next.filename && prev.is_public == next.is_public,
 );
 
-// This is for sage worksheets...
+// This is for legacy editors...
 export function render_file_info_dropdown(
   filename: string,
   project_id: string,

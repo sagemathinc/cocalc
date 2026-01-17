@@ -50,15 +50,13 @@ export function AvailableTools(props: Props) {
         <Col lg={6}>
           <Tool
             image={sticker}
-            href="https://doc.cocalc.com/sagews.html"
-            title="Sage Worksheets"
+            href="/features/sage"
+            title="SageMath"
             alt="SageMath sticker logo"
           >
-            <A href="https://doc.cocalc.com/sagews.html">Sage Worksheets</A> are
-            similar to Jupyter Notebooks, but made to work well with{" "}
-            <A href="https://www.sagemath.org">SageMath</A>. They offer a
-            single-document model that scales to large documents and integrated
-            3d graphics.
+            Use <A href="/features/sage">SageMath</A> through Jupyter notebooks
+            with a full SageMath kernel and the same real‑time collaboration
+            tools you use across CoCalc.
           </Tool>
         </Col>
         <Col lg={6}>

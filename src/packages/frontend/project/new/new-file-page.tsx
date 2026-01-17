@@ -97,8 +97,6 @@ export default function NewFilePage(props: Props) {
     if (!filename) {
       return;
     }
-    // If state.filename='a.txt', but ext is "sagews", we make the file
-    // be called "a.sagews", not "a.txt.sagews":
     const filename_ext = filename_extension(filename);
     const name =
       filename_ext && ext && filename_ext != ext

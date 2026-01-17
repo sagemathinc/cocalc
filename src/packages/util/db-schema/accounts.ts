@@ -250,7 +250,7 @@ Table({
     },
     evaluate_key: {
       type: "string",
-      desc: "Key used to evaluate code in Sage worksheet.",
+      desc: "Key used to evaluate code in notebooks and editors.",
     },
     font_size: {
       type: "integer",

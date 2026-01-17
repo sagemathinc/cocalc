@@ -210,12 +210,6 @@ export async function open_file(
     }
   }
 
-  if (!is_public && (ext === "sws" || ext.slice(0, 4) === "sws~")) {
-    // NOTE: This is REALLY REALLY ANCIENT support for a 20-year old format...
-    await open_sagenb_worksheet({ ...opts, project_id: actions.project_id });
-    return;
-  }
-
   if (!is_public && ext === "sagews") {
     await open_sagews_worksheet(actions, opts);
     return;
@@ -311,39 +305,6 @@ async function get_my_group(project_id: string): Promise<string> {
   });
 }
 
-async function open_sagenb_worksheet(opts: {
-  project_id: string;
-  path: string;
-  foreground?: boolean;
-  foreground_project?: boolean;
-  chat?: boolean;
-}): Promise<void> {
-  // sagenb worksheet (or backup of it created during unzip of
-  // multiple worksheets with same name)
-  alert_message({
-    type: "info",
-    message: `Opening converted CoCalc worksheet file instead of '${opts.path}...`,
-  });
-  const actions = redux.getProjectActions(opts.project_id);
-  try {
-    const path: string = await convert_sagenb_worksheet(
-      opts.project_id,
-      opts.path,
-    );
-    await open_file(actions, {
-      path,
-      foreground: opts.foreground,
-      foreground_project: opts.foreground_project,
-      chat: opts.chat,
-    });
-  } catch (err) {
-    alert_message({
-      type: "error",
-      message: `Error converting Sage Notebook sws file -- ${err}`,
-    });
-  }
-}
-
 async function open_sagews_worksheet(
   actions: ProjectActions,
   opts: OpenFileOpts,
@@ -384,33 +345,9 @@ async function open_sagews_worksheet(
     await clear_sagews_tab();
     alert_message({
       type: "error",
-      message: `Error converting Sage worksheet -- ${err}`,
+      message: `Error converting legacy worksheet -- ${err}`,
     });
   }
-}
-
-async function convert_sagenb_worksheet(
-  project_id: string,
-  filename: string,
-): Promise<string> {
-  const ext = filename_extension(filename);
-  if (ext != "sws") {
-    const i = filename.length - ext.length;
-    const new_filename = filename.slice(0, i - 1) + ext.slice(3) + ".sws";
-    await webapp_client.project_client.exec({
-      project_id,
-      command: "cp",
-      args: [filename, new_filename],
-    });
-    filename = new_filename;
-  }
-  await webapp_client.project_client.exec({
-    project_id,
-    command: "smc-sws2sagews",
-    args: [filename],
-  });
-
-  return filename.slice(0, filename.length - 3) + "sagews";
 }
 
 async function file_exists(project_id: string, path: string): Promise<boolean> {

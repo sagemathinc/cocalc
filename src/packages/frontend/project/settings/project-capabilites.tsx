@@ -48,7 +48,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
         ["spellcheck", "Spellchecking"],
         ["rmd", "RMarkdown"],
         ["qmd", "Quarto"],
-        ["sage", "SageMath Worksheets"],
+        ["sage", "SageMath"],
         ["jupyter_notebook", "Classical Jupyter Notebook"],
         ["jupyter_lab", "Jupyter Lab"],
         ["library", "Library of documents"],

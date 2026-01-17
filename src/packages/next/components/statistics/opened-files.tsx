@@ -90,10 +90,6 @@ const extensionToInfo: { [ext: string]: { desc: string; link?: string } } = {
     desc: "Course Management",
     link: "https://doc.cocalc.com/teaching-instructors.html",
   },
-  sagews: {
-    desc: "Sage Worksheet",
-    link: "https://doc.cocalc.com/sagews.html",
-  },
   chat: { desc: "Chatroom" },
   "sage-chat": { desc: "Chatroom" },
   board: { desc: "Whiteboard", link: "/features/whiteboard" },

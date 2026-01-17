@@ -116,7 +116,7 @@ const dataSource = [
         </A>{" "}
         to see what other users of this site are publishing. You will find
         thousands of <A href="/features/jupyter-notebook">Jupyter notebooks</A>,
-        Sage worksheets, programs, PDF's, final projects from courses,{" "}
+        programs, PDF's, final projects from courses,{" "}
         <A href="/features/latex-editor">research papers</A> and more.
       </>
     ),

@@ -21,7 +21,7 @@ import {
   ComputeInventory,
   SoftwareSpec,
 } from "lib/landing/types";
-import sageScreenshot from "public/features/sage-worksheet.png";
+import sagemathJupyter from "public/features/sagemath-jupyter.png";
 import { STYLE_PAGE } from "..";
 
 interface Props {
@@ -64,7 +64,7 @@ export default function SageMath(props: Props) {
     return (
       <>
         <div style={{ width: "50%", float: "right", padding: "0 0 15px 15px" }}>
-          <Image src={sageScreenshot} alt="SageMath" />
+          <Image src={sagemathJupyter} alt="SageMath" />
         </div>
         <Paragraph>
           This table lists pre-installed{" "}

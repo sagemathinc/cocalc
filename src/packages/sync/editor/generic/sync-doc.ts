@@ -41,18 +41,12 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { cancel_scheduled, once, until } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
-import {
-  close,
-  filename_extension,
-  hash_string,
-  minutes_ago,
-} from "@cocalc/util/misc";
+import { close, hash_string, minutes_ago } from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import { delay } from "awaiting";
 import { EventEmitter } from "events";
 import { Map, fromJS } from "immutable";
 import { debounce, throttle } from "lodash";
-import { Evaluator } from "./evaluator";
 import { HistoryEntry, HistoryExportOptions, export_history } from "./export";
 import { IpywidgetsState } from "./ipywidgets-state";
 import {
@@ -190,7 +184,6 @@ export class SyncDoc extends EventEmitter {
   private syncstring_table: SyncTable;
   public patches_table: SyncTable;
 
-  public evaluator?: Evaluator;
 
   public ipywidgets_state?: IpywidgetsState;
 
@@ -839,7 +832,6 @@ export class SyncDoc extends EventEmitter {
   private closeTables = async () => {
     this.syncstring_table?.close();
     this.patches_table?.close();
-    this.evaluator?.close();
     this.ipywidgets_state?.close();
   };
 
@@ -974,7 +966,7 @@ export class SyncDoc extends EventEmitter {
         immutable: true,
         config: { max_age: 5 * 60 * 1000 },
         desc: { path: this.path },
-        ephemeral: true, // eval state (for sagews) is always ephemeral
+        ephemeral: true, // eval state is always ephemeral
         noAutosave: this.noAutosave,
       });
     } else if (this.useConat) {
@@ -1059,9 +1051,9 @@ export class SyncDoc extends EventEmitter {
     }
     const log = this.dbg("initAll");
 
-    log("patchflow, cursors, evaluator, ipywidgets");
+    log("patchflow, cursors, ipywidgets");
     this.assert_not_closed(
-      "initAll -- before init patchflow, cursors, evaluator, ipywidgets",
+      "initAll -- before init patchflow, cursors, ipywidgets",
     );
     // Ensure we load syncstring metadata (including last_snapshot/last_seq)
     // before opening the patches table, so we don't fetch the entire history
@@ -1069,9 +1061,9 @@ export class SyncDoc extends EventEmitter {
     await this.init_syncstring_table();
     await this.init_patchflow();
     await this.startBackendFsWatch();
-    await Promise.all([this.init_cursors(), this.init_evaluator()]);
+    await Promise.all([this.init_cursors()]);
     this.assert_not_closed(
-      "initAll -- successful init patchflow, cursors, evaluator, and ipywidgets",
+      "initAll -- successful init patchflow, cursors, and ipywidgets",
     );
 
     this.init_table_close_handlers();
@@ -1251,25 +1243,11 @@ export class SyncDoc extends EventEmitter {
     this.emit("patchflow-ready");
   });
 
-  private init_evaluator = async () => {
-    if (this.isClosed()) return;
-    const dbg = this.dbg("init_evaluator");
-    const ext = filename_extension(this.path);
-    if (ext !== "sagews") {
-      dbg("done -- only use init_evaluator for sagews");
-      return;
-    }
-    dbg("creating the evaluator and waiting for init");
-    this.evaluator = new Evaluator(this, this.client, this.synctable);
-    await this.evaluator.init();
-    dbg("done");
-  };
-
   init_ipywidgets = reuseInFlight(async () => {
     if (this.ipywidgets_state != null) {
       return;
     }
-    const dbg = this.dbg("init_evaluator");
+    const dbg = this.dbg("init_ipywidgets");
     dbg("creating the ipywidgets state table, and waiting for init");
     this.ipywidgets_state = new IpywidgetsState(
       this,

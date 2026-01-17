@@ -47,13 +47,6 @@ const NAMES = {
   asciidoc: { ext: "asciidoc", display: "AsciiDoc", estimate: 30 },
   slides: { ext: "slides.html", display: "Slides", estimate: 30 },
   latex: { ext: "tex", display: "LaTeX", internal: true, estimate: 45 },
-  sagews: {
-    ext: "sagews",
-    display: "Sage Worksheet",
-    internal: true,
-    nolink: true,
-    estimate: 10,
-  },
   pdf: { ext: "pdf", display: "PDF via nbconvert and LaTeX", estimate: 45 },
   webpdf: { ext: "pdf", display: "PDF via nbconvert webpdf", estimate: 45 },
   script: {
