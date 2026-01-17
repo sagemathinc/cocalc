@@ -20,6 +20,7 @@ import {
   writeManagedAuthorizedKeys,
   getVolume,
   ensureVolume,
+  getMountPoint,
 } from "../file-server";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import type { Configuration } from "@cocalc/conat/project/runner/types";
@@ -33,6 +34,11 @@ import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
 import { publishLroEvent, publishLroSummary } from "@cocalc/conat/lro/stream";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
 import { applyPendingCopies } from "../pending-copies";
+import {
+  resetProjectLastEditedRunning,
+  touchProjectLastEditedRunning,
+} from "../last-edited";
+import { getGeneration } from "@cocalc/file-server/btrfs/subvolume-snapshots";
 
 const logger = getLogger("project-host:hub:projects");
 const MB = 1_000_000;
@@ -349,6 +355,21 @@ export function wireProjectsApi(runnerApi: RunnerApi) {
       http_port: undefined,
       ssh_port: undefined,
     });
+    try {
+      const base = getMountPoint();
+      const projectPath = join(base, `project-${project_id}`);
+      const generation = await getGeneration(projectPath);
+      await touchProjectLastEditedRunning(project_id, generation, "stop", {
+        force: true,
+      });
+    } catch (err) {
+      logger.debug("stop last_edited check failed", {
+        project_id,
+        err: `${err}`,
+      });
+    } finally {
+      resetProjectLastEditedRunning(project_id);
+    }
   }
 
   // Create a project locally and optionally start it.
