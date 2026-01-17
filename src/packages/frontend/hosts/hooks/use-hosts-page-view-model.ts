@@ -142,10 +142,18 @@ export const useHostsPageViewModel = () => {
   const handleUpgradeComplete = React.useCallback(() => {
     refresh().catch(() => {});
   }, [refresh]);
+  const listHostLro = React.useCallback(
+    (opts) => hub.lro.list(opts),
+    [hub],
+  );
+  const getHostLroStream = React.useCallback(
+    (opts) => webapp_client.conat_client.lroStream(opts),
+    [],
+  );
   const { hostOps, trackHostOp } = useHostOps({
     hosts,
-    listLro: (opts) => hub.lro.list(opts),
-    getLroStream: (opts) => webapp_client.conat_client.lroStream(opts),
+    listLro: listHostLro,
+    getLroStream: getHostLroStream,
     onUpgradeComplete: handleUpgradeComplete,
   });
   const {

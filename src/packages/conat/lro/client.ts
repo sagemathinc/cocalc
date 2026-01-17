@@ -7,6 +7,7 @@ import type {
   LroStatus,
   LroSummary,
 } from "@cocalc/conat/hub/api/lro";
+import type { Configuration } from "@cocalc/conat/persist/storage";
 import { isValidUUID } from "@cocalc/util/misc";
 import { lroStreamName } from "./names";
 
@@ -14,6 +15,13 @@ type LroLocation = {
   project_id?: string;
   account_id?: string;
   host_id?: string;
+};
+
+const LRO_STREAM_CONFIG: Partial<Configuration> = {
+  max_msgs: 2000,
+  max_age: 2 * 60 * 60 * 1000,
+  max_bytes: 8 * 1024 * 1024,
+  allow_msg_ttl: true,
 };
 
 function scopeLocation({
@@ -69,6 +77,7 @@ export async function get({
     ...location,
     name,
     ephemeral: true,
+    config: LRO_STREAM_CONFIG,
   });
 }
 

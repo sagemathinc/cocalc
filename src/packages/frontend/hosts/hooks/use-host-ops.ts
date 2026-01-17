@@ -70,11 +70,8 @@ export function useHostOps({
     streamInitRef.current.delete(op_id);
   }, []);
 
-  const updateFromStream = useCallback(
-    (host_id: string, op_id: string) => {
-      const stream = streamsRef.current.get(op_id);
-      if (!stream) return;
-      const events = stream.getAll();
+  const applyEvents = useCallback(
+    (host_id: string, op_id: string, events: LroEvent[]) => {
       if (!events.length) return;
       setHostOps((prev) => {
         const current = prev[host_id];
@@ -128,6 +125,17 @@ export function useHostOps({
     [closeStream, onUpgradeComplete],
   );
 
+  const updateFromStream = useCallback(
+    (host_id: string, op_id: string) => {
+      const stream = streamsRef.current.get(op_id);
+      if (!stream) return;
+      const events = stream.getAll();
+      if (!events.length) return;
+      applyEvents(host_id, op_id, events);
+    },
+    [applyEvents],
+  );
+
   const ensureStream = useCallback(
     async (host_id: string, op_id: string, scope_id: string) => {
       if (streamsRef.current.has(op_id) || streamInitRef.current.has(op_id)) {
@@ -143,7 +151,14 @@ export function useHostOps({
           stream.close();
           return;
         }
-        stream.on("change", () => updateFromStream(host_id, op_id));
+        stream.on("change", (event?: LroEvent) => {
+          if (event) {
+            applyEvents(host_id, op_id, [event]);
+          } else {
+            updateFromStream(host_id, op_id);
+          }
+        });
+        stream.on("reset", () => updateFromStream(host_id, op_id));
         streamsRef.current.set(op_id, stream);
         updateFromStream(host_id, op_id);
       })().catch((err) => {

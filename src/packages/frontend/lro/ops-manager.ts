@@ -214,7 +214,14 @@ export class SingleLroOpsManager {
         return;
       }
       this.stream = stream;
-      stream.on("change", this.updateFromStream);
+      stream.on("change", (event?: LroEvent) => {
+        if (event) {
+          this.applyEvents([event]);
+        } else {
+          this.updateFromStream();
+        }
+      });
+      stream.on("reset", () => this.updateFromStream());
       this.updateFromStream();
     })().catch((err) => {
       this.log("unable to subscribe to lro operation", { op_id, err });
@@ -227,12 +234,11 @@ export class SingleLroOpsManager {
     });
   };
 
-  private updateFromStream = () => {
-    if (!this.stream || !this.currentOpId) {
+  private applyEvents = (events: LroEvent[]) => {
+    if (!events.length) {
       return;
     }
-    const events = this.stream.getAll();
-    if (!events.length) {
+    if (!this.currentOpId) {
       return;
     }
     const updates = applyLroEvents({
@@ -257,6 +263,17 @@ export class SingleLroOpsManager {
         this.clearState();
       }
     }
+  };
+
+  private updateFromStream = () => {
+    if (!this.stream || !this.currentOpId) {
+      return;
+    }
+    const events = this.stream.getAll();
+    if (!events.length) {
+      return;
+    }
+    this.applyEvents(events);
   };
 
   private closeStream() {
@@ -456,7 +473,14 @@ export class MultiLroOpsManager {
         stream.close();
         return;
       }
-      stream.on("change", () => this.updateFromStream(op_id));
+      stream.on("change", (event?: LroEvent) => {
+        if (event) {
+          this.applyEvents(op_id, [event]);
+        } else {
+          this.updateFromStream(op_id);
+        }
+      });
+      stream.on("reset", () => this.updateFromStream(op_id));
       this.streams.set(op_id, stream);
       this.updateFromStream(op_id);
     })().catch((err) => {
@@ -468,12 +492,7 @@ export class MultiLroOpsManager {
     });
   };
 
-  private updateFromStream = (op_id: string) => {
-    const stream = this.streams.get(op_id);
-    if (!stream) {
-      return;
-    }
-    const events = stream.getAll();
+  private applyEvents = (op_id: string, events: LroEvent[]) => {
     if (!events.length) {
       return;
     }
@@ -502,6 +521,18 @@ export class MultiLroOpsManager {
         this.removeOp(op_id);
       }
     }
+  };
+
+  private updateFromStream = (op_id: string) => {
+    const stream = this.streams.get(op_id);
+    if (!stream) {
+      return;
+    }
+    const events = stream.getAll();
+    if (!events.length) {
+      return;
+    }
+    this.applyEvents(op_id, events);
   };
 
   private removeOp(op_id: string) {
