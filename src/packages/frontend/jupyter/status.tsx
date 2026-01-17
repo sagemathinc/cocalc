@@ -358,7 +358,7 @@ export function Kernel({
         description: "The kernel of a Jupyter Notebook is starting",
       });
     }
-    return <>Home Base</>;
+    return null;
   }
 
   function get_kernel_name(): React.JSX.Element {
