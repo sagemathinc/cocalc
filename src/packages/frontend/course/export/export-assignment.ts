@@ -115,6 +115,7 @@ async function export_one_directory(
       } catch (err) {
         log(`WARNING: Conversion ipynb to PDF failed. ${err}`);
       }
+    }
     try {
       // Always copy original file over (failure is NON fatal)
       await exec({

@@ -24,7 +24,7 @@ export async function nbconvert(opts: NbconvertParams): Promise<void> {
       opts.timeout = 60;
     }
 
-    let { j, to } = parseTo(opts.args);
+    let { to } = parseTo(opts.args);
 
     let convertToPDF = false;
     const originalSource = parseSource(opts.args); // before any mangling for the benefit of nbconvert.
