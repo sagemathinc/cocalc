@@ -66,8 +66,6 @@ export interface Fileserver {
   mount: (opts: { project_id: string }) => Promise<{ path: string }>;
   // ensure a project volume exists (idempotent)
   ensureVolume: (opts: { project_id: string }) => Promise<void>;
-  // check whether a project volume exists without creating it
-  volumeExists: (opts: { project_id: string }) => Promise<boolean>;
 
   // create project_id as an exact lightweight clone of src_project_id
   clone: (opts: {

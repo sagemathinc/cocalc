@@ -111,21 +111,6 @@ export async function getVolume(project_id: string) {
   return vol;
 }
 
-async function volumeExists({ project_id }: { project_id: string }): Promise<boolean> {
-  if (fs == null) {
-    throw Error("file server not initialized");
-  }
-  const vol = await fs.subvolumes.get(volName(project_id));
-  if (!(await exists(vol.path))) {
-    return false;
-  }
-  const isSubvolume = await isBtrfsSubvolume(vol.path);
-  if (!isSubvolume) {
-    throw new Error(`project volume is not a btrfs subvolume: ${vol.path}`);
-  }
-  return true;
-}
-
 export async function ensureVolume(project_id: string) {
   if (fs == null) {
     throw Error("file server not initialized");
@@ -822,7 +807,6 @@ export async function initFileServer({
     ensureVolume: reuseInFlight(async ({ project_id }) => {
       await ensureVolume(project_id);
     }),
-    volumeExists: reuseInFlight(volumeExists),
     clone,
     getUsage: reuseInFlight(getUsage),
     getQuota: reuseInFlight(getQuota),
