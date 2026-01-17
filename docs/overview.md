@@ -8,17 +8,18 @@ Use this as a quick entry point to the new subsystem docs added in late 2025. Ea
 
 - [buckets.md](./buckets.md) — Bucket architecture plan for backups and artifacts on Cloudflare R2. Defines a bucket registry with purpose and region, per\-project backup bucket assignment, first\-use creation with location hints, and explicit migration rules. Includes a diagram and compliance\-focused deletion guidance.
 
-- [project\-move.md](./project-move.md) — End\-to\-end project move between hosts. Covers the Postgres\-backed state machine \(`project_moves`, `projects.move_status`\), maintenance\-worker orchestration, and two data paths: direct `btrfs send | sshpiperd | btrfs receive` and staged stream files \+ rsync. Explains snapshot ordering \(siblings by generation\), destination re\-homing of snapshots and writable clone, forced\-command `btrfs receive`, keying/authorization via sshpiperd, and performance/robustness notes.
+- [project\-move.md](./project-move.md) — Current move flow using rustic backup/restore and restore staging. Describes the LRO orchestration, stop + final backup, restore on the destination, start, and post\-move cleanup without host\-to\-host SSH.
 
-- [ssh\-key\-distribution.md](./ssh-key-distribution.md) — Control\-hub ↔ project\-host SSH key lifecycle. Details host\-to\-host and sshpiperd keypairs, where they’re stored \(sqlite \+ secrets\), how they’re generated on host startup, how public keys are broadcast over conat and cached, and how they’re used for ingress SSH and inter\-host SSH \(single\-key authorization per username\). Includes rotation guidance and a mermaid for the registration/broadcast flow.
+- [ssh\-key\-distribution.md](./ssh-key-distribution.md) — SSH key lifecycle for sshpiperd (inbound user SSH). Shows where keys are stored, how hosts register the public key with the hub, and rotation guidance.
 
 - [ssh\-proxy.md](./ssh-proxy.md) — SSH path for user access to projects via sshpiperd. Shows components \(project container sshd, host sshpiperd\), the auth flow \(username → project lookup, assembled authorized\_keys from DB \+ project files \+ managed file\), port selection from sqlite, and how full SSH features \(port/X11 forwarding, rsync\) are preserved. Points to the key code paths for auth and key refresh.
 
 - [http\-proxy.md](./http-proxy.md) — HTTP/WebSocket proxying to project services \(e.g., JupyterLab\). Describes the URL shape `/PROJECT/port/<p>/...`, hub\-level host resolution and proxying, project\-host proxying into the container’s internal proxy on port 80 with `prependPath:false` and `xfwd`, and the single exposed path for WS upgrades. Includes a diagram and pointers to the hub and project\-host proxy code.
 
-- [architecture.md](./architecture.md) — Current end\-to\-end architecture of the project\-host model. Summarizes how the control hub routes conat/HTTP/WS to project\-hosts, how each host bundles file\-server, runner, proxies, and sshpiperd on btrfs with per\-project subvolumes/quotas/snapshots/backups, how podman \+ overlayfs stores user changes, and how moves/backups flow \(btrfs send over sshpiperd, rustic repos\). Includes a mermaid diagram and goals/non\-goals.
+- [long\-running\-operations.md](./long-running-operations.md) — LRO framework used for project start/backup/restore/move and host operations. Covers the LRO tables, conat progress streams, UI wiring, worker pattern, and durability strategy.
+
+- [architecture.md](./architecture.md) — Current end\-to\-end architecture of the project\-host model. Summarizes how the control hub routes conat/HTTP/WS to project\-hosts, how each host bundles file\-server, runner, proxies, and sshpiperd on btrfs with per\-project subvolumes/quotas/snapshots/backups, how podman \+ overlayfs stores user changes, and how moves/backups flow via rustic repos. Includes a mermaid diagram and goals/non\-goals.
 
 - [agents.md](./agents.md) — How Codex/ACP agents are integrated in CoCalc. Covers ACP basics, the frontend → conat → ACP hub flow, where agents run \(local for cocalc\-plus or in a codex\-acp podman container for multiuser\), how tool adapters gate file/exec access \(file\-server \+ sandboxExec\), approval routing, and security notes. Two mermaid diagrams illustrate the local and podman paths.
 
 - [membership.md](./membership.md) — Membership system implementation overview. Explains the tier table, resolver, entitlement application \(project defaults \+ LLM limits\), store purchase flow with proration, APIs \(Next.js \+ conat\), key UI surfaces, and current gaps.
-

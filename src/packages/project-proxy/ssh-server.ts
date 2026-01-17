@@ -1,7 +1,7 @@
 /*
 Ssh server - manages how projects and their files are accessed via ssh.
 
-This is a service that runs directly on the btrfs file server.  It:
+This is a service that runs on the project-host. It:
 
 - listens for incoming ssh connections from:
    - project
@@ -10,8 +10,8 @@ This is a service that runs directly on the btrfs file server.  It:
 - uses conat to determine what public keys grant access to a user
   of the above type
 
-- if user is valid, it creates container (if necessary) and connects
-  them to it via ssh.
+- if user is valid, it forwards the SSH session to the target project
+  container's sshd.
 
 
 ./sshpiperd \
