@@ -13,6 +13,7 @@ import {
 import type { HostLroState } from "../hooks/use-host-ops";
 import { getHostOpPhase, HostOpProgress } from "./host-op-progress";
 import { HostBackupStatus } from "./host-backup-status";
+import { HostWorkspaceStatus } from "./host-workspace-status";
 import { confirmHostDeprovision, confirmHostStop } from "./host-confirm";
 import { isHostOpActive } from "../hooks/use-host-ops";
 import { UpgradeConfirmContent } from "./upgrade-confirmation";
@@ -596,6 +597,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               )}
             </Space>
             <HostOpProgress op={op} compact />
+            <HostWorkspaceStatus host={host} compact />
             <HostBackupStatus host={host} compact />
           </Space>
         );
