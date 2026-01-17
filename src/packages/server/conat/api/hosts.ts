@@ -649,7 +649,13 @@ export async function listHostProjects({
         last_edited,
         last_backup,
         (${needsBackupSql}) AS needs_backup,
-        COALESCE(jsonb_object_length(users), 0) AS collab_count
+        COALESCE(
+          (
+            SELECT COUNT(*)
+            FROM jsonb_object_keys(COALESCE(users::jsonb, '{}'::jsonb))
+          ),
+          0
+        ) AS collab_count
       FROM projects
       ${whereClause}
       ORDER BY COALESCE(last_edited, to_timestamp(0)) DESC, project_id DESC
