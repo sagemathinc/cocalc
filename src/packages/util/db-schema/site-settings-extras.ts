@@ -238,7 +238,6 @@ export type SiteSettingsExtrasKeys =
   | "pay_as_you_go_spending_limit_with_verified_email"
   | "pay_as_you_go_spending_limit_with_credit"
   | "pay_as_you_go_min_payment"
-  | "pay_as_you_go_openai_markup_percentage"
   | "pay_as_you_go_max_project_upgrades"
   | "pay_as_you_go_price_project_upgrades"
   | "lambda_cloud_api_key"
@@ -754,15 +753,6 @@ export const EXTRAS: SettingsExtras = {
     to_val: toFloat,
     valid: onlyPosFloat,
     tags: ["Pay as you Go"],
-  },
-  pay_as_you_go_openai_markup_percentage: {
-    name: "Pay As You Go - LLM Markup Percentage",
-    desc: "The markup percentage that we add to the LLM's call rate.  This accounts for maintenance, dev, servers, and bandwidth. For example, '30' would mean we add 30% to the price that OpenAI charges us.",
-    default: "30",
-    show: only_commercial,
-    to_val: toFloat,
-    valid: onlyNonnegFloat,
-    tags: ["AI LLM", "OpenAI", "Pay as you Go"],
   },
   pay_as_you_go_max_project_upgrades: {
     name: "Pay As You Go - Max Project Upgrade Quotas",
