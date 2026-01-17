@@ -4,7 +4,7 @@
  */
 
 /*
-Use nteracts kernelspecs module to get data about all installed Jupyter kernels.
+Use local kernel spec discovery to get data about all installed Jupyter kernels.
 
 The result is cached for a few seconds to avoid wasted effort in case
 of a flurry of calls.
@@ -17,7 +17,7 @@ E.g., on my dev system the "ptyhon3" system-wide kernel is just completely misse
 a few ms for this.  We stick with this for now, but may need to improve.
 */
 
-import { findAll } from "kernelspecs";
+import { findAllKernelSpecs } from "./kernelspecs";
 import LRU from "lru-cache";
 import type { KernelSpec } from "@cocalc/jupyter/types/types";
 import { field_cmp } from "@cocalc/util/misc";
@@ -60,7 +60,7 @@ export const get_kernel_data = reuseInFlight(
         return x;
       }
     }
-    const kernel_data = await findAll();
+    const kernel_data = await findAllKernelSpecs();
     const v: KernelSpec[] = [];
     for (const kernel in kernel_data) {
       const value = kernel_data[kernel];
@@ -73,8 +73,6 @@ export const get_kernel_data = reuseInFlight(
         env: value.spec.env ?? {},
         // @ts-ignore
         metadata: value.spec.metadata,
-        // kernelspecs incorrectly calls it resources_dir instead of resource_dir.
-        // See https://github.com/nteract/kernelspecs/issues/25
         // @ts-ignore
         resource_dir: value.resource_dir ?? value.resources_dir,
         argv: value.spec.argv,

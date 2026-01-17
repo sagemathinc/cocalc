@@ -20,8 +20,8 @@ import * as fs from "fs";
 import * as uuid from "uuid";
 import { mkdir } from "fs/promises";
 import { spawn } from "node:child_process";
-import { findAll } from "kernelspecs";
-import * as jupyter_paths from "jupyter-paths";
+import { findKernelSpec } from "./kernelspecs";
+import { homedir } from "node:os";
 import bash from "@cocalc/backend/bash";
 import { writeFile } from "jsonfile";
 import mkdirp from "mkdirp";
@@ -91,13 +91,30 @@ function connectionInfo(ports): ConnectionInfo {
   };
 }
 
+function getJupyterRuntimeDir(): string {
+  if (process.env.JUPYTER_RUNTIME_DIR) {
+    return process.env.JUPYTER_RUNTIME_DIR;
+  }
+  if (process.env.XDG_RUNTIME_DIR) {
+    return path.join(process.env.XDG_RUNTIME_DIR, "jupyter");
+  }
+  if (process.platform === "darwin") {
+    return path.join(homedir(), "Library", "Jupyter", "runtime");
+  }
+  if (process.platform === "win32") {
+    const appData = process.env.APPDATA ?? homedir();
+    return path.resolve(path.join(appData, "jupyter", "runtime"));
+  }
+  return path.join(homedir(), ".local", "share", "jupyter", "runtime");
+}
+
 // gather the connection information for a kernel, write it to a json file, and return it
 async function writeConnectionFile() {
   const ports = await getPorts(5);
   // console.log("ports = ", ports);
 
   // Make sure the kernel runtime dir exists before trying to write the kernel file.
-  const runtimeDir = jupyter_paths.runtimeDir();
+  const runtimeDir = getJupyterRuntimeDir();
   await mkdirp(runtimeDir);
 
   // Write the kernel connection file -- filename uses the UUID4 key
@@ -191,15 +208,7 @@ export default async function launchJupyterKernel(
   name: string,
   spawn_options: LaunchJupyterOpts,
 ): Promise<SpawnedKernel> {
-  const specs = await findAll();
-  const kernel_spec = specs[name];
-  if (kernel_spec == null) {
-    throw new Error(
-      `No spec available for kernel "${name}".  Available specs: ${JSON.stringify(
-        Object.keys(specs),
-      )}`,
-    );
-  }
+  const kernel_spec = await findKernelSpec(name);
   const { config, connectionFile } = await writeConnectionFile();
   return await launchKernelSpec(
     kernel_spec.spec,
