@@ -29,6 +29,7 @@ import { getProviderDescriptor, isKnownProvider } from "../providers/registry";
 import { getHostOpPhase, HostOpProgress } from "./host-op-progress";
 import { UpgradeConfirmContent } from "./upgrade-confirmation";
 import { HostWorkspaceStatus } from "./host-workspace-status";
+import { HostProjectsBrowser } from "./host-projects-browser";
 
 type HostDrawerViewModel = {
   open: boolean;
@@ -166,6 +167,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
   const [drawerWidth, setDrawerWidth] = React.useState<number | undefined>(
     readDrawerWidth,
   );
+  const [showProjects, setShowProjects] = React.useState(false);
   const handleResize = React.useCallback((next: number) => {
     const clamped = clampDrawerWidth(next);
     setDrawerWidth(clamped);
@@ -254,6 +256,9 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
     isSelfHost &&
     !host.deleted &&
     host.status !== "deprovisioned";
+  React.useEffect(() => {
+    setShowProjects(false);
+  }, [host?.id]);
   return (
     <Drawer
       size={drawerWidth}
@@ -370,7 +375,12 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               </Typography.Text>
             )}
           </Space>
-          <HostWorkspaceStatus host={host} fontSize={14} />
+          <Space direction="vertical" size="small">
+            <HostWorkspaceStatus host={host} fontSize={14} />
+            <Button size="small" onClick={() => setShowProjects(true)}>
+              Browse projects
+            </Button>
+          </Space>
           {(host.version ||
             host.project_bundle_version ||
             host.tools_version) && (
@@ -539,6 +549,11 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               ))}
             </Space>
           )}
+          <HostProjectsBrowser
+            host={host}
+            open={showProjects}
+            onClose={() => setShowProjects(false)}
+          />
           <Divider />
           <Typography.Title level={5}>Activity</Typography.Title>
         </Space>

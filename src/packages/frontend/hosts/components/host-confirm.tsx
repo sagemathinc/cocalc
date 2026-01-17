@@ -1,6 +1,7 @@
 import { Checkbox, Input, Modal, Typography, message } from "antd";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import type { HostDeleteOptions, HostStopOptions } from "../types";
+import { HostProjectsTable } from "./host-projects-table";
 
 function getBackupCounts(host?: Host) {
   const backup = host?.backup_status;
@@ -27,11 +28,16 @@ export function confirmHostStop({
   const state = { skip: false };
   Modal.confirm({
     title: `Stop ${hostName}?`,
+    width: 900,
     content: (
       <div>
         <Typography.Text type="secondary">
           This will create backups for provisioned workspaces that need them.
         </Typography.Text>
+        <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          When a host is off or deprovisioned, workspaces can still be used on
+          another host using the most recent backup.
+        </Typography.Paragraph>
         {total > 0 && (
           <div style={{ marginTop: 6 }}>
             <Typography.Text type="secondary">
@@ -39,6 +45,21 @@ export function confirmHostStop({
               {running} · Backed up: {upToDate}/{provisioned}
               {risky > 0 ? ` · Needs backup: ${risky}` : ""}
             </Typography.Text>
+          </div>
+        )}
+        {risky > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <Typography.Text strong>At-risk workspaces</Typography.Text>
+            <div style={{ marginTop: 6 }}>
+              <HostProjectsTable
+                host={host}
+                riskOnly
+                compact
+                showSummary={false}
+                pageSize={50}
+                showControls={false}
+              />
+            </div>
           </div>
         )}
         <div style={{ marginTop: 8 }}>
@@ -73,6 +94,7 @@ export function confirmHostDeprovision({
     status === "error";
   const modal = Modal.confirm({
     title: `Deprovision ${hostName}?`,
+    width: 900,
     content: (
       <div>
         <Typography.Text type="secondary">
@@ -104,6 +126,10 @@ export function confirmHostDeprovision({
               ensure {needs} provisioned workspace
               {needs === 1 ? "" : "s"} are properly backed up.
             </Typography.Text>
+            <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
+              When a host is off or deprovisioned, workspaces can still be used
+              on another host using the most recent backup.
+            </Typography.Paragraph>
             {total > 0 && (
               <div style={{ marginTop: 6 }}>
                 <Typography.Text type="secondary">
@@ -113,6 +139,21 @@ export function confirmHostDeprovision({
                 </Typography.Text>
               </div>
             )}
+          </div>
+        )}
+        {needs > 0 && (
+          <div style={{ marginTop: 10 }}>
+            <Typography.Text strong>At-risk workspaces</Typography.Text>
+            <div style={{ marginTop: 6 }}>
+              <HostProjectsTable
+                host={host}
+                riskOnly
+                compact
+                showSummary={false}
+                pageSize={50}
+                showControls={false}
+              />
+            </div>
           </div>
         )}
       </div>

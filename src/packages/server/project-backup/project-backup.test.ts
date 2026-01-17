@@ -1,3 +1,5 @@
+export {};
+
 let queryMock: jest.Mock;
 let readFileMock: jest.Mock;
 let writeFileMock: jest.Mock;
