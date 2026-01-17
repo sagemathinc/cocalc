@@ -29,9 +29,6 @@ import {
   MODELS_OPENAI,
   fromCustomOpenAIModel,
   fromOllamaModel,
-  getLLMCost,
-  getLLMPriceRange,
-  isCoreLanguageModel,
   isCustomOpenAI,
   isFreeModel,
   isLLMServiceName,
@@ -42,7 +39,6 @@ import {
   toOllamaModel,
   toUserLLMModelName,
 } from "@cocalc/util/db-schema/llm-utils";
-import { round2up } from "@cocalc/util/misc";
 import type { CustomLLMPublic } from "@cocalc/util/types/llm";
 import { FormattedMessage } from "react-intl";
 import { getCustomLLMGroup } from "./components";
@@ -75,7 +71,6 @@ export default function LLMSelector({
   project_id,
 }: Props) {
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
-  const llm_markup = 0;
   const user_llm = useUserDefinedLLM();
 
   // ATTN: you cannot use useProjectContext because this component is used outside a project context
@@ -310,47 +305,23 @@ export default function LLMSelector({
   function renderHelpPricing() {
     if (!is_cocalc_com) return;
 
-    const [input, output] = [500, 300];
-    const { min, max } = getLLMPriceRange(input, output, llm_markup);
-
-    function calcSelected() {
-      if (isFreeModel(model, is_cocalc_com) || !isCoreLanguageModel(model)) {
-        return "free";
-      } else {
-        const { prompt_tokens: model_input, completion_tokens: model_output } =
-          getLLMCost(model, llm_markup);
-        return `about $${round2up(
-          input * model_input + output * model_output,
-        ).toFixed(2)}`;
-      }
-    }
-
     return (
       <FormattedMessage
         id="llm-selector.help.message2"
         defaultMessage={`
         <Paragraph>
-          The models marked as "{FREE}" do not incur any charges.
-          However, they are rate limited to avoid abuse.
-          The more capable models are marked "{PREMIUM}" and charged by the number of
-          read and generated tokens – i.e. "pay-as-you-go" – and do not have rate limitations.
-          Usually, these charges are very small!
+          The models marked as "{FREE}" consume fewer usage units and are more tightly rate limited.
+          The more capable models are marked "{PREMIUM}" and consume more usage units, so they
+          reach your membership limits sooner.
         </Paragraph>
         <Paragraph>
-          Assuming a typical usage involves {input} input tokens and {output} output tokens,
-          the price across all models ranges from \${min} to \${max} per usage,
-          and is {calc} for the selected model {name}.
+          Usage is throttled using short-term and long-term windows. Upgrade your membership
+          for higher limits.
         </Paragraph>`}
         values={{
           Paragraph: (c) => <Paragraph>{c}</Paragraph>,
           FREE,
           PREMIUM,
-          input,
-          output,
-          min: min.toFixed(2),
-          max: max.toFixed(2),
-          calc: calcSelected(),
-          name: modelToName(model),
         }}
       />
     );

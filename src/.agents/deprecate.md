@@ -2,7 +2,7 @@
 
 Goal: Complete remove all code and functionality for the following:
 
-- [ ] payg LLM purchases; we still must track usage and costs for throttling and analytic, but nothing regarding actual transactions/billing shown to users.
+- [x] payg LLM purchases; we still must track usage and costs for throttling and analytic, but nothing regarding actual transactions/billing shown to users.
 - [ ] public paths allowing viewing by non\-collabs in the frontend; deprecated but code remains \("is\_public"\)
 - [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [x] the jupyter pool.
