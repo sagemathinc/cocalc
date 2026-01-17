@@ -83,7 +83,7 @@ Scope: remove stateless Jupyter API used for public share demos and unauthentica
 6. **Final sweep + validation.**  
    Ripgrep for `jupyter_api` and `jupyterApiEnabled` across src and docs; run pnpm tsc --build.
 
-## Remove Compute Servers + Cloud Filesystems
+## (done) Remove Compute Servers + Cloud Filesystems
 
 Scope: remove all compute server and cloud filesystem functionality. No migration needed (clean break). Project hosts remain the only replacement. Delete all documentation/marketing/policy references.
 
@@ -201,4 +201,3 @@ Scope: remove all compute server and cloud filesystem functionality. No migratio
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
-
