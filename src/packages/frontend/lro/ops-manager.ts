@@ -8,6 +8,7 @@ import {
   type LroOpState,
   toTime,
 } from "./utils";
+import { lite } from "@cocalc/frontend/lite";
 
 type BaseOptions = {
   kind: string;
@@ -50,6 +51,10 @@ export class SingleLroOpsManager {
   constructor(private opts: SingleOptions) {}
 
   init = () => {
+    if (lite) {
+      this.clearState();
+      return;
+    }
     if (this.initialized || this.opts.isClosed()) {
       return;
     }
@@ -84,6 +89,9 @@ export class SingleLroOpsManager {
     scope_type?: LroSummary["scope_type"];
     scope_id?: string;
   }) => {
+    if (lite) {
+      return;
+    }
     if (!op?.op_id) {
       return;
     }
@@ -103,6 +111,9 @@ export class SingleLroOpsManager {
   };
 
   dismiss = (op_id?: string) => {
+    if (lite) {
+      return;
+    }
     const target = op_id ?? this.state?.op_id ?? this.currentOpId;
     if (!target) {
       return;
@@ -121,6 +132,9 @@ export class SingleLroOpsManager {
   };
 
   private refresh = reuseInFlight(async () => {
+    if (lite) {
+      return;
+    }
     if (!this.initialized || this.opts.isClosed()) {
       return;
     }
@@ -176,6 +190,9 @@ export class SingleLroOpsManager {
     scope_type: LroSummary["scope_type"];
     scope_id: string;
   }) => {
+    if (lite) {
+      return;
+    }
     if (this.currentOpId !== op_id) {
       return;
     }
@@ -285,6 +302,10 @@ export class MultiLroOpsManager {
   constructor(private opts: MultiOptions) {}
 
   init = () => {
+    if (lite) {
+      this.opts.setState(undefined);
+      return;
+    }
     if (this.initialized || this.opts.isClosed()) {
       return;
     }
@@ -323,6 +344,9 @@ export class MultiLroOpsManager {
     scope_type?: LroSummary["scope_type"];
     scope_id?: string;
   }) => {
+    if (lite) {
+      return;
+    }
     if (!op?.op_id) {
       return;
     }
@@ -341,6 +365,9 @@ export class MultiLroOpsManager {
   };
 
   dismiss = (op_id?: string) => {
+    if (lite) {
+      return;
+    }
     if (!op_id) {
       return;
     }
@@ -358,6 +385,9 @@ export class MultiLroOpsManager {
   };
 
   private refresh = reuseInFlight(async () => {
+    if (lite) {
+      return;
+    }
     if (!this.initialized || this.opts.isClosed()) {
       return;
     }
@@ -410,6 +440,9 @@ export class MultiLroOpsManager {
     scope_type: LroSummary["scope_type"];
     scope_id: string;
   }) => {
+    if (lite) {
+      return;
+    }
     if (this.streams.has(op_id) || this.streamInit.has(op_id)) {
       return;
     }

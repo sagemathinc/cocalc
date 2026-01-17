@@ -13,6 +13,7 @@ import {
   isTerminal,
   toTime,
 } from "@cocalc/frontend/lro/utils";
+import { lite } from "@cocalc/frontend/lite";
 
 const HOST_LRO_REFRESH_MS = 30_000;
 
@@ -157,6 +158,9 @@ export function useHostOps({
   );
 
   const refresh = useCallback(async () => {
+    if (lite) {
+      return;
+    }
     if (refreshInFlight.current) {
       return refreshInFlight.current;
     }
@@ -222,6 +226,9 @@ export function useHostOps({
   }, [closeStream, ensureStream, listLro]);
 
   useEffect(() => {
+    if (lite) {
+      return;
+    }
     hostIdsRef.current = hosts
       .filter((host) => !host.deleted)
       .map((host) => host.id);
@@ -229,6 +236,9 @@ export function useHostOps({
   }, [hosts, refresh]);
 
   useEffect(() => {
+    if (lite) {
+      return;
+    }
     closedRef.current = false;
     const timer = setInterval(() => {
       refresh().catch(() => {});
@@ -249,6 +259,9 @@ export function useHostOps({
       host_id: string,
       op: { op_id: string; scope_id?: string; kind?: string },
     ) => {
+      if (lite) {
+        return;
+      }
       const op_id = op.op_id;
       setHostOps((prev) => ({
         ...prev,
