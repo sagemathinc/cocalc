@@ -133,11 +133,12 @@ export const useHostsPageViewModel = () => {
   const [showDeleted, setShowDeleted] = React.useState(false);
 
   const [fastPoll, setFastPoll] = React.useState(false);
+  const [setupOpen, setSetupOpen] = React.useState(false);
   const { hosts, setHosts, refresh, canCreateHosts } = useHosts(hub, {
     onError: () => message.error("Unable to load hosts"),
     adminView: isAdmin && showAdmin,
     includeDeleted: showDeleted,
-    pollMs: fastPoll ? 3000 : 15000,
+    pollMs: fastPoll ? 5000 : 30000,
   });
   const handleUpgradeComplete = React.useCallback(() => {
     refresh().catch(() => {});
@@ -150,7 +151,7 @@ export const useHostsPageViewModel = () => {
     (opts) => webapp_client.conat_client.lroStream(opts),
     [],
   );
-  const { hostOps, trackHostOp } = useHostOps({
+  const { hostOps, trackHostOp, refresh: refreshHostOps } = useHostOps({
     hosts,
     listLro: listHostLro,
     getLroStream: getHostLroStream,
@@ -280,9 +281,20 @@ export const useHostsPageViewModel = () => {
       refreshProvider,
       onError: (text) => message.error(text),
     });
+  const hasSelfHostHosts = React.useMemo(
+    () => hosts.some((host) => host.machine?.cloud === "self-host"),
+    [hosts],
+  );
+  const shouldPollSelfHostCatalog =
+    setupOpen || selectedProvider === "self-host" || hasSelfHostHosts;
+  const selfHostPollMs = shouldPollSelfHostCatalog
+    ? setupOpen
+      ? 5000
+      : 30000
+    : undefined;
   const { catalog: selfHostCatalog } = useHostCatalog(hub, {
-    provider: "self-host",
-    pollMs: 5000,
+    provider: shouldPollSelfHostCatalog ? "self-host" : undefined,
+    pollMs: selfHostPollMs,
   });
   const selfHostConnectors = React.useMemo(
     () => getSelfHostConnectors(selfHostCatalog),
@@ -304,20 +316,27 @@ export const useHostsPageViewModel = () => {
     },
     [selfHostConnectorMap],
   );
-  const [setupOpen, setSetupOpen] = React.useState(false);
   React.useEffect(() => {
     const hasTransition = hosts.some((host) =>
       ["starting", "restarting", "stopping", "pending"].includes(
         host.status ?? "",
       ),
     );
-    const hasWaitingConnector = selfHostConnectors.some((connector) => {
-      if (!connector.id) return false;
-      return !isSelfHostConnectorOnline(connector.id);
-    });
+    const hasWaitingConnector = shouldPollSelfHostCatalog
+      ? selfHostConnectors.some((connector) => {
+          if (!connector.id) return false;
+          return !isSelfHostConnectorOnline(connector.id);
+        })
+      : false;
     const needsFast = hasTransition || hasWaitingConnector || setupOpen;
     setFastPoll(needsFast);
-  }, [hosts, selfHostConnectors, isSelfHostConnectorOnline, setupOpen]);
+  }, [
+    hosts,
+    selfHostConnectors,
+    isSelfHostConnectorOnline,
+    setupOpen,
+    shouldPollSelfHostCatalog,
+  ]);
   const baseUrl = React.useMemo(() => {
     if (typeof window === "undefined") return "";
     const basePath = appBasePath && appBasePath !== "/" ? appBasePath : "";
@@ -506,6 +525,11 @@ export const useHostsPageViewModel = () => {
       regionOptions,
     },
   });
+  const refreshHostsNow = React.useCallback(async () => {
+    await refresh();
+    await refreshHostOps({ force: true });
+  }, [refresh, refreshHostOps]);
+
   const hostListVm = useHostListViewModel({
     hosts,
     hostOps,
@@ -513,6 +537,7 @@ export const useHostsPageViewModel = () => {
     onStop: (id: string, opts) => setStatus(id, "stop", opts),
     onRestart: restartHost,
     onDelete: (id: string, opts) => removeHost(id, opts),
+    onRefresh: refreshHostsNow,
     onCancelOp: cancelHostOp,
     onUpgrade: isAdmin ? upgradeHostSoftware : undefined,
     onDetails: openDetails,

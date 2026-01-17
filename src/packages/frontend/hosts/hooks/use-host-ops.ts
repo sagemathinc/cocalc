@@ -15,7 +15,14 @@ import {
 } from "@cocalc/frontend/lro/utils";
 import { lite } from "@cocalc/frontend/lite";
 
-const HOST_LRO_REFRESH_MS = 30_000;
+const HOST_LRO_REFRESH_MS = 60_000;
+const HOST_LRO_FULL_REFRESH_MS = 5 * 60_000;
+const TRANSITION_STATUSES = new Set([
+  "starting",
+  "stopping",
+  "restarting",
+  "deprovisioning",
+]);
 
 export function isHostOpActive(op?: HostLroState): boolean {
   if (!op) return false;
@@ -57,9 +64,14 @@ export function useHostOps({
   const streamsRef = useRef(new Map<string, DStream<LroEvent>>());
   const streamInitRef = useRef(new Map<string, Promise<void>>());
   const hostIdsRef = useRef<string[]>([]);
+  const hostMetaRef = useRef<
+    { id: string; status?: string; last_action_status?: string | null }[]
+  >([]);
+  const hostOpsRef = useRef<Record<string, HostLroState>>({});
   const refreshInFlight = useRef<Promise<void> | null>(null);
   const closedRef = useRef(false);
   const completedRef = useRef(new Set<string>());
+  const lastFullRefreshRef = useRef(0);
 
   const closeStream = useCallback((op_id: string) => {
     const stream = streamsRef.current.get(op_id);
@@ -172,7 +184,7 @@ export function useHostOps({
     [getLroStream, updateFromStream],
   );
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async ({ force = false }: { force?: boolean } = {}) => {
     if (lite) {
       return;
     }
@@ -180,11 +192,31 @@ export function useHostOps({
       return refreshInFlight.current;
     }
     const run = (async () => {
+      const now = Date.now();
       const ids = hostIdsRef.current;
+      const hostMeta = hostMetaRef.current;
+      const activeHostIds = new Set(Object.keys(hostOpsRef.current));
+      const candidates = hostMeta
+        .filter((host) => {
+          if (activeHostIds.has(host.id)) return true;
+          if (host.last_action_status === "pending") return true;
+          if (!host.status) return false;
+          return TRANSITION_STATUSES.has(host.status);
+        })
+        .map((host) => host.id);
+      const shouldFull =
+        force || now - lastFullRefreshRef.current > HOST_LRO_FULL_REFRESH_MS;
+      const idsToCheck = shouldFull ? ids : candidates;
+      if (!idsToCheck.length) {
+        return;
+      }
+      if (shouldFull) {
+        lastFullRefreshRef.current = now;
+      }
       const next: Record<string, HostLroState> = {};
       const activeOpIds = new Set<string>();
       await Promise.all(
-        ids.map(async (id) => {
+        idsToCheck.map(async (id) => {
           try {
             const ops = await listLro({
               scope_type: "host",
@@ -247,8 +279,19 @@ export function useHostOps({
     hostIdsRef.current = hosts
       .filter((host) => !host.deleted)
       .map((host) => host.id);
+    hostMetaRef.current = hosts
+      .filter((host) => !host.deleted)
+      .map((host) => ({
+        id: host.id,
+        status: host.status,
+        last_action_status: host.last_action_status ?? null,
+      }));
     refresh().catch(() => {});
   }, [hosts, refresh]);
+
+  useEffect(() => {
+    hostOpsRef.current = hostOps;
+  }, [hostOps]);
 
   useEffect(() => {
     if (lite) {
@@ -291,5 +334,5 @@ export function useHostOps({
     [ensureStream],
   );
 
-  return { hostOps, trackHostOp };
+  return { hostOps, trackHostOp, refresh };
 }
