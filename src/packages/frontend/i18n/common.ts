@@ -1321,7 +1321,7 @@ export const jupyter = {
     confirm_restart_body: {
       id: "jupyter.editor.confirm_restart.body",
       defaultMessage:
-        "Do you want to restart the kernel? All variable values will be lost.  If you are restarted to detect a new package, restart *twice* due to the kernel pool.",
+        "Do you want to restart the kernel? All variable values will be lost.",
     },
     confirm_halt_kernel_title: {
       id: "jupyter.editor.confirm_halt_kernel.title",

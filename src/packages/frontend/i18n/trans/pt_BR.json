@@ -850,7 +850,7 @@
   "jupyter.editor.confirm_halt_kernel.continue": "Continuar executando",
   "jupyter.editor.confirm_halt_kernel.halt": "Interromper",
   "jupyter.editor.confirm_halt_kernel.title": "Interromper o kernel?",
-  "jupyter.editor.confirm_restart.body": "Você deseja reiniciar o kernel? Todos os valores das variáveis serão perdidos. Se você estiver reiniciando para detectar um novo pacote, reinicie *duas vezes* devido ao pool de kernels.",
+  "jupyter.editor.confirm_restart.body": "Você deseja reiniciar o kernel? Todos os valores das variáveis serão perdidos.",
   "jupyter.editor.confirm_restart.continue_label": "Continuar executando",
   "jupyter.editor.confirm_restart.label": "Reiniciar",
   "jupyter.editor.confirm_restart.title": "Reiniciar o kernel?",
