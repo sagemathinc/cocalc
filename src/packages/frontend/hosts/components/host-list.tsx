@@ -633,7 +633,7 @@ export const HostList: React.FC<{ vm: HostListViewModel }> = ({ vm }) => {
               type="link"
               onClick={() =>
                 confirmHostStop({
-                  hostName: host.name ?? "Host",
+                  host,
                   onConfirm: (opts) => onStop(host.id, opts),
                 })
               }

@@ -151,29 +151,33 @@ async function loadHostBackupStatus(
   const { rows } = await pool().query<{
     host_id: string;
     total: string;
+    provisioned: string;
     running: string;
-    up_to_date: string;
-    needs_backup: string;
+    provisioned_up_to_date: string;
+    provisioned_needs_backup: string;
   }>(
     `
       SELECT
         host_id,
         COUNT(*) AS total,
+        COUNT(*) FILTER (WHERE provisioned IS TRUE) AS provisioned,
         COUNT(*) FILTER (
           WHERE COALESCE(state->>'state', '') IN ('running','starting')
         ) AS running,
         COUNT(*) FILTER (
-          WHERE COALESCE(state->>'state', '') NOT IN ('running','starting')
+          WHERE provisioned IS TRUE
+            AND COALESCE(state->>'state', '') NOT IN ('running','starting')
             AND last_backup IS NOT NULL
             AND (last_edited IS NULL OR last_edited <= last_backup)
-        ) AS up_to_date,
+        ) AS provisioned_up_to_date,
         COUNT(*) FILTER (
-          WHERE COALESCE(state->>'state', '') NOT IN ('running','starting')
+          WHERE provisioned IS TRUE
+            AND COALESCE(state->>'state', '') NOT IN ('running','starting')
             AND (
               last_backup IS NULL
               OR (last_edited IS NOT NULL AND last_edited > last_backup)
             )
-        ) AS needs_backup
+        ) AS provisioned_needs_backup
       FROM projects
       WHERE deleted IS NOT true
         AND host_id = ANY($1)
@@ -185,9 +189,10 @@ async function loadHostBackupStatus(
   for (const row of rows) {
     map.set(row.host_id, {
       total: Number(row.total ?? 0),
+      provisioned: Number(row.provisioned ?? 0),
       running: Number(row.running ?? 0),
-      up_to_date: Number(row.up_to_date ?? 0),
-      needs_backup: Number(row.needs_backup ?? 0),
+      provisioned_up_to_date: Number(row.provisioned_up_to_date ?? 0),
+      provisioned_needs_backup: Number(row.provisioned_needs_backup ?? 0),
     });
   }
   return map;

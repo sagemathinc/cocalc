@@ -83,6 +83,19 @@ export interface HostProjectStatus {
   };
 }
 
+export interface HostProjectProvisioned {
+  host_id: string;
+  project_id: string;
+  provisioned: boolean;
+  checked_at?: number;
+}
+
+export interface HostProvisionedInventory {
+  host_id: string;
+  project_ids: string[];
+  checked_at?: number;
+}
+
 export type SoftwareArtifact =
   | "project-host"
   | "project"
@@ -116,6 +129,12 @@ export interface HostStatusApi {
   reportProjectState: (
     opts: HostProjectStatus,
   ) => Promise<{ action?: "delete" } | void>;
+  reportProjectProvisioned: (
+    opts: HostProjectProvisioned,
+  ) => Promise<{ action?: "delete" } | void>;
+  reportHostProvisionedInventory: (
+    opts: HostProvisionedInventory,
+  ) => Promise<void>;
 }
 
 export function createHostStatusClient({

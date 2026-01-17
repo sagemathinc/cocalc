@@ -20,7 +20,11 @@ import { setConatClient } from "@cocalc/conat/client";
 import { server as createPersistServer } from "@cocalc/backend/conat/persist";
 import { init as initRunner } from "@cocalc/project-runner/run";
 import { client as projectRunnerClient } from "@cocalc/conat/project/runner/run";
-import { initFileServer, initFsServer } from "./file-server";
+import {
+  initFileServer,
+  initFsServer,
+  listProvisionedProjects,
+} from "./file-server";
 import { initHttp, addCatchAll } from "./web";
 import { initSqlite } from "./sqlite/init";
 import { getProjectPorts } from "./sqlite/projects";
@@ -29,6 +33,7 @@ import { init as initChangefeeds } from "@cocalc/lite/hub/changefeeds";
 import { init as initHubApi } from "@cocalc/lite/hub/api";
 import { wireProjectsApi } from "./hub/projects";
 import { startMasterRegistration } from "./master";
+import { queueProvisionedInventory } from "./master-status";
 import { startReconciler } from "./reconcile";
 import { init as initAcp } from "@cocalc/lite/hub/acp";
 import { setContainerExec } from "@cocalc/lite/hub/acp/executor/container";
@@ -228,6 +233,13 @@ export async function main(
   } catch (err) {
     logger.error("FATAL: Failed to init file server", err);
     process.exit(1);
+  }
+
+  try {
+    const projectIds = await listProvisionedProjects();
+    queueProvisionedInventory(projectIds);
+  } catch (err) {
+    logger.warn("failed to report provisioned inventory", { err: `${err}` });
   }
 
   const stopCopyWorker = startCopyWorker();

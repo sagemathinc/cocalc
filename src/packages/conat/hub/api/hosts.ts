@@ -114,9 +114,10 @@ export interface HostProviderCapabilities {
 
 export interface HostBackupStatus {
   total: number;
+  provisioned: number;
   running: number;
-  up_to_date: number;
-  needs_backup: number;
+  provisioned_up_to_date: number;
+  provisioned_needs_backup: number;
 }
 
 export interface HostCatalog {

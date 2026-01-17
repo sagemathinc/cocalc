@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { delay } from "awaiting";
 import getLogger from "@cocalc/backend/logger";
 import { conat } from "@cocalc/backend/conat";
-import { client as fileServerClient } from "@cocalc/conat/files/file-server";
 import getPool from "@cocalc/database/pool";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
 import { waitForCompletion as waitForLroCompletion } from "@cocalc/conat/lro/client";
@@ -37,7 +36,6 @@ const BACKUP_PARALLEL = 2;
 const BACKUP_WAIT_MS = 6 * 60 * 60 * 1000;
 const BACKUP_PROGRESS_MAX = 60;
 const BACKUP_LRO_KIND = "project-backup";
-const VOLUME_CHECK_PARALLEL = 5;
 
 const HOST_OP_KINDS = [
   "host-start",
@@ -67,6 +65,7 @@ type HostProjectRow = {
   last_edited: Date | null;
   last_backup: Date | null;
   state: { state?: string } | null;
+  provisioned?: boolean | null;
 };
 
 type BackupCandidate = {
@@ -215,7 +214,7 @@ async function waitForHostHeartbeat({
 async function loadHostProjects(host_id: string): Promise<HostProjectRow[]> {
   const { rows } = await getPool().query<HostProjectRow>(
     `
-      SELECT project_id, last_edited, last_backup, state
+      SELECT project_id, last_edited, last_backup, state, provisioned
       FROM projects
       WHERE host_id=$1
         AND deleted IS NOT true
@@ -234,6 +233,9 @@ function needsBackup(row: HostProjectRow): BackupCandidate | undefined {
   if (isProjectRunning(state)) {
     return { project_id: row.project_id, reason: "running" };
   }
+  if (!row.provisioned) {
+    return undefined;
+  }
   const lastEdited = row.last_edited ? new Date(row.last_edited).getTime() : 0;
   const lastBackup = row.last_backup ? new Date(row.last_backup).getTime() : 0;
   if (!lastEdited) {
@@ -243,37 +245,6 @@ function needsBackup(row: HostProjectRow): BackupCandidate | undefined {
     return { project_id: row.project_id, reason: "dirty" };
   }
   return undefined;
-}
-
-async function filterCandidatesWithVolumes(
-  candidates: BackupCandidate[],
-): Promise<{ available: BackupCandidate[]; skipped: string[] }> {
-  const available: BackupCandidate[] = [];
-  const skipped: string[] = [];
-  const queue = [...candidates];
-
-  const worker = async () => {
-    while (queue.length) {
-      const next = queue.shift();
-      if (!next) return;
-      const fs = fileServerClient({ project_id: next.project_id, timeout: 10_000 });
-      const exists = await fs.volumeExists({ project_id: next.project_id });
-      if (exists) {
-        available.push(next);
-      } else {
-        skipped.push(next.project_id);
-      }
-    }
-  };
-
-  const workers = Array.from(
-    { length: Math.min(VOLUME_CHECK_PARALLEL, candidates.length) },
-    () => worker(),
-  );
-
-  await Promise.all(workers);
-
-  return { available, skipped };
 }
 
 async function createProjectBackupOp({
@@ -334,16 +305,37 @@ async function ensureHostBackups({
     throw new HostOpCanceledError();
   }
   const projects = await loadHostProjects(host_id);
+  const assigned = projects.length;
+  const provisioned = projects.filter((row) => row.provisioned).length;
+  const running = projects.filter((row) =>
+    isProjectRunning(row.state?.state ?? null),
+  ).length;
+  const skippedUnprovisioned = projects.filter(
+    (row) => !row.provisioned && !isProjectRunning(row.state?.state ?? null),
+  ).length;
   const candidates = projects
     .map((row) => needsBackup(row))
     .filter((row): row is BackupCandidate => !!row);
   if (!candidates.length) {
+    if (assigned) {
+      await progressStep("backups", "backups not needed", {
+        host_id,
+        assigned,
+        provisioned,
+        running,
+        skipped_unprovisioned: skippedUnprovisioned,
+      });
+    }
     return;
   }
 
   if (skip_backups) {
     await progressStep("backups", "backups skipped", {
       host_id,
+      assigned,
+      provisioned,
+      running,
+      skipped_unprovisioned: skippedUnprovisioned,
       total: candidates.length,
       skipped: candidates.length,
     });
@@ -356,24 +348,7 @@ async function ensureHostBackups({
     throw new Error("host is not running; use force to skip backups");
   }
 
-  const { available, skipped } = await filterCandidatesWithVolumes(candidates);
-  if (skipped.length) {
-    logger.info("host backup skip: missing project volumes", {
-      host_id,
-      count: skipped.length,
-    });
-  }
-  if (!available.length) {
-    await progressStep("backups", "backups skipped (no local data)", {
-      host_id,
-      total: candidates.length,
-      skipped: candidates.length,
-      skipped_missing: skipped.length,
-    });
-    return;
-  }
-
-  const total = available.length;
+  const total = candidates.length;
   let completed = 0;
   let failed = 0;
 
@@ -382,16 +357,21 @@ async function ensureHostBackups({
     const progress = total
       ? Math.round((done / total) * BACKUP_PROGRESS_MAX)
       : 0;
-    const skippedNote = skipped.length ? ` (skipped ${skipped.length})` : "";
+    const skippedNote = skippedUnprovisioned
+      ? ` (skipped ${skippedUnprovisioned})`
+      : "";
     await progressStep(
       "backups",
       `backups ${done}/${total}${skippedNote}`,
       {
         host_id,
+        assigned,
+        provisioned,
+        running,
         total,
         completed,
         failed,
-        skipped_missing: skipped.length,
+        skipped_unprovisioned: skippedUnprovisioned,
       },
       progress,
     );
@@ -399,7 +379,7 @@ async function ensureHostBackups({
 
   await updateProgress();
 
-  const queue = [...available];
+  const queue = [...candidates];
   let abortError: Error | null = null;
   const worker = async () => {
     while (queue.length && !abortError) {
