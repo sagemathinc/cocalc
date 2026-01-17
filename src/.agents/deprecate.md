@@ -4,7 +4,8 @@ Goal: Complete remove all code and functionality for the following:
 
 - [ ] share server \-\- but we would need to replace it with something first
 - [ ] public paths allowing viewing by non\-collabs in the frontend; deprecated but code remains \("is\_public"\)
-- [ ] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
+- [x] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
+- [ ] jquery ui
 - [x] payg LLM purchases; we still must track usage and costs for throttling and analytic, but nothing regarding actual transactions/billing shown to users.
 - [x] the jupyter pool.
 - [x] replace "home base" terminology with "the workspace" \(final cleanup after compute server removal\)
@@ -23,7 +24,7 @@ Goal: Complete remove all code and functionality for the following:
 - [x] dedicated\_vms and dedicated\_disks
 - [x] rename: "Project" \-\-&gt; "Workspace" in frontend UI
 
-## Remove Sage Worksheets (auto-convert to ipynb on open)
+## (done) Remove Sage Worksheets (auto-convert to ipynb on open)
 
 Scope: opening a `.sagews` converts it to `.ipynb` if needed, then opens the
 notebook. Keep the `.sagews` file; no additional SageWS UI changes yet.

@@ -77,6 +77,4 @@ const MyButton: React.FC<MyButtonProps> = (props) => {
   - NOTE: We wrote a lot of custom components, e.g., for number input, before switching fully to Antd, and those are still partly in use. Rewrite all of that to use Antd.
 
 - Bootstrap:
-  - CoCalc used to use jquery + bootstrap (way before react even existed!) for everything, and that's still in use for some things today (e.g., Sage Worksheets). Rewrite or delete all this.
   - CoCalc also used to use react-bootstrap, and sadly still does. Get rid of this.
-

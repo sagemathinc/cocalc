@@ -4,7 +4,7 @@
 
 #### <u>_**Co**_</u>_llaborative_ <u>_**Calc**_</u>_ulation_
 
-CoCalc is web-based software that enables collaboration in research, teaching, and scientific publishing. It includes [Jupyter Notebooks](https://cocalc.com/features/jupyter-notebook), [Sage Worksheets](https://cocalc.com/features/sage), a [LaTeX Editor](https://cocalc.com/features/latex-editor) and a [Linux Terminal](https://cocalc.com/features/terminal) to help people work together in real time from different locations. It also has a [Computational Whiteboard](https://cocalc.com/features/whiteboard) for expressing and sharing ideas and running code. It is available for free and [can be upgraded for internet access, better hosting quality, and other features](https://cocalc.com/store). It can also be used for [teaching courses](https://cocalc.com/features/teaching) with flexible [course license options](https://cocalc.com/pricing/courses). It is also possible to run CoCalc [on your own infrastructure](https://cocalc.com/pricing/onprem).
+CoCalc is web-based software that enables collaboration in research, teaching, and scientific publishing. It includes [Jupyter Notebooks](https://cocalc.com/features/jupyter-notebook), [SageMath](https://cocalc.com/features/sage), a [LaTeX Editor](https://cocalc.com/features/latex-editor) and a [Linux Terminal](https://cocalc.com/features/terminal) to help people work together in real time from different locations. It also has a [Computational Whiteboard](https://cocalc.com/features/whiteboard) for expressing and sharing ideas and running code. It is available for free and [can be upgraded for internet access, better hosting quality, and other features](https://cocalc.com/store). It can also be used for [teaching courses](https://cocalc.com/features/teaching) with flexible [course license options](https://cocalc.com/pricing/courses). It is also possible to run CoCalc [on your own infrastructure](https://cocalc.com/pricing/onprem).
 
 **CoCalc** supports sophisticated calculations that arise in teaching, research, and authoring documents. This includes working with the full data science and scientific Python stack, [SageMath](https://www.sagemath.org), [Julia](https://julialang.org), [R Statistics](https://cocalc.com/doc/r-statistical-software.html), [Octave](https://www.gnu.org/software/octave/), and much more. It also offers capabilities to author documents in [LaTeX](https://cocalc.com/doc/latex-editor.html), R/knitr and Markdown, storing and organizing files, a web-based [Linux Terminal](https://doc.cocalc.com/terminal.html), an [X11 graphical desktop](https://doc.cocalc.com/x11.html), and communication tools like a [chatrooms](https://doc.cocalc.com/chat.html), [course management](https://cocalc.com/doc/teaching.html) and more. It is the best choice for [teaching remote scientific courses](https://cocalc.com/doc/teaching.html).
 
@@ -13,13 +13,13 @@ CoCalc is web-based software that enables collaboration in research, teaching, a
 1. Visit https://cocalc.com
 2. Sign up for a free account
 3. Create a new project
-4. Choose a computational environment (e.g., Jupyter Notebook, Sage Worksheet, LaTeX Editor)
+4. Choose a computational environment (e.g., Jupyter Notebook, SageMath, LaTeX Editor)
 5. Start collaborating with others in real-time
 
 ## Key Features
 
 - **Jupyter Notebooks**: Interactive Python, R, and Julia environments
-- **Sage Worksheets**: Powerful mathematical computations
+- **SageMath**: Powerful mathematical computations
 - **LaTeX Editor**: Collaborative document creation with real-time preview
 - **Linux Terminal**: Full command-line access
 - **Computational Whiteboard**: Visual collaboration and code execution
