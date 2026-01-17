@@ -9,6 +9,8 @@ import type {
   HostSoftwareUpgradeResponse,
   HostLroResponse,
   HostLroKind,
+  HostProjectRow,
+  HostProjectsResponse,
 } from "@cocalc/conat/hub/api/hosts";
 import type { ProjectCopyRow, ProjectCopyState } from "@cocalc/conat/hub/api/projects";
 import getLogger from "@cocalc/backend/logger";
@@ -75,6 +77,9 @@ const HOST_DELETE_LRO_KIND = "host-delete";
 const HOST_FORCE_DEPROVISION_LRO_KIND = "host-force-deprovision";
 const HOST_REMOVE_CONNECTOR_LRO_KIND = "host-remove-connector";
 const logger = getLogger("server:conat:api:hosts");
+
+const HOST_PROJECTS_DEFAULT_LIMIT = 200;
+const HOST_PROJECTS_MAX_LIMIT = 5000;
 
 function logStatusUpdate(id: string, status: string, source: string) {
   const stack = new Error().stack;
@@ -236,6 +241,74 @@ async function loadHostForStartStop(
     return row;
   }
   throw new Error("not authorized");
+}
+
+async function loadHostForListing(
+  id: string,
+  account_id?: string,
+): Promise<any> {
+  const owner = requireAccount(account_id);
+  const { rows } = await pool().query(
+    `SELECT * FROM project_hosts WHERE id=$1 AND deleted IS NULL`,
+    [id],
+  );
+  const row = rows[0];
+  if (!row) {
+    throw new Error("host not found");
+  }
+  if (await isAdmin(owner)) {
+    return row;
+  }
+  const metadata = row.metadata ?? {};
+  const isOwner = metadata.owner === owner;
+  if (isOwner) return row;
+  const collaborators = (metadata.collaborators ?? []) as string[];
+  const isCollab = collaborators.includes(owner);
+  if (isCollab && !!metadata.host_collab_control) {
+    return row;
+  }
+  throw new Error("not authorized");
+}
+
+type HostProjectsCursor = {
+  last_edited: string | null;
+  project_id: string;
+};
+
+function encodeHostProjectsCursor(cursor: HostProjectsCursor): string {
+  return Buffer.from(JSON.stringify(cursor), "utf8").toString("base64");
+}
+
+function decodeHostProjectsCursor(cursor: string): HostProjectsCursor {
+  try {
+    const parsed = JSON.parse(
+      Buffer.from(cursor, "base64").toString("utf8"),
+    ) as HostProjectsCursor;
+    if (!parsed?.project_id) {
+      throw new Error("missing project_id");
+    }
+    return {
+      project_id: String(parsed.project_id),
+      last_edited:
+        parsed.last_edited == null ? null : String(parsed.last_edited),
+    };
+  } catch (err) {
+    throw new Error(`invalid cursor: ${err}`);
+  }
+}
+
+function normalizeHostProjectsLimit(limit?: number): number {
+  if (!limit || Number.isNaN(limit)) {
+    return HOST_PROJECTS_DEFAULT_LIMIT;
+  }
+  return Math.max(1, Math.min(HOST_PROJECTS_MAX_LIMIT, Math.floor(limit)));
+}
+
+function normalizeDate(value: any): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.valueOf())) return null;
+  return date.toISOString();
 }
 
 async function markHostActionPending(id: string, action: string) {
@@ -502,6 +575,127 @@ export async function listHosts({
     );
   }
   return result;
+}
+
+export async function listHostProjects({
+  account_id,
+  id,
+  limit,
+  cursor,
+  risk_only,
+}: {
+  account_id?: string;
+  id: string;
+  limit?: number;
+  cursor?: string;
+  risk_only?: boolean;
+}): Promise<HostProjectsResponse> {
+  const host = await loadHostForListing(id, account_id);
+  const cappedLimit = normalizeHostProjectsLimit(limit);
+  const needsBackupSql = `
+    COALESCE(state->>'state', '') IN ('running','starting')
+    OR (
+      provisioned IS TRUE
+      AND (
+        last_backup IS NULL
+        OR (last_edited IS NOT NULL AND last_edited > last_backup)
+      )
+    )
+  `;
+
+  const params: any[] = [id];
+  const filters: string[] = ["deleted IS NOT true", "host_id = $1"];
+
+  if (risk_only) {
+    filters.push(`(${needsBackupSql})`);
+  }
+
+  if (cursor) {
+    const decoded = decodeHostProjectsCursor(cursor);
+    const cursorDate =
+      decoded.last_edited == null ? new Date(0) : new Date(decoded.last_edited);
+    if (Number.isNaN(cursorDate.valueOf())) {
+      throw new Error("invalid cursor timestamp");
+    }
+    params.push(cursorDate);
+    params.push(decoded.project_id);
+    filters.push(
+      `(COALESCE(last_edited, to_timestamp(0)) < $${
+        params.length - 1
+      } OR (COALESCE(last_edited, to_timestamp(0)) = $${
+        params.length - 1
+      } AND project_id < $${params.length}))`,
+    );
+  }
+
+  params.push(cappedLimit + 1);
+  const whereClause = filters.length ? `WHERE ${filters.join(" AND ")}` : "";
+  const { rows } = await pool().query<{
+    project_id: string;
+    title: string | null;
+    state: string | null;
+    provisioned: boolean | null;
+    last_edited: Date | null;
+    last_backup: Date | null;
+    needs_backup: boolean;
+    collab_count: string;
+  }>(
+    `
+      SELECT
+        project_id,
+        LEFT(COALESCE(title, ''), 80) AS title,
+        COALESCE(state->>'state', '') AS state,
+        provisioned,
+        last_edited,
+        last_backup,
+        (${needsBackupSql}) AS needs_backup,
+        COALESCE(jsonb_object_length(users), 0) AS collab_count
+      FROM projects
+      ${whereClause}
+      ORDER BY COALESCE(last_edited, to_timestamp(0)) DESC, project_id DESC
+      LIMIT $${params.length}
+    `,
+    params,
+  );
+
+  let next_cursor: string | undefined;
+  let trimmed = rows;
+  if (rows.length > cappedLimit) {
+    trimmed = rows.slice(0, cappedLimit);
+    const last = trimmed[trimmed.length - 1];
+    next_cursor = encodeHostProjectsCursor({
+      project_id: last.project_id,
+      last_edited: normalizeDate(last.last_edited),
+    });
+  }
+
+  const summaryMap = await loadHostBackupStatus([id]);
+  const summary =
+    summaryMap.get(id) ?? {
+      total: 0,
+      provisioned: 0,
+      running: 0,
+      provisioned_up_to_date: 0,
+      provisioned_needs_backup: 0,
+    };
+
+  const resultRows: HostProjectRow[] = trimmed.map((row) => ({
+    project_id: row.project_id,
+    title: row.title ?? "",
+    state: row.state ?? "",
+    provisioned: row.provisioned ?? null,
+    last_edited: normalizeDate(row.last_edited),
+    last_backup: normalizeDate(row.last_backup),
+    needs_backup: !!row.needs_backup,
+    collab_count: Number(row.collab_count ?? 0),
+  }));
+
+  return {
+    rows: resultRows,
+    summary,
+    next_cursor,
+    host_last_seen: normalizeDate(host.last_seen) ?? undefined,
+  };
 }
 
 export async function getCatalog({
