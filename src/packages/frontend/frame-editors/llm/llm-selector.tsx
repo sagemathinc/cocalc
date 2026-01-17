@@ -75,7 +75,7 @@ export default function LLMSelector({
   project_id,
 }: Props) {
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
-  const llm_markup = useTypedRedux("customize", "llm_markup");
+  const llm_markup = 0;
   const user_llm = useUserDefinedLLM();
 
   // ATTN: you cannot use useProjectContext because this component is used outside a project context

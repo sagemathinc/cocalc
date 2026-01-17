@@ -2,7 +2,6 @@
 Return model usage costs for UI display (throttling units).
 */
 
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { UNITS_PER_DOLLAR } from "@cocalc/server/llm/usage-units";
 import {
   LLM_COST,
@@ -27,7 +26,6 @@ async function get(req) {
     throw Error("must be signed in");
   }
 
-  const { pay_as_you_go_openai_markup_percentage } = await getServerSettings();
   const models: Record<
     string,
     {
@@ -41,7 +39,7 @@ async function get(req) {
   > = {};
 
   for (const model of USER_SELECTABLE_LANGUAGE_MODELS) {
-    const cost = getLLMCost(model, pay_as_you_go_openai_markup_percentage ?? 0);
+    const cost = getLLMCost(model, 0);
     const prompt_cost_per_1k = cost.prompt_tokens * 1000;
     const completion_cost_per_1k = cost.completion_tokens * 1000;
     models[model] = {

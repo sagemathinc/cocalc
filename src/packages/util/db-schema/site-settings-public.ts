@@ -48,10 +48,6 @@ export function buildPublicSiteSettings(all: Record<string, any>): {
     configuration[key] = value;
   }
 
-  if (all.pay_as_you_go_openai_markup_percentage != null) {
-    configuration._llm_markup = all.pay_as_you_go_openai_markup_percentage;
-  }
-
   const recommended =
     typeof configuration.version_recommended_browser === "number"
       ? configuration.version_recommended_browser
