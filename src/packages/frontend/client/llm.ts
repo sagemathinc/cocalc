@@ -8,10 +8,7 @@ import { EventEmitter } from "events";
 import { redux } from "@cocalc/frontend/app-framework";
 import {
   LanguageModel,
-  LanguageServiceCore,
   getSystemPrompt,
-  isFreeModel,
-  model2service,
 } from "@cocalc/util/db-schema/llm-utils";
 import type { WebappClient } from "./client";
 import type { History } from "./types";
@@ -110,29 +107,6 @@ export class LLMClient {
     if (!alwaysEnglish && locale != "en") {
       const lang = LOCALIZATIONS[locale].name; // name is always in english
       system = `${system}\n\nYour answer must be written in the language ${lang}.`;
-    }
-
-    const is_cocalc_com = redux.getStore("customize").get("is_cocalc_com");
-
-    if (!isFreeModel(model, is_cocalc_com)) {
-      // Ollama and others are treated as "free"
-      const service = model2service(model) as LanguageServiceCore;
-      // when client gets non-free openai model request, check if allowed.  If not, show quota modal.
-      const { allowed, reason } =
-        await this.client.purchases_client.isPurchaseAllowed(service);
-
-      if (!allowed) {
-        await this.client.purchases_client.quotaModal({
-          service,
-          reason,
-          allowed,
-        });
-      }
-      // Now check again after modal dismissed...
-      const x = await this.client.purchases_client.isPurchaseAllowed(service);
-      if (!x.allowed) {
-        throw Error(reason);
-      }
     }
 
     // do not import until needed -- it is HUGE!

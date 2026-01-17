@@ -15,7 +15,6 @@ import { PurchaseInfo } from "@cocalc/util/purchases/quota/types";
 import { CREATED_BY, ID } from "./crm";
 import type { MembershipClass } from "./subscriptions";
 import { SCHEMA as schema } from "./index";
-import { LanguageServiceCore } from "./llm-utils";
 import type { CourseInfo } from "./projects";
 import { Table } from "./types";
 import type { LineItem } from "@cocalc/util/stripe/types";
@@ -55,9 +54,9 @@ export type Reason =
 // The general categories of services we offer.  These must
 // be at most 127 characters, and users can set an individual
 // monthly quota on each one in purchase-quotas.
-// The service names for openai are of the form "openai-[model name]"
+// The service names are user-facing purchase categories.
 
-// Non-LLM services we bill for.
+// Services we bill for.
 export type ComputeService =
   | "credit"
   | "auto-credit"
@@ -65,19 +64,7 @@ export type ComputeService =
   | "membership"
   | "student-pay"
   | "voucher";
-
-// NOTE: we keep Codex under the openai prefix since it uses OpenAI billing.
-export type CodexService = "openai-codex-agent";
-
-export type Service = LanguageServiceCore | ComputeService | CodexService;
-
-export interface LLMDescription {
-  type: LanguageServiceCore;
-  prompt_tokens: number;
-  completion_tokens: number;
-  amount?: MoneyValue; // appears in purchses/close.ts
-  last_updated?: number; // also in purchases/close.ts, a timestamp (Date.valueOf())
-}
+export type Service = ComputeService;
 
 
 export interface Membership {
@@ -127,7 +114,6 @@ export interface Refund {
 }
 
 export type Description =
-  | LLMDescription
   | Credit
   | Refund
   | Membership
@@ -221,7 +207,7 @@ Table({
     },
     service: {
       title: "Service Category",
-      desc: "The service being charged for, e.g., openai-gpt-4, etc.",
+      desc: "The service being charged for, e.g., membership, voucher, etc.",
       type: "string",
       pg_type: "varchar(127)",
     },

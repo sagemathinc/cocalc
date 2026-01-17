@@ -21,7 +21,6 @@ import { useEffect, useRef, useState } from "react";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { getServiceCosts } from "@cocalc/frontend/purchases/api";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { service2model_core } from "@cocalc/util/db-schema/llm-utils";
 import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { moneyToCurrency, toDecimal, type MoneyValue } from "@cocalc/util/money";
 import { COLORS } from "@cocalc/util/theme";
@@ -33,7 +32,6 @@ import { SectionDivider } from "./util";
 export const QUOTA_LIMIT_ICON_NAME: IconName = "ColumnHeightOutlined";
 
 export const PRESETS = [0, 25, 100, 2000];
-export const PRESETS_LLM = [0, 5, 10, 20];
 export const STEP = 5;
 
 interface ServiceQuota {
@@ -72,11 +70,6 @@ export default function AllQuotasConfig() {
     for (const service in QUOTA_SPEC) {
       const spec = QUOTA_SPEC[service];
       if (spec.noSet) continue;
-      const llmModel = service2model_core(service);
-      if (llmModel != null) {
-        // LLM usage is no longer pay-as-you-go; hide all LLM services here.
-        continue;
-      }
       const defaultQuota = 0;
       w[service] = {
         current: charges[service] ?? 0,
@@ -154,14 +147,12 @@ export default function AllQuotasConfig() {
       dataIndex: "quota",
       align: "center" as "center",
       render: (quota: MoneyValue, _record: ServiceQuota, index: number) => {
-        const isLLM = QUOTA_SPEC[_record.service]?.category === "ai";
-        const presets = isLLM ? PRESETS_LLM : PRESETS;
         const quotaValue = toDecimal(quota ?? 0).toNumber();
 
         return (
           <Dropdown
             menu={{
-              items: presets.map((preset) => ({
+              items: PRESETS.map((preset) => ({
                 key: preset.toString(),
                 label: `$${preset}`,
                 onClick: () => {
