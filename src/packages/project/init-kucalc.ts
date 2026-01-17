@@ -3,8 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { init as initJupyterPool } from "@cocalc/jupyter/pool/pool";
-import { init as initJupyterPoolParams } from "@cocalc/jupyter/pool/pool-params";
 import { activate as initAutorenice } from "./autorenice";
 import { getOptions } from "./init-program";
 import * as initScript from "./init-script";
@@ -36,11 +34,5 @@ export default async function init() {
     sshd.init(envVars);
   }
 
-  // this must come after projectSetup.set_extra_env !
-  initJupyterPoolParams();
-
   initScript.run();
-
-  // this has to come after setting env vars and intializing the pool params
-  initJupyterPool();
 }

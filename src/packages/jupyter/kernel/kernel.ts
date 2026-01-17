@@ -15,9 +15,6 @@ $ node
 
 */
 
-// POOL VERSION - faster to restart but possible subtle issues
-const USE_KERNEL_POOL = true;
-
 // const DEBUG = true; // only for extreme debugging.
 const DEBUG = false; // normal mode
 if (DEBUG) {
@@ -34,6 +31,7 @@ import { callback } from "awaiting";
 import type { MessageType } from "@cocalc/jupyter/zmq/types";
 import { jupyterSockets, type JupyterSockets } from "@cocalc/jupyter/zmq";
 import { EventEmitter } from "node:events";
+import { existsSync, unlinkSync } from "node:fs";
 import {
   CodeExecutionEmitterInterface,
   ExecOpts,
@@ -65,10 +63,7 @@ import {
 import launchJupyterKernel, {
   LaunchJupyterOpts,
   SpawnedKernel,
-  killKernel,
-} from "@cocalc/jupyter/pool/pool";
-// non-pool version
-import launchJupyterKernelNoPool from "@cocalc/jupyter/kernel/launch-kernel";
+} from "@cocalc/jupyter/kernel/launch-kernel";
 import { kernels } from "./kernels";
 import { getAbsolutePathFromHome } from "@cocalc/jupyter/util/fs";
 import type { KernelParams } from "@cocalc/jupyter/types/kernel";
@@ -84,6 +79,33 @@ import { base64ToBuffer } from "@cocalc/util/base64";
 const MAX_KERNEL_SPAWN_TIME = 120 * 1000;
 
 const logger = getLogger("jupyter:kernel");
+
+function killKernel(kernel: SpawnedKernel) {
+  try {
+    kernel.spawn?.removeAllListeners?.();
+  } catch {
+    // best effort cleanup
+  }
+  try {
+    if (kernel.spawn?.pid) {
+      process.kill(-kernel.spawn.pid, "SIGTERM");
+    }
+  } catch {
+    // best effort cleanup
+  }
+  try {
+    kernel.spawn?.kill?.("SIGTERM");
+  } catch {
+    // best effort cleanup
+  }
+  if (kernel.connectionFile && existsSync(kernel.connectionFile)) {
+    try {
+      unlinkSync(kernel.connectionFile);
+    } catch {
+      // best effort cleanup
+    }
+  }
+}
 
 // We make it so nbconvert functionality can be dynamically enabled
 // by calling this at runtime.  The reason is because some users of
@@ -341,12 +363,6 @@ export class JupyterKernel
     const dbg = this.dbg("spawn");
     dbg("spawning kernel...");
 
-    // ****
-    // CRITICAL: anything added to opts better not be specific
-    // to the kernel path or it will completely break using a
-    // pool, which makes things massively slower.
-    // ****
-
     const opts: LaunchJupyterOpts = {
       env: spawn_opts?.env ?? {},
       ulimit: this.ulimit,
@@ -370,9 +386,6 @@ export class JupyterKernel
     opts.env.PLOTLY_RENDERER = "colab";
     opts.env.COCALC_JUPYTER_KERNELNAME = this.name;
 
-    // !!! WARNING: do NOT add anything new here that depends on that path!!!!
-    // Otherwise the pool will switch to falling back to not being used, and
-    // cocalc would then be massively slower.
     // Non-uniform customization.
     // launchJupyterKernel is explicitly smart enough to deal with opts.cwd
     if (this._directory) {
@@ -383,13 +396,8 @@ export class JupyterKernel
     // and launchJupyterKernel is NOT smart enough to deal with anything else!
 
     try {
-      if (USE_KERNEL_POOL) {
-        dbg("launching Jupyter kernel, possibly from pool");
-        this._kernel = await launchJupyterKernel(this.name, opts);
-      } else {
-        dbg("launching Jupyter kernel, NOT using pool");
-        this._kernel = await launchJupyterKernelNoPool(this.name, opts);
-      }
+      dbg("launching Jupyter kernel");
+      this._kernel = await launchJupyterKernel(this.name, opts);
       dbg("finishing kernel setup");
       await this.finishSpawningKernel();
     } catch (err) {

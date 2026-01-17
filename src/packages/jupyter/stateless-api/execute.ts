@@ -19,7 +19,7 @@ export default async function apiExecute(opts: ProjectJupyterApiOptions) {
   log.debug(opts);
   let kernel: undefined | Kernel = undefined;
   try {
-    kernel = await Kernel.getFromPool(opts.kernel, opts.pool);
+    kernel = await Kernel.create(opts.kernel);
     const outputs: object[] = [];
 
     if (opts.path != null) {

@@ -224,8 +224,22 @@ const spawned: any[] = [];
 export function closeAll() {
   for (const child of spawned) {
     if (child.pid) {
-      process.kill(-child.pid, "SIGKILL");
-      child.kill("SIGKILL");
+      try {
+        process.kill(-child.pid, "SIGKILL");
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException)?.code;
+        if (code !== "ESRCH") {
+          throw err;
+        }
+      }
+      try {
+        child.kill("SIGKILL");
+      } catch (err) {
+        const code = (err as NodeJS.ErrnoException)?.code;
+        if (code !== "ESRCH") {
+          throw err;
+        }
+      }
     }
   }
   spawned.length = 0;

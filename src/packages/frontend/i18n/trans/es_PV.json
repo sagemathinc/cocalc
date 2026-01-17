@@ -850,7 +850,7 @@
   "jupyter.editor.confirm_halt_kernel.continue": "Jarraitu exekutatzen",
   "jupyter.editor.confirm_halt_kernel.halt": "Gelditu",
   "jupyter.editor.confirm_halt_kernel.title": "Gelditu nukleo?",
-  "jupyter.editor.confirm_restart.body": "Berrabiarazi nahi duzu nukleoa? Aldagai guztien balioak galduko dira. Pakete berri bat detektatzeko berrabiarazi baduzu, berrabiarazi *birritan* nukleoen igerilekuarengatik.",
+  "jupyter.editor.confirm_restart.body": "Berrabiarazi nahi duzu nukleoa? Aldagai guztien balioak galduko dira.",
   "jupyter.editor.confirm_restart.continue_label": "Jarraitu exekutatzen",
   "jupyter.editor.confirm_restart.label": "Berrabiarazi",
   "jupyter.editor.confirm_restart.title": "Berrabiarazi nukleo?",
