@@ -43,10 +43,11 @@ LLM usage logging + throttling intact. Clean break; no legacy purchase rendering
    quota handling.  
    Targets: [src/packages/server/purchases/is-purchase-allowed.ts](./src/packages/server/purchases/is-purchase-allowed.ts), [src/packages/server/purchases/purchase-quotas.ts](./src/packages/server/purchases/purchase-quotas.ts), [src/packages/server/purchases/get-service-cost.ts](./src/packages/server/purchases/get-service-cost.ts), [src/packages/server/purchases/get-service-cost.test.ts](./src/packages/server/purchases/get-service-cost.test.ts), [src/packages/server/purchases/is-purchase-allowed.test.ts](./src/packages/server/purchases/is-purchase-allowed.test.ts).
 
-4. **Remove LLM purchase API surfaces + frontend calls.**  
+4. **Remove LLM purchase API surfaces + add model cost endpoint.**  
    Drop any API endpoints and client calls related to LLM purchases/quotas while
-   keeping the LLM usage status endpoint.  
-   Targets: [src/packages/frontend/purchases/api.ts](./src/packages/frontend/purchases/api.ts), [src/packages/next/pages/api/v2/purchases](./src/packages/next/pages/api/v2/purchases), [src/packages/next/pages/api/v2/purchases/get-llm-usage.ts](./src/packages/next/pages/api/v2/purchases/get-llm-usage.ts).
+   keeping the LLM usage status endpoint. Add a clean endpoint that exposes
+   model usage weights/costs for UI display.  
+   Targets: [src/packages/frontend/purchases/api.ts](./src/packages/frontend/purchases/api.ts), [src/packages/next/pages/api/v2/purchases](./src/packages/next/pages/api/v2/purchases), [src/packages/next/pages/api/v2/purchases/get-llm-usage.ts](./src/packages/next/pages/api/v2/purchases/get-llm-usage.ts), [src/packages/next/pages/api/v2/llm/model-costs.ts](./src/packages/next/pages/api/v2/llm/model-costs.ts).
 
 5. **Remove payg LLM settings.**  
    Remove `llm_default_quota` and `pay_as_you_go_openai_markup_percentage` from
