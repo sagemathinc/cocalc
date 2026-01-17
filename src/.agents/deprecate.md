@@ -2,7 +2,7 @@
 
 Goal: Complete remove all code and functionality for the following:
 
-- [ ] jquery ui
+- [x] jquery ui
 - [ ] public paths allowing viewing by non\-collabs in the frontend; deprecated but code remains \("is\_public"\)
 - [ ] examples/snippets submodule \(src/examples\)
 - [ ] terminal guide panel
