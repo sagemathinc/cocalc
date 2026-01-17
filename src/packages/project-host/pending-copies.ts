@@ -8,6 +8,7 @@ import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { getMasterConatClient } from "./master-status";
 import { getLocalHostId } from "./sqlite/hosts";
 import callHub from "@cocalc/conat/hub/call-hub";
+import { touchProjectLastEdited } from "./last-edited";
 import {
   ensureVolume,
   getVolume,
@@ -114,6 +115,7 @@ async function applyCopyRow(row: ProjectCopyRow): Promise<void> {
       recursive: row.options?.recursive ?? true,
       reflink: true,
     });
+    void touchProjectLastEdited(row.dest_project_id, "pending-copy");
   } finally {
     await rm(stagingRoot, { recursive: true, force: true }).catch(() => {});
   }

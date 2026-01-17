@@ -16,6 +16,7 @@ export async function localPathFileserver({
   client,
   project_id,
   unsafeMode,
+  onMutation,
 }: {
   service?: string;
   client?: Client;
@@ -27,6 +28,7 @@ export async function localPathFileserver({
   // - if path not given, connect to the file-server service on the conat network.
   path?: string;
   unsafeMode?: boolean;
+  onMutation?: (opts: { subject: string; op: string; path?: string }) => void | Promise<void>;
 } = {}) {
   logger.debug("localPathFileserver", {
     service,
@@ -69,6 +71,7 @@ export async function localPathFileserver({
         host: project_id,
       });
     },
+    onMutation,
   });
   logger.debug("created fsServer...", { service });
   return { server, client, path, service, close: () => server.close() };

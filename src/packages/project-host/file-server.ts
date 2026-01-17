@@ -60,6 +60,7 @@ import {
   type RusticProgressUpdate,
 } from "@cocalc/file-server/btrfs/rustic-progress";
 import { publishLroEvent } from "@cocalc/conat/lro/stream";
+import { touchProjectLastEdited } from "./last-edited";
 
 type SshTarget = { type: "project"; project_id: string };
 
@@ -416,6 +417,7 @@ async function cp({
     destPath,
     { ...options, reflink: true },
   );
+  void touchProjectLastEdited(dest.project_id, "cp");
 }
 
 // Snapshots
@@ -595,6 +597,7 @@ async function restoreBackup({
         : undefined,
     },
   );
+  void touchProjectLastEdited(project_id, "restore-backup");
 }
 
 async function beginRestoreStaging({
@@ -628,6 +631,7 @@ async function finalizeRestoreStaging({
   handle: RestoreStagingHandle;
 }): Promise<void> {
   await finalizeRestoreStagingBtrfs(handle);
+  void touchProjectLastEdited(handle.project_id, "restore-staging");
 }
 
 async function releaseRestoreStaging({
@@ -739,6 +743,10 @@ export async function initFsServer({
       const project_id = projectIdFromSubject(subject);
       const { path } = await getVolume(project_id);
       return new SandboxedFilesystem(path, { host: project_id });
+    },
+    onMutation: ({ subject, op }) => {
+      const project_id = projectIdFromSubject(subject);
+      void touchProjectLastEdited(project_id, `fs:${op}`);
     },
   });
 }

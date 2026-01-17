@@ -14,6 +14,7 @@ import { mountArg } from "@cocalc/backend/podman";
 import { getEnvironment } from "@cocalc/project-runner/run/env";
 import { getCoCalcMounts } from "@cocalc/project-runner/run/mounts";
 import { getProject } from "./sqlite/projects";
+import { touchProjectLastEdited } from "./last-edited";
 
 const logger = getLogger("project-host:codex-project");
 const CONTAINER_TTL_MS = Number(
@@ -188,7 +189,11 @@ export function initCodexProjectRunner(): void {
         stdio: ["pipe", "pipe", "pipe"],
       });
       proc.on("exit", async () => {
-        await release();
+        try {
+          await release();
+        } finally {
+          void touchProjectLastEdited(projectId, "codex");
+        }
       });
       return {
         proc,

@@ -36,14 +36,15 @@
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "dependencies": {
-    "@cocalc/backend": "workspace:*",
     "@cocalc/ai": "workspace:*",
+    "@cocalc/backend": "workspace:*",
     "@cocalc/conat": "workspace:*",
     "@cocalc/file-server": "workspace:*",
     "@cocalc/lite": "workspace:*",
     "@cocalc/project-proxy": "workspace:*",
     "@cocalc/project-runner": "workspace:*",
     "@cocalc/util": "workspace:*",
+    "@isaacs/ttlcache": "^1.4.1",
     "compression": "^1.8.1",
     "express": "^4.21.2",
     "micro-key-producer": "^0.8.2"

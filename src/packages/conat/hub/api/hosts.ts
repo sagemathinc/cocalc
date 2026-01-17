@@ -214,6 +214,7 @@ export const hosts = {
   upgradeHostSoftware: authFirstRequireAccount,
   getBackupConfig: authFirstRequireHost,
   recordProjectBackup: authFirstRequireHost,
+  touchProject: authFirstRequireHost,
   claimPendingCopies: authFirstRequireHost,
   updateCopyStatus: authFirstRequireHost,
 };
@@ -248,6 +249,10 @@ export interface Hosts {
     host_id?: string;
     project_id: string;
     time: Date;
+  }) => Promise<void>;
+  touchProject: (opts: {
+    host_id?: string;
+    project_id: string;
   }) => Promise<void>;
   claimPendingCopies: (opts: {
     host_id?: string;

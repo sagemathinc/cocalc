@@ -351,6 +351,37 @@ function requireCreateHosts(entitlements: any) {
 
 export { getBackupConfig, recordProjectBackup } from "@cocalc/server/project-backup";
 
+export async function touchProject({
+  host_id,
+  project_id,
+}: {
+  host_id?: string;
+  project_id: string;
+}): Promise<void> {
+  if (!host_id) {
+    throw new Error("host_id must be specified");
+  }
+  if (!project_id) {
+    throw new Error("project_id must be specified");
+  }
+  const { rowCount } = await pool().query(
+    `
+      UPDATE projects
+      SET last_edited=NOW()
+      WHERE project_id=$1
+        AND host_id=$2
+        AND deleted IS NOT true
+    `,
+    [project_id, host_id],
+  );
+  if (!rowCount) {
+    logger.debug("touchProject ignored (host mismatch)", {
+      host_id,
+      project_id,
+    });
+  }
+}
+
 export async function claimPendingCopies({
   host_id,
   project_id,

@@ -374,6 +374,11 @@ interface Options {
   // path must be the home of the project
   // If not given, serves files for all projects.
   project_id?: string;
+  onMutation?: (opts: {
+    subject: string;
+    op: string;
+    path?: string;
+  }) => void | Promise<void>;
 }
 
 export async function fsServer({
@@ -381,6 +386,7 @@ export async function fsServer({
   fs: fs0,
   client,
   project_id,
+  onMutation,
 }: Options) {
   client ??= conat();
   const subject = project_id
@@ -405,22 +411,43 @@ export async function fsServer({
     return cache.get(subject)!;
   });
 
+  const reportMutation = async (
+    subject: string | undefined,
+    op: string,
+    path?: string,
+  ) => {
+    if (!onMutation || !subject) return;
+    try {
+      await onMutation({ subject, op, path });
+    } catch (err) {
+      logger.debug("fsServer onMutation failed", {
+        subject,
+        op,
+        err: `${err}`,
+      });
+    }
+  };
+
   logger.debug("fsServer: starting subscription to ", subject);
   const sub = await client.service<Filesystem & { subject?: string }>(subject, {
     async appendFile(path: string, data: string | Buffer, encoding?) {
       await (await fs(this.subject)).appendFile(path, data, encoding);
+      void reportMutation(this.subject, "appendFile", path);
     },
     async chmod(path: string, mode: string | number) {
       await (await fs(this.subject)).chmod(path, mode);
+      void reportMutation(this.subject, "chmod", path);
     },
     async constants(): Promise<{ [key: string]: number }> {
       return await (await fs(this.subject)).constants();
     },
     async copyFile(src: string, dest: string) {
       await (await fs(this.subject)).copyFile(src, dest);
+      void reportMutation(this.subject, "copyFile", dest);
     },
     async cp(src: string | string[], dest: string, options?) {
       await (await fs(this.subject)).cp(src, dest, options);
+      void reportMutation(this.subject, "cp", dest);
     },
     async dust(path: string, options?: DustOptions) {
       return await (await fs(this.subject)).dust(path, options);
@@ -439,12 +466,14 @@ export async function fsServer({
     },
     async link(existingPath: string, newPath: string) {
       await (await fs(this.subject)).link(existingPath, newPath);
+      void reportMutation(this.subject, "link", newPath);
     },
     async lstat(path: string): Promise<IStats> {
       return await (await fs(this.subject)).lstat(path);
     },
     async mkdir(path: string, options?) {
       await (await fs(this.subject)).mkdir(path, options);
+      void reportMutation(this.subject, "mkdir", path);
     },
     async ouch(args: string[], options?: OuchOptions) {
       return await (await fs(this.subject)).ouch(args, options);
@@ -478,13 +507,16 @@ export async function fsServer({
     },
     async rename(oldPath: string, newPath: string) {
       await (await fs(this.subject)).rename(oldPath, newPath);
+      void reportMutation(this.subject, "rename", newPath);
     },
     async move(
       src: string | string[],
       dest: string,
       options?: { overwrite?: boolean },
     ) {
-      return await (await fs(this.subject)).move(src, dest, options);
+      const result = await (await fs(this.subject)).move(src, dest, options);
+      void reportMutation(this.subject, "move", dest);
+      return result;
     },
     async ripgrep(path: string, pattern: string, options?: RipgrepOptions) {
       return await (await fs(this.subject)).ripgrep(path, pattern, options);
@@ -494,9 +526,15 @@ export async function fsServer({
     },
     async rm(path: string | string[], options?) {
       await (await fs(this.subject)).rm(path, options);
+      void reportMutation(
+        this.subject,
+        "rm",
+        typeof path === "string" ? path : undefined,
+      );
     },
     async rmdir(path: string, options?) {
       await (await fs(this.subject)).rmdir(path, options);
+      void reportMutation(this.subject, "rmdir", path);
     },
     async stat(path: string): Promise<IStats> {
       const s = await (await fs(this.subject)).stat(path);
@@ -512,12 +550,15 @@ export async function fsServer({
     },
     async symlink(target: string, path: string) {
       await (await fs(this.subject)).symlink(target, path);
+      void reportMutation(this.subject, "symlink", path);
     },
     async truncate(path: string, len?: number) {
       await (await fs(this.subject)).truncate(path, len);
+      void reportMutation(this.subject, "truncate", path);
     },
     async unlink(path: string) {
       await (await fs(this.subject)).unlink(path);
+      void reportMutation(this.subject, "unlink", path);
     },
     async utimes(
       path: string,
@@ -525,6 +566,7 @@ export async function fsServer({
       mtime: number | string | Date,
     ) {
       await (await fs(this.subject)).utimes(path, atime, mtime);
+      void reportMutation(this.subject, "utimes", path);
     },
     async writeFile(
       path: string,
@@ -532,6 +574,7 @@ export async function fsServer({
       saveLast?: boolean,
     ) {
       await (await fs(this.subject)).writeFile(path, data, saveLast);
+      void reportMutation(this.subject, "writeFile", path);
     },
     // @ts-ignore
     async watch() {
