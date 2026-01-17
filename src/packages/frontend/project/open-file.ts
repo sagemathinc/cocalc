@@ -16,6 +16,7 @@ import { retry_until_success } from "@cocalc/util/async-utils";
 import {
   defaults,
   filename_extension,
+  path_split,
   path_to_tab,
   required,
   uuid,
@@ -215,6 +216,11 @@ export async function open_file(
     return;
   }
 
+  if (!is_public && ext === "sagews") {
+    await open_sagews_worksheet(actions, opts);
+    return;
+  }
+
   if (!is_public) {
     get_side_chat_state(actions.project_id, opts);
   }
@@ -338,6 +344,51 @@ async function open_sagenb_worksheet(opts: {
   }
 }
 
+async function open_sagews_worksheet(
+  actions: ProjectActions,
+  opts: OpenFileOpts,
+): Promise<void> {
+  const ipynb_path = opts.path.replace(/\.sagews$/i, ".ipynb");
+  const clear_sagews_tab = async () => {
+    if (!actions.open_files?.has(opts.path)) {
+      return;
+    }
+    actions.open_files.delete(opts.path);
+    await remove(opts.path, redux, actions.project_id, false);
+  };
+
+  try {
+    if (!(await file_exists(actions.project_id, ipynb_path))) {
+      alert_message({
+        type: "info",
+        message: `Converting '${opts.path}' to a Jupyter notebook...`,
+      });
+      const raw = await webapp_client.project_client.read_text_file({
+        project_id: actions.project_id,
+        path: opts.path,
+      });
+      const { default: sagewsToIpynb } = await import(
+        "@cocalc/frontend/frame-editors/sagews-editor/sagews-to-ipynb"
+      );
+      const ipynb = sagewsToIpynb(raw);
+      await webapp_client.project_client.write_text_file({
+        project_id: actions.project_id,
+        path: ipynb_path,
+        content: JSON.stringify(ipynb, undefined, 2),
+      });
+    }
+    await clear_sagews_tab();
+    const { ext: _ext, ...open_opts } = opts;
+    await open_file(actions, { ...open_opts, path: ipynb_path });
+  } catch (err) {
+    await clear_sagews_tab();
+    alert_message({
+      type: "error",
+      message: `Error converting Sage worksheet -- ${err}`,
+    });
+  }
+}
+
 async function convert_sagenb_worksheet(
   project_id: string,
   filename: string,
@@ -360,6 +411,22 @@ async function convert_sagenb_worksheet(
   });
 
   return filename.slice(0, filename.length - 3) + "sagews";
+}
+
+async function file_exists(project_id: string, path: string): Promise<boolean> {
+  const f = path_split(path);
+  try {
+    await webapp_client.project_client.exec({
+      project_id,
+      command: "test",
+      args: ["-e", f.tail],
+      path: f.head,
+      err_on_exit: true,
+    });
+    return true;
+  } catch (err) {
+    return false;
+  }
 }
 
 const log_open_time: { [path: string]: { id: string; start: number } } = {};

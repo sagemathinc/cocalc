@@ -23,6 +23,20 @@ Goal: Complete remove all code and functionality for the following:
 - [x] dedicated\_vms and dedicated\_disks
 - [x] rename: "Project" \-\-&gt; "Workspace" in frontend UI
 
+## Remove Sage Worksheets (auto-convert to ipynb on open)
+
+Scope: opening a `.sagews` converts it to `.ipynb` if needed, then opens the
+notebook. Keep the `.sagews` file; no additional SageWS UI changes yet.
+
+1. **Auto-convert on open.**  
+   Intercept opening `.sagews` in the project UI, convert to `.ipynb` if it
+   doesn't exist, then open the notebook instead.  
+   Targets: [src/packages/frontend/project/open-file.ts](./src/packages/frontend/project/open-file.ts), [src/packages/frontend/frame-editors/sagews-editor/sagews-to-ipynb.ts](./src/packages/frontend/frame-editors/sagews-editor/sagews-to-ipynb.ts).
+
+2. **Inventory remaining SageWS-only code.**  
+   List backend/UI/docs usage to decide what can be deleted later (conversion
+   scripts, editor registration, docs links, etc.).
+
 ## Remove payg LLM purchases (keep usage tracking for throttling/analytics)
 
 Scope: remove all LLM billing/transaction UI and purchase handling, while keeping
@@ -238,4 +252,3 @@ Scope: remove all compute server and cloud filesystem functionality. No migratio
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
-
