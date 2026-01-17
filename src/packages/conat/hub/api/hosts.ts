@@ -120,6 +120,24 @@ export interface HostBackupStatus {
   provisioned_needs_backup: number;
 }
 
+export interface HostProjectRow {
+  project_id: string;
+  title: string;
+  state: string;
+  provisioned: boolean | null;
+  last_edited: string | null;
+  last_backup: string | null;
+  needs_backup: boolean;
+  collab_count: number;
+}
+
+export interface HostProjectsResponse {
+  rows: HostProjectRow[];
+  summary: HostBackupStatus;
+  next_cursor?: string;
+  host_last_seen?: string;
+}
+
 export interface HostCatalog {
   provider: string;
   entries: HostCatalogEntry[];
@@ -199,6 +217,7 @@ export interface HostSoftwareUpgradeResponse {
 
 export const hosts = {
   listHosts: authFirstRequireAccount,
+  listHostProjects: authFirstRequireAccount,
   getCatalog: authFirstRequireAccount,
   updateCloudCatalog: authFirstRequireAccount,
   getHostLog: authFirstRequireAccount,
@@ -226,6 +245,13 @@ export interface Hosts {
     include_deleted?: boolean;
     catalog?: boolean;
   }) => Promise<Host[]>;
+  listHostProjects: (opts: {
+    account_id?: string;
+    id: string;
+    limit?: number;
+    cursor?: string;
+    risk_only?: boolean;
+  }) => Promise<HostProjectsResponse>;
   getCatalog: (opts: {
     account_id?: string;
     provider?: string;
