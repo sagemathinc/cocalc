@@ -2,8 +2,7 @@
 Container associated to a project that runs on the file-server:
 
 - runs an openssh server, which is used by the project
-  and compute servers to synchronize all files in /root
-  (the home directory)
+  to synchronize all files in /root (the home directory)
 - is an rsync target for the overlayfs upper layer
 - reflect forwards several ports here:
    - an ssh server running in the project itself

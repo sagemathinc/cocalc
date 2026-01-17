@@ -15,13 +15,13 @@ export default function SpendRate({ style, spendRate }: Props) {
   return (
     <Card style={{ maxWidth: "300px", ...style }}>
       <Tooltip
-        title={`Pay as you go upgrades and compute servers cost ${moneyToCurrency(
+        title={`Pay as you go usage costs ${moneyToCurrency(
           spendRateValue,
           3,
         )}/hour. Memberships, course fees, and network data transfer costs are not included above.`}
       >
         <Statistic
-          title={"Compute Server Spend Rate (USD)"}
+          title={"Pay as you go Spend Rate (USD)"}
           value={spendRateValue.toDecimalPlaces(2).toNumber()}
           precision={2}
           prefix={"$"}

@@ -99,7 +99,6 @@ export interface WebappClient extends EventEmitter {
   dbg: (str: string) => Function;
   is_project: () => boolean;
   is_browser: () => boolean;
-  is_compute_server: () => boolean;
   is_connected: () => boolean;
   query: Query; // TODO typing
   query_cancel: Function;
@@ -291,10 +290,6 @@ class Client extends EventEmitter implements WebappClient {
 
   public is_browser(): boolean {
     return true;
-  }
-
-  public is_compute_server(): boolean {
-    return false;
   }
 
   // true since this client is a user

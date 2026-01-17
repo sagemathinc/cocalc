@@ -1,5 +1,5 @@
 /*
-Run arbitrarily shell command on compute server or project.
+Run arbitrary shell command in a project.
 DOES check auth
 */
 

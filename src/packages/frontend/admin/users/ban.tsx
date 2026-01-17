@@ -72,12 +72,10 @@ export class Ban extends Component<Props, State> {
             {this.props.name} won't be able to login, all API access is revoked,
             auth_tokens are deleted, can't connect to projects, and all ability
             to spend money is immeediately halted. This means{" "}
-            <b>
-              any compute servers they are running will be completely deleted.
-            </b>{" "}
-            Use this on spammers and credit card fraudsters. Before they refresh
-            their browser, they will just feel likely CoCalc is slow/broken, but
-            they won't know why.
+            <b>their active access is terminated immediately.</b> Use this on
+            spammers and credit card fraudsters. Before they refresh their
+            browser, they will just feel likely CoCalc is slow/broken, but they
+            won't know why.
           </div>
         }
         okText="Yes, BAN THEM"
@@ -118,7 +116,7 @@ export class Ban extends Component<Props, State> {
           User is currently{" "}
           {this.state.banned
             ? "banned!"
-            : "NOT banned:  If you ban them, they lose access to their account.  You can easily remove the ban, but any pay as you go purchases are halted, so compute servers they own will be immediately deleted!"}
+            : "NOT banned:  If you ban them, they lose access to their account.  You can easily remove the ban, but any pay as you go purchases are halted."}
         </b>
         <br />
         <br />

@@ -321,7 +321,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
 
   get_more_output = (id: string) => {
     // this._more_output only gets set in project-actions in
-    // set_more_output, for the project or compute server that
+    // set_more_output, for the project that
     // has that extra output.
     if (this._more_output != null) {
       // This is ONLY used by the backend for storing and retrieving
@@ -437,7 +437,7 @@ export class JupyterStore extends Store<JupyterStoreState> {
       .getActions(this.name)
       ?.getComputeServerId();
     if (customize == null) {
-      // the customize store doesn't exist, e.g., in a compute server.
+      // the customize store doesn't exist, e.g., in a project process.
       // In that case no need for a complicated jupyter kernel key as
       // there is only one image.
       // (??)

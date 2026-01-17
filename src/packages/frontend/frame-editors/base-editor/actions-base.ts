@@ -1394,7 +1394,7 @@ export class BaseEditorActions<
       this.explicit_save();
     }
     if (hasUnsavedChanges) {
-      // No secondary compute servers to sync; main workspace is authoritative.
+      // No secondary hosts to sync; main workspace is authoritative.
     }
   }
 

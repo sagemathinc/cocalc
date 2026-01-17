@@ -70,7 +70,6 @@ export function NewProjectCreator({
   );
   const [selected, setSelected] = useState<SoftwareEnvironmentState>({});
   const new_project_title_ref = useRef<any>(null);
-  const compute_servers_enabled = false;
   const [selectedHost, setSelectedHost] = useState<Host | undefined>();
   const [projectRegion, setProjectRegion] =
     useState<R2Region>(DEFAULT_R2_REGION);
@@ -288,18 +287,9 @@ export function NewProjectCreator({
                 defaultMessage={`A <A1>{projectLabel}</A1> is a private computational environment
                   where you can work with collaborators that you explicitly invite.`}
                 values={{
-                  compute_servers_enabled,
                   projectLabel: projectLabelLower,
                   A1: (c) => (
                     <A href="https://doc.cocalc.com/project.html">{c}</A>
-                  ),
-                  A2: (c) => (
-                    <A href="https://doc.cocalc.com/compute_server.html">{c}</A>
-                  ),
-                  A3: (c) => (
-                    <A href="https://doc.cocalc.com/cloud_file_system.html">
-                      {c}
-                    </A>
                   ),
                 }}
               />

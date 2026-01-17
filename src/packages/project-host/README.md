@@ -19,7 +19,7 @@ This package deliberately **does not depend on @cocalc/server, @cocalc/hub, or @
 - Shared logic belongs in Lite. Keep project-host focused on container/btrfs/ingress concerns and host-level orchestration.
 - Avoid duplicating hub/server features; extend Lite instead and consume from here.
 - Keep dependencies narrow: podman, btrfs, project-runner, file-server, and project-proxy live here; frontend and heavy hub logic stay out.
-- When adding host APIs, design them so compute servers and future “Plus” flows can reuse the same Lite surface without forks.
+- When adding host APIs, design them so future “Plus” flows can reuse the same Lite surface without forks.
 
 ## Getting Started
 

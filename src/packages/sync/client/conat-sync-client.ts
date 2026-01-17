@@ -59,10 +59,6 @@ export class ConatSyncClient extends EventEmitter implements SyncClient {
     return true;
   };
 
-  is_compute_server = (): boolean => {
-    return false;
-  };
-
   dbg = (f: string): Function => {
     return (...args) => logger.debug(f, ...args);
   };

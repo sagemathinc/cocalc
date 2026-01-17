@@ -29,10 +29,6 @@ export class ClientTest extends EventEmitter {
     return true;
   }
 
-  public is_compute_server(): boolean {
-    return false;
-  }
-
   public is_connected(): boolean {
     return true;
   }

@@ -24,8 +24,7 @@ export async function proxyConatWebsocket(req, socket, head) {
   const i = req.url.lastIndexOf("/conat");
   const target = randomServer() + req.url.slice(i);
   logger.debug(`conat proxy -- proxying a WEBSOCKET connection to ${target}`);
-  // todo -- allowing no cookie, since that's used by projects and compute servers!
-  // do NOT disable this until compute servers all set a cookie... which could be a long time.
+  // TODO: allowing no cookie, since some project clients don't set one yet.
   // make the proxy server
   const proxy: ProxyServer = createProxyServer({
     ws: true,

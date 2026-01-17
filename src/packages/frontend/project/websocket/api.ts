@@ -34,8 +34,6 @@ import type {
   ExecuteCodeOutput,
   ExecuteCodeOptions,
 } from "@cocalc/util/types/execute-code";
-const COMPUTE_SERVER_REMOVED_MESSAGE =
-  "Compute servers have been removed from CoCalc.";
 
 const log = (...args) => {
   console.log("project:websocket: ", ...args);
@@ -268,30 +266,4 @@ export class API {
     return this.getChannel(channel_name);
   };
 
-  // Copying files to/from compute servers:
-
-  computeServerSyncRequest = async (_computeServerId: number) => {
-    void _computeServerId;
-    throw new Error(COMPUTE_SERVER_REMOVED_MESSAGE);
-  };
-
-  copyFromHomeBaseToComputeServer = async (_opts: {
-    id: number;
-    paths: string[];
-    dest?: string;
-    timeout?: number;
-  }) => {
-    void _opts;
-    throw new Error(COMPUTE_SERVER_REMOVED_MESSAGE);
-  };
-
-  copyFromComputeServerToHomeBase = async (_opts: {
-    id: number;
-    paths: string[];
-    dest?: string;
-    timeout?: number;
-  }) => {
-    void _opts;
-    throw new Error(COMPUTE_SERVER_REMOVED_MESSAGE);
-  };
 }

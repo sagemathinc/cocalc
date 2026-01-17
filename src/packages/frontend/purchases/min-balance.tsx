@@ -21,7 +21,7 @@ export default function MinBalance({ minBalance, style }: Props) {
       <Space direction="vertical">
         <ClosingDate type="link" />
         <Support>
-          <Tooltip title="Create support request to allow your balance to be negative for Pay As You Go purchases.  This is useful if you use compute servers a lot.">
+          <Tooltip title="Create support request to allow your balance to be negative for Pay As You Go purchases.">
             <Icon name="rise-outlined" rotate="90" /> Allow Negative
           </Tooltip>
         </Support>

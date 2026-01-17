@@ -20,7 +20,7 @@ docker run -v `pwd`:/x -it --rm ubuntu:20.04  /x/cocalc
 
 -
 
-Using this on a compute server.
+Using this on a remote host.
 
 scp it to root@[server]
 

@@ -11,7 +11,7 @@ This code should not *explicitly* require anything that is only
 available in the project or requires node to run, so that we can
 fully unit test it via mocking of components.
 
-NOTE: this is also now the actions used by remote compute servers as well.
+NOTE: this is also used by project-host processes.
 */
 
 import { JupyterActions as JupyterActions0 } from "@cocalc/jupyter/redux/actions";

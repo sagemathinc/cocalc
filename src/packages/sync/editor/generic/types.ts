@@ -104,7 +104,6 @@ export interface ProjectClient extends EventEmitter {
   server_time: () => Date;
   is_project: () => boolean;
   is_browser: () => boolean;
-  is_compute_server: () => boolean;
   is_connected: () => boolean;
   is_signed_in: () => boolean;
   dbg: (desc: string) => Function;

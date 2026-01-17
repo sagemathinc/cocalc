@@ -23,9 +23,7 @@ export function server_time(): Date {
   return webapp_client.time_client.server_time();
 }
 
-// async version of the webapp_client exec -- let's you run any code in a project!
-// If the second argument filePath is the file this is being used for as a second argument,
-// it always runs code on the compute server that the given file is on.
+// async version of the webapp_client exec -- let's you run any code in a project.
 export async function exec(
   opts: ExecOpts,
   _filePath?: string,

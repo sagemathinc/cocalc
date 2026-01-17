@@ -1,5 +1,5 @@
 /*
-Test async streaming read of files from a compute servers using NATS.
+Test async streaming read of files from projects using NATS.
 
 
 DEVELOPMENT:

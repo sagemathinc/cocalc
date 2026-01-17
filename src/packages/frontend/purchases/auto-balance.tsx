@@ -145,9 +145,8 @@ export function AutoBalanceModal({ onClose }) {
       }}
       onCancel={onClose}
     >
-      If you are using pay as you go features of CoCalc (e.g., compute servers,
-      project upgrades, or large language models), you should configure your
-      account so that money is deposited when your balance goes below a
+      If you are using pay as you go features of CoCalc, you should configure
+      your account so that money is deposited when your balance goes below a
       specified value.
       <Form
         form={form}

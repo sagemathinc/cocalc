@@ -219,10 +219,6 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return false;
   }
 
-  public is_compute_server(): boolean {
-    return false;
-  }
-
   // false since this client is not a user
   public is_user(): boolean {
     return false;
@@ -236,7 +232,7 @@ export class Client extends EventEmitter implements ProjectClientInterface {
     return this._connected;
   }
 
-  // We trust the time on our own compute servers (unlike random user's browser).
+  // We trust the time in this project process (unlike random user's browser).
   public server_time(): Date {
     return new Date();
   }

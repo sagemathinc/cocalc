@@ -38,7 +38,7 @@ export function init_websocket_api(_primus: any): void {
 
   primus.on("connection", function (spark) {
     // Now handle the connection, which can be either from a web browser, or
-    // from a compute server.
+    // from a project client.
     log.debug(`new connection from ${spark.address.ip} -- ${spark.id}`);
 
     spark.on("request", async (data, done) => {

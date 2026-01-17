@@ -1136,9 +1136,6 @@
     "defaultMessage": "Clear",
     "description": "Clean or clear something out, such that it empty"
   },
-  "labels.cloud_file_system": {
-    "defaultMessage": "Cloud File Systems"
-  },
   "labels.code_folding": {
     "defaultMessage": "Code Folding",
     "description": "Hide sections in a source code file"
@@ -1204,7 +1201,7 @@
     "defaultMessage": "Print"
   },
   "labels.project.settings.restart-project.confirm.explanation": {
-    "defaultMessage": "Restarting the project server will terminate all processes in the project, update the project code, and start the project running again. Running <a>compute servers</a> are not affected. It takes a few seconds, and can fix some issues in case things are not working properly. You'll not lose any files, but you have to start your notebooks and worksheets again."
+    "defaultMessage": "Restarting the project server will terminate all processes in the project, update the project code, and start the project running again. It takes a few seconds, and can fix some issues in case things are not working properly. You'll not lose any files, but you have to start your notebooks and worksheets again."
   },
   "labels.project.settings.restart-project.confirm.ok": {
     "defaultMessage": "Yes, {task} project"

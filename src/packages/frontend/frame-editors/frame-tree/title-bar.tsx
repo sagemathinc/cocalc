@@ -787,8 +787,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         {v[v.length - 1]?.menu}
       </div>
     );
-    // todo move compute server as earlier menu, when it is a menu.
-    // seems too horrible right now since it is a selector.
   }
 
   function renderButtons(

@@ -26,10 +26,6 @@ function Chat({ font_size, desc }: EditorComponentProps) {
   );
   useEffect(() => {
     (async () => {
-      // properly set the side chat compute server, if necessary
-      await redux
-        .getProjectActions(project_id)
-        .setSideChatComputeServerId(path0);
       const sideChatActions = initChat(project_id, path);
       sideChatActions.frameTreeActions = actions;
       sideChatActions.frameId = frameId;

@@ -75,7 +75,7 @@ export interface System {
     pid?: number;
   }) => Promise<void>;
 
-  // return the ssh public key of this project/compute server.
+  // return the ssh public key of this project.
   // The project generates a public key on startup that is used
   // internally for connecting to the file server, and this is that key.
   // Basically this is a key that is used internally for communication

@@ -3,8 +3,6 @@
   "br": "Portugese (Brasilgoa)",
   "chat-text": "<p><strong><A>CoCalc-en txat-gelak</A></strong> komunikazioa eta lankidetza hobetzeko hainbat funtzio eskaintzen dituzte:</p> <ul> <li><strong>@-aipamenak</strong> lankideei zuzenean hitz egiteko edo hizkuntza-eredu bati galdetzeko</li> <li><strong>Emotikonoak</strong> emozioak adierazteko</li> <li><strong>LaTeX formulen</strong> errenderizazioa $ ikurren artean</li> <li><strong>Hariak</strong> eta <strong>Etiketak</strong> gaiak erraz antolatzeko</li> <li><strong>Irudiak txertatzea</strong> igoz edo arrastatu-eta-jaregin bidez</li> <li><strong>Markdown sintaxia</strong> testua formateatzeko eta estekak txertatzeko</li> <li><strong>Jakinarazpenen</strong> sistema kanpaiaren ikonoarekin erabiltzaileei jarduera berriak jakinarazteko</li> </ul>",
   "chat-title": "Txat Gelak",
-  "compute-servers-text": "<p>Hedatu zure CoCalc proiektuak <strong>konputazio zerbitzariekin</strong>. Martxan jarri eta konektatu makina indartsu batera edo GPU batera, eta exekutatu zure terminalak eta Jupyter Notebooks makin hauetan.</p><p>Hauek <strong>oso lehiakorrak diren prezioekin</strong> datoz GPU laguntzarekin, <strong>segundoka fakturatzen dira</strong> eta zure fitxategiak <strong>proiektuaren eta zerbitzarien artean modu ezin hobean sinkronizatzen dira</strong>.</p><p><A1>Irakurri dokumentazioa</A1> eta <A2>begiratu aplikazio batzuk</A2>.</p>",
-  "compute-servers-title": "Konputazio Zerbitzariak GPU euskarriarekin",
   "de": "Alemana",
   "en": "Ingelesa",
   "es": "Español",

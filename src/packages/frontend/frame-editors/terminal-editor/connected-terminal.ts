@@ -1092,7 +1092,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.terminal.scrollToBottom();
   };
 
-  // compute servers are deprecated; terminals always connect to the workspace host.
+  // Terminals always connect to the workspace host.
 }
 
 async function touchPath(project_id: string, path: string): Promise<void> {
@@ -1102,7 +1102,7 @@ async function touchPath(project_id: string, path: string): Promise<void> {
   try {
     await touch(project_id, path);
   } catch {
-    // expected to fail, e.g., it will on compute server while waiting to switch
+    // expected to fail if the project isn't ready yet
     //console.warn(`error touching ${path} -- ${err}`);
   }
 }

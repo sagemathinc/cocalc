@@ -229,7 +229,7 @@ Table({
     },
     status: {
       type: "map",
-      desc: "This is a map computed by the status command run inside a project, and slightly enhanced by the compute server, which gives extensive status information about a project. See the exported ProjectStatus interface defined in the code here.",
+      desc: "This is a map computed by the status command run inside a project, which gives extensive status information about a project. See the exported ProjectStatus interface defined in the code here.",
     },
     state: {
       type: "map",

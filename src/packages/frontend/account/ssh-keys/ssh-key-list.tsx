@@ -55,10 +55,9 @@ export default function SSHKeyList({
           style={{ marginBottom: "10px" }}
           extra={
             <p>
-              If you want to use the same SSH key for all your projects and
-              compute servers, add it using the "SSH Keys" tab under Account
-              Settings. If you have done that, there is no need to also
-              configure an SSH key here.
+              If you want to use the same SSH key for all your projects, add it
+              using the "SSH Keys" tab under Account Settings. If you have done
+              that, there is no need to also configure an SSH key here.
             </p>
           }
         />

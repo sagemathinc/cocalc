@@ -112,10 +112,6 @@ export class TerminalActions extends Actions {
     return getTour(refs);
   }
 
-  compute_server() {
-    // this is here just so the dropdown gets enabled
-  }
-
   settings = () => {
     this.redux.getActions("page").settings("terminal-settings");
   };

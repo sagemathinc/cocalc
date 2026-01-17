@@ -7,7 +7,6 @@ import { Popover, Tooltip } from "antd";
 import { User } from "../../users";
 import { Loading, r_join } from "../../components";
 import { TimeTravelActions } from "./actions";
-import { isEncodedNumUUID } from "@cocalc/util/compute/manager";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { plural } from "@cocalc/util/misc";
 type PatchId = string;
@@ -105,8 +104,6 @@ export function TimeTravelAuthors({ actions, version0, version1 }: Props) {
     if (userMap?.has(account_id)) {
       return renderUser(account_id);
     } else if (account_id == actions.project_id) {
-      return renderProject();
-    } else if (isEncodedNumUUID(account_id)) {
       return renderProject();
     } else {
       return renderUnknown();

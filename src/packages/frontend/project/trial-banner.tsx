@@ -104,23 +104,6 @@ export const TrialBanner: React.FC<BannerProps> = React.memo(
       : ALERT_STYLE;
     const a_style = elevated ? A_STYLE_ELEVATED : A_STYLE;
 
-    // function renderComputeServer() {
-    //   return (
-    //     <a
-    //       style={a_style}
-    //       onClick={() => {
-    //         const actions = redux.getProjectActions(project_id);
-    //         actions.setState({ create_compute_server: true });
-    //         actions.set_active_tab("servers", {
-    //           change_history: true,
-    //         });
-    //       }}
-    //     >
-    //       using a compute server
-    //     </a>
-    //   );
-    // }
-
     function renderMembershipCta(): React.JSX.Element {
       return (
         <>

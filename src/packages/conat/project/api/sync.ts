@@ -15,6 +15,6 @@ export interface Sync {
   close: (path: string) => Promise<void>;
 
   // run mutagen with given args and return the output. There is no sandboxing,
-  // since this is running in the compute server (or maybe project).
+  // since this is running in the project process.
   mutagen: (args: string[]) => Promise<ExecOutput>;
 }

@@ -15,7 +15,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { useMemo } from "react";
 import { fileURL } from "@cocalc/frontend/lib/cocalc-urls";
-import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
 import {
@@ -156,10 +155,6 @@ export interface ProjectStoreState {
   // if true, show the explorer tour
   explorerTour?: boolean;
 
-  compute_servers?;
-  create_compute_server?: boolean;
-  create_compute_server_template_id?: number;
-
   // while true, explorer keyhandler will not be enabled
   disableExplorerKeyhandler?: boolean;
 
@@ -254,17 +249,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
   }
 
   getInitialState = (): ProjectStoreState => {
-    let create_compute_server_template_id: number | undefined = undefined;
-    let create_compute_server: boolean | undefined = undefined;
-    const template = QueryParams.get("compute-server-template");
-    if (template) {
-      const [id, project_id] = template.split(".");
-      if (id && project_id == this.project_id) {
-        create_compute_server_template_id = parseInt(id);
-        create_compute_server = true;
-        QueryParams.remove("compute-server-template");
-      }
-    }
     return {
       // Shared
       current_path: "",
@@ -310,9 +294,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
 
       // Project Settings
       other_settings: undefined,
-
-      create_compute_server,
-      create_compute_server_template_id,
     };
   };
 

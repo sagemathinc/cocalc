@@ -67,8 +67,8 @@ export default function FormatError({ formatError, formatInput }: Props) {
               </Button>
             </div>
             {is_ansi(formatError) ? (
-              // NOTE: depending on prettier etc config and host (e.g., compute server),
-              // the formatError might be full of ansi codes or not, so if it is, then
+              // NOTE: depending on prettier config and host, the formatError might be
+              // full of ansi codes or not, so if it is, then
               // we render it as such; otherwise we use codemirror.  Don't just get rid of
               // this not realizing that ansi or not is subtle and depends on the formatter's
               // environment in ways I don't understand...

@@ -20,11 +20,10 @@ export default function UseBalanceTowardSubscriptions({
             title={
               <div>
                 Enable this if you do not need to maintain a positive balance
-                for pay as you go purchases. If you are using compute servers
-                you probably do not want to enable this. However, if you
-                primarily put credit on your account to pay for subscriptions,
-                consider enabling this. The entire amount for the subscription
-                renewal must be available.
+                for pay as you go purchases. If you primarily put credit on
+                your account to pay for subscriptions, consider enabling this.
+                The entire amount for the subscription renewal must be
+                available.
               </div>
             }
           >

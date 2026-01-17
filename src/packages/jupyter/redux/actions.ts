@@ -65,7 +65,6 @@ type State = "init" | "load" | "ready" | "closed";
 
 export class JupyterActions extends Actions<JupyterStoreState> {
   public is_project: boolean;
-  public is_compute_server?: boolean;
   readonly path: string;
   readonly project_id: string;
   public jupyter_kernel?: JupyterKernelInterface;
@@ -111,7 +110,6 @@ export class JupyterActions extends Actions<JupyterStoreState> {
     this.syncdb = syncdb;
     this.syncdb.init_ipywidgets();
     this.is_project = client.is_project();
-    this.is_compute_server = client.is_compute_server();
 
     let directory: any;
     const split_path = misc.path_split(path);
@@ -197,7 +195,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       }
       this.syncdb?.close();
       this._file_watcher?.close();
-      if (this.is_project || this.is_compute_server) {
+      if (this.is_project) {
         this.close_project_only();
       } else {
         this.close_client_only();
@@ -486,8 +484,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       if (
         old_cell != null &&
         new_cell.get("start") > old_cell.get("start") &&
-        !this.is_project &&
-        !this.is_compute_server
+        !this.is_project
       ) {
         // cell re-evaluated so any more output is no longer valid -- clear frontend state
         this.reset_more_output(id);
@@ -576,9 +573,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             this.setState(obj);
             if (
-              !this.is_project &&
-              !this.is_compute_server &&
-              orig_kernel !== kernel
+              !this.is_project && orig_kernel !== kernel
             ) {
               this.set_cm_options();
             }
@@ -614,7 +609,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             break;
 
           case "nbconvert":
-            if (this.is_project || this.is_compute_server) {
+            if (this.is_project) {
               // before setting in store, let backend start reacting to change
               this.handle_nbconvert_change(this.store.get("nbconvert"), record);
             }
@@ -649,7 +644,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
             }
             const prev_backend_state = this.store.get("backend_state");
             this.setState(obj);
-            if (!this.is_project && !this.is_compute_server) {
+            if (!this.is_project) {
               // if the kernel changes or it just started running – we set the codemirror options!
               // otherwise, just when computing them without the backend information, only a crude
               // heuristic sets the values and we end up with "C" formatting for custom python kernels.
@@ -1441,7 +1436,7 @@ export class JupyterActions extends Actions<JupyterStoreState> {
   set_default_kernel = (kernel?: string) => {
     if (kernel == null || kernel === "") return;
     // doesn't make sense for project (right now at least)
-    if (this.is_project || this.is_compute_server) return;
+    if (this.is_project) return;
     const account_store = this.redux.getStore("account") as any;
     if (account_store == null) return;
     const cur: any = {};
@@ -1764,8 +1759,8 @@ export class JupyterActions extends Actions<JupyterStoreState> {
       return;
     }
     return this._client.is_deleted?.(this.store.get("path"), this.project_id);
-    // [ ] TODO: we also need to do this on compute servers, but
-    // they don't yet have the listings table.
+    // [ ] TODO: we also need to do this on the project process, but
+    // it doesn't yet have the listings table.
   };
 
   processRenderedMarkdown = ({ value, id }: { value: string; id: string }) => {

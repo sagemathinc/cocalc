@@ -297,7 +297,7 @@ export const DEFAULT_SOCKETIO_CLIENT_OPTIONS = {
   transports: ["websocket"],
   rememberUpgrade: true,
 
-  // nodejs specific for project/compute server in some settings
+  // nodejs specific for project processes in some settings
   rejectUnauthorized: false,
 
   reconnection: true,

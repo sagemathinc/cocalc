@@ -194,7 +194,7 @@ export class ProjectClient {
   };
 
   /*
-    Execute code in a given project or associated compute server with streaming output.
+    Execute code in a given project with streaming output.
     This streams stdout and stderr back to the client in real-time, similar to how
     LLM chat streaming works.
 
@@ -341,7 +341,7 @@ export class ProjectClient {
   }
 
   /*
-    Execute code in a given project or associated compute server.
+    Execute code in a given project.
 
     Aggregate option -- use like this:
 
@@ -622,33 +622,6 @@ export class ProjectClient {
     return await this.client.conat_client.hub.system.manageApiKeys(opts);
   };
 
-  computeServers = (_project_id) => {
-    void _project_id;
-    return {
-      state: "connected",
-      get: () => 0,
-      getServerIdForPath: async () => 0,
-    } as any;
-  };
-
-  getServerIdForPath = async ({
-    project_id: _project_id,
-    path: _path,
-  }): Promise<number | undefined> => {
-    void _project_id;
-    void _path;
-    return 0;
-  };
-
-  // will return undefined if compute servers not yet initialized
-  getServerIdForPathSync = ({
-    project_id: _project_id,
-    path: _path,
-  }): number | undefined => {
-    void _project_id;
-    void _path;
-    return 0;
-  };
 }
 
 // Polyfill for Safari: Add async iterator support to ReadableStream if missing.

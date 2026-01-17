@@ -917,14 +917,6 @@ export const EXTRAS: SettingsExtras = {
     tags: ["Project Hosts", "Cloud", "Nebius"],
     valid: () => true,
   },
-  //   coreweave_kubeconfig: {
-  //     name: "Compute Servers: CoreWeave - Kubeconfig File (not implemented)",
-  //     desc: "Your [CoreWeave](https://cloud.coreweave.com/) KubeConfig from https://cloud.coreweave.com/tokens/api-access.  This supports managing compute servers on CoreWeave Cloud.",
-  //     default: "",
-  //     multiline: 5,
-  //     password: true,
-  //     show: compute_servers_enabled,
-  //   },
   google_cloud_service_account_json: {
     name: "Project Hosts: Google Cloud - Service Account Json",
     desc: 'A Google Cloud [Service Account](https://console.cloud.google.com/iam-admin/serviceaccounts) with the following IAM Roles: "Editor". This supports managing project hosts on Google Cloud, and you must [enable the Compute Engine API](https://console.cloud.google.com/apis/library/compute.googleapis.com) and [the Monitoring API](https://console.cloud.google.com/apis/library/monitoring.googleapis.com) for this Google Cloud project. This is a multiline json file that looks like\n\n```js\n{"type": "service_account",...,"universe_domain": "googleapis.com"}\n```',
@@ -993,20 +985,4 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_trimmed_str,
     tags: ["Project Hosts", "Cloud"],
   },
-  //   amazon_web_services_access_key: {
-  //     name: "Compute Servers: Amazon Web Services - IAM Access Key (not implemented)",
-  //     desc: "Your AWS API Key from the AWS console.  Be sure to also enter your secret access key below. This supports managing compute servers on Amazon Web Services EC2 Cloud.",
-  //     default: "",
-  //     password: true,
-  //     show: compute_servers_enabled,
-  //     tags: ["Compute Servers"],
-  //   },
-  //   amazon_web_services_secret_access_key: {
-  //     name: "Compute Servers: Amazon Web Services - IAM Secret Access Key",
-  //     desc: "Your AWS secret access key from the AWS console.",
-  //     default: "",
-  //     password: true,
-  //     show: compute_servers_enabled,
-  //     tags: ["Compute Servers"],
-  //   },
 } as const;

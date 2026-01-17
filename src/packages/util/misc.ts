@@ -289,9 +289,6 @@ export function endswith(s: any, t: any): boolean {
 
 import { v4 as v4uuid } from "uuid";
 export const uuid: () => string = v4uuid;
-
-// Important -- we also use a special uuid in @cocalc/util/compute/manager.ts
-// and this better not overlap with that!
 export const FALLBACK_PROJECT_UUID = "00000000-1000-4000-8000-000000000000";
 export const FALLBACK_ACCOUNT_UUID = "00000000-1000-4000-8000-000000000001";
 

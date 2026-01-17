@@ -466,8 +466,7 @@ export class XpraClient extends EventEmitter {
   async touch_if_active(): Promise<void> {
     if (Date.now() - this.last_active < 70000) {
       try {
-        // NOTE/TODO: we don't support compute servers yet with xpra, but if we do, then
-        // we would pass second argument that is the compute server id below:
+        // NOTE/TODO: we don't support project hosts yet with xpra.
         await touch_project(this.options.project_id);
         await touch(this.options.project_id, this.options.path);
       } catch (err) {

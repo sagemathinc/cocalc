@@ -45,8 +45,7 @@ export default function GlobalSSHKeys() {
           <FormattedMessage
             id="account.global-ssh-keys.info"
             defaultMessage={`The SSH keys listed here allow you to connect via SSH
-            to <strong><i>all {projectsLabel}</i> and <i>compute servers</i></strong>
-            on which you are a collaborator.
+            to <strong><i>all {projectsLabel}</i></strong> on which you are a collaborator.
             Alternatively, set SSH keys that grant access only to a {projectLabel} in the settings for that {projectLabel}.
             See <A>the docs</A>
             or the SSH part of the settings page in a {projectLabel} for further instructions.

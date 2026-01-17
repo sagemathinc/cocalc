@@ -1402,9 +1402,8 @@ export class JupyterActions extends JupyterActions0 {
     return;
   };
 
-  // if the project or compute server is running and listening, this call
-  // tells them to open this jupyter notebook, so it can provide the compute
-  // functionality.
+  // If the project is running and listening, this call tells it to open this
+  // Jupyter notebook so it can provide compute functionality.
 
   private jupyterApi = async () => {
     const api = webapp_client.project_client.conatApi(this.project_id);

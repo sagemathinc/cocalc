@@ -54,7 +54,6 @@ const jupyterCommands = set([
   "shell",
   "terminal",
   "help",
-  "compute_server",
   "settings",
   "show_search",
 ]);

@@ -46,7 +46,7 @@ export async function getKernelInfo(
   if (!project_id) {
     throw new Error("project_id is required to load kernels");
   }
-  // TODO: compute server support -- would select here
+  // TODO: project host support would select here
   const api = projectApiClient({ project_id });
   const kernels = await api.jupyter.kernels();
   if (kernels == null) {

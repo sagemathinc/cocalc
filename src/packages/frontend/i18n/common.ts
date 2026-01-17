@@ -238,10 +238,6 @@ export const labels = defineMessages({
     description:
       "The UI tells the user to wait, until a some information is available",
   },
-  cloud_file_system: {
-    id: "labels.cloud_file_system",
-    defaultMessage: "Cloud File Systems",
-  },
   ssh_keys: { id: "labels.ssh_keys", defaultMessage: "SSH Keys" },
   support: { id: "labels.support", defaultMessage: "Support" },
   new: {

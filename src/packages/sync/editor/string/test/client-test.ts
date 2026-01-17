@@ -58,10 +58,6 @@ export class Client extends EventEmitter implements Client0 {
     return true;
   }
 
-  public is_compute_server(): boolean {
-    return false;
-  }
-
   public dbg(_f: string): Function {
     //     return (...args) => {
     //       console.log(_f, ...args);

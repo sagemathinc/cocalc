@@ -6,8 +6,7 @@ import { APP_ROUTES } from "@cocalc/util/routing/app";
 import { join } from "path";
 import { encode_path } from "@cocalc/util/misc";
 
-// URL to use http to download a file from a project or compute server
-// that you collaborate on.
+// URL to use http to download a file from a project that you collaborate on.
 export function fileURL({
   project_id,
   path,

@@ -418,7 +418,7 @@ export class PageActions extends Actions<PageState> {
 
   // The code below is complicated and tricky because multiple parts of our codebase could
   // call it at the "same time".  This happens, e.g., when opening several Jupyter notebooks
-  // on a compute server from the terminal using the open command.
+    // from the terminal using the open command.
   // By "same time", I mean a second call to popconfirm comes in while the first is async
   // awaiting to finish.  We handle that below by locking while waiting.  Since only one
   // thing actually happens at a time in Javascript, the below should always work with

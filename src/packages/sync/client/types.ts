@@ -9,7 +9,6 @@ import type {
 // it to support a table.
 export interface Client extends EventEmitter {
   is_project: () => boolean;
-  is_compute_server: () => boolean;
   is_browser: () => boolean;
   dbg: (str: string) => Function;
   query: (opts: any) => void;

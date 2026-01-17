@@ -17,7 +17,6 @@ import {
 import { SharedProjectActions } from "./shared-project/actions";
 import { ActivityActions } from "./activity/actions";
 import { StudentsActions } from "./students/actions";
-import { ComputeActions } from "./compute/actions";
 import { StudentProjectsActions } from "./student-projects/actions";
 import { AssignmentsActions } from "./assignments/actions";
 import { HandoutsActions } from "./handouts/actions";
@@ -42,7 +41,6 @@ export class CourseActions extends Actions<CourseState> {
   private last_collaborator_state: any;
   private activity: ActivityActions;
   public students: StudentsActions;
-  public compute: ComputeActions;
   public student_projects: StudentProjectsActions;
   public shared_project: SharedProjectActions;
   public assignments: AssignmentsActions;
@@ -60,7 +58,6 @@ export class CourseActions extends Actions<CourseState> {
     this.shared_project = bind_methods(new SharedProjectActions(this));
     this.activity = bind_methods(new ActivityActions(this));
     this.students = bind_methods(new StudentsActions(this));
-    this.compute = new ComputeActions(this);
     this.student_projects = bind_methods(new StudentProjectsActions(this));
     this.assignments = bind_methods(new AssignmentsActions(this));
     this.handouts = bind_methods(new HandoutsActions(this));

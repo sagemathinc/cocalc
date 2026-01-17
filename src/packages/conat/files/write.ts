@@ -12,7 +12,7 @@ Import writeFile:
 
     import { writeFile } from "@cocalc/conat/files/write";
 
-Now you can write a given path to a project (or compute_server) as
+Now you can write a given path to a project as
 simply as this:
 
     const stream = createReadStream('a file')

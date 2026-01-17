@@ -15,7 +15,7 @@ const logger = getLogger("proxy");
 interface Options {
   app: Application;
   httpServer; // got from express_app via httpServer = http.createServer(app).
-  projectControl: ProjectControlFunction; // controls projects (aka "compute server")
+  projectControl: ProjectControlFunction; // controls projects
   isPersonal: boolean; // if true, disables all access controls
   proxyConat: boolean;
   projectProxyHandlersPromise?;

@@ -366,7 +366,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   // get created to do various operations.   The big use of project actions
   // though is when an actual tab is open in the UI with projects.
   // So we put actions in two states: 'cheap' and 'expensive'.
-  // In the expensive state, there can be compute server changefeeds,
+  // In the expensive state, there can be extra changefeeds,
   // etc.  In the cheap state we close all that.  When the tab is
   // visibly open in the UI then expensive stuff automatically gets
   // initialized, and when it is closed, it is destroyed.
@@ -1573,16 +1573,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       history_path,
       most_recent_file_click: undefined,
     });
-  };
-
-  setComputeServerId = (_computeServerId: number) => {
-    void _computeServerId;
-  };
-
-  // sets the side chat compute server id properly for the given path.
-  setSideChatComputeServerId = async (_path) => {
-    void _path;
-    return;
   };
 
   set_file_search(search): void {

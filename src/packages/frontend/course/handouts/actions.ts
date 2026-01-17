@@ -261,14 +261,6 @@ export class HandoutsActions {
       };
       await webapp_client.project_client.copyPathBetweenProjects(opts);
 
-      await this.course_actions.compute.setComputeServerAssociations({
-        student_id,
-        src_path,
-        target_project_id: student_project_id,
-        target_path: handout.get("target_path"),
-        unit_id: handout_id,
-      });
-
       finish();
     } catch (err) {
       finish(err);

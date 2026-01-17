@@ -32,7 +32,6 @@ export class SyncClient extends EventEmitter implements Client0 {
 
   is_project = (): boolean => false;
   is_browser = (): boolean => true;
-  is_compute_server = (): boolean => false;
 
   dbg = (_f: string) => {
     return (..._) => {};

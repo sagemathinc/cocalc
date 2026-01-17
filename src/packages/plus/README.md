@@ -4,7 +4,7 @@ CoCalc Plus is the productized wrapper around the lightweight core shipped in `@
 
 ## Role
 
-- Builds directly on the Lite core for a single-user CoCalc experience (optionally acting as a compute server).
+- Builds directly on the Lite core for a single-user CoCalc experience.
 - Adds only product-level defaults (branding, configuration presets, packaging), not new logic.
 - Serves as the public entry point for the “CoCalcPlus” SKU while keeping shared code in [../lite](../lite/README.md).
 

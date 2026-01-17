@@ -87,5 +87,5 @@ export class CursorManager {
     }
   }
 
-  // compute servers are deprecated; cursor grouping is no longer needed.
+  // Cursor grouping is no longer needed.
 }

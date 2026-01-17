@@ -37,7 +37,6 @@ export const terminal: EditorDescription = {
     "guide",
     "chatgpt",
     // "tour", -- temporarily disabled until I figure out how to to do editor tours again (fallout from pr 7180)
-    "compute_server",
     "settings",
   ]),
   buttons: set([

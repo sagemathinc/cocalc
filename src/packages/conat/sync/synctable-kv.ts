@@ -144,7 +144,8 @@ export class SyncTableKV extends EventEmitter {
         noAutosave: this.noAutosave,
       });
     }
-    // For some reason this one line confuses typescript and break building the compute server package (nothing else similar happens).
+    // For some reason this one line confuses typescript and breaks building one
+    // of the package targets (nothing else similar happens).
     // Do not remove.  The error is that "this.dkv.on" is not callable.
     // @ts-ignore
     this.dkv.on("change", (x) => {

@@ -88,7 +88,7 @@ CoCalc is organized as a monorepo with key packages:
 
 - **PostgreSQL Database**: Primary data store with sophisticated querying system
 - **WebSocket Messaging**: Real-time communication between frontend and backend
-- **Conat System**: Messaging and routing for project services
+- **Conat System**: Container orchestration for compute servers
 - **Event-Driven Architecture**: Extensive use of EventEmitter patterns
 - **Microservice-like Packages**: Each package handles specific functionality
 - **Database Access**: Use `getPool()` from `@cocalc/database/pool` for direct database queries in hub/backend code. Example: `const pool = getPool(); const { rows } = await pool.query('SELECT * FROM table WHERE id = $1', [id]);`
@@ -107,7 +107,7 @@ CoCalc is organized as a monorepo with key packages:
   3. **Hub API Structure** (`packages/conat/hub/api/`): Typed interfaces for different services (system, projects, db, purchases, jupyter) that map function calls to conat subjects
   4. **Message Flow**: Frontend calls like `hub.projects.setQuotas()` → ConatClient.callHub() → conat request to subject `hub.account.{account_id}.api` → Hub API dispatcher → actual service implementation
   5. **Authentication**: Each conat request includes account_id and is subject to permission checks at the hub level
-  6. **Subjects**: Messages are routed using hierarchical subjects like `hub.account.{uuid}.{service}` or `project.{uuid}.{service}`
+  6. **Subjects**: Messages are routed using hierarchical subjects like `hub.account.{uuid}.{service}` or `project.{uuid}.{compute_server_id}.{service}`
 
 ### Key Technologies
 

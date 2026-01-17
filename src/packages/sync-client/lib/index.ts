@@ -84,10 +84,6 @@ export default class Client extends EventEmitter implements AppClient {
     return this.role == "browser";
   };
 
-  is_compute_server = () => {
-    return false;
-  };
-
   dbg = (str: string) => {
     return debug(`cocalc:sync:client.${str}`);
   };

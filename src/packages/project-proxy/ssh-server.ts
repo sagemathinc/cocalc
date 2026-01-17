@@ -5,7 +5,6 @@ This is a service that runs directly on the btrfs file server.  It:
 
 - listens for incoming ssh connections from:
    - project
-   - compute server
    - external users
 
 - uses conat to determine what public keys grant access to a user

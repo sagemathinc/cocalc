@@ -1,5 +1,5 @@
 /*
-Service for controlling a terminal served from a project/compute server.
+Service for controlling a terminal served from a project.
 */
 
 import {

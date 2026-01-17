@@ -150,9 +150,6 @@ export interface FileSpec {
   name: string;
   exclude_from_menu?: boolean;
 
-  // opening this file type on a compute server is not supported yet
-  exclude_from_compute_server?: boolean;
-
   // in cases when it could be ambiguous, use this extension, e.g.,
   // latex vs tex
   ext?: string;
@@ -226,7 +223,6 @@ file_associations["tex"] = {
   icon: "tex-file",
   opts: { mode: "stex2", indent_unit: 2, tab_size: 2, spellcheck: true },
   name: "LaTeX",
-  exclude_from_compute_server: false,
   ext: "tex",
 };
 
@@ -316,7 +312,6 @@ file_associations["rmd"] = {
     spellcheck: true,
   },
   name: "RMarkdown",
-  exclude_from_compute_server: true,
 };
 
 file_associations["qmd"] = {
@@ -328,14 +323,12 @@ file_associations["qmd"] = {
     spellcheck: true,
   },
   name: "Quarto",
-  exclude_from_compute_server: true,
 };
 
 file_associations["rst"] = {
   icon: "file-code",
   opts: { indent_unit: 4, tab_size: 4, mode: "rst", spellcheck: true },
   name: "ReST",
-  exclude_from_compute_server: true,
 };
 
 file_associations["java"] = {
@@ -409,7 +402,6 @@ file_associations["x11"] = {
   icon: "window-restore",
   opts: {},
   name: "Linux Graphical X11 Desktop",
-  exclude_from_compute_server: true,
 };
 
 file_associations["ipynb"] = {
@@ -469,7 +461,6 @@ file_associations["course"] = {
   icon: "graduation-cap",
   opts: {},
   name: "course",
-  exclude_from_compute_server: true,
 };
 
 file_associations["board"] = {
@@ -477,7 +468,6 @@ file_associations["board"] = {
   icon: "layout",
   opts: {},
   name: "whiteboard",
-  exclude_from_compute_server: true,
 };
 
 file_associations["slides"] = {
@@ -485,7 +475,6 @@ file_associations["slides"] = {
   icon: "slides",
   opts: {},
   name: "Slides",
-  exclude_from_compute_server: true,
 };
 
 const chatAssociation: FileSpec = {
@@ -578,7 +567,6 @@ file_associations["sagews"] = {
   opts: { mode: "sagews" },
   name: "sagews",
   exclude_from_menu: true,
-  exclude_from_compute_server: true,
 };
 
 // some things in ~/.ssh
@@ -594,10 +582,4 @@ for (const m of ["authorized_keys", "config", "id_ed25519.pub"]) {
     name: "Text",
     ext: "",
   };
-}
-
-export function excludeFromComputeServer(path: string): boolean {
-  const ext = filename_extension(path);
-  const x = file_associations[ext];
-  return !!x?.exclude_from_compute_server;
 }

@@ -551,10 +551,6 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     return new Set<"selection" | "cell">(["selection", "cell"]);
   }
 
-  compute_server() {
-    // this is here just so the dropdown gets enabled
-  }
-
   gotoUser(account_id: string, frameId?: string) {
     const cursors = this.jupyter_actions.syncdb
       .get_cursors({ maxAge: 0, excludeSelf: "never" })
