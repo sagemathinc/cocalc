@@ -15,8 +15,6 @@ import { SyncOutlined } from "@ant-design/icons";
 import { React } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components/icon";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
-import { labels } from "@cocalc/frontend/i18n";
-import { useIntl } from "react-intl";
 import type { HostLogEntry } from "../hooks/use-host-log";
 import { isHostOpActive, type HostLroState } from "../hooks/use-host-ops";
 import { mapCloudRegionToR2Region, R2_REGION_LABELS } from "@cocalc/util/consts";
@@ -30,6 +28,7 @@ import {
 import { getProviderDescriptor, isKnownProvider } from "../providers/registry";
 import { getHostOpPhase, HostOpProgress } from "./host-op-progress";
 import { UpgradeConfirmContent } from "./upgrade-confirmation";
+import { HostWorkspaceStatus } from "./host-workspace-status";
 
 type HostDrawerViewModel = {
   open: boolean;
@@ -164,8 +163,6 @@ const describeSpecChange = (
 };
 
 export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
-  const intl = useIntl();
-  const projectsLabel = intl.formatMessage(labels.projects);
   const [drawerWidth, setDrawerWidth] = React.useState<number | undefined>(
     readDrawerWidth,
   );
@@ -373,9 +370,7 @@ export const HostDrawer: React.FC<{ vm: HostDrawerViewModel }> = ({ vm }) => {
               </Typography.Text>
             )}
           </Space>
-          <Typography.Text>
-            {projectsLabel}: {host.projects ?? 0}
-          </Typography.Text>
+          <HostWorkspaceStatus host={host} fontSize={14} />
           {(host.version ||
             host.project_bundle_version ||
             host.tools_version) && (

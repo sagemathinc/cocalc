@@ -24,14 +24,16 @@ function formatWorkspaceStatus(host: Host, compact: boolean): string | null {
 export function HostWorkspaceStatus({
   host,
   compact = false,
+  fontSize = 11,
 }: {
   host: Host;
   compact?: boolean;
+  fontSize?: number;
 }) {
   const label = formatWorkspaceStatus(host, compact);
   if (!label) return null;
   return (
-    <Typography.Text type="secondary" style={{ fontSize: 11 }}>
+    <Typography.Text type="secondary" style={{ fontSize }}>
       {label}
     </Typography.Text>
   );
