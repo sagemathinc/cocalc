@@ -20,7 +20,6 @@ and things just grow badly (user has tons of docs open).
 const MAX_PAGES = 1000;
 
 import LRU from "lru-cache";
-import "pdfjs-dist/webpack.mjs";
 
 import { versions } from "@cocalc/cdn";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
@@ -62,9 +61,19 @@ export function url_to_pdf(
 
 const doc_cache = new LRU(options);
 
+let pdfjsWorkerInit: Promise<void> | null = null;
+
+async function ensurePdfjsWorker(): Promise<void> {
+  if (!pdfjsWorkerInit) {
+    pdfjsWorkerInit = import("pdfjs-dist/webpack.mjs").then(() => undefined);
+  }
+  await pdfjsWorkerInit;
+}
+
 export const getDocument = reuseInFlight(async function (url: string) {
   let doc: PDFDocumentProxy | undefined = doc_cache.get(url);
   if (doc === undefined) {
+    await ensurePdfjsWorker();
     const resDir = `pdfjs-dist-${versions["pdfjs-dist"]}`;
     doc = (await pdfjs_getDocument({
       url,
