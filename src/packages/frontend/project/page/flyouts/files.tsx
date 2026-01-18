@@ -708,6 +708,7 @@ export function FilesFlyout({
         clearAllSelections={clearAllSelections}
         selectAllFiles={selectAllFiles}
         publicFiles={publicFiles}
+        refreshBackups={refreshBackups}
       />
       {disableUploads ? (
         renderListing()
@@ -739,6 +740,7 @@ export function FilesFlyout({
         showFileSharingDialog={showFileSharingDialog}
         getFile={getFile}
         publicFiles={publicFiles}
+        refreshBackups={refreshBackups}
       />
     </div>
   );

@@ -523,6 +523,7 @@ export function Explorer() {
                 available_features={available_features}
                 show_custom_software_reset={show_custom_software_reset}
                 project_is_running={project_is_running}
+                refreshBackups={refreshBackups}
               />
             )}
           </div>

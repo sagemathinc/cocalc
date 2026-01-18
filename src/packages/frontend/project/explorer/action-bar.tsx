@@ -49,6 +49,7 @@ interface Props {
   available_features?;
   show_custom_software_reset?: boolean;
   project_is_running?: boolean;
+  refreshBackups?: () => void;
 }
 
 export function ActionBar({
@@ -62,6 +63,7 @@ export function ActionBar({
   available_features,
   show_custom_software_reset,
   project_is_running,
+  refreshBackups,
 }: Props) {
   const intl = useIntl();
   const currentParts = (current_path ?? "").split("/").filter(Boolean);
@@ -77,6 +79,7 @@ export function ActionBar({
   const [backupsMeta, setBackupsMeta] = useState<BackupMeta[] | null>(null);
   const [backupsLoading, setBackupsLoading] = useState<boolean>(false);
   const [backupsErr, setBackupsErr] = useState<any>(null);
+  const [backupsTick, setBackupsTick] = useState(0);
 
   useAsyncEffect(async () => {
     if (!inBackups || !project_id) return;
@@ -98,7 +101,7 @@ export function ActionBar({
     } finally {
       setBackupsLoading(false);
     }
-  }, [inBackups, project_id, current_path]);
+  }, [inBackups, project_id, current_path, backupsTick]);
 
   interface BackupSelection {
     id: string;
@@ -342,6 +345,8 @@ export function ActionBar({
       message.success("Backup deleted");
       // Force a refresh and clear selection so the listing updates immediately.
       actions?.set_all_files_unchecked?.();
+      refreshBackups?.();
+      setBackupsTick((value) => value + 1);
       actions?.open_directory?.(current_path, true);
     } catch (err) {
       message.error(`${err}`);

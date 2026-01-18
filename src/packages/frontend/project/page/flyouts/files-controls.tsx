@@ -57,6 +57,7 @@ interface FilesSelectedControlsProps {
   ) => void;
   activeFile: DirectoryListingEntry | null;
   publicFiles: Set<string>;
+  refreshBackups?: () => void;
 }
 
 export function FilesSelectedControls({
@@ -69,6 +70,7 @@ export function FilesSelectedControls({
   showFileSharingDialog,
   activeFile,
   publicFiles,
+  refreshBackups,
 }: FilesSelectedControlsProps) {
   const intl = useIntl();
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -85,6 +87,7 @@ export function FilesSelectedControls({
   const [backupsMeta, setBackupsMeta] = useState<BackupMeta[] | null>(null);
   const [backupsErr, setBackupsErr] = useState<any>(null);
   const [backupsLoading, setBackupsLoading] = useState<boolean>(false);
+  const [backupsTick, setBackupsTick] = useState(0);
   const [restoreOpen, setRestoreOpen] = useState<boolean>(false);
   const [restoreMode, setRestoreMode] = useState<"original" | "scratch">(
     "original",
@@ -112,7 +115,7 @@ export function FilesSelectedControls({
     } finally {
       setBackupsLoading(false);
     }
-  }, [inBackups, project_id, current_path]);
+  }, [inBackups, project_id, current_path, backupsTick]);
 
   interface BackupSelection {
     id: string;
@@ -377,6 +380,8 @@ export function FilesSelectedControls({
           });
         }
         message.success("Backup deleted");
+        refreshBackups?.();
+        setBackupsTick((value) => value + 1);
         actions?.open_directory?.(current_path, false);
       } catch (err) {
         message.error(err?.message ?? `${err}`);
