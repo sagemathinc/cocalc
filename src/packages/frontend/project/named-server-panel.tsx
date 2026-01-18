@@ -32,6 +32,7 @@ import { useState } from "react";
 import { useAppStatus } from "@cocalc/frontend/project/apps/use-app-status";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Button } from "antd";
+import { withProjectHostBase } from "./host-url";
 
 const LAUNCHING_SERVER = defineMessage({
   id: "project.named-server-panel.launching_server",
@@ -227,14 +228,14 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
 }
 
 export function serverURL(project_id: string, name: NamedServerName): string {
-  return (
+  const path =
     join(
       appBasePath,
       project_id,
       SPEC[name]?.usesBasePath ? "port" : "server",
       name,
-    ) + "/"
-  );
+    ) + "/";
+  return withProjectHostBase(project_id, path) ?? path;
 }
 
 export function ServerLink({
@@ -281,7 +282,9 @@ export function ServerLink({
     return null;
   }
 
-  if (!appStatus.status?.url) {
+  const appUrl = withProjectHostBase(project_id, appStatus.status?.url);
+
+  if (!appUrl) {
     return (
       <Button
         onClick={async () => {
@@ -300,7 +303,7 @@ export function ServerLink({
   return (
     <LinkRetry
       maxTime={1000 * 60 * 5}
-      href={appStatus.status?.url}
+      href={appUrl}
       loadingText={intl.formatMessage(LAUNCHING_SERVER)}
       tooltip={mode === "flyout" ? description : undefined}
       onClick={() => {
