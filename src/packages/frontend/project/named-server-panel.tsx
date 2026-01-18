@@ -282,9 +282,17 @@ export function ServerLink({
     return null;
   }
 
-  const appUrl = withProjectHostBase(project_id, appStatus.status?.url);
+  const ready = appStatus.status?.ready === true;
+  const running = appStatus.status?.state === "running";
+  const appUrl =
+    ready && appStatus.status?.url
+      ? withProjectHostBase(project_id, appStatus.status.url)
+      : undefined;
 
   if (!appUrl) {
+    if (running) {
+      return <Button disabled>Starting {name}...</Button>;
+    }
     return (
       <Button
         onClick={async () => {

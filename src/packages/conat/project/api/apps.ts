@@ -9,6 +9,7 @@ export interface Apps {
     state: "running" | "stopped";
     port: number;
     url: string;
+    ready?: boolean;
     pid?: number;
     stdout: Buffer;
     stderr: Buffer;
@@ -21,6 +22,7 @@ export interface Apps {
         state: "running" | "stopped";
         port: number;
         url: string;
+        ready?: boolean;
         pid?: number;
         stdout: Buffer;
         stderr: Buffer;

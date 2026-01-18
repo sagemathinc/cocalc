@@ -29,7 +29,7 @@ export default function AppState({
 
   useEffect(() => {
     const url =
-      status?.state == "running" && status?.url
+      status?.state == "running" && status?.ready === true && status?.url
         ? withProjectHostBase(project_id, status.url)
         : undefined;
     setUrl(url);
