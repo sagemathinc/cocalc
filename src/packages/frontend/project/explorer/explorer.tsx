@@ -177,6 +177,34 @@ export function Explorer() {
     path: current_path,
     ...sortDesc(active_file_sort),
   });
+  const backupOps = useTypedRedux({ project_id }, "backup_ops");
+  const prevBackupStatuses = useRef<Map<string, string>>(new Map());
+  useEffect(() => {
+    if (!backupOps) {
+      prevBackupStatuses.current = new Map();
+      return;
+    }
+    let shouldRefresh = false;
+    const next = new Map<string, string>();
+    backupOps.forEach((op, op_id) => {
+      const status = op?.summary?.status;
+      if (!status) return;
+      next.set(op_id, status);
+      if (status === "succeeded" && prevBackupStatuses.current.get(op_id) !== status) {
+        shouldRefresh = true;
+      }
+    });
+    for (const op_id of prevBackupStatuses.current.keys()) {
+      if (!next.has(op_id)) {
+        shouldRefresh = true;
+        break;
+      }
+    }
+    prevBackupStatuses.current = next;
+    if (shouldRefresh) {
+      refreshBackups();
+    }
+  }, [backupOps, refreshBackups]);
   if (isBackupsPath) {
     listing = backupsListing;
     listingError = backupsError;
@@ -495,6 +523,7 @@ export function Explorer() {
                 available_features={available_features}
                 show_custom_software_reset={show_custom_software_reset}
                 project_is_running={project_is_running}
+                refreshBackups={refreshBackups}
               />
             )}
           </div>

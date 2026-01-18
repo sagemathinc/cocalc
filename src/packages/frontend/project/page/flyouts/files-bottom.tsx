@@ -64,6 +64,7 @@ interface FilesBottomProps {
   selectAllFiles: () => void;
   getFile: (path: string) => DirectoryListingEntry | undefined;
   publicFiles: Set<string>;
+  refreshBackups?: () => void;
 }
 
 export function FilesBottom({
@@ -80,6 +81,7 @@ export function FilesBottom({
   getFile,
   directoryFiles,
   publicFiles,
+  refreshBackups,
 }: FilesBottomProps) {
   const [mode, setMode] = modeState;
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -271,6 +273,7 @@ export function FilesBottom({
         mode="bottom"
         activeFile={activeFile}
         publicFiles={publicFiles}
+        refreshBackups={refreshBackups}
       />
     );
   }

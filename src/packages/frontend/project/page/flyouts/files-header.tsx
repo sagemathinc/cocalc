@@ -74,6 +74,7 @@ interface Props {
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
   publicFiles: Set<string>;
+  refreshBackups?: () => void;
 }
 
 export function FilesHeader({
@@ -97,6 +98,7 @@ export function FilesHeader({
   selectAllFiles,
   clearAllSelections,
   publicFiles,
+  refreshBackups,
 }: Readonly<Props>): React.JSX.Element {
   const intl = useIntl();
 
@@ -317,6 +319,7 @@ export function FilesHeader({
           mode="top"
           activeFile={activeFile}
           publicFiles={publicFiles}
+          refreshBackups={refreshBackups}
         />
         <FilesSelectButtons
           setMode={setMode}

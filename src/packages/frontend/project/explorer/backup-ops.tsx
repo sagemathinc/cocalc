@@ -1,4 +1,5 @@
 import { Progress, Space, Spin } from "antd";
+import { useRef } from "react";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { LroStatus } from "@cocalc/conat/hub/api/lro";
 import {
@@ -50,8 +51,14 @@ function BackupOpRow({ op }: { op: BackupLroState }) {
   if (summary && HIDE_STATUSES.has(summary.status)) {
     return null;
   }
+  const lastDetailRef = useRef<string | undefined>(undefined);
   const percent = progressPercent(op);
-  const statusText = formatStatusLine(op);
+  const progress = op.last_progress;
+  const detail = formatProgressDetail(progress?.detail);
+  if (detail) {
+    lastDetailRef.current = detail;
+  }
+  const statusText = formatStatusLine(op, detail ?? lastDetailRef.current);
   const progressStatus = progressBarStatus(summary?.status);
 
   return (
@@ -76,7 +83,10 @@ function BackupOpRow({ op }: { op: BackupLroState }) {
   );
 }
 
-function formatStatusLine(op: BackupLroState): string {
+function formatStatusLine(
+  op: BackupLroState,
+  detailOverride?: string,
+): string {
   const summary = op.summary;
   if (summary?.status === "failed") {
     return summary.error ? `failed: ${summary.error}` : "failed";
@@ -90,7 +100,7 @@ function formatStatusLine(op: BackupLroState): string {
   const progress = op.last_progress;
   const message =
     progress?.message ?? progress?.phase ?? summary?.progress_summary?.phase;
-  const detail = formatProgressDetail(progress?.detail);
+  const detail = detailOverride ?? formatProgressDetail(progress?.detail);
   if (message && detail) {
     return `${message} • ${detail}`;
   }

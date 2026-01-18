@@ -154,6 +154,34 @@ export function FilesFlyout({
     project_id,
     path: current_path,
   });
+  const backupOps = useTypedRedux({ project_id }, "backup_ops");
+  const prevBackupStatuses = useRef<Map<string, string>>(new Map());
+  useEffect(() => {
+    if (!backupOps) {
+      prevBackupStatuses.current = new Map();
+      return;
+    }
+    let shouldRefresh = false;
+    const next = new Map<string, string>();
+    backupOps.forEach((op, op_id) => {
+      const status = op?.summary?.status;
+      if (!status) return;
+      next.set(op_id, status);
+      if (status === "succeeded" && prevBackupStatuses.current.get(op_id) !== status) {
+        shouldRefresh = true;
+      }
+    });
+    for (const op_id of prevBackupStatuses.current.keys()) {
+      if (!next.has(op_id)) {
+        shouldRefresh = true;
+        break;
+      }
+    }
+    prevBackupStatuses.current = next;
+    if (shouldRefresh) {
+      refreshBackups();
+    }
+  }, [backupOps, refreshBackups]);
   const effectiveListing = isBackupsPath ? backupsListing : directoryListing;
   const effectiveError = isBackupsPath ? backupsError : listingError;
   const effectiveRefresh = isBackupsPath ? refreshBackups : refresh;
@@ -680,6 +708,7 @@ export function FilesFlyout({
         clearAllSelections={clearAllSelections}
         selectAllFiles={selectAllFiles}
         publicFiles={publicFiles}
+        refreshBackups={refreshBackups}
       />
       {disableUploads ? (
         renderListing()
@@ -711,6 +740,7 @@ export function FilesFlyout({
         showFileSharingDialog={showFileSharingDialog}
         getFile={getFile}
         publicFiles={publicFiles}
+        refreshBackups={refreshBackups}
       />
     </div>
   );

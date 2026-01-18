@@ -57,27 +57,39 @@ export default function useFiles({
   // This is used to speed up the first load, and can also be fetched synchronously.
   cacheId?: JSONValue;
 }): { files: Files | null; error: null | ConatError; refresh: () => void } {
-  const [files, setFiles] = useState<Files | null>(getFiles({ cacheId, path }));
-  const [error, setError] = useState<any>(null);
+  const [filesState, setFilesState] = useState<{
+    path: string;
+    files: Files | null;
+  }>(() => ({ path, files: getFiles({ cacheId, path }) }));
+  const [errorState, setErrorState] = useState<{
+    path: string;
+    error: ConatError | null;
+  }>({ path, error: null });
   const { val: counter, inc: refresh } = useCounter();
   const listingRef = useRef<any>(null);
+  const requestId = useRef(0);
 
   useAsyncEffect(
     async () => {
+      const id = ++requestId.current;
       if (fs == null) {
-        setError(null);
-        setFiles(null);
+        if (requestId.current !== id) return;
+        setErrorState({ path, error: null });
+        setFilesState({ path, files: null });
         return;
       }
       let listing;
       try {
-        setFiles(getFiles({ cacheId, path }));
+        setFilesState({ path, files: getFiles({ cacheId, path }) });
+        setErrorState({ path, error: null });
         listing = await fs.listing(path);
+        if (requestId.current !== id) return;
         listingRef.current = listing;
-        setError(null);
+        setErrorState({ path, error: null });
       } catch (err) {
-        setError(err);
-        setFiles(null);
+        if (requestId.current !== id) return;
+        setErrorState({ path, error: err as ConatError });
+        setFilesState({ path, files: null });
         return;
       }
       if (cacheId != null) {
@@ -87,7 +99,8 @@ export default function useFiles({
         }
       }
       const update = () => {
-        setFiles({ ...listing.files });
+        if (requestId.current !== id) return;
+        setFilesState({ path, files: { ...listing.files } });
       };
       update();
 
@@ -102,6 +115,9 @@ export default function useFiles({
     },
     [fs, path, counter],
   );
+
+  const files = filesState.path === path ? filesState.files : null;
+  const error = errorState.path === path ? errorState.error : null;
 
   return { files, error, refresh };
 }
