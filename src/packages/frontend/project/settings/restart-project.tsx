@@ -6,12 +6,13 @@
 // The "Restart Project" button, which says "Start" like the one at the top if the project isn't running
 
 import { PlayCircleOutlined, SyncOutlined } from "@ant-design/icons";
-import { Button, ButtonProps, Popconfirm } from "antd";
+import { Button, ButtonProps, Popconfirm, Tooltip } from "antd";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useActions } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
+import { StartButton } from "@cocalc/frontend/project/start-button";
 import { useProjectState } from "../page/project-state-hook";
 
 interface Props {
@@ -42,6 +43,8 @@ export function RestartProject({
   );
   const icon = is_running ? <SyncOutlined /> : <PlayCircleOutlined />;
   const description = text != null ? text : `${task}${is_running ? "…" : ""}`;
+  const projectLabel = intl.formatMessage(labels.project);
+  const membership_hint = `This ${projectLabel.toLowerCase()} will start with the upgrades that your membership level provides.`;
 
   const explanation = (
     <div style={{ maxWidth: "300px" }}>
@@ -53,39 +56,40 @@ export function RestartProject({
 
   if (!is_running) {
     return (
-      <Button
-        disabled={disabled || actions == null}
+      <StartButton
+        minimal
+        project_id={project_id}
         size={size}
         danger={danger}
-        onClick={() => actions?.restart_project(project_id)}
-      >
-        {icon} {description}
-      </Button>
+        disabled={disabled || actions == null}
+      />
     );
   }
 
   return (
-    <Popconfirm
-      placement={"bottom"}
-      arrow={{ pointAtCenter: true }}
-      title={explanation}
-      icon={icon}
-      onConfirm={() => actions?.restart_project(project_id)}
-      okText={
-        <FormattedMessage
-          {...labels.project_settings_restart_project_confirm_ok}
-          values={{ task: task.toLocaleLowerCase() }}
-        />
-      }
-      cancelText={<CancelText />}
-    >
-      <Button
-        disabled={disabled || actions == null}
-        size={size}
-        danger={danger}
+    <Tooltip title={membership_hint}>
+      <Popconfirm
+        placement={"bottom"}
+        arrow={{ pointAtCenter: true }}
+        title={explanation}
+        icon={icon}
+        onConfirm={() => actions?.restart_project(project_id)}
+        okText={
+          <FormattedMessage
+            {...labels.project_settings_restart_project_confirm_ok}
+            values={{ task: task.toLocaleLowerCase() }}
+          />
+        }
+        cancelText={<CancelText />}
       >
-        {icon} {description}
-      </Button>
-    </Popconfirm>
+        <Button
+          disabled={disabled || actions == null}
+          size={size}
+          danger={danger}
+        >
+          {icon} {description}
+        </Button>
+      </Popconfirm>
+    </Tooltip>
   );
 }

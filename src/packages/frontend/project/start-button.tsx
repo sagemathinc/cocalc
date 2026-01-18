@@ -13,6 +13,7 @@ happens, and also when the system is heavily loaded.
 */
 
 import { Alert, Button, Progress, Space, Spin, Tooltip } from "antd";
+import type { ButtonProps } from "antd";
 import { CSSProperties, useRef } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { redux, useMemo, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -47,11 +48,29 @@ function toTimestamp(value?: Date | string | null): number | undefined {
   return Number.isFinite(ts) ? ts : undefined;
 }
 
-export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
+export function StartButton({
+  minimal,
+  style,
+  project_id: projectIdProp,
+  size,
+  danger,
+  disabled,
+}: {
+  minimal?: boolean;
+  style?: CSSProperties;
+  project_id?: string;
+  size?: ButtonProps["size"];
+  danger?: boolean;
+  disabled?: boolean;
+}) {
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
   const projectsLabel = intl.formatMessage(labels.projects);
-  const { project_id } = useProjectContext();
+  const { project_id: contextProjectId } = useProjectContext();
+  const project_id = projectIdProp ?? contextProjectId;
+  if (!project_id) {
+    return null;
+  }
   const project_map = useTypedRedux("projects", "project_map");
   const lastNotRunningRef = useRef<null | number>(null);
   const allowed = useAllowedFreeProjectToRun(project_id);
@@ -199,12 +218,17 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
       { starting, projectLabel },
     );
 
+    const membership_hint = `This ${projectLabel.toLowerCase()} will start with the upgrades that your membership level provides.`;
+
     return (
       <Space size="small" align="center">
         <Tooltip
           title={
             <div>
               <ProjectState state={state} show_desc={allowed} />
+              <div style={{ fontSize: "12px", color: "#fff" }}>
+                {membership_hint}
+              </div>
               {render_not_allowed()}
               {starting && (
                 <div style={{ background: "white" }}>
@@ -246,9 +270,10 @@ export function StartButton({ minimal, style }: { minimal?: boolean; style? }) {
         >
           <Button
             type="primary"
-            size={minimal ? undefined : "large"}
+            size={size ?? (minimal ? undefined : "large")}
             style={minimal ? style : undefined}
-            disabled={!enabled}
+            danger={danger}
+            disabled={!enabled || disabled}
             onClick={async () => {
               try {
                 await redux.getActions("projects").start_project(project_id);
