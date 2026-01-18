@@ -130,6 +130,13 @@ export interface ProjectStoreState {
   command?: string;
   most_recent_search?: string;
   most_recent_path: string;
+  find_tab?: string;
+  find_prefill?: {
+    tab: string;
+    query: string;
+    scope_path?: string;
+    submode?: string;
+  };
 
   // Search page -- update this when params change
   search_page?: number;
@@ -291,6 +298,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
       user_input: "",
       search_page: 0,
       most_recent_path: "",
+      find_tab: "contents",
+      find_prefill: undefined,
 
       // Project Settings
       other_settings: undefined,

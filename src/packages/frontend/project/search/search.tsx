@@ -1,12 +1,7 @@
-import { ProjectSearchBody } from "./body";
-
-import { ProjectSearchHeader } from "./header";
+import { ProjectFind } from "@cocalc/frontend/project/find/find";
 
 export const ProjectSearch: React.FC = () => {
   return (
-    <div className="smc-vfill" style={{ padding: "15px" }}>
-      <ProjectSearchHeader />
-      <ProjectSearchBody mode="project" />
-    </div>
+    <ProjectFind mode="project" />
   );
 };

@@ -27,6 +27,7 @@ import { split } from "@cocalc/util/misc";
 import { execFileSync, execSync } from "child_process";
 import { executeCode } from "@cocalc/backend/execute-code";
 import { writeFile, stat, unlink, mkdir, chmod } from "fs/promises";
+import { existsSync } from "fs";
 import { join } from "path";
 // using old version of pkg-dir because of nextjs :-(
 import { sync as packageDirectorySync } from "pkg-dir";
@@ -34,11 +35,36 @@ import getLogger from "@cocalc/backend/logger";
 
 const logger = getLogger("files:sandbox:install");
 
+const SYSTEM_BIN_PATH = "/opt/cocalc/tools/current";
+
+function hasBinary(dir: string | undefined, name: string): boolean {
+  if (!dir) return false;
+  try {
+    return existsSync(join(dir, name));
+  } catch {
+    return false;
+  }
+}
+
+function resolveBinPath(): string {
+  const envPath = process.env.COCALC_BIN_PATH;
+  if (envPath && hasBinary(envPath, "rg") && hasBinary(envPath, "fd")) {
+    return envPath;
+  }
+  if (hasBinary(SYSTEM_BIN_PATH, "rg") && hasBinary(SYSTEM_BIN_PATH, "fd")) {
+    return SYSTEM_BIN_PATH;
+  }
+  return join(
+    packageDirectorySync(__dirname) ?? "/tmp",
+    "node_modules",
+    ".bin",
+  );
+}
+
 // Prefer explicit override so tests/bundled environments can point to the
 // correct toolchain even when package resolution lands elsewhere.
-const binPath =
-  process.env.COCALC_BIN_PATH ||
-  join(packageDirectorySync(__dirname) ?? "/tmp", "node_modules", ".bin");
+const binPath = resolveBinPath();
+const systemBinPathInUse = binPath === SYSTEM_BIN_PATH;
 
 interface Spec {
   nonFatal?: boolean; // true if failure to install is non-fatal
@@ -351,6 +377,9 @@ export async function install(
   app?: App,
   { optional }: { optional?: boolean } = {},
 ) {
+  if (systemBinPathInUse) {
+    return;
+  }
   if (!(await exists(binPath))) {
     await mkdir(binPath, { recursive: true });
   }

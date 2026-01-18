@@ -77,15 +77,21 @@ export async function set(
   kv.set(k, { ...kv.get(k), ...opts.config });
 }
 
-export function setSearch({ search, ...location }: Location & { search: any }) {
+export function setSearch({
+  search,
+  pathOverride,
+  ...location
+}: Location & { search: any; pathOverride?: string }) {
+  const targetPath = pathOverride ?? location.path;
   set({
     ...location,
+    path: targetPath,
     // merge what was there with what's new
-    config: { search: { ...get(location)?.search, ...search } },
+    config: { search: { ...get({ ...location, path: targetPath })?.search, ...search } },
   });
   const actions = redux.getProjectActions(location.project_id);
   actions.setState({ search_page: Math.random() });
-  actions.search();
+  actions.search({ path: targetPath });
 }
 
 const FALLBACK_SEARCH = {

@@ -33,6 +33,15 @@ export interface ProjectCopyRow {
   last_attempt_at: Date | null;
 }
 
+export interface BackupFindResult {
+  id: string;
+  time: Date;
+  path: string;
+  isDir: boolean;
+  mtime: number;
+  size: number;
+}
+
 export const projects = {
   createProject: authFirstRequireAccount,
   copyPathBetweenProjects: authFirstRequireAccount,
@@ -57,6 +66,7 @@ export const projects = {
   updateBackups: authFirstRequireAccount,
   getBackups: authFirstRequireAccount,
   getBackupFiles: authFirstRequireAccount,
+  findBackupFiles: authFirstRequireAccount,
   getBackupQuota: authFirstRequireAccount,
 
   createSnapshot: authFirstRequireAccount,
@@ -276,6 +286,15 @@ export interface Projects {
   }) => Promise<
     { name: string; isDir: boolean; mtime: number; size: number }[]
   >;
+
+  findBackupFiles: (opts: {
+    account_id?: string;
+    project_id: string;
+    glob?: string[];
+    iglob?: string[];
+    path?: string;
+    ids?: string[];
+  }) => Promise<BackupFindResult[]>;
 
   getBackupQuota: (opts: {
     account_id?: string;

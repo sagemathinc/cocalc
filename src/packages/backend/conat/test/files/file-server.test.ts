@@ -125,6 +125,7 @@ describe("create basic mocked file server and test it out", () => {
         {
           id: string;
           time: Date;
+          summary: { [key: string]: string | number };
         }[]
       > => {
         return [];
@@ -133,7 +134,28 @@ describe("create basic mocked file server and test it out", () => {
       getBackupFiles: async (_opts: {
         project_id: string;
         id: string;
-      }): Promise<string[]> => {
+      }): Promise<
+        { name: string; isDir: boolean; mtime: number; size: number }[]
+      > => {
+        return [];
+      },
+
+      findBackupFiles: async (_opts: {
+        project_id: string;
+        glob?: string[];
+        iglob?: string[];
+        path?: string;
+        ids?: string[];
+      }): Promise<
+        {
+          id: string;
+          time: Date;
+          path: string;
+          isDir: boolean;
+          mtime: number;
+          size: number;
+        }[]
+      > => {
         return [];
       },
 

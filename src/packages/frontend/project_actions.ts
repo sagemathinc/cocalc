@@ -3122,7 +3122,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   };
 
   private searchId = 0;
-  search = async () => {
+  search = async (opts?: { path?: string }) => {
     const store = this.get_store();
     if (!store) {
       return;
@@ -3135,7 +3135,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       }
       this.setState(x);
     };
-    const path = store.get("current_path");
+    const path = opts?.path ?? store.get("current_path");
     const options = getSearch({
       project_id: this.project_id,
       path,

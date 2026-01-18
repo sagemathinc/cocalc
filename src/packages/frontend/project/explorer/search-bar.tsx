@@ -13,6 +13,7 @@ import { useProjectContext } from "../context";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { TerminalModeDisplay } from "@cocalc/frontend/project/explorer/file-listing/terminal-mode-display";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { lite } from "@cocalc/frontend/lite";
 
 const HelpStyle = {
   wordWrap: "break-word",
@@ -24,6 +25,61 @@ const HelpStyle = {
   zIndex: 100,
   borderRadius: "15px",
 } as const;
+
+type FindPrefill = {
+  tab: "contents" | "files" | "snapshots" | "backups";
+  query: string;
+  submode?: "files" | "contents";
+};
+
+function parseFindPrefill(input: string): FindPrefill | null {
+  const trimmed = input.trimStart();
+  if (!trimmed) return null;
+  if (trimmed.startsWith("?")) {
+    return { tab: "contents", query: trimmed.slice(1).trim() };
+  }
+  const lower = trimmed.toLowerCase();
+  if (lite) {
+    if (lower.startsWith("backup:") || lower.startsWith("backups:")) {
+      return null;
+    }
+    if (lower.startsWith("snapshot:") || lower.startsWith("snapshots:")) {
+      return null;
+    }
+  }
+  if (lower.startsWith("backup:") || lower.startsWith("backups:")) {
+    const prefix = lower.startsWith("backups:") ? "backups:" : "backup:";
+    return { tab: "backups", query: trimmed.slice(prefix.length).trim() };
+  }
+  if (lower.startsWith("snapshot:") || lower.startsWith("snapshots:")) {
+    const prefix = lower.startsWith("snapshots:") ? "snapshots:" : "snapshot:";
+    return {
+      tab: "snapshots",
+      query: trimmed.slice(prefix.length).trim(),
+      submode: "files",
+    };
+  }
+  if (trimmed.startsWith("/ ")) {
+    return { tab: "files", query: trimmed.slice(2).trim() };
+  }
+  return null;
+}
+
+function describeFindPrefill(prefill: FindPrefill): string {
+  const query = prefill.query ? ` for \"${prefill.query}\"` : "";
+  switch (prefill.tab) {
+    case "contents":
+      return `Press Enter to search file contents${query}.`;
+    case "files":
+      return `Press Enter to search file names${query}.`;
+    case "snapshots":
+      return `Press Enter to search snapshots${query}.`;
+    case "backups":
+      return `Press Enter to search backups${query}.`;
+    default:
+      return "Press Enter to search.";
+  }
+}
 
 export const outputMinitermStyle: CSSProperties = {
   background: "white",
@@ -156,6 +212,16 @@ export const SearchBar = memo(
     }
 
     function render_help_info() {
+      const prefill = parseFindPrefill(file_search);
+      if (prefill) {
+        return (
+          <Alert
+            style={HelpStyle}
+            type="info"
+            message={describeFindPrefill(prefill)}
+          />
+        );
+      }
       if (file_search[0] == TERM_MODE_CHAR) {
         return (
           <TerminalModeDisplay
@@ -242,6 +308,22 @@ export const SearchBar = memo(
       { ctrl_down, shift_down }: { ctrl_down: boolean; shift_down: boolean },
     ): void {
       if (current_path == null) {
+        return;
+      }
+      const prefill = parseFindPrefill(value);
+      if (prefill && actions) {
+        const nextState: any = {
+          find_tab: prefill.tab,
+          find_prefill: {
+            ...prefill,
+            scope_path: current_path,
+          },
+        };
+        if (prefill.tab === "contents") {
+          nextState.user_input = prefill.query;
+        }
+        actions.setState(nextState);
+        actions.setFlyoutExpanded("search", true);
         return;
       }
       if (value.startsWith(TERM_MODE_CHAR)) {

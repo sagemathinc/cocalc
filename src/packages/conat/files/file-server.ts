@@ -180,6 +180,22 @@ export interface Fileserver {
   }) => Promise<
     { name: string; isDir: boolean; mtime: number; size: number }[]
   >;
+  findBackupFiles: (opts: {
+    project_id: string;
+    glob?: string[];
+    iglob?: string[];
+    path?: string;
+    ids?: string[];
+  }) => Promise<
+    {
+      id: string;
+      time: Date;
+      path: string;
+      isDir: boolean;
+      mtime: number;
+      size: number;
+    }[]
+  >;
 
   /////////////
   // SNAPSHOTS

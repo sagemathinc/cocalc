@@ -47,9 +47,12 @@ import { getSearch, setSearch } from "@cocalc/frontend/project/explorer/config";
 
 export const ProjectSearchBody: React.FC<{
   mode: "project" | "flyout";
-}> = ({ mode = "project" }) => {
+  pathOverride?: string;
+  showPathHint?: boolean;
+}> = ({ mode = "project", pathOverride, showPathHint = true }) => {
   const { project_id } = useProjectContext();
-  const path = useTypedRedux({ project_id }, "current_path");
+  const currentPath = useTypedRedux({ project_id }, "current_path");
+  const path = pathOverride ?? currentPath;
   const search = useTypedRedux({ project_id }, "search_page"); // updates on change
   const currentSearch = useMemo(() => {
     return getSearch({ project_id, path });
@@ -75,8 +78,12 @@ export const ProjectSearchBody: React.FC<{
           sm={12}
           style={{ paddingTop: mode != "flyout" ? "50px" : undefined }}
         >
-          <ProjectSearchInput project_id={project_id} regexp={regexp} />
-          {mode != "flyout" ? (
+          <ProjectSearchInput
+            project_id={project_id}
+            regexp={regexp}
+            path={path}
+          />
+          {mode != "flyout" && showPathHint ? (
             <ProjectSearchOutputHeader project_id={project_id} />
           ) : undefined}
         </Col>
@@ -122,6 +129,7 @@ export const ProjectSearchBody: React.FC<{
           project_id={project_id}
           small={true}
           regexp={regexp}
+          path={path}
         />
         <Checkbox
           checked={subdirectories}
@@ -174,7 +182,7 @@ export const ProjectSearchBody: React.FC<{
   }
 
   return (
-    <div className="smc-vfill">
+    <div className="smc-vfill" style={{ minHeight: 0 }}>
       {renderHeader()}
       <ProjectSearchOutput
         project_id={project_id}
@@ -189,12 +197,14 @@ interface ProjectSearchInputProps {
   project_id: string;
   small?: boolean;
   regexp?: boolean;
+  path: string;
 }
 
 function ProjectSearchInput({
   project_id,
   small = false,
   regexp,
+  path,
 }: ProjectSearchInputProps) {
   const actions = useActions({ project_id });
   const user_input = useTypedRedux({ project_id }, "user_input");
@@ -209,7 +219,7 @@ function ProjectSearchInput({
           : "Search contents of files..."
       }
       on_change={(value) => actions?.setState({ user_input: value })}
-      on_submit={() => actions?.search()}
+      on_submit={() => actions?.search({ path })}
       on_clear={() =>
         actions?.setState({
           most_recent_path: undefined,
@@ -223,7 +233,7 @@ function ProjectSearchInput({
         <Button
           disabled={!user_input?.trim()}
           type="primary"
-          onClick={() => actions?.search()}
+          onClick={() => actions?.search({ path })}
         >
           Search
         </Button>
@@ -292,6 +302,7 @@ function ProjectSearchOutput({
     }
     return (
       <Virtuoso
+        style={{ height: "100%" }}
         totalCount={search_results.size}
         initialTopMostItemIndex={0}
         itemContent={(index) => {
@@ -317,7 +328,7 @@ function ProjectSearchOutput({
   }
 
   return (
-    <div className="smc-vfill">
+    <div className="smc-vfill" style={{ minHeight: 0 }}>
       <Input.Search
         allowClear
         value={currentFilter}
@@ -351,7 +362,7 @@ function ProjectSearchOutput({
           actions?.setState({ search_error: undefined });
         }}
       />
-      <div className="smc-vfill">{render_get_results()}</div>
+      <div style={{ flex: 1, minHeight: 0 }}>{render_get_results()}</div>
     </div>
   );
 }

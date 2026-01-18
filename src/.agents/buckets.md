@@ -223,3 +223,85 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
   - (done) use btrfs subvolume generation to detect running changes (plus stop-time check)
   - (done) make `last_edited` reliable and update on FS writes/agent runs/stop
 
+### Improved Backup UX
+
+Goal: make backups usable without full restore by adding search + read-only file viewing and clearer restore actions.
+
+1. **Search backups (server API)**
+   - Add a backend endpoint that wraps rustic `find`:
+     - Inputs: `project_id`, `pattern` (glob/iglob), optional `path` (exact), optional `snapshot_ids` (restrict), and `limit`.
+     - Outputs: list of matches with `{snapshot_id, snapshot_time, path, is_dir, size?, mtime?}` plus a summary `{snapshots_searched, matches}`.
+   - Prefer rustic `find --path` for exact paths and `--glob/--iglob` for patterns.
+   - Use `--all` to avoid grouping so results are deterministic.
+   - Add a small timeout and max-results guard to prevent runaway queries.
+
+2. **Search backups (frontend UI)**
+   - Add a search box in the `.backups` view with “Search backups…” placeholder.
+   - Display results grouped by snapshot (collapsible), with quick “Open” (read-only) and “Restore” actions per item.
+   - Provide a notice that search is eventually consistent and may take time on large repos.
+   - Include a “clear search” control and a count summary.
+
+3. **Read-only file viewing from backups**
+   - Add a hub API: `projects.getBackupFileContent({ project_id, id, path, max_bytes? })`.
+   - Use rustic `dump` for a single file path; enforce a 10 MB cap and return a truncated response with `truncated=true`.
+   - In the frontend, if a file path starts with `.backups/...`, open it in a read-only editor tab with a banner:
+     - “Viewing backup snapshot: <time> · Read-only”
+     - “Restore this version” button (copies to original path).
+
+4. **Restore action from backup view**
+   - Add a “Restore” button in the read-only view that calls `projects.restoreBackup` for that specific file.
+   - Add a confirmation modal that shows the target path and overwrite behavior.
+
+5. **Caching + UX polish**
+   - Cache search results per query for a short TTL.
+   - Show loading states/spinners and cancelable search.
+   - Keep a “recent searches” dropdown (optional).
+
+6. **Safety and limits**
+   - Enforce per-request timeouts and result caps in the backend.
+   - Ensure path normalization (no `..`, no absolute paths).
+   - Gate access via existing project collab checks.
+   - Search uses glob/iglob only; scan all backups (no default cap).
+
+### Unified Search UI (Find)
+
+Goal: unify file-name search, content search (rg), snapshots, and backups under one Find UI with tabs, shared by flyout + full page.
+
+1. **UI structure**
+   - Convert the existing Find flyout + full-page view into a shared component with tabs:
+     - Files (fd, name/glob)
+     - Contents (rg, text search)
+     - Snapshots (local btrfs snapshots; supports rg + filename search)
+     - Backups (rustic find; filename/glob only)
+   - Add short “Snapshots vs Backups” help text per tab.
+
+2. **Scope controls**
+   - Keep current directory default.
+   - Add one-click “Home” and “Git root” scope buttons.
+   - Add a directory picker to select any path.
+
+3. **Explorer filter hybrid routing**
+   - Preserve current filter behavior.
+   - Recognize prefixes and show a hint: “Press Enter to search …”
+     - `/` → Files (fd)
+     - `?` → Contents (rg)
+     - `backup:` → Backups
+     - `snapshot:` → Snapshots
+     - `>` → terminal command (existing behavior)
+   - On Enter, open the Find panel, switch tabs, and prefill the query.
+
+4. **Backend adapters**
+   - Files: fd search endpoint for filenames/globs.
+   - Contents: existing rg endpoint; improve context width and card layout.
+   - Snapshots: add snapshot search endpoints (rg + filename/glob).
+   - Backups: add rustic `find` wrapper (glob/iglob/path).
+
+5. **Results UI**
+   - Use a consistent result card layout across tabs.
+   - Improve context display for rg (more lines, tighter width).
+   - Add source badges and quick actions: open, reveal, restore (where applicable).
+
+6. **Performance**
+   - Debounce searches.
+   - Cache recent queries briefly.
+   - Keep results filter box for fast in-memory narrowing.

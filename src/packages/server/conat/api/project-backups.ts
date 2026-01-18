@@ -257,6 +257,31 @@ export async function getBackupFiles({
   });
 }
 
+export async function findBackupFiles({
+  account_id,
+  project_id,
+  glob,
+  iglob,
+  path,
+  ids,
+}: {
+  account_id?: string;
+  project_id: string;
+  glob?: string[];
+  iglob?: string[];
+  path?: string;
+  ids?: string[];
+}) {
+  await assertCollab({ account_id, project_id });
+  return await fileServerClient({ project_id }).findBackupFiles({
+    project_id,
+    glob,
+    iglob,
+    path,
+    ids,
+  });
+}
+
 export async function getBackupQuota({
   account_id,
   project_id,

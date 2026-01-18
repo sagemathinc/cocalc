@@ -3,8 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { ProjectSearchBody } from "@cocalc/frontend/project/search/body";
+import { ProjectFind } from "@cocalc/frontend/project/find/find";
 
 export function SearchFlyout() {
-  return <ProjectSearchBody mode="flyout" />;
+  return <ProjectFind mode="flyout" />;
 }

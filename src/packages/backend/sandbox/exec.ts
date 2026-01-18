@@ -245,7 +245,7 @@ export const validate = {
   set: (allowed) => {
     allowed = new Set(allowed);
     return (value: string) => {
-      if (!allowed.includes(value)) {
+      if (!allowed.has(value)) {
         throw Error("invalid value");
       }
     };

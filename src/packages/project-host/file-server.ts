@@ -701,6 +701,32 @@ async function getBackupFiles({
   return await vol.rustic.ls({ id, path });
 }
 
+async function findBackupFiles({
+  project_id,
+  glob,
+  iglob,
+  path,
+  ids,
+}: {
+  project_id: string;
+  glob?: string[];
+  iglob?: string[];
+  path?: string;
+  ids?: string[];
+}): Promise<
+  {
+    id: string;
+    time: Date;
+    path: string;
+    isDir: boolean;
+    mtime: number;
+    size: number;
+  }[]
+> {
+  const vol = await getVolumeForBackup(project_id);
+  return await vol.rustic.find({ glob, iglob, path, ids });
+}
+
 // File Sync
 async function createSync(sync: Sync & { ignores?: string[] }): Promise<void> {
   await getFileSync().create(sync);
@@ -832,6 +858,7 @@ export async function initFileServer({
     updateBackups: reuseInFlight(updateBackups),
     getBackups: reuseInFlight(getBackups),
     getBackupFiles: reuseInFlight(getBackupFiles),
+    findBackupFiles: reuseInFlight(findBackupFiles),
     // snapshots
     createSnapshot,
     deleteSnapshot,
