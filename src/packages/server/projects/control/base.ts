@@ -149,6 +149,12 @@ export class BaseProject extends EventEmitter {
   }): Promise<void> => {
     await this.computeQuota(opts?.account_id);
     await startProjectOnHost(this.project_id, opts);
+    await query({
+      db: db(),
+      query: "UPDATE projects",
+      where: { project_id: this.project_id },
+      set: { last_started: new Date() },
+    });
   };
 
   save = async (): Promise<void> => {

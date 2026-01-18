@@ -5,6 +5,7 @@
 
 import getPort from "get-port";
 import { spawn } from "node:child_process";
+import net from "node:net";
 import { join } from "node:path";
 import basePath from "@cocalc/backend/base-path";
 import { project_id } from "@cocalc/project/data";
@@ -33,6 +34,7 @@ interface SpawnedServer {
   url: string;
   stdout: Buffer;
   stderr: Buffer;
+  ready?: boolean;
   spawnError?;
   exit?: { code; signal? };
   cmd: string;
@@ -113,6 +115,7 @@ export async function status(name: string): Promise<
       state: "running" | "stopped";
       port: number;
       url: string;
+      ready?: boolean;
       pid?: number;
       stdout: Buffer;
       stderr: Buffer;
@@ -128,11 +131,42 @@ export async function status(name: string): Promise<
   }
   const { child, ...status } = server;
   const state = child.exitCode != null ? "stopped" : "running";
+  if (state === "running" && server.ready !== true) {
+    server.ready = await isServerReady(server.port);
+  }
+  if (state !== "running") {
+    server.ready = false;
+  }
   return {
     state,
     pid: state == "running" ? child.pid : undefined,
     ...status,
   };
+}
+
+export async function waitForState(
+  name: string,
+  target: "running" | "stopped",
+  opts?: { timeout?: number; interval?: number },
+): Promise<boolean> {
+  assertNamedServer(name);
+  const timeout = opts?.timeout ?? 30000;
+  const interval = opts?.interval ?? 500;
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const s = await status(name);
+    if (target === "running") {
+      if (s.state === "running" && s.ready === true) {
+        return true;
+      }
+    } else if (s.state === "stopped") {
+      return true;
+    }
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    await delay(Math.min(interval, remaining));
+  }
+  return false;
 }
 
 const GRACE_PERIOD = 1000;
@@ -199,6 +233,27 @@ function watchOutput(server: SpawnedServer) {
 
   child.on("exit", (code, signal) => {
     server.exit = { code, signal };
+  });
+}
+
+async function isServerReady(
+  port: number,
+  host = "127.0.0.1",
+  timeoutMs = 500,
+): Promise<boolean> {
+  return await new Promise((resolve) => {
+    const socket = net.createConnection({ port, host });
+    let settled = false;
+    const finish = (ready: boolean) => {
+      if (settled) return;
+      settled = true;
+      socket.destroy();
+      resolve(ready);
+    };
+    socket.setTimeout(timeoutMs);
+    socket.once("connect", () => finish(true));
+    socket.once("timeout", () => finish(false));
+    socket.once("error", () => finish(false));
   });
 }
 

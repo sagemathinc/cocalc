@@ -15,6 +15,8 @@ import { CSS } from "@cocalc/frontend/app-framework";
 import {
   Icon,
   IconName,
+  Loading,
+  Gap,
   Paragraph,
   SettingBox,
 } from "@cocalc/frontend/components";
@@ -32,6 +34,7 @@ import { useState } from "react";
 import { useAppStatus } from "@cocalc/frontend/project/apps/use-app-status";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { Button } from "antd";
+import { withProjectHostBase } from "./host-url";
 
 const LAUNCHING_SERVER = defineMessage({
   id: "project.named-server-panel.launching_server",
@@ -147,6 +150,8 @@ interface Props {
 export function NamedServerPanel({ project_id, name, style }: Props) {
   const intl = useIntl();
   const [url, setUrl] = useState<string | undefined>(undefined);
+  const [status, setStatus] = useState<any>(null);
+  const [loading, setLoading] = useState<boolean>(false);
 
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
@@ -181,7 +186,32 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
   ) {
     body = intl.formatMessage(DISABLED, { longName });
   } else if (!url) {
-    body = null;
+    if (loading || status?.state === "running") {
+      body = (
+        <>
+          <Paragraph style={{ color: COLORS.GRAY_D }}>
+            {description}
+            <br />
+            <br />
+            <FormattedMessage
+              id="project.named-server-panel.long_start_info"
+              defaultMessage={`Starting your {longName} server.
+            It will then attempt to open in a new  browser tab.
+            If this doesn't work, check for a popup blocker warning!`}
+              values={{ longName }}
+            />
+          </Paragraph>
+          <Paragraph
+            style={{ textAlign: "center", fontSize: "14pt", margin: "15px" }}
+          >
+            <Icon name={icon} /> {longName} Server...
+            <Gap /> <Loading text={intl.formatMessage(LAUNCHING_SERVER)} />
+          </Paragraph>
+        </>
+      );
+    } else {
+      body = null;
+    }
   } else {
     body = (
       <>
@@ -205,6 +235,7 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
               maxTime={1000 * 60 * 5}
               autoStart
               href={url}
+              skipCheck
               loadingText={intl.formatMessage(LAUNCHING_SERVER)}
               onClick={() => {
                 track("launch-server", { name, project_id });
@@ -221,20 +252,26 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
   return (
     <SettingBox title={`${longName} Server`} icon={icon} style={style}>
       {body}
-      <AppState name={name} setUrl={setUrl} autoStart />
+      <AppState
+        name={name}
+        setUrl={setUrl}
+        autoStart
+        onStatus={setStatus}
+        onLoading={setLoading}
+      />
     </SettingBox>
   );
 }
 
 export function serverURL(project_id: string, name: NamedServerName): string {
-  return (
+  const path =
     join(
       appBasePath,
       project_id,
       SPEC[name]?.usesBasePath ? "port" : "server",
       name,
-    ) + "/"
-  );
+    ) + "/";
+  return withProjectHostBase(project_id, path) ?? path;
 }
 
 export function ServerLink({
@@ -281,7 +318,17 @@ export function ServerLink({
     return null;
   }
 
-  if (!appStatus.status?.url) {
+  const ready = appStatus.status?.ready === true;
+  const running = appStatus.status?.state === "running";
+  const appUrl =
+    ready && appStatus.status?.url
+      ? withProjectHostBase(project_id, appStatus.status.url)
+      : undefined;
+
+  if (!appUrl) {
+    if (running) {
+      return <Button disabled>Starting {name}...</Button>;
+    }
     return (
       <Button
         onClick={async () => {
@@ -300,7 +347,8 @@ export function ServerLink({
   return (
     <LinkRetry
       maxTime={1000 * 60 * 5}
-      href={appStatus.status?.url}
+      href={appUrl}
+      skipCheck
       loadingText={intl.formatMessage(LAUNCHING_SERVER)}
       tooltip={mode === "flyout" ? description : undefined}
       onClick={() => {

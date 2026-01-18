@@ -2,6 +2,7 @@ export const apps = {
   start: true,
   stop: true,
   status: true,
+  waitForState: true,
 };
 
 export interface Apps {
@@ -9,6 +10,7 @@ export interface Apps {
     state: "running" | "stopped";
     port: number;
     url: string;
+    ready?: boolean;
     pid?: number;
     stdout: Buffer;
     stderr: Buffer;
@@ -21,6 +23,7 @@ export interface Apps {
         state: "running" | "stopped";
         port: number;
         url: string;
+        ready?: boolean;
         pid?: number;
         stdout: Buffer;
         stderr: Buffer;
@@ -29,6 +32,12 @@ export interface Apps {
       }
     | { state: "stopped" }
   >;
+
+  waitForState: (
+    name: string,
+    state: "running" | "stopped",
+    opts?: { timeout?: number; interval?: number },
+  ) => Promise<boolean>;
 
   stop: (name: string) => Promise<void>;
 }

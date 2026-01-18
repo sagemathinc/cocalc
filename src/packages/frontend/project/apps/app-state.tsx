@@ -3,16 +3,23 @@ import { Button, Space, Spin } from "antd";
 import ShowError from "@cocalc/frontend/components/error";
 import { useEffect } from "react";
 import AppStatus from "./app-status";
+import { withProjectHostBase } from "@cocalc/frontend/project/host-url";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 
 export default function AppState({
   name,
   setUrl,
   autoStart,
+  onStatus,
+  onLoading,
 }: {
   name: string;
   setUrl: (url: string | undefined) => void;
   autoStart: boolean;
+  onStatus?: (status: any) => void;
+  onLoading?: (loading: boolean) => void;
 }) {
+  const { project_id } = useProjectContext();
   const { status, error, setError, loading, refresh, start, stop } =
     useAppStatus({
       name,
@@ -25,8 +32,20 @@ export default function AppState({
   }, [name, autoStart]);
 
   useEffect(() => {
-    setUrl(status?.state == "running" && status?.url ? status.url : undefined);
-  }, [status]);
+    const url =
+      status?.state == "running" && status?.ready === true && status?.url
+        ? withProjectHostBase(project_id, status.url)
+        : undefined;
+    setUrl(url);
+  }, [project_id, status, setUrl]);
+
+  useEffect(() => {
+    onStatus?.(status);
+  }, [status, onStatus]);
+
+  useEffect(() => {
+    onLoading?.(loading);
+  }, [loading, onLoading]);
 
   if (status == null && !error) {
     return <Spin />;

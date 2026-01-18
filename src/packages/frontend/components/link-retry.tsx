@@ -25,6 +25,7 @@ interface Props {
   autoStart?: boolean;
   maxTime?: number;
   tooltip?: React.ReactNode;
+  skipCheck?: boolean;
 }
 
 const LinkRetry: React.FC<Props> = ({
@@ -37,6 +38,7 @@ const LinkRetry: React.FC<Props> = ({
   maxTime = 30000,
   loadingText,
   tooltip,
+  skipCheck,
 }: Props) => {
   const isMountedRef = useIsMountedRef();
   const [working, setWorking] = useState<boolean>(false);
@@ -54,10 +56,28 @@ const LinkRetry: React.FC<Props> = ({
     open_new_tab(href);
   }
 
+  function isSameOrigin(): boolean {
+    try {
+      const url = new URL(href, window.location.href);
+      return url.origin === window.location.origin;
+    } catch {
+      return false;
+    }
+  }
+
   async function start(): Promise<void> {
     onClick?.();
     setLoading(true);
     setError(false);
+    if (skipCheck || !isSameOrigin()) {
+      open();
+      if (isMountedRef.current) {
+        setError(false);
+        setLoading(false);
+        setWorking(true);
+      }
+      return;
+    }
     const f = async (): Promise<void> => {
       await $.ajax({
         url: href,
