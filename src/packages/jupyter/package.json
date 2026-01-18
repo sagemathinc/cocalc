@@ -49,7 +49,6 @@
     "expect": "^26.6.2",
     "he": "^1.2.0",
     "immutable": "^4.3.0",
-    "json-stable-stringify": "^1.0.1",
     "jsonfile": "^6.1.0",
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
