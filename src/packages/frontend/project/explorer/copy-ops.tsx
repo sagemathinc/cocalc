@@ -1,4 +1,5 @@
 import { Button, Popconfirm, Progress, Space, Spin } from "antd";
+import { useRef } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
@@ -48,7 +49,13 @@ function CopyOpRow({ op }: { op: CopyLroState }) {
   const summary = op.summary;
   const title = formatTitle(summary);
   const percent = progressPercent(op);
-  const statusText = formatStatusLine(op);
+  const lastDetailRef = useRef<string | undefined>(undefined);
+  const progress = op.last_progress;
+  const detail = formatProgressDetail(progress?.detail);
+  if (detail) {
+    lastDetailRef.current = detail;
+  }
+  const statusText = formatStatusLine(op, detail ?? lastDetailRef.current);
   const progressStatus = progressBarStatus(summary?.status);
   const canCancel = summary && !LRO_TERMINAL_STATUSES.has(summary.status);
 
@@ -103,13 +110,13 @@ function formatTitle(summary?: LroSummary): string {
   return "Copy operation";
 }
 
-function formatStatusLine(op: CopyLroState): string {
+function formatStatusLine(op: CopyLroState, detailOverride?: string): string {
   const summary = op.summary;
   const progress = op.last_progress;
   const message =
     summary?.progress_summary?.phase ?? progress?.phase ?? progress?.message;
   const counts = formatCounts(summary?.progress_summary ?? {});
-  const detail = formatProgressDetail(progress?.detail);
+  const detail = detailOverride ?? formatProgressDetail(progress?.detail);
   if (message && counts) {
     return detail
       ? `${message} • ${counts} • ${detail}`
