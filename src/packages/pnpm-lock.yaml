@@ -1438,18 +1438,12 @@ importers:
       '@cocalc/backend':
         specifier: workspace:*
         version: link:../backend
-      '@cocalc/conat':
-        specifier: workspace:*
-        version: link:../conat
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
       '@isaacs/ttlcache':
         specifier: ^1.4.1
         version: 1.4.1
-      awaiting:
-        specifier: ^3.0.0
-        version: 3.0.0
       express:
         specifier: ^4.21.2
         version: 4.21.2
