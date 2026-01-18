@@ -1,1 +1,6 @@
-export { start, status, stop } from "@cocalc/project/named-servers/control";
+export {
+  start,
+  status,
+  stop,
+  waitForState,
+} from "@cocalc/project/named-servers/control";

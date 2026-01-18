@@ -144,6 +144,31 @@ export async function status(name: string): Promise<
   };
 }
 
+export async function waitForState(
+  name: string,
+  target: "running" | "stopped",
+  opts?: { timeout?: number; interval?: number },
+): Promise<boolean> {
+  assertNamedServer(name);
+  const timeout = opts?.timeout ?? 30000;
+  const interval = opts?.interval ?? 500;
+  const deadline = Date.now() + timeout;
+  while (Date.now() < deadline) {
+    const s = await status(name);
+    if (target === "running") {
+      if (s.state === "running" && s.ready === true) {
+        return true;
+      }
+    } else if (s.state === "stopped") {
+      return true;
+    }
+    const remaining = deadline - Date.now();
+    if (remaining <= 0) break;
+    await delay(Math.min(interval, remaining));
+  }
+  return false;
+}
+
 const GRACE_PERIOD = 1000;
 export async function stop(name: string) {
   assertNamedServer(name);

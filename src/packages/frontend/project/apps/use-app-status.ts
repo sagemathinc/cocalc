@@ -1,5 +1,5 @@
 import { useAsyncEffect } from "@cocalc/frontend/app-framework";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { useInterval } from "react-interval-hook";
@@ -31,10 +31,43 @@ export function useAppStatus({
   }, [counter, name]);
 
   useInterval(() => {
-    setCounter(counter + 1);
+    setCounter((prev) => prev + 1);
   }, updateInterval);
 
-  const refresh = () => setCounter(counter + 1);
+  const refresh = () => setCounter((prev) => prev + 1);
+
+  useEffect(() => {
+    if (status?.state !== "running" || status?.ready === true) {
+      return;
+    }
+    let cancelled = false;
+    const api = webapp_client.conat_client.projectApi({ project_id });
+    (async () => {
+      while (!cancelled) {
+        try {
+          const ready = await api.apps.waitForState(name, "running", {
+            timeout: 10000,
+            interval: 1000,
+          });
+          if (cancelled) {
+            return;
+          }
+          if (ready) {
+            refresh();
+            return;
+          }
+        } catch (err) {
+          if (!cancelled) {
+            setError(err);
+          }
+          return;
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [name, project_id, status?.state, status?.ready]);
 
   const start = async () => {
     const api = webapp_client.conat_client.projectApi({ project_id });
@@ -47,7 +80,7 @@ export function useAppStatus({
     } finally {
       setLoading(false);
     }
-    setTimeout(refresh, 1000);
+    refresh();
   };
 
   const stop = async () => {
@@ -61,7 +94,7 @@ export function useAppStatus({
     } finally {
       setLoading(false);
     }
-    setTimeout(refresh, 1000);
+    refresh();
   };
 
   return {

@@ -2,6 +2,7 @@ export const apps = {
   start: true,
   stop: true,
   status: true,
+  waitForState: true,
 };
 
 export interface Apps {
@@ -31,6 +32,12 @@ export interface Apps {
       }
     | { state: "stopped" }
   >;
+
+  waitForState: (
+    name: string,
+    state: "running" | "stopped",
+    opts?: { timeout?: number; interval?: number },
+  ) => Promise<boolean>;
 
   stop: (name: string) => Promise<void>;
 }

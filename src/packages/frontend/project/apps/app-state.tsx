@@ -10,10 +10,14 @@ export default function AppState({
   name,
   setUrl,
   autoStart,
+  onStatus,
+  onLoading,
 }: {
   name: string;
   setUrl: (url: string | undefined) => void;
   autoStart: boolean;
+  onStatus?: (status: any) => void;
+  onLoading?: (loading: boolean) => void;
 }) {
   const { project_id } = useProjectContext();
   const { status, error, setError, loading, refresh, start, stop } =
@@ -34,6 +38,14 @@ export default function AppState({
         : undefined;
     setUrl(url);
   }, [project_id, status, setUrl]);
+
+  useEffect(() => {
+    onStatus?.(status);
+  }, [status, onStatus]);
+
+  useEffect(() => {
+    onLoading?.(loading);
+  }, [loading, onLoading]);
 
   if (status == null && !error) {
     return <Spin />;
