@@ -71,7 +71,7 @@ export default async function accountCreationActions({
         try {
           const { project_id } = await getOneProject(account_id);
           const project = getProject(project_id);
-          await project.start();
+          await project.start({ account_id });
         } catch (err) {
           log.error(
             "failed to start newest project invited to",

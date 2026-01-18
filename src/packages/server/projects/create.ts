@@ -199,19 +199,23 @@ export default async function createProject(opts: CreateProjectOptions) {
   if (start) {
     const project = getProject(project_id);
     // intentionally not blocking
-    startNewProject(project, project_id);
+    startNewProject(project, project_id, account_id);
   }
 
   return project_id;
 }
 
-async function startNewProject(project, project_id: string) {
+async function startNewProject(
+  project,
+  project_id: string,
+  account_id?: string,
+) {
   log.debug("startNewProject", { project_id });
   try {
-    await project.start();
+    await project.start({ account_id });
     // just in case
     await delay(5000);
-    await project.start();
+    await project.start({ account_id });
   } catch (err) {
     log.debug(`WARNING: problem starting new project -- ${err}`, {
       project_id,

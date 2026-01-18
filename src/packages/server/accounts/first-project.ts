@@ -28,6 +28,6 @@ export default async function firstProject({
   });
   log.debug("created new project", project_id);
   const project = getProject(project_id);
-  await project.start();
+  await project.start({ account_id });
   return project_id;
 }

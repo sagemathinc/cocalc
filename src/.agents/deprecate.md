@@ -3,7 +3,7 @@
 Goal: Complete remove all code and functionality for the following:
 
 - [x] jquery ui
-- [ ] public paths allowing viewing by non\-collabs in the frontend; deprecated but code remains \("is\_public"\)
+- [x] public paths allowing viewing by non\-collabs in the frontend; deprecated but code remains \("is\_public"\)
 - [ ] share server \-\- but we would need to replace it with something first
 - [ ] examples/snippets submodule \(src/examples\)
 - [ ] terminal guide panel
@@ -308,3 +308,4 @@ Scope: remove all compute server and cloud filesystem functionality. No migratio
 6. **QA + validation.**  
    Run search for leftover user-facing "Project" in frontend/next files, leaving only technical identifiers.  
    Spot-check key flows (create workspace, settings, share, membership modal, store pages) and run pnpm tsc --build for frontend/next.
+

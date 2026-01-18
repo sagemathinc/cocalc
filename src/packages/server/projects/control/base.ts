@@ -39,7 +39,7 @@ import {
   stopProjectOnHost,
 } from "@cocalc/server/project-host/control";
 import {
-  getMembershipProjectDefaultsFromUsers,
+  getMembershipProjectDefaultsForAccount,
   mergeProjectSettingsWithMembership,
 } from "@cocalc/server/membership/project-defaults";
 export type { ProjectState, ProjectStatus };
@@ -97,7 +97,7 @@ export class BaseProject extends EventEmitter {
       );
     }
     if (!noStart) {
-      await this.start();
+      await this.start({ account_id });
     }
   }
 
@@ -143,8 +143,11 @@ export class BaseProject extends EventEmitter {
     return {} as ProjectStatus;
   };
 
-  start = async (opts?: { lro_op_id?: string }): Promise<void> => {
-    await this.computeQuota();
+  start = async (opts?: {
+    lro_op_id?: string;
+    account_id?: string;
+  }): Promise<void> => {
+    await this.computeQuota(opts?.account_id);
     await startProjectOnHost(this.project_id, opts);
   };
 
@@ -258,28 +261,37 @@ export class BaseProject extends EventEmitter {
     }
   };
 
-  computeQuota = async () => {
-    await this.setRunQuota(null);
+  computeQuota = async (account_id?: string) => {
+    await this.setRunQuota(null, account_id);
   };
 
   // The run_quota is now explicitly used in singule-user and multi-user
   // to control at least idle timeout of projects; also it is very useful
   // for development since it is shown in the UI (in project settings).
-  setRunQuota = async (run_quota: Quota | null): Promise<void> => {
-    // if null we have to compute it based on membership and settings
-    // TODO: change this to only use the membership of the user starting the project, not all users.
-    // E.g., any user A can add any pro user B and magically get upgrades, even though B isn't involved!
+  setRunQuota = async (
+    run_quota: Quota | null,
+    account_id?: string,
+  ): Promise<void> => {
+  // If null we compute it based on membership + settings for the user who
+  // started the project (or best available fallback).
     if (run_quota == null) {
-      const { settings, users } = await query({
+      const { settings, users, last_active, last_started_by } = await query({
         db: db(),
-        select: ["settings", "users"],
+        select: ["settings", "users", "last_active", "last_started_by"],
         table: "projects",
         where: { project_id: this.project_id },
         one: true,
       });
 
-      const membershipDefaults =
-        await getMembershipProjectDefaultsFromUsers(users);
+      const selected_account_id = pickAccountForQuota({
+        account_id,
+        users,
+        last_active,
+        last_started_by,
+      });
+      const membershipDefaults = await getMembershipProjectDefaultsForAccount(
+        selected_account_id,
+      );
       const settingsWithMembership = mergeProjectSettingsWithMembership(
         settings,
         membershipDefaults,
@@ -288,13 +300,82 @@ export class BaseProject extends EventEmitter {
       run_quota = quota(settingsWithMembership, undefined, site_settings);
     }
 
+    const set: Record<string, unknown> = { run_quota };
+    if (account_id) {
+      set.last_started_by = account_id;
+    }
+
     await query({
       db: db(),
       query: "UPDATE projects",
       where: { project_id: this.project_id },
-      set: { run_quota },
+      set,
     });
 
     logger.debug("updated run_quota=", JSON.stringify(run_quota));
   };
+}
+
+function pickAccountForQuota({
+  account_id,
+  users,
+  last_active,
+  last_started_by,
+}: {
+  account_id?: string;
+  users?: Record<string, { group?: string }> | null;
+  last_active?: Record<string, unknown> | null;
+  last_started_by?: string | null;
+}): string | undefined {
+  if (account_id) {
+    return account_id;
+  }
+  if (last_started_by) {
+    return last_started_by;
+  }
+  const user_ids = users ? Object.keys(users) : [];
+  if (user_ids.length === 1) {
+    return user_ids[0];
+  }
+  const last_active_account = pickLastActiveAccount(last_active, users);
+  if (last_active_account) {
+    return last_active_account;
+  }
+  return user_ids.find((id) => users?.[id]?.group === "owner") ?? user_ids[0];
+}
+
+function pickLastActiveAccount(
+  last_active?: Record<string, unknown> | null,
+  users?: Record<string, { group?: string }> | null,
+): string | undefined {
+  if (!last_active) return;
+  let best_id: string | undefined;
+  let best_time = -1;
+  for (const [account_id, raw_value] of Object.entries(last_active)) {
+    if (users && !users[account_id]) {
+      continue;
+    }
+    const time = parseLastActiveTime(raw_value);
+    if (time != null && time > best_time) {
+      best_time = time;
+      best_id = account_id;
+    }
+  }
+  return best_id;
+}
+
+function parseLastActiveTime(value: unknown): number | undefined {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Date.parse(value);
+    if (!Number.isNaN(parsed)) {
+      return parsed;
+    }
+  }
+  if (value instanceof Date) {
+    return value.getTime();
+  }
+  return undefined;
 }

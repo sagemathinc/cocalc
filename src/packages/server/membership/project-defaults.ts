@@ -73,6 +73,16 @@ export async function getMembershipProjectDefaultsFromUsers(users: unknown) {
   );
 }
 
+export async function getMembershipProjectDefaultsForAccount(
+  account_id?: string,
+): Promise<MembershipProjectDefaults> {
+  if (!account_id) return {};
+  const resolution = await resolveMembershipForAccount(account_id);
+  return normalizeMembershipProjectDefaults(
+    resolution.entitlements?.project_defaults,
+  );
+}
+
 function getProjectOwnerFromUsers(users: unknown): string | undefined {
   if (users == null || typeof users !== "object") return;
   for (const [account_id, user] of Object.entries(

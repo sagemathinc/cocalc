@@ -254,6 +254,10 @@ Table({
       type: "timestamp",
       desc: "The last time the project started running.",
     },
+    last_started_by: {
+      type: "uuid",
+      desc: "Account id that last explicitly started this project.",
+    },
     last_active: {
       type: "map",
       desc: "Map from account_id's to the timestamp of when the user with that account_id touched this project.",
