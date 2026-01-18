@@ -163,7 +163,6 @@ export interface FrameTitleBarProps {
   id: string;
   is_full?: boolean;
   is_only?: boolean; // is the only frame
-  is_public?: boolean; // public view of a file
   is_paused?: boolean;
   type: string; // type of editor
   spec: EditorDescription;
@@ -270,7 +269,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     "show_uncommitted_changes",
   ]);
   const is_saving: boolean = useRedux([props.editor_actions.name, "is_saving"]);
-  const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
   const otherSettings = useRedux(["account", "other_settings"]);
   //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
   const darkMode = otherSettings.get("dark_mode");
@@ -659,7 +657,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           props.editor_actions.set_show_uncommitted_changes
         }
         read_only={read_only}
-        is_public={is_public}
         is_saving={is_saving}
         no_labels={noLabel}
         size={button_size()}

@@ -268,24 +268,20 @@ export class Actions extends MarkdownActions {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    if (this.is_public) {
-      return { type: "cm" };
-    } else {
-      return {
-        direction: "col",
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "cm",
+      },
+      second: {
         type: "node",
-        first: {
-          type: "cm",
-        },
-        second: {
-          type: "node",
-          direction: "row",
-          first: { type: "iframe" },
-          second: { type: "build" },
-          pos: 0.8,
-        },
-      };
-    }
+        direction: "row",
+        first: { type: "iframe" },
+        second: { type: "build" },
+        pos: 0.8,
+      },
+    };
   }
 
   reload(_id?: string, hash?: number) {

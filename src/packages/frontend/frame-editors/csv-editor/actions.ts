@@ -24,9 +24,7 @@ export class Actions extends CodeEditorActions {
   }
 
   _init2(): void {
-    if (!this.is_public) {
-      this._init_syncstring_value();
-    }
+    this._init_syncstring_value();
   }
   print(id: string): void {
     const node = this._get_frame_node(id);

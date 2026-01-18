@@ -4,10 +4,10 @@ Goal: Complete remove all code and functionality for the following:
 
 - [x] jquery ui
 - [ ] public paths allowing viewing by non\-collabs in the frontend; deprecated but code remains \("is\_public"\)
+- [ ] share server \-\- but we would need to replace it with something first
 - [ ] examples/snippets submodule \(src/examples\)
 - [ ] terminal guide panel
 - [ ] jupyter code snippets panel
-- [ ] share server \-\- but we would need to replace it with something first
 - [x] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [x] payg LLM purchases; we still must track usage and costs for throttling and analytic, but nothing regarding actual transactions/billing shown to users.
 - [x] the jupyter pool.
@@ -40,6 +40,33 @@ notebook. Keep the `.sagews` file; no additional SageWS UI changes yet.
 2. **Inventory remaining SageWS-only code.**  
    List backend/UI/docs usage to decide what can be deleted later (conversion
    scripts, editor registration, docs links, etc.).
+
+## Remove `is_public` frontend view paths
+
+Scope: remove the deprecated public-path codepaths in the frontend. `is_public`
+is never true in practice and should be deleted along with all special-case
+branches that only run for public views.
+
+1. **Remove `is_public` from editor state + actions.**  
+   Drop `is_public` from editor state/interfaces and stop passing it through
+   frame-tree registration and file editor initialization.  
+   Targets: [src/packages/frontend/frame-editors/base-editor/actions-base.ts](./src/packages/frontend/frame-editors/base-editor/actions-base.ts), [src/packages/frontend/frame-editors/frame-tree/register.ts](./src/packages/frontend/frame-editors/frame-tree/register.ts), [src/packages/frontend/frame-editors/frame-tree/types.ts](./src/packages/frontend/frame-editors/frame-tree/types.ts), [src/packages/frontend/file-editors.ts](./src/packages/frontend/file-editors.ts).
+
+2. **Remove public-only UI behavior.**  
+   Remove `is_public` branches that disable saving/editing and clean up the
+   save button label logic.  
+   Targets: [src/packages/frontend/frame-editors/frame-tree/save-button.tsx](./src/packages/frontend/frame-editors/frame-tree/save-button.tsx), [src/packages/frontend/frame-editors/code-editor/codemirror-editor.tsx](./src/packages/frontend/frame-editors/code-editor/codemirror-editor.tsx), editor action files that check `this.is_public`.
+
+3. **Simplify file open + open_files metadata.**  
+   Remove group-based `is_public` checks and stop storing `is_public` in
+   `open_files` metadata.  
+   Targets: [src/packages/frontend/project/open-file.ts](./src/packages/frontend/project/open-file.ts), [src/packages/frontend/project_actions.ts](./src/packages/frontend/project_actions.ts).
+
+4. **Remove any remaining `is_public` references.**  
+   Ripgrep for `is_public` under `src/packages/frontend` and delete remaining
+   dead branches or labels/translations. Update i18n strings that reference
+   public state.  
+   Targets: [src/packages/frontend/i18n](./src/packages/frontend/i18n).
 
 ## Remove payg LLM purchases (keep usage tracking for throttling/analytics)
 

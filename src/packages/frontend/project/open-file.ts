@@ -12,7 +12,6 @@ import Fragment, { FragmentId } from "@cocalc/frontend/misc/fragment-id";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { retry_until_success } from "@cocalc/util/async-utils";
 import {
   defaults,
   filename_extension,
@@ -169,84 +168,50 @@ export async function open_file(
   }
   let ext = opts.ext ?? filename_extension(opts.path).toLowerCase();
 
-  // Next get the group.
-  let group: string;
+  let store = actions.get_store();
+  if (store == null) {
+    return;
+  }
+
+  // Wait for the project to start opening.
   try {
-    group = await get_my_group(actions.project_id);
+    await actions.ensureProjectIsOpen();
     if (!tabIsOpened()) {
       return;
     }
   } catch (err) {
     actions.set_activity({
       id: uuid(),
-      error: `opening file '${opts.path}' (error getting group) -- ${err}`,
+      error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`,
     });
     return;
   }
-
-  let store = actions.get_store();
-  if (store == null) {
+  if (!tabIsOpened()) {
     return;
   }
 
-  const is_public = group === "public";
-  if (!is_public) {
-    // Wait for the project to start opening (only do this if not public -- public users don't
-    // know anything about the state of the project).
-    try {
-      await actions.ensureProjectIsOpen();
-      if (!tabIsOpened()) {
-        return;
-      }
-    } catch (err) {
-      actions.set_activity({
-        id: uuid(),
-        error: `Error opening file '${opts.path}' (error ensuring project is open) -- ${err}`,
-      });
-      return;
-    }
-    if (!tabIsOpened()) {
-      return;
-    }
-  }
-
-  if (!is_public && ext === "sagews") {
+  if (ext === "sagews") {
     await open_sagews_worksheet(actions, opts);
     return;
   }
 
-  if (!is_public) {
-    get_side_chat_state(actions.project_id, opts);
-  }
+  get_side_chat_state(actions.project_id, opts);
 
   store = actions.get_store(); // because async stuff happened above.
   if (store == undefined) {
     return;
   }
 
-  // Only generate the editor component if we don't have it already
-  // Also regenerate if view type (public/not-public) changes.
-  // (TODO: get rid of that change code since public is deprecated)
-  const open_files = store.get("open_files");
-  if (open_files == null || actions.open_files == null) {
+  // Only generate the editor component if we don't have it already.
+  if (store.get("open_files") == null || actions.open_files == null) {
     // project is closing
     return;
   }
-  const file_info = open_files.getIn([opts.path, "component"], {
-    is_public: false,
-  }) as any;
 
-  if (!alreadyOpened || file_info.is_public !== is_public) {
-    const was_public = file_info.is_public;
-
-    if (was_public != null && was_public !== is_public) {
-      actions.open_files.delete(opts.path);
-      remove(opts.path, redux, actions.project_id, was_public);
-    }
-
+  if (!alreadyOpened) {
     // Add it to open files
     actions.open_files.set(opts.path, "ext", ext);
-    actions.open_files.set(opts.path, "component", { is_public });
+    actions.open_files.set(opts.path, "component", {});
     actions.open_files.set(opts.path, "chat_width", opts.chat_width);
     if (opts.chat) {
       actions.open_chat({ path: opts.path });
@@ -281,30 +246,6 @@ export async function open_file(
   }
 }
 
-// get user's group releative to this project.
-// Can't easily use wait, since this depends on both the account
-// and project stores changing.
-// TODO: actually properly use wait somehow, since obviously it is
-// possible (just not easy).
-async function get_my_group(project_id: string): Promise<string> {
-  return await retry_until_success({
-    f: async () => {
-      const projects_store = redux.getStore("projects");
-      if (!projects_store) {
-        throw Error("projects store not defined");
-      }
-      const group: string | undefined = projects_store.get_my_group(project_id);
-      if (group) {
-        return group;
-      } else {
-        throw Error("group not yet known");
-      }
-    },
-    max_time: 60000,
-    max_delay: 3000,
-  });
-}
-
 async function open_sagews_worksheet(
   actions: ProjectActions,
   opts: OpenFileOpts,
@@ -315,7 +256,7 @@ async function open_sagews_worksheet(
       return;
     }
     actions.open_files.delete(opts.path);
-    await remove(opts.path, redux, actions.project_id, false);
+    await remove(opts.path, redux, actions.project_id);
   };
 
   try {

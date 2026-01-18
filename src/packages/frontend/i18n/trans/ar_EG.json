@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "مستكشف الملفات",
   "labels.files": "الملفات",
   "labels.folder": "مجلد",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {عام} read_only {للقراءة فقط} other {حفظ}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {للقراءة فقط} other {حفظ}}",
   "labels.generate": "إنشاء",
   "labels.guide": "دليل",
   "labels.halt": "إيقاف",

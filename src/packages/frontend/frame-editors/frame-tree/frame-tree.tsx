@@ -69,7 +69,6 @@ interface FrameTreeProps {
   has_uncommitted_changes: boolean;
   has_unsaved_changes: boolean;
   is_only: boolean;
-  is_public: boolean;
   is_saving: boolean;
   is_visible: boolean;
   local_view_state: Map<string, any>;
@@ -100,7 +99,6 @@ function shouldMemoize(prev, next) {
     "has_uncommitted_changes",
     "has_unsaved_changes",
     "is_only",
-    "is_public",
     "is_saving",
     "is_visible",
     "local_view_state",
@@ -134,7 +132,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       has_uncommitted_changes,
       has_unsaved_changes,
       is_only,
-      is_public,
       is_saving,
       is_visible,
       local_view_state,
@@ -184,7 +181,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           has_uncommitted_changes={has_uncommitted_changes}
           has_unsaved_changes={has_unsaved_changes}
           is_only={false}
-          is_public={is_public}
           is_saving={is_saving}
           is_visible={is_visible}
           local_view_state={local_view_state}
@@ -294,7 +290,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       ) {
         if (path_leaf.slice(path_leaf.length - 12) != ".time-travel") {
           path_leaf = hidden_meta_file(path_leaf, "time-travel");
-          const editor = get_file_editor("time-travel", false);
+          const editor = get_file_editor("time-travel");
           if (editor == null) throw Error("bug -- editor must exist");
           name_leaf = editor.init(path_leaf, redux, project_id_leaf);
           const actions2: TimeTravelActions = redux.getActions(name_leaf);
@@ -333,7 +329,6 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           editor_state={editor_state}
           font_size={font_size}
           is_fullscreen={is_only || desc.get("id") === full_id}
-          is_public={is_public}
           is_subframe={is_subframe}
           is_visible={is_visible}
           local_view_state={local_view_state}

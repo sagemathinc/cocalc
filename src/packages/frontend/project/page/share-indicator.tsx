@@ -4,7 +4,7 @@
  */
 
 /*
-Indicator about whether or not file or path is publicly shared.
+Indicator about whether or not a file or path is shared.
 */
 
 import { Button } from "antd";
@@ -15,9 +15,8 @@ import {
   useMemo,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, Loading } from "@cocalc/frontend/components";
+import { HiddenXSSM, Icon, Loading } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { HiddenXSSM } from "@cocalc/frontend/components";
 
 const SHARE_INDICATOR_STYLE = {
   fontSize: "14pt",
@@ -41,7 +40,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
     const student_project_functionality =
       useStudentProjectFunctionality(project_id);
 
-    const is_public = useMemo(() => {
+    const is_published = useMemo(() => {
       if (public_paths == null) return false;
       const paths: string[] = [];
       public_paths.forEach(function (info) {
@@ -55,7 +54,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
     // don't share anything if share server disabled *or* if file
     // isn't already published.  When not published, you can publish it
     // via the File menu.
-    if (!share_server || !is_public) {
+    if (!share_server || !is_published) {
       return <></>;
     }
 
@@ -78,9 +77,9 @@ export const ShareIndicator: React.FC<Props> = React.memo(
             });
           }}
         >
-          <Icon name={is_public ? "share-square" : "lock"} />
+          <Icon name={is_published ? "share-square" : "lock"} />
           <HiddenXSSM style={{ fontSize: "10.5pt", marginLeft: "5px" }}>
-            {is_public ? "Published" : "Private"}
+            {is_published ? "Published" : "Private"}
           </HiddenXSSM>
         </Button>
       </div>

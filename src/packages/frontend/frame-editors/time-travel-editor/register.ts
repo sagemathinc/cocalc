@@ -15,5 +15,4 @@ register_file_editor({
   ext: "time-travel",
   component: Editor,
   Actions: TimeTravelActions,
-  is_public: false,
 });

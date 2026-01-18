@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "Fájlkezelő",
   "labels.files": "Fájlok",
   "labels.folder": "mappa",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Nyilvános} read_only {Csak olvasható} other {Mentés}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {Csak olvasható} other {Mentés}}",
   "labels.generate": "Generálás",
   "labels.guide": "Útmutató",
   "labels.halt": "Állj",

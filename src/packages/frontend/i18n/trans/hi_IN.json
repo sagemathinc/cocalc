@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "फ़ाइल एक्सप्लोरर",
   "labels.files": "फ़ाइलें",
   "labels.folder": "फ़ोल्डर",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {सार्वजनिक} read_only {केवल पढ़ने के लिए} other {सहेजें}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {केवल पढ़ने के लिए} other {सहेजें}}",
   "labels.generate": "उत्पन्न करें",
   "labels.guide": "गाइड",
   "labels.halt": "रोकें",

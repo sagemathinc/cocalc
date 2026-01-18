@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "Esplora File",
   "labels.files": "File",
   "labels.folder": "cartella",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Pubblico} read_only {Sola lettura} other {Salva}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {Sola lettura} other {Salva}}",
   "labels.generate": "Genera",
   "labels.guide": "Guida",
   "labels.halt": "Arresta",

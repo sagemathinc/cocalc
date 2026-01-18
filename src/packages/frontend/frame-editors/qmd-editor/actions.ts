@@ -45,16 +45,14 @@ export class Actions extends MarkdownActions {
 
   _init2(): void {
     super._init2(); // that's the one in markdown-editor/actions.ts
-    if (!this.is_public) {
-      // one extra thing after markdown.
-      this._syncstring.once("ready", this._init_qmd_converter.bind(this));
-      this._check_produced_files();
-      this.setState({ custom_pdf_error_message });
-      this._syncstring.on(
-        "change",
-        debounce(this.ensureNonempty.bind(this), 1500),
-      );
-    }
+    // one extra thing after markdown.
+    this._syncstring.once("ready", this._init_qmd_converter.bind(this));
+    this._check_produced_files();
+    this.setState({ custom_pdf_error_message });
+    this._syncstring.on(
+      "change",
+      debounce(this.ensureNonempty.bind(this), 1500),
+    );
   }
 
   private do_build_on_save(): boolean {
@@ -243,24 +241,20 @@ export class Actions extends MarkdownActions {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    if (this.is_public) {
-      return { type: "cm" };
-    } else {
-      return {
-        direction: "col",
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "cm",
+      },
+      second: {
         type: "node",
-        first: {
-          type: "cm",
-        },
-        second: {
-          type: "node",
-          direction: "row",
-          first: { type: "iframe" },
-          second: { type: "build" },
-          pos: 0.8,
-        },
-      };
-    }
+        direction: "row",
+        first: { type: "iframe" },
+        second: { type: "build" },
+        pos: 0.8,
+      },
+    };
   }
 
   reload(_id?: string, hash?: number) {

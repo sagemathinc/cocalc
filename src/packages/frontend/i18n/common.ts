@@ -159,7 +159,7 @@ export const labels = defineMessages({
   frame_editors_title_bar_save_label: {
     id: "labels.frame-editors.title-bar.save_label",
     defaultMessage:
-      "{type, select, is_public {Public} read_only {Readonly} other {Save}}",
+      "{type, select, read_only {Readonly} other {Save}}",
     description: "Frame editor's title bar 'Save' button",
   },
   project_settings_restart_project_confirm_explanation: {

@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "Fitxategi Arakatzailea",
   "labels.files": "Fitxategiak",
   "labels.folder": "karpeta",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Publikoa} read_only {Iragargaitza} other {Gorde}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {Iragargaitza} other {Gorde}}",
   "labels.generate": "Sortu",
   "labels.guide": "Gida",
   "labels.halt": "Geldiarazi",

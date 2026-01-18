@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "ファイルエクスプローラー",
   "labels.files": "ファイル",
   "labels.folder": "フォルダー",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {公開} read_only {読み取り専用} other {保存}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {読み取り専用} other {保存}}",
   "labels.generate": "生成",
   "labels.guide": "ガイド",
   "labels.halt": "停止",

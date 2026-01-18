@@ -148,7 +148,6 @@ type LocalViewState = TypedMap<LocalViewParams>;
 export interface CodeEditorState {
   project_id: string;
   path: string;
-  is_public: boolean;
   local_view_state: any; // Generic use of Actions below makes this entirely befuddling...
   reload: Map<string, any>;
   resize: number;
@@ -203,7 +202,6 @@ export class BaseEditorActions<
   public project_id: string;
   public path: string;
   public store: Store<T>;
-  public is_public: boolean;
 
   private _save_local_view_state: () => void;
   private _cm_selections: any;
@@ -300,7 +298,6 @@ export class BaseEditorActions<
   _init(
     project_id: string,
     path: string,
-    is_public: boolean,
     store: any,
   ): void {
     this._save_local_view_state = debounce(
@@ -312,7 +309,6 @@ export class BaseEditorActions<
     this.path = path;
     this.applyDoctypeForPath(path);
     this.store = store;
-    this.is_public = is_public;
     this.terminals = new TerminalManager<T>(this);
     this.code_editors = new CodeEditorManager<T>(this);
 
@@ -323,15 +319,10 @@ export class BaseEditorActions<
       trailing: true,
     });
 
-    if (is_public) {
-      this._init_value();
-    } else {
-      this._init_syncstring();
-    }
+    this._init_syncstring();
 
     this.setState({
       value: "Loading...",
-      is_public,
       local_view_state: this._load_local_view_state(),
       reload: Map(),
       resize: 0,
@@ -1350,7 +1341,6 @@ export class BaseEditorActions<
   private openAnywaysModalIsOpen = false;
   async save(explicit: boolean): Promise<void> {
     if (
-      this.is_public ||
       !this.store.get("is_loaded") ||
       this._syncstring == null ||
       this._syncstring.get_state() != "ready" ||

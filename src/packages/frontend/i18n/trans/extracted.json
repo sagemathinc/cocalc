@@ -1155,7 +1155,7 @@
     "description": "e.g. a label in a form for the email address field"
   },
   "labels.frame-editors.title-bar.save_label": {
-    "defaultMessage": "{type, select, is_public {Public} read_only {Readonly} other {Save}}",
+    "defaultMessage": "{type, select, read_only {Readonly} other {Save}}",
     "description": "Frame editor's title bar 'Save' button"
   },
   "labels.help": {

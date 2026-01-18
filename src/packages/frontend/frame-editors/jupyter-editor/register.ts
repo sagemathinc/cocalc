@@ -13,7 +13,5 @@ register_file_editor({
   ext: "ipynb",
   editor: async () => await import("./editor"),
   actions: async () => await import("./actions"),
-  is_public: false,
 });
-
 

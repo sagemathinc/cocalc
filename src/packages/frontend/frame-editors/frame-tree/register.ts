@@ -20,7 +20,6 @@ interface AsyncRegister {
   ext: string | string[];
   editor: () => Promise<any>;
   actions: () => Promise<any>;
-  is_public?: boolean;
 }
 
 interface Register {
@@ -34,7 +33,6 @@ interface Register {
     component: any;
     Actions: any;
   }> /* async function that returns the component and Actions instead. */;
-  is_public?: boolean /* if given, only register public or not public editors (not both) */;
 }
 
 function isAsyncRegister(
@@ -54,27 +52,16 @@ export function register_file_editor(opts: Register | AsyncRegister) {
         const Actions = (await opts.actions()).Actions;
         return { component, Actions };
       },
-      is_public: opts.is_public,
     });
     return;
   }
-  const v: boolean[] = [];
-  if (opts.is_public != undefined) {
-    v.push(!!opts.is_public);
-  } else {
-    v.push(true);
-    v.push(false);
-  }
-  for (const is_public of v) {
-    register(
-      opts.icon,
-      opts.ext,
-      opts.component,
-      opts.Actions,
-      opts.asyncData,
-      is_public,
-    );
-  }
+  register(
+    opts.icon,
+    opts.ext,
+    opts.component,
+    opts.Actions,
+    opts.asyncData,
+  );
 }
 
 const reference_count: { [name: string]: number } = {};
@@ -184,12 +171,10 @@ function register(
         component: any;
         Actions: any;
       }>),
-  is_public: boolean,
 ) {
   let data: any = {
     icon,
     ext,
-    is_public,
 
     remove(path: string, redux, project_id: string): string {
       const name = redux_name(project_id, path);
@@ -231,7 +216,6 @@ function register(
     },
 
     save(path: string, redux, project_id: string): void {
-      if (is_public) return;
       const name = redux_name(project_id, path);
       const actions = redux.getActions(name);
       actions?.save?.();
@@ -255,7 +239,7 @@ function register(
       const actions = redux.createActions(name, Actions);
 
       // Call the base class init.  (NOTE: it also calls _init2 if defined.)
-      actions._init(project_id, path, is_public, store);
+      actions._init(project_id, path, store);
 
       return name;
     };
@@ -316,16 +300,16 @@ function register(
     ext = [ext];
   }
   for (const e of ext) {
-    REGISTRY[key(e, is_public)] = data;
+    REGISTRY[key(e)] = data;
   }
 }
 
 const REGISTRY: { [key: string]: any } = {};
 
-export function get_file_editor(ext: string, is_public: boolean = false) {
-  return REGISTRY[key(ext, is_public)];
+export function get_file_editor(ext: string) {
+  return REGISTRY[key(ext)];
 }
 
-function key(ext: string, is_public: boolean): string {
-  return `${is_public}-${ext}`;
+function key(ext: string): string {
+  return ext;
 }

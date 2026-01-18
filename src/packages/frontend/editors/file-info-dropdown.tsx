@@ -17,7 +17,6 @@ import { capitalize, filename_extension } from "@cocalc/util/misc";
 interface Props {
   filename: string; // expects the full path name
   project_id: string;
-  is_public?: boolean;
   style?: CSS;
   button?: boolean;
   mode?: "explorer" | "flyout";
@@ -28,7 +27,6 @@ const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     const {
       filename,
       project_id,
-      is_public,
       style,
       button,
       mode = "explorer",
@@ -81,23 +79,15 @@ const EditorFileInfoDropdown: React.FC<Props> = React.memo(
     function render_menu_items(): MenuItems {
       let items: { [key: string]: IconName };
       const v: MenuItems = [];
-      if (is_public) {
-        // Fewer options when viewing the action dropdown in public mode:
-        items = {
-          download: "cloud-download",
-          copy: "files",
-        };
-      } else {
-        if (mode !== "flyout") {
-          v.push(render_menu_item("new", "plus-circle"));
-        }
-        // create a map from name to icon
-        items = {};
-        for (const key in file_actions) {
-          const { icon, hideFlyout } = file_actions[key];
-          if (mode === "flyout" && hideFlyout) continue;
-          items[key] = icon;
-        }
+      if (mode !== "flyout") {
+        v.push(render_menu_item("new", "plus-circle"));
+      }
+      // create a map from name to icon
+      items = {};
+      for (const key in file_actions) {
+        const { icon, hideFlyout } = file_actions[key];
+        if (mode === "flyout" && hideFlyout) continue;
+        items[key] = icon;
       }
 
       for (let key in items) {
@@ -117,8 +107,7 @@ const EditorFileInfoDropdown: React.FC<Props> = React.memo(
       />
     );
   },
-  (prev, next) =>
-    prev.filename == next.filename && prev.is_public == next.is_public,
+  (prev, next) => prev.filename == next.filename,
 );
 
 // This is for legacy editors...
@@ -126,14 +115,12 @@ export function render_file_info_dropdown(
   filename: string,
   project_id: string,
   dom_node,
-  is_public?,
 ) {
   const root = createRoot(dom_node);
   root.render(
     <EditorFileInfoDropdown
       filename={filename}
       project_id={project_id}
-      is_public={is_public}
       style={{ height: "34px" }}
     />,
   );

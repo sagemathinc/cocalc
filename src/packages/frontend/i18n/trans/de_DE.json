@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "Dateimanager",
   "labels.files": "Dateien",
   "labels.folder": "Ordner",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Öffentlich} read_only {Schreibgeschützt} other {Speichern}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {Schreibgeschützt} other {Speichern}}",
   "labels.generate": "Generieren",
   "labels.guide": "Anleitung",
   "labels.halt": "Anhalten",

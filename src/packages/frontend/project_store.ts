@@ -214,7 +214,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
     const open = this.get("open_files")?.toJS();
     if (open != null) {
       for (const path in open) {
-        remove(path, redux, this.project_id, false);
+        remove(path, redux, this.project_id);
       }
     }
   };

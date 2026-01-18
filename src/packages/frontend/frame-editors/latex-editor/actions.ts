@@ -187,28 +187,26 @@ export class Actions extends BaseActions<LatexEditorState> {
       leading: false,
       trailing: true,
     });
-    if (!this.is_public) {
-      this.init_bad_filename();
-      this.init_ext_filename(); // safe to set before syncstring init
-      this._init_syncstring_value();
-      this.init_ext_path(); // must come after syncstring init
-      this.init_latexmk();
-      // This breaks browser spellcheck.
-      // this._init_spellcheck();
-      this.init_config();
-      if (!this.knitr) {
-        this.output_directory = this.output_directory_path();
-      }
-      this._syncstring.on(
-        "change",
-        debounce(this.updateTableOfContents.bind(this), 1500),
-      );
-      this._syncstring.on(
-        "change",
-        debounce(this.ensureNonempty.bind(this), 1500),
-      );
-      this._init_pdf_directory_watcher();
+    this.init_bad_filename();
+    this.init_ext_filename(); // safe to set before syncstring init
+    this._init_syncstring_value();
+    this.init_ext_path(); // must come after syncstring init
+    this.init_latexmk();
+    // This breaks browser spellcheck.
+    // this._init_spellcheck();
+    this.init_config();
+    if (!this.knitr) {
+      this.output_directory = this.output_directory_path();
     }
+    this._syncstring.on(
+      "change",
+      debounce(this.updateTableOfContents.bind(this), 1500),
+    );
+    this._syncstring.on(
+      "change",
+      debounce(this.ensureNonempty.bind(this), 1500),
+    );
+    this._init_pdf_directory_watcher();
     this.word_count = reuseInFlight(this._word_count.bind(this));
   }
 
@@ -640,49 +638,41 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // this was the default until we made the new output.tsx one-stop-shop panel the default
   _classic_frame_tree_layout(): FrameTree {
-    if (this.is_public) {
-      return { type: "cm" };
-    } else {
-      return {
+    return {
+      type: "node",
+      direction: "col",
+      first: {
+        direction: "row",
         type: "node",
-        direction: "col",
-        first: {
-          direction: "row",
-          type: "node",
-          first: { type: "cm" },
-          second: {
-            type: "node",
-            direction: "col",
-            first: { type: "latex_table_of_contents" },
-            second: { type: "error" },
-            pos: 0.3,
-          },
-          pos: 0.7,
-        },
+        first: { type: "cm" },
         second: {
-          direction: "row",
           type: "node",
-          first: { type: "pdfjs_canvas" },
-          second: { type: "build" },
-          pos: 0.7,
+          direction: "col",
+          first: { type: "latex_table_of_contents" },
+          second: { type: "error" },
+          pos: 0.3,
         },
-        pos: 0.5,
-      };
-    }
+        pos: 0.7,
+      },
+      second: {
+        direction: "row",
+        type: "node",
+        first: { type: "pdfjs_canvas" },
+        second: { type: "build" },
+        pos: 0.7,
+      },
+      pos: 0.5,
+    };
   }
 
   _new_frame_tree_layout(): FrameTree {
-    if (this.is_public) {
-      return { type: "cm" };
-    } else {
-      return {
-        type: "node",
-        direction: "col",
-        first: { type: "cm" },
-        second: { type: "output" },
-        pos: 0.5,
-      };
-    }
+    return {
+      type: "node",
+      direction: "col",
+      first: { type: "cm" },
+      second: { type: "output" },
+      pos: 0.5,
+    };
   }
 
   // Override to make new layout the default

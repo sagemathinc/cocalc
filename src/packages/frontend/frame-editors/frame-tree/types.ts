@@ -159,7 +159,6 @@ export interface EditorComponentProps {
   gutters?: EditorDescription["gutters"];
   is_current: boolean;
   is_fullscreen: boolean;
-  is_public: boolean;
   is_subframe: boolean;
   is_visible: boolean;
   local_view_state: Map<string, any>;

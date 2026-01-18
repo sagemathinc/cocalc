@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "파일 탐색기",
   "labels.files": "파일",
   "labels.folder": "폴더",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {공개} read_only {읽기 전용} other {저장}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {읽기 전용} other {저장}}",
   "labels.generate": "생성",
   "labels.guide": "가이드",
   "labels.halt": "중지",

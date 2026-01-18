@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "Dosya Gezgini",
   "labels.files": "Dosyalar",
   "labels.folder": "klasör",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Herkese Açık} read_only {Salt Okunur} other {Kaydet}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {Salt Okunur} other {Kaydet}}",
   "labels.generate": "Oluştur",
   "labels.guide": "Kılavuz",
   "labels.halt": "Durdur",

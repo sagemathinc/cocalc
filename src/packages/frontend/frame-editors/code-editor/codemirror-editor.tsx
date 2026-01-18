@@ -57,8 +57,7 @@ export interface Props {
   editor_state: EditorState;
   read_only: boolean;
   is_current: boolean;
-  is_public: boolean;
-  // value if defined and is_public, use this static value and editor is read-only  (TODO: public was deprecated years ago)
+  // value if defined, use this static value and editor is read-only
   value?: string | (() => string);
   misspelled_words?: Set<string> | string; // **or** show these words as not spelled correctly
   resize: number;
@@ -102,7 +101,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     init_codemirror(props);
     return () => {
       // clean up because unmounting.
-      if (cmRef.current != null && !props.is_public) {
+      if (cmRef.current != null) {
         save_editor_state(cmRef.current);
         const actions = editor_actions();
         if (actions != null) {
@@ -123,20 +122,6 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
       cmRef.current.setOption("readOnly", props.read_only);
     }
   }, [props.read_only]);
-
-  useEffect(() => {
-    if (props.is_public && cmRef.current != null && props.value != null) {
-      if (typeof props.value == "function") {
-        const value = props.value();
-        if (value != null) {
-          cmRef.current.setValueNoJump(value);
-        }
-      } else {
-        // we really know that this will be undefined.
-        cmRef.current.setValueNoJump(props.value);
-      }
-    }
-  }, [props.value]);
 
   useEffect(cm_highlight_misspelled_words, [props.misspelled_words]);
   useEffect(cm_refresh, [props.resize]);
@@ -242,7 +227,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     styleActiveLineRef.current = options.styleActiveLine;
     options.styleActiveLine = false;
 
-    if (props.is_public || props.read_only) {
+    if (props.read_only) {
       options.readOnly = true;
     }
 
@@ -279,9 +264,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
       set_state(cmRef.current, props.editor_state.toJS() as any);
     }
 
-    if (!props.is_public) {
-      cm_highlight_misspelled_words();
-    }
+    cm_highlight_misspelled_words();
 
     set_has_cm(true);
 
@@ -307,26 +290,12 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     if (cm == null) return;
     (cm as any)._actions = editor_actions();
 
-    if (props.is_public) {
-      if (props.value != null) {
-        if (typeof props.value == "function") {
-          const value = props.value();
-          if (value != null) {
-            cm.setValue(value);
-          }
-        } else {
-          // should always be the case if public.
-          cm.setValue(props.value);
-        }
-      }
+    if (!has_doc(props.project_id, props.path)) {
+      // save it to cache so can be used by other components/editors
+      set_doc(props.project_id, props.path, cm);
     } else {
-      if (!has_doc(props.project_id, props.path)) {
-        // save it to cache so can be used by other components/editors
-        set_doc(props.project_id, props.path, cm);
-      } else {
-        // has it already, so use that.
-        cm.swapDoc(get_linked_doc(props.project_id, props.path));
-      }
+      // has it already, so use that.
+      cm.swapDoc(get_linked_doc(props.project_id, props.path));
     }
 
     const throttled_save_editor_state = throttle(save_editor_state, 150);
@@ -335,11 +304,7 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
 
     editor_actions()?.set_cm(props.id, cm);
 
-    if (props.is_public) {
-      return;
-    }
-
-    // After this only stuff that we use for the non-public version!
+    // After this only stuff that we use for live editing.
     const save_syncstring_debounce = debounce(
       save_syncstring,
       SAVE_DEBOUNCE_MS,

@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "Проводник файлов",
   "labels.files": "Файлы",
   "labels.folder": "папка",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Публичный} read_only {Только чтение} other {Сохранить}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {Только чтение} other {Сохранить}}",
   "labels.generate": "Создать",
   "labels.guide": "Руководство",
   "labels.halt": "Остановить",

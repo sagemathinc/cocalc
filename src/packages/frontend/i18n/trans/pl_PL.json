@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "Eksplorator plików",
   "labels.files": "Pliki",
   "labels.folder": "folder",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Publiczny} read_only {Tylko do odczytu} other {Zapisz}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {Tylko do odczytu} other {Zapisz}}",
   "labels.generate": "Generuj",
   "labels.guide": "Przewodnik",
   "labels.halt": "Zatrzymaj",

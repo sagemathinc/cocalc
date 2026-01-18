@@ -19,7 +19,6 @@ interface Props {
   has_unsaved_changes?: boolean;
   has_uncommitted_changes?: boolean;
   read_only?: boolean;
-  is_public?: boolean;
   is_saving?: boolean;
   no_labels?: boolean;
   size?: ButtonProps["size"];
@@ -34,7 +33,6 @@ export function SaveButton({
   has_unsaved_changes,
   has_uncommitted_changes,
   read_only,
-  is_public,
   is_saving,
   no_labels,
   size,
@@ -49,16 +47,16 @@ export function SaveButton({
   const label = useMemo(() => {
     if (!no_labels || read_only) {
       return intl.formatMessage(labels.frame_editors_title_bar_save_label, {
-        type: is_public ? "is_public" : read_only ? "read_only" : "save",
+        type: read_only ? "read_only" : "save",
       });
     } else {
       return null;
     }
-  }, [no_labels, is_public, read_only]);
+  }, [no_labels, read_only]);
 
   const disabled = useMemo(
-    () => !has_unsaved_changes || !!read_only || !!is_public,
-    [has_unsaved_changes, read_only, is_public],
+    () => !has_unsaved_changes || !!read_only,
+    [has_unsaved_changes, read_only],
   );
 
   const icon = useMemo(

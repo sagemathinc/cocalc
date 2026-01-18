@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "Bestandsverkenner",
   "labels.files": "Bestanden",
   "labels.folder": "map",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Openbaar} read_only {Alleen lezen} other {Opslaan}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {Alleen lezen} other {Opslaan}}",
   "labels.generate": "Genereer",
   "labels.guide": "Gids",
   "labels.halt": "Stop",

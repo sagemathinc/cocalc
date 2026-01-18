@@ -30,10 +30,10 @@ export class CodeEditor {
   async init(): Promise<void> {
     try {
       const ext = filename_extension(this.path);
-      let editor = get_file_editor(ext, false);
+      let editor = get_file_editor(ext);
       if (editor == null) {
         // fallback to text
-        editor = get_file_editor("txt", false);
+        editor = get_file_editor("txt");
       }
       let name: string;
       if (editor.init != null) {
@@ -51,10 +51,10 @@ export class CodeEditor {
 
   close(): void {
     const ext = filename_extension(this.path);
-    let editor = get_file_editor(ext, false);
+    let editor = get_file_editor(ext);
     if (editor == null) {
       // fallback to text
-      editor = get_file_editor("txt", false);
+      editor = get_file_editor("txt");
     }
     if (editor == null) {
       console.warn("WARNING: editor should exist");

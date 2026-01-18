@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "סייר קבצים",
   "labels.files": "קבצים",
   "labels.folder": "תיקייה",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {ציבורי} read_only {לקריאה בלבד} other {שמור}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {לקריאה בלבד} other {שמור}}",
   "labels.generate": "צור",
   "labels.guide": "מדריך",
   "labels.halt": "עצור",

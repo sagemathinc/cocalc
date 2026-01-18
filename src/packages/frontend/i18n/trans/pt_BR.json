@@ -1011,7 +1011,7 @@
   "labels.file_explorer": "Explorador de Arquivos",
   "labels.files": "Arquivos",
   "labels.folder": "pasta",
-  "labels.frame-editors.title-bar.save_label": "{type, select, is_public {Público} read_only {Somente leitura} other {Salvar}}",
+  "labels.frame-editors.title-bar.save_label": "{type, select, read_only {Somente leitura} other {Salvar}}",
   "labels.generate": "Gerar",
   "labels.guide": "Guia",
   "labels.halt": "Parar",

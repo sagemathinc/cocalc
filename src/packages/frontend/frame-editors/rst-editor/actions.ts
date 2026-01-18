@@ -20,13 +20,9 @@ export class Actions extends CodeEditorActions {
   private _last_rst_hash: number | undefined = undefined;
 
   _init2(): void {
-    if (!this.is_public) {
-      this._init_syncstring_value();
-      this._init_spellcheck(); // TODO: need to "detex" (?)
-      this._init_rst2html();
-    } else {
-      this._init_value();
-    }
+    this._init_syncstring_value();
+    this._init_spellcheck(); // TODO: need to "detex" (?)
+    this._init_rst2html();
   }
 
   _init_rst2html(): void {
@@ -60,20 +56,16 @@ export class Actions extends CodeEditorActions {
   }
 
   _raw_default_frame_tree(): FrameTree {
-    if (this.is_public) {
-      return { type: "cm" };
-    } else {
-      return {
-        direction: "col",
-        type: "node",
-        first: {
-          type: "cm",
-        },
-        second: {
-          type: "rst",
-        },
-      };
-    }
+    return {
+      direction: "col",
+      type: "node",
+      first: {
+        type: "cm",
+      },
+      second: {
+        type: "rst",
+      },
+    };
   }
 
   reload(id: string, hash?: number) {

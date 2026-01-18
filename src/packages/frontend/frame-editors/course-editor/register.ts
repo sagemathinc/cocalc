@@ -13,5 +13,4 @@ register_file_editor({
   ext: "course",
   editor: async () => await import("./editor"),
   actions: async () => await import("./actions"),
-  is_public: false,
 });

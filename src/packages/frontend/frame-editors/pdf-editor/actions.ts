@@ -40,10 +40,8 @@ export class Actions extends BaseActions<PDFEditorState> {
   }
 
   _init2(): void {
-    if (!this.is_public) {
-      this.reload("");
-      this._init_pdf_directory_watcher();
-    }
+    this.reload("");
+    this._init_pdf_directory_watcher();
   }
 
   // Watch the directory containing the PDF file for changes

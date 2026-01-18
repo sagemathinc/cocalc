@@ -76,7 +76,6 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
     const editor_settings = useTypedRedux("account", "editor_settings");
     const terminal = useTypedRedux("account", "terminal");
 
-    const is_public: boolean = useRedux(name, "is_public");
     const has_unsaved_changes: boolean = useRedux(name, "has_unsaved_changes");
     const has_uncommitted_changes: boolean = useRedux(
       name,
@@ -143,7 +142,6 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
             is_only={frame_tree.get("type") !== "node"}
             cursors={cursors}
             read_only={read_only}
-            is_public={is_public}
             value={value}
             reload={reload}
             resize={resize}
