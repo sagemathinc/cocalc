@@ -2,21 +2,21 @@
 
 ## TODO
 
-- [ ] Cloning a project should preserve the backup region \(and bucket assignment\).
 - [ ] Show the backup region clearly in project settings.
 - [ ] Show the backup region clearly in the project flyout settings.
 - [ ] Extend the end\-to\-end smoke test to include a backup/restore step.
 - [ ] Implement full project deletion so backups are cleaned up appropriately.
 - [ ] Order backup regions based on distance from user \(use Cloudflare location cookie\).
 - [ ] Allow self\-hosted project hosts to select a backup region \(default to closest\).
-- [ ] Move project between hosts \(even if host is offline\) via restore\-from\-backup.
-- [ ] When turning off a host, ensure all projects are backed up; add a separate "force off" path. Surface host\-level backup status in the host admin page.
 - [ ] Surface per\-project backup status in the project UI.
-- [ ] Rewrite backup APIs to handle long\-running operations \(progress \+ timeouts\).
-- [ ] On project start, if backup exists but local data is missing, restore from backup \(lambda hosts\).
 - [ ] Improve backup browsing UX in file explorer \(prefetch tree, loading states\).
 - [ ] Sharing files \(new share server\), but use bucket.
-- [ ] update last_edited for projects properly, so it is dependable for project moves
+- [ ] update last\_edited for projects properly, so it is dependable for project moves
+- [x] Cloning a project should preserve the backup region \(and bucket assignment\).
+- [x] Move project between hosts \(even if host is offline\) via restore\-from\-backup.
+- [x] When turning off a host, ensure all projects are backed up; add a separate "force off" path. Surface host\-level backup status in the host admin page.
+- [x] Rewrite backup APIs to handle long\-running operations \(progress \+ timeouts\).
+- [x] On project start, if backup exists but local data is missing, restore from backup \(lambda hosts\).
 
 ## Plan to implement full backup/restore and copy using rustic and buckets
 
@@ -213,11 +213,13 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
   - (done) provisioned + up-to-date (`last_backup >= last_edited` or `last_edited` null)
 - **Stop/deprovision dialog**:
   - (done) show counts: total assigned, provisioned, running, provisioned+up-to-date
-  - (pending) include a table of “at risk” projects (running or provisioned+dirty)
+  - (done) include a table of “at risk” projects (running or provisioned+dirty)
+  - (done) add a paged host projects browser for admin review
   - (done) if host is off, explain backups can’t run and show last known counts
 - **Backup worker**:
   - (done) only consider provisioned projects (skip unprovisioned at scale)
   - (done) low concurrency, cancelable, report progress using counts above
 - **Future: better dirty tracking**:
-  - (pending) use btrfs subvolume generation/snapshot metadata to detect changes
-  - (pending) make `last_edited` reliable and update on FS writes/agent runs/stop
+  - (done) use btrfs subvolume generation to detect running changes (plus stop-time check)
+  - (done) make `last_edited` reliable and update on FS writes/agent runs/stop
+
