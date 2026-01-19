@@ -213,12 +213,17 @@ export function HostPickerModal({
         {isCreate ? (
           <>Pick a workspace host for this new workspace.</>
         ) : (
-          <>
-            Pick a workspace host to move this workspace to. Files in{" "}
-            <code>/scratch</code> (if any) will be discarded.
-          </>
+          <>Pick a workspace host to move this workspace to.</>
         )}
       </Typography.Paragraph>
+      {!isCreate ? (
+        <Alert
+          type="warning"
+          showIcon
+          message="Files in /scratch (if any) will be discarded. Snapshots are not moved; only backups are preserved."
+          style={{ marginBottom: 12 }}
+        />
+      ) : null}
       <Space style={{ marginBottom: 8 }}>
         <Button size="small" onClick={load} loading={loading}>
           Refresh
