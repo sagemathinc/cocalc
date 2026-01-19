@@ -118,7 +118,10 @@ export const DISK_TYPES = [
   { value: "standard", label: "Standard (HDD)" },
 ];
 
+const DEFAULT_DISK_TYPES = ["ssd"];
+
 const PROVIDER_DISK_TYPES: Partial<Record<HostProvider, string[]>> = {
+  gcp: ["balanced", "ssd", "standard"],
   hyperstack: ["ssd"],
   nebius: ["ssd_io_m3", "ssd"],
 };
@@ -126,9 +129,7 @@ const PROVIDER_DISK_TYPES: Partial<Record<HostProvider, string[]>> = {
 export const getDiskTypeOptions = (
   provider?: HostProvider,
 ) => {
-  if (!provider) return DISK_TYPES;
-  const allowed = PROVIDER_DISK_TYPES[provider];
-  if (!allowed) return DISK_TYPES;
+  const allowed = PROVIDER_DISK_TYPES[provider ?? "none"] ?? DEFAULT_DISK_TYPES;
   const optionMap = new Map(DISK_TYPES.map((entry) => [entry.value, entry]));
   const filtered = allowed
     .map((value) => optionMap.get(value))

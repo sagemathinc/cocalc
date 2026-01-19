@@ -18,12 +18,14 @@ export function SelectNewHost({
   disabled,
   regionFilter,
   regionLabel,
+  pickerMode = "create",
 }: {
   selectedHost?: Host;
   onChange: (host?: Host) => void;
   disabled?: boolean;
   regionFilter?: string;
   regionLabel?: string;
+  pickerMode?: "move" | "create";
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
 
@@ -37,11 +39,11 @@ export function SelectNewHost({
                 <div
                   style={{
                     fontWeight: 600,
-                  display: "flex",
-                  gap: 8,
-                  alignItems: "center",
-                }}
-              >
+                    display: "flex",
+                    gap: 8,
+                    alignItems: "center",
+                  }}
+                >
                   <Icon name="servers" /> Host
                 </div>
                 <div style={{ color: COLORS.GRAY_D }}>
@@ -102,6 +104,7 @@ export function SelectNewHost({
         currentHostId={selectedHost?.id}
         regionFilter={regionFilter}
         lockRegion={Boolean(regionFilter)}
+        mode={pickerMode}
         onCancel={() => setPickerOpen(false)}
         onSelect={(_, host) => {
           setPickerOpen(false);

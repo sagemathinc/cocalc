@@ -1,13 +1,13 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
- *  License: MS-RSL – see LICENSE.md for details
+ *  This file is part of CoCalc: Copyright (c) 2020 Sagemath, Inc.
+ *  License: MS-RSL - see LICENSE.md for details
  */
 
 /*
 Create a new project
 */
 
-import { Button, Card, Col, Form, Input, Modal, Row, Select } from "antd";
+import { Button, Card, Form, Input, Select, Space, Typography } from "antd";
 import { delay } from "awaiting";
 import { FormattedMessage, useIntl } from "react-intl";
 
@@ -26,9 +26,7 @@ import {
   SoftwareEnvironmentState,
 } from "@cocalc/frontend/custom-software/selector";
 import { labels } from "@cocalc/frontend/i18n";
-// import { ComputeImageSelector } from "@cocalc/frontend/project/settings/compute-image-selector";
 import track from "@cocalc/frontend/user-tracking";
-// import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import {
   DEFAULT_R2_REGION,
   mapCloudRegionToR2Region,
@@ -40,34 +38,32 @@ import { capitalize } from "@cocalc/util/misc";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { SelectNewHost } from "@cocalc/frontend/hosts/select-new-host";
 
-
 interface Props {
-  noProjects: boolean;
   default_value: string;
-  /** Increment this value to trigger the modal to open */
-  open_trigger?: number;
+  open: boolean;
+  onClose: () => void;
 }
 
-type EditState = "edit" | "view" | "saving";
-
 export function NewProjectCreator({
-  noProjects,
   default_value,
-  open_trigger,
+  open,
+  onClose,
 }: Props) {
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
   const projectLabelLower = projectLabel.toLowerCase();
   const projectsLabel = intl.formatMessage(labels.projects);
-  // view --> edit --> saving --> view
-  const [state, set_state] = useState<EditState>(noProjects ? "edit" : "view");
+  const { Title } = Typography;
+
   const [title_text, set_title_text] = useState<string>(
     default_value ?? getDefaultTitle(),
   );
   const [error, set_error] = useState<string>("");
+  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [title_manually, set_title_manually] = useState<boolean>(
     default_value.length > 0,
   );
+  const [saving, setSaving] = useState<boolean>(false);
   const [selected, setSelected] = useState<SoftwareEnvironmentState>({});
   const new_project_title_ref = useRef<any>(null);
   const [selectedHost, setSelectedHost] = useState<Host | undefined>();
@@ -100,13 +96,6 @@ export function NewProjectCreator({
     }
   }, [projectRegion, selectedHost]);
 
-  // Open modal when open_trigger changes
-  useEffect(() => {
-    if (open_trigger != null && open_trigger > 0) {
-      start_editing();
-    }
-  }, [open_trigger]);
-
   const is_mounted_ref = useIsMountedRef();
 
   async function select_text(): Promise<void> {
@@ -120,34 +109,30 @@ export function NewProjectCreator({
     return `Untitled ${ts}`;
   }
 
-  function start_editing(): void {
-    set_state("edit");
+  function reset_form(): void {
     set_title_text(default_value || getDefaultTitle());
     setProjectRegion(DEFAULT_R2_REGION);
+    setSelected({});
+    set_title_manually(false);
+    setSelectedHost(undefined);
+    setShowAdvanced(false);
+    set_error("");
+    setSaving(false);
+  }
+
+  function start_editing(): void {
+    reset_form();
     select_text();
   }
 
   function cancel_editing(): void {
     if (!is_mounted_ref.current) return;
-    set_state("view");
-    set_title_text(default_value || getDefaultTitle());
-    set_error("");
-    setSelected({});
-    set_title_manually(false);
-    setSelectedHost(undefined);
-    setProjectRegion(DEFAULT_R2_REGION);
-  }
-
-  function toggle_editing(): void {
-    if (state === "view") {
-      start_editing();
-    } else {
-      cancel_editing();
-    }
+    reset_form();
+    onClose();
   }
 
   async function create_project(): Promise<void> {
-    set_state("saving");
+    setSaving(true);
     const actions = redux.getActions("projects");
     let project_id: string;
     const opts = {
@@ -161,7 +146,8 @@ export function NewProjectCreator({
       project_id = await actions.create_project(opts);
     } catch (err) {
       if (!is_mounted_ref.current) return;
-      set_state("edit");
+      setSaving(false);
+      setShowAdvanced(true);
       set_error(`Error creating ${projectLabelLower} -- ${err}`);
       return;
     }
@@ -177,33 +163,7 @@ export function NewProjectCreator({
 
   function render_error(): React.JSX.Element | undefined {
     if (!error) return;
-
-    return (
-      <Row>
-        <Col sm={24}>
-          <ErrorDisplay error={error} onClose={() => set_error("")} />
-        </Col>
-      </Row>
-    );
-  }
-
-  function render_new_project_button(): React.JSX.Element | undefined {
-    return (
-      <Row>
-        <Col xs={24}>
-          <Button
-            cocalc-test={"create-project"}
-            size="large"
-            disabled={state !== "view"}
-            onClick={toggle_editing}
-            style={{ width: "100%" }}
-          >
-            <Icon name="plus-circle" />{" "}
-            {capitalize(intl.formatMessage(labels.create))}
-          </Button>
-        </Col>
-      </Row>
-    );
+    return <ErrorDisplay error={error} onClose={() => set_error("")} />;
   }
 
   function isDisabled() {
@@ -211,7 +171,7 @@ export function NewProjectCreator({
       // no name of new project
       !title_text?.trim() ||
       // currently saving (?)
-      state === "saving" ||
+      saving ||
       // user wants a non-default image, but hasn't selected one yet
       ((selected.image_type === "custom" ||
         selected.image_type === "standard") &&
@@ -234,7 +194,7 @@ export function NewProjectCreator({
   }
 
   function onChangeHandler(obj: SoftwareEnvironmentState): void {
-    // only change the project title, if the user has not manually set it or it is empty – or if it is a custom image
+    // only change the project title, if the user has not manually set it or it is empty - or if it is a custom image
     // by default, this contains a generic date-based title.
     if (obj.title_text != null) {
       if (!title_text) {
@@ -253,34 +213,39 @@ export function NewProjectCreator({
     });
 
     return (
-      <>
-        <Row gutter={[30, 10]}>
-          <Col sm={12}>
-            <Form form={form}>
-              <Form.Item
-                label={intl.formatMessage(labels.title)}
-                name="title"
-                initialValue={title_text}
-                rules={[
-                  {
-                    required: true,
-                    min: 1,
-                    message: helpTxt,
-                  },
-                ]}
-              >
-                <Input
-                  ref={new_project_title_ref}
-                  placeholder={`Name your new ${projectLabelLower}...`}
-                  disabled={state === "saving"}
-                  onChange={input_on_change}
-                  onKeyDown={handle_keypress}
-                  autoFocus
-                />
-              </Form.Item>
-            </Form>
-          </Col>
-          <Col sm={12}>
+      <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+        <Form form={form} layout="vertical">
+          <Form.Item
+            label={intl.formatMessage(labels.title)}
+            name="title"
+            initialValue={title_text}
+            rules={[
+              {
+                required: true,
+                min: 1,
+                message: helpTxt,
+              },
+            ]}
+          >
+            <Input
+              ref={new_project_title_ref}
+              placeholder={`Name your new ${projectLabelLower}...`}
+              disabled={saving}
+              onChange={input_on_change}
+              onKeyDown={handle_keypress}
+              autoFocus
+            />
+          </Form.Item>
+        </Form>
+        <Button
+          type="link"
+          onClick={() => setShowAdvanced((prev) => !prev)}
+          style={{ paddingLeft: 0 }}
+        >
+          {showAdvanced ? "Hide advanced" : "Show advanced"}
+        </Button>
+        {showAdvanced && (
+          <Space direction="vertical" size="middle" style={{ width: "100%" }}>
             <Paragraph type="secondary">
               <FormattedMessage
                 id="projects.create-project.explanation"
@@ -294,11 +259,7 @@ export function NewProjectCreator({
                 }}
               />
             </Paragraph>
-          </Col>
-          <SoftwareEnvironment onChange={onChangeHandler} />
-        </Row>
-        <Row gutter={[30, 10]} style={{ paddingTop: 10 }}>
-          <Col sm={12}>
+            <SoftwareEnvironment onChange={onChangeHandler} />
             <Card size="small" bodyStyle={{ padding: "10px 12px" }}>
               <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
                 <div style={{ fontWeight: 600 }}>Backup region</div>
@@ -306,67 +267,64 @@ export function NewProjectCreator({
                   value={projectRegion}
                   onChange={(value) => setProjectRegion(value as R2Region)}
                   options={regionOptions}
-                  disabled={state === "saving"}
+                  disabled={saving}
                 />
               </div>
             </Card>
-          </Col>
-          <Col sm={12}>
-            <Paragraph type="secondary">
+            <Paragraph type="secondary" style={{ marginBottom: 0 }}>
               Backups are stored in this region. {projectsLabel} can only run on
               hosts in the same region.
             </Paragraph>
-          </Col>
-        </Row>
-        <SelectNewHost
-          disabled={state === "saving"}
-          selectedHost={selectedHost}
-          onChange={setSelectedHost}
-          regionFilter={projectRegion}
-          regionLabel={R2_REGION_LABELS[projectRegion]}
-        />
+            <SelectNewHost
+              disabled={saving}
+              selectedHost={selectedHost}
+              onChange={setSelectedHost}
+              regionFilter={projectRegion}
+              regionLabel={R2_REGION_LABELS[projectRegion]}
+              pickerMode="create"
+            />
+          </Space>
+        )}
         {render_error()}
-      </>
+      </Space>
     );
   }
 
-  function renderOKButtonText() {
-    return capitalize(intl.formatMessage(labels.create));
-  }
+  useEffect(() => {
+    if (open) {
+      start_editing();
+    } else {
+      reset_form();
+    }
+  }, [open]);
 
-  function render_project_creation(): React.JSX.Element | undefined {
-    if (state === "view") return;
-    return (
-      <>
-        <Modal
-          title={intl.formatMessage(labels.create_project)}
-          open={state === "edit" || state === "saving"}
-          okButtonProps={{ disabled: isDisabled() }}
-          okText={renderOKButtonText()}
-          cancelText={intl.formatMessage(labels.cancel)}
-          onCancel={cancel_editing}
-          onOk={create_project}
-          confirmLoading={state === "saving"}
-          width={{
-            xs: "90%",
-            sm: "90%",
-            md: "80%",
-            lg: "75%",
-            xl: "70%",
-            xxl: "60%",
-          }}
-        >
-          {render_input_section()}
-        </Modal>
-        {/* Host picker handled inside SelectNewHost */}
-      </>
-    );
-  }
+  if (!open) return null;
 
   return (
-    <div>
-      {render_new_project_button()}
-      {render_project_creation()}
-    </div>
+    <Space direction="vertical" size="middle" style={{ width: "100%" }}>
+      <div>
+        <Title level={4} style={{ marginBottom: 4 }}>
+          {intl.formatMessage(labels.create_project)}
+        </Title>
+        <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          Pick a title now and tune the rest later.
+        </Paragraph>
+      </div>
+      {render_input_section()}
+      <Space>
+        <Button onClick={cancel_editing} disabled={saving}>
+          {intl.formatMessage(labels.cancel)}
+        </Button>
+        <Button
+          type="primary"
+          onClick={create_project}
+          disabled={isDisabled()}
+          loading={saving}
+          icon={<Icon name="plus-circle" />}
+        >
+          {capitalize(intl.formatMessage(labels.create))}
+        </Button>
+      </Space>
+    </Space>
   );
 }
