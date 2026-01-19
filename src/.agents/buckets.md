@@ -182,7 +182,7 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
 - **Security**: read access by scope (project collab, host admin, account owner); write access only by owner; op_id opaque.
 - **Bootlog reuse**: treat bootlog as an LRO instance and reuse its UI for backup/restore/copy/start.
 
-### Phase 4: Cleanup / compatibility
+### \(done\) Phase 4: Cleanup / compatibility
 
 - **(pending) No backward compatibility**:
   - (pending) treat layout v2 as the only supported format
@@ -195,7 +195,7 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
   - (done) remove host-to-host key generation/storage and related sqlite fields
   - (pending) sweep docs/scripts for rsync/btrfs transfer mentions
 
-### Phase 5: Manage Backup Status
+### \(done\) Phase 5: Manage Backup Status
 
 - **Goal**: make host stop/deprovision safe and scalable by tracking whether projects are actually provisioned on a host, and by surfacing clear aggregate + per-project backup status for admins.
 - **Projects columns (single-host invariant)**:
@@ -218,12 +218,13 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
   - (done) if host is off, explain backups can’t run and show last known counts
 - **Backup worker**:
   - (done) only consider provisioned projects (skip unprovisioned at scale)
+
   - (done) low concurrency, cancelable, report progress using counts above
 - **Future: better dirty tracking**:
   - (done) use btrfs subvolume generation to detect running changes (plus stop-time check)
   - (done) make `last_edited` reliable and update on FS writes/agent runs/stop
 
-### Improved Backup UX
+### \(done\) Improved Backup UX
 
 Goal: make backups usable without full restore by adding search + read-only file viewing and clearer restore actions.
 
@@ -273,22 +274,36 @@ Goal: make backups usable without full restore by adding search + read-only file
 
 ### Unified Search UI (Find)
 
-Goal: unify file-name search, content search (rg), snapshots, and backups under one Find UI with tabs, shared by flyout + full page.
+**Goal**: One coherent Find experience across Files, Contents, Snapshots, and Backups with fast search, clear scope, and shared state between flyout and full page.
 
-1. **UI structure**
-   - Convert the existing Find flyout + full-page view into a shared component with tabs:
-     - Files (fd, name/glob)
-     - Contents (rg, text search)
-     - Snapshots (local btrfs snapshots; supports rg + filename search)
-     - Backups (rustic find; filename/glob only)
-   - Add short “Snapshots vs Backups” help text per tab.
+**Plan**
 
-2. **Scope controls**
-   - Keep current directory default.
-   - Add one-click “Home” and “Git root” scope buttons.
-   - Add a directory picker to select any path.
+1. **(done) Component refactor**
+   - Split [src/packages/frontend/project/find/find.tsx](./src/packages/frontend/project/find/find.tsx) into per-tab components and shared controls/results.
+   - Keep tab-specific logic isolated; share filter, list, and empty/error UI.
 
-3. **Explorer filter hybrid routing**
+2. **(done) Shared state (per project)**
+   - Store Find state in project store (active tab, query, filter, toggles, find path, pin).
+   - Ensure flyout and full-page Find use the same state.
+   - Preserve state across tab switches (Files/Contents/Snapshots/Backups).
+
+3. **(done) Path-aware behavior**
+   - If Find path starts with `.backups/` or `.snapshots/`, disable other tabs.
+   - Show an alert and a prominent button to jump to the corresponding path in HOME (strip `.backups/<backup>/` or `.snapshots/<snap>/`).
+
+4. **(done) Find-in controls**
+   - Add pin toggle to lock Find path; when pinned, it doesn't follow navigation.
+   - Add a recent-path history dropdown (localStorage).
+   - Keep directory selector for explicit changes.
+
+5. **(done) Lite mode**
+   - Hide Backups/Snapshots tabs in lite mode.
+
+6. **(done) Keyboard navigation**
+   - Focus search on open.
+   - Up/Down to navigate results, Enter to open, Esc to clear filter.
+
+7. **(done) Explorer filter hybrid routing**
    - Preserve current filter behavior.
    - Recognize prefixes and show a hint: “Press Enter to search …”
      - `/` → Files (fd)
@@ -298,18 +313,9 @@ Goal: unify file-name search, content search (rg), snapshots, and backups under 
      - `>` → terminal command (existing behavior)
    - On Enter, open the Find panel, switch tabs, and prefill the query.
 
-4. **Backend adapters**
-   - Files: fd search endpoint for filenames/globs.
-   - Contents: existing rg endpoint; improve context width and card layout.
-   - Snapshots: add snapshot search endpoints (rg + filename/glob).
-   - Backups: add rustic `find` wrapper (glob/iglob/path).
-
-5. **Results UI**
-   - Use a consistent result card layout across tabs.
-   - Improve context display for rg (more lines, tighter width).
+8. **Results UI + polish**
+   - Consistent alert copy for snapshots/backups.
+   - Unified Files/Contents toggle; backups show Contents disabled with tooltip.
+   - Filter input should remain visible even when filtered results are empty.
+   - Improve spacing/typography and result card hierarchy.
    - Add source badges and quick actions: open, reveal, restore (where applicable).
-
-6. **Performance**
-   - Debounce searches.
-   - Cache recent queries briefly.
-   - Keep results filter box for fast in-memory narrowing.

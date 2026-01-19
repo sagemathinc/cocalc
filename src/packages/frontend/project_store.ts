@@ -46,6 +46,12 @@ import { type PublicPath } from "@cocalc/util/db-schema/public-paths";
 import { DirectoryListing } from "@cocalc/frontend/project/explorer/types";
 export { FILE_ACTIONS as file_actions, type FileAction, ProjectActions };
 import { SCHEMA, client_db } from "@cocalc/util/schema";
+import type {
+  FindBackupsState,
+  FindFilesState,
+  FindScopeMode,
+  FindSnapshotsState,
+} from "@cocalc/frontend/project/find/types";
 
 export type ModalInfo = TypedMap<{
   title: string | React.JSX.Element;
@@ -137,6 +143,13 @@ export interface ProjectStoreState {
     scope_path?: string;
     submode?: string;
   };
+  find_scope_mode?: FindScopeMode;
+  find_scope_path?: string;
+  find_scope_pinned?: boolean;
+  find_scope_history?: string[];
+  find_files_state?: FindFilesState;
+  find_snapshots_state?: FindSnapshotsState;
+  find_backups_state?: FindBackupsState;
 
   // Search page -- update this when params change
   search_page?: number;

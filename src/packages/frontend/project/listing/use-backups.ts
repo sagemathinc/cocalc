@@ -80,8 +80,10 @@ export default function useBackupsListing({
             isDir: true,
           };
         });
-        entries.sort(field_cmp(sortField));
-        if (sortDirection === "desc") entries.reverse();
+        entries.sort((a, b) => {
+          if (a.mtime !== b.mtime) return b.mtime - a.mtime;
+          return a.name.localeCompare(b.name);
+        });
         if (requestId.current !== id) return;
         setListing(entries);
         setError(null);
