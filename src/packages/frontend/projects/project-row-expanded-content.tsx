@@ -209,14 +209,14 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
         `}
       </style>
       <Descriptions
-        column={{ xs: 1, sm: 1, md: 2, lg: 3 }}
+        column={1}
         size="small"
         bordered
         layout="vertical"
         style={{ margin: 0 }}
         className={"cc-projects-row-expand-descriptions"}
       >
-        <Descriptions.Item label={intl.formatMessage(labels.open)} span={3}>
+        <Descriptions.Item label={intl.formatMessage(labels.open)}>
           <Space wrap size={[8, 8]}>
             <Button
               type="text"
@@ -319,12 +319,18 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
             </Button>
           </Space>
         </Descriptions.Item>
-        <Descriptions.Item label="Created">
-          {project.get("created") ? (
-            <TimeAgo date={project.get("created")} />
-          ) : (
-            <span style={{ color: COLORS.GRAY }}>Unknown</span>
-          )}
+        <Descriptions.Item label={intl.formatMessage(labels.state)}>
+          <Space direction="vertical" size="small">
+            <ProjectState state={project.get("state")} />
+            <Space.Compact>
+              <RestartProject project_id={project_id} size="small" />
+              <StopProject
+                project_id={project_id}
+                disabled={project.getIn(["state", "state"]) !== "running"}
+                size="small"
+              />
+            </Space.Compact>
+          </Space>
         </Descriptions.Item>
         <Descriptions.Item label="Last Edited">
           {project.get("last_edited") ? (
@@ -333,26 +339,12 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
             <span style={{ color: COLORS.GRAY }}>Never</span>
           )}
         </Descriptions.Item>
-        <Descriptions.Item label={intl.formatMessage(labels.state)}>
-          <ProjectState state={project.get("state")} />{" "}
-          <Space.Compact>
-            <RestartProject project_id={project_id} size="small" />
-            <StopProject
-              project_id={project_id}
-              disabled={project.getIn(["state", "state"]) !== "running"}
-              size="small"
-            />
-          </Space.Compact>
-        </Descriptions.Item>
 
-        <Descriptions.Item
-          label={intl.formatMessage(labels.collaborators)}
-          span={3}
-        >
+        <Descriptions.Item label={intl.formatMessage(labels.collaborators)}>
           {renderCollaborators()}
         </Descriptions.Item>
 
-        <Descriptions.Item label="Software Image" span={2}>
+        <Descriptions.Item label="Software Image">
           {renderSoftwareImage()}
         </Descriptions.Item>
         <Descriptions.Item label={`${projectLabel} ID`}>
@@ -361,6 +353,13 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
             display={`${project_id.slice(0, 20)}...`}
             inputStyle={{ fontSize: "11px" }}
           />
+        </Descriptions.Item>
+        <Descriptions.Item label="Created">
+          {project.get("created") ? (
+            <TimeAgo date={project.get("created")} />
+          ) : (
+            <span style={{ color: COLORS.GRAY }}>Unknown</span>
+          )}
         </Descriptions.Item>
       </Descriptions>
     </div>
