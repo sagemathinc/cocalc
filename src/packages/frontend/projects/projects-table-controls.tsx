@@ -12,16 +12,13 @@
 
 import type { SelectProps } from "antd";
 
-import { Button, Input, Select, Space, Switch } from "antd";
+import { Input, Select, Space, Switch } from "antd";
 import { Set } from "immutable";
 import { ReactNode, useMemo } from "react";
 import { useIntl } from "react-intl";
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { labels } from "@cocalc/frontend/i18n";
-import { capitalize } from "@cocalc/util/misc";
 //import { COLORS } from "@cocalc/util/theme";
 
 import { get_visible_hashtags } from "./util";
@@ -38,18 +35,14 @@ const CONTROLS_STYLE: CSS = {
 
 interface Props {
   visible_projects: string[];
-  onCreateProject: () => void;
   tour: ReactNode;
-  createNewRef: React.RefObject<any>;
   searchRef: React.RefObject<any>;
   filtersRef: React.RefObject<any>;
 }
 
 export function ProjectsTableControls({
   visible_projects,
-  onCreateProject,
   tour,
-  createNewRef,
   searchRef,
   filtersRef,
 }: Props) {
@@ -164,20 +157,8 @@ export function ProjectsTableControls({
         </Space>
       </Space>
 
-      {/* Right section: Create button */}
-      <Space>
-        {tour}
-        <Button
-          ref={createNewRef}
-          type="primary"
-          onClick={onCreateProject}
-          icon={<Icon name="plus-circle" />}
-        >
-          {IS_MOBILE
-            ? intl.formatMessage(labels.new)
-            : capitalize(intl.formatMessage(labels.create))}
-        </Button>
-      </Space>
+      {/* Right section: Tour only */}
+      <Space>{tour}</Space>
     </Space>
   );
 }

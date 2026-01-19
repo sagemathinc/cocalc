@@ -40,6 +40,7 @@ export function HostPickerModal({
   regionFilter,
   lockRegion,
   showOfflineMoveWarning,
+  mode = "move",
 }: {
   open: boolean;
   currentHostId?: string;
@@ -48,10 +49,12 @@ export function HostPickerModal({
   regionFilter?: string;
   lockRegion?: boolean;
   showOfflineMoveWarning?: boolean;
+  mode?: "move" | "create";
 }) {
   const intl = useIntl();
   const projectLabel = intl.formatMessage(labels.project);
   const projectsLabel = intl.formatMessage(labels.projects);
+  const isCreate = mode === "create";
   const [hosts, setHosts] = useState<Host[]>([]);
   const [loading, setLoading] = useState(false);
   const [selected, setSelected] = useState<string | undefined>();
@@ -185,9 +188,10 @@ export function HostPickerModal({
         onSelect(selected, host);
       }}
       okButtonProps={{ disabled: !selected, loading }}
+      okText={isCreate ? "Use host" : undefined}
       title={
         <Space>
-          <Icon name="server" /> Move to host
+          <Icon name="server" /> {isCreate ? "Choose host" : "Move to host"}
         </Space>
       }
       destroyOnClose
@@ -206,8 +210,14 @@ export function HostPickerModal({
         />
       )}
       <Typography.Paragraph type="secondary">
-        Pick a workspace host to move this workspace to. Files in{" "}
-        <code>/scratch</code> (if any) will be discarded.
+        {isCreate ? (
+          <>Pick a workspace host for this new workspace.</>
+        ) : (
+          <>
+            Pick a workspace host to move this workspace to. Files in{" "}
+            <code>/scratch</code> (if any) will be discarded.
+          </>
+        )}
       </Typography.Paragraph>
       <Space style={{ marginBottom: 8 }}>
         <Button size="small" onClick={load} loading={loading}>
