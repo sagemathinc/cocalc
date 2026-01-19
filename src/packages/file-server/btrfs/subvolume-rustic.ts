@@ -22,11 +22,16 @@ import { type Subvolume } from "./subvolume";
 import getLogger from "@cocalc/backend/logger";
 import { parseOutput } from "@cocalc/backend/sandbox/exec";
 import rustic from "@cocalc/backend/sandbox/rustic";
-import { field_cmp } from "@cocalc/util/misc";
-import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ConatError } from "@cocalc/conat/core/client";
 import { DEFAULT_BACKUP_COUNTS } from "@cocalc/util/consts/snapshots";
+import { field_cmp } from "@cocalc/util/misc";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import {
+  backupIndexFilePath,
+  buildBackupIndex,
+  uploadBackupIndex,
+} from "./backup-index";
+import { type SnapshotCounts, updateRollingSnapshots } from "./snapshots";
 import {
   createRusticProgressHandler,
   type RusticProgressUpdate,
@@ -64,11 +69,13 @@ export class SubvolumeRustic {
     timeout = 30 * 60 * 1000,
     tags,
     progress,
+    index,
   }: {
     timeout?: number;
     limit?: number;
     tags?: string[];
     progress?: (update: RusticProgressUpdate) => void;
+    index?: { project_id: string; enabled?: boolean };
   } = {}): Promise<Snapshot> => {
     if (limit != null && (await this.snapshots()).length >= limit) {
       // 507 = "insufficient storage" for http
@@ -107,7 +114,29 @@ export class SubvolumeRustic {
         ),
       );
       const { time, id, summary } = JSON.parse(stdout);
-      return { time: new Date(time), id, summary };
+      const backupTime = new Date(time);
+      if (index?.project_id && index.enabled !== false) {
+        try {
+          const outputPath = backupIndexFilePath(index.project_id, id);
+          await buildBackupIndex({
+            snapshotPath: target,
+            outputPath,
+            meta: { backupId: id, backupTime, snapshotId: id },
+          });
+          await uploadBackupIndex({
+            projectId: index.project_id,
+            backupId: id,
+            repo: this.subvolume.fs.rusticRepo,
+            timeout,
+          });
+        } catch (err) {
+          logger.warn("backup index build failed", {
+            project_id: index.project_id,
+            err: `${err}`,
+          });
+        }
+      }
+      return { time: backupTime, id, summary };
     } finally {
       this.snapshotsCache = null;
       logger.debug(`backup: deleting temporary ${RUSTIC_SNAPSHOT}`);
