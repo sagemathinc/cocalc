@@ -1,5 +1,5 @@
-import { Alert, Button, Input, Radio, Space, Tooltip } from "antd";
-import { join } from "path";
+import { Alert, Button, Input, Radio, Space, Tooltip, message } from "antd";
+import { join, posix } from "path";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { useActions } from "@cocalc/frontend/app-framework";
@@ -15,6 +15,7 @@ import {
   type SnapshotSearchMode,
 } from "./types";
 import { matchesScope, normalizeGlobQuery, stripDotSlash } from "./utils";
+import FindRestoreModal from "./restore-modal";
 
 const DEFAULT_STATE: FindBackupsState = {
   query: "",
@@ -86,12 +87,21 @@ export function BackupsTab({
   const [results, setResults] = useState<BackupResult[]>([]);
   const [backupIds, setBackupIds] = useState<string[] | undefined>();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<BackupResult | null>(null);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const listRef = useRef<VirtuosoHandle>(null);
   const queryRef = useRef(state.query);
 
   useEffect(() => {
     queryRef.current = state.query;
   }, [state.query]);
+
+  useEffect(() => {
+    if (restoreTarget) {
+      setRestoreError(null);
+    }
+  }, [restoreTarget]);
 
   useEffect(() => {
     let cancelled = false;
@@ -243,17 +253,11 @@ export function BackupsTab({
 
   const openResult = useCallback(
     async (index: number) => {
-      if (!actions) return;
       const result = filteredResults[index];
       if (!result) return;
-      const backupName = new Date(result.time).toISOString();
-      const targetDir = result.path.includes("/")
-        ? result.path.split("/").slice(0, -1).join("/")
-        : "";
-      const target = join(".backups", backupName, targetDir);
-      actions.open_directory(target, true, false);
+      setRestoreTarget(result);
     },
-    [actions, filteredResults],
+    [filteredResults],
   );
 
   const moveSelection = useCallback(
@@ -298,6 +302,48 @@ export function BackupsTab({
     },
     [filteredResults.length, moveSelection, openResult, selectedIndex, setState],
   );
+
+  const performRestore = useCallback(
+    async (mode: "original" | "scratch") => {
+      if (!restoreTarget || !project_id) return;
+      try {
+        setRestoreLoading(true);
+        setRestoreError(null);
+        const dest =
+          mode === "scratch"
+            ? posix.join("/scratch", restoreTarget.path || "")
+            : undefined;
+        const op =
+          await webapp_client.conat_client.hub.projects.restoreBackup({
+            project_id,
+            id: restoreTarget.id,
+            path: restoreTarget.path || undefined,
+            dest,
+          });
+        actions?.trackRestoreOp?.(op);
+        message.success("Restore started");
+        setRestoreTarget(null);
+      } catch (err) {
+        setRestoreError(`${err}`);
+      } finally {
+        setRestoreLoading(false);
+      }
+    },
+    [actions, project_id, restoreTarget],
+  );
+
+  const openBackupDirectory = useCallback(() => {
+    if (!restoreTarget || !actions) return;
+    const backupName = new Date(restoreTarget.time).toISOString();
+    const dir = restoreTarget.path.includes("/")
+      ? posix.dirname(restoreTarget.path)
+      : "";
+    const target = join(".backups", backupName, dir);
+    actions.open_directory(target, true, true);
+    setRestoreTarget(null);
+  }, [actions, restoreTarget]);
+
+  const restorePath = restoreTarget?.path ?? "";
 
   return (
     <div className="smc-vfill">
@@ -399,17 +445,7 @@ export function BackupsTab({
                     isSelected={index === selectedIndex}
                     onClick={() => {
                       setSelectedIndex(index);
-                      if (!actions) return;
-                      const backupName = new Date(result.time).toISOString();
-                      const targetDir = result.path.includes("/")
-                        ? result.path.split("/").slice(0, -1).join("/")
-                        : "";
-                      const target = join(
-                        ".backups",
-                        backupName,
-                        targetDir,
-                      );
-                      actions.open_directory(target, true, false);
+                      setRestoreTarget(result);
                     }}
                   />
                 );
@@ -418,6 +454,18 @@ export function BackupsTab({
           ) : null}
         </div>
       ) : null}
+      <FindRestoreModal
+        open={Boolean(restoreTarget)}
+        title="Backup selection"
+        path={restorePath}
+        openLabel="Open backup directory"
+        loading={restoreLoading}
+        error={restoreError}
+        onRestoreOriginal={() => void performRestore("original")}
+        onRestoreScratch={() => void performRestore("scratch")}
+        onOpenDirectory={openBackupDirectory}
+        onCancel={() => setRestoreTarget(null)}
+      />
     </div>
   );
 }

@@ -1,17 +1,13 @@
-import { Alert, Button, Input, Radio, Space } from "antd";
-import { join } from "path";
+import { Alert, Button, Input, Radio, Space, message } from "antd";
+import { join, posix } from "path";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
 import { useActions } from "@cocalc/frontend/app-framework";
 import { Loading, SearchInput } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
-import { isChatExtension } from "@cocalc/frontend/chat/paths";
 import {
-  auxFileToOriginal,
-  filename_extension,
-  path_split,
+  path_to_file,
   search_match,
   search_split,
 } from "@cocalc/util/misc";
@@ -29,6 +25,7 @@ import {
   parseSnapshotPaths,
   stripDotSlash,
 } from "./utils";
+import FindRestoreModal from "./restore-modal";
 
 const DEFAULT_STATE: FindSnapshotsState = {
   query: "",
@@ -92,6 +89,9 @@ export function SnapshotsTab({
     Record<string, { mtime: number; size: number; isDir: boolean }>
   >({});
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
+  const [restoreTarget, setRestoreTarget] = useState<SnapshotResult | null>(null);
+  const [restoreLoading, setRestoreLoading] = useState(false);
+  const [restoreError, setRestoreError] = useState<string | null>(null);
   const listRef = useRef<VirtuosoHandle>(null);
   const queryRef = useRef(state.query);
   const modeRef = useRef(state.mode);
@@ -100,6 +100,12 @@ export function SnapshotsTab({
     queryRef.current = state.query;
     modeRef.current = state.mode;
   }, [state.query, state.mode]);
+
+  useEffect(() => {
+    if (restoreTarget) {
+      setRestoreError(null);
+    }
+  }, [restoreTarget]);
 
   const runSearch = useCallback(
     async (override?: string, nextMode?: SnapshotSearchMode) => {
@@ -293,34 +299,11 @@ export function SnapshotsTab({
 
   const openResult = useCallback(
     async (index: number) => {
-      if (!actions) return;
       const result = filteredResults[index];
       if (!result) return;
-      const fullPath = join(
-        ".snapshots",
-        result.snapshot,
-        result.path,
-      );
-      const stats = await fs.stat(fullPath);
-      if (stats.isDirectory()) {
-        actions.open_directory(fullPath, true, false);
-        return;
-      }
-      const { tail } = path_split(fullPath);
-      let chat = false;
-      let openPath = fullPath;
-      if (tail.startsWith(".") && isChatExtension(filename_extension(tail))) {
-        openPath = auxFileToOriginal(fullPath);
-        chat = true;
-      }
-      await actions.open_file({
-        path: openPath,
-        foreground: true,
-        explicit: true,
-        chat,
-      });
+      setRestoreTarget(result);
     },
-    [actions, filteredResults, fs],
+    [filteredResults],
   );
 
   const moveSelection = useCallback(
@@ -365,6 +348,58 @@ export function SnapshotsTab({
     },
     [filteredResults.length, moveSelection, openResult, selectedIndex, setState],
   );
+
+  const buildSnapshotPaths = useCallback(
+    (result: SnapshotResult) => {
+      const relative = path_to_file(scopePath, result.path);
+      const snapshotPath = join(".snapshots", result.snapshot, relative);
+      return { relative, snapshotPath };
+    },
+    [scopePath],
+  );
+
+  const performRestore = useCallback(
+    async (mode: "original" | "scratch") => {
+      if (!restoreTarget) return;
+      try {
+        setRestoreLoading(true);
+        setRestoreError(null);
+        const { relative, snapshotPath } = buildSnapshotPaths(restoreTarget);
+        const dest =
+          mode === "scratch" ? posix.join("/scratch", relative) : relative;
+        const stats = await fs.stat(snapshotPath);
+        const parent = posix.dirname(dest);
+        if (parent && parent !== "." && parent !== "/") {
+          await fs.mkdir(parent, { recursive: true });
+        }
+        await fs.cp(snapshotPath, dest, {
+          recursive: stats.isDirectory(),
+          preserveTimestamps: true,
+          reflink: true,
+        });
+        message.success("Restore completed");
+        setRestoreTarget(null);
+      } catch (err) {
+        setRestoreError(`${err}`);
+      } finally {
+        setRestoreLoading(false);
+      }
+    },
+    [buildSnapshotPaths, fs, restoreTarget],
+  );
+
+  const openSnapshotDirectory = useCallback(() => {
+    if (!restoreTarget || !actions) return;
+    const { relative } = buildSnapshotPaths(restoreTarget);
+    const dir = relative.includes("/") ? posix.dirname(relative) : "";
+    const target = join(".snapshots", restoreTarget.snapshot, dir);
+    actions.open_directory(target, true, true);
+    setRestoreTarget(null);
+  }, [actions, buildSnapshotPaths, restoreTarget]);
+
+  const restorePath = restoreTarget
+    ? path_to_file(scopePath, restoreTarget.path)
+    : "";
 
   return (
     <div className="smc-vfill">
@@ -489,35 +524,9 @@ export function SnapshotsTab({
                     key={`${result.snapshot}-${result.path}-${index}`}
                     result={result}
                     isSelected={index === selectedIndex}
-                    onClick={async (e) => {
+                    onClick={async () => {
                       setSelectedIndex(index);
-                      if (!actions) return;
-                      const fullPath = join(
-                        ".snapshots",
-                        result.snapshot,
-                        result.path,
-                      );
-                      const stats = await fs.stat(fullPath);
-                      if (stats.isDirectory()) {
-                        actions.open_directory(fullPath, true, false);
-                        return;
-                      }
-                      const { tail } = path_split(fullPath);
-                      let chat = false;
-                      let openPath = fullPath;
-                      if (
-                        tail.startsWith(".") &&
-                        isChatExtension(filename_extension(tail))
-                      ) {
-                        openPath = auxFileToOriginal(fullPath);
-                        chat = true;
-                      }
-                      await actions.open_file({
-                        path: openPath,
-                        foreground: should_open_in_foreground(e),
-                        explicit: true,
-                        chat,
-                      });
+                      setRestoreTarget(result);
                     }}
                   />
                 );
@@ -526,6 +535,18 @@ export function SnapshotsTab({
           ) : null}
         </div>
       ) : null}
+      <FindRestoreModal
+        open={Boolean(restoreTarget)}
+        title="Snapshot selection"
+        path={restorePath}
+        openLabel="Open snapshot directory"
+        loading={restoreLoading}
+        error={restoreError}
+        onRestoreOriginal={() => void performRestore("original")}
+        onRestoreScratch={() => void performRestore("scratch")}
+        onOpenDirectory={openSnapshotDirectory}
+        onCancel={() => setRestoreTarget(null)}
+      />
     </div>
   );
 }
