@@ -261,7 +261,7 @@ export function NewProjectCreator({
             </Paragraph>
             <SoftwareEnvironment onChange={onChangeHandler} />
             <Card size="small" bodyStyle={{ padding: "10px 12px" }}>
-              <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+              <Space direction="vertical" size="small" style={{ width: "100%" }}>
                 <div style={{ fontWeight: 600 }}>Backup region</div>
                 <Select
                   value={projectRegion}
@@ -269,12 +269,12 @@ export function NewProjectCreator({
                   options={regionOptions}
                   disabled={saving}
                 />
-              </div>
+                <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+                  Backups are stored in this region. {projectsLabel} can only run
+                  on hosts in the same region.
+                </Paragraph>
+              </Space>
             </Card>
-            <Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              Backups are stored in this region. {projectsLabel} can only run on
-              hosts in the same region.
-            </Paragraph>
             <SelectNewHost
               disabled={saving}
               selectedHost={selectedHost}

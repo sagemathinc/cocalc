@@ -209,7 +209,7 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
         `}
       </style>
       <Descriptions
-        column={3}
+        column={{ xs: 1, sm: 1, md: 2, lg: 3 }}
         size="small"
         bordered
         layout="vertical"
@@ -217,7 +217,7 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
         className={"cc-projects-row-expand-descriptions"}
       >
         <Descriptions.Item label={intl.formatMessage(labels.open)} span={3}>
-          <Space>
+          <Space wrap size={[8, 8]}>
             <Button
               type="text"
               size="small"

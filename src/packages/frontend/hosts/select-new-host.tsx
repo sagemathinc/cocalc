@@ -4,7 +4,7 @@
 // opens the HostPickerModal. Callers provide the current host (if any) and
 // get notified via onChange when the user picks or resets a host.
 import { useState } from "react";
-import { Card, Col, Row, Tag, Button, Typography } from "antd";
+import { Button, Card, Space, Tag, Typography } from "antd";
 import type { Host } from "@cocalc/conat/hub/api/hosts";
 import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
@@ -31,74 +31,74 @@ export function SelectNewHost({
 
   return (
     <>
-      <Row gutter={[30, 10]} style={{ paddingTop: 15 }}>
-        <Col sm={12}>
-          <Card size="small" bodyStyle={{ padding: "10px 12px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              <div style={{ flex: 1 }}>
-                <div
-                  style={{
-                    fontWeight: 600,
-                    display: "flex",
-                    gap: 8,
-                    alignItems: "center",
-                  }}
-                >
-                  <Icon name="servers" /> Host
-                </div>
-                <div style={{ color: COLORS.GRAY_D }}>
-                  {selectedHost ? (
-                    <>
-                      <span style={{ marginRight: 8 }}>{selectedHost.name}</span>
-                      {selectedHost.region && (
-                        <Tag color="blue" style={{ marginRight: 6 }}>
-                          {selectedHost.region}
-                        </Tag>
-                      )}
-                      {regionLabel && (
-                        <Tag color="geekblue" style={{ marginRight: 6 }}>
-                          {regionLabel}
-                        </Tag>
-                      )}
-                      {selectedHost.tier != null && (
-                        <Tag color="purple" style={{ marginRight: 6 }}>
-                          Tier {selectedHost.tier}
-                        </Tag>
-                      )}
-                    </>
-                  ) : (
-                    `Auto (best available host${regionLabel ? ` in ${regionLabel}` : ""})`
-                  )}
-                </div>
+      <Space
+        direction="vertical"
+        size="small"
+        style={{ width: "100%", paddingTop: 12 }}
+      >
+        <Card size="small" bodyStyle={{ padding: "10px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ flex: 1 }}>
+              <div
+                style={{
+                  fontWeight: 600,
+                  display: "flex",
+                  gap: 8,
+                  alignItems: "center",
+                }}
+              >
+                <Icon name="servers" /> Host
               </div>
+              <div style={{ color: COLORS.GRAY_D }}>
+                {selectedHost ? (
+                  <>
+                    <span style={{ marginRight: 8 }}>{selectedHost.name}</span>
+                    {selectedHost.region && (
+                      <Tag color="blue" style={{ marginRight: 6 }}>
+                        {selectedHost.region}
+                      </Tag>
+                    )}
+                    {regionLabel && (
+                      <Tag color="geekblue" style={{ marginRight: 6 }}>
+                        {regionLabel}
+                      </Tag>
+                    )}
+                    {selectedHost.tier != null && (
+                      <Tag color="purple" style={{ marginRight: 6 }}>
+                        Tier {selectedHost.tier}
+                      </Tag>
+                    )}
+                  </>
+                ) : (
+                  `Auto (best available host${regionLabel ? ` in ${regionLabel}` : ""})`
+                )}
+              </div>
+            </div>
+            <Button
+              onClick={() => setPickerOpen(true)}
+              disabled={disabled}
+              size="small"
+            >
+              {selectedHost ? "Change..." : "Choose host..."}
+            </Button>
+            {selectedHost && (
               <Button
-                onClick={() => setPickerOpen(true)}
                 disabled={disabled}
+                onClick={() => onChange(undefined)}
+                type="text"
                 size="small"
               >
-                {selectedHost ? "Change..." : "Choose host..."}
+                Reset
               </Button>
-              {selectedHost && (
-                <Button
-                  disabled={disabled}
-                  onClick={() => onChange(undefined)}
-                  type="text"
-                  size="small"
-                >
-                  Reset
-                </Button>
-              )}
-            </div>
-          </Card>
-        </Col>
-        <Col sm={12}>
-          <Paragraph type="secondary">
-            Select where this will run. Choose one of your hosts, a
-            collaborator’s host, or leave it on auto to use the shared pool in
-            the nearest region.
-          </Paragraph>
-        </Col>
-      </Row>
+            )}
+          </div>
+        </Card>
+        <Paragraph type="secondary" style={{ marginBottom: 0 }}>
+          Select where this will run. Choose one of your hosts, a
+          collaborator’s host, or leave it on auto to use the shared pool in the
+          nearest region.
+        </Paragraph>
+      </Space>
       <HostPickerModal
         open={pickerOpen}
         currentHostId={selectedHost?.id}
