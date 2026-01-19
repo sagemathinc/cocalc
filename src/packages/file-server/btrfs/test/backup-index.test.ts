@@ -35,13 +35,17 @@ describe("backup index", () => {
     const db = new DatabaseSync(outputPath);
     try {
       const files = db
-        .prepare("SELECT path, type FROM files ORDER BY path")
-        .all() as { path: string; type: string }[];
-      const paths = files.map((row) => row.path);
+        .prepare("SELECT parent, name, type FROM files ORDER BY parent, name")
+        .all() as { parent: string; name: string; type: string }[];
+      const paths = files.map((row) =>
+        row.parent ? `${row.parent}/${row.name}` : row.name,
+      );
       expect(paths).toEqual(
         expect.arrayContaining(["a.txt", "dir/b.txt", "line\nbreak.txt"]),
       );
-      expect(files.find((row) => row.path === "a.txt")?.type).toBe("f");
+      expect(
+        files.find((row) => row.parent === "" && row.name === "a.txt")?.type,
+      ).toBe("f");
 
       const meta = db
         .prepare("SELECT key, value FROM meta ORDER BY key")

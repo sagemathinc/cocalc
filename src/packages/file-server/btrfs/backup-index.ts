@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import { mkdir, rm } from "node:fs/promises";
 import { dirname, join, posix } from "node:path";
 import { DatabaseSync } from "node:sqlite";
@@ -43,6 +44,7 @@ export async function buildBackupIndex({
   outputPath: string;
   meta: BackupIndexMeta;
 }): Promise<void> {
+  logger.debug("buildBackupIndex", snapshotPath);
   await mkdir(dirname(outputPath), { recursive: true });
   if (await exists(outputPath)) {
     await rm(outputPath, { force: true });
@@ -59,26 +61,25 @@ export async function buildBackupIndex({
         value TEXT
       );
       CREATE TABLE files (
-        path TEXT PRIMARY KEY,
         parent TEXT,
         name TEXT,
         type TEXT,
         size INTEGER,
         mtime INTEGER,
-        mode INTEGER
+        mode INTEGER,
+        PRIMARY KEY (parent, name)
       );
       CREATE INDEX files_parent ON files(parent);
       CREATE INDEX files_name ON files(name);
     `);
 
     const insertFile = db.prepare(
-      "INSERT INTO files (path, parent, name, type, size, mtime, mode) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      "INSERT INTO files (parent, name, type, size, mtime, mode) VALUES (?, ?, ?, ?, ?, ?)",
     );
 
     db.exec("BEGIN");
     await scanSnapshot(snapshotPath, (entry) => {
       insertFile.run(
-        entry.path,
         entry.parent,
         entry.name,
         entry.type,
@@ -144,7 +145,6 @@ export async function uploadBackupIndex({
 }
 
 interface BackupIndexEntry {
-  path: string;
   parent: string;
   name: string;
   type: string;
@@ -158,8 +158,11 @@ async function scanSnapshot(
   onEntry: (entry: BackupIndexEntry) => void,
 ): Promise<void> {
   await new Promise<void>((resolve, reject) => {
+    const findBinary = fs.existsSync("/usr/bin/find")
+      ? "/usr/bin/find"
+      : "find";
     const child = spawn(
-      "find",
+      findBinary,
       [".", "-printf", "%y\\0%s\\0%T@\\0%m\\0%p\\0"],
       {
         cwd: snapshotPath,
@@ -168,6 +171,8 @@ async function scanSnapshot(
     );
     let pending = "";
     let fields: string[] = [];
+    let count = 0;
+    let stderr = "";
     const flush = (token: string) => {
       fields.push(token);
       if (fields.length < 5) return;
@@ -185,9 +190,10 @@ async function scanSnapshot(
         : "";
       const name = posix.basename(path);
       const size = Number(sizeRaw) || 0;
-      const mtime = Math.floor(Number(mtimeRaw) || 0);
+      const mtime = Math.floor((Number(mtimeRaw) || 0) * 1000);
       const mode = parseInt(modeRaw, 10) || 0;
-      onEntry({ path, parent, name, type, size, mtime, mode });
+      onEntry({ parent, name, type, size, mtime, mode });
+      count += 1;
     };
 
     child.stdout.on("data", (chunk) => {
@@ -199,10 +205,8 @@ async function scanSnapshot(
       }
     });
     child.stderr.on("data", (chunk) => {
-      const message = chunk.toString("utf8").trim();
-      if (message) {
-        logger.debug("backup index find stderr", message);
-      }
+      const message = chunk.toString("utf8");
+      stderr += message;
     });
     child.on("error", reject);
     child.on("close", (code) => {
@@ -210,7 +214,27 @@ async function scanSnapshot(
         flush(pending);
       }
       if (code && code !== 0) {
-        reject(new Error(`find exited with code ${code}`));
+        const trimmed = stderr.trim();
+        const lines = trimmed
+          ? trimmed.split(/\r?\n/).filter((line) => line.trim().length > 0)
+          : [];
+        const onlyPermissionDenied =
+          lines.length > 0 &&
+          lines.every((line) => line.includes("Permission denied"));
+        if (onlyPermissionDenied) {
+          logger.debug("backup index find permission denied (this is expected)", {
+            snapshotPath,
+            count,
+            lines: lines.length,
+          });
+          resolve();
+          return;
+        }
+        reject(
+          new Error(
+            `find exited with code ${code}${trimmed ? `: ${trimmed}` : ""}`,
+          ),
+        );
       } else {
         resolve();
       }

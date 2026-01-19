@@ -132,11 +132,13 @@ export class SubvolumeRustic {
             timeout,
           });
         } catch (err) {
-          logger.warn("backup index build failed", {
+          logger.warn("backup: index build failed", {
             project_id: index.project_id,
             err: `${err}`,
           });
         }
+      } else {
+        logger.debug("backup: skipping indexing", index);
       }
       return { time: backupTime, id, summary };
     } finally {
@@ -258,9 +260,7 @@ export class SubvolumeRustic {
   // later.  Rustic likes the purge to happen maybe a day later, so it
   // can better support concurrent writes.
   forget = async ({ id }: { id: string }) => {
-    const { stdout } = parseOutput(
-      await this.rusticHost(["forget", id]),
-    );
+    const { stdout } = parseOutput(await this.rusticHost(["forget", id]));
     this.snapshotsCache = null;
     return stdout;
   };

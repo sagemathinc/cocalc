@@ -817,19 +817,21 @@ async function findBackupFilesIndexed({
         });
       }
     };
+    const pathExpr =
+      "CASE WHEN parent = '' THEN name ELSE parent || '/' || name END";
     if (glob?.length) {
-      const clauses = glob.map(() => "path GLOB ?").join(" OR ");
+      const clauses = glob.map(() => `${pathExpr} GLOB ?`).join(" OR ");
       const stmt = db.prepare(
-        `SELECT path, type, size, mtime FROM files WHERE ${clauses}`,
+        `SELECT ${pathExpr} AS path, type, size, mtime FROM files WHERE ${clauses}`,
       );
       addRows(stmt.all(...glob));
     }
     if (iglob?.length) {
       const clauses = iglob
-        .map(() => "LOWER(path) GLOB ?")
+        .map(() => `LOWER(${pathExpr}) GLOB ?`)
         .join(" OR ");
       const stmt = db.prepare(
-        `SELECT path, type, size, mtime FROM files WHERE ${clauses}`,
+        `SELECT ${pathExpr} AS path, type, size, mtime FROM files WHERE ${clauses}`,
       );
       addRows(stmt.all(...iglob.map((pattern) => pattern.toLowerCase())));
     }
@@ -1090,19 +1092,45 @@ export async function getBackups({
     summary: { [key: string]: string | number };
   }[]
 > {
+  if (indexed_only) {
+    try {
+      await syncBackupIndexCache(project_id);
+      const manifest = await loadBackupIndexManifest(project_id);
+      const backups: {
+        id: string;
+        time: Date;
+        summary: { [key: string]: string | number };
+      }[] = [];
+      for (const entry of Object.values(manifest.entries)) {
+        if (!entry?.file) continue;
+        const dbPath = join(backupIndexDir(project_id), entry.file);
+        if (!(await exists(dbPath))) continue;
+        const db = new DatabaseSync(dbPath);
+        try {
+          const metaRows = db.prepare("SELECT key, value FROM meta").all();
+          const meta = Object.fromEntries(
+            metaRows.map((row: { key: string; value: string }) => [
+              row.key,
+              row.value,
+            ]),
+          );
+          const backupId = meta.backup_id;
+          const backupTime = meta.backup_time ? new Date(meta.backup_time) : null;
+          if (!backupId || !backupTime) continue;
+          backups.push({ id: backupId, time: backupTime, summary: {} });
+        } finally {
+          db.close();
+        }
+      }
+      backups.sort((a, b) => a.time.valueOf() - b.time.valueOf());
+      return backups;
+    } catch (err) {
+      logger.warn("backup index list failed", { project_id, err });
+      return [];
+    }
+  }
   const vol = await getVolumeForBackup(project_id);
-  const backups = await vol.rustic.snapshots();
-  if (!indexed_only) {
-    return backups;
-  }
-  try {
-    const indexed = await listBackupIndexSnapshots(project_id);
-    const indexedSet = new Set(indexed.map((entry) => entry.backup_id));
-    return backups.filter((backup) => indexedSet.has(backup.id));
-  } catch (err) {
-    logger.warn("backup index list failed", { project_id, err });
-    return [];
-  }
+  return await vol.rustic.snapshots();
 }
 
 async function getBackupFiles({
