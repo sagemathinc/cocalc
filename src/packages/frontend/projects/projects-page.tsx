@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Col, Grid, Row, Space } from "antd";
+import { Button, Card, Col, Grid, Layout, Row, Space } from "antd";
 import { Map, Set } from "immutable";
 import { useLayoutEffect, useRef } from "react";
 import { useIntl } from "react-intl";
@@ -16,6 +16,7 @@ import {
   CSS,
   React,
   redux,
+  useEffect,
   useMemo,
   useState,
   useTypedRedux,
@@ -24,6 +25,8 @@ import { Icon, Loading, LoginLink, Title } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
+import { HostCreatePanel } from "@cocalc/frontend/hosts/components/host-create-panel";
+import { capitalize } from "@cocalc/util/misc";
 
 import { NewProjectCreator } from "./create-project";
 import { LoadAllProjects } from "./projects-load-all";
@@ -31,6 +34,7 @@ import { ProjectsOperations } from "./projects-operations";
 import { StarredProjectsBar } from "./projects-starred";
 import { ProjectsTable } from "./projects-table";
 import { ProjectsTableControls } from "./projects-table-controls";
+import { ProjectDrawer } from "./project-drawer";
 import ProjectsPageTour from "./tour";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
 import { getVisibleProjects } from "./util";
@@ -41,6 +45,62 @@ const LOADING_STYLE: CSS = {
   textAlign: "center",
   color: COLORS.GRAY,
 } as const;
+
+const CREATE_PANEL_WIDTH_STORAGE_KEY = "cocalc:projects:createPanelWidth";
+const CREATE_PANEL_OPEN_STORAGE_KEY = "cocalc:projects:createPanelOpen";
+const DEFAULT_CREATE_PANEL_WIDTH = 420;
+const MIN_CREATE_PANEL_WIDTH = 260;
+const MAX_CREATE_PANEL_WIDTH = 640;
+
+function clampCreatePanelWidth(width: number) {
+  return Math.min(
+    MAX_CREATE_PANEL_WIDTH,
+    Math.max(MIN_CREATE_PANEL_WIDTH, width),
+  );
+}
+
+function readCreatePanelWidth() {
+  if (typeof window === "undefined") {
+    return DEFAULT_CREATE_PANEL_WIDTH;
+  }
+  const raw = window.localStorage.getItem(CREATE_PANEL_WIDTH_STORAGE_KEY);
+  const parsed = raw == null ? Number.NaN : Number(raw);
+  if (!Number.isFinite(parsed)) {
+    return DEFAULT_CREATE_PANEL_WIDTH;
+  }
+  return clampCreatePanelWidth(parsed);
+}
+
+function persistCreatePanelWidth(width: number) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(
+    CREATE_PANEL_WIDTH_STORAGE_KEY,
+    String(clampCreatePanelWidth(width)),
+  );
+}
+
+function readCreatePanelOpen() {
+  if (typeof window === "undefined") {
+    return false;
+  }
+  const raw = window.localStorage.getItem(CREATE_PANEL_OPEN_STORAGE_KEY);
+  if (raw === "false") {
+    return false;
+  }
+  return raw === "true";
+}
+
+function persistCreatePanelOpen(open: boolean) {
+  if (typeof window === "undefined") {
+    return;
+  }
+  window.localStorage.setItem(
+    CREATE_PANEL_OPEN_STORAGE_KEY,
+    open ? "true" : "false",
+  );
+}
 
 export const ProjectsPage: React.FC = () => {
   const intl = useIntl();
@@ -81,8 +141,10 @@ export const ProjectsPage: React.FC = () => {
     loadAllRef,
   ] as const;
 
-  const [create_project_trigger, set_create_project_trigger] =
-    useState<number>(0);
+  const [createPanelWidth, setCreatePanelWidth] =
+    useState(readCreatePanelWidth);
+  const [createPanelOpen, setCreatePanelOpen] =
+    useState(readCreatePanelOpen);
 
   const [tableHeight, setTableHeight] = useState<number>(400);
 
@@ -90,6 +152,14 @@ export const ProjectsPage: React.FC = () => {
   const [filteredCollaborators, setFilteredCollaborators] = useState<
     string[] | null
   >(null);
+
+  useEffect(() => {
+    persistCreatePanelWidth(createPanelWidth);
+  }, [createPanelWidth]);
+
+  useEffect(() => {
+    persistCreatePanelOpen(createPanelOpen);
+  }, [createPanelOpen]);
 
   // if not shown, trigger a re-calculation
   const allLoaded = !!useTypedRedux(
@@ -216,8 +286,17 @@ export const ProjectsPage: React.FC = () => {
     };
   }, [allLoaded, bookmarkedProjects.length]);
 
+  useEffect(() => {
+    if (allLoaded && all_projects.length === 0 && !createPanelOpen) {
+      setCreatePanelOpen(true);
+    }
+  }, [allLoaded, all_projects.length, createPanelOpen]);
+
+  const toggleCreatePanel = () => setCreatePanelOpen((prev) => !prev);
+  const showCreatePanel = !IS_MOBILE && createPanelOpen;
+
   function handleCreateProject() {
-    set_create_project_trigger(create_project_trigger + 1);
+    setCreatePanelOpen(true);
   }
 
   function handleClearCollaboratorFilter() {
@@ -236,27 +315,65 @@ export const ProjectsPage: React.FC = () => {
     }
   }
 
+  const contentCol = showCreatePanel
+    ? { span: 24 }
+    : { span: 20, offset: 2 };
+
   return (
-    <div
-      ref={containerRef}
-      className={"smc-vfill"}
-      style={{ overflowY: "auto" }}
-    >
-      <Row>
-        <Col sm={24} md={24} lg={{ span: 20, offset: 2 }}>
-          <Space
-            direction="vertical"
-            size={10}
-            style={{
-              width: "100%",
-              display: "flex",
-              padding: narrow ? "0 10px 0 10px" : "0",
-            }}
+    <div className={"smc-vfill"} style={{ overflow: "hidden" }}>
+      <Layout
+        hasSider={showCreatePanel}
+        style={{
+          background: "white",
+          height: "100%",
+          display: "flex",
+          flexDirection: "row",
+          minHeight: 0,
+        }}
+      >
+        {showCreatePanel && (
+          <HostCreatePanel
+            width={createPanelWidth}
+            setWidth={setCreatePanelWidth}
+            onHide={toggleCreatePanel}
           >
-            <div
-              ref={titleRef}
-              style={{
-                marginTop: "20px",
+            <NewProjectCreator
+              default_value={search}
+              open={createPanelOpen}
+              onClose={() => setCreatePanelOpen(false)}
+            />
+          </HostCreatePanel>
+        )}
+        <Layout.Content
+          style={{
+            background: "white",
+            padding: showCreatePanel ? "16px 0 0 16px" : "16px 0 0 15px",
+            minHeight: 0,
+            overflow: "auto",
+            borderLeft: showCreatePanel ? "2px solid #ccc" : "none",
+            zIndex: 1,
+          }}
+        >
+          <div
+            ref={containerRef}
+            className={"smc-vfill"}
+            style={{ overflowY: "auto" }}
+          >
+            <Row>
+              <Col sm={24} md={24} lg={contentCol}>
+                <Space
+                  direction="vertical"
+                  size={10}
+                  style={{
+                    width: "100%",
+                    display: "flex",
+                    padding: narrow ? "0 10px 0 10px" : "0",
+                  }}
+                >
+                  <div
+                    ref={titleRef}
+                    style={{
+                      marginTop: "20px",
                 display: "flex",
                 width: "100%",
                 gap: "10px",
@@ -273,89 +390,99 @@ export const ProjectsPage: React.FC = () => {
               >
                 <Icon name="edit" /> {intl.formatMessage(labels.projects)}
               </Title>
+              <Button
+                ref={createNewRef}
+                type="primary"
+                onClick={handleCreateProject}
+                icon={<Icon name="plus-circle" />}
+              >
+                {capitalize(intl.formatMessage(labels.create))}
+              </Button>
               <div ref={starredBarRef} style={{ flex: "1 1 auto" }}>
                 <StarredProjectsBar />
               </div>
-              {!narrow && (
-                <div ref={filenameSearchRef} style={{ flex: "0 1 auto" }}>
-                  <FilenameSearch
-                    style={{
-                      width: IS_MOBILE ? "100px" : "200px",
-                      display: "inline-block",
-                    }}
-                  />
-                </div>
-              )}
-            </div>
+                    {!narrow && (
+                      <div ref={filenameSearchRef} style={{ flex: "0 1 auto" }}>
+                        <FilenameSearch
+                          style={{
+                            width: IS_MOBILE ? "100px" : "200px",
+                            display: "inline-block",
+                          }}
+                        />
+                      </div>
+                    )}
+                  </div>
 
-            {narrow && (
-              <div ref={filenameSearchRef} style={{ textAlign: "right" }}>
-                <FilenameSearch
-                  style={{
-                    width: IS_MOBILE ? "100px" : "200px",
-                    display: "inline-block",
-                  }}
-                />
-              </div>
-            )}
+                  {narrow && (
+                    <div ref={filenameSearchRef} style={{ textAlign: "right" }}>
+                      <FilenameSearch
+                        style={{
+                          width: IS_MOBILE ? "100px" : "200px",
+                          display: "inline-block",
+                        }}
+                      />
+                    </div>
+                  )}
 
-            {/* Table Controls (Search, Filters, Create Button) */}
-            <div ref={controlsRef}>
+                  {/* Table Controls (Search, Filters, Create Button) */}
+                  <div ref={controlsRef}>
               <ProjectsTableControls
                 visible_projects={visible_projects}
-                onCreateProject={handleCreateProject}
-                createNewRef={createNewRef}
                 searchRef={searchRef}
                 filtersRef={filtersRef}
                 tour={
-                  <ProjectsPageTour
-                    searchRef={searchRef}
-                    filtersRef={filtersRef}
-                    createNewRef={createNewRef}
-                    projectListRef={projectListRef}
-                    filenameSearchRef={filenameSearchRef}
-                    style={{ flex: 0 }}
-                  />
-                }
-              />
-            </div>
+                        <ProjectsPageTour
+                          searchRef={searchRef}
+                          filtersRef={filtersRef}
+                          createNewRef={createNewRef}
+                          projectListRef={projectListRef}
+                          filenameSearchRef={filenameSearchRef}
+                          style={{ flex: 0 }}
+                        />
+                      }
+                    />
+                  </div>
+                  {IS_MOBILE && createPanelOpen && (
+                    <Card size="small" bodyStyle={{ padding: "12px" }}>
+                      <NewProjectCreator
+                        default_value={search}
+                        open={createPanelOpen}
+                        onClose={() => setCreatePanelOpen(false)}
+                      />
+                    </Card>
+                  )}
 
-            {/* Bulk Operations (when filters active) */}
-            <div ref={operationsRef}>
-              <ProjectsOperations
-                visible_projects={visible_projects}
-                filteredCollaborators={filteredCollaborators}
-                onClearCollaboratorFilter={handleClearCollaboratorFilter}
-              />
-            </div>
+                  {/* Bulk Operations (when filters active) */}
+                  <div ref={operationsRef}>
+                    <ProjectsOperations
+                      visible_projects={visible_projects}
+                      filteredCollaborators={filteredCollaborators}
+                      onClearCollaboratorFilter={handleClearCollaboratorFilter}
+                    />
+                  </div>
 
-            <div ref={projectListRef}>
-              <ProjectsTable
-                visible_projects={visible_projects}
-                height={tableHeight}
-                narrow={narrow}
-                filteredCollaborators={filteredCollaborators}
-                onFilteredCollaboratorsChange={setFilteredCollaborators}
-              />
-            </div>
+                  <div ref={projectListRef}>
+                    <ProjectsTable
+                      visible_projects={visible_projects}
+                      height={tableHeight}
+                      narrow={narrow}
+                      filteredCollaborators={filteredCollaborators}
+                      onFilteredCollaboratorsChange={setFilteredCollaborators}
+                    />
+                  </div>
 
-            <div ref={loadAllRef}>
-              <LoadAllProjects />
-            </div>
+                  <div ref={loadAllRef}>
+                    <LoadAllProjects />
+                  </div>
 
-            <Footer />
-
-            {/* Hidden Create Project Modal */}
-            <div style={{ display: "none" }}>
-              <NewProjectCreator
-                noProjects={all_projects.length === 0}
-                default_value={search}
-                open_trigger={create_project_trigger}
-              />
-            </div>
-          </Space>
-        </Col>
-      </Row>
+                  <Footer />
+                </Space>
+              </Col>
+            </Row>
+          </div>
+        </Layout.Content>
+      </Layout>
+      <ProjectDrawer />
     </div>
   );
 };

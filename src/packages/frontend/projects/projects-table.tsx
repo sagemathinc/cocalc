@@ -26,7 +26,6 @@ import {
 } from "@cocalc/frontend/misc/local-storage";
 
 import { ProjectActionsMenu } from "./projects-actions-menu";
-import { ProjectRowExpandedContent } from "./project-row-expanded-content";
 import {
   getProjectTableColumns,
   type ProjectTableRecord,
@@ -193,7 +192,7 @@ export function ProjectsTable({
     return filters;
   }, [visible_projects, project_map, user_map]);
 
-  // Convert expanded_project_id to array format for Ant Design Table
+  // Use expanded_project_id to drive the drawer and icon state
   const expandedRowKeys = expanded_project_id ? [expanded_project_id] : [];
 
   const columns = getProjectTableColumns(
@@ -213,14 +212,6 @@ export function ProjectsTable({
       project_id: record.project_id,
       switch_to: !(e?.button === 1 || e?.ctrlKey || e?.metaKey),
     });
-  }
-
-  function handleExpand(expanded: boolean, record: ProjectTableRecord) {
-    if (expanded) {
-      actions.set_expanded_project(record.project_id);
-    } else {
-      actions.set_expanded_project(undefined);
-    }
   }
 
   function handleTableChange(_: any, filters: any, sorter: any) {
@@ -256,16 +247,6 @@ export function ProjectsTable({
       onChange={handleTableChange}
       // this makes the table toggle between ascend/descend only, skipping the "not sorted" state
       sortDirections={["ascend", "descend", "ascend"]}
-      expandable={{
-        expandedRowRender: (record) => (
-          <ProjectRowExpandedContent project_id={record.project_id} />
-        ),
-        columnWidth: 48,
-        expandedRowClassName: "cc-project-expanded-row",
-        expandedRowKeys,
-        onExpand: handleExpand,
-        showExpandColumn: false, // Hide the default expand column since we have our own
-      }}
       onRow={(record) => ({
         onClick: (e) => handleRowClick(record, e),
         onMouseDown: (e) => {
