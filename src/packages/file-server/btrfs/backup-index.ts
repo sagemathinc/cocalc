@@ -8,6 +8,7 @@ import { data } from "@cocalc/backend/data";
 import getLogger from "@cocalc/backend/logger";
 import { exists } from "@cocalc/backend/misc/async-utils-node";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
+import { parseOutput } from "@cocalc/backend/sandbox/exec";
 
 const logger = getLogger("file-server:btrfs:backup-index");
 
@@ -124,24 +125,37 @@ export async function uploadBackupIndex({
   backupId: string;
   repo: string;
   timeout?: number;
-}): Promise<void> {
+}): Promise<{ snapshot_id?: string; time?: Date }> {
   const dir = backupIndexDir(projectId);
   const fileName = backupIndexFileName(backupId);
   const indexFs = new SandboxedFilesystem(dir, {
     host: backupIndexHost(projectId),
     rusticRepo: repo,
   });
-  await indexFs.rustic(
-    [
-      "backup",
-      "-x",
-      "--json",
-      "--label",
-      `${BACKUP_INDEX_LABEL_PREFIX}${backupId}`,
-      fileName,
-    ],
-    { timeout, cwd: "." },
+  const { stdout } = parseOutput(
+    await indexFs.rustic(
+      [
+        "backup",
+        "-x",
+        "--json",
+        "--label",
+        `${BACKUP_INDEX_LABEL_PREFIX}${backupId}`,
+        fileName,
+      ],
+      { timeout, cwd: "." },
+    ),
   );
+  try {
+    const parsed = JSON.parse(stdout);
+    const snapshot_id = parsed?.id;
+    const time = parsed?.time ? new Date(parsed.time) : undefined;
+    if (snapshot_id) {
+      return { snapshot_id, time };
+    }
+  } catch (err) {
+    logger.debug("backup index upload parse failed", { projectId, backupId, err });
+  }
+  return {};
 }
 
 interface BackupIndexEntry {

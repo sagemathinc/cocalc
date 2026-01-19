@@ -47,6 +47,8 @@ interface Snapshot {
   id: string;
   time: Date;
   summary: { [key: string]: string | number };
+  index_snapshot_id?: string;
+  index_path?: string;
 }
 
 export class SubvolumeRustic {
@@ -117,20 +119,24 @@ export class SubvolumeRustic {
       );
       const { time, id, summary } = JSON.parse(stdout);
       const backupTime = new Date(time);
+      let indexSnapshotId: string | undefined;
+      let indexPath: string | undefined;
       if (index?.project_id && index.enabled !== false) {
         try {
           const outputPath = backupIndexFilePath(index.project_id, id);
+          indexPath = outputPath;
           await buildBackupIndex({
             snapshotPath,
             outputPath,
             meta: { backupId: id, backupTime, snapshotId: id },
           });
-          await uploadBackupIndex({
+          const uploaded = await uploadBackupIndex({
             projectId: index.project_id,
             backupId: id,
             repo: this.subvolume.fs.rusticRepo,
             timeout,
           });
+          indexSnapshotId = uploaded.snapshot_id;
         } catch (err) {
           logger.warn("backup: index build failed", {
             project_id: index.project_id,
@@ -140,7 +146,13 @@ export class SubvolumeRustic {
       } else {
         logger.debug("backup: skipping indexing", index);
       }
-      return { time: backupTime, id, summary };
+      return {
+        time: backupTime,
+        id,
+        summary,
+        index_snapshot_id: indexSnapshotId,
+        index_path: indexPath,
+      };
     } finally {
       this.snapshotsCache = null;
       logger.debug(`backup: deleting temporary ${RUSTIC_SNAPSHOT}`);

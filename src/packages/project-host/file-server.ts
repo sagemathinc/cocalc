@@ -550,6 +550,28 @@ async function saveBackupIndexManifest(
   await writeFile(manifestPath, JSON.stringify(manifest), "utf8");
 }
 
+async function recordBackupIndexLocal({
+  project_id,
+  backup_id,
+  snapshot_id,
+}: {
+  project_id: string;
+  backup_id: string;
+  snapshot_id?: string;
+}): Promise<void> {
+  const file = backupIndexFileName(backup_id);
+  const filePath = join(backupIndexDir(project_id), file);
+  if (!(await exists(filePath))) {
+    return;
+  }
+  const manifest = await loadBackupIndexManifest(project_id);
+  manifest.entries[backup_id] = {
+    snapshot_id: snapshot_id ?? "local",
+    file,
+  };
+  await saveBackupIndexManifest(project_id, manifest);
+}
+
 function parseBackupIdFromLabel(label?: string): string | null {
   if (!label) return null;
   const match = label.match(/backup-id=([0-9a-f-]+)/i);
@@ -579,13 +601,21 @@ async function listBackupIndexSnapshots(project_id: string): Promise<
       host: backupIndexHost(project_id),
     }),
   );
-  const snapshots = JSON.parse(stdout)?.[0]?.snapshots ?? [];
+  const raw = JSON.parse(stdout);
+  const groups = Array.isArray(raw) ? raw : [];
+  const snapshots: any[] = [];
+  for (const group of groups) {
+    const groupSnapshots = group?.snapshots ?? group?.[1] ?? [];
+    if (Array.isArray(groupSnapshots)) {
+      snapshots.push(...groupSnapshots);
+    }
+  }
   return snapshots
     .map((snap) => {
       const backup_id =
         parseBackupIdFromLabel(snap.label) ??
         parseBackupIdFromPaths(snap.paths);
-      if (!backup_id) return null;
+      if (!backup_id || !snap.id || !snap.time) return null;
       return {
         backup_id,
         snapshot_id: snap.id,
@@ -896,6 +926,17 @@ async function createBackup({
     progress,
     index: { project_id },
   });
+  if (result.index_path) {
+    try {
+      await recordBackupIndexLocal({
+        project_id,
+        backup_id: result.id,
+        snapshot_id: result.index_snapshot_id,
+      });
+    } catch (err) {
+      logger.warn("backup index manifest update failed", { project_id, err });
+    }
+  }
   try {
     await reportBackupSuccess(project_id, result.time);
   } catch (err) {
