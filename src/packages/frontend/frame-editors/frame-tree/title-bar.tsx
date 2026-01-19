@@ -348,7 +348,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   function render_terminal_button() {
     const terminalsDisabled = !!student_project_functionality.disableTerminals;
-    if (terminalsDisabled) {
+    if (terminalsDisabled || props.type === "terminal") {
       return null;
     }
     const tooltip = intl.formatMessage({
