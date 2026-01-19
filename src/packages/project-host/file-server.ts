@@ -761,14 +761,14 @@ async function findBackupFilesIndexed({
     isDir: boolean;
     mtime: number;
     size: number;
-  }[] | null
+  }[]
 > {
   await syncBackupIndexCache(project_id);
   const dir = backupIndexDir(project_id);
   const files = (await readdir(dir).catch(() => []))
     .filter((name) => name.endsWith(".sqlite"))
     .map((name) => join(dir, name));
-  if (!files.length) return null;
+  if (!files.length) return [];
 
   const scope = scopePath?.replace(/^\/+/, "").replace(/^\.\/+/, "") ?? "";
   const scoped = (entryPath: string) => {
@@ -836,6 +836,41 @@ async function findBackupFilesIndexed({
     db.close();
   }
   return results;
+}
+
+async function getBackupFilesIndexed({
+  project_id,
+  id,
+  path: subpath,
+}: {
+  project_id: string;
+  id: string;
+  path?: string;
+}): Promise<{ name: string; isDir: boolean; mtime: number; size: number }[]> {
+  await syncBackupIndexCache(project_id);
+  const manifest = await loadBackupIndexManifest(project_id);
+  const entry = manifest.entries[id];
+  if (!entry) return [];
+  const dbPath = join(backupIndexDir(project_id), entry.file);
+  if (!(await exists(dbPath))) return [];
+  const parent =
+    (subpath ?? "").replace(/^\/+/, "").replace(/^\.\/+/, "") ?? "";
+  const db = new DatabaseSync(dbPath);
+  try {
+    const rows = db
+      .prepare(
+        "SELECT name, type, size, mtime FROM files WHERE parent = ? ORDER BY name",
+      )
+      .all(parent);
+    return rows.map((row: any) => ({
+      name: row.name,
+      isDir: row.type === "d",
+      mtime: row.mtime ?? 0,
+      size: row.size ?? 0,
+    }));
+  } finally {
+    db.close();
+  }
 }
 
 // Rustic backups
@@ -1044,8 +1079,10 @@ async function updateBackups({
 
 export async function getBackups({
   project_id,
+  indexed_only,
 }: {
   project_id: string;
+  indexed_only?: boolean;
 }): Promise<
   {
     id: string;
@@ -1054,7 +1091,18 @@ export async function getBackups({
   }[]
 > {
   const vol = await getVolumeForBackup(project_id);
-  return await vol.rustic.snapshots();
+  const backups = await vol.rustic.snapshots();
+  if (!indexed_only) {
+    return backups;
+  }
+  try {
+    const indexed = await listBackupIndexSnapshots(project_id);
+    const indexedSet = new Set(indexed.map((entry) => entry.backup_id));
+    return backups.filter((backup) => indexedSet.has(backup.id));
+  } catch (err) {
+    logger.warn("backup index list failed", { project_id, err });
+    return [];
+  }
 }
 
 async function getBackupFiles({
@@ -1066,8 +1114,12 @@ async function getBackupFiles({
   id: string;
   path?: string;
 }): Promise<{ name: string; isDir: boolean; mtime: number; size: number }[]> {
-  const vol = await getVolumeForBackup(project_id);
-  return await vol.rustic.ls({ id, path });
+  try {
+    return await getBackupFilesIndexed({ project_id, id, path });
+  } catch (err) {
+    logger.warn("backup index listing failed", { project_id, id, err });
+    return [];
+  }
 }
 
 async function findBackupFiles({
@@ -1100,15 +1152,11 @@ async function findBackupFiles({
       path,
       ids,
     });
-    if (indexed) return indexed;
+    return indexed;
   } catch (err) {
-    logger.warn("backup index search failed; falling back to rustic", {
-      project_id,
-      err,
-    });
+    logger.warn("backup index search failed", { project_id, err });
+    return [];
   }
-  const vol = await getVolumeForBackup(project_id);
-  return await vol.rustic.find({ glob, iglob, path, ids });
 }
 
 // File Sync

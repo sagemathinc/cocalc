@@ -1,6 +1,5 @@
 import { before, after, fs } from "./setup";
 import { type Subvolume } from "../subvolume";
-import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 
 beforeAll(before);
 
@@ -16,15 +15,11 @@ describe("test rustic backups", () => {
     x = await vol.rustic.backup();
   });
 
-  it("confirm a.txt is in our backup", async () => {
+  it("confirm the backup is listed", async () => {
     const v = await vol.rustic.snapshots();
     expect(v.length == 1);
     expect(v[0]).toEqual(x);
     expect(Math.abs(Date.now() - v[0].time.valueOf())).toBeLessThan(10000);
-    const { id } = v[0];
-    const w = await vol.rustic.ls({ id });
-    const names = w.map((z) => (typeof z === "string" ? z : z.name));
-    expect(names).toEqual([SNAPSHOTS, "a.txt"]);
   });
 
   it("delete a.txt, then restore it from the backup", async () => {
@@ -42,13 +37,6 @@ describe("test rustic backups", () => {
     const v = await vol.rustic.snapshots();
     expect(v.length == 2);
     const { id } = v[1];
-    const w = await vol.rustic.ls({ id });
-    const names = w.map((z) => (typeof z === "string" ? z : z.name));
-    expect(names).toEqual([SNAPSHOTS, "a.txt", "my-dir"]);
-    const dirNames = (
-      await vol.rustic.ls({ id, path: "my-dir" })
-    ).map((z) => (typeof z === "string" ? z : z.name));
-    expect(dirNames).toEqual(["file.txt", "file2.txt"]);
     await vol.fs.rm("my-dir", { recursive: true });
 
     // rustic all, including the path we just deleted

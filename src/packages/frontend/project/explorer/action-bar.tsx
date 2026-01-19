@@ -88,6 +88,7 @@ export function ActionBar({
       setBackupsErr(null);
       const backups = await webapp_client.conat_client.hub.projects.getBackups({
         project_id,
+        indexed_only: true,
       });
       setBackupsMeta(
         backups.map(({ id, time }) => ({

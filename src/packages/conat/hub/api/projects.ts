@@ -270,7 +270,11 @@ export interface Projects {
     counts?: Partial<SnapshotCounts>;
   }) => Promise<void>;
 
-  getBackups: (opts: { account_id?: string; project_id: string }) => Promise<
+  getBackups: (opts: {
+    account_id?: string;
+    project_id: string;
+    indexed_only?: boolean;
+  }) => Promise<
     {
       id: string;
       time: Date;

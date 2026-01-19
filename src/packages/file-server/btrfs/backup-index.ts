@@ -47,8 +47,9 @@ export async function buildBackupIndex({
   if (await exists(outputPath)) {
     await rm(outputPath, { force: true });
   }
-  const db = new DatabaseSync(outputPath);
+  let db: DatabaseSync | null = null;
   try {
+    db = new DatabaseSync(outputPath);
     db.exec(`
       PRAGMA journal_mode=OFF;
       PRAGMA synchronous=OFF;
@@ -100,8 +101,15 @@ export async function buildBackupIndex({
 
     db.exec("ANALYZE");
     db.exec("VACUUM");
+  } catch (err) {
+    if (db) {
+      db.close();
+      db = null;
+    }
+    await rm(outputPath, { force: true });
+    throw err;
   } finally {
-    db.close();
+    db?.close();
   }
 }
 
@@ -152,7 +160,7 @@ async function scanSnapshot(
   await new Promise<void>((resolve, reject) => {
     const child = spawn(
       "find",
-      [".", "-printf", "%y\0%s\0%T@\0%m\0%p\0"],
+      [".", "-printf", "%y\\0%s\\0%T@\\0%m\\0%p\\0"],
       {
         cwd: snapshotPath,
         env: { ...process.env, LC_ALL: "C.UTF-8", LANG: "C.UTF-8" },

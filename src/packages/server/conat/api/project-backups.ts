@@ -228,13 +228,16 @@ export async function cleanupRestoreStaging({
 export async function getBackups({
   account_id,
   project_id,
+  indexed_only,
 }: {
   account_id?: string;
   project_id: string;
+  indexed_only?: boolean;
 }) {
   await assertCollab({ account_id, project_id });
   return await fileServerClient({ project_id }).getBackups({
     project_id,
+    indexed_only,
   });
 }
 

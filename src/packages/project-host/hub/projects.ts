@@ -798,24 +798,32 @@ export async function cleanupRestoreStaging({
   await fileServer(project_id).cleanupRestoreStaging({ root });
 }
 
-export async function getBackups({ project_id }: { project_id: string }) {
+export async function getBackups({
+  project_id,
+  indexed_only,
+}: {
+  project_id: string;
+  indexed_only?: boolean;
+}) {
   if (!isValidUUID(project_id)) {
     throw Error("invalid project_id");
   }
-  return await fileServer(project_id).getBackups({ project_id });
+  return await fileServer(project_id).getBackups({ project_id, indexed_only });
 }
 
 export async function getBackupFiles({
   project_id,
   id,
+  path,
 }: {
   project_id: string;
   id: string;
+  path?: string;
 }): Promise<{ name: string; isDir: boolean; mtime: number; size: number }[]> {
   if (!isValidUUID(project_id)) {
     throw Error("invalid project_id");
   }
-  return await fileServer(project_id).getBackupFiles({ project_id, id });
+  return await fileServer(project_id).getBackupFiles({ project_id, id, path });
 }
 
 export async function getBackupQuota() {

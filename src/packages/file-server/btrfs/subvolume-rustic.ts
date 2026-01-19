@@ -19,6 +19,7 @@ Instead of using btrfs send/recv for backups, we use Rustic because:
 */
 
 import { type Subvolume } from "./subvolume";
+import { join } from "path";
 import getLogger from "@cocalc/backend/logger";
 import { parseOutput } from "@cocalc/backend/sandbox/exec";
 import rustic from "@cocalc/backend/sandbox/rustic";
@@ -92,6 +93,7 @@ export class SubvolumeRustic {
       await this.subvolume.snapshots.delete(RUSTIC_SNAPSHOT);
     }
     const target = this.subvolume.snapshots.path(RUSTIC_SNAPSHOT);
+    const snapshotPath = join(this.subvolume.path, target);
     try {
       logger.debug(
         `backup: creating ${RUSTIC_SNAPSHOT} to get a consistent backup`,
@@ -119,7 +121,7 @@ export class SubvolumeRustic {
         try {
           const outputPath = backupIndexFilePath(index.project_id, id);
           await buildBackupIndex({
-            snapshotPath: target,
+            snapshotPath,
             outputPath,
             meta: { backupId: id, backupTime, snapshotId: id },
           });
@@ -251,64 +253,6 @@ export class SubvolumeRustic {
     return v;
   });
 
-  // Return directory listing (non-recursive) for the given path in a backup.
-  // Uses `rustic ls -l snapshot[:path]` and parses the human output to extract
-  // name/isDir/mtime/size. rustic --json does not support -l, so we parse text.
-  ls = async ({
-    id,
-    path = "",
-  }: {
-    id: string;
-    path?: string;
-  }): Promise<
-    { name: string; isDir: boolean; mtime: number; size: number }[]
-  > => {
-    const target = `${id}:${path}`;
-    const { stdout } = parseOutput(
-      await this.rusticHost(["ls", "-l", target]),
-    );
-    const entries = parseLsLines(stdout);
-    entries.sort((a, b) => a.name.localeCompare(b.name));
-    return entries;
-  };
-
-  find = async ({
-    glob,
-    iglob,
-    path,
-    ids,
-  }: {
-    glob?: string[];
-    iglob?: string[];
-    path?: string;
-    ids?: string[];
-  }): Promise<
-    {
-      id: string;
-      time: Date;
-      path: string;
-      isDir: boolean;
-      mtime: number;
-      size: number;
-    }[]
-  > => {
-    const args = ["find", "--all"];
-    for (const pattern of glob ?? []) {
-      args.push("--glob", pattern);
-    }
-    for (const pattern of iglob ?? []) {
-      args.push("--iglob", pattern);
-    }
-    if (path) {
-      args.push("--path", path);
-    }
-    if (ids?.length) {
-      args.push(...ids);
-    }
-    const { stdout } = parseOutput(await this.rusticHost(args));
-    return parseFindOutput(stdout);
-  };
-
   // Delete this backup.  It's genuinely not accessible anymore, though
   // this doesn't actually clean up disk space -- purge must be done separately
   // later.  Rustic likes the purge to happen maybe a day later, so it
@@ -354,110 +298,4 @@ export class SubvolumeRustic {
     }
     throw Error(`backup ${name} not found`);
   };
-}
-
-function parseLsLines(
-  stdout: string,
-): { name: string; isDir: boolean; mtime: number; size: number }[] {
-  const entries: {
-    name: string;
-    isDir: boolean;
-    mtime: number;
-    size: number;
-  }[] = [];
-  const lines = stdout.split("\n");
-  for (const line of lines) {
-    const parsed = parseLsLine(line);
-    if (!parsed) continue;
-    entries.push(parsed);
-  }
-  return entries;
-}
-
-function parseLsLine(line: string): {
-  name: string;
-  isDir: boolean;
-  mtime: number;
-  size: number;
-} | null {
-  const trimmed = line.trim();
-  if (!trimmed) return null;
-  const firstQuote = trimmed.indexOf('"');
-  const lastQuote = trimmed.lastIndexOf('"');
-  let name = "";
-  let fields: string[] = [];
-  if (firstQuote !== -1 && lastQuote !== -1 && lastQuote > firstQuote) {
-    name = trimmed.slice(firstQuote + 1, lastQuote);
-    fields = trimmed.slice(0, firstQuote).trim().split(/\s+/);
-  } else {
-    const parts = trimmed.split(/\s+/);
-    if (parts.length < 9) return null;
-    fields = parts.slice(0, 8);
-    const nameParts = parts.slice(8);
-    const arrowIndex = nameParts.indexOf("->");
-    name =
-      arrowIndex === -1
-        ? nameParts.join(" ")
-        : nameParts.slice(0, arrowIndex).join(" ");
-  }
-  if (fields.length < 8) return null;
-  const perms = fields[0];
-  const isDir = perms.startsWith("d");
-  const size = Number(fields[3]) || 0;
-  const dateStr = `${fields[4]} ${fields[5]} ${fields[6]} ${fields[7]}`;
-  const mtime = Date.parse(dateStr);
-  return { name, isDir, mtime: isNaN(mtime) ? 0 : mtime, size };
-}
-
-function parseFindOutput(stdout: string): {
-  id: string;
-  time: Date;
-  path: string;
-  isDir: boolean;
-  mtime: number;
-  size: number;
-}[] {
-  const cleaned = stripAnsi(stdout).replace(/\r/g, "\n");
-  const results: {
-    id: string;
-    time: Date;
-    path: string;
-    isDir: boolean;
-    mtime: number;
-    size: number;
-  }[] = [];
-  let current: { id: string; time: Date } | null = null;
-  const lines = cleaned.split("\n");
-  for (const line of lines) {
-    const trimmed = line.trim();
-    if (!trimmed) continue;
-    if (trimmed.startsWith("searching in snapshots group")) {
-      continue;
-    }
-    const match = trimmed.match(/^(not )?found in ([0-9a-f]+) from (.+)$/);
-    if (match) {
-      if (match[1]) {
-        current = null;
-        continue;
-      }
-      const rawTime = match[3].replace(/\s+\(\+\d+\)\s*$/, "");
-      current = { id: match[2], time: new Date(rawTime) };
-      continue;
-    }
-    const entry = parseLsLine(trimmed);
-    if (!entry || !current) continue;
-    results.push({
-      id: current.id,
-      time: current.time,
-      path: entry.name,
-      isDir: entry.isDir,
-      mtime: entry.mtime,
-      size: entry.size,
-    });
-  }
-  return results;
-}
-
-function stripAnsi(input: string): string {
-  return input.replace(/\x1b\[[0-9;]*m/g, "");
 }

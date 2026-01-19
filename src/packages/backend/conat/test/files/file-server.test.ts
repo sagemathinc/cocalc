@@ -121,6 +121,7 @@ describe("create basic mocked file server and test it out", () => {
 
       getBackups: async (_opts: {
         project_id: string;
+        indexed_only?: boolean;
       }): Promise<
         {
           id: string;
