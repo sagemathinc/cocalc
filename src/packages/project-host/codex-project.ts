@@ -55,6 +55,20 @@ async function resolveCodexBinary(): Promise<{
   containerPath: string;
   mount: string;
 }> {
+  const configuredBinPath = process.env.COCALC_BIN_PATH;
+  if (configuredBinPath) {
+    const candidate = join(configuredBinPath, "codex");
+    try {
+      await fs.stat(candidate);
+      const hostDir = dirname(candidate);
+      const mount = "/opt/codex/bin";
+      const containerPath = join(mount, basename(candidate));
+      return { hostPath: candidate, containerPath, mount: hostDir };
+    } catch {
+      // Ignore missing codex in COCALC_BIN_PATH and fall back to normal resolution.
+    }
+  }
+
   const requested = process.env.COCALC_CODEX_BIN ?? "codex";
   let hostPath = requested;
   if (!isAbsolute(hostPath)) {
