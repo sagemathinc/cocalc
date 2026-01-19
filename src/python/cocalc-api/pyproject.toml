@@ -5,7 +5,7 @@ description = "Python client for the CoCalc API"
 authors = [{ name="William Stein", email="wstein@sagemath.com" }, {name="Harald Schilly", email="hsy@sagemath.com"}]
 readme = "README.md"
 requires-python = ">=3.10"
-dependencies = ["httpx", "mcp>=0.1.0"]
+dependencies = ["httpx", "mcp>=1.23", "urllib3>=2.6.3"]
 license = "MIT"
 
 [tool.hatch.build.targets.wheel]
