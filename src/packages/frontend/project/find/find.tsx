@@ -692,7 +692,7 @@ function SnapshotsTab({
       <Alert
         type="info"
         style={{ marginBottom: "8px" }}
-        message="Snapshots are local and fast. Use backups when snapshots are unavailable."
+        message="Snapshots are more frequent, recent and support content search; backups are less frequent and longer lived."
       />
       <Space wrap>
         <SearchInput
@@ -778,7 +778,7 @@ function SnapshotsTab({
           message="No results."
         />
       ) : null}
-      {filteredResults.length > 0 ? (
+      {results.length > 0 || filter.trim() ? (
         <div
           style={{
             marginTop: "10px",
@@ -795,48 +795,50 @@ function SnapshotsTab({
             onChange={(e) => setFilter(e.target.value)}
             style={{ marginBottom: "8px" }}
           />
-          <Virtuoso
-            style={{ flex: 1 }}
-            totalCount={filteredResults.length}
-            itemContent={(index) => {
-              const result = filteredResults[index];
-              return (
-                <FindSnapshotRow
-                  key={`${result.snapshot}-${result.path}-${index}`}
-                  result={result}
-                  onClick={async (e) => {
-                    if (!actions) return;
-                    const fullPath = join(
-                      ".snapshots",
-                      result.snapshot,
-                      result.path,
-                    );
-                    const stats = await fs.stat(fullPath);
-                    if (stats.isDirectory()) {
-                      actions.open_directory(fullPath, true, false);
-                      return;
-                    }
-                    const { tail } = path_split(fullPath);
-                    let chat = false;
-                    let openPath = fullPath;
-                    if (
-                      tail.startsWith(".") &&
-                      isChatExtension(filename_extension(tail))
-                    ) {
-                      openPath = auxFileToOriginal(fullPath);
-                      chat = true;
-                    }
-                    await actions.open_file({
-                      path: openPath,
-                      foreground: should_open_in_foreground(e),
-                      explicit: true,
-                      chat,
-                    });
-                  }}
-                />
-              );
-            }}
-          />
+          {filteredResults.length > 0 ? (
+            <Virtuoso
+              style={{ flex: 1 }}
+              totalCount={filteredResults.length}
+              itemContent={(index) => {
+                const result = filteredResults[index];
+                return (
+                  <FindSnapshotRow
+                    key={`${result.snapshot}-${result.path}-${index}`}
+                    result={result}
+                    onClick={async (e) => {
+                      if (!actions) return;
+                      const fullPath = join(
+                        ".snapshots",
+                        result.snapshot,
+                        result.path,
+                      );
+                      const stats = await fs.stat(fullPath);
+                      if (stats.isDirectory()) {
+                        actions.open_directory(fullPath, true, false);
+                        return;
+                      }
+                      const { tail } = path_split(fullPath);
+                      let chat = false;
+                      let openPath = fullPath;
+                      if (
+                        tail.startsWith(".") &&
+                        isChatExtension(filename_extension(tail))
+                      ) {
+                        openPath = auxFileToOriginal(fullPath);
+                        chat = true;
+                      }
+                      await actions.open_file({
+                        path: openPath,
+                        foreground: should_open_in_foreground(e),
+                        explicit: true,
+                        chat,
+                      });
+                    }}
+                  />
+                );
+              }}
+            />
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -860,6 +862,7 @@ function BackupsTab({
   const [results, setResults] = useState<BackupResult[]>([]);
   const [filter, setFilter] = useState("");
   const [caseSensitive, setCaseSensitive] = useState(false);
+  const [modeSelect, setModeSelect] = useState<SnapshotSearchMode>("files");
 
   const runSearch = useCallback(
     async (override?: string) => {
@@ -919,7 +922,7 @@ function BackupsTab({
       <Alert
         type="info"
         style={{ marginBottom: "8px" }}
-        message="Backups are slower and remote. Use snapshots for fast browsing when available."
+        message="Snapshots are more frequent, recent and support content search; backups are less frequent and longer lived."
       />
       <SearchInput
         size={mode === "flyout" ? "medium" : "large"}
@@ -943,6 +946,18 @@ function BackupsTab({
         }
       />
       <Space wrap style={{ marginTop: "8px" }}>
+        <Radio.Group
+          value={modeSelect}
+          onChange={(e) => setModeSelect(e.target.value)}
+          optionType="button"
+          buttonStyle="solid"
+          size={mode === "flyout" ? "small" : "middle"}
+        >
+          <Radio.Button value="files">Files</Radio.Button>
+          <Radio.Button value="contents" disabled>
+            Contents
+          </Radio.Button>
+        </Radio.Group>
         <Button
           size="small"
           type={caseSensitive ? "primary" : "default"}
@@ -966,7 +981,7 @@ function BackupsTab({
           message="No results."
         />
       ) : null}
-      {filteredResults.length > 0 ? (
+      {results.length > 0 || filter.trim() ? (
         <div
           style={{
             marginTop: "10px",
@@ -983,32 +998,34 @@ function BackupsTab({
             onChange={(e) => setFilter(e.target.value)}
             style={{ marginBottom: "8px" }}
           />
-          <Virtuoso
-            style={{ flex: 1 }}
-            totalCount={filteredResults.length}
-            itemContent={(index) => {
-              const result = filteredResults[index];
-              return (
-                <FindBackupRow
-                  key={`${result.id}-${result.path}-${index}`}
-                  result={result}
-                  onClick={() => {
-                    if (!actions) return;
-                    const backupName = new Date(result.time).toISOString();
-                    const targetDir = result.path.includes("/")
-                      ? result.path.split("/").slice(0, -1).join("/")
-                      : "";
-                    const target = join(
-                      ".backups",
-                      backupName,
-                      targetDir,
-                    );
-                    actions.open_directory(target, true, false);
-                  }}
-                />
-              );
-            }}
-          />
+          {filteredResults.length > 0 ? (
+            <Virtuoso
+              style={{ flex: 1 }}
+              totalCount={filteredResults.length}
+              itemContent={(index) => {
+                const result = filteredResults[index];
+                return (
+                  <FindBackupRow
+                    key={`${result.id}-${result.path}-${index}`}
+                    result={result}
+                    onClick={() => {
+                      if (!actions) return;
+                      const backupName = new Date(result.time).toISOString();
+                      const targetDir = result.path.includes("/")
+                        ? result.path.split("/").slice(0, -1).join("/")
+                        : "";
+                      const target = join(
+                        ".backups",
+                        backupName,
+                        targetDir,
+                      );
+                      actions.open_directory(target, true, false);
+                    }}
+                  />
+                );
+              }}
+            />
+          ) : null}
         </div>
       ) : null}
     </div>
