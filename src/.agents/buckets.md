@@ -227,7 +227,15 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
 
 Goal: make backups usable without full restore by adding search + read-only file viewing and clearer restore actions.
 
-1. **Search backups (server API)**
+1. **Backup index via rustic (fast search/history)**
+   - Build a per-backup sqlite index from the same btrfs snapshot used for the backup.
+   - Store the index as its own rustic snapshot under host `project-<id>-index` (keep storage backend-agnostic).
+   - Schema: `files(path, parent, name, type, size, mtime, mode)` + `meta(backup_id, backup_time, snapshot_id)`, run `VACUUM`.
+   - Local cache: on first search, `rustic restore --host project-<id>-index` into `data/backup-index/<project_id>`, then incremental refresh on later searches or after backup/delete LROs.
+   - History query: for a given path, query each index and compare `(size,mtime)` across backups; merge with snapshot history and link to TimeTravel when present.
+   - Cleanup: on backup delete, remove matching index snapshot + cached sqlite file; on project delete/move, delete `data/backup-index/<project_id>`.
+
+2. **Search backups (server API)**
    - Add a backend endpoint that wraps rustic `find`:
      - Inputs: `project_id`, `pattern` (glob/iglob), optional `path` (exact), optional `snapshot_ids` (restrict), and `limit`.
      - Outputs: list of matches with `{snapshot_id, snapshot_time, path, is_dir, size?, mtime?}` plus a summary `{snapshots_searched, matches}`.
@@ -235,29 +243,29 @@ Goal: make backups usable without full restore by adding search + read-only file
    - Use `--all` to avoid grouping so results are deterministic.
    - Add a small timeout and max-results guard to prevent runaway queries.
 
-2. **Search backups (frontend UI)**
+3. **Search backups (frontend UI)**
    - Add a search box in the `.backups` view with “Search backups…” placeholder.
    - Display results grouped by snapshot (collapsible), with quick “Open” (read-only) and “Restore” actions per item.
    - Provide a notice that search is eventually consistent and may take time on large repos.
    - Include a “clear search” control and a count summary.
 
-3. **Read-only file viewing from backups**
+4. **Read-only file viewing from backups**
    - Add a hub API: `projects.getBackupFileContent({ project_id, id, path, max_bytes? })`.
    - Use rustic `dump` for a single file path; enforce a 10 MB cap and return a truncated response with `truncated=true`.
    - In the frontend, if a file path starts with `.backups/...`, open it in a read-only editor tab with a banner:
      - “Viewing backup snapshot: <time> · Read-only”
      - “Restore this version” button (copies to original path).
 
-4. **Restore action from backup view**
+5. **Restore action from backup view**
    - Add a “Restore” button in the read-only view that calls `projects.restoreBackup` for that specific file.
    - Add a confirmation modal that shows the target path and overwrite behavior.
 
-5. **Caching + UX polish**
+6. **Caching + UX polish**
    - Cache search results per query for a short TTL.
    - Show loading states/spinners and cancelable search.
    - Keep a “recent searches” dropdown (optional).
 
-6. **Safety and limits**
+7. **Safety and limits**
    - Enforce per-request timeouts and result caps in the backend.
    - Ensure path normalization (no `..`, no absolute paths).
    - Gate access via existing project collab checks.

@@ -3,7 +3,8 @@
 // without having to run that project.
 
 import { dirname, join } from "node:path";
-import { chmod, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import { DatabaseSync } from "node:sqlite";
 import {
   server as createFileServer,
   client as createFileClient,
@@ -26,6 +27,12 @@ import {
 } from "@cocalc/backend/data";
 import { filesystem, type Filesystem } from "@cocalc/file-server/btrfs";
 import {
+  BACKUP_INDEX_LABEL_PREFIX,
+  backupIndexDir,
+  backupIndexFileName,
+  backupIndexHost,
+} from "@cocalc/file-server/btrfs/backup-index";
+import {
   beginRestoreStaging as beginRestoreStagingBtrfs,
   ensureRestoreStaging as ensureRestoreStagingBtrfs,
   finalizeRestoreStaging as finalizeRestoreStagingBtrfs,
@@ -39,6 +46,8 @@ import { init as initSshServer } from "@cocalc/project-proxy/ssh-server";
 import { type MutagenSyncSession } from "@cocalc/conat/project/mutagen/types";
 import { fsServer, DEFAULT_FILE_SERVICE } from "@cocalc/conat/files/fs";
 import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
+import { parseOutput } from "@cocalc/backend/sandbox/exec";
+import rustic from "@cocalc/backend/sandbox/rustic";
 import { isValidUUID } from "@cocalc/util/misc";
 import { getProject } from "./sqlite/projects";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
@@ -128,6 +137,7 @@ export async function deleteVolume(project_id: string) {
   const vol = await fs.subvolumes.get(volName(project_id));
   if (!(await exists(vol.path))) {
     queueProjectProvisioned(project_id, false);
+    await deleteBackupIndexCache(project_id);
     return;
   }
   try {
@@ -143,6 +153,7 @@ export async function deleteVolume(project_id: string) {
   }
   await fs.subvolumes.delete(volName(project_id));
   queueProjectProvisioned(project_id, false);
+  await deleteBackupIndexCache(project_id);
 }
 
 async function getVolumeUnchecked(project_id: string) {
@@ -495,6 +506,373 @@ function createLroRusticReporter(
   };
 }
 
+const BACKUP_INDEX_SYNC_TTL_MS = 30_000;
+
+interface BackupIndexManifest {
+  updated_at?: string;
+  entries: Record<string, { snapshot_id: string; file: string }>;
+}
+
+const backupIndexSyncState = new Map<
+  string,
+  { inFlight?: Promise<BackupIndexManifest>; lastSync?: number }
+>();
+
+function backupIndexManifestPath(project_id: string) {
+  return join(backupIndexDir(project_id), "index-cache.json");
+}
+
+async function loadBackupIndexManifest(
+  project_id: string,
+): Promise<BackupIndexManifest> {
+  const manifestPath = backupIndexManifestPath(project_id);
+  if (!(await exists(manifestPath))) {
+    return { entries: {} };
+  }
+  try {
+    const raw = await readFile(manifestPath, "utf8");
+    const parsed = JSON.parse(raw);
+    if (parsed?.entries && typeof parsed.entries === "object") {
+      return parsed;
+    }
+  } catch (err) {
+    logger.warn("backup index manifest parse failed", { project_id, err });
+  }
+  return { entries: {} };
+}
+
+async function saveBackupIndexManifest(
+  project_id: string,
+  manifest: BackupIndexManifest,
+): Promise<void> {
+  const manifestPath = backupIndexManifestPath(project_id);
+  manifest.updated_at = new Date().toISOString();
+  await writeFile(manifestPath, JSON.stringify(manifest), "utf8");
+}
+
+function parseBackupIdFromLabel(label?: string): string | null {
+  if (!label) return null;
+  const match = label.match(/backup-id=([0-9a-f-]+)/i);
+  return match?.[1] ?? null;
+}
+
+function parseBackupIdFromPaths(paths?: string[]): string | null {
+  if (!paths?.length) return null;
+  for (const raw of paths) {
+    const match = raw.match(/backup-([0-9a-f-]+)\.sqlite$/i);
+    if (match?.[1]) return match[1];
+  }
+  return null;
+}
+
+async function listBackupIndexSnapshots(project_id: string): Promise<
+  {
+    backup_id: string;
+    snapshot_id: string;
+    time: Date;
+  }[]
+> {
+  const repo = await resolveRusticRepo(project_id);
+  const { stdout } = parseOutput(
+    await rustic(["snapshots", "--json"], {
+      repo,
+      host: backupIndexHost(project_id),
+    }),
+  );
+  const snapshots = JSON.parse(stdout)?.[0]?.snapshots ?? [];
+  return snapshots
+    .map((snap) => {
+      const backup_id =
+        parseBackupIdFromLabel(snap.label) ??
+        parseBackupIdFromPaths(snap.paths);
+      if (!backup_id) return null;
+      return {
+        backup_id,
+        snapshot_id: snap.id,
+        time: new Date(snap.time),
+      };
+    })
+    .filter(
+      (
+        snap,
+      ): snap is { backup_id: string; snapshot_id: string; time: Date } =>
+        snap != null,
+    );
+}
+
+async function restoreBackupIndexSnapshot(
+  project_id: string,
+  snapshot_id: string,
+): Promise<void> {
+  const repo = await resolveRusticRepo(project_id);
+  const dir = backupIndexDir(project_id);
+  await mkdir(dir, { recursive: true });
+  const indexFs = new SandboxedFilesystem(dir, {
+    host: backupIndexHost(project_id),
+    rusticRepo: repo,
+  });
+  await indexFs.rustic(["restore", snapshot_id, "."], {
+    timeout: 30 * 60 * 1000,
+    cwd: ".",
+  });
+}
+
+async function forgetBackupIndexSnapshot(
+  project_id: string,
+  snapshot_id: string,
+): Promise<void> {
+  const repo = await resolveRusticRepo(project_id);
+  await rustic(["forget", snapshot_id], {
+    repo,
+    host: backupIndexHost(project_id),
+    timeout: 30 * 60 * 1000,
+  });
+}
+
+async function syncBackupIndexCache(
+  project_id: string,
+  opts?: { backupIds?: Set<string>; force?: boolean },
+): Promise<BackupIndexManifest> {
+  const state = backupIndexSyncState.get(project_id) ?? {};
+  if (!opts?.force && state.lastSync) {
+    const age = Date.now() - state.lastSync;
+    if (age < BACKUP_INDEX_SYNC_TTL_MS) {
+      return await loadBackupIndexManifest(project_id);
+    }
+  }
+  if (state.inFlight) {
+    return await state.inFlight;
+  }
+  const task = (async () => {
+    await mkdir(backupIndexDir(project_id), { recursive: true });
+    const manifest = await loadBackupIndexManifest(project_id);
+    let remote: {
+      backup_id: string;
+      snapshot_id: string;
+      time: Date;
+    }[] = [];
+    try {
+      remote = await listBackupIndexSnapshots(project_id);
+    } catch (err) {
+      logger.warn("backup index snapshot listing failed", { project_id, err });
+      return manifest;
+    }
+    if (opts?.backupIds) {
+      const allowed = opts.backupIds;
+      const filtered: typeof remote = [];
+      for (const entry of remote) {
+        if (allowed.has(entry.backup_id)) {
+          filtered.push(entry);
+          continue;
+        }
+        try {
+          await forgetBackupIndexSnapshot(project_id, entry.snapshot_id);
+        } catch (err) {
+          logger.warn("backup index snapshot cleanup failed", {
+            project_id,
+            snapshot_id: entry.snapshot_id,
+            err,
+          });
+        }
+      }
+      remote = filtered;
+    }
+    const remoteByBackup = new Map<string, typeof remote[number]>();
+    for (const entry of remote) {
+      remoteByBackup.set(entry.backup_id, entry);
+    }
+
+    for (const [backup_id, entry] of remoteByBackup.entries()) {
+      const file = backupIndexFileName(backup_id);
+      const filePath = join(backupIndexDir(project_id), file);
+      const manifestEntry = manifest.entries[backup_id];
+      if (
+        manifestEntry?.snapshot_id === entry.snapshot_id &&
+        (await exists(filePath))
+      ) {
+        continue;
+      }
+      await restoreBackupIndexSnapshot(project_id, entry.snapshot_id);
+      manifest.entries[backup_id] = { snapshot_id: entry.snapshot_id, file };
+    }
+
+    for (const backup_id of Object.keys(manifest.entries)) {
+      if (remoteByBackup.has(backup_id)) continue;
+      const entry = manifest.entries[backup_id];
+      if (entry?.file) {
+        await rm(join(backupIndexDir(project_id), entry.file), {
+          force: true,
+        });
+      }
+      delete manifest.entries[backup_id];
+    }
+
+    await saveBackupIndexManifest(project_id, manifest);
+    return manifest;
+  })();
+  state.inFlight = task;
+  backupIndexSyncState.set(project_id, state);
+  try {
+    const result = await task;
+    state.lastSync = Date.now();
+    return result;
+  } finally {
+    state.inFlight = undefined;
+  }
+}
+
+async function removeBackupIndexLocal(
+  project_id: string,
+  backup_id: string,
+): Promise<void> {
+  const manifest = await loadBackupIndexManifest(project_id);
+  const entry = manifest.entries[backup_id];
+  if (entry?.file) {
+    await rm(join(backupIndexDir(project_id), entry.file), { force: true });
+  }
+  if (backup_id in manifest.entries) {
+    delete manifest.entries[backup_id];
+    await saveBackupIndexManifest(project_id, manifest);
+  }
+}
+
+export async function deleteBackupIndexCache(project_id: string) {
+  await rm(backupIndexDir(project_id), { recursive: true, force: true });
+  backupIndexSyncState.delete(project_id);
+}
+
+async function findBackupFilesIndexed({
+  project_id,
+  glob,
+  iglob,
+  path: scopePath,
+  ids,
+}: {
+  project_id: string;
+  glob?: string[];
+  iglob?: string[];
+  path?: string;
+  ids?: string[];
+}): Promise<
+  {
+    id: string;
+    time: Date;
+    path: string;
+    isDir: boolean;
+    mtime: number;
+    size: number;
+  }[]
+> {
+  await syncBackupIndexCache(project_id);
+  const dir = backupIndexDir(project_id);
+  const files = (await readdir(dir).catch(() => []))
+    .filter((name) => name.endsWith(".sqlite"))
+    .map((name) => join(dir, name));
+  if (!files.length) return [];
+
+  const scope = scopePath?.replace(/^\/+/, "").replace(/^\.\/+/, "") ?? "";
+  const scoped = (entryPath: string) => {
+    if (!scope) return true;
+    if (entryPath === scope) return true;
+    return entryPath.startsWith(`${scope}/`);
+  };
+
+  const allowedIds = ids?.length ? new Set(ids) : null;
+  const results: {
+    id: string;
+    time: Date;
+    path: string;
+    isDir: boolean;
+    mtime: number;
+    size: number;
+  }[] = [];
+
+  for (const dbPath of files) {
+    const db = new DatabaseSync(dbPath);
+    const metaRows = db.prepare("SELECT key, value FROM meta").all();
+    const meta = Object.fromEntries(
+      metaRows.map((row: { key: string; value: string }) => [
+        row.key,
+        row.value,
+      ]),
+    );
+    const backupId = meta.backup_id;
+    const backupTime = meta.backup_time ? new Date(meta.backup_time) : null;
+    if (!backupId || !backupTime || (allowedIds && !allowedIds.has(backupId))) {
+      db.close();
+      continue;
+    }
+    const seen = new Set<string>();
+    const addRows = (rows: any[]) => {
+      for (const row of rows) {
+        if (!row?.path || seen.has(row.path) || !scoped(row.path)) continue;
+        seen.add(row.path);
+        results.push({
+          id: backupId,
+          time: backupTime,
+          path: row.path,
+          isDir: row.type === "d",
+          mtime: row.mtime ?? 0,
+          size: row.size ?? 0,
+        });
+      }
+    };
+    if (glob?.length) {
+      const clauses = glob.map(() => "path GLOB ?").join(" OR ");
+      const stmt = db.prepare(
+        `SELECT path, type, size, mtime FROM files WHERE ${clauses}`,
+      );
+      addRows(stmt.all(...glob));
+    }
+    if (iglob?.length) {
+      const clauses = iglob
+        .map(() => "LOWER(path) GLOB ?")
+        .join(" OR ");
+      const stmt = db.prepare(
+        `SELECT path, type, size, mtime FROM files WHERE ${clauses}`,
+      );
+      addRows(stmt.all(...iglob.map((pattern) => pattern.toLowerCase())));
+    }
+    db.close();
+  }
+  return results;
+}
+
+async function getBackupFilesIndexed({
+  project_id,
+  id,
+  path: subpath,
+}: {
+  project_id: string;
+  id: string;
+  path?: string;
+}): Promise<{ name: string; isDir: boolean; mtime: number; size: number }[]> {
+  await syncBackupIndexCache(project_id);
+  const manifest = await loadBackupIndexManifest(project_id);
+  const entry = manifest.entries[id];
+  if (!entry) return [];
+  const dbPath = join(backupIndexDir(project_id), entry.file);
+  if (!(await exists(dbPath))) return [];
+  const parent =
+    (subpath ?? "").replace(/^\/+/, "").replace(/^\.\/+/, "") ?? "";
+  const db = new DatabaseSync(dbPath);
+  try {
+    const rows = db
+      .prepare(
+        "SELECT name, type, size, mtime FROM files WHERE parent = ? ORDER BY name",
+      )
+      .all(parent);
+    return rows.map((row: any) => ({
+      name: row.name,
+      isDir: row.type === "d",
+      mtime: row.mtime ?? 0,
+      size: row.size ?? 0,
+    }));
+  } finally {
+    db.close();
+  }
+}
+
 // Rustic backups
 async function createBackup({
   project_id,
@@ -510,7 +888,12 @@ async function createBackup({
   const vol = await getVolume(project_id);
   vol.fs.rusticRepo = await resolveRusticRepo(project_id);
   const progress = createLroRusticReporter(lro, "backup");
-  const result = await vol.rustic.backup({ limit, tags, progress });
+  const result = await vol.rustic.backup({
+    limit,
+    tags,
+    progress,
+    index: { project_id },
+  });
   try {
     await reportBackupSuccess(project_id, result.time);
   } catch (err) {
@@ -658,6 +1041,18 @@ async function deleteBackup({
 }): Promise<void> {
   const vol = await getVolumeForBackup(project_id);
   await vol.rustic.forget({ id });
+  try {
+    await rustic(["forget", "--filter-label", `${BACKUP_INDEX_LABEL_PREFIX}${id}`], {
+      repo: vol.fs.rusticRepo,
+      host: backupIndexHost(project_id),
+      timeout: 30 * 60 * 1000,
+    });
+  } catch (err) {
+    logger.warn("backup index delete failed", { project_id, id, err });
+  }
+  await removeBackupIndexLocal(project_id, id).catch((err) => {
+    logger.warn("backup index cache cleanup failed", { project_id, id, err });
+  });
 }
 
 async function updateBackups({
@@ -671,12 +1066,23 @@ async function updateBackups({
 }): Promise<void> {
   const vol = await getVolumeForBackup(project_id);
   await vol.rustic.update(counts, { limit });
+  try {
+    const backups = await vol.rustic.snapshots();
+    await syncBackupIndexCache(project_id, {
+      backupIds: new Set(backups.map((backup) => backup.id)),
+      force: true,
+    });
+  } catch (err) {
+    logger.warn("backup index update failed", { project_id, err });
+  }
 }
 
 export async function getBackups({
   project_id,
+  indexed_only,
 }: {
   project_id: string;
+  indexed_only?: boolean;
 }): Promise<
   {
     id: string;
@@ -685,7 +1091,18 @@ export async function getBackups({
   }[]
 > {
   const vol = await getVolumeForBackup(project_id);
-  return await vol.rustic.snapshots();
+  const backups = await vol.rustic.snapshots();
+  if (!indexed_only) {
+    return backups;
+  }
+  try {
+    const indexed = await listBackupIndexSnapshots(project_id);
+    const indexedSet = new Set(indexed.map((entry) => entry.backup_id));
+    return backups.filter((backup) => indexedSet.has(backup.id));
+  } catch (err) {
+    logger.warn("backup index list failed", { project_id, err });
+    return [];
+  }
 }
 
 async function getBackupFiles({
@@ -697,8 +1114,12 @@ async function getBackupFiles({
   id: string;
   path?: string;
 }): Promise<{ name: string; isDir: boolean; mtime: number; size: number }[]> {
-  const vol = await getVolumeForBackup(project_id);
-  return await vol.rustic.ls({ id, path });
+  try {
+    return await getBackupFilesIndexed({ project_id, id, path });
+  } catch (err) {
+    logger.warn("backup index listing failed", { project_id, id, err });
+    return [];
+  }
 }
 
 async function findBackupFiles({
@@ -723,8 +1144,19 @@ async function findBackupFiles({
     size: number;
   }[]
 > {
-  const vol = await getVolumeForBackup(project_id);
-  return await vol.rustic.find({ glob, iglob, path, ids });
+  try {
+    const indexed = await findBackupFilesIndexed({
+      project_id,
+      glob,
+      iglob,
+      path,
+      ids,
+    });
+    return indexed;
+  } catch (err) {
+    logger.warn("backup index search failed", { project_id, err });
+    return [];
+  }
 }
 
 // File Sync

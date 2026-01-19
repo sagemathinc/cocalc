@@ -11,9 +11,7 @@ The subcommands with some whitelisted support are:
 
    - backup
    - snapshots
-   - ls
    - restore
-   - find
    - forget
 
 The source options are relative paths and the command is run from the
@@ -33,12 +31,6 @@ the command is run. Destination is relative to sandbox_path.
 Dump is used for viewing a version of a file via timetravel:
 
     rustic dump <snapshot_id:path>
-
-Find is used for getting info about all versions of a file that are backed up:
-
-    rustic find  --filter-host=...
-
-    rustic find --filter-host=...  --glob='foo/x.txt' -h
 
 
 Delete snapshots:
@@ -147,15 +139,6 @@ export default async function rustic(
       );
       return await run([...options, "--filter-host", host]);
     }
-    case "ls": {
-      if (args.length <= 1) {
-        throw Error("missing <SNAPSHOT[:PATH]>");
-      }
-      const snapshot = args.slice(-1)[0]; // <SNAPSHOT[:PATH]>
-      await assertValidSnapshot({ snapshot, host, repo });
-      const options = parseAndValidateOptions(args.slice(1, -1), whitelist.ls);
-      return await run([...options, snapshot]);
-    }
     case "restore": {
       if (args.length <= 2) {
         throw Error("missing <SNAPSHOT[:PATH]>");
@@ -171,10 +154,6 @@ export default async function rustic(
         whitelist.restore,
       );
       return await run([...options, snapshot, destination]);
-    }
-    case "find": {
-      const options = parseAndValidateOptions(args.slice(1), whitelist.find);
-      return await run([...options, "--filter-host", host]);
     }
     case "forget": {
       if (args.length == 2 && !args[1].startsWith("-")) {
@@ -240,37 +219,6 @@ const whitelist = {
     "--help": true,
     "--glob": validate.str,
     "--iglob": validate.str,
-  },
-  ls: {
-    "-s": true,
-    "--summary": true,
-    "-l": true,
-    "--long": true,
-    "--json": true,
-    "--recursive": true,
-    "-h": true,
-    "--help": true,
-    "--glob": validate.str,
-    "--iglob": validate.str,
-  },
-  find: {
-    "--glob": validate.str,
-    "--iglob": validate.str,
-    "--path": validate.str,
-    "-g": validate.str,
-    "--group-by": validate.str,
-    "--all": true,
-    "--show-misses": true,
-    "-h": true,
-    "--help": true,
-    "--filter-label": validate.str,
-    "--filter-paths": validate.str,
-    "--filter-paths-exact": validate.str,
-    "--filter-after": validate.str,
-    "--filter-before": validate.str,
-    "--filter-size": validate.str,
-    "--filter-size-added": validate.str,
-    "--filter-jq": validate.str,
   },
   forget: {
     "--json": true,

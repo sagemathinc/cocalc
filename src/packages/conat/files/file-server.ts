@@ -163,7 +163,7 @@ export interface Fileserver {
     // made if counts are too large!
     limit?: number;
   }) => Promise<void>;
-  getBackups: (opts: { project_id: string }) => Promise<
+  getBackups: (opts: { project_id: string; indexed_only?: boolean }) => Promise<
     {
       id: string;
       time: Date;
