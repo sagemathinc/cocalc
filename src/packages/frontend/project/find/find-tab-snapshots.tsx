@@ -93,6 +93,13 @@ export function SnapshotsTab({
   >({});
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const listRef = useRef<VirtuosoHandle>(null);
+  const queryRef = useRef(state.query);
+  const modeRef = useRef(state.mode);
+
+  useEffect(() => {
+    queryRef.current = state.query;
+    modeRef.current = state.mode;
+  }, [state.query, state.mode]);
 
   const runSearch = useCallback(
     async (override?: string, nextMode?: SnapshotSearchMode) => {
@@ -180,6 +187,12 @@ export function SnapshotsTab({
   }, [prefill, runSearch, setState]);
 
   useEffect(() => {
+    const q = queryRef.current?.trim();
+    if (!q) return;
+    void runSearch(q, modeRef.current);
+  }, [scopePath, snapshotName, runSearch]);
+
+  useEffect(() => {
     setStatsMap({});
   }, [state.query, state.mode, scopePath, snapshotName]);
 
@@ -231,13 +244,28 @@ export function SnapshotsTab({
 
   const displayResults = useMemo(() => {
     if (!results.length) return results;
-    return results.map((result) => {
+    const withStats = results.map((result) => {
       const key = `${result.snapshot}:${result.path}`;
       const stats = statsMap[key];
       if (!stats) return result;
       return { ...result, ...stats };
     });
-  }, [results, statsMap]);
+    if (state.mode !== "files") return withStats;
+    const output: SnapshotResult[] = [];
+    const lastSig = new Map<string, string>();
+    for (const result of withStats) {
+      const hasSig =
+        typeof result.mtime === "number" && typeof result.size === "number";
+      const signature = hasSig ? `${result.mtime}:${result.size}` : "";
+      const prev = lastSig.get(result.path);
+      if (hasSig && prev === signature) continue;
+      output.push(result);
+      if (hasSig) {
+        lastSig.set(result.path, signature);
+      }
+    }
+    return output;
+  }, [results, statsMap, state.mode]);
 
   const filteredResults = useMemo(() => {
     const f = state.filter.trim();

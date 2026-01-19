@@ -224,7 +224,7 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
   - (done) use btrfs subvolume generation to detect running changes (plus stop-time check)
   - (done) make `last_edited` reliable and update on FS writes/agent runs/stop
 
-### \(done\) Improved Backup UX
+### Improved Backup UX
 
 Goal: make backups usable without full restore by adding search + read-only file viewing and clearer restore actions.
 
@@ -319,3 +319,4 @@ Goal: make backups usable without full restore by adding search + read-only file
    - Filter input should remain visible even when filtered results are empty.
    - Improve spacing/typography and result card hierarchy.
    - Add source badges and quick actions: open, reveal, restore (where applicable).
+

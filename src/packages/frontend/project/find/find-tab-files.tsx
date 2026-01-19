@@ -55,6 +55,11 @@ export function FilesTab({
   const [lastQuery, setLastQuery] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const listRef = useRef<VirtuosoHandle>(null);
+  const queryRef = useRef(state.query);
+
+  useEffect(() => {
+    queryRef.current = state.query;
+  }, [state.query]);
 
   const runSearch = useCallback(
     async (override?: string) => {
@@ -105,6 +110,12 @@ export function FilesTab({
       void runSearch(prefill.query);
     }
   }, [prefill, runSearch, setState]);
+
+  useEffect(() => {
+    const q = queryRef.current?.trim();
+    if (!q) return;
+    void runSearch(q);
+  }, [scopePath, runSearch]);
 
   const filteredResults = useMemo(() => {
     const f = state.filter.trim();

@@ -1,4 +1,4 @@
-import { Button, Input, Modal, Select, Space, Tooltip } from "antd";
+import { Alert, Button, Input, Modal, Select, Space, Tooltip } from "antd";
 import { dirname, join } from "path";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import DirectorySelector from "@cocalc/frontend/project/directory-selector";
@@ -37,7 +37,13 @@ export function FindScopeBar({
   );
   const [selectorOpen, setSelectorOpen] = useState(false);
   const [pendingPath, setPendingPath] = useState(scopePath);
+  const [draftPath, setDraftPath] = useState(scopePath);
   const [gitLoading, setGitLoading] = useState(false);
+  const [checkingPath, setCheckingPath] = useState(false);
+  const [pathWarning, setPathWarning] = useState<{
+    path: string;
+    message: string;
+  } | null>(null);
 
   useEffect(() => {
     if (selectorOpen) {
@@ -45,16 +51,23 @@ export function FindScopeBar({
     }
   }, [selectorOpen, scopePath]);
 
-  const label = scopePath ? scopePath : "Home";
+  useEffect(() => {
+    setDraftPath(scopePath);
+    if (pathWarning && pathWarning.path !== scopePath) {
+      setPathWarning(null);
+    }
+  }, [scopePath, pathWarning]);
 
   const setHome = useCallback(() => {
     onScopeModeChange("home");
     onScopePathChange("");
+    setPathWarning(null);
   }, [onScopeModeChange, onScopePathChange]);
 
   const setCurrent = useCallback(() => {
     onScopeModeChange("current");
     onScopePathChange(currentPath);
+    setPathWarning(null);
   }, [onScopeModeChange, onScopePathChange, currentPath]);
 
   const setGitRoot = useCallback(async () => {
@@ -70,10 +83,45 @@ export function FindScopeBar({
       }
       onScopeModeChange("git");
       onScopePathChange(root);
+      setPathWarning(null);
     } finally {
       setGitLoading(false);
     }
   }, [fs, currentPath, onScopeModeChange, onScopePathChange]);
+
+  const commitPath = useCallback(
+    async (nextRaw: string) => {
+      const trimmed = nextRaw.trim().replace(/^\/+/, "");
+      if (trimmed === scopePath) return;
+      if (!trimmed) {
+        onScopeModeChange("home");
+        onScopePathChange("");
+        setPathWarning(null);
+        return;
+      }
+      onScopeModeChange("custom");
+      onScopePathChange(trimmed);
+      setPathWarning(null);
+      setCheckingPath(true);
+      try {
+        const ok = await fs.exists(trimmed);
+        if (!ok) {
+          setPathWarning({
+            path: trimmed,
+            message: `Path not found: ${trimmed}`,
+          });
+        }
+      } catch (err) {
+        setPathWarning({
+          path: trimmed,
+          message: `Could not verify path: ${err}`,
+        });
+      } finally {
+        setCheckingPath(false);
+      }
+    },
+    [fs, onScopeModeChange, onScopePathChange, scopePath],
+  );
 
   return (
     <div>
@@ -81,10 +129,15 @@ export function FindScopeBar({
         <Space wrap>
           <strong>Find in</strong>
           <Input
-            readOnly
-            value={label}
+            value={draftPath}
+            allowClear
+            placeholder="Home"
             size={size}
             style={{ width: mode === "flyout" ? 200 : 320 }}
+            status={pathWarning ? "warning" : undefined}
+            onChange={(e) => setDraftPath(e.target.value)}
+            onPressEnter={() => commitPath(draftPath)}
+            onBlur={() => commitPath(draftPath)}
           />
           <Tooltip title={scopePinned ? "Unpin path" : "Pin path"}>
             <Button
@@ -131,6 +184,7 @@ export function FindScopeBar({
               onChange={(value) => {
                 onScopeModeChange("custom");
                 onScopePathChange(value ?? "");
+                setPathWarning(null);
               }}
               options={history.map((path) => ({
                 value: path,
@@ -140,6 +194,22 @@ export function FindScopeBar({
           ) : null}
         </Space>
       </div>
+      {pathWarning ? (
+        <Alert
+          style={{ marginBottom: "8px" }}
+          type="warning"
+          showIcon
+          message={pathWarning.message}
+        />
+      ) : null}
+      {checkingPath ? (
+        <Alert
+          style={{ marginBottom: "8px" }}
+          type="info"
+          showIcon
+          message="Checking path..."
+        />
+      ) : null}
       <Modal
         open={selectorOpen}
         destroyOnClose

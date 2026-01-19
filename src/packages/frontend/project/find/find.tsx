@@ -42,6 +42,15 @@ export const ProjectFind: React.FC<{ mode: "project" | "flyout" }> = ({
     { project_id },
     "find_scope_history",
   ) as string[] | undefined;
+  const userInput = useTypedRedux({ project_id }, "user_input");
+  const mostRecentSearch = useTypedRedux(
+    { project_id },
+    "most_recent_search",
+  );
+  const mostRecentPath = useTypedRedux(
+    { project_id },
+    "most_recent_path",
+  );
 
   const availableTabs = lite ? LITE_TABS : FULL_TABS;
   const scopeMode: FindScopeMode = storedScopeMode ?? "current";
@@ -135,6 +144,8 @@ export const ProjectFind: React.FC<{ mode: "project" | "flyout" }> = ({
   }, [scopeMode, scopePinned, scopePath, currentPath, updateScopePath]);
 
   const scopeContext = useMemo(() => getScopeContext(scopePath), [scopePath]);
+  const scopedPath =
+    scopeContext.kind === "normal" ? scopePath : scopeContext.innerPath;
   const restrictedTab: FindTab | null =
     scopeContext.kind === "backups"
       ? "backups"
@@ -183,6 +194,22 @@ export const ProjectFind: React.FC<{ mode: "project" | "flyout" }> = ({
     updateScopePath,
   ]);
 
+  useEffect(() => {
+    if (!actions) return;
+    if (normalizedTab !== "contents") return;
+    if (!userInput?.trim()) return;
+    if (mostRecentSearch == null) return;
+    if (mostRecentPath === scopedPath) return;
+    actions.search({ path: scopedPath });
+  }, [
+    actions,
+    normalizedTab,
+    userInput,
+    mostRecentSearch,
+    mostRecentPath,
+    scopedPath,
+  ]);
+
   const onTabChange = useCallback(
     (next: string) => {
       const tab = next as FindTab;
@@ -228,8 +255,6 @@ export const ProjectFind: React.FC<{ mode: "project" | "flyout" }> = ({
     ) : null;
 
   const renderTabContent = () => {
-    const scopedPath =
-      scopeContext.kind === "normal" ? scopePath : scopeContext.innerPath;
     switch (normalizedTab) {
       case "contents":
         return (

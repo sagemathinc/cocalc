@@ -50,6 +50,19 @@ function timeMs(date: Date): number {
   return Number.isNaN(ms) ? 0 : ms;
 }
 
+function dedupeBackupResults(items: BackupResult[]): BackupResult[] {
+  const output: BackupResult[] = [];
+  const lastSig = new Map<string, string>();
+  for (const item of items) {
+    const signature = `${item.mtime ?? 0}:${item.size ?? 0}`;
+    const prev = lastSig.get(item.path);
+    if (prev === signature) continue;
+    output.push(item);
+    lastSig.set(item.path, signature);
+  }
+  return output;
+}
+
 export function BackupsTab({
   mode,
   scopePath,
@@ -74,6 +87,11 @@ export function BackupsTab({
   const [backupIds, setBackupIds] = useState<string[] | undefined>();
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
   const listRef = useRef<VirtuosoHandle>(null);
+  const queryRef = useRef(state.query);
+
+  useEffect(() => {
+    queryRef.current = state.query;
+  }, [state.query]);
 
   useEffect(() => {
     let cancelled = false;
@@ -160,7 +178,9 @@ export function BackupsTab({
           if (aTime !== bTime) return bTime - aTime;
           return a.path.localeCompare(b.path);
         });
-        setResults(filtered);
+        const deduped =
+          state.mode === "files" ? dedupeBackupResults(filtered) : filtered;
+        setResults(deduped);
       } catch (err) {
         setError(`${err}`);
       } finally {
@@ -190,6 +210,12 @@ export function BackupsTab({
     if (!state.query.trim()) return;
     void runSearch(state.query);
   }, [backupName, backupIds, state.query, runSearch]);
+
+  useEffect(() => {
+    const q = queryRef.current?.trim();
+    if (!q) return;
+    void runSearch(q);
+  }, [scopePath, backupName, backupIds, runSearch]);
 
   const filteredResults = useMemo(() => {
     const f = state.filter.trim();
