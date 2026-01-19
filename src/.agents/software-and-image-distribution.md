@@ -137,6 +137,7 @@ This plan covers:
 
 - Primary format: btrfs send stream of a rootfs subvolume.
 - Secondary (fallback): tar.zst of the rootfs directory.
+- TODO: benchmark btrfs send stream vs tar.zst vs rustic for size/speed/CPU.
 - Each image has a content-addressed key derived from:
   - registry image ref + digest + env (gpu/cpu) + architecture.
 
@@ -145,10 +146,11 @@ This plan covers:
 - If a host needs a rootfs and it is missing locally:
   1) Pull image, expand to `/btrfs/rootfs/<key>`.
   2) Start project (fast path).
-  3) In background, create a btrfs send stream and upload to R2.
+  3) In background, create a btrfs send stream (or tar.zst fallback) and upload to R2.
 - Any trusted host can act as the builder/uploader.
 - Upload metadata:
   - `rootfs/<key>.btrfs` (send stream)
+  - `rootfs/<key>.tar.zst` (fallback)
   - `rootfs/<key>.sha256`
   - `rootfs/<key>.json` (size, build host, created_at, base image digest)
 
@@ -157,9 +159,9 @@ This plan covers:
 - On host start or when a project needs an image:
   - Check local cache (subvolume exists).
   - If missing, fetch `rootfs/<key>.json` from R2.
-  - Download stream + verify sha256.
-  - `btrfs receive` into `/btrfs/rootfs/<key>`.
-  - If receive fails, fall back to tar.zst (if present) or pull from registry.
+- Download stream + verify sha256.
+- `btrfs receive` into `/btrfs/rootfs/<key>`.
+- If receive fails, fall back to tar.zst (if present) or pull from registry.
 
 ### Cache + GC
 
@@ -218,4 +220,3 @@ This plan covers:
 3) Keep SSH bootstrap as fallback for 1 day.
 4) After cloud-init is stable, remove SSH bootstrap.
 5) Implement rootfs distribution as a follow-up optimization.
-

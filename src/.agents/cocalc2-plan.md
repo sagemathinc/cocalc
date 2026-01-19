@@ -294,7 +294,7 @@ flowchart TB
 
 - **Compute servers (recast as project-hosts)**
   - Compute servers become user-owned project-hosts (powerful VMs, often GPU). No `project_id` column; access controlled by host ACL.
-  - Users sync/copy data between projects (reflect-sync/btrfs send) instead of remote-mounting a project FS.
+  - Users sync/copy data between projects via backup/restore or LRO copy operations (no host-to-host transfer).
   - Must support userspace-only deployments (podman) for HPC/on-prem; registration + auth is the same as any host.
 
 - **Service extraction/refactors**
@@ -303,7 +303,7 @@ flowchart TB
   - Add host-local conat instance per host; master uses conat only for control-plane topics.
 
 - **Project moves and storage**
-  - Moves: snapshot + `btrfs send/recv` between hosts; update project→host map; optional delta/cutover; validate and clean source. Also move all persist sqlite stores!
+  - Moves: backup → restore → start using rustic; update project→host map; validate and clean source. Persist sqlite stays with the project host.
   - Backups: per-host Btrfs snapshots + rustic to object storage; tag snapshots/backups with project IDs for audit/GC. Also backup all persist sqlite stores.
   - PD/Btrfs as primary; optional SSD cache layer later.
 
@@ -326,7 +326,7 @@ flowchart TB
 - **Rollout steps**
   1. (done) Embed file-server in project-host; add host registration + project→host map in master.
   2. Implement signed connect tokens and direct user→host path; keep proxy fallback.
-  3. Implement project move workflow (btrfs send/recv) and backup tagging.
+  3. Implement project move workflow (backup → restore → start) and backup tagging.
   4. Pilot a small pool in one zone; test offline/TTL behavior, direct vs proxy, moves/backups; add observability.
   5. Add reverse-tunnel connector for hidden/on-prem hosts without changing routing core.
 
@@ -376,7 +376,6 @@ flowchart LR
   User -->|WS/HTTP| Proxy --> AConat
 
   %% Mobility/backup (illustrative)
-  ARunner <-. btrfs send/recv .-> BRunner
   ARunner <-. rustic (GCS/S3) .-> BRunner
 
   %% Host bootstrap
@@ -404,7 +403,7 @@ flowchart LR
 
 - [x] Backups \-\- Rustic/GCS backup pipeline with retention tags per project/host; per\-host health checks.
 
-- [x] implement move project using btrfs
+- [x] implement move project using backup → restore → start
   - [x] deleting snapshot fails after a move \(some stale state somewhere on the backend; not sure\)
 - [x] expose image/pull errors cleanly
 
@@ -430,8 +429,7 @@ flowchart LR
 - [x] rewrite src/packages/project\-proxy/container.ts, in process rewriting /src/packages/project\-proxy/proxy.ts to take a function to get port as input
 
 - [x] make sure the websockets to project\-host properly reconnect, despite different config.
-- [x] Cross\-host data motion: copy/move between hosts \(rsync \+ btrfs send/recv\), GC source after validation, update project→host map, and surface progress/errors to users.
-  - [x] implement copy between _different_ project\-host via ssh
+- [x] Cross\-host data motion: copy/move between hosts via rustic, GC source after validation, update project→host map, and surface progress/errors to users.
 
 - [x] looking up the project is async but the subject routing is sync, so it will fail the first time in src/packages/server/conat/route\-project.ts; this MUST get fixed or everything will be broken/flakie at first. Solution is make some options to conat/core/client be a promise optionally and delay the connection.
 - [x] memory quota: i think that was set on the pod; I don't see it being set now at all
@@ -462,4 +460,3 @@ flowchart LR
 - [x] Removed sidecar/reflect-sync path; runner now directly launches single podman container with Btrfs mounts.
 - [x] Vendored file-server bootstrap into project-host with Btrfs/rustic/quotas; added fs.\* conat service and SSH proxy integration.
 - [x] Moved SEA/bundle logic from lite to plus and from runner to project-host; excluded build output from tsc; removed old REST `/projects` endpoints and added catch-all redirect.
-

@@ -134,7 +134,7 @@ Primary: HTTPS via Cloudflare Tunnel
 Option A: reflect-sync port forwarding
 
 - Use existing reflect\-sync program for TCP forwarding.
-- Useful for SSH and direct host\-to\-host traffic.
+- Useful for SSH and direct host access when NAT blocks inbound traffic.
 - May require a rendezvous endpoint if both ends are behind NAT.
   - good point, and that isn't something it can do, actually.
 
@@ -145,7 +145,6 @@ Option B: Wireguard overlay
 
 Fallback (no direct host-to-host traffic):
 
-- Do not use btrfs send/receive between hosts.
 - Use Rustic backups via R2 for migration and file transfer.
 - Requires only outbound access to R2.
 
@@ -168,26 +167,6 @@ GPU note:
 - For GPU needs on self-hosted setups, the likely path is **run project-host
   directly on the GPU server** (no nested VM) or offer a Linux-only libvirt
   backend later.
-
-## Host-to-Host SSH via Cloudflare Access
-
-Goal: allow project-hosts to SSH/rsync/btrfs-send to each other without
-maintaining our own VPN or jump nodes.
-
-Plan:
-
-- Use the existing cloudflared daemon on each host and add a second ingress
-  hostname for SSH (e.g. `ssh-<host_id>.cocalc.ai` → `ssh://localhost:2222`).
-- Enable Cloudflare Access for the SSH hostname.
-- Use Access service tokens on project-hosts so the SSH client can authenticate
-  non-interactively.
-- Configure ProxyCommand so rsync/btrfs send/recv use cloudflared:
-  `ssh -o ProxyCommand='cloudflared access ssh --hostname %h' ...`
-
-Notes:
-
-- This is TCP over Access (not raw public SSH), so no inbound ports needed.
-- Only project-hosts need the Access tokens; users do not.
 
 ## Multipass Connector Details
 

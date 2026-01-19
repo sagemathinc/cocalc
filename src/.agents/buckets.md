@@ -100,7 +100,7 @@
 - No changes in smoke‑runner in this phase, but keep the function signature clean so we can call it from tests later.
 
 11. **Docs / TODO alignment**
-12. another thing I just remembered \-\- we need to add a very clear warning in the move dialog that snapshots are NOT moved \(they get deleted\); only the backup history is preserved.
+12. \(done\) add a very clear warning in the move dialog that snapshots are NOT moved \(they get deleted\); only the backup history is preserved.
 
 ### \(done\) Phase 3: Copy files between hosts
 
@@ -184,16 +184,16 @@ There is no separate "safe mode"; honor `CopyOptions` (e.g., `errorOnExist`, `fo
 
 ### \(done\) Phase 4: Cleanup / compatibility
 
-- **(pending) No backward compatibility**:
-  - (pending) treat layout v2 as the only supported format
-  - (pending) new snapshots must include metadata; restore logic assumes it
+- **(done) No backward compatibility**:
+  - (done) treat layout v2 as the only supported format
+  - (done) new snapshots must include metadata; restore logic assumes it
 - (done) address issues with brokeness due to persist being temporarily not allowed until subvolume exists.
 - **Remove legacy ssh/rsync transfers (keep user SSH intact)**:
   - (done) delete project-host rsync copy path (`copyPaths`) and related helpers
   - (done) drop host/btrfs SSH targets from sshpiperd auth; keep project targets
   - (done) remove host/btrfs SSH proxy containers and startup wiring
   - (done) remove host-to-host key generation/storage and related sqlite fields
-  - (pending) sweep docs/scripts for rsync/btrfs transfer mentions
+  - (done) sweep docs/scripts for rsync/btrfs transfer mentions
 
 ### \(done\) Phase 5: Manage Backup Status
 
@@ -319,4 +319,3 @@ Goal: make backups usable without full restore by adding search + read-only file
    - Filter input should remain visible even when filtered results are empty.
    - Improve spacing/typography and result card hierarchy.
    - Add source badges and quick actions: open, reveal, restore (where applicable).
-
