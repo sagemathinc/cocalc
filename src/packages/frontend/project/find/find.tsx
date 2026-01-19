@@ -504,7 +504,7 @@ function FilesTab({
           message="No results."
         />
       ) : null}
-      {resultCount > 0 ? (
+      {resultCount > 0 || filter.trim() ? (
         <div
           style={{
             marginTop: "10px",
@@ -521,41 +521,46 @@ function FilesTab({
             onChange={(e) => setFilter(e.target.value)}
             style={{ marginBottom: "8px" }}
           />
-          <Virtuoso
-            style={{ flex: 1 }}
-            totalCount={resultCount}
-            itemContent={(index) => {
-              const path = filteredResults[index];
-              return (
-                <FindPathRow
-                  key={`${path}-${index}`}
-                  path={path}
-                  onClick={async (e) => {
-                    if (!actions) return;
-                    const fullPath = path_to_file(scopePath, path);
-                    const stats = await fs.stat(fullPath);
-                    if (stats.isDirectory()) {
-                      actions.open_directory(fullPath, true, false);
-                      return;
-                    }
-                    const { tail } = path_split(fullPath);
-                    let chat = false;
-                    let openPath = fullPath;
-                    if (tail.startsWith(".") && isChatExtension(filename_extension(tail))) {
-                      openPath = auxFileToOriginal(fullPath);
-                      chat = true;
-                    }
-                    await actions.open_file({
-                      path: openPath,
-                      foreground: should_open_in_foreground(e),
-                      explicit: true,
-                      chat,
-                    });
-                  }}
-                />
-              );
-            }}
-          />
+          {resultCount > 0 ? (
+            <Virtuoso
+              style={{ flex: 1 }}
+              totalCount={resultCount}
+              itemContent={(index) => {
+                const path = filteredResults[index];
+                return (
+                  <FindPathRow
+                    key={`${path}-${index}`}
+                    path={path}
+                    onClick={async (e) => {
+                      if (!actions) return;
+                      const fullPath = path_to_file(scopePath, path);
+                      const stats = await fs.stat(fullPath);
+                      if (stats.isDirectory()) {
+                        actions.open_directory(fullPath, true, false);
+                        return;
+                      }
+                      const { tail } = path_split(fullPath);
+                      let chat = false;
+                      let openPath = fullPath;
+                      if (
+                        tail.startsWith(".") &&
+                        isChatExtension(filename_extension(tail))
+                      ) {
+                        openPath = auxFileToOriginal(fullPath);
+                        chat = true;
+                      }
+                      await actions.open_file({
+                        path: openPath,
+                        foreground: should_open_in_foreground(e),
+                        explicit: true,
+                        chat,
+                      });
+                    }}
+                  />
+                );
+              }}
+            />
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -954,9 +959,11 @@ function BackupsTab({
           size={mode === "flyout" ? "small" : "middle"}
         >
           <Radio.Button value="files">Files</Radio.Button>
-          <Radio.Button value="contents" disabled>
-            Contents
-          </Radio.Button>
+          <Tooltip title="Backup contents search isn't supported yet. Use snapshots for content search.">
+            <Radio.Button value="contents" disabled>
+              Contents
+            </Radio.Button>
+          </Tooltip>
         </Radio.Group>
         <Button
           size="small"
