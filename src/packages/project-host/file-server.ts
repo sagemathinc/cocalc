@@ -316,8 +316,10 @@ async function ensureBackupConfig(project_id: string): Promise<string | null> {
 export async function resolveRusticRepo(project_id?: string): Promise<string> {
   if (!project_id) return rusticRepo;
   const profilePath = await ensureBackupConfig(project_id);
-  if (profilePath) return profilePath;
-  return rusticRepo;
+  if (!profilePath) {
+    throw new Error(`missing backup config for project ${project_id}`);
+  }
+  return profilePath;
 }
 
 // Map a container path (relative to /root) to an absolute host path inside the
@@ -578,15 +580,6 @@ function parseBackupIdFromLabel(label?: string): string | null {
   return match?.[1] ?? null;
 }
 
-function parseBackupIdFromPaths(paths?: string[]): string | null {
-  if (!paths?.length) return null;
-  for (const raw of paths) {
-    const match = raw.match(/backup-([0-9a-f-]+)\.sqlite$/i);
-    if (match?.[1]) return match[1];
-  }
-  return null;
-}
-
 async function listBackupIndexSnapshots(project_id: string): Promise<
   {
     backup_id: string;
@@ -612,9 +605,7 @@ async function listBackupIndexSnapshots(project_id: string): Promise<
   }
   return snapshots
     .map((snap) => {
-      const backup_id =
-        parseBackupIdFromLabel(snap.label) ??
-        parseBackupIdFromPaths(snap.paths);
+      const backup_id = parseBackupIdFromLabel(snap.label);
       if (!backup_id || !snap.id || !snap.time) return null;
       return {
         backup_id,
