@@ -14,13 +14,11 @@ import {
   Capabilities,
   Configuration,
   ConfigurationAspect,
-  LIBRARY_INDEX_FILE,
   MainCapabilities,
 } from "@cocalc/comm/project-configuration";
 import { syntax2tool, Tool as FormatTool } from "@cocalc/util/code-formatter";
 import { copy } from "@cocalc/util/misc";
 import { exec as child_process_exec } from "child_process";
-import { access as fs_access, constants as fs_constaints } from "fs";
 import { realpath } from "fs/promises";
 import { promisify } from "util";
 import which from "which";
@@ -185,16 +183,6 @@ async function get_rserver(): Promise<boolean> {
   return await have("rserver");
 }
 
-// check if we can read that json file.
-// if it exists, show the corresponding button in "Files".
-async function get_library(): Promise<boolean> {
-  return new Promise<boolean>((resolve) => {
-    fs_access(LIBRARY_INDEX_FILE, fs_constaints.R_OK, (err) => {
-      resolve(err ? false : true);
-    });
-  });
-}
-
 // formatting code, e.g. python, javascript, etc.
 // we check this here, because the frontend should offer these choices if available.
 // in some cases like python, there could be multiple ways (yapf, yapf3, black, autopep8, ...)
@@ -287,7 +275,6 @@ const capabilities = reuseInFlight(async (): Promise<MainCapabilities> => {
       html2pdf,
       pandoc,
       sshd,
-      library,
       x11,
       rmd,
       qmd,
@@ -303,7 +290,6 @@ const capabilities = reuseInFlight(async (): Promise<MainCapabilities> => {
       get_html2pdf(),
       get_pandoc(),
       get_sshd(),
-      get_library(),
       get_x11(),
       get_rmd(),
       get_quarto(),
@@ -325,7 +311,6 @@ const capabilities = reuseInFlight(async (): Promise<MainCapabilities> => {
       qmd,
       jq: await get_jq(), // don't know why, but it doesn't compile when inside the Promise.all
       spellcheck,
-      library,
       sshd,
       html2pdf,
       pandoc,

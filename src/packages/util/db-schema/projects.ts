@@ -695,7 +695,6 @@ export interface StudentProjectFunctionality {
   disableJupyterLabServer?: boolean;
   disableRServer?: boolean;
   disableVSCodeServer?: boolean;
-  disableLibrary?: boolean;
   disableNetworkWarningBanner?: boolean;
   disablePlutoServer?: boolean;
   disableTerminals?: boolean;

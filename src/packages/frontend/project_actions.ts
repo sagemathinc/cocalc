@@ -3,10 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// TODO: we should refactor our code to not have these window/document/$ references here.
-declare let window, document, $;
+// TODO: we should refactor our code to not have these window/document references here.
+declare let window, document;
 
-import * as async from "async";
 import { callback } from "awaiting";
 import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
@@ -73,7 +72,6 @@ import { API } from "@cocalc/frontend/project/websocket/api";
 import {
   Configuration,
   ConfigurationAspect,
-  LIBRARY_INDEX_FILE,
   ProjectConfiguration,
   is_available as feature_is_available,
   get_configuration,
@@ -165,15 +163,6 @@ export const QUERIES = {
   },
 };
 
-// src: where the library files are
-// start: open this file after copying the directory
-const LIBRARY = {
-  first_steps: {
-    src: "/ext/library/first-steps/src",
-    start: "first-steps.tasks",
-  },
-};
-
 const must_define = function (redux) {
   if (redux == null) {
     throw Error(
@@ -181,8 +170,6 @@ const must_define = function (redux) {
     );
   }
 };
-const _init_library_index_ongoing = {};
-const _init_library_index_cache = {};
 
 export const FILE_ACTIONS = {
   compress: {
@@ -620,10 +607,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (acc_table != null) {
       acc_table.set({ other_settings: { [NEW_FILENAMES]: family } });
     }
-  }
-
-  toggle_library(show?: boolean): void {
-    this.toggle_panel("show_library", show);
   }
 
   set_url_to_path(current_path, hash?: string): void {
@@ -1880,9 +1863,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     // initialize project configuration data
     this.init_configuration();
     this.init_runstate_watcher();
-    // init the library after project started.
-    this.init_library();
-    this.init_library_index();
   }
 
   // listen on certain runstate events and trigger associated actions
@@ -1987,184 +1967,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return next.get(aspect) as Configuration;
     },
   );
-
-  // this is called once by the project initialization
-  private async init_library() {
-    const conf = await this.init_configuration("main");
-    if (conf != null && conf.capabilities.library === false) return;
-
-    //if DEBUG then console.log("init_library")
-    // Deprecated: this only tests the existence
-    const check = (v, k, cb) => {
-      //if DEBUG then console.log("init_library.check", v, k)
-      const store = this.get_store();
-      if (store == undefined) {
-        cb("no store");
-        return;
-      }
-      if (store.get("library")?.get(k) != null) {
-        cb("already done");
-        return;
-      }
-      const { src } = v;
-      const cmd = `test -e ${src}`;
-      webapp_client.exec({
-        project_id: this.project_id,
-        command: cmd,
-        bash: true,
-        timeout: 30,
-        err_on_exit: false,
-        path: ".",
-        cb: (err, output) => {
-          if (!err) {
-            const store = this.get_store();
-            if (store == undefined) {
-              cb("no store");
-              return;
-            }
-            let library = store.get("library");
-            if (library != null) {
-              library = library.set(k, output.exit_code === 0);
-              this.setState({ library });
-            }
-          }
-          return cb(err);
-        },
-      });
-    };
-
-    async.series([(cb) => async.eachOfSeries(LIBRARY, check, cb)]);
-  }
-
-  private async init_library_index() {
-    const conf = await this.init_configuration("main");
-    if (conf != null && conf.capabilities.library === false) return;
-
-    let library, store: ProjectStore | undefined;
-    if (_init_library_index_cache[this.project_id] != null) {
-      const data = _init_library_index_cache[this.project_id];
-      store = this.get_store();
-      if (store == undefined) {
-        return;
-      }
-      library = store.get("library")?.set("examples", data);
-      this.setState({ library });
-      return;
-    }
-
-    if (_init_library_index_ongoing[this.project_id]) {
-      return;
-    }
-    _init_library_index_ongoing[this.project_id] = true;
-
-    const index_json_url = webapp_client.project_client.read_file({
-      project_id: this.project_id,
-      path: LIBRARY_INDEX_FILE,
-    });
-
-    const fetch = (cb) => {
-      const store = this.get_store();
-      if (store == undefined) {
-        cb("no store");
-        return;
-      }
-      $.ajax({
-        url: index_json_url,
-        timeout: 5000,
-        success: (data) => {
-          //if DEBUG then console.log("init_library/datadata
-          data = fromJS(data);
-
-          const store = this.get_store();
-          if (store == undefined) {
-            cb("no store");
-            return;
-          }
-          library = store.get("library")?.set("examples", data);
-          this.setState({ library });
-          _init_library_index_cache[this.project_id] = data;
-          cb();
-        },
-      }).fail((err) =>
-        //#if DEBUG then console.log("init_library/index: error reading file: #{misc.to_json(err)}")
-        cb(err.statusText != null ? err.statusText : "error"),
-      );
-    };
-
-    misc.retry_until_success({
-      f: fetch,
-      start_delay: 15000,
-      max_delay: 30000,
-      max_time: 1000 * 60, // try for at most 3 minutes
-      cb: () => {
-        _init_library_index_ongoing[this.project_id] = false;
-      },
-    });
-  }
-
-  copy_from_library(opts) {
-    let lib;
-    opts = defaults(opts, {
-      entry: undefined,
-      src: undefined,
-      target: undefined,
-      start: undefined,
-      docid: undefined, // for the log
-      title: undefined, // for the log
-      cb: undefined,
-    });
-
-    if (opts.entry != null) {
-      lib = LIBRARY[opts.entry];
-      if (lib == null) {
-        this.setState({ error: `Library entry '${opts.entry}' unknown` });
-        return;
-      }
-    }
-
-    const id = opts.id != null ? opts.id : misc.uuid();
-    this.set_activity({ id, status: "Copying files from library ..." });
-
-    // the rsync command purposely does not preserve the timestamps,
-    // such that they look like "new files" and listed on top under default sorting
-    const source = join(opts.src != null ? opts.src : lib.src, "/");
-    const target = join(opts.target != null ? opts.target : opts.entry, "/");
-    const start =
-      opts.start != null ? opts.start : lib != null ? lib.start : undefined;
-
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "rsync",
-      args: ["-rlDx", source, target],
-      timeout: 120, // how long rsync runs on client
-      err_on_exit: true,
-      path: ".",
-      cb: (err, output) => {
-        this._finish_exec(id)(err, output);
-        if (!err && start != null) {
-          const open_path = join(target, start);
-          if (open_path[open_path.length - 1] === "/") {
-            this.open_directory(open_path);
-          } else {
-            this.open_file({ path: open_path });
-          }
-          this.log({
-            event: "library",
-            action: "copy",
-            docid: opts.docid,
-            source: opts.src,
-            title: opts.title,
-            target,
-          });
-        }
-        return typeof opts.cb === "function" ? opts.cb(err) : undefined;
-      },
-    });
-  }
-
-  set_library_is_copying(status: boolean): void {
-    this.setState({ library_is_copying: status });
-  }
 
   copyPaths = async ({
     src,

@@ -6,7 +6,6 @@
 /*
 Terminal Editor Actions
 */
-import { delay } from "awaiting";
 import { BaseEditorActions as Actions } from "../base-editor/actions-base";
 import { FrameTree } from "../frame-tree/types";
 import { open_new_tab } from "../../misc";
@@ -80,19 +79,6 @@ export class TerminalActions extends Actions {
 
   public help(): void {
     open_new_tab(HELP_URL);
-  }
-
-  public async guide(): Promise<void> {
-    const id = this.show_focused_frame_of_type(
-      "commands_guide",
-      "col",
-      false,
-      3 / 4,
-    );
-    // the click to select TOC focuses the active id back on the notebook
-    await delay(0);
-    if (this._state === "closed") return;
-    this.set_active_id(id, true);
   }
 
   tour(_id, refs) {

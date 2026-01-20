@@ -15,17 +15,10 @@ import {
   useState,
 } from "react";
 import { useIntl } from "react-intl";
-import {
-  A,
-  ActivityDisplay,
-  ErrorDisplay,
-  Loading,
-  SettingBox,
-} from "@cocalc/frontend/components";
+import { ActivityDisplay, ErrorDisplay, Loading } from "@cocalc/frontend/components";
 import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
-import { Library } from "@cocalc/frontend/library";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
 import { labels } from "@cocalc/frontend/i18n";
 import AskNewFilename from "../ask-filename";
@@ -131,7 +124,6 @@ export function Explorer() {
     { project_id },
     "show_custom_software_reset",
   );
-  const show_library = useTypedRedux({ project_id }, "show_library");
   const disableExplorerKeyhandler = useTypedRedux(
     { project_id },
     "disableExplorerKeyhandler",
@@ -551,30 +543,6 @@ export function Explorer() {
               available_features={available_features}
             />
           )}
-
-        {show_library && (
-          <Row>
-            <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-              <SettingBox
-                icon={"book"}
-                title={
-                  <span>
-                    Library{" "}
-                    <A href="https://doc.cocalc.com/project-library.html">
-                      (help...)
-                    </A>
-                  </span>
-                }
-                close={() => actions.toggle_library(false)}
-              >
-                <Library
-                  project_id={project_id}
-                  onClose={() => actions.toggle_library(false)}
-                />
-              </SettingBox>
-            </Col>
-          </Row>
-        )}
 
         {checked_files.size > 0 && file_action != undefined ? (
           <Row>

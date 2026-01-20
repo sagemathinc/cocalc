@@ -120,9 +120,6 @@ export function About(props: AboutProps) {
             <b>AI Assistant:</b> Several AI tools help you to understand error messages, refine code, generate new code cells based on context, or just explain/document existing code.
           </li>
           <li>
-            <b>Snippets:</b> code samples for many kernels
-          </li>
-          <li>
             <b>Whiteboard:</b> create a whiteboard (documented ending in ".board") and use Jupyter cells as part of your whiteboard
           </li>
           <li>

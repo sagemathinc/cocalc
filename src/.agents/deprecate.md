@@ -2,12 +2,12 @@
 
 Goal: Complete remove all code and functionality for the following:
 
+- [ ] share server \-\- but we would need to replace it with something first
+- [x] examples/snippets submodule \(src/examples\)
+- [x] terminal guide panel
+- [x] jupyter code snippets panel
 - [x] jquery ui
 - [x] public paths allowing viewing by non\-collabs in the frontend; deprecated but code remains \("is\_public"\)
-- [ ] share server \-\- but we would need to replace it with something first
-- [ ] examples/snippets submodule \(src/examples\)
-- [ ] terminal guide panel
-- [ ] jupyter code snippets panel
 - [x] Sage worksheets: opening a sagews should convert it to ipynb automatically \(if ipynb doesn't exist already\), then open that. Nothing else.
 - [x] payg LLM purchases; we still must track usage and costs for throttling and analytic, but nothing regarding actual transactions/billing shown to users.
 - [x] the jupyter pool.

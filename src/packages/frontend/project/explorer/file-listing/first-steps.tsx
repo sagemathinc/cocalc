@@ -49,7 +49,7 @@ export default function FirstSteps({ project_id }: Props) {
               setStarting(true);
               await redux.getActions("projects").start_project(project_id);
               // try to run the new cc-first-steps script; if that fails (e.g. old already running project),
-              // try to copy from the library.
+              // just warn.
               try {
                 await webapp_client.project_client.exec({
                   command: "cc-first-steps",
@@ -60,12 +60,7 @@ export default function FirstSteps({ project_id }: Props) {
                   foreground: true,
                 });
               } catch (error) {
-                console.log(
-                  "cc-first-steps failed, so falling back to library"
-                );
-                await redux
-                  .getProjectActions(project_id)
-                  .copy_from_library({ entry: "first_steps" });
+                console.warn("cc-first-steps failed", error);
               }
             } catch (error) {
               console.warn("error getting first steps", error);

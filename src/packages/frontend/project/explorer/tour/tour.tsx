@@ -113,13 +113,12 @@ export default function ExplorerTour({
       target: currentDirectoryRef.current,
     },
     {
-      title: "Library & Upload buttons",
+      title: "Upload button",
       description: (
         <>
           Click the upload button to select files from your computer and upload
-          them to your project. You an also just drag and drop files onto the
-          listing. There's also a library of Jupyter notebooks and other
-          content.
+          them to your project. You can also drag and drop files onto the
+          listing.
         </>
       ),
       target: miscButtonsRef.current,

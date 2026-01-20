@@ -138,18 +138,6 @@ const OPTIONS: Option[] = [
     }),
   },
   {
-    name: "disableLibrary",
-    title: defineMessage({
-      id: "course.customize-student-project-functionality.disableLibrary.title",
-      defaultMessage: "Disable Library",
-    }),
-    description: defineMessage({
-      id: "course.customize-student-project-functionality.disableLibrary.description",
-      defaultMessage:
-        "In the file explorer there is a library button for browsing and copying books and tutorials into a project.  Disable this to simplify the interface.",
-    }),
-  },
-  {
     name: "disableCollaborators",
     title: defineMessage({
       id: "course.customize-student-project-functionality.disableCollaborators.title",
