@@ -34,6 +34,7 @@ export type FindBackupsState = {
   query: string;
   filter: string;
   mode: SnapshotSearchMode;
+  hidden: boolean;
   caseSensitive: boolean;
 };
 

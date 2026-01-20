@@ -1,7 +1,7 @@
 import { Alert, Button, Input, Radio, Space, message } from "antd";
 import { join, posix } from "path";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import { type VirtuosoGridHandle } from "react-virtuoso";
 import { useActions } from "@cocalc/frontend/app-framework";
 import { Loading, SearchInput } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -13,6 +13,7 @@ import {
 } from "@cocalc/util/misc";
 import { search as runRipgrepSearch } from "@cocalc/frontend/project/search/run";
 import { FindSnapshotRow, type SnapshotResult } from "./rows";
+import { FindResultsGrid } from "./result-grid";
 import { useFindTabState } from "./state";
 import {
   type FindPrefill,
@@ -71,6 +72,7 @@ export function SnapshotsTab({
   prefill?: FindPrefill;
   snapshotName?: string;
 }) {
+  const fieldWidth = mode === "flyout" ? "100%" : "50%";
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
   const fs = useMemo(
@@ -92,7 +94,7 @@ export function SnapshotsTab({
   const [restoreTarget, setRestoreTarget] = useState<SnapshotResult | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
-  const listRef = useRef<VirtuosoHandle>(null);
+  const listRef = useRef<VirtuosoGridHandle>(null);
   const queryRef = useRef(state.query);
   const modeRef = useRef(state.mode);
 
@@ -400,72 +402,86 @@ export function SnapshotsTab({
   const restorePath = restoreTarget
     ? path_to_file(scopePath, restoreTarget.path)
     : "";
-
-  return (
-    <div className="smc-vfill">
-      <Alert
-        type="info"
-        style={{ marginBottom: "8px" }}
-        message="Snapshots are more frequent, recent and support content search; backups are less frequent and longer lived."
+  const alert = (
+    <Alert
+      type="info"
+      style={{
+        marginBottom: mode === "flyout" ? "8px" : 0,
+        maxWidth: mode === "flyout" ? undefined : "360px",
+      }}
+      message="Snapshots are more frequent, recent and support content search; backups are less frequent and longer lived."
+    />
+  );
+  const searchRow = (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "8px",
+        alignItems: "center",
+      }}
+    >
+      <SearchInput
+        size={mode === "flyout" ? "medium" : "large"}
+        autoFocus
+        value={state.query}
+        placeholder={
+          state.mode === "files"
+            ? "Find files in snapshots (glob)..."
+            : "Search snapshot contents..."
+        }
+        on_change={(value) => setState({ query: value })}
+        on_submit={() => runSearch()}
+        on_clear={() => {
+          setState({ query: "", filter: "" });
+          setResults([]);
+          setError(null);
+        }}
+        on_down={() => moveSelection(1)}
+        on_up={() => moveSelection(-1)}
+        buttonAfter={
+          <Button
+            disabled={!state.query.trim()}
+            type="primary"
+            onClick={() => runSearch()}
+          >
+            Search
+          </Button>
+        }
+        style={{ width: fieldWidth }}
       />
-      <Space wrap>
-        <SearchInput
-          size={mode === "flyout" ? "medium" : "large"}
-          autoFocus
-          value={state.query}
-          placeholder={
-            state.mode === "files"
-              ? "Find files in snapshots (glob)..."
-              : "Search snapshot contents..."
-          }
-          on_change={(value) => setState({ query: value })}
-          on_submit={() => runSearch()}
-          on_clear={() => {
-            setState({ query: "", filter: "" });
-            setResults([]);
-            setError(null);
-          }}
-          on_down={() => moveSelection(1)}
-          on_up={() => moveSelection(-1)}
-          buttonAfter={
-            <Button
-              disabled={!state.query.trim()}
-              type="primary"
-              onClick={() => runSearch()}
-            >
-              Search
-            </Button>
-          }
-        />
-        <Radio.Group
-          value={state.mode}
-          onChange={(e) =>
-            setState({ mode: e.target.value as SnapshotSearchMode })
-          }
-          optionType="button"
-          buttonStyle="solid"
-          size={mode === "flyout" ? "small" : "middle"}
-        >
-          <Radio.Button value="files">Files</Radio.Button>
-          <Radio.Button value="contents">Contents</Radio.Button>
-        </Radio.Group>
-      </Space>
+      <Radio.Group
+        value={state.mode}
+        onChange={(e) =>
+          setState({ mode: e.target.value as SnapshotSearchMode })
+        }
+        optionType="button"
+        buttonStyle="solid"
+        size={mode === "flyout" ? "small" : "middle"}
+      >
+        <Radio.Button value="files">Files</Radio.Button>
+        <Radio.Button value="contents">Contents</Radio.Button>
+      </Radio.Group>
+    </div>
+  );
+  const optionsRow = (
+    <Space wrap style={{ marginTop: "8px" }}>
+      <Button
+        size="small"
+        type={state.hidden ? "primary" : "default"}
+        onClick={() => setState({ hidden: !state.hidden })}
+      >
+        Hidden
+      </Button>
+      <Button
+        size="small"
+        type={state.caseSensitive ? "primary" : "default"}
+        onClick={() => setState({ caseSensitive: !state.caseSensitive })}
+      >
+        Case sensitive
+      </Button>
       {state.mode === "contents" ? (
-        <Space wrap style={{ marginTop: "8px" }}>
-          <Button
-            size="small"
-            type={state.hidden ? "primary" : "default"}
-            onClick={() => setState({ hidden: !state.hidden })}
-          >
-            Hidden
-          </Button>
-          <Button
-            size="small"
-            type={state.caseSensitive ? "primary" : "default"}
-            onClick={() => setState({ caseSensitive: !state.caseSensitive })}
-          >
-            Case sensitive
-          </Button>
+        <>
           <Button
             size="small"
             type={state.gitGrep ? "primary" : "default"}
@@ -480,8 +496,35 @@ export function SnapshotsTab({
           >
             Regexp
           </Button>
-        </Space>
+        </>
       ) : null}
+    </Space>
+  );
+
+  return (
+    <div className="smc-vfill">
+      {mode === "flyout" ? (
+        <>
+          {alert}
+          {searchRow}
+          {optionsRow}
+        </>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ flex: "1 1 520px", minWidth: 0 }}>
+            {searchRow}
+            {optionsRow}
+          </div>
+          <div style={{ flex: "0 1 360px" }}>{alert}</div>
+        </div>
+      )}
       {error ? (
         <Alert style={{ marginTop: "10px" }} type="error" message={error} />
       ) : null}
@@ -510,12 +553,13 @@ export function SnapshotsTab({
             placeholder="Filter results"
             value={state.filter}
             onChange={(e) => setState({ filter: e.target.value })}
-            style={{ marginBottom: "8px" }}
+            allowClear
+            style={{ width: fieldWidth, marginBottom: "8px" }}
           />
           {filteredResults.length > 0 ? (
-            <Virtuoso
-              ref={listRef}
-              style={{ flex: 1 }}
+            <FindResultsGrid
+              listRef={listRef}
+              minItemWidth={480}
               totalCount={filteredResults.length}
               itemContent={(index) => {
                 const result = filteredResults[index];

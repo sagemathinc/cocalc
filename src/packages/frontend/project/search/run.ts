@@ -55,6 +55,7 @@ export async function search({
   if (!options.regexp) {
     rgOptions.push("-F");
   }
+  rgOptions.push("-C", "1");
 
   const { stdout, stderr, truncated } = await fs.ripgrep(path, query, {
     options: rgOptions,
@@ -64,6 +65,13 @@ export async function search({
   const lines = Buffer.from(stdout).toString().split("\n");
 
   const search_results: SearchResult[] = [];
+  const matches: {
+    filename: string;
+    line_number: number;
+    line_text: string;
+  }[] = [];
+  const contextByFile = new Map<string, Map<number, string>>();
+
   for (const line of lines) {
     let result;
     try {
@@ -71,16 +79,45 @@ export async function search({
     } catch {
       continue;
     }
-    if (result.type == "match") {
+    if (result.type === "match") {
       const { line_number, lines, path } = result.data;
-      const description = trunc(lines?.text ?? "", MAX_LINE_LENGTH);
-      search_results.push({
-        filename: path?.text ?? "-",
-        description: `${(line_number.toString() + ":").padEnd(8, " ")}${description}`,
-        filter: `${path?.text?.toLowerCase?.() ?? ""} ${description.toLowerCase()}`,
-        line_number,
-      });
+      const filename = path?.text ?? "-";
+      const raw = lines?.text ?? "";
+      const normalized = raw.replace(/\r?\n$/, "");
+      const line_text = trunc(normalized, MAX_LINE_LENGTH);
+      matches.push({ filename, line_number, line_text });
+    } else if (result.type === "context") {
+      const { line_number, lines, path } = result.data;
+      const filename = path?.text ?? "-";
+      const raw = lines?.text ?? "";
+      const normalized = raw.replace(/\r?\n$/, "");
+      const text = trunc(normalized, MAX_LINE_LENGTH);
+      if (!contextByFile.has(filename)) {
+        contextByFile.set(filename, new Map());
+      }
+      contextByFile.get(filename)?.set(line_number, text);
     }
+  }
+
+  for (const match of matches) {
+    const context = contextByFile.get(match.filename);
+    const before = context?.get(match.line_number - 1);
+    const after = context?.get(match.line_number + 1);
+    const snippetLines: string[] = [];
+    if (before != null) {
+      snippetLines.push(`${match.line_number - 1}: ${before}`);
+    }
+    snippetLines.push(`${match.line_number}: ${match.line_text}`);
+    if (after != null) {
+      snippetLines.push(`${match.line_number + 1}: ${after}`);
+    }
+    const description = snippetLines.join("\n");
+    search_results.push({
+      filename: match.filename,
+      description,
+      filter: `${match.filename.toLowerCase()} ${match.line_text.toLowerCase()}`,
+      line_number: match.line_number,
+    });
   }
 
   setState({

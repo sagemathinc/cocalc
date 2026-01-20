@@ -1,6 +1,6 @@
 import { Alert, Button, Input, Space } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import { type VirtuosoGridHandle } from "react-virtuoso";
 import { useActions } from "@cocalc/frontend/app-framework";
 import { SearchInput, Loading } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -16,6 +16,7 @@ import {
   search_split,
 } from "@cocalc/util/misc";
 import { FindPathRow } from "./rows";
+import { FindResultsGrid } from "./result-grid";
 import { useFindTabState } from "./state";
 import { type FindFilesState, type FindPrefill } from "./types";
 import { normalizeGlobQuery, stripDotSlash } from "./utils";
@@ -38,6 +39,7 @@ export function FilesTab({
   scopePath: string;
   prefill?: FindPrefill;
 }) {
+  const fieldWidth = mode === "flyout" ? "100%" : "50%";
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
   const fs = useMemo(
@@ -54,7 +56,7 @@ export function FilesTab({
   const [results, setResults] = useState<string[]>([]);
   const [lastQuery, setLastQuery] = useState<string | null>(null);
   const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
-  const listRef = useRef<VirtuosoHandle>(null);
+  const listRef = useRef<VirtuosoGridHandle>(null);
   const queryRef = useRef(state.query);
 
   useEffect(() => {
@@ -238,6 +240,7 @@ export function FilesTab({
             Search
           </Button>
         }
+        style={{ width: fieldWidth }}
       />
       <Space wrap style={{ marginTop: "8px" }}>
         <Button
@@ -297,12 +300,12 @@ export function FilesTab({
             placeholder="Filter results"
             value={state.filter}
             onChange={(e) => setState({ filter: e.target.value })}
-            style={{ marginBottom: "8px" }}
+            allowClear
+            style={{ width: fieldWidth, marginBottom: "8px" }}
           />
           {resultCount > 0 ? (
-            <Virtuoso
-              ref={listRef}
-              style={{ flex: 1 }}
+            <FindResultsGrid
+              listRef={listRef}
               totalCount={resultCount}
               itemContent={(index) => {
                 const path = filteredResults[index];
