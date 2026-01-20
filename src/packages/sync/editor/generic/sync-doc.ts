@@ -2462,23 +2462,14 @@ export class SyncDoc extends EventEmitter {
     this.last_save_to_disk_time = new Date();
     this.emit("before-save-to-disk");
     try {
-      if (typeof this.fs.writeFileDelta === "function") {
-        // writeFileDelta so efficient even if file is huge.
-        await this.fs.writeFileDelta(this.path, value, {
-          baseContents: this.valueOnDisk,
-          saveLast: true,
-        });
-      } else if (typeof this.fs.writeFile === "function") {
-        await (this.fs as any).writeFile(this.path, value);
-      } else if (typeof this.client.write_file === "function") {
-        await this.client.write_file({
-          path: this.path,
-          data: value,
-          cb: () => {},
-        });
-      } else {
-        throw new Error("no file writer available");
+      if (typeof this.fs.writeFileDelta !== "function") {
+        throw new Error("writeFileDelta is required for safe, atomic writes");
       }
+      // writeFileDelta is both efficient and guarantees atomic writes.
+      await this.fs.writeFileDelta(this.path, value, {
+        baseContents: this.valueOnDisk,
+        saveLast: true,
+      });
       if (this.isClosed()) return;
     } catch (err) {
       if (err.code == "EACCES") {

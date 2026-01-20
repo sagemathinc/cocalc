@@ -21,6 +21,11 @@ Additional functionality:
 
 The subject is file-server.{project_id} and there are many file-servers, one
 for each project-host.
+
+Note: file writes are handled by the conat fs service. `writeFileDelta` is
+preferred by sync-doc because it can apply patches and perform atomic
+write+rename on the backend; plain `writeFile` may still be a truncate+write
+path, which can corrupt large chat logs if interrupted mid-write.
 */
 
 import { type Client } from "@cocalc/conat/core/client";
