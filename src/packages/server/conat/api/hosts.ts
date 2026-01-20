@@ -63,6 +63,7 @@ import {
   deleteCloudflareTunnel,
   hasCloudflareTunnel,
 } from "@cocalc/server/cloud/cloudflare-tunnel";
+import { requireLaunchpadModeSelected } from "@cocalc/server/launchpad/mode";
 function pool() {
   return getPool();
 }
@@ -837,6 +838,7 @@ export async function createHost({
   gpu?: boolean;
   machine?: Host["machine"];
 }): Promise<Host> {
+  await requireLaunchpadModeSelected();
   const owner = requireAccount(account_id);
   const membership = await loadMembership(owner);
   requireCreateHosts(membership.entitlements);
@@ -923,6 +925,7 @@ async function createHostLro({
   input: any;
   dedupe_key?: string;
 }): Promise<HostLroResponse> {
+  await requireLaunchpadModeSelected();
   const op = await createLro({
     kind,
     scope_type: "host",

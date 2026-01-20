@@ -6,6 +6,25 @@ number of hosts.
 
 Status: draft / in development.
 
+## Choose a Mode
+
+Launchpad supports two deployment modes (explicitly selected by an admin):
+
+- **On\-prem \(local only\)**: all traffic is local, no Cloudflare tunnels, and
+  backups use a local repo over SFTP. This document describes this mode.
+- **Cloud \(global\)**: traffic goes through Cloudflare and backups use cloud
+  buckets. This mode is configured by providing Cloudflare \+ bucket settings
+  \(separate doc forthcoming\).
+
+Mode selection is explicit:
+
+- Default mode is **unset**: Launchpad starts, but does not start sshd/sshpiperd
+  and does not activate host connectivity until an admin selects a mode.
+- Admins choose a mode in Admin Settings (later this will be a first-run setup
+  dialog).
+- You may also set `COCALC_LAUNCHPAD_MODE=onprem|cloud` to preselect the mode in
+  headless installs.
+
 ## Overview
 
 - One hub process serves HTTPS + WebSocket and proxies host traffic.
@@ -45,19 +64,21 @@ export COCALC_DISABLE_HTTP=true
    - COCALC\_BASE\_PORT=8443
    - COCALC\_DATA\_DIR=~/.local/share/cocalc/launchpad
 
-2. Start the Launchpad hub in on\-prem mode.
+2. Start the Launchpad hub.
    - Provide TLS cert and key.
    - Disable HTTP \(or keep it as redirect only\).
+
+3. In Admin Settings, select **On‑prem** mode.
    - Hub starts a locked down sshd \+ sshpiperd as child processes.
 
-3. Create a host join token using the hub UI/CLI.
+4. Create a host join token using the hub UI/CLI.
 
-4. On each host, run the connector with:
+5. On each host, run the connector with:
    - hub URL
    - join token
    - \(optional\) explicit port overrides
 
-5. Confirm hosts appear in the hub UI and can start workspaces.
+6. Confirm hosts appear in the hub UI and can start workspaces.
 
 Launchpad prints a startup summary showing the resolved ports and data
 directory so you can verify the defaults it selected.
@@ -91,3 +112,4 @@ is skipped and the proxy connects directly to localhost.
 - On\-prem and cloud modes are exclusive. If you need both, run two hubs.
 - Port changes require a hub restart.
 - PGlite (embedded Postgres) stores data in COCALC\_DATA\_DIR
+
