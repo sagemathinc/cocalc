@@ -394,6 +394,24 @@ export function BackupsTab({
     setRestoreTarget(null);
   }, [actions, restoreTarget]);
 
+  const openSnapshotsDir = useCallback(() => {
+    actions?.open_directory(".snapshots");
+  }, [actions]);
+
+  const openBackupsDir = useCallback(() => {
+    actions?.open_directory(".backups");
+  }, [actions]);
+
+  const openSnapshotSchedule = useCallback(() => {
+    actions?.open_directory(".snapshots");
+    actions?.setState({ open_snapshot_schedule: true });
+  }, [actions]);
+
+  const openBackupSchedule = useCallback(() => {
+    actions?.open_directory(".backups");
+    actions?.setState({ open_backup_schedule: true });
+  }, [actions]);
+
   const restorePath = restoreTarget?.path ?? "";
   const alert = (
     <Alert
@@ -402,7 +420,47 @@ export function BackupsTab({
         marginBottom: mode === "flyout" ? "8px" : 0,
         maxWidth: mode === "flyout" ? undefined : "360px",
       }}
-      message="Snapshots are more frequent, recent and support content search; backups are less frequent and longer lived."
+      message="Snapshots vs Backups"
+      description={
+        <>
+          <Button
+            size="small"
+            type="link"
+            style={{ padding: 0, height: "auto" }}
+            onClick={openSnapshotsDir}
+          >
+            Snapshots
+          </Button>{" "}
+          are more{" "}
+          <Button
+            size="small"
+            type="link"
+            style={{ padding: 0, height: "auto" }}
+            onClick={openSnapshotSchedule}
+          >
+            frequent, recent
+          </Button>{" "}
+          and support content search;{" "}
+          <Button
+            size="small"
+            type="link"
+            style={{ padding: 0, height: "auto" }}
+            onClick={openBackupsDir}
+          >
+            Backups
+          </Button>{" "}
+          are{" "}
+          <Button
+            size="small"
+            type="link"
+            style={{ padding: 0, height: "auto" }}
+            onClick={openBackupSchedule}
+          >
+            less frequent and longer lived
+          </Button>
+          .
+        </>
+      }
     />
   );
   const searchRow = (
