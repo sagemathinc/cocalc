@@ -202,3 +202,7 @@ Example:
 - Do we need a simple built\-in UI to view tunnel status?
   - ANSWER: I think the current host drawer / host page can do this.
 
+## TODO (Later)
+
+- Add a dedicated admin guidance UI for selecting modes, validating config, and
+  onboarding (defer until core plumbing is complete).
