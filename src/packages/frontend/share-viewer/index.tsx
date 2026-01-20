@@ -70,6 +70,7 @@ interface ShareLocation {
   pathPrefix: string;
   initialPath: string;
   authToken?: string;
+  hasBaseOverride: boolean;
 }
 
 type LoadState =
@@ -88,7 +89,8 @@ export function init(): void {
 }
 
 function ShareViewerApp() {
-  const locationInfo = useMemo(parseShareLocation, []);
+  const [locationInfo, setLocationInfo] =
+    useState<ShareLocation>(parseShareLocation);
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [currentPath, setCurrentPath] = useState(locationInfo.initialPath);
 
@@ -144,6 +146,25 @@ function ShareViewerApp() {
     window.addEventListener("popstate", handler);
     return () => window.removeEventListener("popstate", handler);
   }, [locationInfo.pathPrefix]);
+
+  useEffect(() => {
+    if (state.status !== "ready") return;
+    if (locationInfo.hasBaseOverride) return;
+    const region = state.latest.share_region;
+    if (!region) return;
+    const nextPrefix = buildRegionedPrefix(region, locationInfo.shareId);
+    if (!nextPrefix || nextPrefix === locationInfo.pathPrefix) return;
+    const url = new URL(window.location.href);
+    const pathSuffix = currentPath ? `/${encodePath(currentPath)}` : "";
+    url.pathname = nextPrefix + pathSuffix || "/";
+    url.searchParams.delete("path");
+    window.history.replaceState({}, "", url.toString());
+    setLocationInfo((prev) => ({
+      ...prev,
+      pathPrefix: nextPrefix,
+      baseUrl: normalizeBaseUrl(nextPrefix),
+    }));
+  }, [state, locationInfo, currentPath]);
 
   useEffect(() => {
     if (state.status !== "ready") return;
@@ -530,7 +551,13 @@ function parseShareLocation(): ShareLocation {
   let prefixSegments: string[] = [];
   let pathSegments: string[] = [];
 
-  if (segments[0] === "share" || segments[0] === "s") {
+  if (segments[0] === "r") {
+    if (segments[1] && (segments[2] === "share" || segments[2] === "s")) {
+      shareId = segments[3] ?? "";
+      prefixSegments = segments.slice(0, 4);
+      pathSegments = segments.slice(4);
+    }
+  } else if (segments[0] === "share" || segments[0] === "s") {
     shareId = segments[1] ?? "";
     prefixSegments = segments.slice(0, 2);
     pathSegments = segments.slice(2);
@@ -550,6 +577,7 @@ function parseShareLocation(): ShareLocation {
   const initialPath = normalizePath(decodedPath);
   const baseUrl = normalizeBaseUrl(override ?? pathPrefix);
   const authToken = resolveAuthToken(url);
+  const hasBaseOverride = Boolean(override);
 
   return {
     shareId,
@@ -557,6 +585,7 @@ function parseShareLocation(): ShareLocation {
     pathPrefix,
     initialPath,
     authToken,
+    hasBaseOverride,
   };
 }
 
@@ -589,6 +618,13 @@ function resolveAuthToken(url: URL): string | undefined {
     url.searchParams.get("share_token") ??
     undefined
   );
+}
+
+function buildRegionedPrefix(region: string, shareId: string): string {
+  const cleanRegion = region.trim();
+  const cleanShareId = shareId.trim();
+  if (!cleanRegion || !cleanShareId) return "";
+  return `/r/${encodeURIComponent(cleanRegion)}/share/${encodeURIComponent(cleanShareId)}`;
 }
 
 function normalizeBaseUrl(input: string): string {
