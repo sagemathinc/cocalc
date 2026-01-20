@@ -121,10 +121,13 @@ async function handlePublishOp(op: LroSummary): Promise<void> {
       detail: { project_id, share_id },
     });
 
+    const bucket = await resolveShareBucketConfig({ project_id });
+
     await updatePublishedSharePublishStatus({
       share_id,
       status: "running",
       error: null,
+      share_region: bucket.region ?? null,
     });
 
     progressEvent({
@@ -132,8 +135,6 @@ async function handlePublishOp(op: LroSummary): Promise<void> {
       step: "publish",
       message: "starting share publish",
     });
-
-    const bucket = await resolveShareBucketConfig({ project_id });
     const result = await fileServerClient({ project_id }).publishShare({
       project_id,
       share_id,
@@ -149,6 +150,7 @@ async function handlePublishOp(op: LroSummary): Promise<void> {
       share_id,
       status: "succeeded",
       error: null,
+      share_region: bucket.region ?? null,
       latest_manifest_id: result.manifest_id,
       latest_manifest_hash: result.manifest_hash,
       published_at: new Date(result.published_at),

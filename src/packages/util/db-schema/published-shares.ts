@@ -17,6 +17,7 @@ export interface PublishedShare {
   path: string;
   scope: PublishedShareScope;
   org_id?: string | null;
+  share_region?: string | null;
   indexing_opt_in?: boolean;
   latest_manifest_id?: string | null;
   latest_manifest_hash?: string | null;
@@ -56,6 +57,10 @@ Table({
     org_id: {
       type: "uuid",
       desc: "Organization scope owner (only for org shares).",
+    },
+    share_region: {
+      type: "string",
+      desc: "R2 region used to store the published share data.",
     },
     indexing_opt_in: {
       type: "boolean",

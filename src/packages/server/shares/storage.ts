@@ -54,14 +54,13 @@ export async function resolveShareBucketConfig({
 
   const hostRegion = await getProjectHostRegion(project_id);
   const region = mapCloudRegionToR2Region(hostRegion ?? DEFAULT_R2_REGION);
-  const sharePrefix = `${bucketPrefix}-shares`;
-  const bucket = `${sharePrefix}-${region}`;
+  const bucket = `${bucketPrefix}-${region}`;
   const endpoint = `https://${accountId}.r2.cloudflarestorage.com`;
 
   if (apiToken) {
     await ensureR2Buckets({
       accountId,
-      bucketPrefix: sharePrefix,
+      bucketPrefix,
       apiToken,
     });
   }

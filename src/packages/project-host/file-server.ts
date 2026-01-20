@@ -734,7 +734,11 @@ async function publishShare(
       progress: 82,
     });
 
-    const { files: candidates, dirs, totalBytes } = await collectShareFiles({
+    const {
+      files: candidates,
+      dirs,
+      totalBytes,
+    } = await collectShareFiles({
       rootAbs: resolvedRoot,
       rootKind,
     });
@@ -775,8 +779,7 @@ async function publishShare(
 
     for (const candidate of candidates) {
       const contentType =
-        (mime.lookup(candidate.path) as string) ||
-        "application/octet-stream";
+        (mime.lookup(candidate.path) as string) || "application/octet-stream";
       const kind = inferShareKind({
         filePath: candidate.path,
         contentType,
@@ -877,6 +880,7 @@ async function publishShare(
       share_id: opts.share_id,
       manifest_id: manifestId,
       manifest_hash: manifestHash,
+      share_region: opts.bucket.region ?? null,
       published_at: createdAt,
       file_count: manifestFiles.length,
       size_bytes: totalBytes,
@@ -897,6 +901,7 @@ async function publishShare(
       root_kind: rootKind,
       scope: opts.scope,
       indexing_opt_in: opts.indexing_opt_in,
+      share_region: opts.bucket.region ?? null,
       updated_at: createdAt,
     };
     const metaJson = JSON.stringify(metaPayload);
@@ -928,15 +933,13 @@ async function publishShare(
       file_count: manifestFiles.length,
     };
   } finally {
-    await vol.snapshots
-      .delete(snapshotName)
-      .catch((err) =>
-        logger.warn("share publish: snapshot cleanup failed", {
-          project_id: opts.project_id,
-          share_id: opts.share_id,
-          err: `${err}`,
-        }),
-      );
+    await vol.snapshots.delete(snapshotName).catch((err) =>
+      logger.warn("share publish: snapshot cleanup failed", {
+        project_id: opts.project_id,
+        share_id: opts.share_id,
+        err: `${err}`,
+      }),
+    );
   }
 }
 
@@ -1074,9 +1077,7 @@ async function listBackupIndexSnapshots(project_id: string): Promise<
       };
     })
     .filter(
-      (
-        snap,
-      ): snap is { backup_id: string; snapshot_id: string; time: Date } =>
+      (snap): snap is { backup_id: string; snapshot_id: string; time: Date } =>
         snap != null,
     );
 }
@@ -1158,7 +1159,7 @@ async function syncBackupIndexCache(
       }
       remote = filtered;
     }
-    const remoteByBackup = new Map<string, typeof remote[number]>();
+    const remoteByBackup = new Map<string, (typeof remote)[number]>();
     for (const entry of remote) {
       remoteByBackup.set(entry.backup_id, entry);
     }
@@ -1308,9 +1309,7 @@ async function findBackupFilesIndexed({
       addRows(stmt.all(...glob));
     }
     if (iglob?.length) {
-      const clauses = iglob
-        .map(() => `LOWER(${pathExpr}) GLOB ?`)
-        .join(" OR ");
+      const clauses = iglob.map(() => `LOWER(${pathExpr}) GLOB ?`).join(" OR ");
       const stmt = db.prepare(
         `SELECT ${pathExpr} AS path, type, size, mtime FROM files WHERE ${clauses}`,
       );
@@ -1536,11 +1535,14 @@ async function deleteBackup({
   const vol = await getVolumeForBackup(project_id);
   await vol.rustic.forget({ id });
   try {
-    await rustic(["forget", "--filter-label", `${BACKUP_INDEX_LABEL_PREFIX}${id}`], {
-      repo: vol.fs.rusticRepo,
-      host: backupIndexHost(project_id),
-      timeout: 30 * 60 * 1000,
-    });
+    await rustic(
+      ["forget", "--filter-label", `${BACKUP_INDEX_LABEL_PREFIX}${id}`],
+      {
+        repo: vol.fs.rusticRepo,
+        host: backupIndexHost(project_id),
+        timeout: 30 * 60 * 1000,
+      },
+    );
   } catch (err) {
     logger.warn("backup index delete failed", { project_id, id, err });
   }
@@ -1607,7 +1609,9 @@ export async function getBackups({
             ]),
           );
           const backupId = meta.backup_id;
-          const backupTime = meta.backup_time ? new Date(meta.backup_time) : null;
+          const backupTime = meta.backup_time
+            ? new Date(meta.backup_time)
+            : null;
           if (!backupId || !backupTime) continue;
           backups.push({ id: backupId, time: backupTime, summary: {} });
         } finally {

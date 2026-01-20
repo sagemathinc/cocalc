@@ -58,6 +58,7 @@ interface ShareLatest {
   share_id: string;
   manifest_id: string;
   manifest_hash: string;
+  share_region?: string | null;
   published_at: string;
   file_count?: number;
   size_bytes?: number;
@@ -155,11 +156,9 @@ function ShareViewerApp() {
   const navigate = useCallback(
     (nextPath: string) => {
       const url = new URL(window.location.href);
-      const pathSuffix = nextPath
-        ? `/${encodePath(nextPath)}`
-        : "";
+      const pathSuffix = nextPath ? `/${encodePath(nextPath)}` : "";
       const prefix = locationInfo.pathPrefix || "";
-      url.pathname = (prefix + pathSuffix) || "/";
+      url.pathname = prefix + pathSuffix || "/";
       url.searchParams.delete("path");
       window.history.pushState({}, "", url.toString());
       setCurrentPath(nextPath);
@@ -180,9 +179,7 @@ function ShareViewerApp() {
   if (state.status === "error") {
     return (
       <Layout>
-        <StatusCard title="Share unavailable">
-          {state.error}
-        </StatusCard>
+        <StatusCard title="Share unavailable">{state.error}</StatusCard>
       </Layout>
     );
   }
@@ -319,9 +316,7 @@ function DirectoryView({
             <li
               key={`${entry.kind}:${entry.path}`}
               className="sv-list-item"
-              style={
-                { ["--delay" as any]: `${index * 40}ms` } as CSSProperties
-              }
+              style={{ ["--delay" as any]: `${index * 40}ms` } as CSSProperties}
             >
               <button
                 type="button"
@@ -397,29 +392,15 @@ function FileContent({
     return <video className="sv-media" controls src={blobUrl} />;
   }
   if (entry.kind === "pdf") {
-    return (
-      <iframe
-        className="sv-pdf"
-        src={blobUrl}
-        title={entry.path}
-      />
-    );
+    return <iframe className="sv-pdf" src={blobUrl} title={entry.path} />;
   }
   if (entry.kind === "binary") {
     return (
-      <div className="sv-empty">
-        Preview is not available for this file.
-      </div>
+      <div className="sv-empty">Preview is not available for this file.</div>
     );
   }
 
-  return (
-    <TextContent
-      entry={entry}
-      blobUrl={blobUrl}
-      token={token}
-    />
-  );
+  return <TextContent entry={entry} blobUrl={blobUrl} token={token} />;
 }
 
 function TextContent({
@@ -460,11 +441,7 @@ function TextContent({
     return <div className="sv-empty">Loading file...</div>;
   }
   if (status === "error") {
-    return (
-      <div className="sv-empty">
-        Unable to load this file.
-      </div>
-    );
+    return <div className="sv-empty">Unable to load this file.</div>;
   }
 
   if (entry.kind === "notebook") {
@@ -524,9 +501,7 @@ function buildDirectoryEntries(
   const orderedDirs = Array.from(dirs.values()).sort((a, b) =>
     a.name.localeCompare(b.name),
   );
-  const orderedFiles = items.sort((a, b) =>
-    a.name.localeCompare(b.name),
-  );
+  const orderedFiles = items.sort((a, b) => a.name.localeCompare(b.name));
   return [...orderedDirs, ...orderedFiles];
 }
 
@@ -609,7 +584,11 @@ function resolveShareBaseOverride(): string | undefined {
 function resolveAuthToken(url: URL): string | undefined {
   const win = (window as any).__COCALC_SHARE_TOKEN__;
   if (typeof win === "string" && win) return win;
-  return url.searchParams.get("token") ?? url.searchParams.get("share_token") ?? undefined;
+  return (
+    url.searchParams.get("token") ??
+    url.searchParams.get("share_token") ??
+    undefined
+  );
 }
 
 function normalizeBaseUrl(input: string): string {

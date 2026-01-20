@@ -16,6 +16,7 @@ export interface PublishedShare {
   path: string;
   scope: ShareScope;
   org_id: string | null;
+  share_region: string | null;
   indexing_opt_in: boolean;
   latest_manifest_id: string | null;
   latest_manifest_hash: string | null;

@@ -70,6 +70,7 @@ export async function updatePublishedSharePublishStatus({
   share_id,
   status,
   error,
+  share_region,
   latest_manifest_id,
   latest_manifest_hash,
   published_at,
@@ -78,6 +79,7 @@ export async function updatePublishedSharePublishStatus({
   share_id: string;
   status?: SharePublishStatus | null;
   error?: string | null;
+  share_region?: string | null;
   latest_manifest_id?: string | null;
   latest_manifest_hash?: string | null;
   published_at?: Date | null;
@@ -93,6 +95,10 @@ export async function updatePublishedSharePublishStatus({
   if (error !== undefined) {
     sets.push(`last_publish_error=$${idx++}`);
     values.push(error);
+  }
+  if (share_region !== undefined) {
+    sets.push(`share_region=$${idx++}`);
+    values.push(share_region);
   }
   if (latest_manifest_id !== undefined) {
     sets.push(`latest_manifest_id=$${idx++}`);
