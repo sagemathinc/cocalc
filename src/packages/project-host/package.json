@@ -1,6 +1,6 @@
 {
   "name": "@cocalc/project-host",
-  "version": "0.4.44",
+  "version": "0.4.51",
   "description": "Multi-project host built on CoCalc Lite with embedded runner/file-server/proxy",
   "exports": {
     ".": "./dist/index.js",

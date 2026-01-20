@@ -3,7 +3,16 @@
 // without having to run that project.
 
 import { dirname, join } from "node:path";
-import { chmod, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import {
   server as createFileServer,
@@ -75,6 +84,7 @@ type SshTarget = { type: "project"; project_id: string };
 
 const logger = getLogger("project-host:file-server");
 const RESTORE_STAGING_ROOT = ".restore-staging";
+const MAX_TEXT_PREVIEW_BYTES = 10 * 1024 * 1024;
 
 function volName(project_id: string) {
   return `project-${project_id}`;
@@ -614,9 +624,7 @@ async function listBackupIndexSnapshots(project_id: string): Promise<
       };
     })
     .filter(
-      (
-        snap,
-      ): snap is { backup_id: string; snapshot_id: string; time: Date } =>
+      (snap): snap is { backup_id: string; snapshot_id: string; time: Date } =>
         snap != null,
     );
 }
@@ -698,7 +706,7 @@ async function syncBackupIndexCache(
       }
       remote = filtered;
     }
-    const remoteByBackup = new Map<string, typeof remote[number]>();
+    const remoteByBackup = new Map<string, (typeof remote)[number]>();
     for (const entry of remote) {
       remoteByBackup.set(entry.backup_id, entry);
     }
@@ -848,9 +856,7 @@ async function findBackupFilesIndexed({
       addRows(stmt.all(...glob));
     }
     if (iglob?.length) {
-      const clauses = iglob
-        .map(() => `LOWER(${pathExpr}) GLOB ?`)
-        .join(" OR ");
+      const clauses = iglob.map(() => `LOWER(${pathExpr}) GLOB ?`).join(" OR ");
       const stmt = db.prepare(
         `SELECT ${pathExpr} AS path, type, size, mtime FROM files WHERE ${clauses}`,
       );
@@ -891,6 +897,113 @@ async function getBackupFilesIndexed({
       mtime: row.mtime ?? 0,
       size: row.size ?? 0,
     }));
+  } finally {
+    db.close();
+  }
+}
+
+function normalizePreviewPath(input: string): string {
+  const trimmed = input.replace(/^\/+/, "").replace(/^\.\/+/, "");
+  const normalized = path.posix.normalize(trimmed);
+  if (!normalized || normalized === "." || normalized.startsWith("..")) {
+    throw new Error("invalid path");
+  }
+  return normalized;
+}
+
+function isLikelyBinary(data: Buffer): boolean {
+  if (!data.length) return false;
+  let suspicious = 0;
+  for (const byte of data) {
+    if (byte === 0) return true;
+    if (byte < 7 || (byte > 14 && byte < 32) || byte === 127) {
+      suspicious += 1;
+    }
+  }
+  return suspicious / data.length > 0.3;
+}
+
+async function readTextPreview({
+  filePath,
+  size,
+  mtime,
+  maxBytes,
+}: {
+  filePath: string;
+  size?: number;
+  mtime?: number;
+  maxBytes: number;
+}): Promise<{
+  content: string;
+  truncated: boolean;
+  size: number;
+  mtime: number;
+}> {
+  const stats = size == null || mtime == null ? await stat(filePath) : null;
+  if (stats && !stats.isFile()) {
+    throw new Error("path is not a file");
+  }
+  const totalSize = size ?? stats?.size ?? 0;
+  const mtimeMs = Math.floor(mtime ?? stats?.mtimeMs ?? 0);
+  const readSize = Math.min(totalSize, maxBytes);
+  const fd = await nodeOpen(
+    filePath,
+    fsConstants.O_RDONLY | fsConstants.O_NOFOLLOW,
+  );
+  try {
+    const buffer = Buffer.alloc(readSize);
+    const { bytesRead } = await fd.read(buffer, 0, readSize, 0);
+    const data = buffer.subarray(0, bytesRead);
+    if (isLikelyBinary(data)) {
+      throw new Error("binary file preview not supported");
+    }
+    return {
+      content: data.toString("utf8"),
+      truncated: totalSize > maxBytes,
+      size: totalSize,
+      mtime: mtimeMs,
+    };
+  } finally {
+    await fd.close();
+  }
+}
+
+async function getBackupIndexEntry({
+  project_id,
+  backup_id,
+  path: entryPath,
+}: {
+  project_id: string;
+  backup_id: string;
+  path: string;
+}): Promise<{ type: string; size: number; mtime: number } | null> {
+  await syncBackupIndexCache(project_id);
+  const manifest = await loadBackupIndexManifest(project_id);
+  const entry = manifest.entries[backup_id];
+  if (!entry) return null;
+  const dbPath = join(backupIndexDir(project_id), entry.file);
+  if (!(await exists(dbPath))) return null;
+  const parent = entryPath.includes("/")
+    ? path.posix.dirname(entryPath).replace(/^\.$/, "")
+    : "";
+  const name = path.posix.basename(entryPath);
+  const db = new DatabaseSync(dbPath);
+  try {
+    const row = db
+      .prepare(
+        "SELECT type, size, mtime FROM files WHERE parent = ? AND name = ?",
+      )
+      .get(parent, name);
+    if (!row) return null;
+    const type =
+      typeof row.type === "string" ? row.type : String(row.type ?? "");
+    const size = Number(row.size ?? 0);
+    const mtime = Number(row.mtime ?? 0);
+    return {
+      type,
+      size: Number.isFinite(size) ? size : 0,
+      mtime: Number.isFinite(mtime) ? mtime : 0,
+    };
   } finally {
     db.close();
   }
@@ -1076,11 +1189,14 @@ async function deleteBackup({
   const vol = await getVolumeForBackup(project_id);
   await vol.rustic.forget({ id });
   try {
-    await rustic(["forget", "--filter-label", `${BACKUP_INDEX_LABEL_PREFIX}${id}`], {
-      repo: vol.fs.rusticRepo,
-      host: backupIndexHost(project_id),
-      timeout: 30 * 60 * 1000,
-    });
+    await rustic(
+      ["forget", "--filter-label", `${BACKUP_INDEX_LABEL_PREFIX}${id}`],
+      {
+        repo: vol.fs.rusticRepo,
+        host: backupIndexHost(project_id),
+        timeout: 30 * 60 * 1000,
+      },
+    );
   } catch (err) {
     logger.warn("backup index delete failed", { project_id, id, err });
   }
@@ -1147,7 +1263,9 @@ export async function getBackups({
             ]),
           );
           const backupId = meta.backup_id;
-          const backupTime = meta.backup_time ? new Date(meta.backup_time) : null;
+          const backupTime = meta.backup_time
+            ? new Date(meta.backup_time)
+            : null;
           if (!backupId || !backupTime) continue;
           backups.push({ id: backupId, time: backupTime, summary: {} });
         } finally {
@@ -1217,6 +1335,92 @@ async function findBackupFiles({
     logger.warn("backup index search failed", { project_id, err });
     return [];
   }
+}
+
+async function getBackupFileText({
+  project_id,
+  id,
+  path: previewPath,
+  max_bytes,
+}: {
+  project_id: string;
+  id: string;
+  path: string;
+  max_bytes?: number;
+}): Promise<{
+  content: string;
+  truncated: boolean;
+  size: number;
+  mtime: number;
+}> {
+  const cleanedPath = normalizePreviewPath(previewPath);
+  const entry = await getBackupIndexEntry({
+    project_id,
+    backup_id: id,
+    path: cleanedPath,
+  });
+  if (!entry) {
+    throw new Error("backup file is not indexed on this host");
+  }
+  if (entry.type === "d") {
+    throw new Error("path is a directory");
+  }
+  const maxBytes = max_bytes ?? MAX_TEXT_PREVIEW_BYTES;
+  await mkdir(backupIndexDir(project_id), { recursive: true });
+  const tmpDir = await mkdtemp(join(backupIndexDir(project_id), "preview-"));
+  try {
+    const vol = await getVolumeForBackup(project_id);
+    const previewFs = new SandboxedFilesystem(backupIndexDir(project_id), {
+      host: vol.name,
+      rusticRepo: vol.fs.rusticRepo,
+    });
+    const dest = path.relative(backupIndexDir(project_id), tmpDir);
+    await previewFs.rustic(["restore", `${id}:${cleanedPath}`, dest], {
+      timeout: 5 * 60 * 1000,
+    });
+    const restoredPath = join(tmpDir, cleanedPath);
+    if (!isSubPath(tmpDir, restoredPath)) {
+      throw new Error("invalid restore path");
+    }
+    const previewPath = join(tmpDir, path.posix.basename(cleanedPath));
+    if (!(await exists(previewPath))) {
+      throw new Error("restored file not found");
+    }
+    return await readTextPreview({
+      filePath: previewPath,
+      size: entry.size,
+      mtime: entry.mtime,
+      maxBytes,
+    });
+  } finally {
+    await rm(tmpDir, { recursive: true, force: true });
+  }
+}
+
+async function getSnapshotFileText({
+  project_id,
+  snapshot,
+  path: previewPath,
+  max_bytes,
+}: {
+  project_id: string;
+  snapshot: string;
+  path: string;
+  max_bytes?: number;
+}): Promise<{
+  content: string;
+  truncated: boolean;
+  size: number;
+  mtime: number;
+}> {
+  // Snapshot previews are read directly from the filesystem path; keeping this
+  // API ensures consistent size limits and binary detection.
+  const cleanedPath = normalizePreviewPath(previewPath);
+  const vol = await getVolume(project_id);
+  const snapshotPath = vol.snapshots.path(snapshot, cleanedPath);
+  const absPath = await vol.fs.safeAbsPath(snapshotPath);
+  const maxBytes = max_bytes ?? MAX_TEXT_PREVIEW_BYTES;
+  return await readTextPreview({ filePath: absPath, maxBytes });
 }
 
 // File Sync
@@ -1351,11 +1555,13 @@ export async function initFileServer({
     getBackups: reuseInFlight(getBackups),
     getBackupFiles: reuseInFlight(getBackupFiles),
     findBackupFiles: reuseInFlight(findBackupFiles),
+    getBackupFileText: reuseInFlight(getBackupFileText),
     // snapshots
     createSnapshot,
     deleteSnapshot,
     updateSnapshots,
     allSnapshotUsage,
+    getSnapshotFileText: reuseInFlight(getSnapshotFileText),
     // file sync
     createSync,
     getAllSyncs,

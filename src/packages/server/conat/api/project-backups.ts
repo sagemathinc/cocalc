@@ -285,6 +285,28 @@ export async function findBackupFiles({
   });
 }
 
+export async function getBackupFileText({
+  account_id,
+  project_id,
+  id,
+  path,
+  max_bytes,
+}: {
+  account_id?: string;
+  project_id: string;
+  id: string;
+  path: string;
+  max_bytes?: number;
+}) {
+  await assertCollab({ account_id, project_id });
+  return await fileServerClient({ project_id }).getBackupFileText({
+    project_id,
+    id,
+    path,
+    max_bytes,
+  });
+}
+
 export async function getBackupQuota({
   account_id,
   project_id,

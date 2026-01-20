@@ -97,8 +97,15 @@ export function BackupsTab({
   const [restoreTarget, setRestoreTarget] = useState<BackupResult | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{
+    loading?: boolean;
+    error?: string | null;
+    content?: string;
+    truncated?: boolean;
+  } | null>(null);
   const listRef = useRef<VirtuosoGridHandle>(null);
   const queryRef = useRef(state.query);
+  const previewRequestRef = useRef(0);
 
   useEffect(() => {
     queryRef.current = state.query;
@@ -109,6 +116,42 @@ export function BackupsTab({
       setRestoreError(null);
     }
   }, [restoreTarget]);
+
+  useEffect(() => {
+    if (!restoreTarget) {
+      setPreview(null);
+      return;
+    }
+    if (restoreTarget.isDir) {
+      setPreview({ error: "Directory preview is not available." });
+      return;
+    }
+    if (!restoreTarget.path) {
+      setPreview({ error: "Directory preview is not available." });
+      return;
+    }
+    const requestId = previewRequestRef.current + 1;
+    previewRequestRef.current = requestId;
+    setPreview({ loading: true });
+    webapp_client.conat_client.hub.projects
+      .getBackupFileText({
+        project_id,
+        id: restoreTarget.id,
+        path: restoreTarget.path,
+      })
+      .then((resp) => {
+        if (previewRequestRef.current !== requestId) return;
+        setPreview({
+          loading: false,
+          content: resp.content,
+          truncated: resp.truncated,
+        });
+      })
+      .catch((err) => {
+        if (previewRequestRef.current !== requestId) return;
+        setPreview({ loading: false, error: `${err}` });
+      });
+  }, [project_id, restoreTarget]);
 
   useEffect(() => {
     let cancelled = false;
@@ -522,6 +565,7 @@ export function BackupsTab({
         openLabel="Open backup directory"
         loading={restoreLoading}
         error={restoreError}
+        preview={preview ?? undefined}
         onRestoreOriginal={() => void performRestore("original")}
         onRestoreScratch={() => void performRestore("scratch")}
         onOpenDirectory={openBackupDirectory}

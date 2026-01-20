@@ -62,6 +62,13 @@ export interface LroRef {
   scope_id: string;
 }
 
+export interface FileTextPreview {
+  content: string;
+  truncated: boolean;
+  size: number;
+  mtime: number;
+}
+
 export interface Fileserver {
   mount: (opts: { project_id: string }) => Promise<{ path: string }>;
   // ensure a project volume exists (idempotent)
@@ -196,6 +203,12 @@ export interface Fileserver {
       size: number;
     }[]
   >;
+  getBackupFileText: (opts: {
+    project_id: string;
+    id: string;
+    path: string;
+    max_bytes?: number;
+  }) => Promise<FileTextPreview>;
 
   /////////////
   // SNAPSHOTS
@@ -218,6 +231,12 @@ export interface Fileserver {
     limit?: number;
   }) => Promise<void>;
   allSnapshotUsage: (opts: { project_id: string }) => Promise<SnapshotUsage[]>;
+  getSnapshotFileText: (opts: {
+    project_id: string;
+    snapshot: string;
+    path: string;
+    max_bytes?: number;
+  }) => Promise<FileTextPreview>;
 }
 
 export interface SnapshotUsage {

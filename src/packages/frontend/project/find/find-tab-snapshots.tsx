@@ -94,9 +94,16 @@ export function SnapshotsTab({
   const [restoreTarget, setRestoreTarget] = useState<SnapshotResult | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{
+    loading?: boolean;
+    error?: string | null;
+    content?: string;
+    truncated?: boolean;
+  } | null>(null);
   const listRef = useRef<VirtuosoGridHandle>(null);
   const queryRef = useRef(state.query);
   const modeRef = useRef(state.mode);
+  const previewRequestRef = useRef(0);
 
   useEffect(() => {
     queryRef.current = state.query;
@@ -108,6 +115,46 @@ export function SnapshotsTab({
       setRestoreError(null);
     }
   }, [restoreTarget]);
+
+  useEffect(() => {
+    if (!restoreTarget) {
+      setPreview(null);
+      return;
+    }
+    if (restoreTarget.isDir) {
+      setPreview({ error: "Directory preview is not available." });
+      return;
+    }
+    const relative = path_to_file(scopePath, restoreTarget.path).replace(
+      /\/+$/,
+      "",
+    );
+    if (!relative) {
+      setPreview({ error: "Directory preview is not available." });
+      return;
+    }
+    const requestId = previewRequestRef.current + 1;
+    previewRequestRef.current = requestId;
+    setPreview({ loading: true });
+    webapp_client.conat_client.hub.projects
+      .getSnapshotFileText({
+        project_id,
+        snapshot: restoreTarget.snapshot,
+        path: relative,
+      })
+      .then((resp) => {
+        if (previewRequestRef.current !== requestId) return;
+        setPreview({
+          loading: false,
+          content: resp.content,
+          truncated: resp.truncated,
+        });
+      })
+      .catch((err) => {
+        if (previewRequestRef.current !== requestId) return;
+        setPreview({ loading: false, error: `${err}` });
+      });
+  }, [project_id, restoreTarget, scopePath]);
 
   const runSearch = useCallback(
     async (override?: string, nextMode?: SnapshotSearchMode) => {
@@ -586,6 +633,7 @@ export function SnapshotsTab({
         openLabel="Open snapshot directory"
         loading={restoreLoading}
         error={restoreError}
+        preview={preview ?? undefined}
         onRestoreOriginal={() => void performRestore("original")}
         onRestoreScratch={() => void performRestore("scratch")}
         onOpenDirectory={openSnapshotDirectory}

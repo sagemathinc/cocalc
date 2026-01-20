@@ -3,6 +3,7 @@ import { type CreateProjectOptions } from "@cocalc/util/db-schema/projects";
 import { type SnapshotCounts } from "@cocalc/util/consts/snapshots";
 import { type CopyOptions } from "@cocalc/conat/files/fs";
 import {
+  type FileTextPreview,
   type SnapshotUsage,
   type RestoreMode,
   type RestoreStagingHandle,
@@ -67,6 +68,7 @@ export const projects = {
   getBackups: authFirstRequireAccount,
   getBackupFiles: authFirstRequireAccount,
   findBackupFiles: authFirstRequireAccount,
+  getBackupFileText: authFirstRequireAccount,
   getBackupQuota: authFirstRequireAccount,
 
   createSnapshot: authFirstRequireAccount,
@@ -74,6 +76,7 @@ export const projects = {
   updateSnapshots: authFirstRequireAccount,
   getSnapshotQuota: authFirstRequireAccount,
   allSnapshotUsage: authFirstRequireAccount,
+  getSnapshotFileText: authFirstRequireAccount,
 
   start: authFirstRequireAccount,
   stop: authFirstRequireAccount,
@@ -300,6 +303,14 @@ export interface Projects {
     ids?: string[];
   }) => Promise<BackupFindResult[]>;
 
+  getBackupFileText: (opts: {
+    account_id?: string;
+    project_id: string;
+    id: string;
+    path: string;
+    max_bytes?: number;
+  }) => Promise<FileTextPreview>;
+
   getBackupQuota: (opts: {
     account_id?: string;
     project_id: string;
@@ -333,6 +344,14 @@ export interface Projects {
   }) => Promise<{ limit: number }>;
 
   allSnapshotUsage: (opts: { project_id: string }) => Promise<SnapshotUsage[]>;
+
+  getSnapshotFileText: (opts: {
+    account_id?: string;
+    project_id: string;
+    snapshot: string;
+    path: string;
+    max_bytes?: number;
+  }) => Promise<FileTextPreview>;
 
   /////////////
   // Project Control
