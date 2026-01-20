@@ -617,9 +617,6 @@ importers:
       antd-img-crop:
         specifier: ^4.27.0
         version: 4.27.0(antd@6.1.0(moment@2.30.1)(react-dom@19.2.1(react@19.2.1))(react@19.2.1))(react-dom@19.2.1(react@19.2.1))(react@19.2.1)
-      async:
-        specifier: ^2.6.3
-        version: 2.6.4
       audio-extensions:
         specifier: ^0.0.0
         version: 0.0.0
@@ -5874,9 +5871,6 @@ packages:
 
   async@1.5.2:
     resolution: {integrity: sha512-nSVgobk4rv61R9PUSDtYt7mPVB2olxNR5RWJcAsH676/ef11bUZwvu7+RGYrYauVdDPcO519v68wRhXQtxsV9w==}
-
-  async@2.6.4:
-    resolution: {integrity: sha512-mzo5dfJYwAn29PeiJ0zvwTo04zj8HDJj0Mn8TD7sno7q12prdbnasKJHhkm2c1LgrhlJ0teaea8860oxi51mGA==}
 
   async@3.2.3:
     resolution: {integrity: sha512-spZRyzKL5l5BZQrr/6m/SqFdBN0q3OCI0f9rjfBzCMBIP4p75P620rR3gTmaksNOhmzgdxcaxdNfMy6anrbM0g==}
@@ -17510,10 +17504,6 @@ snapshots:
   async-validator@1.11.5: {}
 
   async@1.5.2: {}
-
-  async@2.6.4:
-    dependencies:
-      lodash: 4.17.21
 
   async@3.2.3: {}
 

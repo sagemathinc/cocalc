@@ -37,7 +37,6 @@ export function MiscSideButtons() {
     { project_id },
     "available_features",
   )?.toJS();
-  const kucalc = useTypedRedux("customize", "kucalc");
   const intl = useIntl();
 
   const student_project_functionality =
@@ -83,24 +82,6 @@ export function MiscSideButtons() {
     );
   }
 
-  const handle_library_click = (_e: MouseEvent): void => {
-    track("library", { action: "open" });
-    actions?.toggle_library();
-  };
-
-  function render_library_button(): JSX.Element | undefined {
-    if (student_project_functionality.disableLibrary) {
-      return;
-    }
-    // library only exists on kucalc, for now.
-    if (!available_features?.library) return;
-    if (kucalc !== "yes") return;
-    return (
-      <Button bsSize={"small"} onClick={handle_library_click}>
-        <Icon name="book" /> <VisibleLG>Library</VisibleLG>
-      </Button>
-    );
-  }
 
   function render_vscode_button(): JSX.Element | undefined {
     if (student_project_functionality.disableVSCodeServer) {
@@ -178,7 +159,6 @@ export function MiscSideButtons() {
       </Space.Compact>
       <Space.Compact>
         {render_upload_button()}
-        {!lite && render_library_button()}
       </Space.Compact>
       <div className="pull-right">
         <Space.Compact>

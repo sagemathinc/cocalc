@@ -41,7 +41,6 @@ import type {
   AssistantEvent,
   CollaboratorEvent,
   FileActionEvent,
-  LibraryEvent,
   LLMEvent,
   MiniTermEvent,
   OpenFile,
@@ -553,18 +552,6 @@ export const LogEntry: React.FC<Props> = React.memo(
       );
     }
 
-    function render_library(event: LibraryEvent): Rendered {
-      if (event.target == null) {
-        return;
-      }
-      return (
-        <span>
-          copied &quot;{event.title}&quot; from the library to{" "}
-          {file_link(event.target, true, 0)}
-        </span>
-      );
-    }
-
     function render_llm(event: LLMEvent): Rendered {
       const { usage, model, path } = event;
 
@@ -786,8 +773,6 @@ export const LogEntry: React.FC<Props> = React.memo(
           return render_remove_collaborator(event);
         case "open_project": // not used anymore???
           return <span>opened this {projectLabelLower}</span>;
-        case "library":
-          return render_library(event);
         case "assistant":
           return render_assistant(event);
         case "x11":

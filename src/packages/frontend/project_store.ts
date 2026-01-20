@@ -106,7 +106,6 @@ export interface ProjectStoreState {
 
   new_name?: string;
   most_recent_file_click?: string;
-  show_library: boolean;
   file_listing_scroll_top?: number;
   new_filename?: string;
   ext_selection?: string;
@@ -123,10 +122,6 @@ export interface ProjectStoreState {
   default_filename?: string;
   file_creation_error?: string;
   downloading_file: boolean;
-  library?: immutable.Map<string, any>;
-  library_selected?: immutable.Map<string, any>;
-  library_is_copying?: boolean; // for the copy button, to signal an ongoing copy process
-  library_search?: string; // if given, restricts to library entries that match the search
 
   // Project Find
   user_input: string;
@@ -299,12 +294,9 @@ export class ProjectStore extends Store<ProjectStoreState> {
       start_lro: undefined,
       move_lro: undefined,
       checked_files: immutable.Set(),
-      show_library: false,
       file_listing_scroll_top: undefined,
 
       // Project New
-      library: immutable.Map({}),
-      library_is_copying: false, // for the copy button, to signal an ongoing copy process
       downloading_file: false,
 
       // Project Find

@@ -1,6 +1,6 @@
 # Project Move (Current)
 
-Moves are implemented as **backup -> restore -> start** using rustic repositories. There is no host-to-host SSH, rsync, or `btrfs send/receive` in the current move path.
+Moves are implemented as **backup -> restore -> start** using rustic repositories. There is no host-to-host transfer in the current move path.
 
 ## Summary
 

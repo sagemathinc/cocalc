@@ -6,7 +6,6 @@ configuration information.
 import type { ConfigurationAspect } from "@cocalc/comm/websocket/types";
 
 export type { ConfigurationAspect };
-export const LIBRARY_INDEX_FILE = "/ext/library/cocalc-examples/index.json";
 
 export interface MainConfiguration {
   capabilities: MainCapabilities;
@@ -37,7 +36,6 @@ export interface MainCapabilities {
   qmd: boolean;
   jq: boolean;
   spellcheck: boolean;
-  library: boolean;
   sshd: boolean;
   html2pdf: boolean; // via chrome/chromium
   pandoc: boolean; // e.g. for docx2md conversion
@@ -58,7 +56,6 @@ export interface Available {
   qmd: boolean; // also depends on pandoc
   jq: boolean;
   spellcheck: boolean;
-  library: boolean;
   html2pdf: boolean;
   pandoc: boolean;
   vscode: boolean;
@@ -79,7 +76,6 @@ export const NO_AVAIL: Readonly<Available> = {
   jq: false,
   x11: false,
   spellcheck: false,
-  library: false,
   formatting: false,
   html2pdf: false,
   pandoc: false,
@@ -100,7 +96,6 @@ export const ALL_AVAIL: Readonly<Available> = {
   jq: true,
   x11: true,
   spellcheck: true,
-  library: true,
   formatting: true,
   html2pdf: true,
   pandoc: true,
