@@ -193,28 +193,31 @@ describe("test basic key:value functionality for persistent core stream", () => 
   });
 
   // https://github.com/sagemathinc/cocalc/issues/8702
-  it("repeated keyed updates do not grow the stream length", async () => {
+  it("repeated keyed updates append to the stream length", async () => {
     const length = stream.length;
     await stream2.setKv("key", "value3");
     await wait({
       until: () =>
         stream.getKv("key") == "value3" &&
         stream2.getKv("key") == "value3" &&
-        stream.length === length &&
-        stream2.length === length,
+        stream.length === length + 1 &&
+        stream2.length === length + 1,
     });
-    expect(stream.length).toBe(length);
-    expect(stream2.length).toBe(length);
+    expect(stream.length).toBe(length + 1);
+    expect(stream2.length).toBe(length + 1);
   });
 
-  it("verify that the overwritten message is removed in both streams", async () => {
-    await wait({ until: () => stream.length === 1 && stream2.length === 1 });
-    expect(stream.get(0)).toBe("value3");
-    expect(stream2.get(0)).toBe("value3");
+  it("verify that overwritten messages are cleared by gcKv in both streams", () => {
+    expect(stream.length).toBe(3);
+    expect(stream2.length).toBe(3);
+    expect(stream.get(stream.length - 1)).toBe("value3");
+    expect(stream2.get(stream2.length - 1)).toBe("value3");
     stream.gcKv();
     stream2.gcKv();
-    expect(stream.get(0)).toBe("value3");
-    expect(stream2.get(0)).toBe("value3");
+    expect(stream.get(stream.length - 1)).toBe("value3");
+    expect(stream2.get(stream2.length - 1)).toBe("value3");
+    expect(stream.get(0)).toBe(undefined);
+    expect(stream2.get(0)).toBe(undefined);
     expect(stream.headers(0)).toBe(undefined);
     expect(stream2.headers(0)).toBe(undefined);
   });
@@ -228,12 +231,15 @@ describe("test basic key:value functionality for persistent core stream", () => 
     expect((stream.get(stream.length - 1) as Buffer).length).toBe(
       KEY_GC_THRESH + 10,
     );
+    const length = stream.length;
     await stream.setKv("key", Buffer.from("x".repeat(KEY_GC_THRESH + 10)));
     await wait({
-      until: () => stream.length === 1 && Buffer.isBuffer(stream.get(0)),
+      until: () =>
+        stream.length === length + 1 &&
+        Buffer.isBuffer(stream.get(stream.length - 1)),
     });
-    expect(stream.length).toBe(1);
-    expect((stream.get(0) as Buffer).length).toBe(KEY_GC_THRESH + 10);
+    expect(stream.length).toBe(length + 1);
+    expect(stream.get(stream.length - 2)).toBe(undefined);
   });
 
   it("close and reload and note there is only one item in the stream (the first message was removed since it is no longer needed)", async () => {

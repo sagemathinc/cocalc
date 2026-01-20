@@ -70,14 +70,14 @@ export const KEY_GC_THRESH = 10 * 1e6;
 // NOTE: when you do delete this.deleteKv(key), we ensure the previous
 // messages with the given key is completely deleted from sqlite, and
 // also create a *new* lightweight tombstone. That tombstone has this
-// ttl, which defaults to DEFAULT_TOMBSTONE_TTL (one week), so the tombstone
-// itself will be removed after 1 week.  The tombstone is only needed for
+// ttl, which defaults to DEFAULT_TOMBSTONE_TTL (one minute), so the tombstone
+// itself will be removed after 1 minute.  The tombstone is only needed for
 // clients that go offline during the delete, then come back, and reply the
 // partial log of what was missed.  Such clients should reset if the
 // offline time is longer than DEFAULT_TOMBSTONE_TTL.
 // This only happens if allow_msg_ttl is configured to true, which is
 // done with dkv, but not on by default otherwise.
-export const DEFAULT_TOMBSTONE_TTL = 7 * 24 * 60 * 60 * 1000; // 1 week
+export const DEFAULT_TOMBSTONE_TTL = 60 * 1000; // 1 minute
 
 export interface RawMsg extends Message {
   timestamp: number;
@@ -164,7 +164,6 @@ export class CoreStream<T = any> extends EventEmitter {
   // lastSeq used by clients to keep track of what they have received; if one
   // is skipped they reconnect starting with the last one they didn't miss.
   private lastSeq: number = 0;
-  private lastValueByKey = new Map<string, T>();
   // IMPORTANT: user here means the *owner* of the resource, **NOT** the
   // client who is accessing it!  For example, a stream of edits of a file
   // in a project has user {project_id} even if it is being accessed by
@@ -526,12 +525,10 @@ export class CoreStream<T = any> extends EventEmitter {
       } // other case -- we already have it.
     }
     let prev: T | undefined = undefined;
-    const prevRaw = typeof key == "string" ? this.kv[key]?.raw : undefined;
     if (typeof key == "string") {
-      prev = this.kv[key]?.mesg ?? this.lastValueByKey.get(key);
+      prev = this.kv[key]?.mesg;
       if (raw.headers?.[COCALC_TOMBSTONE_HEADER]) {
         delete this.kv[key];
-        this.lastValueByKey.delete(key);
       } else {
         if (this.kv[key] !== undefined) {
           const { raw } = this.kv[key];
@@ -539,18 +536,11 @@ export class CoreStream<T = any> extends EventEmitter {
         }
 
         this.kv[key] = { raw, mesg };
-        this.lastValueByKey.set(key, mesg);
 
         if (this.kvChangeBytes >= KEY_GC_THRESH) {
           this.gcKv();
         }
       }
-    }
-    if (typeof key == "string" && prevRaw?.seq != null && prevRaw.seq !== seq) {
-      this.processPersistentDelete(
-        { op: "delete", seqs: [prevRaw.seq] },
-        { noEmit: true },
-      );
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
     if (!noEmit) {
