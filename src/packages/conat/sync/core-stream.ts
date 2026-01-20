@@ -164,6 +164,7 @@ export class CoreStream<T = any> extends EventEmitter {
   // lastSeq used by clients to keep track of what they have received; if one
   // is skipped they reconnect starting with the last one they didn't miss.
   private lastSeq: number = 0;
+  private lastValueByKey = new Map<string, T>();
   // IMPORTANT: user here means the *owner* of the resource, **NOT** the
   // client who is accessing it!  For example, a stream of edits of a file
   // in a project has user {project_id} even if it is being accessed by
@@ -521,10 +522,12 @@ export class CoreStream<T = any> extends EventEmitter {
       } // other case -- we already have it.
     }
     let prev: T | undefined = undefined;
+    const prevRaw = typeof key == "string" ? this.kv[key]?.raw : undefined;
     if (typeof key == "string") {
-      prev = this.kv[key]?.mesg;
+      prev = this.kv[key]?.mesg ?? this.lastValueByKey.get(key);
       if (raw.headers?.[COCALC_TOMBSTONE_HEADER]) {
         delete this.kv[key];
+        this.lastValueByKey.delete(key);
       } else {
         if (this.kv[key] !== undefined) {
           const { raw } = this.kv[key];
@@ -532,11 +535,18 @@ export class CoreStream<T = any> extends EventEmitter {
         }
 
         this.kv[key] = { raw, mesg };
+        this.lastValueByKey.set(key, mesg);
 
         if (this.kvChangeBytes >= KEY_GC_THRESH) {
           this.gcKv();
         }
       }
+    }
+    if (typeof key == "string" && prevRaw?.seq != null && prevRaw.seq !== seq) {
+      this.processPersistentDelete(
+        { op: "delete", seqs: [prevRaw.seq] },
+        { noEmit: true },
+      );
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
     if (!noEmit) {
