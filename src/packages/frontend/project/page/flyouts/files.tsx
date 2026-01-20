@@ -55,6 +55,7 @@ import useListing from "@cocalc/frontend/project/listing/use-listing";
 import useBackupsListing from "@cocalc/frontend/project/listing/use-backups";
 import ShowError from "@cocalc/frontend/components/error";
 import { getSort } from "@cocalc/frontend/project/explorer/config";
+import { useSpecialPathPreview } from "@cocalc/frontend/project/explorer/use-special-path-preview";
 
 type PartialClickEvent = Pick<
   React.MouseEvent | React.KeyboardEvent,
@@ -91,6 +92,11 @@ export function FilesFlyout({
     null,
   );
   const current_path = useTypedRedux({ project_id }, "current_path");
+  const { onOpenSpecial, modal } = useSpecialPathPreview({
+    project_id,
+    actions,
+    current_path,
+  });
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
 
@@ -380,6 +386,9 @@ export function FilesFlyout({
         actions?.open_directory(fullPath, true, false);
         setSearchState("");
       } else {
+        if (onOpenSpecial(fullPath, false)) {
+          return;
+        }
         const foreground = should_open_in_foreground(e as React.MouseEvent);
         track("open-file", {
           project_id,
@@ -742,6 +751,7 @@ export function FilesFlyout({
         publicFiles={publicFiles}
         refreshBackups={refreshBackups}
       />
+      {modal}
     </div>
   );
 }
