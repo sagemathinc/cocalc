@@ -4,12 +4,14 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 export default function CreateBackup() {
   const { actions, project_id } = useProjectContext();
   const [open, setOpen] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const openCreate = useTypedRedux({ project_id }, "open_create_backup");
 
   useEffect(() => {
     if (!open) return;
@@ -18,6 +20,12 @@ export default function CreateBackup() {
   }, [open]);
 
   if (!project_id) return null;
+
+  useEffect(() => {
+    if (!openCreate) return;
+    setOpen(true);
+    actions?.setState({ open_create_backup: false });
+  }, [actions, openCreate]);
 
   async function createBackup() {
     try {

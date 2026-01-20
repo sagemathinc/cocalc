@@ -455,6 +455,14 @@ export function FilesHeader({
                           actions?.setState({ open_snapshot_schedule: true });
                         },
                       },
+                      {
+                        key: "snapshots-create",
+                        label: "Create Snapshot",
+                        onClick: () => {
+                          actions?.open_directory(SNAPSHOTS);
+                          actions?.setState({ open_create_snapshot: true });
+                        },
+                      },
                       { type: "divider" },
                       {
                         key: "backups-open",
@@ -473,6 +481,14 @@ export function FilesHeader({
                         onClick: () => {
                           actions?.open_directory(BACKUPS);
                           actions?.setState({ open_backup_schedule: true });
+                        },
+                      },
+                      {
+                        key: "backups-create",
+                        label: "Create Backup",
+                        onClick: () => {
+                          actions?.open_directory(BACKUPS);
+                          actions?.setState({ open_create_backup: true });
                         },
                       },
                     ] as MenuItems}

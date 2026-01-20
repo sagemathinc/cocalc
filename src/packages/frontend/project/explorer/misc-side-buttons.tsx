@@ -59,9 +59,20 @@ export function MiscSideButtons() {
       },
     },
     {
+      key: "snapshots-create",
+      label: "Create Snapshot",
+      onClick: () => {
+        actions?.open_directory(SNAPSHOTS);
+        actions?.setState({ open_create_snapshot: true });
+      },
+    },
+    {
       key: "snapshots-config",
       label: "Configure Snapshots",
-      onClick: () => actions?.setState({ open_snapshot_schedule: true }),
+      onClick: () => {
+        actions?.open_directory(SNAPSHOTS);
+        actions?.setState({ open_snapshot_schedule: true });
+      },
     },
     { type: "divider" },
     {
@@ -73,9 +84,20 @@ export function MiscSideButtons() {
       },
     },
     {
+      key: "backups-create",
+      label: "Create Backup",
+      onClick: () => {
+        actions?.open_directory(BACKUPS);
+        actions?.setState({ open_create_backup: true });
+      },
+    },
+    {
       key: "backups-config",
       label: "Configure Backups",
-      onClick: () => actions?.setState({ open_backup_schedule: true }),
+      onClick: () => {
+        actions?.open_directory(BACKUPS);
+        actions?.setState({ open_backup_schedule: true });
+      },
     },
   ];
 

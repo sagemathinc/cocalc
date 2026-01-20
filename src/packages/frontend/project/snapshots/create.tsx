@@ -13,6 +13,7 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import ShowError from "@cocalc/frontend/components/error";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 
 export default function CreateSnapshot() {
   const { actions, project_id } = useProjectContext();
@@ -21,6 +22,7 @@ export default function CreateSnapshot() {
   const [name, setName] = useState<string>("");
   const [error, setError] = useState<string>("");
   const [showHelp, setShowHelp] = useState<boolean>(false);
+  const openCreate = useTypedRedux({ project_id }, "open_create_snapshot");
   const inputRef = useRef<InputRef>(null);
 
   useEffect(() => {
@@ -36,6 +38,12 @@ export default function CreateSnapshot() {
   if (!project_id) {
     return null;
   }
+
+  useEffect(() => {
+    if (!openCreate) return;
+    setOpen(true);
+    actions?.setState({ open_create_snapshot: false });
+  }, [actions, openCreate]);
 
   async function createSnapshot() {
     try {
