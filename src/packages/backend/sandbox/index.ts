@@ -692,13 +692,30 @@ export class SandboxedFilesystem {
         .toString(16)
         .slice(2)}`,
     );
+    let mode: number | undefined;
+    try {
+      const stat0 = await stat(path);
+      mode = stat0.mode;
+    } catch (err: any) {
+      if (err?.code !== "ENOENT") {
+        throw err;
+      }
+    }
     try {
       if (options?.encoding) {
-        await writeFile(tmp, data, { encoding: options.encoding });
+        await writeFile(tmp, data, {
+          encoding: options.encoding,
+          mode,
+        });
       } else {
-        await writeFile(tmp, data);
+        await writeFile(tmp, data, { mode });
       }
       await rename(tmp, path);
+      if (mode != null) {
+        try {
+          await chmod(path, mode);
+        } catch {}
+      }
     } catch (err) {
       try {
         await unlink(tmp);
