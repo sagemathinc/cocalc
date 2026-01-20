@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Modal, Radio, Space, Tooltip, message } from "antd";
+import { Modal, Radio, Space, message } from "antd";
 import useAsyncEffect from "use-async-effect";
 import * as immutable from "immutable";
 import React, { useMemo, useState } from "react";
@@ -15,15 +15,16 @@ import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { type ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
-import {
-  file_actions,
-  type ProjectActions,
-  type FileAction,
-} from "@cocalc/frontend/project_store";
+import { type ProjectActions } from "@cocalc/frontend/project_store";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { DirectoryListingEntry } from "@cocalc/util/types";
-import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
+import {
+  ACTION_BUTTONS_DIR,
+  ACTION_BUTTONS_FILE,
+  ACTION_BUTTONS_MULTI,
+} from "@cocalc/frontend/project/explorer/action-utils";
+import { FileActionsDropdown } from "@cocalc/frontend/project/explorer/file-actions-dropdown";
 import {
   BACKUPS,
   type BackupMeta,
@@ -450,27 +451,6 @@ export function ActionBar({
     );
   }
 
-  function render_action_button(name: FileAction) {
-    if (isSnapshotPath(current_path)) {
-      if (isDisabledSnapshots(name)) {
-        return null;
-      }
-    }
-    const obj = file_actions[name];
-    const handle_click = (_e: React.MouseEvent) => {
-      actions.set_file_action(name);
-    };
-
-    return (
-      <Tooltip title={intl.formatMessage(obj.name)}>
-        <Button onClick={handle_click} key={name}>
-          <Icon name={obj.icon} />
-        </Button>
-        &nbsp;
-      </Tooltip>
-    );
-  }
-
   function render_action_buttons(): React.JSX.Element | undefined {
     if (inBackups) {
       return render_backup_actions();
@@ -508,9 +488,12 @@ export function ActionBar({
       action_buttons = [...ACTION_BUTTONS_MULTI];
     }
     return (
-      <Space.Compact>
-        {action_buttons.map((v) => render_action_button(v))}
-      </Space.Compact>
+      <FileActionsDropdown
+        names={action_buttons}
+        current_path={current_path}
+        actions={actions}
+        label="Actions"
+      />
     );
   }
 
@@ -555,44 +538,4 @@ export function ActionBar({
       <div style={{ flex: "1 0 auto" }}>{render_currently_selected()}</div>
     </div>
   );
-}
-
-export const ACTION_BUTTONS_DIR = [
-  "download",
-  "compress",
-  "delete",
-  "rename",
-  "duplicate",
-  "move",
-  "copy",
-  "share",
-] as const;
-
-export const ACTION_BUTTONS_FILE = [
-  "download",
-  "compress",
-  "delete",
-  "rename",
-  "duplicate",
-  "move",
-  "copy",
-  "share",
-] as const;
-
-export const ACTION_BUTTONS_MULTI = [
-  "download",
-  "compress",
-  "delete",
-  "move",
-  "copy",
-] as const;
-
-const DISABLED_SNAPSHOT_ACTIONS = new Set(["move", "compress"]);
-
-export function isDisabledSnapshots(name: string) {
-  return DISABLED_SNAPSHOT_ACTIONS.has(name);
-}
-
-export function isSnapshotPath(path?: string) {
-  return path == SNAPSHOTS || path?.startsWith(SNAPSHOTS + "/");
 }
