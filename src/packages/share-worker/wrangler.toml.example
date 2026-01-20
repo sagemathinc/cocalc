@@ -1,0 +1,21 @@
+name = "cocalc-share-worker"
+main = "dist/index.js"
+compatibility_date = "2024-10-01"
+
+[vars]
+SHARE_JWT_SECRET = "replace-with-strong-secret"
+SHARE_JWT_AUDIENCE = "cocalc-share"
+SHARE_JWT_ISSUER = "cocalc"
+SHARE_JWT_TTL_SECONDS = "900"
+SHARE_PUBLIC_CACHE_MAX_AGE = "31536000"
+SHARE_META_CACHE_MAX_AGE = "60"
+SHARE_PRIVATE_CACHE_MAX_AGE = "60"
+
+[[r2_buckets]]
+binding = "SHARES_BUCKET"
+bucket_name = "cocalc-shares-wnam"
+
+# Optional regional bucket binding.
+[[r2_buckets]]
+binding = "SHARES_BUCKET_WNAM"
+bucket_name = "cocalc-shares-wnam"

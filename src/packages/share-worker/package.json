@@ -1,0 +1,11 @@
+{
+  "name": "@cocalc/share-worker",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cloudflare Worker for CoCalc share content",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "pnpm exec tsc --build",
+    "clean": "rm -rf dist tsconfig.tsbuildinfo"
+  }
+}

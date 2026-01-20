@@ -1,0 +1,9 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "dist",
+    "lib": ["es2020", "webworker"]
+  },
+  "include": ["src"]
+}

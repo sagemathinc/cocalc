@@ -35,6 +35,11 @@ export interface SharePublishResult {
   stream_name: string;
 }
 
+export interface ShareViewerToken {
+  token: string;
+  expires_at: number;
+}
+
 export const shares = {
   createShare: authFirstRequireAccount,
   updateShare: authFirstRequireAccount,
@@ -42,6 +47,7 @@ export const shares = {
   listShares: authFirstRequireAccount,
   publishShare: authFirstRequireAccount,
   setIndexing: authFirstRequireAccount,
+  viewerToken: authFirstRequireAccount,
 };
 
 export interface Shares {
@@ -82,4 +88,9 @@ export interface Shares {
     share_id: string;
     indexing_opt_in: boolean;
   }) => Promise<PublishedShare>;
+
+  viewerToken: (opts: {
+    account_id?: string;
+    share_id: string;
+  }) => Promise<ShareViewerToken | null>;
 }

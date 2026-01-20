@@ -194,6 +194,9 @@ export type SiteSettingsExtrasKeys =
   | "r2_access_key_id"
   | "r2_secret_access_key"
   | "r2_bucket_prefix"
+  | "share_heading"
+  | "share_jwt_secret_path"
+  | "share_jwt_secret"
   | "re_captcha_v3_heading"
   | "re_captcha_v3_publishable_key"
   | "re_captcha_v3_secret_key"
@@ -495,6 +498,30 @@ export const EXTRAS: SettingsExtras = {
     desc: "Prefix for per-region backup buckets (e.g., cocalc).",
     default: "",
     tags: ["Backups", "R2"],
+  },
+  share_heading: {
+    name: "Share Publishing",
+    desc: "Settings for published share viewer token signing.",
+    default: "",
+    type: "header",
+    tags: ["Security"],
+  },
+  share_jwt_secret_path: {
+    name: "Share Viewer JWT Secret Path",
+    desc: "Filesystem path to the shared JWT secret for share viewer tokens. When set, this overrides the database secret (useful for k8s secrets).",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Security"],
+    valid: () => true,
+  },
+  share_jwt_secret: {
+    name: "Share Viewer JWT Secret (DB fallback)",
+    desc: "Shared JWT secret stored in the database, used only if no filesystem path is configured. Keep this in sync with the share worker secret.",
+    default: "",
+    password: true,
+    to_val: to_trimmed_str,
+    tags: ["Security"],
+    valid: () => true,
   },
   re_captcha_v3_heading: {
     // this is cosmetic, otherwise it looks weird.
@@ -969,7 +996,7 @@ export const EXTRAS: SettingsExtras = {
   },
   project_hosts_cloudflare_tunnel_api_token: {
     name: "Project Hosts: Cloudflare Tunnel - API Token",
-    desc: 'Cloudflare API token with permissions for Cloudflare Tunnel and DNS (Account:Cloudflare Tunnel:Edit, Zone:DNS:Edit).',
+    desc: "Cloudflare API token with permissions for Cloudflare Tunnel and DNS (Account:Cloudflare Tunnel:Edit, Zone:DNS:Edit).",
     default: "",
     password: true,
     to_val: to_trimmed_str,
