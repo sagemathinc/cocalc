@@ -25,31 +25,38 @@ const SHARE_HELP_URL = "https://doc.cocalc.com/share.html";
 import {
   Alert,
   Button,
+  Checkbox,
   Col,
+  Divider,
   Input,
   Radio,
   Row,
   Space,
+  message,
 } from "antd";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import type { PublishedShare, ShareScope } from "@cocalc/conat/hub/api/shares";
 import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
   CopyToClipBoard,
   Icon,
+  Loading,
   Paragraph,
   Text,
   Title,
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   SHARE_AUTHENTICATED_EXPLANATION,
   SHARE_AUTHENTICATED_ICON,
   SHARE_FLAGS,
 } from "@cocalc/util/consts/ui";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { trunc_middle, unreachable } from "@cocalc/util/misc";
+import { encode_path, trunc_middle, unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ConfigureName } from "./configure-name";
 import { License } from "./license";
@@ -424,6 +431,307 @@ export default function Configure({
         </Row>
       ) : undefined}
       <Paragraph style={{ float: "right" }}>{renderFinishedButton()}</Paragraph>
+      <PublishedSharePanel
+        project_id={project_id}
+        path={path}
+        allow_authenticated={kucalc != KUCALC_COCALC_COM}
+      />
     </>
   );
+}
+
+type ShareLoadState =
+  | { status: "loading" }
+  | { status: "ready"; share: PublishedShare | null; is_parent: boolean }
+  | { status: "error"; error: string };
+
+type ShareScopeOption = ShareScope;
+
+const SHARE_SCOPE_LABELS: Record<ShareScopeOption, string> = {
+  public: "Public (listed)",
+  unlisted: "Public (unlisted)",
+  authenticated: "Authenticated",
+  org: "Organization",
+};
+
+function PublishedSharePanel({
+  project_id,
+  path,
+  allow_authenticated,
+}: {
+  project_id: string;
+  path: string;
+  allow_authenticated: boolean;
+}) {
+  const [state, setState] = useState<ShareLoadState>({ status: "loading" });
+  const [scope, setScope] = useState<ShareScopeOption>("unlisted");
+  const [indexingOptIn, setIndexingOptIn] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  const loadShares = useCallback(async () => {
+    setState({ status: "loading" });
+    try {
+      const shares = await webapp_client.conat_client.hub.shares.listShares({
+        project_id,
+      });
+      const match = findShareMatch(shares, path);
+      setState({
+        status: "ready",
+        share: match.share,
+        is_parent: match.is_parent,
+      });
+      if (match.share) {
+        const nextScope = match.share.scope;
+        setScope(nextScope);
+        setIndexingOptIn(!!match.share.indexing_opt_in);
+      }
+    } catch (err) {
+      setState({
+        status: "error",
+        error: err instanceof Error ? err.message : `${err}`,
+      });
+    }
+  }, [project_id, path]);
+
+  useEffect(() => {
+    void loadShares();
+  }, [loadShares]);
+
+  const share = state.status === "ready" ? state.share : null;
+  const isParent = state.status === "ready" ? state.is_parent : false;
+  const shareUrl = useMemo(() => {
+    if (!share) return "";
+    const relative = isParent ? relativeSharePath(share.path, path) : "";
+    return buildShareViewerUrl(share, relative);
+  }, [share, isParent, path]);
+
+  const canEdit = !busy && !isParent && share?.scope !== "org";
+  const scopeOptions = useMemo(() => {
+    const options: ShareScopeOption[] = allow_authenticated
+      ? ["public", "unlisted", "authenticated"]
+      : ["public", "unlisted"];
+    if (share?.scope === "org") {
+      options.push("org");
+    }
+    return options;
+  }, [allow_authenticated, share?.scope]);
+
+  const handleCreate = async () => {
+    setBusy(true);
+    try {
+      const created = await webapp_client.conat_client.hub.shares.createShare({
+        project_id,
+        path,
+        scope,
+        indexing_opt_in: indexingOptIn,
+      });
+      setState({ status: "ready", share: created, is_parent: false });
+      message.success("Published share created.");
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : "Failed to create share.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handlePublish = async () => {
+    if (!share) return;
+    setBusy(true);
+    try {
+      await webapp_client.conat_client.hub.shares.publishShare({
+        share_id: share.share_id,
+      });
+      message.success("Publish queued.");
+      void loadShares();
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : "Failed to publish share.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleScopeChange = async (next: ShareScopeOption) => {
+    setScope(next);
+    if (!share) return;
+    setBusy(true);
+    try {
+      const updated = await webapp_client.conat_client.hub.shares.updateShare({
+        share_id: share.share_id,
+        scope: next,
+      });
+      setState({ status: "ready", share: updated, is_parent: false });
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : "Failed to update share scope.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleIndexingChange = async (next: boolean) => {
+    setIndexingOptIn(next);
+    if (!share) return;
+    setBusy(true);
+    try {
+      const updated = await webapp_client.conat_client.hub.shares.setIndexing({
+        share_id: share.share_id,
+        indexing_opt_in: next,
+      });
+      setState({ status: "ready", share: updated, is_parent: false });
+    } catch (err) {
+      message.error(
+        err instanceof Error ? err.message : "Failed to update indexing.",
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <>
+      <Divider />
+      <Title level={4}>
+        <Icon name="share-square" /> Published share (new)
+      </Title>
+      {state.status === "loading" ? (
+        <Loading />
+      ) : state.status === "error" ? (
+        <Alert type="error" description={state.error} />
+      ) : isParent && share ? (
+        <Alert
+          type="warning"
+          showIcon
+          description={
+            <>
+              This path is inside the published share at{" "}
+              <Text strong>{share.path}</Text>. Manage publishing from that
+              folder instead.
+            </>
+          }
+        />
+      ) : (
+        <Space direction="vertical" style={{ width: "100%" }}>
+          <Paragraph style={{ color: COLORS.GRAY_M }}>
+            Published shares are explicit snapshots served from regional
+            buckets. Publish to generate a share link and viewer preview.
+          </Paragraph>
+          <div>
+            <Text strong>Scope</Text>
+            <div>
+              <Radio.Group
+                value={scope}
+                onChange={(e) => handleScopeChange(e.target.value)}
+                disabled={!canEdit}
+              >
+                <Space direction="vertical">
+                  {scopeOptions.map((option) => (
+                    <Radio key={option} value={option}>
+                      {SHARE_SCOPE_LABELS[option]}
+                    </Radio>
+                  ))}
+                </Space>
+              </Radio.Group>
+            </div>
+          </div>
+          <Checkbox
+            checked={indexingOptIn}
+            disabled={!canEdit || scope !== "public"}
+            onChange={(e) => handleIndexingChange(e.target.checked)}
+          >
+            Allow search indexing (opt-in)
+          </Checkbox>
+          {share ? (
+            <>
+              <Paragraph>
+                Share region:{" "}
+                <Text strong>{share.share_region ?? "pending"}</Text>
+              </Paragraph>
+              <Paragraph>
+                Latest publish status:{" "}
+                <Text strong>{share.last_publish_status ?? "unknown"}</Text>
+              </Paragraph>
+              {share.last_publish_error ? (
+                <Alert type="error" description={share.last_publish_error} />
+              ) : null}
+              {shareUrl ? (
+                <>
+                  <Paragraph>
+                    Share link:{" "}
+                    <A href={shareUrl} style={{ fontWeight: "bold" }}>
+                      Link <Icon name="external-link" />
+                    </A>
+                  </Paragraph>
+                  <CopyToClipBoard
+                    style={{ flex: 1, display: "flex" }}
+                    outerStyle={{ flex: 1 }}
+                    value={shareUrl}
+                    inputWidth={"100%"}
+                  />
+                </>
+              ) : null}
+              <Button onClick={handlePublish} type="primary" disabled={busy}>
+                <Icon name="cloud-upload" /> Publish
+              </Button>
+            </>
+          ) : (
+            <Button onClick={handleCreate} type="primary" disabled={busy}>
+              <Icon name="plus-circle" /> Create published share
+            </Button>
+          )}
+        </Space>
+      )}
+    </>
+  );
+}
+
+function findShareMatch(
+  shares: PublishedShare[],
+  path: string,
+): { share: PublishedShare | null; is_parent: boolean } {
+  let match: PublishedShare | null = null;
+  for (const share of shares) {
+    if (share.path === path || isShareParentPath(share.path, path)) {
+      if (!match || share.path.length > match.path.length) {
+        match = share;
+      }
+    }
+  }
+  return {
+    share: match,
+    is_parent: match ? match.path !== path : false,
+  };
+}
+
+function isShareParentPath(parent: string, child: string): boolean {
+  if (!parent) return child.length > 0;
+  return child.startsWith(`${parent}/`);
+}
+
+function relativeSharePath(parent: string, child: string): string {
+  if (!parent) return child;
+  if (child === parent) return "";
+  if (child.startsWith(`${parent}/`)) {
+    return child.slice(parent.length + 1);
+  }
+  return "";
+}
+
+function buildShareViewerUrl(
+  share: PublishedShare,
+  relativePath: string,
+): string {
+  const origin = document.location.origin;
+  const basePath = appBasePath == "/" ? "" : appBasePath;
+  const region = share.share_region?.trim();
+  const regionPrefix = region ? `/r/${encodeURIComponent(region)}` : "";
+  const base = `${origin}${basePath}${regionPrefix}/share/${encodeURIComponent(
+    share.share_id,
+  )}`;
+  if (!relativePath) return base;
+  return `${base}/${encode_path(relativePath)}`;
 }
