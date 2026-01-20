@@ -1,13 +1,14 @@
 import { Alert, Button, Input, Radio, Space, Tooltip, message } from "antd";
 import { join, posix } from "path";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Virtuoso, type VirtuosoHandle } from "react-virtuoso";
+import { type VirtuosoGridHandle } from "react-virtuoso";
 import { useActions } from "@cocalc/frontend/app-framework";
 import { Loading, SearchInput } from "@cocalc/frontend/components";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { search_match, search_split } from "@cocalc/util/misc";
 import { FindBackupRow, type BackupResult } from "./rows";
+import { FindResultsGrid } from "./result-grid";
 import { useFindTabState } from "./state";
 import {
   type FindBackupsState,
@@ -21,8 +22,13 @@ const DEFAULT_STATE: FindBackupsState = {
   query: "",
   filter: "",
   mode: "files",
+  hidden: false,
   caseSensitive: false,
 };
+
+function isHiddenPath(path: string): boolean {
+  return path.split("/").some((segment) => segment.startsWith(".") && segment !== ".");
+}
 
 type BackupTimeValue =
   | Date
@@ -75,6 +81,7 @@ export function BackupsTab({
   prefill?: FindPrefill;
   backupName?: string;
 }) {
+  const fieldWidth = mode === "flyout" ? "100%" : "50%";
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
   const [state, setState] = useFindTabState(
@@ -90,7 +97,7 @@ export function BackupsTab({
   const [restoreTarget, setRestoreTarget] = useState<BackupResult | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
-  const listRef = useRef<VirtuosoHandle>(null);
+  const listRef = useRef<VirtuosoGridHandle>(null);
   const queryRef = useRef(state.query);
 
   useEffect(() => {
@@ -181,7 +188,8 @@ export function BackupsTab({
               filter: `${item.path} ${item.id} ${timeIso}`,
             };
           })
-          .filter((item) => matchesScope(item.path, scopePath));
+          .filter((item) => matchesScope(item.path, scopePath))
+          .filter((item) => state.hidden || !isHiddenPath(item.path));
         filtered.sort((a, b) => {
           const aTime = timeMs(a.time);
           const bTime = timeMs(b.time);
@@ -344,14 +352,25 @@ export function BackupsTab({
   }, [actions, restoreTarget]);
 
   const restorePath = restoreTarget?.path ?? "";
-
-  return (
-    <div className="smc-vfill">
-      <Alert
-        type="info"
-        style={{ marginBottom: "8px" }}
-        message="Snapshots are more frequent, recent and support content search; backups are less frequent and longer lived."
-      />
+  const alert = (
+    <Alert
+      type="info"
+      style={{
+        marginBottom: mode === "flyout" ? "8px" : 0,
+        maxWidth: mode === "flyout" ? undefined : "360px",
+      }}
+      message="Snapshots are more frequent, recent and support content search; backups are less frequent and longer lived."
+    />
+  );
+  const searchRow = (
+    <div
+      style={{
+        display: "flex",
+        flexWrap: "wrap",
+        gap: "8px",
+        alignItems: "center",
+      }}
+    >
       <SearchInput
         size={mode === "flyout" ? "medium" : "large"}
         autoFocus
@@ -375,36 +394,77 @@ export function BackupsTab({
             Search
           </Button>
         }
+        style={{ width: fieldWidth }}
       />
-      <Space wrap style={{ marginTop: "8px" }}>
-        <Radio.Group
-          value={state.mode}
-          onChange={(e) =>
-            setState({ mode: e.target.value as SnapshotSearchMode })
-          }
-          optionType="button"
-          buttonStyle="solid"
-          size={mode === "flyout" ? "small" : "middle"}
+      <Radio.Group
+        value={state.mode}
+        onChange={(e) =>
+          setState({ mode: e.target.value as SnapshotSearchMode })
+        }
+        optionType="button"
+        buttonStyle="solid"
+        size={mode === "flyout" ? "small" : "middle"}
+      >
+        <Radio.Button value="files">Files</Radio.Button>
+        <Tooltip title="Backup contents search isn't supported yet. Use snapshots for content search.">
+          <Radio.Button value="contents" disabled>
+            Contents
+          </Radio.Button>
+        </Tooltip>
+      </Radio.Group>
+    </div>
+  );
+  const optionsRow = (
+    <Space wrap style={{ marginTop: "8px" }}>
+      <Button
+        size="small"
+        type={state.hidden ? "primary" : "default"}
+        onClick={() => setState({ hidden: !state.hidden })}
+      >
+        Hidden
+      </Button>
+      <Button
+        size="small"
+        type={state.caseSensitive ? "primary" : "default"}
+        onClick={() => setState({ caseSensitive: !state.caseSensitive })}
+      >
+        Case sensitive
+      </Button>
+    </Space>
+  );
+
+  return (
+    <div className="smc-vfill">
+      {mode === "flyout" ? (
+        <>
+          {alert}
+          {searchRow}
+          {optionsRow}
+        </>
+      ) : (
+        <div
+          style={{
+            display: "flex",
+            gap: "12px",
+            alignItems: "flex-start",
+            flexWrap: "wrap",
+          }}
         >
-          <Radio.Button value="files">Files</Radio.Button>
-          <Tooltip title="Backup contents search isn't supported yet. Use snapshots for content search.">
-            <Radio.Button value="contents" disabled>
-              Contents
-            </Radio.Button>
-          </Tooltip>
-        </Radio.Group>
-        <Button
-          size="small"
-          type={state.caseSensitive ? "primary" : "default"}
-          onClick={() => setState({ caseSensitive: !state.caseSensitive })}
-        >
-          Case sensitive
-        </Button>
-      </Space>
+          <div style={{ flex: "1 1 520px", minWidth: 0 }}>
+            {searchRow}
+            {optionsRow}
+          </div>
+          <div style={{ flex: "0 1 360px" }}>{alert}</div>
+        </div>
+      )}
       {error ? (
         <Alert style={{ marginTop: "10px" }} type="error" message={error} />
       ) : null}
-      {loading ? <Loading /> : null}
+      {loading ? (
+        <div style={{ marginTop: "10px" }}>
+          <Loading />
+        </div>
+      ) : null}
       {!loading && state.query.trim() && filteredResults.length === 0 ? (
         <Alert
           style={{ marginTop: "10px" }}
@@ -429,12 +489,13 @@ export function BackupsTab({
             placeholder="Filter results"
             value={state.filter}
             onChange={(e) => setState({ filter: e.target.value })}
-            style={{ marginBottom: "8px" }}
+            allowClear
+            style={{ width: fieldWidth, marginBottom: "8px" }}
           />
           {filteredResults.length > 0 ? (
-            <Virtuoso
-              ref={listRef}
-              style={{ flex: 1 }}
+            <FindResultsGrid
+              listRef={listRef}
+              minItemWidth={480}
               totalCount={filteredResults.length}
               itemContent={(index) => {
                 const result = filteredResults[index];

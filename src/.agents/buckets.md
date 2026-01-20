@@ -278,44 +278,45 @@ Goal: make backups usable without full restore by adding search + read-only file
 
 **Plan**
 
-1. **(done) Component refactor**
-   - Split [src/packages/frontend/project/find/find.tsx](./src/packages/frontend/project/find/find.tsx) into per-tab components and shared controls/results.
-   - Keep tab-specific logic isolated; share filter, list, and empty/error UI.
+1. **\(done\) Component refactor**
+   - Split [src/packages/frontend/project/find/find.tsx](./src/packages/frontend/project/find/find.tsx) into per\-tab components and shared controls/results.
+   - Keep tab\-specific logic isolated; share filter, list, and empty/error UI.
 
-2. **(done) Shared state (per project)**
-   - Store Find state in project store (active tab, query, filter, toggles, find path, pin).
-   - Ensure flyout and full-page Find use the same state.
-   - Preserve state across tab switches (Files/Contents/Snapshots/Backups).
+2. **\(done\) Shared state \(per project\)**
+   - Store Find state in project store \(active tab, query, filter, toggles, find path, pin\).
+   - Ensure flyout and full\-page Find use the same state.
+   - Preserve state across tab switches \(Files/Contents/Snapshots/Backups\).
 
-3. **(done) Path-aware behavior**
+3. **\(done\) Path\-aware behavior**
    - If Find path starts with `.backups/` or `.snapshots/`, disable other tabs.
-   - Show an alert and a prominent button to jump to the corresponding path in HOME (strip `.backups/<backup>/` or `.snapshots/<snap>/`).
+   - Show an alert and a prominent button to jump to the corresponding path in HOME \(strip `.backups/<backup>/` or `.snapshots/<snap>/`\).
 
-4. **(done) Find-in controls**
+4. **\(done\) Find\-in controls**
    - Add pin toggle to lock Find path; when pinned, it doesn't follow navigation.
-   - Add a recent-path history dropdown (localStorage).
+   - Add a recent\-path history dropdown \(localStorage\).
    - Keep directory selector for explicit changes.
 
-5. **(done) Lite mode**
+5. **\(done\) Lite mode**
    - Hide Backups/Snapshots tabs in lite mode.
 
-6. **(done) Keyboard navigation**
+6. **\(done\) Keyboard navigation**
    - Focus search on open.
    - Up/Down to navigate results, Enter to open, Esc to clear filter.
 
-7. **(done) Explorer filter hybrid routing**
+7. **\(done\) Explorer filter hybrid routing**
    - Preserve current filter behavior.
    - Recognize prefixes and show a hint: “Press Enter to search …”
-     - `/` → Files (fd)
-     - `?` → Contents (rg)
+     - `/` → Files \(fd\)
+     - `?` → Contents \(rg\)
      - `backup:` → Backups
      - `snapshot:` → Snapshots
-     - `>` → terminal command (existing behavior)
+     - `>` → terminal command \(existing behavior\)
    - On Enter, open the Find panel, switch tabs, and prefill the query.
 
-8. **Results UI + polish**
+8. **\(done\) Results UI \+ polish**
    - Consistent alert copy for snapshots/backups.
    - Unified Files/Contents toggle; backups show Contents disabled with tooltip.
    - Filter input should remain visible even when filtered results are empty.
    - Improve spacing/typography and result card hierarchy.
-   - Add source badges and quick actions: open, reveal, restore (where applicable).
+   - Add source badges and quick actions: open, reveal, restore \(where applicable\).
+
