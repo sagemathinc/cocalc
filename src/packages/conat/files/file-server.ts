@@ -62,6 +62,34 @@ export interface LroRef {
   scope_id: string;
 }
 
+export interface ShareBucketConfig {
+  endpoint: string;
+  bucket: string;
+  region?: string;
+  access_key_id: string;
+  secret_access_key: string;
+  root?: string;
+}
+
+export interface SharePublishRequest {
+  project_id: string;
+  share_id: string;
+  path: string;
+  scope: "public" | "unlisted" | "authenticated" | "org";
+  indexing_opt_in: boolean;
+  latest_manifest_id?: string | null;
+  bucket: ShareBucketConfig;
+  lro?: LroRef;
+}
+
+export interface SharePublishResult {
+  manifest_id: string;
+  manifest_hash: string;
+  published_at: string;
+  size_bytes: number;
+  file_count: number;
+}
+
 export interface Fileserver {
   mount: (opts: { project_id: string }) => Promise<{ path: string }>;
   // ensure a project volume exists (idempotent)
@@ -218,6 +246,11 @@ export interface Fileserver {
     limit?: number;
   }) => Promise<void>;
   allSnapshotUsage: (opts: { project_id: string }) => Promise<SnapshotUsage[]>;
+
+  /////////////
+  // SHARES
+  /////////////
+  publishShare: (opts: SharePublishRequest) => Promise<SharePublishResult>;
 }
 
 export interface SnapshotUsage {

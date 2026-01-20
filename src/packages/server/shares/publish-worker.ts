@@ -3,10 +3,12 @@ import getLogger from "@cocalc/backend/logger";
 import type { LroSummary } from "@cocalc/conat/hub/api/lro";
 import { publishLroEvent, publishLroSummary } from "@cocalc/conat/lro/stream";
 import { claimLroOps, touchLro, updateLro } from "@cocalc/server/lro/lro-db";
+import { client as fileServerClient } from "@cocalc/conat/files/file-server";
 import {
   getPublishedShareById,
   updatePublishedSharePublishStatus,
 } from "@cocalc/server/shares/db";
+import { resolveShareBucketConfig } from "@cocalc/server/shares/storage";
 
 const logger = getLogger("server:shares:publish-worker");
 
@@ -128,26 +130,56 @@ async function handlePublishOp(op: LroSummary): Promise<void> {
     progressEvent({
       op,
       step: "publish",
-      message: "publish pipeline not implemented",
+      message: "starting share publish",
     });
 
-    const errMsg = "share publish pipeline not implemented yet";
+    const bucket = await resolveShareBucketConfig({ project_id });
+    const result = await fileServerClient({ project_id }).publishShare({
+      project_id,
+      share_id,
+      path: share.path,
+      scope: share.scope,
+      indexing_opt_in: share.indexing_opt_in,
+      latest_manifest_id: share.latest_manifest_id,
+      bucket,
+      lro: { op_id, scope_type: op.scope_type, scope_id: op.scope_id },
+    });
+
     await updatePublishedSharePublishStatus({
       share_id,
-      status: "failed",
-      error: errMsg,
+      status: "succeeded",
+      error: null,
+      latest_manifest_id: result.manifest_id,
+      latest_manifest_hash: result.manifest_hash,
+      published_at: new Date(result.published_at),
+      size_bytes: result.size_bytes,
     });
 
     const updated = await updateLro({
       op_id,
-      status: "failed",
-      error: errMsg,
-      progress_summary: { phase: "done" },
+      status: "succeeded",
+      result: result,
+      progress_summary: {
+        phase: "done",
+        manifest_id: result.manifest_id,
+        file_count: result.file_count,
+        size_bytes: result.size_bytes,
+      },
+      error: null,
     });
     if (updated) {
       await publishSummary(updated);
     }
-    progressEvent({ op, step: "done", message: "failed" });
+    progressEvent({
+      op,
+      step: "done",
+      message: "publish complete",
+      detail: {
+        manifest_id: result.manifest_id,
+        file_count: result.file_count,
+        size_bytes: result.size_bytes,
+      },
+    });
   } catch (err) {
     const error = `${err}`;
     logger.warn("share publish op failed", { op_id, err: error });

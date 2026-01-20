@@ -1413,6 +1413,9 @@ importers:
       micro-key-producer:
         specifier: ^0.8.2
         version: 0.8.2
+      mime-types:
+        specifier: ^3.0.1
+        version: 3.0.2
     devDependencies:
       '@types/express':
         specifier: ^4.17.23
@@ -17533,7 +17536,7 @@ snapshots:
 
   axios@1.13.2:
     dependencies:
-      follow-redirects: 1.15.11
+      follow-redirects: 1.15.11(debug@4.4.3)
       form-data: 4.0.5
       proxy-from-env: 1.1.0
     transitivePeerDependencies:
@@ -19804,8 +19807,6 @@ snapshots:
   flatten-vertex-data@1.0.2:
     dependencies:
       dtype: 2.0.0
-
-  follow-redirects@1.15.11: {}
 
   follow-redirects@1.15.11(debug@4.4.3):
     optionalDependencies:
@@ -22465,7 +22466,6 @@ snapshots:
   mime-types@3.0.2:
     dependencies:
       mime-db: 1.54.0
-    optional: true
 
   mime@1.6.0: {}
 

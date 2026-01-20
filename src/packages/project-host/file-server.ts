@@ -2,8 +2,18 @@
 // This allows users to browse and generally use the filesystem of any project,
 // without having to run that project.
 
+import { createHash, randomUUID } from "node:crypto";
 import { dirname, join } from "node:path";
-import { chmod, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdir,
+  lstat,
+  readFile,
+  readdir,
+  rm,
+  stat,
+  writeFile,
+} from "node:fs/promises";
 import { DatabaseSync } from "node:sqlite";
 import {
   server as createFileServer,
@@ -13,6 +23,8 @@ import {
   type LroRef,
   type RestoreMode,
   type RestoreStagingHandle,
+  type SharePublishRequest,
+  type SharePublishResult,
   type SnapshotUsage,
   type Sync,
 } from "@cocalc/conat/files/file-server";
@@ -49,6 +61,7 @@ import { SandboxedFilesystem } from "@cocalc/backend/sandbox";
 import { parseOutput } from "@cocalc/backend/sandbox/exec";
 import rustic from "@cocalc/backend/sandbox/rustic";
 import { isValidUUID } from "@cocalc/util/misc";
+import mime from "mime-types";
 import { getProject } from "./sqlite/projects";
 import { INTERNAL_SSH_CONFIG } from "@cocalc/conat/project/runner/constants";
 import { ensureSshpiperdKey } from "./ssh/sshpiperd-key";
@@ -60,7 +73,7 @@ import {
   open as nodeOpen,
   realpath as nodeRealpath,
 } from "node:fs/promises";
-import { constants as fsConstants } from "node:fs";
+import { constants as fsConstants, createReadStream } from "node:fs";
 import path from "node:path";
 import { getMasterConatClient, queueProjectProvisioned } from "./master-status";
 import callHub from "@cocalc/conat/hub/call-hub";
@@ -70,6 +83,7 @@ import {
 } from "@cocalc/file-server/btrfs/rustic-progress";
 import { publishLroEvent } from "@cocalc/conat/lro/stream";
 import { touchProjectLastEdited } from "./last-edited";
+import { createS3Client } from "@cocalc/backend/s3";
 
 type SshTarget = { type: "project"; project_id: string };
 
@@ -478,6 +492,452 @@ async function allSnapshotUsage({
 }): Promise<SnapshotUsage[]> {
   const vol = await getVolume(project_id);
   return await vol.snapshots.allUsage();
+}
+
+// Shares
+type ShareFileKind = "notebook" | "markdown" | "pdf" | "text" | "binary";
+type ShareRootKind = "file" | "dir";
+
+interface ShareManifestFile {
+  path: string;
+  hash: string;
+  size: number;
+  mtime: number;
+  content_type: string;
+  kind: ShareFileKind;
+}
+
+interface ShareManifest {
+  version: number;
+  share_id: string;
+  manifest_id: string;
+  created_at: string;
+  root_path: string;
+  root_kind: ShareRootKind;
+  scope: SharePublishRequest["scope"];
+  indexing_opt_in: boolean;
+  files: ShareManifestFile[];
+  dirs?: string[];
+  file_count?: number;
+  size_bytes?: number;
+}
+
+type ShareFileCandidate = {
+  abs: string;
+  path: string;
+  size: number;
+  mtime: number;
+};
+
+const SHARE_MANIFEST_VERSION = 1;
+
+function normalizeSharePath(raw: string): string {
+  const trimmed = raw.trim();
+  let clean = trimmed.replace(/^\.\/+/, "").replace(/\/+$/, "");
+  if (clean === ".") {
+    clean = "";
+  }
+  if (clean.startsWith("/")) {
+    throw new Error("share path must be relative");
+  }
+  if (clean.includes("..")) {
+    throw new Error("share path must not include '..'");
+  }
+  if (clean.includes("\\")) {
+    throw new Error("share path must use forward slashes");
+  }
+  return clean;
+}
+
+function sha256Hex(data: Buffer | string): string {
+  return createHash("sha256").update(data).digest("hex");
+}
+
+async function hashFile(absPath: string): Promise<string> {
+  return await new Promise((resolve, reject) => {
+    const hash = createHash("sha256");
+    const stream = createReadStream(absPath);
+    stream.on("error", (err) => reject(err));
+    stream.on("data", (chunk) => hash.update(chunk));
+    stream.on("end", () => resolve(hash.digest("hex")));
+  });
+}
+
+function inferShareKind({
+  filePath,
+  contentType,
+}: {
+  filePath: string;
+  contentType: string;
+}): ShareFileKind {
+  const lower = filePath.toLowerCase();
+  if (lower.endsWith(".ipynb")) return "notebook";
+  if (
+    lower.endsWith(".md") ||
+    lower.endsWith(".markdown") ||
+    lower.endsWith(".rmd") ||
+    lower.endsWith(".qmd")
+  ) {
+    return "markdown";
+  }
+  if (lower.endsWith(".pdf")) return "pdf";
+  if (contentType.startsWith("text/")) return "text";
+  if (
+    contentType === "application/json" ||
+    contentType === "application/xml" ||
+    contentType === "application/javascript" ||
+    contentType === "application/x-javascript" ||
+    contentType === "application/x-typescript" ||
+    contentType.endsWith("+json") ||
+    contentType.endsWith("+xml")
+  ) {
+    return "text";
+  }
+  return "binary";
+}
+
+async function collectShareFiles({
+  rootAbs,
+  rootKind,
+}: {
+  rootAbs: string;
+  rootKind: ShareRootKind;
+}): Promise<{
+  files: ShareFileCandidate[];
+  dirs: string[];
+  totalBytes: number;
+}> {
+  const files: ShareFileCandidate[] = [];
+  const dirs = new Set<string>();
+  let totalBytes = 0;
+
+  const pushFile = async (absPath: string, relPath: string) => {
+    const stats = await stat(absPath);
+    const size = stats.size;
+    const mtime = Math.trunc(stats.mtimeMs);
+    totalBytes += size;
+    files.push({ abs: absPath, path: relPath, size, mtime });
+  };
+
+  if (rootKind === "file") {
+    const relPath = path.basename(rootAbs);
+    await pushFile(rootAbs, relPath);
+    return { files, dirs: [], totalBytes };
+  }
+
+  const walk = async (absDir: string, relDir: string) => {
+    if (relDir) {
+      dirs.add(relDir);
+    }
+    const entries = await readdir(absDir, { withFileTypes: true });
+    entries.sort((a, b) => a.name.localeCompare(b.name));
+    for (const entry of entries) {
+      if (entry.name.startsWith(".")) continue;
+      const entryAbs = join(absDir, entry.name);
+      const entryRel = relDir ? `${relDir}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) {
+        await walk(entryAbs, entryRel);
+        continue;
+      }
+      if (entry.isFile()) {
+        await pushFile(entryAbs, entryRel);
+        continue;
+      }
+      if (entry.isSymbolicLink()) {
+        logger.debug("share publish skip symlink", { path: entryRel });
+      }
+    }
+  };
+
+  await walk(rootAbs, "");
+  return { files, dirs: Array.from(dirs).sort(), totalBytes };
+}
+
+async function publishShare(
+  opts: SharePublishRequest,
+): Promise<SharePublishResult> {
+  const sharePath = normalizeSharePath(opts.path);
+  const sharePrefix = path.posix.join("share", opts.share_id);
+  const shareKey = (...segments: string[]) =>
+    path.posix.join(sharePrefix, ...segments);
+
+  const s3 = createS3Client({
+    endpoint: opts.bucket.endpoint,
+    bucket: opts.bucket.bucket,
+    region: opts.bucket.region,
+    access_key_id: opts.bucket.access_key_id,
+    secret_access_key: opts.bucket.secret_access_key,
+    root: opts.bucket.root,
+  });
+
+  const emitProgress = ({
+    phase,
+    message,
+    detail,
+    progress,
+  }: {
+    phase: string;
+    message?: string;
+    detail?: Record<string, any>;
+    progress?: number;
+  }) => {
+    if (!opts.lro) return;
+    void publishLroEvent({
+      scope_type: opts.lro.scope_type,
+      scope_id: opts.lro.scope_id,
+      op_id: opts.lro.op_id,
+      event: {
+        type: "progress",
+        ts: Date.now(),
+        phase,
+        message,
+        progress,
+        detail,
+      },
+    }).catch(() => {});
+  };
+
+  const vol = await getVolume(opts.project_id);
+  const snapshotName = `share-${opts.share_id.slice(0, 8)}-${Date.now().toString(36)}`;
+  const snapshotPath = join(vol.path, vol.snapshots.path(snapshotName));
+
+  emitProgress({
+    phase: "snapshot",
+    message: "creating snapshot",
+    progress: 80,
+  });
+
+  await vol.snapshots.create(snapshotName);
+
+  try {
+    const resolvedRoot = path.resolve(snapshotPath, sharePath);
+    const relativeRoot = path.relative(snapshotPath, resolvedRoot);
+    if (relativeRoot.startsWith("..") || path.isAbsolute(relativeRoot)) {
+      throw new Error("share path escapes snapshot root");
+    }
+    const rootStats = await lstat(resolvedRoot);
+    if (rootStats.isSymbolicLink()) {
+      throw new Error("share path must not be a symlink");
+    }
+    let rootKind: ShareRootKind;
+    if (rootStats.isDirectory()) {
+      rootKind = "dir";
+    } else if (rootStats.isFile()) {
+      rootKind = "file";
+    } else {
+      throw new Error("share path must point to a file or directory");
+    }
+
+    emitProgress({
+      phase: "scan",
+      message: "scanning snapshot",
+      progress: 82,
+    });
+
+    const { files: candidates, dirs, totalBytes } = await collectShareFiles({
+      rootAbs: resolvedRoot,
+      rootKind,
+    });
+
+    const previousManifest =
+      opts.latest_manifest_id != null && opts.latest_manifest_id !== ""
+        ? await s3
+            .getJson<ShareManifest>(
+              shareKey("manifests", `${opts.latest_manifest_id}.json`),
+            )
+            .catch((err) => {
+              logger.warn("share publish: previous manifest load failed", {
+                share_id: opts.share_id,
+                err: `${err}`,
+              });
+              return undefined;
+            })
+        : undefined;
+
+    const previousByPath = new Map<string, ShareManifestFile>();
+    const knownHashes = new Set<string>();
+    if (previousManifest?.files) {
+      for (const file of previousManifest.files) {
+        previousByPath.set(file.path, file);
+        if (file.hash) {
+          knownHashes.add(file.hash);
+        }
+      }
+    }
+
+    const manifestFiles: ShareManifestFile[] = [];
+    const uploadedHashes = new Set<string>();
+    let uploadedBytes = 0;
+    let processed = 0;
+    let lastProgress = 80;
+    const totalFiles = candidates.length;
+    const progressRange = 15;
+
+    for (const candidate of candidates) {
+      const contentType =
+        (mime.lookup(candidate.path) as string) ||
+        "application/octet-stream";
+      const kind = inferShareKind({
+        filePath: candidate.path,
+        contentType,
+      });
+      const prev = previousByPath.get(candidate.path);
+      let hash: string | undefined;
+      if (
+        prev &&
+        prev.hash &&
+        prev.size === candidate.size &&
+        prev.mtime === candidate.mtime
+      ) {
+        hash = prev.hash;
+      }
+      if (!hash) {
+        hash = await hashFile(candidate.abs);
+      }
+
+      if (!knownHashes.has(hash) && !uploadedHashes.has(hash)) {
+        await s3.putObject({
+          key: shareKey("blobs", hash),
+          body: createReadStream(candidate.abs),
+          content_type: contentType,
+          content_length: candidate.size,
+          content_hash: hash,
+        });
+        uploadedHashes.add(hash);
+        knownHashes.add(hash);
+        uploadedBytes += candidate.size;
+      }
+
+      manifestFiles.push({
+        path: candidate.path,
+        hash,
+        size: candidate.size,
+        mtime: candidate.mtime,
+        content_type: contentType,
+        kind,
+      });
+
+      processed += 1;
+      if (processed % 100 === 0 || processed === totalFiles) {
+        const progress = totalFiles
+          ? 80 + Math.round((processed / totalFiles) * progressRange)
+          : 80;
+        if (progress > lastProgress) {
+          lastProgress = progress;
+          emitProgress({
+            phase: "upload",
+            message: "uploading share blobs",
+            progress,
+            detail: {
+              processed,
+              total: totalFiles,
+              uploaded_bytes: uploadedBytes,
+            },
+          });
+        }
+      }
+    }
+
+    manifestFiles.sort((a, b) => a.path.localeCompare(b.path));
+    const manifestId = randomUUID();
+    const createdAt = new Date().toISOString();
+    const manifest: ShareManifest = {
+      version: SHARE_MANIFEST_VERSION,
+      share_id: opts.share_id,
+      manifest_id: manifestId,
+      created_at: createdAt,
+      root_path: sharePath,
+      root_kind: rootKind,
+      scope: opts.scope,
+      indexing_opt_in: opts.indexing_opt_in,
+      files: manifestFiles,
+      dirs,
+      file_count: manifestFiles.length,
+      size_bytes: totalBytes,
+    };
+
+    const manifestJson = JSON.stringify(manifest);
+    const manifestHash = sha256Hex(manifestJson);
+
+    emitProgress({
+      phase: "manifest",
+      message: "uploading manifest",
+      progress: 96,
+    });
+
+    await s3.putObject({
+      key: shareKey("manifests", `${manifestId}.json`),
+      body: manifestJson,
+      content_type: "application/json",
+      content_length: Buffer.byteLength(manifestJson),
+      content_hash: manifestHash,
+    });
+
+    const latestPayload = {
+      share_id: opts.share_id,
+      manifest_id: manifestId,
+      manifest_hash: manifestHash,
+      published_at: createdAt,
+      file_count: manifestFiles.length,
+      size_bytes: totalBytes,
+    };
+    const latestJson = JSON.stringify(latestPayload);
+
+    await s3.putObject({
+      key: shareKey("latest.json"),
+      body: latestJson,
+      content_type: "application/json",
+      content_length: Buffer.byteLength(latestJson),
+      content_hash: sha256Hex(latestJson),
+    });
+
+    const metaPayload = {
+      share_id: opts.share_id,
+      root_path: sharePath,
+      root_kind: rootKind,
+      scope: opts.scope,
+      indexing_opt_in: opts.indexing_opt_in,
+      updated_at: createdAt,
+    };
+    const metaJson = JSON.stringify(metaPayload);
+
+    await s3.putObject({
+      key: shareKey("meta.json"),
+      body: metaJson,
+      content_type: "application/json",
+      content_length: Buffer.byteLength(metaJson),
+      content_hash: sha256Hex(metaJson),
+    });
+
+    emitProgress({
+      phase: "done",
+      message: "share publish complete",
+      progress: 99,
+      detail: {
+        manifest_id: manifestId,
+        file_count: manifestFiles.length,
+        size_bytes: totalBytes,
+      },
+    });
+
+    return {
+      manifest_id: manifestId,
+      manifest_hash: manifestHash,
+      published_at: createdAt,
+      size_bytes: totalBytes,
+      file_count: manifestFiles.length,
+    };
+  } finally {
+    await vol.snapshots
+      .delete(snapshotName)
+      .catch((err) =>
+        logger.warn("share publish: snapshot cleanup failed", {
+          project_id: opts.project_id,
+          share_id: opts.share_id,
+          err: `${err}`,
+        }),
+      );
+  }
 }
 
 function createLroRusticReporter(
@@ -1356,6 +1816,8 @@ export async function initFileServer({
     deleteSnapshot,
     updateSnapshots,
     allSnapshotUsage,
+    // shares
+    publishShare,
     // file sync
     createSync,
     getAllSyncs,
