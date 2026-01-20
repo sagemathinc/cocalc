@@ -156,7 +156,6 @@ CoCalc is organized as a monorepo with key packages:
 
 ## Git Workflow
 
-- Never modify a file when in the `master` or `main` branch
 - All changes happen through feature branches, which are pushed as pull requests to GitHub
 - When creating a new file, run `git add [filename]` to track the file.
 - Prefix git commits with the package and general area. e.g. 'frontend/latex: ...' if it concerns latex editor changes in the packages/frontend/... code.
