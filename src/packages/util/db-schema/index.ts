@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -58,6 +58,7 @@ import "./project-backup-secrets";
 import "./projects";
 import "./public-path-stars";
 import "./public-paths";
+import "./published-shares";
 import "./purchase-quotas";
 import "./purchases";
 import "./registration-tokens";

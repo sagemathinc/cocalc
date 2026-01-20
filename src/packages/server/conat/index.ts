@@ -20,6 +20,7 @@ import { startCopyLroWorker } from "@cocalc/server/projects/copy-worker";
 import { startMoveLroWorker } from "@cocalc/server/projects/move-worker";
 import { startRestoreLroWorker } from "@cocalc/server/projects/restore-worker";
 import { startHostLroWorker } from "@cocalc/server/hosts/start-worker";
+import { startSharePublishLroWorker } from "@cocalc/server/shares/publish-worker";
 
 export { loadConatConfiguration };
 
@@ -52,11 +53,10 @@ export async function initConatApi() {
   startMoveLroWorker();
   startRestoreLroWorker();
   startHostLroWorker();
+  startSharePublishLroWorker();
   initLLM();
   if (process.env.COCALC_MODE !== "launchpad") {
-    const { init: initProjectRunner } = lazyRequire(
-      "./project/run",
-    ) as {
+    const { init: initProjectRunner } = lazyRequire("./project/run") as {
       init: () => Promise<void>;
     };
     for (let i = 0; i < projectRunnerCount; i++) {
@@ -87,9 +87,9 @@ const moduleRequire: NodeRequire | undefined =
     ? require
     : typeof (Module as { createRequire?: (path: string) => NodeRequire })
           .createRequire === "function"
-      ? (Module as { createRequire: (path: string) => NodeRequire }).createRequire(
-          __filename,
-        )
+      ? (
+          Module as { createRequire: (path: string) => NodeRequire }
+        ).createRequire(__filename)
       : undefined;
 
 function lazyRequire<T = any>(moduleName: string): T {
