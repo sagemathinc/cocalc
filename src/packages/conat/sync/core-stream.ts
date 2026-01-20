@@ -410,12 +410,12 @@ export class CoreStream<T = any> extends EventEmitter {
     // not by making new objects (since external references).
     // This is a rare operation so we're not worried too much
     // about performance.
-    const keysBySeq: { [seq: number]: string } = {};
+    const keys: { [seq: number]: string } = {};
     for (const key in this.kv) {
       const seq = this.kv[key]?.raw?.seq;
       if (X.has(seq)) {
         delete this.kv[key];
-        keysBySeq[seq] = key;
+        keys[key] = seq;
       }
     }
     const indexes: number[] = [];
@@ -424,16 +424,12 @@ export class CoreStream<T = any> extends EventEmitter {
       if (X.has(seq)) {
         indexes.push(i);
         if (!noEmit) {
-          const rawKey = this.raw[i].key;
-          const key = rawKey == null ? undefined : keysBySeq[seq];
-          if (rawKey == null || key != null) {
-            this.emitChange({
-              mesg: undefined,
-              raw: { seq },
-              key,
-              prev: this.messages[i],
-            });
-          }
+          this.emitChange({
+            mesg: undefined,
+            raw: { seq },
+            key: keys[seq],
+            prev: this.messages[i],
+          });
         }
       }
     }

@@ -242,12 +242,15 @@ describe("test basic key:value functionality for persistent core stream", () => 
     expect(stream.get(stream.length - 2)).toBe(undefined);
   });
 
-  it("close and reload and note there is only one item in the stream (the first message was removed since it is no longer needed)", async () => {
+  it("close and reload and note there is only one item in the stream (older messages are removed by persistence)", async () => {
+    expect(stream.length).toBeGreaterThan(1);
     await stream.close();
     expect(stream.kv).toBe(undefined);
     stream = await cstream({ client, name, ephemeral: false });
     expect(stream.length).toBe(1);
-    expect(stream.seqKv(0)).toBe(stream2.seqKv(1));
+    const value = stream.getKv("key");
+    expect(Buffer.isBuffer(value)).toBe(true);
+    expect((value as Buffer).length).toBe(KEY_GC_THRESH + 10);
   });
 
   it("cleans up", () => {
