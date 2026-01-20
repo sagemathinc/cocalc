@@ -12,6 +12,7 @@
     "./misc": "./dist/misc/index.js",
     "./i18n": "./dist/i18n/index.js",
     "./i18n/trans/*": "./i18n/trans/*",
+    "./share-viewer": "./dist/share-viewer/index.js",
     "./tracker": "./dist/tracker/index.js",
     "./misc/*": "./dist/misc/*.js",
     "./course": "./dist/course/index.js",

@@ -27,4 +27,15 @@ export default function appLoaderPlugin(
       chunks: ["load", "embed"],
     }),
   );
+
+  registerPlugin(
+    "HTML -- generates the share.html file",
+    new rspack.HtmlRspackPlugin({
+      title,
+      filename: "share.html",
+      template: resolve(__dirname, "../app.html"),
+      hash: PRODMODE,
+      chunks: ["load", "share-viewer"],
+    }),
+  );
 }
