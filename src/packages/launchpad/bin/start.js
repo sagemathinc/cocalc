@@ -3,24 +3,7 @@
 // pglite + nextless mode with lightweight defaults.
 const { dirname, join } = require("path");
 const { existsSync } = require("fs");
-const { createServer } = require("http");
-
-async function getPort() {
-  const port = await new Promise((resolve, reject) => {
-    const server = createServer();
-    server.listen(0, () => {
-      const address = server.address();
-      if (typeof address === "object" && address !== null) {
-        const { port } = address;
-        server.close(() => resolve(port));
-      } else {
-        reject(new Error("Failed to get port"));
-      }
-    });
-    server.on("error", reject);
-  });
-  return port;
-}
+const { applyLaunchpadDefaults, logLaunchpadConfig } = require("../lib/onprem-config");
 
 function prependPath(dir) {
   if (!dir || !existsSync(dir)) {
@@ -31,21 +14,8 @@ function prependPath(dir) {
 
 (async () => {
   try {
-    process.env.COCALC_DB ??= "pglite";
-    process.env.COCALC_DISABLE_NEXT ??= "1";
-    process.env.COCALC_MODE ??= "launchpad";
-
-    process.env.PORT ??= await getPort();
-    process.env.DATA ??= join(
-      process.env.HOME ?? process.cwd(),
-      ".local",
-      "share",
-      "cocalc-launchpad",
-    );
-    process.env.COCALC_PGLITE_DATA_DIR ??= join(
-      process.env.DATA,
-      "pglite",
-    );
+    applyLaunchpadDefaults();
+    logLaunchpadConfig();
 
     const bundledRootCandidate = join(__dirname, "..", "..", "..");
     const bundleDir =

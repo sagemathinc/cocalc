@@ -59,6 +59,9 @@ export COCALC_DISABLE_HTTP=true
 
 5. Confirm hosts appear in the hub UI and can start workspaces.
 
+Launchpad prints a startup summary showing the resolved ports and data
+directory so you can verify the defaults it selected.
+
 ## Networking Requirements
 
 Host -> Hub (outbound only):
