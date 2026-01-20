@@ -223,21 +223,6 @@ export default function getTour(refs) {
   });
 
   step({
-    target: "guide",
-    title: (
-      <>
-        <Icon name="magic" /> Open the Guide
-      </>
-    ),
-    description: (
-      <>
-        The terminal guide is a tool for creating, testing, and learning about
-        terminal commands.
-      </>
-    ),
-  });
-
-  step({
     target: "help",
     title: <>Documentation</>,
     description: (

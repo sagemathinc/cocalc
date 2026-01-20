@@ -145,15 +145,6 @@ addCommands({
       defaultMessage: "Contents",
     }),
   },
-  guide: {
-    group: "show-frames",
-    title: "Show guidebook",
-    onClick: ({ props }) => {
-      props.actions.guide(props.id, props.type);
-    },
-    label: "Guide",
-    icon: "magic",
-  },
   show_search: {
     group: "find",
     pos: 0,

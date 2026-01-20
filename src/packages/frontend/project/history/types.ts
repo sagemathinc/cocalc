@@ -32,7 +32,6 @@ export type ProjectEvent =
   | AssistantEvent
   | ProjectControlEvent
   | FileActionEvent
-  | LibraryEvent
   | LLMEvent
   | UpgradeEvent
   | OpenFile
@@ -101,14 +100,6 @@ export type UpgradeEvent = {
   upgrades: any;
 };
 
-export type LibraryEvent = {
-  event: "library";
-  action: "copy";
-  target?: string;
-  title: string;
-  docid?: string;
-  source: string;
-};
 export type AssistantEvent = {
   event: "assistant";
   action: "insert";

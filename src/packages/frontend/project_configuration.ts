@@ -22,12 +22,11 @@ import {
   MainConfiguration,
   Capabilities,
   X11Configuration,
-  LIBRARY_INDEX_FILE,
   ALL_AVAIL,
   NO_AVAIL,
 } from "@cocalc/comm/project-configuration";
 
-export { ALL_AVAIL, LIBRARY_INDEX_FILE };
+export { ALL_AVAIL };
 
 export type {
   Available,
@@ -50,7 +49,6 @@ function isMainCapabilities(
     mcaps.jupyter != null &&
     ["object", "boolean"].includes(typeof mcaps.jupyter) &&
     typeof mcaps.spellcheck === "boolean" &&
-    typeof mcaps.library === "boolean" &&
     mcaps.hashsums != null
   );
 }
@@ -132,7 +130,6 @@ export function is_available(configuration?: ProjectConfiguration): Available {
       jq: !!capabilities.jq,
       x11: !!capabilities.x11,
       spellcheck: !!capabilities.spellcheck,
-      library: !!capabilities.library,
       html2pdf: capabilities.html2pdf ?? true,
       pandoc: capabilities.pandoc ?? true,
       vscode: capabilities.vscode ?? true,
@@ -176,8 +173,6 @@ export async function get_configuration(
     // caps.x11 = false;
     // caps.latex = false;
     // caps.sage = false;
-    // caps.library = false;
-
     // don't show jupyter buttons if there is no jupyter
     const jupyter = caps.jupyter;
     if (typeof jupyter !== "boolean") {

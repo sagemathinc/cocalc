@@ -9,8 +9,6 @@ Spec for editing Jupyter notebooks via a frame tree.
 cSpell:ignore JSONIPynb
 */
 
-import type { IconName } from "@cocalc/frontend/components/icon";
-
 import { createElement } from "react";
 
 import type { Command } from "@cocalc/frontend/frame-editors/frame-tree/commands";
@@ -32,10 +30,7 @@ import KernelMenuItem from "./kernel-menu-item";
 import { RawIPynb } from "./raw-ipynb";
 import { search } from "./search";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
-import { JupyterSnippets } from "./snippets";
 import { TableOfContents } from "./table-of-contents";
-
-const SNIPPET_ICON_NAME: IconName = "magic";
 
 const jupyterCommands = set([
   "about",
@@ -50,7 +45,6 @@ const jupyterCommands = set([
   "redo",
   "halt_jupyter",
   "show_table_of_contents",
-  "guide",
   "shell",
   "terminal",
   "help",
@@ -75,30 +69,15 @@ const jupyter_cell_notebook: EditorDescription = {
     "jupyter-cell-toolbar",
     "jupyter-nbgrader validate",
     "halt_jupyter",
-    "guide",
     "show_search",
   ]),
   customizeCommands: {
-    guide: {
-      label: labels.snippets,
-      icon: SNIPPET_ICON_NAME,
-      title: jupyter.editor.snippets_tooltip,
-    },
     shell: {
       label: jupyter.editor.console_label,
       icon: "ipynb",
       title: jupyter.editor.console_title,
     },
   },
-} as const;
-
-const commands_guide: EditorDescription = {
-  type: "snippets",
-  short: labels.snippets,
-  name: labels.snippets,
-  icon: SNIPPET_ICON_NAME,
-  component: JupyterSnippets,
-  commands: set(["decrease_font_size", "increase_font_size"]),
 } as const;
 
 const jupyter_slideshow_revealjs: EditorDescription = {
@@ -149,7 +128,6 @@ const jupyter_raw: EditorDescription = {
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook,
-  commands_guide,
   jupyter_slideshow_revealjs,
   jupyter_table_of_contents,
   introspect,
