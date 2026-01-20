@@ -1382,6 +1382,8 @@ async function getBackupFileText({
     if (!isSubPath(tmpDir, restoredPath)) {
       throw new Error("invalid restore path");
     }
+    // Rustic restore of a single file writes it directly into the destination
+    // directory (basename only), not the original path hierarchy.
     const previewPath = join(tmpDir, path.posix.basename(cleanedPath));
     if (!(await exists(previewPath))) {
       throw new Error("restored file not found");

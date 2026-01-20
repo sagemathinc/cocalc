@@ -59,6 +59,7 @@ interface Props {
   listing: DirectoryListing;
   isStarred?: boolean;
   onToggleStar?: (path: string, starred: boolean) => void;
+  onOpenSpecial?: (path: string, isDir: boolean) => boolean;
 }
 
 export function FileRow({
@@ -80,6 +81,7 @@ export function FileRow({
   listing,
   isStarred,
   onToggleStar,
+  onOpenSpecial,
 }: Props) {
   const student_project_functionality = useStudentProjectFunctionality(
     actions.project_id,
@@ -236,12 +238,15 @@ export function FileRow({
       // the click to do the selection triggering opening of the file.
       return;
     }
+    const path = full_path();
+    if (onOpenSpecial?.(path, isDir)) {
+      return;
+    }
     if (isDir) {
       actions.open_directory(full_path());
       actions.set_file_search("");
     } else {
       const foreground = should_open_in_foreground(e);
-      const path = full_path();
       track("open-file", {
         project_id: actions.project_id,
         path,
