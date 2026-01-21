@@ -46,21 +46,6 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:${{ matrix.pg-version}}
-        env:
-          POSTGRES_DB: smc
-          POSTGRES_USER: smc
-          POSTGRES_HOST_AUTH_METHOD: trust
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
-
     strategy:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
@@ -79,6 +64,23 @@ jobs:
           detached: true
 
       - uses: actions/checkout@v4
+
+      - name: Start optimized Postgres (RAM-disk & No Durability)
+        run: |
+          docker run -d \
+            --name postgres \
+            --tmpfs /var/lib/postgresql/data \
+            -p 5432:5432 \
+            -e POSTGRES_DB=smc \
+            -e POSTGRES_USER=smc \
+            -e POSTGRES_HOST_AUTH_METHOD=trust \
+            -e POSTGRES_INITDB_ARGS="--no-sync" \
+            postgres:${{ matrix.pg-version }} \
+            postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+
+      - name: Wait for Postgres to be ready
+        run: |
+          until docker exec postgres pg_isready -U smc -d smc; do sleep 1; done
 
       - name: Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
