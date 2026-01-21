@@ -21,6 +21,11 @@ const EXTENSION_DOCTYPES: Record<string, SyncDocDescriptor> = {
     primary_keys: ["id"],
     string_cols: ["str"],
   },
+  slides: {
+    doctype: "syncdb",
+    primary_keys: ["id"],
+    string_cols: ["str"],
+  },
   chat: {
     doctype: "immer",
     primary_keys: ["date", "sender_id", "event"],
