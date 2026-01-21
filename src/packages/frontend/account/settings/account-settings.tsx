@@ -43,6 +43,7 @@ import {
 } from "@cocalc/frontend/passports";
 import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
 import { keys, startswith } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
@@ -100,6 +101,59 @@ export function AccountSettings(props: Readonly<Props>) {
   function save_change(evt, field: string): void {
     const { value } = evt.target;
     set_account_table({ [field]: value });
+  }
+
+  // Check if SSO restrictions apply to this account
+  function getSSORestrictions(): {
+    disableEmail: boolean;
+    disableName: boolean;
+    ssoStrategyName?: string;
+  } {
+    if (
+      !props.email_address ||
+      !props.strategies ||
+      props.strategies.size === 0
+    ) {
+      return { disableEmail: false, disableName: false };
+    }
+
+    // Convert Immutable.List to plain array for checkRequiredSSO
+    const strategies = props.strategies
+      .map((s) => {
+        const exclusiveDomainsRaw = s.get("exclusive_domains");
+        const exclusiveDomains = List.isList(exclusiveDomainsRaw)
+          ? exclusiveDomainsRaw.toArray()
+          : (exclusiveDomainsRaw ?? []);
+        // Map frontend field names to the format expected by checkRequiredSSO
+        return {
+          name: s.get("name"),
+          display: s.get("display") ?? s.get("name"),
+          backgroundColor: "",
+          public: s.get("public") ?? true,
+          exclusiveDomains,
+          doNotHide: s.get("do_not_hide") ?? false,
+          updateOnLogin: s.get("update_on_login") ?? false,
+          icon: s.get("icon"),
+        };
+      })
+      .toArray();
+
+    const matchedStrategy = checkRequiredSSO({
+      email: props.email_address,
+      strategies,
+    });
+
+    if (!matchedStrategy) {
+      return { disableEmail: false, disableName: false };
+    }
+
+    // Email is always disabled for exclusive domains
+    // Name is disabled only if updateOnLogin is true
+    return {
+      disableEmail: true,
+      disableName: matchedStrategy.updateOnLogin ?? false,
+      ssoStrategyName: matchedStrategy.display,
+    };
   }
 
   function get_strategy(name: string): ImmutablePassportStrategy | undefined {
@@ -391,6 +445,43 @@ export function AccountSettings(props: Readonly<Props>) {
     );
   }
 
+  function render_sso_restriction_notice(): Rendered {
+    if (props.is_anonymous) {
+      return; // Don't show SSO notice for anonymous users
+    }
+    const ssoRestrictions = getSSORestrictions();
+    if (!ssoRestrictions.disableEmail && !ssoRestrictions.disableName) {
+      return; // No restrictions
+    }
+
+    const restrictedFields: string[] = [];
+    if (ssoRestrictions.disableEmail) {
+      restrictedFields.push("email address");
+    }
+    if (ssoRestrictions.disableName) {
+      restrictedFields.push("first and last name");
+    }
+
+    return (
+      <AntdAlert
+        type="info"
+        showIcon
+        style={{ marginTop: "10px", marginBottom: "15px" }}
+        message={
+          <FormattedMessage
+            id="account.settings.sso.restriction_notice"
+            defaultMessage={`Your account is managed by {strategyName} SSO. Your {fields} {isAre} automatically updated when you sign in and cannot be changed here.`}
+            values={{
+              strategyName: <strong>{ssoRestrictions.ssoStrategyName}</strong>,
+              fields: restrictedFields.join(" and "),
+              isAre: restrictedFields.length > 1 ? "are" : "is",
+            }}
+          />
+        }
+      />
+    );
+  }
+
   function render_anonymous_warning(): Rendered {
     if (!props.is_anonymous) {
       return;
@@ -475,7 +566,8 @@ export function AccountSettings(props: Readonly<Props>) {
     } else {
       return (
         <>
-          <Icon name={ACCOUNT_PROFILE_ICON_NAME} /> {intl.formatMessage(labels.account)}
+          <Icon name={ACCOUNT_PROFILE_ICON_NAME} />{" "}
+          {intl.formatMessage(labels.account)}
         </>
       );
     }
@@ -501,6 +593,13 @@ export function AccountSettings(props: Readonly<Props>) {
   }
 
   function render_name(): Rendered {
+    const ssoRestrictions = getSSORestrictions();
+    const disableName =
+      (props.is_anonymous && !terms_checkbox) || ssoRestrictions.disableName;
+    const tooltip = ssoRestrictions.disableName
+      ? `Your account is managed by ${ssoRestrictions.ssoStrategyName} SSO. Your name is automatically updated when you sign in and cannot be changed here.`
+      : undefined;
+
     return (
       <>
         <TextSetting
@@ -510,7 +609,8 @@ export function AccountSettings(props: Readonly<Props>) {
           onBlur={(e) => save_change(e, "first_name")}
           onPressEnter={(e) => save_change(e, "first_name")}
           maxLength={254}
-          disabled={props.is_anonymous && !terms_checkbox}
+          disabled={disableName}
+          title={tooltip}
         />
         <TextSetting
           label={intl.formatMessage(labels.account_last_name)}
@@ -519,7 +619,8 @@ export function AccountSettings(props: Readonly<Props>) {
           onBlur={(e) => save_change(e, "last_name")}
           onPressEnter={(e) => save_change(e, "last_name")}
           maxLength={254}
-          disabled={props.is_anonymous && !terms_checkbox}
+          disabled={disableName}
+          title={tooltip}
         />
         <TextSetting
           label={intl.formatMessage({
@@ -577,11 +678,15 @@ will no longer work (automatic redirects are not implemented), so change with ca
     if (!props.account_id) {
       return; // makes no sense to change email if there is no account
     }
+    const ssoRestrictions = getSSORestrictions();
+    const disableEmail =
+      (props.is_anonymous && !terms_checkbox) || ssoRestrictions.disableEmail;
+
     return (
       <EmailAddressSetting
         email_address={props.email_address}
         is_anonymous={props.is_anonymous}
-        disabled={props.is_anonymous && !terms_checkbox}
+        disabled={disableEmail}
         verify_emails={props.verify_emails}
       />
     );
@@ -622,6 +727,7 @@ will no longer work (automatic redirects are not implemented), so change with ca
   return (
     <Panel header={render_header()}>
       {render_anonymous_warning()}
+      {render_sso_restriction_notice()}
       {render_terms_of_service()}
       {render_name()}
       {render_email_address()}

@@ -1,12 +1,14 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { sortBy } from "lodash";
 
 import getPool from "@cocalc/database/pool";
 import { COLORS } from "@cocalc/database/settings/get-sso-strategies";
 import { ssoDispayedName } from "@cocalc/util/auth";
-import { sortBy } from "lodash";
+import { ssoNormalizeExclusiveDomains } from "@cocalc/util/sso-normalize-domains";
 import { SSO } from "./types";
 
 const SQL_SELECT = `SELECT strategy, info,
@@ -23,11 +25,9 @@ interface Row {
 }
 
 function parseRow(row: Row): SSO {
-  const { strategy, exclusive_domains, display, info, icon } = row;
-  // Normalize exclusive domains to lowercase to ensure case-insensitive matching
-  const domains = (exclusive_domains ?? []).map((domain: string) =>
-    domain.toLowerCase(),
-  );
+  const { strategy, display, info, icon } = row;
+  ssoNormalizeExclusiveDomains(row);
+  const domains = row.exclusive_domains ?? [];
   return {
     id: strategy,
     display: ssoDispayedName({ display, name: strategy }),

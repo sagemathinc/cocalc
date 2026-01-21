@@ -1,11 +1,12 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import getPool from "@cocalc/database/pool";
-import type { Strategy } from "@cocalc/util/types/sso";
 import { ssoDispayedName } from "@cocalc/util/auth";
+import { ssoNormalizeExclusiveDomains } from "@cocalc/util/sso-normalize-domains";
+import type { Strategy } from "@cocalc/util/types/sso";
 
 /** Returns an array of public info about strategies.
  * Cached a bit so safe to call a lot.
@@ -32,10 +33,8 @@ export default async function getStrategies(): Promise<Strategy[]> {
       name: row.strategy,
     });
 
-    // Normalize exclusive domains to lowercase to ensure case-insensitive matching
-    const exclusiveDomains = (row.exclusive_domains ?? []).map(
-      (domain: string) => domain.toLowerCase(),
-    );
+    ssoNormalizeExclusiveDomains(row);
+    const exclusiveDomains = row.exclusive_domains ?? [];
 
     return {
       name: row.strategy,

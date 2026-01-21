@@ -49,6 +49,7 @@ import {
   getEmailDomain,
 } from "@cocalc/util/auth-check-required-sso";
 import { is_valid_email_address } from "@cocalc/util/misc";
+import { ssoNormalizeExclusiveDomains } from "@cocalc/util/sso-normalize-domains";
 import { HELP_EMAIL } from "@cocalc/util/theme";
 import { SSO_API_KEY_COOKIE_NAME } from "./consts";
 
@@ -243,10 +244,11 @@ export class PassportLogin {
     email_address: string,
     strategy: PassportStrategyDB,
   ): boolean {
-    // Normalize exclusive domains to lowercase to ensure case-insensitive matching
-    const exclusiveDomains = (strategy.info?.exclusive_domains ?? []).map(
-      (domain) => domain.toLowerCase(),
-    );
+    const info = strategy.info;
+    if (info != null) {
+      ssoNormalizeExclusiveDomains(info);
+    }
+    const exclusiveDomains = info?.exclusive_domains ?? [];
     const emailDomain = getEmailDomain(email_address.toLowerCase());
     for (const ssoDomain of exclusiveDomains) {
       if (ssoDomain === "*" || emailBelongsToDomain(emailDomain, ssoDomain)) {
