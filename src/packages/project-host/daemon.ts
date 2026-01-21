@@ -112,7 +112,7 @@ function normalizeEnv(
 
 function ensureDefaults(env: Record<string, string>, index: number): void {
   if (!env.COCALC_DISABLE_BEES) {
-    env.COCALC_DISABLE_BEES = "yes";
+    env.COCALC_DISABLE_BEES = "no";
   }
   if (!env.MASTER_CONAT_SERVER) {
     env.MASTER_CONAT_SERVER = "http://localhost:9001";
