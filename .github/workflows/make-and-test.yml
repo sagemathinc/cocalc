@@ -39,36 +39,20 @@ jobs:
           detached: true
       - uses: actions/checkout@v4
       - name: Install python3 requests
-        run: sudo apt-get install python3-requests python3-yapf
+        run: sudo apt-get update && sudo apt-get install -y python3-requests
       - name: Check doc links
-        run: cd src/scripts && python3 check_doc_urls.py || sleep 5 || python3 check_doc_urls.py
+        run: |
+          cd src/scripts
+          python3 check_doc_urls.py || (sleep 5 && python3 check_doc_urls.py)
 
   test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:${{ matrix.pg-version}}
-        env:
-          POSTGRES_DB: smc
-          POSTGRES_USER: smc
-          POSTGRES_HOST_AUTH_METHOD: trust
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
 
     strategy:
       matrix:
         # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
         node-version:
-          - "20"
-        pg-version:
-          - "13.12"
-          - "16"
+          - "24"
 
     steps:
       # Enable tmate debugging of manually-triggered workflows if the input option was provided
@@ -91,15 +75,15 @@ jobs:
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
 
-      - name: Install btrfs-progs and bup for @cocalc/file-server
-        run: sudo apt-get update && sudo apt-get install -y btrfs-progs bup
+      - name: Install btrfs-progs for @cocalc/file-server
+        run: sudo apt-get update && sudo apt-get install -y btrfs-progs
 
       - name: Set up Python venv and Jupyter kernel
         run: |
           python3 -m pip install --upgrade pip virtualenv
           python3 -m virtualenv venv
           source venv/bin/activate
-          pip install ipykernel yapf
+          pip install ipykernel
           python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
 
 
@@ -121,33 +105,5 @@ jobs:
         uses: actions/upload-artifact@v4  # upload test results
         if: ${{ !cancelled() }}           # run this step even if previous step failed
         with:
-          name: "test-results-node-${{ matrix.node-version }}-pg-${{ matrix.pg-version }}"
+          name: "test-results-node-${{ matrix.node-version }}"
           path: 'src/packages/*/junit.xml'
-
-#   report:
-#     runs-on: ubuntu-latest
-
-#     needs: [test]
-
-#     if: ${{ !cancelled() }}
-
-#     steps:
-#       - name: Checkout code
-#         uses: actions/checkout@v4
-
-#       - name: Download all test artifacts
-#         uses: actions/download-artifact@v4
-#         with:
-#           pattern: "test-results-*"
-#           merge-multiple: true
-#           path: test-results/
-
-#       - name: Test Report
-#         uses: dorny/test-reporter@v2
-#         with:
-#           name: CoCalc Jest Tests
-#           path: 'test-results/**/junit.xml'
-#           reporter: jest-junit
-#           use-actions-summary: 'true'
-#           fail-on-error: false
-
