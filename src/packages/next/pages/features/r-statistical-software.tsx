@@ -4,7 +4,6 @@
  */
 
 import { Layout } from "antd";
-
 import { Icon } from "@cocalc/frontend/components/icon";
 import Code from "components/landing/code";
 import Collaboration from "components/landing/collaboration";
@@ -40,11 +39,7 @@ export default function R({ customize }) {
     <Customize value={customize}>
       <Head title={"R Statistical Software"} />
       <Layout>
-        <Header
-          page="features"
-          subPage="r-statistical-software"
-         
-        />
+        <Header page="features" subPage="r-statistical-software" />
         <Layout.Content>
           <Content
             landing
@@ -242,7 +237,7 @@ export default function R({ customize }) {
                 <li>
                   Supports{" "}
                   <strong>
-                    <A href="https://doc.cocalc.com/latex-features.html#forward-inverse-search">
+                    <A href="https://doc.cocalc.com/latex.html#forward-and-inverse-search">
                       forward and inverse search
                     </A>
                   </strong>{" "}

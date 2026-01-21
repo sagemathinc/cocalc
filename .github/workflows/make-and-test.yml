@@ -27,24 +27,6 @@ env:
   COCALC_MODE: "single-user"
 
 jobs:
-  doclinks:
-    runs-on: ubuntu-latest
-
-    # install python3, package requests, and run the script ./src/scripts/check_doc_links.py
-    steps:
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-        with:
-          detached: true
-      - uses: actions/checkout@v4
-      - name: Install python3 requests
-        run: sudo apt-get update && sudo apt-get install -y python3-requests
-      - name: Check doc links
-        run: |
-          cd src/scripts
-          python3 check_doc_urls.py || (sleep 5 && python3 check_doc_urls.py)
-
   test:
     runs-on: ubuntu-latest
 
@@ -55,25 +37,15 @@ jobs:
           - "24"
 
     steps:
-      # Enable tmate debugging of manually-triggered workflows if the input option was provided
-      - name: Setup tmate session
-        uses: mxschmitt/action-tmate@v3
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.debug_enabled }}
-        with:
-          detached: true
-
       - uses: actions/checkout@v4
 
       - name: Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
-          # https://github.com/actions/setup-node/blob/main/docs/advanced-usage.md#caching-packages-data
-          # caching, etc., doesn't work without using "uses: pnpm/action-setup@v2", and that
-          # doesn't work, since it makes assumptions about the layout of the repo (e.g., where package.json is),
-          # which aren't true.
-          # cache: "pnpm"
-          # cache-dependency-path: "src/packages/pnpm-lock.yaml"
+
+      - name: Install python3 requests for checking doc links
+        run: sudo apt-get update && sudo apt-get install -y python3-requests
 
       - name: Install btrfs-progs for @cocalc/file-server
         run: sudo apt-get update && sudo apt-get install -y btrfs-progs
