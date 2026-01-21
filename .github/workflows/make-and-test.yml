@@ -8,23 +8,10 @@ concurrency:
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
     branches:
-      - master
-  workflow_dispatch:
-    inputs:
-      debug_enabled:
-        type: boolean
-        description: "Run the build with tmate debugging enabled (https://github.com/marketplace/actions/debugging-with-tmate)"
-        required: false
-        default: false
-
-env:
-  PGDATABASE: smc
-  PGUSER: smc
-  PGHOST: localhost
-  COCALC_MODE: "single-user"
+      - main
 
 jobs:
   test:
@@ -66,16 +53,8 @@ jobs:
           run_install: false
 
       - name: build
-        run: cd src && pnpm run make
+        run: cd src && pnpm build-dev
 
-      # This runs all the tests with text output and jest-junit reporters to generate junit.xml reports
-      # That test-github-ci target runs workspaces.py for testing, which in turn runs the depchecks
       - name: test
-        run: source venv/bin/activate && cd src && pnpm run test-github-ci --report
+        run: source venv/bin/activate && cd src && pnpm test
 
-      - name: upload test results
-        uses: actions/upload-artifact@v4  # upload test results
-        if: ${{ !cancelled() }}           # run this step even if previous step failed
-        with:
-          name: "test-results-node-${{ matrix.node-version }}"
-          path: 'src/packages/*/junit.xml'
