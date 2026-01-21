@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -44,6 +44,7 @@ export function checkRequiredSSO(opts: Opts): Strategy | undefined {
   }
   // At this point, we either matched an existing strategy (above) or there is a "*" strategy
   for (const strategy of strategies) {
+    if (specificStrategy && specificStrategy !== strategy.name) continue;
     if (strategy.exclusiveDomains.includes("*")) {
       return strategy;
     }
@@ -57,6 +58,8 @@ export function getEmailDomain(email: string): string {
 /**
  * This checks if the email's domain is either exactly the ssoDomain or a subdomain.
  * E.g. for "foo.edu", an email "name@mail.foo.edu" is covered as well.
+ * Note: Both emailDomain (from getEmailDomain) and ssoDomain (from database queries)
+ * are normalized to lowercase, so direct comparison is safe.
  */
 export function emailBelongsToDomain(
   emailDomain: string,

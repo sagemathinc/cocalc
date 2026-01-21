@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -24,10 +24,14 @@ interface Row {
 
 function parseRow(row: Row): SSO {
   const { strategy, exclusive_domains, display, info, icon } = row;
+  // Normalize exclusive domains to lowercase to ensure case-insensitive matching
+  const domains = (exclusive_domains ?? []).map((domain: string) =>
+    domain.toLowerCase(),
+  );
   return {
     id: strategy,
     display: ssoDispayedName({ display, name: strategy }),
-    domains: exclusive_domains ?? [],
+    domains,
     descr: info?.description ?? null,
     backgroundColor: COLORS[strategy] ?? "",
     icon,
@@ -50,7 +54,7 @@ export async function getOneSSO(id: string): Promise<SSO | undefined> {
     `${SQL_SELECT}
      FROM passport_settings
      WHERE strategy=$1`,
-    [id]
+    [id],
   );
   if (rows.length === 0) return;
   return parseRow(rows[0]);

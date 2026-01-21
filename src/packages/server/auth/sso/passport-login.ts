@@ -243,7 +243,10 @@ export class PassportLogin {
     email_address: string,
     strategy: PassportStrategyDB,
   ): boolean {
-    const exclusiveDomains = strategy.info?.exclusive_domains ?? [];
+    // Normalize exclusive domains to lowercase to ensure case-insensitive matching
+    const exclusiveDomains = (strategy.info?.exclusive_domains ?? []).map(
+      (domain) => domain.toLowerCase(),
+    );
     const emailDomain = getEmailDomain(email_address.toLowerCase());
     for (const ssoDomain of exclusiveDomains) {
       if (ssoDomain === "*" || emailBelongsToDomain(emailDomain, ssoDomain)) {

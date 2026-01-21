@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -32,13 +32,18 @@ export default async function getStrategies(): Promise<Strategy[]> {
       name: row.strategy,
     });
 
+    // Normalize exclusive domains to lowercase to ensure case-insensitive matching
+    const exclusiveDomains = (row.exclusive_domains ?? []).map(
+      (domain: string) => domain.toLowerCase(),
+    );
+
     return {
       name: row.strategy,
       display,
       icon: row.icon, // don't use row.strategy as a fallback icon, since that icon likely does not exist
       backgroundColor: COLORS[row.strategy] ?? "",
       public: row.public ?? true,
-      exclusiveDomains: row.exclusive_domains ?? [],
+      exclusiveDomains,
       doNotHide: row.do_not_hide ?? false,
       updateOnLogin: row.update_on_login ?? false,
     };
