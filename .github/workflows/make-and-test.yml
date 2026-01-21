@@ -47,7 +47,7 @@ jobs:
           python3 -m pip install --upgrade pip virtualenv
           python3 -m virtualenv venv
           source venv/bin/activate
-          pip install ipykernel requests
+          pip install ipykernel requests yapf
           python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
 
       - name: install pnpm
