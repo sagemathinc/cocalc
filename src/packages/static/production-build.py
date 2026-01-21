@@ -38,7 +38,8 @@ def main():
     #
     # TODO -- this is dumb and we must get rid of hardcoding of the base url. But that is another problem for later...
     NODE_ENV = os.environ.get('NODE_ENV', 'production')
-    cmd(f"NODE_ENV={NODE_ENV} rspack"
+    COCALC_CLEAN = os.environ.get('COCALC_CLEAN', '1')
+    cmd(f"NODE_ENV={NODE_ENV} COCALC_CLEAN={COCALC_CLEAN} rspack"
         )
     app_version()
 

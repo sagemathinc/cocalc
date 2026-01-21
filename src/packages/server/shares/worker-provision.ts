@@ -9,6 +9,7 @@ import {
 } from "@cocalc/database/settings/server-settings";
 import { ensureR2Buckets } from "@cocalc/server/project-backup/r2";
 import { resolveShareJwtSecret } from "@cocalc/server/shares/jwt";
+import { syncShareStaticAssets } from "@cocalc/server/shares/static-assets";
 import { callback2 } from "@cocalc/util/async-utils";
 import { DEFAULT_R2_REGION, R2_REGIONS } from "@cocalc/util/consts";
 
@@ -171,6 +172,12 @@ async function provisionShareWorker(
     pattern: routePattern,
     workerName,
   });
+
+  if (settings.share_worker_auto_sync_static_assets) {
+    await syncShareStaticAssets({ reason });
+  } else {
+    logger.debug("share static asset sync disabled", { reason });
+  }
 
   logger.info("share worker provisioned", {
     worker: workerName,

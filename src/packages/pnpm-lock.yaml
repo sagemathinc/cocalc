@@ -1509,6 +1509,9 @@ importers:
       '@cocalc/server':
         specifier: workspace:*
         version: 'link:'
+      '@cocalc/static':
+        specifier: workspace:*
+        version: link:../static
       '@cocalc/util':
         specifier: workspace:*
         version: link:../util
@@ -1602,6 +1605,9 @@ importers:
       micro-key-producer:
         specifier: ^0.8.2
         version: 0.8.2
+      mime-types:
+        specifier: ^2.1.35
+        version: 2.1.35
       ms:
         specifier: 2.1.2
         version: 2.1.2
@@ -1711,6 +1717,8 @@ importers:
       expect:
         specifier: ^26.6.2
         version: 26.6.2
+
+  share-worker: {}
 
   static:
     devDependencies:

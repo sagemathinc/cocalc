@@ -205,6 +205,7 @@ export type SiteSettingsExtrasKeys =
   | "share_worker_name"
   | "share_worker_route_pattern"
   | "share_worker_static_bucket"
+  | "share_worker_auto_sync_static_assets"
   | "share_worker_provisioned"
   | "share_worker_last_provisioned_at"
   | "share_worker_last_error"
@@ -590,6 +591,14 @@ export const EXTRAS: SettingsExtras = {
     desc: "R2 bucket name for the share viewer static assets. Defaults to <r2_bucket_prefix>-<default-region> when empty.",
     default: "",
     to_val: to_trimmed_str,
+    tags: ["Security", "R2"],
+  },
+  share_worker_auto_sync_static_assets: {
+    name: "Auto-sync Share Static Assets",
+    desc: "If enabled, the hub will upload share viewer static assets to the share static bucket during worker provisioning. Disable this when assets are published out-of-band.",
+    default: "yes",
+    valid: only_booleans,
+    to_val: to_bool,
     tags: ["Security", "R2"],
   },
   share_worker_provisioned: {
