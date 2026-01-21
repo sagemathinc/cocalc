@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -202,17 +202,21 @@ export async function update_account_and_passport(
     last_name: opts.last_name,
   };
 
-  // Most likely, this just returns the very same account (since the account already exists).
-  const existing_account_id = await cb2(db.account_exists, {
-    email_address: opts.email_address,
-  });
+  // Only check for existing email if email_address is provided by SSO
+  // (Some SSO providers don't return email addresses)
+  if (opts.email_address) {
+    // Most likely, this just returns the very same account (since the account already exists).
+    const existing_account_id = await cb2(db.account_exists, {
+      email_address: opts.email_address,
+    });
 
-  if (!existing_account_id) {
-    // There is no account with the new email address, hence we can update the email address as well
-    upd.email_address = opts.email_address;
-    dbg(
-      `No existing account with email address ${opts.email_address}. Therefore, we change the email address of account ${opts.account_id} as well.`,
-    );
+    if (!existing_account_id) {
+      // There is no account with the new email address, hence we can update the email address as well
+      upd.email_address = opts.email_address;
+      dbg(
+        `No existing account with email address ${opts.email_address}. Therefore, we change the email address of account ${opts.account_id} as well.`,
+      );
+    }
   }
 
   // this set_account_info_if_different checks again if the email exists on another account, but it would throw an error.
