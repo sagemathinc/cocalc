@@ -57,7 +57,7 @@ defineExtension(
       }
     }
     if (changeObj != null) {
-      (cm as any).apply_changeObj(changeObj);
+      (cm as any).apply_changeObj?.(changeObj);
     }
   }
 );
