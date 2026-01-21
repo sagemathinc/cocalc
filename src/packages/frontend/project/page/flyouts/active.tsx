@@ -587,7 +587,6 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
     }
 
     const filteredClosed = getClosedMatches(closedFilterTerm);
-    const firstClosed = filteredClosed.get(0);
 
     return (
       <div
