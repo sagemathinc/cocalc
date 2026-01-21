@@ -39,10 +39,10 @@
     "preinstall": "npx only-allow pnpm",
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo",
     "build": "../node_modules/.bin/tsc --build",
-    "test": "pnpm test:psql",
+    "test": "pnpm test:pglite",
     "test:psql": "TZ=UTC jest --forceExit --maxWorkers=1",
     "test:pglite": "COCALC_TEST_USE_PGLITE=1 NODE_OPTIONS='--experimental-vm-modules' TZ=UTC jest --forceExit",
-    "test:all": "pnpm test:psql && pnpm test:pglite",
+    "test:both": "pnpm test:psql && pnpm test:pglite",
     "depcheck": "pnpx depcheck",
     "prepublishOnly": "test"
   },
