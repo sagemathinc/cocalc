@@ -2866,9 +2866,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   public clear_just_closed_files() {
-    this.setState({
-      just_closed_files: List([]),
-    });
+    if (this.open_files != null) {
+      this.open_files.set_closed_files(List([]));
+      return;
+    }
+    this.setState({ just_closed_files: List([]) });
   }
 
   showComputeServers = () => {};

@@ -30,6 +30,10 @@ The point of this code here is ensure that these objects stay in sync properly.
 
 import { List, Map } from "immutable";
 import { close } from "@cocalc/util/misc";
+import {
+  local_storage,
+  local_storage_delete,
+} from "@cocalc/frontend/editor-local-storage";
 import { ProjectActions } from "../project_actions";
 import { ProjectStore } from "../project_store";
 
@@ -38,6 +42,7 @@ type OpenFilesOrderType = List<string>;
 type ClosedFilesType = List<string>;
 
 const MAX_JUST_CLOSED_FILES = 50;
+const JUST_CLOSED_STORAGE_FILE = "__just_closed_files__";
 
 export class OpenFiles {
   private actions: ProjectActions;
@@ -48,6 +53,7 @@ export class OpenFiles {
     const store = actions.get_store();
     if (store == null) throw Error("store must be defined");
     this.store = store;
+    this.restoreClosedFiles();
   }
 
   public close(): void {
@@ -64,8 +70,44 @@ export class OpenFiles {
     if (open_files_order != null) x.open_files_order = open_files_order;
     if (just_closed_files != null) {
       x.just_closed_files = just_closed_files;
+      this.persistClosedFiles(just_closed_files);
     }
     this.actions.setState(x);
+  }
+
+  private restoreClosedFiles(): void {
+    const current = this.store.get("just_closed_files");
+    if (current != null && current.size > 0) return;
+    const stored = local_storage(
+      this.actions.project_id,
+      JUST_CLOSED_STORAGE_FILE,
+      "list",
+    );
+    if (!Array.isArray(stored) || stored.length == 0) return;
+    const list = List(stored.filter((path) => typeof path === "string")).slice(
+      -MAX_JUST_CLOSED_FILES,
+    );
+    if (list.size == 0) return;
+    this.actions.setState({ just_closed_files: list });
+  }
+
+  private persistClosedFiles(just_closed_files: ClosedFilesType): void {
+    const stored = just_closed_files.toArray();
+
+    if (stored.length == 0) {
+      local_storage_delete(
+        this.actions.project_id,
+        JUST_CLOSED_STORAGE_FILE,
+        "list",
+      );
+      return;
+    }
+    local_storage(
+      this.actions.project_id,
+      JUST_CLOSED_STORAGE_FILE,
+      "list",
+      stored,
+    );
   }
 
   public close_all(): void {
@@ -127,6 +169,10 @@ export class OpenFiles {
         just_closed_files.filter((x) => x !== path),
       );
     }
+  }
+
+  public set_closed_files(just_closed_files: ClosedFilesType): void {
+    this.setState(undefined, undefined, just_closed_files);
   }
 
   public get(path: string, key: string): any {
