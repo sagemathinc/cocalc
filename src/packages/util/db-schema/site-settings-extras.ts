@@ -197,6 +197,17 @@ export type SiteSettingsExtrasKeys =
   | "share_heading"
   | "share_jwt_secret_path"
   | "share_jwt_secret"
+  | "share_worker_heading"
+  | "share_worker_enabled"
+  | "share_worker_account_id"
+  | "share_worker_zone_id"
+  | "share_worker_api_token"
+  | "share_worker_name"
+  | "share_worker_route_pattern"
+  | "share_worker_static_bucket"
+  | "share_worker_provisioned"
+  | "share_worker_last_provisioned_at"
+  | "share_worker_last_error"
   | "re_captcha_v3_heading"
   | "re_captcha_v3_publishable_key"
   | "re_captcha_v3_secret_key"
@@ -522,6 +533,87 @@ export const EXTRAS: SettingsExtras = {
     to_val: to_trimmed_str,
     tags: ["Security"],
     valid: () => true,
+  },
+  share_worker_heading: {
+    name: "Share Worker Provisioning",
+    desc: "Settings used to provision the Cloudflare Worker that serves published shares.",
+    default: "",
+    type: "header",
+    tags: ["Security"],
+  },
+  share_worker_enabled: {
+    name: "Auto-provision Share Worker",
+    desc: "If enabled, the hub will provision/update the share worker and route automatically.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Security"],
+  },
+  share_worker_account_id: {
+    name: "Share Worker Account ID",
+    desc: "Cloudflare account ID used to create the share worker.",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Security"],
+  },
+  share_worker_zone_id: {
+    name: "Share Worker Zone ID",
+    desc: "Cloudflare zone ID that owns the share domain DNS entry.",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Security"],
+  },
+  share_worker_api_token: {
+    name: "Share Worker API Token",
+    desc: 'Cloudflare API token with "Workers Scripts:Edit" and "Workers Routes:Edit" permissions.',
+    default: "",
+    password: true,
+    to_val: to_trimmed_str,
+    tags: ["Security"],
+  },
+  share_worker_name: {
+    name: "Share Worker Name",
+    desc: "Worker script name used in Cloudflare.",
+    default: "cocalc-share-worker",
+    to_val: to_trimmed_str,
+    tags: ["Security"],
+  },
+  share_worker_route_pattern: {
+    name: "Share Worker Route Pattern",
+    desc: "Optional override for the worker route pattern (default: <share_domain>/*).",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Security"],
+  },
+  share_worker_static_bucket: {
+    name: "Share Worker Static Bucket",
+    desc: "R2 bucket name for the share viewer static assets. Defaults to <r2_bucket_prefix>-<default-region> when empty.",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Security", "R2"],
+  },
+  share_worker_provisioned: {
+    name: "Share Worker Provisioned",
+    desc: "Set automatically when the share worker is successfully provisioned.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+    tags: ["Security"],
+  },
+  share_worker_last_provisioned_at: {
+    name: "Share Worker Last Provisioned At",
+    desc: "Timestamp of the last successful share worker provisioning.",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Security"],
+  },
+  share_worker_last_error: {
+    name: "Share Worker Last Error",
+    desc: "Last error encountered while provisioning the share worker.",
+    default: "",
+    multiline: 4,
+    to_val: to_trimmed_str,
+    tags: ["Security"],
   },
   re_captcha_v3_heading: {
     // this is cosmetic, otherwise it looks weird.

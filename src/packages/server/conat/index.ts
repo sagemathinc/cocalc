@@ -21,6 +21,7 @@ import { startMoveLroWorker } from "@cocalc/server/projects/move-worker";
 import { startRestoreLroWorker } from "@cocalc/server/projects/restore-worker";
 import { startHostLroWorker } from "@cocalc/server/hosts/start-worker";
 import { startSharePublishLroWorker } from "@cocalc/server/shares/publish-worker";
+import { ensureShareWorkerProvisioned } from "@cocalc/server/shares/worker-provision";
 
 export { loadConatConfiguration };
 
@@ -54,6 +55,7 @@ export async function initConatApi() {
   startRestoreLroWorker();
   startHostLroWorker();
   startSharePublishLroWorker();
+  ensureShareWorkerProvisioned({ reason: "startup" }).catch(() => undefined);
   initLLM();
   if (process.env.COCALC_MODE !== "launchpad") {
     const { init: initProjectRunner } = lazyRequire("./project/run") as {

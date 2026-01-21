@@ -3,7 +3,8 @@
   "compilerOptions": {
     "rootDir": "./src",
     "outDir": "dist",
-    "lib": ["es2020", "webworker"]
+    "lib": ["es2020", "webworker"],
+    "module": "es2022"
   },
   "include": ["src"]
 }

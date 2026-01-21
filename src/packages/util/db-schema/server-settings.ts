@@ -121,6 +121,7 @@ export interface Customize {
   githubProjectId?: string;
   support?: string;
   supportVideoCall?: string;
+  shareDomain?: string;
   version?: {
     min_project?: number;
     min_browser?: number;

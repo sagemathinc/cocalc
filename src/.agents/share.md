@@ -118,6 +118,7 @@ flowchart TD
 - R2 lifecycle rules for cleanup and storage limits.
 - Publish job queue, retries, and failure visibility in the UI.
 - Rate limits on Worker endpoints to reduce abuse.
+- Make this efficient for large input.
 - Optional pre-rendered previews for social sharing only, if needed.
 
 ## Decisions
@@ -151,7 +152,7 @@ flowchart TD
   - `latest_manifest_id`, `latest_manifest_hash`, `published_at`
   - `size_bytes`, `last_publish_status`, `last_publish_error`
 - API endpoints \(owned by the main app, not the viewer\):
-  - `POST /api/v2/shares/create` \(create share\_id and settings\)
+  - `POST /api/v2/shares/create` \(create share_id and settings\)
   - `POST /api/v2/shares/publish` \(enqueue publish job\)
   - `GET /api/v2/shares/status` \(progress \+ last error\)
   - `POST /api/v2/shares/indexing` \(toggle opt\-in\)
@@ -177,7 +178,7 @@ flowchart TD
 - Emit progress events for UI.
 - Failure handling: idempotent reruns, partial upload cleanup, and clear error messages.
 
-NOTE: be sure to check out everything related to the long\_running\_operations postgresql table and LRO worker and docs/long\-running\-operations.md, since that is useful for providing insight to the user and clear state machine for doing tasks like the above.  this requires coordination with the project\-host that has the content.
+NOTE: be sure to check out everything related to the long_running_operations postgresql table and LRO worker and docs/long\-running\-operations.md, since that is useful for providing insight to the user and clear state machine for doing tasks like the above. this requires coordination with the project\-host that has the content.
 
 Also note "project = workspace" in cocalc.
 
@@ -235,4 +236,3 @@ Also note "project = workspace" in cocalc.
 3. Frontend share UI with stars, counters, and copy flow.
 4. JWT-gated access for authenticated/org shares.
 5. Optional enhancements: versions, previews, richer search.
-

@@ -109,6 +109,7 @@ export type SiteSettingsKeys =
   | "verify_emails"
   | "email_signup"
   | "share_server"
+  | "share_domain"
   | "landing_pages"
   | "project_hosts_google-cloud_enabled"
   | "project_hosts_hyperstack_enabled"
@@ -709,6 +710,13 @@ export const site_settings_conf: SiteSettings = {
     default: "no",
     valid: only_booleans,
     to_val: to_bool,
+  },
+  share_domain: {
+    name: "Share Domain",
+    desc: "Domain used for published share viewer content (e.g. `share.example.com`). **Must be different from the External Domain Name** to keep share content on a separate origin.",
+    default: "",
+    to_val: to_trimmed_str,
+    tags: ["Security"],
   },
   landing_pages: {
     name: "Landing pages",

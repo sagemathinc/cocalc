@@ -137,6 +137,7 @@ export interface CustomizeState {
   organization_name: string;
   organization_url: string;
   share_server: boolean;
+  share_domain: string;
   site_description: string;
   site_name: string;
   splash_image: string;

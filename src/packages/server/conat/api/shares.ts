@@ -1,5 +1,4 @@
 import { createHmac } from "node:crypto";
-import { readFile } from "node:fs/promises";
 
 import type {
   PublishedShare,
@@ -11,7 +10,6 @@ import { lroStreamName } from "@cocalc/conat/lro/names";
 import { publishLroEvent, publishLroSummary } from "@cocalc/conat/lro/stream";
 import { SERVICE as PERSIST_SERVICE } from "@cocalc/conat/persist/util";
 import getPool from "@cocalc/database/pool";
-import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { createLro } from "@cocalc/server/lro/lro-db";
 import {
   getPublishedShareById,
@@ -20,6 +18,8 @@ import {
   updatePublishedSharePublishStatus,
   upsertPublishedShare,
 } from "@cocalc/server/shares/db";
+import { resolveShareJwtSecret } from "@cocalc/server/shares/jwt";
+import { ensureShareWorkerProvisioned } from "@cocalc/server/shares/worker-provision";
 
 import { assertCollab } from "./util";
 
@@ -167,6 +167,7 @@ export async function publishShare({
   account_id?: string;
   share_id: string;
 }): Promise<SharePublishResult> {
+  ensureShareWorkerProvisioned({ reason: "publish" }).catch(() => undefined);
   const share = await getPublishedShareById(share_id);
   if (!share) {
     throw new Error("share not found");
@@ -298,23 +299,6 @@ async function accountIsInOrganization({
     [org_id, account_id],
   );
   return rows.length > 0;
-}
-
-async function resolveShareJwtSecret(): Promise<string> {
-  const settings = await getServerSettings();
-  const path = settings.share_jwt_secret_path?.trim();
-  if (path) {
-    return (await readFile(path, "utf8")).trim();
-  }
-  const stored = settings.share_jwt_secret?.trim();
-  if (stored) {
-    return stored;
-  }
-  const envSecret = process.env.SHARE_JWT_SECRET;
-  if (envSecret) {
-    return envSecret;
-  }
-  throw new Error("share JWT secret not configured");
 }
 
 async function createShareViewerToken({

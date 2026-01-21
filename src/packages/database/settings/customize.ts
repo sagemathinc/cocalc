@@ -63,6 +63,7 @@ export default async function getCustomize(
       splashImage: settings.splash_image,
 
       shareServer: !!settings.share_server,
+      shareDomain: settings.share_domain,
 
       // additionally restrict showing landing pages only in cocalc.com-mode
       landingPages:

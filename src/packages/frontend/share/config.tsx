@@ -59,7 +59,6 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   SHARE_AUTHENTICATED_EXPLANATION,
@@ -485,6 +484,8 @@ function PublishedSharePanel({
   path: string;
   allow_authenticated: boolean;
 }) {
+  const shareDomain = useTypedRedux("customize", "share_domain");
+  const primaryDomain = useTypedRedux("customize", "dns");
   const [state, setState] = useState<ShareLoadState>({ status: "loading" });
   const [scope, setScope] = useState<ShareScopeOption>("unlisted");
   const [indexingOptIn, setIndexingOptIn] = useState(false);
@@ -497,6 +498,19 @@ function PublishedSharePanel({
     null,
   );
   const [previewTokenLoading, setPreviewTokenLoading] = useState(false);
+  const shareDomainBase = useMemo(
+    () => normalizeShareDomainUrl(shareDomain),
+    [shareDomain],
+  );
+  const shareDomainConflict = useMemo(
+    () => domainsMatch(shareDomain, primaryDomain),
+    [shareDomain, primaryDomain],
+  );
+  const shareDomainError = shareDomainConflict
+    ? "Share domain must be different from External Domain Name. Please contact a site admin."
+    : shareDomainBase
+      ? null
+      : "Share domain is not configured. Please contact a site admin.";
 
   const loadShares = useCallback(async () => {
     setState({ status: "loading" });
@@ -539,10 +553,10 @@ function PublishedSharePanel({
   const share = state.status === "ready" ? state.share : null;
   const isParent = state.status === "ready" ? state.is_parent : false;
   const shareUrl = useMemo(() => {
-    if (!share) return "";
+    if (!share || !shareDomainBase || shareDomainConflict) return "";
     const relative = isParent ? relativeSharePath(share.path, path) : "";
-    return buildShareViewerUrl(share, relative);
-  }, [share, isParent, path]);
+    return buildShareViewerUrl(share, relative, shareDomainBase);
+  }, [share, isParent, path, shareDomainBase, shareDomainConflict]);
 
   const publishStatus = share?.last_publish_status as LroStatus | undefined;
   const publishSummary = publishLro?.summary;
@@ -553,6 +567,7 @@ function PublishedSharePanel({
   const needsPreviewToken =
     share?.scope === "authenticated" || share?.scope === "org";
   const canPreview = share?.last_publish_status === "succeeded";
+  const previewBlocked = !!shareDomainError;
 
   const previewUrl = useMemo(() => {
     if (!shareUrl || !canPreview) return "";
@@ -668,7 +683,12 @@ function PublishedSharePanel({
   }, [publishLro?.summary?.status, loadShares]);
 
   useEffect(() => {
-    if (!share?.share_id || !canPreview || !needsPreviewToken) {
+    if (
+      !share?.share_id ||
+      !canPreview ||
+      previewBlocked ||
+      !needsPreviewToken
+    ) {
       setPreviewToken(null);
       setPreviewTokenError(null);
       setPreviewTokenLoading(false);
@@ -697,7 +717,7 @@ function PublishedSharePanel({
     return () => {
       active = false;
     };
-  }, [share?.share_id, canPreview, needsPreviewToken]);
+  }, [share?.share_id, canPreview, previewBlocked, needsPreviewToken]);
 
   const handleCreate = async () => {
     setBusy(true);
@@ -806,6 +826,13 @@ function PublishedSharePanel({
             Published shares are explicit snapshots served from regional
             buckets. Publish to generate a share link and viewer preview.
           </Paragraph>
+          {shareDomainError ? (
+            <Alert
+              type="warning"
+              showIcon
+              description={shareDomainError}
+            />
+          ) : null}
           <div>
             <Text strong>Scope</Text>
             <div>
@@ -917,7 +944,11 @@ function PublishedSharePanel({
               )}
               <div>
                 <Text strong>Preview</Text>
-                {!canPreview ? (
+                {previewBlocked ? (
+                  <Paragraph style={{ margin: "6px 0 0" }} type="secondary">
+                    Configure a share domain to enable the preview.
+                  </Paragraph>
+                ) : !canPreview ? (
                   <Paragraph style={{ margin: "6px 0 0" }} type="secondary">
                     Publish a snapshot to enable the preview.
                   </Paragraph>
@@ -1002,12 +1033,12 @@ function relativeSharePath(parent: string, child: string): string {
 function buildShareViewerUrl(
   share: PublishedShare,
   relativePath: string,
+  shareOrigin: string,
 ): string {
-  const origin = document.location.origin;
-  const basePath = appBasePath == "/" ? "" : appBasePath;
+  const origin = shareOrigin.replace(/\/+$/, "");
   const region = share.share_region?.trim();
   const regionPrefix = region ? `/r/${encodeURIComponent(region)}` : "";
-  const base = `${origin}${basePath}${regionPrefix}/share/${encodeURIComponent(
+  const base = `${origin}${regionPrefix}/share/${encodeURIComponent(
     share.share_id,
   )}`;
   if (!relativePath) return base;
@@ -1066,4 +1097,44 @@ function formatPublishDetail(detail?: Record<string, any>): string | undefined {
     parts.push(`manifest ${String(detail.manifest_id).slice(0, 8)}`);
   }
   return parts.length ? parts.join(", ") : undefined;
+}
+
+function normalizeShareDomainUrl(raw?: string): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) return undefined;
+  const candidate = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    url.hash = "";
+    url.search = "";
+    url.pathname = url.pathname.replace(/\/+$/, "");
+    const normalized = url.toString().replace(/\/+$/, "");
+    return normalized;
+  } catch {
+    return undefined;
+  }
+}
+
+function normalizeDomainForCompare(raw?: string): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) return undefined;
+  const candidate = /^https?:\/\//i.test(trimmed)
+    ? trimmed
+    : `https://${trimmed}`;
+  try {
+    const url = new URL(candidate);
+    const host = url.hostname.toLowerCase();
+    const port = url.port ? `:${url.port}` : "";
+    return `${host}${port}`;
+  } catch {
+    return undefined;
+  }
+}
+
+function domainsMatch(a?: string, b?: string): boolean {
+  const normA = normalizeDomainForCompare(a);
+  const normB = normalizeDomainForCompare(b);
+  return !!normA && !!normB && normA === normB;
 }

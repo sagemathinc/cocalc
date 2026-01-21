@@ -41,12 +41,15 @@ type ShareMeta = {
 
 type WorkerEnv = Record<string, any> & {
   SHARES_BUCKET?: R2BucketLike;
+  SHARE_STATIC_BUCKET?: R2BucketLike;
   SHARE_JWT_SECRET?: string;
   SHARE_JWT_ISSUER?: string;
   SHARE_JWT_AUDIENCE?: string;
   SHARE_PUBLIC_CACHE_MAX_AGE?: string;
   SHARE_PRIVATE_CACHE_MAX_AGE?: string;
   SHARE_META_CACHE_MAX_AGE?: string;
+  SHARE_STATIC_CACHE_MAX_AGE?: string;
+  SHARE_STATIC_HTML_CACHE_MAX_AGE?: string;
 };
 
 type ShareRoute = {
@@ -56,9 +59,19 @@ type ShareRoute = {
   region?: string;
 };
 
+type ShareViewerRoute = {
+  shareId: string;
+  region?: string;
+};
+
 const DEFAULT_PUBLIC_CACHE_MAX_AGE = 60 * 60 * 24 * 365;
 const DEFAULT_META_CACHE_MAX_AGE = 60;
 const DEFAULT_PRIVATE_CACHE_MAX_AGE = 60;
+const DEFAULT_STATIC_CACHE_MAX_AGE = 60 * 60 * 24 * 365;
+const DEFAULT_STATIC_HTML_CACHE_MAX_AGE = 60;
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const CORS_HEADERS = {
   "access-control-allow-origin": "*",
@@ -81,80 +94,83 @@ export default {
       );
     }
 
-    const route = parseShareRoute(new URL(request.url).pathname);
-    if (!route) {
-      return withCors(
-        new Response("Not found", {
-          status: 404,
-          headers: { "cache-control": "no-store" },
-        }),
-      );
-    }
-
-    const bucket = resolveBucket(env, route.region);
-    if (!bucket) {
-      return withCors(
-        new Response("Share bucket not configured", {
-          status: 500,
-          headers: { "cache-control": "no-store" },
-        }),
-      );
-    }
-
-    const meta = await loadShareMeta(bucket, route.shareId);
-    if (!meta) {
-      return withCors(
-        new Response("Share not found", {
-          status: 404,
-          headers: { "cache-control": "no-store" },
-        }),
-      );
-    }
-
-    const authRequired =
-      meta.scope === "authenticated" || meta.scope === "org";
-    if (authRequired) {
-      const token = extractToken(request);
-      if (!token) {
-        return withCors(unauthorized("Missing share token"));
-      }
-      const secret = env.SHARE_JWT_SECRET;
-      if (!secret) {
+    const pathname = new URL(request.url).pathname;
+    const shareRoute = parseShareRoute(pathname);
+    if (shareRoute) {
+      const bucket = resolveBucket(env, shareRoute.region);
+      if (!bucket) {
         return withCors(
-          new Response("JWT secret not configured", {
+          new Response("Share bucket not configured", {
             status: 500,
             headers: { "cache-control": "no-store" },
           }),
         );
       }
-      const verified = await verifyShareJwt({
-        token,
-        secret,
-        shareId: route.shareId,
-        issuer: env.SHARE_JWT_ISSUER,
-        audience: env.SHARE_JWT_AUDIENCE ?? "cocalc-share",
-      });
-      if (!verified.ok) {
-        return withCors(unauthorized(verified.error ?? "Invalid token"));
+
+      const meta = await loadShareMeta(bucket, shareRoute.shareId);
+      if (!meta) {
+        return withCors(
+          new Response("Share not found", {
+            status: 404,
+            headers: { "cache-control": "no-store" },
+          }),
+        );
       }
+
+      const authRequired =
+        meta.scope === "authenticated" || meta.scope === "org";
+      if (authRequired) {
+        const token = extractToken(request);
+        if (!token) {
+          return withCors(unauthorized("Missing share token"));
+        }
+        const secret = env.SHARE_JWT_SECRET;
+        if (!secret) {
+          return withCors(
+            new Response("JWT secret not configured", {
+              status: 500,
+              headers: { "cache-control": "no-store" },
+            }),
+          );
+        }
+        const verified = await verifyShareJwt({
+          token,
+          secret,
+          shareId: shareRoute.shareId,
+          issuer: env.SHARE_JWT_ISSUER,
+          audience: env.SHARE_JWT_AUDIENCE ?? "cocalc-share",
+        });
+        if (!verified.ok) {
+          return withCors(unauthorized(verified.error ?? "Invalid token"));
+        }
+      }
+
+      const cacheControl = cacheControlFor({
+        env,
+        scope: meta.scope,
+        objectType: shareRoute.objectType,
+      });
+      const varyAuth = authRequired;
+
+      return withCors(
+        await serveObject({
+          request,
+          bucket,
+          key: shareRoute.key,
+          cacheControl,
+          varyAuth,
+        }),
+      );
     }
 
-    const cacheControl = cacheControlFor({
-      env,
-      scope: meta.scope,
-      objectType: route.objectType,
-    });
-    const varyAuth = authRequired;
+    const viewerRoute = parseShareViewerRoute(pathname);
+    if (viewerRoute) {
+      const response = await serveShareViewer({ request, env });
+      return withCors(response);
+    }
 
-    return withCors(
-      await serveObject({
-        request,
-        bucket,
-        key: route.key,
-        cacheControl,
-        varyAuth,
-      }),
-    );
+    const response = await serveStaticAsset({ request, env });
+    return withCors(response);
   },
 };
 
@@ -233,8 +249,10 @@ function buildHeaders({
   const headers = new Headers();
   const http = meta.httpMetadata ?? {};
   if (http.contentType) headers.set("content-type", http.contentType);
-  if (http.contentEncoding) headers.set("content-encoding", http.contentEncoding);
-  if (http.contentLanguage) headers.set("content-language", http.contentLanguage);
+  if (http.contentEncoding)
+    headers.set("content-encoding", http.contentEncoding);
+  if (http.contentLanguage)
+    headers.set("content-language", http.contentLanguage);
   if (http.contentDisposition) {
     headers.set("content-disposition", http.contentDisposition);
   }
@@ -246,6 +264,68 @@ function buildHeaders({
   }
   headers.set("accept-ranges", "bytes");
   return headers;
+}
+
+async function serveShareViewer({
+  request,
+  env,
+}: {
+  request: Request;
+  env: WorkerEnv;
+}): Promise<Response> {
+  const bucket = env.SHARE_STATIC_BUCKET;
+  if (!bucket) {
+    return new Response("Share viewer bucket not configured", {
+      status: 500,
+      headers: { "cache-control": "no-store" },
+    });
+  }
+  const object = await bucket.get("share.html");
+  if (!object) {
+    return notFound();
+  }
+  const html = await object.text();
+  const patched = injectBaseTag(html, "/");
+  const bytes = new TextEncoder().encode(patched);
+  const headers = new Headers();
+  headers.set("content-type", "text/html; charset=utf-8");
+  headers.set(
+    "cache-control",
+    staticCacheControlFor({ env, key: "share.html" }),
+  );
+  headers.set("content-length", String(bytes.length));
+  if (request.method === "HEAD") {
+    return new Response(null, { status: 200, headers });
+  }
+  return new Response(patched, { status: 200, headers });
+}
+
+async function serveStaticAsset({
+  request,
+  env,
+}: {
+  request: Request;
+  env: WorkerEnv;
+}): Promise<Response> {
+  const bucket = env.SHARE_STATIC_BUCKET;
+  if (!bucket) {
+    return new Response("Share viewer bucket not configured", {
+      status: 500,
+      headers: { "cache-control": "no-store" },
+    });
+  }
+  const pathname = new URL(request.url).pathname;
+  const key = pathname.replace(/^\/+/, "");
+  if (!key) {
+    return notFound();
+  }
+  return await serveObject({
+    request,
+    bucket,
+    key,
+    cacheControl: staticCacheControlFor({ env, key }),
+    varyAuth: false,
+  });
 }
 
 function parseShareRoute(pathname: string): ShareRoute | null {
@@ -276,6 +356,26 @@ function parseShareRoute(pathname: string): ShareRoute | null {
     objectType,
     region,
   };
+}
+
+function parseShareViewerRoute(pathname: string): ShareViewerRoute | null {
+  const parts = pathname.split("/").filter(Boolean);
+  if (!parts.length) return null;
+
+  let region: string | undefined;
+  let offset = 0;
+  if (parts[0] === "r" && parts.length >= 3) {
+    region = parts[1];
+    offset = 2;
+  }
+
+  let shareId = parts[offset];
+  let rest = parts.slice(offset + 1);
+  if (shareId === "share" || shareId === "s") {
+    shareId = rest[0];
+  }
+  if (!shareId || !UUID_RE.test(shareId)) return null;
+  return { shareId, region };
 }
 
 function classifyShareObject(rest: string[]): ShareObjectType | null {
@@ -320,12 +420,12 @@ function cacheControlFor({
   scope: ShareScope;
   objectType: ShareObjectType;
 }): string {
-  const publicMaxAge = Number(env.SHARE_PUBLIC_CACHE_MAX_AGE) ||
-    DEFAULT_PUBLIC_CACHE_MAX_AGE;
-  const metaMaxAge = Number(env.SHARE_META_CACHE_MAX_AGE) ||
-    DEFAULT_META_CACHE_MAX_AGE;
-  const privateMaxAge = Number(env.SHARE_PRIVATE_CACHE_MAX_AGE) ||
-    DEFAULT_PRIVATE_CACHE_MAX_AGE;
+  const publicMaxAge =
+    Number(env.SHARE_PUBLIC_CACHE_MAX_AGE) || DEFAULT_PUBLIC_CACHE_MAX_AGE;
+  const metaMaxAge =
+    Number(env.SHARE_META_CACHE_MAX_AGE) || DEFAULT_META_CACHE_MAX_AGE;
+  const privateMaxAge =
+    Number(env.SHARE_PRIVATE_CACHE_MAX_AGE) || DEFAULT_PRIVATE_CACHE_MAX_AGE;
 
   const isPublic = scope === "public" || scope === "unlisted";
   if (objectType === "blob" || objectType === "artifact") {
@@ -336,6 +436,38 @@ function cacheControlFor({
   return isPublic
     ? `public, max-age=${metaMaxAge}`
     : `private, max-age=${privateMaxAge}`;
+}
+
+function staticCacheControlFor({
+  env,
+  key,
+}: {
+  env: WorkerEnv;
+  key: string;
+}): string {
+  const htmlMaxAge =
+    Number(env.SHARE_STATIC_HTML_CACHE_MAX_AGE) ||
+    DEFAULT_STATIC_HTML_CACHE_MAX_AGE;
+  const assetMaxAge =
+    Number(env.SHARE_STATIC_CACHE_MAX_AGE) || DEFAULT_STATIC_CACHE_MAX_AGE;
+  if (key.endsWith(".html")) {
+    return `public, max-age=${htmlMaxAge}`;
+  }
+  return `public, max-age=${assetMaxAge}, immutable`;
+}
+
+function injectBaseTag(html: string, baseHref: string): string {
+  if (/<base\s/i.test(html)) return html;
+  const tag = `<base href="${baseHref}">`;
+  const headClose = html.indexOf("</head>");
+  if (headClose !== -1) {
+    return html.slice(0, headClose) + tag + html.slice(headClose);
+  }
+  const headOpen = html.indexOf("<head>");
+  if (headOpen !== -1) {
+    return html.replace("<head>", `<head>${tag}`);
+  }
+  return tag + html;
 }
 
 function extractToken(request: Request): string | undefined {
@@ -381,20 +513,20 @@ function rangeNotSatisfiable(size: number): Response {
 function parseRange(
   header: string,
   size: number,
-): { offset: number; length: number } | null {
+): { offset: number; length: number } | undefined {
   const match = header.match(/^bytes=(\d*)-(\d*)$/i);
-  if (!match) return null;
+  if (!match) return undefined;
   const startRaw = match[1];
   const endRaw = match[2];
-  if (!startRaw && !endRaw) return null;
+  if (!startRaw && !endRaw) return undefined;
 
   let start = startRaw ? Number(startRaw) : undefined;
   let end = endRaw ? Number(endRaw) : undefined;
-  if (Number.isNaN(start) || Number.isNaN(end)) return null;
+  if (Number.isNaN(start) || Number.isNaN(end)) return undefined;
 
   if (start == null) {
     const suffix = end ?? 0;
-    if (!suffix) return null;
+    if (!suffix) return undefined;
     if (suffix >= size) {
       return { offset: 0, length: size };
     }
@@ -404,7 +536,7 @@ function parseRange(
   if (end == null || end >= size) {
     end = size - 1;
   }
-  if (start > end) return null;
+  if (start > end) return undefined;
   return { offset: start, length: end - start + 1 };
 }
 
@@ -430,6 +562,12 @@ function base64UrlToBytes(input: string): Uint8Array {
     bytes[i] = binary.charCodeAt(i);
   }
   return bytes;
+}
+
+function toArrayBuffer(bytes: Uint8Array): ArrayBuffer {
+  const buffer = new ArrayBuffer(bytes.byteLength);
+  new Uint8Array(buffer).set(bytes);
+  return buffer;
 }
 
 function base64UrlToJson<T>(input: string): T {
@@ -469,7 +607,7 @@ async function verifyShareJwt({
   }
 
   const data = new TextEncoder().encode(`${headerB64}.${payloadB64}`);
-  const signature = base64UrlToBytes(signatureB64);
+  const signature = toArrayBuffer(base64UrlToBytes(signatureB64));
   const key = await crypto.subtle.importKey(
     "raw",
     new TextEncoder().encode(secret),
