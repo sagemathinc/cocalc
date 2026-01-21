@@ -97,7 +97,6 @@
     "nanoid": "^3.3.8",
     "node-zendesk": "^5.0.13",
     "nodemailer": "^7.0.11",
-    "parse-domain": "^5.0.0",
     "passport": "^0.6.0",
     "passport-activedirectory": "^1.0.4",
     "passport-apple": "^2.0.2",
