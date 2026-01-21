@@ -1,12 +1,13 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
+
+import os from "os";
 
 import { callback2 } from "@cocalc/util/async-utils";
 import type { PostgreSQL } from "./types";
 import centralLog from "./central-log";
-import os from "os";
 
 export interface GetLogOptions {
   start?: Date; // if not given start at beginning of time
@@ -35,6 +36,11 @@ export async function get_log(
   opts: GetLogOptions,
 ): Promise<LogEntry[]> {
   const log = opts.log ?? "central_log";
+
+  const allowedLogs = ["central_log", "client_error_log"] as const;
+  if (!allowedLogs.includes(log as any)) {
+    throw new Error(`invalid log table: ${log}`);
+  }
 
   const { rows } = await callback2(db._query.bind(db), {
     query: `SELECT * FROM ${log}`,
