@@ -88,7 +88,7 @@
     "lodash": "^4.17.21",
     "lru-cache": "^7.18.3",
     "markdown-it": "^13.0.1",
-    "mime-types": "^2.1.35",
+    "mime-types": "^3.0.1",
     "micro-key-producer": "^0.8.2",
     "ms": "2.1.2",
     "node-zendesk": "^5.0.13",
