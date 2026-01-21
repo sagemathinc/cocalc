@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -718,7 +718,7 @@ Table({
               }
             }
           }
-          
+
           // Make sure auto_balance is valid.
           if (obj["auto_balance"] != null) {
             try {
@@ -739,8 +739,6 @@ Table({
               strategies,
               email: current_email_address,
             });
-            console.log({ strategy });
-            console.log(obj);
             // we got a required exclusive SSO for the given account_id
             if (strategy != null) {
               // if user tries to change email_address
@@ -752,7 +750,7 @@ Table({
               if (
                 strategy.updateOnLogin &&
                 (typeof obj.first_name === "string" ||
-                  obj.last_name === "string")
+                  typeof obj.last_name === "string")
               ) {
                 cb(
                   `You are not allowed to change your first or last name. You have to change it at your single-sign-on provider: ${strategy.display}.`,
@@ -761,7 +759,7 @@ Table({
               }
             }
           }
-          
+
           // Validate user-defined LLM configs
           if (
             obj["other_settings"]?.[OTHER_SETTINGS_USER_DEFINED_LLM] != null
