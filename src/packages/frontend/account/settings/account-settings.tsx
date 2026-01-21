@@ -107,6 +107,7 @@ export function AccountSettings(props: Readonly<Props>) {
   function getSSORestrictions(): {
     disableEmail: boolean;
     disableName: boolean;
+    ssoStrategyId?: string;
     ssoStrategyName?: string;
   } {
     if (
@@ -152,6 +153,7 @@ export function AccountSettings(props: Readonly<Props>) {
     return {
       disableEmail: true,
       disableName: matchedStrategy.updateOnLogin ?? false,
+      ssoStrategyId: matchedStrategy.name,
       ssoStrategyName: matchedStrategy.display,
     };
   }
@@ -278,14 +280,21 @@ export function AccountSettings(props: Readonly<Props>) {
   function render_strategy(
     strategy: ImmutablePassportStrategy,
     account_passports: string[],
+    blockedStrategyName?: string,
   ): Rendered {
     if (strategy.get("name") !== "email") {
-      const is_configured = account_passports.includes(strategy.get("name"));
+      const strategyName = strategy.get("name");
+      const is_configured = account_passports.includes(strategyName);
+      const is_blocked = is_configured && blockedStrategyName === strategyName;
       const strategy_js = strategy.toJS();
+      const disabled = (props.is_anonymous && !terms_checkbox) || is_blocked;
       const btn = (
         <Button
-          disabled={props.is_anonymous && !terms_checkbox}
+          disabled={disabled}
           onClick={() => {
+            if (disabled) {
+              return;
+            }
             if (is_configured) {
               set_remove_strategy_button(strategy.get("name"));
               set_add_strategy_link(undefined);
@@ -350,6 +359,10 @@ export function AccountSettings(props: Readonly<Props>) {
       return;
     }
     const account_passports: string[] = get_account_passport_names();
+    const ssoRestrictions = getSSORestrictions();
+    const blockedStrategyName = ssoRestrictions.disableEmail
+      ? ssoRestrictions.ssoStrategyId
+      : undefined;
 
     const linked: List<ImmutablePassportStrategy> = props.strategies.filter(
       (strategy) => {
@@ -360,7 +373,9 @@ export function AccountSettings(props: Readonly<Props>) {
     if (linked.size === 0) return;
 
     const btns = linked
-      .map((strategy) => render_strategy(strategy, account_passports))
+      .map((strategy) =>
+        render_strategy(strategy, account_passports, blockedStrategyName),
+      )
       .toArray();
     return (
       <div>
@@ -368,7 +383,9 @@ export function AccountSettings(props: Readonly<Props>) {
         <h5 style={{ color: COLORS.GRAY_M }}>
           {intl.formatMessage({
             id: "account.settings.sso.account_is_linked",
-            defaultMessage: "Your account is linked with (click to unlink)",
+            defaultMessage: blockedStrategyName
+              ? "Your account is controlled by"
+              : "Your account is linked with (click to unlink)",
           })}
         </h5>
         <ButtonToolbar style={{ marginBottom: "10px", display: "flex" }}>
