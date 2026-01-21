@@ -38,20 +38,17 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install python3 requests for checking doc links
-        run: sudo apt-get update && sudo apt-get install -y python3-requests
-
       - name: Install btrfs-progs for @cocalc/file-server
         run: sudo apt-get update && sudo apt-get install -y btrfs-progs
 
       - name: Set up Python venv and Jupyter kernel
         run: |
+          sudo apt-get update && sudo apt-get install -y python3
           python3 -m pip install --upgrade pip virtualenv
           python3 -m virtualenv venv
           source venv/bin/activate
-          pip install ipykernel
+          pip install ipykernel requests
           python -m ipykernel install --prefix=./jupyter-local --name python3-local --display-name "Python 3 (Local)"
-
 
       - name: install pnpm
         uses: pnpm/action-setup@v4
@@ -64,4 +61,3 @@ jobs:
 
       - name: test
         run: source venv/bin/activate && cd src && pnpm test
-
