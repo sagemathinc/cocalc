@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -477,8 +477,8 @@ export class PassportLogin {
   }
 
   // optionally, SSO strategies can be configured to always update fields of the user
-  // with the data they provide. right now that's first and last name.
-  // email address is a bit more tricky and not implemented.
+  // with the data they provide (first/last name, and email when provided and not used
+  // by another account).
   private async maybeUpdateAccountAndPassport(
     opts: PassportLoginOpts,
     locals: PassportLoginLocals,
