@@ -337,3 +337,4 @@ Command envelope:
   - \(pending\) Server\-side guard: if the user already has an active connector, block creation of a second self\-hosted VM and show a clear error.
   - \(done\) Setup modal copy: explain the 1:1 model and that the easiest way to scale is to resize the VM or run another connector on another machine.
   - \(pending\) Provide a simple “delete existing connector” step in the UI so users can recover if they overwrite/lose their config.
+

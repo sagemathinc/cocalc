@@ -31,7 +31,7 @@
     "build": "pnpm exec tsc --build && pnpm install-sandbox-tools && pnpm install-bin-tools",
     "test": "NODE_NO_WARNINGS=1 pnpm exec jest --forceExit",
     "test-conat": " pnpm exec jest --forceExit conat",
-    "depcheck": "pnpx depcheck --ignores events,reflect-sync",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores events,reflect-sync",
     "prepublishOnly": "pnpm test",
     "conat-watch": "node ./bin/conat-watch.cjs",
     "conat-connections": "node ./bin/conat-connections.cjs",

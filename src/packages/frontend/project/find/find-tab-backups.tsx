@@ -97,8 +97,15 @@ export function BackupsTab({
   const [restoreTarget, setRestoreTarget] = useState<BackupResult | null>(null);
   const [restoreLoading, setRestoreLoading] = useState(false);
   const [restoreError, setRestoreError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{
+    loading?: boolean;
+    error?: string | null;
+    content?: string;
+    truncated?: boolean;
+  } | null>(null);
   const listRef = useRef<VirtuosoGridHandle>(null);
   const queryRef = useRef(state.query);
+  const previewRequestRef = useRef(0);
 
   useEffect(() => {
     queryRef.current = state.query;
@@ -109,6 +116,42 @@ export function BackupsTab({
       setRestoreError(null);
     }
   }, [restoreTarget]);
+
+  useEffect(() => {
+    if (!restoreTarget) {
+      setPreview(null);
+      return;
+    }
+    if (restoreTarget.isDir) {
+      setPreview({ error: "Directory preview is not available." });
+      return;
+    }
+    if (!restoreTarget.path) {
+      setPreview({ error: "Directory preview is not available." });
+      return;
+    }
+    const requestId = previewRequestRef.current + 1;
+    previewRequestRef.current = requestId;
+    setPreview({ loading: true });
+    webapp_client.conat_client.hub.projects
+      .getBackupFileText({
+        project_id,
+        id: restoreTarget.id,
+        path: restoreTarget.path,
+      })
+      .then((resp) => {
+        if (previewRequestRef.current !== requestId) return;
+        setPreview({
+          loading: false,
+          content: resp.content,
+          truncated: resp.truncated,
+        });
+      })
+      .catch((err) => {
+        if (previewRequestRef.current !== requestId) return;
+        setPreview({ loading: false, error: `${err}` });
+      });
+  }, [project_id, restoreTarget]);
 
   useEffect(() => {
     let cancelled = false;
@@ -351,6 +394,24 @@ export function BackupsTab({
     setRestoreTarget(null);
   }, [actions, restoreTarget]);
 
+  const openSnapshotsDir = useCallback(() => {
+    actions?.open_directory(".snapshots");
+  }, [actions]);
+
+  const openBackupsDir = useCallback(() => {
+    actions?.open_directory(".backups");
+  }, [actions]);
+
+  const openSnapshotSchedule = useCallback(() => {
+    actions?.open_directory(".snapshots");
+    actions?.setState({ open_snapshot_schedule: true });
+  }, [actions]);
+
+  const openBackupSchedule = useCallback(() => {
+    actions?.open_directory(".backups");
+    actions?.setState({ open_backup_schedule: true });
+  }, [actions]);
+
   const restorePath = restoreTarget?.path ?? "";
   const alert = (
     <Alert
@@ -359,7 +420,47 @@ export function BackupsTab({
         marginBottom: mode === "flyout" ? "8px" : 0,
         maxWidth: mode === "flyout" ? undefined : "360px",
       }}
-      message="Snapshots are more frequent, recent and support content search; backups are less frequent and longer lived."
+      message="Snapshots vs Backups"
+      description={
+        <>
+          <Button
+            size="small"
+            type="link"
+            style={{ padding: 0, height: "auto" }}
+            onClick={openSnapshotsDir}
+          >
+            Snapshots
+          </Button>{" "}
+          are more{" "}
+          <Button
+            size="small"
+            type="link"
+            style={{ padding: 0, height: "auto" }}
+            onClick={openSnapshotSchedule}
+          >
+            frequent, recent
+          </Button>{" "}
+          and support content search;{" "}
+          <Button
+            size="small"
+            type="link"
+            style={{ padding: 0, height: "auto" }}
+            onClick={openBackupsDir}
+          >
+            Backups
+          </Button>{" "}
+          are{" "}
+          <Button
+            size="small"
+            type="link"
+            style={{ padding: 0, height: "auto" }}
+            onClick={openBackupSchedule}
+          >
+            less frequent and longer lived
+          </Button>
+          .
+        </>
+      }
     />
   );
   const searchRow = (
@@ -522,6 +623,7 @@ export function BackupsTab({
         openLabel="Open backup directory"
         loading={restoreLoading}
         error={restoreError}
+        preview={preview ?? undefined}
         onRestoreOriginal={() => void performRestore("original")}
         onRestoreScratch={() => void performRestore("scratch")}
         onOpenDirectory={openBackupDirectory}

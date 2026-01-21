@@ -22,12 +22,22 @@
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo",
     "build": "pnpm exec tsc --build",
     "test": "pnpm exec jest",
-    "depcheck": "pnpx depcheck --ignores events",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores events",
     "prepublishOnly": "pnpm test"
   },
-  "files": ["dist/**", "bin/**", "README.md", "package.json"],
+  "files": [
+    "dist/**",
+    "bin/**",
+    "README.md",
+    "package.json"
+  ],
   "author": "SageMath, Inc.",
-  "keywords": ["utilities", "mathjax", "markdown", "cocalc"],
+  "keywords": [
+    "utilities",
+    "mathjax",
+    "markdown",
+    "cocalc"
+  ],
   "license": "SEE LICENSE.md",
   "dependencies-COMMENT": "We must install react so that react-intl doesn't install the wrong version! See https://github.com/sagemathinc/cocalc/issues/8132",
   "dependencies": {

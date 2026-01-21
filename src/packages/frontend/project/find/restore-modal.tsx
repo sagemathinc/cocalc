@@ -1,4 +1,8 @@
 import { Alert, Button, Modal, Space, Typography } from "antd";
+import { CodeMirrorStatic } from "@cocalc/frontend/jupyter/codemirror-static";
+import { Loading } from "@cocalc/frontend/components";
+import { codemirrorMode } from "@cocalc/frontend/file-extensions";
+import { filename_extension } from "@cocalc/util/misc";
 
 export default function FindRestoreModal({
   open,
@@ -11,6 +15,7 @@ export default function FindRestoreModal({
   onRestoreScratch,
   onOpenDirectory,
   onCancel,
+  preview,
 }: {
   open: boolean;
   title: string;
@@ -18,15 +23,25 @@ export default function FindRestoreModal({
   openLabel: string;
   loading: boolean;
   error?: string | null;
+  preview?: {
+    loading?: boolean;
+    error?: string | null;
+    content?: string;
+    truncated?: boolean;
+  };
   onRestoreOriginal: () => void;
   onRestoreScratch: () => void;
   onOpenDirectory: () => void;
   onCancel: () => void;
 }) {
+  const ext = filename_extension(path).toLowerCase();
+  const mode = codemirrorMode(ext) ?? { name: "text/plain" };
   return (
     <Modal
       title={title}
       open={open}
+      width={900}
+      style={{ maxWidth: "90vw" }}
       onCancel={onCancel}
       footer={null}
       destroyOnClose
@@ -55,6 +70,40 @@ export default function FindRestoreModal({
             {openLabel}
           </Button>
         </Space>
+        {preview ? (
+          <div>
+            <div style={{ marginBottom: "6px", color: "#666" }}>Preview</div>
+            {preview.error ? (
+              <Alert type="warning" message={preview.error} />
+            ) : preview.loading ? (
+              <Loading />
+            ) : preview.content != null ? (
+              <div
+                style={{
+                  border: "1px solid #e5e5e5",
+                  borderRadius: "6px",
+                  padding: "8px",
+                  maxHeight: "60vh",
+                  overflow: "auto",
+                  background: "#fff",
+                }}
+              >
+                <CodeMirrorStatic
+                  value={preview.content}
+                  options={{ mode, lineNumbers: true, lineWrapping: false }}
+                  style={{ border: 0, padding: 0 }}
+                />
+                {preview.truncated ? (
+                  <Alert
+                    style={{ marginTop: "8px" }}
+                    type="info"
+                    message="Preview truncated to 10MB."
+                  />
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        ) : null}
       </Space>
     </Modal>
   );

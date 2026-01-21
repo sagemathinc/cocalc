@@ -6,7 +6,7 @@
 // Active files (editors) in the current project
 // Note: there is no corresponding full page – instead, this is based on the "editor tabs"
 
-import { Alert, Button } from "antd";
+import { Alert, Button, Input } from "antd";
 import { sortBy, uniq } from "lodash";
 
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
@@ -99,6 +99,7 @@ const GROUP_SORTER: {
 } as const;
 
 const USERS_SIZE_PX = 18;
+const CLOSED_FILES_LIST_HEIGHT = 32 * 3;
 
 // on top of the default for UsersViewing
 const USERS_STYLE: CSS = {
@@ -136,6 +137,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
   const otherSettings = useTypedRedux("account", "other_settings");
   const dimFileExtensions = !!otherSettings?.get("dim_file_extensions");
   const [filterTerm, setFilterTerm] = useState<string>("");
+  const [closedFilterTerm, setClosedFilterTerm] = useState<string>("");
   const [showStarred, setShowStarred] = useState<boolean>(
     getFlyoutActiveShowStarred(project_id),
   );
@@ -572,6 +574,20 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
   function renderUndo() {
     if (justClosed.size === 0) return;
 
+    function getClosedMatches(term: string) {
+      const closedSearchWords = search_split(term.trim().toLowerCase());
+      return justClosed.reverse().filter((path) => {
+        if (closedSearchWords.length === 0) return true;
+        const { head, tail } = path_split(path);
+        return (
+          search_match(tail, closedSearchWords) ||
+          search_match(head, closedSearchWords)
+        );
+      });
+    }
+
+    const filteredClosed = getClosedMatches(closedFilterTerm);
+
     return (
       <div
         style={{
@@ -584,20 +600,45 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
             padding: FLYOUT_PADDING,
             ...GROUP_STYLE,
             color: COLORS.FILE_EXT,
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
           }}
         >
-          <Icon name="undo" /> Closed files
+          <span style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <Icon name="undo" /> Closed
+          </span>
+          <Input
+            size="small"
+            placeholder="Filter"
+            allowClear
+            value={closedFilterTerm}
+            onChange={(event) => setClosedFilterTerm(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key !== "Enter") return;
+              event.preventDefault();
+              event.stopPropagation();
+              const term = event.currentTarget.value ?? "";
+              const firstMatch = getClosedMatches(term).get(0);
+              if (firstMatch != null) {
+                handleFileEntryClick(undefined, firstMatch, project_id);
+              }
+            }}
+            style={{ flex: "1 1 auto" }}
+          />
           <Button
             size="small"
-            style={{ float: "right", color: COLORS.FILE_EXT }}
+            style={{ color: COLORS.FILE_EXT }}
             onClick={() => actions?.clear_just_closed_files()}
           >
             <Icon name="times" /> Clear
           </Button>
         </div>
-        {justClosed.reverse().map((path) => {
-          return renderFileItem(path, "undo");
-        })}
+        <div style={{ maxHeight: CLOSED_FILES_LIST_HEIGHT, overflowY: "auto" }}>
+          {filteredClosed.map((path) => {
+            return renderFileItem(path, "undo");
+          })}
+        </div>
       </div>
     );
   }

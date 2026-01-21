@@ -15,7 +15,7 @@
     "clean": "rm -rf build dist node_modules tsconfig.tsbuildinfo",
     "build": "pnpm exec tsc --build",
     "test": "pnpm exec jest --forceExit",
-    "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node,ts-node",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores @types/debug,@types/jest,@types/node,ts-node",
     "app": "pnpm exec cocalc-lite"
   },
   "bin": {

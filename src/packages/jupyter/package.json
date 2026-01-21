@@ -23,7 +23,7 @@
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo",
     "test": "pnpm exec jest --forceExit --maxWorkers=1",
-    "depcheck": "pnpx depcheck --ignores events"
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores events"
   },
   "files": [
     "dist/**",

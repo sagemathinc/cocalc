@@ -19,6 +19,7 @@ export default function EditBackupSchedule() {
   const [showHelp, setShowHelp] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const project = useTypedRedux("projects", "project_map")?.get(project_id);
+  const openSchedule = useTypedRedux({ project_id }, "open_backup_schedule");
   const [schedule0, setSchedule] = useState<SnapshotSchedule | null>(null);
 
   useEffect(() => {
@@ -28,6 +29,16 @@ export default function EditBackupSchedule() {
   }, [open]);
 
   if (project == null) return null;
+
+  useEffect(() => {
+    if (!openSchedule || !project) return;
+    setSchedule({
+      ...DEFAULT_BACKUP_COUNTS,
+      ...project.get("backups")?.toJS(),
+    });
+    setOpen(true);
+    actions?.setState({ open_backup_schedule: false });
+  }, [actions, openSchedule, project]);
 
   const schedule = schedule0!;
 

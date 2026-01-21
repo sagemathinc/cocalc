@@ -299,7 +299,7 @@ def test(args) -> None:
                 "fails": fails,
                 "flaky": flaky,
                 "success": success,
-                "time": (time.time() - start) / 60.0
+                "time": "%s minutes" % ((time.time() - start) / 60.0)
             })
 
     v = packages(args)
@@ -411,7 +411,7 @@ def tsc(args) -> None:
 
     def f(path: str) -> None:
         package_path = os.path.join(CUR, path)
-        if(path.endswith('next')):
+        if (path.endswith('next')):
             cmd("pnpm ts-build", package_path)
             return
         if (path.endswith('packages/') or path.endswith('next')):

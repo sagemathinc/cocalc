@@ -152,8 +152,20 @@ describe("create a blank minimal string SyncDoc and call public methods on it", 
     expect(syncstring.has_uncommitted_changes()).toBe(false);
   });
 
-  it("saves to disk (no-op, since nothing changed)", async () => {
+  it("save_to_disk requires writeFileDelta", async () => {
+    delete (fs as any).writeFileDelta;
+    await expect(syncstring.save_to_disk()).rejects.toThrow(
+      "writeFileDelta is required for safe, atomic writes",
+    );
+  });
+
+  it("save_to_disk works with writeFileDelta", async () => {
+    const calls: any[] = [];
+    (fs as any).writeFileDelta = async (...args: any[]) => {
+      calls.push(args);
+    };
     await syncstring.save_to_disk();
+    expect(calls.length).toBeGreaterThan(0);
   });
 
   it("close and clean up", async () => {

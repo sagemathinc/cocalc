@@ -1,7 +1,7 @@
 // Electron entrypoint for CoCalc Launchpad (desktop). Spins up the Hub
 // control plane and opens a browser window pointed at the local server.
 const { app, BrowserWindow, Menu } = require("electron");
-const { join } = require("path");
+const { applyLaunchpadDefaults, logLaunchpadConfig } = require("./lib/onprem-config");
 
 let port; // set after Launchpad starts
 
@@ -91,18 +91,8 @@ function buildMenu() {
 
 async function main() {
   // Spin up CoCalc Launchpad and Electron
-  process.env.PORT ??= await require("@cocalc/backend/get-port").default();
-  process.env.DATA = join(
-    process.env.HOME ?? process.cwd(),
-    ".local",
-    "share",
-    "cocalc-launchpad",
-  );
-
-  process.env.COCALC_DB ??= "pglite";
-  process.env.COCALC_DISABLE_NEXT ??= "1";
-  process.env.COCALC_MODE ??= "launchpad";
-  process.env.COCALC_PGLITE_DATA_DIR ??= join(process.env.DATA, "pglite");
+  applyLaunchpadDefaults();
+  logLaunchpadConfig();
 
   await app.whenReady();
   require("@cocalc/hub/hub");

@@ -86,7 +86,7 @@ import LRU from "lru-cache";
 import TTL from "@isaacs/ttlcache";
 import watch, { type WatchIterator, type WatchOptions } from "./watch";
 import { sha1 } from "@cocalc/backend/sha1";
-import { apply_patch, type CompressedPatch } from "@cocalc/util/dmp";
+import { apply_patch, make_patch, type CompressedPatch } from "@cocalc/util/dmp";
 import getLogger from "@cocalc/backend/logger";
 
 import { SyncFsWatchStore } from "./sync-fs-watch";
@@ -607,7 +607,7 @@ export class SandboxedFilesystem {
         err.path = p;
         throw err;
       }
-      await writeFile(p, patched, { encoding: normalizedEncoding });
+      await this.writeFileAtomic(p, patched, { encoding: normalizedEncoding });
       if (saveLast) {
         this.lastOnDisk.set(p, patched);
         this.lastOnDiskHash.set(`${p}-${sha1(patched)}`, true);
@@ -628,8 +628,100 @@ export class SandboxedFilesystem {
   };
 
   writeFileDelta = async (..._args) => {
-    // this is just to make typescript happy
-    throw Error("not implemented");
+    const [path, content, options = {}] = _args as [
+      string,
+      string | Buffer,
+      { baseContents?: string; minLength?: number; saveLast?: boolean },
+    ];
+    this.assertWritable(path);
+    const p = await this.safeAbsPath(path);
+    const { baseContents, minLength = 1024, saveLast } = options;
+    if (
+      typeof content !== "string" ||
+      typeof baseContents !== "string" ||
+      content.length <= minLength
+    ) {
+      if (saveLast && typeof content === "string") {
+        this.lastOnDisk.set(p, content);
+        this.lastOnDiskHash.set(`${p}-${sha1(content)}`, true);
+      }
+      await this.writeFileAtomic(p, content);
+      if (saveLast === true && typeof content === "string") {
+        globalSyncFsService.recordLocalWrite(p, content, true);
+      }
+      return;
+    }
+    if (baseContents === content) {
+      return;
+    }
+    if (!baseContents.length || !content.length) {
+      if (saveLast && typeof content === "string") {
+        this.lastOnDisk.set(p, content);
+        this.lastOnDiskHash.set(`${p}-${sha1(content)}`, true);
+      }
+      await this.writeFileAtomic(p, content);
+      if (saveLast === true && typeof content === "string") {
+        globalSyncFsService.recordLocalWrite(p, content, true);
+      }
+      return;
+    }
+    const patch = make_patch(baseContents, content);
+    const sha = createHash("sha256")
+      .update(Buffer.from(baseContents, "utf8"))
+      .digest("hex");
+    await this.writeFile(
+      path,
+      {
+        patch,
+        sha256: sha,
+      },
+      saveLast,
+    );
+  };
+
+  private writeFileAtomic = async (
+    path: string,
+    data: string | Buffer,
+    options?: { encoding?: BufferEncoding },
+  ): Promise<void> => {
+    const dir = dirname(path);
+    const base = basename(path);
+    const tmp = join(
+      dir,
+      `.${base}.tmp.${process.pid}.${Date.now().toString(36)}.${Math.random()
+        .toString(16)
+        .slice(2)}`,
+    );
+    let mode: number | undefined;
+    try {
+      const stat0 = await stat(path);
+      mode = stat0.mode;
+    } catch (err: any) {
+      if (err?.code !== "ENOENT") {
+        throw err;
+      }
+    }
+    try {
+      if (options?.encoding) {
+        await writeFile(tmp, data, {
+          encoding: options.encoding,
+          mode,
+        });
+      } else {
+        await writeFile(tmp, data, { mode });
+      }
+      await rename(tmp, path);
+      if (mode != null) {
+        try {
+          await chmod(path, mode);
+        } catch {}
+      }
+    } catch (err) {
+      try {
+        await unlink(tmp);
+      } catch {}
+      throw err;
+    }
   };
 
   // Heartbeat indicating a client is actively editing this path.

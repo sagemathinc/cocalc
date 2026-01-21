@@ -10,7 +10,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc  --pretty --preserveWatchOutput",
-    "depcheck": "pnpx depcheck --ignores @vercel/ncc",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores @vercel/ncc",
     "clean": "rm -rf node_modules dist build tsconfig.tsbuildinfo",
     "start": "pnpm exec cocalc-project-runner"
   },

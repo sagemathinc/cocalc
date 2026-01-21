@@ -22,7 +22,7 @@ import {
   ACTION_BUTTONS_FILE,
   ACTION_BUTTONS_MULTI,
   isDisabledSnapshots,
-} from "@cocalc/frontend/project/explorer/action-bar";
+} from "@cocalc/frontend/project/explorer/action-utils";
 import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
 import { url_href } from "@cocalc/frontend/project/utils";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";

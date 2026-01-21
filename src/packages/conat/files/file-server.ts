@@ -21,6 +21,11 @@ Additional functionality:
 
 The subject is file-server.{project_id} and there are many file-servers, one
 for each project-host.
+
+Note: file writes are handled by the conat fs service. `writeFileDelta` is
+preferred by sync-doc because it can apply patches and perform atomic
+write+rename on the backend; plain `writeFile` may still be a truncate+write
+path, which can corrupt large chat logs if interrupted mid-write.
 */
 
 import { type Client } from "@cocalc/conat/core/client";
@@ -60,6 +65,13 @@ export interface LroRef {
   op_id: string;
   scope_type: LroScopeType;
   scope_id: string;
+}
+
+export interface FileTextPreview {
+  content: string;
+  truncated: boolean;
+  size: number;
+  mtime: number;
 }
 
 export interface ShareBucketConfig {
@@ -224,6 +236,12 @@ export interface Fileserver {
       size: number;
     }[]
   >;
+  getBackupFileText: (opts: {
+    project_id: string;
+    id: string;
+    path: string;
+    max_bytes?: number;
+  }) => Promise<FileTextPreview>;
 
   /////////////
   // SNAPSHOTS
@@ -246,6 +264,12 @@ export interface Fileserver {
     limit?: number;
   }) => Promise<void>;
   allSnapshotUsage: (opts: { project_id: string }) => Promise<SnapshotUsage[]>;
+  getSnapshotFileText: (opts: {
+    project_id: string;
+    snapshot: string;
+    path: string;
+    max_bytes?: number;
+  }) => Promise<FileTextPreview>;
 
   /////////////
   // SHARES

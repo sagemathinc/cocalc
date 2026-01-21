@@ -9,6 +9,7 @@
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "check-dependency-version-consistency": "^5.0.0",
+    "depcheck": "^1.4.7",
     "jest": "^30.0.5",
     "jest-junit": "^16.0.0",
     "ts-jest": "^29.4.5",

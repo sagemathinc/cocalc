@@ -236,3 +236,30 @@ Also note "project = workspace" in cocalc.
 3. Frontend share UI with stars, counters, and copy flow.
 4. JWT-gated access for authenticated/org shares.
 5. Optional enhancements: versions, previews, richer search.
+
+## Current implementation status (share-server-plan branch)
+
+### Completed and usable for end-to-end testing
+
+- Published shares schema (`published_shares`) and share metadata API.
+- LRO-backed publish flow that snapshots, diffs manifests, uploads content-addressed blobs, writes `latest.json` + `meta.json`, and records publish status.
+- Regional R2 bucket selection and storage layout under `share/{share_id}/...`.
+- Cloudflare Worker routing + JWT gating for authenticated/org shares.
+- Static share viewer app (client-only) with directory browsing and initial renderers (notebooks, markdown, code, PDFs).
+- Frontend share UI: create share, publish, progress, preview iframe, and viewer token generation.
+- Worker provisioning with admin settings, plus optional auto-sync of share static assets for dev/test.
+
+### Implemented but optional / dev-oriented
+
+- Local auto-sync of static assets into the share static bucket during worker provisioning (can be disabled in production).
+- Versioned static-asset publish script for pushing viewer assets into the software R2 bucket.
+
+### Remaining / Phase 2 work
+
+- Copy-to-workspace flow from published snapshot, with explicit trust prompt.
+- Stars/counters and broader share browsing UI in the main app.
+- Indexing opt-in pipeline and any search integration.
+- Derived artifacts (thumbnails/previews) + invalidation/GC strategy.
+- Garbage collection of unreferenced blobs/manifests beyond the latest snapshot.
+- Performance work for large shares (timeouts, parallelism, streaming optimizations).
+- Production static-asset version switching for the main app (cocalc.ai) if desired.

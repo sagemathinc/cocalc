@@ -15,7 +15,7 @@
     "build": "pnpm exec tsc --build",
     "tsc": "pnpm exec tsc --watch  --pretty --preserveWatchOutput",
     "test": "pnpm exec jest --forceExit",
-    "depcheck": "pnpx depcheck --ignores @types/debug,@types/jest,@types/node,jest-environment-jsdom"
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores @types/debug,@types/jest,@types/node,jest-environment-jsdom"
   },
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",

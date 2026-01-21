@@ -15,25 +15,22 @@ import {
 } from "antd";
 import immutable from "immutable";
 import useAsyncEffect from "use-async-effect";
-import { useIntl } from "react-intl";
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import {
   ACTION_BUTTONS_DIR,
   ACTION_BUTTONS_FILE,
   ACTION_BUTTONS_MULTI,
-  isDisabledSnapshots,
-} from "@cocalc/frontend/project/explorer/action-bar";
+} from "@cocalc/frontend/project/explorer/action-utils";
 import type {
   DirectoryListing,
   DirectoryListingEntry,
 } from "@cocalc/frontend/project/explorer/types";
-import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
+import { FileActionsDropdown } from "@cocalc/frontend/project/explorer/file-actions-dropdown";
 import { human_readable_size, path_split, plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { PANEL_STYLE_BOTTOM, PANEL_STYLE_TOP } from "./consts";
 import { useSingleFile } from "./utils";
-import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import {
   BACKUPS,
   BackupMeta,
@@ -72,7 +69,6 @@ export function FilesSelectedControls({
   publicFiles,
   refreshBackups,
 }: FilesSelectedControlsProps) {
-  const intl = useIntl();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
   const inBackups = isBackupsPath(current_path ?? "");
@@ -465,33 +461,15 @@ export function FilesSelectedControls({
     return (
       <Space direction="horizontal" wrap>
         {checked_files.size > 0 ? renderOpenFile() : undefined}
-        <Space.Compact size="small">
-          {names.map((name) => {
-            const disabled =
-              isDisabledSnapshots(name) &&
-              (current_path?.startsWith(SNAPSHOTS) ?? false);
-
-            const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
-            const title = intl.formatMessage(actionName);
-            if (hideFlyout) return;
-            return (
-              <Tooltip key={name} title={`${title}...`}>
-                <Button
-                  size="small"
-                  key={name}
-                  disabled={disabled}
-                  onClick={() => {
-                    // TODO re-using the existing controls is a stopgap. make this part of the flyouts.
-                    actions?.set_active_tab("files");
-                    actions?.set_file_action(name);
-                  }}
-                >
-                  <Icon name={icon} />
-                </Button>
-              </Tooltip>
-            );
-          })}
-        </Space.Compact>
+        <FileActionsDropdown
+          names={names}
+          current_path={current_path ?? ""}
+          actions={actions}
+          label="Actions"
+          size="small"
+          hideFlyout
+          activateFilesTab
+        />
       </Space>
     );
   }

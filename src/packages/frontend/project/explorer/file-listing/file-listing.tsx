@@ -23,6 +23,7 @@ import { ListingHeader } from "./listing-header";
 import NoFiles from "./no-files";
 import { TERM_MODE_CHAR } from "./utils";
 import { type DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
+import { useSpecialPathPreview } from "@cocalc/frontend/project/explorer/use-special-path-preview";
 
 interface Props {
   actions: ProjectActions;
@@ -58,6 +59,11 @@ export function FileListing({
   const openFiles = new Set<string>(
     useTypedRedux({ project_id }, "open_files_order")?.toJS() ?? [],
   );
+  const { onOpenSpecial, modal } = useSpecialPathPreview({
+    project_id,
+    actions,
+    current_path,
+  });
 
   function renderRow(index, file) {
     const checked = checked_files.has(path_to_file(current_path, file.name));
@@ -78,6 +84,7 @@ export function FileListing({
         actions={actions}
         no_select={shiftIsDown}
         listing={listing}
+        onOpenSpecial={onOpenSpecial}
       />
     );
   }
@@ -208,6 +215,7 @@ export function FileListing({
         <ListingHeader active_file_sort={active_file_sort} sort_by={sort_by} />
         {listing.length > 0 ? renderRows() : render_no_files()}
       </div>
+      {modal}
     </>
   );
 }

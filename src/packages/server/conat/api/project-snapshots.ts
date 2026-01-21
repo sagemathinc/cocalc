@@ -81,3 +81,25 @@ export async function allSnapshotUsage({
     project_id,
   });
 }
+
+export async function getSnapshotFileText({
+  account_id,
+  project_id,
+  snapshot,
+  path,
+  max_bytes,
+}: {
+  account_id?: string;
+  project_id: string;
+  snapshot: string;
+  path: string;
+  max_bytes?: number;
+}) {
+  await assertCollab({ account_id, project_id });
+  return await fileServerClient({ project_id }).getSnapshotFileText({
+    project_id,
+    snapshot,
+    path,
+    max_bytes,
+  });
+}

@@ -91,6 +91,10 @@ export interface ProjectStoreState {
   copy_ops?: immutable.Map<string, any>;
   start_lro?: immutable.Map<string, any>;
   move_lro?: immutable.Map<string, any>;
+  open_snapshot_schedule?: boolean;
+  open_backup_schedule?: boolean;
+  open_create_snapshot?: boolean;
+  open_create_backup?: boolean;
   file_action?: FileAction;
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
   file_search?: string;

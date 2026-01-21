@@ -7,7 +7,7 @@ import { Space } from "antd";
 import { join } from "path";
 import { defineMessage, useIntl } from "react-intl";
 import { Button } from "@cocalc/frontend/antd-bootstrap";
-import { Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
+import { DropdownMenu, Icon, Tip, VisibleLG, type MenuItems } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { labels } from "@cocalc/frontend/i18n";
@@ -49,11 +49,57 @@ export function MiscSideButtons() {
     });
   };
 
-  const clickSnapshots = (e: MouseEvent): void => {
-    e.preventDefault();
-    actions?.open_directory(SNAPSHOTS);
-    track("snapshots", { action: "open", where: "explorer" });
-  };
+  const recoveryMenuItems: MenuItems = [
+    {
+      key: "snapshots-open",
+      label: "Open Snapshots",
+      onClick: () => {
+        actions?.open_directory(SNAPSHOTS);
+        track("snapshots", { action: "open", where: "explorer" });
+      },
+    },
+    {
+      key: "snapshots-create",
+      label: "Create Snapshot",
+      onClick: () => {
+        actions?.open_directory(SNAPSHOTS);
+        actions?.setState({ open_create_snapshot: true });
+      },
+    },
+    {
+      key: "snapshots-config",
+      label: "Configure Snapshots",
+      onClick: () => {
+        actions?.open_directory(SNAPSHOTS);
+        actions?.setState({ open_snapshot_schedule: true });
+      },
+    },
+    { type: "divider" },
+    {
+      key: "backups-open",
+      label: "Open Backups",
+      onClick: () => {
+        actions?.open_directory(BACKUPS);
+        track("backups", { action: "open", where: "explorer" });
+      },
+    },
+    {
+      key: "backups-create",
+      label: "Create Backup",
+      onClick: () => {
+        actions?.open_directory(BACKUPS);
+        actions?.setState({ open_create_backup: true });
+      },
+    },
+    {
+      key: "backups-config",
+      label: "Configure Backups",
+      onClick: () => {
+        actions?.open_directory(BACKUPS);
+        actions?.setState({ open_backup_schedule: true });
+      },
+    },
+  ];
 
   function render_hidden_toggle(): JSX.Element {
     const icon = show_hidden ? "eye" : "eye-slash";
@@ -71,14 +117,21 @@ export function MiscSideButtons() {
     );
   }
 
-  function render_snapshots(): JSX.Element | undefined {
+  function render_recovery(): JSX.Element | undefined {
     return (
-      <Button bsSize="small" onClick={clickSnapshots}>
-        <Icon name="disk-round" />{" "}
-        <VisibleLG>
-          <span style={{ fontSize: 12 }}>Snapshots</span>
-        </VisibleLG>
-      </Button>
+      <DropdownMenu
+        button
+        showDown
+        items={recoveryMenuItems}
+        title={
+          <span style={{ whiteSpace: "nowrap" }}>
+            <Icon name="life-ring" />{" "}
+            <VisibleLG>
+              <span style={{ fontSize: 12 }}>Recovery</span>
+            </VisibleLG>
+          </span>
+        }
+      />
     );
   }
 
@@ -163,7 +216,7 @@ export function MiscSideButtons() {
       <div className="pull-right">
         <Space.Compact>
           {render_hidden_toggle()}
-          {!lite && render_snapshots()}
+          {!lite && render_recovery()}
           {!lite && <CloneProject project_id={project_id} />}
           {!lite && <TourButton project_id={project_id} />}
         </Space.Compact>

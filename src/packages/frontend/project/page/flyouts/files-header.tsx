@@ -16,7 +16,13 @@ import {
   usePrevious,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
+import {
+  DropdownMenu,
+  Icon,
+  Text,
+  type MenuItems,
+  ErrorDisplay,
+} from "@cocalc/frontend/components";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -37,6 +43,8 @@ import { FlyoutClearFilter, FlyoutFilterWarning } from "./filter-warning";
 import CloneProject from "@cocalc/frontend/project/explorer/clone";
 import { SNAPSHOTS } from "@cocalc/util/consts/snapshots";
 import { setSort } from "@cocalc/frontend/project/explorer/config";
+import { BACKUPS } from "@cocalc/frontend/project/listing/use-backups";
+import { lite } from "@cocalc/frontend/lite";
 
 function searchToFilename(search: string): string {
   if (search.endsWith(" ")) {
@@ -420,24 +428,79 @@ export function FilesHeader({
               <Icon name={hidden ? "eye" : "eye-slash"} />
             </BootstrapButton>
           </Space.Compact>
-          {kucalc === KUCALC_COCALC_COM ? (
-            <Space.Compact direction="horizontal" size="small">
-              <Button
-                onClick={() => {
-                  actions?.open_directory(SNAPSHOTS);
-                  track("snapshots", {
-                    action: "open",
-                    where: "flyout-files",
-                  });
-                }}
-                title={
-                  "Open the file system snapshots of this project, which may also be helpful in recovering past versions."
-                }
-                icon={<Icon name={"life-ring"} />}
-              />
+          <Space.Compact direction="horizontal" size="small">
+            {!lite ? (
+              <Tooltip title="Recovery" placement="bottom">
+                <span>
+                  <DropdownMenu
+                    button
+                    size="small"
+                    items={[
+                      {
+                        key: "snapshots-open",
+                        label: "Open Snapshots",
+                        onClick: () => {
+                          actions?.open_directory(SNAPSHOTS);
+                          track("snapshots", {
+                            action: "open",
+                            where: "flyout-files",
+                          });
+                        },
+                      },
+                      {
+                        key: "snapshots-config",
+                        label: "Configure Snapshots",
+                        onClick: () => {
+                          actions?.open_directory(SNAPSHOTS);
+                          actions?.setState({ open_snapshot_schedule: true });
+                        },
+                      },
+                      {
+                        key: "snapshots-create",
+                        label: "Create Snapshot",
+                        onClick: () => {
+                          actions?.open_directory(SNAPSHOTS);
+                          actions?.setState({ open_create_snapshot: true });
+                        },
+                      },
+                      { type: "divider" },
+                      {
+                        key: "backups-open",
+                        label: "Open Backups",
+                        onClick: () => {
+                          actions?.open_directory(BACKUPS);
+                          track("backups", {
+                            action: "open",
+                            where: "flyout-files",
+                          });
+                        },
+                      },
+                      {
+                        key: "backups-config",
+                        label: "Configure Backups",
+                        onClick: () => {
+                          actions?.open_directory(BACKUPS);
+                          actions?.setState({ open_backup_schedule: true });
+                        },
+                      },
+                      {
+                        key: "backups-create",
+                        label: "Create Backup",
+                        onClick: () => {
+                          actions?.open_directory(BACKUPS);
+                          actions?.setState({ open_create_backup: true });
+                        },
+                      },
+                    ] as MenuItems}
+                    title={<Icon name="life-ring" />}
+                  />
+                </span>
+              </Tooltip>
+            ) : null}
+            {kucalc === KUCALC_COCALC_COM ? (
               <CloneProject project_id={project_id} flyout />
-            </Space.Compact>
-          ) : undefined}
+            ) : null}
+          </Space.Compact>
         </div>
         {renderFileControls()}
       </Space>
