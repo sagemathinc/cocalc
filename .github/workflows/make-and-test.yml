@@ -56,6 +56,9 @@ jobs:
           version: 10
           run_install: false
 
+      - name: Configure pnpm store
+        run: pnpm config set store-dir ~/.pnpm-store
+
       - name: build
         run: cd src && pnpm build-dev
 
