@@ -1609,8 +1609,8 @@ importers:
         specifier: ^0.8.2
         version: 0.8.2
       mime-types:
-        specifier: ^2.1.35
-        version: 2.1.35
+        specifier: ^3.0.1
+        version: 3.0.2
       ms:
         specifier: 2.1.2
         version: 2.1.2
