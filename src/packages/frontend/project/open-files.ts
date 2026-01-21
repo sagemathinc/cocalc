@@ -37,6 +37,8 @@ type OpenFilesType = Map<string, Map<string, any>>;
 type OpenFilesOrderType = List<string>;
 type ClosedFilesType = List<string>;
 
+const MAX_JUST_CLOSED_FILES = 50;
+
 export class OpenFiles {
   private actions: ProjectActions;
   private store: ProjectStore;
@@ -82,8 +84,10 @@ export class OpenFiles {
     const open_files = this.store.get("open_files");
     const just_closed_files_prev = this.store.get("just_closed_files");
 
-    // keep the most recent 3
-    const just_closed_files = just_closed_files_prev.push(path).slice(-3);
+    // keep the most recent N
+    const just_closed_files = just_closed_files_prev
+      .push(path)
+      .slice(-MAX_JUST_CLOSED_FILES);
 
     this.setState(
       open_files.delete(path),
