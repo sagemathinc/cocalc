@@ -18,7 +18,7 @@
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist",
     "test": "pnpm exec jest --forceExit",
-    "depcheck": "pnpx depcheck --ignores events",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores events",
     "prepublishOnly": "pnpm test"
   },
   "files": [

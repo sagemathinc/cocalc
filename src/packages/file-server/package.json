@@ -12,7 +12,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "pnpm exec tsc --build",
     "test": "pnpm exec jest  --maxWorkers=1 --forceExit",
-    "depcheck": "pnpx depcheck",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\"",
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo"
   },
   "files": [

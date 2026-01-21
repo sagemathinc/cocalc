@@ -36,7 +36,7 @@
     "start-project": "unset PGHOST PGUSER COCALC_ROOT; export PORT=5000 BASE_PATH=/$COCALC_PROJECT_ID/port/5000; echo https://cocalc.com$BASE_PATH; pnpm start",
     "test": "NODE_ENV='dev' pnpm exec jest",
     "test-api": "NODE_ENV='production' pnpm exec jest ./lib/api/framework.test.ts",
-    "depcheck": "pnpx depcheck --ignores @openapitools/openapi-generator-cli,eslint-config-next,locales,components,lib,public,pages,software-inventory,pg,bufferutil",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores @openapitools/openapi-generator-cli,eslint-config-next,locales,components,lib,public,pages,software-inventory,pg,bufferutil",
     "prepublishOnly": "pnpm test",
     "patch-openapi": "sed '/^interface NrfOasData {/s/^interface/export interface/' node_modules/next-rest-framework/dist/index.d.ts > node_modules/next-rest-framework/dist/index.d.ts.temp && mv node_modules/next-rest-framework/dist/index.d.ts.temp node_modules/next-rest-framework/dist/index.d.ts",
     "generate-openapi": "cd dist && rm -f public && ln -sf ../public public && NODE_ENV='dev' NODE_PATH=`pwd` npx next-rest-framework generate",

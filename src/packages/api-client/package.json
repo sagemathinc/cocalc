@@ -6,7 +6,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "depcheck": "pnpx depcheck --ignores @cocalc/api-client "
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores @cocalc/api-client"
   },
   "files": [
     "dist/**",

@@ -51,7 +51,7 @@
     "test:both": "pnpm test:psql && pnpm test:pglite",
     "test:psql": "pnpm exec jest --forceExit --maxWorkers=1",
     "test:pglite": "COCALC_TEST_USE_PGLITE=1 NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest  --forceExit",
-    "depcheck": "pnpx depcheck | grep -Ev '\\.coffee|coffee$'",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" | grep -Ev '\\.coffee|coffee$'",
     "prepublishOnly": "pnpm test"
   },
   "repository": {
@@ -59,7 +59,10 @@
     "url": "https://github.com/sagemathinc/cocalc"
   },
   "homepage": "https://github.com/sagemathinc/cocalc",
-  "keywords": ["postgresql", "cocalc"],
+  "keywords": [
+    "postgresql",
+    "cocalc"
+  ],
   "author": "SageMath, Inc.",
   "license": "SEE LICENSE.md",
   "bugs": {

@@ -29,7 +29,7 @@
     "build": "pnpm exec tsc --build",
     "clean": "rm -rf dist node_modules tsconfig.tsbuildinfo",
     "test": "pnpm exec jest",
-    "depcheck": "pnpx depcheck --ignores events,bufferutil,utf-8-validate"
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores events,bufferutil,utf-8-validate"
   },
   "files": [
     "dist/**",

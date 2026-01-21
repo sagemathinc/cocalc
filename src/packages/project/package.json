@@ -59,7 +59,7 @@
     "start": "NODE_OPTIONS='--trace-warnings --unhandled-rejections=strict --enable-source-maps' pnpm cocalc-project",
     "build": "../node_modules/.bin/tsc --build",
     "test": "COCALC_PROJECT_ID=812abe34-a382-4bd1-9071-29b6f4334f03 COCALC_USERNAME=user NODE_OPTIONS='--experimental-vm-modules' pnpm exec jest",
-    "depcheck": "pnpx depcheck --ignores=@vercel/ncc",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores=@vercel/ncc",
     "prepublishOnly": "pnpm test",
     "clean": "rm -rf dist build tsconfig.tsbuildinfo",
     "build:bundle": "cd sea && ./build-bundle.sh && cd ../build && OS=$(uname -s | tr '[:upper:]' '[:lower:]') && ARCH=$(uname -m) && case \"$ARCH\" in x86_64|amd64) ARCH=amd64;; aarch64|arm64) ARCH=arm64;; esac && tar Jcvf bundle-${OS}-${ARCH}.tar.xz bundle",

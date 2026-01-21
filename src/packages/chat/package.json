@@ -21,7 +21,7 @@
     "build": "rm -f tsconfig.tsbuildinfo; pnpm exec tsc --build",
     "test": "pnpm exec jest",
     "clean": "rm -rf dist node_modules tsconfig.tsbuildinfo",
-    "depcheck": "pnpx depcheck --ignores=@types/node,@types/jest"
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores=@types/node,@types/jest"
   },
   "dependencies": {
     "@cocalc/conat": "workspace:*",

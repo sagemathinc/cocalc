@@ -18,7 +18,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
     "clean": "rm -rf node_modules dist tsconfig.tsbuildinfo",
-    "depcheck": "pnpx depcheck"
+    "depcheck": "pnpm -w exec depcheck \"$PWD\""
   },
   "author": "SageMath, Inc.",
   "keywords": [

@@ -43,7 +43,7 @@
     "test:psql": "TZ=UTC jest --forceExit --maxWorkers=1",
     "test:pglite": "COCALC_TEST_USE_PGLITE=1 NODE_OPTIONS='--experimental-vm-modules' TZ=UTC jest --forceExit",
     "test:both": "pnpm test:psql && pnpm test:pglite",
-    "depcheck": "pnpx depcheck",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\"",
     "prepublishOnly": "test"
   },
   "author": "SageMath, Inc.",

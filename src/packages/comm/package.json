@@ -17,7 +17,7 @@
   "scripts": {
     "preinstall": "npx only-allow pnpm",
     "build": "../node_modules/.bin/tsc --build",
-    "depcheck": "pnpx depcheck --ignores @types/node"
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores @types/node"
   },
   "author": "SageMath, Inc.",
   "keywords": [

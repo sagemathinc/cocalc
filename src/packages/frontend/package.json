@@ -166,7 +166,7 @@
     "preinstall": "npx only-allow pnpm",
     "build": "rm -rf dist && pnpm i18n:compile && NODE_OPTIONS=--max-old-space-size=8192 tsc --build",
     "test": "jest",
-    "depcheck": "pnpx depcheck --ignores cspell,@cspell/dict-typescript,events,@formatjs/cli,react-test-renderer,jest-environment-jsdom",
+    "depcheck": "pnpm -w exec depcheck \"$PWD\" --ignores cspell,@cspell/dict-typescript,events,@formatjs/cli,react-test-renderer,jest-environment-jsdom",
     "prepublishOnly": "pnpm test",
     "update-color-scheme": "node ./update-color-scheme.js",
     "clean": "rm -rf dist node_modules i18n/trans/*.compiled.json tsconfig.tsbuildinfo",
