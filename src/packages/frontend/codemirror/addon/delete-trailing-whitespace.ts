@@ -15,9 +15,7 @@ defineExtension(
   function (opts: { omit_lines?: OmittedLines } = {}): void {
     // @ts-ignore -- I don't know how to type this...
     const cm: Editor = this;
-    if (opts.omit_lines == null) {
-      opts.omit_lines = {};
-    }
+    const omit_lines: OmittedLines = { ...(opts.omit_lines ?? {}) };
     // We *could* easily make a one-line version of this function that
     // just uses setValue.  However, that would mess up the undo
     // history (!), and potentially feel jumpy.
@@ -26,7 +24,6 @@ defineExtension(
     const val = cm.getValue();
     const text1 = val.split("\n");
     const text2 = delete_trailing_whitespace(val).split("\n"); // a very fast regexp.
-    const pos = cm.getCursor();
     if (text1.length !== text2.length) {
       // invariant: the number of lines cannot change!
       console.log(
@@ -34,9 +31,21 @@ defineExtension(
       );
       return;
     }
-    opts.omit_lines[pos.line] = true;
+
+    const selections =
+      typeof (cm as any).listSelections === "function"
+        ? (cm as any).listSelections()
+        : [{ anchor: cm.getCursor(), head: cm.getCursor() }];
+    for (const sel of selections) {
+      const start = Math.min(sel.anchor.line, sel.head.line);
+      const end = Math.max(sel.anchor.line, sel.head.line);
+      for (let line = start; line <= end; line++) {
+        omit_lines[line] = true;
+      }
+    }
+
     for (let i = 0; i < text1.length; i++) {
-      if (opts.omit_lines[i]) {
+      if (omit_lines[i]) {
         continue;
       }
       if (text1[i].length !== text2[i].length) {
@@ -57,7 +66,13 @@ defineExtension(
       }
     }
     if (changeObj != null) {
-      (cm as any).apply_changeObj?.(changeObj);
+      cm.operation(() => {
+        let cur: ChangeObject | undefined = changeObj;
+        while (cur != null) {
+          cm.replaceRange("", cur.from, cur.to);
+          cur = cur.next;
+        }
+      });
     }
   }
 );
