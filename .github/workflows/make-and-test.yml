@@ -80,7 +80,35 @@ jobs:
 
       - name: Wait for Postgres to be ready
         run: |
-          until docker exec postgres pg_isready -U smc -d smc; do sleep 1; done
+          MAX_RETRIES=3
+          TIMEOUT_SECONDS=120
+          SLEEP_SECONDS=2
+          ready=false
+          for attempt in $(seq 1 $MAX_RETRIES); do
+            echo "Waiting for Postgres to be ready (attempt $attempt/$MAX_RETRIES)..."
+            start_time=$SECONDS
+            while [ $((SECONDS - start_time)) -lt $TIMEOUT_SECONDS ]; do
+              if docker exec postgres pg_isready -U smc -d smc; then
+                ready=true
+                break
+              fi
+              if ! docker ps -q -f name=postgres | grep -q .; then
+                echo "Postgres container is not running."
+                docker logs postgres || true
+                exit 1
+              fi
+              sleep $SLEEP_SECONDS
+            done
+            if [ "$ready" = "true" ]; then
+              break
+            fi
+            echo "Postgres not ready after ${TIMEOUT_SECONDS}s."
+            docker logs postgres || true
+          done
+          if [ "$ready" != "true" ]; then
+            echo "Postgres failed to become ready after ${MAX_RETRIES} attempts."
+            exit 1
+          fi
 
       - name: Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
