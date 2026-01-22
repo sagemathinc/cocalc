@@ -406,3 +406,63 @@ describe("isValidAnonymousID", () => {
     expect(isValid(new Date())).toBe(false);
   });
 });
+
+describe("secure_random_token", () => {
+  const { secure_random_token } = misc;
+
+  it("should return a token with default length of 16", () => {
+    const token = secure_random_token();
+    expect(token.length).toBe(16);
+  });
+
+  it("should return a string with the specified length", () => {
+    expect(secure_random_token(8).length).toBe(8);
+    expect(secure_random_token(32).length).toBe(32);
+    expect(secure_random_token(64).length).toBe(64);
+  });
+
+  it("should return empty string for length 0", () => {
+    const token = secure_random_token(0);
+    expect(token).toBe("");
+  });
+
+  it("should only contain characters from the default BASE58 alphabet", () => {
+    const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const token = secure_random_token(100);
+    for (const char of token) {
+      expect(BASE58.includes(char)).toBe(true);
+    }
+  });
+
+  it("should only contain characters from a custom alphabet", () => {
+    const customAlphabet = "ABCD";
+    const token = secure_random_token(50, customAlphabet);
+    for (const char of token) {
+      expect(customAlphabet.includes(char)).toBe(true);
+    }
+  });
+
+  it("should have reasonable diversity (at least 3 different chars in 16 chars)", () => {
+    const token = secure_random_token(16);
+    const uniqueChars = new Set(token.split(""));
+    expect(uniqueChars.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it("should throw error when alphabet is empty", () => {
+    expect(() => secure_random_token(10, "")).toThrow(
+      "impossible, since alphabet is empty",
+    );
+  });
+
+  it("should work with single-character alphabet", () => {
+    const token = secure_random_token(10, "X");
+    expect(token).toBe("XXXXXXXXXX");
+  });
+
+  it("should generate different tokens on successive calls", () => {
+    const token1 = secure_random_token(16);
+    const token2 = secure_random_token(16);
+    // With 93 bits of randomness, collision is astronomically unlikely
+    expect(token1).not.toBe(token2);
+  });
+});
