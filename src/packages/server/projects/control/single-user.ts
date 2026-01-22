@@ -80,9 +80,10 @@ class Project extends BaseProject {
 
   async status(): Promise<ProjectStatus> {
     const status = await getStatus(this.HOME);
-    // TODO: don't include secret token in log message.
+    const statusLog = { ...status };
+    delete (statusLog as any).secret_token;
     logger.debug(
-      `got status of ${this.project_id} = ${JSON.stringify(status)}`,
+      `got status of ${this.project_id} = ${JSON.stringify(statusLog)}`,
     );
     await this.saveStatusToDatabase(status);
     return status;
