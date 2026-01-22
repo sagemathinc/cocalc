@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -180,7 +180,7 @@ export async function signUp(req, res) {
       const name = exclusive.display ?? exclusive.name;
       res.json({
         issues: {
-          email: `To sign up with "@${name}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
+          email: `To sign up with "${name}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
         },
       });
       return;

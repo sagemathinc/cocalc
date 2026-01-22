@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -88,6 +88,19 @@ export async function set_account_info_if_different(
       // if it changes, we have to call the change_email_address function
       await callback2(opts.db.change_email_address.bind(opts.db), {
         account_id: opts.account_id,
+        email_address: do_email,
+      });
+    } else {
+      const existing_account_id = await callback2(
+        opts.db.account_exists.bind(opts.db),
+        {
+          email_address: do_email,
+        },
+      );
+      if (existing_account_id) {
+        throw "email_already_taken";
+      }
+      await set_account(opts.db, opts.account_id, {
         email_address: do_email,
       });
     }
