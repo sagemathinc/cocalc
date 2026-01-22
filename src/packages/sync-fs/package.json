@@ -34,7 +34,7 @@
     "@cocalc/conat": "workspace:*",
     "@cocalc/sync-client": "workspace:*",
     "@cocalc/util": "workspace:*",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "lz4-napi": "^2.8.0",
     "mkdirp": "^1.0.4"
   },
