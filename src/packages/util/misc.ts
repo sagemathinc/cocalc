@@ -2455,15 +2455,30 @@ export function sanitize_html_attributes($, node): void {
     const attrName = this.name;
     // @ts-ignore -- no implicit this
     const attrValue = this.value;
+
+    const lowerName = attrName?.toLowerCase();
+
     // remove attribute name start with "on", possible
     // unsafe, e.g.: onload, onerror...
-    // remove attribute value start with "javascript:" pseudo
-    // protocol, possible unsafe, e.g. href="javascript:alert(1)"
-    if (
-      attrName?.indexOf("on") === 0 ||
-      attrValue?.indexOf("javascript:") === 0
-    ) {
+    // See https://owasp.org/www-community/xss-filter-evasion-cheatsheet
+    if (lowerName?.indexOf("on") === 0) {
       $(node).removeAttr(attrName);
+      return;
+    }
+
+    // remove attribute value start with "javascript:" or "vbscript:" pseudo
+    // protocol, possible unsafe, e.g. href="javascript:alert(1)"
+    if (attrValue) {
+      // Strip control characters and whitespace before checking protocols.
+      // Browsers ignore whitespace and control chars in protocols.
+      // This prevents bypasses like "java script:" or "JavaScript:"
+      const normalized = attrValue.replace(/[\s\x00-\x1f]+/g, "").toLowerCase();
+      if (
+        normalized.indexOf("javascript:") === 0 ||
+        normalized.indexOf("vbscript:") === 0
+      ) {
+        $(node).removeAttr(attrName);
+      }
     }
   });
 }
