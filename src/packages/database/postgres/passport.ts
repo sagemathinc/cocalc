@@ -11,7 +11,7 @@ import {
   setPassportsCached,
 } from "@cocalc/database/settings/server-settings";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
-import { to_json } from "@cocalc/util/misc";
+import { lower_email_address, to_json } from "@cocalc/util/misc";
 import { CB } from "@cocalc/util/types/database";
 import {
   set_account_info_if_different,
@@ -205,16 +205,17 @@ export async function update_account_and_passport(
   // Only check for existing email if email_address is provided by SSO
   // (Some SSO providers don't return email addresses)
   if (opts.email_address) {
+    const email_address = lower_email_address(opts.email_address);
     // Most likely, this just returns the very same account (since the account already exists).
     const existing_account_id = await cb2(db.account_exists, {
-      email_address: opts.email_address,
+      email_address,
     });
 
     if (!existing_account_id) {
       // There is no account with the new email address, hence we can update the email address as well
-      upd.email_address = opts.email_address;
+      upd.email_address = email_address;
       dbg(
-        `No existing account with email address ${opts.email_address}. Therefore, we change the email address of account ${opts.account_id} as well.`,
+        `No existing account with email address ${email_address}. Therefore, we change the email address of account ${opts.account_id} as well.`,
       );
     }
   }
