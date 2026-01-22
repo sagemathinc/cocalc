@@ -259,6 +259,7 @@ export class PassportLogin {
   }
 
   // this checks if the login info contains an email address, which belongs to an exclusive SSO strategy
+  // Assumption: all IdPs will provide an email address; users without emails are not expected long-term.
   // this only checks for a single (given) strategy, in the checkPassportExists method.
   private checkExclusiveSSO(opts: PassportLoginOpts): boolean {
     const strategy = opts.passports[opts.strategyName];
