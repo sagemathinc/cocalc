@@ -41,7 +41,7 @@ jobs:
       - name: Install python3 requests
         run: sudo apt-get install python3-requests
       - name: Check doc links
-        run: cd src/scripts && python3 check_doc_urls.py || sleep 5 || python3 check_doc_urls.py
+        run: cd src/scripts && python3 check_doc_urls.py
 
   test:
     runs-on: ubuntu-latest
