@@ -464,12 +464,14 @@ export class DKV<T = any> extends EventEmitter {
     if (kv == null) {
       return { name: this.name, state: "closed" as const };
     }
+    const kvStats = kv.debugStats?.();
     return {
       name: this.name,
       state: "open" as const,
-      rawLength: kv.raw.length,
-      messagesLength: kv.messages.length,
-      kvLength: kv.lengthKv,
+      rawLength: kvStats?.rawLength ?? kv.raw.length,
+      messagesLength: kvStats?.messagesLength ?? kv.messages.length,
+      kvLength: kvStats?.kvLength ?? kv.lengthKv,
+      lastValueByKeySize: kvStats?.lastValueByKeySize,
       localKeys: Object.keys(this.local).length,
       changedKeys: this.changed.size,
     };

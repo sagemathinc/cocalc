@@ -257,6 +257,15 @@ export class CoreStream<T = any> extends EventEmitter {
     );
   };
 
+  debugStats = () => {
+    return {
+      rawLength: this.raw.length,
+      messagesLength: this.messages.length,
+      kvLength: this.lengthKv,
+      lastValueByKeySize: this.lastValueByKey.size,
+    };
+  };
+
   config = async (
     config: Partial<Configuration> = {},
   ): Promise<Configuration> => {
@@ -416,6 +425,7 @@ export class CoreStream<T = any> extends EventEmitter {
       const seq = this.kv[key]?.raw?.seq;
       if (X.has(seq)) {
         delete this.kv[key];
+        this.lastValueByKey.delete(key);
         keys[key] = seq;
       }
     }
