@@ -8,6 +8,7 @@ import { readFile, readdir, readlink } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
+import { mapParallelLimit } from "@cocalc/util/async-utils";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   Cpu,
@@ -166,24 +167,28 @@ export class ProcessStats {
     const [uptime, boottime] = await this.uptime();
 
     const procs: Processes = {};
-    let n = 0;
-    for (const pid of await readdir("/proc")) {
-      if (!pid.match(/^[0-9]+$/)) continue;
-      try {
-        const proc = await this.process({ pid, uptime, timestamp });
-        procs[proc.pid] = proc;
-      } catch (err) {
-        if (this.testing)
-          dbg(`process ${pid} likely vanished – could happen – ${err}`);
-      }
+    let pids = (await readdir("/proc")).filter((pid) => pid.match(/^[0-9]+$/));
+
+    if (pids.length > this.procLimit) {
+      dbg(`too many processes – limit of ${this.procLimit} reached!`);
       // we avoid processing and sending too much data
-      if (n > this.procLimit) {
-        dbg(`too many processes – limit of ${this.procLimit} reached!`);
-        break;
-      } else {
-        n += 1;
-      }
+      pids = pids.slice(0, this.procLimit);
     }
+
+    await mapParallelLimit(
+      pids,
+      async (pid) => {
+        try {
+          const proc = await this.process({ pid, uptime, timestamp });
+          procs[proc.pid] = proc;
+        } catch (err) {
+          if (this.testing)
+            dbg(`process ${pid} likely vanished – could happen – ${err}`);
+        }
+      },
+      20,
+    );
+
     this.last = { timestamp, processes: procs };
     return { procs, uptime, boottime };
   }
