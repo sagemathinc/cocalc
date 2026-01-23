@@ -70,14 +70,14 @@ export const KEY_GC_THRESH = 10 * 1e6;
 // NOTE: when you do delete this.deleteKv(key), we ensure the previous
 // messages with the given key is completely deleted from sqlite, and
 // also create a *new* lightweight tombstone. That tombstone has this
-// ttl, which defaults to DEFAULT_TOMBSTONE_TTL (one minute), so the tombstone
-// itself will be removed after 1 minute.  The tombstone is only needed for
-// clients that go offline during the delete, then come back, and reply the
+// ttl, which defaults to DEFAULT_TOMBSTONE_TTL (one day), so the tombstone
+// itself will be removed after 1 day.  The tombstone is only needed for
+// clients that go offline during the delete, then come back, and replay the
 // partial log of what was missed.  Such clients should reset if the
 // offline time is longer than DEFAULT_TOMBSTONE_TTL.
 // This only happens if allow_msg_ttl is configured to true, which is
 // done with dkv, but not on by default otherwise.
-export const DEFAULT_TOMBSTONE_TTL = 60 * 1000; // 1 minute
+export const DEFAULT_TOMBSTONE_TTL = 24 * 60 * 60 * 1000; // 1 day
 
 export interface RawMsg extends Message {
   timestamp: number;
@@ -522,6 +522,9 @@ export class CoreStream<T = any> extends EventEmitter {
       } // other case -- we already have it.
     }
     let prev: T | undefined = undefined;
+    // Issue #8702: Capture the previous raw message for this key BEFORE updating this.kv.
+    // This is needed for the client-side cleanup below (see the processPersistentDelete call).
+    // https://github.com/sagemathinc/cocalc/issues/8702
     const prevRaw = typeof key == "string" ? this.kv[key]?.raw : undefined;
     if (typeof key == "string") {
       prev = this.kv[key]?.mesg ?? this.lastValueByKey.get(key);
@@ -542,6 +545,13 @@ export class CoreStream<T = any> extends EventEmitter {
         }
       }
     }
+    // Issue #8702: Client-side cleanup for keyed updates.
+    // When the server processes a keyed update, it deletes the old row for that key
+    // and inserts a new one. However, the server does NOT emit delete events for
+    // these overwrites (see storage.ts:450). Without this cleanup, clients would
+    // never remove old entries from raw[] and messages[], causing unbounded memory
+    // growth. This fix removes the old entry when a new keyed message arrives.
+    // https://github.com/sagemathinc/cocalc/issues/8702
     if (typeof key == "string" && prevRaw?.seq != null && prevRaw.seq !== seq) {
       this.processPersistentDelete(
         { op: "delete", seqs: [prevRaw.seq] },
