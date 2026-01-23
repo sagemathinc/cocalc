@@ -32,7 +32,7 @@ const dataSource: DataSource = [
           install your own software,
         </A>
         and how to{" "}
-        <A href="https://doc.cocalc.com/api/">
+        <A href="https://doc.cocalc.com/api2/">
           embed and control CoCalc via the API
         </A>
         .

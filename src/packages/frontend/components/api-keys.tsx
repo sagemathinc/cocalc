@@ -264,7 +264,7 @@ export default function ApiKeys({ manage, mode = "project" }: Props) {
           )}
         </Space.Compact>
         <Paragraph style={{ marginTop: "10px" }}>
-          Read the <A href="https://doc.cocalc.com/api/">API documentation</A>.
+          Read the <A href="https://doc.cocalc.com/api2/">API documentation</A>.
         </Paragraph>
         <Modal
           open={addModalVisible || editModalVisible}
