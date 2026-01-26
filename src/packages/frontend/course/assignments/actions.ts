@@ -38,6 +38,7 @@ import {
   trunc,
   uuid,
 } from "@cocalc/util/misc";
+import { mapParallelLimit } from "@cocalc/util/async-utils";
 import { CourseActions } from "../actions";
 import { COPY_TIMEOUT_MS } from "../consts";
 import { export_assignment } from "../export/export-assignment";
@@ -1124,7 +1125,7 @@ ${details}
         id,
         desc: `Parsing peer grading of ${student_name}`,
       });
-      for (const peer_student_id of peer_student_ids) {
+      await mapParallelLimit(peer_student_ids, async (peer_student_id) => {
         const path = join(
           `${assignment.get("collect_path")}-peer-grade`,
           student_id,
@@ -1138,7 +1139,7 @@ ${details}
           });
           const i = contents.lastIndexOf(PEER_GRADING_GUIDELINES_GRADE_MARKER);
           if (i == -1) {
-            continue;
+            return;
           }
           let j = contents.lastIndexOf(PEER_GRADING_GUIDELINES_COMMENT_MARKER);
           if (j == -1) {
@@ -1150,7 +1151,7 @@ ${details}
               .trim(),
           );
           if (!isFinite(grade) && isNaN(grade)) {
-            continue;
+            return;
           }
           const comment = contents.slice(
             j + PEER_GRADING_GUIDELINES_COMMENT_MARKER.length,
@@ -1165,7 +1166,7 @@ ${details}
             student_name,
           });
         }
-      }
+      });
       if (grades.length > 0) {
         const grade = grades.reduce((a, b) => a + b) / grades.length;
         allGrades[student_id] = `${grade}`;
