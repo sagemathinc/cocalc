@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -1138,12 +1138,12 @@ describe("Query Engine - Group 6", () => {
         });
       }, 10000);
 
-      it("rejects ORDER BY with apostrophe (SQL injection)", (done) => {
+      it("rejects ORDER BY with invalid characters (SQL injection)", (done) => {
         database.__do_query({
           table: "test_where_table",
           order_by: "value'; DROP TABLE test_where_table; --",
           cb: (err) => {
-            expect(err).toContain("detected ' apostrophe");
+            expect(err).toContain("invalid characters");
             done();
           },
         });

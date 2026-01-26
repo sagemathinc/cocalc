@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -32,7 +32,7 @@ import type { PostgreSQL, QueryOptions } from "../types";
  * @param opts.jsonb_set JSONB field updates with nested set/delete semantics.
  * @param opts.jsonb_merge Like jsonb_set, but merges nested objects instead of
  *   overwriting.
- * @param opts.order_by ORDER BY clause; rejects apostrophes to reduce injection risk.
+ * @param opts.order_by ORDER BY clause; allowlisted characters only (alnum, underscore, dot, comma, space, double-quote).
  * @param opts.limit LIMIT clause; must be a non-negative integer.
  * @param opts.offset OFFSET clause; must be a non-negative integer.
  * @param opts.safety_check Enable the UPDATE/DELETE safety guard.

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -385,8 +385,8 @@ export function doQuery(db: PostgreSQL, opts: QueryOptions): void {
   }
 
   if (opts.order_by != null) {
-    if (opts.order_by.indexOf("'") >= 0) {
-      const err = `ERROR -- detected ' apostrophe in order_by='${opts.order_by}'`;
+    if (!/^[a-zA-Z0-9_.,\\s"]+$/.test(opts.order_by)) {
+      const err = `ERROR -- invalid characters in order_by='${opts.order_by}'`;
       dbg(err);
       if (typeof opts.cb === "function") {
         opts.cb(err);
