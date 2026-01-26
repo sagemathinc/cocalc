@@ -1,22 +1,25 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { List, Map } from "immutable";
-type CursorMap = Map<string, any>;
+
+import type { CursorInfo, CursorMap } from "@cocalc/sync/editor/generic/types";
 import { COMPUTER_SERVER_CURSOR_TYPE } from "@cocalc/util/compute/manager";
 import { decodeUUIDtoNum } from "@cocalc/util/compute/manager";
 
+type CellMap = Map<string, any>;
+
 export class CursorManager {
-  private last_cursors: CursorMap = Map();
+  private last_cursors: CursorMap = Map() as CursorMap;
 
   private process_one_user(
-    info: CursorMap | undefined,
+    info: CursorInfo | undefined,
     account_id: string,
-    cells: CursorMap,
-  ): CursorMap {
-    const last_info: CursorMap | undefined = this.last_cursors.get(account_id);
+    cells: CellMap,
+  ): CellMap {
+    const last_info: CursorInfo | undefined = this.last_cursors.get(account_id);
     if (last_info != null) {
       if (last_info.equals(info)) {
         // no change for this particular users, so nothing further to do
@@ -27,9 +30,9 @@ export class CursorManager {
         // delete previously set cursor locations
         locs.forEach((loc) => {
           if (loc == null) return;
-          const id: string | undefined = loc.get("id");
-          if (id == null) return; // be super careful.
-          let cell: CursorMap | undefined = cells.get(id);
+          const id = loc.get("id");
+          if (typeof id !== "string") return; // be super careful.
+          let cell: CellMap | undefined = cells.get(id);
           if (cell == null) return;
           const cursors = cell.get("cursors", Map());
           if (cursors == null) return;
@@ -47,12 +50,17 @@ export class CursorManager {
 
     // set new cursor locations
     const seen = new Set<string>();
-    info.get("locs").forEach((loc) => {
+    const locs = info.get("locs");
+    if (locs == null) {
+      return cells;
+    }
+    locs.forEach((loc) => {
       if (loc == null) return;
       const id = loc.get("id");
+      if (typeof id !== "string") return;
       let cell = cells.get(id);
       if (cell == null) return;
-      let cursors: CursorMap = cell.get("cursors", Map());
+      let cursors: CellMap = cell.get("cursors", Map());
       loc = loc.set("time", info.get("time")).delete("id");
       let locs = !seen.has(id) ? List() : cursors.get(account_id, List());
       locs = locs.push(loc);
@@ -66,9 +74,9 @@ export class CursorManager {
   }
 
   public process(
-    cells: CursorMap | undefined | null,
+    cells: CellMap | undefined | null,
     cursors: CursorMap,
-  ): CursorMap | undefined {
+  ): CellMap | undefined {
     if (cells == null) {
       // cells need not be defined in which case, don't bother; see
       // https://github.com/sagemathinc/cocalc/issues/3456
@@ -78,8 +86,8 @@ export class CursorManager {
       return;
     }
     const before = cells;
-    cursors.forEach((info: CursorMap | undefined, account_id: string) => {
-      cells = this.process_one_user(info, account_id, cells as CursorMap); // we know cells defined.
+    cursors.forEach((info: CursorInfo | undefined, account_id: string) => {
+      cells = this.process_one_user(info, account_id, cells as CellMap); // we know cells defined.
     });
     this.last_cursors = cursors;
     if (cells.equals(before)) {
@@ -89,7 +97,7 @@ export class CursorManager {
     }
   }
 
-  computeServerId = (cursors) => {
+  computeServerId = (cursors: CursorMap) => {
     let minId = Infinity;
     for (const [client_id, cursor] of cursors) {
       if (cursor.getIn(["locs", 0, "type"]) == COMPUTER_SERVER_CURSOR_TYPE) {

@@ -31,9 +31,8 @@ describe("test shiftSubscriptionToEndOnDay -- involves actual subscriptions", ()
     await createTestAccount(account_id);
     await setClosingDay(account_id, 3);
 
-    ({ subscription_id, license_id } = await createTestSubscription(
-      account_id
-    ));
+    ({ subscription_id, license_id } =
+      await createTestSubscription(account_id));
   });
 
   //   it("confirms that the newly created subscription has a current period end day of 3", async () => {

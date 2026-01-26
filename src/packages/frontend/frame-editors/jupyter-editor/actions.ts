@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -568,18 +568,21 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   gotoUser(account_id: string, frameId?: string) {
-    const cursors = this.jupyter_actions.syncdb
-      .get_cursors({ maxAge: 0, excludeSelf: "never" })
-      ?.toJS();
-    const locs = cursors?.[account_id]?.locs;
+    const cursors = this.jupyter_actions.syncdb.get_cursors({
+      maxAge: 0,
+      excludeSelf: "never",
+    });
+    const info = cursors.get(account_id);
+    const locs = info?.get("locs");
     if (locs == null) {
       return; // no info
     }
     for (const loc of locs) {
-      if (loc.id != null) {
+      const id = loc.get("id");
+      if (typeof id === "string") {
         const frameActions = this.get_frame_actions(frameId);
         if (frameActions != null) {
-          frameActions.set_cur_id(loc.id);
+          frameActions.set_cur_id(id);
           frameActions.scroll("cell visible");
           return;
         }

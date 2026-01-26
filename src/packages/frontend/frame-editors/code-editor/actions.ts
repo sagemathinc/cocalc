@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -1170,7 +1170,11 @@ export class Actions<
           : "always",
       })
       .forEach((info, account_id) => {
-        info.get("locs").forEach((loc) => {
+        const locs = info.get("locs");
+        if (locs == null) {
+          return;
+        }
+        locs.forEach((loc) => {
           loc = loc.set("time", info.get("time"));
           const locs = cursors.get(account_id, List()).push(loc);
           cursors = cursors.set(account_id, locs as any);
@@ -1222,7 +1226,7 @@ export class Actions<
         if (!locs) return;
         locs.map((loc) => {
           const y = loc.get("y");
-          if (y != null) {
+          if (typeof y === "number") {
             omit_lines[y] = true;
           }
         });

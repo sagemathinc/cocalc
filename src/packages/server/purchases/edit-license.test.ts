@@ -42,6 +42,7 @@ describe("create a license and then edit it in various ways", () => {
       firstName: "Test",
       lastName: "User",
       account_id,
+      noFirstProject: true,
     });
     const info = getPurchaseInfo(license0);
     x.license_id = await createLicense(account_id, info);
@@ -190,6 +191,7 @@ describe("create a subscription license and edit it and confirm the subscription
       firstName: "Test",
       lastName: "User",
       account_id: item.account_id,
+      noFirstProject: true,
     });
     const client = await getPoolClient();
     await purchaseShoppingCartItem(item as any, client);
@@ -246,6 +248,7 @@ describe("testing changing the owner of a license", () => {
       firstName: "Test",
       lastName: "User",
       account_id,
+      noFirstProject: true,
     });
     const info = getPurchaseInfo(license0);
     x.license_id = await createLicense(account_id, info);

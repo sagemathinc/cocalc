@@ -7,6 +7,7 @@
 
 import jsonic from "jsonic";
 import { isEqual } from "lodash";
+
 import { LOCALE } from "@cocalc/util/consts/locale";
 import { is_valid_email_address } from "@cocalc/util/misc";
 import {
@@ -113,6 +114,7 @@ export type SiteSettingsKeys =
   | "anonymous_signup"
   | "anonymous_signup_licensed_shares"
   | "share_server"
+  | "strict_collaborator_management"
   | "landing_pages"
   | "sandbox_projects_enabled"
   | "sandbox_project_id"
@@ -776,6 +778,13 @@ export const site_settings_conf: SiteSettings = {
   share_server: {
     name: "Allow public file sharing",
     desc: "Users are allowed to publicly share files on the public share server (`https://yourserver/share`).  If this is disabled, then the share server will not run and users will not be allowed to share files from their projects.",
+    default: "no",
+    valid: only_booleans,
+    to_val: to_bool,
+  },
+  strict_collaborator_management: {
+    name: "Only project owners can manage collaborators",
+    desc: "Force collaborator management to owners only across all projects. When enabled, per-project controls are disabled and only owners can add, remove, or change collaborator roles.",
     default: "no",
     valid: only_booleans,
     to_val: to_bool,

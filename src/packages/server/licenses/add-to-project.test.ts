@@ -24,12 +24,13 @@ describe("test various cases of adding a license to a project", () => {
     project_id = await createProject({
       account_id: uuid(),
       title: "My First Project",
+      start: false,
     });
     await addLicenseToProject({ project_id, license_id });
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT site_license FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     expect(rows[0].site_license).toEqual({ [license_id]: {} });
   });
@@ -39,7 +40,7 @@ describe("test various cases of adding a license to a project", () => {
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT site_license FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     expect(rows[0].site_license).toEqual({ [license_id]: {} });
   });
@@ -50,7 +51,7 @@ describe("test various cases of adding a license to a project", () => {
     const pool = getPool();
     const { rows } = await pool.query(
       "SELECT site_license FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     expect(rows[0].site_license).toEqual({
       [license_id]: {},
@@ -62,12 +63,12 @@ describe("test various cases of adding a license to a project", () => {
     const pool = getPool();
     await pool.query(
       "UPDATE projects SET site_license='{}' WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     await addLicenseToProject({ project_id, license_id });
     const { rows } = await pool.query(
       "SELECT site_license FROM projects WHERE project_id=$1",
-      [project_id]
+      [project_id],
     );
     expect(rows[0].site_license).toEqual({ [license_id]: {} });
   });

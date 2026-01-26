@@ -5,6 +5,7 @@ import createAccount from "@cocalc/server/accounts/create-account";
 import createProject from "@cocalc/server/projects/create";
 import addUserToProject from "@cocalc/server/projects/add-user-to-project";
 import createServer from "./create-server";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -60,6 +61,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
       firstName: "User",
       lastName: "One",
       account_id: account_id1,
+      noFirstProject: true,
     });
     await createAccount({
       email: "",
@@ -67,17 +69,22 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
       firstName: "User",
       lastName: "Two",
       account_id: account_id2,
+      noFirstProject: true,
     });
     // Only User One:
     project_id1 = await createProject({
       account_id: account_id1,
       title: "My First Project",
+      start: false,
     });
+    await waitToAvoidTestFailure();
     // Both users
     project_id2 = await createProject({
       account_id: account_id2,
       title: "My Second Project",
+      start: false,
     });
+    await waitToAvoidTestFailure();
     await addUserToProject({
       account_id: account_id1,
       project_id: project_id2,
@@ -105,6 +112,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
       account_id: account_id1,
       project_id: project_id1,
     });
+    await waitToAvoidTestFailure();
 
     expect(
       await getServers({
@@ -182,6 +190,7 @@ describe("creates accounts, projects, compute servers, and tests querying", () =
       account_id: account_id2,
       project_id: project_id2,
     });
+    await waitToAvoidTestFailure();
 
     expect(
       await getServers({

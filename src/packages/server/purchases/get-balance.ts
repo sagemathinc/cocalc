@@ -18,7 +18,7 @@ export const COST_OR_METERED_COST =
   "COALESCE(cost::decimal, COALESCE(cost_so_far::decimal, cost_per_hour * EXTRACT(EPOCH FROM (COALESCE(period_end, NOW()) - period_start)) / 3600)::decimal)::real";
 
 // never update the balance more frequently than this for a given user.
-const MIN_BALANCE_UPDATE_MS = 1000;
+const MIN_BALANCE_UPDATE_MS = 2 * 60_000;
 
 const lastUpdate: { [account_id: string]: number } = {};
 export default async function getBalance({

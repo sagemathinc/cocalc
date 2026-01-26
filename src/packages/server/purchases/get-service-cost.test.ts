@@ -74,7 +74,7 @@ describe("get some service costs", () => {
 
   it("throws error on invalid service", async () => {
     await expect(
-      async () => await getServiceCost("nonsense" as any)
+      async () => await getServiceCost("nonsense" as any),
     ).rejects.toThrow();
   });
 });

@@ -33,6 +33,7 @@ describe("test checking whether or not purchase is allowed under various conditi
       firstName: "Test",
       lastName: "User",
       account_id,
+      noFirstProject: true,
     });
 
     const { allowed, chargeAmount } = await isPurchaseAllowed({

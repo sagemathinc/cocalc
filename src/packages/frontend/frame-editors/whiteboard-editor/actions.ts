@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -1023,14 +1023,18 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
   }
 
   gotoUser(account_id: string, frameId?: string) {
-    const cursors = this._syncstring
-      .get_cursors({ maxAge: 0, excludeSelf: "never" })
-      ?.toJS();
-    if (cursors == null) return; // no info
-    const locs = cursors[account_id]?.locs;
+    const cursors = this._syncstring.get_cursors({
+      maxAge: 0,
+      excludeSelf: "never",
+    });
+    const info = cursors.get(account_id);
+    if (info == null) return; // no info
+    const locs = info.get("locs");
+    if (locs == null) return; // no info
     for (const loc of locs) {
-      if (loc.id != null) {
-        this.scrollElementIntoView(loc.id, frameId);
+      const id = loc.get("id");
+      if (typeof id === "string") {
+        this.scrollElementIntoView(id, frameId);
         return;
       }
     }

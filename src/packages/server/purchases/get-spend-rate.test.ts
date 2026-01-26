@@ -26,6 +26,7 @@ describe("get the spend rate of a user under various circumstances", () => {
       firstName: "Test",
       lastName: "User",
       account_id,
+      noFirstProject: true,
     });
     expect(await getSpendRate(account_id)).toBe(0);
   });
@@ -82,7 +83,7 @@ describe("get the spend rate of a user under various circumstances", () => {
       },
     });
     expect(await getSpendRate(account_id, "")).toBe(
-      cost_per_hour1 + cost_per_hour2
+      cost_per_hour1 + cost_per_hour2,
     );
   });
 

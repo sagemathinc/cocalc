@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -8,6 +8,8 @@
  */
 
 // A Patch is an entry in the patches table, as represented in memory locally here.
+
+import type { List, Map as ImmutableMap } from "immutable";
 
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { type CompressedPatch } from "@cocalc/util/dmp";
@@ -18,6 +20,33 @@ import type {
   CallConatServiceFunction,
   CreateConatServiceFunction,
 } from "@cocalc/conat/service";
+
+export type CursorLoc = ImmutableMap<string, unknown>;
+
+export type CursorInfo = ImmutableMap<string, unknown> & {
+  get(key: "locs"): List<CursorLoc> | undefined;
+  get(key: "time"): number | Date | undefined;
+  get(key: "user_id"): number | undefined;
+};
+
+export type CursorMap = ImmutableMap<string, CursorInfo>;
+
+export type CursorLocJS = {
+  id?: string;
+  x?: number;
+  y?: number;
+  type?: string;
+  time?: number | Date;
+  [key: string]: unknown;
+};
+
+export interface CursorInfoJS {
+  locs?: CursorLocJS[] | null;
+  time?: number | Date;
+  user_id?: number;
+}
+
+export type CursorMapJS = Record<string, CursorInfoJS | undefined>;
 
 export interface Patch {
   // time = LOGICAL time of when patch made; this used to be ms since the epoch, but just

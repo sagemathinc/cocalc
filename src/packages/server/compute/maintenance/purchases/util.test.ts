@@ -5,6 +5,7 @@ import createProject from "@cocalc/server/projects/create";
 import createServer from "@cocalc/server/compute/create-server";
 import { getServer } from "@cocalc/server/compute/get-servers";
 import { setPurchaseId } from "./util";
+import { waitToAvoidTestFailure } from "@cocalc/server/test-utils";
 
 beforeAll(async () => {
   await initEphemeralDatabase();
@@ -26,12 +27,15 @@ describe("creates compute server then sets the purchase id and confirms it", () 
       firstName: "User",
       lastName: "One",
       account_id,
+      noFirstProject: true,
     });
     // Only User One:
     project_id = await createProject({
       account_id,
       title: "My First Project",
+      start: false,
     });
+    await waitToAvoidTestFailure();
     const s = {
       title: "myserver",
       idle_timeout: 15,
@@ -42,6 +46,7 @@ describe("creates compute server then sets the purchase id and confirms it", () 
       project_id,
       ...s,
     });
+    await waitToAvoidTestFailure();
   });
 
   it("set purchase id and verify it", async () => {

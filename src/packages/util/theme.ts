@@ -46,7 +46,7 @@ export const sign_up_id = "44ZfCImosncQhP3jwQM";
 
 // documentation
 export const JUPYTER_CLASSIC_MODERN =
-  "https://doc.cocalc.com/jupyter-classical-vs-cocalc.html";
+  "https://doc.cocalc.com/jupyter.html";
 
 // this is used in packages/hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid
 export const SENDGRID_TEMPLATE_ID = "0375d02c-945f-4415-a611-7dc3411e2a78";
