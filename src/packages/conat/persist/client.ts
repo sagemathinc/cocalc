@@ -50,6 +50,7 @@ class PersistStreamClient extends EventEmitter {
   private reconnecting = false;
   private gettingMissed = false;
   private changesWhenGettingMissed: ChangefeedEvent[] = [];
+  private reconnectTimer?: ReturnType<typeof setTimeout>;
 
   constructor(
     private client: Client,
@@ -95,12 +96,12 @@ class PersistStreamClient extends EventEmitter {
     this.socket.once("disconnected", () => {
       this.reconnecting = true;
       this.socket.removeAllListeners();
-      setTimeout(this.init, DEFAULT_RECONNECT_DELAY);
+      this.scheduleReconnect();
     });
     this.socket.once("closed", () => {
       this.reconnecting = true;
       this.socket.removeAllListeners();
-      setTimeout(this.init, DEFAULT_RECONNECT_DELAY);
+      this.scheduleReconnect();
     });
 
     this.socket.on("data", (updates, headers) => {
@@ -196,11 +197,26 @@ class PersistStreamClient extends EventEmitter {
 
   private isClosed = () => this.state == "closed";
 
+  private scheduleReconnect = () => {
+    if (this.state == "closed") {
+      return;
+    }
+    if (this.reconnectTimer != null) {
+      clearTimeout(this.reconnectTimer);
+    }
+    this.reconnectTimer = setTimeout(this.init, DEFAULT_RECONNECT_DELAY);
+    this.reconnectTimer.unref?.();
+  };
+
   close = () => {
     logger.debug("close", this.storage);
     // paths.delete(this.storage.path);
     this.state = "closed";
     this.emit("closed");
+    if (this.reconnectTimer != null) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
     for (const iter of this.changefeeds) {
       iter.close();
       this.changefeeds.length = 0;

@@ -49,7 +49,7 @@
     "chokidar": "^3.6.0",
     "debug": "^4.4.0",
     "fs-extra": "^11.2.0",
-    "lodash": "^4.17.21",
+    "lodash": "^4.17.23",
     "lru-cache": "^7.18.3",
     "password-hash": "^1.2.2",
     "prom-client": "^15.1.3",

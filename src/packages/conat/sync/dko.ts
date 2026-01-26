@@ -219,6 +219,10 @@ export class DKO<T = any> extends EventEmitter {
     return result;
   };
 
+  debugStats = () => {
+    return this.dkv?.debugStats();
+  };
+
   set = (key: string, obj: T) => {
     if (this.dkv == null) {
       throw Error("closed");
