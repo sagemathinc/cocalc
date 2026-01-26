@@ -385,7 +385,7 @@ export function doQuery(db: PostgreSQL, opts: QueryOptions): void {
   }
 
   if (opts.order_by != null) {
-    if (!/^[a-zA-Z0-9_.,\\s"]+$/.test(opts.order_by)) {
+    if (!/^[a-zA-Z0-9_.,\s"]+$/.test(opts.order_by)) {
       const err = `ERROR -- invalid characters in order_by='${opts.order_by}'`;
       dbg(err);
       if (typeof opts.cb === "function") {
