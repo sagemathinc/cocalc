@@ -33,6 +33,7 @@ import { RawIPynb } from "./raw-ipynb";
 import { search } from "./search";
 import { Slideshow } from "./slideshow-revealjs/slideshow";
 import { JupyterSnippets } from "./snippets";
+import { SingleFileView } from "./single/single";
 import { TableOfContents } from "./table-of-contents";
 
 const SNIPPET_ICON_NAME: IconName = "magic";
@@ -89,6 +90,29 @@ const jupyter_cell_notebook: EditorDescription = {
       label: jupyter.editor.console_label,
       icon: "ipynb",
       title: jupyter.editor.console_title,
+    },
+  },
+} as const;
+
+const jupyter_single: EditorDescription = {
+  type: "jupyter_single",
+  short: "Single-File",
+  name: "Jupyter Single-File View",
+  icon: "ipynb",
+  component: SingleFileView,
+  commands: jupyterCommands,
+  buttons: set([
+    "jupyter-interrupt kernel",
+    "jupyter-restart",
+    "halt_jupyter",
+    "guide",
+    "show_search",
+  ]),
+  customizeCommands: {
+    guide: {
+      label: labels.snippets,
+      icon: SNIPPET_ICON_NAME,
+      title: jupyter.editor.snippets_tooltip,
     },
   },
 } as const;
@@ -150,6 +174,7 @@ const jupyter_raw: EditorDescription = {
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook,
+  jupyter_single,
   commands_guide,
   jupyter_slideshow_revealjs,
   jupyter_table_of_contents,

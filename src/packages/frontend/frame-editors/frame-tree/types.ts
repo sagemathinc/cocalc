@@ -63,6 +63,7 @@ type EditorType =
   | "jupyter-introspect"
   | "jupyter-toc"
   | "jupyter"
+  | "jupyter_single"
   | "latex-build"
   | "latex-output"
   | "latex-toc"

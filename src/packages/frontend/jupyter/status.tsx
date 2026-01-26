@@ -115,12 +115,12 @@ export function Kernel({
   const backendIsStarting =
     backend_state === "starting" || backend_state === "spawning";
 
-  const [isSpwarning, setIsSpawarning] = React.useState(false);
+  const [isSpawning, setIsSpawning] = React.useState(false);
   useEffect(() => {
-    if (isSpwarning && !backendIsStarting) {
-      setIsSpawarning(false);
-    } else if (!isSpwarning && backendIsStarting) {
-      setIsSpawarning(true);
+    if (isSpawning && !backendIsStarting) {
+      setIsSpawning(false);
+    } else if (!isSpawning && backendIsStarting) {
+      setIsSpawning(true);
     }
   }, [backend_state]);
 
@@ -493,7 +493,7 @@ export function Kernel({
   // show progress bar indicators for memory usage and the progress of the current cell (expected time)
   // if not fullscreen, i.e. smaller, pack this into two small bars.
   // the main use case is to communicate to the user if there is a cell that takes extraordinarily long to run,
-  // or if the memory usage is eating up almost all of the reminining (shared) memory.
+  // or if the memory usage is eating up almost all of the remaining (shared) memory.
 
   function renderUsage() {
     if (kernel == null) return;
@@ -516,7 +516,7 @@ export function Kernel({
     };
     const usage_style: CSS = KERNEL_USAGE_STYLE;
 
-    if (isSpwarning) {
+    if (isSpawning) {
       // we massively overestimate: 15s for python and co, and 30s for sage and julia
       const s =
         kernel.startsWith("sage") || kernel.startsWith("julia") ? 30 : 15;

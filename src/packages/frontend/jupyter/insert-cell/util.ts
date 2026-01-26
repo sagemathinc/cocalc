@@ -28,7 +28,7 @@ export function insertCell({
   );
 
   // my first idea was to set "new_id=id" above, but that doesn't work – the cell ends up being empty.
-  // instead, insert a new cell below and delete the currnet one
+  // instead, insert a new cell below and delete the current one
   if (position === "replace") {
     actions.delete_cells([id]);
   }

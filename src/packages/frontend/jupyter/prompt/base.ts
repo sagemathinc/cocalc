@@ -6,6 +6,8 @@ export const PROMPT_MIN_WIDTH = "7em";
 
 export const INPUT_PROMPT_COLOR: string = "#303F9F";
 
+export const OUTPUT_PROMPT_COLOR: string = "#D84315";
+
 export const INPUT_STYLE: CSSProperties = {
   color: INPUT_PROMPT_COLOR,
   minWidth: PROMPT_MIN_WIDTH,
@@ -30,7 +32,7 @@ export interface InputPromptProps {
 }
 
 export const OUTPUT_STYLE: React.CSSProperties = {
-  color: "#D84315",
+  color: OUTPUT_PROMPT_COLOR,
   minWidth: PROMPT_MIN_WIDTH,
   fontFamily: "monospace",
   textAlign: "right",

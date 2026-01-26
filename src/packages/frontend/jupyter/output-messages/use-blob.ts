@@ -58,6 +58,7 @@ export default function useBlob({
 }) {
   const isMounted = useIsMountedRef();
   const [src, setSrc] = useState<string | undefined>(cache.get(sha1));
+
   useEffect(() => {
     if (cache.has(sha1)) {
       setSrc(cache.get(sha1));
@@ -67,18 +68,50 @@ export default function useBlob({
       setError("Not available");
       return;
     }
-    (async () => {
+
+    let retryCount = 0;
+    const maxRetries = 2;
+
+    const loadBlob = async () => {
       try {
-        const src = await blobToUrl({ actions, sha1, type, leaveAsString });
+        const src = await blobToUrl({
+          actions,
+          sha1,
+          type,
+          leaveAsString,
+        });
         if (!isMounted.current) {
           return;
         }
         setSrc(src);
+        // Clear any previous errors on success
+        setError("");
       } catch (err) {
-        setError(`${err}`);
+        if (!isMounted.current) {
+          return;
+        }
+
+        // Retry on failure with exponential backoff
+        if (retryCount < maxRetries) {
+          retryCount++;
+          const delayMs = Math.min(1000 * Math.pow(2, retryCount - 1), 5000);
+          console.warn(
+            `[Jupyter Blob] Failed to load blob, retrying in ${delayMs}ms (attempt ${retryCount}/${maxRetries}):`,
+            err,
+          );
+          setTimeout(loadBlob, delayMs);
+        } else {
+          console.error(
+            "[Jupyter Blob] Failed to load blob after all retries:",
+            err,
+          );
+          setError(`${err}`);
+        }
       }
-    })();
-  }, [sha1]);
+    };
+
+    loadBlob();
+  }, [sha1, actions, type, leaveAsString, setError, isMounted]);
 
   return src;
 }

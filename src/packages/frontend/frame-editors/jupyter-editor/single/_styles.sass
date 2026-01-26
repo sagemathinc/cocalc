@@ -1,0 +1,332 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details.
+ */
+
+@use '../../../_colors' as colors
+
+// Styles for Jupyter single-file view output widgets and editor.
+
+.jupyter-single-file-editor
+  font-family: monospace
+  width: 100%
+  height: 100%
+  display: flex
+  flex-direction: column
+  overflow: hidden
+
+  .jupyter-cell-gutter
+    top: 3px
+    position: relative
+
+  // Output widget container - flex layout for proper height handling
+  .jupyter-output-widget
+    margin: 0
+    padding: 0
+    background-color: #ffffff
+    display: flex
+    flex-direction: column
+
+    &[data-cell-id]
+      display: flex
+      flex-direction: column
+
+  // Individual output item
+  .jupyter-output-item
+    margin: 4px 0
+    padding: 8px 12px
+    line-height: 1.4
+    background-color: colors.$COL_GRAY_LLL
+    border-left: 3px solid colors.$COL_GRAY_L
+    border-radius: 0 4px 4px 0
+    flex: 0 0 auto
+    overflow-x: auto
+
+    &:first-child
+      margin-top: 0
+
+    &:last-child
+      margin-bottom: 0
+
+    // Image loading state
+    img
+      &[src=""]
+        display: none
+
+      // Broken image indicator
+      &:broken
+        background-color: colors.$COL_ANTD_BG_RED_L
+        border: 1px solid colors.$COL_ANTD_BG_RED_M
+        padding: 8px
+        color: colors.$COL_ANTD_RED_WARN
+
+  .jupyter-output-widget.jupyter-cell-widget-selected
+    user-select: none
+    -webkit-user-select: none
+    -moz-user-select: none
+
+    .jupyter-output-item
+      background-color: colors.$COL_BLUE_LLLL
+      border-left-color: colors.$COL_BLUE
+
+    & *::selection
+      background-color: transparent
+      color: inherit
+
+  .jupyter-markdown-display-widget.jupyter-cell-widget-selected,
+  .jupyter-markdown-edit-widget.jupyter-cell-widget-selected,
+  .jupyter-raw-widget.jupyter-cell-widget-selected
+    background-color: colors.$COL_BLUE_LLLL !important
+    user-select: none
+    -webkit-user-select: none
+    -moz-user-select: none
+
+    & *::selection
+      background-color: transparent
+      color: inherit
+
+  // Stream output (stdout/stderr)
+  .output-stream
+    background-color: #fafafa
+    border: 1px solid colors.$COL_GRAY_L0
+    padding: 6px 8px
+    border-radius: 3px
+    font-family: monospace
+    font-size: 0.95em
+    color: colors.$COL_GRAY_DD
+
+  // Result/execute_result output
+  .output-result
+    background-color: #f9f9f9
+    border: 1px solid colors.$COL_GRAY_L0
+    padding: 6px 8px
+    border-radius: 3px
+    font-family: monospace
+    font-size: 0.95em
+
+  // Display data (HTML, images, etc.)
+  .output-display
+    background-color: #ffffff
+    border: 1px solid colors.$COL_GRAY_L0
+    padding: 6px 8px
+    border-radius: 3px
+
+    img
+      max-width: 100%
+      height: auto
+      display: block
+
+  // Error output
+  .output-error
+    background-color: colors.$COL_ANTD_BG_RED_L
+    border: 1px solid colors.$COL_ANTD_BG_RED_M
+    border-left: 3px solid colors.$COL_ANTD_RED
+    padding: 6px 8px
+    border-radius: 3px
+    color: colors.$COL_ANTD_RED_WARN
+    font-family: monospace
+    font-size: 0.95em
+
+  // Unknown output type
+  .output-unknown
+    background-color: colors.$COL_GRAY_LL
+    border: 1px dashed colors.$COL_GRAY_L
+    padding: 6px 8px
+    border-radius: 3px
+    color: colors.$COL_GRAY
+    font-style: italic
+
+  // Protect marker line styling (for future use when highlighting)
+  .jupyter-protected-line
+    background-color: rgba(200, 200, 200, 0.05)
+    border-left: 2px solid rgba(200, 200, 200, 0.3)
+
+  // CodeMirror overrides for jupyter single view
+  .cm-editor
+    background-color: #ffffff
+    color: colors.$COL_GRAY_DD
+    font-size: var(--editor-font-size, 14px)
+    font-family: monospace
+    flex: 1
+    min-height: 0
+    width: 100%
+    overflow: hidden
+
+  .cm-gutters
+    background-color: colors.$COL_GRAY_LLL
+    border-right: 1px solid colors.$COL_GRAY_L0
+
+  .cm-activeLine
+    background-color: rgba(100, 150, 200, 0.05)
+
+  // Gutter styles for cell labels (In[N]/Out[N])
+  .jupyter-cell-label-wrapper
+    font-family: monospace
+    font-size: calc(var(--editor-font-size, 14px) - 1px)
+    user-select: none
+    margin-left: 5px
+    // Always reserve space for state indicator line to avoid indentation shift
+    border-left: 3px solid transparent
+    padding-left: 12px
+    // Let content flow naturally - each row sizes to its content
+    display: block
+    line-height: 1
+    height: 100% // necessary, to make the left border line look as "one" line
+
+  .jupyter-cell-label-row
+    display: flex
+    gap: 8px
+    align-items: center
+
+  .jupyter-cell-label-text
+    display: flex
+    align-items: center
+    justify-content: flex-start
+    min-width: 50px
+    font-weight: 600
+    color: colors.$COL_GRAY_D
+    margin-right: 8px
+
+  .jupyter-cell-label-markdown
+    color: colors.$COL_BLUE_DD
+
+  .jupyter-markdown-gutter-icon
+    font-size: calc(var(--editor-font-size, 14px) - 1px)
+
+  .jupyter-cell-in-label
+    color: colors.$COL_BLUE_DD
+    font-weight: 600
+    min-width: 50px
+    text-align: right
+    margin-right: 16px
+
+  // Interactive button for cell execution
+  .jupyter-cell-in-label-button
+    background: transparent
+    border: none
+    padding: 0
+    cursor: pointer
+    display: flex
+    align-items: center
+    justify-content: flex-end
+    font-family: inherit
+    font-size: inherit
+    color: colors.$COL_BLUE_DD
+    font-weight: 600
+    min-width: 50px
+    margin-right: 16px
+    transition: color 200ms ease
+
+    .jupyter-cell-in-label
+      margin: 0 // Override spacing inside button
+
+    // Active cells (running/queued) - show active char, switch to stop icon on hover
+    &:not(.jupyter-cell-in-label-inactive)
+      .jupyter-cell-in-char-stop
+        display: none
+
+      &:hover
+        cursor: pointer
+
+        .jupyter-cell-in-char-active
+          display: none
+
+        .jupyter-cell-in-char-stop
+          display: inline
+
+      &:active
+        cursor: pointer
+
+    // Inactive cells - show text normally, show char on hover
+    &.jupyter-cell-in-label-inactive
+      .jupyter-cell-in-label-content
+        position: relative
+
+      .jupyter-cell-in-text
+        display: inline
+
+      .jupyter-cell-in-char-hover
+        display: none
+
+      &:hover
+        cursor: pointer
+
+        .jupyter-cell-in-text
+          display: none
+
+        .jupyter-cell-in-char-hover
+          display: inline
+
+  // Styling for bracketed content (In[...])
+  .jupyter-cell-in-bracket
+    margin: 0 1px
+
+  // Styling for UTF8 character within label
+  .jupyter-cell-in-char
+    display: inline
+    margin: 0 1px
+
+  .jupyter-cell-out-label
+    color: colors.$COL_BG_RED
+    font-weight: 600
+    min-width: 50px
+    text-align: right
+    margin-right: 16px
+    margin-top: 20px
+
+  .jupyter-cell-line-number
+    color: colors.$COL_GRAY_M
+    text-align: right
+    min-width: 32px
+    font-size: 0.9em
+    padding-left: 2px
+    padding-right: 2px
+
+  .jupyter-cell-per-cell-line-number
+    color: colors.$COL_GRAY_M
+    text-align: right
+    min-width: 1em
+    font-size: 0.9em
+    padding-left: 2px
+    margin-left: auto
+    padding-right: 0
+
+  .jupyter-cell-line-spacer
+    min-width: 30px
+    margin-left: -20px
+
+  // Cell execution state indicators - vertical line on the left side of gutter
+  // Running state: orange with blinking animation (actively executing)
+  .cell-state-running
+    border-left-color: colors.$COL_ORANGE_WARN
+    animation: jupyter-cell-running-blink 1s infinite
+
+  // Queued state: steady light blue (waiting for another cell to finish)
+  .cell-state-queued
+    border-left-color: colors.$COL_BLUE_L
+    // No animation - steady indicator for queued state
+
+  // Insert cell widget - allows users to add new cells below outputs
+  .jupyter-insert-cell-widget
+    width: 100%
+    min-height: 14px
+    height: 14px
+    margin: 2px 0
+    padding: 0 12px
+    display: flex
+    align-items: center
+    justify-content: flex-start
+    background-color: transparent
+    opacity: 0.6
+    transition: opacity 150ms ease
+    flex: 0 0 auto
+
+    &:hover
+      opacity: 1
+
+// Blinking animation for running cells - only the border blinks, not the text
+@keyframes jupyter-cell-running-blink
+  0%, 100%
+    border-left-color: colors.$COL_ORANGE_WARN
+  50%
+    border-left-color: rgba(255, 165, 0, 0.3)
