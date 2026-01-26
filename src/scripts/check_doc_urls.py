@@ -5,6 +5,7 @@ Check that all links to the documentation are valid.
 import os
 import re
 import requests as r
+import time
 from multiprocessing.pool import ThreadPool
 
 BASE_URL = "https://doc.cocalc.com"
@@ -50,17 +51,23 @@ def get_all_urls():
 def check_url(url):
     """
     Check the HTTP HEAD request for the given URL, to avoid
-    downloading the whole file.
+    downloading the whole file. Retry a few times for transient failures.
     """
-    try:
-        res = r.head(url, timeout=10)
-        res.raise_for_status()
-    except Exception as ex:
-        print(f"✗ {url}: {ex}")
-        return False
-    else:
-        print(f"✓ {url}")
-    return True
+    attempts = 3
+    delay = 5
+    for attempt in range(1, attempts + 1):
+        try:
+            res = r.head(url, timeout=10)
+            res.raise_for_status()
+        except Exception as ex:
+            if attempt < attempts:
+                time.sleep(delay)
+                continue
+            print(f"✗ {url}: {ex}")
+            return False
+        else:
+            print(f"✓ {url}")
+            return True
 
 
 def main():

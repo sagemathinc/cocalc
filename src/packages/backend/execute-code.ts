@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020–2024 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -365,7 +365,7 @@ function doSpawn(
 
     while (true) {
       if (callback_done) return;
-      const { procs } = await monitor.processes(Date.now());
+      const { procs } = await monitor.processes(Date.now(), "execute-code");
       // reconstruct process tree
       const children: { [pid: number]: number[] } = {};
       for (const p of Object.values(procs)) {
