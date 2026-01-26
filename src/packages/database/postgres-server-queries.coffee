@@ -60,7 +60,6 @@ read = require('read')
 {pii_expire} = require("./postgres/pii")
 passwordHash = require("@cocalc/backend/auth/password-hash").default;
 registrationTokens = require('./postgres/registration-tokens').default;
-getStrategiesSSO = require("@cocalc/database/settings/get-sso-strategies").default;
 {updateUnreadMessageCount} = require('./postgres/messages');
 centralLog = require('./postgres/central-log').default;
 
@@ -2510,19 +2509,6 @@ exports.extend_PostgreSQL = (ext) -> class PostgreSQL extends ext
         if result.rows.length > 0
             return result.rows[0].organization_id
         return undefined
-
-    getStrategiesSSO: () =>
-        return await getStrategiesSSO()
-
-    get_email_address_for_account_id: (account_id) =>
-        result = await @async_query
-            query       : 'SELECT email_address FROM accounts'
-            where       : [ 'account_id :: UUID = $1' ]
-            params      : [ account_id ]
-        if result.rows.length > 0
-            result.rows[0].email_address
-        else
-            return undefined
 
     # async
     registrationTokens: (options, query) =>

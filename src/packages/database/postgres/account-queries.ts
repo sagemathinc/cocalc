@@ -138,6 +138,21 @@ export async function get_account<T>(
   });
 }
 
+export async function get_email_address_for_account_id(
+  db: PostgreSQL,
+  account_id: string,
+): Promise<string | undefined> {
+  assert_valid_account_id(account_id);
+  const { rows } = await db.async_query<{ email_address?: string }>({
+    query: "SELECT email_address FROM accounts",
+    where: { "account_id = $::UUID": account_id },
+  });
+  if (rows.length === 0) {
+    return undefined;
+  }
+  return rows[0].email_address ?? undefined;
+}
+
 interface SetEmailAddressVerifiedOpts {
   db: PostgreSQL;
   account_id: string;

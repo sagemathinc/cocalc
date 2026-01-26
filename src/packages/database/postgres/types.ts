@@ -15,7 +15,6 @@ import {
   QueryRows,
   UntypedQueryResult,
 } from "@cocalc/util/types/database";
-import type { Strategy } from "@cocalc/util/types/sso";
 import { Changes } from "./changefeed";
 
 export type { QueryResult };
@@ -336,8 +335,6 @@ export interface PostgreSQL extends EventEmitter {
       email_address: string;
     }>;
   }): Promise<void>;
-
-  getStrategiesSSO(): Promise<Strategy[]>;
 
   user_query_cancel_changefeed(opts: { id: any; cb?: CB }): void;
 
