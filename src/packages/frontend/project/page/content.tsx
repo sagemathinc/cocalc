@@ -44,6 +44,7 @@ import { editor_id } from "@cocalc/frontend/project/utils";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { hidden_meta_file } from "@cocalc/util/misc";
 import { useProjectContext } from "../context";
+import { getProjectTabAriaLabel } from "./consts";
 import getAnchorTagComponent from "./anchor-tag-component";
 import HomePage from "./home-page";
 import { ProjectCollaboratorsPage } from "./project-collaborators";
@@ -100,6 +101,8 @@ export const Content: React.FC<Props> = (props: Props) => {
   return (
     <div
       ref={contentRef}
+      role="tabpanel"
+      aria-label={getProjectTabAriaLabel(tab_name)}
       style={{
         ...MAIN_STYLE,
         ...(!is_visible ? { display: "none" } : undefined),

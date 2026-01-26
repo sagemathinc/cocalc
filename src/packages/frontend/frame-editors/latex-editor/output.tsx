@@ -323,7 +323,11 @@ export function Output(props: OutputProps) {
         </span>
       ),
       children: (
-        <div className="smc-vfill">
+        <div
+          className="smc-vfill"
+          role="region"
+          aria-label={`PDF${totalPages > 0 ? ` (${totalPages}p)` : ""}: ${path}`}
+        >
           <PDFControls
             actions={actions}
             id={id}
@@ -398,6 +402,8 @@ export function Output(props: OutputProps) {
             flexDirection: "column",
             height: "100%",
           }}
+          role="region"
+          aria-label={`Contents: ${path}`}
         >
           <div style={OUTPUT_HEADER_STYLE}>
             <span style={LABEL_STYLE}>
@@ -448,7 +454,11 @@ export function Output(props: OutputProps) {
         </span>
       ),
       children: (
-        <div className="smc-vfill">
+        <div
+          className="smc-vfill"
+          role="region"
+          aria-label={`Build log: ${path}`}
+        >
           <Build
             name={name}
             actions={actions}
@@ -516,7 +526,11 @@ export function Output(props: OutputProps) {
         </span>
       ),
       children: (
-        <div className="smc-vfill">
+        <div
+          className="smc-vfill"
+          role="region"
+          aria-label={`Issues${errors > 0 || warnings > 0 ? ` (${errors}e ${warnings}w)` : ""}: ${path}`}
+        >
           <ErrorsAndWarnings
             id={id}
             name={name}
@@ -575,6 +589,7 @@ export function Output(props: OutputProps) {
           wordCount={wordCount}
           refreshWordCount={refreshWordCount}
           uiFontSize={uiFontSize}
+          path={path}
         />
       ),
     };
@@ -627,13 +642,20 @@ export function Output(props: OutputProps) {
           }}
           items={tabItems}
           className="cocalc-latex-output-tabs"
+          role="navigation"
+          aria-label={`Output tabs: ${path}`}
         />
       </div>
     );
   }
 
   return (
-    <div className="smc-vfill" style={{ position: "relative" }}>
+    <div
+      className="smc-vfill"
+      style={{ position: "relative" }}
+      role="region"
+      aria-label={`Output: ${path}`}
+    >
       <div
         className="smc-vfill"
         style={{

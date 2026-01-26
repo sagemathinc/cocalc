@@ -156,11 +156,11 @@ export function RowEntryInner({
       }
     } else {
       if (multiline != null) {
-        const style = {
+        const style: CSSProperties = {
           ...rowEntryStyle(value, valid),
           fontFamily: "monospace",
           fontSize: "80%",
-        } as CSSProperties;
+        } as const;
         return (
           <Input.TextArea
             autoComplete="off"

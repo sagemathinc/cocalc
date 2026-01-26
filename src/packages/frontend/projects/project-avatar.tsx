@@ -55,7 +55,8 @@ export function ProjectAvatarImage(props: ProjectAvatarImageProps) {
       <Avatar
         shape="square"
         size={size ?? 160}
-        icon={<img src={avatarImage} />}
+        src={avatarImage}
+        alt="Project avatar"
       />
     </div>
   ) : (

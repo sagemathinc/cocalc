@@ -447,8 +447,28 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       />
     ) : undefined;
 
+    // ARIA: Build cell label with type, number, and status
+    const cellType = cell.get("cell_type"); // "code" or "markdown"
+    const cellNumber = index + 1; // Convert to 1-indexed for user readability
+    const isCurrent = id === cur_id;
+    const isSelected = sel_ids?.contains(id);
+    const hasError =
+      cellType === "code" &&
+      cell.get("outputs")?.some((o) => o.get("output_type")?.includes("error"));
+
+    const cellLabel = `${
+      cellType === "code" ? "Code" : "Markdown"
+    } cell ${cellNumber}${isCurrent ? " (current)" : ""}${
+      isSelected ? " (selected)" : ""
+    }${hasError ? " (has error)" : ""}`;
+
     return (
-      <div key={id}>
+      <div
+        key={id}
+        role="region"
+        aria-label={cellLabel}
+        aria-current={isCurrent ? "true" : undefined}
+      >
         <Cell
           id={id}
           index={index}

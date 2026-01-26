@@ -8,8 +8,6 @@ This defines the entire **desktop** Cocalc page layout and brings in
 everything on *desktop*, once the user has signed in.
 */
 
-declare var DEBUG: boolean;
-
 import type { IconName } from "@cocalc/frontend/components/icon";
 
 import { Spin } from "antd";
@@ -28,6 +26,10 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { ClientContext } from "@cocalc/frontend/client/context";
 import { Icon } from "@cocalc/frontend/components/icon";
+import {
+  GlobalHotkeyDetector,
+  QuickNavigationDialog,
+} from "@cocalc/frontend/app/hotkey";
 import Next from "@cocalc/frontend/components/next";
 import { FileUsePage } from "@cocalc/frontend/file-use/page";
 import { labels } from "@cocalc/frontend/i18n";
@@ -54,6 +56,11 @@ import { HIDE_LABEL_THRESHOLD, NAV_CLASS } from "./top-nav-consts";
 import { VerifyEmail } from "./verify-email-banner";
 import VersionWarning from "./version-warning";
 import { CookieWarning, LocalStorageWarning } from "./warnings";
+import {
+  DEFAULT_HOTKEY,
+  DEFAULT_HOTKEY_DELAY_MS,
+  Hotkey,
+} from "../account/hotkey-selector";
 
 // ipad and ios have a weird trick where they make the screen
 // actually smaller than 100vh and have it be scrollable, even
@@ -73,15 +80,15 @@ const PAGE_STYLE: CSS = {
   display: "flex",
   flexDirection: "column",
   height: PAGE_HEIGHT, // see note
-  width: "100vw",
-  overflow: "hidden",
+  width: "100%",
+  overflow: "auto",
   background: "white",
 } as const;
 
 export const Page: React.FC = () => {
   const page_actions = useActions("page");
 
-  const { pageStyle } = useAppContext();
+  const { pageStyle, blockShiftShiftHotkey } = useAppContext();
   const { isNarrow, fileUseStyle, topBarStyle, projectsNavStyle } = pageStyle;
 
   const intl = useIntl();
@@ -113,6 +120,15 @@ export const Page: React.FC = () => {
   const fullscreen = useTypedRedux("page", "fullscreen");
   const local_storage_warning = useTypedRedux("page", "local_storage_warning");
   const cookie_warning = useTypedRedux("page", "cookie_warning");
+
+  // Quick Navigation (hotkey navigation)
+  const other_settings = useTypedRedux("account", "other_settings");
+  const quick_nav_hotkey: Hotkey =
+    (other_settings?.get("quick_nav_hotkey") as unknown as Hotkey | null) ??
+    DEFAULT_HOTKEY;
+  const quick_nav_hotkey_delay =
+    other_settings?.get("quick_nav_hotkey_delay") ?? DEFAULT_HOTKEY_DELAY_MS;
+  const [quick_nav_visible, setQuickNavVisible] = useState<boolean>(false);
 
   const accountIsReady = useTypedRedux("account", "is_ready");
   const account_id = useTypedRedux("account", "account_id");
@@ -210,6 +226,7 @@ export const Page: React.FC = () => {
           icon={"users"}
           active_top_tab={active_top_tab}
           hide_label={!show_label}
+          aria-label="Admin"
         />
       );
     }
@@ -290,6 +307,8 @@ export const Page: React.FC = () => {
     return (
       <div
         className="smc-right-tabs-fixed"
+        role="region"
+        aria-label="Top navigation controls"
         style={{
           display: "flex",
           flex: "0 0 auto",
@@ -342,9 +361,6 @@ export const Page: React.FC = () => {
   // TEST: make sure that usual drag'n'drop activities
   // like rearranging tabs and reordering tasks work
   function drop(e) {
-    if (DEBUG) {
-      e.persist();
-    }
     //console.log "react desktop_app.drop", e
     e.preventDefault();
     e.stopPropagation();
@@ -360,6 +376,7 @@ export const Page: React.FC = () => {
 
   // Children must define their own padding from navbar and screen borders
   // Note that the parent is a flex container
+  // ARIA: content container (main landmarks are defined at the page level below)
   const body = (
     <div
       style={PAGE_STYLE}
@@ -379,7 +396,11 @@ export const Page: React.FC = () => {
       {show_i18n && <I18NBanner />}
       <VerifyEmail />
       {!fullscreen && (
-        <nav className="smc-top-bar" style={topBarStyle}>
+        <nav
+          className="smc-top-bar"
+          style={topBarStyle}
+          aria-label="Main navigation"
+        >
           <AppLogo size={pageStyle.height} />
           {is_logged_in && render_project_nav_button()}
           {!isNarrow ? (
@@ -399,10 +420,22 @@ export const Page: React.FC = () => {
       <PayAsYouGoModal />
       <PopconfirmModal />
       <SettingsModal />
+      <QuickNavigationDialog
+        visible={quick_nav_visible}
+        onClose={() => setQuickNavVisible(false)}
+      />
     </div>
   );
   return (
     <ClientContext.Provider value={{ client: webapp_client }}>
+      <GlobalHotkeyDetector
+        hotkey={is_logged_in ? quick_nav_hotkey : "disabled"}
+        onTriggered={() => {
+          setQuickNavVisible(true);
+        }}
+        delayMs={quick_nav_hotkey_delay}
+        blocked={blockShiftShiftHotkey ?? false}
+      />
       {body}
     </ClientContext.Provider>
   );

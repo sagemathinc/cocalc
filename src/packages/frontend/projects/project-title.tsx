@@ -55,7 +55,7 @@ export const ProjectTitle: React.FC<Props> = ({
   const body = (
     <>
       {avatar && (
-        <Avatar shape="circle" icon={<img src={avatar} />} size={20} />
+        <Avatar shape="circle" src={avatar} size={20} alt="Project avatar" />
       )}{" "}
       {html_to_text(trunc ? misc.trunc(title, trunc) : title)}
     </>
