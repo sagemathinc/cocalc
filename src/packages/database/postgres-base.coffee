@@ -699,8 +699,8 @@ class exports.PostgreSQL extends EventEmitter    # emits a 'connect' event whene
             opts.query += " WHERE #{WHERE.join(' AND ')}"
 
         if opts.order_by?
-            if opts.order_by.indexOf("'") >= 0
-                err = "ERROR -- detected ' apostrophe in order_by='#{opts.order_by}'"
+            if not /^[a-zA-Z0-9_.,\s]+$/.test(opts.order_by)
+                err = "ERROR -- invalid characters in order_by='#{opts.order_by}'"
                 dbg(err)
                 opts.cb?(err)
                 return
