@@ -10,11 +10,11 @@ Support for virtual hosts.
 import type { Request, Response } from "express";
 
 import basePath from "@cocalc/backend/base-path";
+import { pathToFiles } from "@cocalc/backend/files/path-to-files";
 import { getLogger } from "@cocalc/backend/logger";
 import isAuthenticated from "./authenticate";
 import getVirtualHostInfo from "./get-vhost-info";
 import { staticHandler } from "./handle-raw";
-import pathToFiles from "./path-to-files";
 
 const logger = getLogger("virtual-hosts");
 

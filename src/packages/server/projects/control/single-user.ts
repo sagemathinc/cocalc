@@ -29,6 +29,7 @@ Type ".help" for more information.
 
 import { kill } from "node:process";
 import getLogger from "@cocalc/backend/logger";
+import { homePath } from "@cocalc/backend/misc";
 import {
   BaseProject,
   CopyOptions,
@@ -43,7 +44,6 @@ import {
   getProjectPID,
   getState,
   getStatus,
-  homePath,
   isProjectRunning,
   launchProjectDaemon,
   mkdir,

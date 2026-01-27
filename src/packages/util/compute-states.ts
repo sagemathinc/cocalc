@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -32,7 +32,8 @@ export type State =
   | "running"
   | "starting"
   | "stopping"
-  | "unarchiving";
+  | "unarchiving"
+  | "deleted";
 
 // @hsy: completely unclear what this is for.
 type Operation =
@@ -54,7 +55,8 @@ export type ComputeStateIcon =
   | "times-rectangle"
   | "flash"
   | "hand-stop"
-  | "run";
+  | "run"
+  | "trash";
 
 export type ComputeState = {
   desc: IntlMessage; // shows up in the UI (default)
@@ -311,5 +313,21 @@ export const COMPUTE_STATES: ComputeStates = {
       "status",
       "migrate_live",
     ],
+  },
+
+  // projects are deleted in hub -> postgres.delete-projects and this is a one-way operation
+  deleted: {
+    desc: defineMessage({
+      id: "util.compute-states.deleted.desc",
+      defaultMessage: "Project is deleted",
+    }),
+    icon: "trash",
+    display: defineMessage({
+      id: "util.compute-states.deleted.display",
+      defaultMessage: "Deleted",
+    }),
+    stable: true,
+    to: {},
+    commands: [],
   },
 } as const;

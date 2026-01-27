@@ -1,9 +1,14 @@
 #!/usr/bin/env node
+
 /*
 Periodically delete projects.
 
-TODO: For now, this just calls the unlink function. Later on it
-should do more (actually delete data, etc.).
+STATUS:
+For now, this just calls the unlink function and deletes all assocated syncstrings and data.
+In "onprem" mode, this also entries in various tables, which contain data specific to the deleted projects.
+
+TESTING: to run this in development and see logging, call it like that:
+./src/packages/hub$ env DEBUG_CONSOLE=yes DEBUG=cocalc:debug:db:* pnpm cocalc-hub-delete-projects
 */
 
 import * as postgres from "@cocalc/database";
@@ -16,6 +21,9 @@ async function update() {
   console.log("unlinking old deleted projects...");
   try {
     await db.unlink_old_deleted_projects();
+    // limit the max runtime to half the interval time
+    const max_run_m = (INTERVAL_MS / 2) / (1000 * 60)
+    await db.cleanup_old_projects_data(max_run_m);
   } catch (err) {
     if (err !== null) {
       throw Error(`failed to unlink projects -- ${err}`);

@@ -28,7 +28,7 @@
     "immutable": "^4.3.0",
     "lodash": "^4.17.23",
     "lru-cache": "^7.18.3",
-    "pg": "^8.7.1",
+    "pg": "^8.16.3",
     "random-key": "^0.3.2",
     "read": "^1.0.7",
     "sql-string-escape": "^1.1.6",
@@ -37,7 +37,7 @@
   "devDependencies": {
     "@types/lodash": "^4.14.202",
     "@types/node": "^18.16.14",
-    "@types/pg": "^8.6.1",
+    "@types/pg": "^8.15.4",
     "coffeescript": "^2.5.1"
   },
   "scripts": {

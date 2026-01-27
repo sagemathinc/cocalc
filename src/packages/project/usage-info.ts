@@ -14,6 +14,7 @@ It is made available via a service in @cocalc/conat/project/usage-info.
 */
 
 import { EventEmitter } from "node:events";
+
 import { getLogger } from "@cocalc/project/logger";
 import {
   ProjectInfoServer,

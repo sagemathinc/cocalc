@@ -16,6 +16,19 @@ This code is very similar to single-user.ts, except with some
 small modifications due to having to create and delete Linux users.
 */
 
+import getLogger from "@cocalc/backend/logger";
+import { getUid, homePath } from "@cocalc/backend/misc";
+import {
+  BaseProject,
+  CopyOptions,
+  getProject,
+  ProjectState,
+  ProjectStatus,
+} from "./base";
+import {
+  deleteProjectSecretToken,
+  getProjectSecretToken,
+} from "./secret-token";
 import {
   chown,
   copyPath,
@@ -25,7 +38,6 @@ import {
   getEnvironment,
   getState,
   getStatus,
-  homePath,
   isProjectRunning,
   launchProjectDaemon,
   mkdir,
@@ -33,19 +45,6 @@ import {
   stopProjectProcesses,
   writeSecretToken,
 } from "./util";
-import {
-  BaseProject,
-  CopyOptions,
-  getProject,
-  ProjectStatus,
-  ProjectState,
-} from "./base";
-import getLogger from "@cocalc/backend/logger";
-import { getUid } from "@cocalc/backend/misc";
-import {
-  deleteProjectSecretToken,
-  getProjectSecretToken,
-} from "./secret-token";
 
 const winston = getLogger("project-control:multi-user");
 

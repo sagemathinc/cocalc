@@ -323,6 +323,8 @@ export interface PostgreSQL extends EventEmitter {
     cb?: CB;
   });
 
+  delete_syncstring(opts: { string_id: string; cb: CB });
+
   projects_that_need_to_be_started(): Promise<string[]>;
 
   is_connected(): boolean;
@@ -334,6 +336,8 @@ export interface PostgreSQL extends EventEmitter {
       email_address: string;
     }>;
   }): Promise<void>;
+
+  set_project_state(opts: { project_id: string; state: ProjectState["state"] });
 
   user_query_cancel_changefeed(opts: { id: any; cb?: CB }): void;
 

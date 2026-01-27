@@ -29,7 +29,7 @@ export default async function getRecentPurchases({
   const pool = getPool();
   const { rows } = await pool.query(
     `SELECT * FROM shopping_cart_items WHERE account_id=$1 AND purchased IS NOT NULL AND (purchased#>>'{time}')::timestamptz >= NOW() - $2::interval AND purchased#>>'{voucher_id}' IS NULL`,
-    [account_id, recent ?? "1 week"]
+    [account_id, recent ?? "1 week"],
   );
   rows.sort((a, b) => -cmp(a.purchased?.time, b.purchased?.time));
   return rows;
