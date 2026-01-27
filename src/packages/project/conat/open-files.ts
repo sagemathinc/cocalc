@@ -108,6 +108,21 @@ import { chdir } from "node:process";
 
 const logger = getLogger("project:conat:open-files");
 
+// @ts-ignore
+function startOpenFilesStatsLoop(openFiles: OpenFiles) {
+  const intervalMs = 15000;
+  logger.debug("open-files stats enabled", { intervalMs });
+  const interval = setInterval(() => {
+    logger.debug("open-files stats", {
+      intervalMs,
+      openDocs: Object.keys(openDocs).length,
+      stats: openFiles.debugStats(),
+      rssMiB: Math.round(process.memoryUsage().rss / (1024 * 1024)),
+    });
+  }, intervalMs);
+  openFiles.on("closed", () => clearInterval(interval));
+}
+
 // we check all files we are currently managing this frequently to
 // see if they exist on the filesystem:
 const FILE_DELETION_CHECK_INTERVAL = 5000;
@@ -145,6 +160,9 @@ export async function init() {
   }
 
   openFiles = await createOpenFiles();
+  // Use this to debug potential memory leaks
+  // https://github.com/sagemathinc/cocalc/issues/8702
+  // startOpenFilesStatsLoop(openFiles);
 
   computeServers = computeServerManager({ project_id });
   await computeServers.waitUntilReady();

@@ -9,7 +9,7 @@ const logger = getLogger("hub:servers:app:blobs");
 export default function init(router: Router) {
   const database = getDatabase();
   // return uuid-indexed blobs (mainly used for graphics)
-  router.get("/blobs/*", async (req, res) => {
+  router.get("/blobs/{*splat}", async (req, res) => {
     logger.debug(`${JSON.stringify(req.query)}, ${req.path}`);
     const uuid = `${req.query.uuid}`;
     if (req.headers["if-none-match"] === uuid) {
