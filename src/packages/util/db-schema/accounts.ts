@@ -1,7 +1,9 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { has } from "lodash";
 
 import { NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
@@ -793,16 +795,15 @@ Table({
             });
             // we got a required exclusive SSO for the given account_id
             if (strategy != null) {
-              // if user tries to change email_address
-              if (typeof obj.email_address === "string") {
+              // if user tries to change email_address (including null/undefined)
+              if (has(obj, "email_address")) {
                 cb(`You are not allowed to change your email address.`);
                 return;
               }
               // ... or tries to change first or last name, but strategy has update_on_login set
               if (
                 strategy.updateOnLogin &&
-                (typeof obj.first_name === "string" ||
-                  typeof obj.last_name === "string")
+                (has(obj, "first_name") || has(obj, "last_name"))
               ) {
                 cb(
                   `You are not allowed to change your first or last name. You have to change it at your single-sign-on provider: ${strategy.display}.`,
