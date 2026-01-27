@@ -242,7 +242,7 @@ export default function R({ customize }) {
                 <li>
                   Supports{" "}
                   <strong>
-                    <A href="https://doc.cocalc.com/latex-features.html#forward-inverse-search">
+                    <A href="https://doc.cocalc.com/latex.html#forward-and-inverse-search">
                       forward and inverse search
                     </A>
                   </strong>{" "}

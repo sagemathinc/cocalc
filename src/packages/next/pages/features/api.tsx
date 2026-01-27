@@ -49,7 +49,7 @@ export default function API({ customize }) {
               </>
             }
           >
-            <A href="https://doc.cocalc.com/api/">CoCalc API Documentation</A>
+            <A href="https://doc.cocalc.com/api2/">CoCalc API Documentation</A>
           </Info.Heading>
         </Layout.Content>
         <Footer />

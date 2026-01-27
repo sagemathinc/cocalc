@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -8,6 +8,7 @@ import { readFile, readdir, readlink } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
 
+import { mapParallelLimit } from "@cocalc/util/async-utils";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import {
   Cpu,
@@ -41,7 +42,10 @@ export class ProcessStats {
   private testing: boolean;
   private ticks: number;
   private pagesize: number;
-  private last?: { timestamp: number; processes: Processes };
+  private lastByKey = new Map<
+    string,
+    { timestamp: number; processes: Processes }
+  >();
 
   private constructor() {
     this.procLimit = LIMIT;
@@ -103,19 +107,31 @@ export class ProcessStats {
   }
 
   // delta-time for this and the previous process information
-  private dt(timestamp) {
-    return (timestamp - (this.last?.timestamp ?? 0)) / 1000;
+  private dt(timestamp: number, lastTimestamp?: number) {
+    return (timestamp - (lastTimestamp ?? 0)) / 1000;
   }
 
   // calculate cpu times
-  private cpu({ pid, stat, timestamp }): Cpu {
+  private cpu({
+    pid,
+    stat,
+    timestamp,
+    lastProcesses,
+    lastTimestamp,
+  }: {
+    pid: number;
+    stat: Stat;
+    timestamp: number;
+    lastProcesses?: Processes;
+    lastTimestamp?: number;
+  }): Cpu {
     // we are interested in that processes total usage: user + system
     const total_cpu = stat.utime + stat.stime;
     // the fallback is chosen in such a way, that it says 0% if we do not have historic data
-    const prev_cpu = this.last?.processes?.[pid]?.cpu.secs ?? total_cpu;
-    const dt = this.dt(timestamp);
+    const prev_cpu = lastProcesses?.[pid]?.cpu.secs ?? total_cpu;
+    const dt = this.dt(timestamp, lastTimestamp);
     // how much cpu time was used since last time we checked this process…
-    const pct = 100 * ((total_cpu - prev_cpu) / dt);
+    const pct = dt > 0 ? 100 * ((total_cpu - prev_cpu) / dt) : 0;
     return { pct: pct, secs: total_cpu };
   }
 
@@ -127,7 +143,19 @@ export class ProcessStats {
   }
 
   // this gathers all the information for a specific process with the given pid
-  private async process({ pid: pid_str, uptime, timestamp }): Promise<Process> {
+  private async process({
+    pid: pid_str,
+    uptime,
+    timestamp,
+    lastProcesses,
+    lastTimestamp,
+  }: {
+    pid: string;
+    uptime: number;
+    timestamp: number;
+    lastProcesses?: Processes;
+    lastTimestamp?: number;
+  }): Promise<Process> {
     const base = join("/proc", pid_str);
     const pid = parseInt(pid_str);
     const fn = (name) => join(base, name);
@@ -142,7 +170,7 @@ export class ProcessStats {
       cmdline,
       exe,
       stat,
-      cpu: this.cpu({ pid, timestamp, stat }),
+      cpu: this.cpu({ pid, timestamp, stat, lastProcesses, lastTimestamp }),
       uptime: uptime - stat.starttime,
     };
   }
@@ -161,30 +189,42 @@ export class ProcessStats {
   // this is where we gather information about all running processes
   public async processes(
     timestamp?: number,
+    sampleKey = "default",
   ): Promise<{ procs: Processes; uptime: number; boottime: Date }> {
     timestamp ??= new Date().getTime();
     const [uptime, boottime] = await this.uptime();
+    const last = this.lastByKey.get(sampleKey);
 
     const procs: Processes = {};
-    let n = 0;
-    for (const pid of await readdir("/proc")) {
-      if (!pid.match(/^[0-9]+$/)) continue;
-      try {
-        const proc = await this.process({ pid, uptime, timestamp });
-        procs[proc.pid] = proc;
-      } catch (err) {
-        if (this.testing)
-          dbg(`process ${pid} likely vanished – could happen – ${err}`);
-      }
+    let pids = (await readdir("/proc")).filter((pid) => pid.match(/^[0-9]+$/));
+
+    if (pids.length > this.procLimit) {
+      dbg(`too many processes – limit of ${this.procLimit} reached!`);
       // we avoid processing and sending too much data
-      if (n > this.procLimit) {
-        dbg(`too many processes – limit of ${this.procLimit} reached!`);
-        break;
-      } else {
-        n += 1;
-      }
+      pids = pids.slice(0, this.procLimit);
     }
-    this.last = { timestamp, processes: procs };
+
+    await mapParallelLimit(
+      pids,
+      async (pid) => {
+        try {
+          const proc = await this.process({
+            pid,
+            uptime,
+            timestamp,
+            lastProcesses: last?.processes,
+            lastTimestamp: last?.timestamp,
+          });
+          procs[proc.pid] = proc;
+        } catch (err) {
+          if (this.testing)
+            dbg(`process ${pid} likely vanished – could happen – ${err}`);
+        }
+      },
+      20,
+    );
+
+    this.lastByKey.set(sampleKey, { timestamp, processes: procs });
     return { procs, uptime, boottime };
   }
 }

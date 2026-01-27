@@ -284,6 +284,14 @@ export class OpenFiles extends EventEmitter {
     return { ...x, path };
   };
 
+  debugStats = () => {
+    return {
+      state: this.state,
+      entries: this.getAll().length,
+      dkv: this.kv?.debugStats(),
+    };
+  };
+
   delete = (path) => {
     this.getKv().delete(path);
   };
