@@ -25,7 +25,7 @@ import initCustomize from "./app/customize";
 import { initMetricsEndpoint, setupInstrumentation } from "./app/metrics";
 import initNext from "./app/next";
 import initStats from "./app/stats";
-import { database } from "./database";
+import { getDatabase } from "./database";
 import initHttpServer from "./http";
 import initRobots from "./robots";
 import basePath from "@cocalc/backend/base-path";
@@ -57,6 +57,7 @@ export default async function init(opts: Options): Promise<{
 }> {
   const winston = getLogger("express-app");
   winston.info("creating express app");
+  const database = getDatabase();
 
   // Create an express application
   const app = express();

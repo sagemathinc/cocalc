@@ -5,6 +5,7 @@
 
 import getPool, { initEphemeralDatabase } from "@cocalc/database/pool";
 import { db } from "@cocalc/database";
+import { testCleanup } from "@cocalc/database/test-utils";
 import { uuid } from "@cocalc/util/misc";
 
 let pool: ReturnType<typeof getPool> | undefined;
@@ -15,9 +16,7 @@ beforeAll(async () => {
 }, 15000);
 
 afterAll(async () => {
-  if (pool) {
-    await pool.end();
-  }
+  await testCleanup();
 });
 
 async function insertProject(opts: {
@@ -48,27 +47,27 @@ describe("manage_users_owner_only set hook", () => {
   });
 
   test("owner can set manage_users_owner_only", async () => {
-    const value = await db()._user_set_query_project_manage_users_owner_only(
-      { project_id: projectId, manage_users_owner_only: true },
-      ownerId,
-    );
+    const value = await db()._user_set_query_project_manage_users_owner_only({
+      project_id: projectId,
+      manage_users_owner_only: true,
+    });
     expect(value).toBe(true);
   });
 
   test("collaborator call returns sanitized value (permission enforced elsewhere)", async () => {
-    const value = await db()._user_set_query_project_manage_users_owner_only(
-      { project_id: projectId, manage_users_owner_only: true },
-      collaboratorId,
-    );
+    const value = await db()._user_set_query_project_manage_users_owner_only({
+      project_id: projectId,
+      manage_users_owner_only: true,
+    });
     expect(value).toBe(true);
   });
 
   test("invalid type is rejected", async () => {
     expect(() =>
-      db()._user_set_query_project_manage_users_owner_only(
-        { project_id: projectId, manage_users_owner_only: "yes" as any },
-        ownerId,
-      ),
+      db()._user_set_query_project_manage_users_owner_only({
+        project_id: projectId,
+        manage_users_owner_only: "yes" as any,
+      }),
     ).toThrow("manage_users_owner_only must be a boolean");
   });
 });

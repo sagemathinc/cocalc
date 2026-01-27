@@ -23,7 +23,7 @@ import * as _ from "lodash";
 import { isEmpty } from "lodash";
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
-import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
+import { set_email_address_verified } from "@cocalc/database/postgres/account/queries";
 import type { PostgreSQL } from "@cocalc/database/postgres/types";
 import generateHash from "@cocalc/server/auth/hash";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";

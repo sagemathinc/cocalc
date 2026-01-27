@@ -83,7 +83,7 @@
     "next-rest-framework": "6.0.0-beta.4",
     "next-translate": "^2.6.2",
     "password-hash": "^1.2.2",
-    "pg": "^8.7.1",
+    "pg": "^8.16.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-google-recaptcha-v3": "^1.9.7",

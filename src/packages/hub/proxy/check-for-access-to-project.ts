@@ -1,7 +1,7 @@
 import LRU from "lru-cache";
 import { callback2 } from "@cocalc/util/async-utils";
 import getLogger from "../logger";
-import { database } from "../servers/database";
+import { getDatabase } from "../servers/database";
 const {
   user_has_write_access_to_project,
   user_has_read_access_to_project,
@@ -128,6 +128,7 @@ async function checkForRememberMeAccess({
   type,
   dbg,
 }): Promise<{ access: boolean; error?: string }> {
+  const database = getDatabase();
   dbg("get remember_me message");
   const x = remember_me.split("$");
   const hash = generateHash(x[0], x[1], parseInt(x[2]), x[3]);
