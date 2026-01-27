@@ -22,7 +22,7 @@ Note: the provider could be changed at any time – what's important is to end u
 
 After introducing new messages, these are the steps to get all translations into CoCalc:
 
-`frontend/package.json` has four script entries, which are for [SimpleLocalize](https://simplelocalize.io/).
+`frontend/package.json` has four script entries, which are for [SimpleLocalize](https://simplelocalize.io/). You have to have `simplelocalize` installed.
 
 1.  `pnpm i18n:extract`:
 
@@ -33,9 +33,9 @@ After introducing new messages, these are the steps to get all translations into
 
     Basically, the `i18n/extracted.json` will be sent to SimpleLocalize.
     The `--overwrite` switch is set, such that all new `defaultMessage`s will show up in the English language source.
-    This also means it makes no sense to touch the English language strings – they must be fixed in the source code in CoCalc's code base.
+    This also means it makes no sense to touch the English language strings – they must be fixed in the source code in CoCalc's code base. This upload step also triggers auto-translation for all languages if SimpleLocalize auto-translation is configured.
 
-1.  Open/refresh SimpleLocalize
+1.  (optional) Review in SimpleLocalize
 
     It will show the new keys or changed English language sources – translate them – save the changes – review if necessary. You can use the sort mechanism to list the ones without a translation at the top. Existing translations with the same ID will not be touched. The English translation might be out of sync with the `defaultMessage`, and you can ignore it – we use the `defaultMessage` for English.
 
@@ -52,6 +52,8 @@ After introducing new messages, these are the steps to get all translations into
 1.  Reload the `frontend` after a compile, such that `await import...` will load the updated translation file for the set locale.
 
 Note: if just a translation has been updated, you only need to do the `i18n:download` & `i18n:compile` steps.
+
+Note: you can also run `pnpm i18n:update` which combines all steps in one go.
 
 ### Unused keys
 
@@ -101,7 +103,6 @@ This is about auto-translations, in "Settings → Auto-translation":
 - To start: when you add a new language, set its full code, e.g. "fr_FR", name "French" and language "French". Translation provider: OpenAI.
 - You need the API key, it's in Integrations → REST API. See notes above.
 - In the Auto-translate configuration, OpenAI → Configure:
-
   - API key: a separate one to track usage, it's fine to restrict its capabilities to list and use models.
   - GPT-4o
   - System prompt: here, the key point is to give some context and to instruct it to retain those ICU messages. That's what I came up with after a few tests and iterations:
