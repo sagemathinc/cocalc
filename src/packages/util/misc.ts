@@ -429,10 +429,10 @@ const reValidEmail = (function () {
   return new RegExp(sValidEmail);
 })();
 
-export function is_valid_email_address(email: string): boolean {
+export function is_valid_email_address(email?: unknown): boolean {
   // From http://stackoverflow.com/questions/46155/validate-email-address-in-javascript
   // but converted to Javascript; it's near the middle but claims to be exactly RFC822.
-  if (reValidEmail.test(email)) {
+  if (typeof email === "string" && reValidEmail.test(email)) {
     return true;
   } else {
     return false;

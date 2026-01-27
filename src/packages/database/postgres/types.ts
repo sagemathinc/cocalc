@@ -105,6 +105,7 @@ export interface UpdateAccountInfoAndPassportOpts {
   id: string;
   profile: any;
   passport_profile: any;
+  email_address?: string;
 }
 
 export interface PostgreSQL extends EventEmitter {
@@ -426,6 +427,14 @@ export interface PostgreSQL extends EventEmitter {
   ): string | undefined;
 
   uncaught_exception: (err: any) => void;
+}
+
+export interface SetAccountFields {
+  db: PostgreSQL;
+  account_id: string;
+  email_address?: string | undefined;
+  first_name?: string | undefined;
+  last_name?: string | undefined;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

@@ -122,7 +122,7 @@ export interface PassportStrategyDBConfig {
  * - description: A longer description of the strategy, could be markdown, shown on the dedicated /sso/... pages.
  * - icon: A URL to an icon
  * - disabled: if true, this is ignored during the initialization
- * - update_on_login: if true, the user's profile is updated on login (first and last name, not email)
+ * - update_on_login: if true, the user's profile is updated on login (first and last name, not email) and NOT by the user.
  * - cookie_ttl_s: how long the remember_me cookied lasts (default is a month or so).
  * This could be set to a much shorter period to force users more frequently to re-login.
  */

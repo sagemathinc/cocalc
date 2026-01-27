@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -12,7 +12,7 @@ import {
   len,
 } from "@cocalc/util/misc";
 import { is_a_site_license_manager } from "./site-license/search";
-import { PostgreSQL } from "./types";
+import { PostgreSQL, SetAccountFields } from "./types";
 //import getLogger from "@cocalc/backend/logger";
 //const L = getLogger("db:pg:account-queries");
 
@@ -44,18 +44,10 @@ export async function is_paying_customer(
   return await is_a_site_license_manager(db, account_id);
 }
 
-interface SetAccountFields {
-  db: PostgreSQL;
-  account_id: string;
-  email_address?: string | undefined;
-  first_name?: string | undefined;
-  last_name?: string | undefined;
-}
-
 // this is like set_account_info_if_different, but only sets the fields if they're not set
 export async function set_account_info_if_not_set(
   opts: SetAccountFields,
-): Promise<void> {
+): Promise<{ email_changed: boolean }> {
   return await set_account_info_if_different(opts, false);
 }
 
@@ -63,7 +55,7 @@ export async function set_account_info_if_not_set(
 export async function set_account_info_if_different(
   opts: SetAccountFields,
   overwrite = true,
-): Promise<void> {
+): Promise<{ email_changed: boolean }> {
   const columns = ["email_address", "first_name", "last_name"];
 
   // this could throw an error for "no such account"
@@ -98,6 +90,19 @@ export async function set_account_info_if_different(
         account_id: opts.account_id,
         email_address: do_email,
       });
+    } else {
+      const existing_account_id = await callback2(
+        opts.db.account_exists.bind(opts.db),
+        {
+          email_address: do_email,
+        },
+      );
+      if (existing_account_id) {
+        throw "email_already_taken";
+      }
+      await set_account(opts.db, opts.account_id, {
+        email_address: do_email,
+      });
     }
     // Just changed email address - might be added to a project...
     await callback2(opts.db.do_account_creation_actions.bind(opts.db), {
@@ -105,6 +110,8 @@ export async function set_account_info_if_different(
       account_id: opts.account_id,
     });
   }
+
+  return { email_changed: !!do_email };
 }
 
 export async function set_account(
@@ -129,6 +136,21 @@ export async function get_account<T>(
     account_id,
     columns,
   });
+}
+
+export async function get_email_address_for_account_id(
+  db: PostgreSQL,
+  account_id: string,
+): Promise<string | undefined> {
+  assert_valid_account_id(account_id);
+  const { rows } = await db.async_query<{ email_address?: string }>({
+    query: "SELECT email_address FROM accounts",
+    where: { "account_id = $::UUID": account_id },
+  });
+  if (rows.length === 0) {
+    return undefined;
+  }
+  return rows[0].email_address ?? undefined;
 }
 
 interface SetEmailAddressVerifiedOpts {
