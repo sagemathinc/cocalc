@@ -1,11 +1,11 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Card, Input, Space } from "antd";
+import { Button, Input, Modal, Space } from "antd";
 import { useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
 import { alert_message } from "@cocalc/frontend/alerts";
 import { ErrorDisplay, LabeledRow, Saving } from "@cocalc/frontend/components";
@@ -14,6 +14,19 @@ import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
 import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
+
+const sendWelcomeEmailError = defineMessage({
+  id: "account.settings.email_address.send_welcome_email_error",
+  defaultMessage: "Problem sending welcome email: {error}",
+  description:
+    "Error shown when the welcome or verification email could not be sent.",
+});
+
+const passwordTooShortError = defineMessage({
+  id: "account.settings.email_address.password_too_short_error",
+  defaultMessage: "Password must be at least {length} characters long.",
+  description: "Shown when the entered password is too short.",
+});
 
 interface Props {
   email_address?: string;
@@ -35,16 +48,18 @@ export const EmailAddressSetting = ({
     email_address0 ?? "",
   );
   const [error, setError] = useState<string>("");
+  const savedEmailAddress = email_address0 ?? "";
 
   function start_editing() {
     setState("edit");
-    set_email_address(email_address0 ?? "");
+    set_email_address(savedEmailAddress);
     setError("");
     setPassword("");
   }
 
   function cancel_editing() {
     setState("view");
+    set_email_address(savedEmailAddress);
     setPassword("");
   }
 
@@ -52,7 +67,9 @@ export const EmailAddressSetting = ({
     if (password.length < MIN_PASSWORD_LENGTH) {
       setState("edit");
       setError(
-        `Password must be at least ${MIN_PASSWORD_LENGTH} characters long.`,
+        intl.formatMessage(passwordTooShortError, {
+          length: MIN_PASSWORD_LENGTH,
+        }),
       );
       return;
     }
@@ -77,17 +94,23 @@ export const EmailAddressSetting = ({
       return;
     }
     try {
+      // Do a round of UI refresh, because maybe the "verify email" dialog will pop up
+      await new Promise((resolve) => {
+        setTimeout(resolve, 0);
+      });
       // anonymous users will get the "welcome" email
       await webapp_client.account_client.send_verification_email(!is_anonymous);
     } catch (error) {
-      const err_msg = `Problem sending welcome email: ${error}`;
+      const err_msg = intl.formatMessage(sendWelcomeEmailError, {
+        error: String(error),
+      });
       console.log(err_msg);
       alert_message({ type: "error", message: err_msg });
     }
   }
 
   function is_submittable(): boolean {
-    return !!(password !== "" && email_address !== email_address0);
+    return !!(password !== "" && email_address !== savedEmailAddress);
   }
 
   function render_error() {
@@ -110,11 +133,18 @@ export const EmailAddressSetting = ({
           "{have_email, select, true {Current password} other {Choose a password}}",
       },
       {
-        have_email: !!email_address,
+        have_email: savedEmailAddress !== "",
       },
     );
     return (
-      <Card style={{ marginTop: "3ex" }}>
+      <Modal
+        closable={state !== "saving"}
+        footer={null}
+        onCancel={state !== "saving" ? cancel_editing : undefined}
+        open={state !== "view"}
+        title={button_label()}
+        width={520}
+      >
         <div style={{ marginBottom: "15px" }}>
           <FormattedMessage
             id="account.settings.email_address.new_email_address_label"
@@ -123,6 +153,7 @@ export const EmailAddressSetting = ({
           <Input
             autoFocus
             placeholder="user@example.com"
+            value={email_address}
             onChange={(e) => {
               set_email_address(e.target.value);
             }}
@@ -146,18 +177,21 @@ export const EmailAddressSetting = ({
           }}
         />
         <Space style={{ marginTop: "15px" }}>
-          <Button onClick={cancel_editing}>Cancel</Button>
+          <Button onClick={cancel_editing} disabled={state === "saving"}>
+            {intl.formatMessage(labels.cancel)}
+          </Button>
           <Button
-            disabled={!is_submittable()}
+            disabled={!is_submittable() || state === "saving"}
+            loading={state === "saving"}
             onClick={save_editing}
             type="primary"
           >
             {button_label()}
           </Button>
+          {render_saving()}
         </Space>
         {render_error()}
-        {render_saving()}
-      </Card>
+      </Modal>
     );
   }
 
@@ -177,7 +211,11 @@ export const EmailAddressSetting = ({
       other {Set email address and password}}`,
       },
       {
-        type: is_anonymous ? "anonymous" : email_address ? "have_email" : "",
+        type: is_anonymous
+          ? "anonymous"
+          : savedEmailAddress
+            ? "have_email"
+            : "",
       },
     );
   }
@@ -196,7 +234,7 @@ export const EmailAddressSetting = ({
       style={disabled ? { color: COLORS.GRAY_M } : undefined}
     >
       <div>
-        {email_address}
+        {savedEmailAddress}
         {state === "view" ? (
           <Button
             disabled={disabled}
