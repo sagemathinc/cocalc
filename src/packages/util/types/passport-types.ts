@@ -9,4 +9,5 @@ export interface PassportStrategyFrontend {
   public?: boolean; // true, if the SSO strategy is a public one like Google – otherwise it's private (university, company)
   exclusive_domains?: string[]; // list of domains, e.g. ["foo.com"], which must go through that SSO mechanism (and hence block normal email signup)
   do_not_hide?: boolean; // if true and a public=false, show it directly on the login/signup page
+  update_on_login?: boolean; // if true and account is governed by an exclusiveDomain, users are not allowed to change their first and last name
 }

@@ -1,7 +1,6 @@
 {
   "permissions": {
     "allow": [
-      "Bash(../node_modules/.bin/tsc:*)",
       "Bash(bash:*)",
       "Bash(cat:*)",
       "Bash(chmod:*)",
@@ -19,6 +18,7 @@
       "Bash(git grep:*)",
       "Bash(git log:*)",
       "Bash(git push:*)",
+      "Bash(git show:*)",
       "Bash(git switch:*)",
       "Bash(grep:*)",
       "Bash(ln:*)",
@@ -34,6 +34,7 @@
       "Bash(pnpm benchmark:*)",
       "Bash(pnpm build-dev:*)",
       "Bash(pnpm build:*)",
+      "Bash(pnpm depcheck:*)",
       "Bash(pnpm exec tsc:*)",
       "Bash(pnpm i18n:*)",
       "Bash(pnpm i18n:compile:*)",
@@ -44,8 +45,8 @@
       "Bash(pnpm info:*)",
       "Bash(pnpm install:*)",
       "Bash(pnpm list:*)",
-      "Bash(pnpm patch:*)",
       "Bash(pnpm patch-commit:*)",
+      "Bash(pnpm patch:*)",
       "Bash(pnpm remove:*)",
       "Bash(pnpm run:*)",
       "Bash(pnpm test:*)",
@@ -54,6 +55,7 @@
       "Bash(pnpm update:*)",
       "Bash(pnpm view:*)",
       "Bash(pnpm why:*)",
+      "Bash(pnpx depcheck:*)",
       "Bash(prettier -w:*)",
       "Bash(psql:*)",
       "Bash(python3:*)",
