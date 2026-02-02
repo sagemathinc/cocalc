@@ -145,7 +145,7 @@ interface Props {
 
 function AIGenerateDocument(props: Props) {
   const { enabledLLMs } = useProjectContext();
-  const llmEnabled = Object.values(enabledLLMs).some(Boolean);
+  const llmEnabled = Object.values(enabledLLMs).some((val) => !!val);
   if (!llmEnabled) {
     return null;
   }
