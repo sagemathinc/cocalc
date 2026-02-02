@@ -42,6 +42,10 @@ export function TableOfContents(props: Props) {
     return <>{props.ifEmpty}</>;
   }
 
+  return <TableOfContentsBody {...props} />;
+}
+
+function TableOfContentsBody(props: Props) {
   return useMemo(() => {
     const entries: React.JSX.Element[] = [];
     for (const entry of props.contents ?? []) {

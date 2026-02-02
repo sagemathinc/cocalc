@@ -53,14 +53,7 @@ export default function HelpMeFix({
   prioritize,
 }: Props) {
   const { redux, project_id, path } = useFrameContext();
-  const [gettingHelp, setGettingHelp] = useState<boolean>(false);
-  const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
   const projectsStore: ProjectsStore = redux.getStore("projects");
-  const [model, setModel] = useLanguageModelSetting(project_id);
-  const [solutionTokens, setSolutionTokens] = useState<number>(0);
-  const [hintTokens, setHintTokens] = useState<number>(0);
-
-  // Check permissions for both hint and complete solution
   const canGetHint = projectsStore.hasLanguageModelEnabled(
     project_id,
     "help-me-fix-hint",
@@ -73,6 +66,57 @@ export default function HelpMeFix({
   if (redux == null || (!canGetHint && !canGetSolution)) {
     return null;
   }
+  return (
+    <HelpMeFixComponent
+      error={error}
+      line={line}
+      task={task}
+      input={input}
+      tag={tag}
+      language={language}
+      extraFileInfo={extraFileInfo}
+      style={style}
+      outerStyle={outerStyle}
+      size={size}
+      prioritize={prioritize}
+      redux={redux}
+      project_id={project_id}
+      path={path}
+      canGetHint={canGetHint}
+      canGetSolution={canGetSolution}
+    />
+  );
+}
+
+function HelpMeFixComponent({
+  error,
+  line,
+  task,
+  input,
+  tag,
+  language,
+  extraFileInfo,
+  style,
+  outerStyle,
+  size,
+  prioritize,
+  redux,
+  project_id,
+  path,
+  canGetHint,
+  canGetSolution,
+}: Props & {
+  redux: ReturnType<typeof useFrameContext>["redux"];
+  project_id: string;
+  path: string;
+  canGetHint: boolean;
+  canGetSolution: boolean;
+}) {
+  const [gettingHelp, setGettingHelp] = useState<boolean>(false);
+  const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
+  const [model, setModel] = useLanguageModelSetting(project_id);
+  const [solutionTokens, setSolutionTokens] = useState<number>(0);
+  const [hintTokens, setHintTokens] = useState<number>(0);
 
   function createMessageMode(
     mode: "solution" | "hint",

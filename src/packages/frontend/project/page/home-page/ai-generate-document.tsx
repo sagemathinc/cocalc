@@ -142,7 +142,14 @@ interface Props {
   filename?: string;
 }
 
-function AIGenerateDocument({
+function AIGenerateDocument(props: Props) {
+  if (!redux.getStore("projects").hasLanguageModelEnabled(props.project_id)) {
+    return null;
+  }
+  return <AIGenerateDocumentComponent {...props} />;
+}
+
+function AIGenerateDocumentComponent({
   onSuccess,
   show,
   project_id,
@@ -606,10 +613,6 @@ function AIGenerateDocument({
 
     // after setting up listeners, we start the stream
     llmStream.emit("start");
-  }
-
-  if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
-    return null;
   }
 
   const fullPrompt = createPrompt();
