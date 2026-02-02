@@ -23,7 +23,7 @@ import {
 } from "antd";
 import { delay } from "awaiting";
 import { debounce, isEmpty, throttle } from "lodash";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -65,6 +65,7 @@ import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { DELAY_SHOW_MS } from "@cocalc/frontend/project/new/consts";
 import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
@@ -143,39 +144,8 @@ interface Props {
 }
 
 function AIGenerateDocument(props: Props) {
-  const openaiEnabled = useTypedRedux("customize", "openai_enabled");
-  const googleEnabled = useTypedRedux("customize", "google_vertexai_enabled");
-  const ollamaEnabled = useTypedRedux("customize", "ollama_enabled");
-  const customOpenaiEnabled = useTypedRedux(
-    "customize",
-    "custom_openai_enabled",
-  );
-  const mistralEnabled = useTypedRedux("customize", "mistral_enabled");
-  const anthropicEnabled = useTypedRedux("customize", "anthropic_enabled");
-  const xaiEnabled = useTypedRedux("customize", "xai_enabled");
-  const userDefinedLLM = useTypedRedux("customize", "user_defined_llm");
-  const accountCustomize = useTypedRedux("account", "customize");
-  const otherSettings = useTypedRedux("account", "other_settings");
-  const projectMap = useTypedRedux("projects", "project_map");
-
-  const llmEnabled = useMemo(
-    () => redux.getStore("projects").hasLanguageModelEnabled(props.project_id),
-    [
-      props.project_id,
-      openaiEnabled,
-      googleEnabled,
-      ollamaEnabled,
-      customOpenaiEnabled,
-      mistralEnabled,
-      anthropicEnabled,
-      xaiEnabled,
-      userDefinedLLM,
-      accountCustomize,
-      otherSettings,
-      projectMap,
-    ],
-  );
-
+  const { enabledLLMs } = useProjectContext();
+  const llmEnabled = Object.values(enabledLLMs).some(Boolean);
   if (!llmEnabled) {
     return null;
   }
