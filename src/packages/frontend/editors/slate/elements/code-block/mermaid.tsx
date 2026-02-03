@@ -54,7 +54,7 @@ export default function Mermaid({ value, style }: Props) {
         processingRef.current = false;
       }
     })();
-  }, [value]);
+  }, [getMermaid, id, value]);
 
   if (getMermaid == null) {
     return <div style={style}>Mermaid not available</div>;
