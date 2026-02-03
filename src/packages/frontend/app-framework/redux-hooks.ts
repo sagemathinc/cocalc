@@ -40,10 +40,14 @@ and you'll always get back undefined.
 
 import React, { useCallback, useEffect, useRef } from "react";
 
+import {
+  ProjectActions,
+  ProjectStore,
+  redux,
+} from "@cocalc/frontend/app-framework";
+import * as types from "@cocalc/frontend/app-framework/actions-and-stores";
+import { ProjectStoreState } from "@cocalc/frontend/project_store";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
-import { redux, ProjectActions, ProjectStore } from "../app-framework";
-import { ProjectStoreState } from "../project_store";
-import * as types from "./actions-and-stores";
 
 export function useReduxNamedStore(path: string[]) {
   const [value, set_value] = React.useState(() => {
