@@ -65,6 +65,7 @@ import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import NBViewer from "@cocalc/frontend/jupyter/nbviewer/nbviewer";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 import { DELAY_SHOW_MS } from "@cocalc/frontend/project/new/consts";
 import { STYLE as NEW_FILE_STYLE } from "@cocalc/frontend/project/new/new-file-button";
 import { ensure_project_running } from "@cocalc/frontend/project/project-start-warning";
@@ -142,7 +143,16 @@ interface Props {
   filename?: string;
 }
 
-function AIGenerateDocument({
+function AIGenerateDocument(props: Props) {
+  const { enabledLLMs } = useProjectContext();
+  const llmEnabled = Object.values(enabledLLMs).some((val) => !!val);
+  if (!llmEnabled) {
+    return null;
+  }
+  return <AIGenerateDocumentComponent {...props} />;
+}
+
+function AIGenerateDocumentComponent({
   onSuccess,
   show,
   project_id,
@@ -606,10 +616,6 @@ function AIGenerateDocument({
 
     // after setting up listeners, we start the stream
     llmStream.emit("start");
-  }
-
-  if (!redux.getStore("projects").hasLanguageModelEnabled(project_id)) {
-    return null;
   }
 
   const fullPrompt = createPrompt();
