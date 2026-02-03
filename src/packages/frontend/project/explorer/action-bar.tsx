@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -47,9 +47,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   const student_project_functionality = useStudentProjectFunctionality(
     props.actions.project_id,
   );
-  if (student_project_functionality.disableActions) {
-    return <div></div>;
-  }
+  const disableActions = student_project_functionality.disableActions;
 
   useEffect(() => {
     // user changed directory, hide the "select entire directory" button
@@ -67,6 +65,10 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       set_select_entire_directory("clear");
     }
   }, [props.checked_files, props.listing, select_entire_directory]);
+
+  if (disableActions) {
+    return <div></div>;
+  }
 
   function clear_selection(): void {
     props.actions.set_all_files_unchecked();

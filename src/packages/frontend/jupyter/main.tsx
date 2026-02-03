@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -187,8 +187,9 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "check_select_kernel_init",
   ]);
 
+  const computeServerIds = useTypedRedux({ project_id }, "compute_server_ids");
   const computeServerId = path
-    ? useTypedRedux({ project_id }, "compute_server_ids")?.get(syncdbPath(path))
+    ? computeServerIds?.get(syncdbPath(path))
     : undefined;
 
   useEffect(() => {

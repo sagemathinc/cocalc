@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -38,10 +38,11 @@ and you'll always get back undefined.
  useRedux(['', 'other', 'stuff']) === undefined
 */
 
+import React, { useCallback, useEffect, useRef } from "react";
+
 import { is_valid_uuid_string } from "@cocalc/util/misc";
 import { redux, ProjectActions, ProjectStore } from "../app-framework";
 import { ProjectStoreState } from "../project_store";
-import React, { useEffect, useRef } from "react";
 import * as types from "./actions-and-stores";
 
 export function useReduxNamedStore(path: string[]) {
@@ -95,43 +96,6 @@ export function useReduxNamedStore(path: string[]) {
       store.removeListener("change", f);
     };
   }, path);
-
-  return value;
-}
-
-function useReduxProjectStore(path: string[], project_id: string) {
-  const [value, set_value] = React.useState(() =>
-    redux
-      .getProjectStore(project_id)
-      .getIn(path as [string, string, string, string, string]),
-  );
-
-  useEffect(() => {
-    const store = redux.getProjectStore(project_id);
-    let last_value = value;
-    const f = (obj) => {
-      if (obj == null || !f.is_mounted) return; // see comment for useReduxNamedStore
-      const new_value = obj.getIn(path);
-      if (last_value !== new_value) {
-        /*
-        console.log("useReduxProjectStore change ", {
-          path: JSON.stringify(path),
-          new_value,
-          last_value,
-        });
-        */
-        last_value = new_value;
-        set_value(new_value);
-      }
-    };
-    f.is_mounted = true;
-    store.on("change", f);
-    f(store);
-    return () => {
-      f.is_mounted = false;
-      store.removeListener("change", f);
-    };
-  }, [...path, project_id]);
 
   return value;
 }
@@ -225,24 +189,28 @@ export function useTypedRedux(
   a: keyof StoreStates | { project_id: string },
   field: string,
 ) {
-  if (typeof a == "string") {
-    return useRedux([a, field]);
-  }
-  return useRedux(a.project_id, field);
+  const path = typeof a == "string" ? a : a.project_id;
+  return useRedux(path, field);
 }
 
 export function useEditorRedux<State>(editor: {
   project_id: string;
   path: string;
 }) {
-  function f<S extends keyof State>(field: S): State[S] {
-    return useReduxEditorStore(
-      [field as string],
-      editor.project_id,
-      editor.path,
-    ) as any;
-  }
-  return f;
+  const store = useReduxEditorStore([], editor.project_id, editor.path) as any;
+  return useCallback(
+    <S extends keyof State>(field: S): State[S] => {
+      if (store == null) return undefined as any;
+      if (typeof store.getIn == "function") {
+        return store.getIn([field as string]);
+      }
+      if (typeof store.get == "function") {
+        return store.get(field as string);
+      }
+      return store[field as string];
+    },
+    [store],
+  );
 }
 
 /*
@@ -270,11 +238,16 @@ export function useEditorRedux(
 }
 */
 
-export function useRedux(
+type ReduxTarget =
+  | { kind: "named"; path: string[] }
+  | { kind: "project"; path: string[]; project_id: string }
+  | { kind: "editor"; path: string[]; project_id: string; filename: string };
+
+function normalizeReduxArgs(
   path: string | string[],
   project_id?: string,
   filename?: string,
-) {
+): ReduxTarget {
   if (typeof path == "string") {
     // good typed version!! -- path specifies store
     if (typeof project_id != "string" || typeof filename != "undefined") {
@@ -283,23 +256,135 @@ export function useRedux(
       );
     }
     if (is_valid_uuid_string(path)) {
-      return useRedux([project_id], path);
-    } else {
-      return useRedux([path, project_id]);
+      return { kind: "project", path: [project_id], project_id: path };
     }
+    return { kind: "named", path: [path, project_id] };
   }
   if (project_id == null) {
-    return useReduxNamedStore(typeof path == "string" ? [path] : path);
+    return { kind: "named", path };
   }
   if (filename == null) {
     if (!is_valid_uuid_string(project_id)) {
       // this is used a lot by frame-tree editors right now.
-      return useReduxNamedStore([project_id].concat(path));
-    } else {
-      return useReduxProjectStore(path, project_id);
+      return { kind: "named", path: [project_id].concat(path) };
     }
+    return { kind: "project", path, project_id };
   }
-  return useReduxEditorStore(path, project_id, filename);
+  return { kind: "editor", path, project_id, filename };
+}
+
+function getReduxValue(target: ReduxTarget) {
+  if (target.kind == "named") {
+    if (target.path[0] == "") {
+      return undefined;
+    }
+    return redux.getStore(target.path[0])?.getIn(target.path.slice(1) as any);
+  }
+  if (target.kind == "project") {
+    return redux
+      .getProjectStore(target.project_id)
+      .getIn(target.path as [string, string, string, string, string]);
+  }
+  return redux
+    .getEditorStore(target.project_id, target.filename)
+    ?.getIn(target.path as [string, string, string, string, string]);
+}
+
+export function useRedux(
+  path: string | string[],
+  project_id?: string,
+  filename?: string,
+) {
+  const target = normalizeReduxArgs(path, project_id, filename);
+  const targetKey = JSON.stringify(target);
+  const [value, set_value] = React.useState(() => getReduxValue(target));
+
+  useEffect(() => {
+    let store: any;
+    let last_value = getReduxValue(target);
+    let is_mounted = true;
+    set_value(last_value);
+
+    const update = (obj) => {
+      if (obj == null || !is_mounted) return;
+      const subpath =
+        target.kind == "named" ? target.path.slice(1) : target.path;
+      const new_value = obj.getIn(subpath as any);
+      if (last_value !== new_value) {
+        last_value = new_value;
+        set_value(new_value);
+      }
+    };
+
+    if (target.kind == "named") {
+      if (target.path[0] == "") {
+        return () => {
+          is_mounted = false;
+        };
+      }
+      store = redux.getStore(target.path[0]);
+      if (store == null) {
+        console.warn(
+          `store "${target.path[0]}" must exist; path=`,
+          target.path,
+        );
+        return () => {
+          is_mounted = false;
+        };
+      }
+      store.on("change", update);
+      update(store);
+      return () => {
+        is_mounted = false;
+        store?.removeListener("change", update);
+      };
+    }
+
+    if (target.kind == "project") {
+      store = redux.getProjectStore(target.project_id);
+      store.on("change", update);
+      update(store);
+      return () => {
+        is_mounted = false;
+        store?.removeListener("change", update);
+      };
+    }
+
+    let editorStore = redux.getEditorStore(target.project_id, target.filename);
+    const f = (obj) => {
+      if (obj == null || !is_mounted) return;
+      const new_value = obj.getIn(target.path);
+      if (last_value !== new_value) {
+        last_value = new_value;
+        set_value(new_value);
+      }
+    };
+    f(editorStore);
+    if (editorStore != null) {
+      editorStore.on("change", f);
+    } else {
+      const g = () => {
+        if (!is_mounted) {
+          unsubscribe();
+          return;
+        }
+        editorStore = redux.getEditorStore(target.project_id, target.filename);
+        if (editorStore != null) {
+          unsubscribe();
+          f(editorStore); // may have missed an initial change
+          editorStore.on("change", f);
+        }
+      };
+      const unsubscribe = redux.reduxStore.subscribe(g);
+    }
+
+    return () => {
+      is_mounted = false;
+      editorStore?.removeListener("change", f);
+    };
+  }, [targetKey]);
+
+  return value;
 }
 
 /*
