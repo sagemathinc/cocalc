@@ -44,7 +44,7 @@ jobs:
         run: cd src/scripts && python3 check_doc_urls.py
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: runner
 
     strategy:
       matrix:
