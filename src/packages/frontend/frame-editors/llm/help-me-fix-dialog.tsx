@@ -27,12 +27,12 @@ import type { Message } from "@cocalc/frontend/client/types";
 import {
   HelpIcon,
   Icon,
-  Markdown,
   Paragraph,
   RawPrompt,
 } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { LLMModelName } from "@cocalc/frontend/components/llm-name";
+import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import type { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import { dialogs, labels } from "@cocalc/frontend/i18n";
 import { LLMCellContextSelector } from "@cocalc/frontend/jupyter/llm/cell-context-selector";
@@ -420,7 +420,7 @@ function HelpMeFixDialog({
               overflow: "auto",
             }}
           >
-            <Markdown value={response} />
+            <StaticMarkdown value={response} />
           </div>
         )}
 
