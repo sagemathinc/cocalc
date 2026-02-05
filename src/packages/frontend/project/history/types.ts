@@ -144,6 +144,9 @@ export type AIAssistanceEvent = {
   path: string;
   model?: string;
   tag?: string;
+  cellNumber?: number;
+  cellId?: string;
+  lineNumber?: number;
 };
 
 export type AssistantEvent = {

@@ -27,6 +27,7 @@ export { getHelp } from "./help-me-fix-utils";
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
   line?: string | (() => string); // the line content where the error was produced, if available
+  lineNumber?: number; // line number (1-based) where the error was produced, if available
   input?: string | (() => string); // the input, e.g., code you ran
   task?: string; // what you're doing, e.g., "ran a cell in a Jupyter notebook" or "ran a code formatter"
   tag?: string;
@@ -50,6 +51,7 @@ function get(f: undefined | string | (() => string)): string {
 export default function HelpMeFix({
   error,
   line,
+  lineNumber,
   task,
   input,
   tag,
@@ -85,6 +87,7 @@ export default function HelpMeFix({
       path,
       error: get(error),
       line: get(line),
+      lineNumber,
       input: get(input),
       task,
       tag,

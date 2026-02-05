@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -147,6 +147,7 @@ const Item: React.FC<ItemProps> = React.memo(
           task={"ran latex"}
           error={item.get("message") ?? ""}
           line={item.get("content") ?? ""}
+          lineNumber={line}
           input={() => {
             const s = actions._syncstring.to_str();
             const v = s
@@ -219,8 +220,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
     const status: string = useRedux([name, "status"]) ?? "";
     const knitr: boolean = useRedux([name, "knitr"]);
     const includeError: string = useRedux([name, "includeError"]) ?? "";
-    
-    
+
     function render_status(): Rendered {
       if (status) {
         return (

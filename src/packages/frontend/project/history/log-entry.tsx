@@ -41,6 +41,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SOFTWARE_ENVIRONMENT_ICON } from "../settings/software-consts";
 import { SystemProcess } from "./system-process";
+import { handleFileEntryClick } from "./utils";
 import type {
   AIAssistanceEvent,
   AssistantEvent,
@@ -665,7 +666,7 @@ export const LogEntry: React.FC<Props> = React.memo(
     }
 
     function render_ai_assistance(event: AIAssistanceEvent): Rendered {
-      const { mode, model, path } = event;
+      const { mode, model, path, cellNumber, cellId, lineNumber } = event;
 
       const name = (
         <Space size="small">
@@ -685,10 +686,43 @@ export const LogEntry: React.FC<Props> = React.memo(
         />
       );
 
+      const showCellLink = cellNumber != null && cellId;
+      const showLineLink = !showCellLink && lineNumber != null;
+
       return (
         <span>
           requested {name} <strong>{mode === "hint" ? "hint" : "fix"}</strong>{" "}
           for {pathLink}
+          {showCellLink && (
+            <span>
+              {" "}
+              in{" "}
+              <a
+                onClick={(e) =>
+                  handleFileEntryClick(e, path, project_id, { id: cellId })
+                }
+                style={{ color: COLORS.GRAY_D, fontWeight: "bold" }}
+              >
+                cell #{cellNumber}
+              </a>
+            </span>
+          )}
+          {showLineLink && (
+            <span>
+              {" "}
+              in{" "}
+              <a
+                onClick={(e) =>
+                  handleFileEntryClick(e, path, project_id, {
+                    line: `${lineNumber}`,
+                  })
+                }
+                style={{ color: COLORS.GRAY_D, fontWeight: "bold" }}
+              >
+                line #{lineNumber}
+              </a>
+            </span>
+          )}
         </span>
       );
     }

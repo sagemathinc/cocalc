@@ -108,6 +108,7 @@ export interface ShowHelpMeFixDialogOpts {
   path: string;
   error: string;
   line?: string;
+  lineNumber?: number;
   input?: string;
   task?: string;
   tag?: string;
@@ -139,6 +140,7 @@ function HelpMeFixDialog({
   path,
   error,
   line = "",
+  lineNumber,
   input = "",
   task,
   tag,
@@ -315,6 +317,21 @@ function HelpMeFixDialog({
 
   function logAssistance() {
     try {
+      let cellNumber: number | undefined;
+      let cellIdForLog: string | undefined;
+      if (hasJupyterContext && cellId && notebookFrameActions) {
+        try {
+          const index =
+            notebookFrameActions.jupyter_actions?.store.get_cell_index(cellId);
+          if (index != null) {
+            cellNumber = index + 1;
+            cellIdForLog = cellId;
+          }
+        } catch {
+          cellNumber = undefined;
+          cellIdForLog = undefined;
+        }
+      }
       const projectActions = redux.getProjectActions(project_id);
       projectActions?.log({
         event: "ai_assistance",
@@ -322,6 +339,9 @@ function HelpMeFixDialog({
         path,
         model,
         tag: tag ?? undefined,
+        cellNumber,
+        cellId: cellIdForLog,
+        lineNumber,
       });
     } catch {
       // logging failure should not block the user
@@ -404,7 +424,7 @@ function HelpMeFixDialog({
           </div>
         )}
 
-        {response && (
+        {response && !isHint && (
           <Space.Compact style={{ width: "100%" }}>
             <Button
               icon={
@@ -453,7 +473,7 @@ function HelpMeFixDialog({
     );
   }
 
-  const showReplaceButtons = onReplace != null && !!extractedCode;
+  const showReplaceButtons = !isHint && onReplace != null && !!extractedCode;
 
   return (
     <Modal
