@@ -1,7 +1,7 @@
 import { sanitize_html_attributes } from "../misc";
 
 describe("sanitize_html_attributes", () => {
-  // Mock jQuery
+  // Mock jQuery: $(node) returns an object with removeAttr
   const $ = (node: { attributes?: { name: string; value: string }[] }) => ({
     removeAttr: (name: string) => {
       if (node.attributes) {
@@ -12,13 +12,6 @@ describe("sanitize_html_attributes", () => {
       }
     },
   });
-
-  // Cast to any to add the static 'each' method
-  ($ as any).each = (collection: any, callback: Function) => {
-    if (!collection) return;
-    // Iterate over a copy to allow modification during iteration
-    [...collection].forEach((item) => callback.call(item));
-  };
 
   test("removes standard onload attribute", () => {
     const node = {
@@ -91,5 +84,36 @@ describe("sanitize_html_attributes", () => {
     sanitize_html_attributes($, node);
     expect(node.attributes).toHaveLength(1);
     expect(node.attributes[0].name).toBe("href");
+  });
+
+  test("removes all consecutive unsafe attributes (live-collection regression)", () => {
+    // This is the XSS scenario: consecutive on* attributes where removing
+    // the first one would shift indices and skip the second in a live
+    // NamedNodeMap if iterated without snapshotting.
+    const node = {
+      attributes: [
+        { name: "onload", value: "alert(1)" },
+        { name: "onerror", value: "alert(2)" },
+        { name: "class", value: "test" },
+      ],
+    };
+    sanitize_html_attributes($, node);
+    expect(node.attributes).toHaveLength(1);
+    expect(node.attributes[0].name).toBe("class");
+  });
+
+  test("removes many unsafe attributes interleaved with safe ones", () => {
+    const node = {
+      attributes: [
+        { name: "onload", value: "x" },
+        { name: "class", value: "ok" },
+        { name: "onerror", value: "x" },
+        { name: "id", value: "ok" },
+        { name: "onclick", value: "x" },
+      ],
+    };
+    sanitize_html_attributes($, node);
+    expect(node.attributes).toHaveLength(2);
+    expect(node.attributes.map((a) => a.name)).toEqual(["class", "id"]);
   });
 });

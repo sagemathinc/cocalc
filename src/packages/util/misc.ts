@@ -2445,17 +2445,15 @@ export function obj_key_subs(obj: object, subs: { [key: string]: any }): void {
 // * packages/backend/misc_node → sanitize_html
 // * packages/frontend/misc-page    → sanitize_html
 export function sanitize_html_attributes($, node): void {
-  $.each(node.attributes, function () {
-    // sometimes, "this" is undefined -- #2823
-    // @ts-ignore -- no implicit this
-    if (this == null) {
-      return;
+  // Use Array.from to snapshot node.attributes (a live NamedNodeMap).
+  // Iterating a live collection while removing attributes shifts indices
+  // and causes elements to be skipped — an XSS vulnerability.
+  for (const attr of Array.from(node.attributes)) {
+    if (attr == null) {
+      continue;
     }
-    // @ts-ignore -- no implicit this
-    const attrName = this.name;
-    // @ts-ignore -- no implicit this
-    const attrValue = this.value;
-    // Normalize checks
+    const attrName = (attr as Attr).name;
+    const attrValue = (attr as Attr).value;
     const lowerName = attrName?.toLowerCase() ?? "";
     // Remove whitespace and control characters (ASCII 0-31) from value for checking
     const normalizedValue =
@@ -2471,7 +2469,7 @@ export function sanitize_html_attributes($, node): void {
     ) {
       $(node).removeAttr(attrName);
     }
-  });
+  }
 }
 
 // convert a jupyter kernel language (i.e. "python" or "r", usually short and lowercase)
