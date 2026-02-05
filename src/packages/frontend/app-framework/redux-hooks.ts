@@ -4,41 +4,46 @@
  */
 
 /*
+Overview
+--------
+This file defines the core React hooks for reading Redux-like stores in the
+frontend. There are three usage shapes:
 
-**IMPORTANT:** TYPED REDUX HOOKS -- If you use
+1) Named/global store:
+   const accountId = useRedux(["account", "account_id"]);
 
-        useTypedRedux('name' | {project_id:'the project id'}, 'one field')
+2) Project store:
+   const title = useRedux(["settings", "title"], projectId);
 
-then you will get good guaranteed typing (unless, of course, the global store
-hasn't been converted to typescript yet!). If you use plain useRedux, you
-get a dangerous "any" type out!
+3) Editor store in a project:
+   const cursor = useRedux(["cursor"], projectId, path);
 
----
+Typed hook wrapper:
+  const projectState = useTypedRedux({ project_id: projectId }, "status");
+  const pageState = useTypedRedux("page", "current_tab");
 
-Hook for getting anything from our global redux store, and this should
-also work fine with computed properties.
+Editor selector hook:
+  const useEditor = useEditorRedux<MyEditorState>({ project_id, path });
+  const tasks = useEditor("tasks");
+  const pages = useEditor("pages");
 
-Use it is as follows:
+If the store name is not yet known, you may use "" to get undefined:
+  useRedux(["", "whatever"]) === undefined
 
-With a named store, such as "projects", "account", "page", etc.:
-
- useRedux(['name-of-store', 'path', 'in', 'store'])
-
-With a specific project:
-
- useRedux(['path', 'in', 'project store'], 'project-id')
-
-Or with an editor in a project:
-
- useRedux(['path', 'in', 'project store'], 'project-id', 'path')
-
-If you don't know the name of the store initially, you can use a name of '',
-and you'll always get back undefined.
-
- useRedux(['', 'other', 'stuff']) === undefined
+Implementation Notes
+--------------------
+- All hooks are called unconditionally and keep a stable order to satisfy
+  react-hooks/rules-of-hooks.
+- Subscriptions listen to the store "change" event and compare values by
+  reference. Immutable stores are expected to update references on changes.
+- useRedux normalizes arguments into a tagged target and uses a single
+  subscription path.
+- useEditorRedux returns a selector function that tracks which fields were
+  read during render and only re-renders when those fields change. This keeps
+  hook usage valid while preserving per-field change detection.
 */
 
-import React, { useCallback, useEffect, useRef } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useRef } from "react";
 
 import {
   ProjectActions,
@@ -48,120 +53,6 @@ import {
 import * as types from "@cocalc/frontend/app-framework/actions-and-stores";
 import { ProjectStoreState } from "@cocalc/frontend/project_store";
 import { is_valid_uuid_string } from "@cocalc/util/misc";
-
-export function useReduxNamedStore(path: string[]) {
-  const [value, set_value] = React.useState(() => {
-    return redux.getStore(path[0])?.getIn(path.slice(1) as any) as any;
-  });
-
-  useEffect(() => {
-    if (path[0] == "") {
-      // Special case -- we allow passing "" for the name of the store and get out undefined.
-      // This is useful when using the useRedux hook but when the name of the store isn't known initially.
-      return undefined;
-    }
-    const store = redux.getStore(path[0]);
-    if (store == null) {
-      // This could happen if some input is invalid, e.g., trying to create one of these
-      // redux hooks with an invalid project_id. There will be other warnings in the logs
-      // about that.  It's better at this point to warn once in the logs, rather than completely
-      // crash the client.
-      console.warn(`store "${path[0]}" must exist; path=`, path);
-      return undefined;
-    }
-    const subpath = path.slice(1);
-    let last_value = value;
-    const f = () => {
-      if (!f.is_mounted) {
-        // CRITICAL: even after removing the change listener, sometimes f gets called;
-        // I don't know why EventEmitter has those semantics, but it definitely does.
-        // That's why we *also* maintain this is_mounted flag.
-        return;
-      }
-      const new_value = store.getIn(subpath as any);
-      if (last_value !== new_value) {
-        /*
-        console.log("useReduxNamedStore change ", {
-          name: path[0],
-          path: JSON.stringify(path),
-          new_value,
-          last_value,
-        });
-        */
-        last_value = new_value;
-        set_value(new_value);
-      }
-    };
-    f.is_mounted = true;
-    store.on("change", f);
-    f();
-    return () => {
-      f.is_mounted = false;
-      store.removeListener("change", f);
-    };
-  }, path);
-
-  return value;
-}
-
-function useReduxEditorStore(
-  path: string[],
-  project_id: string,
-  filename: string,
-) {
-  const [value, set_value] = React.useState(() =>
-    // the editor itself might not be defined hence the ?. below:
-    redux
-      .getEditorStore(project_id, filename)
-      ?.getIn(path as [string, string, string, string, string]),
-  );
-
-  useEffect(() => {
-    let store = redux.getEditorStore(project_id, filename);
-    let last_value = value;
-    const f = (obj) => {
-      if (obj == null || !f.is_mounted) return; // see comment for useReduxNamedStore
-      const new_value = obj.getIn(path);
-      if (last_value !== new_value) {
-        last_value = new_value;
-        set_value(new_value);
-      }
-    };
-    f.is_mounted = true;
-    f(store);
-    if (store != null) {
-      store.on("change", f);
-    } else {
-      /* This code is extra complicated since we account for the case
-         when getEditorStore is undefined then becomes defined.
-         Very rarely there are components that useRedux and somehow
-         manage to do so before the editor store gets created.
-         NOTE: I might be able to solve this same problem with
-         simpler code with useAsyncEffect...
-      */
-      const g = () => {
-        if (!f.is_mounted) {
-          unsubscribe();
-          return;
-        }
-        store = redux.getEditorStore(project_id, filename);
-        if (store != null) {
-          unsubscribe();
-          f(store); // may have missed an initial change
-          store.on("change", f);
-        }
-      };
-      const unsubscribe = redux.reduxStore.subscribe(g);
-    }
-
-    return () => {
-      f.is_mounted = false;
-      store?.removeListener("change", f);
-    };
-  }, [...path, project_id, filename]);
-
-  return value;
-}
 
 export interface StoreStates {
   account: types.AccountState;
@@ -179,6 +70,16 @@ export interface StoreStates {
   news: types.NewsState;
 }
 
+/**
+ * Typed wrapper around useRedux.
+ *
+ * Use this for safer typing when possible. The overloads enforce which
+ * store is being accessed and the field name within that store.
+ *
+ * Examples:
+ *   const pageTab = useTypedRedux("page", "current_tab");
+ *   const status = useTypedRedux({ project_id }, "status");
+ */
 export function useTypedRedux<
   T extends keyof StoreStates,
   S extends keyof StoreStates[T],
@@ -193,68 +94,168 @@ export function useTypedRedux(
   a: keyof StoreStates | { project_id: string },
   field: string,
 ) {
-  const path = typeof a == "string" ? a : a.project_id;
+  const path = typeof a === "string" ? a : a.project_id;
   return useRedux(path, field);
 }
 
+/**
+ * Read a field from an editor store regardless of the underlying store API.
+ *
+ * This supports Immutable-style stores that expose getIn/get, as well as
+ * plain object stores. It returns undefined for missing stores/fields.
+ */
+function getEditorFieldValue(store: any, field: string) {
+  if (store == null) return undefined;
+  if (typeof store.getIn === "function") {
+    return store.getIn([field]);
+  }
+  if (typeof store.get === "function") {
+    return store.get(field);
+  }
+  return store[field];
+}
+
+/**
+ * Hook that returns a selector for editor store fields.
+ *
+ * The returned function is NOT a hook. Call it during render to read fields
+ * and to register which fields this component depends on.
+ *
+ * Example:
+ *   const useEditor = useEditorRedux<MyEditorState>({ project_id, path });
+ *   const tasks = useEditor("tasks");
+ *   const pages = useEditor("pages");
+ *
+ * Implementation details:
+ * - Tracks fields read during render (renderFieldsRef).
+ * - After render (useLayoutEffect), snapshots those fields into
+ *   trackedFieldsRef and caches their latest values.
+ * - A single store subscription compares only tracked fields and triggers
+ *   a re-render when any of them changes.
+ * - Handles editor store creation being delayed by subscribing to the
+ *   global redux store until the editor store exists.
+ */
 export function useEditorRedux<State>(editor: {
   project_id: string;
   path: string;
 }) {
-  const store = useReduxEditorStore([], editor.project_id, editor.path) as any;
-  return useCallback(
-    <S extends keyof State>(field: S): State[S] => {
-      if (store == null) return undefined as any;
-      if (typeof store.getIn == "function") {
-        return store.getIn([field as string]);
-      }
-      if (typeof store.get == "function") {
-        return store.get(field as string);
-      }
-      return store[field as string];
-    },
-    [store],
+  const [, forceRender] = React.useState(0);
+  const storeRef = useRef<any>(
+    redux.getEditorStore(editor.project_id, editor.path),
   );
-}
+  const trackedFieldsRef = useRef<Set<string>>(new Set());
+  const lastValuesRef = useRef<Map<string, any>>(new Map());
+  const renderFieldsRef = useRef<Set<string>>(new Set());
+  const editorKeyRef = useRef<string>("");
 
-/*
-export function useEditorRedux<State, S extends keyof State>(editor: {
-  project_id: string;
-  path: string;
-}): State[S] {
-  return useReduxEditorStore(
-    [S as string],
-    editor.project_id,
-    editor.path
-  ) as any;
+  const editorKey = `${editor.project_id}:${editor.path}`;
+  if (editorKeyRef.current !== editorKey) {
+    editorKeyRef.current = editorKey;
+    trackedFieldsRef.current = new Set();
+    lastValuesRef.current = new Map();
+  }
+
+  storeRef.current = redux.getEditorStore(editor.project_id, editor.path);
+  renderFieldsRef.current = new Set();
+
+  const selectField = useCallback(<S extends keyof State>(field: S) => {
+    renderFieldsRef.current.add(field as string);
+    return getEditorFieldValue(storeRef.current, field as string) as State[S];
+  }, []);
+
+  useLayoutEffect(() => {
+    const fields = renderFieldsRef.current;
+    trackedFieldsRef.current = fields;
+    const store = storeRef.current;
+    const lastValues = lastValuesRef.current;
+    for (const field of Array.from(lastValues.keys())) {
+      if (!fields.has(field)) {
+        lastValues.delete(field);
+      }
+    }
+    if (store != null) {
+      for (const field of fields) {
+        lastValues.set(field, getEditorFieldValue(store, field));
+      }
+    }
+  });
+
+  useEffect(() => {
+    let store = redux.getEditorStore(editor.project_id, editor.path);
+    storeRef.current = store;
+    let is_mounted = true;
+    let unsubscribe: (() => void) | undefined;
+
+    const update = (obj) => {
+      if (obj == null || !is_mounted) return;
+      storeRef.current = obj;
+      const fields = trackedFieldsRef.current;
+      if (fields.size === 0) return;
+      let changed = false;
+      const lastValues = lastValuesRef.current;
+      for (const field of fields) {
+        const newValue = getEditorFieldValue(obj, field);
+        if (lastValues.get(field) !== newValue) {
+          lastValues.set(field, newValue);
+          changed = true;
+        }
+      }
+      if (changed) {
+        forceRender((version) => version + 1);
+      }
+    };
+
+    if (store != null) {
+      store.on("change", update);
+      update(store);
+    } else {
+      const g = () => {
+        if (!is_mounted) {
+          unsubscribe?.();
+          return;
+        }
+        store = redux.getEditorStore(editor.project_id, editor.path);
+        if (store != null) {
+          unsubscribe?.();
+          storeRef.current = store;
+          update(store); // may have missed an initial change
+          store.on("change", update);
+        }
+      };
+      unsubscribe = redux.reduxStore.subscribe(g);
+    }
+
+    return () => {
+      is_mounted = false;
+      store?.removeListener("change", update);
+      unsubscribe?.();
+    };
+  }, [editor.project_id, editor.path]);
+
+  return selectField;
 }
-*/
-/*
-export function useEditorRedux(
-  editor: { project_id: string; path: string },
-  field
-): any {
-  return useReduxEditorStore(
-    [field as string],
-    editor.project_id,
-    editor.path
-  ) as any;
-}
-*/
 
 type ReduxTarget =
   | { kind: "named"; path: string[] }
   | { kind: "project"; path: string[]; project_id: string }
   | { kind: "editor"; path: string[]; project_id: string; filename: string };
 
+/**
+ * Normalize useRedux arguments into a tagged target.
+ *
+ * Rules:
+ * - String path + string project_id => named store or project store
+ * - Array path + project_id => project store (if uuid) or named store
+ * - Array path + project_id + filename => editor store
+ */
 function normalizeReduxArgs(
   path: string | string[],
   project_id?: string,
   filename?: string,
 ): ReduxTarget {
-  if (typeof path == "string") {
+  if (typeof path === "string") {
     // good typed version!! -- path specifies store
-    if (typeof project_id != "string" || typeof filename != "undefined") {
+    if (typeof project_id !== "string" || typeof filename !== "undefined") {
       throw Error(
         "if first argument of useRedux is a string then second argument must also be and no other arguments can be specified",
       );
@@ -277,14 +278,20 @@ function normalizeReduxArgs(
   return { kind: "editor", path, project_id, filename };
 }
 
+/**
+ * Read the current snapshot for a normalized target.
+ *
+ * This does not subscribe; it is used for initial state and for comparing
+ * store updates inside the subscription.
+ */
 function getReduxValue(target: ReduxTarget) {
-  if (target.kind == "named") {
-    if (target.path[0] == "") {
+  if (target.kind === "named") {
+    if (target.path[0] === "") {
       return undefined;
     }
     return redux.getStore(target.path[0])?.getIn(target.path.slice(1) as any);
   }
-  if (target.kind == "project") {
+  if (target.kind === "project") {
     return redux
       .getProjectStore(target.project_id)
       .getIn(target.path as [string, string, string, string, string]);
@@ -294,12 +301,29 @@ function getReduxValue(target: ReduxTarget) {
     ?.getIn(target.path as [string, string, string, string, string]);
 }
 
+/**
+ * General-purpose hook to read values from named stores, project stores, or
+ * editor stores. The hook decides which store to subscribe to based on the
+ * argument shape (see examples below).
+ *
+ * Examples:
+ *   const userName = useRedux(["account", "full_name"]);
+ *   const status = useRedux(["status"], projectId);
+ *   const cursor = useRedux(["cursor"], projectId, path);
+ *   const maybe = useRedux(["", "unknown"]) // => undefined
+ *
+ * Implementation details:
+ * - Arguments are normalized to a target so hooks are not called conditionally.
+ * - A single useEffect subscribes to the correct store based on target.kind.
+ * - Updates compare by reference; immutable stores should update references.
+ */
 export function useRedux(
   path: string | string[],
   project_id?: string,
   filename?: string,
 ) {
   const target = normalizeReduxArgs(path, project_id, filename);
+  // Stable key: normalizeReduxArgs creates a deterministic shape for JSON.stringify.
   const targetKey = JSON.stringify(target);
   const [value, set_value] = React.useState(() => getReduxValue(target));
 
@@ -312,7 +336,7 @@ export function useRedux(
     const update = (obj) => {
       if (obj == null || !is_mounted) return;
       const subpath =
-        target.kind == "named" ? target.path.slice(1) : target.path;
+        target.kind === "named" ? target.path.slice(1) : target.path;
       const new_value = obj.getIn(subpath as any);
       if (last_value !== new_value) {
         last_value = new_value;
@@ -320,8 +344,8 @@ export function useRedux(
       }
     };
 
-    if (target.kind == "named") {
-      if (target.path[0] == "") {
+    if (target.kind === "named") {
+      if (target.path[0] === "") {
         return () => {
           is_mounted = false;
         };
@@ -344,7 +368,7 @@ export function useRedux(
       };
     }
 
-    if (target.kind == "project") {
+    if (target.kind === "project") {
       store = redux.getProjectStore(target.project_id);
       store.on("change", update);
       update(store);
@@ -391,12 +415,18 @@ export function useRedux(
   return value;
 }
 
-/*
-Hook to get the actions associated to a named actions/store,
-a project, or an editor.  If the first argument is a uuid,
-then it's the project actions or editor actions; otherwise,
-it's one of the other named actions or undefined.
-*/
+/**
+ * Hook to get actions for a named store, a project, or an editor.
+ *
+ * Examples:
+ *   const actions = useActions("projects");
+ *   const actions = useActions({ project_id });
+ *   const editorActions = useActions(projectId, path);
+ *
+ * Notes:
+ * - Named actions must exist; missing named actions throw an error.
+ * - Project actions can be undefined while a project is closing.
+ */
 
 export function useActions(name: "account"): types.AccountActions;
 export function useActions(
@@ -479,6 +509,15 @@ export interface Stores {
 
 // If it is none of the explicitly named ones... it's a project.
 //export function useStore(name: "projects"): types.ProjectsStore;
+/**
+ * Hook to get a store instance (named or project).
+ *
+ * Examples:
+ *   const store = useStore("projects");
+ *   const store = useStore({ project_id });
+ *
+ * Throws if the store is not defined.
+ */
 export function useStore<T extends keyof Stores>(name: T): Stores[T];
 export function useStore(x: { project_id: string }): ProjectStore;
 export function useStore<T>(x: { name: string }): T;
@@ -503,7 +542,12 @@ export function useStore(x): any {
   }, [x]) as Store<any>;
 }
 
-// Debug which props changed in a component
+/**
+ * Debug hook that logs which props changed between renders.
+ *
+ * Uses deep equality (lodash isEqual) to detect changes and logs a map of
+ * keys to [previous, next] values.
+ */
 export function useTraceUpdate(props) {
   const prev = useRef(props);
   useEffect(() => {
