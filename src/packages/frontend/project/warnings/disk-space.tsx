@@ -3,16 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import { Alert } from "antd";
 import {
-  React,
   useMemo,
   useRedux,
   useTypedRedux,
   useActions,
+  useCounter,
 } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
-import { ALERT_STYLE } from "./common";
+import { useEffect, useState } from "react";
+import { A } from "@cocalc/frontend/components";
+import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { join } from "path";
+
+const DISK_INFO_PAGE = "https://doc.cocalc.com/howto/disk-space-warning.html";
+const DISMISS_TIME_MS = 3 * 60 * 1000;
 
 export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
   project_id,
@@ -29,39 +34,101 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
   );
 
   const actions = useActions({ project_id });
+  const [hideUntil, setHideUntil] = useState<number>(0);
+  const { val, inc } = useCounter();
 
-  if (
-    !is_commercial ||
-    project == null ||
-    quotas == null ||
-    quotas.disk_quota == null
-  ) {
-    // never show a warning if project not loaded or commercial not set
+  // any licenses applied to project? → if yes, edit license; otherwise, purchase new one
+  const hasLicenseUpgrades = useMemo(() => {
+    const licenses = project?.get("site_license")?.keySeq().toJS() ?? [];
+    return licenses.length > 0;
+  }, [project?.get("site_license")]);
+
+  const shouldShow = () => {
+    if (hideUntil > Date.now()) {
+      return false;
+    }
+    if (
+      !is_commercial ||
+      project == null ||
+      quotas == null ||
+      quotas.disk_quota == null
+    ) {
+      return false;
+    }
+    const project_status = project.get("status");
+    const disk_usage = project_status?.get("disk_MB");
+    if (disk_usage == null) return false;
+    // it's fine if the usage is below the last 100MB or 90%
+    if (
+      disk_usage < Math.max(quotas.disk_quota * 0.9, quotas.disk_quota - 100)
+    ) {
+      return false;
+    }
+    return true;
+  };
+
+  const [open, setOpen] = useState<boolean>(shouldShow());
+
+  useEffect(() => {
+    setOpen(shouldShow());
+  }, [is_commercial, project, quotas, val]);
+
+  if (!open || quotas == null) {
     return null;
   }
 
-  // the disk_usage comes from the project.status database entry – not the "project-status" synctable
-  const project_status = project.get("status");
-  const disk_usage = project_status?.get("disk_MB");
-  if (disk_usage == null) return null;
-
-  // it's fine if the usage is below the last 100MB or 90%
-  if (disk_usage < Math.max(quotas.disk_quota * 0.9, quotas.disk_quota - 100)) {
-    return null;
-  }
-
+  const project_status = project?.get("status");
+  const disk_usage = project_status?.get("disk_MB") ?? 0;
   const disk_free = Math.max(0, quotas.disk_quota - disk_usage);
 
+  function renderUpgradeLink() {
+    if (hasLicenseUpgrades) {
+      const url = join(appBasePath, "/settings/licenses");
+      return (
+        <A href={url} style={{ fontWeight: "bold" }}>
+          edit your license to increase its disk space quota
+        </A>
+      );
+    } else {
+      const url = join(appBasePath, "/store/site-license");
+      return (
+        <A href={url} style={{ fontWeight: "bold" }}>
+          purchase a license with more disk space
+        </A>
+      );
+    }
+  }
+
   return (
-    <Alert bsStyle="danger" style={ALERT_STYLE}>
-      <Icon name="exclamation-triangle" /> WARNING: This project is running out
-      of disk space: only {disk_free} MB out of {quotas.disk_quota} MB
-      available.{" "}
-      <a onClick={() => actions?.set_active_tab("upgrades")}>
-        Increase the "Disk Space" quota
-      </a>
-      {" or "}
-      <a onClick={() => actions?.set_active_tab("files")}>delete some files</a>.
-    </Alert>
+    <Alert
+      closable
+      onClose={() => {
+        const until = Date.now() + DISMISS_TIME_MS;
+        setTimeout(() => {
+          inc();
+        }, DISMISS_TIME_MS + 1000);
+        setHideUntil(until);
+        setOpen(false);
+      }}
+      type="error"
+      style={{ border: "none" }}
+      showIcon
+      message={
+        <b style={{ color: "#666" }}>
+          This project is running out of disk space ({disk_free} MB free of{" "}
+          {quotas.disk_quota} MB)
+        </b>
+      }
+      description={
+        <div>
+          You can {renderUpgradeLink()},{" "}
+          <a onClick={() => actions?.set_active_tab("files")}>
+            delete some files
+          </a>
+          , or read about{" "}
+          <A href={DISK_INFO_PAGE}>how to deal with low disk space</A>.
+        </div>
+      }
+    />
   );
 };
