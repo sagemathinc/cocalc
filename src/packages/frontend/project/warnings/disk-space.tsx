@@ -92,14 +92,14 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
 
   function renderUpgradeLink() {
     if (hasLicenseUpgrades) {
-      const url = join(appBasePath, "/settings/licenses");
+      const url = join(appBasePath, "settings/licenses");
       return (
         <A href={url} style={{ fontWeight: "bold" }}>
           edit your license to increase its disk space quota
         </A>
       );
     } else {
-      const url = join(appBasePath, "/store/site-license");
+      const url = join(appBasePath, "store/site-license");
       return (
         <A href={url} style={{ fontWeight: "bold" }}>
           purchase a license with more disk space
