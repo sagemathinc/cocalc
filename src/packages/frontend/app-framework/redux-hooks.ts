@@ -331,7 +331,7 @@ export function useRedux(
     let store: any;
     let last_value = getReduxValue(target);
     let is_mounted = true;
-    set_value(last_value);
+    set_value(() => last_value);
 
     const update = (obj) => {
       if (obj == null || !is_mounted) return;
@@ -340,7 +340,7 @@ export function useRedux(
       const new_value = obj.getIn(subpath as any);
       if (last_value !== new_value) {
         last_value = new_value;
-        set_value(new_value);
+        set_value(() => new_value);
       }
     };
 
@@ -385,7 +385,7 @@ export function useRedux(
       const new_value = obj.getIn(target.path);
       if (last_value !== new_value) {
         last_value = new_value;
-        set_value(new_value);
+        set_value(() => new_value);
       }
     };
     f(editorStore);

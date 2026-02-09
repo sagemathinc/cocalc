@@ -15,11 +15,7 @@ import {
   redux,
   redux_name,
 } from "@cocalc/frontend/app-framework";
-import {
-  useEditorRedux,
-  useRedux,
-  useTypedRedux,
-} from "@cocalc/frontend/app-framework/redux-hooks";
+import { useEditorRedux, useRedux, useTypedRedux } from "./redux-hooks";
 
 // Avoid opening real socket connections during unit tests. Some imports in
 // app-framework pull in webapp-client, which otherwise starts a client.
@@ -156,6 +152,47 @@ describe("redux-hooks", () => {
       store.setState({ items: List([1, 2]) });
     });
     await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
+  });
+
+  it("useRedux preserves function-valued fields without invoking them", async () => {
+    const storeName = trackStore(createStoreName("redux-hooks-test"));
+    const fn = jest.fn(() => 7);
+    const store = redux.createStore<{
+      fn: () => number;
+      other: number;
+    }>(storeName);
+    store.setState({ fn, other: 1 });
+    const onRender = jest.fn();
+
+    function FunctionField() {
+      const selected = useRedux([storeName, "fn"]);
+      useEffect(() => {
+        onRender(selected);
+      });
+      return <div>{typeof selected}</div>;
+    }
+
+    render(<FunctionField />);
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(1));
+    const selectedFn = onRender.mock.calls.at(-1)?.[0];
+    expect(typeof selectedFn).toBe("function");
+    expect(selectedFn()).toBe(7);
+
+    // Updating unrelated data should not re-render.
+    act(() => {
+      store.setState({ other: 2 });
+    });
+    expect(onRender).toHaveBeenCalledTimes(1);
+
+    // Updating to a new function reference should re-render.
+    const fn2 = jest.fn(() => 9);
+    act(() => {
+      store.setState({ fn: fn2 });
+    });
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
+    const selectedFn2 = onRender.mock.calls.at(-1)?.[0];
+    expect(selectedFn2).toBe(fn2);
+    expect(selectedFn2()).toBe(9);
   });
 
   it("useRedux supports the project-store code path", async () => {
