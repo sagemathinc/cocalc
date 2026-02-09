@@ -20,6 +20,7 @@ import {
   useRef,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 
 // Support for all the MIME types
 import "./output-messages/mime-types/init-frontend";
@@ -144,7 +145,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "cells",
   ]);
-  const project_id: string = useRedux([name, "project_id"]);
+  const { project_id } = useProjectContext();
   const directory: undefined | string = useRedux([name, "directory"]);
   // const version: undefined | any = useRedux([name, "version"]);
   const about: undefined | boolean = useRedux([name, "about"]);
