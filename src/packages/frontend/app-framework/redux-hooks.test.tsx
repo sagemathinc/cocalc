@@ -10,7 +10,11 @@ import { List, Map } from "immutable";
 import { useEffect } from "react";
 
 import type { AccountState } from "@cocalc/frontend/account/types";
-import { redux, redux_name } from "@cocalc/frontend/app-framework";
+import {
+  project_redux_name,
+  redux,
+  redux_name,
+} from "@cocalc/frontend/app-framework";
 import {
   useEditorRedux,
   useRedux,
@@ -154,6 +158,71 @@ describe("redux-hooks", () => {
     await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
   });
 
+  it("useRedux supports the project-store code path", async () => {
+    const storeName = trackStore(project_redux_name(PROJECT_ID));
+    const store = redux.createStore<{ status: string; other: number }>(
+      storeName,
+    );
+    store.setState({ status: "ready", other: 1 });
+    const onRender = jest.fn();
+
+    function ProjectStatus() {
+      const status = useRedux(["status"], PROJECT_ID);
+      useEffect(() => {
+        onRender(status);
+      });
+      return <div>{status}</div>;
+    }
+
+    render(<ProjectStatus />);
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(1));
+    expect(onRender).toHaveBeenLastCalledWith("ready");
+
+    act(() => {
+      store.setState({ other: 2 });
+    });
+    expect(onRender).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      store.setState({ status: "running" });
+    });
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
+    expect(onRender).toHaveBeenLastCalledWith("running");
+  });
+
+  it("useRedux with an empty store name returns undefined", async () => {
+    const onRender = jest.fn();
+
+    function UnknownStore() {
+      const value = useRedux(["", "whatever"]);
+      useEffect(() => {
+        onRender(value);
+      });
+      return <div>{value ?? "none"}</div>;
+    }
+
+    render(<UnknownStore />);
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(1));
+    expect(onRender).toHaveBeenLastCalledWith(undefined);
+  });
+
+  it("useRedux removes change listeners on unmount", async () => {
+    const storeName = trackStore(createStoreName("redux-hooks-test"));
+    const store = redux.createStore<{ foo: number }>(storeName);
+    store.setState({ foo: 1 });
+
+    function Foo() {
+      const foo = useRedux([storeName, "foo"]);
+      return <div>{foo}</div>;
+    }
+
+    const { unmount } = render(<Foo />);
+    await waitFor(() => expect(store.listeners("change").length).toBe(1));
+
+    unmount();
+    expect(store.listeners("change").length).toBe(0);
+  });
+
   it("useEditorRedux tracks fields per-render and avoids unrelated updates", async () => {
     const storeName = trackStore(redux_name(PROJECT_ID, NOTEBOOK_PATH));
     const store = redux.createStore<EditorState>(storeName);
@@ -194,6 +263,56 @@ describe("redux-hooks", () => {
     await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
   });
 
+  it("useEditorRedux updates tracked fields when selected field changes across renders", async () => {
+    const storeName = trackStore(redux_name(PROJECT_ID, NOTEBOOK_PATH));
+    const store = redux.createStore<EditorState>(storeName);
+    store.setState({ tasks: 1, pages: 10 });
+    const onRender = jest.fn();
+
+    function DynamicField({ usePages }: { usePages: boolean }) {
+      const useEditor = useEditorRedux<EditorState>({
+        project_id: PROJECT_ID,
+        path: NOTEBOOK_PATH,
+      });
+      const value = useEditor(usePages ? "pages" : "tasks");
+      useEffect(() => {
+        onRender(value);
+      });
+      return <div>{value}</div>;
+    }
+
+    const rendered = render(<DynamicField usePages={false} />);
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(1));
+    expect(onRender).toHaveBeenLastCalledWith(1);
+
+    act(() => {
+      store.setState({ pages: 11 });
+    });
+    expect(onRender).toHaveBeenCalledTimes(1);
+
+    rendered.rerender(<DynamicField usePages />);
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
+    expect(onRender).toHaveBeenLastCalledWith(11);
+
+    act(() => {
+      store.setState({ tasks: 2 });
+    });
+    expect(onRender).toHaveBeenCalledTimes(2);
+    expect(onRender).toHaveBeenLastCalledWith(11); // selects pages
+
+    act(() => {
+      store.setState({ pages: 12 });
+    });
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(3));
+    expect(onRender).toHaveBeenLastCalledWith(12);
+
+    act(() => {
+      store.setState({ tasks: 3 });
+    });
+    expect(onRender).toHaveBeenCalledTimes(3); // not called again
+    expect(onRender).toHaveBeenLastCalledWith(12); // still selects pages
+  });
+
   it("useEditorRedux re-renders for immutable values when the reference changes", async () => {
     const storeName = trackStore(redux_name(PROJECT_ID, NOTEBOOK_PATH));
     const store = redux.createStore<{
@@ -229,6 +348,37 @@ describe("redux-hooks", () => {
       store.setState({ tasks: List([1]) });
     });
     await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
+  });
+
+  it("useEditorRedux handles editor store being created after initial render", async () => {
+    const missingEditorPath = "notebooks/missing-editor-useeditor.ipynb";
+    redux.removeStore(redux_name(PROJECT_ID, missingEditorPath));
+    expect(redux.getEditorStore(PROJECT_ID, missingEditorPath)).toBeUndefined();
+    const onRender = jest.fn();
+
+    function WaitingForEditorStore() {
+      const useEditor = useEditorRedux<{ tasks: number }>({
+        project_id: PROJECT_ID,
+        path: missingEditorPath,
+      });
+      const tasks = useEditor("tasks");
+      useEffect(() => {
+        onRender(tasks);
+      });
+      return <div>{tasks ?? "none"}</div>;
+    }
+
+    render(<WaitingForEditorStore />);
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(1));
+    expect(onRender).toHaveBeenLastCalledWith(undefined);
+
+    const storeName = trackStore(redux_name(PROJECT_ID, missingEditorPath));
+    const store = redux.createStore<{ tasks: number }>(storeName);
+    act(() => {
+      store.setState({ tasks: 7 });
+    });
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
+    expect(onRender).toHaveBeenLastCalledWith(7);
   });
 
   it("useRedux handles editor store being created after initial render", async () => {
@@ -275,7 +425,7 @@ describe("redux-hooks", () => {
       const theme = typedSettings.get("theme");
       useEffect(() => {
         onRender(theme);
-      }, [theme]);
+      });
       return <div>{theme}</div>;
     }
 
@@ -312,7 +462,7 @@ describe("redux-hooks", () => {
       const theme = typedSettings.get("theme");
       useEffect(() => {
         onRender(theme);
-      }, [theme]);
+      });
       return <div>{theme}</div>;
     }
 
