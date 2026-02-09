@@ -231,6 +231,33 @@ describe("redux-hooks", () => {
     await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
   });
 
+  it("useRedux handles editor store being created after initial render", async () => {
+    const missingEditorPath = "notebooks/missing-editor.ipynb";
+    redux.removeStore(redux_name(PROJECT_ID, missingEditorPath));
+    expect(redux.getEditorStore(PROJECT_ID, missingEditorPath)).toBeUndefined();
+    const onRender = jest.fn();
+
+    function WaitingForEditorStore() {
+      const tasks = useRedux(["tasks"], PROJECT_ID, missingEditorPath);
+      useEffect(() => {
+        onRender(tasks);
+      });
+      return <div>{tasks ?? "none"}</div>;
+    }
+
+    render(<WaitingForEditorStore />);
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(1));
+    expect(onRender).toHaveBeenLastCalledWith(undefined);
+
+    const storeName = trackStore(redux_name(PROJECT_ID, missingEditorPath));
+    const store = redux.createStore<{ tasks: number }>(storeName);
+    act(() => {
+      store.setState({ tasks: 7 });
+    });
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
+    expect(onRender).toHaveBeenLastCalledWith(7);
+  });
+
   it("useTypedRedux preserves types and only re-renders when the field changes", async () => {
     const storeName = "account";
     redux.removeStore(storeName);

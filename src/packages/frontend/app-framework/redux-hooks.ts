@@ -379,6 +379,7 @@ export function useRedux(
     }
 
     let editorStore = redux.getEditorStore(target.project_id, target.filename);
+    let unsubscribe: (() => void) | undefined;
     const f = (obj) => {
       if (obj == null || !is_mounted) return;
       const new_value = obj.getIn(target.path);
@@ -393,22 +394,23 @@ export function useRedux(
     } else {
       const g = () => {
         if (!is_mounted) {
-          unsubscribe();
+          unsubscribe?.();
           return;
         }
         editorStore = redux.getEditorStore(target.project_id, target.filename);
         if (editorStore != null) {
-          unsubscribe();
+          unsubscribe?.();
           f(editorStore); // may have missed an initial change
           editorStore.on("change", f);
         }
       };
-      const unsubscribe = redux.reduxStore.subscribe(g);
+      unsubscribe = redux.reduxStore.subscribe(g);
     }
 
     return () => {
       is_mounted = false;
       editorStore?.removeListener("change", f);
+      unsubscribe?.();
     };
   }, [targetKey]);
 
