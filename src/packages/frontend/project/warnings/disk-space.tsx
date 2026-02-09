@@ -1,21 +1,21 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert } from "antd";
+import { join } from "path";
+import { useEffect, useRef, useState } from "react";
+
 import {
+  useActions,
   useMemo,
   useRedux,
   useTypedRedux,
-  useActions,
-  useCounter,
 } from "@cocalc/frontend/app-framework";
-import { useEffect, useState } from "react";
 import { A } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { COLORS } from "@cocalc/util/theme";
-import { join } from "path";
 
 const DISK_INFO_PAGE = "https://doc.cocalc.com/howto/disk-space-warning.html";
 const DISMISS_TIME_MS = 3 * 60 * 1000;
@@ -36,7 +36,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
 
   const actions = useActions({ project_id });
   const [hideUntil, setHideUntil] = useState<number>(0);
-  const { val, inc } = useCounter();
+  const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // any licenses applied to project? → if yes, edit license; otherwise, purchase new one
   const hasLicenseUpgrades = useMemo(() => {
@@ -72,7 +72,15 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
 
   useEffect(() => {
     setOpen(shouldShow());
-  }, [is_commercial, project, quotas, val]);
+  }, [is_commercial, project, quotas, hideUntil]);
+
+  useEffect(() => {
+    return () => {
+      if (dismissTimerRef.current != null) {
+        clearTimeout(dismissTimerRef.current);
+      }
+    };
+  }, []);
 
   if (!open || quotas == null) {
     return null;
@@ -105,9 +113,10 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
       closable
       onClose={() => {
         const until = Date.now() + DISMISS_TIME_MS;
-        setTimeout(() => {
-          inc();
-        }, DISMISS_TIME_MS + 1000);
+        dismissTimerRef.current = setTimeout(() => {
+          setHideUntil(0);
+          dismissTimerRef.current = null;
+        }, DISMISS_TIME_MS);
         setHideUntil(until);
         setOpen(false);
       }}
