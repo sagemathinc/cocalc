@@ -6,8 +6,22 @@
 import { CompressedPatch, Document, PatchValue } from "../generic/types";
 import { apply_patch, make_patch } from "../generic/util";
 
+const PATCH_SHAPE_CHECK_LIMIT = 4;
+
 function isCompressedPatch(patch: PatchValue): patch is CompressedPatch {
-  return patch.every((entry) => Array.isArray(entry) && entry.length === 5);
+  if (!Array.isArray(patch)) {
+    return false;
+  }
+  // Tradeoff: do a fast bounded shape check here for resilience/CPU, and
+  // rely on apply_patch to handle deeper malformed data as a no-op fallback.
+  const n = Math.min(patch.length, PATCH_SHAPE_CHECK_LIMIT);
+  for (let i = 0; i < n; i++) {
+    const entry = patch[i];
+    if (!Array.isArray(entry) || entry.length !== 5) {
+      return false;
+    }
+  }
+  return true;
 }
 
 // Immutable string document that satisfies our spec.

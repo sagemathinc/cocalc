@@ -33,11 +33,16 @@ type jsmap = { [field: string]: any };
  */
 type DBPatch = GenericDBPatch;
 
+const DB_PATCH_SHAPE_CHECK_LIMIT = 8;
+
 function isDBPatch(patch: unknown): patch is DBPatch {
   if (!Array.isArray(patch) || patch.length % 2 !== 0) {
     return false;
   }
-  for (let i = 0; i < patch.length; i += 2) {
+  // Tradeoff: keep this guard bounded/fast and validate the full structure
+  // incrementally while applying, so we avoid a full pre-validation scan.
+  const n = Math.min(patch.length, DB_PATCH_SHAPE_CHECK_LIMIT);
+  for (let i = 0; i < n; i += 2) {
     const op = patch[i];
     const rows = patch[i + 1];
     if (op !== -1 && op !== 1) {
@@ -202,10 +207,15 @@ export class DBDocument implements Document {
     let i = 0;
     let db: DBDocument = this;
     while (i < typedPatch.length) {
-      if (typedPatch[i] === -1) {
-        db = db.delete(typedPatch[i + 1] as jsmap[]);
-      } else if (typedPatch[i] === 1) {
-        db = db.set(typedPatch[i + 1] as jsmap[]);
+      const op = typedPatch[i];
+      const rows = typedPatch[i + 1];
+      if ((op !== -1 && op !== 1) || !Array.isArray(rows)) {
+        throw Error("patch must be alternating [-1|1, jsmap[]] pairs");
+      }
+      if (op === -1) {
+        db = db.delete(rows as jsmap[]);
+      } else {
+        db = db.set(rows as jsmap[]);
       }
       i += 2;
     }
