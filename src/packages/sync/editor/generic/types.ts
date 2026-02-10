@@ -57,7 +57,7 @@ export interface Patch {
   // is purely to **display to the user**.  For backward compat and display, if wall is
   // not defined in then this should fall back to the time field.
   wall?: number;
-  patch?: CompressedPatch /* compressed format patch -- an array/object (not JSON string) */;
+  patch?: any /* compressed format patch -- an array/object (not JSON string) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;
   size: number; // size of the patch (by defn length of string representation)
@@ -90,9 +90,9 @@ export interface Patch {
 }
 
 export interface Document {
-  apply_patch(CompressedPatch): Document;
-  make_patch(Document): CompressedPatch;
-  is_equal(Document): boolean;
+  apply_patch(patch: any): Document;
+  make_patch(other: any): any;
+  is_equal(other: any): boolean;
   to_str(): string;
   set(any): Document; // returns new document with result of set
   get(any?): any; // returns result of get query on document (error for string)

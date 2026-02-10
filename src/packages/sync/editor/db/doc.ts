@@ -25,7 +25,11 @@ type Index = immutable.Map<string, immutable.Set<number>>;
 type Indexes = immutable.Map<string, Index>;
 
 type jsmap = { [field: string]: any };
-type DBPatch = any // TODO: It's really this, but... [-1 | 1, jsmap];
+// A DBPatch is a flat array of alternating opcodes and data.
+// The comment "[-1 | 1, jsmap]" refers to the logical operation pairs.
+// -1: delete records (data is array of objects identifying records)
+// 1: set/insert records (data is array of objects with new values)
+type DBPatch = (number | jsmap[])[];
 
 export type WhereCondition = { [field: string]: any };
 export type SetCondition =
@@ -169,9 +173,9 @@ export class DBDocument implements Document {
     let db: DBDocument = this;
     while (i < patch.length) {
       if (patch[i] === -1) {
-        db = db.delete(patch[i + 1]);
+        db = db.delete(patch[i + 1] as jsmap[]);
       } else if (patch[i] === 1) {
-        db = db.set(patch[i + 1]);
+        db = db.set(patch[i + 1] as jsmap[]);
       }
       i += 2;
     }
@@ -196,7 +200,7 @@ export class DBDocument implements Document {
     // Easy very common special cases
     if (t0.size === 0) {
       // Special case: t0 is empty -- insert all the records.
-      return [1, t1.toJS()];
+      return [1, t1.toJS() as jsmap[]];
     }
     if (t1.size === 0) {
       // Special case: t1 is empty -- bunch of deletes
@@ -304,7 +308,7 @@ export class DBDocument implements Document {
       });
     }
 
-    const patch: any[] = [];
+    const patch: DBPatch = [];
     if (remove != null) {
       patch.push(-1);
       patch.push(remove);
