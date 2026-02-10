@@ -23,7 +23,7 @@ import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { capitalize, is_different, path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
-import { use_build_logs } from "./hooks";
+import { useBuildLogs } from "./hooks";
 import { BuildLogs } from "./types";
 
 function group_to_level(group: string): string {
@@ -216,7 +216,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
   (props) => {
     const { name, actions } = props;
 
-    const build_logs: BuildLogs = use_build_logs(name);
+    const build_logs: BuildLogs = useBuildLogs(name);
     const status: string = useRedux([name, "status"]) ?? "";
     const knitr: boolean = useRedux([name, "knitr"]);
     const includeError: string = useRedux([name, "includeError"]) ?? "";

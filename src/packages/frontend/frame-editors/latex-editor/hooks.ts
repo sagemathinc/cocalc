@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -11,15 +11,15 @@ import {
   //  JobInfos
 } from "./types";
 
-export function use_build_logs(name: string): BuildLogs {
-  return use_infos<BuildLogs>(name, "build_logs");
+export function useBuildLogs(name: string): BuildLogs {
+  return useInfos<BuildLogs>(name, "build_logs");
 }
 
 // export function use_job_infos(name: string): JobInfos {
 //   return use_infos<JobInfos>(name, "job_infos");
 // }
 
-function use_infos<T extends Map<string, any>>(
+function useInfos<T extends Map<string, any>>(
   name: string,
   aspect: "build_logs" | "job_infos",
 ) {

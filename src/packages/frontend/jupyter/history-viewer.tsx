@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -30,8 +30,8 @@ function get_cells(doc): { cells: Map<string, any>; cell_list: List<string> } {
 }
 
 export function HistoryViewer({ project_id, path, doc, font_size }) {
-  const default_font_size =
-    font_size ?? useTypedRedux("account", "font_size") ?? DEFAULT_FONT_SIZE;
+  const accountFontSize = useTypedRedux("account", "font_size");
+  const default_font_size = font_size ?? accountFontSize ?? DEFAULT_FONT_SIZE;
   const { head: directory } = path_split(path);
   const { cells, cell_list } = get_cells(doc);
 

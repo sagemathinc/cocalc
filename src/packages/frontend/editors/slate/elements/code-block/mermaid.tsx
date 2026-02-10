@@ -1,13 +1,14 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useEffect, useRef, useState } from "react";
-import ShowError from "@cocalc/frontend/components/error";
 import { delay } from "awaiting";
-import { uuid, replace_all } from "@cocalc/util/misc";
+import { useEffect, useRef, useState } from "react";
+
+import ShowError from "@cocalc/frontend/components/error";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
+import { replace_all, uuid } from "@cocalc/util/misc";
 
 interface Props {
   value: string;
@@ -21,10 +22,6 @@ export default function Mermaid({ value, style }: Props) {
   const [id] = useState<string>("a" + replace_all(uuid(), "-", ""));
   const { getMermaid } = useFileContext();
 
-  if (getMermaid == null) {
-    return <div style={style}>Mermaid not available</div>;
-  }
-
   const waitUntilNotProcessing = async () => {
     let d = 1;
     while (processingRef.current) {
@@ -36,7 +33,7 @@ export default function Mermaid({ value, style }: Props) {
 
   useEffect(() => {
     const elt = mermaidRef.current;
-    if (!elt) {
+    if (!elt || getMermaid == null) {
       return;
     }
     if (!value.trim()) {
@@ -57,7 +54,11 @@ export default function Mermaid({ value, style }: Props) {
         processingRef.current = false;
       }
     })();
-  }, [value]);
+  }, [getMermaid, id, value]);
+
+  if (getMermaid == null) {
+    return <div style={style}>Mermaid not available</div>;
+  }
 
   return (
     <div style={style}>
