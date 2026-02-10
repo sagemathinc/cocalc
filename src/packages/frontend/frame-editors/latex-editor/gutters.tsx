@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -89,6 +89,7 @@ function Component({
                   task={"ran latex"}
                   error={message}
                   line={content}
+                  lineNumber={line}
                   input={() => {
                     const s = actions._syncstring.to_str();
                     const v = s
