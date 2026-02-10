@@ -163,10 +163,11 @@ function HelpMeFixDialog({
   const [contextRange, setContextRange] = useState<[number, number]>([-2, 0]);
   const [cellTypes, setCellTypes] = useState<"all" | "code">("code");
   const hasJupyterContext = cellId != null && notebookFrameActions != null;
-  // track which model was used to generate the current response
-  const [generatedWithPrompt, setGeneratedWithModel] = useState<string>("");
-  // conversation history for follow-ups
-  const historyRef = useRef<Message[]>([]);
+  // Hint mode is single-shot per exact prompt+model; changing prompt re-enables.
+  const [generatedHintSignature, setGeneratedHintSignature] =
+    useState<string>("");
+  // Follow-up is intentionally one-turn over the initial exchange (no chat history).
+  const initialExchangeRef = useRef<Message[]>([]);
   const followUpInputRef = useRef<any>(null);
 
   const cellContext = useMemo((): string => {
@@ -230,6 +231,7 @@ function HelpMeFixDialog({
     isHint,
     cellContext,
   });
+  const hintSignature = `${model}:${fullPromptText}`;
 
   // Extract the first code block from the LLM response
   const extractedCode = useMemo(() => {
@@ -270,9 +272,8 @@ function HelpMeFixDialog({
       });
 
       setResponse(reply);
-      setGeneratedWithModel(model);
-      // Reset history for this fresh exchange
-      historyRef.current = [
+      setGeneratedHintSignature(hintSignature);
+      initialExchangeRef.current = [
         { role: "user", content: fullPromptText },
         { role: "assistant", content: reply },
       ];
@@ -297,7 +298,7 @@ function HelpMeFixDialog({
 
       const reply = await webapp_client.openai_client.query({
         input: text,
-        history: historyRef.current,
+        history: initialExchangeRef.current,
         model,
         project_id,
         tag: fullTag,
@@ -474,6 +475,8 @@ function HelpMeFixDialog({
   }
 
   const showReplaceButtons = !isHint && onReplace != null && !!extractedCode;
+  const hasGeneratedResponse = response.trim() !== "";
+  const showRegenerateAction = !isHint && hasGeneratedResponse;
 
   return (
     <Modal
@@ -504,12 +507,29 @@ function HelpMeFixDialog({
             <Button
               type="primary"
               loading={generating}
-              disabled={generating || generatedWithPrompt === model}
+              disabled={
+                generating ||
+                (isHint && generatedHintSignature === hintSignature)
+              }
               onClick={doGenerate}
-              icon={<Icon name={isHint ? "lightbulb" : "paper-plane"} />}
+              icon={
+                <Icon
+                  name={
+                    isHint
+                      ? "lightbulb"
+                      : showRegenerateAction
+                        ? "refresh"
+                        : "paper-plane"
+                  }
+                />
+              }
             >
               {intl.formatMessage(
-                isHint ? messages.titleHint : messages.titleFix,
+                showRegenerateAction
+                  ? labels.regenerate
+                  : isHint
+                    ? messages.titleHint
+                    : messages.titleFix,
               )}
             </Button>
           </Space>
