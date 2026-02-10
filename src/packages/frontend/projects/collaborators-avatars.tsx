@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -54,10 +54,6 @@ export function CollaboratorsAvatars({
   // Slice to max avatars to display
   const displayIds = collaboratorIds.slice(0, maxAvatars);
 
-  if (displayIds.length === 0) {
-    return null;
-  }
-
   // Get remaining collaborator names for +N tooltip
   const remainingNames = useMemo(() => {
     if (!user_map || collaboratorIds.length <= maxAvatars) return [];
@@ -78,6 +74,10 @@ export function CollaboratorsAvatars({
       return name || user.get("email_address") || "Unknown";
     });
   }, [collaboratorIds, user_map, maxAvatars, maxNamesTooltip]);
+
+  if (displayIds.length === 0) {
+    return null;
+  }
 
   // Build tooltip content for +N indicator
   const remainingTooltip =

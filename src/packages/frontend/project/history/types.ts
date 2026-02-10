@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 - 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -32,6 +32,7 @@ export type ProjectLogMap = Map<string, EventRecordMap>;
  */
 export type ProjectEvent =
   | UnknownEvent
+  | AIAssistanceEvent
   | AssistantEvent
   | ComputeServerEvent
   | ProjectControlEvent
@@ -137,6 +138,17 @@ export type LibraryEvent = {
   docid?: string;
   source: string;
 };
+export type AIAssistanceEvent = {
+  event: "ai_assistance";
+  mode: "hint" | "fix";
+  path: string;
+  model?: string;
+  tag?: string;
+  cellNumber?: number;
+  cellId?: string;
+  lineNumber?: number;
+};
+
 export type AssistantEvent = {
   event: "assistant";
   action: "insert";

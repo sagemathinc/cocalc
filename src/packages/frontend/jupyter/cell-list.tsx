@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -177,10 +177,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     cellListDivRef.current = node;
     frameActions.current?.set_cell_list_div(node);
   }, []);
-
-  if (cell_list == null) {
-    return render_loading();
-  }
 
   const saveScroll = useCallback(() => {
     if (use_windowed_list) {
@@ -524,7 +520,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   );
 
   useLayoutEffect(() => {
-    if (!use_windowed_list) return;
+    if (!use_windowed_list || cell_list == null) return;
     if (lastScrollStateRef.current == null) {
       return;
     }
@@ -559,8 +555,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
 
   useEffect(updateScrollOrResize, [cells]);
 
-  let body;
-
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
 
   const cellListResize = useResizeObserver({ ref: cellListDivRef });
@@ -569,6 +563,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       scrollOrResize[key]();
     }
   }, [cellListResize]);
+
+  if (cell_list == null) {
+    return render_loading();
+  }
+
+  let body;
 
   if (use_windowed_list) {
     body = (
