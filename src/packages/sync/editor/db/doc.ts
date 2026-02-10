@@ -1,9 +1,8 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Document } from "../generic/types";
 import * as immutable from "immutable";
 import { isEqual } from "lodash";
 import { is_array, is_object, copy_without, len } from "@cocalc/util/misc";
@@ -11,6 +10,7 @@ import {
   make_patch as string_make_patch,
   apply_patch as string_apply_patch,
 } from "../generic/util";
+import type { DBPatch as GenericDBPatch, Document } from "../generic/types";
 import {
   map_merge_patch,
   merge_set,
@@ -25,11 +25,30 @@ type Index = immutable.Map<string, immutable.Set<number>>;
 type Indexes = immutable.Map<string, Index>;
 
 type jsmap = { [field: string]: any };
-// A DBPatch is a flat array of alternating opcodes and data.
-// The comment "[-1 | 1, jsmap]" refers to the logical operation pairs.
-// -1: delete records (data is array of objects identifying records)
-// 1: set/insert records (data is array of objects with new values)
-type DBPatch = (number | jsmap[])[];
+/**
+ * A DB patch is a flat array of alternating opcodes and row payload arrays:
+ * `[-1 | 1, jsmap[], -1 | 1, jsmap[], ...]`.
+ * - `-1`: delete records identified by primary-key objects.
+ * - `1`: set/insert records with row objects.
+ */
+type DBPatch = GenericDBPatch;
+
+function isDBPatch(patch: unknown): patch is DBPatch {
+  if (!Array.isArray(patch) || patch.length % 2 !== 0) {
+    return false;
+  }
+  for (let i = 0; i < patch.length; i += 2) {
+    const op = patch[i];
+    const rows = patch[i + 1];
+    if (op !== -1 && op !== 1) {
+      return false;
+    }
+    if (!Array.isArray(rows)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 export type WhereCondition = { [field: string]: any };
 export type SetCondition =
@@ -147,7 +166,13 @@ export class DBDocument implements Document {
     return (this.to_str_cache = to_str(obj));
   }
 
-  public is_equal(other?: DBDocument): boolean {
+  public is_equal(other: DBDocument): boolean;
+  public is_equal(other: undefined): boolean;
+  public is_equal(): boolean;
+  public is_equal(other?: Document): boolean {
+    if (!(other instanceof DBDocument)) {
+      return false;
+    }
     if (other == null) {
       // Definitely not equal if not defined.
       return false;
@@ -168,21 +193,30 @@ export class DBDocument implements Document {
       .equals(immutable.Set(other.records).add(undefined));
   }
 
-  public apply_patch(patch: DBPatch): DBDocument {
+  public apply_patch(patch: DBPatch): DBDocument;
+  public apply_patch(patch: unknown): DBDocument {
+    if (!isDBPatch(patch)) {
+      throw Error("patch must be alternating [-1|1, jsmap[]] pairs");
+    }
+    const typedPatch = patch;
     let i = 0;
     let db: DBDocument = this;
-    while (i < patch.length) {
-      if (patch[i] === -1) {
-        db = db.delete(patch[i + 1] as jsmap[]);
-      } else if (patch[i] === 1) {
-        db = db.set(patch[i + 1] as jsmap[]);
+    while (i < typedPatch.length) {
+      if (typedPatch[i] === -1) {
+        db = db.delete(typedPatch[i + 1] as jsmap[]);
+      } else if (typedPatch[i] === 1) {
+        db = db.set(typedPatch[i + 1] as jsmap[]);
       }
       i += 2;
     }
     return db;
   }
 
-  public make_patch(other: DBDocument): DBPatch {
+  public make_patch(other: DBDocument): DBPatch;
+  public make_patch(other: Document): DBPatch {
+    if (!(other instanceof DBDocument)) {
+      throw Error("other must be a DBDocument");
+    }
     if (other.size === 0) {
       // Special case -- delete everything
       return [-1, [{}]];
@@ -221,13 +255,13 @@ export class DBDocument implements Document {
     const k0 = t0.map(this.primary_key_cols) as immutable.Set<Record>;
     const k1 = t1.map(this.primary_key_cols) as immutable.Set<Record>;
 
-    const add: any[] = [];
-    let remove: any[] | undefined = undefined;
+    const add: jsmap[] = [];
+    let remove: jsmap[] | undefined;
 
     // Deletes: everything in k0 that is not in k1
     const deletes = k0.subtract(k1);
     if (deletes.size > 0) {
-      remove = deletes.toJS();
+      remove = deletes.toJS() as jsmap[];
     }
 
     // Inserts: everything in k1 that is not in k0
@@ -677,7 +711,11 @@ export class DBDocument implements Document {
     return immutable.Set(k0.union(k1));
   }
 
-  public changes(prev?: DBDocument): immutable.Set<Record> {
+  public changes(prev?: DBDocument): immutable.Set<Record>;
+  public changes(prev?: Document): immutable.Set<Record> {
+    if (prev != null && !(prev instanceof DBDocument)) {
+      throw Error("prev must be a DBDocument");
+    }
     // CRITICAL TODO!  Make this efficient using this.change_tracker!!!
     if (prev == null) {
       return immutable.Set(

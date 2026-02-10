@@ -107,11 +107,11 @@ import { IpywidgetsState } from "./ipywidgets-state";
 import { SortedPatchList } from "./sorted-patch-list";
 import type {
   Client,
-  CompressedPatch,
   CursorMap,
   DocType,
   Document,
   FileWatcher,
+  PatchValue,
   Patch,
 } from "./types";
 import { isTestClient, patch_cmp } from "./util";
@@ -163,7 +163,7 @@ export interface UndoState {
   my_times: number[];
   pointer: number;
   without: number[];
-  final?: CompressedPatch;
+  final?: PatchValue;
 }
 
 // NOTE: Do not make multiple SyncDoc's for the same document, especially
@@ -912,7 +912,7 @@ export class SyncDoc extends EventEmitter {
     } else if (state.pointer === state.my_times.length - 1) {
       // one back from live state, so apply unsaved patch to live version
       const value = this.version();
-      if (value == null) {
+      if (value == null || state.final == null) {
         // see remark in undo -- do nothing
         return this.get_doc();
       }

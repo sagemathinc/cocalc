@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -14,6 +14,17 @@ import type { List, Map as ImmutableMap } from "immutable";
 import { SyncTable } from "@cocalc/sync/table/synctable";
 import { type CompressedPatch } from "@cocalc/util/dmp";
 export { type CompressedPatch };
+
+/**
+ * Database patch format for db-doc sync.
+ *
+ * Runtime shape is a flat array of alternating opcodes and row arrays:
+ * `[-1 | 1, rows, -1 | 1, rows, ...]`.
+ * - `-1` means delete rows identified by primary-key objects.
+ * - `1` means set/insert rows.
+ */
+export type DBPatch = (-1 | 1 | Record<string, unknown>[])[];
+export type PatchValue = CompressedPatch | DBPatch;
 
 import type { ExecuteCodeOptionsWithCallback } from "@cocalc/util/types/execute-code";
 import type {
@@ -57,7 +68,7 @@ export interface Patch {
   // is purely to **display to the user**.  For backward compat and display, if wall is
   // not defined in then this should fall back to the time field.
   wall?: number;
-  patch?: any /* compressed format patch -- an array/object (not JSON string) */;
+  patch?: PatchValue /* compressed format patch -- an array/object (not JSON string) */;
   user_id: number /* 0-based integer "id" of user
                      syncstring table has id-->account_id map) */;
   size: number; // size of the patch (by defn length of string representation)
@@ -90,9 +101,9 @@ export interface Patch {
 }
 
 export interface Document {
-  apply_patch(patch: any): Document;
-  make_patch(other: any): any;
-  is_equal(other: any): boolean;
+  apply_patch(patch: PatchValue): Document;
+  make_patch(other: Document): PatchValue;
+  is_equal(other: Document): boolean;
   to_str(): string;
   set(any): Document; // returns new document with result of set
   get(any?): any; // returns result of get query on document (error for string)

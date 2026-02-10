@@ -406,7 +406,9 @@ export class SortedPatchList extends EventEmitter {
         continue;
       }
       const { patch } = this.live[t];
-      value = value.apply_patch(patch);
+      if (patch != null) {
+        value = value.apply_patch(patch);
+      }
       if (verbose) {
         console.log("value", { patch, value: value.to_str() });
       }
@@ -454,7 +456,9 @@ export class SortedPatchList extends EventEmitter {
     }
 
     for (x of this.patches.slice(i)) {
-      value = value.apply_patch(x.patch);
+      if (x.patch != null) {
+        value = value.apply_patch(x.patch);
+      }
       if (x.snapshot != null) {
         const snapshot_value = this.from_str(x.snapshot);
         if (!value.is_equal(snapshot_value)) {
