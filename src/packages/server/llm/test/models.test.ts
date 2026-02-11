@@ -208,9 +208,9 @@ test_llm("user")("User-defined LLMs", () => {
     async () => {
       await testUserDefinedLLM({
         service: "anthropic",
-        display: "claude-3-5-haiku-latest",
+        display: "Test Claude Haiku 4.5",
         endpoint: "",
-        model: "claude-3-5-haiku-latest",
+        model: "claude-haiku-4-5",
         apiKey: process.env.COCALC_TEST_ANTHROPIC_KEY!,
       });
     },
