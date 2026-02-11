@@ -45,6 +45,45 @@ describe("sanitize_html_attributes", () => {
     expect(node.attributes).toHaveLength(0);
   });
 
+  test("keeps data:image/png src (legitimate image)", () => {
+    const node = {
+      attributes: [
+        {
+          name: "src",
+          value:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        },
+      ],
+    };
+    sanitize_html_attributes($, node);
+    expect(node.attributes).toHaveLength(1);
+    expect(node.attributes[0].name).toBe("src");
+  });
+
+  test("removes data:text/html src (invalid src type)", () => {
+    const node = {
+      attributes: [
+        { name: "src", value: "data:text/html,<script>alert(1)</script>" },
+      ],
+    };
+    sanitize_html_attributes($, node);
+    expect(node.attributes).toHaveLength(0);
+  });
+
+  test("removes data:image/png href (data URI only allowed on src)", () => {
+    const node = {
+      attributes: [
+        {
+          name: "href",
+          value:
+            "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=",
+        },
+      ],
+    };
+    sanitize_html_attributes($, node);
+    expect(node.attributes).toHaveLength(0);
+  });
+
   test("removes JaVaScRiPt: href (case insensitivity)", () => {
     const node = {
       attributes: [{ name: "href", value: "JaVaScRiPt:alert(1)" }],
@@ -115,5 +154,15 @@ describe("sanitize_html_attributes", () => {
     sanitize_html_attributes($, node);
     expect(node.attributes).toHaveLength(2);
     expect(node.attributes.map((a) => a.name)).toEqual(["class", "id"]);
+  });
+
+  test("removes data: href (XSS vector)", () => {
+    const node = {
+      attributes: [
+        { name: "href", value: "data:text/html,<script>alert(1)</script>" },
+      ],
+    };
+    sanitize_html_attributes($, node);
+    expect(node.attributes).toHaveLength(0);
   });
 });
