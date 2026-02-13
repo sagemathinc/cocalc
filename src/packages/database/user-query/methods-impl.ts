@@ -41,9 +41,14 @@ const MAX_PATCH_FUTURE_MS = 1000 * 60 * 3;
 type AnyRecord = Record<string, any>;
 type QueryOption = Record<string, any>;
 
+type ChangefeedOnChange = CB;
+
 type UserQueryChanges = {
   id: string;
-  cb?: CB;
+  // Preferred name: this callback may fire many times for one query lifecycle.
+  onChange?: ChangefeedOnChange;
+  // Legacy alias kept for compatibility with existing callers.
+  cb?: ChangefeedOnChange;
 };
 
 type UserQueryArrayOptions = Omit<UserQueryOptions, "query"> & {
@@ -117,8 +122,8 @@ type ParsedGetQueryOptions = AnyRecord & {
 
 type ChangefeedLocals = {
   result?: any;
-  changes_cb?: CB;
-  changes_queue?: Array<{ err?: any; obj?: any }>;
+  originalOnChange?: ChangefeedOnChange;
+  queuedChanges?: Array<{ err?: any; change?: any }>;
 };
 
 type ProjectControl = {
@@ -157,6 +162,41 @@ const callWithCb = <T = void>(
       resolve(result);
     });
   });
+};
+
+const getChangefeedOnChange = (
+  changes: UserQueryChanges | undefined,
+): ChangefeedOnChange | undefined => {
+  if (changes == null) {
+    return undefined;
+  }
+  // Prefer the legacy `cb` alias first, since callers may still mutate it.
+  return changes.cb ?? changes.onChange;
+};
+
+const setChangefeedOnChange = (
+  changes: UserQueryChanges,
+  onChange: ChangefeedOnChange | undefined,
+): void => {
+  // Keep both names in sync during migration from `cb` to `onChange`.
+  changes.onChange = onChange;
+  changes.cb = onChange;
+};
+
+const emitChangefeed = (
+  changes: UserQueryChanges,
+  err?: any,
+  change?: any,
+): void => {
+  const onChange = getChangefeedOnChange(changes);
+  if (typeof onChange !== "function") {
+    return;
+  }
+  if (change === undefined) {
+    onChange(err);
+    return;
+  }
+  onChange(err, change);
 };
 
 // Cancel all queued up queries by the given client
@@ -301,10 +341,8 @@ export function _user_query(this: UserQueryContext, opts: UserQueryOptions) {
   };
 
   if (opts.changes != null) {
-    changes = {
-      id: opts.changes,
-      cb: opts.cb,
-    } as UserQueryChanges;
+    changes = { id: opts.changes } as UserQueryChanges;
+    setChangefeedOnChange(changes, opts.cb);
   }
 
   const v = misc.keys(opts.query);
@@ -1762,9 +1800,9 @@ export function _parse_get_query_opts(
 ) {
   let x: QueryOption;
   let y: string;
-  if (opts.changes != null && opts.changes.cb == null) {
+  if (opts.changes != null && getChangefeedOnChange(opts.changes) == null) {
     return {
-      err: "FATAL: user_get_query -- if opts.changes is specified, then opts.changes.cb must also be specified",
+      err: "FATAL: user_get_query -- if opts.changes is specified, then opts.changes.onChange (or legacy opts.changes.cb) must also be specified",
     };
   }
 
@@ -2253,10 +2291,10 @@ export async function _user_get_query_changefeed(
   const dbg = this._dbg(`_user_get_query_changefeed(table='${table}')`);
   dbg();
 
-  // WARNING: always call changes.cb!  Do not do something like f = changes.cb, then call f!!!!
-  // This is because the value of changes.cb may be changed by the caller.
+  // WARNING: always resolve callback dynamically; do not capture it in a local variable.
+  // This is because the value of the callback may be changed by the caller.
   if (!misc.is_object(changes)) {
-    cb("FATAL: changes must be an object with keys id and cb");
+    cb("FATAL: changes must be an object with keys id and onChange");
     return;
   }
 
@@ -2265,19 +2303,13 @@ export async function _user_get_query_changefeed(
     return;
   }
 
-  if (typeof changes.cb !== "function") {
-    cb("FATAL: changes.cb must be a function");
+  if (typeof getChangefeedOnChange(changes) !== "function") {
+    cb("FATAL: changes.onChange (or legacy changes.cb) must be a function");
     return;
   }
 
   const emit_change = (err?: any, obj?: any): void => {
-    if (typeof changes.cb === "function") {
-      if (obj === undefined) {
-        changes.cb(err);
-      } else {
-        changes.cb(err, obj);
-      }
-    }
+    emitChangefeed(changes, err, obj);
   };
 
   for (var primary_key of primary_keys) {
@@ -2385,7 +2417,7 @@ export async function _user_get_query_changefeed(
 
         // Any tracker error means this changefeed is now broken and
         // has to be recreated.
-        tracker_error = () => emit_change("tracker error - ${err}");
+        tracker_error = (err) => emit_change(`tracker error - ${err}`);
 
         pg_changefeed = (db, account_id) => {
           return {
@@ -2485,7 +2517,7 @@ export async function _user_get_query_changefeed(
         }
         tracker_add = (collab_id) => feed?.insert({ account_id: collab_id });
         tracker_remove = (collab_id) => feed?.delete({ account_id: collab_id });
-        tracker_error = () => emit_change("tracker error - ${err}");
+        tracker_error = (err) => emit_change(`tracker error - ${err}`);
         pg_changefeed = function (_db, account_id) {
           let shared_tracker: any;
           return {
@@ -2701,11 +2733,12 @@ export async function user_get_query(
       }
 
       if (opts.changes != null) {
-        locals.changes_cb = opts.changes.cb;
-        locals.changes_queue = [];
+        locals.originalOnChange = getChangefeedOnChange(opts.changes);
+        locals.queuedChanges = [];
         // see note about why we do the following at the bottom of this file
-        opts.changes.cb = (err, obj) =>
-          locals.changes_queue?.push({ err, obj });
+        setChangefeedOnChange(opts.changes, (err, change) =>
+          locals.queuedChanges?.push({ err, change }),
+        );
         dbg("getting changefeed");
         await callWithCb(
           this._user_get_query_changefeed.bind(this),
@@ -2759,13 +2792,13 @@ export async function user_get_query(
   cb?.(undefined, locals.result);
   if (opts.changes != null) {
     dbg("sending change queue");
-    if (locals.changes_cb != null) {
-      opts.changes.cb = locals.changes_cb;
+    if (locals.originalOnChange != null) {
+      setChangefeedOnChange(opts.changes, locals.originalOnChange);
     }
-    //#dbg("sending queued #{JSON.stringify(locals.changes_queue)}")
-    for (const { err, obj } of locals.changes_queue ?? []) {
+    //#dbg("sending queued #{JSON.stringify(locals.queuedChanges)}")
+    for (const { err, change } of locals.queuedChanges ?? []) {
       //#dbg("sending queued changes #{JSON.stringify([err, obj])}")
-      opts.changes.cb?.(err, obj);
+      emitChangefeed(opts.changes, err, change);
     }
     return;
   }
@@ -3034,7 +3067,7 @@ type UserQueryMethods = {
 type UserQueryContext = PostgreSQLType & UserQueryMethods;
 
 /*
-Note about opts.changes.cb:
+Note about opts.changes.onChange (legacy alias: opts.changes.cb):
 
 Regarding sync, what was happening I think is:
  - (a) https://github.com/sagemathinc/cocalc/blob/master/src/packages/hub/postgres-user-queries.coffee#L1384 starts sending changes

@@ -755,7 +755,21 @@ describe("postgres user-queries - Comprehensive Test Suite", () => {
           options: [],
           changes: {},
         });
-        expect(result?.err).toContain("opts.changes.cb must also be specified");
+        expect(result?.err).toContain("opts.changes.onChange");
+      });
+
+      test("should accept changes.onChange alias", () => {
+        const result = db._parse_get_query_opts({
+          account_id: "test-account",
+          table: "projects",
+          query: { project_id: null },
+          options: [],
+          changes: {
+            id: "12345678-1234-1234-1234-123456789012",
+            onChange: () => {},
+          },
+        });
+        expect(result?.err).toBeUndefined();
       });
 
       test("should reject anonymous get queries when not allowed", () => {
@@ -1962,7 +1976,39 @@ describe("postgres user-queries - Comprehensive Test Suite", () => {
           {},
           "test_table",
           (err) => {
-            expect(err).toContain("cb must be a function");
+            expect(err).toContain("must be a function");
+            done();
+          },
+        );
+      });
+
+      test("should accept changefeed onChange alias", (done) => {
+        const uuid = "12345678-1234-1234-1234-123456789012";
+        const restore = setSchema("test_changefeed_onchange_alias", {
+          anonymous: true,
+          fields: { id: { type: "uuid" } },
+        });
+        const feed = new EventEmitter();
+        const onChange = jest.fn();
+        db.changefeed = jest.fn((opts) => opts.cb(null, feed));
+        db._user_get_query_changefeed(
+          { id: uuid, onChange },
+          "test_changefeed_onchange_alias",
+          ["id"],
+          { id: "1" },
+          [],
+          {},
+          "account",
+          { get: { fields: { id: null } } },
+          "test_changefeed_onchange_alias",
+          (err) => {
+            expect(err).toBeFalsy();
+            feed.emit("change", { action: "insert", new_val: { id: "1" } });
+            expect(onChange).toHaveBeenCalledWith(undefined, {
+              action: "insert",
+              new_val: { id: "1" },
+            });
+            restore();
             done();
           },
         );
