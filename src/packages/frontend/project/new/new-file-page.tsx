@@ -97,6 +97,7 @@ export default function NewFilePage(props: Props) {
     "projects",
     "get_total_project_quotas",
   ]);
+  const [creatingFile, setCreatingFile] = useState<string>("");
 
   if (actions == null) {
     return <Loading theme="medium" />;
@@ -106,8 +107,6 @@ export default function NewFilePage(props: Props) {
     if (actions == null) throw new Error("bug");
     return actions;
   }
-
-  const [creatingFile, setCreatingFile] = useState<string>("");
 
   async function createFile(ext?: string) {
     const filename = inputRef.current?.input.value;

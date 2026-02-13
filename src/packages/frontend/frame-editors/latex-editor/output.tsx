@@ -4,7 +4,7 @@
  */
 
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -20,14 +20,15 @@ With build controls at the top (build, force build, clean, etc.)
 
 // cSpell:ignore EOFPYTHON Estad
 
-import type { CSS } from "@cocalc/frontend/app-framework";
-import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 import type { TabsProps } from "antd";
 
 import { Alert, Button, Spin, Tabs, Tag } from "antd";
 import { List } from "immutable";
 import { useCallback, useMemo, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
+
+import type { CSS } from "@cocalc/frontend/app-framework";
+import type { Data } from "@cocalc/frontend/frame-editors/frame-tree/pinch-to-zoom";
 
 import { React, useEffect, useRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -47,7 +48,7 @@ import { Actions } from "./actions";
 import { Build } from "./build";
 import { WORD_COUNT_ICON } from "./constants";
 import { ErrorsAndWarnings } from "./errors-and-warnings";
-import { use_build_logs } from "./hooks";
+import { useBuildLogs } from "./hooks";
 import { PDFControls } from "./output-control";
 import { OutputFiles } from "./output-files";
 import { OutputStats } from "./output-stats";
@@ -241,7 +242,7 @@ export function Output(props: OutputProps) {
     }
   }, [switchToPdfTab, actions, id]);
 
-  const build_logs: BuildLogs = use_build_logs(name);
+  const build_logs: BuildLogs = useBuildLogs(name);
   const knitr: boolean = useRedux([name, "knitr"]);
 
   // Get UI font size for output panel interface elements

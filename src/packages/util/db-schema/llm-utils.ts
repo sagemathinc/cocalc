@@ -248,21 +248,23 @@ export const ANTHROPIC_MODELS = [
   "claude-4-opus-8k",
   "claude-4-5-sonnet-8k", // added 2025
   "claude-4-5-opus-8k", // added 2025
+  "claude-4-6-opus-8k", // added 2026-02
   "claude-4-5-haiku-8k", // added 2025
 ] as const;
 
 // https://docs.anthropic.com/en/docs/about-claude/models/overview#model-aliases
 // if it points to null, the model is no longer supported
 export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string | null } = {
-  "claude-3-5-sonnet": "claude-3-5-sonnet-latest",
-  "claude-3-5-sonnet-4k": "claude-3-5-sonnet-latest",
-  "claude-3-5-haiku-8k": "claude-3-5-haiku-latest",
+  "claude-3-5-sonnet": null,
+  "claude-3-5-sonnet-4k": null,
+  "claude-3-5-haiku-8k": null,
   "claude-3-haiku": "claude-3-haiku-20240307",
   "claude-3-haiku-8k": "claude-3-haiku-20240307",
   "claude-4-sonnet-8k": "claude-sonnet-4-0",
   "claude-4-opus-8k": "claude-opus-4-0",
   "claude-4-5-sonnet-8k": "claude-sonnet-4-5",
   "claude-4-5-opus-8k": "claude-opus-4-5",
+  "claude-4-6-opus-8k": "claude-opus-4-6",
   "claude-4-5-haiku-8k": "claude-haiku-4-5",
   "claude-3-sonnet": null,
   "claude-3-sonnet-4k": null,
@@ -362,11 +364,12 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   ],
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-small-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
-    // we show opus and the context restricted models (to avoid high costs)
+    // latest of each tier; keep opus 4.5 temporarily for users who have it configured
     return (
+      m === "claude-4-5-haiku-8k" ||
       m === "claude-4-5-sonnet-8k" ||
       m === "claude-4-5-opus-8k" ||
-      m === "claude-4-5-haiku-8k"
+      m === "claude-4-6-opus-8k"
     );
   }),
   ollama: [], // this is empty, because these models are not hardcoded
@@ -885,6 +888,7 @@ export const LLM_USERNAMES: LLM2String = {
   "claude-4-opus-8k": "Claude 4 Opus",
   "claude-4-5-sonnet-8k": "Claude 4.5 Sonnet",
   "claude-4-5-opus-8k": "Claude 4.5 Opus",
+  "claude-4-6-opus-8k": "Claude 4.6 Opus",
   "claude-4-5-haiku-8k": "Claude 4.5 Haiku",
   "claude-3-opus": "Claude 3 Opus",
   "claude-3-opus-8k": "Claude 3 Opus",
@@ -989,6 +993,8 @@ export const LLM_DESCR: LLM2String = {
     "Most intelligent model with advanced reasoning (Anthropic, 8k token context)",
   "claude-4-5-opus-8k":
     "Flagship model excelling at complex tasks and writing (Anthropic, 8k token context)",
+  "claude-4-6-opus-8k":
+    "Most intelligent model for agents and coding (Anthropic, 8k token context)",
   "claude-4-5-haiku-8k":
     "Fastest and most cost-efficient model (Anthropic, 8k token context)",
   "claude-3-sonnet-4k":
@@ -1392,6 +1398,12 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: false,
   },
   "claude-4-5-opus-8k": {
+    prompt_tokens: usd1Mtokens(5),
+    completion_tokens: usd1Mtokens(25),
+    max_tokens: 8_000,
+    free: false,
+  },
+  "claude-4-6-opus-8k": {
     prompt_tokens: usd1Mtokens(5),
     completion_tokens: usd1Mtokens(25),
     max_tokens: 8_000,

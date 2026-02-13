@@ -343,6 +343,7 @@ export interface UpdateAccountInfoAndPassportOpts {
   id: string;
   profile: PassportProfile;
   passport_profile: PassportProfile;
+  email_address?: string;
 }
 
 export interface CreateSsoAccountOpts {
@@ -958,6 +959,14 @@ export interface PostgreSQLMethods extends EventEmitter {
   _user_set_query_project_manage_users_owner_only(
     obj: any,
   ): boolean | undefined;
+}
+
+export interface SetAccountFields {
+  db: PostgreSQL;
+  account_id: string;
+  email_address?: string | undefined;
+  first_name?: string | undefined;
+  last_name?: string | undefined;
 }
 
 // This is an extension of BaseProject in projects/control/base.ts

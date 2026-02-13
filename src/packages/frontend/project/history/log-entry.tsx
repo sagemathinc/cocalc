@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 import { Space, Tooltip } from "antd";
@@ -41,7 +41,9 @@ import { COLORS } from "@cocalc/util/theme";
 import { FormattedMessage, useIntl } from "react-intl";
 import { SOFTWARE_ENVIRONMENT_ICON } from "../settings/software-consts";
 import { SystemProcess } from "./system-process";
+import { handleFileEntryClick } from "./utils";
 import type {
+  AIAssistanceEvent,
   AssistantEvent,
   CollaboratorEvent,
   FileActionEvent,
@@ -663,6 +665,68 @@ export const LogEntry: React.FC<Props> = React.memo(
       }
     }
 
+    function render_ai_assistance(event: AIAssistanceEvent): Rendered {
+      const { mode, model, path, cellNumber, cellId, lineNumber } = event;
+
+      const name = (
+        <Space size="small">
+          <AIAvatar size={14} style={{ top: "1px" }} />
+          {model ? `AI (${modelToName(model)})` : "AI"}
+        </Space>
+      );
+
+      const pathLink = (
+        <PathLink
+          path={path}
+          full={true}
+          style={cursor ? selected_item : undefined}
+          trunc={TRUNC}
+          project_id={project_id}
+          dimExtensions={dimFileExtensions}
+        />
+      );
+
+      const showCellLink = cellNumber != null && cellId;
+      const showLineLink = !showCellLink && lineNumber != null;
+
+      return (
+        <span>
+          requested {name} <strong>{mode === "hint" ? "hint" : "fix"}</strong>{" "}
+          for {pathLink}
+          {showCellLink && (
+            <span>
+              {" "}
+              in{" "}
+              <a
+                onClick={(e) =>
+                  handleFileEntryClick(e, path, project_id, { id: cellId })
+                }
+                style={{ color: COLORS.GRAY_D, fontWeight: "bold" }}
+              >
+                cell #{cellNumber}
+              </a>
+            </span>
+          )}
+          {showLineLink && (
+            <span>
+              {" "}
+              in{" "}
+              <a
+                onClick={(e) =>
+                  handleFileEntryClick(e, path, project_id, {
+                    line: `${lineNumber}`,
+                  })
+                }
+                style={{ color: COLORS.GRAY_D, fontWeight: "bold" }}
+              >
+                line #{lineNumber}
+              </a>
+            </span>
+          )}
+        </span>
+      );
+    }
+
     function render_assistant(event: AssistantEvent): Rendered {
       switch (event.action) {
         case "insert":
@@ -914,6 +978,8 @@ export const LogEntry: React.FC<Props> = React.memo(
           return render_software_environment(event);
         case "llm":
           return render_llm(event);
+        case "ai_assistance":
+          return render_ai_assistance(event);
         default:
           return <span>Unknown event: {JSON.stringify(event)}</span>;
       }
@@ -975,6 +1041,8 @@ export const LogEntry: React.FC<Props> = React.memo(
           return SOFTWARE_ENVIRONMENT_ICON;
         case "public_path":
           return "share-square";
+        case "ai_assistance":
+          return "robot";
       }
 
       if (event.event.indexOf("project") !== -1) {

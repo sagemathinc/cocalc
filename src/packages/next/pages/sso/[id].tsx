@@ -59,9 +59,9 @@ export default function Signup(props: Props) {
         {r_human_list(
           (domains ?? []).map((d) => (
             <Text code key={d}>
-              {d}
+              {d === "*" ? "all domains" : d}
             </Text>
-          ))
+          )),
         )}
       </Paragraph>
     );
