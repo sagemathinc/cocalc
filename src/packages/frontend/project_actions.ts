@@ -183,14 +183,14 @@ const must_define = function (redux) {
 const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
-interface FileActionInfo {
+export interface FileActionInfo {
   name: IntlMessage;
   icon: IconName;
   allows_multiple_files?: boolean;
   hideFlyout?: boolean;
 }
 
-export const FILE_ACTIONS = {
+const _FILE_ACTIONS = {
   compress: {
     name: defineMessage({
       id: "file_actions.compress.name",
@@ -283,11 +283,19 @@ export const FILE_ACTIONS = {
   },
 } as const satisfies Record<string, FileActionInfo>;
 
-export type FileAction = keyof typeof FILE_ACTIONS;
+export type FileAction = keyof typeof _FILE_ACTIONS;
+
+export const FILE_ACTIONS: Record<FileAction, FileActionInfo> = _FILE_ACTIONS;
 
 // Extended commands accepted by show_file_action_panel() that route to
 // navigation actions rather than the ActionBox dialog.
-export type FileCommand = FileAction | "new" | "open" | "open_recent" | "close" | "quit";
+export type FileCommand =
+  | FileAction
+  | "new"
+  | "open"
+  | "open_recent"
+  | "close"
+  | "quit";
 
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";
@@ -1575,9 +1583,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -1729,7 +1736,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files?: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction;
     } = {};
     if (checked) {
       changes.checked_files = store.get("checked_files").add(file);
@@ -1759,7 +1766,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction;
     } = { checked_files: store.get("checked_files").union(file_list) };
     const file_action = store.get("file_action");
     if (
@@ -1781,7 +1788,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction;
     } = { checked_files: store.get("checked_files").subtract(file_list) };
 
     if (changes.checked_files.size === 0) {
@@ -1857,7 +1864,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  set_file_action(action?: string): void {
+  set_file_action(action?: FileAction): void {
     const store = this.get_store();
     if (store == null) {
       return;
@@ -1908,7 +1915,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     const path_splitted = misc.path_split(opts.path);
-    this.open_directory(path_splitted.head);
+    // Load the directory listing (needed for file_map) without switching to the files tab,
+    // since the file action modal is rendered at the project level.
+    this.open_directory(path_splitted.head, true, false);
 
     if (opts.action == "quit") {
       // TODO: for jupyter and terminal at least, should also do more!
@@ -2361,8 +2370,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {

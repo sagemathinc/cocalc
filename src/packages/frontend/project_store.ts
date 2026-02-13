@@ -31,11 +31,8 @@ import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
-import {
-  FILE_ACTIONS,
-  ProjectActions,
-  QUERIES,
-} from "@cocalc/frontend/project_actions";
+import { ProjectActions, QUERIES } from "@cocalc/frontend/project_actions";
+import type { FileAction } from "@cocalc/frontend/project_actions";
 import {
   Available as AvailableFeatures,
   isMainConfiguration,
@@ -58,7 +55,7 @@ import {
   FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
 
-export { FILE_ACTIONS as file_actions, ProjectActions };
+export { ProjectActions };
 
 export type ModalInfo = TypedMap<{
   title: string | React.JSX.Element;
@@ -100,7 +97,7 @@ export interface ProjectStoreState {
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   page_number: number;
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
-  file_action?: string; // undefined is meaningfully none here
+  file_action?: FileAction;
   file_search?: string;
   show_hidden?: boolean;
   error?: string;

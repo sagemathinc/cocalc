@@ -14,7 +14,8 @@ import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
-import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
+import type { FileAction } from "@cocalc/frontend/project_actions";
+import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -209,13 +210,13 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_action_button(name: string): React.JSX.Element {
+  function render_action_button(name: FileAction): React.JSX.Element {
     const disabled =
       isDisabledSnapshots(name) &&
       (props.current_path != null
         ? props.current_path.startsWith(".snapshots")
         : undefined);
-    const obj = file_actions[name];
+    const obj = FILE_ACTIONS[name];
     const handle_click = (_e: React.MouseEvent) => {
       props.actions.set_file_action(name);
     };

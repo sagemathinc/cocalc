@@ -427,8 +427,9 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         isDisabledSnapshots(key) &&
         (current_path?.startsWith(".snapshots") ?? false);
 
-      const { name, icon, hideFlyout } = FILE_ACTIONS[key];
-      if (hideFlyout) return;
+      const actionInfo = FILE_ACTIONS[key];
+      if ("hideFlyout" in actionInfo && actionInfo.hideFlyout) return;
+      const { name, icon } = actionInfo;
 
       ctx.push({
         key,
@@ -448,7 +449,6 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
               actions?.set_file_list_checked([pathFn]);
             }
           }
-          actions?.set_active_tab("files");
           actions?.set_file_action(key);
         },
       });

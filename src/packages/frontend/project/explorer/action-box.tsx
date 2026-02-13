@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -23,7 +23,8 @@ import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
-import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
+import type { FileAction } from "@cocalc/frontend/project_actions";
+import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import ConfigureShare from "@cocalc/frontend/share/config";
 import * as misc from "@cocalc/util/misc";
@@ -46,18 +47,17 @@ export const PRE_STYLE = {
   padding: "6px 12px",
 } as const;
 
-type FileAction = undefined | keyof typeof file_actions;
-
 interface ReactProps {
   checked_files: immutable.Set<string>;
-  file_action: FileAction;
+  file_action?: FileAction;
   current_path: string;
   project_id: string;
   file_map: object;
   actions: ProjectActions;
-  displayed_listing?: object;
   //new_name?: string;
   name: string;
+  // When true, skip the Well wrapper/title/close button (used inside antd Modal)
+  modal?: boolean;
 }
 
 export function ActionBox(props: ReactProps) {
@@ -596,48 +596,55 @@ export function ActionBox(props: ReactProps) {
   }
 
   const action = props.file_action;
-  const action_button = file_actions[action || "undefined"];
+  if (action == null) {
+    return <div>Undefined action</div>;
+  }
+  const action_button = FILE_ACTIONS[action];
   if (action_button == undefined) {
     return <div>Undefined action</div>;
   }
   if (props.file_map == undefined) {
     return <Loading />;
-  } else {
-    return (
-      <Well
-        style={{
-          margin: "15px 30px",
-          overflowY: "auto",
-          maxHeight: "50vh",
-          backgroundColor: "#fafafa",
-        }}
-      >
-        <Row>
-          <Col
-            sm={12}
-            style={{
-              color: COLORS.GRAY_M,
-              fontWeight: "bold",
-              fontSize: "15pt",
-            }}
-          >
-            <Icon name={action_button.icon ?? "exclamation-circle"} />{" "}
-            {intl.formatMessage(action_button.name)}
-            <div style={{ float: "right" }}>
-              <AntdButton onClick={cancel_action} type="text">
-                <Icon name="times" />
-              </AntdButton>
-            </div>
-            {!!compute_server_id && (
-              <ComputeServerTag
-                id={compute_server_id}
-                style={{ float: "right", top: "5px" }}
-              />
-            )}
-          </Col>
-          <Col sm={12}>{render_action_box(action)}</Col>
-        </Row>
-      </Well>
-    );
   }
+
+  if (props.modal) {
+    return <div onKeyDown={action_key}>{render_action_box(action)}</div>;
+  }
+
+  return (
+    <Well
+      style={{
+        margin: "15px 30px",
+        overflowY: "auto",
+        maxHeight: "50vh",
+        backgroundColor: "#fafafa",
+      }}
+    >
+      <Row>
+        <Col
+          sm={12}
+          style={{
+            color: COLORS.GRAY_M,
+            fontWeight: "bold",
+            fontSize: "15pt",
+          }}
+        >
+          <Icon name={action_button.icon ?? "exclamation-circle"} />{" "}
+          {intl.formatMessage(action_button.name)}
+          <div style={{ float: "right" }}>
+            <AntdButton onClick={cancel_action} type="text">
+              <Icon name="times" />
+            </AntdButton>
+          </div>
+          {!!compute_server_id && (
+            <ComputeServerTag
+              id={compute_server_id}
+              style={{ float: "right", top: "5px" }}
+            />
+          )}
+        </Col>
+        <Col sm={12}>{render_action_box(action)}</Col>
+      </Row>
+    </Well>
+  );
 }

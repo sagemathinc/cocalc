@@ -206,9 +206,10 @@ export function FilesSelectedControls({
               isDisabledSnapshots(name) &&
               (current_path?.startsWith(".snapshots") ?? false);
 
-            const { name: actionName, icon, hideFlyout } = FILE_ACTIONS[name];
+            const actionInfo = FILE_ACTIONS[name];
+            if ("hideFlyout" in actionInfo && actionInfo.hideFlyout) return;
+            const { name: actionName, icon } = actionInfo;
             const title = intl.formatMessage(actionName);
-            if (hideFlyout) return;
             return (
               <Tooltip key={name} title={`${title}...`}>
                 <Button
@@ -216,8 +217,6 @@ export function FilesSelectedControls({
                   key={name}
                   disabled={disabled}
                   onClick={() => {
-                    // TODO re-using the existing controls is a stopgap. make this part of the flyouts.
-                    actions?.set_active_tab("files");
                     actions?.set_file_action(name);
                   }}
                 >
@@ -242,8 +241,8 @@ export function FilesSelectedControls({
           ? renderButtons(ACTION_BUTTONS_DIR)
           : renderButtons(ACTION_BUTTONS_FILE.filter((n) => n !== "download"))
         : checked_files.size > 1
-        ? renderButtons(ACTION_BUTTONS_MULTI)
-        : undefined}
+          ? renderButtons(ACTION_BUTTONS_MULTI)
+          : undefined}
       {renderFileInfo()}
     </Space>
   );
