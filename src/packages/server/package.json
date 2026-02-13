@@ -92,7 +92,7 @@
     "libsodium-wrappers": "^0.7.13",
     "lodash": "^4.17.23",
     "lru-cache": "^7.18.3",
-    "markdown-it": "^13.0.1",
+    "markdown-it": "^14.1.1",
     "ms": "2.1.2",
     "nanoid": "^3.3.8",
     "node-zendesk": "^5.0.13",
