@@ -3,8 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Popover, Col, Row } from "antd";
+import { Button, Col, Popover, Row } from "antd";
 import memoizeOne from "memoize-one";
+
 import { CSS, React, useState } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -17,11 +18,12 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import { open_new_tab } from "@cocalc/frontend/misc";
+import { url_href } from "@cocalc/frontend/project/utils";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { url_href } from "@cocalc/frontend/project/utils";
+
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
 import { generate_click_for } from "./utils";
