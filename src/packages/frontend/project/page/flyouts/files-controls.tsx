@@ -9,6 +9,7 @@ import { useIntl } from "react-intl";
 
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import {
   ACTION_BUTTONS_DIR,
   ACTION_BUTTONS_FILE,
@@ -53,6 +54,9 @@ export function FilesSelectedControls({
   const intl = useIntl();
   const current_path = useTypedRedux({ project_id }, "current_path");
   const actions = useActions({ project_id });
+  const student_project_functionality =
+    useStudentProjectFunctionality(project_id);
+  const disableActions = student_project_functionality.disableActions;
 
   const singleFile = useSingleFile({
     checked_files,
@@ -195,6 +199,7 @@ export function FilesSelectedControls({
   }
 
   function renderButtons(names) {
+    if (disableActions) return;
     if (mode === "top" && checked_files.size === 0) return;
 
     return (
@@ -242,8 +247,8 @@ export function FilesSelectedControls({
           ? renderButtons(ACTION_BUTTONS_DIR)
           : renderButtons(ACTION_BUTTONS_FILE.filter((n) => n !== "download"))
         : checked_files.size > 1
-        ? renderButtons(ACTION_BUTTONS_MULTI)
-        : undefined}
+          ? renderButtons(ACTION_BUTTONS_MULTI)
+          : undefined}
       {renderFileInfo()}
     </Space>
   );

@@ -501,7 +501,9 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     }
 
     // the file or directory actions
-    makeContextMenuEntries(ctx, item, multiple);
+    if (!student_project_functionality.disableActions) {
+      makeContextMenuEntries(ctx, item, multiple);
+    }
 
     // view/download buttons at the bottom
     const showDownload = !student_project_functionality.disableActions;
