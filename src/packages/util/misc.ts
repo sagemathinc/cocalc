@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -82,7 +82,6 @@ export function sha1base64(s) {
   return base16ToBase64(sha1(s));
 }
 
-import getRandomValues from "get-random-values";
 import * as lodash from "lodash";
 import * as immutable from "immutable";
 
@@ -430,10 +429,10 @@ const reValidEmail = (function () {
   return new RegExp(sValidEmail);
 })();
 
-export function is_valid_email_address(email: string): boolean {
+export function is_valid_email_address(email?: unknown): boolean {
   // From http://stackoverflow.com/questions/46155/validate-email-address-in-javascript
   // but converted to Javascript; it's near the middle but claims to be exactly RFC822.
-  if (reValidEmail.test(email)) {
+  if (typeof email === "string" && reValidEmail.test(email)) {
     return true;
   } else {
     return false;
@@ -773,7 +772,7 @@ export function secure_random_token(
     throw Error("impossible, since alphabet is empty");
   }
   const v = new Uint8Array(length);
-  getRandomValues(v); // secure random numbers
+  globalThis.crypto.getRandomValues(v); // secure random numbers
   for (const i of v) {
     s += alphabet[i % alphabet.length];
   }
@@ -2446,27 +2445,34 @@ export function obj_key_subs(obj: object, subs: { [key: string]: any }): void {
 // * packages/backend/misc_node → sanitize_html
 // * packages/frontend/misc-page    → sanitize_html
 export function sanitize_html_attributes($, node): void {
-  $.each(node.attributes, function () {
-    // sometimes, "this" is undefined -- #2823
-    // @ts-ignore -- no implicit this
-    if (this == null) {
-      return;
+  // Use Array.from to snapshot node.attributes (a live NamedNodeMap).
+  // Iterating a live collection while removing attributes shifts indices
+  // and causes elements to be skipped — an XSS vulnerability.
+  for (const attr of Array.from(node.attributes)) {
+    if (attr == null) {
+      continue;
     }
-    // @ts-ignore -- no implicit this
-    const attrName = this.name;
-    // @ts-ignore -- no implicit this
-    const attrValue = this.value;
+    const attrName = (attr as Attr).name;
+    const attrValue = (attr as Attr).value;
+    const lowerName = attrName?.toLowerCase() ?? "";
+    // Remove whitespace and control characters (ASCII 0-31) from value for checking
+    const normalizedValue =
+      attrValue?.replace(/[\s\x00-\x1f]/g, "").toLowerCase() ?? "";
     // remove attribute name start with "on", possible
     // unsafe, e.g.: onload, onerror...
     // remove attribute value start with "javascript:" pseudo
     // protocol, possible unsafe, e.g. href="javascript:alert(1)"
     if (
-      attrName?.indexOf("on") === 0 ||
-      attrValue?.indexOf("javascript:") === 0
+      lowerName.startsWith("on") ||
+      normalizedValue.startsWith("javascript:") ||
+      normalizedValue.startsWith("vbscript:") ||
+      // Prevent XSS via data URIs (e.g. data:text/html) while allowing legitimate images (data:image/) in src.
+      (normalizedValue.startsWith("data:") &&
+        (lowerName !== "src" || !normalizedValue.startsWith("data:image/")))
     ) {
       $(node).removeAttr(attrName);
     }
-  });
+  }
 }
 
 // convert a jupyter kernel language (i.e. "python" or "r", usually short and lowercase)

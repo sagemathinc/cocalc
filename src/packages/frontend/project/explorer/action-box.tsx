@@ -18,7 +18,7 @@ import {
   Row,
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
-import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
@@ -64,7 +64,7 @@ export function ActionBox(props: ReactProps) {
   const intl = useIntl();
   const { project_id } = useProjectContext();
   const runQuota = useRunQuota(project_id, null);
-  const get_user_type: () => string = useRedux("account", "get_user_type");
+  const user_type = useTypedRedux("account", "user_type");
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   const [copy_destination_directory, set_copy_destination_directory] =
@@ -280,7 +280,9 @@ export function ActionBox(props: ReactProps) {
     }
   }
 
-  function render_copy_different_project_options(): React.JSX.Element | undefined {
+  function render_copy_different_project_options():
+    | React.JSX.Element
+    | undefined {
     if (props.project_id !== copy_destination_project_id) {
       return (
         <div>
@@ -432,7 +434,7 @@ export function ActionBox(props: ReactProps) {
 
   function render_copy(): React.JSX.Element {
     const { size } = props.checked_files;
-    const signed_in = get_user_type() === "signed_in";
+    const signed_in = user_type === "signed_in";
     if (!signed_in) {
       return (
         <div>
@@ -568,7 +570,9 @@ export function ActionBox(props: ReactProps) {
     );
   }
 
-  function render_action_box(action: FileAction): React.JSX.Element | undefined {
+  function render_action_box(
+    action: FileAction,
+  ): React.JSX.Element | undefined {
     switch (action) {
       case "compress":
         return <CreateArchive />;

@@ -150,11 +150,15 @@ export function useProjectContextProvider({
   const haveAnthropic = useTypedRedux("customize", "anthropic_enabled");
   const haveXai = useTypedRedux("customize", "xai_enabled");
   const userDefinedLLM = useTypedRedux("customize", "user_defined_llm");
+  const accountCustomize = useTypedRedux("account", "customize");
+  const otherSettings = useTypedRedux("account", "other_settings");
+  const projectMap = useTypedRedux("projects", "project_map");
 
   const enabledLLMs = useMemo(() => {
     const projectsStore = redux.getStore("projects");
     return projectsStore.whichLLMareEnabled(project_id);
   }, [
+    project_id,
     haveAnthropic,
     haveCustomOpenAI,
     haveGoogle,
@@ -163,6 +167,9 @@ export function useProjectContextProvider({
     haveOpenAI,
     haveXai,
     userDefinedLLM,
+    accountCustomize,
+    otherSettings,
+    projectMap,
   ]);
 
   const [contentSize, setContentSize] = useState({ width: 0, height: 0 });

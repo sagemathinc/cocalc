@@ -130,6 +130,11 @@ export function ComputeImageSelector({
     "software",
   );
 
+  const specializedSoftware: ComputeImages | undefined = useTypedRedux(
+    "compute_images",
+    "images",
+  );
+
   if (software_envs === undefined) {
     return <Loading />;
   }
@@ -140,11 +145,6 @@ export function ComputeImageSelector({
 
   const computeEnvs = fromJS(software_envs.get("environments")).sort(
     img_sorter,
-  );
-
-  const specializedSoftware: ComputeImages | undefined = useTypedRedux(
-    "compute_images",
-    "images",
   );
 
   const defaultComputeImg = software_envs.get("default");

@@ -1,7 +1,9 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
+
+import { has } from "lodash";
 
 import { NOTES } from "./crm";
 import { SCHEMA as schema } from "./index";
@@ -15,9 +17,61 @@ import {
   OTHER_SETTINGS_USER_DEFINED_LLM,
 } from "./defaults";
 
+import { ssoDispayedName } from "@cocalc/util/auth";
+import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
+import { ssoNormalizeExclusiveDomains } from "@cocalc/util/sso-normalize-domains";
 import { isUserDefinedModelType } from "./llm-utils";
 
 import { DEFAULT_LOCALE } from "@cocalc/util/consts/locale";
+import { Strategy } from "@cocalc/util/types/sso";
+
+async function getEmailAddressForAccountId(
+  db,
+  account_id: string,
+): Promise<string | undefined> {
+  const { rows } = await db.async_query({
+    query: "SELECT email_address FROM accounts",
+    where: { "account_id = $::UUID": account_id },
+  });
+  if (rows.length === 0) {
+    return undefined;
+  }
+  return rows[0].email_address ?? undefined;
+}
+
+async function getStrategiesSSO(db): Promise<Strategy[]> {
+  const { rows } = await db.async_query({
+    query: `
+      SELECT strategy,
+             COALESCE(info -> 'icon',              conf -> 'icon')              as icon,
+             COALESCE(info -> 'display',           conf -> 'display')           as display,
+             COALESCE(info -> 'public',            conf -> 'public')            as public,
+             COALESCE(info -> 'exclusive_domains', conf -> 'exclusive_domains') as exclusive_domains,
+             COALESCE(info -> 'do_not_hide',      'false'::JSONB)               as do_not_hide,
+             COALESCE(info -> 'update_on_login',  'false'::JSONB)               as update_on_login
+      FROM passport_settings
+      WHERE strategy != 'site_conf'
+        AND COALESCE(info ->> 'disabled', conf ->> 'disabled', 'false') != 'true'
+    `,
+  });
+
+  return rows.map((row) => {
+    ssoNormalizeExclusiveDomains(row);
+    return {
+      name: row.strategy,
+      display: ssoDispayedName({
+        display: row.display,
+        name: row.strategy,
+      }),
+      icon: row.icon ?? undefined,
+      backgroundColor: "",
+      public: row.public ?? true,
+      exclusiveDomains: row.exclusive_domains ?? [],
+      doNotHide: row.do_not_hide ?? false,
+      updateOnLogin: row.update_on_login ?? false,
+    };
+  });
+}
 
 export const USER_SEARCH_LIMIT = 250;
 export const ADMIN_SEARCH_LIMIT = 2500;
@@ -686,6 +740,7 @@ Table({
           auto_balance: true,
         },
         async check_hook(db, obj, account_id, _project_id, cb) {
+          // db is of type PostgreSQL defined in @cocalc/database/postgres/types
           if (obj["name"] != null) {
             // NOTE: there is no way to unset/remove a username after one is set...
             try {
@@ -702,6 +757,7 @@ Table({
               return;
             }
           }
+
           // Hook to truncate some text fields to at most 254 characters, to avoid
           // further trouble down the line.
           for (const field of ["first_name", "last_name", "email_address"]) {
@@ -722,6 +778,38 @@ Table({
             } catch (err) {
               cb(`${err}`);
               return;
+            }
+          }
+
+          // if account is exclusively controlled by SSO, you're maybe prohibited from changing account details
+          const current_email_address = await getEmailAddressForAccountId(
+            db,
+            account_id,
+          );
+          //console.log({ current_email_address });
+          if (typeof current_email_address === "string") {
+            const strategies: Strategy[] = await getStrategiesSSO(db);
+            const strategy = checkRequiredSSO({
+              strategies,
+              email: current_email_address,
+            });
+            // we got a required exclusive SSO for the given account_id
+            if (strategy != null) {
+              // if user tries to change email_address (including null/undefined)
+              if (has(obj, "email_address")) {
+                cb(`You are not allowed to change your email address.`);
+                return;
+              }
+              // ... or tries to change first or last name, but strategy has update_on_login set
+              if (
+                strategy.updateOnLogin &&
+                (has(obj, "first_name") || has(obj, "last_name"))
+              ) {
+                cb(
+                  `You are not allowed to change your first or last name. You have to change it at your single-sign-on provider: ${strategy.display}.`,
+                );
+                return;
+              }
             }
           }
 

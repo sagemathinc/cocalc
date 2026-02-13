@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -8,25 +8,27 @@
 import { PassportStrategyDB } from "@cocalc/database/settings/auth-sso-types";
 import {
   getPassportsCached,
-  setPassportsCached
+  setPassportsCached,
 } from "@cocalc/database/settings/server-settings";
-import { to_json } from "@cocalc/util/misc";
+import { callback2 as cb2 } from "@cocalc/util/async-utils";
+import { lower_email_address, to_json } from "@cocalc/util/misc";
 import { CB } from "@cocalc/util/types/database";
 import {
   set_account_info_if_different,
   set_account_info_if_not_set,
-  set_email_address_verified
+  set_email_address_verified,
 } from "./account-queries";
 import {
   CreatePassportOpts,
   PassportExistsOpts,
   PostgreSQL,
-  UpdateAccountInfoAndPassportOpts
+  SetAccountFields,
+  UpdateAccountInfoAndPassportOpts,
 } from "./types";
 
 export async function set_passport_settings(
   db: PostgreSQL,
-  opts: PassportStrategyDB & { cb?: CB }
+  opts: PassportStrategyDB & { cb?: CB },
 ): Promise<void> {
   const { strategy, conf, info } = opts;
   let err = null;
@@ -50,7 +52,7 @@ export async function set_passport_settings(
 
 export async function get_passport_settings(
   db: PostgreSQL,
-  opts: { strategy: string; cb?: (data: object) => void }
+  opts: { strategy: string; cb?: (data: object) => void },
 ): Promise<any> {
   const { rows } = await db.async_query({
     query: "SELECT conf, info FROM passport_settings",
@@ -63,7 +65,7 @@ export async function get_passport_settings(
 }
 
 export async function get_all_passport_settings(
-  db: PostgreSQL
+  db: PostgreSQL,
 ): Promise<PassportStrategyDB[]> {
   return (
     await db.async_query<PassportStrategyDB>({
@@ -73,7 +75,7 @@ export async function get_all_passport_settings(
 }
 
 export async function get_all_passport_settings_cached(
-  db: PostgreSQL
+  db: PostgreSQL,
 ): Promise<PassportStrategyDB[]> {
   const passports = getPassportsCached();
   if (passports != null) {
@@ -103,7 +105,7 @@ export function _passport_key(opts) {
 
 export async function create_passport(
   db: PostgreSQL,
-  opts: CreatePassportOpts
+  opts: CreatePassportOpts,
 ): Promise<void> {
   const dbg = db._dbg("create_passport");
   dbg({ id: opts.id, strategy: opts.strategy, profile: to_json(opts.profile) });
@@ -121,10 +123,10 @@ export async function create_passport(
     });
 
     dbg(
-      `setting other account info ${opts.account_id}: ${opts.email_address}, ${opts.first_name}, ${opts.last_name}`
+      `setting other account info ${opts.account_id}: ${opts.email_address}, ${opts.first_name}, ${opts.last_name}`,
     );
     await set_account_info_if_not_set({
-      db: db,
+      db,
       account_id: opts.account_id,
       email_address: opts.email_address,
       first_name: opts.first_name,
@@ -150,7 +152,7 @@ export async function create_passport(
 
 export async function passport_exists(
   db: PostgreSQL,
-  opts: PassportExistsOpts
+  opts: PassportExistsOpts,
 ): Promise<string | undefined> {
   try {
     const result = await db.async_query({
@@ -176,27 +178,50 @@ export async function passport_exists(
   }
 }
 
+// this is only used in passport-login/maybeUpdateAccountAndPassport!
 export async function update_account_and_passport(
   db: PostgreSQL,
-  opts: UpdateAccountInfoAndPassportOpts
+  opts: UpdateAccountInfoAndPassportOpts,
 ) {
-  // we deliberately do not update the email address, because if the SSO
-  // strategy sends a different one, this would break the "link".
-  // rather, if the email (and hence most likely the email address) changes on the
-  // SSO side, this would equal to creating a new account.
+  // This also updates the email address, if it is set in opts and does not exist with another account yet.
+  // NOTE: this changed in July 2024. Prior to that, changing the email address of the same account (by ID) in SSO,
+  // would not change the email address.
   const dbg = db._dbg("update_account_and_passport");
   dbg(
     `updating account info ${to_json({
       first_name: opts.first_name,
       last_name: opts.last_name,
-    })}`
+      email_addres: opts.email_address,
+    })}`,
   );
-  await set_account_info_if_different({
+
+  const upd: SetAccountFields = {
     db: db,
     account_id: opts.account_id,
     first_name: opts.first_name,
     last_name: opts.last_name,
-  });
+  };
+
+  // Only check for existing email if email_address is provided by SSO
+  // (Some SSO providers don't return email addresses)
+  if (opts.email_address) {
+    const email_address = lower_email_address(opts.email_address);
+    // Most likely, this just returns the very same account (since the account already exists).
+    const existing_account_id = await cb2(db.account_exists, {
+      email_address,
+    });
+
+    if (!existing_account_id) {
+      // There is no account with the new email address, hence we can update the email address as well
+      upd.email_address = email_address;
+      dbg(
+        `No existing account with email address ${email_address}. Therefore, we change the email address of account ${opts.account_id} as well.`,
+      );
+    }
+  }
+
+  // this set_account_info_if_different checks again if the email exists on another account, but it would throw an error.
+  const { email_changed } = await set_account_info_if_different(upd);
   const key = _passport_key(opts);
   dbg(`updating passport ${to_json({ key, profile: opts.profile })}`);
   await db.async_query({
@@ -208,4 +233,14 @@ export async function update_account_and_passport(
       "account_id = $::UUID": opts.account_id,
     },
   });
+
+  // since we update the email address of an account based on a change from the SSO mechanism
+  // we can assume the new email address is also "verified"
+  if (email_changed && typeof upd.email_address === "string") {
+    await set_email_address_verified({
+      db,
+      account_id: opts.account_id,
+      email_address: upd.email_address,
+    });
+  }
 }

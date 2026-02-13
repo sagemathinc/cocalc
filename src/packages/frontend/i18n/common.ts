@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2024 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2024 - 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -33,6 +33,11 @@ export const labels = defineMessages({
     id: "labels.generate",
     defaultMessage: "Generate",
     description: "Short label on a button to generate something.",
+  },
+  regenerate: {
+    id: "labels.regenerate",
+    defaultMessage: "Regenerate",
+    description: "Short label on a button to regenerate something.",
   },
   other: {
     id: "labels.other",

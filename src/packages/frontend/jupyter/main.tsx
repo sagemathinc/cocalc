@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -20,6 +20,7 @@ import {
   useRef,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
+import { useProjectContext } from "@cocalc/frontend/project/context";
 
 // Support for all the MIME types
 import "./output-messages/mime-types/init-frontend";
@@ -144,7 +145,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     name,
     "cells",
   ]);
-  const project_id: string = useRedux([name, "project_id"]);
+  const { project_id } = useProjectContext();
   const directory: undefined | string = useRedux([name, "directory"]);
   // const version: undefined | any = useRedux([name, "version"]);
   const about: undefined | boolean = useRedux([name, "about"]);
@@ -187,8 +188,9 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "check_select_kernel_init",
   ]);
 
+  const computeServerIds = useTypedRedux({ project_id }, "compute_server_ids");
   const computeServerId = path
-    ? useTypedRedux({ project_id }, "compute_server_ids")?.get(syncdbPath(path))
+    ? computeServerIds?.get(syncdbPath(path))
     : undefined;
 
   useEffect(() => {

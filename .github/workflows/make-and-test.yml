@@ -41,25 +41,10 @@ jobs:
       - name: Install python3 requests
         run: sudo apt-get install python3-requests
       - name: Check doc links
-        run: cd src/scripts && python3 check_doc_urls.py || sleep 5 || python3 check_doc_urls.py
+        run: cd src/scripts && python3 check_doc_urls.py
 
   test:
     runs-on: ubuntu-latest
-
-    services:
-      postgres:
-        image: postgres:${{ matrix.pg-version}}
-        env:
-          POSTGRES_DB: smc
-          POSTGRES_USER: smc
-          POSTGRES_HOST_AUTH_METHOD: trust
-        options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-        ports:
-          - 5432:5432
 
     strategy:
       matrix:
@@ -80,6 +65,26 @@ jobs:
 
       - uses: actions/checkout@v4
 
+      - name: Start optimized Postgres (RAM-disk & No Durability)
+        run: |
+          docker run -d \
+            --name postgres \
+            --tmpfs /var/lib/postgresql/data \
+            -p 5432:5432 \
+            -e POSTGRES_DB=smc \
+            -e POSTGRES_USER=smc \
+            -e POSTGRES_HOST_AUTH_METHOD=trust \
+            -e POSTGRES_INITDB_ARGS="--no-sync" \
+            postgres:${{ matrix.pg-version }} \
+            postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off
+
+      - name: Wait for Postgres to be ready
+        run: |
+          if ! timeout 120s bash -c 'until docker exec postgres pg_isready -U smc -d smc; do sleep 1; done'; then
+            docker logs postgres || true
+            exit 1
+          fi
+
       - name: Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
@@ -90,13 +95,6 @@ jobs:
           # which aren't true.
           # cache: "pnpm"
           # cache-dependency-path: "src/packages/pnpm-lock.yaml"
-
-      - name: Download and install Valkey
-        run: |
-          VALKEY_VERSION=8.1.2
-          curl -LOq https://download.valkey.io/releases/valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
-          tar -xzf valkey-${VALKEY_VERSION}-jammy-x86_64.tar.gz
-          sudo cp valkey-${VALKEY_VERSION}-jammy-x86_64/bin/valkey-server /usr/local/bin/
 
       - name: Set up Python venv and Jupyter kernel
         run: |
@@ -114,6 +112,11 @@ jobs:
 
       - name: build
         run: cd src && pnpm run make
+
+      - name: lint (eslint)
+        run: cd src/packages/static && pnpm run lint
+      - name: lint (eslint frontend)
+        run: cd src/packages/frontend && pnpm run lint
 
       # This runs all the tests with text output and jest-junit reporters to generate junit.xml reports
       # That test-github-ci target runs workspaces.py for testing, which in turn runs the depchecks

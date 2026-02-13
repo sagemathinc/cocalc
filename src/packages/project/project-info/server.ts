@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -89,7 +89,7 @@ export class ProjectInfoServer extends EventEmitter {
   }
 
   private async processes(timestamp: number) {
-    return await this.processStats.processes(timestamp);
+    return await this.processStats.processes(timestamp, "project-info");
   }
 
   // delta-time for this and the previous process information

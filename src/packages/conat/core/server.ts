@@ -1329,6 +1329,11 @@ export class ConatServer extends EventEmitter {
     let count = 0;
 
     const f = async (client) => {
+      // Guard against race condition: client may be closed during scan
+      const address = client?.options?.address;
+      if (!address) {
+        return;
+      }
       try {
         const sys = sysApi(client);
         const knownByRemoteNode = new Set(
@@ -1337,22 +1342,18 @@ export class ConatServer extends EventEmitter {
         if (this.isClosed()) return;
         logger.debug(
           "scan: remote",
-          client.options.address,
+          address,
           "knows about ",
           knownByRemoteNode,
         );
-        for (const address of knownByRemoteNode) {
-          if (!knownByUs.has(address)) {
-            unknownToUs.add(address);
+        for (const addr of knownByRemoteNode) {
+          if (!knownByUs.has(addr)) {
+            unknownToUs.add(addr);
           }
         }
         if (!knownByRemoteNode.has(this.address())) {
           // we know about them, but they don't know about us, so ask them to link to us.
-          logger.debug(
-            "scan: asking remote ",
-            client.options.address,
-            " to link to us",
-          );
+          logger.debug("scan: asking remote ", address, " to link to us");
           await sys.join(this.address());
           if (this.isClosed()) return;
           count += 1;
@@ -1360,7 +1361,7 @@ export class ConatServer extends EventEmitter {
       } catch (err) {
         errors.push({
           err,
-          desc: `requesting remote ${client.options.address} join us`,
+          desc: `requesting remote ${address} join us`,
         });
       }
     };

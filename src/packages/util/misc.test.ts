@@ -362,6 +362,41 @@ describe("suggest_duplicate_filename", () => {
   });
 });
 
+describe("is_valid email_address", () => {
+  const ivea = misc.is_valid_email_address;
+  test("valid", () => {
+    expect(ivea("foo@bar.com")).toBe(true);
+    expect(ivea("foo+bar@bar.com")).toBe(true);
+    expect(ivea("foo.bar@bar.com")).toBe(true);
+    expect(ivea("foo-bar@bar.com")).toBe(true);
+    expect(ivea("foo_bar@bar.com")).toBe(true);
+    expect(ivea("123@bar.com")).toBe(true);
+    expect(ivea("foo@123.com")).toBe(true);
+    expect(ivea("foo@bar.co.uk")).toBe(true);
+    expect(ivea("foobar@bar.com")).toBe(true);
+    expect(ivea("foo.bar@bar.com")).toBe(true);
+    expect(ivea("foo+bar@bar.com")).toBe(true);
+    expect(ivea("FOO@BAR.BAZ")).toBe(true);
+  });
+  test("invalid", () => {
+    expect(ivea(123)).toBe(false);
+    expect(ivea({})).toBe(false);
+    expect(ivea([])).toBe(false);
+    expect(ivea(null)).toBe(false);
+    expect(ivea(undefined)).toBe(false);
+    expect(ivea("abc")).toBe(false);
+    expect(ivea("abc@foo@bar.com")).toBe(false);
+    expect(ivea("foo@bar.")).toBe(false);
+    expect(ivea("foo@.bar.com")).toBe(false);
+    expect(ivea("foo@bar..com")).toBe(false);
+    expect(ivea("@bar.com")).toBe(false);
+    expect(ivea("foo@")).toBe(false);
+    expect(ivea("foo")).toBe(false);
+    expect(ivea("foo bar@bar.com")).toBe(false);
+    expect(ivea("foo@bar@bar.com")).toBe(false);
+  });
+});
+
 describe("isValidAnonymousID", () => {
   const isValid = misc.isValidAnonymousID;
 
@@ -404,5 +439,65 @@ describe("isValidAnonymousID", () => {
     expect(isValid({})).toBe(false);
     expect(isValid([])).toBe(false);
     expect(isValid(new Date())).toBe(false);
+  });
+});
+
+describe("secure_random_token", () => {
+  const { secure_random_token } = misc;
+
+  it("should return a token with default length of 16", () => {
+    const token = secure_random_token();
+    expect(token.length).toBe(16);
+  });
+
+  it("should return a string with the specified length", () => {
+    expect(secure_random_token(8).length).toBe(8);
+    expect(secure_random_token(32).length).toBe(32);
+    expect(secure_random_token(64).length).toBe(64);
+  });
+
+  it("should return empty string for length 0", () => {
+    const token = secure_random_token(0);
+    expect(token).toBe("");
+  });
+
+  it("should only contain characters from the default BASE58 alphabet", () => {
+    const BASE58 = "123456789ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz";
+    const token = secure_random_token(100);
+    for (const char of token) {
+      expect(BASE58.includes(char)).toBe(true);
+    }
+  });
+
+  it("should only contain characters from a custom alphabet", () => {
+    const customAlphabet = "ABCD";
+    const token = secure_random_token(50, customAlphabet);
+    for (const char of token) {
+      expect(customAlphabet.includes(char)).toBe(true);
+    }
+  });
+
+  it("should have reasonable diversity (at least 3 different chars in 16 chars)", () => {
+    const token = secure_random_token(16);
+    const uniqueChars = new Set(token.split(""));
+    expect(uniqueChars.size).toBeGreaterThanOrEqual(3);
+  });
+
+  it("should throw error when alphabet is empty", () => {
+    expect(() => secure_random_token(10, "")).toThrow(
+      "impossible, since alphabet is empty",
+    );
+  });
+
+  it("should work with single-character alphabet", () => {
+    const token = secure_random_token(10, "X");
+    expect(token).toBe("XXXXXXXXXX");
+  });
+
+  it("should generate different tokens on successive calls", () => {
+    const token1 = secure_random_token(16);
+    const token2 = secure_random_token(16);
+    // With 93 bits of randomness, collision is astronomically unlikely
+    expect(token1).not.toBe(token2);
   });
 });

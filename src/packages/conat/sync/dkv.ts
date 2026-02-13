@@ -140,6 +140,7 @@ export class DKV<T = any> extends EventEmitter {
   private local: { [key: string]: T | typeof TOMBSTONE } = {};
   private options: { [key: string]: SetOptions } = {};
   private saved: { [key: string]: T | typeof TOMBSTONE } = {};
+  private remote: { [key: string]: T } = {};
   private changed: Set<string> = new Set();
   private noAutosave: boolean;
   public readonly name: string;
@@ -277,6 +278,7 @@ export class DKV<T = any> extends EventEmitter {
       return;
     }
     const local = this.local[key] === TOMBSTONE ? undefined : this.local[key];
+    const prevResolved = prev ?? this.remote[key];
     let value: any = remote;
     if (local !== undefined) {
       // we have an unsaved local value, so let's check to see if there is a
@@ -289,7 +291,8 @@ export class DKV<T = any> extends EventEmitter {
         // There is a conflict.  Let's resolve the conflict:
         // console.log("merge conflict", { key, remote, local, prev });
         try {
-          value = this.merge?.({ key, local, remote, prev }) ?? local;
+          value =
+            this.merge?.({ key, local, remote, prev: prevResolved }) ?? local;
           // console.log("merge conflict --> ", value);
           //           console.log("handle merge conflict", {
           //             key,
@@ -320,7 +323,12 @@ export class DKV<T = any> extends EventEmitter {
         }
       }
     }
-    this.emit("change", { key, value, prev });
+    if (remote === undefined) {
+      delete this.remote[key];
+    } else {
+      this.remote[key] = remote;
+    }
+    this.emit("change", { key, value, prev: prevResolved });
   };
 
   get(key: string): T | undefined;
@@ -449,6 +457,24 @@ export class DKV<T = any> extends EventEmitter {
     } else {
       return this.kv?.headersKv(key);
     }
+  };
+
+  debugStats = () => {
+    const kv = this.kv;
+    if (kv == null) {
+      return { name: this.name, state: "closed" as const };
+    }
+    const kvStats = kv.debugStats?.();
+    return {
+      name: this.name,
+      state: "open" as const,
+      rawLength: kvStats?.rawLength ?? kv.raw.length,
+      messagesLength: kvStats?.messagesLength ?? kv.messages.length,
+      kvLength: kvStats?.kvLength ?? kv.lengthKv,
+      lastValueByKeySize: kvStats?.lastValueByKeySize,
+      localKeys: Object.keys(this.local).length,
+      changedKeys: this.changed.size,
+    };
   };
 
   set = (key: string, value: T, options?: SetOptions) => {

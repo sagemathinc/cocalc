@@ -58,9 +58,9 @@ describe("create a client, create an ephemeral core-stream, and do basic tests",
   });
 
   it("publishing undefined is not allowed", async () => {
-    await expect(
-      async () => await stream.publish(undefined),
-    ).rejects.toThrow("must not be 'undefined'");
+    await expect(async () => await stream.publish(undefined)).rejects.toThrow(
+      "must not be 'undefined'",
+    );
   });
 
   it("a second client has the same messages", async () => {
@@ -192,31 +192,56 @@ describe("test basic key:value functionality for persistent core stream", () => 
     await wait({ until: () => stream.getKv("key") == "value2" });
   });
 
-  it("verify that the overwritten message is cleared to save space in both streams", () => {
-    expect(stream.get(0)).not.toBe(undefined);
-    expect(stream2.get(0)).not.toBe(undefined);
+  // https://github.com/sagemathinc/cocalc/issues/8702
+  it("repeated keyed updates do not grow the stream length", async () => {
+    const length = stream.length;
+    await stream2.setKv("key", "value3");
+    await wait({
+      until: () =>
+        stream.getKv("key") == "value3" &&
+        stream2.getKv("key") == "value3" &&
+        stream.length === length &&
+        stream2.length === length,
+    });
+    expect(stream.length).toBe(length);
+    expect(stream2.length).toBe(length);
+  });
+
+  it("verify that the overwritten message is removed in both streams", async () => {
+    await wait({ until: () => stream.length === 1 && stream2.length === 1 });
+    expect(stream.get(0)).toBe("value3");
+    expect(stream2.get(0)).toBe("value3");
     stream.gcKv();
     stream2.gcKv();
-    expect(stream.get(0)).toBe(undefined);
-    expect(stream2.get(0)).toBe(undefined);
+    expect(stream.get(0)).toBe("value3");
+    expect(stream2.get(0)).toBe("value3");
     expect(stream.headers(0)).toBe(undefined);
     expect(stream2.headers(0)).toBe(undefined);
   });
 
   it("write a large key:value, then write it again to cause automatic garbage collection", async () => {
     await stream.setKv("key", Buffer.from("x".repeat(KEY_GC_THRESH + 10)));
-    expect(stream.get(stream.length - 1).length).toBe(KEY_GC_THRESH + 10);
+    await wait({
+      until: () =>
+        stream.length >= 1 && Buffer.isBuffer(stream.get(stream.length - 1)),
+    });
+    expect((stream.get(stream.length - 1) as Buffer).length).toBe(
+      KEY_GC_THRESH + 10,
+    );
     await stream.setKv("key", Buffer.from("x".repeat(KEY_GC_THRESH + 10)));
-    // it's gone
-    expect(stream.get(stream.length - 2)).toBe(undefined);
+    await wait({
+      until: () => stream.length === 1 && Buffer.isBuffer(stream.get(0)),
+    });
+    expect(stream.length).toBe(1);
+    expect((stream.get(0) as Buffer).length).toBe(KEY_GC_THRESH + 10);
   });
 
-  it("close and reload and note there is only one item in the stream (the first message was removed since it is no longer needed)", async () => {
+  it("close and reload and note there is only one item in the stream (older messages are removed by persistence)", async () => {
     await stream.close();
     expect(stream.kv).toBe(undefined);
     stream = await cstream({ client, name, ephemeral: false });
     expect(stream.length).toBe(1);
-    expect(stream.seqKv(0)).toBe(stream2.seqKv(1));
+    expect(stream.seqKv("key")).toBe(stream2.seqKv("key"));
   });
 
   it("cleans up", () => {
@@ -277,6 +302,159 @@ describe("test key:value delete", () => {
     const n = stream.length;
     await stream.deleteKv("fake");
     expect(stream.length).toBe(n);
+  });
+
+  it("cleans up", () => {
+    stream.close();
+    stream2.close();
+    client.close();
+    client2.close();
+  });
+});
+
+// https://github.com/sagemathinc/cocalc/issues/8702
+// Test suite to ensure keyed updates don't cause unbounded CoreStream array growth
+describe("Issue #8702: keyed KV updates should not cause unbounded array growth", () => {
+  let client;
+  let stream;
+  let client2;
+  let stream2;
+  let name = "issue8702";
+
+  it("creates two clients connected to the same persistent stream", async () => {
+    client = connect();
+    stream = await cstream({ client, name, ephemeral: false });
+
+    client2 = connect();
+    stream2 = await cstream({
+      client: client2,
+      name,
+      ephemeral: false,
+      noCache: true,
+    });
+
+    // Ensure streams are clean
+    await stream.delete({ all: true });
+    await wait({ until: () => stream.length === 0 && stream2.length === 0 });
+  });
+
+  it("multiple rapid keyed updates to the same key keep arrays flat", async () => {
+    // Set initial value
+    await stream.setKv("rapidly-updated-key", { iteration: 0 });
+    await wait({
+      until: () => stream.getKv("rapidly-updated-key")?.iteration === 0,
+    });
+    const initialLength = stream.length;
+    const initialRawLength = stream.raw.length;
+    expect(initialLength).toBe(1);
+    expect(initialRawLength).toBe(1);
+
+    // Perform 20 rapid keyed updates
+    for (let i = 1; i <= 20; i++) {
+      await stream.setKv("rapidly-updated-key", { iteration: i });
+    }
+
+    // Wait for final value to propagate
+    await wait({
+      until: () =>
+        stream.getKv("rapidly-updated-key")?.iteration === 20 &&
+        stream2.getKv("rapidly-updated-key")?.iteration === 20,
+    });
+
+    // Arrays should still have the same length (1 entry)
+    await wait({
+      until: () =>
+        stream.length === initialLength &&
+        stream.raw.length === initialRawLength &&
+        stream2.length === initialLength &&
+        stream2.raw.length === initialRawLength,
+    });
+
+    expect(stream.length).toBe(initialLength);
+    expect(stream.raw.length).toBe(initialRawLength);
+    expect(stream2.length).toBe(initialLength);
+    expect(stream2.raw.length).toBe(initialRawLength);
+  });
+
+  it("updates to multiple different keys maintain proper array length", async () => {
+    // Set 5 different keys
+    const numKeys = 5;
+    for (let i = 0; i < numKeys; i++) {
+      await stream.setKv(`multi-key-${i}`, { value: "initial" });
+    }
+
+    await wait({
+      until: () =>
+        stream.lengthKv >= numKeys + 1 && stream2.lengthKv >= numKeys + 1,
+    });
+
+    // Now we should have numKeys + 1 (the rapidly-updated-key from previous test)
+    const expectedLength = numKeys + 1;
+    await wait({
+      until: () =>
+        stream.length === expectedLength && stream2.length === expectedLength,
+    });
+
+    // Update each key multiple times
+    for (let round = 0; round < 5; round++) {
+      for (let i = 0; i < numKeys; i++) {
+        await stream.setKv(`multi-key-${i}`, { value: `round-${round}` });
+      }
+    }
+
+    // Wait for all updates to propagate
+    await wait({
+      until: () => stream.getKv("multi-key-0")?.value === "round-4",
+    });
+
+    // Array length should still be the same - old entries removed as new ones arrive
+    await wait({
+      until: () =>
+        stream.length === expectedLength && stream2.length === expectedLength,
+    });
+
+    expect(stream.length).toBe(expectedLength);
+    expect(stream.raw.length).toBe(expectedLength);
+  });
+
+  it("interleaved updates from multiple clients keep arrays flat", async () => {
+    const startLength = stream.length;
+
+    // Both clients update the same key alternately
+    for (let i = 0; i < 10; i++) {
+      if (i % 2 === 0) {
+        await stream.setKv("interleaved-key", { from: "client1", round: i });
+      } else {
+        await stream2.setKv("interleaved-key", { from: "client2", round: i });
+      }
+    }
+
+    // Wait for final update to propagate
+    await wait({
+      until: () =>
+        stream.getKv("interleaved-key")?.round === 9 &&
+        stream2.getKv("interleaved-key")?.round === 9,
+    });
+
+    // Only one new key was added (interleaved-key)
+    const expectedLength = startLength + 1;
+    await wait({
+      until: () =>
+        stream.length === expectedLength && stream2.length === expectedLength,
+    });
+
+    expect(stream.length).toBe(expectedLength);
+    expect(stream.raw.length).toBe(expectedLength);
+  });
+
+  it("verifies raw[] and messages[] arrays have matching lengths", () => {
+    // This is a sanity check - these arrays should always be in sync
+    expect(stream.raw.length).toBe(stream.messages.length);
+    expect(stream2.raw.length).toBe(stream2.messages.length);
+
+    // Also verify lengthKv matches the actual kv entries
+    expect(stream.lengthKv).toBe(Object.keys(stream.kv).length);
+    expect(stream2.lengthKv).toBe(Object.keys(stream2.kv).length);
   });
 
   it("cleans up", () => {

@@ -70,14 +70,14 @@ export const KEY_GC_THRESH = 10 * 1e6;
 // NOTE: when you do delete this.deleteKv(key), we ensure the previous
 // messages with the given key is completely deleted from sqlite, and
 // also create a *new* lightweight tombstone. That tombstone has this
-// ttl, which defaults to DEFAULT_TOMBSTONE_TTL (one week), so the tombstone
-// itself will be removed after 1 week.  The tombstone is only needed for
-// clients that go offline during the delete, then come back, and reply the
+// ttl, which defaults to DEFAULT_TOMBSTONE_TTL (one day), so the tombstone
+// itself will be removed after 1 day.  The tombstone is only needed for
+// clients that go offline during the delete, then come back, and replay the
 // partial log of what was missed.  Such clients should reset if the
 // offline time is longer than DEFAULT_TOMBSTONE_TTL.
 // This only happens if allow_msg_ttl is configured to true, which is
 // done with dkv, but not on by default otherwise.
-export const DEFAULT_TOMBSTONE_TTL = 7 * 24 * 60 * 60 * 1000; // 1 week
+export const DEFAULT_TOMBSTONE_TTL = 24 * 60 * 60 * 1000; // 1 day
 
 export interface RawMsg extends Message {
   timestamp: number;
@@ -164,6 +164,7 @@ export class CoreStream<T = any> extends EventEmitter {
   // lastSeq used by clients to keep track of what they have received; if one
   // is skipped they reconnect starting with the last one they didn't miss.
   private lastSeq: number = 0;
+  private lastValueByKey = new Map<string, T>();
   // IMPORTANT: user here means the *owner* of the resource, **NOT** the
   // client who is accessing it!  For example, a stream of edits of a file
   // in a project has user {project_id} even if it is being accessed by
@@ -256,6 +257,15 @@ export class CoreStream<T = any> extends EventEmitter {
     );
   };
 
+  debugStats = () => {
+    return {
+      rawLength: this.raw.length,
+      messagesLength: this.messages.length,
+      kvLength: this.lengthKv,
+      lastValueByKeySize: this.lastValueByKey.size,
+    };
+  };
+
   config = async (
     config: Partial<Configuration> = {},
   ): Promise<Configuration> => {
@@ -305,7 +315,9 @@ export class CoreStream<T = any> extends EventEmitter {
     await until(
       async () => {
         let messages: StoredMessage[] = [];
-        let changes: (SetOperation | DeleteOperation | StoredMessage)[] = [];
+        // TODO: tracking changes during getAll and suppressing sending duplicates
+        // via the changefeed is not implemented.
+        // let changes: (SetOperation | DeleteOperation | StoredMessage)[] = [];
         try {
           if (this.isClosed()) {
             return true;
@@ -349,12 +361,12 @@ export class CoreStream<T = any> extends EventEmitter {
           noEmit,
           noSeqCheck: true,
         });
-        if (changes.length > 0) {
-          this.processPersistentMessages(changes, {
-            noEmit,
-            noSeqCheck: false,
-          });
-        }
+        // if (changes.length > 0) {
+        //   this.processPersistentMessages(changes, {
+        //     noEmit,
+        //     noSeqCheck: false,
+        //   });
+        // }
         // success!
         return true;
       },
@@ -415,6 +427,7 @@ export class CoreStream<T = any> extends EventEmitter {
       const seq = this.kv[key]?.raw?.seq;
       if (X.has(seq)) {
         delete this.kv[key];
+        this.lastValueByKey.delete(key);
         keys[key] = seq;
       }
     }
@@ -521,10 +534,15 @@ export class CoreStream<T = any> extends EventEmitter {
       } // other case -- we already have it.
     }
     let prev: T | undefined = undefined;
+    // Issue #8702: Capture the previous raw message for this key BEFORE updating this.kv.
+    // This is needed for the client-side cleanup below (see the processPersistentDelete call).
+    // https://github.com/sagemathinc/cocalc/issues/8702
+    const prevRaw = typeof key == "string" ? this.kv[key]?.raw : undefined;
     if (typeof key == "string") {
-      prev = this.kv[key]?.mesg;
+      prev = this.kv[key]?.mesg ?? this.lastValueByKey.get(key);
       if (raw.headers?.[COCALC_TOMBSTONE_HEADER]) {
         delete this.kv[key];
+        this.lastValueByKey.delete(key);
       } else {
         if (this.kv[key] !== undefined) {
           const { raw } = this.kv[key];
@@ -532,11 +550,25 @@ export class CoreStream<T = any> extends EventEmitter {
         }
 
         this.kv[key] = { raw, mesg };
+        this.lastValueByKey.set(key, mesg);
 
         if (this.kvChangeBytes >= KEY_GC_THRESH) {
           this.gcKv();
         }
       }
+    }
+    // Issue #8702: Client-side cleanup for keyed updates.
+    // When the server processes a keyed update, it deletes the old row for that key
+    // and inserts a new one. However, the server does NOT emit delete events for
+    // these overwrites (see storage.ts:450). Without this cleanup, clients would
+    // never remove old entries from raw[] and messages[], causing unbounded memory
+    // growth. This fix removes the old entry when a new keyed message arrives.
+    // https://github.com/sagemathinc/cocalc/issues/8702
+    if (typeof key == "string" && prevRaw?.seq != null && prevRaw.seq !== seq) {
+      this.processPersistentDelete(
+        { op: "delete", seqs: [prevRaw.seq] },
+        { noEmit: true },
+      );
     }
     this.lastSeq = Math.max(this.lastSeq, seq);
     if (!noEmit) {

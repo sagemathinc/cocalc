@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -690,6 +690,40 @@ export function PDFJS({
     initialState: editor_state.get("scrollState")?.toJS(),
   });
   const virtuosoRef = useRef<VirtuosoHandle>(null);
+  // Note: we don't have to do anything for touch, since it "just works" for some reason --
+  // probably the scroller just supports it.
+  // For the "hand tool", which is what we're implementing by default now (select will be soon),
+  // click and drag should move the scroll position.
+  const lastMousePosRef = useRef<null | { x: number; y: number }>(null);
+
+  const onMouseDown = useCallback((e) => {
+    if (e.target?.nodeName == "SPAN") {
+      // selection layer text -- allows for selecting instead of dragging around
+      return;
+    }
+    lastMousePosRef.current = getClientPos(e);
+    setCursor("grabbing");
+  }, []);
+
+  const onMouseMove = useCallback((e) => {
+    if (
+      !e.buttons ||
+      lastMousePosRef.current == null ||
+      !window.getSelection()?.isCollapsed
+    ) {
+      return;
+    }
+    const { x, y } = getClientPos(e);
+    const deltaX = lastMousePosRef.current.x - x;
+    const deltaY = lastMousePosRef.current.y - y;
+    virtuosoRef.current?.scrollBy({ top: deltaY, left: deltaX });
+    lastMousePosRef.current = { x, y };
+  }, []);
+
+  const onMouseUp = useCallback(() => {
+    lastMousePosRef.current = null;
+    setCursor("grab");
+  }, []);
 
   function renderPagesUsingVirtuoso() {
     if (pages == null || pages.length == 0) return [];
@@ -897,41 +931,6 @@ export function PDFJS({
       return renderNoPdf();
     }
   }
-
-  // Note: we don't have to do anything for touch, since it "just works" for some reason --
-  // probably the scroller just supports it.
-  // For the "hand tool", which is what we're implementing by default now (select will be soon),
-  // click and drag should move the scroll position.
-  const lastMousePosRef = useRef<null | { x: number; y: number }>(null);
-
-  const onMouseDown = useCallback((e) => {
-    if (e.target?.nodeName == "SPAN") {
-      // selection layer text -- allows for selecting instead of dragging around
-      return;
-    }
-    lastMousePosRef.current = getClientPos(e);
-    setCursor("grabbing");
-  }, []);
-
-  const onMouseMove = useCallback((e) => {
-    if (
-      !e.buttons ||
-      lastMousePosRef.current == null ||
-      !window.getSelection()?.isCollapsed
-    ) {
-      return;
-    }
-    const { x, y } = getClientPos(e);
-    const deltaX = lastMousePosRef.current.x - x;
-    const deltaY = lastMousePosRef.current.y - y;
-    virtuosoRef.current?.scrollBy({ top: deltaY, left: deltaX });
-    lastMousePosRef.current = { x, y };
-  }, []);
-
-  const onMouseUp = useCallback(() => {
-    lastMousePosRef.current = null;
-    setCursor("grab");
-  }, []);
 
   return (
     <div
