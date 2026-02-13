@@ -183,14 +183,14 @@ const must_define = function (redux) {
 const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
-interface FileAction {
+interface FileActionInfo {
   name: IntlMessage;
   icon: IconName;
   allows_multiple_files?: boolean;
   hideFlyout?: boolean;
 }
 
-export const FILE_ACTIONS: { [key: string]: FileAction } = {
+export const FILE_ACTIONS = {
   compress: {
     name: defineMessage({
       id: "file_actions.compress.name",
@@ -281,7 +281,13 @@ export const FILE_ACTIONS: { [key: string]: FileAction } = {
     icon: "plus-circle" as IconName,
     hideFlyout: true,
   },
-} as const;
+} as const satisfies Record<string, FileActionInfo>;
+
+export type FileAction = keyof typeof FILE_ACTIONS;
+
+// Extended commands accepted by show_file_action_panel() that route to
+// navigation actions rather than the ActionBox dialog.
+export type FileCommand = FileAction | "new" | "open" | "open_recent" | "close" | "quit";
 
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";

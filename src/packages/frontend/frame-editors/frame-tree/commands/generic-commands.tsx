@@ -12,6 +12,7 @@ import { defineMessage, IntlShape, useIntl } from "react-intl";
 
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
+import type { FileCommand } from "@cocalc/frontend/project_actions";
 import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MACOS } from "@cocalc/frontend/feature";
@@ -1563,7 +1564,7 @@ addCommands({
   },
 });
 
-function fileAction(action) {
+function fileAction(action: FileCommand) {
   return {
     alwaysShow: true,
     onClick: ({ props }) => {
