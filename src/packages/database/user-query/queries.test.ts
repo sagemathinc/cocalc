@@ -2024,6 +2024,48 @@ describe("postgres user-queries - Comprehensive Test Suite", () => {
         );
       });
 
+      test("should use the latest changes callback after initialization", (done) => {
+        const restore = setSchema("test_changefeed_dynamic_cb", {
+          anonymous: true,
+          fields: { id: { type: "uuid" } },
+        });
+        const initialCb = jest.fn();
+        const changes = {
+          id: "12345678-1234-1234-1234-123456789012",
+          cb: initialCb,
+        };
+        const feed = new EventEmitter();
+
+        db.changefeed = jest.fn((opts) => opts.cb(null, feed));
+
+        db._user_get_query_changefeed(
+          changes,
+          "test_changefeed_dynamic_cb",
+          ["id"],
+          { id: "1" },
+          [],
+          {},
+          "test-account",
+          { get: { fields: { id: null } } },
+          "test_changefeed_dynamic_cb",
+          (err) => {
+            expect(err).toBeFalsy();
+            const currentCb = jest.fn();
+            changes.cb = currentCb;
+
+            feed.emit("change", { action: "insert", new_val: { id: "1" } });
+
+            expect(initialCb).not.toHaveBeenCalled();
+            expect(currentCb).toHaveBeenCalledWith(undefined, {
+              action: "insert",
+              new_val: { id: "1" },
+            });
+            restore();
+            done();
+          },
+        );
+      });
+
       test("should handle 'projects' changefeed type", (done) => {
         const restore = setSchema("test_projects_feed", {
           anonymous: false,

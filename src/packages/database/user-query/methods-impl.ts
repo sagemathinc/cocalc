@@ -2252,21 +2252,34 @@ export async function _user_get_query_changefeed(
   let tracker: any;
   const dbg = this._dbg(`_user_get_query_changefeed(table='${table}')`);
   dbg();
+
   // WARNING: always call changes.cb!  Do not do something like f = changes.cb, then call f!!!!
   // This is because the value of changes.cb may be changed by the caller.
   if (!misc.is_object(changes)) {
     cb("FATAL: changes must be an object with keys id and cb");
     return;
   }
+
   if (!misc.is_valid_uuid_string(changes.id)) {
     cb("FATAL: changes.id must be a uuid");
     return;
   }
+
   if (typeof changes.cb !== "function") {
     cb("FATAL: changes.cb must be a function");
     return;
   }
-  const changes_cb = changes.cb as CB;
+
+  const emit_change = (err?: any, obj?: any): void => {
+    if (typeof changes.cb === "function") {
+      if (obj === undefined) {
+        changes.cb(err);
+      } else {
+        changes.cb(err, obj);
+      }
+    }
+  };
+
   for (var primary_key of primary_keys) {
     if (user_query[primary_key] == null && user_query[primary_key] !== null) {
       cb(
@@ -2275,6 +2288,7 @@ export async function _user_get_query_changefeed(
       return;
     }
   }
+
   const watch: string[] = [];
   const select: AnyRecord = {};
   let init_tracker: ((tracker: any) => void) | undefined;
@@ -2371,7 +2385,7 @@ export async function _user_get_query_changefeed(
 
         // Any tracker error means this changefeed is now broken and
         // has to be recreated.
-        tracker_error = () => changes_cb("tracker error - ${err}");
+        tracker_error = () => emit_change("tracker error - ${err}");
 
         pg_changefeed = (db, account_id) => {
           return {
@@ -2471,7 +2485,7 @@ export async function _user_get_query_changefeed(
         }
         tracker_add = (collab_id) => feed?.insert({ account_id: collab_id });
         tracker_remove = (collab_id) => feed?.delete({ account_id: collab_id });
-        tracker_error = () => changes_cb("tracker error - ${err}");
+        tracker_error = () => emit_change("tracker error - ${err}");
         pg_changefeed = function (_db, account_id) {
           let shared_tracker: any;
           return {
@@ -2535,10 +2549,10 @@ export async function _user_get_query_changefeed(
     });
     feed.on("change", function (x) {
       process(x);
-      return changes_cb(undefined, x);
+      return emit_change(undefined, x);
     });
     feed.on("close", function () {
-      changes_cb(undefined, { action: "close" });
+      emit_change(undefined, { action: "close" });
       dbg("feed close");
       if (tracker != null && free_tracker != null) {
         dbg("free_tracker");
@@ -2547,7 +2561,7 @@ export async function _user_get_query_changefeed(
         return dbg("do NOT free_tracker");
       }
     });
-    feed.on("error", (err) => changes_cb(`feed error - ${err}`));
+    feed.on("error", (err) => emit_change(`feed error - ${err}`));
     this._changefeeds ??= {};
     this._changefeeds[changes.id] = feed;
     if (typeof init_tracker === "function") {
