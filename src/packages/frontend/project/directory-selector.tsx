@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -537,6 +537,10 @@ function CreateDirectory({
   const createFolder = async () => {
     setOpen(false);
     try {
+      const projectsStore = redux.getStore("projects") as any;
+      if (projectsStore?.get_state?.(project_id) !== "running") {
+        await redux.getActions("projects").start_project(project_id);
+      }
       await exec({
         command: "mkdir",
         args: ["-p", value],
@@ -556,7 +560,8 @@ function CreateDirectory({
       <Modal
         title={
           <>
-            <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New Folder
+            <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New
+            Folder
           </>
         }
         open={open}
@@ -580,7 +585,8 @@ function CreateDirectory({
         }}
         style={{ margin: "5px 0" }}
       >
-        <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New Folder ...
+        <Icon name="plus-circle" style={{ marginRight: "5px" }} /> New Folder
+        ...
       </Button>
       <ShowError error={error} setError={setError} />
     </div>

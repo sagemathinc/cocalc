@@ -8,6 +8,7 @@ import { useIntl } from "react-intl";
 
 import {
   project_redux_name,
+  redux,
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -27,7 +28,13 @@ export default function FileActionModal() {
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const current_path = useTypedRedux({ project_id }, "current_path");
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
-  const displayed_listing = useTypedRedux({ project_id }, "displayed_listing");
+  const displayed_listing_value = useTypedRedux(
+    { project_id },
+    "displayed_listing",
+  );
+  const displayed_listing =
+    displayed_listing_value ??
+    redux.getProjectStore(project_id).get("displayed_listing");
 
   const isOpen = !!file_action && (checked_files?.size ?? 0) > 0;
   if (!isOpen || !actions) return null;
@@ -57,8 +64,15 @@ export default function FileActionModal() {
       onCancel={() => actions.set_file_action()}
       footer={null}
       destroyOnClose
-      width={700}
-      styles={{ body: { maxHeight: "70vh", overflowY: "auto" } }}
+      width="90vw"
+      style={{ maxWidth: "1400px" }}
+      styles={{
+        body: {
+          maxHeight: "72vh",
+          overflowY: "auto",
+          padding: "8px 16px 20px 16px",
+        },
+      }}
     >
       <ActionBox
         modal
@@ -66,7 +80,7 @@ export default function FileActionModal() {
         checked_files={checked_files}
         current_path={current_path}
         project_id={project_id}
-        file_map={file_map ?? {}}
+        file_map={file_map}
         actions={actions as any}
         name={project_redux_name(project_id)}
       />

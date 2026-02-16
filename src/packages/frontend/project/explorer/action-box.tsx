@@ -38,7 +38,7 @@ import RenameFile from "./rename-file";
 
 export const PRE_STYLE = {
   marginBottom: "15px",
-  maxHeight: "80px",
+  maxHeight: "140px",
   minHeight: "34px",
   fontSize: "14px",
   fontFamily: "inherit",
@@ -52,7 +52,7 @@ interface ReactProps {
   file_action?: FileAction;
   current_path: string;
   project_id: string;
-  file_map: object;
+  file_map?: Record<string, any>;
   actions: ProjectActions;
   //new_name?: string;
   name: string;
@@ -105,8 +105,16 @@ export function ActionBox(props: ReactProps) {
   }
 
   function render_selected_files_list(): React.JSX.Element {
+    const style = {
+      ...PRE_STYLE,
+      width: "100%",
+      maxHeight: props.modal ? "32vh" : PRE_STYLE.maxHeight,
+      overflowY: "auto",
+      overflowX: "auto",
+    } as const;
+
     return (
-      <pre style={PRE_STYLE}>
+      <pre style={style}>
         {props.checked_files.toArray().map((name) => (
           <div key={name}>{misc.path_split(name).tail}</div>
         ))}
@@ -174,16 +182,24 @@ export function ActionBox(props: ReactProps) {
         </Row>
         <Row>
           <Col sm={12}>
-            <Space>
-              <AntdButton onClick={cancel_action}>Cancel</AntdButton>
-              <AntdButton
-                danger
-                onClick={delete_click}
-                disabled={props.current_path === ".trash"}
-              >
-                <Icon name="trash" /> Delete {size} {misc.plural(size, "Item")}
-              </AntdButton>
-            </Space>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: props.modal ? "flex-end" : "flex-start",
+              }}
+            >
+              <Space>
+                <AntdButton onClick={cancel_action}>Cancel</AntdButton>
+                <AntdButton
+                  danger
+                  onClick={delete_click}
+                  disabled={props.current_path === ".trash"}
+                >
+                  <Icon name="trash" /> Delete {size}{" "}
+                  {misc.plural(size, "Item")}
+                </AntdButton>
+              </Space>
+            </div>
           </Col>
         </Row>
       </div>
@@ -222,16 +238,6 @@ export function ActionBox(props: ReactProps) {
           <Col sm={5} style={{ color: COLORS.GRAY_M }}>
             <h4>Move files to a directory</h4>
             {render_selected_files_list()}
-            <Space>
-              <Button onClick={cancel_action}>Cancel</Button>
-              <AntdButton
-                type="primary"
-                onClick={move_click}
-                disabled={!valid_move_input()}
-              >
-                Move {size} {misc.plural(size, "Item")}
-              </AntdButton>
-            </Space>
           </Col>
           <Col sm={5} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
             <h4>
@@ -252,6 +258,27 @@ export function ActionBox(props: ReactProps) {
             />
           </Col>
         </Row>
+        <Row>
+          <Col sm={12}>
+            <div
+              style={{
+                display: "flex",
+                justifyContent: props.modal ? "flex-end" : "flex-start",
+              }}
+            >
+              <Space>
+                <Button onClick={cancel_action}>Cancel</Button>
+                <AntdButton
+                  type="primary"
+                  onClick={move_click}
+                  disabled={!valid_move_input()}
+                >
+                  Move {size} {misc.plural(size, "Item")}
+                </AntdButton>
+              </Space>
+            </div>
+          </Col>
+        </Row>
       </div>
     );
   }
@@ -265,14 +292,15 @@ export function ActionBox(props: ReactProps) {
   function render_different_project_dialog(): React.JSX.Element | undefined {
     if (show_different_project) {
       return (
-        <Col sm={4} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
-          <h4>Target Project</h4>
+        <Col sm={3} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
+          <h4 style={{ minHeight: "25px", marginTop: 0 }}>Target Project</h4>
           <SelectProject
             at_top={[props.project_id]}
             value={copy_destination_project_id}
             onChange={(copy_destination_project_id) =>
               set_copy_destination_project_id(copy_destination_project_id)
             }
+            filtersPosition="below"
           />
           {render_copy_different_project_options()}
         </Col>
@@ -395,10 +423,15 @@ export function ActionBox(props: ReactProps) {
             <div style={{ flex: 1, textAlign: "right" }}>
               <AntdButton
                 onClick={() => {
-                  const show = !show_different_project;
-                  set_show_different_project(show);
-                  if (show_different_project) {
+                  const showDifferentProject = !show_different_project;
+                  set_show_different_project(showDifferentProject);
+                  if (!showDifferentProject) {
+                    // Reset cross-project selection when switching back to this project.
+                    set_copy_destination_project_id(props.project_id);
+                    set_copy_destination_directory("");
                     set_dest_compute_server_id(0);
+                    set_delete_extra_files(undefined);
+                    set_overwrite_newer(undefined);
                   }
                 }}
               >
@@ -441,12 +474,20 @@ export function ActionBox(props: ReactProps) {
           <LoginLink />
           <Row>
             <Col sm={12}>
-              <Space>
-                <Button onClick={cancel_action}>Cancel</Button>
-                <Button bsStyle="primary" disabled={true}>
-                  <Icon name="files" /> Copy {size} {misc.plural(size, "item")}
-                </Button>
-              </Space>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: props.modal ? "flex-end" : "flex-start",
+                }}
+              >
+                <Space>
+                  <Button onClick={cancel_action}>Cancel</Button>
+                  <Button bsStyle="primary" disabled={true}>
+                    <Icon name="files" /> Copy {size}{" "}
+                    {misc.plural(size, "item")}
+                  </Button>
+                </Space>
+              </div>
             </Col>
           </Row>
         </div>
@@ -460,25 +501,17 @@ export function ActionBox(props: ReactProps) {
               style={{ color: COLORS.GRAY_M }}
             >
               {render_copy_description()}
-              <Space>
-                <AntdButton onClick={cancel_action}>Cancel</AntdButton>
-                <AntdButton
-                  type="primary"
-                  onClick={copy_click}
-                  disabled={!valid_copy_input()}
-                >
-                  <Icon name="files" /> Copy {size} {misc.plural(size, "Item")}
-                </AntdButton>
-              </Space>
             </Col>
             {render_different_project_dialog()}
             <Col
-              sm={show_different_project ? 4 : 5}
+              sm={show_different_project ? 5 : 7}
               style={{ color: COLORS.GRAY_M }}
             >
               <h4
                 style={
-                  !show_different_project ? { minHeight: "25px" } : undefined
+                  !show_different_project
+                    ? { minHeight: "25px", marginTop: 0 }
+                    : { marginTop: 0 }
                 }
               >
                 Destination:{" "}
@@ -530,6 +563,28 @@ export function ActionBox(props: ReactProps) {
               />
             </Col>
           </Row>
+          <Row>
+            <Col sm={12}>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: props.modal ? "flex-end" : "flex-start",
+                }}
+              >
+                <Space>
+                  <AntdButton onClick={cancel_action}>Cancel</AntdButton>
+                  <AntdButton
+                    type="primary"
+                    onClick={copy_click}
+                    disabled={!valid_copy_input()}
+                  >
+                    <Icon name="files" /> Copy {size}{" "}
+                    {misc.plural(size, "Item")}
+                  </AntdButton>
+                </Space>
+              </div>
+            </Col>
+          </Row>
         </div>
       );
     }
@@ -547,7 +602,11 @@ export function ActionBox(props: ReactProps) {
     if (!path) {
       return <></>;
     }
-    const public_data = props.file_map[misc.path_split(path).tail];
+    const file_map = props.file_map;
+    if (file_map == undefined) {
+      return <Loading />;
+    }
+    const public_data = file_map[misc.path_split(path).tail];
     if (public_data == undefined) {
       // directory listing not loaded yet... (will get re-rendered when loaded)
       return <Loading />;
@@ -608,7 +667,11 @@ export function ActionBox(props: ReactProps) {
   }
 
   if (props.modal) {
-    return <div onKeyDown={action_key}>{render_action_box(action)}</div>;
+    return (
+      <div onKeyDown={action_key} style={{ padding: "0 16px" }}>
+        {render_action_box(action)}
+      </div>
+    );
   }
 
   return (
