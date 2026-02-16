@@ -60,6 +60,7 @@ const EditorFileInfoDropdown: React.FC<Props> = React.memo(
           actions.show_file_action_panel({
             path: filename,
             action: key,
+            source: "editor",
           });
           break;
         }

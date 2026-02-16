@@ -80,19 +80,28 @@ export default function CreateArchive({}) {
           onPressEnter={doCompress}
           suffix=".zip"
         />
-        <div style={{ marginLeft: "5px" }} />
-        <Button
-          onClick={() => {
-            actions?.set_file_action();
-          }}
-        >
-          {intl.formatMessage(labels.cancel)}
-        </Button>{" "}
-        <Button onClick={doCompress} type="primary" disabled={loading}>
-          Compress {checked_files?.size} {plural(checked_files?.size, "item")}{" "}
-          {loading && <Spin />}
-        </Button>
       </Space>
+      <div
+        style={{
+          marginTop: "15px",
+          display: "flex",
+          justifyContent: "flex-end",
+        }}
+      >
+        <Space wrap>
+          <Button
+            onClick={() => {
+              actions?.set_file_action();
+            }}
+          >
+            {intl.formatMessage(labels.cancel)}
+          </Button>
+          <Button onClick={doCompress} type="primary" disabled={loading}>
+            Compress {checked_files?.size} {plural(checked_files?.size, "item")}{" "}
+            {loading && <Spin />}
+          </Button>
+        </Space>
+      </div>
       <ShowError setError={setError} error={error} />
     </Card>
   );

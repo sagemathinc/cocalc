@@ -297,6 +297,8 @@ export type FileCommand =
   | "close"
   | "quit";
 
+export type FileActionSource = "editor";
+
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";
   public project_id: string;
@@ -1607,6 +1609,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       file_search: search,
       page_number: 0,
       file_action: undefined,
+      file_action_source: undefined,
       most_recent_file_click: undefined,
       create_file_alert: false,
     });
@@ -1737,6 +1740,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const changes: {
       checked_files?: immutableSet<string>;
       file_action?: FileAction;
+      file_action_source?: FileActionSource;
     } = {};
     if (checked) {
       changes.checked_files = store.get("checked_files").add(file);
@@ -1747,11 +1751,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         !FILE_ACTIONS[file_action].allows_multiple_files
       ) {
         changes.file_action = undefined;
+        changes.file_action_source = undefined;
       }
     } else {
       changes.checked_files = store.get("checked_files").delete(file);
       if (changes.checked_files.size === 0) {
         changes.file_action = undefined;
+        changes.file_action_source = undefined;
       }
     }
 
@@ -1767,6 +1773,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const changes: {
       checked_files: immutableSet<string>;
       file_action?: FileAction;
+      file_action_source?: FileActionSource;
     } = { checked_files: store.get("checked_files").union(file_list) };
     const file_action = store.get("file_action");
     if (
@@ -1775,6 +1782,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       !FILE_ACTIONS[file_action].allows_multiple_files
     ) {
       changes.file_action = undefined;
+      changes.file_action_source = undefined;
     }
 
     this.setState(changes);
@@ -1789,10 +1797,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const changes: {
       checked_files: immutableSet<string>;
       file_action?: FileAction;
+      file_action_source?: FileActionSource;
     } = { checked_files: store.get("checked_files").subtract(file_list) };
 
     if (changes.checked_files.size === 0) {
       changes.file_action = undefined;
+      changes.file_action_source = undefined;
     }
 
     this.setState(changes);
@@ -1807,6 +1817,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({
       checked_files: store.get("checked_files").clear(),
       file_action: undefined,
+      file_action_source: undefined,
     });
   }
 
@@ -1864,18 +1875,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  set_file_action(action?: FileAction): void {
+  set_file_action(action?: FileAction, source?: FileActionSource): void {
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    this.setState({ file_action: action });
+    this.setState({
+      file_action: action,
+      file_action_source: action == null ? undefined : source,
+    });
   }
 
   show_file_action_panel(opts): void {
     opts = defaults(opts, {
       path: required,
       action: required,
+      source: undefined,
     });
     this.set_all_files_unchecked();
     if (opts.action == "new" || opts.action == "create") {
@@ -1929,7 +1944,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.set_file_checked(opts.path, true);
-    this.set_file_action(opts.action);
+    this.set_file_action(opts.action, opts.source);
   }
 
   private async get_from_web(opts: {

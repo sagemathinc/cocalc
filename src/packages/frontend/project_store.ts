@@ -32,7 +32,10 @@ import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
 import { ProjectActions, QUERIES } from "@cocalc/frontend/project_actions";
-import type { FileAction } from "@cocalc/frontend/project_actions";
+import type {
+  FileAction,
+  FileActionSource,
+} from "@cocalc/frontend/project_actions";
 import {
   Available as AvailableFeatures,
   isMainConfiguration,
@@ -98,6 +101,7 @@ export interface ProjectStoreState {
   page_number: number;
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
   file_action?: FileAction;
+  file_action_source?: FileActionSource;
   file_search?: string;
   show_hidden?: boolean;
   error?: string;

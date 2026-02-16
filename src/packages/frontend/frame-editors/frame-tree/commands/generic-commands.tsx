@@ -1572,6 +1572,7 @@ function fileAction(action: FileCommand) {
       actions.show_file_action_panel({
         path: props.path,
         action,
+        source: "editor",
       });
     },
   };

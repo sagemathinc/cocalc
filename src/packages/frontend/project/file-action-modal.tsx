@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Modal } from "antd";
+import { Button, Modal } from "antd";
 import { useIntl } from "react-intl";
 
 import {
@@ -14,7 +14,9 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
+import { labels } from "@cocalc/frontend/i18n";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
+import { path_split } from "@cocalc/util/misc";
 
 import { useProjectContext } from "./context";
 import { ActionBox } from "./explorer/action-box";
@@ -43,11 +45,22 @@ export default function FileActionModal() {
   if (!actionInfo) return null;
 
   const file_map = displayed_listing?.file_map;
+  const renameFormId = "file-action-rename-form";
+  const selected_file =
+    checked_files?.size === 1 ? checked_files.first() : undefined;
+  const selected_tail = selected_file
+    ? path_split(selected_file).tail
+    : undefined;
+  const title_text =
+    file_action === "rename" && selected_tail
+      ? `Rename the file '${selected_tail}'`
+      : file_action === "duplicate" && selected_tail
+        ? `Duplicate the file '${selected_tail}'`
+        : intl.formatMessage(actionInfo.name);
 
   const title = (
     <span>
-      <Icon name={actionInfo.icon ?? "exclamation-circle"} />{" "}
-      {intl.formatMessage(actionInfo.name)}
+      <Icon name={actionInfo.icon ?? "exclamation-circle"} /> {title_text}
       {!!compute_server_id && (
         <ComputeServerTag
           id={compute_server_id}
@@ -62,8 +75,24 @@ export default function FileActionModal() {
       open
       title={title}
       onCancel={() => actions.set_file_action()}
-      footer={null}
-      destroyOnClose
+      footer={
+        file_action === "rename" || file_action === "duplicate"
+          ? [
+              <Button key="cancel" onClick={() => actions.set_file_action()}>
+                {intl.formatMessage(labels.cancel)}
+              </Button>,
+              <Button
+                key="submit"
+                type="primary"
+                htmlType="submit"
+                form={renameFormId}
+              >
+                {file_action === "duplicate" ? "Duplicate File" : "Rename File"}
+              </Button>,
+            ]
+          : null
+      }
+      destroyOnHidden
       width="90vw"
       style={{ maxWidth: "1400px" }}
       styles={{
@@ -83,6 +112,7 @@ export default function FileActionModal() {
         file_map={file_map}
         actions={actions as any}
         name={project_redux_name(project_id)}
+        renameFormId={renameFormId}
       />
     </Modal>
   );

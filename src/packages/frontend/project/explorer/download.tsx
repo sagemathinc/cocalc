@@ -157,34 +157,50 @@ export default function Download({}) {
         )}
       </div>
       {archiveMode && (
-        <Space wrap>
-          <Button
-            onClick={() => {
-              actions?.set_file_action();
-            }}
-          >
-            {intl.formatMessage(labels.cancel)}
-          </Button>{" "}
-          <Button onClick={doDownload} type="primary" disabled={loading}>
-            <Icon name="cloud-download" /> Compress {checked_files?.size}{" "}
-            {plural(checked_files?.size, "item")} and Download {target}.zip{" "}
-            {loading && <Spin />}
-          </Button>
-        </Space>
+        <div
+          style={{
+            marginTop: "15px",
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <Space wrap>
+            <Button
+              onClick={() => {
+                actions?.set_file_action();
+              }}
+            >
+              {intl.formatMessage(labels.cancel)}
+            </Button>
+            <Button onClick={doDownload} type="primary" disabled={loading}>
+              <Icon name="cloud-download" /> Compress {checked_files?.size}{" "}
+              {plural(checked_files?.size, "item")} and Download {target}.zip{" "}
+              {loading && <Spin />}
+            </Button>
+          </Space>
+        </div>
       )}
       {!archiveMode && (
-        <Space wrap>
-          <Button
-            onClick={() => {
-              actions?.set_file_action();
-            }}
-          >
-            {intl.formatMessage(labels.cancel)}
-          </Button>{" "}
-          <Button onClick={doDownload} type="primary" disabled={loading}>
-            <Icon name="cloud-download" /> Download {loading && <Spin />}
-          </Button>
-        </Space>
+        <div
+          style={{
+            marginTop: "15px",
+            display: "flex",
+            justifyContent: "flex-end",
+          }}
+        >
+          <Space wrap>
+            <Button
+              onClick={() => {
+                actions?.set_file_action();
+              }}
+            >
+              {intl.formatMessage(labels.cancel)}
+            </Button>
+            <Button onClick={doDownload} type="primary" disabled={loading}>
+              <Icon name="cloud-download" /> Download {loading && <Spin />}
+            </Button>
+          </Space>
+        </div>
       )}
       <ShowError setError={setError} error={error} />
     </Card>

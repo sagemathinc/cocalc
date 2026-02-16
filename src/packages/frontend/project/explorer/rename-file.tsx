@@ -1,16 +1,14 @@
-import { Alert, Button, Card, Checkbox, Input, Space, Spin } from "antd";
+import { Alert, Input, Space, Switch } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { useIntl } from "react-intl";
 
 import { useRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   filename_extension,
   path_split,
   path_to_file,
+  tab_to_path,
 } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
 
@@ -18,10 +16,10 @@ const MAX_FILENAME_LENGTH = 4095;
 
 interface Props {
   duplicate?: boolean;
+  formId?: string;
 }
 
-export default function RenameFile({ duplicate }: Props) {
-  const intl = useIntl();
+export default function RenameFile({ duplicate, formId }: Props) {
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
   const checked_files = useRedux(["checked_files"], actions?.project_id ?? "");
@@ -30,6 +28,7 @@ export default function RenameFile({ duplicate }: Props) {
   const [editExtension, setEditExtension] = useState<boolean>(!ext);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const resolvedFormId = formId ?? "file-action-rename-form";
 
   useEffect(() => {
     setTimeout(() => {
@@ -63,6 +62,12 @@ export default function RenameFile({ duplicate }: Props) {
     if (src == null) {
       return;
     }
+    if (target == path_split(src).tail) {
+      return;
+    }
+    const actionSource = store.get("file_action_source");
+    const wasOpen = !!store.get("open_files")?.has(src);
+    const wasActive = tab_to_path(store.get("active_project_tab")) === src;
     const renameDir = path_split(src).head;
     try {
       setLoading(true);
@@ -76,8 +81,23 @@ export default function RenameFile({ duplicate }: Props) {
           dest: opts.dest,
           only_contents: true,
         });
+        if (actionSource === "editor") {
+          await actions.open_file({
+            path: opts.dest,
+            foreground: true,
+            foreground_project: true,
+          });
+        }
       } else {
         await actions.rename_file(opts);
+        if (wasOpen) {
+          actions.close_tab(src);
+          await actions.open_file({
+            path: opts.dest,
+            foreground: wasActive,
+            foreground_project: true,
+          });
+        }
       }
       await actions.fetch_directory_listing({ path: renameDir });
     } catch (err) {
@@ -95,11 +115,12 @@ export default function RenameFile({ duplicate }: Props) {
   }
 
   return (
-    <Card
-      title=<>
-        <Icon name="swap" /> {duplicate ? "Duplicate" : "Rename"} the file '
-        {checked_files?.first()}'
-      </>
+    <form
+      id={resolvedFormId}
+      onSubmit={(e) => {
+        e.preventDefault();
+        void doAction();
+      }}
     >
       <CheckedFiles />
       <Space style={{ marginTop: "15px" }} wrap>
@@ -113,7 +134,7 @@ export default function RenameFile({ duplicate }: Props) {
             type="text"
             value={target}
             placeholder="New Name"
-            onPressEnter={doAction}
+            onPressEnter={() => void doAction()}
           />
         ) : (
           <Input
@@ -124,40 +145,29 @@ export default function RenameFile({ duplicate }: Props) {
             type="text"
             value={target.slice(0, -ext.length - 1)}
             placeholder="New Name"
-            onPressEnter={doAction}
+            onPressEnter={() => void doAction()}
             suffix={"." + ext}
           />
         )}
-        <div style={{ marginLeft: "5px" }} />
-        <Button
-          onClick={() => {
-            actions?.set_file_action();
+      </Space>
+      {!duplicate && (
+        <div
+          style={{
+            marginTop: "12px",
+            display: "flex",
+            alignItems: "center",
+            gap: "10px",
           }}
         >
-          {intl.formatMessage(labels.cancel)}
-        </Button>{" "}
-        <Button
-          onClick={doAction}
-          type="primary"
-          disabled={
-            !target ||
-            loading ||
-            target == path_split(checked_files?.first() ?? "").tail
-          }
-        >
-          {duplicate ? "Duplicate" : "Rename"} File {loading && <Spin />}
-        </Button>
-      </Space>
-      <div style={{ marginTop: "15px" }} />
-      {!duplicate && (
-        <Checkbox
-          disabled={!ext}
-          checked={editExtension}
-          onChange={() => setEditExtension(!editExtension)}
-        >
-          Edit Filename Extension
-        </Checkbox>
+          <Switch
+            disabled={!ext}
+            checked={editExtension}
+            onChange={(value) => setEditExtension(value)}
+          />
+          <span>Edit Filename Extension</span>
+        </div>
       )}
+      {!duplicate && <div style={{ marginTop: "15px" }} />}
       {editExtension &&
         filename_extension(checked_files?.first() ?? "") != ext && (
           <Alert
@@ -178,6 +188,6 @@ export default function RenameFile({ duplicate }: Props) {
         />
       )}
       <ShowError setError={setError} error={error} />
-    </Card>
+    </form>
   );
 }

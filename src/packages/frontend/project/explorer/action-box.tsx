@@ -58,6 +58,7 @@ interface ReactProps {
   name: string;
   // When true, skip the Well wrapper/title/close button (used inside antd Modal)
   modal?: boolean;
+  renameFormId?: string;
 }
 
 export function ActionBox(props: ReactProps) {
@@ -207,6 +208,9 @@ export function ActionBox(props: ReactProps) {
   }
 
   function move_click(): void {
+    for (const path of props.checked_files.toArray()) {
+      props.actions.close_tab(path);
+    }
     props.actions.move_files({
       src: props.checked_files.toArray(),
       dest: move_destination,
@@ -642,9 +646,9 @@ export function ActionBox(props: ReactProps) {
       case "download":
         return <Download />;
       case "rename":
-        return <RenameFile />;
+        return <RenameFile formId={props.renameFormId} />;
       case "duplicate":
-        return <RenameFile duplicate />;
+        return <RenameFile duplicate formId={props.renameFormId} />;
       case "move":
         return render_move();
       case "share":
