@@ -47,15 +47,13 @@ export default function CreateArchive({}) {
         path,
       });
       await actions.fetch_directory_listing({ path });
+      actions.set_all_files_unchecked();
+      actions.set_file_action();
     } catch (err) {
-      setLoading(false);
-      setError(err);
+      setError(`${err}`);
     } finally {
       setLoading(false);
     }
-
-    actions.set_all_files_unchecked();
-    actions.set_file_action();
   };
 
   if (actions == null) {

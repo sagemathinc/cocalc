@@ -42,8 +42,8 @@ export const PRE_STYLE = {
   minHeight: "34px",
   fontSize: "14px",
   fontFamily: "inherit",
-  color: "#555",
-  backgroundColor: "#eee",
+  color: COLORS.GRAY_M,
+  backgroundColor: COLORS.GRAY_LL,
   padding: "6px 12px",
 } as const;
 
@@ -684,7 +684,7 @@ export function ActionBox(props: ReactProps) {
         margin: "15px 30px",
         overflowY: "auto",
         maxHeight: "50vh",
-        backgroundColor: "#fafafa",
+        backgroundColor: COLORS.GRAY_LLL,
       }}
     >
       <Row>

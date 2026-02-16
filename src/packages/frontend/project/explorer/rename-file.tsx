@@ -63,6 +63,12 @@ export default function RenameFile({ duplicate, formId }: Props) {
       return;
     }
     if (target == path_split(src).tail) {
+      if (!duplicate) {
+        actions.set_all_files_unchecked();
+        actions.set_file_action();
+      } else {
+        setError("Please choose a different filename.");
+      }
       return;
     }
     const actionSource = store.get("file_action_source");
@@ -100,14 +106,13 @@ export default function RenameFile({ duplicate, formId }: Props) {
         }
       }
       await actions.fetch_directory_listing({ path: renameDir });
+      actions.set_all_files_unchecked();
+      actions.set_file_action();
     } catch (err) {
-      setLoading(false);
-      setError(err);
+      setError(`${err}`);
     } finally {
       setLoading(false);
     }
-    actions.set_all_files_unchecked();
-    actions.set_file_action();
   };
 
   if (actions == null) {
