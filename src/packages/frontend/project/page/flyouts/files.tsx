@@ -137,6 +137,7 @@ export function FilesFlyout({
   const [selectionOnMouseDown, setSelectionOnMouseDown] = useState<string>("");
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
+  const disableActions = student_project_functionality.disableActions ?? false;
   const disableUploads = student_project_functionality.disableUploads ?? false;
   const virtuosoRef = useRef<VirtuosoHandle>(null as any);
   const virtuosoScroll = useVirtuosoScrollHook({
@@ -617,14 +618,19 @@ export function FilesFlyout({
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
         showCheckbox={
-          mode === "select" ||
-          checked_files?.size > 0 ||
-          showCheckboxIndex === index
+          !disableActions &&
+          (mode === "select" ||
+            checked_files?.size > 0 ||
+            showCheckboxIndex === index)
         }
-        setShowCheckboxIndex={setShowCheckboxIndex}
-        onChecked={(nextState: boolean) => {
-          toggleSelected(index, item.name, nextState);
-        }}
+        setShowCheckboxIndex={disableActions ? undefined : setShowCheckboxIndex}
+        onChecked={
+          disableActions
+            ? undefined
+            : (nextState: boolean) => {
+                toggleSelected(index, item.name, nextState);
+              }
+        }
         checked_files={checked_files}
         isStarred={isStarred}
         onStar={(starState: boolean) => {
