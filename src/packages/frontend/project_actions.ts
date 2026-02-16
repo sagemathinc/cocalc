@@ -1915,9 +1915,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     const path_splitted = misc.path_split(opts.path);
-    // Load the directory listing (needed for file_map) without switching to the files tab,
-    // since the file action modal is rendered at the project level.
-    this.open_directory(path_splitted.head, true, false);
+    // Load the directory listing (needed for file_map) without switching to the files tab
+    // or changing URL/history, since the file action modal is rendered at the project level.
+    this.open_directory(path_splitted.head, false, false);
 
     if (opts.action == "quit") {
       // TODO: for jupyter and terminal at least, should also do more!
