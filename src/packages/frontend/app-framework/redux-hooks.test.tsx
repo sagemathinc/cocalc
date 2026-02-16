@@ -15,6 +15,7 @@ import {
   redux,
   redux_name,
 } from "@cocalc/frontend/app-framework";
+import { Store } from "@cocalc/util/redux/Store";
 import { useEditorRedux, useRedux, useTypedRedux } from "./redux-hooks";
 
 // Avoid opening real socket connections during unit tests. Some imports in
@@ -43,6 +44,26 @@ type EditorState = {
   tasks: number;
   pages: number;
 };
+
+type SelectorProjectState = {
+  base: number;
+  other: number;
+  doubled: number;
+};
+
+class SelectorProjectStore extends Store<SelectorProjectState> {
+  constructor(name: string, appRedux: any) {
+    super(name, appRedux);
+    this.setup_selectors();
+  }
+
+  selectors = {
+    doubled: {
+      dependencies: ["base"] as const,
+      fn: () => this.get("base") * 2,
+    },
+  };
+}
 
 const PROJECT_ID = "00000000-0000-4000-8000-000000000000";
 const NOTEBOOK_PATH = "notebooks/example.ipynb";
@@ -225,6 +246,41 @@ describe("redux-hooks", () => {
     });
     await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
     expect(onRender).toHaveBeenLastCalledWith("running");
+  });
+
+  it("useRedux keeps selector-backed project fields stable across updates", async () => {
+    const storeName = trackStore(project_redux_name(PROJECT_ID));
+    redux.removeStore(storeName);
+    const store = redux.createStore<SelectorProjectState, SelectorProjectStore>(
+      storeName,
+      SelectorProjectStore,
+    );
+    store.setState({ base: 2, other: 1 });
+    const onRender = jest.fn();
+
+    function ProjectSelectorValue() {
+      const doubled = useRedux(["doubled"], PROJECT_ID);
+      useEffect(() => {
+        onRender(doubled);
+      });
+      return <div>{doubled}</div>;
+    }
+
+    render(<ProjectSelectorValue />);
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(1));
+    expect(onRender).toHaveBeenLastCalledWith(4);
+
+    act(() => {
+      store.setState({ other: 2 });
+    });
+    expect(onRender).toHaveBeenCalledTimes(1);
+    expect(onRender).toHaveBeenLastCalledWith(4);
+
+    act(() => {
+      store.setState({ base: 3 });
+    });
+    await waitFor(() => expect(onRender).toHaveBeenCalledTimes(2));
+    expect(onRender).toHaveBeenLastCalledWith(6);
   });
 
   it("useRedux with an empty store name returns undefined", async () => {
