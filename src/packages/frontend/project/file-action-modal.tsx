@@ -70,6 +70,15 @@ export default function FileActionModal() {
     </span>
   );
 
+  const isCopyModal = file_action === "copy";
+  const isMoveModal = file_action === "move";
+  const modalWidth = isCopyModal
+    ? "90vw"
+    : isMoveModal
+      ? "min(95vw, max(75vw, 900px))"
+      : undefined;
+  const modalStyle = isCopyModal ? { maxWidth: "1400px" } : undefined;
+
   return (
     <Modal
       open
@@ -93,8 +102,8 @@ export default function FileActionModal() {
           : null
       }
       destroyOnHidden
-      width="90vw"
-      style={{ maxWidth: "1400px" }}
+      width={modalWidth}
+      style={modalStyle}
       styles={{
         body: {
           maxHeight: "72vh",

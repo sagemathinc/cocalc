@@ -239,11 +239,11 @@ export function ActionBox(props: ReactProps) {
     return (
       <div>
         <Row>
-          <Col sm={5} style={{ color: COLORS.GRAY_M }}>
+          <Col sm={6} style={{ color: COLORS.GRAY_M }}>
             <h4>Move files to a directory</h4>
             {render_selected_files_list()}
           </Col>
-          <Col sm={5} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
+          <Col sm={6} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
             <h4>
               Destination:{" "}
               {move_destination == "" ? "Home directory" : move_destination}

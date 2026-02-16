@@ -155,6 +155,7 @@ export default function RenameFile({ duplicate, formId }: Props) {
           style={{
             marginTop: "12px",
             display: "flex",
+            justifyContent: "flex-end",
             alignItems: "center",
             gap: "10px",
           }}
