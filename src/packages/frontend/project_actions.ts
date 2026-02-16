@@ -622,6 +622,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.close_file(path);
   }
 
+  /** Close every open file tab except the given one. */
+  public close_other_tabs(path: string): void {
+    const store = this.get_store();
+    if (store == null) return;
+    const open_files_order = store.get("open_files_order");
+    for (const p of open_files_order.toArray()) {
+      if (p != null && p !== path) {
+        this.close_tab(p);
+      }
+    }
+  }
+
   // Expects one of ['files', 'new', 'log', 'search', 'settings']
   //            or a file_redux_name
   // Pushes to browser history

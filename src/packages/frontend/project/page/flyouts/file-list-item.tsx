@@ -18,15 +18,9 @@ import { A, Icon, IconName } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import {
-  ACTION_BUTTONS_DIR,
-  ACTION_BUTTONS_FILE,
-  ACTION_BUTTONS_MULTI,
-  isDisabledSnapshots,
-} from "@cocalc/frontend/project/explorer/action-bar";
 import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
+import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
 import { url_href } from "@cocalc/frontend/project/utils";
-import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import {
   filename_extension,
   human_readable_size,
@@ -410,51 +404,6 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function makeContextMenuEntries(
-    ctx: NonNullable<MenuProps["items"]>,
-    item: Item,
-    multiple: boolean,
-  ) {
-    const { isdir, name: fileName } = item;
-    const actionNames = multiple
-      ? ACTION_BUTTONS_MULTI
-      : isdir
-        ? ACTION_BUTTONS_DIR
-        : ACTION_BUTTONS_FILE;
-    for (const key of actionNames) {
-      if (key === "download" && !item.isdir) continue;
-      const disabled =
-        isDisabledSnapshots(key) &&
-        (current_path?.startsWith(".snapshots") ?? false);
-
-      const actionInfo = FILE_ACTIONS[key];
-      if ("hideFlyout" in actionInfo && actionInfo.hideFlyout) return;
-      const { name, icon } = actionInfo;
-
-      ctx.push({
-        key,
-        label: intl.formatMessage(name),
-        icon: <Icon name={icon} />,
-        disabled,
-        onClick: () => {
-          if (!multiple) {
-            // we have to check the file, otherwise the explorer's file action won't show it
-            if (onChecked != null) {
-              onChecked(true);
-            } else {
-              // if there is no handler for checking a file, only check this file (e.g. "flyout/Log")
-              if (fileName === "..") return;
-              const pathFn = path_to_file(current_path, fileName);
-              actions?.set_all_files_unchecked();
-              actions?.set_file_list_checked([pathFn]);
-            }
-          }
-          actions?.set_file_action(key);
-        },
-      });
-    }
-  }
-
   function getContextMenu(): MenuProps["items"] {
     const { name, isdir, is_public, size } = item;
     const n = checked_files?.size ?? 0;
@@ -501,9 +450,28 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     }
 
     // the file or directory actions
-    if (!student_project_functionality.disableActions) {
-      makeContextMenuEntries(ctx, item, multiple);
-    }
+    ctx.push(
+      ...buildFileActionItems({
+        isdir: !!item.isdir,
+        intl,
+        multiple,
+        disableActions: student_project_functionality.disableActions,
+        inSnapshots: current_path?.startsWith(".snapshots") ?? false,
+        triggerFileAction: (action) => {
+          if (!multiple) {
+            if (onChecked != null) {
+              onChecked(true);
+            } else {
+              if (item.name === "..") return;
+              const pathFn = path_to_file(current_path, item.name);
+              actions?.set_all_files_unchecked();
+              actions?.set_file_list_checked([pathFn]);
+            }
+          }
+          actions?.set_file_action(action);
+        },
+      }),
+    );
 
     // view/download buttons at the bottom
     const showDownload = !student_project_functionality.disableActions;
