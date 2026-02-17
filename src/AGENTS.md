@@ -44,6 +44,18 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 
+### Workspace Management (`workspaces.py`)
+
+The root-level `workspaces.py` script orchestrates operations across all packages in the monorepo. Use it instead of running raw pnpm commands when working across the workspace:
+
+- `python3 workspaces.py install` - Install dependencies for all packages (use after updating package.json files)
+- `python3 workspaces.py build` - Build all packages that have changed
+- `python3 workspaces.py clean` - Delete dist and node_modules folders
+- `python3 workspaces.py version-check` - Check dependency version consistency across all packages
+- `python3 workspaces.py test` - Run tests for all packages
+
+**IMPORTANT**: After updating dependencies in any `package.json`, run `python3 workspaces.py version-check` to ensure consistency, then `python3 workspaces.py install` to update the lockfile and install.
+
 ### Development
 
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
