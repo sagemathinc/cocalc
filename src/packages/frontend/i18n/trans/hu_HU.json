@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Zárja be a többi lapot",
   "project.page.file-tab.context-menu.download": "Letöltés",
   "project.page.file-tab.context-menu.open-new-window": "Új ablakban megnyitás",
+  "project.page.file-tab.popover.hint": "Shift-kattintás: új ablak. Jobb kattintás: helyi menü.",
   "project.page.file-tab.search_file.label": "Keresés",
   "project.page.file-tab.upgrades.flyoutTitle": "Projektfrissítések",
   "project.page.flyout.log.title": "Legutóbbi fájlok",

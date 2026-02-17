@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "关闭其他选项卡",
   "project.page.file-tab.context-menu.download": "下载",
   "project.page.file-tab.context-menu.open-new-window": "在新窗口中打开",
+  "project.page.file-tab.popover.hint": "Shift-单击：新窗口。右键单击：上下文菜单。",
   "project.page.file-tab.search_file.label": "查找",
   "project.page.file-tab.upgrades.flyoutTitle": "项目升级",
   "project.page.flyout.log.title": "最近文件",

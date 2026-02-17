@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "अन्य टैब्स बंद करें",
   "project.page.file-tab.context-menu.download": "डाउनलोड",
   "project.page.file-tab.context-menu.open-new-window": "नई विंडो में खोलें",
+  "project.page.file-tab.popover.hint": "Shift-click: नई विंडो। Right-click: संदर्भ मेनू।",
   "project.page.file-tab.search_file.label": "खोजें",
   "project.page.file-tab.upgrades.flyoutTitle": "प्रोजेक्ट उन्नयन",
   "project.page.flyout.log.title": "हाल की फाइलें",

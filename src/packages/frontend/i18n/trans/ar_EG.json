@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "إغلاق علامات التبويب الأخرى",
   "project.page.file-tab.context-menu.download": "تنزيل",
   "project.page.file-tab.context-menu.open-new-window": "افتح في نافذة جديدة",
+  "project.page.file-tab.popover.hint": ":انقر مع الضغط على Shift: نافذة جديدة. انقر بالزر الأيمن: قائمة السياق.",
   "project.page.file-tab.search_file.label": "بحث",
   "project.page.file-tab.upgrades.flyoutTitle": "ترقيات المشروع",
   "project.page.flyout.log.title": "الملفات الأخيرة",

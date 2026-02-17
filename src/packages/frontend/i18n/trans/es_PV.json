@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Beste fitxak ixtea",
   "project.page.file-tab.context-menu.download": "Deskargatu",
   "project.page.file-tab.context-menu.open-new-window": "Leiho berri batean ireki",
+  "project.page.file-tab.popover.hint": "Shift-klik: leiho berria. Eskuineko klik: testuinguru-menua.",
   "project.page.file-tab.search_file.label": "Bilatu",
   "project.page.file-tab.upgrades.flyoutTitle": "Proiektu Hobekuntzak",
   "project.page.flyout.log.title": "Fitxategi Berriak",

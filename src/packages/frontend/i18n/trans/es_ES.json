@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Cerrar otras pestañas",
   "project.page.file-tab.context-menu.download": "Descargar",
   "project.page.file-tab.context-menu.open-new-window": "Abrir en nueva ventana",
+  "project.page.file-tab.popover.hint": "Shift-clic: nueva ventana. Clic derecho: menú contextual.",
   "project.page.file-tab.search_file.label": "Buscar",
   "project.page.file-tab.upgrades.flyoutTitle": "Mejoras del Proyecto",
   "project.page.flyout.log.title": "Archivos Recientes",

@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Fermer les autres onglets",
   "project.page.file-tab.context-menu.download": "Télécharger",
   "project.page.file-tab.context-menu.open-new-window": "Ouvrir dans une nouvelle fenêtre",
+  "project.page.file-tab.popover.hint": "Maj-clic : nouvelle fenêtre. Clic droit : menu contextuel.",
   "project.page.file-tab.search_file.label": "Trouver",
   "project.page.file-tab.upgrades.flyoutTitle": "Mises à niveau du projet",
   "project.page.flyout.log.title": "Fichiers récents",

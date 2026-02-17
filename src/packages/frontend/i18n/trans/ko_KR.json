@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "다른 탭 닫기",
   "project.page.file-tab.context-menu.download": "다운로드",
   "project.page.file-tab.context-menu.open-new-window": "새 창에서 열기",
+  "project.page.file-tab.popover.hint": "Shift-click: 새 창. Right-click: 컨텍스트 메뉴.",
   "project.page.file-tab.search_file.label": "찾기",
   "project.page.file-tab.upgrades.flyoutTitle": "프로젝트 업그레이드",
   "project.page.flyout.log.title": "최근 파일",

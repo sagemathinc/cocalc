@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Andere Tabs schließen",
   "project.page.file-tab.context-menu.download": "Herunterladen",
   "project.page.file-tab.context-menu.open-new-window": "In neuem Fenster öffnen",
+  "project.page.file-tab.popover.hint": "Shift-Klick: neues Fenster. Rechtsklick: Kontextmenü.",
   "project.page.file-tab.search_file.label": "Suche",
   "project.page.file-tab.upgrades.flyoutTitle": "Projekt-Upgrades",
   "project.page.flyout.log.title": "Kürzlich bearbeitete Dateien",

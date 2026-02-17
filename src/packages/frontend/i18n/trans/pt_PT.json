@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Fechar outras abas",
   "project.page.file-tab.context-menu.download": "Descarregar",
   "project.page.file-tab.context-menu.open-new-window": "Abrir numa nova janela",
+  "project.page.file-tab.popover.hint": "Shift-clique: nova janela. Clique com o botão direito: menu de contexto.",
   "project.page.file-tab.search_file.label": "Encontrar",
   "project.page.file-tab.upgrades.flyoutTitle": "Atualizações do Projeto",
   "project.page.flyout.log.title": "Ficheiros Recentes",

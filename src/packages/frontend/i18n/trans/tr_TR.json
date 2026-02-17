@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Diğer sekmeleri kapat",
   "project.page.file-tab.context-menu.download": "İndir",
   "project.page.file-tab.context-menu.open-new-window": "Yeni pencerede aç",
+  "project.page.file-tab.popover.hint": "Shift-tıkla: yeni pencere. Sağ-tıkla: bağlam menüsü.",
   "project.page.file-tab.search_file.label": "Bul",
   "project.page.file-tab.upgrades.flyoutTitle": "Proje Yükseltmeleri",
   "project.page.flyout.log.title": "Son Dosyalar",

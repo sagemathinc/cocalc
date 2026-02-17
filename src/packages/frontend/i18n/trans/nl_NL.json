@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Andere tabbladen sluiten",
   "project.page.file-tab.context-menu.download": "Download",
   "project.page.file-tab.context-menu.open-new-window": "Openen in nieuw venster",
+  "project.page.file-tab.popover.hint": "Shift-klik: nieuw venster. Rechtsklik: contextmenu.",
   "project.page.file-tab.search_file.label": "Zoek",
   "project.page.file-tab.upgrades.flyoutTitle": "Project Upgrades",
   "project.page.flyout.log.title": "Recente Bestanden",

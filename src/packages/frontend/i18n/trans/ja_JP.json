@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "他のタブを閉じる",
   "project.page.file-tab.context-menu.download": "ダウンロード",
   "project.page.file-tab.context-menu.open-new-window": "新しいウィンドウで開く",
+  "project.page.file-tab.popover.hint": "Shift-click: 新しいウィンドウ。右クリック: コンテキストメニュー。",
   "project.page.file-tab.search_file.label": "検索",
   "project.page.file-tab.upgrades.flyoutTitle": "プロジェクトのアップグレード",
   "project.page.flyout.log.title": "最近のファイル",

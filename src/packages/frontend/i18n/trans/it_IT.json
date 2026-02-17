@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Chiudi altre schede",
   "project.page.file-tab.context-menu.download": "Scarica",
   "project.page.file-tab.context-menu.open-new-window": "Apri in una nuova finestra",
+  "project.page.file-tab.popover.hint": "Maiusc-clic: nuova finestra. Clic destro: menu contestuale.",
   "project.page.file-tab.search_file.label": "Trova",
   "project.page.file-tab.upgrades.flyoutTitle": "Aggiornamenti del Progetto",
   "project.page.flyout.log.title": "File Recenti",

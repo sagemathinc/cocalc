@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Закрыть другие вкладки",
   "project.page.file-tab.context-menu.download": "Скачать",
   "project.page.file-tab.context-menu.open-new-window": "Открыть в новом окне",
+  "project.page.file-tab.popover.hint": "Shift-клик: новое окно. Правый клик: контекстное меню.",
   "project.page.file-tab.search_file.label": "Найти",
   "project.page.file-tab.upgrades.flyoutTitle": "Улучшения проекта",
   "project.page.flyout.log.title": "Недавние файлы",

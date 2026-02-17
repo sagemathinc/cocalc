@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "Zamknij inne karty",
   "project.page.file-tab.context-menu.download": "Pobierz",
   "project.page.file-tab.context-menu.open-new-window": "Otwórz w nowym oknie",
+  "project.page.file-tab.popover.hint": "Shift-klik: nowe okno. Prawy klik: menu kontekstowe.",
   "project.page.file-tab.search_file.label": "Znajdź",
   "project.page.file-tab.upgrades.flyoutTitle": "Ulepszenia Projektu",
   "project.page.flyout.log.title": "Ostatnie pliki",

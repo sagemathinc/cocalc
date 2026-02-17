@@ -11,7 +11,14 @@ A single tab in a project.
 
 // cSpell:ignore fixedtab popout Collabs
 
-import { Dropdown, type MenuProps, Popover, Tag, Tooltip } from "antd";
+import {
+  Button as AntdButton,
+  Dropdown,
+  type MenuProps,
+  Popover,
+  Tag,
+  Tooltip,
+} from "antd";
 import { CSSProperties, ReactNode, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
 
@@ -28,12 +35,12 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
-import { in_snapshot_path } from "@cocalc/frontend/project/utils";
 import {
   ICON_UPGRADES,
   ICON_USERS,
 } from "@cocalc/frontend/project/servers/consts";
 import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
+import { in_snapshot_path } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
 import {
   filename_extension,
@@ -44,6 +51,8 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import { TITLE as SERVERS_TITLE } from "../servers";
+import { getValidActivityBarOption } from "./activity-bar";
+import { ACTIVITY_BAR_KEY } from "./activity-bar-consts";
 import {
   CollabsFlyout,
   FilesFlyout,
@@ -57,8 +66,6 @@ import {
 } from "./flyouts";
 import { ActiveFlyout } from "./flyouts/active";
 import { shouldOpenFileInNewWindow } from "./utils";
-import { getValidActivityBarOption } from "./activity-bar";
-import { ACTIVITY_BAR_KEY } from "./activity-bar-consts";
 
 const { file_options } = require("@cocalc/frontend/editor");
 
@@ -82,6 +89,10 @@ const TAB_MENU_LABELS = {
   download: defineMessage({
     id: "project.page.file-tab.context-menu.download",
     defaultMessage: "Download",
+  }),
+  popoverHint: defineMessage({
+    id: "project.page.file-tab.popover.hint",
+    defaultMessage: "Shift-click: new window. Right-click: context menu.",
   }),
 };
 
@@ -241,6 +252,7 @@ export function FileTab(props: Readonly<Props>) {
   const actions = useActions({ project_id });
   const intl = useIntl();
   const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [actionsExpanded, setActionsExpanded] = useState(false);
   const { onCoCalcDocker } = useProjectContext();
   // this is @cocalc/comm/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
@@ -621,12 +633,101 @@ export function FileTab(props: Readonly<Props>) {
   ) {
     return wrapContextMenu(body);
   }
-  // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
-  // though our union type above guarantees this.
+
+  function renderActionsList() {
+    const menuItems = getTabContextMenu();
+    return (
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxHeight: "min(500px, 70vh)",
+          overflowY: "auto",
+        }}
+      >
+        {menuItems
+          ?.filter((item) => item != null)
+          .map((item: any, idx: number) => {
+            if ("type" in item && item.type === "divider") {
+              return (
+                <div
+                  key={`divider-${idx}`}
+                  style={{
+                    borderTop: `1px solid ${COLORS.GRAY_LL}`,
+                    margin: "4px 0",
+                  }}
+                />
+              );
+            }
+            return (
+              <div
+                key={item.key}
+                onClick={(e) => {
+                  if (item.disabled) return;
+                  item.onClick?.();
+                  setActionsExpanded(false);
+                  e.stopPropagation();
+                }}
+                style={{
+                  padding: "4px 8px",
+                  cursor: item.disabled ? "not-allowed" : "pointer",
+                  opacity: item.disabled ? 0.4 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  borderRadius: 4,
+                  ...(item.style ?? {}),
+                }}
+                onMouseEnter={(e) => {
+                  if (!item.disabled) {
+                    (e.currentTarget as HTMLElement).style.backgroundColor =
+                      COLORS.GRAY_LL;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                }}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </div>
+            );
+          })}
+      </div>
+    );
+  }
+
+  function renderPopoverContent() {
+    if (isFixedTab || path == null) return undefined;
+
+    if (actionsExpanded) {
+      return renderActionsList();
+    }
+
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <AntdButton
+          size="small"
+          block
+          onClick={() => setActionsExpanded(true)}
+          icon={<Icon name={file_options(path)?.icon ?? "file"} />}
+        >
+          {intl.formatMessage(labels.actions)} <Icon name="caret-down" />
+        </AntdButton>
+        <div style={{ color: COLORS.GRAY, marginTop: 4, fontSize: "85%" }}>
+          <Icon name="info-circle" />{" "}
+          {intl.formatMessage(TAB_MENU_LABELS.popoverHint)}
+        </div>
+      </div>
+    );
+  }
+
   return wrapContextMenu(
     <Popover
       zIndex={10000}
       open={contextMenuOpen ? false : undefined}
+      onOpenChange={(open) => {
+        if (!open) setActionsExpanded(false);
+      }}
       title={() => {
         if (path != null) {
           return <b>{path}</b>;
@@ -638,30 +739,7 @@ export function FileTab(props: Readonly<Props>) {
         }
         return tooltip({ project_id });
       }}
-      content={
-        // only editor-tabs can pop up
-        !isFixedTab ? (
-          <div>
-            {path != null && (
-              <Dropdown
-                menu={{ items: getTabContextMenu() }}
-                trigger={["click"]}
-              >
-                <a
-                  onClick={(e) => e.stopPropagation()}
-                  style={{ display: "block", marginBottom: 4 }}
-                >
-                  {intl.formatMessage(labels.actions)}...{" "}
-                  <Icon name="caret-down" />
-                </a>
-              </Dropdown>
-            )}
-            <span style={{ color: COLORS.GRAY }}>
-              Hint: Shift+click to open in new window.
-            </span>
-          </div>
-        ) : undefined
-      }
+      content={renderPopoverContent()}
       mouseEnterDelay={1}
       placement={props.placement ?? "bottom"}
     >

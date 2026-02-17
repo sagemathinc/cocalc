@@ -1407,6 +1407,7 @@
   "project.page.file-tab.context-menu.close-others": "סגור כרטיסיות אחרות",
   "project.page.file-tab.context-menu.download": "הורדה",
   "project.page.file-tab.context-menu.open-new-window": "פתח בחלון חדש",
+  "project.page.file-tab.popover.hint": "לחיצה-Shift: חלון חדש. לחיצה-ימנית: תפריט הקשר.",
   "project.page.file-tab.search_file.label": "מצא",
   "project.page.file-tab.upgrades.flyoutTitle": "שדרוגי פרויקט",
   "project.page.flyout.log.title": "קבצים אחרונים",
