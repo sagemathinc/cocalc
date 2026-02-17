@@ -339,7 +339,14 @@ export function ActionBox(props: ReactProps) {
   function render_different_project_dialog(): React.JSX.Element | undefined {
     if (show_different_project) {
       return (
-        <Col sm={3} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
+        <div
+          style={{
+            flex: 3,
+            minWidth: 200,
+            color: COLORS.GRAY_M,
+            marginBottom: 15,
+          }}
+        >
           <h4 style={{ minHeight: "25px", marginTop: 0 }}>Target Project</h4>
           <SelectProject
             at_top={[props.project_id]}
@@ -350,7 +357,7 @@ export function ActionBox(props: ReactProps) {
             filtersPosition="below"
           />
           {render_copy_different_project_options()}
-        </Col>
+        </div>
       );
     }
   }
@@ -382,42 +389,53 @@ export function ActionBox(props: ReactProps) {
       : 0;
   }
 
-  function copy_click(): void {
+  async function copy_click(): Promise<void> {
+    if (actionLoading) return;
     const destination_project_id = copy_destination_project_id;
     const destination_directory = copy_destination_directory;
     const paths = props.checked_files.toArray();
-    if (
-      destination_project_id != undefined &&
-      props.project_id !== destination_project_id
-    ) {
-      props.actions.copy_paths_between_projects({
-        public: false,
-        src_project_id: props.project_id,
-        src: paths,
-        target_project_id: destination_project_id,
-        target_path: destination_directory,
-        overwrite_newer,
-        delete_missing: delete_extra_files,
-      });
-    } else {
-      if (compute_server_id) {
-        props.actions.copy_paths({
+    setActionLoading(true);
+    props.onActionChange?.(true);
+    try {
+      if (
+        destination_project_id != undefined &&
+        props.project_id !== destination_project_id
+      ) {
+        await props.actions.copy_paths_between_projects({
+          public: false,
+          src_project_id: props.project_id,
           src: paths,
-          dest: destination_directory,
-          src_compute_server_id: compute_server_id,
-          dest_compute_server_id: getDestinationComputeServerId(),
+          target_project_id: destination_project_id,
+          target_path: destination_directory,
+          overwrite_newer,
+          delete_missing: delete_extra_files,
         });
       } else {
-        props.actions.copy_paths({
-          src: paths,
-          dest: destination_directory,
-          src_compute_server_id: 0,
-          dest_compute_server_id: dest_compute_server_id,
-        });
+        if (compute_server_id) {
+          await props.actions.copy_paths({
+            src: paths,
+            dest: destination_directory,
+            src_compute_server_id: compute_server_id,
+            dest_compute_server_id: getDestinationComputeServerId(),
+          });
+        } else {
+          await props.actions.copy_paths({
+            src: paths,
+            dest: destination_directory,
+            src_compute_server_id: 0,
+            dest_compute_server_id: dest_compute_server_id,
+          });
+        }
       }
+      props.actions.set_file_action();
+      props.actions.set_all_files_unchecked();
+    } catch {
+      // errors are shown via set_activity
+      return;
+    } finally {
+      setActionLoading(false);
+      props.onActionChange?.(false);
     }
-
-    props.actions.set_file_action();
   }
 
   function valid_copy_input(): boolean {
@@ -540,19 +558,32 @@ export function ActionBox(props: ReactProps) {
         </div>
       );
     } else {
+      const copyFormId = props.modal ? "file-action-copy-form" : undefined;
       return (
-        <div>
-          <Row>
-            <Col
-              sm={show_different_project ? 4 : 5}
-              style={{ color: COLORS.GRAY_M }}
+        <form
+          id={copyFormId}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (valid_copy_input()) copy_click();
+          }}
+        >
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <div
+              style={{
+                flex: show_different_project ? 4 : 5,
+                minWidth: 200,
+                color: COLORS.GRAY_M,
+              }}
             >
               {render_copy_description()}
-            </Col>
+            </div>
             {render_different_project_dialog()}
-            <Col
-              sm={show_different_project ? 5 : 7}
-              style={{ color: COLORS.GRAY_M }}
+            <div
+              style={{
+                flex: show_different_project ? 5 : 7,
+                minWidth: 300,
+                color: COLORS.GRAY_M,
+              }}
             >
               <h4
                 style={
@@ -608,31 +639,30 @@ export function ActionBox(props: ReactProps) {
                     : dest_compute_server_id
                 }
               />
-            </Col>
-          </Row>
-          <Row>
-            <Col sm={12}>
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: props.modal ? "flex-end" : "flex-start",
-                }}
-              >
-                <Space>
-                  <AntdButton onClick={cancel_action}>Cancel</AntdButton>
-                  <AntdButton
-                    type="primary"
-                    onClick={copy_click}
-                    disabled={!valid_copy_input()}
-                  >
-                    <Icon name="files" /> Copy {size}{" "}
-                    {misc.plural(size, "Item")}
-                  </AntdButton>
-                </Space>
-              </div>
-            </Col>
-          </Row>
-        </div>
+            </div>
+          </div>
+          {!props.modal && (
+            <div
+              style={{
+                display: "flex",
+                justifyContent: "flex-start",
+                marginTop: 10,
+              }}
+            >
+              <Space>
+                <AntdButton onClick={cancel_action}>Cancel</AntdButton>
+                <AntdButton
+                  type="primary"
+                  onClick={copy_click}
+                  disabled={!valid_copy_input()}
+                  loading={actionLoading}
+                >
+                  <Icon name="files" /> Copy {size} {misc.plural(size, "Item")}
+                </AntdButton>
+              </Space>
+            </div>
+          )}
+        </form>
       );
     }
   }

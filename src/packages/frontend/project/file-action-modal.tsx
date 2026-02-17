@@ -141,15 +141,23 @@ export default function FileActionModal() {
             danger
             type="primary"
             disabled={current_path === ".trash"}
-            onClick={() => {
+            loading={actionLoading}
+            onClick={async () => {
               const paths = checked_files?.toArray() ?? [];
-              for (const path of paths) {
-                actions.close_tab(path);
+              setActionLoading(true);
+              try {
+                for (const path of paths) {
+                  actions.close_tab(path);
+                }
+                await actions.delete_files({ paths });
+                actions.set_file_action();
+                actions.set_all_files_unchecked();
+                actions.fetch_directory_listing();
+              } catch {
+                // errors shown via set_activity
+              } finally {
+                setActionLoading(false);
               }
-              actions.delete_files({ paths });
-              actions.set_file_action();
-              actions.set_all_files_unchecked();
-              actions.fetch_directory_listing();
             }}
           >
             <Icon name="trash" /> Delete {itemCount} {plural(itemCount, "Item")}
@@ -167,6 +175,20 @@ export default function FileActionModal() {
             loading={actionLoading}
           >
             <Icon name="move" /> Move {itemCount} {plural(itemCount, "Item")}
+          </Button>,
+        ];
+
+      case "copy":
+        return [
+          cancelButton,
+          <Button
+            key="copy"
+            type="primary"
+            htmlType="submit"
+            form="file-action-copy-form"
+            loading={actionLoading}
+          >
+            <Icon name="files" /> Copy {itemCount} {plural(itemCount, "Item")}
           </Button>,
         ];
 

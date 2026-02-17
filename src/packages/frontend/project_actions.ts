@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -2008,6 +2008,36 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     };
   }
 
+  private async _await_exec_completion({
+    output,
+    compute_server_id,
+    filesystem,
+    timeout,
+  }: {
+    output: any;
+    compute_server_id?: number;
+    filesystem?: boolean;
+    timeout?: number;
+  }): Promise<any> {
+    // Some backends may return async job handles; in that case explicitly wait
+    // for completion so callers can reliably await the full operation.
+    while (
+      output?.type === "async" &&
+      output?.status === "running" &&
+      output?.job_id != null
+    ) {
+      output = await webapp_client.exec({
+        project_id: this.project_id,
+        compute_server_id,
+        filesystem,
+        async_get: output.job_id,
+        async_await: true,
+        timeout,
+      });
+    }
+    return output;
+  }
+
   zip_files = async ({
     src,
     dest,
@@ -2456,6 +2486,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this._finish_exec(id)();
       } catch (err) {
         this._finish_exec(id)(`${err}`);
+        throw err;
       }
 
       return;
@@ -2477,20 +2508,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     args = args.concat(opts.src);
     args = args.concat([add_leading_dash(opts.dest)]);
 
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
-      args,
-      timeout: 120, // how long rsync runs on client
-      err_on_exit: true,
-      path: ".",
-      compute_server_id: opts.src_compute_server_id,
-      filesystem: true,
-      cb: this._finish_exec(id),
-    });
+    try {
+      let result = await webapp_client.exec({
+        project_id: this.project_id,
+        command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
+        args,
+        timeout: 120, // how long rsync runs on client
+        err_on_exit: true,
+        path: ".",
+        compute_server_id: opts.src_compute_server_id,
+        filesystem: true,
+      });
+      result = await this._await_exec_completion({
+        output: result,
+        compute_server_id: opts.src_compute_server_id,
+        filesystem: true,
+        timeout: 120,
+      });
+      this._finish_exec(id)(undefined, result);
+    } catch (err) {
+      this._finish_exec(id)(`${err}`);
+      throw err;
+    }
   };
 
-  copy_paths_between_projects(opts) {
+  async copy_paths_between_projects(opts) {
     opts = defaults(opts, {
       public: false,
       src_project_id: required, // id of source project
@@ -2527,7 +2569,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       count: src.length > 3 ? src.length : undefined,
       project: opts.target_project_id,
     });
-    const f = async (src_path, cb) => {
+    const f = (src_path, cb) => {
       const opts0 = misc.copy(opts);
       delete opts0.cb;
       opts0.src_path = src_path;
@@ -2537,14 +2579,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         misc.path_split(src_path).tail,
       );
       opts0.timeout = 90 * 1000;
-      try {
-        await webapp_client.project_client.copy_path_between_projects(opts0);
-        cb();
-      } catch (err) {
-        cb(err);
-      }
+      webapp_client.project_client
+        .copy_path_between_projects(opts0)
+        .then(() => cb())
+        .catch((err) => cb(err));
     };
-    async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
+    await new Promise<void>((resolve, reject) => {
+      async.mapLimit(src, 3, f, (err?, output?) => {
+        this._finish_exec(id, opts.cb)(err, output);
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
   }
 
   public async rename_file(opts: {
