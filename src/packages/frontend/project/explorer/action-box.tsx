@@ -19,7 +19,12 @@ import {
   Well,
 } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
+import {
+  Icon,
+  Loading,
+  LoginLink,
+  Paragraph,
+} from "@cocalc/frontend/components";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
@@ -155,52 +160,48 @@ export function ActionBox(props: ReactProps) {
     const { size } = props.checked_files;
     return (
       <div>
-        <Row>
-          <Col sm={5} style={{ color: COLORS.GRAY_M }}>
-            {render_selected_files_list()}
-          </Col>
-          {render_delete_warning()}
-        </Row>
-        <Row style={{ marginBottom: "10px" }}>
-          <Col sm={12}>
-            Deleting a file immediately deletes it from the disk{" "}
-            {compute_server_id ? <>on the compute server</> : <></>} freeing up
-            space.
-            {!compute_server_id && (
-              <div>
-                Older backups of your files may still be available in the{" "}
-                <a
-                  href=""
-                  onClick={(e) => {
-                    e.preventDefault();
-                    props.actions.open_directory(".snapshots");
-                  }}
-                >
-                  ~/.snapshots
-                </a>{" "}
-                directory.
-              </div>
-            )}
-          </Col>
-        </Row>
+        <div style={{ color: COLORS.GRAY_M }}>
+          {render_selected_files_list()}
+        </div>
+        {render_delete_warning()}
+        <Paragraph type="secondary" style={{ marginTop: 10 }}>
+          Deleting a file immediately deletes it from the disk
+          {compute_server_id ? " on the compute server" : ""} freeing up space.
+          {!compute_server_id && (
+            <div>
+              Older backups of your files may still be available in the{" "}
+              <a
+                href=""
+                onClick={(e) => {
+                  e.preventDefault();
+                  props.actions.open_directory(".snapshots");
+                }}
+              >
+                ~/.snapshots
+              </a>{" "}
+              directory.
+            </div>
+          )}
+        </Paragraph>
         {!props.modal && (
-          <Row>
-            <Col sm={12}>
-              <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                <Space>
-                  <AntdButton onClick={cancel_action}>Cancel</AntdButton>
-                  <AntdButton
-                    danger
-                    onClick={delete_click}
-                    disabled={props.current_path === ".trash"}
-                  >
-                    <Icon name="trash" /> Delete {size}{" "}
-                    {misc.plural(size, "Item")}
-                  </AntdButton>
-                </Space>
-              </div>
-            </Col>
-          </Row>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "flex-start",
+              marginTop: 10,
+            }}
+          >
+            <Space>
+              <AntdButton onClick={cancel_action}>Cancel</AntdButton>
+              <AntdButton
+                danger
+                onClick={delete_click}
+                disabled={props.current_path === ".trash"}
+              >
+                <Icon name="trash" /> Delete {size} {misc.plural(size, "Item")}
+              </AntdButton>
+            </Space>
+          </div>
         )}
       </div>
     );
@@ -209,7 +210,12 @@ export function ActionBox(props: ReactProps) {
   async function move_click(): Promise<void> {
     if (actionLoading) return;
     const paths = props.checked_files.toArray();
+    const store = props.actions.get_store();
+    const openFiles = store?.get("open_files");
+    const activeTab = store?.get("active_project_tab");
+    const activePath = misc.tab_to_path(activeTab);
     setActionLoading(true);
+    props.onActionChange?.(true);
     try {
       await props.actions.move_files({
         src: paths,
@@ -220,9 +226,23 @@ export function ActionBox(props: ReactProps) {
       return;
     } finally {
       setActionLoading(false);
+      props.onActionChange?.(false);
     }
+    // Close old tabs and reopen moved files at their new paths
     for (const path of paths) {
+      const wasOpen = !!openFiles?.has(path);
       props.actions.close_tab(path);
+      if (wasOpen) {
+        const newPath = misc.path_to_file(
+          move_destination,
+          misc.path_split(path).tail,
+        );
+        await props.actions.open_file({
+          path: newPath,
+          foreground: path === activePath,
+          foreground_project: true,
+        });
+      }
     }
     props.actions.set_file_action();
     props.actions.set_all_files_unchecked();
@@ -245,14 +265,34 @@ export function ActionBox(props: ReactProps) {
 
   function render_move(): React.JSX.Element {
     const { size } = props.checked_files;
+    const moveFormId = props.modal ? "file-action-move-form" : undefined;
     return (
-      <div>
-        <Row>
-          <Col sm={6} style={{ color: COLORS.GRAY_M }}>
+      <form
+        id={moveFormId}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (valid_move_input()) move_click();
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: 20,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 200, color: COLORS.GRAY_M }}>
             <h4>Move files to a directory</h4>
             {render_selected_files_list()}
-          </Col>
-          <Col sm={6} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
+          </div>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 300,
+              color: COLORS.GRAY_M,
+              marginBottom: 15,
+            }}
+          >
             <h4>
               Destination:{" "}
               {move_destination == "" ? "Home directory" : move_destination}
@@ -269,31 +309,24 @@ export function ActionBox(props: ReactProps) {
               style={{ width: "100%" }}
               bodyStyle={{ maxHeight: "250px" }}
             />
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={12}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: props.modal ? "flex-end" : "flex-start",
-              }}
-            >
-              <Space>
-                <Button onClick={cancel_action}>Cancel</Button>
-                <AntdButton
-                  type="primary"
-                  onClick={move_click}
-                  disabled={!valid_move_input()}
-                  loading={actionLoading}
-                >
-                  Move {size} {misc.plural(size, "Item")}
-                </AntdButton>
-              </Space>
-            </div>
-          </Col>
-        </Row>
-      </div>
+          </div>
+        </div>
+        {!props.modal && (
+          <div style={{ display: "flex", justifyContent: "flex-start" }}>
+            <Space>
+              <Button onClick={cancel_action}>Cancel</Button>
+              <AntdButton
+                type="primary"
+                onClick={move_click}
+                disabled={!valid_move_input()}
+                loading={actionLoading}
+              >
+                Move {size} {misc.plural(size, "Item")}
+              </AntdButton>
+            </Space>
+          </div>
+        )}
+      </form>
     );
   }
 

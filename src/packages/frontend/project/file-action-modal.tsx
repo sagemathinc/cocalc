@@ -103,58 +103,84 @@ export default function FileActionModal() {
   const modalStyle =
     file_action === "copy" ? { maxWidth: "1400px" } : undefined;
 
+  const cancelButton = (
+    <Button key="cancel" onClick={() => actions.set_file_action()}>
+      {intl.formatMessage(labels.cancel)}
+    </Button>
+  );
+
+  const itemCount = checked_files?.size ?? 0;
+
+  function renderFooter(): React.ReactNode {
+    if (!actions) return null;
+    switch (file_action) {
+      case "rename":
+      case "duplicate":
+        return [
+          cancelButton,
+          <Button
+            key="submit"
+            type="primary"
+            htmlType="submit"
+            form={renameFormId}
+            loading={actionLoading}
+          >
+            {intl.formatMessage(
+              file_action === "duplicate"
+                ? MODAL_LABELS.duplicateButton
+                : MODAL_LABELS.renameButton,
+            )}
+          </Button>,
+        ];
+
+      case "delete":
+        return [
+          cancelButton,
+          <Button
+            key="delete"
+            danger
+            type="primary"
+            disabled={current_path === ".trash"}
+            onClick={() => {
+              const paths = checked_files?.toArray() ?? [];
+              for (const path of paths) {
+                actions.close_tab(path);
+              }
+              actions.delete_files({ paths });
+              actions.set_file_action();
+              actions.set_all_files_unchecked();
+              actions.fetch_directory_listing();
+            }}
+          >
+            <Icon name="trash" /> Delete {itemCount} {plural(itemCount, "Item")}
+          </Button>,
+        ];
+
+      case "move":
+        return [
+          cancelButton,
+          <Button
+            key="move"
+            type="primary"
+            htmlType="submit"
+            form="file-action-move-form"
+            loading={actionLoading}
+          >
+            <Icon name="move" /> Move {itemCount} {plural(itemCount, "Item")}
+          </Button>,
+        ];
+
+      default:
+        return null;
+    }
+  }
+
   return (
     <Modal
       open
       title={title}
       onCancel={() => actions.set_file_action()}
-      footer={
-        file_action === "rename" || file_action === "duplicate"
-          ? [
-              <Button key="cancel" onClick={() => actions.set_file_action()}>
-                {intl.formatMessage(labels.cancel)}
-              </Button>,
-              <Button
-                key="submit"
-                type="primary"
-                htmlType="submit"
-                form={renameFormId}
-                loading={actionLoading}
-              >
-                {intl.formatMessage(
-                  file_action === "duplicate"
-                    ? MODAL_LABELS.duplicateButton
-                    : MODAL_LABELS.renameButton,
-                )}
-              </Button>,
-            ]
-          : file_action === "delete"
-            ? [
-                <Button key="cancel" onClick={() => actions.set_file_action()}>
-                  {intl.formatMessage(labels.cancel)}
-                </Button>,
-                <Button
-                  key="delete"
-                  danger
-                  type="primary"
-                  disabled={current_path === ".trash"}
-                  onClick={() => {
-                    const paths = checked_files?.toArray() ?? [];
-                    for (const path of paths) {
-                      actions.close_tab(path);
-                    }
-                    actions.delete_files({ paths });
-                    actions.set_file_action();
-                    actions.set_all_files_unchecked();
-                    actions.fetch_directory_listing();
-                  }}
-                >
-                  <Icon name="trash" /> Delete {checked_files?.size ?? 0}{" "}
-                  {plural(checked_files?.size ?? 0, "Item")}
-                </Button>,
-              ]
-            : null
-      }
+      footer={renderFooter()}
       destroyOnHidden
       width={modalWidth}
       style={modalStyle}
