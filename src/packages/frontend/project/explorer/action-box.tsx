@@ -75,6 +75,7 @@ export function ActionBox(props: ReactProps) {
   const [copy_from_compute_server_to, set_copy_from_compute_server_to] =
     useState<"compute-server" | "project">("compute-server");
   const [move_destination, set_move_destination] = useState<string>("");
+  const [actionLoading, setActionLoading] = useState<boolean>(false);
   //const [new_name, set_new_name] = useState<string>(props.new_name ?? "");
   const [show_different_project, set_show_different_project] =
     useState<boolean>(false);
@@ -208,7 +209,9 @@ export function ActionBox(props: ReactProps) {
   }
 
   async function move_click(): Promise<void> {
+    if (actionLoading) return;
     const paths = props.checked_files.toArray();
+    setActionLoading(true);
     try {
       await props.actions.move_files({
         src: paths,
@@ -217,6 +220,8 @@ export function ActionBox(props: ReactProps) {
     } catch {
       // move_files already shows the error via set_activity; keep tabs open.
       return;
+    } finally {
+      setActionLoading(false);
     }
     for (const path of paths) {
       props.actions.close_tab(path);
@@ -282,6 +287,7 @@ export function ActionBox(props: ReactProps) {
                   type="primary"
                   onClick={move_click}
                   disabled={!valid_move_input()}
+                  loading={actionLoading}
                 >
                   Move {size} {misc.plural(size, "Item")}
                 </AntdButton>
