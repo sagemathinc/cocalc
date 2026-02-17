@@ -207,14 +207,20 @@ export function ActionBox(props: ReactProps) {
     );
   }
 
-  function move_click(): void {
-    for (const path of props.checked_files.toArray()) {
+  async function move_click(): Promise<void> {
+    const paths = props.checked_files.toArray();
+    try {
+      await props.actions.move_files({
+        src: paths,
+        dest: move_destination,
+      });
+    } catch {
+      // move_files already shows the error via set_activity; keep tabs open.
+      return;
+    }
+    for (const path of paths) {
       props.actions.close_tab(path);
     }
-    props.actions.move_files({
-      src: props.checked_files.toArray(),
-      dest: move_destination,
-    });
     props.actions.set_file_action();
     props.actions.set_all_files_unchecked();
   }

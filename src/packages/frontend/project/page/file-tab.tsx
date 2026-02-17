@@ -28,6 +28,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
+import { in_snapshot_path } from "@cocalc/frontend/project/utils";
 import {
   ICON_UPGRADES,
   ICON_USERS,
@@ -380,6 +381,7 @@ export function FileTab(props: Readonly<Props>) {
         ...buildFileActionItems({
           isdir: false,
           intl,
+          inSnapshots: in_snapshot_path(path),
           triggerFileAction: (action) => {
             actions.show_file_action_panel({
               path,

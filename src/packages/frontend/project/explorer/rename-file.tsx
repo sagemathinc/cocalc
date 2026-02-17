@@ -139,7 +139,6 @@ export default function RenameFile({ duplicate, formId }: Props) {
             type="text"
             value={target}
             placeholder="New Name"
-            onPressEnter={() => void doAction()}
           />
         ) : (
           <Input
@@ -150,7 +149,6 @@ export default function RenameFile({ duplicate, formId }: Props) {
             type="text"
             value={target.slice(0, -ext.length - 1)}
             placeholder="New Name"
-            onPressEnter={() => void doAction()}
             suffix={"." + ext}
           />
         )}

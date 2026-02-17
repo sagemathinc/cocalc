@@ -2633,6 +2633,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       error = err;
     } finally {
       this.set_activity({ id, stop: "", error });
+      if (error) throw error;
     }
   }
 

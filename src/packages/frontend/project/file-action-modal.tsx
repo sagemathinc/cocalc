@@ -4,7 +4,7 @@
  */
 
 import { Button, Modal } from "antd";
-import { useIntl } from "react-intl";
+import { defineMessage, useIntl } from "react-intl";
 
 import {
   project_redux_name,
@@ -19,6 +19,25 @@ import { path_split } from "@cocalc/util/misc";
 
 import { useProjectContext } from "./context";
 import { ActionBox } from "./explorer/action-box";
+
+const MODAL_LABELS = {
+  renameTitle: defineMessage({
+    id: "project.file-action-modal.rename.title",
+    defaultMessage: "Rename the file '{filename}'",
+  }),
+  duplicateTitle: defineMessage({
+    id: "project.file-action-modal.duplicate.title",
+    defaultMessage: "Duplicate the file '{filename}'",
+  }),
+  renameButton: defineMessage({
+    id: "project.file-action-modal.rename.button",
+    defaultMessage: "Rename File",
+  }),
+  duplicateButton: defineMessage({
+    id: "project.file-action-modal.duplicate.button",
+    defaultMessage: "Duplicate File",
+  }),
+};
 
 export default function FileActionModal() {
   const intl = useIntl();
@@ -46,9 +65,13 @@ export default function FileActionModal() {
     : undefined;
   const title_text =
     file_action === "rename" && selected_tail
-      ? `Rename the file '${selected_tail}'`
+      ? intl.formatMessage(MODAL_LABELS.renameTitle, {
+          filename: selected_tail,
+        })
       : file_action === "duplicate" && selected_tail
-        ? `Duplicate the file '${selected_tail}'`
+        ? intl.formatMessage(MODAL_LABELS.duplicateTitle, {
+            filename: selected_tail,
+          })
         : intl.formatMessage(actionInfo.name);
 
   const title = (
@@ -89,7 +112,11 @@ export default function FileActionModal() {
                 htmlType="submit"
                 form={renameFormId}
               >
-                {file_action === "duplicate" ? "Duplicate File" : "Rename File"}
+                {intl.formatMessage(
+                  file_action === "duplicate"
+                    ? MODAL_LABELS.duplicateButton
+                    : MODAL_LABELS.renameButton,
+                )}
               </Button>,
             ]
           : null
