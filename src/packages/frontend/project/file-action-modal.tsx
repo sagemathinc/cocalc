@@ -4,6 +4,7 @@
  */
 
 import { Button, Modal } from "antd";
+import { useCallback, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
 
 import {
@@ -15,7 +16,7 @@ import { Icon } from "@cocalc/frontend/components";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { labels } from "@cocalc/frontend/i18n";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
-import { path_split } from "@cocalc/util/misc";
+import { path_split, plural } from "@cocalc/util/misc";
 
 import { useProjectContext } from "./context";
 import { ActionBox } from "./explorer/action-box";
@@ -49,6 +50,9 @@ export default function FileActionModal() {
   const current_path = useTypedRedux({ project_id }, "current_path");
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const displayed_listing = useTypedRedux({ project_id }, "displayed_listing");
+
+  const [actionLoading, setActionLoading] = useState(false);
+  const onActionChange = useCallback((v: boolean) => setActionLoading(v), []);
 
   const isOpen = !!file_action && (checked_files?.size ?? 0) > 0;
   if (!isOpen || !actions) return null;
@@ -115,6 +119,7 @@ export default function FileActionModal() {
                 type="primary"
                 htmlType="submit"
                 form={renameFormId}
+                loading={actionLoading}
               >
                 {intl.formatMessage(
                   file_action === "duplicate"
@@ -123,7 +128,32 @@ export default function FileActionModal() {
                 )}
               </Button>,
             ]
-          : null
+          : file_action === "delete"
+            ? [
+                <Button key="cancel" onClick={() => actions.set_file_action()}>
+                  {intl.formatMessage(labels.cancel)}
+                </Button>,
+                <Button
+                  key="delete"
+                  danger
+                  type="primary"
+                  disabled={current_path === ".trash"}
+                  onClick={() => {
+                    const paths = checked_files?.toArray() ?? [];
+                    for (const path of paths) {
+                      actions.close_tab(path);
+                    }
+                    actions.delete_files({ paths });
+                    actions.set_file_action();
+                    actions.set_all_files_unchecked();
+                    actions.fetch_directory_listing();
+                  }}
+                >
+                  <Icon name="trash" /> Delete {checked_files?.size ?? 0}{" "}
+                  {plural(checked_files?.size ?? 0, "Item")}
+                </Button>,
+              ]
+            : null
       }
       destroyOnHidden
       width={modalWidth}
@@ -132,7 +162,6 @@ export default function FileActionModal() {
         body: {
           maxHeight: "72vh",
           overflowY: "auto",
-          padding: "8px 16px 20px 16px",
         },
       }}
     >
@@ -146,6 +175,7 @@ export default function FileActionModal() {
         actions={actions}
         name={project_redux_name(project_id)}
         renameFormId={renameFormId}
+        onActionChange={onActionChange}
       />
     </Modal>
   );

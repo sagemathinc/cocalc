@@ -59,6 +59,7 @@ interface ReactProps {
   // When true, skip the Well wrapper/title/close button (used inside antd Modal)
   modal?: boolean;
   renameFormId?: string;
+  onActionChange?: (loading: boolean) => void;
 }
 
 export function ActionBox(props: ReactProps) {
@@ -182,28 +183,25 @@ export function ActionBox(props: ReactProps) {
             )}
           </Col>
         </Row>
-        <Row>
-          <Col sm={12}>
-            <div
-              style={{
-                display: "flex",
-                justifyContent: props.modal ? "flex-end" : "flex-start",
-              }}
-            >
-              <Space>
-                <AntdButton onClick={cancel_action}>Cancel</AntdButton>
-                <AntdButton
-                  danger
-                  onClick={delete_click}
-                  disabled={props.current_path === ".trash"}
-                >
-                  <Icon name="trash" /> Delete {size}{" "}
-                  {misc.plural(size, "Item")}
-                </AntdButton>
-              </Space>
-            </div>
-          </Col>
-        </Row>
+        {!props.modal && (
+          <Row>
+            <Col sm={12}>
+              <div style={{ display: "flex", justifyContent: "flex-start" }}>
+                <Space>
+                  <AntdButton onClick={cancel_action}>Cancel</AntdButton>
+                  <AntdButton
+                    danger
+                    onClick={delete_click}
+                    disabled={props.current_path === ".trash"}
+                  >
+                    <Icon name="trash" /> Delete {size}{" "}
+                    {misc.plural(size, "Item")}
+                  </AntdButton>
+                </Space>
+              </div>
+            </Col>
+          </Row>
+        )}
       </div>
     );
   }
@@ -658,9 +656,20 @@ export function ActionBox(props: ReactProps) {
       case "download":
         return <Download />;
       case "rename":
-        return <RenameFile formId={props.renameFormId} />;
+        return (
+          <RenameFile
+            formId={props.renameFormId}
+            onActionChange={props.onActionChange}
+          />
+        );
       case "duplicate":
-        return <RenameFile duplicate formId={props.renameFormId} />;
+        return (
+          <RenameFile
+            duplicate
+            formId={props.renameFormId}
+            onActionChange={props.onActionChange}
+          />
+        );
       case "move":
         return render_move();
       case "share":
@@ -683,11 +692,7 @@ export function ActionBox(props: ReactProps) {
   }
 
   if (props.modal) {
-    return (
-      <div onKeyDown={action_key} style={{ padding: "0 16px" }}>
-        {render_action_box(action)}
-      </div>
-    );
+    return <div onKeyDown={action_key}>{render_action_box(action)}</div>;
   }
 
   return (

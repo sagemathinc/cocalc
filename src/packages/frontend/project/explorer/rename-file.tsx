@@ -17,16 +17,25 @@ const MAX_FILENAME_LENGTH = 4095;
 interface Props {
   duplicate?: boolean;
   formId?: string;
+  onActionChange?: (loading: boolean) => void;
 }
 
-export default function RenameFile({ duplicate, formId }: Props) {
+export default function RenameFile({
+  duplicate,
+  formId,
+  onActionChange,
+}: Props) {
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
   const checked_files = useRedux(["checked_files"], actions?.project_id ?? "");
   const [target, setTarget] = useState<string>("");
   const ext = filename_extension(target);
   const [editExtension, setEditExtension] = useState<boolean>(!ext);
-  const [loading, setLoading] = useState<boolean>(false);
+  const [loading, _setLoading] = useState<boolean>(false);
+  const setLoading = (v: boolean) => {
+    _setLoading(v);
+    onActionChange?.(v);
+  };
   const [error, setError] = useState<string>("");
   const resolvedFormId = formId ?? "file-action-rename-form";
 
@@ -191,7 +200,7 @@ export default function RenameFile({ duplicate, formId }: Props) {
           message={`The maximum length of a filename is ${MAX_FILENAME_LENGTH}.`}
         />
       )}
-      <ShowError setError={setError} error={error} />
+      <ShowError setError={setError} error={error} banner showIcon={false} />
     </form>
   );
 }
