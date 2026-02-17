@@ -86,14 +86,18 @@ export default function FileActionModal() {
     </span>
   );
 
-  const isCopyModal = file_action === "copy";
-  const isMoveModal = file_action === "move";
-  const modalWidth = isCopyModal
-    ? "90vw"
-    : isMoveModal
-      ? "min(95vw, max(75vw, 900px))"
-      : undefined;
-  const modalStyle = isCopyModal ? { maxWidth: "1400px" } : undefined;
+  // Copy, move, and share dialogs have complex multi-column layouts
+  // (e.g. source/destination pickers, project selectors, sharing options),
+  // so we need more screen real estate to show them properly.
+  const isWideModal =
+    file_action === "copy" || file_action === "move" || file_action === "share";
+  const modalWidth = isWideModal
+    ? file_action === "copy"
+      ? "90vw"
+      : "min(95vw, max(75vw, 900px))"
+    : undefined;
+  const modalStyle =
+    file_action === "copy" ? { maxWidth: "1400px" } : undefined;
 
   return (
     <Modal
