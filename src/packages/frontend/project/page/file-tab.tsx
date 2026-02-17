@@ -418,17 +418,21 @@ export function FileTab(props: Readonly<Props>) {
     return ctx;
   }
 
-  /** Wrap element in a right-click context menu Dropdown for file tabs. */
+  /** Wrap element in a right-click context menu Dropdown for file tabs.
+   *  stopPropagation prevents the parent tab bar's "recent files" context menu
+   *  from also opening when right-clicking on an individual tab. */
   function wrapContextMenu(el: React.JSX.Element): React.JSX.Element {
     if (path == null || IS_MOBILE) return el;
     return (
-      <Dropdown
-        menu={{ items: getTabContextMenu() }}
-        trigger={["contextMenu"]}
-        onOpenChange={setContextMenuOpen}
-      >
-        {el}
-      </Dropdown>
+      <div onContextMenu={(e) => e.stopPropagation()}>
+        <Dropdown
+          menu={{ items: getTabContextMenu() }}
+          trigger={["contextMenu"]}
+          onOpenChange={setContextMenuOpen}
+        >
+          {el}
+        </Dropdown>
+      </div>
     );
   }
 
