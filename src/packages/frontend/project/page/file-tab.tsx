@@ -12,7 +12,7 @@ A single tab in a project.
 // cSpell:ignore fixedtab popout Collabs
 
 import { Dropdown, type MenuProps, Popover, Tag, Tooltip } from "antd";
-import { CSSProperties, ReactNode } from "react";
+import { CSSProperties, ReactNode, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
 
 import { getAlertName } from "@cocalc/comm/project-status/types";
@@ -240,6 +240,7 @@ export function FileTab(props: Readonly<Props>) {
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
   const intl = useIntl();
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
   const { onCoCalcDocker } = useProjectContext();
   // this is @cocalc/comm/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
@@ -409,7 +410,11 @@ export function FileTab(props: Readonly<Props>) {
   function wrapContextMenu(el: React.JSX.Element): React.JSX.Element {
     if (path == null || IS_MOBILE) return el;
     return (
-      <Dropdown menu={{ items: getTabContextMenu() }} trigger={["contextMenu"]}>
+      <Dropdown
+        menu={{ items: getTabContextMenu() }}
+        trigger={["contextMenu"]}
+        onOpenChange={setContextMenuOpen}
+      >
         {el}
       </Dropdown>
     );
@@ -621,6 +626,7 @@ export function FileTab(props: Readonly<Props>) {
   return wrapContextMenu(
     <Popover
       zIndex={10000}
+      open={contextMenuOpen ? false : undefined}
       title={() => {
         if (path != null) {
           return <b>{path}</b>;
@@ -635,9 +641,25 @@ export function FileTab(props: Readonly<Props>) {
       content={
         // only editor-tabs can pop up
         !isFixedTab ? (
-          <span style={{ color: COLORS.GRAY }}>
-            Hint: Shift+click to open in new window.
-          </span>
+          <div>
+            {path != null && (
+              <Dropdown
+                menu={{ items: getTabContextMenu() }}
+                trigger={["click"]}
+              >
+                <a
+                  onClick={(e) => e.stopPropagation()}
+                  style={{ display: "block", marginBottom: 4 }}
+                >
+                  {intl.formatMessage(labels.actions)}...{" "}
+                  <Icon name="caret-down" />
+                </a>
+              </Dropdown>
+            )}
+            <span style={{ color: COLORS.GRAY }}>
+              Hint: Shift+click to open in new window.
+            </span>
+          </div>
         ) : undefined
       }
       mouseEnterDelay={1}

@@ -23,11 +23,11 @@ import { ActionBox } from "./explorer/action-box";
 const MODAL_LABELS = {
   renameTitle: defineMessage({
     id: "project.file-action-modal.rename.title",
-    defaultMessage: "Rename the file '{filename}'",
+    defaultMessage: "Rename the file ''{filename}''",
   }),
   duplicateTitle: defineMessage({
     id: "project.file-action-modal.duplicate.title",
-    defaultMessage: "Duplicate the file '{filename}'",
+    defaultMessage: "Duplicate the file ''{filename}''",
   }),
   renameButton: defineMessage({
     id: "project.file-action-modal.rename.button",

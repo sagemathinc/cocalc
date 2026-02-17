@@ -13,6 +13,10 @@ export const labels = defineMessages({
     description:
       "This is just an internal message to trigger ID collisions. If you hit this, your i18n message has no ID. Please consult the README in this directory for more information. The usual pattern is something like [dir].[subdir/filename].[section].[label|message|...]. Messages in this file however are prefixed with their purpose.",
   },
+  actions: {
+    id: "labels.actions",
+    defaultMessage: "Actions",
+  },
   cancel: {
     id: "labels.button.cancel",
     defaultMessage: "Cancel",
@@ -1823,10 +1827,6 @@ export const dialogs = defineMessages({
 });
 
 export const course = defineMessages({
-  actions: {
-    id: "course.actions",
-    defaultMessage: "Actions",
-  },
   shared_project: {
     id: "course.shared_project",
     defaultMessage: "Shared Project",
