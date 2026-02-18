@@ -16,7 +16,7 @@ import { Icon } from "@cocalc/frontend/components";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { labels } from "@cocalc/frontend/i18n";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
-import { path_split, plural } from "@cocalc/util/misc";
+import { path_split } from "@cocalc/util/misc";
 
 import { useProjectContext } from "./context";
 import { ActionBox } from "./explorer/action-box";
@@ -25,18 +25,55 @@ const MODAL_LABELS = {
   renameTitle: defineMessage({
     id: "project.file-action-modal.rename.title",
     defaultMessage: "Rename the file ''{filename}''",
+    description:
+      "Title of the modal dialog to rename a file in the file explorer",
   }),
   duplicateTitle: defineMessage({
     id: "project.file-action-modal.duplicate.title",
     defaultMessage: "Duplicate the file ''{filename}''",
+    description:
+      "Title of the modal dialog to duplicate a file in the file explorer",
   }),
   renameButton: defineMessage({
     id: "project.file-action-modal.rename.button",
     defaultMessage: "Rename File",
+    description: "Button label to confirm renaming a file in the file explorer",
   }),
   duplicateButton: defineMessage({
     id: "project.file-action-modal.duplicate.button",
     defaultMessage: "Duplicate File",
+    description:
+      "Button label to confirm duplicating a file in the file explorer",
+  }),
+  deleteButton: defineMessage({
+    id: "project.file-action-modal.delete.button",
+    defaultMessage: "Delete {count, plural, one {# Item} other {# Items}}",
+    description:
+      "Button label to confirm deleting selected files in the file explorer",
+  }),
+  moveButton: defineMessage({
+    id: "project.file-action-modal.move.button",
+    defaultMessage: "Move {count, plural, one {# Item} other {# Items}}",
+    description:
+      "Button label to confirm moving selected files to another directory in the file explorer",
+  }),
+  copyButton: defineMessage({
+    id: "project.file-action-modal.copy.button",
+    defaultMessage: "Copy {count, plural, one {# Item} other {# Items}}",
+    description:
+      "Button label to confirm copying selected files to another location in the file explorer",
+  }),
+  compressButton: defineMessage({
+    id: "project.file-action-modal.compress.button",
+    defaultMessage: "Compress {count, plural, one {# Item} other {# Items}}",
+    description:
+      "Button label to confirm compressing selected files into a zip archive in the file explorer",
+  }),
+  downloadButton: defineMessage({
+    id: "project.file-action-modal.download.button",
+    defaultMessage: "Download",
+    description:
+      "Button label to download selected files from the file explorer to the user's computer",
   }),
 };
 
@@ -160,7 +197,10 @@ export default function FileActionModal() {
               }
             }}
           >
-            <Icon name="trash" /> Delete {itemCount} {plural(itemCount, "Item")}
+            <Icon name="trash" />{" "}
+            {intl.formatMessage(MODAL_LABELS.deleteButton, {
+              count: itemCount,
+            })}
           </Button>,
         ];
 
@@ -174,7 +214,10 @@ export default function FileActionModal() {
             form="file-action-move-form"
             loading={actionLoading}
           >
-            <Icon name="move" /> Move {itemCount} {plural(itemCount, "Item")}
+            <Icon name="move" />{" "}
+            {intl.formatMessage(MODAL_LABELS.moveButton, {
+              count: itemCount,
+            })}
           </Button>,
         ];
 
@@ -188,7 +231,10 @@ export default function FileActionModal() {
             form="file-action-copy-form"
             loading={actionLoading}
           >
-            <Icon name="files" /> Copy {itemCount} {plural(itemCount, "Item")}
+            <Icon name="files" />{" "}
+            {intl.formatMessage(MODAL_LABELS.copyButton, {
+              count: itemCount,
+            })}
           </Button>,
         ];
 
@@ -202,8 +248,10 @@ export default function FileActionModal() {
             form="file-action-compress-form"
             loading={actionLoading}
           >
-            <Icon name="compress" /> Compress {itemCount}{" "}
-            {plural(itemCount, "Item")}
+            <Icon name="compress" />{" "}
+            {intl.formatMessage(MODAL_LABELS.compressButton, {
+              count: itemCount,
+            })}
           </Button>,
         ];
 
@@ -217,7 +265,8 @@ export default function FileActionModal() {
             form="file-action-download-form"
             loading={actionLoading}
           >
-            <Icon name="cloud-download" /> Download
+            <Icon name="cloud-download" />{" "}
+            {intl.formatMessage(MODAL_LABELS.downloadButton)}
           </Button>,
         ];
 
