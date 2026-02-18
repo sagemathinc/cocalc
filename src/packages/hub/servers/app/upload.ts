@@ -38,14 +38,13 @@ export default function init(router: Router) {
   router.post("/upload", async (req, res) => {
     const account_id = await getAccount(req);
     if (!account_id) {
-      res.status(500).send("user must be signed in to upload files");
+      res.status(401).send("user must be signed in to upload files");
       return;
     }
-    const { project_id, compute_server_id, path = "", ttl, blob } = req.query;
+    const { project_id, compute_server_id, path = "", blob } = req.query;
     try {
       if (blob) {
         //await handleBlobUpload({ ttl, req, res });
-        console.log(ttl);
         throw Error("not implemented");
       } else {
         await handleUploadToProject({
@@ -58,8 +57,12 @@ export default function init(router: Router) {
         });
       }
     } catch (err) {
-      logger.debug("upload failed ", err);
-      res.status(500).send(`upload failed -- ${err}`);
+      logger.warn("upload failed", {
+        err: String(err),
+        account_id,
+        project_id,
+      });
+      res.status(500).send("upload failed");
     }
   });
 }
@@ -70,6 +73,11 @@ export default function init(router: Router) {
 
 const errors: { [key: string]: string[] } = {};
 const finished: { [key: string]: { state: boolean; cb: () => void } } = {};
+
+function cleanupUploadKey(key: string): void {
+  delete errors[key];
+  delete finished[key];
+}
 
 async function handleUploadToProject({
   account_id,
@@ -138,7 +146,12 @@ async function handleUploadToProject({
   const count = parseInt(fields.dztotalchunkcount?.[0] ?? "1");
   const key = JSON.stringify({ path, filename, compute_server_id, project_id });
   if (index > 0 && errors?.[key]?.length > 0) {
-    res.status(500).send(`upload failed -- ${errors[key].join(", ")}`);
+    logger.warn("upload failed (early state error)", {
+      key,
+      errors: errors[key],
+    });
+    res.status(500).send("Upload failed.");
+    cleanupUploadKey(key);
     return;
   }
   if (index == 0) {
@@ -191,12 +204,21 @@ async function handleUploadToProject({
     delete finished[key];
   }
   if ((errors[key]?.length ?? 0) > 0) {
-    // console.log("saying upload failed");
-    let e = errors[key].join(", ");
-    if (e.includes("Error: 503")) {
-      e += ", Upload service not running.";
-    }
-    res.status(500).send(`Upload failed: ${e}`);
+    logger.warn("upload failed (backend write)", {
+      key,
+      errors: errors[key],
+    });
+    const serviceUnavailable = errors[key].some((e) =>
+      e.includes("Error: 503"),
+    );
+    res
+      .status(500)
+      .send(
+        serviceUnavailable
+          ? "Upload failed: upload service not running."
+          : "Upload failed.",
+      );
+    cleanupUploadKey(key);
   } else {
     // console.log("saying upload worked");
     res.send({ status: "ok" });
