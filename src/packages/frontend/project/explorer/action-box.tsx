@@ -37,6 +37,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import DirectorySelector from "../directory-selector";
 import { in_snapshot_path } from "../utils";
+import ShowError from "@cocalc/frontend/components/error";
 import CreateArchive from "./create-archive";
 import Download from "./download";
 import RenameFile from "./rename-file";
@@ -81,6 +82,7 @@ export function ActionBox(props: ReactProps) {
   const [copy_from_compute_server_to, set_copy_from_compute_server_to] =
     useState<"compute-server" | "project">("compute-server");
   const [move_destination, set_move_destination] = useState<string>("");
+  const [move_error, set_move_error] = useState<string>("");
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   //const [new_name, set_new_name] = useState<string>(props.new_name ?? "");
   const [show_different_project, set_show_different_project] =
@@ -209,6 +211,7 @@ export function ActionBox(props: ReactProps) {
 
   async function move_click(): Promise<void> {
     if (actionLoading) return;
+    set_move_error("");
     const paths = props.checked_files.toArray();
     const store = props.actions.get_store();
     const openFiles = store?.get("open_files");
@@ -222,8 +225,8 @@ export function ActionBox(props: ReactProps) {
         src: paths,
         dest: move_destination,
       });
-    } catch {
-      // move_files already shows the error via set_activity; keep tabs open.
+    } catch (err) {
+      set_move_error(`${err}`);
       return;
     } finally {
       setActionLoading(false);
@@ -262,7 +265,7 @@ export function ActionBox(props: ReactProps) {
     if (dest.charAt(dest.length - 1) === "/") {
       dest = dest.slice(0, dest.length - 1);
     }
-    return dest !== props.current_path;
+    return dest !== src_path;
   }
 
   function render_move(): React.JSX.Element {
@@ -328,6 +331,12 @@ export function ActionBox(props: ReactProps) {
             </Space>
           </div>
         )}
+      <ShowError
+        error={move_error}
+        setError={set_move_error}
+        banner
+        showIcon={false}
+      />
       </form>
     );
   }
