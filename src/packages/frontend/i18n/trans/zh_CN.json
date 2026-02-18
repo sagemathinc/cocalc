@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "是，停止项目",
   "labels.projects": "项目",
   "labels.public_paths": "公共路径",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {文件夹已发布} other {文件已发布}}} other {{isDir, select, true {发布文件夹} other {发布文件}}}}",
   "labels.published_files": "已发布文件",
   "labels.purchases": "购买",
   "labels.ready": "准备好",

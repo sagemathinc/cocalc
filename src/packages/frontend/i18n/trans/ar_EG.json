@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "نعم، أوقف المشروع",
   "labels.projects": "المشاريع",
   "labels.public_paths": "المسارات العامة",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {المجلد منشور} other {الملف منشور}}} other {{isDir, select, true {نشر المجلد} other {نشر الملف}}}}",
   "labels.published_files": "ملفات منشورة",
   "labels.purchases": "المشتريات",
   "labels.ready": "جاهز",

@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "Igen, állítsa le a projektet",
   "labels.projects": "Projektek",
   "labels.public_paths": "Nyilvános útvonalak",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {Mappa közzétéve} other {Fájl közzétéve}}} other {{isDir, select, true {Mappa közzététele} other {Fájl közzététele}}}}",
   "labels.published_files": "Közzétett fájlok",
   "labels.purchases": "Vásárlások",
   "labels.ready": "Kész",

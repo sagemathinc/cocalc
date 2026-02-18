@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "はい、プロジェクトを停止",
   "labels.projects": "プロジェクト",
   "labels.public_paths": "公開パス",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {フォルダは公開されています} other {ファイルは公開されています}}} other {{isDir, select, true {フォルダを公開} other {ファイルを公開}}}}",
   "labels.published_files": "公開されたファイル",
   "labels.purchases": "購入",
   "labels.ready": "準備完了",

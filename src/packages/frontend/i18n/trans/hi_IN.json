@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "हाँ, प्रोजेक्ट बंद करें",
   "labels.projects": "प्रोजेक्ट्स",
   "labels.public_paths": "सार्वजनिक पथ",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {फ़ोल्डर प्रकाशित है} other {फ़ाइल प्रकाशित है}}} other {{isDir, select, true {फ़ोल्डर प्रकाशित करें} other {फ़ाइल प्रकाशित करें}}}}",
   "labels.published_files": "प्रकाशित फ़ाइलें",
   "labels.purchases": "खरीदें",
   "labels.ready": "तैयार",

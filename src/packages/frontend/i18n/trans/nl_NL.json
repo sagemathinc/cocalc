@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "Ja, stop project",
   "labels.projects": "Projecten",
   "labels.public_paths": "Openbare Paden",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {Map is gepubliceerd} other {Bestand is gepubliceerd}}} other {{isDir, select, true {Map publiceren} other {Bestand publiceren}}}}",
   "labels.published_files": "Gepubliceerde bestanden",
   "labels.purchases": "Aankopen",
   "labels.ready": "Klaar",

@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "Sim, parar projeto",
   "labels.projects": "Projetos",
   "labels.public_paths": "Caminhos Públicos",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {Pasta está publicada} other {Arquivo está publicado}}} other {{isDir, select, true {Publicar pasta} other {Publicar arquivo}}}}",
   "labels.published_files": "Publicado",
   "labels.purchases": "Compras",
   "labels.ready": "Pronto",

@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "예, 프로젝트 중지",
   "labels.projects": "프로젝트",
   "labels.public_paths": "공개 경로",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {폴더가 게시되었습니다} other {파일이 게시되었습니다}}} other {{isDir, select, true {폴더 게시} other {파일 게시}}}}",
   "labels.published_files": "게시된 파일",
   "labels.purchases": "구매",
   "labels.ready": "준비됨",

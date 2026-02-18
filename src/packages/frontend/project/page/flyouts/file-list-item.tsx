@@ -17,6 +17,7 @@ import {
 import { A, Icon, IconName } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
@@ -126,7 +127,7 @@ interface FileListItemProps {
   itemStyle?: CSS;
   mode: "files" | "log" | "active";
   multiline?: boolean;
-  onChecked?: (state: boolean) => void;
+  onChecked?: (state: boolean, e?: React.MouseEvent) => void;
   onClick?: (e?: React.MouseEvent) => void;
   onClose?: (e: React.MouseEvent | undefined, name: string) => void;
   onMouseDown?: (e: React.MouseEvent, name: string) => void;
@@ -289,7 +290,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         onClick={(e: React.MouseEvent) => {
           e?.stopPropagation();
           if (onChecked != null) {
-            onChecked?.(!selected);
+            onChecked?.(!selected, e);
           } else {
             onClick?.(e);
           }
@@ -440,15 +441,6 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
     ctx.push({ key: "divider-header", type: "divider" });
 
-    if (is_public && typeof onPublic === "function") {
-      ctx.push({
-        key: "public",
-        label: "Item is published",
-        icon: <Icon name="share-square" />,
-        onClick: () => onPublic?.(),
-      });
-    }
-
     // the file or directory actions
     ctx.push(
       ...buildFileActionItems({
@@ -472,6 +464,21 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         },
       }),
     );
+
+    // Publish/share entry — always shown for single files, with state awareness
+    if (!multiple && typeof onPublic === "function") {
+      ctx.push({
+        key: "public",
+        label: intl.formatMessage(labels.publish_status, {
+          isPublished: String(!!is_public),
+          isDir: String(!!isdir),
+        }),
+        icon: <Icon name="share-square" />,
+        onClick: () => onPublic?.(),
+      });
+    }
+
+    ctx.push({ key: "divider-header", type: "divider" });
 
     // view/download buttons at the bottom
     const showDownload = !student_project_functionality.disableActions;

@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "Да, остановить проект",
   "labels.projects": "Проекты",
   "labels.public_paths": "Публичные пути",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {Папка опубликована} other {Файл опубликован}}} other {{isDir, select, true {Опубликовать папку} other {Опубликовать файл}}}}",
   "labels.published_files": "Опубликованные файлы",
   "labels.purchases": "Покупки",
   "labels.ready": "Готово",

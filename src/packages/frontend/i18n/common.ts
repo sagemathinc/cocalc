@@ -602,6 +602,13 @@ export const labels = defineMessages({
     defaultMessage: "folder",
     description: "a folder organizing files in a file-system",
   },
+  publish_status: {
+    id: "labels.publish_status",
+    defaultMessage:
+      "{isPublished, select, true {{isDir, select, true {Folder is published} other {File is published}}} other {{isDir, select, true {Publish folder} other {Publish file}}}}",
+    description:
+      "Context menu label for the publish/share action on a file or folder. Shows the current publish state.",
+  },
   download: {
     id: "labels.download",
     defaultMessage: "download",

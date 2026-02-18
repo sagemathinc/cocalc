@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "Ja, stoppe Projekt",
   "labels.projects": "Projekte",
   "labels.public_paths": "Öffentliche Pfade",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {Ordner ist veröffentlicht} other {Datei ist veröffentlicht}}} other {{isDir, select, true {Ordner veröffentlichen} other {Datei veröffentlichen}}}}",
   "labels.published_files": "Veröffentlichte Dateien",
   "labels.purchases": "Einkäufe",
   "labels.ready": "Bereit",

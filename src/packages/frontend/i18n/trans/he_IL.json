@@ -1125,6 +1125,7 @@
   "labels.project.settings.stop-project.ok": "כן, עצור פרויקט",
   "labels.projects": "פרויקטים",
   "labels.public_paths": "נתיבים ציבוריים",
+  "labels.publish_status": "{isPublished, select, true {{isDir, select, true {התיקיה פורסמה} other {הקובץ פורסם}}} other {{isDir, select, true {פרסם תיקיה} other {פרסם קובץ}}}}",
   "labels.published_files": "קבצים פורסמו",
   "labels.purchases": "רכישות",
   "labels.ready": "מוכן",

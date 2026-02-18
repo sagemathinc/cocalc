@@ -17,11 +17,15 @@ import {
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { labels } from "@cocalc/frontend/i18n";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
 import { url_href } from "@cocalc/frontend/project/utils";
-import { ProjectActions } from "@cocalc/frontend/project_actions";
+import {
+  type FileAction,
+  ProjectActions,
+} from "@cocalc/frontend/project_actions";
 import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -254,6 +258,13 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
     // Standard file actions
     const fp = full_path();
+    const triggerFileAction = (action: FileAction) => {
+      if (!multiple) {
+        props.actions.set_all_files_unchecked();
+        props.actions.set_file_list_checked([fp]);
+      }
+      props.actions.set_file_action(action);
+    };
     ctx.push(
       ...buildFileActionItems({
         isdir: props.isdir,
@@ -261,15 +272,22 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         multiple,
         disableActions: student_project_functionality.disableActions,
         inSnapshots: props.current_path?.startsWith(".snapshots") ?? false,
-        triggerFileAction: (action) => {
-          if (!multiple) {
-            props.actions.set_all_files_unchecked();
-            props.actions.set_file_list_checked([fp]);
-          }
-          props.actions.set_file_action(action);
-        },
+        triggerFileAction,
       }),
     );
+
+    // Publish/share entry — always shown for single files, with state awareness
+    if (!multiple) {
+      ctx.push({
+        key: "share",
+        label: intl.formatMessage(labels.publish_status, {
+          isPublished: String(!!props.is_public),
+          isDir: String(!!props.isdir),
+        }),
+        icon: <Icon name="share-square" />,
+        onClick: () => triggerFileAction("share"),
+      });
+    }
 
     // Download/View for single non-directory files
     const showDownload = !student_project_functionality.disableActions;

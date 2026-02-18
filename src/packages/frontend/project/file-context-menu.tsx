@@ -42,9 +42,9 @@ interface BuildFileActionItemsOptions {
 
 /**
  * Return the standard file-action menu items (compress, delete, rename,
- * duplicate, move, copy, share).  Download is intentionally skipped for
- * non-directory items because both callers render their own dedicated
- * Download entry at the bottom of the menu.
+ * duplicate, move, copy).  Download and share/publish are intentionally
+ * skipped because each calling surface renders its own dedicated entries
+ * for those (download at the bottom, share/publish with state awareness).
  */
 export function buildFileActionItems(
   opts: BuildFileActionItemsOptions,
@@ -69,8 +69,10 @@ export function buildFileActionItems(
   const items: NonNullable<MenuProps["items"]> = [];
 
   for (const key of actionNames) {
-    // Download for non-dirs is handled separately by each surface.
+    // Download for non-dirs and share/publish are handled separately
+    // by each surface with their own dedicated entries.
     if (key === "download" && !isdir) continue;
+    if (key === "share") continue;
 
     const actionInfo = FILE_ACTIONS[key];
     if ("hideFlyout" in actionInfo && actionInfo.hideFlyout) continue;
