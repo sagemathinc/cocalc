@@ -761,6 +761,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
               if (this.open_files == null) return;
               info.redux_name = name;
               info.Editor = Editor;
+              const editorSpec = (Editor as any)?.editor_spec;
+              if (editorSpec != null) {
+                info.editor_spec = editorSpec;
+              }
               // IMPORTANT: we make a *copy* of info below to trigger an update
               // of the component that displays this editor.  Otherwise, the user
               // would just see a spinner until they tab away and tab back.
@@ -1569,9 +1573,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -2355,8 +2358,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {

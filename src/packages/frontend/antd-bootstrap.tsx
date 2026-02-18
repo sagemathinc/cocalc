@@ -384,6 +384,9 @@ interface TabsProps {
   tabPosition?: "left" | "top" | "right" | "bottom";
   size?: "small";
   items: AntdTabItem[]; // This is mandatory: Tabs.TabPane (was in "Tab") is deprecated.
+  // ARIA attributes for accessibility
+  role?: string;
+  "aria-label"?: string;
 }
 
 export function Tabs(props: Readonly<TabsProps>) {
@@ -397,6 +400,8 @@ export function Tabs(props: Readonly<TabsProps>) {
       tabPosition={props.tabPosition}
       size={props.size}
       items={props.items}
+      role={props.role}
+      aria-label={props["aria-label"]}
     />
   );
 }
@@ -495,6 +500,8 @@ export function Panel(props: {
   children?: any;
   onClick?;
   size?: "small";
+  role?: string;
+  "aria-label"?: string;
 }) {
   const style: CSS = { ...{ marginBottom: "20px" }, ...props.style };
 
@@ -510,6 +517,8 @@ export function Panel(props: {
       styles={styles}
       onClick={props.onClick}
       size={props.size}
+      role={props.role}
+      aria-label={props["aria-label"]}
     >
       {props.children}
     </AntdCard>

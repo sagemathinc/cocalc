@@ -10,6 +10,7 @@ import { debounce } from "lodash";
 import { useEffect, useRef } from "react";
 import { defineMessage, IntlShape, useIntl } from "react-intl";
 
+import { useAutoFocusPreference } from "@cocalc/frontend/account";
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -1578,6 +1579,7 @@ function fileAction(action) {
 
 function SearchBox({ setHelpSearch, helpSearch }) {
   const intl = useIntl();
+  const shouldAutoFocus = useAutoFocusPreference();
   const didFocus = useRef<boolean>(false);
 
   useEffect(() => {
@@ -1591,7 +1593,7 @@ function SearchBox({ setHelpSearch, helpSearch }) {
 
   return (
     <Input.Search
-      autoFocus
+      autoFocus={shouldAutoFocus}
       placeholder={intl.formatMessage(labels.search)}
       allowClear
       value={helpSearch}

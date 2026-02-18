@@ -30,6 +30,8 @@ import {
 } from "react";
 import useResizeObserver from "use-resize-observer";
 
+import { ariaKeyDown } from "@cocalc/frontend/app/aria";
+
 export { useSortable };
 
 interface Props {
@@ -110,7 +112,7 @@ export function SortableTabs(props: Props) {
   }, [resize.width, items.length, divRef.current, isOver]);
 
   return (
-    <div style={{ width: "100%", ...style }} ref={divRef}>
+    <div role="tablist" style={{ width: "100%", ...style }} ref={divRef}>
       <ItemContext.Provider value={{ width: itemWidth }}>
         <DndContext
           onDragStart={onDragStart}
@@ -130,12 +132,29 @@ export function SortableTabs(props: Props) {
   );
 }
 
-export function SortableTab({ children, id, style }) {
+interface SortableTabProps {
+  children: React.ReactNode;
+  id: string | number;
+  style?: CSSProperties;
+  onKeyReturn?: () => void;
+}
+
+export function SortableTab({
+  children,
+  id,
+  style,
+  onKeyReturn,
+}: SortableTabProps) {
   const { attributes, listeners, setNodeRef, transform, transition, active } =
     useSortable({ id });
+
+  // Extract role from attributes to avoid conflict with our role="tab"
+  const { role: _, ...restAttributes } = attributes;
+
   return (
     <div
       ref={setNodeRef}
+      role="tab"
       style={{
         ...style,
         transform: transform
@@ -144,8 +163,9 @@ export function SortableTab({ children, id, style }) {
         transition,
         zIndex: active?.id == id ? 1 : undefined,
       }}
-      {...attributes}
+      {...restAttributes}
       {...listeners}
+      onKeyDown={onKeyReturn ? ariaKeyDown(onKeyReturn, false) : undefined}
     >
       {children}
     </div>

@@ -54,12 +54,11 @@ export default function ProjectTabs(props: PTProps) {
   //if (openFiles.size == 0) return <></>;
 
   return (
-    <div
+    <nav
       className="smc-file-tabs"
       style={{
         width: "100%",
         height: "40px",
-        overflow: "hidden",
       }}
     >
       <div style={{ display: "flex" }}>
@@ -86,7 +85,7 @@ export default function ProjectTabs(props: PTProps) {
           <ChatIndicatorTab activeTab={activeTab} project_id={project_id} />
         </div>
       </div>
-    </div>
+    </nav>
   );
 }
 
@@ -227,6 +226,10 @@ export function VerticalFixedTabs({
         flyout={name}
         condensed={condensed}
         showLabel={showActBarLabels}
+        role="tab"
+        aria-selected={isActive}
+        aria-controls={`activity-panel-${name}`}
+        tabIndex={0}
       />
     );
     if (tab != null) items.push(tab);
@@ -261,6 +264,8 @@ export function VerticalFixedTabs({
   return (
     <div
       ref={parent}
+      role="tablist"
+      aria-label="Project activity tabs"
       style={{
         display: "flex",
         flexDirection: "column",

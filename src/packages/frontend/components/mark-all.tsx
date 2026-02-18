@@ -36,6 +36,7 @@ export function MarkAll({ how, onClick, size }: Props) {
         onClick(how);
       }}
       size={size}
+      aria-label={`Mark all items as ${capitalize(how)}`}
     >
       <>
         {icon()} Mark all {capitalize(how)}

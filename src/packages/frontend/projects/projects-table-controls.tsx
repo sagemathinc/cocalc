@@ -12,11 +12,13 @@
 
 import type { SelectProps } from "antd";
 
-import { Button, Input, Select, Space, Switch } from "antd";
+import { Button, Input, InputRef, Select, Space, Switch } from "antd";
 import { Set } from "immutable";
 import { ReactNode, useMemo } from "react";
-import { useIntl } from "react-intl";
+import type { KeyboardEvent } from "react";
+import { defineMessage, useIntl } from "react-intl";
 
+import { useAutoFocusPreference } from "@cocalc/frontend/account";
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
@@ -24,6 +26,17 @@ import { labels } from "@cocalc/frontend/i18n";
 //import { COLORS } from "@cocalc/util/theme";
 
 import { get_visible_hashtags } from "./util";
+
+const messages = {
+  hidden: defineMessage({
+    id: "projects.table-controls.hidden.label",
+    defaultMessage: "Hidden",
+  }),
+  deleted: defineMessage({
+    id: "projects.table-controls.deleted.label",
+    defaultMessage: "Deleted",
+  }),
+};
 
 const CONTROLS_STYLE: CSS = {
   width: "100%",
@@ -35,6 +48,8 @@ const CONTROLS_STYLE: CSS = {
   justifyContent: "space-between",
 } as const;
 
+type SearchNavigateDirection = "up" | "down";
+
 interface Props {
   visible_projects: string[];
   onCreateProject: () => void;
@@ -42,6 +57,8 @@ interface Props {
   createNewRef: React.RefObject<any>;
   searchRef: React.RefObject<any>;
   filtersRef: React.RefObject<any>;
+  searchInputRef?: React.RefObject<InputRef | null>;
+  onSearchNavigate?: (direction: SearchNavigateDirection) => void;
 }
 
 export function ProjectsTableControls({
@@ -51,8 +68,11 @@ export function ProjectsTableControls({
   createNewRef,
   searchRef,
   filtersRef,
+  searchInputRef,
+  onSearchNavigate,
 }: Props) {
   const intl = useIntl();
+  const shouldAutoFocus = useAutoFocusPreference();
   const actions = useActions("projects");
 
   // Redux state
@@ -103,25 +123,39 @@ export function ProjectsTableControls({
     }
   }
 
+  function handleSearchKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      onSearchNavigate?.("down");
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      onSearchNavigate?.("up");
+    }
+  }
+
   return (
     <Space style={CONTROLS_STYLE} direction="horizontal">
       {/* Left section: Search and Hashtags */}
       <Space wrap ref={searchRef}>
         <Input.Search
+          ref={searchInputRef}
+          aria-label="Filter projects by name"
           placeholder={intl.formatMessage({
             id: "projects.table-controls.search.placeholder",
             defaultMessage: "Filter projects...",
           })}
-          autoFocus
+          autoFocus={shouldAutoFocus}
           value={search}
           onChange={handleSearchChange}
           onPressEnter={handlePressEnter}
+          onKeyDown={handleSearchKeyDown}
           style={{ width: IS_MOBILE ? 125 : 250 }}
           allowClear
         />
 
         {!is_anonymous && (
           <Select
+            aria-label="Filter projects by hashtags"
             mode="multiple"
             allowClear
             showSearch
@@ -143,26 +177,14 @@ export function ProjectsTableControls({
             <Switch
               checked={hidden}
               onChange={(checked) => actions.display_hidden_projects(checked)}
-              checkedChildren={intl.formatMessage({
-                id: "projects.table-controls.hidden.label",
-                defaultMessage: "Hidden",
-              })}
-              unCheckedChildren={intl.formatMessage({
-                id: "projects.table-controls.hidden.label",
-                defaultMessage: "Hidden",
-              })}
+              checkedChildren={intl.formatMessage(messages.hidden)}
+              unCheckedChildren={intl.formatMessage(messages.hidden)}
             />
             <Switch
               checked={deleted}
               onChange={(checked) => actions.display_deleted_projects(checked)}
-              checkedChildren={intl.formatMessage({
-                id: "projects.table-controls.deleted.label",
-                defaultMessage: "Deleted",
-              })}
-              unCheckedChildren={intl.formatMessage({
-                id: "projects.table-controls.deleted.label",
-                defaultMessage: "Deleted",
-              })}
+              checkedChildren={intl.formatMessage(messages.deleted)}
+              unCheckedChildren={intl.formatMessage(messages.deleted)}
             />
           </Space>
         )}

@@ -28,6 +28,9 @@ export function useAppContextProvider(): AppState {
 
   const [narrow, setNarrow] = useState<boolean>(isNarrow());
 
+  const [blockShiftShiftHotkey, setBlockShiftShiftHotkey] =
+    useState<boolean>(false);
+
   function update() {
     setNarrow(isNarrow());
     if (window.innerWidth != pageWidthPx) {
@@ -76,6 +79,8 @@ export function useAppContextProvider(): AppState {
     pageWidthPx,
     pageStyle,
     showActBarLabels,
+    blockShiftShiftHotkey,
+    setBlockShiftShiftHotkey,
   };
 }
 

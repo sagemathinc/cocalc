@@ -1,0 +1,85 @@
+// Quick Navigation Dialog Styles
+// This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+// License: MS-RSL – see LICENSE.md for details
+
+@use '../../colors'
+
+// CSS ellipsis style for tree node titles
+// Truncates text with ellipsis while preserving full text for search and hover
+.tree-node-ellipsis
+  display: inline-block
+  white-space: nowrap
+  overflow: hidden
+  text-overflow: ellipsis
+  max-width: 350px
+
+// Frame tree visualization styles
+.frame-tree-container
+  width: 100%
+  border: 1px solid colors.$COL_GRAY_L
+  border-radius: 4px
+  padding: 8px
+  margin-bottom: 16px
+  min-height: 60px
+  background-color: colors.$COL_GRAY_LL
+  display: flex
+  flex-direction: column
+
+.frame-split
+  display: flex
+  flex: 1
+  gap: 2px
+  height: 100%
+
+  &.frame-split-v
+    flex-direction: column
+    height: 100%
+
+  &.frame-split-h
+    flex-direction: row
+    height: 100%
+
+.frame-leaf
+  flex: 1
+  display: flex
+  align-items: center
+  justify-content: center
+  padding: 4px
+  border: 1px solid colors.$COL_GRAY_M
+  border-radius: 3px
+  background-color: white
+  cursor: pointer
+  min-height: 40px
+  height: 100%
+
+  &:hover
+    background-color: colors.$COL_GRAY_LL
+    border-color: colors.$COL_GRAY
+
+  // Tag styling - just the number in the color tag
+  :global(.ant-tag)
+    margin: 0
+    padding: 4px 8px
+    font-weight: bold
+    font-size: 16px
+    min-width: 32px
+    text-align: center
+    display: flex
+    align-items: center
+    justify-content: center
+
+.quick-nav-tree
+  // Prevent tree node content from wrapping to multiple lines
+  .ant-tree-node-content-wrapper
+    white-space: nowrap
+    overflow: hidden
+    text-overflow: ellipsis
+
+    &.ant-tree-node-selected
+      background-color: colors.$COL_BLUE_L
+
+  // Highlight the entire node content wrapper when selected
+  .ant-tree-node-selected .ant-tree-title
+    display: inline-block
+    padding: 0 2px
+    border-radius: 2px

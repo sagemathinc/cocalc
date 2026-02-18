@@ -45,6 +45,8 @@ export function TerminalSettings() {
   return (
     <Panel
       size="small"
+      role="region"
+      aria-label="Terminal settings"
       header={
         <>
           <Icon name="terminal" /> Terminal Settings

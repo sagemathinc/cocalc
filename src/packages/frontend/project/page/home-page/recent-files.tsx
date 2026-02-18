@@ -99,7 +99,7 @@ export function HomeRecentFiles({
     }
   }
 
-  function renderHeader(): React.JSX.Element {
+  function renderHeader(): React.JSX.Element | undefined {
     return (
       <Flex
         justify="space-between"

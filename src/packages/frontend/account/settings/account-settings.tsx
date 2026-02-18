@@ -742,7 +742,7 @@ will no longer work (automatic redirects are not implemented), so change with ca
   }
 
   return (
-    <Panel header={render_header()}>
+    <Panel header={render_header()} role="region" aria-label="Account settings">
       {render_anonymous_warning()}
       {render_sso_restriction_notice()}
       {render_terms_of_service()}

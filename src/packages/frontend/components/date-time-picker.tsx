@@ -45,6 +45,8 @@ export function DateTimePicker(props: Props) {
     placeholder,
     onChange: onChange,
     style,
+    "aria-label": placeholder ?? "Select date and time",
+    "aria-describedby": "date-format-help",
   };
 
   if (open != null) {

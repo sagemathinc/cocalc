@@ -40,3 +40,31 @@ export function set_window_title(title?: string): void {
     document.title = site_name;
   }
 }
+
+// Set the meta description tag dynamically (WCAG AA)
+export function set_meta_description(): void {
+  const customize = redux.getStore("customize");
+  const site_name = customize.get("site_name");
+  const site_description = customize.get("site_description");
+
+  let description = "";
+  if (site_name && site_description) {
+    description = `${site_name}: ${site_description}`;
+  } else if (site_name) {
+    description = site_name;
+  } else if (site_description) {
+    description = site_description;
+  }
+
+  if (description.length > 0) {
+    let metaTag = document.querySelector(
+      'meta[name="description"]',
+    ) as HTMLMetaElement | null;
+    if (metaTag == null) {
+      metaTag = document.createElement("meta");
+      metaTag.name = "description";
+      document.head.appendChild(metaTag);
+    }
+    metaTag.content = description;
+  }
+}

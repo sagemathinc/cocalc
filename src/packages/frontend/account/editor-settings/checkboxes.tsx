@@ -223,9 +223,12 @@ export function EditorSettingsCheckboxes(props: Props) {
     icon: IconName,
     settingNames: readonly CheckboxKey[],
   ) {
+    // Convert header to lowercase aria-label
     return (
       <Panel
         size="small"
+        role="region"
+        aria-label={header}
         header={
           <>
             <Icon name={icon} /> {header}

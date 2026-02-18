@@ -7,7 +7,10 @@ import { Button, Input, Modal, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 
-import { default_filename } from "@cocalc/frontend/account";
+import {
+  default_filename,
+  useAutoFocusPreference,
+} from "@cocalc/frontend/account";
 import { Alert, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   ProjectActions,
@@ -54,6 +57,7 @@ interface Props {
 
 export default function NewFilePage(props: Props) {
   const intl = useIntl();
+  const shouldAutoFocus = useAutoFocusPreference();
   const [createFolderModal, setCreateFolderModal] = useState<boolean>(false);
   const createFolderModalRef = useRef<any>(null);
   useEffect(() => {
@@ -347,7 +351,7 @@ export default function NewFilePage(props: Props) {
       show_header
       icon={"plus-circle"}
       title={
-        <>
+        <span>
           &nbsp;
           <FormattedMessage
             id="project.new-file-page.title"
@@ -391,7 +395,7 @@ export default function NewFilePage(props: Props) {
               <Input
                 ref={createFolderModalRef}
                 style={{ margin: "15px 0" }}
-                autoFocus
+                autoFocus={shouldAutoFocus}
                 size="large"
                 value={filename}
                 onChange={(e) => setFilename(e.target.value)}
@@ -404,7 +408,7 @@ export default function NewFilePage(props: Props) {
               />
             </div>
           </Modal>
-        </>
+        </span>
       }
       subtitle={
         <div>
@@ -463,7 +467,7 @@ export default function NewFilePage(props: Props) {
               <Input
                 size="large"
                 ref={inputRef}
-                autoFocus
+                autoFocus={shouldAutoFocus}
                 value={filename}
                 disabled={extensionWarning}
                 placeholder={
@@ -515,6 +519,8 @@ export default function NewFilePage(props: Props) {
             availableFeatures={availableFeatures}
             filename={filename}
             filenameChanged={filenameChanged}
+            role="region"
+            aria-label="File type selection"
           >
             <Tip
               title={"Download files from the Internet"}

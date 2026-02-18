@@ -251,6 +251,63 @@ export interface OpenedFile {
 }
 
 /**
+ * Core helper to get sorted, deduplicated entries from project log
+ * Used by both getRecentFilesList and useRecentFiles to avoid duplication
+ *
+ * @param projectLog - The project log from redux store (Immutable structure)
+ * @returns Sorted and deduplicated project log entries
+ */
+function getSortedRecentEntries(projectLog: any): any[] {
+  if (projectLog == null) return [];
+
+  const dedupe: Set<string> = new Set();
+
+  try {
+    return projectLog
+      .valueSeq()
+      .filter(
+        (entry: EventRecordMap) =>
+          entry.getIn(["event", "filename"]) &&
+          entry.getIn(["event", "event"]) === "open",
+      )
+      .sort((a, b) => getTime(b) - getTime(a))
+      .filter((entry: EventRecordMap) => {
+        const fn = entry.getIn(["event", "filename"]);
+        if (!fn || dedupe.has(fn)) return false;
+        dedupe.add(fn);
+        return true;
+      })
+      .toArray();
+  } catch (err) {
+    console.log("Error sorting recent entries", err);
+    return [];
+  }
+}
+
+/**
+ * Extract recent files from project log (non-hook utility for use across the codebase)
+ * Returns only filenames for quick navigation use
+ *
+ * @param projectLog - The project log from redux store (Immutable structure)
+ * @param max - Maximum number of files to return (default: 10)
+ * @returns Array of filenames in reverse chronological order
+ */
+export function getRecentFilesList(
+  projectLog: any,
+  max: number = 10,
+): string[] {
+  try {
+    return getSortedRecentEntries(projectLog)
+      .slice(0, max)
+      .map((entry: EventRecordMap) => entry.getIn(["event", "filename"]))
+      .filter((fn: string) => !!fn) as string[];
+  } catch (err) {
+    console.log("Error extracting recent files list", err);
+    return [];
+  }
+}
+
+/**
  * React hook to get recent files from project log with deduplication and optional search filtering
  *
  * @param project_log - The project log from redux store
@@ -266,35 +323,24 @@ export function useRecentFiles(
   return useMemo(() => {
     if (project_log == null || max === 0) return [];
 
-    const dedupe: string[] = [];
-
-    return project_log
-      .valueSeq()
-      .filter(
-        (entry: EventRecordMap) =>
-          entry.getIn(["event", "filename"]) &&
-          entry.getIn(["event", "event"]) === "open",
-      )
-      .sort((a, b) => getTime(b) - getTime(a))
-      .filter((entry: EventRecordMap) => {
-        const fn = entry.getIn(["event", "filename"]);
-        if (dedupe.includes(fn)) return false;
-        dedupe.push(fn);
-        return true;
-      })
-      .filter((entry: EventRecordMap) =>
-        entry
-          .getIn(["event", "filename"], "")
-          .toLowerCase()
-          .includes(searchTerm.toLowerCase()),
-      )
-      .slice(0, max)
-      .map((entry: EventRecordMap) => ({
-        filename: entry.getIn(["event", "filename"]),
-        time: entry.get("time"),
-        account_id: entry.get("account_id"),
-      }))
-      .toJS() as OpenedFile[];
+    try {
+      return getSortedRecentEntries(project_log)
+        .filter((entry: EventRecordMap) =>
+          entry
+            .getIn(["event", "filename"], "")
+            .toLowerCase()
+            .includes(searchTerm.toLowerCase()),
+        )
+        .slice(0, max)
+        .map((entry: EventRecordMap) => ({
+          filename: entry.getIn(["event", "filename"]),
+          time: entry.get("time"),
+          account_id: entry.get("account_id"),
+        })) as OpenedFile[];
+    } catch (err) {
+      console.log("Error extracting recent files", err);
+      return [];
+    }
   }, [project_log, max, searchTerm]);
 }
 

@@ -49,7 +49,7 @@ export function ProfileSettings({ email_address }: Props) {
   }
 
   return (
-    <Panel header={render_header()}>
+    <Panel header={render_header()} role="region" aria-label="Avatar settings">
       <LabeledRow label={intl.formatMessage(labels.color)}>
         <ColorPicker
           color={profile?.get("color")}

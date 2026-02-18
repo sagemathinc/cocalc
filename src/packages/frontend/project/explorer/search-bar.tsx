@@ -6,6 +6,8 @@
 import { Alert, Flex } from "antd";
 import React from "react";
 import { useIntl } from "react-intl";
+
+import { useAutoFocusPreference } from "@cocalc/frontend/account";
 import { CSS, redux } from "@cocalc/frontend/app-framework";
 import { Icon, SearchInput } from "@cocalc/frontend/components";
 import { ProjectActions } from "@cocalc/frontend/project_store";
@@ -73,6 +75,7 @@ export const SearchBar = React.memo((props: Props) => {
   } = props;
 
   const intl = useIntl();
+  const shouldAutoFocus = useAutoFocusPreference();
   const { project_id } = useProjectContext();
 
   // edit → run → edit
@@ -300,8 +303,8 @@ export const SearchBar = React.memo((props: Props) => {
   return (
     <Flex style={{ flex: "1 0 auto", position: "relative" }} vertical={true}>
       <SearchInput
-        autoFocus
-        autoSelect
+        autoFocus={shouldAutoFocus}
+        autoSelect={shouldAutoFocus}
         placeholder={intl.formatMessage({
           id: "project.explorer.search-bar.placeholder",
           defaultMessage: 'Filter files or "/" for terminal...',

@@ -137,7 +137,7 @@ export function BuildControls({
   });
 
   return (
-    <>
+    <div role="region" aria-label="Build controls">
       <Dropdown.Button
         type="primary"
         size={size}
@@ -145,6 +145,7 @@ export function BuildControls({
         menu={{ items: buildMenuItems }}
         trigger={["click"]}
         onClick={handleBuild}
+        aria-label="Build menu"
       >
         <Icon name="play-circle" />
         {!narrow &&
@@ -158,10 +159,12 @@ export function BuildControls({
           active={pdfDarkModeDisabled}
           onClick={() => actions.toggle_pdf_dark_mode(id)}
           title={intl.formatMessage(editor.toggle_pdf_dark_mode_title)}
+          aria-label={intl.formatMessage(editor.toggle_pdf_dark_mode_title)}
+          aria-pressed={pdfDarkModeDisabled}
         >
           <Icon unicode={DARK_MODE_ICON} />
         </BSButton>
       )}
-    </>
+    </div>
   );
 }

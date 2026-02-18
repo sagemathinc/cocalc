@@ -27,6 +27,29 @@ export type ChatState =
   | "external" // chat is open and managed externally (e.g., legacy sage worksheet)
   | "pending"; // chat should be opened when the file itself is actually initialized.
 
+/**
+ * Toggle chat for a file - close if open, open if closed
+ * @param projectId - Project ID
+ * @param path - File path
+ * @param chatState - Current chat state
+ * @param how - How the toggle was triggered (for tracking)
+ */
+export function toggleChat(
+  projectId: string,
+  path: string,
+  chatState: ChatState,
+  how: string = "chat-button",
+): void {
+  const actions = redux.getProjectActions(projectId);
+  if (chatState) {
+    track("close-chat", { project_id: projectId, path, how });
+    actions.close_chat({ path });
+  } else {
+    track("open-chat", { project_id: projectId, path, how });
+    actions.open_chat({ path });
+  }
+}
+
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "15pt",
   paddingTop: "2px",
@@ -67,16 +90,9 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
 function ChatButton({ project_id, path, chatState }) {
   const intl = useIntl();
 
-  const toggleChat = debounce(
+  const handleToggleChat = debounce(
     () => {
-      const actions = redux.getProjectActions(project_id);
-      if (chatState) {
-        track("close-chat", { project_id, path, how: "chat-button" });
-        actions.close_chat({ path });
-      } else {
-        track("open-chat", { project_id, path, how: "chat-button" });
-        actions.open_chat({ path });
-      }
+      toggleChat(project_id, path, chatState, "chat-button");
     },
     1000,
     { leading: true },
@@ -112,7 +128,7 @@ function ChatButton({ project_id, path, chatState }) {
         type="text"
         danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
-        onClick={toggleChat}
+        onClick={handleToggleChat}
         style={{ background: chatState ? "white" : undefined }}
       >
         <Icon name="comment" />

@@ -36,7 +36,7 @@ export function AccountPreferencesProfile() {
   const verify_emails = useTypedRedux("customize", "verify_emails");
 
   return (
-    <>
+    <div role="region" aria-label="Profile settings">
       <AccountSettings
         account_id={account_id}
         first_name={first_name}
@@ -55,6 +55,6 @@ export function AccountPreferencesProfile() {
         unlisted={unlisted}
       />
       <ProfileSettings email_address={email_address} />
-    </>
+    </div>
   );
 }

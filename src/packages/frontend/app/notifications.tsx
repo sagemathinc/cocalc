@@ -16,6 +16,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import track from "@cocalc/frontend/user-tracking";
+import { ariaKeyDown } from "./aria";
 import { PageStyle, TOP_BAR_ELEMENT_CLASS } from "./top-nav-consts";
 import { blur_active_element } from "./util";
 import { useEffect, useMemo } from "react";
@@ -148,8 +149,29 @@ export const Notification: React.FC<Props> = React.memo((props: Props) => {
 
   const className = TOP_BAR_ELEMENT_CLASS + (active ? " active" : "");
 
+  const getAriaLabel = (): string => {
+    switch (type) {
+      case "bell":
+        return `File use notifications: ${count} new`;
+      case "notifications":
+        return `Messages and mentions: ${unread_message_count} unread messages, ${count} mentions, ${news_unread} news items`;
+      default:
+        unreachable(type);
+        return "";
+    }
+  };
+
   return (
-    <div style={outer_style} onClick={onClick} className={className}>
+    <div
+      role="button"
+      aria-label={getAriaLabel()}
+      aria-live="polite"
+      tabIndex={0}
+      style={outer_style}
+      onClick={onClick}
+      onKeyDown={ariaKeyDown(onClick)}
+      className={className}
+    >
       <div style={inner_style}>{renderBadge()}</div>
     </div>
   );

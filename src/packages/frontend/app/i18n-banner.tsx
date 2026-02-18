@@ -52,7 +52,7 @@ export function useShowI18NBanner() {
   const i18n = other_settings?.get(OTHER_SETTINGS_LOCALE_KEY);
 
   return useMemo(() => {
-    // we show the banner, if the default locale is set and the browser langauge is not english
+    // we show the banner, if the default locale is set and the browser language is not english
     // user's can dismiss this, which sets the locale to "en-keep".
     if (i18n === DEFAULT_LOCALE) {
       if (!navigator.language.toLowerCase().startsWith("en")) {
@@ -87,7 +87,12 @@ export const I18NBanner: React.FC<{}> = () => {
   if (!loaded) return;
 
   return (
-    <div style={I18N_BANNER_STYLE}>
+    <div
+      role="region"
+      aria-label="Language selection"
+      aria-live="polite"
+      style={I18N_BANNER_STYLE}
+    >
       <Text strong>
         <Icon name={"translation-outlined"} /> Use <SiteName /> in a different
         language:

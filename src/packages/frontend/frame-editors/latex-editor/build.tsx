@@ -278,6 +278,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
         size={"small"}
         style={{ height: "100%", overflowY: "hidden" }}
         items={items}
+        role="region"
+        aria-label="Build log output"
       />
     );
   }
@@ -358,6 +360,9 @@ export const Build: React.FC<Props> = React.memo((props) => {
             display: "flex",
             gap: "5px",
           }}
+          role="region"
+          aria-label="Build progress"
+          aria-live="polite"
         >
           <Flex flex={1} style={{ gap: "5px" }}>
             Active: {r_join(infos)}...
@@ -383,6 +388,9 @@ export const Build: React.FC<Props> = React.memo((props) => {
             display: "flex",
             flexDirection: "column",
           }}
+          role="region"
+          aria-label="Build output"
+          aria-live="polite"
         >
           <div
             style={{
@@ -413,6 +421,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
                   flexDirection: "column",
                   overflow: "hidden",
                 }}
+                role="region"
+                aria-label="Standard output (stdout)"
               >
                 <div
                   style={{
@@ -449,6 +459,10 @@ export const Build: React.FC<Props> = React.memo((props) => {
                   flexDirection: "column",
                   overflow: "hidden",
                 }}
+                role="region"
+                aria-label={`${renderErrorHeader(
+                  errorIsInformational,
+                )} (stderr)`}
               >
                 <div
                   style={{
@@ -495,6 +509,8 @@ export const Build: React.FC<Props> = React.memo((props) => {
         padding: "5px 0 0 5px",
         fontSize: `${font_size}px`,
       }}
+      role="region"
+      aria-label="Build log viewer"
     >
       {render_build_command()}
       {render_jobs()}

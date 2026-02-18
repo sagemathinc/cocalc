@@ -15,6 +15,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { COLORS } from "@cocalc/util/theme";
+import { ariaKeyDown } from "./aria";
 import {
   FONT_SIZE_ICONS_NORMAL,
   PageStyle,
@@ -68,6 +69,19 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         : {}),
     } as const;
 
+    function getConnectionLabel() {
+      switch (connection_status) {
+        case "connected":
+          return intl.formatMessage(labels.connected);
+        case "connecting":
+          return intl.formatMessage(labels.connecting);
+        case "disconnected":
+          return intl.formatMessage(labels.disconnected);
+        default:
+          return "Connection status unknown";
+      }
+    }
+
     function render_connection_status() {
       if (connection_status === "connected") {
         return (
@@ -103,12 +117,17 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
     return (
       <div
         className={TOP_BAR_ELEMENT_CLASS}
+        role="status"
+        aria-label={getConnectionLabel()}
+        aria-live="polite"
+        aria-busy={connection_status === "connecting"}
         style={outer_style}
         onClick={connection_click}
+        onKeyDown={ariaKeyDown(connection_click)}
+        tabIndex={0}
       >
         {render_connection_status()}
       </div>
     );
   },
 );
-

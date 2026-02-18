@@ -7,6 +7,9 @@ export default function InsecureTestModeBanner() {
       banner
       type="warning"
       showIcon
+      role="region"
+      aria-label="Test mode warning"
+      aria-live="assertive"
       style={{ background: "darkred", color: "white" }}
       message={
         <div style={{ textAlign: "center" }}>

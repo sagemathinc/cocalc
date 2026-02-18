@@ -172,7 +172,11 @@ export function SyncControls({
   }
 
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: "5px" }}>
+    <div
+      style={{ display: "flex", alignItems: "center", gap: "5px" }}
+      role="region"
+      aria-label="Sync controls"
+    >
       <Space.Compact>
         <Tip
           title={intl.formatMessage(INVERSE_SYNC_TOOLTIP_MSG)}
@@ -183,6 +187,8 @@ export function SyncControls({
             bsSize="xsmall"
             onClick={() => handleAutoSyncChange("autoSyncInverse")}
             style={{ padding: CONTROL_BUTTON_PADDING }}
+            aria-label={intl.formatMessage(INVERSE_SYNC_TOOLTIP_MSG)}
+            aria-pressed={autoSyncInverse}
           >
             <Icon unicode={SYNC_INVERSE_ICON} />
           </BSButton>
@@ -196,6 +202,8 @@ export function SyncControls({
             bsSize="xsmall"
             onClick={() => handleAutoSyncChange("autoSyncForward")}
             style={{ padding: CONTROL_BUTTON_PADDING }}
+            aria-label={intl.formatMessage(FORWARD_SYNC_TOOLTIP_MSG)}
+            aria-pressed={autoSyncForward}
           >
             <Icon unicode={SYNC_FORWARD_ICON} />
           </BSButton>
@@ -209,6 +217,7 @@ export function SyncControls({
             style={{ padding: CONTROL_BUTTON_PADDING }}
             onClick={handleManualSync}
             disabled={pageDimensions.length === 0}
+            aria-label={intl.formatMessage(SYNC_BUTTON_TOOLTIP_MSG)}
           >
             Sync
           </BSButton>

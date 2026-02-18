@@ -24,6 +24,7 @@ interface OutputStatsProps {
   wordCount: string;
   refreshWordCount: (force?: boolean) => void;
   uiFontSize: number;
+  path?: string;
 }
 
 export function OutputStats({
@@ -31,6 +32,7 @@ export function OutputStats({
   wordCount,
   refreshWordCount,
   uiFontSize,
+  path = "",
 }: OutputStatsProps) {
   const intl = useIntl();
 
@@ -42,6 +44,8 @@ export function OutputStats({
         flexDirection: "column",
         height: "100%",
       }}
+      role="region"
+      aria-label={`Stats: ${path}`}
     >
       {/* Fixed header with refresh button */}
       <div style={OUTPUT_HEADER_STYLE}>

@@ -247,6 +247,24 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - `packages/frontend/i18n/trans/[locale].compiled.json` - compiled translation files for runtime
 - `packages/frontend/i18n/index.ts` - exports and locale loading logic
 
+## ARIA Landmarks and Accessibility
+
+The CoCalc frontend should implement ARIA landmarks to enable proper landmark-based navigation for users with assistive technologies (screen readers, keyboard navigation tools, etc.).
+
+**Important**: See [./dev/ARIA.md](./dev/ARIA.md) for comprehensive documentation on:
+
+- What ARIA landmarks are and why they matter
+- CoCalc's three-level navigation hierarchy
+- How to implement landmarks in React/TSX components
+- Best practices and implementation guidelines
+
+Key points:
+
+- Use semantic HTML elements (`<main>`, `<nav>`, `<aside>`, `<footer>`) which automatically create landmarks
+- Use `role="region"` with `aria-label` for custom sections (toolbars, symbol panels, etc.)
+- Use `aria-label` to distinguish between multiple regions of the same type
+- Keep landmarks to 7 or fewer per page for optimal usability
+
 # Ignore
 
 - Ignore files covered by `.gitignore`

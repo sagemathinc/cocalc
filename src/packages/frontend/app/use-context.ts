@@ -30,9 +30,11 @@ export interface AppState {
   timeAgoAbsolute?: boolean;
   setTimeAgoAbsolute?: (boolean) => void;
   showActBarLabels?: boolean; // whether to show labels on the vertical fixed bar
+  blockShiftShiftHotkey: boolean; // temporarily block shift+shift hotkey (e.g., during testing)
+  setBlockShiftShiftHotkey?: (block: boolean) => void;
 }
 
-export const DEFAULT_CONTEXT = {
+export const DEFAULT_CONTEXT: AppState = {
   pageWidthPx: 1000, // gets updated
   pageStyle: calcStyle(false), // gets updated
   formatIntl: () => "Loading…",
@@ -44,6 +46,7 @@ export const DEFAULT_CONTEXT = {
     return label;
   },
   showActBarLabels: ACTIVITY_BAR_LABELS_DEFAULT,
+  blockShiftShiftHotkey: false,
 };
 
 export const AppContext = createContext<AppState>(DEFAULT_CONTEXT);
@@ -62,8 +65,12 @@ export function calcStyle(isNarrow: boolean): PageStyle {
   const height = isNarrow ? NAV_HEIGHT_NARROW_PX : NAV_HEIGHT_PX;
 
   const topBarStyle = {
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
     height: `${height}px`,
     background: "#fafafa",
+    width: "100vw",
   } as const;
 
   const fileUseStyle = {
@@ -94,6 +101,8 @@ export function calcStyle(isNarrow: boolean): PageStyle {
       } as const)
     : ({
         flex: "1 1 auto", // necessary to stretch out to the full width
+        minWidth: 0, // allow tabs to shrink below content size
+        overflow: "hidden", // prevent tabs from overflowing the nav
       } as const);
 
   return {
