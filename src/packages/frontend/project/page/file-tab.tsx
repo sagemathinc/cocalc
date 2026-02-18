@@ -35,6 +35,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
+import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import {
   ICON_UPGRADES,
   ICON_USERS,
@@ -404,6 +405,19 @@ export function FileTab(props: Readonly<Props>) {
           },
         }),
       );
+
+      ctx.push({
+        key: "share",
+        label: intl.formatMessage(FILE_ACTIONS.share.name),
+        icon: <Icon name="share-square" />,
+        disabled: in_snapshot_path(path),
+        onClick: () =>
+          actions.show_file_action_panel({
+            path,
+            action: "share",
+            source: "editor",
+          }),
+      });
 
       // Download (separate from the shared builder to avoid duplication)
       ctx.push({ key: "divider-download", type: "divider" });

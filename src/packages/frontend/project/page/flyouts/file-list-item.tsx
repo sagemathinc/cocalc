@@ -466,7 +466,11 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
 
     // Publish/share entry — always shown for single files, with state awareness
-    if (!multiple && typeof onPublic === "function") {
+    if (
+      !multiple &&
+      typeof onPublic === "function" &&
+      !student_project_functionality.disableActions
+    ) {
       ctx.push({
         key: "public",
         label: intl.formatMessage(labels.publish_status, {
@@ -474,11 +478,10 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           isDir: String(!!isdir),
         }),
         icon: <Icon name="share-square" />,
+        disabled: current_path?.startsWith(".snapshots") ?? false,
         onClick: () => onPublic?.(),
       });
     }
-
-    ctx.push({ key: "divider-header", type: "divider" });
 
     // view/download buttons at the bottom
     const showDownload = !student_project_functionality.disableActions;

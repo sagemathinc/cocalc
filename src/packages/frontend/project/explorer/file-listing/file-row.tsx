@@ -277,7 +277,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     );
 
     // Publish/share entry — always shown for single files, with state awareness
-    if (!multiple) {
+    if (!multiple && !student_project_functionality.disableActions) {
       ctx.push({
         key: "share",
         label: intl.formatMessage(labels.publish_status, {
@@ -285,6 +285,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
           isDir: String(!!props.isdir),
         }),
         icon: <Icon name="share-square" />,
+        disabled: props.current_path?.startsWith(".snapshots") ?? false,
         onClick: () => triggerFileAction("share"),
       });
     }
