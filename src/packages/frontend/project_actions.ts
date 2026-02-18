@@ -2488,11 +2488,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     });
   }
 
+  // Returns false when the user cancels the "start project" prompt,
+  // meaning no rename took place and callers should not rewrite tabs.
   public async rename_file(opts: {
     src: string;
     dest: string;
     compute_server_id?: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const id = misc.uuid();
     const status = `Renaming ${opts.src} to ${opts.dest}`;
     let error: any = undefined;
@@ -2501,7 +2503,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       src: opts.src,
     });
     if (!(await ensure_project_running(this.project_id, what))) {
-      return;
+      return false;
     }
 
     this.set_activity({ id, status });
@@ -2521,6 +2523,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } finally {
       this.set_activity({ id, stop: "", error });
     }
+    return true;
   }
 
   // return true if exists and is a directory
@@ -2539,18 +2542,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  // Returns false when the user cancels the "start project" prompt,
+  // meaning no move took place and callers should not rewrite tabs.
   public async move_files(opts: {
     src: string[];
     dest: string;
     compute_server_id?: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     if (
       !(await ensure_project_running(
         this.project_id,
         "move " + opts.src.join(", "),
       ))
     ) {
-      return;
+      return false;
     }
     const id = misc.uuid();
     const status = `Moving ${opts.src.length} ${misc.plural(
@@ -2576,6 +2581,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       this.set_activity({ id, stop: "", error });
       if (error) throw error;
     }
+    return true;
   }
 
   private checkForSandboxError(message): boolean {

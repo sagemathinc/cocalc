@@ -104,7 +104,8 @@ export default function RenameFile({
           });
         }
       } else {
-        await actions.rename_file(opts);
+        const renamed = await actions.rename_file(opts);
+        if (!renamed) return;
         if (wasOpen) {
           actions.close_tab(src);
           await actions.open_file({

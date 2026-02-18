@@ -216,8 +216,9 @@ export function ActionBox(props: ReactProps) {
     const activePath = misc.tab_to_path(activeTab);
     setActionLoading(true);
     props.onActionChange?.(true);
+    let moved: boolean;
     try {
-      await props.actions.move_files({
+      moved = await props.actions.move_files({
         src: paths,
         dest: move_destination,
       });
@@ -228,6 +229,7 @@ export function ActionBox(props: ReactProps) {
       setActionLoading(false);
       props.onActionChange?.(false);
     }
+    if (!moved) return;
     // Close old tabs and reopen moved files at their new paths
     for (const path of paths) {
       const wasOpen = !!openFiles?.has(path);
