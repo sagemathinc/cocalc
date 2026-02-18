@@ -68,9 +68,20 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
   const software = useTypedRedux("customize", "software");
   const is_anonymous = useTypedRedux("account", "is_anonymous");
   const project_log = useTypedRedux({ project_id }, "project_log");
+  const directory_listings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  );
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   // Get recent files - always enabled since component only renders when expanded
-  const recentFiles: OpenedFile[] = useRecentFiles(project_log, 100);
+  const recentFiles: OpenedFile[] = useRecentFiles(
+    project_log,
+    100,
+    "",
+    directory_listings,
+    compute_server_id,
+  );
 
   // Get starred files - always enabled since component only renders when expanded
   const { starred } = useStarredFilesManager(project_id, true);

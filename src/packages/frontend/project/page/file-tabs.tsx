@@ -77,7 +77,18 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
   const intl = useIntl();
   const actions = useActions({ project_id });
   const project_log = useTypedRedux({ project_id }, "project_log");
-  const recentFiles = useRecentFiles(project_log, 30);
+  const directory_listings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  );
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  const recentFiles = useRecentFiles(
+    project_log,
+    30,
+    "",
+    directory_listings,
+    compute_server_id,
+  );
 
   if (openFiles == null) {
     return null;
