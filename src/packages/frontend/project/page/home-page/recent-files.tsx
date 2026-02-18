@@ -48,7 +48,6 @@ export function HomeRecentFiles({
     { project_id },
     "directory_listings",
   );
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const user_map = useTypedRedux("users", "user_map");
 
   const [searchTerm, setSearchTerm] = useState<string>("");
@@ -58,7 +57,6 @@ export function HomeRecentFiles({
     max,
     searchTerm,
     directory_listings,
-    compute_server_id,
   );
 
   function renderItemInfo({ account_id, time }) {

@@ -63,11 +63,6 @@ export function ProjectActionsMenu({ record }: Props) {
     { project_id: record.project_id },
     "directory_listings",
   );
-  const compute_server_id = useTypedRedux(
-    { project_id: record.project_id },
-    "compute_server_id",
-  );
-
   // Initialize project_log when menu opens if not already loaded
   function handleOpenChange(newOpen: boolean) {
     setOpen(newOpen);
@@ -87,7 +82,6 @@ export function ProjectActionsMenu({ record }: Props) {
     open ? 100 : 0,
     "",
     directory_listings,
-    compute_server_id,
   );
 
   // Get starred files - only when menu is open

@@ -200,6 +200,8 @@ export type OpenFile = {
   type?: string;
   // if true, opening a file that was deleted
   deleted?: number;
+  // which compute server the file was opened on (0 = home base)
+  compute_server_id?: number;
 };
 
 export type ProjectControlEvent = {

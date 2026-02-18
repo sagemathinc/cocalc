@@ -72,15 +72,12 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
     { project_id },
     "directory_listings",
   );
-  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
-
   // Get recent files - always enabled since component only renders when expanded
   const recentFiles: OpenedFile[] = useRecentFiles(
     project_log,
     100,
     "",
     directory_listings,
-    compute_server_id,
   );
 
   // Get starred files - always enabled since component only renders when expanded

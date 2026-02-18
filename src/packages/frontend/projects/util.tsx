@@ -257,8 +257,7 @@ export interface OpenedFile {
  * @param project_log - The project log from redux store
  * @param max - Maximum number of files to return (default: 100)
  * @param searchTerm - Optional search term to filter filenames (case-insensitive)
- * @param directory_listings - Optional cached directory listings map
- * @param compute_server_id - Optional compute server id for listings lookup
+ * @param directory_listings - Optional cached directory listings map (uses per-entry compute server id)
  * @returns Array of recent opened files
  */
 export function useRecentFiles(
@@ -266,7 +265,6 @@ export function useRecentFiles(
   max: number = 100,
   searchTerm: string = "",
   directory_listings?: iMap<number, iMap<string, unknown>>,
-  compute_server_id?: number,
 ): OpenedFile[] {
   return useMemo(() => {
     if (project_log == null || max === 0) return [];
@@ -300,9 +298,11 @@ export function useRecentFiles(
         if (!filename) return true;
         const { head: parentDir, tail: baseName } = path_split(filename);
         if (!baseName) return true;
-        const entryComputeServerId = compute_server_id ?? 0;
+        // Use the compute server recorded in the log entry (default 0 = home base
+        // for older entries that don't have this field).
+        const serverId = entry.getIn(["event", "compute_server_id"]) ?? 0;
         const listing: unknown = directory_listings.getIn([
-          entryComputeServerId,
+          serverId,
           parentDir,
         ]);
         if (listing == null || typeof listing === "string") return true;
@@ -324,7 +324,7 @@ export function useRecentFiles(
         account_id: entry.get("account_id"),
       }))
       .toJS() as OpenedFile[];
-  }, [project_log, max, searchTerm, directory_listings, compute_server_id]);
+  }, [project_log, max, searchTerm, directory_listings]);
 }
 
 type FileEntry = string | OpenedFile;
