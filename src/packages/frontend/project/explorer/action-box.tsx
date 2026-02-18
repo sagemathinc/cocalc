@@ -702,6 +702,7 @@ export function ActionBox(props: ReactProps) {
         action_key={action_key}
         set_public_path={(opts) => props.actions.set_public_path(path, opts)}
         has_network_access={!!runQuota.network}
+        modal={props.modal}
       />
     );
   }

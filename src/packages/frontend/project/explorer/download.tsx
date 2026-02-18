@@ -126,7 +126,7 @@ export default function Download({
           onChange={(e) => setTarget(e.target.value)}
           value={target}
           placeholder="Name of zip archive..."
-          onPressEnter={doDownload}
+          onPressEnter={modal ? undefined : doDownload}
           suffix=".zip"
           style={{ marginBottom: 10 }}
         />
@@ -161,11 +161,7 @@ export default function Download({
 
   return (
     <Card
-      title={
-        <>
-          Download {archiveMode ? "files" : "a file"} to your computer
-        </>
-      }
+      title={<>Download {archiveMode ? "files" : "a file"} to your computer</>}
     >
       {content}
       <div

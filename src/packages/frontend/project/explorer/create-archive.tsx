@@ -80,7 +80,7 @@ export default function CreateArchive({
           onChange={(e) => setTarget(e.target.value)}
           value={target}
           placeholder="Name of zip archive..."
-          onPressEnter={doCompress}
+          onPressEnter={modal ? undefined : doCompress}
           suffix=".zip"
         />
       </Space>

@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "이동 {count, plural, one {# 항목} other {# 항목들}}",
   "project.file-action-modal.rename.button": "파일 이름 변경",
   "project.file-action-modal.rename.title": "파일 ''{filename}'' 이름 변경",
+  "project.file-action-modal.share.finished.button": "완료",
+  "project.file-action-modal.share.hint": "변경 사항이 즉시 적용됩니다.",
   "project.history.log-entry.change_collaborator_type": "{target}을(를) {old_group}에서 {new_group}(으)로 변경했습니다",
   "project.history.log-entry.invited_user": "초대된 사용자",
   "project.history.log-entry.invited_user_via": "새 사용자 초대 via",

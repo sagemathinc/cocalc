@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "移动 {count, plural, one {# 项} other {# 项}}",
   "project.file-action-modal.rename.button": "重命名文件",
   "project.file-action-modal.rename.title": "将文件重命名为“{filename}”",
+  "project.file-action-modal.share.finished.button": "完成",
+  "project.file-action-modal.share.hint": "更改会立即生效。",
   "project.history.log-entry.change_collaborator_type": "将 {target} 从 {old_group} 更改为 {new_group}",
   "project.history.log-entry.invited_user": "受邀用户",
   "project.history.log-entry.invited_user_via": "通过邀请新用户",

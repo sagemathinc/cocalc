@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "Verplaats {count, plural, one {# Item} other {# Items}}",
   "project.file-action-modal.rename.button": "Bestand hernoemen",
   "project.file-action-modal.rename.title": "Bestand ''{filename}'' hernoemen",
+  "project.file-action-modal.share.finished.button": "Voltooid",
+  "project.file-action-modal.share.hint": "Wijzigingen worden direct toegepast.",
   "project.history.log-entry.change_collaborator_type": "veranderde {target} van {old_group} naar {new_group}",
   "project.history.log-entry.invited_user": "uitgenodigde gebruiker",
   "project.history.log-entry.invited_user_via": "uitgenodigde nieuwe gebruiker via",

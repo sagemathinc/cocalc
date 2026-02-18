@@ -102,6 +102,8 @@ interface Props {
   }) => void;
   has_network_access?: boolean;
   compute_server_id?: number;
+  /** When true, hides the internal "Finished" buttons – the modal footer provides them */
+  modal?: boolean;
 }
 
 // ensures the custom font sizes in the text of the first row is consistent
@@ -250,18 +252,20 @@ export default function Configure(props: Props) {
 
   return (
     <>
-      <Title level={3} style={{ color: COLORS.GRAY_M, textAlign: "center" }}>
-        <a
-          onClick={() => {
-            redux
-              .getProjectActions(props.project_id)
-              ?.load_target("files/" + props.path);
-          }}
-        >
-          {trunc_middle(props.path, 128)}
-        </a>
-        <span style={{ float: "right" }}>{renderFinishedButton()}</span>
-      </Title>
+      {!props.modal && (
+        <Title level={3} style={{ color: COLORS.GRAY_M, textAlign: "center" }}>
+          <a
+            onClick={() => {
+              redux
+                .getProjectActions(props.project_id)
+                ?.load_target("files/" + props.path);
+            }}
+          >
+            {trunc_middle(props.path, 128)}
+          </a>
+          <span style={{ float: "right" }}>{renderFinishedButton()}</span>
+        </Title>
+      )}
 
       <Row gutter={GUTTER}>
         <Col span={12}>
@@ -488,7 +492,11 @@ export default function Configure(props: Props) {
           </Col>
         </Row>
       ) : undefined}
-      <Paragraph style={{ float: "right" }}>{renderFinishedButton()}</Paragraph>
+      {!props.modal && (
+        <Paragraph style={{ float: "right" }}>
+          {renderFinishedButton()}
+        </Paragraph>
+      )}
     </>
   );
 }

@@ -321,35 +321,28 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   );
 };
 
-export const ACTION_BUTTONS_DIR = [
+// Ordered by frequency of use — most common first, share last (often the
+// final step).  "download" is listed first because it is skipped in
+// context-menus for non-directories and handled separately there.
+const ACTION_BUTTONS_SINGLE = [
   "download",
-  "compress",
-  "delete",
   "rename",
-  "duplicate",
-  "move",
   "copy",
+  "move",
+  "delete",
+  "duplicate",
+  "compress",
   "share",
 ] as const;
 
-export const ACTION_BUTTONS_FILE = [
-  "download",
-  "compress",
-  "delete",
-  "rename",
-  "duplicate",
-  "move",
-  "copy",
-  "share",
-] as const;
+export const ACTION_BUTTONS_FILE = ACTION_BUTTONS_SINGLE;
+export const ACTION_BUTTONS_DIR = ACTION_BUTTONS_SINGLE;
 
-export const ACTION_BUTTONS_MULTI = [
-  "download",
-  "compress",
-  "delete",
-  "move",
-  "copy",
-] as const;
+// Multi-selection: omit single-file-only actions (rename, duplicate, share)
+const SINGLE_ONLY = ["rename", "duplicate", "share"] as const;
+export const ACTION_BUTTONS_MULTI = ACTION_BUTTONS_SINGLE.filter(
+  (a) => !(SINGLE_ONLY as readonly string[]).includes(a),
+);
 
 export function isDisabledSnapshots(name: string) {
   return [

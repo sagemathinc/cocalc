@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "Mover {count, plural, one {# Item} other {# Itens}}",
   "project.file-action-modal.rename.button": "Renomear Arquivo",
   "project.file-action-modal.rename.title": "Renomear o arquivo ''{filename}''",
+  "project.file-action-modal.share.finished.button": "Concluído",
+  "project.file-action-modal.share.hint": "As alterações são aplicadas imediatamente.",
   "project.history.log-entry.change_collaborator_type": "alterado {target} de {old_group} para {new_group}",
   "project.history.log-entry.invited_user": "usuário convidado",
   "project.history.log-entry.invited_user_via": "convidou novo usuário via",

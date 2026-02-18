@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "Mugitu {count, plural, one {# Elementu} other {# Elementu}}",
   "project.file-action-modal.rename.button": "Fitxategiaren Izena Aldatu",
   "project.file-action-modal.rename.title": "''{filename}'' fitxategia berrizendatu",
+  "project.file-action-modal.share.finished.button": "Amaituta",
+  "project.file-action-modal.share.hint": "Aldaketak berehala aplikatzen dira.",
   "project.history.log-entry.change_collaborator_type": "aldatu {target} {old_group} tik {new_group} ra",
   "project.history.log-entry.invited_user": "gonbidatutako erabiltzailea",
   "project.history.log-entry.invited_user_via": "gonbidatu berri bat bidali bidez",

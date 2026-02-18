@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "Przenieś {count, plural, one {# element} other {# elementy}}",
   "project.file-action-modal.rename.button": "Zmień nazwę pliku",
   "project.file-action-modal.rename.title": "Zmień nazwę pliku ''{filename}''",
+  "project.file-action-modal.share.finished.button": "Zakończono",
+  "project.file-action-modal.share.hint": "Zmiany są stosowane natychmiast.",
   "project.history.log-entry.change_collaborator_type": "zmieniono {target} z {old_group} na {new_group}",
   "project.history.log-entry.invited_user": "zaproszony użytkownik",
   "project.history.log-entry.invited_user_via": "zaproszono nowego użytkownika przez",

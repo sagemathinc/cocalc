@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "انقل {count, plural, one {# عنصر} other {# عناصر}}",
   "project.file-action-modal.rename.button": "إعادة تسمية الملف",
   "project.file-action-modal.rename.title": "إعادة تسمية الملف ''{filename}''",
+  "project.file-action-modal.share.finished.button": "تم",
+  "project.file-action-modal.share.hint": "يتم تطبيق التغييرات فورًا.",
   "project.history.log-entry.change_collaborator_type": "غيّر {target} من {old_group} إلى {new_group}",
   "project.history.log-entry.invited_user": "المستخدم المدعو",
   "project.history.log-entry.invited_user_via": "دعا مستخدم جديد عبر",

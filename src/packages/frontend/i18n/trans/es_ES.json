@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "Mover {count, plural, one {# Elemento} other {# Elementos}}",
   "project.file-action-modal.rename.button": "Renombrar archivo",
   "project.file-action-modal.rename.title": "Renombrar el archivo ''{filename}''",
+  "project.file-action-modal.share.finished.button": "Finalizar",
+  "project.file-action-modal.share.hint": "Los cambios se aplican inmediatamente.",
   "project.history.log-entry.change_collaborator_type": "cambió {target} de {old_group} a {new_group}",
   "project.history.log-entry.invited_user": "usuario invitado",
   "project.history.log-entry.invited_user_via": "invitó a un nuevo usuario a través de",

@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "Verschieben {count, plural, one {# Element} other {# Elemente}}",
   "project.file-action-modal.rename.button": "Datei umbenennen",
   "project.file-action-modal.rename.title": "Datei ''{filename}'' umbenennen",
+  "project.file-action-modal.share.finished.button": "Fertig",
+  "project.file-action-modal.share.hint": "Änderungen werden sofort übernommen.",
   "project.history.log-entry.change_collaborator_type": "änderte {target} von {old_group} zu {new_group}",
   "project.history.log-entry.invited_user": "eingeladener Benutzer",
   "project.history.log-entry.invited_user_via": "neuen Benutzer eingeladen über",

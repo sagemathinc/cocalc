@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "Taşı {count, plural, one {# Öğe} other {# Öğe}}",
   "project.file-action-modal.rename.button": "Dosyayı Yeniden Adlandır",
   "project.file-action-modal.rename.title": "Dosyayı yeniden adlandır ''{filename}''",
+  "project.file-action-modal.share.finished.button": "Bitirildi",
+  "project.file-action-modal.share.hint": "Değişiklikler hemen uygulanır.",
   "project.history.log-entry.change_collaborator_type": "{target} öğesi {old_group} grubundan {new_group} grubuna değiştirildi",
   "project.history.log-entry.invited_user": "davet edilen kullanıcı",
   "project.history.log-entry.invited_user_via": "davet edilen yeni kullanıcı üzerinden",

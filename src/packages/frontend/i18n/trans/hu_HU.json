@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "Áthelyezés {count, plural, one {# elem} other {# elem}}",
   "project.file-action-modal.rename.button": "Fájl átnevezése",
   "project.file-action-modal.rename.title": "Nevezze át a fájlt ''{filename}''",
+  "project.file-action-modal.share.finished.button": "Kész",
+  "project.file-action-modal.share.hint": "A változtatások azonnal érvénybe lépnek.",
   "project.history.log-entry.change_collaborator_type": "megváltoztatta {target} {old_group}-ról {new_group}-ra",
   "project.history.log-entry.invited_user": "meghívott felhasználó",
   "project.history.log-entry.invited_user_via": "új felhasználó meghívása μέσω",

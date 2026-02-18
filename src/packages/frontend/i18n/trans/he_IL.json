@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "העבר {count, plural, one {# פריט} other {# פריטים}}",
   "project.file-action-modal.rename.button": "שנה שם קובץ",
   "project.file-action-modal.rename.title": "שנה את שם הקובץ ''{filename}''",
+  "project.file-action-modal.share.finished.button": "סיום",
+  "project.file-action-modal.share.hint": "השינויים מוחלים מיד.",
   "project.history.log-entry.change_collaborator_type": "שינה {target} מ-{old_group} ל-{new_group}",
   "project.history.log-entry.invited_user": "משתמש מוזמן",
   "project.history.log-entry.invited_user_via": "הזמין משתמש חדש באמצעות",

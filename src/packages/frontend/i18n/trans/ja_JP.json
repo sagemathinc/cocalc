@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "移動 {count, plural, one {# アイテム} other {# アイテム}}",
   "project.file-action-modal.rename.button": "ファイル名を変更",
   "project.file-action-modal.rename.title": "ファイル「{filename}」を名前変更",
+  "project.file-action-modal.share.finished.button": "完了",
+  "project.file-action-modal.share.hint": "変更は即時に適用されます。",
   "project.history.log-entry.change_collaborator_type": "{target}を{old_group}から{new_group}に変更しました",
   "project.history.log-entry.invited_user": "招待されたユーザー",
   "project.history.log-entry.invited_user_via": "経由で新しいユーザーを招待",

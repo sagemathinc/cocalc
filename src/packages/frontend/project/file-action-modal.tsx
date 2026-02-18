@@ -12,7 +12,7 @@ import {
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, Text } from "@cocalc/frontend/components";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { labels } from "@cocalc/frontend/i18n";
 import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
@@ -74,6 +74,18 @@ const MODAL_LABELS = {
     defaultMessage: "Download",
     description:
       "Button label to download selected files from the file explorer to the user's computer",
+  }),
+  shareFinishedButton: defineMessage({
+    id: "project.file-action-modal.share.finished.button",
+    defaultMessage: "Finished",
+    description:
+      "Button label to close the share/publish dialog after configuring sharing options for a file",
+  }),
+  shareHint: defineMessage({
+    id: "project.file-action-modal.share.hint",
+    defaultMessage: "Changes are applied immediately.",
+    description:
+      "Hint in the share/publish dialog footer explaining that sharing changes take effect right away",
   }),
 };
 
@@ -270,6 +282,25 @@ export default function FileActionModal() {
           </Button>,
         ];
 
+      case "share":
+        return [
+          <Text
+            key="hint"
+            type="secondary"
+            style={{ flex: 1, marginRight: 10 }}
+          >
+            {intl.formatMessage(MODAL_LABELS.shareHint)}
+          </Text>,
+          <Button
+            key="finished"
+            type="primary"
+            onClick={() => actions.set_file_action()}
+          >
+            <Icon name="check" />{" "}
+            {intl.formatMessage(MODAL_LABELS.shareFinishedButton)}
+          </Button>,
+        ];
+
       default:
         return null;
     }
@@ -288,6 +319,7 @@ export default function FileActionModal() {
         body: {
           maxHeight: "72vh",
           overflowY: "auto",
+          overflowX: "hidden",
         },
       }}
     >

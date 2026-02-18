@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "{count, plural, one {# आइटम} other {# आइटम्स}} को स्थानांतरित करें",
   "project.file-action-modal.rename.button": "फ़ाइल का नाम बदलें",
   "project.file-action-modal.rename.title": "फ़ाइल ''{filename}'' का नाम बदलें",
+  "project.file-action-modal.share.finished.button": "समाप्त",
+  "project.file-action-modal.share.hint": "परिवर्तन तुरंत लागू होते हैं।",
   "project.history.log-entry.change_collaborator_type": "{target} को {old_group} से {new_group} में बदला गया",
   "project.history.log-entry.invited_user": "आमंत्रित उपयोगकर्ता",
   "project.history.log-entry.invited_user_via": "नए उपयोगकर्ता को आमंत्रित किया गया द्वारा",

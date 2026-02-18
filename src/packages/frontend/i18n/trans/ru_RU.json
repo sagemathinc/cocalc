@@ -1339,6 +1339,8 @@
   "project.file-action-modal.move.button": "Переместить {count, plural, one {# элемент} other {# элементов}}",
   "project.file-action-modal.rename.button": "Переименовать файл",
   "project.file-action-modal.rename.title": "Переименовать файл ''{filename}''",
+  "project.file-action-modal.share.finished.button": "Готово",
+  "project.file-action-modal.share.hint": "Изменения применяются немедленно.",
   "project.history.log-entry.change_collaborator_type": "изменено {target} с {old_group} на {new_group}",
   "project.history.log-entry.invited_user": "приглашенный пользователь",
   "project.history.log-entry.invited_user_via": "пригласил нового пользователя через",
