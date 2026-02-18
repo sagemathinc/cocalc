@@ -421,6 +421,11 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: ANTHROPIC_COLOR,
     category: "ai",
   },
+  "anthropic-claude-4-6-sonnet-8k": {
+    display: LLM_USERNAMES["claude-4-6-sonnet-8k"],
+    color: ANTHROPIC_COLOR,
+    category: "ai",
+  },
   "anthropic-claude-4-5-opus-8k": {
     display: LLM_USERNAMES["claude-4-5-opus-8k"],
     color: ANTHROPIC_COLOR,
