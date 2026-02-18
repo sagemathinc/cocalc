@@ -5,6 +5,7 @@
 
 import { Map, Set } from "immutable";
 import { clone } from "lodash";
+
 import {
   CSS,
   React,
@@ -21,6 +22,7 @@ import {
   LoadingEstimate,
 } from "@cocalc/frontend/components";
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
+import { FILE_ACTIONS } from "@cocalc/frontend/project-file";
 import { is_different } from "@cocalc/util/misc";
 import { chat } from "../generic/chat";
 import FormatError from "./format-error";
@@ -45,6 +47,46 @@ const LOADING_STYLE: CSS = {
   padding: "15px",
   color: "#999",
 } as const;
+
+const DEFAULT_FILE_COMMANDS: { [commandName: string]: true } = (() => {
+  const commands: { [commandName: string]: true } = {};
+  for (const action of Object.keys(FILE_ACTIONS)) {
+    if (action === "copy") {
+      commands.copy_file = true;
+      continue;
+    }
+    if (action === "move") {
+      commands.move_file = true;
+      continue;
+    }
+    if (action === "create") {
+      commands.new = true;
+      continue;
+    }
+    commands[action] = true;
+  }
+  commands.new = true;
+  commands.open = true;
+  commands.open_recent = true;
+  commands.close_tab = true;
+  commands.download_pdf = true;
+  return commands;
+})();
+
+function addDefaultFileCommands(editor_spec: EditorSpec): EditorSpec {
+  const next: EditorSpec = {};
+  for (const [name, spec] of Object.entries(editor_spec)) {
+    if (spec == null) continue;
+    next[name] = {
+      ...spec,
+      commands: {
+        ...DEFAULT_FILE_COMMANDS,
+        ...(spec.commands ?? {}),
+      },
+    };
+  }
+  return next;
+}
 
 function shouldMemoize(prev, next): boolean {
   return !is_different(prev, next, [
@@ -236,6 +278,11 @@ export function createEditor<T = EditorSpec>(
 ): React.FC<EditorProps> {
   const Editor = (props: EditorProps) => {
     const { actions, name, path, project_id, is_visible } = props;
+    const editor_spec_with_defaults = addDefaultFileCommands(
+      (path.endsWith(".sage-chat")
+        ? opts.editor_spec
+        : { ...opts.editor_spec, chat }) as unknown as EditorSpec,
+    ) as unknown as T;
     return (
       <FrameTreeEditor
         actions={actions}
@@ -244,11 +291,7 @@ export function createEditor<T = EditorSpec>(
         project_id={project_id}
         format_bar={!!opts.format_bar}
         format_bar_exclude={opts.format_bar_exclude}
-        editor_spec={
-          path.endsWith(".sage-chat")
-            ? opts.editor_spec
-            : { ...opts.editor_spec, chat }
-        }
+        editor_spec={editor_spec_with_defaults}
         tab_is_visible={is_visible}
       />
     );

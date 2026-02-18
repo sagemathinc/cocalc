@@ -11,9 +11,14 @@ import { callback } from "awaiting";
 import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { join } from "path";
-import { defineMessage } from "react-intl";
 
-import type { IconName } from "@cocalc/frontend/components/icon";
+import type {
+  FileAction,
+  FileActionInfo,
+  FileActionSource,
+  FileCommand,
+} from "@cocalc/frontend/project-file";
+import { FILE_ACTIONS } from "@cocalc/frontend/project-file";
 
 import {
   computeServerManager,
@@ -40,7 +45,7 @@ import {
   exec,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { set_url } from "@cocalc/frontend/history";
-import { IntlMessage, dialogs } from "@cocalc/frontend/i18n";
+import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   download_file,
@@ -183,121 +188,8 @@ const must_define = function (redux) {
 const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
-export interface FileActionInfo {
-  name: IntlMessage;
-  icon: IconName;
-  allows_multiple_files?: boolean;
-  hideFlyout?: boolean;
-}
-
-const _FILE_ACTIONS = {
-  compress: {
-    name: defineMessage({
-      id: "file_actions.compress.name",
-      defaultMessage: "Compress",
-      description: "Compress a file",
-    }),
-    icon: "compress" as IconName,
-    allows_multiple_files: true,
-  },
-  delete: {
-    name: defineMessage({
-      id: "file_actions.delete.name",
-      defaultMessage: "Delete",
-      description: "Delete a file",
-    }),
-    icon: "trash" as IconName,
-    allows_multiple_files: true,
-  },
-  rename: {
-    name: defineMessage({
-      id: "file_actions.rename.name",
-      defaultMessage: "Rename",
-      description: "Rename a file",
-    }),
-    icon: "swap" as IconName,
-    allows_multiple_files: false,
-  },
-  duplicate: {
-    name: defineMessage({
-      id: "file_actions.duplicate.name",
-      defaultMessage: "Duplicate",
-      description: "Duplicate a file",
-    }),
-    icon: "clone" as IconName,
-    allows_multiple_files: false,
-  },
-  move: {
-    name: defineMessage({
-      id: "file_actions.move.name",
-      defaultMessage: "Move",
-      description: "Move a file",
-    }),
-    icon: "move" as IconName,
-    allows_multiple_files: true,
-  },
-  copy: {
-    name: defineMessage({
-      id: "file_actions.copy.name",
-      defaultMessage: "Copy",
-      description: "Copy a file",
-    }),
-    icon: "files" as IconName,
-    allows_multiple_files: true,
-  },
-  share: {
-    name: defineMessage({
-      id: "file_actions.publish.name",
-      defaultMessage: "Publish",
-      description: "Publish a file",
-    }),
-    icon: "share-square" as IconName,
-    allows_multiple_files: false,
-  },
-  download: {
-    name: defineMessage({
-      id: "file_actions.download.name",
-      defaultMessage: "Download",
-      description: "Download a file",
-    }),
-    icon: "cloud-download" as IconName,
-    allows_multiple_files: true,
-  },
-  upload: {
-    name: defineMessage({
-      id: "file_actions.upload.name",
-      defaultMessage: "Upload",
-      description: "Upload a file",
-    }),
-    icon: "upload" as IconName,
-    hideFlyout: true,
-  },
-  create: {
-    name: defineMessage({
-      id: "file_actions.create.name",
-      defaultMessage: "Create",
-      description: "Create a file",
-    }),
-    icon: "plus-circle" as IconName,
-    hideFlyout: true,
-  },
-} as const satisfies Record<string, FileActionInfo>;
-
-export type FileAction = keyof typeof _FILE_ACTIONS;
-
-export const FILE_ACTIONS: Record<FileAction, FileActionInfo> = _FILE_ACTIONS;
-
-// Extended commands accepted by show_file_action_panel() that route to
-// navigation actions rather than the ActionBox dialog.
-export type FileCommand =
-  | FileAction
-  | "new"
-  | "open"
-  | "open_recent"
-  | "close"
-  | "quit";
-
-export type FileActionSource = "editor";
+export type { FileAction, FileActionInfo, FileActionSource, FileCommand };
+export { FILE_ACTIONS };
 
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";

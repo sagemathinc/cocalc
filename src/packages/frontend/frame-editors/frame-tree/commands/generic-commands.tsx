@@ -954,6 +954,7 @@ addCommands({
   },
   download_pdf: {
     group: "export",
+    disable: "disableActions",
     // ATTN: this must be an IntlMessage
     label: defineMessage({
       id: "menu.generic.download_pdf.label",
@@ -1566,7 +1567,7 @@ addCommands({
 
 function fileAction(action: FileCommand) {
   return {
-    alwaysShow: true,
+    disable: "disableActions" as const,
     onClick: ({ props }) => {
       const actions = redux.getProjectActions(props.project_id);
       actions.show_file_action_panel({
