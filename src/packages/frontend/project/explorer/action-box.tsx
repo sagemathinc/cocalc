@@ -711,7 +711,13 @@ export function ActionBox(props: ReactProps) {
   ): React.JSX.Element | undefined {
     switch (action) {
       case "compress":
-        return <CreateArchive />;
+        return (
+          <CreateArchive
+            modal={props.modal}
+            formId={props.modal ? "file-action-compress-form" : undefined}
+            onActionChange={props.onActionChange}
+          />
+        );
       case "copy":
         return render_copy();
       case "delete":

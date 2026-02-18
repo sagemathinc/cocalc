@@ -9,7 +9,15 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 import { path_split, plural } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
 
-export default function CreateArchive({}) {
+export default function CreateArchive({
+  modal,
+  formId,
+  onActionChange,
+}: {
+  modal?: boolean;
+  formId?: string;
+  onActionChange?: (loading: boolean) => void;
+}) {
   const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
@@ -39,10 +47,11 @@ export default function CreateArchive({}) {
     }
     try {
       setLoading(true);
+      onActionChange?.(true);
       const files = checked_files.toArray();
       const path = store.get("current_path");
       await actions.zip_files({
-        src: path ? files.map((x) => x.slice(path.length + 1)) : files,
+        src: path ? files.map((x: string) => x.slice(path.length + 1)) : files,
         dest: target + ".zip",
         path,
       });
@@ -53,6 +62,7 @@ export default function CreateArchive({}) {
       setError(`${err}`);
     } finally {
       setLoading(false);
+      onActionChange?.(false);
     }
   };
 
@@ -60,13 +70,8 @@ export default function CreateArchive({}) {
     return null;
   }
 
-  return (
-    <Card
-      title=<>
-        Create a zip file from the following {checked_files?.size} selected{" "}
-        {plural(checked_files?.size, "item")}
-      </>
-    >
+  const content = (
+    <>
       <CheckedFiles />
       <Space style={{ marginTop: "15px" }} wrap>
         <Input
@@ -79,6 +84,34 @@ export default function CreateArchive({}) {
           suffix=".zip"
         />
       </Space>
+      <ShowError setError={setError} error={error} />
+    </>
+  );
+
+  if (modal) {
+    return (
+      <form
+        id={formId}
+        onSubmit={(e) => {
+          e.preventDefault();
+          doCompress();
+        }}
+      >
+        {content}
+      </form>
+    );
+  }
+
+  return (
+    <Card
+      title={
+        <>
+          Create a zip file from the following {checked_files?.size} selected{" "}
+          {plural(checked_files?.size, "item")}
+        </>
+      }
+    >
+      {content}
       <div
         style={{
           marginTop: "15px",
@@ -100,7 +133,6 @@ export default function CreateArchive({}) {
           </Button>
         </Space>
       </div>
-      <ShowError setError={setError} error={error} />
     </Card>
   );
 }

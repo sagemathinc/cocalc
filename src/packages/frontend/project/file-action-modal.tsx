@@ -192,6 +192,21 @@ export default function FileActionModal() {
           </Button>,
         ];
 
+      case "compress":
+        return [
+          cancelButton,
+          <Button
+            key="compress"
+            type="primary"
+            htmlType="submit"
+            form="file-action-compress-form"
+            loading={actionLoading}
+          >
+            <Icon name="compress" /> Compress {itemCount}{" "}
+            {plural(itemCount, "Item")}
+          </Button>,
+        ];
+
       default:
         return null;
     }
