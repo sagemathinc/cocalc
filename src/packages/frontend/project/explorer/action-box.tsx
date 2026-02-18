@@ -5,7 +5,7 @@
 
 // cSpell: ignore isdir
 
-import { Button as AntdButton, Radio, Space } from "antd";
+import { Alert as AntdAlert, Button as AntdButton, Radio, Space } from "antd";
 import * as immutable from "immutable";
 import { useState } from "react";
 import { useIntl } from "react-intl";
@@ -37,7 +37,6 @@ import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import DirectorySelector from "../directory-selector";
 import { in_snapshot_path } from "../utils";
-import ShowError from "@cocalc/frontend/components/error";
 import CreateArchive from "./create-archive";
 import Download from "./download";
 import RenameFile from "./rename-file";
@@ -331,12 +330,16 @@ export function ActionBox(props: ReactProps) {
             </Space>
           </div>
         )}
-      <ShowError
-        error={move_error}
-        setError={set_move_error}
-        banner
-        showIcon={false}
-      />
+      {move_error && (
+        <AntdAlert
+          style={{ marginTop: 8, padding: "4px 10px", fontSize: "13px" }}
+          type="error"
+          message={move_error.replace(/^Error:\s*/, "")}
+          showIcon={false}
+          closable
+          onClose={() => set_move_error("")}
+        />
+      )}
       </form>
     );
   }
