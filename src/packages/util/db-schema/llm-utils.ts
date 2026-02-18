@@ -247,6 +247,7 @@ export const ANTHROPIC_MODELS = [
   "claude-4-sonnet-8k",
   "claude-4-opus-8k",
   "claude-4-5-sonnet-8k", // added 2025
+  "claude-4-6-sonnet-8k", // added 2026-02
   "claude-4-5-opus-8k", // added 2025
   "claude-4-6-opus-8k", // added 2026-02
   "claude-4-5-haiku-8k", // added 2025
@@ -263,6 +264,7 @@ export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string | null } = {
   "claude-4-sonnet-8k": "claude-sonnet-4-0",
   "claude-4-opus-8k": "claude-opus-4-0",
   "claude-4-5-sonnet-8k": "claude-sonnet-4-5",
+  "claude-4-6-sonnet-8k": "claude-sonnet-4-6",
   "claude-4-5-opus-8k": "claude-opus-4-5",
   "claude-4-6-opus-8k": "claude-opus-4-6",
   "claude-4-5-haiku-8k": "claude-haiku-4-5",
@@ -364,10 +366,11 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   ],
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-small-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
-    // latest of each tier; keep opus 4.5 temporarily for users who have it configured
+    // latest of each tier; keep 4.5 temporarily for users who have it configured
     return (
       m === "claude-4-5-haiku-8k" ||
       m === "claude-4-5-sonnet-8k" ||
+      m === "claude-4-6-sonnet-8k" ||
       m === "claude-4-5-opus-8k" ||
       m === "claude-4-6-opus-8k"
     );
@@ -887,6 +890,7 @@ export const LLM_USERNAMES: LLM2String = {
   "claude-4-sonnet-8k": "Claude 4 Sonnet",
   "claude-4-opus-8k": "Claude 4 Opus",
   "claude-4-5-sonnet-8k": "Claude 4.5 Sonnet",
+  "claude-4-6-sonnet-8k": "Claude 4.6 Sonnet",
   "claude-4-5-opus-8k": "Claude 4.5 Opus",
   "claude-4-6-opus-8k": "Claude 4.6 Opus",
   "claude-4-5-haiku-8k": "Claude 4.5 Haiku",
@@ -991,6 +995,8 @@ export const LLM_DESCR: LLM2String = {
     "Excels at writing and complex tasks (Anthropic, 8k token context)",
   "claude-4-5-sonnet-8k":
     "Most intelligent model with advanced reasoning (Anthropic, 8k token context)",
+  "claude-4-6-sonnet-8k":
+    "Advanced reasoning and coding model (Anthropic, 8k token context)",
   "claude-4-5-opus-8k":
     "Flagship model excelling at complex tasks and writing (Anthropic, 8k token context)",
   "claude-4-6-opus-8k":
@@ -1392,6 +1398,12 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     free: false,
   },
   "claude-4-5-sonnet-8k": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 8_000,
+    free: false,
+  },
+  "claude-4-6-sonnet-8k": {
     prompt_tokens: usd1Mtokens(3),
     completion_tokens: usd1Mtokens(15),
     max_tokens: 8_000,
