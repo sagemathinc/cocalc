@@ -43,7 +43,7 @@
       "lodash@>=4.0.0 <4.17.23": "4.17.23",
       "lodash-es@>=4.0.0 <4.17.23": "4.17.23",
       "@isaacs/brace-expansion@<=5.0.0": "5.0.1",
-      "fast-xml-parser@>=5.0.9 <5.3.4": "5.3.4"
+      "fast-xml-parser@>=5.0.9 <5.3.6": "5.3.6"
     },
     "onlyBuiltDependencies": [
       "websocket-sftp",
