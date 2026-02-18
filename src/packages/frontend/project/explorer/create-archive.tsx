@@ -1,6 +1,7 @@
 import { Button, Card, Input, Space, Spin } from "antd";
 import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+
 import { default_filename } from "@cocalc/frontend/account";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
@@ -38,7 +39,7 @@ export default function CreateArchive({
   }, []);
 
   const doCompress = async () => {
-    if (actions == null) {
+    if (actions == null || loading) {
       return;
     }
     const store = actions.get_store();
