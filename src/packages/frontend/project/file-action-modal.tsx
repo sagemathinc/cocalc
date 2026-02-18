@@ -207,6 +207,20 @@ export default function FileActionModal() {
           </Button>,
         ];
 
+      case "download":
+        return [
+          cancelButton,
+          <Button
+            key="download"
+            type="primary"
+            htmlType="submit"
+            form="file-action-download-form"
+            loading={actionLoading}
+          >
+            <Icon name="cloud-download" /> Download
+          </Button>,
+        ];
+
       default:
         return null;
     }

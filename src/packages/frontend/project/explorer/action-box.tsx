@@ -723,7 +723,13 @@ export function ActionBox(props: ReactProps) {
       case "delete":
         return render_delete();
       case "download":
-        return <Download />;
+        return (
+          <Download
+            modal={props.modal}
+            formId={props.modal ? "file-action-download-form" : undefined}
+            onActionChange={props.onActionChange}
+          />
+        );
       case "rename":
         return (
           <RenameFile
