@@ -1020,6 +1020,7 @@ addCommands({
     }),
     label: menu.new_file,
     ...fileAction("new"),
+    disable: undefined,
   },
   new_ai: {
     pos: 0.5,
@@ -1052,6 +1053,7 @@ addCommands({
       description: "Label on menu item",
     }),
     ...fileAction("open"),
+    disable: undefined,
   },
   open_recent: {
     pos: 2,
@@ -1068,6 +1070,7 @@ addCommands({
       description: "Label on menu item",
     }),
     ...fileAction("open_recent"),
+    disable: undefined,
   },
   save: {
     pos: 0,
@@ -1246,6 +1249,7 @@ addCommands({
       description: "Editor for a file in a user interface",
     }),
     ...fileAction("close"),
+    disable: undefined,
   },
   settings: {
     pos: 10,

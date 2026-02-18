@@ -65,7 +65,6 @@ const DEFAULT_FILE_COMMANDS: { [commandName: string]: true } = (() => {
     }
     commands[action] = true;
   }
-  commands.new = true;
   commands.open = true;
   commands.open_recent = true;
   commands.close_tab = true;
