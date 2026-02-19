@@ -2523,7 +2523,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } finally {
       this.set_activity({ id, stop: "", error });
     }
-    return true;
+    return error == null;
   }
 
   // return true if exists and is a directory
