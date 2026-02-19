@@ -88,6 +88,27 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     init_terminal();
   }, [props.id]);
 
+  // When the command or args change (e.g. frame type switched from
+  // terminal to shell, or kernel connection_file updated on restart),
+  // the old terminal process is no longer valid.  close_terminal() in
+  // the TerminalManager removes the old instance, so we need to
+  // reinitialize to pick up the new command/args from the frame tree.
+  // We stringify args for stable comparison (it can be an Immutable List).
+  // Always delete the stale terminal ref even if hidden — otherwise the
+  // visibility effect (above) will see a non-null ref and skip reinit
+  // when the frame becomes visible again.
+  const command = props.desc.get("command");
+  const argsKey = JSON.stringify(normalizeArgs(props.desc.get("args")));
+  useEffect(() => {
+    if (terminalRef.current == null) return;
+    delete_terminal();
+    if (props.is_visible) {
+      init_terminal();
+    }
+    // If hidden, the visibility useEffect will call init_terminal()
+    // when the frame becomes visible (terminalRef.current is now null).
+  }, [command, argsKey]);
+
   useEffect(() => {
     if (props.is_current) {
       terminalRef.current?.focus();

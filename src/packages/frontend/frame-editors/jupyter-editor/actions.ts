@@ -110,28 +110,41 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     });
   };
 
+  // Watch the jupyter store for changes that need to be reflected in the
+  // frame editor's state.  The connection_file is especially important:
+  // it changes whenever the kernel restarts or the page reloads, but
+  // shell frames persist their old command/args in the frame tree.
+  // Without this watcher, a page refresh would leave shell frames trying
+  // to connect to a stale (non-existent) kernel connection file.
   private watchJupyterStore = (): void => {
     const store = this.jupyter_actions.store;
     let connection_file = store.get("connection_file");
     store.on("change", () => {
-      // sync read only state -- source of true is jupyter_actions.store.get('read_only')
+      // sync read only state -- source of truth is jupyter_actions.store
       const read_only = store.get("read_only");
       if (read_only != this.store.get("read_only")) {
         this.setState({ read_only });
       }
-      // sync connection file
+      // When the connection_file changes (kernel restart, page reload),
+      // update ALL shell frames with the new path.  setShellFrameCommand
+      // writes the new command/args to the frame tree metadata AND
+      // kills/reconnects any live terminal instance.  If the terminal
+      // component hasn't mounted yet (e.g. right after page load),
+      // set_command/kill are no-ops, but the frame tree update still
+      // matters: get_terminal() reads command/args from the frame tree
+      // node when it first creates the ConnectedTerminal instance.
       const c = store.get("connection_file");
-      if (c == connection_file) {
+      if (c === connection_file) {
         return;
       }
       connection_file = c;
-      const id = this._get_most_recent_shell_id("jupyter");
-      if (id == null) {
-        // There is no Jupyter console open right now...
-        return;
+      if (!connection_file) return;
+      for (const id in this._get_leaf_ids()) {
+        const node = this._get_frame_node(id);
+        if (node?.get("type") === "shell") {
+          this.setShellFrameCommand(id);
+        }
       }
-      // This will update the connection file
-      this.shell(id, true);
     });
   };
 
@@ -326,6 +339,9 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     this.set_active_id(shell_id);
   }
 
+  // Override new_frame so that newly created "shell" frames get their
+  // command/args populated with the current kernel connection file.
+  // Without this, a new shell frame would open as a plain bash terminal.
   public new_frame(
     type: string,
     direction?: FrameDirection,
@@ -339,21 +355,42 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     return super.new_frame(type, direction, first);
   }
 
+  // Override set_frame_type to handle transitions involving "shell" frames:
+  //  - terminal → shell: set the jupyter console command
+  //  - shell → terminal: clear the jupyter command so it reverts to bash
   set_frame_type(id: string, type: string): void {
+    const oldType = this._get_frame_node(id)?.get("type");
     super.set_frame_type(id, type);
     if (type === "shell") {
       this.setShellFrameCommand(id);
+    } else if (type === "terminal" && oldType === "shell") {
+      // Switching back from jupyter console to plain terminal —
+      // close old terminal and clear command/args so it reverts to bash.
+      // The TerminalFrame component detects the command change and reinits.
+      this.terminals.close_terminal(id);
+      this.set_frame_tree({ id, command: undefined, args: undefined });
     }
   }
 
+  // Central helper that writes the current jupyter console command into
+  // a shell frame.  It does two things:
+  //
+  //  1. close_terminal — removes the old ConnectedTerminal from the
+  //     manager (graceful no-op if none exists yet).
+  //
+  //  2. set_frame_tree — persists command/args in the frame tree metadata.
+  //     The TerminalFrame component watches for command changes and
+  //     reinitializes, calling get_terminal() which reads the updated
+  //     command/args from the frame tree to create a fresh terminal.
+  //
+  // Called from: new_frame, set_frame_type, and watchJupyterStore.
   private setShellFrameCommand(id: string): void {
     const connection_file = this.jupyter_actions?.store?.get("connection_file");
     if (connection_file) {
-      this.set_frame_tree({
-        id,
-        command: "jupyter",
-        args: ["console", "--existing", connection_file],
-      });
+      const command = "jupyter";
+      const args = ["console", "--existing", connection_file];
+      this.terminals.close_terminal(id);
+      this.set_frame_tree({ id, command, args });
     }
   }
 

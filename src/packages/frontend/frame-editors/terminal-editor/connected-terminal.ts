@@ -761,6 +761,15 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.conn_write({ cmd: "set_command", command, args });
   }
 
+  // Update command/args and kill+reconnect with the new command.
+  // Unlike set_command, this does not send a message to the backend
+  // (which isn't implemented anyway) — it just restarts the process.
+  restart(command: string | undefined, args: string[] | undefined): void {
+    this.command = command;
+    this.args = args;
+    this.kill();
+  }
+
   init_terminal_data(): void {
     this.terminal.onKey(({ key }) => {
       if (this.ignoreData) {

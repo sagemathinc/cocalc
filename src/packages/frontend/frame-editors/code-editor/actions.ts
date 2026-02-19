@@ -2695,14 +2695,17 @@ export class Actions<
   }
 
   public async clear(id: string) {
-    // this is for terminals only
+    // Handles both "terminal" frames and "shell" frames (Jupyter console).
+    // Shell frames are semantically terminals (they use TerminalFrame and
+    // ConnectedTerminal), just with a different frame type string.
     const node = this._get_frame_node(id);
     if (node == null) return;
     const type = node.get("type");
-    if (type == "terminal") {
+    if (type === "terminal" || type === "shell") {
       this.clear_terminal_command(id);
-      if (node.get("command") == "jupyter") {
-        // not resetting jupyter
+      if (type === "shell" || node.get("command") === "jupyter") {
+        // For jupyter console, just kill+reconnect — don't send "reset"
+        // which is a bash-specific command and doesn't apply here.
         return;
       }
       // we also wait until it is "back again with a prompt"

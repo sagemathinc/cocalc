@@ -72,6 +72,12 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     if (this.terminals[id] != null) {
       parent.appendChild(this.terminals[id].element);
     } else {
+      // Read command/args from the frame tree node.  For shell frames in
+      // the Jupyter editor these are written by setShellFrameCommand()
+      // (or by watchJupyterStore on connection_file change).  This is the
+      // only place where a new ConnectedTerminal picks up its initial
+      // command, so the frame tree metadata must be up-to-date before
+      // the TerminalFrame component mounts and calls this method.
       let command: string | undefined = undefined;
       let args: string[] | undefined = undefined;
       if (node != null) {
@@ -144,5 +150,18 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     this.terminals[id].set_command(command, args);
+  }
+
+  // Update command/args and restart the terminal process.
+  // Graceful no-op if the terminal doesn't exist yet.
+  restart(
+    id: string,
+    command: string | undefined,
+    args: string[] | undefined,
+  ): void {
+    if (this.terminals[id] == null) {
+      return;
+    }
+    this.terminals[id].restart(command, args);
   }
 }
