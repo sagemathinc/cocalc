@@ -2669,10 +2669,11 @@ export class Actions<
   }
 
   public async terminal(id: string, no_switch: boolean = false): Promise<void> {
-    // Check if there is already a terminal with the given command,
-    // and if so, just focus it.
-    // (TODO: might also specify args.)
-    let shell_id: string | undefined = this._get_most_recent_shell_id();
+    // Check if there is already a plain terminal frame, and if so, focus it.
+    // Use _get_most_recent_terminal_id (not _get_most_recent_shell_id) to
+    // avoid matching shell frames in "kernel not running" state that have
+    // their command cleared.
+    let shell_id: string | undefined = this._get_most_recent_terminal_id();
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
       shell_id = this.split_frame("col", id, "terminal");
