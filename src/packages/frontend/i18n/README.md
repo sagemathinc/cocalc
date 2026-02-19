@@ -86,6 +86,7 @@ CoCalc specific rules for implementing translations, of which I think are good t
 - **richTextElements**: in `app/localize.tsx`, a few default `richTextElements` are defined – just for convenience. Anchor tags must be defined individually, because link text and href can't be wrapped that way.
 - **Query parameter**: A new `?lang=en` (or `=de`, `=zh`, ...) query parameters lets you change the language as well. This also changes the account setting. Hence, a URL with `?lang=en` can be used to reset the account setting to English.
 - **Descriptions**: add descriptions, especially for jupyter notebooks or latex, to add more context. The description is not only shown in the translation tool, but also passed on to the language model doing the automatic translations.
+- **Single quotes in ICU messages**: In ICU MessageFormat, a single `'` starts a quoted/escaped section — everything between `'...'` is treated as literal text. This means `'{variable}'` will **not** interpolate the variable; it will render as the literal string `{variable}`. To include a literal single-quote character around an interpolated variable, use two single-quotes: `''{variable}''`. For example, `defaultMessage: "Rename ''{filename}''"` renders as `Rename 'foo.txt'`.
 
 ## Style
 

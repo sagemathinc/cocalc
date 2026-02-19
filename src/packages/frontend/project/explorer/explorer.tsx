@@ -38,13 +38,13 @@ import {
   Available,
   MainConfiguration,
 } from "@cocalc/frontend/project_configuration";
+import type { FileAction } from "@cocalc/frontend/project_actions";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ProjectMap, ProjectStatus } from "@cocalc/frontend/todo-types";
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
 import { AccessErrors } from "./access-errors";
 import { ActionBar } from "./action-bar";
-import { ActionBox } from "./action-box";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
@@ -91,16 +91,7 @@ interface ReduxProps {
   history_path: string;
   activity?: object;
   page_number: number;
-  file_action?:
-    | "compress"
-    | "delete"
-    | "rename"
-    | "duplicate"
-    | "move"
-    | "copy"
-    | "share"
-    | "download"
-    | "upload";
+  file_action?: FileAction;
   file_search: string;
   show_hidden?: boolean;
   error?: string;
@@ -319,27 +310,6 @@ const Explorer0 = rclass(
           </Row>
         );
       }
-    }
-
-    render_files_action_box(file_map?) {
-      if (file_map == undefined) {
-        return;
-      }
-      return (
-        <Col sm={12}>
-          <ActionBox
-            file_action={this.props.file_action}
-            checked_files={this.props.checked_files}
-            current_path={this.props.current_path}
-            project_id={this.props.project_id}
-            file_map={file_map}
-            //new_name={this.props.new_name}
-            actions={this.props.actions}
-            displayed_listing={this.props.displayed_listing}
-            name={project_redux_name(this.props.project_id)}
-          />
-        </Col>
-      );
     }
 
     render_library() {
@@ -761,11 +731,6 @@ const Explorer0 = rclass(
               : undefined}
 
             {this.props.show_library ? this.render_library() : undefined}
-
-            {this.props.checked_files.size > 0 &&
-            this.props.file_action != undefined ? (
-              <Row>{this.render_files_action_box(file_map)}</Row>
-            ) : undefined}
           </div>
 
           <div

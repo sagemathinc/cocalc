@@ -1,19 +1,21 @@
-import { Button, Card, Input, Space, Spin } from "antd";
+import { Input } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { useIntl } from "react-intl";
 
 import { default_filename } from "@cocalc/frontend/account";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
+import CopyToClipBoard from "@cocalc/frontend/components/copy-to-clipboard";
 import ShowError from "@cocalc/frontend/components/error";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { path_split, path_to_file, plural } from "@cocalc/util/misc";
-import { PRE_STYLE } from "./action-box";
+import { path_split, path_to_file } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
 
-export default function Download({}) {
-  const intl = useIntl();
+export default function Download({
+  formId,
+  onActionChange,
+}: {
+  formId?: string;
+  onActionChange?: (loading: boolean) => void;
+}) {
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
   const [loading, setLoading] = useState<boolean>(false);
@@ -46,7 +48,8 @@ export default function Download({}) {
     setArchiveMode(!!isdir);
     if (!isdir) {
       const store = actions?.get_store();
-      setUrl(store?.fileURL(file) ?? "");
+      const path = store?.fileURL(file) ?? "";
+      setUrl(path ? `${document.location.origin}${path}` : "");
     }
   }, [checked_files, current_path]);
 
@@ -75,6 +78,7 @@ export default function Download({}) {
     }
     try {
       setLoading(true);
+      onActionChange?.(true);
       const files = checked_files.toArray();
       let dest;
       if (archiveMode) {
@@ -92,15 +96,14 @@ export default function Download({}) {
       await actions.fetch_directory_listing({
         path: store.get("current_path"),
       });
+      actions.set_all_files_unchecked();
+      actions.set_file_action();
     } catch (err) {
-      console.log(err);
-      setLoading(false);
-      setError(err);
+      setError(`${err}`);
     } finally {
       setLoading(false);
+      onActionChange?.(false);
     }
-    actions.set_all_files_unchecked();
-    actions.set_file_action();
   };
 
   if (actions == null) {
@@ -108,85 +111,36 @@ export default function Download({}) {
   }
 
   return (
-    <Card
-      title=<>Download {archiveMode ? "files" : "a file"} to your computer</>
+    <form
+      id={formId}
+      onSubmit={(e) => {
+        e.preventDefault();
+        doDownload();
+      }}
     >
-      <div style={{ display: "flex" }}>
-        <div style={{ flex: 1, overflowX: "auto", marginRight: "15px" }}>
-          <CheckedFiles />
-        </div>
-        {archiveMode && (
-          <div style={{ flex: 1 }}>
-            <Input
-              ref={inputRef}
-              autoFocus
-              onChange={(e) => setTarget(e.target.value)}
-              value={target}
-              placeholder="Name of zip archive..."
-              onPressEnter={doDownload}
-              suffix=".zip"
-            />
-          </div>
-        )}
-        {!archiveMode && (
-          <div
-            style={{
-              flex: 1,
-              overflowX: "auto",
-              display: "flex",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                height: PRE_STYLE.minHeight,
-                marginRight: "15px",
-              }}
-            >
-              <a href={url} target="_blank">
-                <Icon name="external-link" />
-              </a>
-            </div>
-            <pre style={{ ...PRE_STYLE, height: PRE_STYLE.minHeight }}>
-              <a href={url} target="_blank">
-                {url}
-              </a>
-            </pre>
-          </div>
-        )}
-      </div>
+      <CheckedFiles />
       {archiveMode && (
-        <Space wrap>
-          <Button
-            onClick={() => {
-              actions?.set_file_action();
-            }}
-          >
-            {intl.formatMessage(labels.cancel)}
-          </Button>{" "}
-          <Button onClick={doDownload} type="primary" disabled={loading}>
-            <Icon name="cloud-download" /> Compress {checked_files?.size}{" "}
-            {plural(checked_files?.size, "item")} and Download {target}.zip{" "}
-            {loading && <Spin />}
-          </Button>
-        </Space>
+        <Input
+          ref={inputRef}
+          autoFocus
+          onChange={(e) => setTarget(e.target.value)}
+          value={target}
+          placeholder="Name of zip archive..."
+          suffix=".zip"
+          style={{ marginBottom: 10 }}
+        />
       )}
       {!archiveMode && (
-        <Space wrap>
-          <Button
-            onClick={() => {
-              actions?.set_file_action();
-            }}
-          >
-            {intl.formatMessage(labels.cancel)}
-          </Button>{" "}
-          <Button onClick={doDownload} type="primary" disabled={loading}>
-            <Icon name="cloud-download" /> Download {loading && <Spin />}
-          </Button>
-        </Space>
+        <CopyToClipBoard
+          label="Raw link"
+          value={url}
+          inputWidth="100%"
+          outerStyle={{ width: "100%" }}
+          style={{ marginBottom: 10 }}
+          inputStyle={{ fontFamily: "monospace", fontSize: 12 }}
+        />
       )}
       <ShowError setError={setError} error={error} />
-    </Card>
+    </form>
   );
 }

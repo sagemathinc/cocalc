@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -7,15 +7,28 @@
 Tabs for the open files in a project.
 */
 
-import type { TabsProps } from "antd";
-import { Tabs } from "antd";
-import { useActions } from "@cocalc/frontend/app-framework";
+import type { MenuProps, TabsProps } from "antd";
+import { Dropdown, Tabs } from "antd";
+import { useIntl } from "react-intl";
+
+import {
+  redux,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import {
   renderTabBar,
   SortableTabs,
   useItemContext,
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
+import { file_options } from "@cocalc/frontend/editor-tmp";
+import { labels as i18nLabels } from "@cocalc/frontend/i18n";
+import {
+  useRecentFiles,
+  type OpenedFile,
+} from "@cocalc/frontend/projects/util";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { file_tab_labels } from "../file-tab-labels";
 import { FileTab } from "./file-tab";
@@ -61,9 +74,22 @@ function keyToPath(s: string): string {
 }
 
 export default function FileTabs({ openFiles, project_id, activeTab }) {
+  const intl = useIntl();
   const actions = useActions({ project_id });
+  const project_log = useTypedRedux({ project_id }, "project_log");
+  const directory_listings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  );
+  const recentFiles = useRecentFiles(project_log, 30, "", directory_listings);
+
   if (openFiles == null) {
     return null;
+  }
+
+  // Ensure project log is loaded for the recent files context menu
+  if (project_log == null) {
+    redux.getProjectStore(project_id).init_table("project_log");
   }
   const paths: string[] = [];
   const keys: string[] = [];
@@ -143,28 +169,68 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     }
   }
 
+  function getRecentFilesMenu(): MenuProps {
+    const menuItems: MenuProps["items"] = recentFiles.map(
+      (entry: OpenedFile) => {
+        const icon = file_options(entry.filename)?.icon ?? "file";
+        return {
+          key: entry.filename,
+          icon: <Icon name={icon} />,
+          label: entry.filename,
+          onClick: () => {
+            actions?.open_file({
+              path: entry.filename,
+              foreground: true,
+              foreground_project: true,
+            });
+          },
+        };
+      },
+    );
+
+    return {
+      items: [
+        {
+          key: "header",
+          type: "group",
+          label: intl.formatMessage(i18nLabels.recent_files),
+          children: menuItems,
+        },
+      ],
+      style: { maxHeight: "min(500px, 50vh)", overflowY: "auto" },
+    };
+  }
+
   return (
-    <SortableTabs items={keys} onDragStart={onDragStart} onDragEnd={onDragEnd}>
-      <Tabs
-        animated={false}
-        renderTabBar={renderTabBar}
-        tabBarStyle={{
-          minHeight: "36px",
-          background: "#e8e8e8",
-          borderTop: "2px solid lightgrey",
-        }}
-        onEdit={onEdit}
-        style={{ width: "100%" }}
-        size="small"
-        items={items}
-        activeKey={activeKey}
-        type={"editable-card"}
-        onChange={(key) => {
-          if (actions == null) return;
-          actions.set_active_tab(path_to_tab(keyToPath(key)));
-        }}
-        popupClassName={"cocalc-files-tabs-more"}
-      />
-    </SortableTabs>
+    <Dropdown trigger={["contextMenu"]} menu={getRecentFilesMenu()}>
+      <div style={{ width: "100%" }}>
+        <SortableTabs
+          items={keys}
+          onDragStart={onDragStart}
+          onDragEnd={onDragEnd}
+        >
+          <Tabs
+            animated={false}
+            renderTabBar={renderTabBar}
+            tabBarStyle={{
+              minHeight: "36px",
+              background: "#e8e8e8",
+              borderTop: "2px solid lightgrey",
+            }}
+            onEdit={onEdit}
+            style={{ width: "100%" }}
+            size="small"
+            items={items}
+            activeKey={activeKey}
+            type={"editable-card"}
+            onChange={(key) => {
+              if (actions == null) return;
+              actions.set_active_tab(path_to_tab(keyToPath(key)));
+            }}
+            popupClassName={"cocalc-files-tabs-more"}
+          />
+        </SortableTabs>
+      </div>
+    </Dropdown>
   );
 }

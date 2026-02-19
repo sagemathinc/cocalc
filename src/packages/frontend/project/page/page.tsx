@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -30,6 +30,7 @@ import track from "@cocalc/frontend/user-tracking";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { AnonymousName } from "../anonymous-name";
+import FileActionModal from "../file-action-modal";
 import {
   ProjectContext,
   useProjectContext,
@@ -375,6 +376,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         {renderEditorContent()}
         {render_project_content()}
         {render_project_modal()}
+        <FileActionModal />
       </div>
     );
   }

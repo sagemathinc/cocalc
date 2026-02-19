@@ -8,6 +8,7 @@ interface Props {
   style?: CSSProperties;
   message?;
   banner?;
+  showIcon?: boolean;
 }
 export default function ShowError({
   message = "Error",
@@ -15,6 +16,7 @@ export default function ShowError({
   setError,
   style,
   banner,
+  showIcon = true,
 }: Props) {
   if (!error) return null;
 
@@ -23,7 +25,7 @@ export default function ShowError({
     <Alert
       banner={banner}
       style={style}
-      showIcon
+      showIcon={showIcon}
       message={message}
       type="error"
       description={
