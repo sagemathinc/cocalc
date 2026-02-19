@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -22,6 +22,7 @@ import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import useResizeObserver from "use-resize-observer";
 import useComputeServerId from "@cocalc/frontend/compute/file-hook";
 import { termPath } from "@cocalc/util/terminal/names";
+import { normalizeArgs } from "./normalize-args";
 
 interface Props {
   actions: any;
@@ -158,16 +159,9 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   function render_command(): Rendered {
     const command = props.desc.get("command");
     if (!command) return;
-    const args: string[] = props.desc.get("args") ?? [];
-    // Quote if args have spaces:
-    for (let i = 0; i < args.length; i++) {
-      if (/\s/.test(args[i])) {
-        // has whitespace -- this is not bulletproof, since
-        // args[i] could have a " in it. But this is just for
-        // display purposes, so it doesn't have to be bulletproof.
-        args[i] = `"${args[i]}"`;
-      }
-    }
+    const args = normalizeArgs(props.desc.get("args")).map((arg) =>
+      /\s/.test(arg) ? `"${arg}"` : arg,
+    );
     return (
       <div style={COMMAND_STYLE}>
         {command} {args.join(" ")}

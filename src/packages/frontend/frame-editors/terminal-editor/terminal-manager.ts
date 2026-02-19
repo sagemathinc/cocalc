@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -11,6 +11,7 @@ import { Actions, CodeEditorState } from "../code-editor/actions";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { close, len } from "@cocalc/util/misc";
 import { Terminal } from "./connected-terminal";
+import { normalizeArgs } from "./normalize-args";
 
 export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
   private terminals: { [key: string]: Terminal<T> } = {};
@@ -39,7 +40,8 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     const numbers = {};
     for (let id0 in this.actions._get_leaf_ids()) {
       const node0 = tree_ops.get_node(this.actions._get_tree(), id0);
-      if (node0 == null || node0.get("type") != "terminal") {
+      const nodeType = node0?.get("type");
+      if (node0 == null || (nodeType != "terminal" && nodeType != "shell")) {
         continue;
       }
       let n = node0.get("number");
@@ -74,7 +76,7 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
       let args: string[] | undefined = undefined;
       if (node != null) {
         command = node.get("command");
-        args = node.get("args");
+        args = normalizeArgs(node.get("args"), true);
       }
       this.terminals[id] = new Terminal<T>(
         this.actions,

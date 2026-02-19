@@ -906,7 +906,7 @@ export class Actions<
       delete this._cm[id];
     }
 
-    if (type != "terminal") {
+    if (type != "terminal" && type != "shell") {
       this.terminals.close_terminal(id);
     }
 
@@ -1500,7 +1500,8 @@ export class Actions<
   _get_most_recent_shell_id(command?: string): string | undefined {
     return this._get_most_recent_active_frame_id(
       (node) =>
-        node.get("type").slice(0, 8) == "terminal" &&
+        (node.get("type").slice(0, 8) == "terminal" ||
+          node.get("type") == "shell") &&
         node.get("command") == command,
     );
   }

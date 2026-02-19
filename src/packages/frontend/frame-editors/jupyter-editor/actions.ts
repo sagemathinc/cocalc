@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -18,7 +18,7 @@ import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
-import { FrameTree } from "../frame-tree/types";
+import type { FrameDirection, FrameTree } from "../frame-tree/types";
 import { NotebookFrameActions } from "./cell-notebook/actions";
 import {
   close_jupyter_actions,
@@ -299,6 +299,62 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       command: "jupyter",
       args: ["console", "--existing", connection_file],
     };
+  }
+
+  // Override to create "shell" type frames (shown as "Console" in the title
+  // bar) instead of generic "terminal" frames.
+  public async shell(id: string, no_switch: boolean = false): Promise<void> {
+    const spec = await this.get_shell_spec(id);
+    if (spec == null) {
+      // No kernel connection yet — fall back to generic terminal
+      return super.shell(id, no_switch);
+    }
+    const { command, args } = spec;
+    // Reuse an existing console frame if one exists
+    let shell_id: string | undefined = this._get_most_recent_shell_id(command);
+    if (shell_id == null) {
+      shell_id = this.split_frame("col", id, "shell", { command, args });
+      if (!shell_id) return;
+    } else {
+      this.terminals.set_command(shell_id, command, args);
+      this.set_frame_tree({ id: shell_id, command, args });
+    }
+    if (no_switch) return;
+    this.unset_frame_full();
+    await delay(1);
+    if (this.isClosed()) return;
+    this.set_active_id(shell_id);
+  }
+
+  public new_frame(
+    type: string,
+    direction?: FrameDirection,
+    first?: boolean,
+  ): string {
+    if (type === "shell") {
+      const id = super.new_frame(type, direction, first);
+      this.setShellFrameCommand(id);
+      return id;
+    }
+    return super.new_frame(type, direction, first);
+  }
+
+  set_frame_type(id: string, type: string): void {
+    super.set_frame_type(id, type);
+    if (type === "shell") {
+      this.setShellFrameCommand(id);
+    }
+  }
+
+  private setShellFrameCommand(id: string): void {
+    const connection_file = this.jupyter_actions?.store?.get("connection_file");
+    if (connection_file) {
+      this.set_frame_tree({
+        id,
+        command: "jupyter",
+        args: ["console", "--existing", connection_file],
+      });
+    }
   }
 
   // Not an action, but works to make code clean
