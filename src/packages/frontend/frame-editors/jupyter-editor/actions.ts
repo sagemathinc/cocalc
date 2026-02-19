@@ -119,26 +119,24 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   private watchJupyterStore = (): void => {
     const store = this.jupyter_actions.store;
     let connection_file = store.get("connection_file");
+    let backend_state = store.get("backend_state");
     store.on("change", () => {
       // sync read only state -- source of truth is jupyter_actions.store
       const read_only = store.get("read_only");
       if (read_only != this.store.get("read_only")) {
         this.setState({ read_only });
       }
-      // When the connection_file changes (kernel restart, page reload),
-      // update ALL shell frames with the new path.  setShellFrameCommand
-      // writes the new command/args to the frame tree metadata AND
-      // kills/reconnects any live terminal instance.  If the terminal
-      // component hasn't mounted yet (e.g. right after page load),
-      // set_command/kill are no-ops, but the frame tree update still
-      // matters: get_terminal() reads command/args from the frame tree
-      // node when it first creates the ConnectedTerminal instance.
+      // connection_file alone is not a reliable indicator that a kernel is
+      // currently running, since it can remain set after a kernel stops.
+      // We require BOTH backend_state==="running" and a connection_file.
+      // Whenever either value changes, resync all shell frames.
       const c = store.get("connection_file");
-      if (c === connection_file) {
+      const b = store.get("backend_state");
+      if (c === connection_file && b === backend_state) {
         return;
       }
       connection_file = c;
-      if (!connection_file) return;
+      backend_state = b;
       for (const id in this._get_leaf_ids()) {
         const node = this._get_frame_node(id);
         if (node?.get("type") === "shell") {
@@ -306,6 +304,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     id: string,
   ): Promise<undefined | { command: string; args: string[] }> {
     id = id; // not used
+    if (!this.hasLiveKernelConnection()) return;
     const connection_file = this.jupyter_actions.store.get("connection_file");
     if (connection_file == null) return;
     return {
@@ -365,7 +364,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       this.setShellFrameCommand(id);
     } else if (type === "terminal" && oldType === "shell") {
       // Switching back from jupyter console to plain terminal —
-      // close old terminal and clear command/args so it reverts to bash.
+      // close frontend and clear command/args so it reverts to bash.
       // The TerminalFrame component detects the command change and reinits.
       this.terminals.close_terminal(id);
       this.set_frame_tree({ id, command: undefined, args: undefined });
@@ -385,13 +384,41 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   //
   // Called from: new_frame, set_frame_type, and watchJupyterStore.
   private setShellFrameCommand(id: string): void {
-    const connection_file = this.jupyter_actions?.store?.get("connection_file");
-    if (connection_file) {
-      const command = "jupyter";
-      const args = ["console", "--existing", connection_file];
-      this.terminals.close_terminal(id);
-      this.set_frame_tree({ id, command, args });
+    if (!this.hasLiveKernelConnection()) {
+      this.clearShellFrameCommand(id);
+      return;
     }
+    const connection_file = this.jupyter_actions?.store?.get("connection_file");
+    if (!connection_file) {
+      this.clearShellFrameCommand(id);
+      return;
+    }
+    const command = "jupyter";
+    const args = ["console", "--existing", connection_file];
+    this.terminals.close_terminal(id);
+    this.set_frame_tree({ id, command, args });
+  }
+
+  private isProjectRunning(): boolean {
+    return (
+      this.redux
+        .getStore("projects")
+        ?.getIn(["project_map", this.project_id, "state", "state"]) ===
+      "running"
+    );
+  }
+
+  private hasLiveKernelConnection(): boolean {
+    return (
+      this.isProjectRunning() &&
+      this.jupyter_actions?.store?.get("backend_state") === "running" &&
+      !!this.jupyter_actions?.store?.get("connection_file")
+    );
+  }
+
+  private clearShellFrameCommand(id: string): void {
+    this.terminals.close_terminal(id);
+    this.set_frame_tree({ id, command: undefined, args: undefined });
   }
 
   // Not an action, but works to make code clean

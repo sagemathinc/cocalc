@@ -57,6 +57,9 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   );
 
   const node = props.actions._get_frame_node(props.id);
+  const frameType = props.desc.get("type");
+  const command = props.desc.get("command");
+  const shellNeedsKernel = frameType === "shell" && !command;
   const computeServerId = useComputeServerId({
     project_id: props.project_id,
     path: termPath({
@@ -97,17 +100,20 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   // Always delete the stale terminal ref even if hidden — otherwise the
   // visibility effect (above) will see a non-null ref and skip reinit
   // when the frame becomes visible again.
-  const command = props.desc.get("command");
   const argsKey = JSON.stringify(normalizeArgs(props.desc.get("args")));
   useEffect(() => {
-    if (terminalRef.current == null) return;
-    delete_terminal();
+    // command/type transitions can happen while no terminal instance exists
+    // (e.g. shell frame showing "Kernel not running"). In that case, we still
+    // must initialize once command/type becomes runnable and frame is visible.
+    if (terminalRef.current != null) {
+      delete_terminal();
+    }
     if (props.is_visible) {
       init_terminal();
     }
     // If hidden, the visibility useEffect will call init_terminal()
     // when the frame becomes visible (terminalRef.current is now null).
-  }, [command, argsKey]);
+  }, [frameType, command, argsKey]);
 
   useEffect(() => {
     if (props.is_current) {
@@ -129,6 +135,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function init_terminal(): void {
+    if (shellNeedsKernel) return;
     if (!props.is_visible) return;
     const node: any = terminalDOMRef.current;
     if (node == null) {
@@ -178,7 +185,6 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_command(): Rendered {
-    const command = props.desc.get("command");
     if (!command) return;
     const args = normalizeArgs(props.desc.get("args")).map((arg) =>
       /\s/.test(arg) ? `"${arg}"` : arg,
@@ -186,6 +192,16 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     return (
       <div style={COMMAND_STYLE}>
         {command} {args.join(" ")}
+      </div>
+    );
+  }
+
+  function render_shell_needs_kernel(): Rendered {
+    if (!shellNeedsKernel) return;
+    return (
+      <div style={{ margin: "auto", fontSize: "14pt", padding: "15px" }}>
+        <div>Kernel not running.</div>
+        <div>Run a notebook cell to start the kernel and connect console.</div>
       </div>
     );
   }
@@ -220,7 +236,11 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
           terminalRef.current?.focus();
         }}
       >
-        <div className={"smc-vfill cocalc-xtermjs"} ref={terminalDOMRef} />
+        {shellNeedsKernel ? (
+          render_shell_needs_kernel()
+        ) : (
+          <div className={"smc-vfill cocalc-xtermjs"} ref={terminalDOMRef} />
+        )}
       </div>
     </div>
   );
