@@ -152,6 +152,8 @@ importers:
         specifier: ^18.16.14
         version: 18.19.122
 
+  backend/dist-esm: {}
+
   cdn:
     devDependencies:
       codemirror:
@@ -243,6 +245,8 @@ importers:
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.122
+
+  conat/dist-esm: {}
 
   database:
     dependencies:
@@ -1764,6 +1768,8 @@ importers:
         specifier: ^7.3.9
         version: 7.3.9
 
+  sync-client/dist-esm: {}
+
   sync-fs:
     dependencies:
       '@cocalc/api-client':
@@ -1797,6 +1803,10 @@ importers:
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.122
+
+  sync-fs/dist-esm: {}
+
+  sync/dist-esm: {}
 
   util:
     dependencies:
@@ -1866,9 +1876,6 @@ importers:
       sha1:
         specifier: ^1.1.1
         version: 1.1.1
-      underscore:
-        specifier: ^1.12.1
-        version: 1.13.7
       utility-types:
         specifier: ^3.10.0
         version: 3.11.0
@@ -1903,6 +1910,8 @@ importers:
       tsd:
         specifier: ^0.22.0
         version: 0.22.0
+
+  util/dist-esm: {}
 
 packages:
 

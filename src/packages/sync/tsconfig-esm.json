@@ -1,0 +1,18 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "./",
+    "outDir": "dist-esm",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "declaration": false,
+    "declarationMap": false,
+    "composite": false,
+    "incremental": false,
+    "sourceMap": true,
+    "paths": {
+      "@cocalc/sync/*": ["./*"]
+    }
+  },
+  "exclude": ["node_modules", "../node_modules", "dist", "dist-esm", "test"]
+}

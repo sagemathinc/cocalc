@@ -3,20 +3,37 @@
   "version": "0.11.2",
   "description": "CoCalc realtime synchronization framework",
   "exports": {
-    "./*": "./dist/*.js",
-    "./table": "./dist/table/index.js",
-    "./listings": "./dist/listings/index.js",
-    "./editor/db": "./dist/editor/db/index.js"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist-esm/*.js",
+      "default": "./dist/*.js"
+    },
+    "./table": {
+      "types": "./dist/table/index.d.ts",
+      "import": "./dist-esm/table/index.js",
+      "default": "./dist/table/index.js"
+    },
+    "./listings": {
+      "types": "./dist/listings/index.d.ts",
+      "import": "./dist-esm/listings/index.js",
+      "default": "./dist/listings/index.js"
+    },
+    "./editor/db": {
+      "types": "./dist/editor/db/index.d.ts",
+      "import": "./dist-esm/editor/db/index.js",
+      "default": "./dist/editor/db/index.js"
+    }
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "../node_modules/.bin/tsc --build",
+    "build": "../node_modules/.bin/tsc --build && ../node_modules/.bin/tsc -p tsconfig-esm.json && echo '{\"type\":\"module\"}' > dist-esm/package.json",
     "test": "pnpm exec jest --forceExit",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
   },
   "files": [
     "dist/**",
+    "dist-esm/**",
     "bin/**",
     "README.md",
     "package.json"

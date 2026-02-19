@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -96,19 +96,17 @@ If id is not provided in the API message, a random id will be
 generated and returned in the response.\
 `;
 
-const misc = require("./misc");
-const { defaults } = misc;
-const { required } = defaults;
-const _ = require("underscore");
+import { defaults, to_json } from "./misc";
+import mapValues from "lodash/mapValues";
 
-function message(obj) {
-  exports[obj.event] = function (opts, strict) {
-    if (opts == null) {
-      opts = {};
-    }
-    if (strict == null) {
-      strict = false;
-    }
+const { required } = defaults;
+
+// All message factories are collected here at runtime.
+// IMPORTANT: these are unpacked as named exports at the bottom of this file.
+const messages: Record<string, any> = {};
+
+function message(obj: any) {
+  messages[obj.event] = function (opts: any = {}, strict = false) {
     if (opts.event != null) {
       throw Error(
         `ValueError: must not define 'event' when calling message creation function (opts=${JSON.stringify(
@@ -121,50 +119,50 @@ function message(obj) {
   return obj;
 }
 
-// message2 for "version 2" of the message definitions
-// TODO document it, for now just search for "message2" to see examples
-function message2(obj) {
-  function mk_desc(val) {
-    let { desc } = val;
-    if (val.init === required) {
-      desc += " (required)";
-    } else if (val.init != null) {
-      desc += ` (default: ${misc.to_json(val.init)})`;
-    }
-    return desc;
-  }
-
-  // reassembling a version 1 message from a version 2 message
-  const mesg_v1 = _.mapObject(obj.fields, (val) => val.init);
-  mesg_v1.event = obj.event;
-  // extracting description for the documentation
-  const fdesc = _.mapObject(obj.fields, mk_desc);
-  exports.documentation.events[obj.event] = {
-    description: obj.desc != null ? obj.desc : "",
-    fields: fdesc,
-  };
-  // ... and the examples
-  exports.examples[obj.event] = obj.examples;
-  // wrapped version 1 message
-  message(mesg_v1);
-  return obj;
-}
-
 // messages that can be used by the HTTP api.   {'event':true, ...}
-exports.api_messages = {};
+export const api_messages: Record<string, boolean> = {};
 
 // this holds the documentation for the message protocol
-exports.documentation = {
+export const documentation: { intro: string; events: Record<string, any> } = {
   intro: doc_intro,
   events: {},
 };
 
 // holds all the examples: list of expected in/out objects for each message
-exports.examples = {};
+export const examples: Record<string, any> = {};
 
-const API = (obj) =>
+// message2 for "version 2" of the message definitions
+// TODO document it, for now just search for "message2" to see examples
+function message2(obj: any) {
+  function mk_desc(val: any) {
+    let { desc } = val;
+    if (val.init === required) {
+      desc += " (required)";
+    } else if (val.init != null) {
+      desc += ` (default: ${to_json(val.init)})`;
+    }
+    return desc;
+  }
+
+  // reassembling a version 1 message from a version 2 message
+  const mesg_v1: any = mapValues(obj.fields, (val: any) => val.init);
+  mesg_v1.event = obj.event;
+  // extracting description for the documentation
+  const fdesc = mapValues(obj.fields, mk_desc);
+  documentation.events[obj.event] = {
+    description: obj.desc != null ? obj.desc : "",
+    fields: fdesc,
+  };
+  // ... and the examples
+  examples[obj.event] = obj.examples;
+  // wrapped version 1 message
+  message(mesg_v1);
+  return obj;
+}
+
+const API = (obj: any) =>
   // obj could be message version 1 or 2!
-  (exports.api_messages[obj.event] = true);
+  (api_messages[obj.event] = true);
 
 //###########################################
 // Sage session management; executing code
@@ -2038,3 +2036,120 @@ API(
     kernels: undefined, // response is same message but with this filled in with array of data giving available kernels
   }),
 );
+
+// Named exports for all message factories registered above.
+// When adding a new message() call, also add its event name here.
+export const {
+  account_created,
+  account_creation_failed,
+  account_deleted,
+  api_key,
+  api_key_info,
+  api_keys,
+  api_keys_response,
+  available_upgrades,
+  chatgpt,
+  chatgpt_response,
+  cookies,
+  copy_path_between_projects,
+  copy_path_between_projects_response,
+  copy_path_delete,
+  copy_path_status,
+  copy_path_status_response,
+  create_account,
+  delete_account,
+  disconnect_from_project,
+  error,
+  execute_javascript,
+  file_read_from_project,
+  file_written_to_project,
+  get_available_upgrades,
+  heartbeat,
+  jupyter_execute,
+  jupyter_execute_response,
+  jupyter_kernels,
+  jupyter_start_pool,
+  local_hub,
+  log_client_error,
+  named_server_port,
+  openai_embeddings_remove,
+  openai_embeddings_remove_response,
+  openai_embeddings_save,
+  openai_embeddings_save_response,
+  openai_embeddings_search,
+  openai_embeddings_search_response,
+  open_project,
+  output,
+  ping,
+  pong,
+  print_to_pdf,
+  printed_to_pdf,
+  project_exec,
+  project_exec_output,
+  project_opened,
+  project_users,
+  projects_running_on_server,
+  purchase_license,
+  purchase_license_resp,
+  query,
+  query_cancel,
+  read_file_from_project,
+  read_text_file_from_project,
+  reconnect,
+  remember_me_failed,
+  remove_all_upgrades,
+  sagews_execute_code,
+  sagews_interrupt,
+  sagews_output,
+  sagews_output_ack,
+  sagews_quit,
+  sagews_start,
+  save_blob,
+  session_started,
+  sign_in,
+  sign_in_failed,
+  sign_out,
+  signed_in,
+  signed_out,
+  start_session,
+  stripe_admin_create_invoice_item,
+  stripe_cancel_subscription,
+  stripe_charges,
+  stripe_coupon,
+  stripe_create_source,
+  stripe_create_subscription,
+  stripe_customer,
+  stripe_delete_source,
+  stripe_get_charges,
+  stripe_get_coupon,
+  stripe_get_customer,
+  stripe_get_invoices,
+  stripe_get_subscriptions,
+  stripe_invoices,
+  stripe_plans,
+  stripe_set_default_source,
+  stripe_subscriptions,
+  stripe_update_source,
+  stripe_update_subscription,
+  success,
+  text_file_read_from_project,
+  user_auth,
+  user_search_results,
+  user_tracking,
+  version,
+  webapp_error,
+  write_file_to_project,
+  write_text_file_to_project,
+} = messages;
+
+// Safeguard: fail at load time if a message() call was added above
+// but its event name was not added to the export list.
+// In CJS, tsc compiles named exports to properties on `exports`.
+for (const key of Object.keys(messages)) {
+  // @ts-ignore -- accessing CJS exports object directly for runtime check
+  if (typeof exports[key] !== "function") {
+    throw Error(
+      `message.ts: "${key}" is registered via message() but missing from the named export list at the bottom of this file. Add it there.`,
+    );
+  }
+}

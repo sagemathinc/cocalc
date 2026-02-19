@@ -3,12 +3,36 @@
   "version": "1.22.2",
   "description": "CoCalc backend functionality: functionality used by either the hub, the next.js server or the project.",
   "exports": {
-    "./*": "./dist/*.js",
-    "./database": "./dist/database/index.js",
-    "./conat": "./dist/conat/index.js",
-    "./server-settings": "./dist/server-settings/index.js",
-    "./auth/*": "./dist/auth/*.js",
-    "./auth/tokens/*": "./dist/auth/tokens/*.js"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist-esm/*.js",
+      "default": "./dist/*.js"
+    },
+    "./database": {
+      "types": "./dist/database/index.d.ts",
+      "import": "./dist-esm/database/index.js",
+      "default": "./dist/database/index.js"
+    },
+    "./conat": {
+      "types": "./dist/conat/index.d.ts",
+      "import": "./dist-esm/conat/index.js",
+      "default": "./dist/conat/index.js"
+    },
+    "./server-settings": {
+      "types": "./dist/server-settings/index.d.ts",
+      "import": "./dist-esm/server-settings/index.js",
+      "default": "./dist/server-settings/index.js"
+    },
+    "./auth/*": {
+      "types": "./dist/auth/*.d.ts",
+      "import": "./dist-esm/auth/*.js",
+      "default": "./dist/auth/*.js"
+    },
+    "./auth/tokens/*": {
+      "types": "./dist/auth/tokens/*.d.ts",
+      "import": "./dist-esm/auth/tokens/*.js",
+      "default": "./dist/auth/tokens/*.js"
+    }
   },
   "keywords": [
     "utilities",
@@ -16,8 +40,8 @@
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "clean": "rm -rf dist node_modules",
-    "build": "pnpm exec tsc --build",
+    "clean": "rm -rf dist dist-esm node_modules",
+    "build": "pnpm exec tsc --build && pnpm exec tsc -p tsconfig-esm.json && echo '{\"type\":\"module\"}' > dist-esm/package.json",
     "test": "pnpm exec jest --forceExit",
     "test-conat": " pnpm exec jest --forceExit conat",
     "testp": "pnpm exec jest --forceExit",
@@ -32,6 +56,7 @@
   },
   "files": [
     "dist/**",
+    "dist-esm/**",
     "bin/**",
     "README.md",
     "package.json"
