@@ -611,7 +611,7 @@ export const labels = defineMessages({
   },
   download: {
     id: "labels.download",
-    defaultMessage: "download",
+    defaultMessage: "Download",
     description: "download a file from the web",
   },
   videos: {
@@ -912,6 +912,22 @@ export const labels = defineMessages({
   open: {
     id: "labels.open",
     defaultMessage: "Open",
+  },
+  open_file_or_folder: {
+    id: "labels.open_file_or_folder",
+    defaultMessage: "{isDir, select, true {Open folder} other {Open file}}",
+    description:
+      "Context menu label to open a file or folder in the file explorer",
+  },
+  file_or_folder: {
+    id: "labels.file_or_folder",
+    defaultMessage: "{isDir, select, true {Folder} other {File}}",
+    description: "Capitalized label for a file or folder type in context menus",
+  },
+  view_file: {
+    id: "labels.view_file",
+    defaultMessage: "View file",
+    description: "Context menu label to view a file in a new browser tab",
   },
   item_plural: {
     id: "labels.item_plural",

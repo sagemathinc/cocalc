@@ -2599,17 +2599,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return false;
   }
 
+  // Returns false when the user cancels the "start project" prompt or
+  // the operation fails, so callers can avoid closing tabs prematurely.
   public async delete_files(opts: {
     paths: string[];
     compute_server_id?: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     let mesg;
     opts = defaults(opts, {
       paths: required,
       compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
     });
     if (opts.paths.length === 0) {
-      return;
+      return false;
     }
 
     if (
@@ -2617,7 +2619,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         "Deleting files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left.",
       )
     ) {
-      return;
+      return false;
     }
 
     if (
@@ -2626,7 +2628,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         `delete ${opts.paths.join(", ")}`,
       ))
     ) {
-      return;
+      return false;
     }
 
     const id = misc.uuid();
@@ -2651,12 +2653,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         status: `Successfully deleted ${mesg}.`,
         stop: "",
       });
+      return true;
     } catch (err) {
       this.set_activity({
         id,
         error: `Error deleting ${mesg} -- ${err}`,
         stop: "",
       });
+      return false;
     }
   }
 

@@ -110,7 +110,7 @@ export default function FileActionModal() {
   if (!actionInfo) return null;
 
   const file_map = displayed_listing?.file_map;
-  const renameFormId = "file-action-rename-form";
+  const renameFormId = `file-action-rename-form-${project_id}`;
   const selected_file =
     checked_files?.size === 1 ? checked_files.first() : undefined;
   const selected_tail = selected_file
@@ -195,10 +195,11 @@ export default function FileActionModal() {
               const paths = checked_files?.toArray() ?? [];
               setActionLoading(true);
               try {
+                const deleted = await actions.delete_files({ paths });
+                if (!deleted) return;
                 for (const path of paths) {
                   actions.close_tab(path);
                 }
-                await actions.delete_files({ paths });
                 actions.set_file_action();
                 actions.set_all_files_unchecked();
                 actions.fetch_directory_listing();
@@ -223,7 +224,7 @@ export default function FileActionModal() {
             key="move"
             type="primary"
             htmlType="submit"
-            form="file-action-move-form"
+            form={`file-action-move-form-${project_id}`}
             loading={actionLoading}
           >
             <Icon name="move" />{" "}
@@ -240,7 +241,7 @@ export default function FileActionModal() {
             key="copy"
             type="primary"
             htmlType="submit"
-            form="file-action-copy-form"
+            form={`file-action-copy-form-${project_id}`}
             loading={actionLoading}
           >
             <Icon name="files" />{" "}
@@ -257,7 +258,7 @@ export default function FileActionModal() {
             key="compress"
             type="primary"
             htmlType="submit"
-            form="file-action-compress-form"
+            form={`file-action-compress-form-${project_id}`}
             loading={actionLoading}
           >
             <Icon name="compress" />{" "}
@@ -274,7 +275,7 @@ export default function FileActionModal() {
             key="download"
             type="primary"
             htmlType="submit"
-            form="file-action-download-form"
+            form={`file-action-download-form-${project_id}`}
             loading={actionLoading}
           >
             <Icon name="cloud-download" />{" "}

@@ -408,11 +408,16 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   function getContextMenu(): MenuProps["items"] {
     const { name, isdir, is_public, size } = item;
     const n = checked_files?.size ?? 0;
+    // Intentionally keep the current multi-selection when right-clicking another item.
+    // This avoids clearing selection due to imprecise context-clicks; follow-up dialogs
+    // explicitly confirm and show which files are affected.
     const multiple = n > 1;
 
     const sizeStr = size ? human_readable_size(size) : "";
     const nameStr = trunc_middle(item.name, 30);
-    const typeStr = isdir ? "Folder" : "File";
+    const typeStr = intl.formatMessage(labels.file_or_folder, {
+      isDir: String(!!isdir),
+    });
 
     const ctx: NonNullable<MenuProps["items"]> = [];
 
@@ -421,7 +426,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         key: "header",
         icon: <Icon name={"files"} />,
         label: `${n} ${plural(n, "file")}`,
-        style: { fontWeight: "bold" },
+        disabled: true,
+        style: { fontWeight: "bold", cursor: "default" },
       });
     } else {
       ctx.push({
@@ -429,12 +435,15 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         icon: <Icon name={isdir ? "folder-open" : "file"} />,
         label: `${typeStr} ${nameStr}${sizeStr ? ` (${sizeStr})` : ""}`,
         title: `${name}`,
-        style: { fontWeight: "bold" },
+        disabled: true,
+        style: { fontWeight: "bold", cursor: "default" },
       });
       ctx.push({
         key: "open",
         icon: <Icon name="edit-filled" />,
-        label: isdir ? "Open folder" : "Open file",
+        label: intl.formatMessage(labels.open_file_or_folder, {
+          isDir: String(!!isdir),
+        }),
         onClick: () => onClick?.(),
       });
     }
@@ -450,6 +459,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         disableActions: student_project_functionality.disableActions,
         inSnapshots: current_path?.startsWith(".snapshots") ?? false,
         triggerFileAction: (action) => {
+          // Only override selection in single-item mode. In multi mode we preserve
+          // the existing checked set (see note above).
           if (!multiple) {
             if (onChecked != null) {
               onChecked(true);
@@ -497,13 +508,13 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         ctx.push({
           key: "view",
           icon: <Icon name="eye" />,
-          label: <A href={url}>View file</A>,
+          label: <A href={url}>{intl.formatMessage(labels.view_file)}</A>,
         });
       }
 
       ctx.push({
         key: "download",
-        label: "Download",
+        label: intl.formatMessage(labels.download),
         icon: <Icon name="cloud-download" />,
         onClick: () => {
           actions?.download_file({ path: full_path, log: true });

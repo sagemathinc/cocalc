@@ -37,7 +37,8 @@ export default function RenameFile({
     onActionChange?.(v);
   };
   const [error, setError] = useState<string>("");
-  const resolvedFormId = formId ?? "file-action-rename-form";
+  const resolvedFormId =
+    formId ?? `file-action-rename-form-${actions?.project_id}`;
 
   useEffect(() => {
     setTimeout(() => {

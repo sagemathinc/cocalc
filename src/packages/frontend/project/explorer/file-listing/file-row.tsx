@@ -223,9 +223,14 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       return [];
     }
 
+    // Intentionally keep the current multi-selection when right-clicking another row.
+    // This avoids accidentally clearing a selection due to slightly off-target clicks;
+    // the action dialog confirms and lists exactly which files will be affected.
     const multiple = (props.checkedCount ?? 0) > 1;
     const nameStr = misc.trunc_middle(props.name, 30);
-    const typeStr = props.isdir ? "Folder" : "File";
+    const typeStr = intl.formatMessage(labels.file_or_folder, {
+      isDir: String(!!props.isdir),
+    });
     const sizeStr = props.size ? misc.human_readable_size(props.size) : "";
 
     const ctx: NonNullable<MenuProps["items"]> = [];
@@ -236,7 +241,8 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         key: "header",
         icon: <Icon name="files" />,
         label: `${props.checkedCount} ${misc.plural(props.checkedCount ?? 0, "file")}`,
-        style: { fontWeight: "bold" },
+        disabled: true,
+        style: { fontWeight: "bold", cursor: "default" },
       });
     } else {
       ctx.push({
@@ -244,12 +250,15 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         icon: <Icon name={props.isdir ? "folder-open" : "file"} />,
         label: `${typeStr} ${nameStr}${sizeStr ? ` (${sizeStr})` : ""}`,
         title: props.name,
-        style: { fontWeight: "bold" },
+        disabled: true,
+        style: { fontWeight: "bold", cursor: "default" },
       });
       ctx.push({
         key: "open",
         icon: <Icon name="edit-filled" />,
-        label: props.isdir ? "Open folder" : "Open file",
+        label: intl.formatMessage(labels.open_file_or_folder, {
+          isDir: String(!!props.isdir),
+        }),
         onClick: () => handle_click({} as any),
       });
     }
@@ -259,6 +268,8 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     // Standard file actions
     const fp = full_path();
     const triggerFileAction = (action: FileAction) => {
+      // Only force selection in single-item mode. In multi mode we intentionally
+      // preserve the existing checked set (see note above).
       if (!multiple) {
         props.actions.set_all_files_unchecked();
         props.actions.set_file_list_checked([fp]);
@@ -307,14 +318,14 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
         ctx.push({
           key: "view",
           icon: <Icon name="eye" />,
-          label: "View file",
+          label: intl.formatMessage(labels.view_file),
           onClick: () => open_new_tab(fileUrl),
         });
       }
 
       ctx.push({
         key: "download",
-        label: "Download",
+        label: intl.formatMessage(labels.download),
         icon: <Icon name="cloud-download" />,
         onClick: () => {
           props.actions.download_file({ path: fp, log: true });

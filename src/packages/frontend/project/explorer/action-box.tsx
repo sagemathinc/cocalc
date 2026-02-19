@@ -27,6 +27,7 @@ import {
 } from "@cocalc/frontend/components";
 import SelectServer from "@cocalc/frontend/compute/select-server";
 import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
+import { labels } from "@cocalc/frontend/i18n";
 import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
@@ -82,6 +83,7 @@ export function ActionBox(props: ReactProps) {
     useState<"compute-server" | "project">("compute-server");
   const [move_destination, set_move_destination] = useState<string>("");
   const [move_error, set_move_error] = useState<string>("");
+  const [copy_error, set_copy_error] = useState<string>("");
   const [actionLoading, setActionLoading] = useState<boolean>(false);
   //const [new_name, set_new_name] = useState<string>(props.new_name ?? "");
   const [show_different_project, set_show_different_project] =
@@ -131,12 +133,13 @@ export function ActionBox(props: ReactProps) {
     );
   }
 
-  function delete_click(): void {
+  async function delete_click(): Promise<void> {
     const paths = props.checked_files.toArray();
+    const deleted = await props.actions.delete_files({ paths });
+    if (!deleted) return;
     for (const path of paths) {
       props.actions.close_tab(path);
     }
-    props.actions.delete_files({ paths });
     props.actions.set_file_action();
     props.actions.set_all_files_unchecked();
     props.actions.fetch_directory_listing();
@@ -193,7 +196,9 @@ export function ActionBox(props: ReactProps) {
             }}
           >
             <Space>
-              <AntdButton onClick={cancel_action}>Cancel</AntdButton>
+              <AntdButton onClick={cancel_action}>
+                {intl.formatMessage(labels.cancel)}
+              </AntdButton>
               <AntdButton
                 danger
                 onClick={delete_click}
@@ -269,7 +274,9 @@ export function ActionBox(props: ReactProps) {
 
   function render_move(): React.JSX.Element {
     const { size } = props.checked_files;
-    const moveFormId = props.modal ? "file-action-move-form" : undefined;
+    const moveFormId = props.modal
+      ? `file-action-move-form-${props.project_id}`
+      : undefined;
     return (
       <form
         id={moveFormId}
@@ -330,16 +337,16 @@ export function ActionBox(props: ReactProps) {
             </Space>
           </div>
         )}
-      {move_error && (
-        <AntdAlert
-          style={{ marginTop: 8, padding: "4px 10px", fontSize: "13px" }}
-          type="error"
-          message={move_error.replace(/^Error:\s*/, "")}
-          showIcon={false}
-          closable
-          onClose={() => set_move_error("")}
-        />
-      )}
+        {move_error && (
+          <AntdAlert
+            style={{ marginTop: 8, padding: "4px 10px", fontSize: "13px" }}
+            type="error"
+            message={move_error.replace(/^Error:\s*/, "")}
+            showIcon={false}
+            closable
+            onClose={() => set_move_error("")}
+          />
+        )}
       </form>
     );
   }
@@ -405,6 +412,7 @@ export function ActionBox(props: ReactProps) {
 
   async function copy_click(): Promise<void> {
     if (actionLoading) return;
+    set_copy_error("");
     const destination_project_id = copy_destination_project_id;
     const destination_directory = copy_destination_directory;
     const paths = props.checked_files.toArray();
@@ -443,8 +451,8 @@ export function ActionBox(props: ReactProps) {
       }
       props.actions.set_file_action();
       props.actions.set_all_files_unchecked();
-    } catch {
-      // errors are shown via set_activity
+    } catch (err) {
+      set_copy_error(`${err}`);
       return;
     } finally {
       setActionLoading(false);
@@ -572,7 +580,9 @@ export function ActionBox(props: ReactProps) {
         </div>
       );
     } else {
-      const copyFormId = props.modal ? "file-action-copy-form" : undefined;
+      const copyFormId = props.modal
+        ? `file-action-copy-form-${props.project_id}`
+        : undefined;
       return (
         <form
           id={copyFormId}
@@ -676,6 +686,16 @@ export function ActionBox(props: ReactProps) {
               </Space>
             </div>
           )}
+          {copy_error && (
+            <AntdAlert
+              style={{ marginTop: 8, padding: "4px 10px", fontSize: "13px" }}
+              type="error"
+              message={copy_error.replace(/^Error:\s*/, "")}
+              showIcon={false}
+              closable
+              onClose={() => set_copy_error("")}
+            />
+          )}
         </form>
       );
     }
@@ -729,7 +749,11 @@ export function ActionBox(props: ReactProps) {
         return (
           <CreateArchive
             modal={props.modal}
-            formId={props.modal ? "file-action-compress-form" : undefined}
+            formId={
+              props.modal
+                ? `file-action-compress-form-${props.project_id}`
+                : undefined
+            }
             onActionChange={props.onActionChange}
           />
         );
@@ -741,7 +765,11 @@ export function ActionBox(props: ReactProps) {
         return (
           <Download
             modal={props.modal}
-            formId={props.modal ? "file-action-download-form" : undefined}
+            formId={
+              props.modal
+                ? `file-action-download-form-${props.project_id}`
+                : undefined
+            }
             onActionChange={props.onActionChange}
           />
         );
