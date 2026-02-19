@@ -819,10 +819,16 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   set_font_size(font_size: number): void {
+    if (this.isClosed() || this.terminal == null) {
+      return;
+    }
     this.terminal.options.fontSize = font_size;
   }
 
   getOption(option: string): any {
+    if (this.isClosed() || this.terminal == null) {
+      return;
+    }
     return this.terminal.options[option];
   }
 
