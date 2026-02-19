@@ -99,19 +99,8 @@ export function ActionBox(props: ReactProps) {
   }
 
   function action_key(e): void {
-    switch (e.keyCode) {
-      case 27:
-        cancel_action();
-        break;
-      case 13:
-        switch (props.file_action) {
-          case "move":
-            submit_action_move();
-            break;
-          case "copy":
-            submit_action_copy();
-            break;
-        }
+    if (e.keyCode === 27) {
+      cancel_action();
     }
   }
 
@@ -240,8 +229,8 @@ export function ActionBox(props: ReactProps) {
     // Close old tabs and reopen moved files at their new paths
     for (const path of paths) {
       const wasOpen = !!openFiles?.has(path);
-      props.actions.close_tab(path);
       if (wasOpen) {
+        props.actions.close_tab(path);
         const newPath = misc.path_to_file(
           move_destination,
           misc.path_split(path).tail,
@@ -349,12 +338,6 @@ export function ActionBox(props: ReactProps) {
         )}
       </form>
     );
-  }
-
-  function submit_action_move(): void {
-    if (valid_move_input()) {
-      move_click();
-    }
   }
 
   function render_different_project_dialog(): React.JSX.Element | undefined {
@@ -698,12 +681,6 @@ export function ActionBox(props: ReactProps) {
           )}
         </form>
       );
-    }
-  }
-
-  function submit_action_copy(): void {
-    if (valid_copy_input()) {
-      copy_click();
     }
   }
 
