@@ -1,25 +1,20 @@
-import { Button, Card, Input, Space, Spin } from "antd";
+import { Input, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { useIntl } from "react-intl";
 
 import { default_filename } from "@cocalc/frontend/account";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
-import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { path_split, plural } from "@cocalc/util/misc";
+import { path_split } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
 
 export default function CreateArchive({
-  modal,
   formId,
   onActionChange,
 }: {
-  modal?: boolean;
   formId?: string;
   onActionChange?: (loading: boolean) => void;
 }) {
-  const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
   const checked_files = useRedux(["checked_files"], actions?.project_id ?? "");
@@ -71,8 +66,14 @@ export default function CreateArchive({
     return null;
   }
 
-  const content = (
-    <>
+  return (
+    <form
+      id={formId}
+      onSubmit={(e) => {
+        e.preventDefault();
+        doCompress();
+      }}
+    >
       <CheckedFiles />
       <Space style={{ marginTop: "15px" }} wrap>
         <Input
@@ -81,59 +82,10 @@ export default function CreateArchive({
           onChange={(e) => setTarget(e.target.value)}
           value={target}
           placeholder="Name of zip archive..."
-          onPressEnter={modal ? undefined : doCompress}
           suffix=".zip"
         />
       </Space>
       <ShowError setError={setError} error={error} />
-    </>
-  );
-
-  if (modal) {
-    return (
-      <form
-        id={formId}
-        onSubmit={(e) => {
-          e.preventDefault();
-          doCompress();
-        }}
-      >
-        {content}
-      </form>
-    );
-  }
-
-  return (
-    <Card
-      title={
-        <>
-          Create a zip file from the following {checked_files?.size} selected{" "}
-          {plural(checked_files?.size, "item")}
-        </>
-      }
-    >
-      {content}
-      <div
-        style={{
-          marginTop: "15px",
-          display: "flex",
-          justifyContent: "flex-end",
-        }}
-      >
-        <Space wrap>
-          <Button
-            onClick={() => {
-              actions?.set_file_action();
-            }}
-          >
-            {intl.formatMessage(labels.cancel)}
-          </Button>
-          <Button onClick={doCompress} type="primary" disabled={loading}>
-            Compress {checked_files?.size} {plural(checked_files?.size, "item")}{" "}
-            {loading && <Spin />}
-          </Button>
-        </Space>
-      </div>
-    </Card>
+    </form>
   );
 }

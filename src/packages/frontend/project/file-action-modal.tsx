@@ -325,7 +325,6 @@ export default function FileActionModal() {
       }}
     >
       <ActionBox
-        modal
         file_action={file_action}
         checked_files={checked_files}
         current_path={current_path}

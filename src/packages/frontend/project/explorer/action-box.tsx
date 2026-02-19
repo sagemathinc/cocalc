@@ -8,7 +8,6 @@
 import { Alert as AntdAlert, Button as AntdButton, Radio, Space } from "antd";
 import * as immutable from "immutable";
 import { useState } from "react";
-import { useIntl } from "react-intl";
 
 import {
   Alert,
@@ -16,7 +15,6 @@ import {
   Checkbox,
   Col,
   Row,
-  Well,
 } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
@@ -26,8 +24,6 @@ import {
   Paragraph,
 } from "@cocalc/frontend/components";
 import SelectServer from "@cocalc/frontend/compute/select-server";
-import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
-import { labels } from "@cocalc/frontend/i18n";
 import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
@@ -62,14 +58,11 @@ interface ReactProps {
   actions: ProjectActions;
   //new_name?: string;
   name: string;
-  // When true, skip the Well wrapper/title/close button (used inside antd Modal)
-  modal?: boolean;
   renameFormId?: string;
   onActionChange?: (loading: boolean) => void;
 }
 
 export function ActionBox(props: ReactProps) {
-  const intl = useIntl();
   const { project_id } = useProjectContext();
   const runQuota = useRunQuota(project_id, null);
   const user_type = useTypedRedux("account", "user_type");
@@ -108,7 +101,7 @@ export function ActionBox(props: ReactProps) {
     const style = {
       ...PRE_STYLE,
       width: "100%",
-      maxHeight: props.modal ? "32vh" : PRE_STYLE.maxHeight,
+      maxHeight: "32vh",
       overflowY: "auto",
       overflowX: "auto",
     } as const;
@@ -120,18 +113,6 @@ export function ActionBox(props: ReactProps) {
         ))}
       </pre>
     );
-  }
-
-  async function delete_click(): Promise<void> {
-    const paths = props.checked_files.toArray();
-    const deleted = await props.actions.delete_files({ paths });
-    if (!deleted) return;
-    for (const path of paths) {
-      props.actions.close_tab(path);
-    }
-    props.actions.set_file_action();
-    props.actions.set_all_files_unchecked();
-    props.actions.fetch_directory_listing();
   }
 
   function render_delete_warning(): React.JSX.Element | undefined {
@@ -150,7 +131,6 @@ export function ActionBox(props: ReactProps) {
   }
 
   function render_delete(): React.JSX.Element | undefined {
-    const { size } = props.checked_files;
     return (
       <div>
         <div style={{ color: COLORS.GRAY_M }}>
@@ -176,28 +156,6 @@ export function ActionBox(props: ReactProps) {
             </div>
           )}
         </Paragraph>
-        {!props.modal && (
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-start",
-              marginTop: 10,
-            }}
-          >
-            <Space>
-              <AntdButton onClick={cancel_action}>
-                {intl.formatMessage(labels.cancel)}
-              </AntdButton>
-              <AntdButton
-                danger
-                onClick={delete_click}
-                disabled={props.current_path === ".trash"}
-              >
-                <Icon name="trash" /> Delete {size} {misc.plural(size, "Item")}
-              </AntdButton>
-            </Space>
-          </div>
-        )}
       </div>
     );
   }
@@ -262,13 +220,9 @@ export function ActionBox(props: ReactProps) {
   }
 
   function render_move(): React.JSX.Element {
-    const { size } = props.checked_files;
-    const moveFormId = props.modal
-      ? `file-action-move-form-${props.project_id}`
-      : undefined;
     return (
       <form
-        id={moveFormId}
+        id={`file-action-move-form-${props.project_id}`}
         onSubmit={(e) => {
           e.preventDefault();
           if (valid_move_input()) move_click();
@@ -311,21 +265,6 @@ export function ActionBox(props: ReactProps) {
             />
           </div>
         </div>
-        {!props.modal && (
-          <div style={{ display: "flex", justifyContent: "flex-start" }}>
-            <Space>
-              <Button onClick={cancel_action}>Cancel</Button>
-              <AntdButton
-                type="primary"
-                onClick={move_click}
-                disabled={!valid_move_input()}
-                loading={actionLoading}
-              >
-                Move {size} {misc.plural(size, "Item")}
-              </AntdButton>
-            </Space>
-          </div>
-        )}
         {move_error && (
           <AntdAlert
             style={{ marginTop: 8, padding: "4px 10px", fontSize: "13px" }}
@@ -547,7 +486,7 @@ export function ActionBox(props: ReactProps) {
               <div
                 style={{
                   display: "flex",
-                  justifyContent: props.modal ? "flex-end" : "flex-start",
+                  justifyContent: "flex-end",
                 }}
               >
                 <Space>
@@ -563,12 +502,9 @@ export function ActionBox(props: ReactProps) {
         </div>
       );
     } else {
-      const copyFormId = props.modal
-        ? `file-action-copy-form-${props.project_id}`
-        : undefined;
       return (
         <form
-          id={copyFormId}
+          id={`file-action-copy-form-${props.project_id}`}
           onSubmit={(e) => {
             e.preventDefault();
             if (valid_copy_input()) copy_click();
@@ -648,27 +584,6 @@ export function ActionBox(props: ReactProps) {
               />
             </div>
           </div>
-          {!props.modal && (
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "flex-start",
-                marginTop: 10,
-              }}
-            >
-              <Space>
-                <AntdButton onClick={cancel_action}>Cancel</AntdButton>
-                <AntdButton
-                  type="primary"
-                  onClick={copy_click}
-                  disabled={!valid_copy_input()}
-                  loading={actionLoading}
-                >
-                  <Icon name="files" /> Copy {size} {misc.plural(size, "Item")}
-                </AntdButton>
-              </Space>
-            </div>
-          )}
           {copy_error && (
             <AntdAlert
               style={{ marginTop: 8, padding: "4px 10px", fontSize: "13px" }}
@@ -713,7 +628,6 @@ export function ActionBox(props: ReactProps) {
         action_key={action_key}
         set_public_path={(opts) => props.actions.set_public_path(path, opts)}
         has_network_access={!!runQuota.network}
-        modal={props.modal}
       />
     );
   }
@@ -725,12 +639,7 @@ export function ActionBox(props: ReactProps) {
       case "compress":
         return (
           <CreateArchive
-            modal={props.modal}
-            formId={
-              props.modal
-                ? `file-action-compress-form-${props.project_id}`
-                : undefined
-            }
+            formId={`file-action-compress-form-${props.project_id}`}
             onActionChange={props.onActionChange}
           />
         );
@@ -741,12 +650,7 @@ export function ActionBox(props: ReactProps) {
       case "download":
         return (
           <Download
-            modal={props.modal}
-            formId={
-              props.modal
-                ? `file-action-download-form-${props.project_id}`
-                : undefined
-            }
+            formId={`file-action-download-form-${props.project_id}`}
             onActionChange={props.onActionChange}
           />
         );
@@ -786,44 +690,5 @@ export function ActionBox(props: ReactProps) {
     return <Loading />;
   }
 
-  if (props.modal) {
-    return <div onKeyDown={action_key}>{render_action_box(action)}</div>;
-  }
-
-  return (
-    <Well
-      style={{
-        margin: "15px 30px",
-        overflowY: "auto",
-        maxHeight: "50vh",
-        backgroundColor: COLORS.GRAY_LLL,
-      }}
-    >
-      <Row>
-        <Col
-          sm={12}
-          style={{
-            color: COLORS.GRAY_M,
-            fontWeight: "bold",
-            fontSize: "15pt",
-          }}
-        >
-          <Icon name={action_button.icon ?? "exclamation-circle"} />{" "}
-          {intl.formatMessage(action_button.name)}
-          <div style={{ float: "right" }}>
-            <AntdButton onClick={cancel_action} type="text">
-              <Icon name="times" />
-            </AntdButton>
-          </div>
-          {!!compute_server_id && (
-            <ComputeServerTag
-              id={compute_server_id}
-              style={{ float: "right", top: "5px" }}
-            />
-          )}
-        </Col>
-        <Col sm={12}>{render_action_box(action)}</Col>
-      </Row>
-    </Well>
-  );
+  return <div onKeyDown={action_key}>{render_action_box(action)}</div>;
 }

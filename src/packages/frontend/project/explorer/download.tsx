@@ -1,27 +1,21 @@
-import { Button, Card, Input, Space, Spin } from "antd";
+import { Input } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { useIntl } from "react-intl";
 
 import { default_filename } from "@cocalc/frontend/account";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import CopyToClipBoard from "@cocalc/frontend/components/copy-to-clipboard";
 import ShowError from "@cocalc/frontend/components/error";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { path_split, path_to_file, plural } from "@cocalc/util/misc";
+import { path_split, path_to_file } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
 
 export default function Download({
-  modal,
   formId,
   onActionChange,
 }: {
-  modal?: boolean;
   formId?: string;
   onActionChange?: (loading: boolean) => void;
 }) {
-  const intl = useIntl();
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
   const [loading, setLoading] = useState<boolean>(false);
@@ -116,8 +110,14 @@ export default function Download({
     return null;
   }
 
-  const content = (
-    <>
+  return (
+    <form
+      id={formId}
+      onSubmit={(e) => {
+        e.preventDefault();
+        doDownload();
+      }}
+    >
       <CheckedFiles />
       {archiveMode && (
         <Input
@@ -126,7 +126,6 @@ export default function Download({
           onChange={(e) => setTarget(e.target.value)}
           value={target}
           placeholder="Name of zip archive..."
-          onPressEnter={modal ? undefined : doDownload}
           suffix=".zip"
           style={{ marginBottom: 10 }}
         />
@@ -142,52 +141,6 @@ export default function Download({
         />
       )}
       <ShowError setError={setError} error={error} />
-    </>
-  );
-
-  if (modal) {
-    return (
-      <form
-        id={formId}
-        onSubmit={(e) => {
-          e.preventDefault();
-          doDownload();
-        }}
-      >
-        {content}
-      </form>
-    );
-  }
-
-  return (
-    <Card
-      title={<>Download {archiveMode ? "files" : "a file"} to your computer</>}
-    >
-      {content}
-      <div
-        style={{
-          marginTop: "15px",
-          display: "flex",
-          justifyContent: "flex-end",
-        }}
-      >
-        <Space wrap>
-          <Button
-            onClick={() => {
-              actions?.set_file_action();
-            }}
-          >
-            {intl.formatMessage(labels.cancel)}
-          </Button>
-          <Button onClick={doDownload} type="primary" disabled={loading}>
-            <Icon name="cloud-download" />{" "}
-            {archiveMode
-              ? `Compress ${checked_files?.size} ${plural(checked_files?.size, "item")} and Download ${target}.zip`
-              : "Download"}{" "}
-            {loading && <Spin />}
-          </Button>
-        </Space>
-      </div>
-    </Card>
+    </form>
   );
 }

@@ -35,7 +35,7 @@ import {
 } from "antd";
 import { useEffect, useState } from "react";
 
-import { CSS, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
   A,
   CopyToClipBoard,
@@ -55,7 +55,7 @@ import {
   SHARE_FLAGS,
 } from "@cocalc/util/consts/ui";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { trunc_middle, unreachable } from "@cocalc/util/misc";
+import { unreachable } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { ConfigureName } from "./configure-name";
 import { License } from "./license";
@@ -102,8 +102,6 @@ interface Props {
   }) => void;
   has_network_access?: boolean;
   compute_server_id?: number;
-  /** When true, hides the internal "Finished" buttons – the modal footer provides them */
-  modal?: boolean;
 }
 
 // ensures the custom font sizes in the text of the first row is consistent
@@ -242,31 +240,8 @@ export default function Configure(props: Props) {
     );
   }
 
-  function renderFinishedButton() {
-    return (
-      <Button onClick={props.close} type="primary">
-        <Icon name="check" /> Finished
-      </Button>
-    );
-  }
-
   return (
     <>
-      {!props.modal && (
-        <Title level={3} style={{ color: COLORS.GRAY_M, textAlign: "center" }}>
-          <a
-            onClick={() => {
-              redux
-                .getProjectActions(props.project_id)
-                ?.load_target("files/" + props.path);
-            }}
-          >
-            {trunc_middle(props.path, 128)}
-          </a>
-          <span style={{ float: "right" }}>{renderFinishedButton()}</span>
-        </Title>
-      )}
-
       <Row gutter={GUTTER}>
         <Col span={12}>
           <VisibleMDLG>
@@ -492,11 +467,6 @@ export default function Configure(props: Props) {
           </Col>
         </Row>
       ) : undefined}
-      {!props.modal && (
-        <Paragraph style={{ float: "right" }}>
-          {renderFinishedButton()}
-        </Paragraph>
-      )}
     </>
   );
 }
