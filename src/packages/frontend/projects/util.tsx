@@ -4,7 +4,7 @@
  */
 
 import { MenuProps } from "antd";
-import { Map as immutableMap, Set as immutableSet } from "immutable";
+import { List as iList, Map as iMap, Set as iSet } from "immutable";
 import { useMemo } from "react";
 
 import { CSS, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -27,6 +27,7 @@ import {
   cmp,
   cmp_Date,
   parse_hashtags,
+  path_split,
   search_match,
   search_split,
   trunc_middle,
@@ -96,7 +97,7 @@ function get_search_info(project_id: string, project, user_map): string {
 export function getVisibleProjects(
   project_map: ProjectMap | undefined,
   user_map,
-  hashtags: immutableSet<string> | undefined,
+  hashtags: iSet<string> | undefined,
   search: string,
   deleted: boolean,
   hidden: boolean,
@@ -203,7 +204,7 @@ export function get_visible_hashtags(project_map, visible_projects): string[] {
 
 // Returns true if the project should be visible with the given filters selected
 function project_is_in_filter(
-  project: immutableMap<string, any>,
+  project: iMap<string, any>,
   deleted: boolean,
   hidden: boolean,
 ): boolean {
@@ -256,17 +257,20 @@ export interface OpenedFile {
  * @param project_log - The project log from redux store
  * @param max - Maximum number of files to return (default: 100)
  * @param searchTerm - Optional search term to filter filenames (case-insensitive)
+ * @param directory_listings - Optional cached directory listings map (uses per-entry compute server id)
  * @returns Array of recent opened files
  */
 export function useRecentFiles(
   project_log: any,
   max: number = 100,
   searchTerm: string = "",
+  directory_listings?: iMap<number, iMap<string, unknown>>,
 ): OpenedFile[] {
   return useMemo(() => {
     if (project_log == null || max === 0) return [];
 
     const dedupe: string[] = [];
+    const searchLower = searchTerm.toLowerCase();
 
     return project_log
       .valueSeq()
@@ -286,8 +290,33 @@ export function useRecentFiles(
         entry
           .getIn(["event", "filename"], "")
           .toLowerCase()
-          .includes(searchTerm.toLowerCase()),
+          .includes(searchLower),
       )
+      .filter((entry: EventRecordMap) => {
+        if (directory_listings == null) return true;
+        const filename = entry.getIn(["event", "filename"]);
+        if (!filename) return true;
+        const { head: parentDir, tail: baseName } = path_split(filename);
+        if (!baseName) return true;
+        // Use the compute server recorded in the log entry (default 0 = home base
+        // for older entries that don't have this field).
+        const serverId = entry.getIn(["event", "compute_server_id"]) ?? 0;
+        const listing: unknown = directory_listings.getIn([
+          serverId,
+          parentDir,
+        ]);
+        if (listing == null || typeof listing === "string") return true;
+        if (!iList.isList(listing)) return true;
+        return listing.some((item: unknown) => {
+          if (iMap.isMap(item)) {
+            return item.get("name") === baseName;
+          }
+          if (typeof item === "object" && item != null && "name" in item) {
+            return (item as { name?: string }).name === baseName;
+          }
+          return false;
+        });
+      })
       .slice(0, max)
       .map((entry: EventRecordMap) => ({
         filename: entry.getIn(["event", "filename"]),
@@ -295,7 +324,7 @@ export function useRecentFiles(
         account_id: entry.get("account_id"),
       }))
       .toJS() as OpenedFile[];
-  }, [project_log, max, searchTerm]);
+  }, [project_log, max, searchTerm, directory_listings]);
 }
 
 type FileEntry = string | OpenedFile;

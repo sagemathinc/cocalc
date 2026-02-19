@@ -1,16 +1,20 @@
-import { Button, Card, Input, Space, Spin } from "antd";
+import { Input, Space } from "antd";
 import { useEffect, useRef, useState } from "react";
-import { useIntl } from "react-intl";
+
 import { default_filename } from "@cocalc/frontend/account";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import ShowError from "@cocalc/frontend/components/error";
-import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { path_split, plural } from "@cocalc/util/misc";
+import { path_split } from "@cocalc/util/misc";
 import CheckedFiles from "./checked-files";
 
-export default function CreateArchive({}) {
-  const intl = useIntl();
+export default function CreateArchive({
+  formId,
+  onActionChange,
+}: {
+  formId?: string;
+  onActionChange?: (loading: boolean) => void;
+}) {
   const inputRef = useRef<any>(null);
   const { actions } = useProjectContext();
   const checked_files = useRedux(["checked_files"], actions?.project_id ?? "");
@@ -30,7 +34,7 @@ export default function CreateArchive({}) {
   }, []);
 
   const doCompress = async () => {
-    if (actions == null) {
+    if (actions == null || loading) {
       return;
     }
     const store = actions.get_store();
@@ -39,23 +43,23 @@ export default function CreateArchive({}) {
     }
     try {
       setLoading(true);
+      onActionChange?.(true);
       const files = checked_files.toArray();
       const path = store.get("current_path");
       await actions.zip_files({
-        src: path ? files.map((x) => x.slice(path.length + 1)) : files,
+        src: path ? files.map((x: string) => x.slice(path.length + 1)) : files,
         dest: target + ".zip",
         path,
       });
       await actions.fetch_directory_listing({ path });
+      actions.set_all_files_unchecked();
+      actions.set_file_action();
     } catch (err) {
-      setLoading(false);
-      setError(err);
+      setError(`${err}`);
     } finally {
       setLoading(false);
+      onActionChange?.(false);
     }
-
-    actions.set_all_files_unchecked();
-    actions.set_file_action();
   };
 
   if (actions == null) {
@@ -63,11 +67,12 @@ export default function CreateArchive({}) {
   }
 
   return (
-    <Card
-      title=<>
-        Create a zip file from the following {checked_files?.size} selected{" "}
-        {plural(checked_files?.size, "item")}
-      </>
+    <form
+      id={formId}
+      onSubmit={(e) => {
+        e.preventDefault();
+        doCompress();
+      }}
     >
       <CheckedFiles />
       <Space style={{ marginTop: "15px" }} wrap>
@@ -77,23 +82,10 @@ export default function CreateArchive({}) {
           onChange={(e) => setTarget(e.target.value)}
           value={target}
           placeholder="Name of zip archive..."
-          onPressEnter={doCompress}
           suffix=".zip"
         />
-        <div style={{ marginLeft: "5px" }} />
-        <Button
-          onClick={() => {
-            actions?.set_file_action();
-          }}
-        >
-          {intl.formatMessage(labels.cancel)}
-        </Button>{" "}
-        <Button onClick={doCompress} type="primary" disabled={loading}>
-          Compress {checked_files?.size} {plural(checked_files?.size, "item")}{" "}
-          {loading && <Spin />}
-        </Button>
       </Space>
       <ShowError setError={setError} error={error} />
-    </Card>
+    </form>
   );
 }

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -11,9 +11,14 @@ import { callback } from "awaiting";
 import { List, Map, fromJS, Set as immutableSet } from "immutable";
 import { isEqual, throttle } from "lodash";
 import { join } from "path";
-import { defineMessage } from "react-intl";
 
-import type { IconName } from "@cocalc/frontend/components/icon";
+import type {
+  FileAction,
+  FileActionInfo,
+  FileActionSource,
+  FileCommand,
+} from "@cocalc/frontend/project-file";
+import { FILE_ACTIONS } from "@cocalc/frontend/project-file";
 
 import {
   computeServerManager,
@@ -40,7 +45,7 @@ import {
   exec,
 } from "@cocalc/frontend/frame-editors/generic/client";
 import { set_url } from "@cocalc/frontend/history";
-import { IntlMessage, dialogs } from "@cocalc/frontend/i18n";
+import { dialogs } from "@cocalc/frontend/i18n";
 import { getIntl } from "@cocalc/frontend/i18n/get-intl";
 import {
   download_file,
@@ -183,105 +188,8 @@ const must_define = function (redux) {
 const _init_library_index_ongoing = {};
 const _init_library_index_cache = {};
 
-interface FileAction {
-  name: IntlMessage;
-  icon: IconName;
-  allows_multiple_files?: boolean;
-  hideFlyout?: boolean;
-}
-
-export const FILE_ACTIONS: { [key: string]: FileAction } = {
-  compress: {
-    name: defineMessage({
-      id: "file_actions.compress.name",
-      defaultMessage: "Compress",
-      description: "Compress a file",
-    }),
-    icon: "compress" as IconName,
-    allows_multiple_files: true,
-  },
-  delete: {
-    name: defineMessage({
-      id: "file_actions.delete.name",
-      defaultMessage: "Delete",
-      description: "Delete a file",
-    }),
-    icon: "trash" as IconName,
-    allows_multiple_files: true,
-  },
-  rename: {
-    name: defineMessage({
-      id: "file_actions.rename.name",
-      defaultMessage: "Rename",
-      description: "Rename a file",
-    }),
-    icon: "swap" as IconName,
-    allows_multiple_files: false,
-  },
-  duplicate: {
-    name: defineMessage({
-      id: "file_actions.duplicate.name",
-      defaultMessage: "Duplicate",
-      description: "Duplicate a file",
-    }),
-    icon: "clone" as IconName,
-    allows_multiple_files: false,
-  },
-  move: {
-    name: defineMessage({
-      id: "file_actions.move.name",
-      defaultMessage: "Move",
-      description: "Move a file",
-    }),
-    icon: "move" as IconName,
-    allows_multiple_files: true,
-  },
-  copy: {
-    name: defineMessage({
-      id: "file_actions.copy.name",
-      defaultMessage: "Copy",
-      description: "Copy a file",
-    }),
-    icon: "files" as IconName,
-    allows_multiple_files: true,
-  },
-  share: {
-    name: defineMessage({
-      id: "file_actions.publish.name",
-      defaultMessage: "Publish",
-      description: "Publish a file",
-    }),
-    icon: "share-square" as IconName,
-    allows_multiple_files: false,
-  },
-  download: {
-    name: defineMessage({
-      id: "file_actions.download.name",
-      defaultMessage: "Download",
-      description: "Download a file",
-    }),
-    icon: "cloud-download" as IconName,
-    allows_multiple_files: true,
-  },
-  upload: {
-    name: defineMessage({
-      id: "file_actions.upload.name",
-      defaultMessage: "Upload",
-      description: "Upload a file",
-    }),
-    icon: "upload" as IconName,
-    hideFlyout: true,
-  },
-  create: {
-    name: defineMessage({
-      id: "file_actions.create.name",
-      defaultMessage: "Create",
-      description: "Create a file",
-    }),
-    icon: "plus-circle" as IconName,
-    hideFlyout: true,
-  },
-} as const;
+export type { FileAction, FileActionInfo, FileActionSource, FileCommand };
+export { FILE_ACTIONS };
 
 export class ProjectActions extends Actions<ProjectStoreState> {
   public state: "ready" | "closed" = "ready";
@@ -604,6 +512,18 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     window.clearTimeout(this.last_close_timer);
     this.last_close_timer = window.setTimeout(this.clear_ghost_file_tabs, 5000);
     this.close_file(path);
+  }
+
+  /** Close every open file tab except the given one. */
+  public close_other_tabs(path: string): void {
+    const store = this.get_store();
+    if (store == null) return;
+    const open_files_order = store.get("open_files_order");
+    for (const p of open_files_order.toArray()) {
+      if (p != null && p !== path) {
+        this.close_tab(p);
+      }
+    }
   }
 
   // Expects one of ['files', 'new', 'log', 'search', 'settings']
@@ -1569,9 +1489,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const computeServerAssociations =
       webapp_client.project_client.computeServers(this.project_id);
     const sidePath = chatFile(path);
-    const currentId = await computeServerAssociations.getServerIdForPath(
-      sidePath,
-    );
+    const currentId =
+      await computeServerAssociations.getServerIdForPath(sidePath);
     if (currentId != null) {
       // already set
       return;
@@ -1594,6 +1513,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       file_search: search,
       page_number: 0,
       file_action: undefined,
+      file_action_source: undefined,
       most_recent_file_click: undefined,
       create_file_alert: false,
     });
@@ -1723,7 +1643,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files?: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction;
+      file_action_source?: FileActionSource;
     } = {};
     if (checked) {
       changes.checked_files = store.get("checked_files").add(file);
@@ -1734,11 +1655,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         !FILE_ACTIONS[file_action].allows_multiple_files
       ) {
         changes.file_action = undefined;
+        changes.file_action_source = undefined;
       }
     } else {
       changes.checked_files = store.get("checked_files").delete(file);
       if (changes.checked_files.size === 0) {
         changes.file_action = undefined;
+        changes.file_action_source = undefined;
       }
     }
 
@@ -1753,7 +1676,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction;
+      file_action_source?: FileActionSource;
     } = { checked_files: store.get("checked_files").union(file_list) };
     const file_action = store.get("file_action");
     if (
@@ -1762,6 +1686,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       !FILE_ACTIONS[file_action].allows_multiple_files
     ) {
       changes.file_action = undefined;
+      changes.file_action_source = undefined;
     }
 
     this.setState(changes);
@@ -1775,11 +1700,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
     const changes: {
       checked_files: immutableSet<string>;
-      file_action?: string | undefined;
+      file_action?: FileAction;
+      file_action_source?: FileActionSource;
     } = { checked_files: store.get("checked_files").subtract(file_list) };
 
     if (changes.checked_files.size === 0) {
       changes.file_action = undefined;
+      changes.file_action_source = undefined;
     }
 
     this.setState(changes);
@@ -1794,6 +1721,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({
       checked_files: store.get("checked_files").clear(),
       file_action: undefined,
+      file_action_source: undefined,
     });
   }
 
@@ -1851,18 +1779,22 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   };
 
-  set_file_action(action?: string): void {
+  set_file_action(action?: FileAction, source?: FileActionSource): void {
     const store = this.get_store();
     if (store == null) {
       return;
     }
-    this.setState({ file_action: action });
+    this.setState({
+      file_action: action,
+      file_action_source: action == null ? undefined : source,
+    });
   }
 
   show_file_action_panel(opts): void {
     opts = defaults(opts, {
       path: required,
       action: required,
+      source: undefined,
     });
     this.set_all_files_unchecked();
     if (opts.action == "new" || opts.action == "create") {
@@ -1902,7 +1834,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
 
     const path_splitted = misc.path_split(opts.path);
-    this.open_directory(path_splitted.head);
+    // Load the directory listing (needed for file_map) without switching to the files tab
+    // or changing URL/history, since the file action modal is rendered at the project level.
+    this.open_directory(path_splitted.head, false, false);
 
     if (opts.action == "quit") {
       // TODO: for jupyter and terminal at least, should also do more!
@@ -1914,7 +1848,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       return;
     }
     this.set_file_checked(opts.path, true);
-    this.set_file_action(opts.action);
+    this.set_file_action(opts.action, opts.source);
   }
 
   private async get_from_web(opts: {
@@ -1964,6 +1898,36 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         cb(err);
       }
     };
+  }
+
+  private async _await_exec_completion({
+    output,
+    compute_server_id,
+    filesystem,
+    timeout,
+  }: {
+    output: any;
+    compute_server_id?: number;
+    filesystem?: boolean;
+    timeout?: number;
+  }): Promise<any> {
+    // Some backends may return async job handles; in that case explicitly wait
+    // for completion so callers can reliably await the full operation.
+    while (
+      output?.type === "async" &&
+      output?.status === "running" &&
+      output?.job_id != null
+    ) {
+      output = await webapp_client.exec({
+        project_id: this.project_id,
+        compute_server_id,
+        filesystem,
+        async_get: output.job_id,
+        async_await: true,
+        timeout,
+      });
+    }
+    return output;
   }
 
   zip_files = async ({
@@ -2355,8 +2319,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             dest_compute_server_id: opts.dest_compute_server_id,
           }
         : opts.src_compute_server_id
-        ? { compute_server_id: opts.src_compute_server_id }
-        : undefined),
+          ? { compute_server_id: opts.src_compute_server_id }
+          : undefined),
     });
 
     if (opts.only_contents) {
@@ -2414,6 +2378,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         this._finish_exec(id)();
       } catch (err) {
         this._finish_exec(id)(`${err}`);
+        throw err;
       }
 
       return;
@@ -2435,20 +2400,31 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     args = args.concat(opts.src);
     args = args.concat([add_leading_dash(opts.dest)]);
 
-    webapp_client.exec({
-      project_id: this.project_id,
-      command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
-      args,
-      timeout: 120, // how long rsync runs on client
-      err_on_exit: true,
-      path: ".",
-      compute_server_id: opts.src_compute_server_id,
-      filesystem: true,
-      cb: this._finish_exec(id),
-    });
+    try {
+      let result = await webapp_client.exec({
+        project_id: this.project_id,
+        command: "rsync", // don't use "a" option to rsync, since on snapshots results in destroying project access!
+        args,
+        timeout: 120, // how long rsync runs on client
+        err_on_exit: true,
+        path: ".",
+        compute_server_id: opts.src_compute_server_id,
+        filesystem: true,
+      });
+      result = await this._await_exec_completion({
+        output: result,
+        compute_server_id: opts.src_compute_server_id,
+        filesystem: true,
+        timeout: 120,
+      });
+      this._finish_exec(id)(undefined, result);
+    } catch (err) {
+      this._finish_exec(id)(`${err}`);
+      throw err;
+    }
   };
 
-  copy_paths_between_projects(opts) {
+  async copy_paths_between_projects(opts) {
     opts = defaults(opts, {
       public: false,
       src_project_id: required, // id of source project
@@ -2485,7 +2461,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       count: src.length > 3 ? src.length : undefined,
       project: opts.target_project_id,
     });
-    const f = async (src_path, cb) => {
+    const f = (src_path, cb) => {
       const opts0 = misc.copy(opts);
       delete opts0.cb;
       opts0.src_path = src_path;
@@ -2495,21 +2471,30 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         misc.path_split(src_path).tail,
       );
       opts0.timeout = 90 * 1000;
-      try {
-        await webapp_client.project_client.copy_path_between_projects(opts0);
-        cb();
-      } catch (err) {
-        cb(err);
-      }
+      webapp_client.project_client
+        .copy_path_between_projects(opts0)
+        .then(() => cb())
+        .catch((err) => cb(err));
     };
-    async.mapLimit(src, 3, f, this._finish_exec(id, opts.cb));
+    await new Promise<void>((resolve, reject) => {
+      async.mapLimit(src, 3, f, (err?, output?) => {
+        this._finish_exec(id, opts.cb)(err, output);
+        if (err) {
+          reject(err);
+        } else {
+          resolve();
+        }
+      });
+    });
   }
 
+  // Returns false when the user cancels the "start project" prompt,
+  // meaning no rename took place and callers should not rewrite tabs.
   public async rename_file(opts: {
     src: string;
     dest: string;
     compute_server_id?: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     const id = misc.uuid();
     const status = `Renaming ${opts.src} to ${opts.dest}`;
     let error: any = undefined;
@@ -2518,7 +2503,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       src: opts.src,
     });
     if (!(await ensure_project_running(this.project_id, what))) {
-      return;
+      return false;
     }
 
     this.set_activity({ id, status });
@@ -2538,6 +2523,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     } finally {
       this.set_activity({ id, stop: "", error });
     }
+    return error == null;
   }
 
   // return true if exists and is a directory
@@ -2556,18 +2542,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  // Returns false when the user cancels the "start project" prompt,
+  // meaning no move took place and callers should not rewrite tabs.
   public async move_files(opts: {
     src: string[];
     dest: string;
     compute_server_id?: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     if (
       !(await ensure_project_running(
         this.project_id,
         "move " + opts.src.join(", "),
       ))
     ) {
-      return;
+      return false;
     }
     const id = misc.uuid();
     const status = `Moving ${opts.src.length} ${misc.plural(
@@ -2591,7 +2579,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       error = err;
     } finally {
       this.set_activity({ id, stop: "", error });
+      if (error) throw error;
     }
+    return true;
   }
 
   private checkForSandboxError(message): boolean {
@@ -2609,17 +2599,19 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     return false;
   }
 
+  // Returns false when the user cancels the "start project" prompt or
+  // the operation fails, so callers can avoid closing tabs prematurely.
   public async delete_files(opts: {
     paths: string[];
     compute_server_id?: number;
-  }): Promise<void> {
+  }): Promise<boolean> {
     let mesg;
     opts = defaults(opts, {
       paths: required,
       compute_server_id: this.get_store()?.get("compute_server_id") ?? 0,
     });
     if (opts.paths.length === 0) {
-      return;
+      return false;
     }
 
     if (
@@ -2627,7 +2619,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         "Deleting files is not allowed in a sandbox project.   Create your own private project in the Projects tab in the upper left.",
       )
     ) {
-      return;
+      return false;
     }
 
     if (
@@ -2636,7 +2628,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         `delete ${opts.paths.join(", ")}`,
       ))
     ) {
-      return;
+      return false;
     }
 
     const id = misc.uuid();
@@ -2661,12 +2653,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         status: `Successfully deleted ${mesg}.`,
         stop: "",
       });
+      return true;
     } catch (err) {
       this.set_activity({
         id,
         error: `Error deleting ${mesg} -- ${err}`,
         stop: "",
       });
+      return false;
     }
   }
 

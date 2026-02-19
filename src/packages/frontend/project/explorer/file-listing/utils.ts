@@ -3,8 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { ProjectActions } from "@cocalc/frontend/project_actions";
-import { file_actions } from "@cocalc/frontend/project_store";
+import type { FileAction } from "@cocalc/frontend/project_actions";
+import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 
 export const TERM_MODE_CHAR = "/";
 
@@ -26,7 +26,7 @@ type Extension =
   | "py"
   | "sage-chat";
 
-// default extensions, in their order of precendence
+// default extensions, in their order of precedence
 // the order of these buttons also determines the precedence of suggested file extensions
 // see also @cocalc/frontend/project-files.ts
 export const EXTs: ReadonlyArray<Extension> = Object.freeze([
@@ -49,7 +49,7 @@ export const EXTs: ReadonlyArray<Extension> = Object.freeze([
 ]);
 
 export function default_ext(
-  disabled_ext: { includes: (s: string) => boolean } | undefined
+  disabled_ext: { includes: (s: string) => boolean } | undefined,
 ): Extension {
   if (disabled_ext != null) {
     for (const ext of EXTs) {
@@ -77,14 +77,14 @@ export function full_path_text(file_search: string, disabled_ext: string[]) {
 }
 
 export function generate_click_for(
-  file_action_name: string,
+  file_action_name: FileAction,
   full_path: string,
-  project_actions: ProjectActions
+  project_actions: ProjectActions,
 ) {
   return (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (!file_actions[file_action_name].allows_multiple_files) {
+    if (!FILE_ACTIONS[file_action_name].allows_multiple_files) {
       project_actions.set_all_files_unchecked();
     }
     project_actions.set_file_checked(full_path, true);

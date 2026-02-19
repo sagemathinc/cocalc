@@ -173,6 +173,7 @@ export const FileListing: React.FC<Props> = ({
           setStarredPath(normalizedPath, starState);
         }}
         dimFileExtensions={dimFileExtensions}
+        checkedCount={checked_files.size}
       />
     );
   }

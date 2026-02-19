@@ -69,7 +69,7 @@ const COURSE_MENUS = {
     },
   },
   action: {
-    label: course.actions,
+    label: labels.actions,
     pos: 1.2,
     entries: {
       projectsActions: [
@@ -157,8 +157,8 @@ const course_configuration: CourseEditorDescription = {
 
 const course_actions: CourseEditorDescription = {
   type: "course-actions",
-  short: course.actions,
-  name: course.actions,
+  short: labels.actions,
+  name: labels.actions,
   icon: "bolt",
   component: Actions,
   commands,
