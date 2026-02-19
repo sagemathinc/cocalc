@@ -118,8 +118,25 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   // to connect to a stale (non-existent) kernel connection file.
   private watchJupyterStore = (): void => {
     const store = this.jupyter_actions.store;
+    const projects = this.redux.getStore("projects");
     let connection_file = store.get("connection_file");
     let backend_state = store.get("backend_state");
+    let project_state = projects?.getIn([
+      "project_map",
+      this.project_id,
+      "state",
+      "state",
+    ]);
+
+    const syncShellFrames = (): void => {
+      for (const id in this._get_leaf_ids()) {
+        const node = this._get_frame_node(id);
+        if (node?.get("type") === "shell") {
+          this.setShellFrameCommand(id);
+        }
+      }
+    };
+
     store.on("change", () => {
       // sync read only state -- source of truth is jupyter_actions.store
       const read_only = store.get("read_only");
@@ -137,13 +154,28 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       }
       connection_file = c;
       backend_state = b;
-      for (const id in this._get_leaf_ids()) {
-        const node = this._get_frame_node(id);
-        if (node?.get("type") === "shell") {
-          this.setShellFrameCommand(id);
-        }
-      }
+      syncShellFrames();
     });
+
+    // Project run-state is tracked in the projects store, not jupyter store.
+    // Watch it too so refreshed pages can't keep stale shell command metadata.
+    projects?.on("change", () => {
+      const p = projects.getIn([
+        "project_map",
+        this.project_id,
+        "state",
+        "state",
+      ]);
+      if (p === project_state) {
+        return;
+      }
+      project_state = p;
+      syncShellFrames();
+    });
+
+    // Initial sync on page load so existing shell frames are reconciled
+    // immediately with current project/kernel state.
+    syncShellFrames();
   };
 
   public focus(id?: string): void {
