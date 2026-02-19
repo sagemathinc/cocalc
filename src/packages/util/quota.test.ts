@@ -13,7 +13,7 @@ extend it to test whatever you changed too.  In one terminal:
 
 and in another:
 
-.../packages/util$ ../node_modules/.bin/jest dist/quota.test.js  [--watch]
+.../packages/util$ pnpm exec jest dist/quota.test.js  [--watch]
 
 
 Also generally do this:

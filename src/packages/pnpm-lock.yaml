@@ -75,6 +75,8 @@ importers:
         specifier: ^18.16.14
         version: 18.19.122
 
+  api-client/dist-esm: {}
+
   assets:
     dependencies:
       jquery:
@@ -178,6 +180,8 @@ importers:
       '@types/node':
         specifier: ^18.16.14
         version: 18.19.122
+
+  comm/dist-esm: {}
 
   conat:
     dependencies:

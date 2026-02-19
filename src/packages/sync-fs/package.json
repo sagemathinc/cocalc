@@ -29,7 +29,7 @@
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "../node_modules/.bin/tsc --build && ../node_modules/.bin/tsc -p tsconfig-esm.json && echo '{\"type\":\"module\"}' > dist-esm/package.json",
+    "build": "pnpm exec tsc --build && pnpm exec tsc -p tsconfig-esm.json && echo '{\"type\":\"module\"}' > dist-esm/package.json",
     "clean": "rm -rf node_modules dist dist-esm",
     "test": "pnpm exec jest --forceExit --runInBand",
     "depcheck": "pnpx depcheck"

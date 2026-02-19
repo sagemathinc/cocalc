@@ -3,20 +3,38 @@
   "version": "0.1.0",
   "description": "Communication between project and frontend app support",
   "exports": {
-    "./*": "./dist/*.js",
-    "./websocket/*": "./dist/websocket/*.js",
-    "./project-status/*": "./dist/project-status/*.js",
-    "./project-info/*": "./dist/project-info/*.js"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist-esm/*.js",
+      "default": "./dist/*.js"
+    },
+    "./websocket/*": {
+      "types": "./dist/websocket/*.d.ts",
+      "import": "./dist-esm/websocket/*.js",
+      "default": "./dist/websocket/*.js"
+    },
+    "./project-status/*": {
+      "types": "./dist/project-status/*.d.ts",
+      "import": "./dist-esm/project-status/*.js",
+      "default": "./dist/project-status/*.js"
+    },
+    "./project-info/*": {
+      "types": "./dist/project-info/*.d.ts",
+      "import": "./dist-esm/project-info/*.js",
+      "default": "./dist/project-info/*.js"
+    }
   },
   "files": [
     "dist/**",
+    "dist-esm/**",
     "README.md",
     "package.json",
     "tsconfig.json"
   ],
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "../node_modules/.bin/tsc --build",
+    "build": "pnpm exec tsc --build && pnpm exec tsc -p tsconfig-esm.json && echo '{\"type\":\"module\"}' > dist-esm/package.json",
+    "clean": "rm -rf node_modules dist dist-esm",
     "depcheck": "pnpx depcheck --ignores @types/node"
   },
   "author": "SageMath, Inc.",
