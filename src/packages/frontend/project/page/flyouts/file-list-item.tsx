@@ -17,16 +17,11 @@ import {
 import { A, Icon, IconName } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import {
-  ACTION_BUTTONS_DIR,
-  ACTION_BUTTONS_FILE,
-  ACTION_BUTTONS_MULTI,
-  isDisabledSnapshots,
-} from "@cocalc/frontend/project/explorer/action-bar";
 import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
+import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
 import { url_href } from "@cocalc/frontend/project/utils";
-import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import {
   filename_extension,
   human_readable_size,
@@ -132,7 +127,7 @@ interface FileListItemProps {
   itemStyle?: CSS;
   mode: "files" | "log" | "active";
   multiline?: boolean;
-  onChecked?: (state: boolean) => void;
+  onChecked?: (state: boolean, e?: React.MouseEvent) => void;
   onClick?: (e?: React.MouseEvent) => void;
   onClose?: (e: React.MouseEvent | undefined, name: string) => void;
   onMouseDown?: (e: React.MouseEvent, name: string) => void;
@@ -295,7 +290,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         onClick={(e: React.MouseEvent) => {
           e?.stopPropagation();
           if (onChecked != null) {
-            onChecked?.(!selected);
+            onChecked?.(!selected, e);
           } else {
             onClick?.(e);
           }
@@ -410,59 +405,19 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     );
   }
 
-  function makeContextMenuEntries(
-    ctx: NonNullable<MenuProps["items"]>,
-    item: Item,
-    multiple: boolean,
-  ) {
-    const { isdir, name: fileName } = item;
-    const actionNames = multiple
-      ? ACTION_BUTTONS_MULTI
-      : isdir
-        ? ACTION_BUTTONS_DIR
-        : ACTION_BUTTONS_FILE;
-    for (const key of actionNames) {
-      if (key === "download" && !item.isdir) continue;
-      const disabled =
-        isDisabledSnapshots(key) &&
-        (current_path?.startsWith(".snapshots") ?? false);
-
-      const { name, icon, hideFlyout } = FILE_ACTIONS[key];
-      if (hideFlyout) return;
-
-      ctx.push({
-        key,
-        label: intl.formatMessage(name),
-        icon: <Icon name={icon} />,
-        disabled,
-        onClick: () => {
-          if (!multiple) {
-            // we have to check the file, otherwise the explorer's file action won't show it
-            if (onChecked != null) {
-              onChecked(true);
-            } else {
-              // if there is no handler for checking a file, only check this file (e.g. "flyout/Log")
-              if (fileName === "..") return;
-              const pathFn = path_to_file(current_path, fileName);
-              actions?.set_all_files_unchecked();
-              actions?.set_file_list_checked([pathFn]);
-            }
-          }
-          actions?.set_active_tab("files");
-          actions?.set_file_action(key);
-        },
-      });
-    }
-  }
-
   function getContextMenu(): MenuProps["items"] {
     const { name, isdir, is_public, size } = item;
     const n = checked_files?.size ?? 0;
+    // Intentionally keep the current multi-selection when right-clicking another item.
+    // This avoids clearing selection due to imprecise context-clicks; follow-up dialogs
+    // explicitly confirm and show which files are affected.
     const multiple = n > 1;
 
     const sizeStr = size ? human_readable_size(size) : "";
     const nameStr = trunc_middle(item.name, 30);
-    const typeStr = isdir ? "Folder" : "File";
+    const typeStr = intl.formatMessage(labels.file_or_folder, {
+      isDir: String(!!isdir),
+    });
 
     const ctx: NonNullable<MenuProps["items"]> = [];
 
@@ -471,7 +426,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         key: "header",
         icon: <Icon name={"files"} />,
         label: `${n} ${plural(n, "file")}`,
-        style: { fontWeight: "bold" },
+        disabled: true,
+        style: { fontWeight: "bold", cursor: "default" },
       });
     } else {
       ctx.push({
@@ -479,29 +435,64 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         icon: <Icon name={isdir ? "folder-open" : "file"} />,
         label: `${typeStr} ${nameStr}${sizeStr ? ` (${sizeStr})` : ""}`,
         title: `${name}`,
-        style: { fontWeight: "bold" },
+        disabled: true,
+        style: { fontWeight: "bold", cursor: "default" },
       });
       ctx.push({
         key: "open",
         icon: <Icon name="edit-filled" />,
-        label: isdir ? "Open folder" : "Open file",
+        label: intl.formatMessage(labels.open_file_or_folder, {
+          isDir: String(!!isdir),
+        }),
         onClick: () => onClick?.(),
       });
     }
 
     ctx.push({ key: "divider-header", type: "divider" });
 
-    if (is_public && typeof onPublic === "function") {
+    // the file or directory actions
+    ctx.push(
+      ...buildFileActionItems({
+        isdir: !!item.isdir,
+        intl,
+        multiple,
+        disableActions: student_project_functionality.disableActions,
+        inSnapshots: current_path?.startsWith(".snapshots") ?? false,
+        triggerFileAction: (action) => {
+          // Only override selection in single-item mode. In multi mode we preserve
+          // the existing checked set (see note above).
+          if (!multiple) {
+            if (onChecked != null) {
+              onChecked(true);
+            } else {
+              if (item.name === "..") return;
+              const pathFn = path_to_file(current_path, item.name);
+              actions?.set_all_files_unchecked();
+              actions?.set_file_list_checked([pathFn]);
+            }
+          }
+          actions?.set_file_action(action);
+        },
+      }),
+    );
+
+    // Publish/share entry — always shown for single files, with state awareness
+    if (
+      !multiple &&
+      typeof onPublic === "function" &&
+      !student_project_functionality.disableActions
+    ) {
       ctx.push({
         key: "public",
-        label: "Item is published",
+        label: intl.formatMessage(labels.publish_status, {
+          isPublished: String(!!is_public),
+          isDir: String(!!isdir),
+        }),
         icon: <Icon name="share-square" />,
+        disabled: current_path?.startsWith(".snapshots") ?? false,
         onClick: () => onPublic?.(),
       });
     }
-
-    // the file or directory actions
-    makeContextMenuEntries(ctx, item, multiple);
 
     // view/download buttons at the bottom
     const showDownload = !student_project_functionality.disableActions;
@@ -517,13 +508,13 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         ctx.push({
           key: "view",
           icon: <Icon name="eye" />,
-          label: <A href={url}>View file</A>,
+          label: <A href={url}>{intl.formatMessage(labels.view_file)}</A>,
         });
       }
 
       ctx.push({
         key: "download",
-        label: "Download",
+        label: intl.formatMessage(labels.download),
         icon: <Icon name="cloud-download" />,
         onClick: () => {
           actions?.download_file({ path: full_path, log: true });

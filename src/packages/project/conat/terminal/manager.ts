@@ -34,6 +34,8 @@ export function pidToPath(pid: number): string | undefined {
 export class TerminalManager {
   private services: { [termPath: string]: ConatService } = {};
   private sessions: { [termPath: string]: Session } = {};
+  private options: { [termPath: string]: CreateTerminalOptions | undefined } =
+    {};
   private computeServers?: ComputeServerManager;
 
   constructor() {
@@ -52,6 +54,7 @@ export class TerminalManager {
       service.close();
       delete this.services[termPath];
       delete this.sessions[termPath];
+      delete this.options[termPath];
     }
   };
 
@@ -65,6 +68,7 @@ export class TerminalManager {
     }
     this.services = {};
     this.sessions = {};
+    this.options = {};
     this.computeServers.removeListener(
       "change",
       this.handleComputeServersChange,
@@ -75,7 +79,6 @@ export class TerminalManager {
 
   private getSession = async (
     termPath: string,
-    options,
     noCreate?: boolean,
   ): Promise<Session> => {
     const cur = this.sessions[termPath];
@@ -85,6 +88,7 @@ export class TerminalManager {
     if (noCreate) {
       throw Error("no terminal session");
     }
+    const options = this.options[termPath];
     await this.createTerminal({ ...options, termPath });
     const session = this.sessions[termPath];
     if (session == null) {
@@ -97,20 +101,24 @@ export class TerminalManager {
 
   createTerminalService = reuseInFlight(
     async (termPath: string, opts?: CreateTerminalOptions) => {
+      if (opts != null) {
+        this.options[termPath] = opts;
+      }
       if (this.services[termPath] != null) {
+        if (opts != null) {
+          await this.createTerminal({ ...opts, termPath });
+        }
         return;
       }
-      let options: any = undefined;
 
-      const getSession = async (options, noCreate?) =>
-        await this.getSession(termPath, options, noCreate);
+      const getSession = async (noCreate?) =>
+        await this.getSession(termPath, noCreate);
 
       const impl = {
         create: async (
           opts: CreateTerminalOptions,
         ): Promise<{ success: "ok"; note?: string; ephemeral?: boolean }> => {
-          // save options to reuse.
-          options = opts;
+          this.options[termPath] = opts;
           const note = await this.createTerminal({ ...opts, termPath });
           return { success: "ok", note };
         },
@@ -120,25 +128,25 @@ export class TerminalManager {
           if (typeof data != "string") {
             throw Error(`data must be a string -- ${JSON.stringify(data)}`);
           }
-          const session = await getSession(options);
+          const session = await getSession();
           await session.write(data);
         },
 
         restart: async () => {
-          const session = await getSession(options);
+          const session = await getSession();
           await session.restart();
         },
 
         cwd: async () => {
-          const session = await getSession(options);
+          const session = await getSession();
           return await session.getCwd();
         },
 
         kill: async () => {
           try {
-            const session = await getSession(options, true);
+            const session = await getSession(true);
             await session.kill();
-            session.close();
+            this.closeTerminal(termPath);
           } catch {
             return;
           }
@@ -150,7 +158,7 @@ export class TerminalManager {
           browser_id: string;
           kick?: boolean;
         }) => {
-          const session = await getSession(options);
+          const session = await getSession();
           session.setSize(opts);
         },
 
@@ -165,6 +173,7 @@ export class TerminalManager {
         this.sessions[termPath]?.close();
         delete this.sessions[termPath];
         delete this.services[termPath];
+        delete this.options[termPath];
       });
 
       this.services[termPath] = server;

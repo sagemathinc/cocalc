@@ -186,9 +186,10 @@ export function useEditorRedux<State>(editor: {
     let is_mounted = true;
     let unsubscribe: (() => void) | undefined;
 
-    const update = (obj) => {
-      if (obj == null || !is_mounted) return;
-      storeRef.current = obj;
+    const update = () => {
+      if (!is_mounted) return;
+      const obj = storeRef.current;
+      if (obj == null) return;
       const fields = trackedFieldsRef.current;
       if (fields.size === 0) return;
       let changed = false;
@@ -207,7 +208,7 @@ export function useEditorRedux<State>(editor: {
 
     if (store != null) {
       store.on("change", update);
-      update(store);
+      update();
     } else {
       const g = () => {
         if (!is_mounted) {
@@ -218,7 +219,7 @@ export function useEditorRedux<State>(editor: {
         if (store != null) {
           unsubscribe?.();
           storeRef.current = store;
-          update(store); // may have missed an initial change
+          update(); // may have missed an initial change
           store.on("change", update);
         }
       };
@@ -333,11 +334,11 @@ export function useRedux(
     let is_mounted = true;
     set_value(() => last_value);
 
-    const update = (obj) => {
-      if (obj == null || !is_mounted) return;
+    const update = () => {
+      if (!is_mounted || store == null) return;
       const subpath =
         target.kind === "named" ? target.path.slice(1) : target.path;
-      const new_value = obj.getIn(subpath as any);
+      const new_value = store.getIn(subpath as any);
       if (last_value !== new_value) {
         last_value = new_value;
         set_value(() => new_value);
@@ -361,7 +362,7 @@ export function useRedux(
         };
       }
       store.on("change", update);
-      update(store);
+      update();
       return () => {
         is_mounted = false;
         store?.removeListener("change", update);
@@ -371,7 +372,7 @@ export function useRedux(
     if (target.kind === "project") {
       store = redux.getProjectStore(target.project_id);
       store.on("change", update);
-      update(store);
+      update();
       return () => {
         is_mounted = false;
         store?.removeListener("change", update);
@@ -380,15 +381,15 @@ export function useRedux(
 
     let editorStore = redux.getEditorStore(target.project_id, target.filename);
     let unsubscribe: (() => void) | undefined;
-    const f = (obj) => {
-      if (obj == null || !is_mounted) return;
-      const new_value = obj.getIn(target.path);
+    const f = () => {
+      if (editorStore == null || !is_mounted) return;
+      const new_value = editorStore.getIn(target.path as any);
       if (last_value !== new_value) {
         last_value = new_value;
         set_value(() => new_value);
       }
     };
-    f(editorStore);
+    f();
     if (editorStore != null) {
       editorStore.on("change", f);
     } else {
@@ -400,7 +401,7 @@ export function useRedux(
         editorStore = redux.getEditorStore(target.project_id, target.filename);
         if (editorStore != null) {
           unsubscribe?.();
-          f(editorStore); // may have missed an initial change
+          f(); // may have missed an initial change
           editorStore.on("change", f);
         }
       };

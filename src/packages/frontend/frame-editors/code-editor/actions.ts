@@ -906,7 +906,7 @@ export class Actions<
       delete this._cm[id];
     }
 
-    if (type != "terminal") {
+    if (type != "terminal" && type != "shell") {
       this.terminals.close_terminal(id);
     }
 
@@ -1500,7 +1500,8 @@ export class Actions<
   _get_most_recent_shell_id(command?: string): string | undefined {
     return this._get_most_recent_active_frame_id(
       (node) =>
-        node.get("type").slice(0, 8) == "terminal" &&
+        (node.get("type").slice(0, 8) == "terminal" ||
+          node.get("type") == "shell") &&
         node.get("command") == command,
     );
   }
@@ -2668,10 +2669,11 @@ export class Actions<
   }
 
   public async terminal(id: string, no_switch: boolean = false): Promise<void> {
-    // Check if there is already a terminal with the given command,
-    // and if so, just focus it.
-    // (TODO: might also specify args.)
-    let shell_id: string | undefined = this._get_most_recent_shell_id();
+    // Check if there is already a plain terminal frame, and if so, focus it.
+    // Use _get_most_recent_terminal_id (not _get_most_recent_shell_id) to
+    // avoid matching shell frames in "kernel not running" state that have
+    // their command cleared.
+    let shell_id: string | undefined = this._get_most_recent_terminal_id();
     if (shell_id == null) {
       // No such terminal already, so we make one and focus it.
       shell_id = this.split_frame("col", id, "terminal");
@@ -2694,14 +2696,17 @@ export class Actions<
   }
 
   public async clear(id: string) {
-    // this is for terminals only
+    // Handles both "terminal" frames and "shell" frames (Jupyter console).
+    // Shell frames are semantically terminals (they use TerminalFrame and
+    // ConnectedTerminal), just with a different frame type string.
     const node = this._get_frame_node(id);
     if (node == null) return;
     const type = node.get("type");
-    if (type == "terminal") {
+    if (type === "terminal" || type === "shell") {
       this.clear_terminal_command(id);
-      if (node.get("command") == "jupyter") {
-        // not resetting jupyter
+      if (type === "shell" || node.get("command") === "jupyter") {
+        // For jupyter console, just kill+reconnect — don't send "reset"
+        // which is a bash-specific command and doesn't apply here.
         return;
       }
       // we also wait until it is "back again with a prompt"

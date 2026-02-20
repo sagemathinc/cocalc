@@ -346,6 +346,11 @@ export const QUOTA_SPEC: QuotaSpec = {
     color: GOOGLE_AI_COLOR,
     category: "ai",
   },
+  "google-gemini-3.1-pro-preview-8k": {
+    display: LLM_USERNAMES["gemini-3.1-pro-preview-8k"],
+    color: GOOGLE_AI_COLOR,
+    category: "ai",
+  },
   "xai-grok-4-1-fast-non-reasoning-16k": {
     display: LLM_USERNAMES["grok-4-1-fast-non-reasoning-16k"],
     color: XAI_COLOR,
@@ -418,6 +423,11 @@ export const QUOTA_SPEC: QuotaSpec = {
   },
   "anthropic-claude-4-5-sonnet-8k": {
     display: LLM_USERNAMES["claude-4-5-sonnet-8k"],
+    color: ANTHROPIC_COLOR,
+    category: "ai",
+  },
+  "anthropic-claude-4-6-sonnet-8k": {
+    display: LLM_USERNAMES["claude-4-6-sonnet-8k"],
     color: ANTHROPIC_COLOR,
     category: "ai",
   },

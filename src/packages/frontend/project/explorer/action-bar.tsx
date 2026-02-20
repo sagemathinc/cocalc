@@ -14,7 +14,8 @@ import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
-import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
+import type { FileAction } from "@cocalc/frontend/project_actions";
+import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -209,13 +210,13 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
   }
 
-  function render_action_button(name: string): React.JSX.Element {
+  function render_action_button(name: FileAction): React.JSX.Element {
     const disabled =
       isDisabledSnapshots(name) &&
       (props.current_path != null
         ? props.current_path.startsWith(".snapshots")
         : undefined);
-    const obj = file_actions[name];
+    const obj = FILE_ACTIONS[name];
     const handle_click = (_e: React.MouseEvent) => {
       props.actions.set_file_action(name);
     };
@@ -320,35 +321,28 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   );
 };
 
-export const ACTION_BUTTONS_DIR = [
+// Ordered by frequency of use — most common first, share last (often the
+// final step).  "download" is listed first because it is skipped in
+// context-menus for non-directories and handled separately there.
+const ACTION_BUTTONS_SINGLE = [
   "download",
-  "compress",
-  "delete",
   "rename",
-  "duplicate",
-  "move",
   "copy",
+  "move",
+  "delete",
+  "duplicate",
+  "compress",
   "share",
 ] as const;
 
-export const ACTION_BUTTONS_FILE = [
-  "download",
-  "compress",
-  "delete",
-  "rename",
-  "duplicate",
-  "move",
-  "copy",
-  "share",
-] as const;
+export const ACTION_BUTTONS_FILE = ACTION_BUTTONS_SINGLE;
+export const ACTION_BUTTONS_DIR = ACTION_BUTTONS_SINGLE;
 
-export const ACTION_BUTTONS_MULTI = [
-  "download",
-  "compress",
-  "delete",
-  "move",
-  "copy",
-] as const;
+// Multi-selection: omit single-file-only actions (rename, duplicate, share)
+const SINGLE_ONLY = ["rename", "duplicate", "share"] as const;
+export const ACTION_BUTTONS_MULTI = ACTION_BUTTONS_SINGLE.filter(
+  (a) => !(SINGLE_ONLY as readonly string[]).includes(a),
+);
 
 export function isDisabledSnapshots(name: string) {
   return [

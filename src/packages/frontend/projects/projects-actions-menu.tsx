@@ -59,7 +59,10 @@ export function ProjectActionsMenu({ record }: Props) {
     { project_id: record.project_id },
     "project_log",
   );
-
+  const directory_listings = useTypedRedux(
+    { project_id: record.project_id },
+    "directory_listings",
+  );
   // Initialize project_log when menu opens if not already loaded
   function handleOpenChange(newOpen: boolean) {
     setOpen(newOpen);
@@ -74,7 +77,12 @@ export function ProjectActionsMenu({ record }: Props) {
     "owner";
 
   // Get recent files - only when menu is open
-  const recentFiles: OpenedFile[] = useRecentFiles(project_log, open ? 100 : 0);
+  const recentFiles: OpenedFile[] = useRecentFiles(
+    project_log,
+    open ? 100 : 0,
+    "",
+    directory_listings,
+  );
 
   // Get starred files - only when menu is open
   const { starred } = useStarredFilesManager(record.project_id, open);
