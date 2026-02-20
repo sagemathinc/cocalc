@@ -226,19 +226,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     }
   };
 
-  private isJupyterConsole = (): boolean => {
-    return this.command === "jupyter" && this.args?.[0] === "console";
-  };
-
   close = (): void => {
     if (this.isClosed()) {
       return;
-    }
-    // A plain close only disconnects the browser-side terminal. For
-    // Jupyter-console frames we must also kill the backend process so
-    // reopening creates a fresh console instead of reconnecting stale state.
-    if (this.isJupyterConsole()) {
-      void this.conn?.api.kill().catch(() => {});
     }
     this.set_connection_status("disconnected");
     this.state = "closed";

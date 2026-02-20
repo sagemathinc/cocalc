@@ -37,6 +37,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   protected doctype: string = "none"; // actual document is managed elsewhere
   public jupyter_actions: JupyterActions;
   private frame_actions: { [id: string]: NotebookFrameActions } = {};
+  private closeJupyterStoreWatchers: (() => void) | undefined;
 
   _raw_default_frame_tree(): FrameTree {
     return { type: "jupyter_cell_notebook" };
@@ -57,6 +58,8 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   }
 
   public close(): void {
+    this.closeJupyterStoreWatchers?.();
+    this.closeJupyterStoreWatchers = undefined;
     this.close_jupyter_actions();
     super.close();
   }
@@ -117,6 +120,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   // Without this watcher, a page refresh would leave shell frames trying
   // to connect to a stale (non-existent) kernel connection file.
   private watchJupyterStore = (): void => {
+    this.closeJupyterStoreWatchers?.();
     const store = this.jupyter_actions.store;
     const projects = this.redux.getStore("projects");
     let connection_file = store.get("connection_file");
@@ -137,7 +141,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       }
     };
 
-    store.on("change", () => {
+    const onJupyterStoreChange = (): void => {
       // sync read only state -- source of truth is jupyter_actions.store
       const read_only = store.get("read_only");
       if (read_only != this.store.get("read_only")) {
@@ -155,11 +159,12 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       connection_file = c;
       backend_state = b;
       syncShellFrames();
-    });
+    };
+    store.on("change", onJupyterStoreChange);
 
     // Project run-state is tracked in the projects store, not jupyter store.
     // Watch it too so refreshed pages can't keep stale shell command metadata.
-    projects?.on("change", () => {
+    const onProjectsStoreChange = (): void => {
       const p = projects.getIn([
         "project_map",
         this.project_id,
@@ -171,7 +176,13 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       }
       project_state = p;
       syncShellFrames();
-    });
+    };
+    projects?.on("change", onProjectsStoreChange);
+
+    this.closeJupyterStoreWatchers = (): void => {
+      store.removeListener("change", onJupyterStoreChange);
+      projects?.removeListener("change", onProjectsStoreChange);
+    };
 
     // Initial sync on page load so existing shell frames are reconciled
     // immediately with current project/kernel state.
@@ -348,21 +359,17 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
   // Override to create "shell" type frames (shown as "Console" in the title
   // bar) instead of generic "terminal" frames.
   public async shell(id: string, no_switch: boolean = false): Promise<void> {
-    const spec = await this.get_shell_spec(id);
-    if (spec == null) {
-      // No kernel connection yet — fall back to generic terminal
-      return super.shell(id, no_switch);
-    }
-    const { command, args } = spec;
-    // Reuse an existing console frame if one exists
-    let shell_id: string | undefined = this._get_most_recent_shell_id(command);
+    // Only reuse/create true "shell" frames for Jupyter Console.
+    // If kernel/project is not running, setShellFrameCommand() clears command/args
+    // so TerminalFrame renders the "Kernel not running" placeholder instead of
+    // opening a plain terminal.
+    let shell_id: string | undefined =
+      this._get_most_recent_active_frame_id_of_type("shell");
     if (shell_id == null) {
-      shell_id = this.split_frame("col", id, "shell", { command, args });
+      shell_id = this.split_frame("col", id, "shell");
       if (!shell_id) return;
-    } else {
-      this.terminals.set_command(shell_id, command, args);
-      this.set_frame_tree({ id: shell_id, command, args });
     }
+    this.setShellFrameCommand(shell_id);
     if (no_switch) return;
     this.unset_frame_full();
     await delay(1);
