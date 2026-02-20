@@ -31,6 +31,7 @@ type Group = (typeof GROUPS)[number];
 // names of old images, that won't trigger the "upgrade banner", pointing to the most recent end-of-life image of that series
 export const DISMISS_IMG_1804 = "ubuntu1804";
 export const DISMISS_IMG_2004 = "ubuntu2004-eol";
+export const DISMISS_IMG_2204 = "ubuntu2204-eol";
 // names of old images triggering the upgrade banner to 22.04
 export const UBUNTU2004_DEPRECATED = "ubuntu2004";
 export const UBUNTU2004_DEV = "ubuntu2004-dev";
@@ -38,6 +39,7 @@ export const UBUNTU2204_DEV = "ubuntu2204-dev";
 // new Ubuntu 24.04 image, for development
 export const UBUNTU2404_DEV = "ubuntu2404-dev";
 export const UBUNTU2204 = "ubuntu2204";
+export const UBUNTU2204_PREVIOUS = "ubuntu2204-previous";
 
 export interface ComputeImage {
   id: string; // the key under which it is stored in the database
@@ -75,6 +77,13 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     short: "Ubuntu 22.04 (until June 2025)",
     descr:
       "Ubuntu 22.04-based software stack, superseded by 24.04 in June 2025",
+    group: "Main",
+  },
+  [DISMISS_IMG_2204]: {
+    order: 1,
+    title: "Ubuntu 22.04 (EndOfLife)",
+    short: "Ubuntu 22.04 (EndOfLife)",
+    descr: "Reached end of life in June 2025",
     group: "Main",
   },
   [UBUNTU2404_DEV]: {
@@ -123,13 +132,19 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     group: "Main",
     hidden: true, // any project that is set to "ubuntu2004" will be shown a banner → either update to ubuntu2204 or keep ubuntu2004-eol
   },
+  "ubuntu2404-2025-08-27": {
+    title: "Ubuntu 24.04 (2025-08-27)",
+    short: "2025-08-27",
+    descr: "Frozen on 2025-08-27 and no longer updated",
+    group: "Ubuntu 24.04",
+  },
   "ubuntu2404-2025-06-26": {
     title: "Ubuntu 24.04 (2025-06-26)",
     short: "2025-06-26",
     descr: "Frozen on 2025-06-26 and no longer updated",
     group: "Ubuntu 24.04",
   },
-  "ubuntu2204-previous": {
+  [UBUNTU2204_PREVIOUS]: {
     title: "Ubuntu 22.04 (Previous)",
     short: "Previous",
     descr: "Slightly behind 22.04 (Current)",
