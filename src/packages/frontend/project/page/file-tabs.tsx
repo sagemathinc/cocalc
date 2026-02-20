@@ -8,7 +8,8 @@ Tabs for the open files in a project.
 */
 
 import type { MenuProps, TabsProps } from "antd";
-import { Dropdown, Tabs } from "antd";
+import { Button, Dropdown, Tabs } from "antd";
+import { useState } from "react";
 import { useIntl } from "react-intl";
 
 import {
@@ -30,8 +31,9 @@ import {
   type OpenedFile,
 } from "@cocalc/frontend/projects/util";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { file_tab_labels } from "../file-tab-labels";
-import { FileTab } from "./file-tab";
+import { FileTab, FIXED_PROJECT_TABS } from "./file-tab";
 
 const MIN_WIDTH = 48;
 
@@ -76,6 +78,7 @@ function keyToPath(s: string): string {
 export default function FileTabs({ openFiles, project_id, activeTab }) {
   const intl = useIntl();
   const actions = useActions({ project_id });
+  const [recentFilesMenuOpen, setRecentFilesMenuOpen] = useState(false);
   const project_log = useTypedRedux({ project_id }, "project_log");
   const directory_listings = useTypedRedux(
     { project_id },
@@ -105,6 +108,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     paths.push(path);
     keys.push(pathToKey(path));
   });
+  const openPathSet = new Set(paths);
 
   const labels = file_tab_labels(paths);
   const items: TabsProps["items"] = [];
@@ -170,7 +174,31 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
   }
 
   function getRecentFilesMenu(): MenuProps {
-    const menuItems: MenuProps["items"] = recentFiles.map(
+    const closedRecentFiles = recentFiles.filter(
+      (entry: OpenedFile) => !openPathSet.has(entry.filename),
+    );
+    const actionItems: MenuProps["items"] = [
+      {
+        key: "browse-existing-files",
+        icon: <Icon name={FIXED_PROJECT_TABS.files.icon} />,
+        label: intl.formatMessage(i18nLabels.file_explorer),
+        onClick: () => actions?.set_active_tab("files"),
+      },
+      {
+        key: "create-new-file",
+        icon: <Icon name={FIXED_PROJECT_TABS.new.icon} />,
+        label: intl.formatMessage(i18nLabels.new_tooltip),
+        onClick: () => actions?.set_active_tab("new"),
+      },
+    ];
+
+    if (closedRecentFiles.length === 0) {
+      return {
+        items: actionItems,
+      };
+    }
+
+    const menuItems: MenuProps["items"] = closedRecentFiles.map(
       (entry: OpenedFile) => {
         const icon = file_options(entry.filename)?.icon ?? "file";
         return {
@@ -196,13 +224,53 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
           label: intl.formatMessage(i18nLabels.recent_files),
           children: menuItems,
         },
+        {
+          key: "recent-files-divider",
+          type: "divider",
+        },
+        ...actionItems,
       ],
       style: { maxHeight: "min(500px, 50vh)", overflowY: "auto" },
     };
   }
 
+  const recentFilesMenu = getRecentFilesMenu();
+
+  function renderExtra() {
+    return {
+      right: (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            marginRight: "10px",
+            marginLeft: "10px",
+          }}
+        >
+          <Dropdown
+            trigger={["click"]}
+            menu={recentFilesMenu}
+            onOpenChange={setRecentFilesMenuOpen}
+          >
+            <Button
+              type="text"
+              size="small"
+              icon={<Icon name="down-circle-o" />}
+              style={{
+                paddingInline: "10px",
+                ...(recentFilesMenuOpen
+                  ? { backgroundColor: COLORS.GRAY_LL }
+                  : {}),
+              }}
+            />
+          </Dropdown>
+        </div>
+      ),
+    };
+  }
+
   return (
-    <Dropdown trigger={["contextMenu"]} menu={getRecentFilesMenu()}>
+    <Dropdown trigger={["contextMenu"]} menu={recentFilesMenu}>
       <div style={{ width: "100%" }}>
         <SortableTabs
           items={keys}
@@ -223,6 +291,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
             items={items}
             activeKey={activeKey}
             type={"editable-card"}
+            tabBarExtraContent={renderExtra()}
             onChange={(key) => {
               if (actions == null) return;
               actions.set_active_tab(path_to_tab(keyToPath(key)));
