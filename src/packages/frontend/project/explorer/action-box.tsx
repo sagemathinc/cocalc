@@ -1,14 +1,13 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 // cSpell: ignore isdir
 
-import { Button as AntdButton, Radio, Space } from "antd";
+import { Alert as AntdAlert, Button as AntdButton, Radio, Space } from "antd";
 import * as immutable from "immutable";
 import { useState } from "react";
-import { useIntl } from "react-intl";
 
 import {
   Alert,
@@ -16,14 +15,18 @@ import {
   Checkbox,
   Col,
   Row,
-  Well,
 } from "@cocalc/frontend/antd-bootstrap";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { Icon, Loading, LoginLink } from "@cocalc/frontend/components";
+import {
+  Icon,
+  Loading,
+  LoginLink,
+  Paragraph,
+} from "@cocalc/frontend/components";
 import SelectServer from "@cocalc/frontend/compute/select-server";
-import ComputeServerTag from "@cocalc/frontend/compute/server-tag";
 import { useRunQuota } from "@cocalc/frontend/project/settings/run-quota/hooks";
-import { file_actions, ProjectActions } from "@cocalc/frontend/project_store";
+import type { FileAction } from "@cocalc/frontend/project_actions";
+import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import { SelectProject } from "@cocalc/frontend/projects/select-project";
 import ConfigureShare from "@cocalc/frontend/share/config";
 import * as misc from "@cocalc/util/misc";
@@ -37,31 +40,29 @@ import RenameFile from "./rename-file";
 
 export const PRE_STYLE = {
   marginBottom: "15px",
-  maxHeight: "80px",
+  maxHeight: "140px",
   minHeight: "34px",
   fontSize: "14px",
   fontFamily: "inherit",
-  color: "#555",
-  backgroundColor: "#eee",
+  color: COLORS.GRAY_M,
+  backgroundColor: COLORS.GRAY_LL,
   padding: "6px 12px",
 } as const;
 
-type FileAction = undefined | keyof typeof file_actions;
-
 interface ReactProps {
   checked_files: immutable.Set<string>;
-  file_action: FileAction;
+  file_action?: FileAction;
   current_path: string;
   project_id: string;
-  file_map: object;
+  file_map?: Record<string, any>;
   actions: ProjectActions;
-  displayed_listing?: object;
   //new_name?: string;
   name: string;
+  renameFormId?: string;
+  onActionChange?: (loading: boolean) => void;
 }
 
 export function ActionBox(props: ReactProps) {
-  const intl = useIntl();
   const { project_id } = useProjectContext();
   const runQuota = useRunQuota(project_id, null);
   const user_type = useTypedRedux("account", "user_type");
@@ -74,6 +75,9 @@ export function ActionBox(props: ReactProps) {
   const [copy_from_compute_server_to, set_copy_from_compute_server_to] =
     useState<"compute-server" | "project">("compute-server");
   const [move_destination, set_move_destination] = useState<string>("");
+  const [move_error, set_move_error] = useState<string>("");
+  const [copy_error, set_copy_error] = useState<string>("");
+  const [actionLoading, setActionLoading] = useState<boolean>(false);
   //const [new_name, set_new_name] = useState<string>(props.new_name ?? "");
   const [show_different_project, set_show_different_project] =
     useState<boolean>(false);
@@ -88,41 +92,27 @@ export function ActionBox(props: ReactProps) {
   }
 
   function action_key(e): void {
-    switch (e.keyCode) {
-      case 27:
-        cancel_action();
-        break;
-      case 13:
-        switch (props.file_action) {
-          case "move":
-            submit_action_move();
-            break;
-          case "copy":
-            submit_action_copy();
-            break;
-        }
+    if (e.keyCode === 27) {
+      cancel_action();
     }
   }
 
   function render_selected_files_list(): React.JSX.Element {
+    const style = {
+      ...PRE_STYLE,
+      width: "100%",
+      maxHeight: "32vh",
+      overflowY: "auto",
+      overflowX: "auto",
+    } as const;
+
     return (
-      <pre style={PRE_STYLE}>
+      <pre style={style}>
         {props.checked_files.toArray().map((name) => (
           <div key={name}>{misc.path_split(name).tail}</div>
         ))}
       </pre>
     );
-  }
-
-  function delete_click(): void {
-    const paths = props.checked_files.toArray();
-    for (const path of paths) {
-      props.actions.close_tab(path);
-    }
-    props.actions.delete_files({ paths });
-    props.actions.set_file_action();
-    props.actions.set_all_files_unchecked();
-    props.actions.fetch_directory_listing();
   }
 
   function render_delete_warning(): React.JSX.Element | undefined {
@@ -141,60 +131,75 @@ export function ActionBox(props: ReactProps) {
   }
 
   function render_delete(): React.JSX.Element | undefined {
-    const { size } = props.checked_files;
     return (
       <div>
-        <Row>
-          <Col sm={5} style={{ color: COLORS.GRAY_M }}>
-            {render_selected_files_list()}
-          </Col>
-          {render_delete_warning()}
-        </Row>
-        <Row style={{ marginBottom: "10px" }}>
-          <Col sm={12}>
-            Deleting a file immediately deletes it from the disk{" "}
-            {compute_server_id ? <>on the compute server</> : <></>} freeing up
-            space.
-            {!compute_server_id && (
-              <div>
-                Older backups of your files may still be available in the{" "}
-                <a
-                  href=""
-                  onClick={(e) => {
-                    e.preventDefault();
-                    props.actions.open_directory(".snapshots");
-                  }}
-                >
-                  ~/.snapshots
-                </a>{" "}
-                directory.
-              </div>
-            )}
-          </Col>
-        </Row>
-        <Row>
-          <Col sm={12}>
-            <Space>
-              <AntdButton onClick={cancel_action}>Cancel</AntdButton>
-              <AntdButton
-                danger
-                onClick={delete_click}
-                disabled={props.current_path === ".trash"}
+        <div style={{ color: COLORS.GRAY_M }}>
+          {render_selected_files_list()}
+        </div>
+        {render_delete_warning()}
+        <Paragraph type="secondary" style={{ marginTop: 10 }}>
+          Deleting a file immediately deletes it from the disk
+          {compute_server_id ? " on the compute server" : ""} freeing up space.
+          {!compute_server_id && (
+            <div>
+              Older backups of your files may still be available in the{" "}
+              <a
+                href=""
+                onClick={(e) => {
+                  e.preventDefault();
+                  props.actions.open_directory(".snapshots");
+                }}
               >
-                <Icon name="trash" /> Delete {size} {misc.plural(size, "Item")}
-              </AntdButton>
-            </Space>
-          </Col>
-        </Row>
+                ~/.snapshots
+              </a>{" "}
+              directory.
+            </div>
+          )}
+        </Paragraph>
       </div>
     );
   }
 
-  function move_click(): void {
-    props.actions.move_files({
-      src: props.checked_files.toArray(),
-      dest: move_destination,
-    });
+  async function move_click(): Promise<void> {
+    if (actionLoading) return;
+    set_move_error("");
+    const paths = props.checked_files.toArray();
+    const store = props.actions.get_store();
+    const openFiles = store?.get("open_files");
+    const activeTab = store?.get("active_project_tab");
+    const activePath = misc.tab_to_path(activeTab);
+    setActionLoading(true);
+    props.onActionChange?.(true);
+    let moved: boolean;
+    try {
+      moved = await props.actions.move_files({
+        src: paths,
+        dest: move_destination,
+      });
+    } catch (err) {
+      set_move_error(`${err}`);
+      return;
+    } finally {
+      setActionLoading(false);
+      props.onActionChange?.(false);
+    }
+    if (!moved) return;
+    // Close old tabs and reopen moved files at their new paths
+    for (const path of paths) {
+      const wasOpen = !!openFiles?.has(path);
+      if (wasOpen) {
+        props.actions.close_tab(path);
+        const newPath = misc.path_to_file(
+          move_destination,
+          misc.path_split(path).tail,
+        );
+        await props.actions.open_file({
+          path: newPath,
+          foreground: path === activePath,
+          foreground_project: true,
+        });
+      }
+    }
     props.actions.set_file_action();
     props.actions.set_all_files_unchecked();
   }
@@ -211,29 +216,37 @@ export function ActionBox(props: ReactProps) {
     if (dest.charAt(dest.length - 1) === "/") {
       dest = dest.slice(0, dest.length - 1);
     }
-    return dest !== props.current_path;
+    return dest !== src_path;
   }
 
   function render_move(): React.JSX.Element {
-    const { size } = props.checked_files;
     return (
-      <div>
-        <Row>
-          <Col sm={5} style={{ color: COLORS.GRAY_M }}>
+      <form
+        id={`file-action-move-form-${props.project_id}`}
+        onSubmit={(e) => {
+          e.preventDefault();
+          if (valid_move_input()) move_click();
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            gap: 20,
+            flexWrap: "wrap",
+          }}
+        >
+          <div style={{ flex: 1, minWidth: 200, color: COLORS.GRAY_M }}>
             <h4>Move files to a directory</h4>
             {render_selected_files_list()}
-            <Space>
-              <Button onClick={cancel_action}>Cancel</Button>
-              <AntdButton
-                type="primary"
-                onClick={move_click}
-                disabled={!valid_move_input()}
-              >
-                Move {size} {misc.plural(size, "Item")}
-              </AntdButton>
-            </Space>
-          </Col>
-          <Col sm={5} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
+          </div>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 300,
+              color: COLORS.GRAY_M,
+              marginBottom: 15,
+            }}
+          >
             <h4>
               Destination:{" "}
               {move_destination == "" ? "Home directory" : move_destination}
@@ -250,32 +263,44 @@ export function ActionBox(props: ReactProps) {
               style={{ width: "100%" }}
               bodyStyle={{ maxHeight: "250px" }}
             />
-          </Col>
-        </Row>
-      </div>
+          </div>
+        </div>
+        {move_error && (
+          <AntdAlert
+            style={{ marginTop: 8, padding: "4px 10px", fontSize: "13px" }}
+            type="error"
+            message={move_error.replace(/^Error:\s*/, "")}
+            showIcon={false}
+            closable
+            onClose={() => set_move_error("")}
+          />
+        )}
+      </form>
     );
-  }
-
-  function submit_action_move(): void {
-    if (valid_move_input()) {
-      move_click();
-    }
   }
 
   function render_different_project_dialog(): React.JSX.Element | undefined {
     if (show_different_project) {
       return (
-        <Col sm={4} style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
-          <h4>Target Project</h4>
+        <div
+          style={{
+            flex: 3,
+            minWidth: 200,
+            color: COLORS.GRAY_M,
+            marginBottom: 15,
+          }}
+        >
+          <h4 style={{ minHeight: "25px", marginTop: 0 }}>Target Project</h4>
           <SelectProject
             at_top={[props.project_id]}
             value={copy_destination_project_id}
             onChange={(copy_destination_project_id) =>
               set_copy_destination_project_id(copy_destination_project_id)
             }
+            filtersPosition="below"
           />
           {render_copy_different_project_options()}
-        </Col>
+        </div>
       );
     }
   }
@@ -307,42 +332,54 @@ export function ActionBox(props: ReactProps) {
       : 0;
   }
 
-  function copy_click(): void {
+  async function copy_click(): Promise<void> {
+    if (actionLoading) return;
+    set_copy_error("");
     const destination_project_id = copy_destination_project_id;
     const destination_directory = copy_destination_directory;
     const paths = props.checked_files.toArray();
-    if (
-      destination_project_id != undefined &&
-      props.project_id !== destination_project_id
-    ) {
-      props.actions.copy_paths_between_projects({
-        public: false,
-        src_project_id: props.project_id,
-        src: paths,
-        target_project_id: destination_project_id,
-        target_path: destination_directory,
-        overwrite_newer,
-        delete_missing: delete_extra_files,
-      });
-    } else {
-      if (compute_server_id) {
-        props.actions.copy_paths({
+    setActionLoading(true);
+    props.onActionChange?.(true);
+    try {
+      if (
+        destination_project_id != undefined &&
+        props.project_id !== destination_project_id
+      ) {
+        await props.actions.copy_paths_between_projects({
+          public: false,
+          src_project_id: props.project_id,
           src: paths,
-          dest: destination_directory,
-          src_compute_server_id: compute_server_id,
-          dest_compute_server_id: getDestinationComputeServerId(),
+          target_project_id: destination_project_id,
+          target_path: destination_directory,
+          overwrite_newer,
+          delete_missing: delete_extra_files,
         });
       } else {
-        props.actions.copy_paths({
-          src: paths,
-          dest: destination_directory,
-          src_compute_server_id: 0,
-          dest_compute_server_id: dest_compute_server_id,
-        });
+        if (compute_server_id) {
+          await props.actions.copy_paths({
+            src: paths,
+            dest: destination_directory,
+            src_compute_server_id: compute_server_id,
+            dest_compute_server_id: getDestinationComputeServerId(),
+          });
+        } else {
+          await props.actions.copy_paths({
+            src: paths,
+            dest: destination_directory,
+            src_compute_server_id: 0,
+            dest_compute_server_id: dest_compute_server_id,
+          });
+        }
       }
+      props.actions.set_file_action();
+      props.actions.set_all_files_unchecked();
+    } catch (err) {
+      set_copy_error(`${err}`);
+      return;
+    } finally {
+      setActionLoading(false);
+      props.onActionChange?.(false);
     }
-
-    props.actions.set_file_action();
   }
 
   function valid_copy_input(): boolean {
@@ -395,10 +432,15 @@ export function ActionBox(props: ReactProps) {
             <div style={{ flex: 1, textAlign: "right" }}>
               <AntdButton
                 onClick={() => {
-                  const show = !show_different_project;
-                  set_show_different_project(show);
-                  if (show_different_project) {
+                  const showDifferentProject = !show_different_project;
+                  set_show_different_project(showDifferentProject);
+                  if (!showDifferentProject) {
+                    // Reset cross-project selection when switching back to this project.
+                    set_copy_destination_project_id(props.project_id);
+                    set_copy_destination_directory("");
                     set_dest_compute_server_id(0);
+                    set_delete_extra_files(undefined);
+                    set_overwrite_newer(undefined);
                   }
                 }}
               >
@@ -441,44 +483,56 @@ export function ActionBox(props: ReactProps) {
           <LoginLink />
           <Row>
             <Col sm={12}>
-              <Space>
-                <Button onClick={cancel_action}>Cancel</Button>
-                <Button bsStyle="primary" disabled={true}>
-                  <Icon name="files" /> Copy {size} {misc.plural(size, "item")}
-                </Button>
-              </Space>
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "flex-end",
+                }}
+              >
+                <Space>
+                  <Button onClick={cancel_action}>Cancel</Button>
+                  <Button bsStyle="primary" disabled={true}>
+                    <Icon name="files" /> Copy {size}{" "}
+                    {misc.plural(size, "item")}
+                  </Button>
+                </Space>
+              </div>
             </Col>
           </Row>
         </div>
       );
     } else {
       return (
-        <div>
-          <Row>
-            <Col
-              sm={show_different_project ? 4 : 5}
-              style={{ color: COLORS.GRAY_M }}
+        <form
+          id={`file-action-copy-form-${props.project_id}`}
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (valid_copy_input()) copy_click();
+          }}
+        >
+          <div style={{ display: "flex", gap: 20, flexWrap: "wrap" }}>
+            <div
+              style={{
+                flex: show_different_project ? 4 : 5,
+                minWidth: 200,
+                color: COLORS.GRAY_M,
+              }}
             >
               {render_copy_description()}
-              <Space>
-                <AntdButton onClick={cancel_action}>Cancel</AntdButton>
-                <AntdButton
-                  type="primary"
-                  onClick={copy_click}
-                  disabled={!valid_copy_input()}
-                >
-                  <Icon name="files" /> Copy {size} {misc.plural(size, "Item")}
-                </AntdButton>
-              </Space>
-            </Col>
+            </div>
             {render_different_project_dialog()}
-            <Col
-              sm={show_different_project ? 4 : 5}
-              style={{ color: COLORS.GRAY_M }}
+            <div
+              style={{
+                flex: show_different_project ? 5 : 7,
+                minWidth: 300,
+                color: COLORS.GRAY_M,
+              }}
             >
               <h4
                 style={
-                  !show_different_project ? { minHeight: "25px" } : undefined
+                  !show_different_project
+                    ? { minHeight: "25px", marginTop: 0 }
+                    : { marginTop: 0 }
                 }
               >
                 Destination:{" "}
@@ -528,16 +582,20 @@ export function ActionBox(props: ReactProps) {
                     : dest_compute_server_id
                 }
               />
-            </Col>
-          </Row>
-        </div>
+            </div>
+          </div>
+          {copy_error && (
+            <AntdAlert
+              style={{ marginTop: 8, padding: "4px 10px", fontSize: "13px" }}
+              type="error"
+              message={copy_error.replace(/^Error:\s*/, "")}
+              showIcon={false}
+              closable
+              onClose={() => set_copy_error("")}
+            />
+          )}
+        </form>
       );
-    }
-  }
-
-  function submit_action_copy(): void {
-    if (valid_copy_input()) {
-      copy_click();
     }
   }
 
@@ -547,7 +605,11 @@ export function ActionBox(props: ReactProps) {
     if (!path) {
       return <></>;
     }
-    const public_data = props.file_map[misc.path_split(path).tail];
+    const file_map = props.file_map;
+    if (file_map == undefined) {
+      return <Loading />;
+    }
+    const public_data = file_map[misc.path_split(path).tail];
     if (public_data == undefined) {
       // directory listing not loaded yet... (will get re-rendered when loaded)
       return <Loading />;
@@ -575,17 +637,38 @@ export function ActionBox(props: ReactProps) {
   ): React.JSX.Element | undefined {
     switch (action) {
       case "compress":
-        return <CreateArchive />;
+        return (
+          <CreateArchive
+            formId={`file-action-compress-form-${props.project_id}`}
+            onActionChange={props.onActionChange}
+          />
+        );
       case "copy":
         return render_copy();
       case "delete":
         return render_delete();
       case "download":
-        return <Download />;
+        return (
+          <Download
+            formId={`file-action-download-form-${props.project_id}`}
+            onActionChange={props.onActionChange}
+          />
+        );
       case "rename":
-        return <RenameFile />;
+        return (
+          <RenameFile
+            formId={props.renameFormId}
+            onActionChange={props.onActionChange}
+          />
+        );
       case "duplicate":
-        return <RenameFile duplicate />;
+        return (
+          <RenameFile
+            duplicate
+            formId={props.renameFormId}
+            onActionChange={props.onActionChange}
+          />
+        );
       case "move":
         return render_move();
       case "share":
@@ -596,48 +679,16 @@ export function ActionBox(props: ReactProps) {
   }
 
   const action = props.file_action;
-  const action_button = file_actions[action || "undefined"];
+  if (action == null) {
+    return <div>Undefined action</div>;
+  }
+  const action_button = FILE_ACTIONS[action];
   if (action_button == undefined) {
     return <div>Undefined action</div>;
   }
   if (props.file_map == undefined) {
     return <Loading />;
-  } else {
-    return (
-      <Well
-        style={{
-          margin: "15px 30px",
-          overflowY: "auto",
-          maxHeight: "50vh",
-          backgroundColor: "#fafafa",
-        }}
-      >
-        <Row>
-          <Col
-            sm={12}
-            style={{
-              color: COLORS.GRAY_M,
-              fontWeight: "bold",
-              fontSize: "15pt",
-            }}
-          >
-            <Icon name={action_button.icon ?? "exclamation-circle"} />{" "}
-            {intl.formatMessage(action_button.name)}
-            <div style={{ float: "right" }}>
-              <AntdButton onClick={cancel_action} type="text">
-                <Icon name="times" />
-              </AntdButton>
-            </div>
-            {!!compute_server_id && (
-              <ComputeServerTag
-                id={compute_server_id}
-                style={{ float: "right", top: "5px" }}
-              />
-            )}
-          </Col>
-          <Col sm={12}>{render_action_box(action)}</Col>
-        </Row>
-      </Well>
-    );
   }
+
+  return <div onKeyDown={action_key}>{render_action_box(action)}</div>;
 }

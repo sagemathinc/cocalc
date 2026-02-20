@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -11,8 +11,15 @@ A single tab in a project.
 
 // cSpell:ignore fixedtab popout Collabs
 
-import { Popover, Tag, Tooltip } from "antd";
-import { CSSProperties, ReactNode } from "react";
+import {
+  Button as AntdButton,
+  Dropdown,
+  type MenuProps,
+  Popover,
+  Tag,
+  Tooltip,
+} from "antd";
+import { CSSProperties, ReactNode, useState } from "react";
 import { defineMessage, useIntl } from "react-intl";
 
 import { getAlertName } from "@cocalc/comm/project-status/types";
@@ -24,18 +31,29 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, IconName, r_join } from "@cocalc/frontend/components";
 import ComputeServerSpendRate from "@cocalc/frontend/compute/spend-rate";
+import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage, labels } from "@cocalc/frontend/i18n";
+import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
+import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import {
   ICON_UPGRADES,
   ICON_USERS,
 } from "@cocalc/frontend/project/servers/consts";
 import { PayAsYouGoCost } from "@cocalc/frontend/project/settings/quota-editor/pay-as-you-go";
+import { in_snapshot_path } from "@cocalc/frontend/project/utils";
 import track from "@cocalc/frontend/user-tracking";
-import { filename_extension, path_split, path_to_tab } from "@cocalc/util/misc";
+import {
+  filename_extension,
+  path_split,
+  path_to_tab,
+  trunc_middle,
+} from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import { TITLE as SERVERS_TITLE } from "../servers";
+import { getValidActivityBarOption } from "./activity-bar";
+import { ACTIVITY_BAR_KEY } from "./activity-bar-consts";
 import {
   CollabsFlyout,
   FilesFlyout,
@@ -49,10 +67,35 @@ import {
 } from "./flyouts";
 import { ActiveFlyout } from "./flyouts/active";
 import { shouldOpenFileInNewWindow } from "./utils";
-import { getValidActivityBarOption } from "./activity-bar";
-import { ACTIVITY_BAR_KEY } from "./activity-bar-consts";
 
 const { file_options } = require("@cocalc/frontend/editor");
+
+const TAB_MENU_LABELS = {
+  close: defineMessage({
+    id: "project.page.file-tab.context-menu.close",
+    defaultMessage: "Close",
+  }),
+  closeOthers: defineMessage({
+    id: "project.page.file-tab.context-menu.close-others",
+    defaultMessage: "Close other tabs",
+  }),
+  closeAll: defineMessage({
+    id: "project.page.file-tab.context-menu.close-all",
+    defaultMessage: "Close all tabs",
+  }),
+  openNewWindow: defineMessage({
+    id: "project.page.file-tab.context-menu.open-new-window",
+    defaultMessage: "Open in new window",
+  }),
+  download: defineMessage({
+    id: "project.page.file-tab.context-menu.download",
+    defaultMessage: "Download",
+  }),
+  popoverHint: defineMessage({
+    id: "project.page.file-tab.popover.hint",
+    defaultMessage: "Shift-click: new window. Right-click: context menu.",
+  }),
+};
 
 export type FixedTab =
   | "active"
@@ -209,6 +252,8 @@ export function FileTab(props: Readonly<Props>) {
   let label = label_prop; // label modified below in some situations
   const actions = useActions({ project_id });
   const intl = useIntl();
+  const [contextMenuOpen, setContextMenuOpen] = useState(false);
+  const [actionsExpanded, setActionsExpanded] = useState(false);
   const { onCoCalcDocker } = useProjectContext();
   // this is @cocalc/comm/project-status/types::ProjectStatus
   const project_status = useTypedRedux({ project_id }, "status");
@@ -226,6 +271,8 @@ export function FileTab(props: Readonly<Props>) {
   const actBar = getValidActivityBarOption(
     other_settings.get(ACTIVITY_BAR_KEY),
   );
+  const studentProjectFunctionality =
+    useStudentProjectFunctionality(project_id);
 
   // True if there is activity (e.g., active output) in this tab
   const has_activity = useRedux(
@@ -294,6 +341,113 @@ export function FileTab(props: Readonly<Props>) {
       e.preventDefault();
       closeFile();
     }
+  }
+
+  /** Build right-click context menu items for file tabs. */
+  function getTabContextMenu(): MenuProps["items"] {
+    if (path == null || actions == null) return [];
+
+    const nameStr = trunc_middle(path_split(path).tail, 30);
+    const ctx: NonNullable<MenuProps["items"]> = [];
+
+    // Header — file name
+    ctx.push({
+      key: "header",
+      icon: <Icon name={file_options(path)?.icon ?? "file"} />,
+      label: nameStr,
+      title: path,
+      style: { fontWeight: "bold" },
+    });
+    ctx.push({ key: "divider-header", type: "divider" });
+
+    // Tab management actions
+    ctx.push({
+      key: "close",
+      label: intl.formatMessage(TAB_MENU_LABELS.close),
+      icon: <Icon name="times" />,
+      onClick: closeFile,
+    });
+    ctx.push({
+      key: "close-others",
+      label: intl.formatMessage(TAB_MENU_LABELS.closeOthers),
+      icon: <Icon name="times-circle" />,
+      onClick: () => actions.close_other_tabs(path),
+    });
+    ctx.push({
+      key: "close-all",
+      label: intl.formatMessage(TAB_MENU_LABELS.closeAll),
+      icon: <Icon name="ban" />,
+      onClick: () => actions.close_all_files(),
+    });
+    ctx.push({ key: "divider-tab-actions", type: "divider" });
+
+    ctx.push({
+      key: "new-window",
+      label: intl.formatMessage(TAB_MENU_LABELS.openNewWindow),
+      icon: <Icon name="external-link" />,
+      onClick: () => actions.open_file({ path, new_browser_window: true }),
+    });
+    ctx.push({ key: "divider-new-window", type: "divider" });
+
+    // Common file action items from shared builder
+    if (!studentProjectFunctionality.disableActions) {
+      ctx.push(
+        ...buildFileActionItems({
+          isdir: false,
+          intl,
+          inSnapshots: in_snapshot_path(path),
+          triggerFileAction: (action) => {
+            actions.show_file_action_panel({
+              path,
+              action,
+              source: "editor",
+            });
+          },
+        }),
+      );
+
+      ctx.push({
+        key: "share",
+        label: intl.formatMessage(FILE_ACTIONS.share.name),
+        icon: <Icon name="share-square" />,
+        disabled: in_snapshot_path(path),
+        onClick: () =>
+          actions.show_file_action_panel({
+            path,
+            action: "share",
+            source: "editor",
+          }),
+      });
+
+      // Download (separate from the shared builder to avoid duplication)
+      ctx.push({ key: "divider-download", type: "divider" });
+      ctx.push({
+        key: "download",
+        label: intl.formatMessage(TAB_MENU_LABELS.download),
+        icon: <Icon name="cloud-download" />,
+        onClick: () => actions.download_file({ path, log: true }),
+      });
+    }
+
+    return ctx;
+  }
+
+  /** Wrap element in a right-click context menu Dropdown for file tabs.
+   *  stopPropagation prevents the parent tab bar's "recent files" context menu
+   *  from also opening when right-clicking on an individual tab. */
+  function wrapContextMenu(el: React.JSX.Element): React.JSX.Element {
+    if (path == null || IS_MOBILE) return el;
+    return (
+      <div onContextMenu={(e) => e.stopPropagation()}>
+        <Dropdown
+          menu={{ items: getTabContextMenu() }}
+          trigger={["contextMenu"]}
+          onOpenChange={setContextMenuOpen}
+        >
+          {el}
+        </Dropdown>
+      </div>
+    );
   }
 
   function renderFlyoutCaret() {
@@ -495,13 +649,103 @@ export function FileTab(props: Readonly<Props>) {
     isFixedTab ||
     (!isFixedTab && other_settings.get("hide_file_popovers"))
   ) {
-    return body;
+    return wrapContextMenu(body);
   }
-  // The ! after name is needed since TS doesn't infer that if path is null then name is not null,
-  // though our union type above guarantees this.
-  return (
+
+  function renderActionsList() {
+    const menuItems = getTabContextMenu();
+    return (
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          maxHeight: "min(500px, 70vh)",
+          overflowY: "auto",
+        }}
+      >
+        {menuItems
+          ?.filter((item) => item != null)
+          .map((item: any, idx: number) => {
+            if ("type" in item && item.type === "divider") {
+              return (
+                <div
+                  key={`divider-${idx}`}
+                  style={{
+                    borderTop: `1px solid ${COLORS.GRAY_LL}`,
+                    margin: "4px 0",
+                  }}
+                />
+              );
+            }
+            return (
+              <div
+                key={item.key}
+                onClick={(e) => {
+                  if (item.disabled) return;
+                  item.onClick?.();
+                  setActionsExpanded(false);
+                  e.stopPropagation();
+                }}
+                style={{
+                  padding: "4px 8px",
+                  cursor: item.disabled ? "not-allowed" : "pointer",
+                  opacity: item.disabled ? 0.4 : 1,
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 8,
+                  borderRadius: 4,
+                  ...(item.style ?? {}),
+                }}
+                onMouseEnter={(e) => {
+                  if (!item.disabled) {
+                    (e.currentTarget as HTMLElement).style.backgroundColor =
+                      COLORS.GRAY_LL;
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLElement).style.backgroundColor = "";
+                }}
+              >
+                {item.icon}
+                <span>{item.label}</span>
+              </div>
+            );
+          })}
+      </div>
+    );
+  }
+
+  function renderPopoverContent() {
+    if (isFixedTab || path == null) return undefined;
+
+    if (actionsExpanded) {
+      return renderActionsList();
+    }
+
+    return (
+      <div onClick={(e) => e.stopPropagation()}>
+        <AntdButton
+          size="small"
+          block
+          onClick={() => setActionsExpanded(true)}
+          icon={<Icon name={file_options(path)?.icon ?? "file"} />}
+        >
+          {intl.formatMessage(labels.actions)} <Icon name="caret-down" />
+        </AntdButton>
+        <div style={{ color: COLORS.GRAY, marginTop: 4, fontSize: "85%" }}>
+          <Icon name="info-circle" />{" "}
+          {intl.formatMessage(TAB_MENU_LABELS.popoverHint)}
+        </div>
+      </div>
+    );
+  }
+
+  return wrapContextMenu(
     <Popover
       zIndex={10000}
+      open={contextMenuOpen ? false : undefined}
+      onOpenChange={(open) => {
+        if (!open) setActionsExpanded(false);
+      }}
       title={() => {
         if (path != null) {
           return <b>{path}</b>;
@@ -513,19 +757,12 @@ export function FileTab(props: Readonly<Props>) {
         }
         return tooltip({ project_id });
       }}
-      content={
-        // only editor-tabs can pop up
-        !isFixedTab ? (
-          <span style={{ color: COLORS.GRAY }}>
-            Hint: Shift+click to open in new window.
-          </span>
-        ) : undefined
-      }
+      content={renderPopoverContent()}
       mouseEnterDelay={1}
       placement={props.placement ?? "bottom"}
     >
       {body}
-    </Popover>
+    </Popover>,
   );
 }
 

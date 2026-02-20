@@ -449,6 +449,25 @@ export function FilesFlyout({
     }
   }
 
+  /** Select (or deselect) a contiguous range of files from prevSelected to index. */
+  function selectRange(index: number, add: boolean) {
+    if (prevSelected == null) return false;
+    const start = Math.min(prevSelected, index);
+    const end = Math.max(prevSelected, index);
+    const fileNames: string[] = [];
+    for (let i = start; i <= end; i++) {
+      const fn = directoryFiles[i].name;
+      if (fn === "..") continue;
+      fileNames.push(path_to_file(current_path, fn));
+    }
+    if (add) {
+      actions?.set_file_list_checked(fileNames);
+    } else {
+      actions?.set_file_list_unchecked(List(fileNames));
+    }
+    return true;
+  }
+
   function handleFileClick(e: PartialClickEvent | undefined, index: number) {
     e ??= {
       detail: 1, // single click
@@ -485,29 +504,14 @@ export function FilesFlyout({
 
     // shift-click selects whole range from last selected (if not null) to current index
     if (e.shiftKey) {
-      if (prevSelected != null) {
-        const start = Math.min(prevSelected, index);
-        const end = Math.max(prevSelected, index);
-        const add = !checked_files.includes(
-          path_to_file(current_path, directoryFiles[index].name),
-        );
-        let fileNames: string[] = [];
-        for (let i = start; i <= end; i++) {
-          const fn = directoryFiles[i].name;
-          if (fn === "..") continue; // don't select parent dir, just calls for trouble
-          fileNames.push(path_to_file(current_path, fn));
-        }
-        if (add) {
-          actions?.set_file_list_checked(fileNames);
-        } else {
-          actions?.set_file_list_unchecked(List(fileNames));
-        }
-        return;
-      } else {
+      const add = !checked_files.includes(
+        path_to_file(current_path, directoryFiles[index].name),
+      );
+      if (!selectRange(index, add)) {
         toggleSelected(index, file.name);
         setPrevSelected(index);
-        return;
       }
+      return;
     }
 
     switch (mode) {
@@ -627,7 +631,8 @@ export function FilesFlyout({
         onChecked={
           disableActions
             ? undefined
-            : (nextState: boolean) => {
+            : (nextState: boolean, e?: React.MouseEvent) => {
+                if (e?.shiftKey && selectRange(index, nextState)) return;
                 toggleSelected(index, item.name, nextState);
               }
         }

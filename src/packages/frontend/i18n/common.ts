@@ -13,6 +13,10 @@ export const labels = defineMessages({
     description:
       "This is just an internal message to trigger ID collisions. If you hit this, your i18n message has no ID. Please consult the README in this directory for more information. The usual pattern is something like [dir].[subdir/filename].[section].[label|message|...]. Messages in this file however are prefixed with their purpose.",
   },
+  actions: {
+    id: "labels.actions",
+    defaultMessage: "Actions",
+  },
   cancel: {
     id: "labels.button.cancel",
     defaultMessage: "Cancel",
@@ -598,9 +602,16 @@ export const labels = defineMessages({
     defaultMessage: "folder",
     description: "a folder organizing files in a file-system",
   },
+  publish_status: {
+    id: "labels.publish_status",
+    defaultMessage:
+      "{isPublished, select, true {{isDir, select, true {Folder is published} other {File is published}}} other {{isDir, select, true {Publish folder} other {Publish file}}}}",
+    description:
+      "Context menu label for the publish/share action on a file or folder. Shows the current publish state.",
+  },
   download: {
     id: "labels.download",
-    defaultMessage: "download",
+    defaultMessage: "Download",
     description: "download a file from the web",
   },
   videos: {
@@ -901,6 +912,22 @@ export const labels = defineMessages({
   open: {
     id: "labels.open",
     defaultMessage: "Open",
+  },
+  open_file_or_folder: {
+    id: "labels.open_file_or_folder",
+    defaultMessage: "{isDir, select, true {Open folder} other {Open file}}",
+    description:
+      "Context menu label to open a file or folder in the file explorer",
+  },
+  file_or_folder: {
+    id: "labels.file_or_folder",
+    defaultMessage: "{isDir, select, true {Folder} other {File}}",
+    description: "Capitalized label for a file or folder type in context menus",
+  },
+  view_file: {
+    id: "labels.view_file",
+    defaultMessage: "View file",
+    description: "Context menu label to view a file in a new browser tab",
   },
   item_plural: {
     id: "labels.item_plural",
@@ -1823,10 +1850,6 @@ export const dialogs = defineMessages({
 });
 
 export const course = defineMessages({
-  actions: {
-    id: "course.actions",
-    defaultMessage: "Actions",
-  },
   shared_project: {
     id: "course.shared_project",
     defaultMessage: "Shared Project",
