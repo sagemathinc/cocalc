@@ -600,12 +600,14 @@ export class ProjectInfoServer extends EventEmitter {
   };
 
   public async start(): Promise<void> {
-    if (this.running) {
+    if (this.startPromise != null) {
+      await this.startPromise;
+      if (this.running) {
+        return;
+      }
+    } else if (this.running) {
       this.dbg("project-info/server: already running, cannot be started twice");
       return;
-    }
-    if (this.startPromise != null) {
-      return await this.startPromise;
     }
     this.running = true;
     this.startPromise = this._start().finally(() => {

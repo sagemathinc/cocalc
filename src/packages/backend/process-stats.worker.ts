@@ -35,6 +35,7 @@ port.on("message", (request: WorkerScanRequest) => {
   }
   try {
     const result = scanProcessesSync({
+      timestamp: request.timestamp,
       sampleKey: request.sampleKey,
       procLimit: request.procLimit,
       ticks: request.ticks,

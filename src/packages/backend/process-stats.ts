@@ -198,6 +198,7 @@ export class ProcessStats {
     const worker = this.ensureWorker();
     if (worker == null) {
       const result = scanProcessesSync({
+        timestamp,
         sampleKey,
         procLimit: this.procLimit,
         ticks: this.ticks,

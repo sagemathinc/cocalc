@@ -15,6 +15,7 @@ import type {
 } from "@cocalc/util/types/project-info/types";
 
 export interface ScanProcessesSyncInput {
+  timestamp: number;
   sampleKey: string;
   procLimit: number;
   ticks: number;
@@ -96,13 +97,14 @@ function readUptime(timestamp: number): [number, number] {
 }
 
 export function scanProcessesSync({
+  timestamp,
   sampleKey,
   procLimit,
   ticks,
   pagesize,
   testing,
 }: ScanProcessesSyncInput): ScanProcessesSyncResult {
-  const sampleTimestamp = Date.now();
+  const sampleTimestamp = timestamp;
   const [uptime, boottimeMs] = readUptime(sampleTimestamp);
   const last = lastByKey.get(sampleKey);
   const cpuByPid = new Map<number, number>();
