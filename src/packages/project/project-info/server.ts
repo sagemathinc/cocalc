@@ -601,11 +601,15 @@ export class ProjectInfoServer extends EventEmitter {
 
   public async start(): Promise<void> {
     if (this.startPromise != null) {
-      await this.startPromise;
+      // Already starting or running: do not block on the long-running loop.
+      // The only time we wait is after stop() when running=false and the
+      // previous loop is unwinding.
       if (this.running) {
         return;
       }
-    } else if (this.running) {
+      await this.startPromise;
+    }
+    if (this.running) {
       this.dbg("project-info/server: already running, cannot be started twice");
       return;
     }
@@ -613,7 +617,9 @@ export class ProjectInfoServer extends EventEmitter {
     this.startPromise = this._start().finally(() => {
       this.startPromise = undefined;
     });
-    return await this.startPromise;
+    if (this.testing) {
+      return await this.startPromise;
+    }
   }
 
   private async _start(): Promise<void> {
