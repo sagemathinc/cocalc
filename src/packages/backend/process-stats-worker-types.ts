@@ -8,11 +8,16 @@ import type { Processes } from "@cocalc/util/types/project-info/types";
 export interface WorkerScanRequest {
   type: "scan";
   requestId: number;
-  timestamp: number;
   sampleKey: string;
   procLimit: number;
   ticks: number;
   pagesize: number;
+}
+
+export interface WorkerScanStarted {
+  type: "scanStarted";
+  requestId: number;
+  startedAtMs: number;
 }
 
 export interface WorkerScanResult {
@@ -29,4 +34,7 @@ export interface WorkerScanError {
   error: string;
 }
 
-export type WorkerResponse = WorkerScanResult | WorkerScanError;
+export type WorkerResponse =
+  | WorkerScanStarted
+  | WorkerScanResult
+  | WorkerScanError;

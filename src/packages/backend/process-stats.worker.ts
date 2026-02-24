@@ -9,6 +9,7 @@ import { scanProcessesSync } from "./process-stats-scan";
 import type {
   WorkerScanError,
   WorkerScanRequest,
+  WorkerScanStarted,
   WorkerScanResult,
 } from "./process-stats-worker-types";
 
@@ -22,8 +23,16 @@ port.on("message", (request: WorkerScanRequest) => {
     return;
   }
   try {
+    const startedAtMs = Date.now();
+    const started: WorkerScanStarted = {
+      type: "scanStarted",
+      requestId: request.requestId,
+      startedAtMs,
+    };
+    port.postMessage(started);
+
     const result = scanProcessesSync({
-      timestamp: request.timestamp,
+      timestamp: startedAtMs,
       sampleKey: request.sampleKey,
       procLimit: request.procLimit,
       ticks: request.ticks,

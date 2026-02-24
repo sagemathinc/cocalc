@@ -32,9 +32,13 @@ const exec = promisify(cp_exec);
 // this is a hard limit on the number of processes we gather, just to
 // be on the safe side to avoid processing too much data.
 const LIMIT = envToInt("COCALC_PROJECT_INFO_PROC_LIMIT", 1024);
-const SCAN_TIMEOUT_MS = envToInt(
+const SCAN_EXEC_TIMEOUT_MS = envToInt(
   "COCALC_PROJECT_INFO_PROC_SCAN_TIMEOUT_MS",
   15000,
+);
+const SCAN_QUEUE_TIMEOUT_MS = envToInt(
+  "COCALC_PROJECT_INFO_PROC_SCAN_QUEUE_TIMEOUT_MS",
+  60000,
 );
 
 interface PendingRequest {
@@ -141,6 +145,16 @@ export class ProcessStats {
     if (pending == null) {
       return;
     }
+    if (msg.type === "scanStarted") {
+      clearTimeout(pending.timeout);
+      const timeoutMs = this.getExecTimeoutMs();
+      pending.timeout = this.timeoutRequest({
+        requestId: msg.requestId,
+        timeoutMs,
+        reason: "scan execution timed out",
+      });
+      return;
+    }
     clearTimeout(pending.timeout);
     this.pending.delete(msg.requestId);
     if (msg.type === "scanError") {
@@ -162,19 +176,48 @@ export class ProcessStats {
     this.pending.clear();
   }
 
+  private getExecTimeoutMs(): number {
+    return this.testing ? 4 * SCAN_EXEC_TIMEOUT_MS : SCAN_EXEC_TIMEOUT_MS;
+  }
+
+  private getQueueTimeoutMs(): number {
+    return this.testing ? 4 * SCAN_QUEUE_TIMEOUT_MS : SCAN_QUEUE_TIMEOUT_MS;
+  }
+
+  private timeoutRequest({
+    requestId,
+    timeoutMs,
+    reason,
+  }: {
+    requestId: number;
+    timeoutMs: number;
+    reason: string;
+  }): ReturnType<typeof setTimeout> {
+    return setTimeout(() => {
+      const pending = this.pending.get(requestId);
+      if (pending == null) {
+        return;
+      }
+      this.pending.delete(requestId);
+      pending.reject(
+        Error(`process-stats worker ${reason} after ${timeoutMs}ms`),
+      );
+      if (this.worker != null) {
+        void this.worker.terminate();
+      }
+    }, timeoutMs);
+  }
+
   // this is where we gather information about all running processes
-  public async processes(
-    timestamp?: number,
+  private async scanProcesses(
     sampleKey = "default",
   ): Promise<{ procs: Processes; uptime: number; boottime: Date }> {
-    timestamp ??= Date.now();
     await this.init();
 
     const requestId = ++this.requestId;
     const request: WorkerScanRequest = {
       type: "scan",
       requestId,
-      timestamp,
       sampleKey,
       procLimit: this.procLimit,
       ticks: this.ticks,
@@ -184,7 +227,6 @@ export class ProcessStats {
     const worker = this.ensureWorker();
     if (worker == null) {
       const result = scanProcessesSync({
-        timestamp,
         sampleKey,
         procLimit: this.procLimit,
         ticks: this.ticks,
@@ -197,16 +239,12 @@ export class ProcessStats {
       };
     }
     return await new Promise((resolve, reject) => {
-      const timeoutMs = this.testing ? 4 * SCAN_TIMEOUT_MS : SCAN_TIMEOUT_MS;
-      const timeout = setTimeout(() => {
-        this.pending.delete(requestId);
-        reject(
-          Error(`process-stats worker scan timed out after ${timeoutMs}ms`),
-        );
-        if (this.worker != null) {
-          void this.worker.terminate();
-        }
-      }, timeoutMs);
+      const timeoutMs = this.getQueueTimeoutMs();
+      const timeout = this.timeoutRequest({
+        requestId,
+        timeoutMs,
+        reason: "scan queue timed out",
+      });
       this.pending.set(requestId, { timeout, resolve, reject });
       try {
         worker.postMessage(request);
@@ -220,6 +258,19 @@ export class ProcessStats {
       }
     });
   }
+
+  public processes = reuseInFlight(
+    async (_timestamp?: number, sampleKey = "default") => {
+      void _timestamp;
+      return await this.scanProcesses(sampleKey);
+    },
+    {
+      // timestamp is caller context; dedupe by sample stream to avoid queue buildup.
+      createKey(args) {
+        return String(args[1] ?? "default");
+      },
+    },
+  );
 }
 
 export interface ProcessTreeStats {

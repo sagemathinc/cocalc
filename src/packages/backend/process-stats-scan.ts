@@ -16,7 +16,7 @@ import type {
 import { getLogger } from "./logger";
 
 export interface ScanProcessesSyncInput {
-  timestamp: number;
+  timestamp?: number;
   sampleKey: string;
   procLimit: number;
   ticks: number;
@@ -104,7 +104,7 @@ export function scanProcessesSync({
   ticks,
   pagesize,
 }: ScanProcessesSyncInput): ScanProcessesSyncResult {
-  const sampleTimestamp = timestamp;
+  const sampleTimestamp = timestamp ?? Date.now();
   const [uptime, boottimeMs] = readUptime(sampleTimestamp);
   const last = lastByKey.get(sampleKey);
   const cpuByPid = new Map<number, number>();
