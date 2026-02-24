@@ -6,23 +6,11 @@
 import { parentPort } from "node:worker_threads";
 
 import { scanProcessesSync } from "./process-stats-scan";
-
-interface WorkerScanRequest {
-  type: "scan";
-  requestId: number;
-  timestamp: number;
-  sampleKey: string;
-  procLimit: number;
-  ticks: number;
-  pagesize: number;
-  testing: boolean;
-}
-
-interface WorkerScanError {
-  type: "scanError";
-  requestId: number;
-  error: string;
-}
+import type {
+  WorkerScanError,
+  WorkerScanRequest,
+  WorkerScanResult,
+} from "./process-stats-worker-types";
 
 const port = parentPort;
 if (port == null) {
@@ -40,13 +28,13 @@ port.on("message", (request: WorkerScanRequest) => {
       procLimit: request.procLimit,
       ticks: request.ticks,
       pagesize: request.pagesize,
-      testing: request.testing,
     });
-    port.postMessage({
+    const response: WorkerScanResult = {
       type: "scanResult",
       requestId: request.requestId,
       ...result,
-    });
+    };
+    port.postMessage(response);
   } catch (err) {
     const response: WorkerScanError = {
       type: "scanError",

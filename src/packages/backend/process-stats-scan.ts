@@ -13,6 +13,7 @@ import type {
   Stat,
   State,
 } from "@cocalc/util/types/project-info/types";
+import { getLogger } from "./logger";
 
 export interface ScanProcessesSyncInput {
   timestamp: number;
@@ -20,7 +21,6 @@ export interface ScanProcessesSyncInput {
   procLimit: number;
   ticks: number;
   pagesize: number;
-  testing: boolean;
 }
 
 export interface ScanProcessesSyncResult {
@@ -33,6 +33,7 @@ const lastByKey = new Map<
   string,
   { timestamp: number; cpuByPid: Map<number, number> }
 >();
+const dbg = getLogger("process-stats").debug;
 
 function parseStat(path: string, ticks: number, pagesize: number): Stat {
   // all time-values are in seconds
@@ -102,7 +103,6 @@ export function scanProcessesSync({
   procLimit,
   ticks,
   pagesize,
-  testing,
 }: ScanProcessesSyncInput): ScanProcessesSyncResult {
   const sampleTimestamp = timestamp;
   const [uptime, boottimeMs] = readUptime(sampleTimestamp);
@@ -112,6 +112,7 @@ export function scanProcessesSync({
   const procs: Processes = {};
   let pids = readdirSync("/proc").filter((pid) => pid.match(/^[0-9]+$/));
   if (pids.length > procLimit) {
+    dbg(`too many processes (${pids.length}), truncating scan to ${procLimit}`);
     pids = pids.slice(0, procLimit);
   }
 
@@ -139,9 +140,7 @@ export function scanProcessesSync({
       procs[proc.pid] = proc;
       cpuByPid.set(proc.pid, proc.cpu.secs);
     } catch {
-      if (testing) {
-        // Processes can vanish while scanning /proc, which is expected.
-      }
+      // Processes can vanish while scanning /proc, which is expected.
     }
   }
 

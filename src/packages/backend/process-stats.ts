@@ -14,6 +14,10 @@ import { Processes } from "@cocalc/util/types/project-info/types";
 import { getLogger } from "./logger";
 import { envToInt } from "./misc/env-to-number";
 import { scanProcessesSync } from "./process-stats-scan";
+import type {
+  WorkerResponse,
+  WorkerScanRequest,
+} from "./process-stats-worker-types";
 
 const dbg = getLogger("process-stats").debug;
 
@@ -28,35 +32,13 @@ const exec = promisify(cp_exec);
 // this is a hard limit on the number of processes we gather, just to
 // be on the safe side to avoid processing too much data.
 const LIMIT = envToInt("COCALC_PROJECT_INFO_PROC_LIMIT", 1024);
-
-interface WorkerScanRequest {
-  type: "scan";
-  requestId: number;
-  timestamp: number;
-  sampleKey: string;
-  procLimit: number;
-  ticks: number;
-  pagesize: number;
-  testing: boolean;
-}
-
-interface WorkerScanResult {
-  type: "scanResult";
-  requestId: number;
-  procs: Processes;
-  uptime: number;
-  boottimeMs: number;
-}
-
-interface WorkerScanError {
-  type: "scanError";
-  requestId: number;
-  error: string;
-}
-
-type WorkerResponse = WorkerScanResult | WorkerScanError;
+const SCAN_TIMEOUT_MS = envToInt(
+  "COCALC_PROJECT_INFO_PROC_SCAN_TIMEOUT_MS",
+  15000,
+);
 
 interface PendingRequest {
+  timeout: ReturnType<typeof setTimeout>;
   resolve: (value: {
     procs: Processes;
     uptime: number;
@@ -130,6 +112,7 @@ export class ProcessStats {
       return null;
     }
     const worker = new Worker(workerPath);
+    worker.unref();
     worker.on("message", (msg) =>
       this.handleWorkerMessage(msg as WorkerResponse),
     );
@@ -141,10 +124,12 @@ export class ProcessStats {
     worker.on("exit", (code) => {
       if (code !== 0) {
         dbg(`process-stats worker exited with code ${code}`);
-        this.rejectAllPending(
-          Error(`process-stats worker exited unexpectedly with code ${code}`),
-        );
       }
+      this.rejectAllPending(
+        Error(
+          `process-stats worker exited while handling requests (code ${code})`,
+        ),
+      );
       this.worker = undefined;
     });
     this.worker = worker;
@@ -156,6 +141,7 @@ export class ProcessStats {
     if (pending == null) {
       return;
     }
+    clearTimeout(pending.timeout);
     this.pending.delete(msg.requestId);
     if (msg.type === "scanError") {
       pending.reject(Error(msg.error));
@@ -170,6 +156,7 @@ export class ProcessStats {
 
   private rejectAllPending(err: unknown): void {
     for (const request of this.pending.values()) {
+      clearTimeout(request.timeout);
       request.reject(err);
     }
     this.pending.clear();
@@ -192,7 +179,6 @@ export class ProcessStats {
       procLimit: this.procLimit,
       ticks: this.ticks,
       pagesize: this.pagesize,
-      testing: this.testing,
     };
 
     const worker = this.ensureWorker();
@@ -203,7 +189,6 @@ export class ProcessStats {
         procLimit: this.procLimit,
         ticks: this.ticks,
         pagesize: this.pagesize,
-        testing: this.testing,
       });
       return {
         procs: result.procs,
@@ -212,10 +197,24 @@ export class ProcessStats {
       };
     }
     return await new Promise((resolve, reject) => {
-      this.pending.set(requestId, { resolve, reject });
+      const timeoutMs = this.testing ? 4 * SCAN_TIMEOUT_MS : SCAN_TIMEOUT_MS;
+      const timeout = setTimeout(() => {
+        this.pending.delete(requestId);
+        reject(
+          Error(`process-stats worker scan timed out after ${timeoutMs}ms`),
+        );
+        if (this.worker != null) {
+          void this.worker.terminate();
+        }
+      }, timeoutMs);
+      this.pending.set(requestId, { timeout, resolve, reject });
       try {
         worker.postMessage(request);
       } catch (err) {
+        const pending = this.pending.get(requestId);
+        if (pending != null) {
+          clearTimeout(pending.timeout);
+        }
         this.pending.delete(requestId);
         reject(err);
       }
