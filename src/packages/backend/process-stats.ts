@@ -4,19 +4,12 @@
  */
 
 import { exec as cp_exec } from "node:child_process";
-import { readFile, readdir, readlink } from "node:fs/promises";
 import { join } from "node:path";
 import { promisify } from "node:util";
+import { Worker } from "node:worker_threads";
 
-import { mapParallelLimit } from "@cocalc/util/async-utils";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
-import {
-  Cpu,
-  Process,
-  Processes,
-  Stat,
-  State,
-} from "@cocalc/util/types/project-info/types";
+import { Processes } from "@cocalc/util/types/project-info/types";
 import { getLogger } from "./logger";
 import { envToInt } from "./misc/env-to-number";
 
@@ -34,22 +27,63 @@ const exec = promisify(cp_exec);
 // be on the safe side to avoid processing too much data.
 const LIMIT = envToInt("COCALC_PROJECT_INFO_PROC_LIMIT", 1024);
 
+interface WorkerScanRequest {
+  type: "scan";
+  requestId: number;
+  timestamp: number;
+  sampleKey: string;
+  procLimit: number;
+  ticks: number;
+  pagesize: number;
+  testing: boolean;
+}
+
+interface WorkerScanResult {
+  type: "scanResult";
+  requestId: number;
+  procs: Processes;
+  uptime: number;
+  boottimeMs: number;
+}
+
+interface WorkerScanError {
+  type: "scanError";
+  requestId: number;
+  error: string;
+}
+
+type WorkerResponse = WorkerScanResult | WorkerScanError;
+
+interface PendingRequest {
+  resolve: (value: {
+    procs: Processes;
+    uptime: number;
+    boottime: Date;
+  }) => void;
+  reject: (reason?: any) => void;
+}
+
 export class ProcessStats {
   private static instance: ProcessStats;
 
   private readonly procLimit: number;
 
-  private testing: boolean;
-  private ticks: number;
-  private pagesize: number;
-  private lastByKey = new Map<
-    string,
-    { timestamp: number; processes: Processes }
-  >();
+  private testing = false;
+  private ticks = 0;
+  private pagesize = 0;
+  private worker: Worker | undefined;
+  private pending = new Map<number, PendingRequest>();
+  private requestId = 0;
 
   private constructor() {
     this.procLimit = LIMIT;
     this.init();
+    process.once("exit", () => {
+      if (this.worker != null) {
+        void this.worker.terminate();
+        this.worker = undefined;
+      }
+    });
   }
 
   public static getInstance(): ProcessStats {
@@ -65,125 +99,66 @@ export class ProcessStats {
 
   // this grabs some kernel configuration values we need. they won't change
   public init = reuseInFlight(async () => {
-    if (this.ticks == null) {
+    if (this.ticks === 0 || this.pagesize === 0) {
       const [p_ticks, p_pagesize] = await Promise.all([
         exec("getconf CLK_TCK"),
         exec("getconf PAGESIZE"),
       ]);
       // should be 100, usually
-      this.ticks = parseInt(p_ticks.stdout.trim());
+      this.ticks = parseInt(p_ticks.stdout.trim(), 10);
       // 4096?
-      this.pagesize = parseInt(p_pagesize.stdout.trim());
+      this.pagesize = parseInt(p_pagesize.stdout.trim(), 10);
     }
   });
 
-  // the "stat" file contains all the information
-  // this page explains what is what
-  // https://man7.org/linux/man-pages/man5/proc.5.html
-  private async stat(path: string): Promise<Stat> {
-    // all time-values are in seconds
-    const raw = await readFile(path, "utf8");
-    // the "comm" field could contain additional spaces or parents
-    const [i, j] = [raw.indexOf("("), raw.lastIndexOf(")")];
-    const start = raw.slice(0, i - 1).trim();
-    const end = raw.slice(j + 1).trim();
-    const data = `${start} comm ${end}`.split(" ");
-    const get = (idx) => parseInt(data[idx]);
-    // "comm" is now a placeholder to keep indices as they are.
-    // don't forget to account for 0 vs. 1 based indexing.
-    const ret = {
-      ppid: get(3),
-      state: data[2] as State,
-      utime: get(13) / this.ticks, // CPU time spent in user code, measured in clock ticks (#14)
-      stime: get(14) / this.ticks, // CPU time spent in kernel code, measured in clock ticks (#15)
-      cutime: get(15) / this.ticks, // Waited-for children's CPU time spent in user code (in clock ticks) (#16)
-      cstime: get(16) / this.ticks, // Waited-for children's CPU time spent in kernel code (in clock ticks) (#17)
-      starttime: get(21) / this.ticks, // Time when the process started, measured in clock ticks (#22)
-      nice: get(18),
-      num_threads: get(19),
-      mem: { rss: (get(23) * this.pagesize) / (1024 * 1024) }, // MiB
-    };
-    return ret;
+  private ensureWorker(): Worker {
+    if (this.worker != null) {
+      return this.worker;
+    }
+    const worker = new Worker(join(__dirname, "process-stats.worker.js"));
+    worker.on("message", (msg) =>
+      this.handleWorkerMessage(msg as WorkerResponse),
+    );
+    worker.on("error", (err) => {
+      dbg(`process-stats worker error -- ${err}`);
+      this.rejectAllPending(err);
+      this.worker = undefined;
+    });
+    worker.on("exit", (code) => {
+      if (code !== 0) {
+        dbg(`process-stats worker exited with code ${code}`);
+        this.rejectAllPending(
+          Error(`process-stats worker exited unexpectedly with code ${code}`),
+        );
+      }
+      this.worker = undefined;
+    });
+    this.worker = worker;
+    return worker;
   }
 
-  // delta-time for this and the previous process information
-  private dt(timestamp: number, lastTimestamp?: number) {
-    return (timestamp - (lastTimestamp ?? 0)) / 1000;
+  private handleWorkerMessage(msg: WorkerResponse): void {
+    const pending = this.pending.get(msg.requestId);
+    if (pending == null) {
+      return;
+    }
+    this.pending.delete(msg.requestId);
+    if (msg.type === "scanError") {
+      pending.reject(Error(msg.error));
+      return;
+    }
+    pending.resolve({
+      procs: msg.procs,
+      uptime: msg.uptime,
+      boottime: new Date(msg.boottimeMs),
+    });
   }
 
-  // calculate cpu times
-  private cpu({
-    pid,
-    stat,
-    timestamp,
-    lastProcesses,
-    lastTimestamp,
-  }: {
-    pid: number;
-    stat: Stat;
-    timestamp: number;
-    lastProcesses?: Processes;
-    lastTimestamp?: number;
-  }): Cpu {
-    // we are interested in that processes total usage: user + system
-    const total_cpu = stat.utime + stat.stime;
-    // the fallback is chosen in such a way, that it says 0% if we do not have historic data
-    const prev_cpu = lastProcesses?.[pid]?.cpu.secs ?? total_cpu;
-    const dt = this.dt(timestamp, lastTimestamp);
-    // how much cpu time was used since last time we checked this process…
-    const pct = dt > 0 ? 100 * ((total_cpu - prev_cpu) / dt) : 0;
-    return { pct: pct, secs: total_cpu };
-  }
-
-  private async cmdline(path: string): Promise<string[]> {
-    // we split at the null-delimiter and filter all empty elements
-    return (await readFile(path, "utf8"))
-      .split("\0")
-      .filter((c) => c.length > 0);
-  }
-
-  // this gathers all the information for a specific process with the given pid
-  private async process({
-    pid: pid_str,
-    uptime,
-    timestamp,
-    lastProcesses,
-    lastTimestamp,
-  }: {
-    pid: string;
-    uptime: number;
-    timestamp: number;
-    lastProcesses?: Processes;
-    lastTimestamp?: number;
-  }): Promise<Process> {
-    const base = join("/proc", pid_str);
-    const pid = parseInt(pid_str);
-    const fn = (name) => join(base, name);
-    const [cmdline, exe, stat] = await Promise.all([
-      this.cmdline(fn("cmdline")),
-      readlink(fn("exe")),
-      this.stat(fn("stat")),
-    ]);
-    return {
-      pid,
-      ppid: stat.ppid,
-      cmdline,
-      exe,
-      stat,
-      cpu: this.cpu({ pid, timestamp, stat, lastProcesses, lastTimestamp }),
-      uptime: uptime - stat.starttime,
-    };
-  }
-
-  // this is how long the underlying machine is running
-  // we need this information, because the processes' start time is
-  // measured in "ticks" since the machine started
-  private async uptime(): Promise<[number, Date]> {
-    // return uptime in secs
-    const out = await readFile("/proc/uptime", "utf8");
-    const uptime = parseFloat(out.split(" ")[0]);
-    const boottime = new Date(new Date().getTime() - 1000 * uptime);
-    return [uptime, boottime];
+  private rejectAllPending(err: unknown): void {
+    for (const request of this.pending.values()) {
+      request.reject(err);
+    }
+    this.pending.clear();
   }
 
   // this is where we gather information about all running processes
@@ -191,41 +166,31 @@ export class ProcessStats {
     timestamp?: number,
     sampleKey = "default",
   ): Promise<{ procs: Processes; uptime: number; boottime: Date }> {
-    timestamp ??= new Date().getTime();
-    const [uptime, boottime] = await this.uptime();
-    const last = this.lastByKey.get(sampleKey);
+    timestamp ??= Date.now();
+    await this.init();
 
-    const procs: Processes = {};
-    let pids = (await readdir("/proc")).filter((pid) => pid.match(/^[0-9]+$/));
+    const requestId = ++this.requestId;
+    const request: WorkerScanRequest = {
+      type: "scan",
+      requestId,
+      timestamp,
+      sampleKey,
+      procLimit: this.procLimit,
+      ticks: this.ticks,
+      pagesize: this.pagesize,
+      testing: this.testing,
+    };
 
-    if (pids.length > this.procLimit) {
-      dbg(`too many processes – limit of ${this.procLimit} reached!`);
-      // we avoid processing and sending too much data
-      pids = pids.slice(0, this.procLimit);
-    }
-
-    await mapParallelLimit(
-      pids,
-      async (pid) => {
-        try {
-          const proc = await this.process({
-            pid,
-            uptime,
-            timestamp,
-            lastProcesses: last?.processes,
-            lastTimestamp: last?.timestamp,
-          });
-          procs[proc.pid] = proc;
-        } catch (err) {
-          if (this.testing)
-            dbg(`process ${pid} likely vanished – could happen – ${err}`);
-        }
-      },
-      20,
-    );
-
-    this.lastByKey.set(sampleKey, { timestamp, processes: procs });
-    return { procs, uptime, boottime };
+    const worker = this.ensureWorker();
+    return await new Promise((resolve, reject) => {
+      this.pending.set(requestId, { resolve, reject });
+      try {
+        worker.postMessage(request);
+      } catch (err) {
+        this.pending.delete(requestId);
+        reject(err);
+      }
+    });
   }
 }
 

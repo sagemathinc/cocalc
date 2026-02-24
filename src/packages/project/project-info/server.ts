@@ -19,6 +19,7 @@ import { check as df } from "diskusage";
 import { EventEmitter } from "node:events";
 import { access, readFile } from "node:fs/promises";
 
+import { envToFloat } from "@cocalc/backend/misc/env-to-number";
 import { ProcessStats } from "@cocalc/backend/process-stats";
 import { pidToPath as terminalPidToPath } from "@cocalc/project/conat/terminal/manager";
 import { getLogger } from "@cocalc/project/logger";
@@ -33,6 +34,11 @@ import type {
 } from "@cocalc/util/types/project-info/types";
 
 const L = getLogger("project-info:server").debug;
+
+const PROJECT_INFO_SCAN_INTERVAL_S = envToFloat(
+  "COCALC_PROJECT_INFO_SCAN_INTERVAL_S",
+  5,
+);
 
 const bytes2MiB = (bytes) => bytes / (1024 * 1024);
 
@@ -61,7 +67,6 @@ async function safeReadFile(path: string): Promise<string | null> {
     return await readFile(path, "utf8");
   } catch (error: any) {
     if (error.code === "ENOENT") {
-      console.warn(`safeReadFile: ${path} not found, skipping`);
       return null;
     }
     throw error;
@@ -78,14 +83,23 @@ export class ProjectInfoServer extends EventEmitter {
   private cgroupFilesAreMissing: boolean = false;
   private processStats: ProcessStats;
   private cgroupVersion: "v1" | "v2" | "unknown" | null;
+  private startPromise?: Promise<void>;
+  private getKernelByPid:
+    | ((pid: number) => { get_path(): string } | undefined)
+    | null
+    | undefined;
+  private cgroupV2Path?: string;
+  private systemTotalMemory?: number;
+  private systemCpuCores?: number;
 
   constructor(testing = false) {
     super();
-    this.delay_s = 2;
+    this.delay_s = PROJECT_INFO_SCAN_INTERVAL_S;
     this.testing = testing;
     this.dbg = L;
     // cgroup version will be detected lazily
     this.cgroupVersion = null;
+    this.getKernelByPid = undefined;
   }
 
   private async processes(timestamp: number) {
@@ -110,14 +124,6 @@ export class ProjectInfoServer extends EventEmitter {
     if (pid === process.pid) {
       return { type: "project" };
     }
-    // SPEED: importing @cocalc/jupyter/kernel is slow, so it MUST NOT BE DONE
-    // on the top level, especially not in any code that is loaded during
-    // project startup
-    const { get_kernel_by_pid } = await import("@cocalc/jupyter/kernel");
-    const jupyter_kernel = get_kernel_by_pid(pid);
-    if (jupyter_kernel != null) {
-      return { type: "jupyter", path: jupyter_kernel.get_path() };
-    }
     const termpath = terminalPidToPath(pid);
     if (termpath != null) {
       return { type: "terminal", path: termpath };
@@ -134,6 +140,34 @@ export class ProjectInfoServer extends EventEmitter {
     ) {
       return { type: "sshd" };
     }
+    const getKernelByPid = await this.getJupyterKernelByPidFn();
+    if (getKernelByPid == null) {
+      return;
+    }
+    // SPEED: importing @cocalc/jupyter/kernel is slow, so it MUST NOT BE DONE
+    // on the top level, especially not in any code that is loaded during
+    // project startup
+    const jupyter_kernel = getKernelByPid(pid);
+    if (jupyter_kernel != null) {
+      return { type: "jupyter", path: jupyter_kernel.get_path() };
+    }
+  }
+
+  private async getJupyterKernelByPidFn(): Promise<
+    ((pid: number) => { get_path(): string } | undefined) | null
+  > {
+    if (this.getKernelByPid === undefined) {
+      try {
+        // SPEED: importing @cocalc/jupyter/kernel is slow, so keep it lazy
+        // and cache the resolver for the lifetime of this process.
+        const { get_kernel_by_pid } = await import("@cocalc/jupyter/kernel");
+        this.getKernelByPid = get_kernel_by_pid;
+      } catch (err) {
+        this.dbg("failed to import @cocalc/jupyter/kernel", err);
+        this.getKernelByPid = null;
+      }
+    }
+    return this.getKernelByPid;
   }
 
   private async lookupCoCalcInfo(processes: Processes) {
@@ -166,7 +200,7 @@ export class ProjectInfoServer extends EventEmitter {
         this.cgroupVersion = "v1";
       } else {
         // Other errors (e.g., permissions): treat as unknown
-        console.error("Error detecting cgroup version:", error);
+        this.dbg("Error detecting cgroup version:", error);
         this.cgroupVersion = "unknown";
       }
     }
@@ -277,51 +311,66 @@ export class ProjectInfoServer extends EventEmitter {
    * Get the current process's cgroup path for v2.
    */
   private async getCgroupV2Path(): Promise<string> {
+    if (this.cgroupV2Path != null) {
+      return this.cgroupV2Path;
+    }
     try {
       const cgroupData = await readFile("/proc/self/cgroup", "utf8");
       // v2 format: "0::/path/to/cgroup"
       const match = cgroupData.match(/^0::(.+)$/m);
       if (match) {
-        return `/sys/fs/cgroup${match[1]}`;
+        this.cgroupV2Path = `/sys/fs/cgroup${match[1]}`;
+        return this.cgroupV2Path;
       }
     } catch (error) {
-      console.warn("Failed to read /proc/self/cgroup, using root cgroup");
+      this.dbg("Failed to read /proc/self/cgroup, using root cgroup", error);
     }
-    return "/sys/fs/cgroup";
+    this.cgroupV2Path = "/sys/fs/cgroup";
+    return this.cgroupV2Path;
   }
 
   /**
    * Get system total memory from /proc/meminfo as fallback.
    */
   private async getSystemTotalMemory(): Promise<number> {
+    if (this.systemTotalMemory != null) {
+      return this.systemTotalMemory;
+    }
     try {
       const meminfo = await safeReadFile("/proc/meminfo");
       if (meminfo) {
         const match = meminfo.match(/^MemTotal:\s+(\d+)\s+kB$/m);
         if (match) {
-          return parseInt(match[1]) / 1024; // Convert kB to MiB
+          this.systemTotalMemory = parseInt(match[1], 10) / 1024; // Convert kB to MiB
+          return this.systemTotalMemory;
         }
       }
     } catch (error) {
-      console.warn("Failed to read system memory info:", error);
+      this.dbg("Failed to read system memory info:", error);
     }
-    return -1; // Fallback to unlimited if can't read
+    this.systemTotalMemory = -1; // Fallback to unlimited if can't read
+    return this.systemTotalMemory;
   }
 
   /**
    * Get system CPU core count from /proc/cpuinfo as fallback.
    */
   private async getSystemCpuCores(): Promise<number> {
+    if (this.systemCpuCores != null) {
+      return this.systemCpuCores;
+    }
     try {
       const cpuinfo = await safeReadFile("/proc/cpuinfo");
       if (cpuinfo) {
         const processors = cpuinfo.match(/^processor\s*:/gm);
-        return processors ? processors.length : -1;
+        this.systemCpuCores = processors ? processors.length : -1;
+        return this.systemCpuCores;
       }
     } catch (error) {
-      console.warn("Failed to read system CPU info:", error);
+      this.dbg("Failed to read system CPU info:", error);
     }
-    return -1; // Fallback to unlimited if can't read
+    this.systemCpuCores = -1; // Fallback to unlimited if can't read
+    return this.systemCpuCores;
   }
 
   /**
@@ -553,43 +602,52 @@ export class ProjectInfoServer extends EventEmitter {
   public async start(): Promise<void> {
     if (this.running) {
       this.dbg("project-info/server: already running, cannot be started twice");
-    } else {
-      await this._start();
+      return;
     }
+    if (this.startPromise != null) {
+      return await this.startPromise;
+    }
+    this.running = true;
+    this.startPromise = this._start().finally(() => {
+      this.startPromise = undefined;
+    });
+    return await this.startPromise;
   }
 
   private async _start(): Promise<void> {
     this.dbg("start");
-    if (this.running) {
-      throw Error("Cannot start ProjectInfoServer twice");
-    }
 
-    // Initialize tmpfs detection once at startup
-    this.tmpIsMemoryBased = await isTmpMemoryBased();
-    this.running = true;
-    this.processStats = ProcessStats.getInstance();
-    if (this.testing) {
-      this.processStats.setTesting(true);
-    }
-    await this.processStats.init();
-    while (true) {
-      //this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
-      const info = await this.get_info();
-      if (info != null) this.last = info;
-      this.emit("info", info ?? this.last);
-      if (this.running) {
-        await delay(1000 * this.delay_s);
-      } else {
-        this.dbg("start: no longer running → stopping loop");
-        this.last = undefined;
-        return;
+    try {
+      // Initialize tmpfs detection once at startup
+      this.tmpIsMemoryBased = await isTmpMemoryBased();
+      this.processStats = ProcessStats.getInstance();
+      if (this.testing) {
+        this.processStats.setTesting(true);
       }
-      // in test mode just one more, that's enough
-      if (this.last != null && this.testing) {
+      await this.processStats.init();
+      while (true) {
+        //this.dbg(`listeners on 'info': ${this.listenerCount("info")}`);
         const info = await this.get_info();
-        this.dbg(JSON.stringify(info, null, 2));
-        return;
+        if (info != null) this.last = info;
+        this.emit("info", info ?? this.last);
+        if (this.running) {
+          await delay(1000 * this.delay_s);
+        } else {
+          this.dbg("start: no longer running → stopping loop");
+          this.last = undefined;
+          return;
+        }
+        // in test mode just one more, that's enough
+        if (this.last != null && this.testing) {
+          const info = await this.get_info();
+          this.dbg(JSON.stringify(info, null, 2));
+          return;
+        }
       }
+    } catch (err) {
+      this.running = false;
+      this.dbg("start: error", err);
+      throw err;
     }
   }
 }
