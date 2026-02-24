@@ -111,6 +111,10 @@ export async function signUp(req, res) {
   const { email_signup, anonymous_signup, anonymous_signup_licensed_shares } =
     await getServerSettings();
 
+  // Track whether this is a licensed-share anonymous signup, so we can
+  // skip checks that don't apply (e.g., registration tokens).
+  let licensedShareSignup = false;
+
   let owner_id = await getAccountId(req);
   if (owner_id) {
     if (isAnonymous) {
@@ -129,6 +133,7 @@ export async function signUp(req, res) {
         // anonymous account gets signed in (signUserIn is skipped when
         // owner_id is set, which would leave an orphaned account).
         owner_id = undefined;
+        licensedShareSignup = true;
       } else {
         res.json({
           issues: {
@@ -175,6 +180,7 @@ export async function signUp(req, res) {
         })
       ) {
         // an unlisted public path with a license when anonymous_signup_licensed_shares is set is allowed
+        licensedShareSignup = true;
       } else {
         res.json({
           issues: {
@@ -213,16 +219,20 @@ export async function signUp(req, res) {
     }
   }
 
+  // Licensed-share anonymous signups don't require a registration token —
+  // the site license on the public path is the authorization.
   let tokenInfo;
-  try {
-    tokenInfo = await redeemRegistrationToken(registrationToken);
-  } catch (err) {
-    res.json({
-      issues: {
-        registrationToken: `Issue with registration token -- ${err.message}`,
-      },
-    });
-    return;
+  if (!licensedShareSignup) {
+    try {
+      tokenInfo = await redeemRegistrationToken(registrationToken);
+    } catch (err) {
+      res.json({
+        issues: {
+          registrationToken: `Issue with registration token -- ${err.message}`,
+        },
+      });
+      return;
+    }
   }
 
   try {
