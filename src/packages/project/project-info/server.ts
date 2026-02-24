@@ -102,8 +102,8 @@ export class ProjectInfoServer extends EventEmitter {
     this.getKernelByPid = undefined;
   }
 
-  private async processes(timestamp: number) {
-    return await this.processStats.processes(timestamp, "project-info");
+  private async processes() {
+    return await this.processStats.processes("project-info");
   }
 
   // delta-time for this and the previous process information
@@ -571,7 +571,7 @@ export class ProjectInfoServer extends EventEmitter {
     try {
       const timestamp = Date.now();
       const [processes, cgroup, disk_usage] = await Promise.all([
-        this.processes(timestamp),
+        this.processes(),
         this.cgroup({ timestamp }),
         this.disk_usage(),
       ]);

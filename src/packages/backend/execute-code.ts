@@ -365,7 +365,7 @@ function doSpawn(
 
     while (true) {
       if (callback_done) return;
-      const { procs } = await monitor.processes(Date.now(), "execute-code");
+      const { procs } = await monitor.processes("execute-code");
       // reconstruct process tree
       const children: { [pid: number]: number[] } = {};
       for (const p of Object.values(procs)) {

@@ -5,6 +5,7 @@
 
 import { readdirSync, readFileSync, readlinkSync } from "node:fs";
 import { join } from "node:path";
+import LRUCache from "lru-cache";
 
 import type {
   Cpu,
@@ -29,10 +30,12 @@ export interface ScanProcessesSyncResult {
   boottimeMs: number;
 }
 
-const lastByKey = new Map<
+const lastByKey = new LRUCache<
   string,
   { timestamp: number; cpuByPid: Map<number, number> }
->();
+>({
+  max: 8,
+});
 const dbg = getLogger("process-stats").debug;
 
 function parseStat(path: string, ticks: number, pagesize: number): Stat {

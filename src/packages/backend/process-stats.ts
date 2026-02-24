@@ -260,14 +260,13 @@ export class ProcessStats {
   }
 
   public processes = reuseInFlight(
-    async (_timestamp?: number, sampleKey = "default") => {
-      void _timestamp;
+    async (sampleKey = "default") => {
       return await this.scanProcesses(sampleKey);
     },
     {
-      // timestamp is caller context; dedupe by sample stream to avoid queue buildup.
+      // dedupe by sample stream to avoid queue buildup.
       createKey(args) {
-        return String(args[1] ?? "default");
+        return String(args[0] ?? "default");
       },
     },
   );
