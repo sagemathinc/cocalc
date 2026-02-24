@@ -114,15 +114,16 @@ export async function signUp(req, res) {
   let owner_id = await getAccountId(req);
   if (owner_id) {
     if (isAnonymous) {
-      // Allow anonymous signup for licensed shared files, even if the
-      // request has authentication (e.g., a remember_me cookie from a
-      // previous session or in-page sign-in).  The frontend only shows
-      // the anonymous option when appropriate, so this is safe.
+      // Allow anonymous signup for licensed shared files, but only for
+      // browser users (cookie auth), not API-key users.  The frontend
+      // shows the anonymous option when the user has a stale cookie from
+      // a previous session or signed in via the in-page form.
       if (
-        await isAllowedLicensedShareSignup({
+        !req.header("Authorization") &&
+        (await isAllowedLicensedShareSignup({
           anonymous_signup_licensed_shares,
           publicPathId,
-        })
+        }))
       ) {
         // Licensed share anonymous signup — clear owner_id so the new
         // anonymous account gets signed in (signUserIn is skipped when
