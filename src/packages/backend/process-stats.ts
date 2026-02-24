@@ -4,6 +4,7 @@
  */
 
 import { exec as cp_exec } from "node:child_process";
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { promisify } from "node:util";
 import { Worker } from "node:worker_threads";
@@ -12,6 +13,7 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { Processes } from "@cocalc/util/types/project-info/types";
 import { getLogger } from "./logger";
 import { envToInt } from "./misc/env-to-number";
+import { scanProcessesSync } from "./process-stats-scan";
 
 const dbg = getLogger("process-stats").debug;
 
@@ -72,6 +74,7 @@ export class ProcessStats {
   private ticks = 0;
   private pagesize = 0;
   private worker: Worker | undefined;
+  private useInlineScan = false;
   private pending = new Map<number, PendingRequest>();
   private requestId = 0;
 
@@ -111,11 +114,22 @@ export class ProcessStats {
     }
   });
 
-  private ensureWorker(): Worker {
+  private ensureWorker(): Worker | null {
+    if (this.useInlineScan) {
+      return null;
+    }
     if (this.worker != null) {
       return this.worker;
     }
-    const worker = new Worker(join(__dirname, "process-stats.worker.js"));
+    const workerPath = join(__dirname, "process-stats.worker.js");
+    if (!existsSync(workerPath)) {
+      dbg(
+        `process-stats worker script missing at ${workerPath}; using inline scanner`,
+      );
+      this.useInlineScan = true;
+      return null;
+    }
+    const worker = new Worker(workerPath);
     worker.on("message", (msg) =>
       this.handleWorkerMessage(msg as WorkerResponse),
     );
@@ -182,6 +196,20 @@ export class ProcessStats {
     };
 
     const worker = this.ensureWorker();
+    if (worker == null) {
+      const result = scanProcessesSync({
+        sampleKey,
+        procLimit: this.procLimit,
+        ticks: this.ticks,
+        pagesize: this.pagesize,
+        testing: this.testing,
+      });
+      return {
+        procs: result.procs,
+        uptime: result.uptime,
+        boottime: new Date(result.boottimeMs),
+      };
+    }
     return await new Promise((resolve, reject) => {
       this.pending.set(requestId, { resolve, reject });
       try {
