@@ -114,25 +114,40 @@ export async function signUp(req, res) {
   const owner_id = await getAccountId(req);
   if (owner_id) {
     if (isAnonymous) {
-      res.json({
-        issues: {
-          api: "Creation of anonymous accounts via the API is not allowed.",
-        },
-      });
-      return;
-    }
-    // no captcha required -- api access
-    // We ONLY allow creation without checking the captcha
-    // for trusted users.
-    try {
-      await assertTrusted(owner_id);
-    } catch (err) {
-      res.json({
-        issues: {
-          api: `${err}`,
-        },
-      });
-      return;
+      // Allow anonymous signup for licensed shared files, even if the
+      // request has authentication (e.g., a remember_me cookie from a
+      // previous session or in-page sign-in).  The frontend only shows
+      // the anonymous option when appropriate, so this is safe.
+      if (
+        await isAllowedLicensedShareSignup({
+          anonymous_signup_licensed_shares,
+          publicPathId,
+        })
+      ) {
+        // Licensed share anonymous signup is allowed — skip the
+        // assertTrusted check (which is meant for API-key account creation).
+      } else {
+        res.json({
+          issues: {
+            api: "Creation of anonymous accounts via the API is not allowed.",
+          },
+        });
+        return;
+      }
+    } else {
+      // no captcha required -- api access
+      // We ONLY allow creation without checking the captcha
+      // for trusted users.
+      try {
+        await assertTrusted(owner_id);
+      } catch (err) {
+        res.json({
+          issues: {
+            api: `${err}`,
+          },
+        });
+        return;
+      }
     }
   } else {
     try {
@@ -151,9 +166,10 @@ export async function signUp(req, res) {
     // Check anonymous sign up conditions.
     if (!anonymous_signup) {
       if (
-        anonymous_signup_licensed_shares &&
-        publicPathId &&
-        (await hasSiteLicenseId(publicPathId))
+        await isAllowedLicensedShareSignup({
+          anonymous_signup_licensed_shares,
+          publicPathId,
+        })
       ) {
         // an unlisted public path with a license when anonymous_signup_licensed_shares is set is allowed
       } else {
@@ -266,6 +282,24 @@ export function checkObviousConditions({
 
 async function hasSiteLicenseId(id: string): Promise<boolean> {
   return !!(await getSiteLicenseId(id));
+}
+
+// Whether anonymous signup is allowed for a licensed shared public path.
+// Requires the anonymous_signup_licensed_shares setting to be enabled,
+// a publicPathId to be provided, and the public path to be unlisted
+// with a site license attached.
+async function isAllowedLicensedShareSignup({
+  anonymous_signup_licensed_shares,
+  publicPathId,
+}: {
+  anonymous_signup_licensed_shares: boolean;
+  publicPathId?: string;
+}): Promise<boolean> {
+  return !!(
+    anonymous_signup_licensed_shares &&
+    publicPathId &&
+    (await hasSiteLicenseId(publicPathId))
+  );
 }
 
 export default apiRoute({
