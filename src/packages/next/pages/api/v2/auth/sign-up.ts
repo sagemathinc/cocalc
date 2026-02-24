@@ -111,7 +111,7 @@ export async function signUp(req, res) {
   const { email_signup, anonymous_signup, anonymous_signup_licensed_shares } =
     await getServerSettings();
 
-  const owner_id = await getAccountId(req);
+  let owner_id = await getAccountId(req);
   if (owner_id) {
     if (isAnonymous) {
       // Allow anonymous signup for licensed shared files, even if the
@@ -124,8 +124,10 @@ export async function signUp(req, res) {
           publicPathId,
         })
       ) {
-        // Licensed share anonymous signup is allowed — skip the
-        // assertTrusted check (which is meant for API-key account creation).
+        // Licensed share anonymous signup — clear owner_id so the new
+        // anonymous account gets signed in (signUserIn is skipped when
+        // owner_id is set, which would leave an orphaned account).
+        owner_id = undefined;
       } else {
         res.json({
           issues: {
