@@ -7,19 +7,20 @@
 Abstract base class shared by R Markdown and Quarto editor actions.
 */
 
+import { Set } from "immutable";
 import { debounce } from "lodash";
 
+import { type AccountStore } from "@cocalc/frontend/account";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import {
   Actions as BaseActions,
   CodeEditorState,
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
 import { exec, ExecOutput } from "../generic/client";
-import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { checkProducedFiles } from "./utils";
-import { Set } from "immutable";
 
 export abstract class MarkdownConverterActions extends MarkdownActions {
   protected _last_hash: number | undefined = undefined;
@@ -31,7 +32,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
   protected abstract get minimal_template(): string;
 
   protected do_build_on_save(): boolean {
-    const account: any = this.redux.getStore("account");
+    const account: AccountStore = this.redux.getStore("account");
     if (account != null) {
       return !!account.getIn(["editor_settings", "build_on_save"]);
     }
@@ -60,8 +61,9 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     this._syncstring.on("after-change", do_build);
     // Initial build: only if account ready, build_on_save enabled, and no output exists yet.
     void (async () => {
-      const account: any = this.redux.getStore("account");
-      if (!account?.get("is_ready")) return;
+      const account: AccountStore = this.redux.getStore("account");
+      if (!account) return;
+      await account.waitUntilReady();
       if (!this.do_build_on_save()) return;
       const outputs = await this._check_produced_files();
       if (outputs === null) return; // listing unavailable => skip
