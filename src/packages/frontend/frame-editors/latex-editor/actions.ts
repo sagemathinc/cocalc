@@ -28,6 +28,7 @@ import { fromJS, List, Map } from "immutable";
 import { debounce, union } from "lodash";
 import { normalize as path_normalize } from "path";
 
+import { type AccountStore } from "@cocalc/frontend/account";
 import { Store, TypedMap } from "@cocalc/frontend/app-framework";
 import {
   TableOfContentsEntry,
@@ -42,6 +43,7 @@ import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import {
   exec,
+  getComputeServerId,
   project_api,
   server_time,
 } from "@cocalc/frontend/frame-editors/generic/client";
@@ -231,6 +233,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       (_mtime: number, force: boolean) => {
         this.update_pdf(this.last_save_time(), force);
       },
+      getComputeServerId({ project_id: this.project_id, path: this.path }),
     );
     await this.pdf_watcher.init();
   }
@@ -290,7 +293,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private init_latexmk(): void {
-    const account: any = this.redux.getStore("account");
+    const account: AccountStore = this.redux.getStore("account");
 
     this._syncstring.on(
       "save-to-disk",
@@ -405,6 +408,32 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  // Tri-state: true = file exists, false = confirmed absent, null = unknown/error (skip auto-build)
+  private async outputFileExists(filePath: string): Promise<boolean | null> {
+    try {
+      const project_actions = this.redux.getProjectActions(this.project_id);
+      if (project_actions == null) return null;
+      const project_store = project_actions.get_store();
+      if (project_store == null) return null;
+      const csid =
+        project_actions.getComputeServerIdForFile({ path: this.path }) ??
+        project_store.get("compute_server_id") ??
+        0;
+      const { head: dir, tail: filename } = path_split(filePath);
+      await project_actions.fetch_directory_listing({
+        path: dir,
+        compute_server_id: csid,
+      });
+      const dir_listings = project_store.getIn(["directory_listings", csid]);
+      if (dir_listings == null) return null;
+      const listing = dir_listings.get(dir ?? "");
+      if (listing == null) return null;
+      return listing.some((entry) => entry.get("name") === filename);
+    } catch {
+      return null;
+    }
+  }
+
   private async init_config(): Promise<void> {
     this.setState({ build_command: "" }); // empty means not yet initialized
 
@@ -479,8 +508,18 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._syncdb.on("change", set_cmd);
 
     if (this.is_likely_master()) {
-      // We now definitely have the build command set and the document loaded,
-      // and it is likely a master latex file, so let's kick off our initial build.
+      // Only build on open if:
+      // - account settings are confirmed loaded (is_ready)
+      // - build_on_save is enabled
+      // - output PDF does not yet exist (null = unknown => skip)
+      const account: AccountStore = this.redux.getStore("account");
+      if (!account) return;
+      await account.waitUntilReady();
+      const buildOnSave =
+        account.getIn(["editor_settings", "build_on_save"]) ?? true;
+      if (!buildOnSave) return;
+      const pdfExists = await this.outputFileExists(pdf_path(this.path));
+      if (pdfExists !== false) return; // exists or unknown => don't build
       this.force_build();
     }
   }
