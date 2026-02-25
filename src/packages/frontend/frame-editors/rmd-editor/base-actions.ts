@@ -64,8 +64,10 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       const account: AccountStore = this.redux.getStore("account");
       if (!account) return;
       await account.waitUntilReady();
+      if (this._state === "closed") return;
       if (!this.do_build_on_save()) return;
       const outputs = await this._check_produced_files();
+      if (this._state === "closed") return;
       if (outputs === null) return; // listing unavailable => skip
       if (outputs.size > 0) return; // output already exists => skip
       const initial_hash = this._syncstring.hash_of_saved_version();
