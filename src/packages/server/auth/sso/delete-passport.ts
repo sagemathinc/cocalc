@@ -3,7 +3,7 @@ import type {
   DeletePassportOpts,
   PostgreSQL,
 } from "@cocalc/database/postgres/types";
-import { _passport_key } from "@cocalc/database/postgres/passport";
+import { _passport_key } from "@cocalc/database/postgres/account/passport-key";
 import { callback2 } from "@cocalc/util/async-utils";
 
 export async function delete_passport(

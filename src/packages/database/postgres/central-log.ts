@@ -1,5 +1,5 @@
 import getPool from "@cocalc/database/pool";
-import { pii_expire } from "./pii";
+import { pii_expire } from "./account/pii";
 import { uuid } from "@cocalc/util/misc";
 
 // log events, which contain personal information (email, account_id, ...)

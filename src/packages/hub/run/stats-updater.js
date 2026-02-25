@@ -7,9 +7,7 @@ Periodically update the stats in the database.
 const postgres = require("@cocalc/database");
 
 const ttl = parseInt(process.env.STATS_TTL_S ?? "300");
-const db = postgres.db({
-  ensure_exists: false,
-});
+const db = postgres.db({ ensure_exists: false });
 
 function update() {
   console.log("updating stats...");

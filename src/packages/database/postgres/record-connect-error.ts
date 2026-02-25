@@ -5,7 +5,6 @@
 
 import getLogger from "@cocalc/backend/logger";
 import { newGauge } from "@cocalc/backend/metrics";
-import { PostgreSQL } from "./types";
 
 function getStatusGauge() {
   return newGauge(
@@ -45,14 +44,6 @@ export function recordConnected() {
     L.debug("issue with database status gauge", err);
   }
   lastDisconnected = null;
-}
-
-export function setupRecordConnectErrors(_db: PostgreSQL) {
-  // These event listeners are not robust. Somehow, a "removeAllListeners" or similar must trimp them up
-  // The problem arises when the database connection is dropped, reconnected, and dropped again:
-  // After the 2nd connection drop, the "disconnect" event is attempted to emit, but never appears here.
-  //db.on("connect", () => recordConnected());
-  //db.on("disconnect", () => recordDisconnected());
 }
 
 export function howLongDisconnectedMins(): number | undefined {

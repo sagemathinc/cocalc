@@ -25,7 +25,7 @@ import * as _ from "lodash";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
-import { set_email_address_verified } from "@cocalc/database/postgres/account-queries";
+import { set_email_address_verified } from "@cocalc/database/postgres/account/queries";
 import type {
   PostgreSQL,
   UpdateAccountInfoAndPassportOpts,

@@ -44,6 +44,20 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 
+### Dependency Management
+
+**Package versions must be uniform across all CoCalc packages in the monorepo.**
+
+When updating npm packages:
+
+- **ALWAYS update associated `@types/[name]` packages** when updating an npm package `[name]` if `@types/[name]` is installed
+- **Check all packages in the workspace** that depend on the package being updated
+- **Ensure version consistency** across all packages - the same package must use the same version everywhere
+- Run `pnpm version-check` from the root directory (`cocalc/src/`) to verify version consistency
+- Run `pnpm install` after updating dependencies in any package
+- Use `pnpm list [package]` to verify the installed version across the workspace
+- Example: When updating `pg` from `^8.7.1` to `^8.16.3`, also update `@types/pg` from `^8.6.1` to `^8.16.0` in **all packages** that use them
+
 ### Workspace Management (`workspaces.py`)
 
 The root-level `workspaces.py` script orchestrates operations across all packages in the monorepo. Use it instead of running raw pnpm commands when working across the workspace:
@@ -72,6 +86,20 @@ After making changes to files in `packages/frontend`:
 #### When Working on Other Packages
 
 - After TypeScript changes, run `pnpm build` in the relevant package directory
+
+#### Modernizing Legacy Callback Code
+
+When working with legacy callback-based code (using `async.series`, `defaults()`, nested callbacks), follow the comprehensive modernization guide:
+
+**📖 See [dev/MODERNIZE_CODE.md](./dev/MODERNIZE_CODE.md)** for the complete step-by-step process to convert callback-based code to modern async/await TypeScript.
+
+This guide covers:
+
+- Converting `async.series`/`async.parallel` to native async/await
+- Replacing `defaults()` with TypeScript destructuring
+- Proper error handling with try/catch
+- Maintaining backwards compatibility
+- Updating callers to use direct async/await
 
 ## Architecture Overview
 

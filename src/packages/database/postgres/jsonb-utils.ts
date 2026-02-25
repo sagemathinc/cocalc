@@ -1,3 +1,8 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { is_date as isDate } from "@cocalc/util/misc";
 
 /*

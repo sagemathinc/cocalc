@@ -5,8 +5,8 @@ Add, remove and invite collaborators on projects.
 import getLogger from "@cocalc/backend/logger";
 import type { AddCollaborator } from "@cocalc/conat/hub/api/projects";
 import { db, getPool } from "@cocalc/database";
-import { is_paying_customer } from "@cocalc/database/postgres/account-queries";
-import { project_has_network_access } from "@cocalc/database/postgres/project-queries";
+import { is_paying_customer } from "@cocalc/database/postgres/account/queries";
+import { project_has_network_access } from "@cocalc/database/postgres/project/queries";
 import { query } from "@cocalc/database/postgres/query";
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import getName from "@cocalc/server/accounts/get-name";
@@ -21,6 +21,7 @@ import {
   lower_email_address,
   uuid,
 } from "@cocalc/util/misc";
+
 import {
   OwnershipErrorCode,
   type UserGroup,
