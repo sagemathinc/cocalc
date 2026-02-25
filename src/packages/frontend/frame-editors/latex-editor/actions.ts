@@ -115,6 +115,7 @@ interface LatexEditorState extends CodeEditorState {
   output_panel_id_for_sync?: string; // stores the output panel ID for SyncTeX operations
   // job_infos: JobInfos;
   autoSyncInProgress?: boolean; // unified flag to prevent sync loops - true when any auto sync operation is in progress
+  building?: boolean; // true while a build is actively running (mirrors is_building for redux consumers)
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -869,6 +870,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     }
     this.is_building = true;
+    this.setState({ building: true });
     try {
       await this.save_all(false);
       await this.run_build(this.last_save_time(), force);
@@ -878,6 +880,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       await this.stop_build();
     } finally {
       this.is_building = false;
+      this.setState({ building: false });
     }
   };
 

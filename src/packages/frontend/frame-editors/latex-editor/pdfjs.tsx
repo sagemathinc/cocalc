@@ -375,13 +375,10 @@ export function PDFJS({
       // This is normal if the PDF is being modified *as* it is being loaded...
       const errStr = err?.toString() ?? "";
       console.log(`WARNING: error loading PDF -- ${errStr}`);
-      // "Missing" catches MissingPDFException; "404" / "Unexpected" catches
+      // "Missing" catches MissingPDFException; "404" catches
       // UnexpectedResponseException when the file server returns HTTP 404.
       const isPdfMissing =
-        err != null &&
-        (errStr.includes("Missing") ||
-          errStr.includes("404") ||
-          errStr.includes("Unexpected"));
+        err != null && (errStr.includes("Missing") || errStr.includes("404"));
       if (isMounted.current && isPdfMissing) {
         setMissing(true);
         // No retry loop: when the build finishes it triggers a reload via
