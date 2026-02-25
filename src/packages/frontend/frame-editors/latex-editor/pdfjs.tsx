@@ -373,18 +373,19 @@ export function PDFJS({
       }
     } catch (err) {
       // This is normal if the PDF is being modified *as* it is being loaded...
-      console.log(`WARNING: error loading PDF -- ${err}`);
-      if (
-        isMounted.current &&
-        err != null && // err can be null!!
-        err.toString()?.indexOf("Missing") != -1
-      ) {
+      const errStr = err?.toString() ?? "";
+      console.log(`WARNING: error loading PDF -- ${errStr}`);
+      // "Missing" catches MissingPDFException; "404" / "Unexpected" catches
+      // UnexpectedResponseException when the file server returns HTTP 404.
+      const isPdfMissing =
+        err != null &&
+        (errStr.includes("Missing") ||
+          errStr.includes("404") ||
+          errStr.includes("Unexpected"));
+      if (isMounted.current && isPdfMissing) {
         setMissing(true);
-        await delay(3000);
-        if (isMounted.current && missing && actions.update_pdf != null) {
-          // try again, since there is function
-          actions.update_pdf(Date.now(), true);
-        }
+        // No retry loop: when the build finishes it triggers a reload via
+        // the reload prop, which calls loadDoc again and clears missing state.
       }
     }
   }
