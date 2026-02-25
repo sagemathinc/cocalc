@@ -55,7 +55,6 @@ interface PDFJSProps {
   font_size: number;
   is_current: boolean;
   is_visible: boolean;
-  status: string;
   initialPage?: number;
   onPageInfo?: (currentPage: number, totalPages: number) => void;
   onViewportInfo?: (page: number, x: number, y: number) => void;
@@ -77,7 +76,6 @@ export function PDFJS({
   font_size,
   is_current,
   is_visible,
-  status,
   initialPage,
   onPageInfo,
   onViewportInfo,
@@ -102,6 +100,7 @@ export function PDFJS({
   const mode: undefined | "rmd" = useRedux(name, "mode");
   const derived_file_types: iSet<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
+  const building: boolean = useRedux(name, "building") ?? false;
   const autoSyncInProgress = useRedux(name, "autoSyncInProgress") ?? false;
   const newLayoutNagDismissed =
     useRedux([name, "local_view_state", "new_layout_nag_dismissed"]) ?? false;
@@ -266,27 +265,33 @@ export function PDFJS({
     }
   }, [is_current, is_visible, pageActions != null]);
 
-  function renderStatus(): React.JSX.Element {
-    if (status) {
-      return <Loading text="Building..." />;
-    } else {
-      return (
-        <>
-          <Icon name="play-circle" /> Build or fix
-        </>
-      );
-    }
-  }
-
   function renderMissing(): React.JSX.Element {
     return (
       <div
         style={{
-          fontSize: "20pt",
-          color: COLORS.GRAY,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          gap: "16px",
+          color: COLORS.GRAY_M,
+          fontSize: "16pt",
         }}
       >
-        Missing PDF -- {renderStatus()}
+        <div>PDF file does not exist</div>
+        {building ? (
+          <Loading text="Building..." />
+        ) : (
+          <Button
+            type="primary"
+            size="large"
+            icon={<Icon name="play-circle" />}
+            onClick={() => actions.build(id)}
+          >
+            Build
+          </Button>
+        )}
       </div>
     );
   }
