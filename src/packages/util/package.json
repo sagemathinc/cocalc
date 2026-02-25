@@ -3,27 +3,68 @@
   "version": "1.77.2",
   "description": "CoCalc code shared between the frontend and the backend",
   "exports": {
-    "./*": "./dist/*.js",
-    "./db-schema": "./dist/db-schema/index.js",
-    "./fill": "./dist/fill/index.js",
-    "./types": "./dist/types/index.js",
-    "./consts": "./dist/consts/index.js",
-    "./i18n": "./dist/i18n/index.js",
-    "./sync/table": "./dist/sync/table/index.js",
-    "./sync/editor/db": "./dist/sync/editor/db/index.js",
-    "./licenses/purchase/*": "./dist/licenses/purchase/*.js",
-    "./redux/*": "./dist/redux/*.js"
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist-esm/*.js",
+      "default": "./dist/*.js"
+    },
+    "./db-schema": {
+      "types": "./dist/db-schema/index.d.ts",
+      "import": "./dist-esm/db-schema/index.js",
+      "default": "./dist/db-schema/index.js"
+    },
+    "./fill": {
+      "types": "./dist/fill/index.d.ts",
+      "import": "./dist-esm/fill/index.js",
+      "default": "./dist/fill/index.js"
+    },
+    "./types": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist-esm/types/index.js",
+      "default": "./dist/types/index.js"
+    },
+    "./consts": {
+      "types": "./dist/consts/index.d.ts",
+      "import": "./dist-esm/consts/index.js",
+      "default": "./dist/consts/index.js"
+    },
+    "./i18n": {
+      "types": "./dist/i18n/index.d.ts",
+      "import": "./dist-esm/i18n/index.js",
+      "default": "./dist/i18n/index.js"
+    },
+    "./sync/table": {
+      "types": "./dist/sync/table/index.d.ts",
+      "import": "./dist-esm/sync/table/index.js",
+      "default": "./dist/sync/table/index.js"
+    },
+    "./sync/editor/db": {
+      "types": "./dist/sync/editor/db/index.d.ts",
+      "import": "./dist-esm/sync/editor/db/index.js",
+      "default": "./dist/sync/editor/db/index.js"
+    },
+    "./licenses/purchase/*": {
+      "types": "./dist/licenses/purchase/*.d.ts",
+      "import": "./dist-esm/licenses/purchase/*.js",
+      "default": "./dist/licenses/purchase/*.js"
+    },
+    "./redux/*": {
+      "types": "./dist/redux/*.d.ts",
+      "import": "./dist-esm/redux/*.js",
+      "default": "./dist/redux/*.js"
+    }
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "clean": "rm -rf node_modules dist",
-    "build": "pnpm exec tsc --build",
+    "clean": "rm -rf node_modules dist dist-esm",
+    "build": "pnpm exec tsc --build && pnpm exec tsc -p tsconfig-esm.json && echo '{\"type\":\"module\"}' > dist-esm/package.json",
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events",
     "prepublishOnly": "pnpm test"
   },
   "files": [
     "dist/**",
+    "dist-esm/**",
     "bin/**",
     "README.md",
     "package.json"
@@ -60,7 +101,6 @@
     "request-ip": "^3.3.0",
     "reselect": "^4.1.8",
     "sha1": "^1.1.1",
-    "underscore": "^1.12.1",
     "utility-types": "^3.10.0",
     "uuid": "^8.3.2",
     "voucher-code-generator": "^1.3.0"

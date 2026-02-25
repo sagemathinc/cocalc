@@ -3,28 +3,77 @@
   "version": "1.0.0",
   "description": "Conat -- pub/sub framework.  Usable by both nodejs and browser.",
   "exports": {
-    "./sync/*": "./dist/sync/*.js",
-    "./llm/*": "./dist/llm/*.js",
-    "./socket": "./dist/socket/index.js",
-    "./socket/*": "./dist/socket/*.js",
-    "./hub/changefeeds": "./dist/hub/changefeeds/index.js",
-    "./hub/api": "./dist/hub/api/index.js",
-    "./hub/api/*": "./dist/hub/api/*.js",
-    "./compute/*": "./dist/compute/*.js",
-    "./service": "./dist/service/index.js",
-    "./project/api": "./dist/project/api/index.js",
-    "./browser-api": "./dist/browser-api/index.js",
-    "./*": "./dist/*.js"
+    "./sync/*": {
+      "types": "./dist/sync/*.d.ts",
+      "import": "./dist-esm/sync/*.js",
+      "default": "./dist/sync/*.js"
+    },
+    "./llm/*": {
+      "types": "./dist/llm/*.d.ts",
+      "import": "./dist-esm/llm/*.js",
+      "default": "./dist/llm/*.js"
+    },
+    "./socket": {
+      "types": "./dist/socket/index.d.ts",
+      "import": "./dist-esm/socket/index.js",
+      "default": "./dist/socket/index.js"
+    },
+    "./socket/*": {
+      "types": "./dist/socket/*.d.ts",
+      "import": "./dist-esm/socket/*.js",
+      "default": "./dist/socket/*.js"
+    },
+    "./hub/changefeeds": {
+      "types": "./dist/hub/changefeeds/index.d.ts",
+      "import": "./dist-esm/hub/changefeeds/index.js",
+      "default": "./dist/hub/changefeeds/index.js"
+    },
+    "./hub/api": {
+      "types": "./dist/hub/api/index.d.ts",
+      "import": "./dist-esm/hub/api/index.js",
+      "default": "./dist/hub/api/index.js"
+    },
+    "./hub/api/*": {
+      "types": "./dist/hub/api/*.d.ts",
+      "import": "./dist-esm/hub/api/*.js",
+      "default": "./dist/hub/api/*.js"
+    },
+    "./compute/*": {
+      "types": "./dist/compute/*.d.ts",
+      "import": "./dist-esm/compute/*.js",
+      "default": "./dist/compute/*.js"
+    },
+    "./service": {
+      "types": "./dist/service/index.d.ts",
+      "import": "./dist-esm/service/index.js",
+      "default": "./dist/service/index.js"
+    },
+    "./project/api": {
+      "types": "./dist/project/api/index.d.ts",
+      "import": "./dist-esm/project/api/index.js",
+      "default": "./dist/project/api/index.js"
+    },
+    "./browser-api": {
+      "types": "./dist/browser-api/index.d.ts",
+      "import": "./dist-esm/browser-api/index.js",
+      "default": "./dist/browser-api/index.js"
+    },
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist-esm/*.js",
+      "default": "./dist/*.js"
+    }
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "build": "pnpm exec tsc --build",
-    "clean": "rm -rf dist node_modules",
+    "build": "pnpm exec tsc --build && pnpm exec tsc -p tsconfig-esm.json && echo '{\"type\":\"module\"}' > dist-esm/package.json",
+    "clean": "rm -rf dist dist-esm node_modules",
     "test": "pnpm exec jest",
     "depcheck": "pnpx depcheck --ignores events,bufferutil,utf-8-validate"
   },
   "files": [
     "dist/**",
+    "dist-esm/**",
     "README.md",
     "package.json"
   ],

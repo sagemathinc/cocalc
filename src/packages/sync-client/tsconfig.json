@@ -5,7 +5,7 @@
     "rootDir": "./",
     "outDir": "dist"
   },
-  "exclude": ["node_modules", "dist", "test"],
+  "exclude": ["node_modules", "dist", "dist-esm", "test"],
   "references": [
     { "path": "../sync" },
     { "path": "../api-client" },
