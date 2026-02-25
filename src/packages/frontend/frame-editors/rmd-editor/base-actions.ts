@@ -70,6 +70,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       if (this._state === "closed") return;
       if (outputs === null) return; // listing unavailable => skip
       if (outputs.size > 0) return; // output already exists => skip
+      if (this._syncstring == null) return; // closed between awaits
       const initial_hash = this._syncstring.hash_of_saved_version();
       await this.run_converter(initial_hash);
     })();
