@@ -43,7 +43,6 @@ import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import {
   exec,
-  getComputeServerId,
   project_api,
   server_time,
 } from "@cocalc/frontend/frame-editors/generic/client";
@@ -226,6 +225,14 @@ export class Actions extends BaseActions<LatexEditorState> {
   // Watch the directory containing the PDF file for changes
   private async _init_pdf_directory_watcher(): Promise<void> {
     const pdfPath = pdf_path(this.path);
+    // Use the same three-step fallback as outputFileExists() to avoid racing
+    // before the compute-server manager has populated the per-file mapping.
+    const project_actions = this.redux.getProjectActions(this.project_id);
+    const project_store = project_actions?.get_store();
+    const csid =
+      project_actions?.getComputeServerIdForFile({ path: this.path }) ??
+      project_store?.get("compute_server_id") ??
+      0;
     this.pdf_watcher = new PDFWatcher(
       this.project_id,
       pdfPath,
@@ -233,7 +240,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       (_mtime: number, force: boolean) => {
         this.update_pdf(this.last_save_time(), force);
       },
-      getComputeServerId({ project_id: this.project_id, path: this.path }),
+      csid,
     );
     await this.pdf_watcher.init();
   }
@@ -349,7 +356,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         return;
       }
     }
-    if (this._state == "closed") {
+    if (this._state === "closed") {
       return;
     }
 
@@ -452,7 +459,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         // user closed it
         return;
       }
-      if (this._state == "closed") return;
+      if (this._state === "closed") return;
     }
 
     // If the build command is NOT already
@@ -464,7 +471,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     if (this._syncdb.get_one({ key: "build_command" }) == null) {
       await this.init_build_directive();
-      if (this._state == "closed") return;
+      if (this._state === "closed") return;
     } else {
       // this scans for the "cocalc" directive, which hardcodes the build command
       await this.init_build_directive(true);
@@ -515,10 +522,12 @@ export class Actions extends BaseActions<LatexEditorState> {
       const account: AccountStore = this.redux.getStore("account");
       if (!account) return;
       await account.waitUntilReady();
+      if (this._state === "closed") return;
       const buildOnSave =
         account.getIn(["editor_settings", "build_on_save"]) ?? true;
       if (!buildOnSave) return;
       const pdfExists = await this.outputFileExists(pdf_path(this.path));
+      if (this._state === "closed") return;
       if (pdfExists !== false) return; // exists or unknown => don't build
       this.force_build();
     }
@@ -1153,7 +1162,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private async update_gutters_soon(): Promise<void> {
     await delay(500);
-    if (this._state == "closed") return;
+    if (this._state === "closed") return;
     this.update_gutters();
   }
 
@@ -1912,7 +1921,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   public updateTableOfContents(force: boolean = false): void {
-    if (this._state == "closed" || this._syncstring == null) {
+    if (this._state === "closed" || this._syncstring == null) {
       // no need since not initialized yet or already closed.
       return;
     }
