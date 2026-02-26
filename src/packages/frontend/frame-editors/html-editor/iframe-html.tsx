@@ -15,7 +15,7 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 // Some day in the future this might no longer be necessary ... (react 16.13.1)
 
 import $ from "jquery";
-import { Spin, Switch, Tooltip } from "antd";
+import { Button, Spin, Switch, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Set } from "immutable";
 import { debounce } from "lodash";
@@ -27,20 +27,23 @@ import {
   list_alternatives,
   path_split,
 } from "@cocalc/util/misc";
-import { CSS, React, Rendered } from "@cocalc/frontend/app-framework";
+import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { Icon } from "@cocalc/frontend/components";
 import {
   delete_local_storage,
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { COLORS } from "@cocalc/util/theme";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
 import { raw_url } from "../frame-tree/util";
 
 interface Props {
   id: string;
+  name: string;
   actions: any;
   editor_state: EditorState;
   is_fullscreen: boolean;
@@ -87,6 +90,7 @@ const STYLE: CSS = {
 export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   const {
     id,
+    name,
     actions,
     editor_state,
     is_fullscreen,
@@ -106,7 +110,9 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   // is only needed for rmd mode where an aux file loaded from server.
   const [init, setInit] = useState<boolean>(mode == "rmd");
   const [srcDoc, setSrcDoc] = useState<string | null>(null);
+  const [missing, setMissing] = useState<boolean>(false);
   const [trust, setTrust0] = useState<boolean>(isTrusted(props));
+  const building: boolean = useRedux(name, "building") ?? false;
   const setTrust = (trust) => {
     setTrusted(props, trust);
     setTrust0(trust);
@@ -128,6 +134,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     }
 
     // read actual_path and set srcDoc to it.
+    setMissing(false);
     (async () => {
       let buf;
       try {
@@ -136,7 +143,14 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
           path: actual_path,
         });
       } catch (err) {
-        actions.set_error(`${err}`);
+        if (mode === "rmd") {
+          // Show the "missing output" UI with a Build button instead of a
+          // global error banner.  Any error (file not found, project offline,
+          // etc.) is treated as "output unavailable — build to regenerate".
+          setMissing(true);
+        } else {
+          actions.set_error(`${err}`);
+        }
         return;
       } finally {
         // done -- we tried
@@ -254,7 +268,38 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     init_click_handler();
   }
 
+  function renderMissing(): Rendered {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          gap: "16px",
+          color: COLORS.GRAY_M,
+          fontSize: "16pt",
+        }}
+      >
+        <div>Output file does not exist</div>
+        <Button
+          type="primary"
+          size="large"
+          loading={building}
+          icon={building ? undefined : <Icon name="play-circle" />}
+          onClick={() => actions.build(id)}
+        >
+          {building ? "Building..." : "Build"}
+        </Button>
+      </div>
+    );
+  }
+
   function render_iframe() {
+    if (missing && mode === "rmd") {
+      return renderMissing();
+    }
     if (trust) {
       const src = `${raw_url(project_id, path)}?param=${reload}`;
       return (

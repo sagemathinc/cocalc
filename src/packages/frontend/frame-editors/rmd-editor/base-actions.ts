@@ -92,6 +92,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       }
     }
     this.is_building = true;
+    this.setState({ building: true });
     try {
       const actions = this.redux.getEditorActions(this.project_id, this.path);
       if (actions == null) {
@@ -108,6 +109,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       }
     } finally {
       this.is_building = false;
+      this.setState({ building: false });
     }
   }
 
