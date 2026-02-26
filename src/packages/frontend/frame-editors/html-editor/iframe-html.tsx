@@ -391,7 +391,12 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
             <Button
               size="small"
               type="primary"
-              onClick={() => actions.set_frame_type(id, "pdfjs_canvas")}
+              onClick={() =>
+                // "pdfjs_canvas" is the EDITOR_SPEC key in rmd/qmd editor.ts,
+                // NOT the type: field of EditorDescription (which is "pdfjs-canvas").
+                // set_frame_type dispatches by EDITOR_SPEC key, not by type: property.
+                actions.set_frame_type(id, "pdfjs_canvas")
+              }
             >
               switch to the PDF viewer
             </Button>
