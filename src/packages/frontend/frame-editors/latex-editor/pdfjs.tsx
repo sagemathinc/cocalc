@@ -301,10 +301,17 @@ export function PDFJS({
   }
 
   async function loadDoc(reload: number): Promise<void> {
+    // Race the PDF fetch against a 30-second timeout so we never hang in
+    // "Loading..." forever (e.g. if the project container is unresponsive).
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout loading PDF")), 30000),
+    );
+    let doc: PDFDocumentProxy;
     try {
-      const doc: PDFDocumentProxy = await getDocument(
-        url_to_pdf(project_id, path, reload),
-      );
+      doc = await Promise.race([
+        getDocument(url_to_pdf(project_id, path, reload)),
+        timeoutPromise,
+      ]);
       if (!isMounted.current) return;
       setMissing(false);
       const v: Promise<PDFPageProxy>[] = [];
@@ -372,14 +379,13 @@ export function PDFJS({
         }, 100);
       }
     } catch (err) {
-      // This is normal if the PDF is being modified *as* it is being loaded...
+      // Any error loading the PDF (404, parse failure, timeout, etc.) means the
+      // PDF is unavailable.  We show the "missing" state so the user sees a
+      // Build button rather than "Loading..." forever.  If a build is already
+      // in progress, renderMissing() will show "Building..." instead.
       const errStr = err?.toString() ?? "";
       console.log(`WARNING: error loading PDF -- ${errStr}`);
-      // "Missing" catches MissingPDFException; "404" catches
-      // UnexpectedResponseException when the file server returns HTTP 404.
-      const isPdfMissing =
-        err != null && (errStr.includes("Missing") || errStr.includes("404"));
-      if (isMounted.current && isPdfMissing) {
+      if (isMounted.current) {
         setMissing(true);
         // No retry loop: when the build finishes it triggers a reload via
         // the reload prop, which calls loadDoc again and clears missing state.
