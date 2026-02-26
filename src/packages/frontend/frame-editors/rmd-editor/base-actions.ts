@@ -33,10 +33,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
 
   protected do_build_on_save(): boolean {
     const account: AccountStore = this.redux.getStore("account");
-    if (account != null) {
-      return !!account.getIn(["editor_settings", "build_on_save"]);
-    }
-    return true;
+    return account?.getIn(["editor_settings", "build_on_save"]) ?? true;
   }
 
   protected _init_converter(): void {
