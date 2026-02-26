@@ -119,7 +119,10 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   };
 
   useEffect(() => {
-    if (trust) {
+    // For trusted non-rmd mode, skip file reading entirely (iframe uses raw URL).
+    // For rmd/qmd (mode=="rmd") we always read the file, even when trusted, so
+    // we can detect a missing output file and show the Build button.
+    if (trust && mode !== "rmd") {
       return;
     }
     let actual_path = path;
@@ -155,6 +158,11 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
       } finally {
         // done -- we tried
         setInit(false);
+      }
+      // When trusted, the iframe renders via raw URL directly — no need to
+      // set srcDoc.  We only read the file above to detect existence.
+      if (trust) {
+        return;
       }
       let src = buf.toString("utf8");
       if (trust) {
