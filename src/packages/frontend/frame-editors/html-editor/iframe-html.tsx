@@ -119,6 +119,11 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   };
 
   useEffect(() => {
+    // Guard against stale async work: when the effect re-fires (e.g.
+    // derived_file_types changes while a readFile is in flight), the old
+    // async closure must not update state.
+    let cancelled = false;
+
     // For trusted non-rmd mode, skip file reading entirely (iframe uses raw URL).
     // For rmd/qmd (mode=="rmd") we always read the file, even when trusted, so
     // we can detect a missing output file and show the Build button.
@@ -167,6 +172,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
           path: actual_path,
         });
       } catch (err) {
+        if (cancelled) return;
         if (expectsHtml) {
           // Show the "missing output" UI with a Build button instead of a
           // global error banner.  Any error (file not found, project offline,
@@ -178,8 +184,9 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
         return;
       } finally {
         // done -- we tried
-        setInit(false);
+        if (!cancelled) setInit(false);
       }
+      if (cancelled) return;
       // When trusted, the iframe renders via raw URL directly — no need to
       // set srcDoc.  We only read the file above to detect existence.
       if (trust) {
@@ -213,8 +220,11 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
           src = `<head>\n${extraHead}\n</head>\n\n${src}`;
         }
       }
-      setSrcDoc(src);
+      if (!cancelled) setSrcDoc(src);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [reload, mode, path, derived_file_types, trust]);
 
   const rootEl = useRef<any>(null);
