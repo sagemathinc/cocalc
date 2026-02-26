@@ -280,15 +280,17 @@ export function PDFJS({
         }}
       >
         <div>PDF file does not exist</div>
-        <Button
-          type="primary"
-          size="large"
-          loading={building}
-          icon={building ? undefined : <Icon name="play-circle" />}
-          onClick={() => actions.build(id)}
-        >
-          {building ? "Building..." : "Build"}
-        </Button>
+        {typeof (actions as any).build === "function" && (
+          <Button
+            type="primary"
+            size="large"
+            loading={building}
+            icon={building ? undefined : <Icon name="play-circle" />}
+            onClick={() => (actions as any).build(id)}
+          >
+            {building ? "Building..." : "Build"}
+          </Button>
+        )}
       </div>
     );
   }

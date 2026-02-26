@@ -126,13 +126,23 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
       return;
     }
     let actual_path = path;
+    // Track whether HTML output is actually expected for this rmd/qmd file.
+    // If the file produces only PDF (or another non-HTML format), we should
+    // show the render_no_html() guidance, not the "missing + Build" UI.
+    let expectsHtml = mode !== "rmd"; // non-rmd modes always expect their file
     if (mode == "rmd" && derived_file_types != undefined) {
       if (derived_file_types.contains("html")) {
+        expectsHtml = true;
         // keep path as it is; don't remove this case though because of the else
       } else if (derived_file_types.contains("nb.html")) {
+        expectsHtml = true;
         actual_path = change_filename_extension(path, "nb.html");
       } else {
+        // HTML output not expected (e.g. file only produces PDF).
+        // Show the existing "no HTML available" guidance, not a Build button.
         setSrcDoc(null);
+        setInit(false);
+        return;
       }
     }
 
@@ -146,7 +156,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
           path: actual_path,
         });
       } catch (err) {
-        if (mode === "rmd") {
+        if (expectsHtml) {
           // Show the "missing output" UI with a Build button instead of a
           // global error banner.  Any error (file not found, project offline,
           // etc.) is treated as "output unavailable — build to regenerate".
