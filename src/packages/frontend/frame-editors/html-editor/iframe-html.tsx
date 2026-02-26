@@ -381,10 +381,22 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_no_html(): Rendered {
+    const hasPdf = derived_file_types?.contains("pdf");
     return (
       <div>
         <p>There is no rendered HTML file available.</p>
-        {(derived_file_types?.size ?? 0) > 0 ? (
+        {hasPdf ? (
+          <p>
+            Instead,{" "}
+            <Button
+              size="small"
+              type="primary"
+              onClick={() => actions.set_frame_type(id, "pdfjs-canvas")}
+            >
+              switch to the PDF viewer
+            </Button>
+          </p>
+        ) : (derived_file_types?.size ?? 0) > 0 ? (
           <p>
             Instead, you might want to switch to the{" "}
             {list_alternatives(derived_file_types)} view by selecting it via the
