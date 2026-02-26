@@ -24,9 +24,7 @@ export async function checkProducedFiles(
   const project_store = project_actions.get_store();
   if (project_store == undefined) return null;
   const computeServerId =
-    project_actions.getComputeServerIdForFile({ path }) ??
-    project_store.get("compute_server_id") ??
-    0;
+    project_actions.getComputeServerIdForFile({ path }) ?? 0;
   const dir = path_split(path).head;
   await project_actions.fetch_directory_listing({
     path: dir,
@@ -69,6 +67,7 @@ interface RunJobOpts {
   aggregate?: string | number | { value: string | number };
   args?: string[];
   command: string;
+  compute_server_id?: number;
   env?: { [key: string]: string };
   project_id: string;
   runDir: string;
@@ -83,6 +82,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     aggregate,
     args,
     command,
+    compute_server_id,
     env,
     project_id,
     runDir,
@@ -119,6 +119,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     args,
     bash: !haveArgs,
     command,
+    compute_server_id,
     env,
     err_on_exit: false,
     path: runDir,

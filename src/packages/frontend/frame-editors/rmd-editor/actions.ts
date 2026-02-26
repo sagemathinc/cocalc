@@ -13,7 +13,7 @@ import { debounce } from "lodash";
 
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { markdown_to_html_frontmatter } from "@cocalc/frontend/markdown";
-import { ExecOutput } from "../generic/client";
+import { ExecOutput, getComputeServerId } from "../generic/client";
 import { MarkdownConverterActions } from "./base-actions";
 import { convert } from "./rmd-converter";
 
@@ -106,6 +106,7 @@ export class Actions extends MarkdownConverterActions {
         frontmatter,
         hash || this._last_hash || Date.now(),
         this.set_job_info.bind(this),
+        getComputeServerId({ project_id: this.project_id, path: this.path }),
       );
       this.set_log(output);
       if (output == null || output.exit_code != 0) {

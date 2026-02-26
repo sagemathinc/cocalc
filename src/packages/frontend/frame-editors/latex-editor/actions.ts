@@ -43,6 +43,7 @@ import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
 import {
   exec,
+  getComputeServerId,
   project_api,
   server_time,
 } from "@cocalc/frontend/frame-editors/generic/client";
@@ -226,14 +227,6 @@ export class Actions extends BaseActions<LatexEditorState> {
   // Watch the directory containing the PDF file for changes
   private async _init_pdf_directory_watcher(): Promise<void> {
     const pdfPath = pdf_path(this.path);
-    // Use the same three-step fallback as outputFileExists() to avoid racing
-    // before the compute-server manager has populated the per-file mapping.
-    const project_actions = this.redux.getProjectActions(this.project_id);
-    const project_store = project_actions?.get_store();
-    const csid =
-      project_actions?.getComputeServerIdForFile({ path: this.path }) ??
-      project_store?.get("compute_server_id") ??
-      0;
     this.pdf_watcher = new PDFWatcher(
       this.project_id,
       pdfPath,
@@ -241,7 +234,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       (_mtime: number, force: boolean) => {
         this.update_pdf(this.last_save_time(), force);
       },
-      csid,
+      getComputeServerId({ project_id: this.project_id, path: this.path }),
     );
     await this.pdf_watcher.init();
   }
@@ -423,10 +416,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       if (project_actions == null) return null;
       const project_store = project_actions.get_store();
       if (project_store == null) return null;
-      const csid =
-        project_actions.getComputeServerIdForFile({ path: this.path }) ??
-        project_store.get("compute_server_id") ??
-        0;
+      const csid = getComputeServerId({
+        project_id: this.project_id,
+        path: this.path,
+      });
       const { head: dir, tail: filename } = path_split(filePath);
       await project_actions.fetch_directory_listing({
         path: dir,
@@ -1009,6 +1002,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.make_timestamp(time, force),
         status,
         set_job_info,
+        getComputeServerId({ project_id: this.project_id, path: this.path }),
       );
     } catch (err) {
       this.set_error(err);
@@ -1110,6 +1104,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory(),
         set_job_info,
+        getComputeServerId({ project_id: this.project_id, path: this.path }),
       );
       // console.log(output);
     } catch (err) {
@@ -1342,6 +1337,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory(),
         set_job_info,
+        getComputeServerId({ project_id: this.project_id, path: this.path }),
       );
       if (!output) throw new Error("Unable to run SageTeX.");
       if (output.stderr.indexOf("sagetex.VersionError") != -1) {
@@ -1388,6 +1384,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory(),
         set_job_info,
+        getComputeServerId({ project_id: this.project_id, path: this.path }),
       );
       // Now run latex again, since we had to run pythontex, which changes the inserted snippets.
       // This +2 forces re-running latex... but still deduplicates it in case of multiple users. (+1 is for sagetex)

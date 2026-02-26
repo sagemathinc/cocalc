@@ -12,7 +12,7 @@ Quarto Editor Actions
 import { debounce } from "lodash";
 
 import { markdown_to_html_frontmatter } from "@cocalc/frontend/markdown";
-import { ExecOutput } from "../generic/client";
+import { ExecOutput, getComputeServerId } from "../generic/client";
 import { MarkdownConverterActions } from "../rmd-editor/base-actions";
 import { convert } from "./qmd-converter";
 
@@ -83,6 +83,10 @@ export class Actions extends MarkdownConverterActions {
         frontmatter,
         hash: hash || this._last_hash || Date.now(),
         set_job_info: this.set_job_info.bind(this),
+        compute_server_id: getComputeServerId({
+          project_id: this.project_id,
+          path: this.path,
+        }),
       });
       this.set_log(output);
       if (output == null || output.exit_code != 0) {

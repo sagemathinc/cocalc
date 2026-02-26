@@ -21,6 +21,7 @@ async function _convert(
   frontmatter: string,
   hash,
   set_job_info?: (info: ExecuteCodeOutputAsync) => void,
+  compute_server_id?: number,
 ): Promise<ExecOutput> {
   const x = path_split(path);
   const infile = x.tail;
@@ -42,6 +43,7 @@ async function _convert(
     aggregate: hash ? { value: hash } : undefined,
     args: ["-e", cmd],
     command: "Rscript",
+    compute_server_id,
     env: { MPLBACKEND: "Agg" }, // for python plots -- https://github.com/sagemathinc/cocalc/issues/4202
     project_id: project_id,
     runDir: x.head,

@@ -21,6 +21,7 @@ export async function latexmk(
   status: Function,
   output_directory: string | undefined,
   set_job_info: (info: ExecuteCodeOutputAsync) => void,
+  compute_server_id?: number,
 ): Promise<ExecOutput> {
   const { head, tail } = path_split(path);
   let command: string;
@@ -40,6 +41,7 @@ export async function latexmk(
     project_id,
     command,
     args,
+    compute_server_id,
     runDir: head,
     aggregate: time,
     set_job_info,
