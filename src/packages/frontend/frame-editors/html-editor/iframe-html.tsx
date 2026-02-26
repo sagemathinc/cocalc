@@ -130,19 +130,29 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     // If the file produces only PDF (or another non-HTML format), we should
     // show the render_no_html() guidance, not the "missing + Build" UI.
     let expectsHtml = mode !== "rmd"; // non-rmd modes always expect their file
-    if (mode == "rmd" && derived_file_types != undefined) {
-      if (derived_file_types.contains("html")) {
-        expectsHtml = true;
-        // keep path as it is; don't remove this case though because of the else
-      } else if (derived_file_types.contains("nb.html")) {
-        expectsHtml = true;
-        actual_path = change_filename_extension(path, "nb.html");
+    if (mode == "rmd") {
+      // Only show the "no HTML" guidance when we KNOW the file produces
+      // a non-HTML output: derived_file_types must be non-empty AND contain
+      // no HTML type.  An empty set means "no outputs detected yet" (e.g. the
+      // HTML file was deleted or never built), which should fall through and
+      // try reading the file — showing the Build button if it is missing.
+      if (derived_file_types != undefined && derived_file_types.size > 0) {
+        if (derived_file_types.contains("html")) {
+          expectsHtml = true;
+        } else if (derived_file_types.contains("nb.html")) {
+          expectsHtml = true;
+          actual_path = change_filename_extension(path, "nb.html");
+        } else {
+          // Known non-HTML output (e.g. PDF only). Show existing guidance.
+          setSrcDoc(null);
+          setInit(false);
+          return;
+        }
       } else {
-        // HTML output not expected (e.g. file only produces PDF).
-        // Show the existing "no HTML available" guidance, not a Build button.
-        setSrcDoc(null);
-        setInit(false);
-        return;
+        // Unknown format (undefined) or no outputs detected yet (empty set):
+        // try reading the HTML file. If it is missing, setMissing(true) will
+        // show the Build button.
+        expectsHtml = true;
       }
     }
 
