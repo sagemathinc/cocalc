@@ -144,6 +144,7 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
           actual_path = change_filename_extension(path, "nb.html");
         } else {
           // Known non-HTML output (e.g. PDF only). Show existing guidance.
+          setMissing(false); // clear any stale "missing" state from a prior render
           setSrcDoc(null);
           setInit(false);
           return;
