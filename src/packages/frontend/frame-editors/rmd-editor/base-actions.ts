@@ -65,11 +65,14 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       if (!this.do_build_on_save()) return;
       const outputs = await this._check_produced_files();
       if (this._state === "closed") return;
+      if (this._syncstring == null) return; // closed between awaits
+      // Always seed _last_hash from the current saved version so the
+      // after-change handler doesn't treat the already-open file as
+      // "changed" on the first keystroke when we skip the initial build.
+      this._last_hash = this._syncstring.hash_of_saved_version();
       if (outputs === null) return; // listing unavailable => skip
       if (outputs.size > 0) return; // output already exists => skip
-      if (this._syncstring == null) return; // closed between awaits
-      const initial_hash = this._syncstring.hash_of_saved_version();
-      await this.run_converter(initial_hash);
+      await this.run_converter(this._last_hash);
     })();
   }
 
