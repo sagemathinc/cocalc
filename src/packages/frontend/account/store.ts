@@ -7,6 +7,7 @@ import { List, Map } from "immutable";
 import { reduce } from "lodash";
 
 import { store as customizeStore } from "@cocalc/frontend/customize";
+import { once } from "@cocalc/util/async-utils";
 import { make_valid_name } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
 import { get_total_upgrades } from "@cocalc/util/upgrades";
@@ -23,6 +24,14 @@ export class AccountStore extends Store<AccountState> {
   constructor(name, redux) {
     super(name, redux);
     this.setup_selectors();
+  }
+
+  // Resolves immediately if account settings are already loaded, otherwise
+  // waits for the store to emit "is_ready" (set by account/table.ts on first load).
+  async waitUntilReady(): Promise<void> {
+    if (!this.get("is_ready")) {
+      await once(this, "is_ready");
+    }
   }
 
   get_user_type(): string {

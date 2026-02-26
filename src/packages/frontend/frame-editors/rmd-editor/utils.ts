@@ -3,11 +3,53 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Set } from "immutable";
 import { join } from "path";
+
+import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { change_filename_extension, path_split } from "@cocalc/util/misc";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
 import { ExecOutput } from "../generic/client";
+
+// Checks which output files (pdf, html, nb.html) exist for a markdown-converter
+// source file. Returns a Set of found extensions, or null if the listing could
+// not be fetched (unknown state — callers should skip auto-build in that case).
+export async function checkProducedFiles(
+  project_id: string,
+  path: string,
+): Promise<Set<string> | null> {
+  const project_actions = redux.getProjectActions(project_id);
+  if (project_actions == undefined) return null;
+  const project_store = project_actions.get_store();
+  if (project_store == undefined) return null;
+  const computeServerId =
+    project_actions.getComputeServerIdForFile({ path }) ?? 0;
+  const dir = path_split(path).head;
+  await project_actions.fetch_directory_listing({
+    path: dir,
+    compute_server_id: computeServerId,
+  });
+  const dir_listings = project_store.getIn([
+    "directory_listings",
+    computeServerId,
+  ]);
+  if (dir_listings == undefined) return null;
+  const listing = dir_listings.get(dir);
+  if (listing == undefined) return null;
+
+  let existing = Set<string>();
+  for (const ext of ["pdf", "html", "nb.html"]) {
+    const expected_fn = derive_rmd_output_filename(path, ext);
+    const fn_exists = listing.some(
+      (entry) => entry.get("name") === path_split(expected_fn).tail,
+    );
+    if (fn_exists) {
+      existing = existing.add(ext);
+    }
+  }
+  return existing;
+}
 
 // something in the rmarkdown source code replaces all spaces by dashes
 // [hsy] I think this is because of calling pandoc.
@@ -25,6 +67,7 @@ interface RunJobOpts {
   aggregate?: string | number | { value: string | number };
   args?: string[];
   command: string;
+  compute_server_id?: number;
   env?: { [key: string]: string };
   project_id: string;
   runDir: string;
@@ -39,6 +82,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     aggregate,
     args,
     command,
+    compute_server_id,
     env,
     project_id,
     runDir,
@@ -75,6 +119,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     args,
     bash: !haveArgs,
     command,
+    compute_server_id,
     env,
     err_on_exit: false,
     path: runDir,

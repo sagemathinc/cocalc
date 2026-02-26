@@ -15,7 +15,7 @@ Component that shows rendered HTML in an iFrame, so safe and no mangling needed.
 // Some day in the future this might no longer be necessary ... (react 16.13.1)
 
 import $ from "jquery";
-import { Spin, Switch, Tooltip } from "antd";
+import { Button, Spin, Switch, Tooltip } from "antd";
 import { delay } from "awaiting";
 import { Set } from "immutable";
 import { debounce } from "lodash";
@@ -27,20 +27,23 @@ import {
   list_alternatives,
   path_split,
 } from "@cocalc/util/misc";
-import { CSS, React, Rendered } from "@cocalc/frontend/app-framework";
+import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
+import { Icon } from "@cocalc/frontend/components";
 import {
   delete_local_storage,
   get_local_storage,
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { COLORS } from "@cocalc/util/theme";
 import { use_font_size_scaling } from "../frame-tree/hooks";
 import { EditorState } from "../frame-tree/types";
 import { raw_url } from "../frame-tree/util";
 
 interface Props {
   id: string;
+  name: string;
   actions: any;
   editor_state: EditorState;
   is_fullscreen: boolean;
@@ -87,6 +90,7 @@ const STYLE: CSS = {
 export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   const {
     id,
+    name,
     actions,
     editor_state,
     is_fullscreen,
@@ -106,28 +110,60 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   // is only needed for rmd mode where an aux file loaded from server.
   const [init, setInit] = useState<boolean>(mode == "rmd");
   const [srcDoc, setSrcDoc] = useState<string | null>(null);
+  const [missing, setMissing] = useState<boolean>(false);
   const [trust, setTrust0] = useState<boolean>(isTrusted(props));
+  const building: boolean = useRedux(name, "building") ?? false;
   const setTrust = (trust) => {
     setTrusted(props, trust);
     setTrust0(trust);
   };
 
   useEffect(() => {
-    if (trust) {
+    // Guard against stale async work: when the effect re-fires (e.g.
+    // derived_file_types changes while a readFile is in flight), the old
+    // async closure must not update state.
+    let cancelled = false;
+
+    // For trusted non-rmd mode, skip file reading entirely (iframe uses raw URL).
+    // For rmd/qmd (mode=="rmd") we always read the file, even when trusted, so
+    // we can detect a missing output file and show the Build button.
+    if (trust && mode !== "rmd") {
       return;
     }
     let actual_path = path;
-    if (mode == "rmd" && derived_file_types != undefined) {
-      if (derived_file_types.contains("html")) {
-        // keep path as it is; don't remove this case though because of the else
-      } else if (derived_file_types.contains("nb.html")) {
-        actual_path = change_filename_extension(path, "nb.html");
+    // Track whether HTML output is actually expected for this rmd/qmd file.
+    // If the file produces only PDF (or another non-HTML format), we should
+    // show the render_no_html() guidance, not the "missing + Build" UI.
+    let expectsHtml = mode !== "rmd"; // non-rmd modes always expect their file
+    if (mode == "rmd") {
+      // Only show the "no HTML" guidance when we KNOW the file produces
+      // a non-HTML output: derived_file_types must be non-empty AND contain
+      // no HTML type.  An empty set means "no outputs detected yet" (e.g. the
+      // HTML file was deleted or never built), which should fall through and
+      // try reading the file — showing the Build button if it is missing.
+      if (derived_file_types != undefined && derived_file_types.size > 0) {
+        if (derived_file_types.contains("html")) {
+          expectsHtml = true;
+        } else if (derived_file_types.contains("nb.html")) {
+          expectsHtml = true;
+          actual_path = change_filename_extension(path, "nb.html");
+        } else {
+          // Known non-HTML output (e.g. PDF only). Show existing guidance.
+          setMissing(false); // clear any stale "missing" state from a prior render
+          setSrcDoc(null);
+          setInit(false);
+          return;
+        }
       } else {
-        setSrcDoc(null);
+        // Unknown format (undefined) or no outputs detected yet (empty set):
+        // try reading the HTML file. If it is missing, setMissing(true) will
+        // show the Build button.
+        expectsHtml = true;
       }
     }
 
     // read actual_path and set srcDoc to it.
+    setMissing(false);
     (async () => {
       let buf;
       try {
@@ -136,11 +172,25 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
           path: actual_path,
         });
       } catch (err) {
-        actions.set_error(`${err}`);
+        if (cancelled) return;
+        if (expectsHtml) {
+          // Show the "missing output" UI with a Build button instead of a
+          // global error banner.  Any error (file not found, project offline,
+          // etc.) is treated as "output unavailable — build to regenerate".
+          setMissing(true);
+        } else {
+          actions.set_error(`${err}`);
+        }
         return;
       } finally {
         // done -- we tried
-        setInit(false);
+        if (!cancelled) setInit(false);
+      }
+      if (cancelled) return;
+      // When trusted, the iframe renders via raw URL directly — no need to
+      // set srcDoc.  We only read the file above to detect existence.
+      if (trust) {
+        return;
       }
       let src = buf.toString("utf8");
       if (trust) {
@@ -170,8 +220,11 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
           src = `<head>\n${extraHead}\n</head>\n\n${src}`;
         }
       }
-      setSrcDoc(src);
+      if (!cancelled) setSrcDoc(src);
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [reload, mode, path, derived_file_types, trust]);
 
   const rootEl = useRef<any>(null);
@@ -254,7 +307,38 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
     init_click_handler();
   }
 
+  function renderMissing(): Rendered {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          gap: "16px",
+          color: COLORS.GRAY_M,
+          fontSize: "16pt",
+        }}
+      >
+        <div>Output file does not exist</div>
+        <Button
+          type="primary"
+          size="large"
+          loading={building}
+          icon={building ? undefined : <Icon name="play-circle" />}
+          onClick={() => actions.build(id)}
+        >
+          {building ? "Building..." : "Build"}
+        </Button>
+      </div>
+    );
+  }
+
   function render_iframe() {
+    if (missing && mode === "rmd") {
+      return renderMissing();
+    }
     if (trust) {
       const src = `${raw_url(project_id, path)}?param=${reload}`;
       return (
@@ -318,10 +402,22 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_no_html(): Rendered {
+    const hasPdf = derived_file_types?.contains("pdf");
     return (
       <div>
         <p>There is no rendered HTML file available.</p>
-        {(derived_file_types?.size ?? 0) > 0 ? (
+        {hasPdf ? (
+          <p>
+            Instead,{" "}
+            <Button
+              size="small"
+              type="primary"
+              onClick={() => actions.set_frame_type(id, "pdfjs_canvas")}
+            >
+              switch to the PDF viewer
+            </Button>
+          </p>
+        ) : (derived_file_types?.size ?? 0) > 0 ? (
           <p>
             Instead, you might want to switch to the{" "}
             {list_alternatives(derived_file_types)} view by selecting it via the

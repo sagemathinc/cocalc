@@ -63,6 +63,7 @@ export async function sagetex(
   status: Function,
   output_directory: string | undefined,
   set_job_info: (info: ExecuteCodeOutputAsync) => void,
+  compute_server_id?: number,
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path); // base, directory, filename
   const s = sagetex_file(base);
@@ -72,6 +73,7 @@ export async function sagetex(
     project_id,
     command: "sage",
     args: [s],
+    compute_server_id,
     set_job_info,
     runDir: output_directory || directory,
     aggregate: hash ? { value: hash } : undefined,

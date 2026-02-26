@@ -55,7 +55,6 @@ interface PDFJSProps {
   font_size: number;
   is_current: boolean;
   is_visible: boolean;
-  status: string;
   initialPage?: number;
   onPageInfo?: (currentPage: number, totalPages: number) => void;
   onViewportInfo?: (page: number, x: number, y: number) => void;
@@ -77,7 +76,6 @@ export function PDFJS({
   font_size,
   is_current,
   is_visible,
-  status,
   initialPage,
   onPageInfo,
   onViewportInfo,
@@ -102,6 +100,7 @@ export function PDFJS({
   const mode: undefined | "rmd" = useRedux(name, "mode");
   const derived_file_types: iSet<string> = useRedux(name, "derived_file_types");
   const custom_pdf_error_message = useRedux(name, "custom_pdf_error_message");
+  const building: boolean = useRedux(name, "building") ?? false;
   const autoSyncInProgress = useRedux(name, "autoSyncInProgress") ?? false;
   const newLayoutNagDismissed =
     useRedux([name, "local_view_state", "new_layout_nag_dismissed"]) ?? false;
@@ -266,27 +265,32 @@ export function PDFJS({
     }
   }, [is_current, is_visible, pageActions != null]);
 
-  function renderStatus(): React.JSX.Element {
-    if (status) {
-      return <Loading text="Building..." />;
-    } else {
-      return (
-        <>
-          <Icon name="play-circle" /> Build or fix
-        </>
-      );
-    }
-  }
-
   function renderMissing(): React.JSX.Element {
     return (
       <div
         style={{
-          fontSize: "20pt",
-          color: COLORS.GRAY,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center",
+          height: "100%",
+          gap: "16px",
+          color: COLORS.GRAY_M,
+          fontSize: "16pt",
         }}
       >
-        Missing PDF -- {renderStatus()}
+        <div>PDF file does not exist</div>
+        {typeof (actions as any).build === "function" && (
+          <Button
+            type="primary"
+            size="large"
+            loading={building}
+            icon={building ? undefined : <Icon name="play-circle" />}
+            onClick={() => (actions as any).build(id)}
+          >
+            {building ? "Building..." : "Build"}
+          </Button>
+        )}
       </div>
     );
   }
@@ -295,11 +299,18 @@ export function PDFJS({
     return <Loading theme="medium" />;
   }
 
-  async function loadDoc(reload: number): Promise<void> {
+  async function loadDoc(reload: number, isRetry = false): Promise<void> {
+    // Race the PDF fetch against a 30-second timeout so we never hang in
+    // "Loading..." forever (e.g. if the project container is unresponsive).
+    const timeoutPromise = new Promise<never>((_, reject) =>
+      setTimeout(() => reject(new Error("Timeout loading PDF")), 30000),
+    );
+    let doc: PDFDocumentProxy;
     try {
-      const doc: PDFDocumentProxy = await getDocument(
-        url_to_pdf(project_id, path, reload),
-      );
+      doc = await Promise.race([
+        getDocument(url_to_pdf(project_id, path, reload)),
+        timeoutPromise,
+      ]);
       if (!isMounted.current) return;
       setMissing(false);
       const v: Promise<PDFPageProxy>[] = [];
@@ -367,20 +378,23 @@ export function PDFJS({
         }, 100);
       }
     } catch (err) {
-      // This is normal if the PDF is being modified *as* it is being loaded...
-      console.log(`WARNING: error loading PDF -- ${err}`);
-      if (
-        isMounted.current &&
-        err != null && // err can be null!!
-        err.toString()?.indexOf("Missing") != -1
-      ) {
-        setMissing(true);
+      const errStr = err?.toString() ?? "";
+      console.log(`WARNING: error loading PDF -- ${errStr}`);
+      if (!isMounted.current) return;
+      // pdf.js can throw transient parse errors when the file is being
+      // rewritten by a build process.  Retry once after a short delay
+      // before giving up and showing the "missing" state.
+      if (!isRetry) {
         await delay(3000);
-        if (isMounted.current && missing && actions.update_pdf != null) {
-          // try again, since there is function
-          actions.update_pdf(Date.now(), true);
+        if (isMounted.current) {
+          await loadDoc(reload, true);
         }
+        return;
       }
+      // Retry also failed — the PDF is genuinely unavailable.  Show the
+      // "missing" state so the user sees a Build button (or "Building..."
+      // if a build is already in progress).
+      setMissing(true);
     }
   }
 
