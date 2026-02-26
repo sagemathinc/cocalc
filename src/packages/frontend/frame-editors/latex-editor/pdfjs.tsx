@@ -299,7 +299,7 @@ export function PDFJS({
     return <Loading theme="medium" />;
   }
 
-  async function loadDoc(reload: number): Promise<void> {
+  async function loadDoc(reload: number, isRetry = false): Promise<void> {
     // Race the PDF fetch against a 30-second timeout so we never hang in
     // "Loading..." forever (e.g. if the project container is unresponsive).
     const timeoutPromise = new Promise<never>((_, reject) =>
@@ -378,17 +378,23 @@ export function PDFJS({
         }, 100);
       }
     } catch (err) {
-      // Any error loading the PDF (404, parse failure, timeout, etc.) means the
-      // PDF is unavailable.  We show the "missing" state so the user sees a
-      // Build button rather than "Loading..." forever.  If a build is already
-      // in progress, renderMissing() will show "Building..." instead.
       const errStr = err?.toString() ?? "";
       console.log(`WARNING: error loading PDF -- ${errStr}`);
-      if (isMounted.current) {
-        setMissing(true);
-        // No retry loop: when the build finishes it triggers a reload via
-        // the reload prop, which calls loadDoc again and clears missing state.
+      if (!isMounted.current) return;
+      // pdf.js can throw transient parse errors when the file is being
+      // rewritten by a build process.  Retry once after a short delay
+      // before giving up and showing the "missing" state.
+      if (!isRetry) {
+        await delay(3000);
+        if (isMounted.current) {
+          await loadDoc(reload, true);
+        }
+        return;
       }
+      // Retry also failed — the PDF is genuinely unavailable.  Show the
+      // "missing" state so the user sees a Build button (or "Building..."
+      // if a build is already in progress).
+      setMissing(true);
     }
   }
 
