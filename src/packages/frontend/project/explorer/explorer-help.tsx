@@ -34,7 +34,7 @@ function HelpContent({
     <div
       style={{
         maxWidth: 420,
-        maxHeight: "70vh",
+        maxHeight: "50vh",
         overflowY: "auto",
         fontSize: 13,
         lineHeight: 1.6,

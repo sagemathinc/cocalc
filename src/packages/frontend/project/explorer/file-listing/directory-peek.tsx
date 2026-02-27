@@ -228,15 +228,14 @@ function PeekItem({
             width: 150,
             fontSize: 12,
             color: entry.isdir ? COLORS.ANTD_LINK_BLUE : COLORS.GRAY_D,
-            background: COLORS.WHITE,
-            border: `1px solid ${COLORS.GRAY_L}`,
+            background: "transparent",
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.background =
-              COLORS.BLUE_LLLL;
+              COLORS.GRAY_LLL;
           }}
           onMouseLeave={(e) => {
-            (e.currentTarget as HTMLElement).style.background = COLORS.WHITE;
+            (e.currentTarget as HTMLElement).style.background = "transparent";
           }}
         >
           <Icon
