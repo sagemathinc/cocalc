@@ -345,11 +345,6 @@ export function FilesFlyout({
     return sortedTypeFilterOptions(extensions);
   }, [directoryListings, current_path]);
 
-  // Clear type filter when changing directories
-  useEffect(() => {
-    setTypeFilter(null);
-  }, [current_path]);
-
   const prev_current_path = usePrevious(current_path);
 
   useEffect(() => {
@@ -357,10 +352,9 @@ export function FilesFlyout({
     setPrevSelected(null);
 
     // if the current_path changes and there was a previous one,
-    // we reset the checked files as well. This should probably be somewhere in the actions, though.
-    // The edge case is when more than one editor in different directories is open,
-    // and you switch between the two. Checked files are not reset in that case.
+    // we reset the checked files and type filter as well.
     if (prev_current_path != null && prev_current_path !== current_path) {
+      setTypeFilter(null);
       actions?.set_all_files_unchecked();
     }
 

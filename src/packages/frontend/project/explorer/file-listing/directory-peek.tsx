@@ -76,11 +76,13 @@ export default function DirectoryPeek({
             fullPath: misc.path_to_file(dirPath, f.name),
           }));
 
-        // Sort: directories first, then alphabetically
+        // Sort: directories first, then case-insensitive alphabetically
         files.sort((a, b) => {
           if (a.isdir && !b.isdir) return -1;
           if (!a.isdir && b.isdir) return 1;
-          return a.name.localeCompare(b.name);
+          return a.name.localeCompare(b.name, undefined, {
+            sensitivity: "base",
+          });
         });
 
         setEntries(files);
@@ -133,7 +135,7 @@ export default function DirectoryPeek({
       style={{
         borderLeft: `5px solid ${COLORS.ANTD_LINK_BLUE}`,
         background: COLORS.BLUE_LLLL,
-        padding: "8px 12px",
+        padding: "8px 8px 8px 12px",
         position: "relative",
         maxHeight: MAX_HEIGHT,
         overflowY: "auto",
@@ -223,7 +225,7 @@ function PeekItem({
             padding: "2px 8px",
             borderRadius: 4,
             cursor: "pointer",
-            maxWidth: 180,
+            width: 150,
             fontSize: 12,
             color: entry.isdir ? COLORS.ANTD_LINK_BLUE : COLORS.GRAY_D,
             background: COLORS.WHITE,

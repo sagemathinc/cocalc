@@ -5,7 +5,7 @@
 
 // File listing using antd Table with virtual scrolling.
 
-import { Alert, Menu, Spin, Table } from "antd";
+import { Alert, Button as AntButton, Menu, Spin, Table } from "antd";
 import type { ColumnsType, TableProps } from "antd/es/table";
 import type { ColumnFilterItem } from "antd/es/table/interface";
 import type { MenuProps } from "antd";
@@ -328,29 +328,34 @@ function renderFileIcon(
   isExpanded?: boolean,
   onToggleExpand?: (e: React.MouseEvent) => void,
 ): React.ReactNode {
-  const style: React.CSSProperties = {
-    color: record.mask ? COLORS.GRAY_M : COLORS.FILE_ICON,
-    verticalAlign: "sub",
-    whiteSpace: "nowrap",
-  };
+  const color = record.mask ? COLORS.GRAY_M : COLORS.FILE_ICON;
   if (record.isdir) {
+    // Folder icon + caret as a single borderless button with hover effect
     return (
-      <span style={style}>
+      <AntButton
+        type="text"
+        size="small"
+        onClick={onToggleExpand}
+        style={{
+          color,
+          padding: "0 4px",
+          height: "auto",
+          lineHeight: "inherit",
+        }}
+      >
         <Icon
           name="folder-open"
           style={{ fontSize: "14pt", verticalAlign: "sub" }}
         />
         <Icon
           name={isExpanded ? "caret-down" : "caret-right"}
-          onClick={onToggleExpand}
           style={{
             marginLeft: "3px",
             fontSize: "14pt",
             verticalAlign: "sub",
-            cursor: onToggleExpand ? "pointer" : undefined,
           }}
         />
-      </span>
+      </AntButton>
     );
   }
   let iconName: IconName;
@@ -361,7 +366,7 @@ function renderFileIcon(
     iconName = "file";
   }
   return (
-    <span style={style}>
+    <span style={{ color, verticalAlign: "sub", whiteSpace: "nowrap" }}>
       <Icon name={iconName} style={{ fontSize: "14pt" }} />
     </span>
   );
