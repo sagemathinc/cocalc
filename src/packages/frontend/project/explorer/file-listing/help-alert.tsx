@@ -24,7 +24,7 @@ export function HelpAlert({
       <Alert
         style={help_alert_error_style}
         type="error"
-        message="Warning: \ is an illegal character"
+        message="Warning: \\ is an illegal character"
       />
     );
   } else if (file_search.indexOf("/") === 0) {

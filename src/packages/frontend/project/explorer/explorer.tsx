@@ -46,7 +46,6 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
-import { useExplorerSettings } from "./use-explorer-settings";
 
 export type Configuration = ShallowTypedMap<{ main: MainConfiguration }>;
 
@@ -118,9 +117,6 @@ export function Explorer() {
 
   // -- Local state --
   const [shiftIsDown, setShiftIsDown] = useState(false);
-
-  // -- Per-project explorer settings (sort persistence via DKV) --
-  useExplorerSettings(project_id);
 
   // -- Refs for ExplorerTour --
   const newFileRef = useRef<any>(null);

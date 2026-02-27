@@ -563,6 +563,20 @@ export const FileListing: React.FC<Props> = ({
     setCurrentPage(1);
   }, [current_path, typeFilter]);
 
+  // Auto-navigate to the page containing the keyboard-selected file
+  useEffect(() => {
+    if (selected_file_index == null || selected_file_index < 0 || pageSize <= 0)
+      return;
+    const targetPage = Math.floor(selected_file_index / pageSize) + 1;
+    if (
+      targetPage !== currentPage &&
+      targetPage >= 1 &&
+      targetPage <= totalPages
+    ) {
+      setCurrentPage(targetPage);
+    }
+  }, [selected_file_index, pageSize, totalPages]);
+
   // Wheel on the table container flips pages
   useEffect(() => {
     const el = containerRef.current;
