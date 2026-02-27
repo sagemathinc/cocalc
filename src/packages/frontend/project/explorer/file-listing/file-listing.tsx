@@ -870,10 +870,7 @@ export const FileListing: React.FC<Props> = ({
           ) : null,
       },
       {
-        title: intl.formatMessage({
-          id: "project.explorer.file-listing.column.name",
-          defaultMessage: "Name",
-        }),
+        title: intl.formatMessage(labels.name),
         key: "name",
         dataIndex: "name",
         sorter: true,

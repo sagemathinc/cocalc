@@ -104,14 +104,15 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_directory_tree_toggle(): React.JSX.Element | undefined {
-    if (!props.on_toggle_directory_tree) {
+    // When the tree is visible, the toggle is rendered above the tree panel
+    // in explorer.tsx — don't duplicate it here.
+    if (!props.on_toggle_directory_tree || props.show_directory_tree) {
       return;
     }
     return (
       <BootstrapButton
         onClick={props.on_toggle_directory_tree}
-        active={!!props.show_directory_tree}
-        title="Show or hide directory tree"
+        title="Show directory tree"
       >
         <Icon name="network" style={{ transform: "rotate(270deg)" }} />
       </BootstrapButton>
@@ -143,7 +144,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
             <FormattedMessage
               id="project.explorer.action-bar.currently_selected.info"
               defaultMessage={
-                "Click the checkbox to the left of a file to copy, download, etc."
+                "Select files via checkbox or drag and drop to move them."
               }
             />
           </span>
@@ -282,7 +283,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
           {render_button_area()}
         </Space>
       </div>
-      <div style={{ flex: "1 0 auto" }}>
+      <div style={{ width: "100%" }}>
         {props.project_is_running ? render_currently_selected() : undefined}
       </div>
     </div>

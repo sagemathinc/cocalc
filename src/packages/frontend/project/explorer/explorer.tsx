@@ -6,6 +6,8 @@
 import { DndContext, useDraggable } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
 import { Alert, Button as AntButton, Tree } from "antd";
+
+import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import type { TreeDataNode, TreeProps } from "antd";
 import * as _ from "lodash";
 import React, {
@@ -617,14 +619,13 @@ export function Explorer() {
             }}
           >
             <div style={{ flex: "0 0 auto", padding: "4px 2px" }}>
-              <AntButton
-                size="small"
-                type="text"
+              <BootstrapButton
                 onClick={toggleDirectoryTree}
+                active
                 title="Hide directory tree"
               >
                 <Icon name="network" style={{ transform: "rotate(270deg)" }} />
-              </AntButton>
+              </BootstrapButton>
             </div>
             <DirectoryTreePanel
               project_id={project_id}
