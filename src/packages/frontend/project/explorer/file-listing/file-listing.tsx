@@ -554,6 +554,32 @@ export const FileListing: React.FC<Props> = ({
     }));
   }, [listing, file_map]);
 
+  // -- Pagination: controlled page for wheel navigation --
+  const [currentPage, setCurrentPage] = useState(1);
+  const totalPages = Math.ceil(dataSource.length / pageSize);
+
+  // Reset to page 1 when the listing changes (e.g. path change, filter)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [current_path, typeFilter]);
+
+  // Wheel on the table container flips pages
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const handler = (e: WheelEvent) => {
+      if (totalPages <= 1) return;
+      if (Math.abs(e.deltaY) < 10) return;
+      e.preventDefault();
+      setCurrentPage((prev) => {
+        if (e.deltaY > 0) return Math.min(prev + 1, totalPages);
+        return Math.max(prev - 1, 1);
+      });
+    };
+    el.addEventListener("wheel", handler, { passive: false });
+    return () => el.removeEventListener("wheel", handler);
+  }, [totalPages]);
+
   // -- Selection keys (full paths in checked_files → file names for Table) --
   const selectedRowKeys = useMemo(() => {
     const keys: string[] = [];
@@ -1168,7 +1194,7 @@ export const FileListing: React.FC<Props> = ({
         <div
           ref={containerRef}
           className={`smc-vfill cc-explorer-table${shift_is_down ? " noselect" : ""}`}
-          style={{ minHeight: 0 }}
+          style={{ minHeight: 0, position: "relative" }}
         >
           <Table<FileEntry>
             size="small"
@@ -1182,13 +1208,12 @@ export const FileListing: React.FC<Props> = ({
                 : rowSelection
             }
             pagination={{
+              current: currentPage,
               pageSize,
               showSizeChanger: false,
               showQuickJumper: dataSource.length > pageSize * 3,
               align: "start",
-              showTotal: (total) => (
-                <ExplorerHelp project_id={project_id} total={total} />
-              ),
+              onChange: (page) => setCurrentPage(page),
             }}
             showSorterTooltip={false}
             sortDirections={["ascend", "descend", "ascend"]}
@@ -1196,6 +1221,9 @@ export const FileListing: React.FC<Props> = ({
             onRow={onRow}
             rowClassName={rowClassName}
           />
+          <div style={{ position: "absolute", bottom: 4, right: 8 }}>
+            <ExplorerHelp project_id={project_id} />
+          </div>
         </div>
       </DndRowContext.Provider>
       {/* Floating context menu */}
@@ -1211,6 +1239,7 @@ export const FileListing: React.FC<Props> = ({
           <Menu
             items={contextMenu.items}
             onClick={() => setContextMenu(null)}
+            className="cc-explorer-context-menu"
             style={{
               borderRadius: 8,
               boxShadow: "0 6px 16px 0 rgba(0,0,0,0.12)",

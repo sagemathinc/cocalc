@@ -405,31 +405,59 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
               justifyContent: "space-between",
             }}
           >
-            <Radio.Group size="small">
-              {renderSortButton(
-                "starred",
-                <Icon name="star-filled" style={{ fontSize: "10pt" }} />,
-              )}
-              {renderSortButton("name", "Name")}
-              {renderSortButton("size", "Size")}
-              {renderSortButton("time", "Time")}
-            </Radio.Group>
-            <Select
-              size="small"
-              allowClear
-              placeholder="Type"
-              value={typeFilter}
-              onChange={(val) => setTypeFilter(val ?? null)}
-              style={{ minWidth: 80 }}
-              popupMatchSelectWidth={false}
-              className={
-                typeFilter != null ? "cc-flyout-type-filter-active" : undefined
-              }
-              options={typeFilterOptions.map((ext) => ({
-                label: renderTypeFilterLabel(ext),
-                value: ext,
-              }))}
-            />
+            <Space size="small">
+              <Radio.Group size="small">
+                {renderSortButton(
+                  "starred",
+                  <Icon name="star-filled" style={{ fontSize: "10pt" }} />,
+                )}
+                {renderSortButton("name", "Name")}
+                {renderSortButton("size", "Size")}
+                {renderSortButton("time", "Time")}
+              </Radio.Group>
+              <Select
+                size="small"
+                allowClear
+                placeholder="Type"
+                value={typeFilter}
+                onChange={(val) =>
+                  setTypeFilter(val === "__clear__" || val == null ? null : val)
+                }
+                style={{ minWidth: 80 }}
+                popupMatchSelectWidth={false}
+                className={
+                  typeFilter != null
+                    ? "cc-flyout-type-filter-active"
+                    : undefined
+                }
+                options={[
+                  ...(typeFilter != null
+                    ? [
+                        {
+                          label: (
+                            <span
+                              style={{
+                                color: COLORS.GRAY,
+                                display: "block",
+                                borderBottom: `1px solid ${COLORS.GRAY_L0}`,
+                                paddingBottom: 4,
+                                marginBottom: 2,
+                              }}
+                            >
+                              <Icon name="times-circle" /> Clear filter
+                            </span>
+                          ),
+                          value: "__clear__",
+                        },
+                      ]
+                    : []),
+                  ...typeFilterOptions.map((ext) => ({
+                    label: renderTypeFilterLabel(ext),
+                    value: ext,
+                  })),
+                ]}
+              />
+            </Space>
             <Space.Compact direction="horizontal" size={"small"}>
               <Tooltip
                 title={intl.formatMessage(labels.upload_tooltip)}

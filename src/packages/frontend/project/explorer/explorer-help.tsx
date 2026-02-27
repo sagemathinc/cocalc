@@ -15,17 +15,21 @@ import { useState } from "react";
 import { redux } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon, type IconName } from "@cocalc/frontend/components/icon";
-import { plural } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 const { Text } = Typography;
 
 interface Props {
   project_id: string;
-  total: number;
 }
 
-function HelpContent({ project_id }: { project_id: string }) {
+function HelpContent({
+  project_id,
+  onClose,
+}: {
+  project_id: string;
+  onClose: () => void;
+}) {
   return (
     <div style={{ maxWidth: 420, fontSize: 13, lineHeight: 1.6 }}>
       <Section title="Selecting Files" icon="check-square-o">
@@ -79,6 +83,7 @@ function HelpContent({ project_id }: { project_id: string }) {
         <Button
           size="small"
           onClick={() => {
+            onClose();
             redux
               .getProjectActions(project_id)
               .setState({ explorerTour: true });
@@ -119,45 +124,39 @@ function Section({
   );
 }
 
-export default function ExplorerHelp({ project_id, total }: Props) {
+export default function ExplorerHelp({ project_id }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
-    <span
-      style={{
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 8,
-        float: "right",
-      }}
+    <Popover
+      placement="topRight"
+      trigger="click"
+      open={open}
+      onOpenChange={setOpen}
+      title={
+        <div>
+          File Explorer Help
+          <Button
+            type="text"
+            size="small"
+            style={{ float: "right" }}
+            onClick={() => setOpen(false)}
+          >
+            <Icon name="times" />
+          </Button>
+        </div>
+      }
+      content={
+        <HelpContent project_id={project_id} onClose={() => setOpen(false)} />
+      }
     >
-      <span style={{ color: COLORS.GRAY, fontSize: 12 }}>
-        {total} {plural(total, "item")}
-      </span>
-      <Popover
-        placement="topRight"
-        trigger="click"
-        open={open}
-        onOpenChange={setOpen}
-        title={
-          <div>
-            File Explorer Help
-            <Button
-              type="text"
-              size="small"
-              style={{ float: "right" }}
-              onClick={() => setOpen(false)}
-            >
-              <Icon name="times" />
-            </Button>
-          </div>
-        }
-        content={<HelpContent project_id={project_id} />}
+      <Button
+        type="text"
+        size="small"
+        style={{ color: COLORS.BS_BLUE_TEXT, fontSize: 12 }}
       >
-        <Button type="text" size="small" style={{ color: COLORS.BS_BLUE_TEXT }}>
-          <Icon name="question-circle" />
-        </Button>
-      </Popover>
-    </span>
+        <Icon name="question-circle" /> Help
+      </Button>
+    </Popover>
   );
 }

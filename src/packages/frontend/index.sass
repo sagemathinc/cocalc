@@ -126,6 +126,17 @@
     .ant-pagination-options-quick-jumper input
       background: colors.$COL_GRAY_LLL !important
 
+// Explorer right-click context menu: compact item sizing
+.cc-explorer-context-menu
+  .ant-menu-item
+    height: 28px
+    line-height: 28px
+    padding: 0 12px !important
+    margin: 0 !important
+    font-size: 13px
+  .ant-menu-item-divider
+    margin: 4px 0 !important
+
 // DnD: highlight all folder drop targets when a file is being dragged
 body.cc-file-dragging
   [data-folder-drop-path]
@@ -134,6 +145,10 @@ body.cc-file-dragging
   // Explorer folder rows: need to target <td> inside the <tr>
   .cc-explorer-table tr[data-folder-drop-path] > td
     background-color: rgba(colors.$COL_RUN, 0.06) !important
+  // Project tabs: non-active tabs are cross-project copy targets
+  .cc-projects-nav .ant-tabs-tab:not(.ant-tabs-tab-active)
+    background-color: rgba(colors.$COL_RUN, 0.12) !important
+    transition: background-color 0.15s
 
 .center
   text-align : center

@@ -19,6 +19,7 @@ import {
 } from "@dnd-kit/core";
 import type {
   DragEndEvent,
+  DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
 } from "@dnd-kit/core";
@@ -312,28 +313,41 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       );
       setOverFolder(dropData.path);
       setIsInvalidTarget(isSelf || isAlreadyIn);
-    } else if (dragData?.paths) {
-      // No valid drop target under pointer — check if hovering over a file
-      // row in the same directory (which would be a no-op move).
-      const { x, y } = pointerPos.current;
-      const el = document.elementFromPoint(x, y);
-      const row = el?.closest?.("tr[data-row-key], [data-folder-drop-path]");
-      if (row && !row.hasAttribute("data-folder-drop-path")) {
-        // Hovering over a non-folder row — show "same directory" invalid
-        const currentDir = dragData.paths[0]
-          ? path_split(dragData.paths[0]).head
-          : "";
-        setOverFolder(currentDir);
-        setIsInvalidTarget(true);
-      } else {
-        setOverFolder(null);
-        setIsInvalidTarget(false);
-      }
     } else {
       setOverFolder(null);
       setIsInvalidTarget(false);
     }
   }, []);
+
+  // onDragMove fires on every pointer move — use it to detect hovering
+  // over non-folder file rows (which are not droppable targets).
+  // Throttled to avoid excessive DOM queries.
+  const lastMoveCheck = useRef(0);
+  const handleDragMove = useCallback(
+    (event: DragMoveEvent) => {
+      // Only check when no droppable is active (folders handle themselves)
+      if (event.over != null) return;
+      const now = Date.now();
+      if (now - lastMoveCheck.current < 80) return;
+      lastMoveCheck.current = now;
+      const dragData = event.active?.data?.current as FileDragData | undefined;
+      if (!dragData?.paths) return;
+      const { x, y } = pointerPos.current;
+      const el = document.elementFromPoint(x, y);
+      const row = el?.closest?.("tr[data-row-key], [data-folder-drop-path]");
+      if (row && !row.hasAttribute("data-folder-drop-path")) {
+        const currentDir = dragData.paths[0]
+          ? path_split(dragData.paths[0]).head
+          : "";
+        setOverFolder(currentDir);
+        setIsInvalidTarget(true);
+      } else if (isInvalidTarget) {
+        setOverFolder(null);
+        setIsInvalidTarget(false);
+      }
+    },
+    [isInvalidTarget],
+  );
 
   // Restore the pre-drag selection (used on cancel / invalid drop)
   const restoreSelection = useCallback(() => {
@@ -424,6 +438,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       sensors={sensors}
       collisionDetection={pointerWithin}
       onDragStart={handleDragStart}
+      onDragMove={handleDragMove}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
