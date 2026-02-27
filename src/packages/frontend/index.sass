@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -125,6 +125,15 @@
       background: colors.$COL_GRAY_LLL !important
     .ant-pagination-options-quick-jumper input
       background: colors.$COL_GRAY_LLL !important
+
+// DnD: highlight all folder drop targets when a file is being dragged
+body.cc-file-dragging
+  [data-folder-drop-path]
+    background-color: rgba(colors.$COL_RUN, 0.06) !important
+    transition: background-color 0.15s
+  // Explorer folder rows: need to target <td> inside the <tr>
+  .cc-explorer-table tr[data-folder-drop-path] > td
+    background-color: rgba(colors.$COL_RUN, 0.06) !important
 
 .center
   text-align : center

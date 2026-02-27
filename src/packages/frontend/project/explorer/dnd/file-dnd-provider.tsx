@@ -25,9 +25,10 @@ import type {
 import type { Modifier } from "@dnd-kit/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { useActions } from "@cocalc/frontend/app-framework";
+import { redux, useActions } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { is_valid_uuid_string, path_split, plural } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 
 // ---------- Types ----------
 
@@ -71,6 +72,7 @@ export function useFileDrag(id: string, paths: string[], project_id: string) {
 export function useFolderDrop(id: string, folderPath: string, enabled = true) {
   const { setNodeRef, isOver, active } = useDroppable({
     id,
+    disabled: !enabled,
     data: { type: "folder-drop", path: folderPath } satisfies FolderDropData,
   });
   // Only valid if enabled, a file-drag is active, AND the source isn't
@@ -162,8 +164,8 @@ function FileDragOverlayContent({
       <div
         style={{
           padding: "4px 10px",
-          background: "rgba(245, 34, 45, 0.85)",
-          color: "white",
+          background: `${COLORS.ANTD_RED}e0`,
+          color: COLORS.WHITE,
           borderRadius: 4,
           fontSize: "12px",
           whiteSpace: "nowrap",
@@ -186,8 +188,8 @@ function FileDragOverlayContent({
     <div
       style={{
         padding: "4px 10px",
-        background: "rgba(24, 144, 255, 0.85)",
-        color: "white",
+        background: `${COLORS.ANTD_LINK_BLUE}e0`,
+        color: COLORS.WHITE,
         borderRadius: 4,
         fontSize: "12px",
         whiteSpace: "nowrap",
@@ -251,6 +253,8 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
   const [overFolder, setOverFolder] = useState<string | null>(null);
   const [isInvalidTarget, setIsInvalidTarget] = useState(false);
   const pointerPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  // Save pre-drag checked files to restore on cancel
+  const preDragCheckedRef = useRef<string[] | null>(null);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -283,12 +287,17 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     (event: DragStartEvent) => {
       const data = event.active.data.current as FileDragData | undefined;
       if (data?.type !== "file-drag") return;
+      // Save current checked files so we can restore on cancel
+      const store = redux.getProjectStore(project_id);
+      const currentChecked = store?.get("checked_files");
+      preDragCheckedRef.current = currentChecked?.toArray() ?? [];
       // Ensure all dragged files are selected in Redux
       actions?.set_file_list_checked(data.paths);
       setActiveData(data);
       document.body.style.cursor = "grabbing";
+      document.body.classList.add("cc-file-dragging");
     },
-    [actions],
+    [actions, project_id],
   );
 
   const handleDragOver = useCallback((event: DragOverEvent) => {
@@ -303,20 +312,51 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       );
       setOverFolder(dropData.path);
       setIsInvalidTarget(isSelf || isAlreadyIn);
+    } else if (dragData?.paths) {
+      // No valid drop target under pointer — check if hovering over a file
+      // row in the same directory (which would be a no-op move).
+      const { x, y } = pointerPos.current;
+      const el = document.elementFromPoint(x, y);
+      const row = el?.closest?.("tr[data-row-key], [data-folder-drop-path]");
+      if (row && !row.hasAttribute("data-folder-drop-path")) {
+        // Hovering over a non-folder row — show "same directory" invalid
+        const currentDir = dragData.paths[0]
+          ? path_split(dragData.paths[0]).head
+          : "";
+        setOverFolder(currentDir);
+        setIsInvalidTarget(true);
+      } else {
+        setOverFolder(null);
+        setIsInvalidTarget(false);
+      }
     } else {
       setOverFolder(null);
       setIsInvalidTarget(false);
     }
   }, []);
 
+  // Restore the pre-drag selection (used on cancel / invalid drop)
+  const restoreSelection = useCallback(() => {
+    const saved = preDragCheckedRef.current;
+    actions?.set_all_files_unchecked();
+    if (saved && saved.length > 0) {
+      actions?.set_file_list_checked(saved);
+    }
+    preDragCheckedRef.current = null;
+  }, [actions]);
+
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
       setActiveData(null);
       setOverFolder(null);
       document.body.style.cursor = "";
+      document.body.classList.remove("cc-file-dragging");
 
       const dragData = event.active.data.current as FileDragData | undefined;
-      if (!dragData || dragData.type !== "file-drag") return;
+      if (!dragData || dragData.type !== "file-drag") {
+        restoreSelection();
+        return;
+      }
 
       const dropData = event.over?.data?.current as FolderDropData | undefined;
 
@@ -328,10 +368,12 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
             (p) => p === dropData.path || dropData.path.startsWith(p + "/"),
           )
         ) {
+          restoreSelection();
           return;
         }
         // Prevent no-op move (all files already in the target folder)
         if (dragData.paths.every((p) => path_split(p).head === dropData.path)) {
+          restoreSelection();
           return;
         }
 
@@ -348,9 +390,11 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
             });
           }
           actions?.set_all_files_unchecked();
+          preDragCheckedRef.current = null;
           actions?.fetch_directory_listing();
         } catch (err) {
           console.warn("File drag-and-drop operation failed:", err);
+          restoreSelection();
         }
         return;
       }
@@ -360,14 +404,19 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       const targetProjectId = findProjectTabAtPoint(x, y, project_id);
       if (targetProjectId) {
         // Open the copy dialog pre-populated for cross-project copy.
-        // Files are already checked from handleDragStart.
+        // Files stay checked so the action-box can use them.
+        preDragCheckedRef.current = null;
         actions?.setState({
           file_action: "copy",
           copy_destination_project_id: targetProjectId,
         } as any);
+        return;
       }
+
+      // Case 3: Dropped nowhere — restore original selection
+      restoreSelection();
     },
-    [actions, shiftKey, project_id],
+    [actions, shiftKey, project_id, restoreSelection],
   );
 
   return (

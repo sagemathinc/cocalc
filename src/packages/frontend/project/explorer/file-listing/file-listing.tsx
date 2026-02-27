@@ -50,22 +50,15 @@ import {
   useFileDrag,
   useFolderDrop,
 } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
+import ExplorerHelp from "@cocalc/frontend/project/explorer/explorer-help";
 
 import NoFiles from "./no-files";
 import {
   TERM_MODE_CHAR,
+  VIEWABLE_FILE_EXT,
   renderTypeFilterLabel,
   sortedTypeFilterOptions,
 } from "./utils";
-
-const VIEWABLE_FILE_EXT: Readonly<string[]> = [
-  "md",
-  "txt",
-  "html",
-  "pdf",
-  "png",
-  "jpeg",
-] as const;
 
 const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
 
@@ -217,11 +210,10 @@ interface Props {
   project_id: string;
   shift_is_down: boolean;
   sort_by: (heading: string) => void;
-  library?: object;
   other_settings?: immutable.Map<any, any>;
-  last_scroll_top?: number;
   configuration_main?: MainConfiguration;
   isRunning?: boolean;
+  type_counts?: Record<string, number>;
 }
 
 // ---------- Helper: watch directory ----------
@@ -241,14 +233,16 @@ export function watchFiles({ actions, current_path }): void {
 // Row height in antd Table size="small" with icons/text — slightly
 // conservative to avoid overflow.  Chrome = table header + pagination bar.
 const ROW_HEIGHT_PX = 42;
-const TABLE_CHROME_PX = 110;
+// Fallback chrome height before DOM measurement is available
+const DEFAULT_CHROME_PX = 80;
 
 /**
  * Compute how many table rows fit between the element's top edge and the
- * bottom of the viewport.  Uses requestAnimationFrame + delay (following
- * the projects-table pattern) so the DOM has settled before measuring.
- * Only re-measures on window resize — never on content changes — to
- * avoid a feedback loop where more rows → taller container → more rows.
+ * bottom of the viewport.  Measures the actual table header + pagination
+ * bar height from the DOM for accuracy.  Uses requestAnimationFrame +
+ * delay (following the projects-table pattern) so the DOM has settled
+ * before measuring.  Only re-measures on window resize — never on content
+ * changes — to avoid a feedback loop.
  */
 function useDynamicPageSize(ref: React.RefObject<HTMLDivElement | null>) {
   const [pageSize, setPageSize] = useState(10);
@@ -259,7 +253,13 @@ function useDynamicPageSize(ref: React.RefObject<HTMLDivElement | null>) {
 
     function recalc() {
       const rect = el!.getBoundingClientRect();
-      const available = window.innerHeight - rect.top - TABLE_CHROME_PX;
+      // Measure actual chrome: table header + pagination footer
+      const thead = el!.querySelector<HTMLElement>(".ant-table-thead");
+      const pager = el!.querySelector<HTMLElement>(".ant-table-pagination");
+      const chromeHeight =
+        (thead?.offsetHeight ?? 0) + (pager?.offsetHeight ?? 0);
+      const chrome = chromeHeight > 0 ? chromeHeight : DEFAULT_CHROME_PX;
+      const available = window.innerHeight - rect.top - chrome;
       setPageSize(Math.max(5, Math.floor(available / ROW_HEIGHT_PX)));
     }
 
@@ -305,25 +305,31 @@ function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>) {
 
 // ---------- Helper: type filter items ----------
 
-function computeTypeFilters(listing: FileEntry[]): ColumnFilterItem[] {
-  const extensions = new Set<string>();
-  for (const item of listing) {
-    if (item.isdir) {
-      extensions.add("folder");
-    } else {
-      const ext = misc.filename_extension(item.name)?.toLowerCase() || "(none)";
-      extensions.add(ext);
+function computeTypeFilters(
+  typeCounts: Record<string, number> | undefined,
+  listing: FileEntry[],
+): ColumnFilterItem[] {
+  // Use pre-computed type_counts from Redux (unfiltered) when available;
+  // fall back to computing from the (possibly already filtered) listing.
+  let extensions: Set<string>;
+  if (typeCounts && Object.keys(typeCounts).length > 0) {
+    extensions = new Set(Object.keys(typeCounts));
+  } else {
+    extensions = new Set<string>();
+    for (const item of listing) {
+      if (item.isdir) {
+        extensions.add("folder");
+      } else {
+        const ext =
+          misc.filename_extension(item.name)?.toLowerCase() || "(none)";
+        extensions.add(ext);
+      }
     }
   }
   return sortedTypeFilterOptions(extensions).map((ext) => ({
     text: renderTypeFilterLabel(ext),
     value: ext,
   }));
-}
-
-function getFileType(record: FileEntry): string {
-  if (record.isdir) return "folder";
-  return misc.filename_extension(record.name)?.toLowerCase() || "(none)";
 }
 
 // ---------- Render helpers (extracted from FileRow) ----------
@@ -469,6 +475,7 @@ export const FileListing: React.FC<Props> = ({
   file_search = "",
   isRunning,
   other_settings,
+  type_counts,
 }: Props) => {
   const intl = useIntl();
   const [starting, setStarting] = useState(false);
@@ -497,16 +504,19 @@ export const FileListing: React.FC<Props> = ({
   const [missing, setMissing] = useState(0);
 
   useEffect(() => {
-    if (isRunning) return;
-    if (listing.length === 0) return;
+    if (isRunning || listing.length === 0) return;
+    let cancelled = false;
     (async () => {
       const m = await redux
         .getProjectStore(project_id)
         .get_listings()
         .getMissingUsingDatabase(current_path);
-      setMissing(m ?? 0);
+      if (!cancelled) setMissing(m ?? 0);
     })();
-  }, [current_path, isRunning]);
+    return () => {
+      cancelled = true;
+    };
+  }, [current_path, isRunning, listing.length]);
 
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
   const dimFileExtensions = !!other_settings?.get?.("dim_file_extensions");
@@ -736,6 +746,7 @@ export const FileListing: React.FC<Props> = ({
       student_project_functionality,
       intl,
       actions,
+      handleRowClick,
     ],
   );
 
@@ -784,7 +795,10 @@ export const FileListing: React.FC<Props> = ({
   }
 
   // -- Type filters --
-  const typeFilters = useMemo(() => computeTypeFilters(listing), [listing]);
+  const typeFilters = useMemo(
+    () => computeTypeFilters(type_counts, listing),
+    [type_counts, listing],
+  );
 
   // -- Columns --
   const columns: ColumnsType<FileEntry> = useMemo(() => {
@@ -794,8 +808,8 @@ export const FileListing: React.FC<Props> = ({
         width: 50,
         render: (_, record) => renderFileIcon(record),
         filters: typeFilters,
+        filterMultiple: false,
         filteredValue: typeFilter != null ? [typeFilter] : null,
-        onFilter: (value, record) => getFileType(record) === value,
       },
       {
         key: "starred",
@@ -976,6 +990,13 @@ export const FileListing: React.FC<Props> = ({
           );
         }
       },
+      onSelect: (record: FileEntry, selected: boolean, _rows, nativeEvent) => {
+        const fullPath = misc.path_to_file(current_path, record.name);
+        if ((nativeEvent as MouseEvent)?.shiftKey) {
+          actions.set_selected_file_range(fullPath, selected);
+        }
+        actions.set_most_recent_file_click(fullPath);
+      },
       getCheckboxProps: (record: FileEntry) => ({
         disabled: record.name === "..",
       }),
@@ -984,11 +1005,15 @@ export const FileListing: React.FC<Props> = ({
     [selectedRowKeys, current_path, actions],
   );
 
-  // -- Table onChange (sorting) --
+  // -- Table onChange (sorting + filtering) --
   const handleTableChange: TableProps<FileEntry>["onChange"] = useCallback(
-    (_pagination, filters, sorter: any) => {
-      if (sorter.columnKey) {
-        sort_by(sorter.columnKey as string);
+    (_pagination, filters, sorter: any, extra) => {
+      // Only update sort when the user actually clicked a column header
+      if (extra.action === "sort") {
+        const activeSorter = Array.isArray(sorter) ? sorter[0] : sorter;
+        if (activeSorter?.columnKey) {
+          sort_by(activeSorter.columnKey as string);
+        }
       }
       // Sync type filter to Redux (shared with flyout)
       const typeValues = filters?.type as string[] | null;
@@ -996,6 +1021,65 @@ export const FileListing: React.FC<Props> = ({
       actions.setState({ type_filter: newFilter } as any);
     },
     [sort_by, actions],
+  );
+
+  // -- Row event handlers (memoized to avoid re-render churn) --
+  const onRow = useCallback(
+    (record: FileEntry) => ({
+      onClick: (e: React.MouseEvent) => handleRowClick(record, e),
+      onMouseDown: () => {
+        selectionRef.current = window.getSelection()?.toString() ?? "";
+      },
+      onContextMenu: (e: React.MouseEvent) => {
+        e.preventDefault();
+        if (student_project_functionality.disableActions) return;
+        const fp = misc.path_to_file(current_path, record.name);
+        if (checked_files.size <= 1) {
+          actions.set_all_files_unchecked();
+          actions.set_file_list_checked([fp]);
+        }
+        const items = buildContextMenu(record);
+        if (items && items.length > 0) {
+          setContextMenu({ items, x: e.clientX, y: e.clientY });
+        }
+      },
+      style: {
+        cursor: "pointer" as const,
+        opacity: record.mask ? 0.65 : 1,
+        ...fileItemStyle(
+          typeof record.mtime === "number" ? record.mtime * 1000 : 0,
+          !!record.mask,
+        ),
+      },
+    }),
+    [
+      handleRowClick,
+      buildContextMenu,
+      current_path,
+      checked_files,
+      actions,
+      student_project_functionality.disableActions,
+    ],
+  );
+
+  const rowClassName = useCallback(
+    (record: FileEntry) => {
+      const fp = misc.path_to_file(current_path, record.name);
+      const isSelected =
+        selected_file_index != null &&
+        selected_file_index >= 0 &&
+        selected_file_index < dataSource.length &&
+        dataSource[selected_file_index]?.name === record.name &&
+        file_search[0] !== TERM_MODE_CHAR;
+      const isChecked = checked_files.has(fp);
+      return [
+        isSelected ? "cc-explorer-row-selected" : "",
+        isChecked ? "cc-explorer-row-checked" : "",
+      ]
+        .filter(Boolean)
+        .join(" ");
+    },
+    [current_path, selected_file_index, dataSource, file_search, checked_files],
   );
 
   // -- Early returns for special states --
@@ -1102,53 +1186,15 @@ export const FileListing: React.FC<Props> = ({
               showSizeChanger: false,
               showQuickJumper: dataSource.length > pageSize * 3,
               align: "start",
+              showTotal: (total) => (
+                <ExplorerHelp project_id={project_id} total={total} />
+              ),
             }}
             showSorterTooltip={false}
             sortDirections={["ascend", "descend", "ascend"]}
             onChange={handleTableChange}
-            onRow={(record) => ({
-              onClick: (e) => handleRowClick(record, e),
-              onMouseDown: () => {
-                selectionRef.current = window.getSelection()?.toString() ?? "";
-              },
-              onContextMenu: (e) => {
-                e.preventDefault();
-                if (student_project_functionality.disableActions) return;
-                // Select the right-clicked file if nothing or only one file
-                // is selected.  When multiple files are already checked, keep
-                // the existing selection so bulk actions apply.
-                const fp = misc.path_to_file(current_path, record.name);
-                if (checked_files.size <= 1) {
-                  actions.set_all_files_unchecked();
-                  actions.set_file_list_checked([fp]);
-                }
-                const items = buildContextMenu(record);
-                if (items && items.length > 0) {
-                  setContextMenu({ items, x: e.clientX, y: e.clientY });
-                }
-              },
-              style: {
-                cursor: "pointer",
-                opacity: record.mask ? 0.65 : 1,
-                ...fileItemStyle(
-                  typeof record.mtime === "number" ? record.mtime * 1000 : 0,
-                  !!record.mask,
-                ),
-              },
-            })}
-            rowClassName={(record) => {
-              const fp = misc.path_to_file(current_path, record.name);
-              const isSelected =
-                listing.indexOf(record) === selected_file_index &&
-                file_search[0] !== TERM_MODE_CHAR;
-              const isChecked = checked_files.has(fp);
-              return [
-                isSelected ? "cc-explorer-row-selected" : "",
-                isChecked ? "cc-explorer-row-checked" : "",
-              ]
-                .filter(Boolean)
-                .join(" ");
-            }}
+            onRow={onRow}
+            rowClassName={rowClassName}
           />
         </div>
       </DndRowContext.Provider>

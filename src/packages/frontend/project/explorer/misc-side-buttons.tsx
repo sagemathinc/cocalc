@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -17,8 +17,6 @@ import { Available } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-
-import TourButton from "./tour/button";
 
 const OPEN_MSG = defineMessage({
   id: "project.explorer.misc-side-buttons.open_dir.tooltip",
@@ -194,7 +192,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       <Space.Compact>
         {render_hidden_toggle()}
         {render_backup()}
-        <TourButton project_id={project_id} />
       </Space.Compact>
     </Space>
   );

@@ -56,7 +56,6 @@ interface ReactProps {
   project_id: string;
   file_map?: Record<string, any>;
   actions: ProjectActions;
-  //new_name?: string;
   name: string;
   renameFormId?: string;
   onActionChange?: (loading: boolean) => void;
@@ -82,7 +81,6 @@ export function ActionBox(props: ReactProps) {
   const [move_error, set_move_error] = useState<string>("");
   const [copy_error, set_copy_error] = useState<string>("");
   const [actionLoading, setActionLoading] = useState<boolean>(false);
-  //const [new_name, set_new_name] = useState<string>(props.new_name ?? "");
   const [show_different_project, set_show_different_project] =
     useState<boolean>(!!dnd_copy_dest && dnd_copy_dest !== project_id);
   const [overwrite_newer, set_overwrite_newer] = useState<boolean>();
@@ -381,6 +379,10 @@ export function ActionBox(props: ReactProps) {
       }
       props.actions.set_file_action();
       props.actions.set_all_files_unchecked();
+      // Clear any DnD-initiated cross-project destination
+      if (dnd_copy_dest) {
+        props.actions.setState({ copy_destination_project_id: undefined });
+      }
     } catch (err) {
       set_copy_error(`${err}`);
       return;

@@ -32,45 +32,63 @@ export function useExplorerSettings(project_id: string): void {
   // Watch Redux sort state for changes
   const activeFileSort = useTypedRedux({ project_id }, "active_file_sort");
 
-  // Initialize DKV and restore persisted sort state
-  useAsyncEffect(async () => {
-    const store = redux.getStore("account");
-    await store.async_wait({
-      until: () => store.get_account_id() != null,
-      timeout: 0,
-    });
-    const account_id = store.get_account_id();
-
-    try {
-      const conatDkv = await webapp_client.conat_client.dkv<ExplorerSettings>({
-        account_id,
-        name: DKV_NAME,
+  // Initialize DKV and restore persisted sort state.
+  // The 3-arg form of useAsyncEffect provides a destroy callback for cleanup.
+  useAsyncEffect(
+    async (isMounted) => {
+      const store = redux.getStore("account");
+      await store.async_wait({
+        until: () => store.get_account_id() != null,
+        timeout: 0,
       });
+      if (!isMounted()) return;
 
-      dkvRef.current = conatDkv;
+      const account_id = store.get_account_id();
 
-      // Restore persisted sort state into Redux
-      const saved: ExplorerSettings | undefined = conatDkv.get(project_id);
-      if (saved?.sortColumn) {
-        const actions = redux.getProjectActions(project_id);
-        const currentSort = redux
-          .getProjectStore(project_id)
-          ?.get("active_file_sort");
-        if (currentSort) {
-          actions.setState({
-            active_file_sort: currentSort
-              .set("column_name", saved.sortColumn)
-              .set("is_descending", saved.sortDescending ?? false),
-          });
+      try {
+        const conatDkv = await webapp_client.conat_client.dkv<ExplorerSettings>(
+          {
+            account_id,
+            name: DKV_NAME,
+          },
+        );
+        if (!isMounted()) {
+          conatDkv.close?.();
+          return;
         }
-      }
 
-      initializedRef.current = true;
-    } catch (err) {
-      console.warn("Failed to init explorer-settings DKV:", err);
-      initializedRef.current = true;
-    }
-  }, [project_id]);
+        dkvRef.current = conatDkv;
+
+        // Restore persisted sort state into Redux
+        const saved: ExplorerSettings | undefined = conatDkv.get(project_id);
+        if (saved?.sortColumn) {
+          const actions = redux.getProjectActions(project_id);
+          const currentSort = redux
+            .getProjectStore(project_id)
+            ?.get("active_file_sort");
+          if (currentSort) {
+            actions.setState({
+              active_file_sort: currentSort
+                .set("column_name", saved.sortColumn)
+                .set("is_descending", saved.sortDescending ?? false),
+            });
+          }
+        }
+
+        initializedRef.current = true;
+      } catch (err) {
+        console.warn("Failed to init explorer-settings DKV:", err);
+        initializedRef.current = true;
+      }
+    },
+    () => {
+      // Cleanup: close DKV on unmount or project_id change
+      dkvRef.current?.close?.();
+      dkvRef.current = null;
+      initializedRef.current = false;
+    },
+    [project_id],
+  );
 
   // Auto-persist sort changes to DKV
   useEffect(() => {

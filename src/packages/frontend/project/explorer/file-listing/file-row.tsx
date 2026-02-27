@@ -32,16 +32,7 @@ import { COLORS } from "@cocalc/util/theme";
 
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
-import { generate_click_for } from "./utils";
-
-export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
-  "md",
-  "txt",
-  "html",
-  "pdf",
-  "png",
-  "jpeg",
-] as const;
+import { VIEWABLE_FILE_EXT, generate_click_for } from "./utils";
 
 const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
 

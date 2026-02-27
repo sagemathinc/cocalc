@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -13,6 +13,16 @@ import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import { COLORS } from "@cocalc/util/theme";
 
 export const TERM_MODE_CHAR = "/";
+
+/** File extensions that support inline "View" in the explorer. */
+export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
+  "md",
+  "txt",
+  "html",
+  "pdf",
+  "png",
+  "jpeg",
+] as const;
 
 type Extension =
   | "sagews"

@@ -24,7 +24,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { ConnectionStatusIcon } from "@cocalc/frontend/frame-editors/frame-tree/title-bar";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
+import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import {
   DirectoryListing,
   DirectoryListingEntry,
@@ -309,7 +309,7 @@ export function FilesBottom({
       const name = singleFile.name;
       const iconName = singleFile.isdir
         ? "folder"
-        : file_options(name)?.icon ?? "file";
+        : (file_options(name)?.icon ?? "file");
       return (
         <div style={{ whiteSpace: "nowrap" }} title={name}>
           <Icon name={iconName} /> {trunc_middle(name, 20)}

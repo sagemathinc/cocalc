@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -24,7 +24,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
+import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
 import { url_href } from "@cocalc/frontend/project/utils";
 import {
@@ -189,7 +189,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
   // -- DnD: drag source + folder drop target --
   const isParentDir = item.name === "..";
-  const isDndEnabled = mode === "files" && !isParentDir;
+  const actionsDisabled = student_project_functionality.disableActions;
+  const isDndEnabled = mode === "files" && !isParentDir && !actionsDisabled;
   const fullPath = path_to_file(current_path, item.name);
 
   // Compute paths for dragging: all checked files, plus this one if not already checked
@@ -207,8 +208,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     project_id,
   );
 
-  // Folders and ".." are drop targets
-  const isDropTarget = mode === "files" && !!item.isdir;
+  // Folders and ".." are drop targets (but not in student/restricted mode)
+  const isDropTarget = mode === "files" && !!item.isdir && !actionsDisabled;
   const dropPath = isParentDir
     ? current_path.split("/").slice(0, -1).join("/")
     : fullPath;

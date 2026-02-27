@@ -99,10 +99,6 @@ export function Explorer() {
     { project_id },
     "available_features",
   );
-  const file_listing_scroll_top = useTypedRedux(
-    { project_id },
-    "file_listing_scroll_top",
-  );
   const show_custom_software_reset = useTypedRedux(
     { project_id },
     "show_custom_software_reset",
@@ -204,7 +200,7 @@ export function Explorer() {
     return <Loading />;
   }
 
-  const { listing, file_map } = displayed_listing ?? {};
+  const { listing, file_map, type_counts } = displayed_listing ?? {};
   const directory_error = displayed_listing?.error;
 
   // -- Render helpers --
@@ -344,8 +340,8 @@ export function Explorer() {
             sort_by={(actions as ProjectActions)?.set_sorted_file_column}
             other_settings={other_settings as any}
             redux={redux}
-            last_scroll_top={file_listing_scroll_top}
             configuration_main={configuration?.get("main") as any}
+            type_counts={type_counts}
           />
         </FileUploadWrapper>
       );
