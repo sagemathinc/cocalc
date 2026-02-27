@@ -51,7 +51,7 @@ import { COLORS } from "@cocalc/util/theme";
 
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
-import { ActionBar } from "./action-bar";
+import { ActionBar, ActionBarInfo } from "./action-bar";
 import { useFolderDrop } from "./dnd/file-dnd-provider";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
@@ -673,6 +673,14 @@ export function Explorer() {
               </div>
               {renderProjectFilesButtons()}
             </div>
+            {listing != null && (
+              <ActionBarInfo
+                project_id={project_id}
+                checked_files={checked_files}
+                listing={listing}
+                project_is_running={projectIsRunning}
+              />
+            )}
             {projectIsRunning ? renderCustomSoftwareReset() : null}
             {show_library ? renderLibrary() : null}
           </div>
@@ -844,12 +852,16 @@ function DirectoryTreePanel({
   const showHiddenRef = useRef(show_hidden);
   const loadedPathsRef = useRef<Set<string>>(new Set());
   const loadingPathsRef = useRef<Set<string>>(new Set());
+  // Incremented on context reset (project/compute-server change) so that
+  // in-flight async responses from a previous context are discarded.
+  const generationRef = useRef(0);
 
   const loadPath = useCallback(
     async (path: string, force = false) => {
       if (!force && loadedPathsRef.current.has(path)) return;
       if (loadingPathsRef.current.has(path)) return;
       loadingPathsRef.current.add(path);
+      const gen = generationRef.current;
       try {
         const listing = await webapp_client.project_client.directory_listing({
           project_id,
@@ -857,6 +869,7 @@ function DirectoryTreePanel({
           hidden: true,
           compute_server_id: compute_server_id ?? 0,
         });
+        if (gen !== generationRef.current) return; // stale response
         const dirs = (listing?.files ?? [])
           .filter(
             (entry) =>
@@ -874,10 +887,13 @@ function DirectoryTreePanel({
         loadedPathsRef.current.add(path);
         setError("");
       } catch (err) {
+        if (gen !== generationRef.current) return; // stale error
         console.warn("Failed to load directory tree path:", path, err);
         setError(`${err}`);
       } finally {
-        loadingPathsRef.current.delete(path);
+        if (gen === generationRef.current) {
+          loadingPathsRef.current.delete(path);
+        }
       }
     },
     [compute_server_id, project_id],
@@ -888,6 +904,7 @@ function DirectoryTreePanel({
   }, [show_hidden]);
 
   useEffect(() => {
+    generationRef.current += 1;
     setChildrenByPath({});
     setExpandedKeys([TREE_HOME_KEY]);
     setError("");

@@ -119,66 +119,6 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function render_currently_selected(): React.JSX.Element | undefined {
-    if (props.listing.length === 0) {
-      return;
-    }
-    const checked = props.checked_files.size;
-    const total = props.listing.length;
-
-    const helpButton = props.project_id ? (
-      <ExplorerHelp project_id={props.project_id} />
-    ) : null;
-
-    if (checked === 0) {
-      return (
-        <div
-          style={{
-            ...ROW_INFO_STYLE,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ flex: 1 }}>
-            {total} {intl.formatMessage(labels.item_plural, { total })} &mdash;{" "}
-            <FormattedMessage
-              id="project.explorer.action-bar.currently_selected.info"
-              defaultMessage={
-                "Select files via checkbox or drag and drop to move them."
-              }
-            />
-          </span>
-          {helpButton}
-        </div>
-      );
-    } else {
-      return (
-        <div
-          style={{
-            ...ROW_INFO_STYLE,
-            display: "flex",
-            alignItems: "center",
-          }}
-        >
-          <span style={{ flex: 1 }}>
-            {intl.formatMessage(
-              {
-                id: "project.explorer.action-bar.currently_selected.items",
-                defaultMessage: "{checked} of {total} {items} selected",
-              },
-              {
-                checked,
-                total,
-                items: intl.formatMessage(labels.item_plural, { total }),
-              },
-            )}
-          </span>
-          {helpButton}
-        </div>
-      );
-    }
-  }
-
   function render_action_button(name: FileAction): React.JSX.Element {
     const disabled =
       isDisabledSnapshots(name) &&
@@ -273,21 +213,76 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     return null;
   }
   return (
-    <div style={{ flex: "1 0 auto" }}>
-      <div style={{ flex: "1 0 auto" }}>
-        <Space wrap style={{ whiteSpace: "nowrap", padding: "0" }}>
-          {props.project_is_running
-            ? render_directory_tree_toggle()
-            : undefined}
-          {props.project_is_running ? render_check_all_button() : undefined}
-          {render_button_area()}
-        </Space>
-      </div>
-      <div style={{ width: "100%" }}>
-        {props.project_is_running ? render_currently_selected() : undefined}
-      </div>
-    </div>
+    <Space wrap style={{ whiteSpace: "nowrap", padding: "0" }}>
+      {props.project_is_running ? render_directory_tree_toggle() : undefined}
+      {props.project_is_running ? render_check_all_button() : undefined}
+      {render_button_area()}
+    </Space>
   );
+};
+
+/** Info line shown below the action bar — "N items" + Help button. */
+export const ActionBarInfo: React.FC<
+  Pick<Props, "project_id" | "checked_files" | "listing" | "project_is_running">
+> = (props) => {
+  const intl = useIntl();
+  if (!props.project_is_running || props.listing.length === 0) {
+    return null;
+  }
+  const checked = props.checked_files.size;
+  const total = props.listing.length;
+
+  const helpButton = props.project_id ? (
+    <ExplorerHelp project_id={props.project_id} />
+  ) : null;
+
+  if (checked === 0) {
+    return (
+      <div
+        style={{
+          ...ROW_INFO_STYLE,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <span style={{ flex: 1 }}>
+          {total} {intl.formatMessage(labels.item_plural, { total })} &mdash;{" "}
+          <FormattedMessage
+            id="project.explorer.action-bar.currently_selected.info"
+            defaultMessage={
+              "Select files via checkbox or drag and drop to move them."
+            }
+          />
+        </span>
+        {helpButton}
+      </div>
+    );
+  } else {
+    return (
+      <div
+        style={{
+          ...ROW_INFO_STYLE,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <span style={{ flex: 1 }}>
+          {intl.formatMessage(
+            {
+              id: "project.explorer.action-bar.currently_selected.items",
+              defaultMessage: "{checked} of {total} {items} selected",
+            },
+            {
+              checked,
+              total,
+              items: intl.formatMessage(labels.item_plural, { total }),
+            },
+          )}
+        </span>
+        {helpButton}
+      </div>
+    );
+  }
 };
 
 // Ordered by frequency of use — most common first, share last (often the

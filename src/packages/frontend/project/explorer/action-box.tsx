@@ -7,7 +7,7 @@
 
 import { Alert as AntdAlert, Button as AntdButton, Radio, Space } from "antd";
 import * as immutable from "immutable";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Alert,
@@ -89,12 +89,18 @@ export function ActionBox(props: ReactProps) {
     compute_server_id ?? 0,
   );
 
+  // Always clear the DnD copy destination when this dialog unmounts,
+  // regardless of how it was closed (cancel, success, or parent unmount).
+  useEffect(() => {
+    return () => {
+      if (dnd_copy_dest) {
+        props.actions.setState({ copy_destination_project_id: undefined });
+      }
+    };
+  }, [dnd_copy_dest]);
+
   function cancel_action(): void {
     props.actions.set_file_action();
-    // Clear any DnD-initiated cross-project copy destination
-    if (dnd_copy_dest) {
-      props.actions.setState({ copy_destination_project_id: undefined });
-    }
   }
 
   function action_key(e): void {
@@ -379,10 +385,6 @@ export function ActionBox(props: ReactProps) {
       }
       props.actions.set_file_action();
       props.actions.set_all_files_unchecked();
-      // Clear any DnD-initiated cross-project destination
-      if (dnd_copy_dest) {
-        props.actions.setState({ copy_destination_project_id: undefined });
-      }
     } catch (err) {
       set_copy_error(`${err}`);
       return;
