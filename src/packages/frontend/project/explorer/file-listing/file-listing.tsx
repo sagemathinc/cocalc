@@ -822,10 +822,8 @@ export const FileListing: React.FC<Props> = ({
           const isExpanded = expandedDirs.includes(record.name);
           return {
             onClick: (e: React.MouseEvent) => toggleExpandDir(record.name, e),
-            style: {
-              cursor: "pointer",
-              background: isExpanded ? COLORS.BLUE_LLLL : undefined,
-            },
+            className: isExpanded ? "cc-explorer-cell-expanded" : undefined,
+            style: { cursor: "pointer" },
           };
         },
         filters: typeFilters,
