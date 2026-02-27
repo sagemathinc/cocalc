@@ -898,10 +898,7 @@ export const FileListing: React.FC<Props> = ({
         ? []
         : [
             {
-              title: intl.formatMessage({
-                id: "project.explorer.file-listing.column.size",
-                defaultMessage: "Size",
-              }),
+              title: intl.formatMessage(labels.size),
               key: "size",
               dataIndex: "size",
               width: 130,

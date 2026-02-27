@@ -827,6 +827,7 @@ export const labels = defineMessages({
     defaultMessage: "nbgrader",
   },
   name: { id: "labels.name", defaultMessage: "Name" },
+  size: { id: "labels.size", defaultMessage: "Size" },
   description: { id: "labels.description", defaultMessage: "Description" },
   no_description: {
     id: "labels.no_description",
