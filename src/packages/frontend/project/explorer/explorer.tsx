@@ -3,7 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button as AntButton } from "antd";
+import { DndContext, useDraggable } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import { Alert, Button as AntButton, Tree } from "antd";
+import type { TreeDataNode, TreeProps } from "antd";
 import * as _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
@@ -30,9 +33,13 @@ import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar"
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { Library } from "@cocalc/frontend/library";
+import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import * as misc from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
@@ -44,6 +51,7 @@ import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
+import { useFolderDrop } from "./dnd/file-dnd-provider";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
 
@@ -65,6 +73,40 @@ const FLEX_ROW_STYLE: React.CSSProperties = {
   alignItems: "stretch",
 } as const;
 
+const TREE_HOME_KEY = "__home__";
+const DIRECTORY_TREE_DEFAULT_WIDTH_PX = 280;
+const DIRECTORY_TREE_MIN_WIDTH_PX = 180;
+const DIRECTORY_TREE_MAX_WIDTH_PX = 520;
+
+function isPositiveNumber(value: unknown): value is number {
+  return typeof value === "number" && !isNaN(value) && value > 0;
+}
+
+function directoryTreeWidthKey(project_id: string): string {
+  return `${project_id}::explorer-directory-tree-width`;
+}
+
+function getDirectoryTreeWidth(project_id: string): number {
+  const width = LS.get<number>(directoryTreeWidthKey(project_id));
+  if (!isPositiveNumber(width)) return DIRECTORY_TREE_DEFAULT_WIDTH_PX;
+  return Math.max(
+    DIRECTORY_TREE_MIN_WIDTH_PX,
+    Math.min(width, DIRECTORY_TREE_MAX_WIDTH_PX),
+  );
+}
+
+function setDirectoryTreeWidth(project_id: string, width: number): void {
+  LS.set(directoryTreeWidthKey(project_id), width);
+}
+
+const TREE_PANEL_STYLE: React.CSSProperties = {
+  border: `1px solid ${COLORS.GRAY_L}`,
+  borderRadius: "6px",
+  background: COLORS.GRAY_LL,
+  overflow: "auto",
+  padding: "4px",
+} as const;
+
 export function Explorer() {
   const { project_id, actions, group } = useProjectContext();
   const name = project_redux_name(project_id);
@@ -74,6 +116,10 @@ export function Explorer() {
   const current_path = useTypedRedux({ project_id }, "current_path") ?? "";
   const activity = useTypedRedux({ project_id }, "activity");
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
+  const show_directory_tree = useTypedRedux(
+    { project_id },
+    "show_directory_tree",
+  );
   const show_hidden = useTypedRedux({ project_id }, "show_hidden");
   const error = useTypedRedux({ project_id }, "error");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
@@ -117,6 +163,11 @@ export function Explorer() {
 
   // -- Local state --
   const [shiftIsDown, setShiftIsDown] = useState(false);
+  const [directoryTreeWidth, setDirectoryTreeWidthState] = useState<number>(
+    () => getDirectoryTreeWidth(project_id),
+  );
+  const [oldDirectoryTreeWidth, setOldDirectoryTreeWidth] =
+    useState<number>(directoryTreeWidth);
 
   // -- Refs for ExplorerTour --
   const newFileRef = useRef<any>(null);
@@ -140,6 +191,12 @@ export function Explorer() {
       window.removeEventListener("keyup", handleKeyUp);
     };
   }, []);
+
+  useEffect(() => {
+    const width = getDirectoryTreeWidth(project_id);
+    setDirectoryTreeWidthState(width);
+    setOldDirectoryTreeWidth(width);
+  }, [project_id]);
 
   // -- Derived state --
   const projectIsRunning = deriveProjectIsRunning(
@@ -189,6 +246,34 @@ export function Explorer() {
       actions?.setState({ file_search: "" });
     },
     [file_search, current_path, actions],
+  );
+
+  const toggleDirectoryTree = useCallback(() => {
+    actions?.setState({ show_directory_tree: !show_directory_tree });
+  }, [actions, show_directory_tree]);
+
+  const updateDirectoryTreeWidth = useCallback(
+    (width: number) => {
+      const nextWidth = Math.max(
+        DIRECTORY_TREE_MIN_WIDTH_PX,
+        Math.min(width, DIRECTORY_TREE_MAX_WIDTH_PX),
+      );
+      setDirectoryTreeWidthState(nextWidth);
+      setDirectoryTreeWidth(project_id, nextWidth);
+    },
+    [project_id],
+  );
+
+  const resetDirectoryTreeWidth = useCallback(() => {
+    updateDirectoryTreeWidth(DIRECTORY_TREE_DEFAULT_WIDTH_PX);
+  }, [updateDirectoryTreeWidth]);
+
+  const handleDirectoryTreeDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const deltaX = event.delta?.x ?? 0;
+      updateDirectoryTreeWidth(oldDirectoryTreeWidth + deltaX);
+    },
+    [oldDirectoryTreeWidth, updateDirectoryTreeWidth],
   );
 
   // -- Early return if not initialized --
@@ -260,6 +345,8 @@ export function Explorer() {
         available_features={available_features as any}
         show_custom_software_reset={show_custom_software_reset}
         project_is_running={projectIsRunning}
+        show_directory_tree={!!show_directory_tree}
+        on_toggle_directory_tree={toggleDirectoryTree}
       />
     );
   }
@@ -517,8 +604,40 @@ export function Explorer() {
         {show_library ? renderLibrary() : null}
       </div>
 
-      <div ref={fileListingRef} className="smc-vfill" style={{ minHeight: 0 }}>
-        {renderFileListing()}
+      <div
+        ref={fileListingRef}
+        className="smc-vfill"
+        style={{ minHeight: 0, display: "flex", gap: "8px" }}
+      >
+        {!!show_directory_tree && !IS_MOBILE && projectIsRunning && (
+          <>
+            <DirectoryTreePanel
+              project_id={project_id}
+              current_path={current_path}
+              compute_server_id={compute_server_id}
+              show_hidden={!!show_hidden}
+              width={directoryTreeWidth}
+              on_open_directory={(path: string) =>
+                (actions as ProjectActions)?.open_directory(path, true, false)
+              }
+            />
+            <DndContext
+              onDragStart={() => setOldDirectoryTreeWidth(directoryTreeWidth)}
+              onDragEnd={handleDirectoryTreeDragEnd}
+            >
+              <DirectoryTreeDragbar
+                oldWidth={oldDirectoryTreeWidth}
+                onReset={resetDirectoryTreeWidth}
+              />
+            </DndContext>
+          </>
+        )}
+        <div
+          className="smc-vfill"
+          style={{ minHeight: 0, minWidth: 0, flex: 1 }}
+        >
+          {renderFileListing()}
+        </div>
       </div>
       <ExplorerTour
         open={explorerTour}
@@ -529,6 +648,293 @@ export function Explorer() {
         currentDirectoryRef={currentDirectoryRef}
         miscButtonsRef={miscButtonsRef}
       />
+    </div>
+  );
+}
+
+function pathToTreeKey(path: string): string {
+  return path === "" ? TREE_HOME_KEY : path;
+}
+
+function treeKeyToPath(key: React.Key): string {
+  const value = String(key);
+  return value === TREE_HOME_KEY ? "" : value;
+}
+
+function getAncestorPaths(path: string): string[] {
+  if (path === "") return [""];
+  const parts = path.split("/");
+  const ancestors: string[] = [""];
+  let current = "";
+  for (const part of parts) {
+    current = current === "" ? part : `${current}/${part}`;
+    ancestors.push(current);
+  }
+  return ancestors;
+}
+
+function DirectoryTreeNodeTitle({
+  project_id,
+  path,
+  label,
+  isSelected,
+}: {
+  project_id: string;
+  path: string;
+  label: string;
+  isSelected: boolean;
+}) {
+  const id = `explorer-dir-tree-${project_id}-${path || TREE_HOME_KEY}`;
+  const { dropRef, isOver, isInvalidDrop } = useFolderDrop(id, path);
+
+  return (
+    <span
+      ref={dropRef}
+      data-folder-drop-path={path}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "6px",
+        width: "100%",
+        borderRadius: "4px",
+        padding: "2px 4px",
+        background: isOver
+          ? COLORS.BLUE_LL
+          : isInvalidDrop
+            ? COLORS.ANTD_RED_WARN
+            : isSelected
+              ? COLORS.GRAY_L
+              : "transparent",
+      }}
+    >
+      <Icon
+        name={path === "" ? "home" : "folder-open"}
+        style={{ color: COLORS.FILE_ICON }}
+      />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function DirectoryTreeDragbar({
+  oldWidth,
+  onReset,
+}: {
+  oldWidth: number;
+  onReset: () => void;
+}) {
+  const { project_id } = useProjectContext();
+  const { attributes, listeners, setNodeRef, transform, active } = useDraggable(
+    {
+      id: `directory-tree-drag-${project_id}`,
+    },
+  );
+
+  const dx = (() => {
+    if (!transform || !oldWidth) return 0;
+    const posX = oldWidth + transform.x;
+    if (posX < DIRECTORY_TREE_MIN_WIDTH_PX) {
+      return -(oldWidth - DIRECTORY_TREE_MIN_WIDTH_PX);
+    }
+    if (posX > DIRECTORY_TREE_MAX_WIDTH_PX) {
+      return DIRECTORY_TREE_MAX_WIDTH_PX - oldWidth;
+    }
+    return transform.x;
+  })();
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="cc-project-flyout-dragbar"
+      style={{
+        transform: transform ? `translate3d(${dx}px, 0, 0)` : undefined,
+        flex: "0 0 5px",
+        width: "5px",
+        height: "100%",
+        cursor: "col-resize",
+        ...(active ? { zIndex: 1000, backgroundColor: COLORS.GRAY } : {}),
+      }}
+      {...listeners}
+      {...attributes}
+      onDoubleClick={onReset}
+    />
+  );
+}
+
+function DirectoryTreePanel({
+  project_id,
+  current_path,
+  compute_server_id,
+  show_hidden,
+  width,
+  on_open_directory,
+}: {
+  project_id: string;
+  current_path: string;
+  compute_server_id?: number;
+  show_hidden: boolean;
+  width: number;
+  on_open_directory: (path: string) => void;
+}) {
+  const [childrenByPath, setChildrenByPath] = useState<
+    Record<string, string[]>
+  >({});
+  const [loadedPaths, setLoadedPaths] = useState<Set<string>>(new Set());
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([TREE_HOME_KEY]);
+  const [error, setError] = useState<string>("");
+  const loadingPathsRef = useRef<Set<string>>(new Set());
+
+  const loadPath = useCallback(
+    async (path: string) => {
+      if (loadingPathsRef.current.has(path)) return;
+      loadingPathsRef.current.add(path);
+      try {
+        const listing = await webapp_client.project_client.directory_listing({
+          project_id,
+          path,
+          hidden: true,
+          compute_server_id: compute_server_id ?? 0,
+        });
+        const dirs = (listing?.files ?? [])
+          .filter(
+            (entry) =>
+              entry.isdir &&
+              entry.name !== "." &&
+              entry.name !== ".." &&
+              (show_hidden || !entry.name.startsWith(".")),
+          )
+          .map((entry) => misc.path_to_file(path, entry.name))
+          .sort((a, b) => misc.cmp(a, b));
+        setChildrenByPath((prev) => ({ ...prev, [path]: dirs }));
+        setLoadedPaths((prev) => {
+          const next = new Set(prev);
+          next.add(path);
+          return next;
+        });
+        setError("");
+      } catch (err) {
+        console.warn("Failed to load directory tree path:", path, err);
+        setError(`${err}`);
+      } finally {
+        loadingPathsRef.current.delete(path);
+      }
+    },
+    [compute_server_id, project_id, show_hidden],
+  );
+
+  useEffect(() => {
+    setChildrenByPath({});
+    setLoadedPaths(new Set());
+    setExpandedKeys([TREE_HOME_KEY]);
+    setError("");
+    loadingPathsRef.current.clear();
+    void loadPath("");
+  }, [loadPath]);
+
+  useEffect(() => {
+    const ancestorPaths = getAncestorPaths(current_path);
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      for (const path of ancestorPaths) {
+        next.add(pathToTreeKey(path));
+      }
+      return Array.from(next);
+    });
+    for (const path of ancestorPaths) {
+      if (!loadedPaths.has(path)) {
+        void loadPath(path);
+      }
+    }
+  }, [current_path, loadedPaths, loadPath]);
+
+  const onExpand: TreeProps["onExpand"] = useCallback(
+    (keys) => {
+      const normalizedKeys = keys.map((key) => String(key));
+      setExpandedKeys(normalizedKeys);
+      for (const key of normalizedKeys) {
+        const path = treeKeyToPath(key);
+        if (!loadedPaths.has(path)) {
+          void loadPath(path);
+        }
+      }
+    },
+    [loadedPaths, loadPath],
+  );
+
+  const onSelect: TreeProps["onSelect"] = useCallback(
+    (selectedKeys, info) => {
+      const key = selectedKeys[0] ?? info.node.key;
+      if (key == null) return;
+      on_open_directory(treeKeyToPath(key));
+    },
+    [on_open_directory],
+  );
+
+  const treeData: TreeDataNode[] = (() => {
+    const buildChildren = (parentPath: string): TreeDataNode[] => {
+      const children = childrenByPath[parentPath] ?? [];
+      return children.map((childPath) => {
+        const childChildren = loadedPaths.has(childPath)
+          ? buildChildren(childPath)
+          : undefined;
+        return {
+          key: pathToTreeKey(childPath),
+          title: (
+            <DirectoryTreeNodeTitle
+              project_id={project_id}
+              path={childPath}
+              label={misc.path_split(childPath).tail || childPath}
+              isSelected={current_path === childPath}
+            />
+          ),
+          children: childChildren,
+          isLeaf:
+            loadedPaths.has(childPath) &&
+            (childrenByPath[childPath]?.length ?? 0) === 0,
+        };
+      });
+    };
+
+    return [
+      {
+        key: TREE_HOME_KEY,
+        title: (
+          <DirectoryTreeNodeTitle
+            project_id={project_id}
+            path=""
+            label="Home"
+            isSelected={current_path === ""}
+          />
+        ),
+        children: buildChildren(""),
+      },
+    ];
+  })();
+
+  return (
+    <div
+      style={{
+        ...TREE_PANEL_STYLE,
+        flex: `0 0 ${width}px`,
+        width: `${width}px`,
+        minWidth: `${DIRECTORY_TREE_MIN_WIDTH_PX}px`,
+      }}
+    >
+      <Tree
+        blockNode
+        treeData={treeData}
+        expandedKeys={expandedKeys}
+        selectedKeys={[pathToTreeKey(current_path)]}
+        onExpand={onExpand}
+        onSelect={onSelect}
+      />
+      {!!error && (
+        <div
+          style={{ color: COLORS.ANTD_RED, fontSize: "11px", padding: "4px" }}
+        >
+          {error}
+        </div>
+      )}
     </div>
   );
 }

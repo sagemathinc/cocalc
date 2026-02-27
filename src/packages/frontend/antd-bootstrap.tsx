@@ -144,6 +144,7 @@ export const Button = (props: {
   title?: string | React.JSX.Element;
   tabIndex?: number;
   active?: boolean;
+  enable?: boolean;
   id?: string;
   autoFocus?: boolean;
   placement?;
@@ -160,7 +161,7 @@ export const Button = (props: {
   } else if (props.bsSize == "xsmall") {
     size = "small";
   }
-  if (props.active) {
+  if (props.active || props.enable) {
     style.backgroundColor = "#d4d4d4";
     style.boxShadow = "inset 0 3px 5px rgb(0 0 0 / 13%)";
   }

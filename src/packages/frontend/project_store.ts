@@ -104,6 +104,7 @@ export interface ProjectStoreState {
   file_action_source?: FileActionSource;
   copy_destination_project_id?: string; // pre-populate cross-project copy dialog (e.g. from DnD)
   file_search?: string;
+  show_directory_tree?: boolean;
   show_hidden?: boolean;
   type_filter?: string; // file extension filter shared between explorer table and flyout
   error?: string;
@@ -321,6 +322,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       page_number: 0,
       checked_files: immutable.Set(),
       show_library: false,
+      show_directory_tree: false,
       file_listing_scroll_top: undefined,
       active_file_sort: TypedMap({
         is_descending: false,

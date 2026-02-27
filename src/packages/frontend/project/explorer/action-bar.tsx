@@ -8,6 +8,7 @@ import * as immutable from "immutable";
 import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
+import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import { Gap, Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
@@ -36,6 +37,8 @@ interface Props {
   available_features?;
   show_custom_software_reset?: boolean;
   project_is_running?: boolean;
+  show_directory_tree?: boolean;
+  on_toggle_directory_tree?: () => void;
 }
 
 export const ActionBar: React.FC<Props> = (props: Props) => {
@@ -96,6 +99,21 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
       <Button data-cocalc-test="check-all" onClick={check_all_click_handler}>
         <Icon name={button_icon} /> {button_text}
       </Button>
+    );
+  }
+
+  function render_directory_tree_toggle(): React.JSX.Element | undefined {
+    if (!props.on_toggle_directory_tree) {
+      return;
+    }
+    return (
+      <BootstrapButton
+        onClick={props.on_toggle_directory_tree}
+        enable={!!props.show_directory_tree}
+        title="Show or hide directory tree"
+      >
+        <Icon name="folder-open" />
+      </BootstrapButton>
     );
   }
 
@@ -244,6 +262,9 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     <div style={{ flex: "1 0 auto" }}>
       <div style={{ flex: "1 0 auto" }}>
         <Space wrap style={{ whiteSpace: "nowrap", padding: "0" }}>
+          {props.project_is_running
+            ? render_directory_tree_toggle()
+            : undefined}
           {props.project_is_running ? render_check_all_button() : undefined}
           {render_button_area()}
         </Space>
