@@ -107,6 +107,19 @@ function setDirectoryTreeWidth(project_id: string, width: number): void {
   LS.set(directoryTreeWidthKey(project_id), width);
 }
 
+function directoryTreeVisibleKey(project_id: string): string {
+  return `${project_id}::explorer-directory-tree-visible`;
+}
+
+function getDirectoryTreeVisible(project_id: string): boolean {
+  const val = LS.get<boolean>(directoryTreeVisibleKey(project_id));
+  return val === true;
+}
+
+function setDirectoryTreeVisible(project_id: string, visible: boolean): void {
+  LS.set(directoryTreeVisibleKey(project_id), visible);
+}
+
 const TREE_PANEL_STYLE: React.CSSProperties = {
   overflowY: "auto",
   overflowX: "hidden",
@@ -126,6 +139,14 @@ export function Explorer() {
     { project_id },
     "show_directory_tree",
   );
+  // Restore tree visibility from localStorage on mount
+  useEffect(() => {
+    const saved = getDirectoryTreeVisible(project_id);
+    if (saved && !show_directory_tree) {
+      actions?.setState({ show_directory_tree: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project_id]);
   const show_hidden = useTypedRedux({ project_id }, "show_hidden");
   const error = useTypedRedux({ project_id }, "error");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
@@ -256,8 +277,10 @@ export function Explorer() {
   );
 
   const toggleDirectoryTree = useCallback(() => {
-    actions?.setState({ show_directory_tree: !show_directory_tree });
-  }, [actions, show_directory_tree]);
+    const next = !show_directory_tree;
+    actions?.setState({ show_directory_tree: next });
+    setDirectoryTreeVisible(project_id, next);
+  }, [actions, project_id, show_directory_tree]);
 
   const updateDirectoryTreeWidth = useCallback(
     (width: number) => {
