@@ -31,7 +31,15 @@ function HelpContent({
   onClose: () => void;
 }) {
   return (
-    <div style={{ maxWidth: 420, fontSize: 13, lineHeight: 1.6 }}>
+    <div
+      style={{
+        maxWidth: 420,
+        maxHeight: "70vh",
+        overflowY: "auto",
+        fontSize: 13,
+        lineHeight: 1.6,
+      }}
+    >
       <Section title="Selecting Files" icon="check-square-o">
         Click a file to open it. Use the checkbox to select files for bulk
         actions. <Text strong>Shift+click</Text> a checkbox to select a range.
