@@ -9,12 +9,13 @@ import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
-import { Gap, Icon } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
+import ExplorerHelp from "@cocalc/frontend/project/explorer/explorer-help";
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import * as misc from "@cocalc/util/misc";
@@ -123,30 +124,42 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
     const checked = props.checked_files.size;
     const total = props.listing.length;
-    const style = ROW_INFO_STYLE;
+
+    const helpButton = props.project_id ? (
+      <ExplorerHelp project_id={props.project_id} />
+    ) : null;
 
     if (checked === 0) {
       return (
-        <div style={style}>
-          <span>
-            {total} {intl.formatMessage(labels.item_plural, { total })}
-          </span>
-          <div style={{ display: "inline" }}>
-            {" "}
-            &mdash;{" "}
+        <div
+          style={{
+            ...ROW_INFO_STYLE,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ flex: 1 }}>
+            {total} {intl.formatMessage(labels.item_plural, { total })} &mdash;{" "}
             <FormattedMessage
               id="project.explorer.action-bar.currently_selected.info"
               defaultMessage={
                 "Click the checkbox to the left of a file to copy, download, etc."
               }
             />
-          </div>
+          </span>
+          {helpButton}
         </div>
       );
     } else {
       return (
-        <div style={style}>
-          <span>
+        <div
+          style={{
+            ...ROW_INFO_STYLE,
+            display: "flex",
+            alignItems: "center",
+          }}
+        >
+          <span style={{ flex: 1 }}>
             {intl.formatMessage(
               {
                 id: "project.explorer.action-bar.currently_selected.items",
@@ -159,7 +172,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
               },
             )}
           </span>
-          <Gap />
+          {helpButton}
         </div>
       );
     }

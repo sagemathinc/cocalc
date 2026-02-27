@@ -167,6 +167,7 @@ export function Explorer() {
 
   // -- Local state --
   const [shiftIsDown, setShiftIsDown] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(true);
   const [directoryTreeWidth, setDirectoryTreeWidthState] = useState<number>(
     () => getDirectoryTreeWidth(project_id),
   );
@@ -429,6 +430,7 @@ export function Explorer() {
             redux={redux}
             configuration_main={configuration?.get("main") as any}
             type_counts={type_counts}
+            search_focused={searchFocused}
           />
         </FileUploadWrapper>
       );
@@ -535,6 +537,8 @@ export function Explorer() {
             file_creation_error={file_creation_error}
             create_file={createFile}
             create_folder={createFolder}
+            on_focus={() => setSearchFocused(true)}
+            on_blur={() => setSearchFocused(false)}
           />
         )}
         <div style={{ flex: "0 1 auto" }}>
@@ -578,6 +582,8 @@ export function Explorer() {
   }
 
   // -- Main render --
+  const showTree = !!show_directory_tree && !IS_MOBILE && projectIsRunning;
+
   return (
     <div className={"smc-vfill"}>
       <div
@@ -592,20 +598,6 @@ export function Explorer() {
         {renderActivity()}
         {renderControlRow()}
         {ext_selection != null && <AskNewFilename project_id={project_id} />}
-        <div style={FLEX_ROW_STYLE}>
-          <div
-            style={{
-              flex: "1 0 auto",
-              marginRight: "5px",
-              minWidth: "20em",
-            }}
-          >
-            {renderFilesActions()}
-          </div>
-          {renderProjectFilesButtons()}
-        </div>
-        {projectIsRunning ? renderCustomSoftwareReset() : null}
-        {show_library ? renderLibrary() : null}
       </div>
 
       <div
@@ -613,33 +605,76 @@ export function Explorer() {
         className="smc-vfill"
         style={{ minHeight: 0, display: "flex", flexDirection: "row", gap: 0 }}
       >
-        {!!show_directory_tree && !IS_MOBILE && projectIsRunning && (
-          <>
+        {/* Left column: toggle button + directory tree */}
+        {showTree && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              flex: `0 0 ${directoryTreeWidth}px`,
+              width: `${directoryTreeWidth}px`,
+              minWidth: `${DIRECTORY_TREE_MIN_WIDTH_PX}px`,
+            }}
+          >
+            <div style={{ flex: "0 0 auto", padding: "4px 2px" }}>
+              <AntButton
+                size="small"
+                type="text"
+                onClick={toggleDirectoryTree}
+                title="Hide directory tree"
+              >
+                <Icon name="network" style={{ transform: "rotate(270deg)" }} />
+              </AntButton>
+            </div>
             <DirectoryTreePanel
               project_id={project_id}
               current_path={current_path}
               compute_server_id={compute_server_id}
               show_hidden={!!show_hidden}
-              width={directoryTreeWidth}
               on_open_directory={(path: string) =>
                 (actions as ProjectActions)?.open_directory(path, true, false)
               }
             />
-            <DndContext
-              onDragStart={() => setOldDirectoryTreeWidth(directoryTreeWidth)}
-              onDragEnd={handleDirectoryTreeDragEnd}
-            >
-              <DirectoryTreeDragbar
-                oldWidth={oldDirectoryTreeWidth}
-                onReset={resetDirectoryTreeWidth}
-              />
-            </DndContext>
-          </>
+          </div>
         )}
+        {/* Dragbar (full height when tree visible) */}
+        {showTree && (
+          <DndContext
+            onDragStart={() => setOldDirectoryTreeWidth(directoryTreeWidth)}
+            onDragEnd={handleDirectoryTreeDragEnd}
+          >
+            <DirectoryTreeDragbar
+              oldWidth={oldDirectoryTreeWidth}
+              onReset={resetDirectoryTreeWidth}
+            />
+          </DndContext>
+        )}
+        {/* Right column: action bar + file table */}
         <div
           className="smc-vfill"
           style={{ minHeight: 0, minWidth: 0, flex: 1 }}
         >
+          <div
+            style={{
+              flex: "0 0 auto",
+              padding: "0 2px",
+            }}
+          >
+            <div style={FLEX_ROW_STYLE}>
+              <div
+                style={{
+                  flex: "1 0 auto",
+                  marginRight: "5px",
+                  minWidth: "20em",
+                }}
+              >
+                {renderFilesActions()}
+              </div>
+              {renderProjectFilesButtons()}
+            </div>
+            {projectIsRunning ? renderCustomSoftwareReset() : null}
+            {show_library ? renderLibrary() : null}
+          </div>
           {renderFileListing()}
         </div>
       </div>
@@ -787,14 +822,12 @@ function DirectoryTreePanel({
   current_path,
   compute_server_id,
   show_hidden,
-  width,
   on_open_directory,
 }: {
   project_id: string;
   current_path: string;
   compute_server_id?: number;
   show_hidden: boolean;
-  width: number;
   on_open_directory: (path: string) => void;
 }) {
   const [childrenByPath, setChildrenByPath] = useState<
@@ -975,9 +1008,8 @@ function DirectoryTreePanel({
     <div
       style={{
         ...TREE_PANEL_STYLE,
-        flex: `0 0 ${width}px`,
-        width: `${width}px`,
-        minWidth: `${DIRECTORY_TREE_MIN_WIDTH_PX}px`,
+        flex: "1 1 0",
+        minHeight: 0,
       }}
     >
       <Tree
@@ -1029,6 +1061,8 @@ const SearchTerminalBar = React.forwardRef(
       file_creation_error,
       create_file,
       create_folder,
+      on_focus,
+      on_blur,
     }: {
       current_path: string;
       file_search: string;
@@ -1038,6 +1072,8 @@ const SearchTerminalBar = React.forwardRef(
       file_creation_error?: string;
       create_file: (ext?: string, switch_over?: boolean) => void;
       create_folder: (switch_over?: boolean) => void;
+      on_focus?: () => void;
+      on_blur?: () => void;
     },
     ref: React.LegacyRef<HTMLDivElement> | undefined,
   ) => {
@@ -1058,6 +1094,8 @@ const SearchTerminalBar = React.forwardRef(
           }
           create_file={create_file}
           create_folder={create_folder}
+          on_focus={on_focus}
+          on_blur={on_blur}
         />
       </div>
     );

@@ -114,6 +114,9 @@
   // Pointer cursor on sortable headers
   .ant-table-column-has-sorters
     cursor: pointer
+  // Only show vertical scrollbar when content overflows (antd defaults to scroll)
+  .ant-table-body
+    overflow-y: auto !important
   // Expanded directory peek row: remove default cell padding
   .cc-explorer-expanded-row
     .ant-table-expanded-row-cell

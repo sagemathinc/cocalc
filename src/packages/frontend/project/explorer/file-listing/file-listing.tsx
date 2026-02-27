@@ -50,7 +50,6 @@ import {
   useFileDrag,
   useFolderDrop,
 } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
-import ExplorerHelp from "@cocalc/frontend/project/explorer/explorer-help";
 import DirectoryPeek from "./directory-peek";
 
 import NoFiles from "./no-files";
@@ -215,6 +214,7 @@ interface Props {
   configuration_main?: MainConfiguration;
   isRunning?: boolean;
   type_counts?: Record<string, number>;
+  search_focused?: boolean;
 }
 
 // ---------- Helper: watch directory ----------
@@ -471,6 +471,7 @@ export const FileListing: React.FC<Props> = ({
   isRunning,
   other_settings,
   type_counts,
+  search_focused,
 }: Props) => {
   const intl = useIntl();
   const [starting, setStarting] = useState(false);
@@ -1089,6 +1090,7 @@ export const FileListing: React.FC<Props> = ({
     (record: FileEntry) => {
       const fp = misc.path_to_file(current_path, record.name);
       const isSelected =
+        search_focused &&
         selected_file_index != null &&
         selected_file_index >= 0 &&
         selected_file_index < dataSource.length &&
@@ -1102,7 +1104,14 @@ export const FileListing: React.FC<Props> = ({
         .filter(Boolean)
         .join(" ");
     },
-    [current_path, selected_file_index, dataSource, file_search, checked_files],
+    [
+      current_path,
+      selected_file_index,
+      dataSource,
+      file_search,
+      checked_files,
+      search_focused,
+    ],
   );
 
   // -- Early returns for special states --
@@ -1229,9 +1238,6 @@ export const FileListing: React.FC<Props> = ({
               expandedRowClassName: () => "cc-explorer-expanded-row",
             }}
           />
-          <div style={{ position: "absolute", bottom: 4, right: 8 }}>
-            <ExplorerHelp project_id={project_id} />
-          </div>
         </div>
       </DndRowContext.Provider>
       {/* Floating context menu */}
