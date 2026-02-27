@@ -19,6 +19,7 @@ import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { useFileDrag } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import type { FileAction } from "@cocalc/frontend/project_actions";
@@ -187,6 +188,7 @@ export default function DirectoryPeek({
               key={entry.name}
               entry={entry}
               icon={getIcon(entry)}
+              project_id={project_id}
               onClick={() => handleClick(entry)}
               contextMenuItems={getContextMenuItems(entry)}
             />
@@ -202,18 +204,29 @@ export default function DirectoryPeek({
 function PeekItem({
   entry,
   icon,
+  project_id,
   onClick,
   contextMenuItems,
 }: {
   entry: PeekEntry;
   icon: IconName;
+  project_id: string;
   onClick: () => void;
   contextMenuItems: MenuProps["items"];
 }) {
+  const { dragRef, dragListeners, dragAttributes, isDragging } = useFileDrag(
+    `peek-${entry.fullPath}`,
+    [entry.fullPath],
+    project_id,
+  );
+
   return (
     <Dropdown menu={{ items: contextMenuItems }} trigger={["contextMenu"]}>
       <Tooltip title={entry.name} mouseEnterDelay={0.5}>
         <div
+          ref={dragRef}
+          {...dragListeners}
+          {...dragAttributes}
           onClick={(e) => {
             e.stopPropagation();
             onClick();
@@ -229,10 +242,10 @@ function PeekItem({
             fontSize: 12,
             color: entry.isdir ? COLORS.ANTD_LINK_BLUE : COLORS.GRAY_D,
             background: "transparent",
+            opacity: isDragging ? 0.4 : 1,
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLElement).style.background =
-              COLORS.GRAY_LLL;
+            (e.currentTarget as HTMLElement).style.background = COLORS.GRAY_LLL;
           }}
           onMouseLeave={(e) => {
             (e.currentTarget as HTMLElement).style.background = "transparent";
