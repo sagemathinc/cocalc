@@ -117,10 +117,13 @@
   // Only show vertical scrollbar when content overflows (antd defaults to scroll)
   .ant-table-body
     overflow-y: auto !important
-  // Expanded directory peek row: remove default cell padding
-  .cc-explorer-expanded-row
-    .ant-table-expanded-row-cell
-      padding: 0 !important
+
+// Expanded directory peek row: remove default cell padding.
+// Must be at top level (not nested under .cc-explorer-table) to match
+// antd's specificity chain, same pattern as .cc-project-expanded-row.
+.cc-explorer-expanded-row
+  .ant-table-cell
+    padding: 0 !important
 
 // Explorer right-click context menu: compact item sizing
 .cc-explorer-context-menu

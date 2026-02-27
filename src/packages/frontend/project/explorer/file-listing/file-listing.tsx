@@ -823,7 +823,7 @@ export const FileListing: React.FC<Props> = ({
     const cols: ColumnsType<FileEntry> = [
       {
         key: "type",
-        width: 50,
+        width: 60,
         render: (_, record) =>
           renderFileIcon(
             record,
