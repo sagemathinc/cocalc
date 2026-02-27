@@ -51,6 +51,7 @@ import {
   useFolderDrop,
 } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import ExplorerHelp from "@cocalc/frontend/project/explorer/explorer-help";
+import DirectoryPeek from "./directory-peek";
 
 import NoFiles from "./no-files";
 import {
@@ -228,42 +229,31 @@ export function watchFiles({ actions, current_path }): void {
   }
 }
 
-// ---------- Helper: dynamic page size from viewport position ----------
-
-// Row height in antd Table size="small" with icons/text — slightly
-// conservative to avoid overflow.  Chrome = table header + pagination bar.
-const ROW_HEIGHT_PX = 42;
-// Fallback chrome height before DOM measurement is available
-const DEFAULT_CHROME_PX = 80;
+// ---------- Helper: available scroll height for the table body ----------
 
 /**
- * Compute how many table rows fit between the element's top edge and the
- * bottom of the viewport.  Measures the actual table header + pagination
- * bar height from the DOM for accuracy.  Uses requestAnimationFrame +
- * delay (following the projects-table pattern) so the DOM has settled
- * before measuring.  Only re-measures on window resize — never on content
- * changes — to avoid a feedback loop.
+ * Compute the pixel height available for the scrollable table body.
+ * Measures the container top + the table header height and returns
+ * `window.innerHeight - top - theadHeight` so the table fills the
+ * remaining viewport.  Uses requestAnimationFrame + delay so the DOM
+ * has settled.  Only re-measures on resize — not on content — to avoid
+ * feedback loops.
  */
-function useDynamicPageSize(ref: React.RefObject<HTMLDivElement | null>) {
-  const [pageSize, setPageSize] = useState(10);
+function useAvailableHeight(el: HTMLDivElement | null) {
+  const [height, setHeight] = useState(400);
 
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
 
     function recalc() {
       const rect = el!.getBoundingClientRect();
-      // Measure actual chrome: table header + pagination footer
       const thead = el!.querySelector<HTMLElement>(".ant-table-thead");
-      const pager = el!.querySelector<HTMLElement>(".ant-table-pagination");
-      const chromeHeight =
-        (thead?.offsetHeight ?? 0) + (pager?.offsetHeight ?? 0);
-      const chrome = chromeHeight > 0 ? chromeHeight : DEFAULT_CHROME_PX;
-      const available = window.innerHeight - rect.top - chrome;
-      setPageSize(Math.max(5, Math.floor(available / ROW_HEIGHT_PX)));
+      const theadH = thead?.offsetHeight ?? 40;
+      // Leave 4px breathing room at the bottom
+      const available = window.innerHeight - rect.top - theadH - 4;
+      setHeight(Math.max(200, available));
     }
 
-    // Two-phase measurement like the projects table: rAF then a short delay
     const rafId = requestAnimationFrame(() => {
       recalc();
       setTimeout(recalc, 150);
@@ -273,9 +263,9 @@ function useDynamicPageSize(ref: React.RefObject<HTMLDivElement | null>) {
       cancelAnimationFrame(rafId);
       window.removeEventListener("resize", recalc);
     };
-  }, []);
+  }, [el]);
 
-  return pageSize;
+  return height;
 }
 
 // ---------- Helper: responsive container width ----------
@@ -287,18 +277,17 @@ const NARROW_WIDTH_PX = 700;
  * Track the container width via ResizeObserver.  Safe to use here because
  * width changes don't cause content-height feedback loops (unlike height).
  */
-function useContainerWidth(ref: React.RefObject<HTMLDivElement | null>) {
+function useContainerWidth(el: HTMLDivElement | null) {
   const [width, setWidth] = useState(1200);
 
   useEffect(() => {
-    const el = ref.current;
     if (!el) return;
     const observer = new ResizeObserver(([entry]) => {
       setWidth(entry.contentRect.width);
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [el]);
 
   return width;
 }
@@ -334,7 +323,11 @@ function computeTypeFilters(
 
 // ---------- Render helpers (extracted from FileRow) ----------
 
-function renderFileIcon(record: FileEntry): React.ReactNode {
+function renderFileIcon(
+  record: FileEntry,
+  isExpanded?: boolean,
+  onToggleExpand?: (e: React.MouseEvent) => void,
+): React.ReactNode {
   const style: React.CSSProperties = {
     color: record.mask ? COLORS.GRAY_M : COLORS.FILE_ICON,
     verticalAlign: "sub",
@@ -348,11 +341,13 @@ function renderFileIcon(record: FileEntry): React.ReactNode {
           style={{ fontSize: "14pt", verticalAlign: "sub" }}
         />
         <Icon
-          name="caret-right"
+          name={isExpanded ? "caret-down" : "caret-right"}
+          onClick={onToggleExpand}
           style={{
             marginLeft: "3px",
             fontSize: "14pt",
             verticalAlign: "sub",
+            cursor: onToggleExpand ? "pointer" : undefined,
           }}
         />
       </span>
@@ -522,11 +517,28 @@ export const FileListing: React.FC<Props> = ({
   const dimFileExtensions = !!other_settings?.get?.("dim_file_extensions");
   const typeFilter = useTypedRedux({ project_id }, "type_filter") ?? null;
 
-  // -- Dynamic page size from available space --
-  const containerRef = useRef<HTMLDivElement>(null);
-  const pageSize = useDynamicPageSize(containerRef);
-  const containerWidth = useContainerWidth(containerRef);
+  // -- Scrollable table: compute available height for table body --
+  // Use callback ref (useState) so hooks re-run when the DOM node appears
+  // after early-return renders (empty directory, project-not-running, etc.)
+  const [containerEl, containerRef] = useState<HTMLDivElement | null>(null);
+  const scrollHeight = useAvailableHeight(containerEl);
+  const containerWidth = useContainerWidth(containerEl);
   const isNarrow = containerWidth < NARROW_WIDTH_PX;
+
+  // -- Expandable directory peek --
+  const [expandedDirs, setExpandedDirs] = useState<string[]>([]);
+
+  // Reset expanded dirs when navigating to a different directory
+  useEffect(() => {
+    setExpandedDirs([]);
+  }, [current_path]);
+
+  const toggleExpandDir = useCallback((name: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setExpandedDirs((prev) =>
+      prev.includes(name) ? prev.filter((d) => d !== name) : [...prev, name],
+    );
+  }, []);
 
   // -- Context menu state --
   const [contextMenu, setContextMenu] = useState<{
@@ -553,46 +565,6 @@ export const FileListing: React.FC<Props> = ({
       is_public: (file_map as any)?.[item.name]?.is_public ?? false,
     }));
   }, [listing, file_map]);
-
-  // -- Pagination: controlled page for wheel navigation --
-  const [currentPage, setCurrentPage] = useState(1);
-  const totalPages = Math.ceil(dataSource.length / pageSize);
-
-  // Reset to page 1 when the listing changes (e.g. path change, filter)
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [current_path, typeFilter]);
-
-  // Auto-navigate to the page containing the keyboard-selected file
-  useEffect(() => {
-    if (selected_file_index == null || selected_file_index < 0 || pageSize <= 0)
-      return;
-    const targetPage = Math.floor(selected_file_index / pageSize) + 1;
-    if (
-      targetPage !== currentPage &&
-      targetPage >= 1 &&
-      targetPage <= totalPages
-    ) {
-      setCurrentPage(targetPage);
-    }
-  }, [selected_file_index, pageSize, totalPages]);
-
-  // Wheel on the table container flips pages
-  useEffect(() => {
-    const el = containerRef.current;
-    if (!el) return;
-    const handler = (e: WheelEvent) => {
-      if (totalPages <= 1) return;
-      if (Math.abs(e.deltaY) < 10) return;
-      e.preventDefault();
-      setCurrentPage((prev) => {
-        if (e.deltaY > 0) return Math.min(prev + 1, totalPages);
-        return Math.max(prev - 1, 1);
-      });
-    };
-    el.addEventListener("wheel", handler, { passive: false });
-    return () => el.removeEventListener("wheel", handler);
-  }, [totalPages]);
 
   // -- Selection keys (full paths in checked_files → file names for Table) --
   const selectedRowKeys = useMemo(() => {
@@ -846,7 +818,14 @@ export const FileListing: React.FC<Props> = ({
       {
         key: "type",
         width: 50,
-        render: (_, record) => renderFileIcon(record),
+        render: (_, record) =>
+          renderFileIcon(
+            record,
+            record.isdir ? expandedDirs.includes(record.name) : false,
+            record.isdir
+              ? (e: React.MouseEvent) => toggleExpandDir(record.name, e)
+              : undefined,
+          ),
         filters: typeFilters,
         filterMultiple: false,
         filteredValue: typeFilter != null ? [typeFilter] : null,
@@ -1014,6 +993,8 @@ export const FileListing: React.FC<Props> = ({
     student_project_functionality.disableActions,
     isNarrow,
     intl,
+    expandedDirs,
+    toggleExpandDir,
   ]);
 
   // -- Row selection (checkboxes) --
@@ -1073,6 +1054,8 @@ export const FileListing: React.FC<Props> = ({
       onContextMenu: (e: React.MouseEvent) => {
         e.preventDefault();
         if (student_project_functionality.disableActions) return;
+        // The ".." parent-directory row has no valid actions — skip it
+        if (record.name === "..") return;
         const fp = misc.path_to_file(current_path, record.name);
         if (checked_files.size <= 1) {
           actions.set_all_files_unchecked();
@@ -1221,19 +1204,30 @@ export const FileListing: React.FC<Props> = ({
                 ? undefined
                 : rowSelection
             }
-            pagination={{
-              current: currentPage,
-              pageSize,
-              showSizeChanger: false,
-              showQuickJumper: dataSource.length > pageSize * 3,
-              align: "start",
-              onChange: (page) => setCurrentPage(page),
-            }}
+            pagination={false}
+            scroll={{ y: scrollHeight }}
             showSorterTooltip={false}
             sortDirections={["ascend", "descend", "ascend"]}
             onChange={handleTableChange}
             onRow={onRow}
             rowClassName={rowClassName}
+            expandable={{
+              expandedRowRender: (record) => (
+                <DirectoryPeek
+                  project_id={project_id}
+                  dirPath={misc.path_to_file(current_path, record.name)}
+                  onClose={() =>
+                    setExpandedDirs((prev) =>
+                      prev.filter((d) => d !== record.name),
+                    )
+                  }
+                />
+              ),
+              expandedRowKeys: expandedDirs,
+              rowExpandable: (record) => !!record.isdir,
+              showExpandColumn: false,
+              expandedRowClassName: () => "cc-explorer-expanded-row",
+            }}
           />
           <div style={{ position: "absolute", bottom: 4, right: 8 }}>
             <ExplorerHelp project_id={project_id} />

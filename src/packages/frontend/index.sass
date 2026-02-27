@@ -94,9 +94,9 @@
   // Checked (selected via checkbox): matches flyout selected style
   .cc-explorer-row-checked > td
     background-color: colors.$COL_BLUE_LLL !important
-  // Keyboard-selected row: subtle outline
+  // Keyboard-selected row: blue background (matching flyout selection)
   .cc-explorer-row-selected > td
-    outline: 1px solid colors.$COL_BLUE_L
+    background-color: colors.$COL_BLUE_LLL !important
   // DnD drop target: folder row being hovered during drag
   // Must override both default bg and hover bg, hence doubled specificity
   .cc-explorer-row-drop-target > td,
@@ -114,17 +114,10 @@
   // Pointer cursor on sortable headers
   .ant-table-column-has-sorters
     cursor: pointer
-  // Pagination bar: match header styling, flush with page edges
-  .ant-pagination
-    margin-top: auto !important
-    margin-bottom: 0 !important
-    padding: 6px 8px
-    background: colors.$COL_GRAY_LL
-    border-top: 1px solid colors.$COL_GRAY_L0
-    .ant-pagination-item, .ant-pagination-item-link
-      background: colors.$COL_GRAY_LLL !important
-    .ant-pagination-options-quick-jumper input
-      background: colors.$COL_GRAY_LLL !important
+  // Expanded directory peek row: remove default cell padding
+  .cc-explorer-expanded-row
+    .ant-table-expanded-row-cell
+      padding: 0 !important
 
 // Explorer right-click context menu: compact item sizing
 .cc-explorer-context-menu

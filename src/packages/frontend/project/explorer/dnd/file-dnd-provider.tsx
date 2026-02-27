@@ -433,6 +433,16 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     [actions, shiftKey, project_id, restoreSelection],
   );
 
+  // Cancel handler: same cleanup as the start of onDragEnd + restore selection.
+  // Fires when the user presses Escape or the sensor cancels mid-drag.
+  const handleDragCancel = useCallback(() => {
+    setActiveData(null);
+    setOverFolder(null);
+    document.body.style.cursor = "";
+    document.body.classList.remove("cc-file-dragging");
+    restoreSelection();
+  }, [restoreSelection]);
+
   return (
     <DndContext
       sensors={sensors}
@@ -441,6 +451,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       onDragMove={handleDragMove}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
     >
       {children}
       <DragOverlay dropAnimation={null} modifiers={[snapToPointerModifier]}>
