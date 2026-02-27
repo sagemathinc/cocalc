@@ -8,7 +8,13 @@ import type { DragEndEvent } from "@dnd-kit/core";
 import { Alert, Button as AntButton, Tree } from "antd";
 import type { TreeDataNode, TreeProps } from "antd";
 import * as _ from "lodash";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FormattedMessage } from "react-intl";
 
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
@@ -44,6 +50,7 @@ import { COLORS } from "@cocalc/util/theme";
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
 import { ActionBar } from "./action-bar";
+import { useFolderDrop } from "./dnd/file-dnd-provider";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
@@ -51,7 +58,6 @@ import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
-import { useFolderDrop } from "./dnd/file-dnd-provider";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
 
@@ -100,11 +106,9 @@ function setDirectoryTreeWidth(project_id: string, width: number): void {
 }
 
 const TREE_PANEL_STYLE: React.CSSProperties = {
-  border: `1px solid ${COLORS.GRAY_L}`,
-  borderRadius: "6px",
-  background: COLORS.GRAY_LL,
-  overflow: "auto",
-  padding: "4px",
+  overflowY: "auto",
+  overflowX: "hidden",
+  padding: "0 4px 0 0",
 } as const;
 
 export function Explorer() {
@@ -607,7 +611,7 @@ export function Explorer() {
       <div
         ref={fileListingRef}
         className="smc-vfill"
-        style={{ minHeight: 0, display: "flex", gap: "8px" }}
+        style={{ minHeight: 0, display: "flex", flexDirection: "row", gap: 0 }}
       >
         {!!show_directory_tree && !IS_MOBILE && projectIsRunning && (
           <>
@@ -673,7 +677,7 @@ function getAncestorPaths(path: string): string[] {
   return ancestors;
 }
 
-function DirectoryTreeNodeTitle({
+const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
   project_id,
   path,
   label,
@@ -692,18 +696,22 @@ function DirectoryTreeNodeTitle({
       ref={dropRef}
       data-folder-drop-path={path}
       style={{
-        display: "inline-flex",
+        display: "flex",
         alignItems: "center",
         gap: "6px",
         width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
         borderRadius: "4px",
         padding: "2px 4px",
+        whiteSpace: "nowrap",
         background: isOver
           ? COLORS.BLUE_LL
           : isInvalidDrop
             ? COLORS.ANTD_RED_WARN
             : isSelected
-              ? COLORS.GRAY_L
+              ? COLORS.BLUE_LLL
               : "transparent",
       }}
     >
@@ -711,10 +719,23 @@ function DirectoryTreeNodeTitle({
         name={path === "" ? "home" : "folder-open"}
         style={{ color: COLORS.FILE_ICON }}
       />
-      <span>{label}</span>
+      <span
+        title={label}
+        style={{
+          minWidth: 0,
+          flex: 1,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
     </span>
   );
-}
+});
+
+DirectoryTreeNodeTitle.displayName = "DirectoryTreeNodeTitle";
 
 function DirectoryTreeDragbar({
   oldWidth,
@@ -730,7 +751,7 @@ function DirectoryTreeDragbar({
     },
   );
 
-  const dx = (() => {
+  const dx = useMemo(() => {
     if (!transform || !oldWidth) return 0;
     const posX = oldWidth + transform.x;
     if (posX < DIRECTORY_TREE_MIN_WIDTH_PX) {
@@ -740,7 +761,7 @@ function DirectoryTreeDragbar({
       return DIRECTORY_TREE_MAX_WIDTH_PX - oldWidth;
     }
     return transform.x;
-  })();
+  }, [transform, oldWidth]);
 
   return (
     <div
@@ -779,13 +800,20 @@ function DirectoryTreePanel({
   const [childrenByPath, setChildrenByPath] = useState<
     Record<string, string[]>
   >({});
-  const [loadedPaths, setLoadedPaths] = useState<Set<string>>(new Set());
+  const [treeVersion, setTreeVersion] = useState(0);
   const [expandedKeys, setExpandedKeys] = useState<string[]>([TREE_HOME_KEY]);
   const [error, setError] = useState<string>("");
+  const directoryListings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  )?.get(compute_server_id ?? 0);
+  const showHiddenRef = useRef(show_hidden);
+  const loadedPathsRef = useRef<Set<string>>(new Set());
   const loadingPathsRef = useRef<Set<string>>(new Set());
 
   const loadPath = useCallback(
-    async (path: string) => {
+    async (path: string, force = false) => {
+      if (!force && loadedPathsRef.current.has(path)) return;
       if (loadingPathsRef.current.has(path)) return;
       loadingPathsRef.current.add(path);
       try {
@@ -801,16 +829,15 @@ function DirectoryTreePanel({
               entry.isdir &&
               entry.name !== "." &&
               entry.name !== ".." &&
-              (show_hidden || !entry.name.startsWith(".")),
+              (showHiddenRef.current || !entry.name.startsWith(".")),
           )
           .map((entry) => misc.path_to_file(path, entry.name))
           .sort((a, b) => misc.cmp(a, b));
         setChildrenByPath((prev) => ({ ...prev, [path]: dirs }));
-        setLoadedPaths((prev) => {
-          const next = new Set(prev);
-          next.add(path);
-          return next;
-        });
+        if (!loadedPathsRef.current.has(path)) {
+          setTreeVersion((v) => v + 1);
+        }
+        loadedPathsRef.current.add(path);
         setError("");
       } catch (err) {
         console.warn("Failed to load directory tree path:", path, err);
@@ -819,17 +846,46 @@ function DirectoryTreePanel({
         loadingPathsRef.current.delete(path);
       }
     },
-    [compute_server_id, project_id, show_hidden],
+    [compute_server_id, project_id],
   );
 
   useEffect(() => {
+    showHiddenRef.current = show_hidden;
+  }, [show_hidden]);
+
+  useEffect(() => {
     setChildrenByPath({});
-    setLoadedPaths(new Set());
     setExpandedKeys([TREE_HOME_KEY]);
     setError("");
+    loadedPathsRef.current = new Set();
     loadingPathsRef.current.clear();
-    void loadPath("");
-  }, [loadPath]);
+    setTreeVersion((v) => v + 1);
+    void loadPath("", true);
+  }, [project_id, compute_server_id, loadPath]);
+
+  useEffect(() => {
+    if (loadedPathsRef.current.size === 0) return;
+    for (const path of loadedPathsRef.current) {
+      void loadPath(path, true);
+    }
+  }, [show_hidden, loadPath]);
+
+  useEffect(() => {
+    if (loadedPathsRef.current.size === 0 || !directoryListings) return;
+    for (const path of loadedPathsRef.current) {
+      void loadPath(path, true);
+    }
+  }, [directoryListings, loadPath]);
+
+  useEffect(() => {
+    const listings = redux
+      .getProjectStore(project_id)
+      ?.get_listings(compute_server_id ?? 0);
+    if (!listings) return;
+    for (const key of expandedKeys) {
+      listings.watch(treeKeyToPath(key));
+    }
+  }, [project_id, compute_server_id, expandedKeys]);
 
   useEffect(() => {
     const ancestorPaths = getAncestorPaths(current_path);
@@ -841,11 +897,11 @@ function DirectoryTreePanel({
       return Array.from(next);
     });
     for (const path of ancestorPaths) {
-      if (!loadedPaths.has(path)) {
+      if (!loadedPathsRef.current.has(path)) {
         void loadPath(path);
       }
     }
-  }, [current_path, loadedPaths, loadPath]);
+  }, [current_path, loadPath]);
 
   const onExpand: TreeProps["onExpand"] = useCallback(
     (keys) => {
@@ -853,12 +909,12 @@ function DirectoryTreePanel({
       setExpandedKeys(normalizedKeys);
       for (const key of normalizedKeys) {
         const path = treeKeyToPath(key);
-        if (!loadedPaths.has(path)) {
+        if (!loadedPathsRef.current.has(path)) {
           void loadPath(path);
         }
       }
     },
-    [loadedPaths, loadPath],
+    [loadPath],
   );
 
   const onSelect: TreeProps["onSelect"] = useCallback(
@@ -870,7 +926,11 @@ function DirectoryTreePanel({
     [on_open_directory],
   );
 
-  const treeData: TreeDataNode[] = (() => {
+  // Note: loadedPathsRef is intentionally not a dependency. `treeVersion`
+  // is incremented whenever loadedPathsRef gains new paths, which triggers
+  // this memo to rebuild with the latest ref contents.
+  const treeData: TreeDataNode[] = useMemo(() => {
+    const loadedPaths = loadedPathsRef.current;
     const buildChildren = (parentPath: string): TreeDataNode[] => {
       const children = childrenByPath[parentPath] ?? [];
       return children.map((childPath) => {
@@ -909,7 +969,7 @@ function DirectoryTreePanel({
         children: buildChildren(""),
       },
     ];
-  })();
+  }, [childrenByPath, current_path, project_id, treeVersion]);
 
   return (
     <div
@@ -922,6 +982,7 @@ function DirectoryTreePanel({
     >
       <Tree
         blockNode
+        virtual={false}
         treeData={treeData}
         expandedKeys={expandedKeys}
         selectedKeys={[pathToTreeKey(current_path)]}

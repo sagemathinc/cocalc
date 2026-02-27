@@ -109,10 +109,10 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     return (
       <BootstrapButton
         onClick={props.on_toggle_directory_tree}
-        enable={!!props.show_directory_tree}
+        active={!!props.show_directory_tree}
         title="Show or hide directory tree"
       >
-        <Icon name="folder-open" />
+        <Icon name="network" style={{ transform: "rotate(270deg)" }} />
       </BootstrapButton>
     );
   }
