@@ -102,8 +102,10 @@ export interface ProjectStoreState {
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
   file_action?: FileAction;
   file_action_source?: FileActionSource;
+  copy_destination_project_id?: string; // pre-populate cross-project copy dialog (e.g. from DnD)
   file_search?: string;
   show_hidden?: boolean;
+  type_filter?: string; // file extension filter shared between explorer table and flyout
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
@@ -439,6 +441,17 @@ export class ProjectStore extends Store<ProjectStoreState> {
           compute_snapshot_display_names(listing);
         }
 
+        // Compute public file info early, so sorting by "public" works.
+        // The mutation is idempotent so calling it here and again below is safe.
+        {
+          const tmpData = { listing, public: {} };
+          mutate_data_to_compute_public_files(
+            tmpData,
+            this.get("stripped_public_paths"),
+            this.get("current_path"),
+          );
+        }
+
         const search = this.get("file_search");
         if (search && search[0] !== search_escape_char) {
           listing = _matched_files(search.toLowerCase(), listing);
@@ -487,6 +500,18 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 if (starredA && !starredB) {
                   return -1;
                 } else if (!starredA && starredB) {
+                  return 1;
+                } else {
+                  return misc.cmp(a.name.toLowerCase(), b.name.toLowerCase());
+                }
+              };
+            case "public":
+              return (a, b) => {
+                const aPublic = !!a.is_public;
+                const bPublic = !!b.is_public;
+                if (aPublic && !bPublic) {
+                  return -1;
+                } else if (!aPublic && bPublic) {
                   return 1;
                 } else {
                   return misc.cmp(a.name.toLowerCase(), b.name.toLowerCase());

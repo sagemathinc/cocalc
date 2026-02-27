@@ -1,12 +1,12 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import React from "react";
-import { Alert } from "@cocalc/frontend/antd-bootstrap";
+import { Alert } from "antd";
 
-const help_alert_error_syle: React.CSSProperties = {
+const help_alert_error_style: React.CSSProperties = {
   marginTop: "10px",
   fontWeight: "bold",
 };
@@ -21,23 +21,28 @@ export function HelpAlert({
   const last_folder_index = file_search.lastIndexOf("/");
   if (file_search.indexOf("\\") !== -1) {
     return (
-      <Alert style={help_alert_error_syle} bsStyle="danger">
-        Warning: \ is an illegal character
-      </Alert>
+      <Alert
+        style={help_alert_error_style}
+        type="error"
+        message="Warning: \ is an illegal character"
+      />
     );
   } else if (file_search.indexOf("/") === 0) {
     return (
-      <Alert style={help_alert_error_syle} bsStyle="danger">
-        Warning: Names cannot begin with /
-      </Alert>
+      <Alert
+        style={help_alert_error_style}
+        type="error"
+        message="Warning: Names cannot begin with /"
+      />
     );
   } else if ([".", ".."].indexOf(file_search) > -1) {
     return (
-      <Alert style={help_alert_error_syle} bsStyle="danger">
-        Warning: Cannot create a file named . or ..
-      </Alert>
+      <Alert
+        style={help_alert_error_style}
+        type="error"
+        message="Warning: Cannot create a file named . or .."
+      />
     );
-    // Non-empty search and there is a file divisor ('/')
   } else if (file_search.length > 0 && last_folder_index > 0) {
     return (
       <CreationHelpAlert
@@ -62,36 +67,52 @@ function CreationHelpAlert({
   file_search: string;
   actual_new_filename: string;
 }) {
-  // Ends with a '/' ie. only folders
   if (last_folder_index === file_search.length - 1) {
     if (last_folder_index !== file_search.indexOf("/")) {
-      // More than one sub folder
       return (
-        <Alert style={creation_alert_style} bsStyle="info">
-          <span style={emphasis_style}>{file_search}</span> will be created as a{" "}
-          <span style={emphasis_style}>folder path</span> if non-existant
-        </Alert>
+        <Alert
+          style={creation_alert_style}
+          type="info"
+          message={
+            <>
+              <span style={emphasis_style}>{file_search}</span> will be created
+              as a <span style={emphasis_style}>folder path</span> if
+              non-existant
+            </>
+          }
+        />
       );
     } else {
-      // Only one folder
       return (
-        <Alert style={creation_alert_style} bsStyle="info">
-          Creates a <span style={emphasis_style}>folder</span> named{" "}
-          <span style={emphasis_style}>{file_search}</span>
-        </Alert>
+        <Alert
+          style={creation_alert_style}
+          type="info"
+          message={
+            <>
+              Creates a <span style={emphasis_style}>folder</span> named{" "}
+              <span style={emphasis_style}>{file_search}</span>
+            </>
+          }
+        />
       );
     }
   } else {
     return (
-      <Alert style={creation_alert_style} bsStyle="info">
-        <span style={emphasis_style}>
-          {actual_new_filename.slice(last_folder_index + 1)}
-        </span>{" "}
-        will be created under the folder path{" "}
-        <span style={emphasis_style}>
-          {file_search.slice(0, last_folder_index + 1)}
-        </span>
-      </Alert>
+      <Alert
+        style={creation_alert_style}
+        type="info"
+        message={
+          <>
+            <span style={emphasis_style}>
+              {actual_new_filename.slice(last_folder_index + 1)}
+            </span>{" "}
+            will be created under the folder path{" "}
+            <span style={emphasis_style}>
+              {file_search.slice(0, last_folder_index + 1)}
+            </span>
+          </>
+        }
+      />
     );
   }
 }

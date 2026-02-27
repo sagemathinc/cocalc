@@ -3,7 +3,16 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
+import {
+  Alert,
+  Button,
+  Input,
+  InputRef,
+  Radio,
+  Select,
+  Space,
+  Tooltip,
+} from "antd";
 import immutable from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
@@ -29,6 +38,7 @@ import {
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { separate_file_extension, strictMod } from "@cocalc/util/misc";
+import { renderTypeFilterLabel } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
@@ -72,6 +82,9 @@ interface Props {
   modeState: ["open" | "select", (mode: "open" | "select") => void];
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
+  typeFilter: string | null;
+  setTypeFilter: (filter: string | null) => void;
+  typeFilterOptions: string[];
 }
 
 export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
@@ -95,6 +108,9 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     modeState,
     selectAllFiles,
     clearAllSelections,
+    typeFilter,
+    setTypeFilter,
+    typeFilterOptions,
   } = props;
 
   const intl = useIntl();
@@ -397,8 +413,23 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
               {renderSortButton("name", "Name")}
               {renderSortButton("size", "Size")}
               {renderSortButton("time", "Time")}
-              {renderSortButton("type", "Type")}
             </Radio.Group>
+            <Select
+              size="small"
+              allowClear
+              placeholder="Type"
+              value={typeFilter}
+              onChange={(val) => setTypeFilter(val ?? null)}
+              style={{ minWidth: 80 }}
+              popupMatchSelectWidth={false}
+              className={
+                typeFilter != null ? "cc-flyout-type-filter-active" : undefined
+              }
+              options={typeFilterOptions.map((ext) => ({
+                label: renderTypeFilterLabel(ext),
+                value: ext,
+              }))}
+            />
             <Space.Compact direction="horizontal" size={"small"}>
               <Tooltip
                 title={intl.formatMessage(labels.upload_tooltip)}

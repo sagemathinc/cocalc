@@ -250,7 +250,6 @@ export const SearchBar = React.memo((props: Props) => {
       const opening_a_dir = selected_file.isdir;
       if (opening_a_dir) {
         actions.open_directory(new_path);
-        actions.setState({ page_number: 0 });
       } else {
         actions.open_file({
           path: new_path,
@@ -304,7 +303,8 @@ export const SearchBar = React.memo((props: Props) => {
         autoSelect
         placeholder={intl.formatMessage({
           id: "project.explorer.search-bar.placeholder",
-          defaultMessage: 'Filter files or "/" for terminal...',
+          defaultMessage:
+            'Filter files (.py -test /regex/) or "/" for terminal...',
         })}
         value={file_search}
         on_change={on_change}

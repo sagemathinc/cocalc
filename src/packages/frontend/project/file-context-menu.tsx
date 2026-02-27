@@ -24,6 +24,8 @@ import {
   FILE_ACTIONS,
   type FileAction,
 } from "@cocalc/frontend/project_actions";
+import { HOME_ROOT } from "@cocalc/util/consts/files";
+import { path_split } from "@cocalc/util/misc";
 
 interface BuildFileActionItemsOptions {
   /** Is the target a directory? */
@@ -38,6 +40,8 @@ interface BuildFileActionItemsOptions {
   inSnapshots?: boolean;
   /** Callback invoked when the user picks an action */
   triggerFileAction: (action: FileAction) => void;
+  /** Full path of the file (for copy path entries); omit in multi mode */
+  fullPath?: string;
 }
 
 /**
@@ -56,17 +60,50 @@ export function buildFileActionItems(
     disableActions = false,
     inSnapshots = false,
     triggerFileAction,
+    fullPath,
   } = opts;
 
   if (disableActions) return [];
+
+  const items: NonNullable<MenuProps["items"]> = [];
+
+  // Copy filename / path entries (single file only)
+  if (!multiple && fullPath) {
+    const filename = path_split(fullPath).tail;
+    // HOME_ROOT is a symlink to / — show as absolute path
+    const rootPrefix = HOME_ROOT + "/";
+    const displayPath = fullPath.startsWith(rootPrefix)
+      ? "/" + fullPath.slice(rootPrefix.length)
+      : `~/${fullPath}`;
+
+    items.push(
+      {
+        key: "copy-filename",
+        label: intl.formatMessage({
+          id: "project.file-context-menu.copy-filename",
+          defaultMessage: "Copy filename",
+        }),
+        icon: <Icon name="copy" />,
+        onClick: () => navigator.clipboard.writeText(filename),
+      },
+      {
+        key: "copy-path",
+        label: intl.formatMessage({
+          id: "project.file-context-menu.copy-path",
+          defaultMessage: "Copy path",
+        }),
+        icon: <Icon name="copy" />,
+        onClick: () => navigator.clipboard.writeText(displayPath),
+      },
+      { key: "divider-copy", type: "divider" },
+    );
+  }
 
   const actionNames = multiple
     ? ACTION_BUTTONS_MULTI
     : isdir
       ? ACTION_BUTTONS_DIR
       : ACTION_BUTTONS_FILE;
-
-  const items: NonNullable<MenuProps["items"]> = [];
 
   for (const key of actionNames) {
     // Download for non-dirs and share/publish are handled separately

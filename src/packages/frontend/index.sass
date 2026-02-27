@@ -69,6 +69,63 @@
 .close
   font-size : 20pt
 
+// Explorer file listing table
+.cc-explorer-table
+  // Make the antd table fill the flex container, pagination at bottom
+  .ant-table-wrapper
+    flex: 1 1 auto
+    display: flex
+    flex-direction: column
+  .ant-spin-nested-loading, .ant-spin-container
+    flex: 1 1 auto
+    display: flex
+    flex-direction: column
+  .ant-table
+    flex: 1 1 auto
+  // Remove all default row backgrounds (including zebra stripes)
+  .ant-table-row > td
+    background: white !important
+    border-bottom: none !important
+    transition: none !important
+  // Hover: faint blue (kept subtle so DnD drop-target highlight stands out)
+  .ant-table-row:hover > td
+    background-color: colors.$COL_BLUE_LLLL !important
+    transition: none !important
+  // Checked (selected via checkbox): matches flyout selected style
+  .cc-explorer-row-checked > td
+    background-color: colors.$COL_BLUE_LLL !important
+  // Keyboard-selected row: subtle outline
+  .cc-explorer-row-selected > td
+    outline: 1px solid colors.$COL_BLUE_L
+  // DnD drop target: folder row being hovered during drag
+  // Must override both default bg and hover bg, hence doubled specificity
+  .cc-explorer-row-drop-target > td,
+  .cc-explorer-row-drop-target:hover > td
+    background-color: colors.$COL_BLUE_LLL !important
+  // DnD invalid drop target (e.g. folder onto itself): red tint
+  .cc-explorer-row-drop-invalid > td,
+  .cc-explorer-row-drop-invalid:hover > td
+    background-color: colors.$COL_ANTD_BG_RED_L !important
+  // Clean header styling (matches flyout panel background)
+  .ant-table-thead > tr > th
+    background: colors.$COL_GRAY_LL !important
+    border-bottom: 1px solid colors.$COL_GRAY_L0 !important
+    font-weight: 600
+  // Pointer cursor on sortable headers
+  .ant-table-column-has-sorters
+    cursor: pointer
+  // Pagination bar: match header styling, flush with page edges
+  .ant-pagination
+    margin-top: auto !important
+    margin-bottom: 0 !important
+    padding: 6px 8px
+    background: colors.$COL_GRAY_LL
+    border-top: 1px solid colors.$COL_GRAY_L0
+    .ant-pagination-item, .ant-pagination-item-link
+      background: colors.$COL_GRAY_LLL !important
+    .ant-pagination-options-quick-jumper input
+      background: colors.$COL_GRAY_LLL !important
+
 .center
   text-align : center
 
@@ -422,3 +479,7 @@ span.cc-project-fixedtab-drag:hover
 
 div.cc-project-flyout-file-item:hover
   background-color: colors.$COL_BLUE_LLLL
+
+// Flyout type filter: orange highlight when a filter is active
+.cc-flyout-type-filter-active .ant-select-selector
+  background-color: colors.$COL_ANTD_ORANGE !important

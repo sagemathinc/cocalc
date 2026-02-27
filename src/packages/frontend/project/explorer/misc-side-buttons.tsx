@@ -3,11 +3,11 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Space } from "antd";
+import { Button, Space } from "antd";
 import { join } from "path";
 import React from "react";
 import { defineMessage, useIntl } from "react-intl";
-import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
+
 import { Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -65,7 +65,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   function render_hidden_toggle(): React.JSX.Element {
     const icon = show_hidden ? "eye" : "eye-slash";
     return (
-      <Button bsSize="small" onClick={handle_hidden_toggle}>
+      <Button onClick={handle_hidden_toggle}>
         <Tip
           title={intl.formatMessage(labels.hidden_files, {
             hidden: show_hidden,
@@ -85,7 +85,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       return;
     }
     return (
-      <Button bsSize="small" onClick={handle_backup}>
+      <Button onClick={handle_backup}>
         <Icon name="life-saver" />{" "}
         <VisibleLG>
           <span style={{ fontSize: 12 }}>Backups</span>
@@ -107,7 +107,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     if (!available_features?.library) return;
     if (kucalc !== "yes") return;
     return (
-      <Button bsSize={"small"} onClick={handle_library_click}>
+      <Button onClick={handle_library_click}>
         <Icon name="book" /> <VisibleLG>Library</VisibleLG>
       </Button>
     );
@@ -164,7 +164,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     }
     return (
       <Button
-        bsSize="small"
         className="upload-button"
         title={intl.formatMessage(labels.upload_tooltip)}
       >
@@ -175,9 +174,14 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   }
 
   return (
-    <ButtonToolbar
-      style={{ whiteSpace: "nowrap", padding: "0" }}
-      className="pull-right"
+    <Space
+      wrap
+      style={{
+        whiteSpace: "nowrap",
+        padding: "0",
+        display: "flex",
+        justifyContent: "flex-end",
+      }}
     >
       <Space.Compact>
         {render_jupyterlab_button()}
@@ -187,13 +191,11 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
         {render_upload_button()}
         {render_library_button()}
       </Space.Compact>
-      <div className="pull-right">
-        <Space.Compact>
-          {render_hidden_toggle()}
-          {render_backup()}
-          <TourButton project_id={project_id} />
-        </Space.Compact>
-      </div>
-    </ButtonToolbar>
+      <Space.Compact>
+        {render_hidden_toggle()}
+        {render_backup()}
+        <TourButton project_id={project_id} />
+      </Space.Compact>
+    </Space>
   );
 };

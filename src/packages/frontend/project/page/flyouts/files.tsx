@@ -36,6 +36,7 @@ import {
 } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
+import { sortedTypeFilterOptions } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {
@@ -135,6 +136,10 @@ export function FilesFlyout({
   const [scrollIdx, setScrollIdx] = useState<number | null>(null);
   const [scrollIdxHide, setScrollIdxHide] = useState<boolean>(false);
   const [selectionOnMouseDown, setSelectionOnMouseDown] = useState<string>("");
+  const typeFilter = useTypedRedux({ project_id }, "type_filter") ?? null;
+  const setTypeFilter = (val: string | null) => {
+    actions?.setState({ type_filter: val ?? undefined } as any);
+  };
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const disableActions = student_project_functionality.disableActions ?? false;
@@ -212,7 +217,15 @@ export function FilesFlyout({
       })
       .filter(
         (file: DirectoryListingEntry) => hidden || !file.name.startsWith("."),
-      );
+      )
+      .filter((file: DirectoryListingEntry) => {
+        if (typeFilter == null) return true;
+        if (typeFilter === "folder") return !!file.isdir;
+        if (file.isdir) return false;
+        const ext =
+          separate_file_extension(file.name).ext?.toLowerCase() || "(none)";
+        return ext === typeFilter;
+      });
 
     // this shares the logic with what's in project_store.js
     mutate_data_to_compute_public_files(
@@ -257,6 +270,12 @@ export function FilesFlyout({
           } else {
             return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
           }
+        case "public":
+          const aPublic = !!a.is_public;
+          const bPublic = !!b.is_public;
+          if (aPublic && !bPublic) return -1;
+          if (!aPublic && bPublic) return 1;
+          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
         default:
           console.warn(`flyout/files: unknown sort column ${col}`);
           return 0;
@@ -302,7 +321,34 @@ export function FilesFlyout({
     current_path,
     strippedPublicPaths,
     maskFiles,
+    typeFilter,
   ]);
+
+  // Compute available type filter options from the unfiltered listing
+  const typeFilterOptions = useMemo(() => {
+    if (directoryListings == null) return [];
+    const filesStore = directoryListings.get(current_path);
+    if (filesStore == null || typeof filesStore === "string") return [];
+    const files: DirectoryListing | null = filesStore.toJS?.();
+    if (files == null) return [];
+
+    const extensions = new Set<string>();
+    for (const f of files) {
+      if (f.isdir) {
+        extensions.add("folder");
+      } else {
+        const ext =
+          separate_file_extension(f.name ?? "").ext?.toLowerCase() || "(none)";
+        extensions.add(ext);
+      }
+    }
+    return sortedTypeFilterOptions(extensions);
+  }, [directoryListings, current_path]);
+
+  // Clear type filter when changing directories
+  useEffect(() => {
+    setTypeFilter(null);
+  }, [current_path]);
 
   const prev_current_path = usePrevious(current_path);
 
@@ -536,9 +582,7 @@ export function FilesFlyout({
 
   function showFileSharingDialog(file?: { name: string }) {
     if (!file) return;
-    actions?.set_active_tab("files");
     const fullPath = path_to_file(current_path, file.name);
-    // only select the published file, same logic as in file-row.tsx
     actions?.set_all_files_unchecked();
     actions?.set_file_list_checked([fullPath]);
     actions?.set_file_action("share");
@@ -741,6 +785,9 @@ export function FilesFlyout({
         modeState={[mode, setMode]}
         clearAllSelections={clearAllSelections}
         selectAllFiles={selectAllFiles}
+        typeFilter={typeFilter}
+        setTypeFilter={setTypeFilter}
+        typeFilterOptions={typeFilterOptions}
       />
       {disableUploads ? (
         renderListing()

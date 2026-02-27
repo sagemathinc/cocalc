@@ -4,6 +4,8 @@
  */
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
+
+import { FileDndProvider } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import { Button, Modal, Tooltip } from "antd";
 import { useIntl } from "react-intl";
 
@@ -395,13 +397,15 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <OOMWarning project_id={project_id} />
         <SoftwareEnvUpgrade project_id={project_id} />
         <ProjectWarningBanner />
-        {renderTopRow()}
-        {is_deleted && <DeletedProjectWarning />}
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {renderActivityBarButtons()}
-          {renderFlyout()}
-          {renderMainContent()}
-        </div>
+        <FileDndProvider project_id={project_id}>
+          {renderTopRow()}
+          {is_deleted && <DeletedProjectWarning />}
+          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            {renderActivityBarButtons()}
+            {renderFlyout()}
+            {renderMainContent()}
+          </div>
+        </FileDndProvider>
       </div>
     </ProjectContext.Provider>
   );
