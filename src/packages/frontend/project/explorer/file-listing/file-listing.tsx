@@ -5,7 +5,7 @@
 
 // File listing using antd Table with virtual scrolling.
 
-import { Alert, Button as AntButton, Menu, Spin, Table } from "antd";
+import { Alert, Menu, Spin, Table } from "antd";
 import type { ColumnsType, TableProps } from "antd/es/table";
 import type { ColumnFilterItem } from "antd/es/table/interface";
 import type { MenuProps } from "antd";
@@ -326,23 +326,11 @@ function computeTypeFilters(
 function renderFileIcon(
   record: FileEntry,
   isExpanded?: boolean,
-  onToggleExpand?: (e: React.MouseEvent) => void,
 ): React.ReactNode {
   const color = record.mask ? COLORS.GRAY_M : COLORS.FILE_ICON;
   if (record.isdir) {
-    // Folder icon + caret as a single borderless button with hover effect
     return (
-      <AntButton
-        type="text"
-        size="small"
-        onClick={onToggleExpand}
-        style={{
-          color,
-          padding: "0 4px",
-          height: "auto",
-          lineHeight: "inherit",
-        }}
-      >
+      <span style={{ color, verticalAlign: "sub", whiteSpace: "nowrap" }}>
         <Icon
           name="folder-open"
           style={{ fontSize: "14pt", verticalAlign: "sub" }}
@@ -355,7 +343,7 @@ function renderFileIcon(
             verticalAlign: "sub",
           }}
         />
-      </AntButton>
+      </span>
     );
   }
   let iconName: IconName;
@@ -828,10 +816,18 @@ export const FileListing: React.FC<Props> = ({
           renderFileIcon(
             record,
             record.isdir ? expandedDirs.includes(record.name) : false,
-            record.isdir
-              ? (e: React.MouseEvent) => toggleExpandDir(record.name, e)
-              : undefined,
           ),
+        onCell: (record) => {
+          if (!record.isdir) return {};
+          const isExpanded = expandedDirs.includes(record.name);
+          return {
+            onClick: (e: React.MouseEvent) => toggleExpandDir(record.name, e),
+            style: {
+              cursor: "pointer",
+              background: isExpanded ? COLORS.BLUE_LLLL : undefined,
+            },
+          };
+        },
         filters: typeFilters,
         filterMultiple: false,
         filteredValue: typeFilter != null ? [typeFilter] : null,
