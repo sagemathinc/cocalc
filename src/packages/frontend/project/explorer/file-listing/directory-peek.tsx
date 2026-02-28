@@ -191,6 +191,7 @@ export default function DirectoryPeek({
               project_id={project_id}
               onClick={() => handleClick(entry)}
               contextMenuItems={getContextMenuItems(entry)}
+              disableActions={student.disableActions}
             />
           ))}
         </Flex>
@@ -207,12 +208,14 @@ function PeekItem({
   project_id,
   onClick,
   contextMenuItems,
+  disableActions,
 }: {
   entry: PeekEntry;
   icon: IconName;
   project_id: string;
   onClick: () => void;
   contextMenuItems: MenuProps["items"];
+  disableActions?: boolean;
 }) {
   const { dragRef, dragListeners, dragAttributes, isDragging } = useFileDrag(
     `peek-${entry.fullPath}`,
@@ -225,8 +228,8 @@ function PeekItem({
       <Tooltip title={entry.name} mouseEnterDelay={0.5}>
         <div
           ref={dragRef}
-          {...dragListeners}
-          {...dragAttributes}
+          {...(disableActions ? {} : dragListeners)}
+          {...(disableActions ? {} : dragAttributes)}
           onClick={(e) => {
             e.stopPropagation();
             onClick();
@@ -242,7 +245,7 @@ function PeekItem({
             fontSize: 12,
             color: entry.isdir ? COLORS.ANTD_LINK_BLUE : COLORS.GRAY_D,
             background: "transparent",
-            opacity: isDragging ? 0.4 : 1,
+            opacity: isDragging && !disableActions ? 0.4 : 1,
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.background = COLORS.GRAY_LLL;

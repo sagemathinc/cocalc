@@ -564,15 +564,16 @@ export const FileListing: React.FC<Props> = ({
   }, [listing, file_map, hide_masked_files]);
 
   // -- Selection keys (full paths in checked_files → file names for Table) --
+  // Use dataSource (not listing) so hidden masked files are excluded from selection.
   const selectedRowKeys = useMemo(() => {
     const keys: string[] = [];
-    for (const item of listing) {
+    for (const item of dataSource) {
       if (checked_files.has(misc.path_to_file(current_path, item.name))) {
         keys.push(item.name);
       }
     }
     return keys;
-  }, [listing, checked_files, current_path]);
+  }, [dataSource, checked_files, current_path]);
 
   // -- DnD row context --
   const recordMap = useMemo(() => {
