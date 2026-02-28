@@ -215,6 +215,7 @@ interface Props {
   isRunning?: boolean;
   type_counts?: Record<string, number>;
   search_focused?: boolean;
+  hide_masked_files?: boolean;
 }
 
 // ---------- Helper: watch directory ----------
@@ -465,6 +466,7 @@ export const FileListing: React.FC<Props> = ({
   other_settings,
   type_counts,
   search_focused,
+  hide_masked_files,
 }: Props) => {
   const intl = useIntl();
   const [starting, setStarting] = useState(false);
@@ -554,11 +556,12 @@ export const FileListing: React.FC<Props> = ({
 
   // -- Enriched data source --
   const dataSource: FileEntry[] = useMemo(() => {
-    return listing.map((item) => ({
+    const entries = listing.map((item) => ({
       ...item,
       is_public: (file_map as any)?.[item.name]?.is_public ?? false,
     }));
-  }, [listing, file_map]);
+    return hide_masked_files ? entries.filter((e) => !e.mask) : entries;
+  }, [listing, file_map, hide_masked_files]);
 
   // -- Selection keys (full paths in checked_files → file names for Table) --
   const selectedRowKeys = useMemo(() => {

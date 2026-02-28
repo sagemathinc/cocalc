@@ -106,6 +106,7 @@ export interface ProjectStoreState {
   file_search?: string;
   show_directory_tree?: boolean;
   show_hidden?: boolean;
+  hide_masked_files?: boolean; // temporary per-session toggle to completely hide masked files
   type_filter?: string; // file extension filter shared between explorer table and flyout
   error?: string;
   checked_files: immutable.Set<string>;

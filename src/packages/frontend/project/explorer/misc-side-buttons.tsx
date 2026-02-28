@@ -17,6 +17,7 @@ import { Available } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
+import { COLORS } from "@cocalc/util/theme";
 
 const OPEN_MSG = defineMessage({
   id: "project.explorer.misc-side-buttons.open_dir.tooltip",
@@ -30,6 +31,7 @@ interface Props {
   kucalc?: string;
   project_id: string;
   show_hidden?: boolean;
+  hide_masked_files?: boolean;
 }
 
 export const MiscSideButtons: React.FC<Props> = (props) => {
@@ -40,6 +42,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     kucalc,
     project_id,
     show_hidden,
+    hide_masked_files,
   } = props;
 
   const intl = useIntl();
@@ -71,6 +74,35 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
           placement={"bottom"}
         >
           <Icon name={icon} />
+        </Tip>
+      </Button>
+    );
+  }
+
+  function render_masked_toggle(): React.JSX.Element {
+    // Temporary toggle: hides masked (auto-generated) files completely for this session.
+    // Resets automatically when navigating to a different directory.
+    return (
+      <Button
+        onClick={(e) => {
+          e.preventDefault();
+          actions.setState({ hide_masked_files: !hide_masked_files });
+        }}
+      >
+        <Tip
+          title={
+            hide_masked_files
+              ? "Show masked files (auto-generated temporary files)"
+              : "Hide masked files (auto-generated temporary files)"
+          }
+          placement={"bottom"}
+        >
+          <Icon
+            name="mask"
+            style={
+              hide_masked_files ? { color: COLORS.ANTD_LINK_BLUE } : undefined
+            }
+          />
         </Tip>
       </Button>
     );
@@ -191,6 +223,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       </Space.Compact>
       <Space.Compact>
         {render_hidden_toggle()}
+        {render_masked_toggle()}
         {render_backup()}
       </Space.Compact>
     </Space>

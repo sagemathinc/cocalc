@@ -148,6 +148,14 @@ export function Explorer() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project_id]);
   const show_hidden = useTypedRedux({ project_id }, "show_hidden");
+  const hide_masked_files = useTypedRedux({ project_id }, "hide_masked_files");
+  // Reset hide_masked_files on directory change — it is a temporary per-directory toggle.
+  useEffect(() => {
+    if (hide_masked_files) {
+      actions?.setState({ hide_masked_files: false });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current_path]);
   const error = useTypedRedux({ project_id }, "error");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const selected_file_index = useTypedRedux(
@@ -456,6 +464,7 @@ export function Explorer() {
             configuration_main={configuration?.get("main") as any}
             type_counts={type_counts}
             search_focused={searchFocused}
+            hide_masked_files={hide_masked_files ?? false}
           />
         </FileUploadWrapper>
       );
@@ -577,12 +586,13 @@ export function Explorer() {
     return (
       <div
         ref={miscButtonsRef}
-        style={{ flex: "1 0 auto", marginBottom: "15px", textAlign: "right" }}
+        style={{ flex: "1 0 auto", textAlign: "right" }}
       >
         <MiscSideButtons
           project_id={project_id}
           current_path={current_path}
           show_hidden={show_hidden ?? false}
+          hide_masked_files={hide_masked_files ?? false}
           actions={actions as ProjectActions}
           kucalc={kucalc}
           available_features={available_features as any}
