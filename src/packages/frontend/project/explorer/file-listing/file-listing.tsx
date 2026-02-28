@@ -521,6 +521,22 @@ export const FileListing: React.FC<Props> = ({
   const containerWidth = useContainerWidth(containerEl);
   const isNarrow = containerWidth < NARROW_WIDTH_PX;
 
+  // -- Background drop target: dropping anywhere on the table background moves
+  // files to the current directory. No highlight (user expectation: silent drop).
+  const { dropRef: backgroundDropRef } = useFolderDrop(
+    `explorer-background-${current_path}`,
+    current_path,
+  );
+  // Merge the height-measurement ref (containerRef, a useState setter) with
+  // dnd-kit's setNodeRef so both attach to the same DOM node.
+  const containerAndDropRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      containerRef(node);
+      backgroundDropRef(node);
+    },
+    [containerRef, backgroundDropRef],
+  );
+
   // -- Expandable directory peek --
   const [expandedDirs, setExpandedDirs] = useState<string[]>([]);
 
@@ -1195,7 +1211,7 @@ export const FileListing: React.FC<Props> = ({
       )}
       <DndRowContext.Provider value={dndRowCtx}>
         <div
-          ref={containerRef}
+          ref={containerAndDropRef}
           className={`smc-vfill cc-explorer-table${shift_is_down ? " noselect" : ""}`}
           style={{ minHeight: 0, position: "relative" }}
         >
