@@ -1030,6 +1030,7 @@ function DirectoryTreePanel({
     }
   }, [directoryListings, loadPath]);
 
+  // Watch expanded directories for changes, so the tree stays live.
   useEffect(() => {
     const listings = redux
       .getProjectStore(project_id)
@@ -1039,6 +1040,27 @@ function DirectoryTreePanel({
       listings.watch(treeKeyToPath(key));
     }
   }, [project_id, compute_server_id, expandedKeys]);
+
+  // Listen for change events and reload any affected loaded tree paths.
+  // This covers moves/copies into expanded subdirectories as well as any
+  // external filesystem change detected by the conat listing service.
+  useEffect(() => {
+    const listings = redux
+      .getProjectStore(project_id)
+      ?.get_listings(compute_server_id ?? 0);
+    if (!listings) return;
+    const handleChange = (paths: string[]) => {
+      for (const path of paths) {
+        if (loadedPathsRef.current.has(path)) {
+          void loadPath(path, true);
+        }
+      }
+    };
+    listings.on("change", handleChange);
+    return () => {
+      listings.removeListener("change", handleChange);
+    };
+  }, [project_id, compute_server_id, loadPath]);
 
   useEffect(() => {
     const ancestorPaths = getAncestorPaths(current_path);
