@@ -88,7 +88,7 @@ const messages = defineMessages({
   section_flyout_body: {
     id: "project.explorer.help.section.flyout.body",
     defaultMessage:
-      "The side-panel file browser shares the type filter and supports drag-and-drop.",
+      "The side-panel file browser is always accessible and shares the type filter. It also supports drag-and-drop.",
   },
   section_search_title: {
     id: "project.explorer.help.section.search.title",
@@ -197,7 +197,6 @@ function HelpContent({
       <Section
         title={intl.formatMessage(messages.section_flyout_title)}
         icon="files"
-        tag={newTag}
       >
         {intl.formatMessage(messages.section_flyout_body)}
       </Section>
