@@ -42,6 +42,7 @@ import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { Library } from "@cocalc/frontend/library";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
@@ -799,11 +800,15 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
   path,
   label,
   isSelected,
+  isStarred,
+  onToggleStar,
 }: {
   project_id: string;
   path: string;
   label: string;
   isSelected: boolean;
+  isStarred: boolean;
+  onToggleStar: () => void;
 }) {
   const id = `explorer-dir-tree-${project_id}-${path || TREE_HOME_KEY}`;
   const { dropRef, isOver, isInvalidDrop } = useFolderDrop(id, path);
@@ -832,10 +837,23 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
               : "transparent",
       }}
     >
-      <Icon
-        name={path === "" ? "home" : "folder-open"}
-        style={{ color: COLORS.FILE_ICON }}
-      />
+      {path === "" ? (
+        <Icon name="home" style={{ color: COLORS.FILE_ICON }} />
+      ) : (
+        <Icon
+          name={isStarred ? "star-filled" : "star"}
+          onClick={(e) => {
+            e?.preventDefault();
+            e?.stopPropagation();
+            onToggleStar();
+          }}
+          style={{
+            cursor: "pointer",
+            color: isStarred ? COLORS.STAR : COLORS.GRAY_L,
+            flexShrink: 0,
+          }}
+        />
+      )}
       <span
         title={label}
         style={{
@@ -921,6 +939,7 @@ function DirectoryTreePanel({
   );
   const [error, setError] = useState<string>("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { starred, setStarredPath } = useStarredFilesManager(project_id);
   const directoryListings = useTypedRedux(
     { project_id },
     "directory_listings",
@@ -1097,6 +1116,8 @@ function DirectoryTreePanel({
         const childChildren = loadedPaths.has(childPath)
           ? buildChildren(childPath)
           : undefined;
+        const starPath = `${childPath}/`;
+        const isStarred = starred.includes(starPath);
         return {
           key: pathToTreeKey(childPath),
           title: (
@@ -1105,6 +1126,8 @@ function DirectoryTreePanel({
               path={childPath}
               label={misc.path_split(childPath).tail || childPath}
               isSelected={current_path === childPath}
+              isStarred={isStarred}
+              onToggleStar={() => setStarredPath(starPath, !isStarred)}
             />
           ),
           children: childChildren,
@@ -1124,12 +1147,21 @@ function DirectoryTreePanel({
             path=""
             label="Home"
             isSelected={current_path === ""}
+            isStarred={false}
+            onToggleStar={() => {}}
           />
         ),
         children: buildChildren(""),
       },
     ];
-  }, [childrenByPath, current_path, project_id, treeVersion]);
+  }, [
+    childrenByPath,
+    current_path,
+    project_id,
+    treeVersion,
+    starred,
+    setStarredPath,
+  ]);
 
   return (
     <div
@@ -1144,6 +1176,7 @@ function DirectoryTreePanel({
       <Tree
         blockNode
         virtual={false}
+        {...({ indent: 10 } as any)}
         treeData={treeData}
         expandedKeys={expandedKeys}
         selectedKeys={[pathToTreeKey(current_path)]}
