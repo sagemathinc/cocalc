@@ -57,6 +57,13 @@ Note: you can also run `pnpm i18n:update` which combines all steps in one go.
 
 **Important:** Whenever you add or change i18n keys in the source code, run `pnpm i18n:update` in `packages/frontend` immediately afterward. This extracts the new keys, uploads them for auto-translation, downloads the results, and compiles the translation files. Skipping this step leaves the new keys untranslated for all non-English locales.
 
+**Updating an existing message:** SimpleLocalize only auto-translates _new_ keys. If you change the `defaultMessage` of an existing key, the old translations will remain unchanged. To force re-translation, you must first delete the key from SimpleLocalize, then run the update pipeline:
+
+```bash
+pnpm i18n:delete <key-id>   # removes the key and all its translations from SimpleLocalize
+pnpm i18n:update             # re-extracts, uploads (as new), auto-translates, downloads, compiles
+```
+
 ### Unused keys
 
 Development goes on, and it might happen that keys are no longer in use.
