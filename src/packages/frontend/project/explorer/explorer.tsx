@@ -120,6 +120,46 @@ function setDirectoryTreeVisible(project_id: string, visible: boolean): void {
   LS.set(directoryTreeVisibleKey(project_id), visible);
 }
 
+const MAX_TREE_EXPANDED = 20;
+
+function directoryTreeExpandedKeysKey(project_id: string): string {
+  return `${project_id}::explorer-directory-tree-expanded-keys`;
+}
+
+function getDirectoryTreeExpandedKeys(project_id: string): string[] {
+  const keys = LS.get<string[]>(directoryTreeExpandedKeysKey(project_id));
+  if (!Array.isArray(keys) || keys.length === 0) return [TREE_HOME_KEY];
+  // Always ensure home key is present
+  if (!keys.includes(TREE_HOME_KEY)) keys.unshift(TREE_HOME_KEY);
+  return keys;
+}
+
+function saveDirectoryTreeExpandedKeys(
+  project_id: string,
+  keys: string[],
+): void {
+  LS.set(
+    directoryTreeExpandedKeysKey(project_id),
+    keys.slice(0, MAX_TREE_EXPANDED),
+  );
+}
+
+function directoryTreeScrollTopKey(project_id: string): string {
+  return `${project_id}::explorer-directory-tree-scroll-top`;
+}
+
+function getDirectoryTreeScrollTop(project_id: string): number {
+  const val = LS.get<number>(directoryTreeScrollTopKey(project_id));
+  return typeof val === "number" && val >= 0 ? val : 0;
+}
+
+function saveDirectoryTreeScrollTop(
+  project_id: string,
+  scrollTop: number,
+): void {
+  LS.set(directoryTreeScrollTopKey(project_id), scrollTop);
+}
+
 const TREE_PANEL_STYLE: React.CSSProperties = {
   overflowY: "auto",
   overflowX: "hidden",
@@ -876,8 +916,11 @@ function DirectoryTreePanel({
     Record<string, string[]>
   >({});
   const [treeVersion, setTreeVersion] = useState(0);
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([TREE_HOME_KEY]);
+  const [expandedKeys, setExpandedKeys] = useState<string[]>(() =>
+    getDirectoryTreeExpandedKeys(project_id),
+  );
   const [error, setError] = useState<string>("");
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const directoryListings = useTypedRedux(
     { project_id },
     "directory_listings",
@@ -939,12 +982,18 @@ function DirectoryTreePanel({
   useEffect(() => {
     generationRef.current += 1;
     setChildrenByPath({});
-    setExpandedKeys([TREE_HOME_KEY]);
+    const savedKeys = getDirectoryTreeExpandedKeys(project_id);
+    setExpandedKeys(savedKeys);
     setError("");
     loadedPathsRef.current = new Set();
     loadingPathsRef.current.clear();
     setTreeVersion((v) => v + 1);
     void loadPath("", true);
+    // Pre-load all previously expanded paths so the tree restores its shape
+    for (const key of savedKeys) {
+      const path = treeKeyToPath(key);
+      if (path !== "") void loadPath(path);
+    }
   }, [project_id, compute_server_id, loadPath]);
 
   useEffect(() => {
@@ -986,6 +1035,33 @@ function DirectoryTreePanel({
       }
     }
   }, [current_path, loadPath]);
+
+  // Persist expanded keys whenever they change (capped at MAX_TREE_EXPANDED)
+  useEffect(() => {
+    saveDirectoryTreeExpandedKeys(project_id, expandedKeys);
+  }, [project_id, expandedKeys]);
+
+  // Restore scroll position after initial data loads on mount / project change
+  useEffect(() => {
+    const savedScrollTop = getDirectoryTreeScrollTop(project_id);
+    if (savedScrollTop <= 0) return;
+    const timer = setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = savedScrollTop;
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [project_id, compute_server_id]);
+
+  const handleTreeScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      saveDirectoryTreeScrollTop(
+        project_id,
+        (e.target as HTMLDivElement).scrollTop,
+      );
+    },
+    [project_id],
+  );
 
   const onExpand: TreeProps["onExpand"] = useCallback(
     (keys) => {
@@ -1057,6 +1133,8 @@ function DirectoryTreePanel({
 
   return (
     <div
+      ref={scrollContainerRef}
+      onScroll={handleTreeScroll}
       style={{
         ...TREE_PANEL_STYLE,
         flex: "1 1 0",
