@@ -1060,6 +1060,17 @@ function DirectoryTreePanel({
     saveDirectoryTreeExpandedKeys(project_id, expandedKeys);
   }, [project_id, expandedKeys]);
 
+  // Scroll selected node into view when current_path changes
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      const selected = scrollContainerRef.current?.querySelector(
+        ".ant-tree-node-selected",
+      );
+      selected?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [current_path]);
+
   // Restore scroll position after initial data loads on mount / project change
   useEffect(() => {
     const savedScrollTop = getDirectoryTreeScrollTop(project_id);
@@ -1163,33 +1174,119 @@ function DirectoryTreePanel({
     setStarredPath,
   ]);
 
+  // Starred directories: entries ending with "/" are directories
+  const starredDirs = starred.filter((p) => p.endsWith("/"));
+
   return (
     <div
-      ref={scrollContainerRef}
-      onScroll={handleTreeScroll}
       style={{
-        ...TREE_PANEL_STYLE,
+        display: "flex",
+        flexDirection: "column",
         flex: "1 1 0",
         minHeight: 0,
+        overflow: "hidden",
       }}
     >
-      <Tree
-        blockNode
-        virtual={false}
-        {...({ indent: 10 } as any)}
-        treeData={treeData}
-        expandedKeys={expandedKeys}
-        selectedKeys={[pathToTreeKey(current_path)]}
-        onExpand={onExpand}
-        onSelect={onSelect}
-      />
-      {!!error && (
+      {/* Starred directories quick-access panel */}
+      {starredDirs.length > 0 && (
         <div
-          style={{ color: COLORS.ANTD_RED, fontSize: "11px", padding: "4px" }}
+          style={{
+            maxHeight: "25%",
+            overflowY: "auto",
+            overflowX: "hidden",
+            flexShrink: 0,
+            borderBottom: `1px solid ${COLORS.GRAY_LL}`,
+            padding: "2px 0 4px 0",
+          }}
         >
-          {error}
+          {starredDirs.map((starPath) => {
+            const path = starPath.slice(0, -1); // strip trailing "/"
+            const label = misc.path_split(path).tail || "Home";
+            const isSelected = current_path === path;
+            return (
+              <div
+                key={starPath}
+                onClick={() => on_open_directory(path)}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: 4,
+                  padding: "1px 4px",
+                  cursor: "pointer",
+                  fontSize: 12,
+                  borderRadius: 4,
+                  background: isSelected ? COLORS.BLUE_LLL : "transparent",
+                }}
+                onMouseEnter={(e) => {
+                  if (!isSelected)
+                    (e.currentTarget as HTMLElement).style.background =
+                      COLORS.GRAY_LLL;
+                }}
+                onMouseLeave={(e) => {
+                  if (!isSelected)
+                    (e.currentTarget as HTMLElement).style.background =
+                      "transparent";
+                }}
+              >
+                <Icon
+                  name="star-filled"
+                  onClick={(e) => {
+                    e?.preventDefault();
+                    e?.stopPropagation();
+                    setStarredPath(starPath, false);
+                  }}
+                  style={{
+                    color: COLORS.STAR,
+                    cursor: "pointer",
+                    flexShrink: 0,
+                    fontSize: 11,
+                  }}
+                />
+                <span
+                  title={path || "Home"}
+                  style={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    flex: 1,
+                    color: isSelected ? COLORS.ANTD_LINK_BLUE : undefined,
+                  }}
+                >
+                  {label}
+                </span>
+              </div>
+            );
+          })}
         </div>
       )}
+
+      {/* Main directory tree */}
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleTreeScroll}
+        style={{
+          ...TREE_PANEL_STYLE,
+          flex: "1 1 0",
+          minHeight: 0,
+        }}
+      >
+        <Tree
+          blockNode
+          virtual={false}
+          treeData={treeData}
+          expandedKeys={expandedKeys}
+          selectedKeys={[pathToTreeKey(current_path)]}
+          onExpand={onExpand}
+          onSelect={onSelect}
+        />
+        {!!error && (
+          <div
+            style={{ color: COLORS.ANTD_RED, fontSize: "11px", padding: "4px" }}
+          >
+            {error}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
