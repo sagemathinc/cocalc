@@ -1083,7 +1083,11 @@ function DirectoryTreePanel({
       const selected = scrollContainerRef.current?.querySelector(
         ".ant-tree-node-selected",
       );
-      selected?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+      selected?.scrollIntoView({
+        block: "nearest",
+        inline: "start",
+        behavior: "smooth",
+      });
     }, 150);
     return () => clearTimeout(timer);
   }, [current_path]);
@@ -1102,10 +1106,14 @@ function DirectoryTreePanel({
 
   const handleTreeScroll = useCallback(
     (e: React.UIEvent<HTMLDivElement>) => {
-      saveDirectoryTreeScrollTop(
-        project_id,
-        (e.target as HTMLDivElement).scrollTop,
-      );
+      const el = e.currentTarget;
+      // Prevent horizontal drift — overflow-x:hidden clips visually but
+      // scrollLeft can still be set programmatically (scrollIntoView,
+      // antd Tree, dnd-kit). Force it back to 0.
+      if (el.scrollLeft !== 0) {
+        el.scrollLeft = 0;
+      }
+      saveDirectoryTreeScrollTop(project_id, el.scrollTop);
     },
     [project_id],
   );
