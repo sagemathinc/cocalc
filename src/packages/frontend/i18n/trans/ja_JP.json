@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "新規",
   "project.explorer.help.section.context_menu.body": "名前の変更、コピー、移動、削除、共有、ダウンロード、圧縮、パスをコピー。",
   "project.explorer.help.section.context_menu.title": "右クリックメニュー",
+  "project.explorer.help.section.dir_tree.body": "ツールバーのツリーアイコン (↕) をクリックして、左側に折りたたみ可能なディレクトリツリーを開きます。任意のフォルダにスターを付けて、すばやくアクセスできるようにします。",
+  "project.explorer.help.section.dir_tree.title": "ディレクトリツリー",
   "project.explorer.help.section.dnd.body": "長押し（約300ms）してドラッグします。フォルダーやパンくずリストにドロップして移動します。Shiftキーを押しながらコピーします。",
   "project.explorer.help.section.dnd.title": "ドラッグ＆ドロップ",
   "project.explorer.help.section.flyout.body": "サイドパネルのファイルブラウザは常にアクセス可能で、タイプフィルターを共有しています。また、ドラッグアンドドロップもサポートしています。",

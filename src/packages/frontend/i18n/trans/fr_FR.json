@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Nouveau",
   "project.explorer.help.section.context_menu.body": "Renommer, copier, déplacer, supprimer, partager, télécharger, compresser, copier le chemin.",
   "project.explorer.help.section.context_menu.title": "Menu contextuel",
+  "project.explorer.help.section.dir_tree.body": "Cliquez sur l'icône d'arbre (↕) dans la barre d'outils pour ouvrir un arbre de répertoires rétractable sur la gauche. Étoilez n'importe quel dossier pour le marquer pour un accès rapide.",
+  "project.explorer.help.section.dir_tree.title": "Arborescence des répertoires",
   "project.explorer.help.section.dnd.body": "Appuyez longuement (~300 ms) pour glisser. Déposez sur des dossiers ou des fil d'Ariane pour déplacer. Maintenez Shift pour copier à la place.",
   "project.explorer.help.section.dnd.title": "Glisser-Déposer",
   "project.explorer.help.section.flyout.body": "Le navigateur de fichiers du panneau latéral est toujours accessible et partage le filtre de type. Il prend également en charge le glisser-déposer.",

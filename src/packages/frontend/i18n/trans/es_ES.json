@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Nuevo",
   "project.explorer.help.section.context_menu.body": "Renombrar, copiar, mover, eliminar, compartir, descargar, comprimir, copiar ruta.",
   "project.explorer.help.section.context_menu.title": "Menú Contextual",
+  "project.explorer.help.section.dir_tree.body": "Haga clic en el icono del árbol (↕) en la barra de herramientas para abrir un árbol de directorios plegable a la izquierda. Marque con una estrella cualquier carpeta para señalarla para acceso rápido.",
+  "project.explorer.help.section.dir_tree.title": "Árbol de Directorios",
   "project.explorer.help.section.dnd.body": "Mantén presionado (~300ms) para arrastrar. Suelta sobre carpetas o migas de pan para mover. Mantén Shift para copiar en su lugar.",
   "project.explorer.help.section.dnd.title": "Arrastrar y Soltar",
   "project.explorer.help.section.flyout.body": "El navegador de archivos del panel lateral siempre está accesible y comparte el filtro de tipos. También admite arrastrar y soltar.",

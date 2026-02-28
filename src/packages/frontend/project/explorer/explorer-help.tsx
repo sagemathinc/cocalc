@@ -81,6 +81,17 @@ const messages = defineMessages({
     defaultMessage:
       "Click the column filter icon to show only files of a specific type.",
   },
+  section_dir_tree_title: {
+    id: "project.explorer.help.section.dir_tree.title",
+    defaultMessage: "Directory Tree",
+    description: "Section title for the collapsible directory tree panel",
+  },
+  section_dir_tree_body: {
+    id: "project.explorer.help.section.dir_tree.body",
+    defaultMessage:
+      "Click the tree icon (↕) in the toolbar to open a collapsible directory tree on the left. Star any folder to mark it for quick access.",
+    description: "Description of the directory tree panel feature",
+  },
   section_flyout_title: {
     id: "project.explorer.help.section.flyout.title",
     defaultMessage: "Flyout Panel",
@@ -195,6 +206,15 @@ function HelpContent({
       </Section>
 
       <Section
+        title={intl.formatMessage(messages.section_dir_tree_title)}
+        icon="network"
+        iconStyle={{ transform: "rotate(270deg)" }}
+        tag={newTag}
+      >
+        {intl.formatMessage(messages.section_dir_tree_body)}
+      </Section>
+
+      <Section
         title={intl.formatMessage(messages.section_flyout_title)}
         icon="files"
       >
@@ -214,18 +234,20 @@ function HelpContent({
 function Section({
   title,
   icon,
+  iconStyle,
   tag,
   children,
 }: {
   title: string;
   icon: IconName;
+  iconStyle?: React.CSSProperties;
   tag?: string;
   children: React.ReactNode;
 }) {
   return (
     <div style={{ marginBottom: 4 }}>
       <Text strong>
-        <Icon name={icon} style={{ marginRight: 4, width: 16 }} />
+        <Icon name={icon} style={{ marginRight: 4, width: 16, ...iconStyle }} />
         {title}
         {tag && (
           <Tag

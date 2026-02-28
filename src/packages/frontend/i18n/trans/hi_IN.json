@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "नया",
   "project.explorer.help.section.context_menu.body": "नाम बदलें, कॉपी करें, स्थानांतरित करें, हटाएं, साझा करें, डाउनलोड करें, संपीड़ित करें, पथ कॉपी करें।",
   "project.explorer.help.section.context_menu.title": "राइट-क्लिक मेनू",
+  "project.explorer.help.section.dir_tree.body": "टूलबार में पेड़ आइकन (↕) पर क्लिक करें ताकि बाईं ओर एक संक्षिप्त निर्देशिका वृक्ष खोल सकें। किसी भी फ़ोल्डर को त्वरित पहुँच के लिए स्टार करें।",
+  "project.explorer.help.section.dir_tree.title": "डायरेक्टरी ट्री",
   "project.explorer.help.section.dnd.body": "लंबे समय तक दबाएं (~300ms) खींचने के लिए। स्थानांतरित करने के लिए फ़ोल्डरों या ब्रेडक्रंब्स पर छोड़ें। कॉपी करने के लिए Shift दबाकर रखें।",
   "project.explorer.help.section.dnd.title": "ड्रैग & ड्रॉप",
   "project.explorer.help.section.flyout.body": "साइड-पैनल फ़ाइल ब्राउज़र हमेशा सुलभ है और प्रकार फ़िल्टर साझा करता है। यह ड्रैग-एंड-ड्रॉप का भी समर्थन करता है।",

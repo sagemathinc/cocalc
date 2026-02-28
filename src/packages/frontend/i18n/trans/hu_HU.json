@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Új",
   "project.explorer.help.section.context_menu.body": "Átnevezés, másolás, áthelyezés, törlés, megosztás, letöltés, tömörítés, útvonal másolása.",
   "project.explorer.help.section.context_menu.title": "Jobbklikk menü",
+  "project.explorer.help.section.dir_tree.body": "Kattintson a fa ikonra (↕) az eszköztáron, hogy megnyisson egy összecsukható könyvtárfát a bal oldalon. Jelöljön meg bármilyen mappát csillaggal, hogy gyorsan elérhetővé tegye.",
+  "project.explorer.help.section.dir_tree.title": "Könyvtárfa",
   "project.explorer.help.section.dnd.body": "Hosszan nyomja (~300ms) a húzáshoz. Dobja rá mappákra vagy kenyérmorzsákra az áthelyezéshez. Tartsa lenyomva a Shiftet a másoláshoz.",
   "project.explorer.help.section.dnd.title": "Húzd és ejtsd",
   "project.explorer.help.section.flyout.body": "A panel oldali fájlkezelő mindig elérhető és megosztja a típus szűrőt. Támogatja a húzás és ejtés funkciót is.",

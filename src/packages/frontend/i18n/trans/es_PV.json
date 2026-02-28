@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Berria",
   "project.explorer.help.section.context_menu.body": "Aldatu izena, kopiatu, mugitu, ezabatu, partekatu, deskargatu, konprimitu, kopiatu bidea.",
   "project.explorer.help.section.context_menu.title": "Eskuin-Klik Menua",
+  "project.explorer.help.section.dir_tree.body": "Egin klik zuhaitz ikonoan (↕) tresna-barran ezkerrean zabaltzen den direktorio-zuhaitz tolestu bat irekitzeko. Izartu edozein karpeta azkar sartzeko markatzeko.",
+  "project.explorer.help.section.dir_tree.title": "Direktorio Zuhaitza",
   "project.explorer.help.section.dnd.body": "Sakatu luze (~300ms) arrastatzeko. Askatu karpetetan edo ogi apurretan mugitzen uzteko. Eutsi Shift kopiatzeko.",
   "project.explorer.help.section.dnd.title": "Arrastatu eta Jaregin",
   "project.explorer.help.section.flyout.body": "Alboko-panelean dagoen fitxategi-nabigatzailea beti eskuragarri dago eta mota-iragazkia partekatzen du. Arrastatu eta jaregin ere onartzen du.",

@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Neu",
   "project.explorer.help.section.context_menu.body": "Umbenennen, kopieren, verschieben, löschen, teilen, herunterladen, komprimieren, Pfad kopieren.",
   "project.explorer.help.section.context_menu.title": "Rechtsklick-Menü",
+  "project.explorer.help.section.dir_tree.body": "Klicken Sie auf das Baumsymbol (↕) in der Symbolleiste, um einen einklappbaren Verzeichnisbaum auf der linken Seite zu öffnen. Markieren Sie einen Ordner mit einem Stern, um ihn für den schnellen Zugriff zu kennzeichnen.",
+  "project.explorer.help.section.dir_tree.title": "Verzeichnisbaum",
   "project.explorer.help.section.dnd.body": "Langes Drücken (~300 ms), um zu ziehen. Auf Ordner oder Breadcrumbs ablegen, um zu verschieben. Halten Sie die Umschalttaste gedrückt, um stattdessen zu kopieren.",
   "project.explorer.help.section.dnd.title": "Drag & Drop",
   "project.explorer.help.section.flyout.body": "Der Seitenbereich-Dateibrowser ist immer zugänglich und teilt den Typfilter. Er unterstützt auch Drag-and-Drop.",

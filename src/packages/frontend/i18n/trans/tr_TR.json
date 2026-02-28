@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Yeni",
   "project.explorer.help.section.context_menu.body": "Yeniden adlandır, kopyala, taşı, sil, paylaş, indir, sıkıştır, yolu kopyala.",
   "project.explorer.help.section.context_menu.title": "Sağ Tıklama Menüsü",
+  "project.explorer.help.section.dir_tree.body": "Sol üstteki araç çubuğunda bulunan ağaç simgesine (↕) tıklayarak, solda katlanabilir bir dizin ağacı açın. Hızlı erişim için herhangi bir klasörü yıldızlayın.",
+  "project.explorer.help.section.dir_tree.title": "Dizin Ağacı",
   "project.explorer.help.section.dnd.body": "Uzun basın (~300ms) ve sürükleyin. Taşımak için klasörlere veya yol izlerine bırakın. Kopyalamak için Shift tuşunu basılı tutun.",
   "project.explorer.help.section.dnd.title": "Sürükle ve Bırak",
   "project.explorer.help.section.flyout.body": "Yan panel dosya tarayıcısı her zaman erişilebilir durumdadır ve tür filtresini paylaşır. Sürükle ve bırak işlevini de destekler.",

@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Nuovo",
   "project.explorer.help.section.context_menu.body": "Rinomina, copia, sposta, elimina, condividi, scarica, comprimi, copia percorso.",
   "project.explorer.help.section.context_menu.title": "Menu contestuale",
+  "project.explorer.help.section.dir_tree.body": "Fai clic sull'icona dell'albero (↕) nella barra degli strumenti per aprire un albero delle directory comprimibile a sinistra. Contrassegna qualsiasi cartella con una stella per segnarla per un accesso rapido.",
+  "project.explorer.help.section.dir_tree.title": "Albero delle directory",
   "project.explorer.help.section.dnd.body": "Premi a lungo (~300 ms) per trascinare. Rilascia su cartelle o breadcrumb per spostare. Tieni premuto Shift per copiare invece.",
   "project.explorer.help.section.dnd.title": "Trascina e Rilascia",
   "project.explorer.help.section.flyout.body": "Il browser file del pannello laterale è sempre accessibile e condivide il filtro del tipo. Supporta anche il trascinamento.",

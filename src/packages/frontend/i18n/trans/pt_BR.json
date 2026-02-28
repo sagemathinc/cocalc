@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Novo",
   "project.explorer.help.section.context_menu.body": "Renomear, copiar, mover, excluir, compartilhar, baixar, comprimir, copiar caminho.",
   "project.explorer.help.section.context_menu.title": "Menu de Clique com o Botão Direito",
+  "project.explorer.help.section.dir_tree.body": "Clique no ícone da árvore (↕) na barra de ferramentas para abrir uma árvore de diretórios recolhível à esquerda. Marque qualquer pasta com uma estrela para destacá-la para acesso rápido.",
+  "project.explorer.help.section.dir_tree.title": "Árvore de Diretórios",
   "project.explorer.help.section.dnd.body": "Pressione e segure (~300ms) para arrastar. Solte sobre pastas ou trilhas para mover. Mantenha Shift pressionado para copiar.",
   "project.explorer.help.section.dnd.title": "Arrastar & Soltar",
   "project.explorer.help.section.flyout.body": "O navegador de arquivos do painel lateral está sempre acessível e compartilha o filtro de tipo. Ele também suporta arrastar e soltar.",

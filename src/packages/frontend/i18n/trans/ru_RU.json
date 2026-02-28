@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Новый",
   "project.explorer.help.section.context_menu.body": "Переименовать, копировать, переместить, удалить, поделиться, скачать, сжать, скопировать путь.",
   "project.explorer.help.section.context_menu.title": "Контекстное меню",
+  "project.explorer.help.section.dir_tree.body": "Нажмите на значок дерева (↕) на панели инструментов, чтобы открыть сворачиваемое дерево каталогов слева. Отметьте любую папку звездой, чтобы быстро к ней получить доступ.",
+  "project.explorer.help.section.dir_tree.title": "Дерево каталогов",
   "project.explorer.help.section.dnd.body": "Длительное нажатие (~300 мс), чтобы перетащить. Переместите в папки или в хлебные крошки, чтобы переместить. Удерживайте Shift, чтобы скопировать.",
   "project.explorer.help.section.dnd.title": "Перетащите & Бросьте",
   "project.explorer.help.section.flyout.body": "Боковая панель проводника файлов всегда доступна и использует общий фильтр типов. Она также поддерживает перетаскивание.",

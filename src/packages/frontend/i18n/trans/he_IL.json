@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "חדש",
   "project.explorer.help.section.context_menu.body": "שינוי שם, העתקה, העברה, מחיקה, שיתוף, הורדה, דחיסה, העתקת נתיב.",
   "project.explorer.help.section.context_menu.title": "תפריט לחיצה ימנית",
+  "project.explorer.help.section.dir_tree.body": "לחץ על סמל העץ (↕) בסרגל הכלים כדי לפתוח עץ תיקיות מתקפל בצד שמאל. סמן כל תיקיה בכוכב כדי לסמן אותה לגישה מהירה.",
+  "project.explorer.help.section.dir_tree.title": "עץ תיקיות",
   "project.explorer.help.section.dnd.body": "לחצו לחיצה ארוכה (~300ms) כדי לגרור. שחררו על תיקיות או פירורי לחם כדי להעביר. החזיקו Shift כדי להעתיק במקום.",
   "project.explorer.help.section.dnd.title": "גרור ושחרר",
   "project.explorer.help.section.flyout.body": "דפדפן הקבצים שבצד תמיד נגיש ומשתף את מסנן הסוגים. הוא גם תומך בגרירה ושחרור.",

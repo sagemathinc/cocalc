@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Nieuw",
   "project.explorer.help.section.context_menu.body": "Hernoemen, kopiëren, verplaatsen, verwijderen, delen, downloaden, comprimeren, pad kopiëren.",
   "project.explorer.help.section.context_menu.title": "Rechtermuisklikmenu",
+  "project.explorer.help.section.dir_tree.body": "Klik op het boomicoon (↕) in de werkbalk om aan de linkerkant een inklapbare directoryboom te openen. Markeer een map met een ster om deze voor snelle toegang te markeren.",
+  "project.explorer.help.section.dir_tree.title": "Directory Tree",
   "project.explorer.help.section.dnd.body": "Lang indrukken (~300ms) om te slepen. Laat vallen op mappen of broodkruimels om te verplaatsen. Houd Shift ingedrukt om te kopiëren.",
   "project.explorer.help.section.dnd.title": "Slepen & Neerzetten",
   "project.explorer.help.section.flyout.body": "De zijpaneel bestandsbrowser is altijd toegankelijk en deelt het typefilter. Het ondersteunt ook slepen en neerzetten.",

@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "Nowy",
   "project.explorer.help.section.context_menu.body": "Zmień nazwę, kopiuj, przenieś, usuń, udostępnij, pobierz, skompresuj, skopiuj ścieżkę.",
   "project.explorer.help.section.context_menu.title": "Menu kontekstowe",
+  "project.explorer.help.section.dir_tree.body": "Kliknij ikonę drzewa (↕) na pasku narzędzi, aby otworzyć składane drzewo katalogów po lewej stronie. Oznacz dowolny folder gwiazdką, aby oznaczyć go do szybkiego dostępu.",
+  "project.explorer.help.section.dir_tree.title": "Drzewo katalogów",
   "project.explorer.help.section.dnd.body": "Długie naciśnięcie (~300 ms), aby przeciągnąć. Upuść na foldery lub okruszki, aby przenieść. Przytrzymaj Shift, aby skopiować.",
   "project.explorer.help.section.dnd.title": "Przeciągnij i Upuść",
   "project.explorer.help.section.flyout.body": "Boczny panel przeglądarki plików jest zawsze dostępny i współdzieli filtr typów. Obsługuje także przeciąganie i upuszczanie.",

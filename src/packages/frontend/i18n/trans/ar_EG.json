@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "جديد",
   "project.explorer.help.section.context_menu.body": "إعادة التسمية، النسخ، النقل، الحذف، المشاركة، التنزيل، الضغط، نسخ المسار.",
   "project.explorer.help.section.context_menu.title": "قائمة النقر بزر الفأرة الأيمن",
+  "project.explorer.help.section.dir_tree.body": "انقر على أيقونة الشجرة (↕) في شريط الأدوات لفتح شجرة دليل قابلة للطي على اليسار. ضع نجمة على أي مجلد لتحديده للوصول السريع.",
+  "project.explorer.help.section.dir_tree.title": "شجرة الدليل",
   "project.explorer.help.section.dnd.body": "اضغط مطولاً (~300 مللي ثانية) للسحب. أسقطها على المجلدات أو المسارات للتنقل. اضغط مع الاستمرار على Shift للنسخ بدلاً من النقل.",
   "project.explorer.help.section.dnd.title": "السحب والإفلات",
   "project.explorer.help.section.flyout.body": "متصفح الملفات في اللوحة الجانبية متاح دائمًا ويشارك مرشح النوع. كما يدعم السحب والإفلات.",

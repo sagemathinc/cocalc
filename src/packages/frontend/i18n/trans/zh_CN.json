@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "新建",
   "project.explorer.help.section.context_menu.body": "重命名，复制，移动，删除，分享，下载，压缩，复制路径。",
   "project.explorer.help.section.context_menu.title": "右键菜单",
+  "project.explorer.help.section.dir_tree.body": "单击工具栏中的树状图标 (↕) 在左侧打开可折叠的目录树。标记任意文件夹以便快速访问。",
+  "project.explorer.help.section.dir_tree.title": "目录树",
   "project.explorer.help.section.dnd.body": "长按（约300毫秒）即可拖动。拖放到文件夹或面包屑上以移动。按住Shift键以复制。",
   "project.explorer.help.section.dnd.title": "拖放",
   "project.explorer.help.section.flyout.body": "侧边栏文件浏览器始终可访问，并共享类型过滤器。它还支持拖放。",

@@ -1337,6 +1337,8 @@
   "project.explorer.help.new_tag": "새로 만들기",
   "project.explorer.help.section.context_menu.body": "이름 바꾸기, 복사, 이동, 삭제, 공유, 다운로드, 압축, 경로 복사.",
   "project.explorer.help.section.context_menu.title": "마우스 오른쪽 버튼 메뉴",
+  "project.explorer.help.section.dir_tree.body": "도구 모음에서 트리 아이콘 (↕)을 클릭하여 왼쪽에 접을 수 있는 디렉토리 트리를 엽니다. 빠른 액세스를 위해 별표를 사용하여 폴더를 표시하세요.",
+  "project.explorer.help.section.dir_tree.title": "디렉터리 트리",
   "project.explorer.help.section.dnd.body": "길게 누르기(~300ms)로 드래그하세요. 폴더나 경로에 드롭하여 이동합니다. Shift 키를 누르고 있으면 복사됩니다.",
   "project.explorer.help.section.dnd.title": "드래그 앤 드롭",
   "project.explorer.help.section.flyout.body": "측면 패널 파일 탐색기는 항상 접근 가능하며 유형 필터를 공유합니다. 또한 드래그 앤 드롭을 지원합니다.",
