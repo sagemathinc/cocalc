@@ -130,10 +130,8 @@ function directoryTreeExpandedKeysKey(project_id: string): string {
 
 function getDirectoryTreeExpandedKeys(project_id: string): string[] {
   const keys = LS.get<string[]>(directoryTreeExpandedKeysKey(project_id));
-  if (!Array.isArray(keys) || keys.length === 0) return [TREE_HOME_KEY];
-  // Always ensure home key is present
-  if (!keys.includes(TREE_HOME_KEY)) keys.unshift(TREE_HOME_KEY);
-  return keys;
+  if (!Array.isArray(keys)) return [];
+  return keys.filter((k) => k !== TREE_HOME_KEY);
 }
 
 function saveDirectoryTreeExpandedKeys(
@@ -1174,22 +1172,7 @@ function DirectoryTreePanel({
       });
     };
 
-    return [
-      {
-        key: TREE_HOME_KEY,
-        title: (
-          <DirectoryTreeNodeTitle
-            project_id={project_id}
-            path=""
-            label="Home"
-            isSelected={current_path === ""}
-            isStarred={false}
-            onToggleStar={() => {}}
-          />
-        ),
-        children: buildChildren(""),
-      },
-    ];
+    return buildChildren("");
   }, [
     childrenByPath,
     current_path,
@@ -1294,7 +1277,17 @@ function DirectoryTreePanel({
         </div>
       )}
 
-      {/* Main directory tree */}
+      {/* Home — fixed entry above the scrollable tree, always visible */}
+      <DirectoryTreeNodeTitle
+        project_id={project_id}
+        path=""
+        label="Home"
+        isSelected={current_path === ""}
+        isStarred={false}
+        onToggleStar={() => {}}
+      />
+
+      {/* Main directory tree — shows root children directly, no extra indent */}
       <div
         ref={scrollContainerRef}
         onScroll={handleTreeScroll}
@@ -1310,7 +1303,9 @@ function DirectoryTreePanel({
           virtual={false}
           treeData={treeData}
           expandedKeys={expandedKeys}
-          selectedKeys={[pathToTreeKey(current_path)]}
+          selectedKeys={
+            current_path !== "" ? [pathToTreeKey(current_path)] : []
+          }
           onExpand={onExpand}
           onSelect={onSelect}
         />
