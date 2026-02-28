@@ -12,10 +12,10 @@
 
 import { Button, Dropdown, Flex, Spin, Tooltip } from "antd";
 import type { MenuProps } from "antd";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
@@ -56,7 +56,31 @@ export default function DirectoryPeek({
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<PeekEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Bumped whenever the listing service reports a change for dirPath,
+  // causing the fetch effect below to re-run.
+  const [version, setVersion] = useState(0);
+  const dirPathRef = useRef(dirPath);
+  dirPathRef.current = dirPath;
 
+  // Watch dirPath for changes and bump version when it changes.
+  useEffect(() => {
+    const listings = redux
+      .getProjectStore(project_id)
+      ?.get_listings(computeServerId);
+    if (!listings) return;
+    listings.watch(dirPath);
+    const handleChange = (paths: string[]) => {
+      if (paths.includes(dirPathRef.current)) {
+        setVersion((v) => v + 1);
+      }
+    };
+    listings.on("change", handleChange);
+    return () => {
+      listings.removeListener("change", handleChange);
+    };
+  }, [project_id, computeServerId, dirPath]);
+
+  // Fetch the directory listing; re-runs on dirPath change or version bump.
   useEffect(() => {
     let cancelled = false;
 
@@ -98,7 +122,7 @@ export default function DirectoryPeek({
     return () => {
       cancelled = true;
     };
-  }, [dirPath, project_id, computeServerId]);
+  }, [dirPath, project_id, computeServerId, version]);
 
   function handleClick(entry: PeekEntry) {
     if (entry.isdir) {
