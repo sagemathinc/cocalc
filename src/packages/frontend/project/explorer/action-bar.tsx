@@ -52,7 +52,11 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   // When file actions are disabled (student projects), still render the
   // directory tree toggle — it is navigation, not a file action.
   if (disableActions) {
-    if (!props.on_toggle_directory_tree || props.show_directory_tree) {
+    if (
+      !props.on_toggle_directory_tree ||
+      props.show_directory_tree ||
+      IS_MOBILE
+    ) {
       return <div></div>;
     }
     return (
@@ -119,8 +123,13 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
 
   function render_directory_tree_toggle(): React.JSX.Element | undefined {
     // When the tree is visible, the toggle is rendered above the tree panel
-    // in explorer.tsx — don't duplicate it here.
-    if (!props.on_toggle_directory_tree || props.show_directory_tree) {
+    // in explorer.tsx — don't duplicate it here. Tree is also not available
+    // on mobile.
+    if (
+      !props.on_toggle_directory_tree ||
+      props.show_directory_tree ||
+      IS_MOBILE
+    ) {
       return;
     }
     return (

@@ -413,12 +413,15 @@ export function Explorer() {
 
   function renderFilesActions() {
     if (listing == undefined) return null;
+    const visibleListing = hide_masked_files
+      ? listing.filter((f) => !f.mask)
+      : listing;
     return (
       <ActionBar
         project_id={project_id}
         checked_files={checked_files}
         current_path={current_path}
-        listing={listing}
+        listing={visibleListing}
         project_map={project_map as any}
         images={images as any}
         actions={actions as ProjectActions}
@@ -752,7 +755,9 @@ export function Explorer() {
               <ActionBarInfo
                 project_id={project_id}
                 checked_files={checked_files}
-                listing={listing}
+                listing={
+                  hide_masked_files ? listing.filter((f) => !f.mask) : listing
+                }
                 project_is_running={projectIsRunning}
               />
             )}
@@ -941,10 +946,6 @@ function DirectoryTreePanel({
   const [error, setError] = useState<string>("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { starred, setStarredPath } = useStarredFilesManager(project_id);
-  const directoryListings = useTypedRedux(
-    { project_id },
-    "directory_listings",
-  )?.get(compute_server_id ?? 0);
   const showHiddenRef = useRef(show_hidden);
   const loadedPathsRef = useRef<Set<string>>(new Set());
   const loadingPathsRef = useRef<Set<string>>(new Set());
@@ -1022,13 +1023,6 @@ function DirectoryTreePanel({
       void loadPath(path, true);
     }
   }, [show_hidden, loadPath]);
-
-  useEffect(() => {
-    if (loadedPathsRef.current.size === 0 || !directoryListings) return;
-    for (const path of loadedPathsRef.current) {
-      void loadPath(path, true);
-    }
-  }, [directoryListings, loadPath]);
 
   // Watch expanded directories for changes, so the tree stays live.
   useEffect(() => {
