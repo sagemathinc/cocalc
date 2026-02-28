@@ -921,6 +921,75 @@ function DirectoryTreeDragbar({
   );
 }
 
+function StarredDirItem({
+  starPath,
+  current_path,
+  on_open_directory,
+  setStarredPath,
+}: {
+  starPath: string;
+  current_path: string;
+  on_open_directory: (path: string) => void;
+  setStarredPath: (path: string, starred: boolean) => void;
+}) {
+  const path = starPath.slice(0, -1); // strip trailing "/"
+  const isSelected = current_path === path;
+  const { dropRef } = useFolderDrop(`explorer-starred-${starPath}`, path);
+  return (
+    <div
+      ref={dropRef}
+      className="cc-project-flyout-file-item"
+      onClick={() => on_open_directory(path)}
+      style={{
+        width: "100%",
+        cursor: "pointer",
+        color: COLORS.GRAY_D,
+        overflow: "hidden",
+        backgroundColor: isSelected ? COLORS.BLUE_LLL : undefined,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          flex: "1",
+          padding: FLYOUT_PADDING,
+          overflow: "hidden",
+          alignItems: "center",
+        }}
+      >
+        <Icon
+          name="star-filled"
+          onClick={(e) => {
+            e?.preventDefault();
+            e?.stopPropagation();
+            setStarredPath(starPath, false);
+          }}
+          style={{
+            fontSize: "120%",
+            marginRight: FLYOUT_PADDING,
+            color: COLORS.STAR,
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        />
+        <span
+          title={path || "Home"}
+          style={{
+            flex: 1,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            color: isSelected ? COLORS.ANTD_LINK_BLUE : undefined,
+          }}
+        >
+          {path || "Home"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 function DirectoryTreePanel({
   project_id,
   current_path,
@@ -1234,64 +1303,15 @@ function DirectoryTreePanel({
           >
             Starred
           </div>
-          {starredDirs.map((starPath) => {
-            const path = starPath.slice(0, -1); // strip trailing "/"
-            const label = path || "Home";
-            const isSelected = current_path === path;
-            return (
-              <div
-                key={starPath}
-                className="cc-project-flyout-file-item"
-                onClick={() => on_open_directory(path)}
-                style={{
-                  width: "100%",
-                  cursor: "pointer",
-                  color: COLORS.GRAY_D,
-                  overflow: "hidden",
-                  backgroundColor: isSelected ? COLORS.BLUE_LLL : undefined,
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    flexDirection: "row",
-                    flex: "1",
-                    padding: FLYOUT_PADDING,
-                    overflow: "hidden",
-                    alignItems: "center",
-                  }}
-                >
-                  <Icon
-                    name="star-filled"
-                    onClick={(e) => {
-                      e?.preventDefault();
-                      e?.stopPropagation();
-                      setStarredPath(starPath, false);
-                    }}
-                    style={{
-                      fontSize: "120%",
-                      marginRight: FLYOUT_PADDING,
-                      color: COLORS.STAR,
-                      cursor: "pointer",
-                      flexShrink: 0,
-                    }}
-                  />
-                  <span
-                    title={path || "Home"}
-                    style={{
-                      flex: 1,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                      color: isSelected ? COLORS.ANTD_LINK_BLUE : undefined,
-                    }}
-                  >
-                    {label}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
+          {starredDirs.map((starPath) => (
+            <StarredDirItem
+              key={starPath}
+              starPath={starPath}
+              current_path={current_path}
+              on_open_directory={on_open_directory}
+              setStarredPath={setStarredPath}
+            />
+          ))}
         </div>
       )}
 
