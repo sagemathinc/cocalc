@@ -42,6 +42,7 @@ import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { Library } from "@cocalc/frontend/library";
 import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { FLYOUT_PADDING } from "@cocalc/frontend/project/page/flyouts/consts";
 import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
@@ -1196,9 +1197,18 @@ function DirectoryTreePanel({
             overflowX: "hidden",
             flexShrink: 0,
             borderBottom: `1px solid ${COLORS.GRAY_LL}`,
-            padding: "2px 0 4px 0",
           }}
         >
+          <div
+            style={{
+              fontWeight: "bold",
+              padding: `${FLYOUT_PADDING} ${FLYOUT_PADDING} 2px`,
+              fontSize: "85%",
+              color: COLORS.GRAY_D,
+            }}
+          >
+            Starred
+          </div>
           {starredDirs.map((starPath) => {
             const path = starPath.slice(0, -1); // strip trailing "/"
             const label = misc.path_split(path).tail || "Home";
@@ -1206,54 +1216,54 @@ function DirectoryTreePanel({
             return (
               <div
                 key={starPath}
+                className="cc-project-flyout-file-item"
                 onClick={() => on_open_directory(path)}
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 4,
-                  padding: "1px 4px",
+                  width: "100%",
                   cursor: "pointer",
-                  fontSize: 12,
-                  borderRadius: 4,
-                  background: isSelected ? COLORS.BLUE_LLL : "transparent",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isSelected)
-                    (e.currentTarget as HTMLElement).style.background =
-                      COLORS.GRAY_LLL;
-                }}
-                onMouseLeave={(e) => {
-                  if (!isSelected)
-                    (e.currentTarget as HTMLElement).style.background =
-                      "transparent";
+                  color: COLORS.GRAY_D,
+                  overflow: "hidden",
+                  backgroundColor: isSelected ? COLORS.BLUE_LLL : undefined,
                 }}
               >
-                <Icon
-                  name="star-filled"
-                  onClick={(e) => {
-                    e?.preventDefault();
-                    e?.stopPropagation();
-                    setStarredPath(starPath, false);
-                  }}
+                <div
                   style={{
-                    color: COLORS.STAR,
-                    cursor: "pointer",
-                    flexShrink: 0,
-                    fontSize: 11,
-                  }}
-                />
-                <span
-                  title={path || "Home"}
-                  style={{
+                    display: "flex",
+                    flexDirection: "row",
+                    flex: "1",
+                    padding: FLYOUT_PADDING,
                     overflow: "hidden",
-                    textOverflow: "ellipsis",
-                    whiteSpace: "nowrap",
-                    flex: 1,
-                    color: isSelected ? COLORS.ANTD_LINK_BLUE : undefined,
+                    alignItems: "center",
                   }}
                 >
-                  {label}
-                </span>
+                  <Icon
+                    name="star-filled"
+                    onClick={(e) => {
+                      e?.preventDefault();
+                      e?.stopPropagation();
+                      setStarredPath(starPath, false);
+                    }}
+                    style={{
+                      fontSize: "120%",
+                      marginRight: FLYOUT_PADDING,
+                      color: COLORS.STAR,
+                      cursor: "pointer",
+                      flexShrink: 0,
+                    }}
+                  />
+                  <span
+                    title={path || "Home"}
+                    style={{
+                      flex: 1,
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                      color: isSelected ? COLORS.ANTD_LINK_BLUE : undefined,
+                    }}
+                  >
+                    {label}
+                  </span>
+                </div>
               </div>
             );
           })}
