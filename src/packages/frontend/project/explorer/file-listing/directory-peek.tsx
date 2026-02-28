@@ -19,7 +19,10 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
-import { useFileDrag } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
+import {
+  useFileDrag,
+  useFolderDrop,
+} from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import type { FileAction } from "@cocalc/frontend/project_actions";
@@ -155,8 +158,14 @@ export default function DirectoryPeek({
     return info?.icon ?? "file";
   }
 
+  const { dropRef: peekDropRef } = useFolderDrop(
+    `explorer-peek-${dirPath}`,
+    dirPath,
+  );
+
   return (
     <div
+      ref={peekDropRef}
       style={{
         borderLeft: `5px solid ${COLORS.ANTD_LINK_BLUE}`,
         background: COLORS.BLUE_LLLL,
