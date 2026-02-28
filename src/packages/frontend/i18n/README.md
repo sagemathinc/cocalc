@@ -55,6 +55,8 @@ Note: if just a translation has been updated, you only need to do the `i18n:down
 
 Note: you can also run `pnpm i18n:update` which combines all steps in one go.
 
+**Important:** Whenever you add or change i18n keys in the source code, run `pnpm i18n:update` in `packages/frontend` immediately afterward. This extracts the new keys, uploads them for auto-translation, downloads the results, and compiles the translation files. Skipping this step leaves the new keys untranslated for all non-English locales.
+
 ### Unused keys
 
 Development goes on, and it might happen that keys are no longer in use.

@@ -8,6 +8,7 @@ import { join } from "path";
 import React from "react";
 import { defineMessage, useIntl } from "react-intl";
 
+import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import { Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -17,7 +18,6 @@ import { Available } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { COLORS } from "@cocalc/util/theme";
 
 const OPEN_MSG = defineMessage({
   id: "project.explorer.misc-side-buttons.open_dir.tooltip",
@@ -66,7 +66,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   function render_hidden_toggle(): React.JSX.Element {
     const icon = show_hidden ? "eye" : "eye-slash";
     return (
-      <Button onClick={handle_hidden_toggle}>
+      <BootstrapButton active={!!show_hidden} onClick={handle_hidden_toggle}>
         <Tip
           title={intl.formatMessage(labels.hidden_files, {
             hidden: show_hidden,
@@ -75,7 +75,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
         >
           <Icon name={icon} />
         </Tip>
-      </Button>
+      </BootstrapButton>
     );
   }
 
@@ -83,7 +83,8 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     // Temporary toggle: hides masked (auto-generated) files completely for this session.
     // Resets automatically when navigating to a different directory.
     return (
-      <Button
+      <BootstrapButton
+        active={!!hide_masked_files}
         onClick={(e) => {
           e.preventDefault();
           actions.setState({ hide_masked_files: !hide_masked_files });
@@ -97,14 +98,9 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
           }
           placement={"bottom"}
         >
-          <Icon
-            name="mask"
-            style={
-              hide_masked_files ? { color: COLORS.ANTD_LINK_BLUE } : undefined
-            }
-          />
+          <Icon name="mask" />
         </Tip>
-      </Button>
+      </BootstrapButton>
     );
   }
 
