@@ -1305,7 +1305,7 @@ function DirectoryTreePanel({
         }}
       >
         <Tree
-          blockNode
+          showLine={{ showLeafIcon: false }}
           virtual={false}
           treeData={treeData}
           expandedKeys={expandedKeys}
