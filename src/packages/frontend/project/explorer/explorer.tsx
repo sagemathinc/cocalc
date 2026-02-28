@@ -944,6 +944,10 @@ function DirectoryTreePanel({
   const [error, setError] = useState<string>("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const { starred, setStarredPath } = useStarredFilesManager(project_id);
+  const { dropRef: homeDropRef } = useFolderDrop(
+    "explorer-folder-home-root",
+    "",
+  );
   const showHiddenRef = useRef(show_hidden);
   const loadedPathsRef = useRef<Set<string>>(new Set());
   const loadingPathsRef = useRef<Set<string>>(new Set());
@@ -1075,9 +1079,11 @@ function DirectoryTreePanel({
     saveDirectoryTreeExpandedKeys(project_id, expandedKeys);
   }, [project_id, expandedKeys]);
 
-  // Scroll selected node into view when current_path changes
+  // Scroll selected node into view when current_path changes.
+  // Two passes: first at 100ms (fast, after React paint) and again at 400ms
+  // (after any ancestor-expand animations settle) to ensure it scrolls fully.
   useEffect(() => {
-    const timer = setTimeout(() => {
+    function scrollSelected() {
       const selected = scrollContainerRef.current?.querySelector(
         ".ant-tree-node-selected",
       );
@@ -1086,8 +1092,13 @@ function DirectoryTreePanel({
         inline: "start",
         behavior: "smooth",
       });
-    }, 150);
-    return () => clearTimeout(timer);
+    }
+    const t1 = setTimeout(scrollSelected, 100);
+    const t2 = setTimeout(scrollSelected, 400);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
   }, [current_path]);
 
   // Restore scroll position after initial data loads on mount / project change
@@ -1184,6 +1195,7 @@ function DirectoryTreePanel({
 
   // Starred directories: entries ending with "/" are directories
   const starredDirs = starred.filter((p) => p.endsWith("/"));
+  const isHomeSelected = current_path === "";
 
   return (
     <div
@@ -1277,15 +1289,52 @@ function DirectoryTreePanel({
         </div>
       )}
 
-      {/* Home — fixed entry above the scrollable tree, always visible */}
-      <DirectoryTreeNodeTitle
-        project_id={project_id}
-        path=""
-        label="Home"
-        isSelected={current_path === ""}
-        isStarred={false}
-        onToggleStar={() => {}}
-      />
+      {/* Home — fixed entry above the scrollable tree, always visible.
+          Styled identically to the starred-dirs items for visual consistency. */}
+      <div
+        ref={homeDropRef}
+        className="cc-project-flyout-file-item"
+        onClick={() => on_open_directory("")}
+        style={{
+          width: "100%",
+          cursor: "pointer",
+          color: COLORS.GRAY_D,
+          overflow: "hidden",
+          flexShrink: 0,
+          backgroundColor: isHomeSelected ? COLORS.BLUE_LLL : undefined,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            flex: "1",
+            padding: FLYOUT_PADDING,
+            overflow: "hidden",
+            alignItems: "center",
+          }}
+        >
+          <Icon
+            name="home"
+            style={{
+              fontSize: "120%",
+              marginRight: FLYOUT_PADDING,
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              color: isHomeSelected ? COLORS.ANTD_LINK_BLUE : undefined,
+            }}
+          >
+            Home
+          </span>
+        </div>
+      </div>
 
       {/* Main directory tree — shows root children directly, no extra indent */}
       <div
