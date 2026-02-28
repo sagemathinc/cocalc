@@ -1080,18 +1080,24 @@ function DirectoryTreePanel({
   }, [project_id, expandedKeys]);
 
   // Scroll selected node into view when current_path changes.
-  // Two passes: first at 100ms (fast, after React paint) and again at 400ms
-  // (after any ancestor-expand animations settle) to ensure it scrolls fully.
+  // We manipulate scrollTop directly on the container rather than using
+  // scrollIntoView, which can scroll wrong ancestor containers (window, etc.).
+  // Two passes: 100ms (after React paint) and 400ms (after expand animations).
   useEffect(() => {
     function scrollSelected() {
-      const selected = scrollContainerRef.current?.querySelector(
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const selected = container.querySelector(
         ".ant-tree-node-selected",
-      );
-      selected?.scrollIntoView({
-        block: "nearest",
-        inline: "start",
-        behavior: "smooth",
-      });
+      ) as HTMLElement | null;
+      if (!selected) return;
+      const containerTop = container.getBoundingClientRect().top;
+      const selectedTop = selected.getBoundingClientRect().top;
+      const relativeTop = selectedTop - containerTop + container.scrollTop;
+      // Center the selected node in the visible area
+      const target =
+        relativeTop - container.clientHeight / 2 + selected.offsetHeight / 2;
+      container.scrollTo({ top: target, behavior: "smooth" });
     }
     const t1 = setTimeout(scrollSelected, 100);
     const t2 = setTimeout(scrollSelected, 400);
