@@ -49,8 +49,22 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   );
   const disableActions = student_project_functionality.disableActions;
 
+  // When file actions are disabled (student projects), still render the
+  // directory tree toggle — it is navigation, not a file action.
   if (disableActions) {
-    return <div></div>;
+    if (!props.on_toggle_directory_tree || props.show_directory_tree) {
+      return <div></div>;
+    }
+    return (
+      <div style={{ padding: "0" }}>
+        <BootstrapButton
+          onClick={props.on_toggle_directory_tree}
+          title="Show directory tree"
+        >
+          <Icon name="network" style={{ transform: "rotate(270deg)" }} />
+        </BootstrapButton>
+      </div>
+    );
   }
 
   function clear_selection(): void {
