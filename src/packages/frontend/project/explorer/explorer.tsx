@@ -1211,7 +1211,7 @@ function DirectoryTreePanel({
           </div>
           {starredDirs.map((starPath) => {
             const path = starPath.slice(0, -1); // strip trailing "/"
-            const label = misc.path_split(path).tail || "Home";
+            const label = path || "Home";
             const isSelected = current_path === path;
             return (
               <div
