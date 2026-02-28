@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "राइट-क्लिक मेनू",
   "project.explorer.help.section.dnd.body": "लंबे समय तक दबाएं (~300ms) खींचने के लिए। स्थानांतरित करने के लिए फ़ोल्डरों या ब्रेडक्रंब्स पर छोड़ें। कॉपी करने के लिए Shift दबाकर रखें।",
   "project.explorer.help.section.dnd.title": "ड्रैग & ड्रॉप",
-  "project.explorer.help.section.flyout.body": "साइड-पैनल फ़ाइल ब्राउज़र प्रकार फ़िल्टर साझा करता है और ड्रैग-एंड-ड्रॉप का समर्थन करता है।",
+  "project.explorer.help.section.flyout.body": "साइड-पैनल फ़ाइल ब्राउज़र हमेशा सुलभ है और प्रकार फ़िल्टर साझा करता है। यह ड्रैग-एंड-ड्रॉप का भी समर्थन करता है।",
   "project.explorer.help.section.flyout.title": "फ्लायआउट पैनल",
   "project.explorer.help.section.open_select.body": "खोलने के लिए क्लिक करें। थोक क्रियाओं के लिए चयन करने के लिए बॉक्स चेक करें। Shift+क्लिक एक सीमा का चयन करता है।",
   "project.explorer.help.section.open_select.title": "खोलें और चुनें",

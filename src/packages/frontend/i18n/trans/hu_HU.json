@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Jobbklikk menü",
   "project.explorer.help.section.dnd.body": "Hosszan nyomja (~300ms) a húzáshoz. Dobja rá mappákra vagy kenyérmorzsákra az áthelyezéshez. Tartsa lenyomva a Shiftet a másoláshoz.",
   "project.explorer.help.section.dnd.title": "Húzd és ejtsd",
-  "project.explorer.help.section.flyout.body": "Az oldalsó panel fájlkezelője megosztja a típus szűrőt és támogatja a húzd-és-ejtsd funkciót.",
+  "project.explorer.help.section.flyout.body": "A panel oldali fájlkezelő mindig elérhető és megosztja a típus szűrőt. Támogatja a húzás és ejtés funkciót is.",
   "project.explorer.help.section.flyout.title": "Kicsúszó panel",
   "project.explorer.help.section.open_select.body": "Kattintson a megnyitáshoz. Jelölje be a négyzetet a csoportos műveletekhez való kiválasztáshoz. Shift+kattintással tartományt jelölhet ki.",
   "project.explorer.help.section.open_select.title": "Megnyitás és Kiválasztás",

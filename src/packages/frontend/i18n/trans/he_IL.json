@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "תפריט לחיצה ימנית",
   "project.explorer.help.section.dnd.body": "לחצו לחיצה ארוכה (~300ms) כדי לגרור. שחררו על תיקיות או פירורי לחם כדי להעביר. החזיקו Shift כדי להעתיק במקום.",
   "project.explorer.help.section.dnd.title": "גרור ושחרר",
-  "project.explorer.help.section.flyout.body": "דפדפן הקבצים בצד משתף את מסנן הסוגים ותומך בגרירה ושחרור.",
+  "project.explorer.help.section.flyout.body": "דפדפן הקבצים שבצד תמיד נגיש ומשתף את מסנן הסוגים. הוא גם תומך בגרירה ושחרור.",
   "project.explorer.help.section.flyout.title": "לוח צדדי",
   "project.explorer.help.section.open_select.body": "לחץ לפתיחה. סמן את התיבה לבחירה לפעולות קבוצתיות. Shift+לחיצה בוחרת טווח.",
   "project.explorer.help.section.open_select.title": "פתח ובחר",

@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Menu de Clique com o Botão Direito",
   "project.explorer.help.section.dnd.body": "Pressione e segure (~300ms) para arrastar. Solte sobre pastas ou trilhas para mover. Mantenha Shift pressionado para copiar.",
   "project.explorer.help.section.dnd.title": "Arrastar & Soltar",
-  "project.explorer.help.section.flyout.body": "O navegador de arquivos do painel lateral compartilha o filtro de tipo e suporta arrastar e soltar.",
+  "project.explorer.help.section.flyout.body": "O navegador de arquivos do painel lateral está sempre acessível e compartilha o filtro de tipo. Ele também suporta arrastar e soltar.",
   "project.explorer.help.section.flyout.title": "Painel Deslizante",
   "project.explorer.help.section.open_select.body": "Clique para abrir. Marque a caixa para selecionar para ações em massa. Shift+clique seleciona um intervalo.",
   "project.explorer.help.section.open_select.title": "Abrir e Selecionar",

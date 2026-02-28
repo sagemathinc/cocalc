@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Контекстное меню",
   "project.explorer.help.section.dnd.body": "Длительное нажатие (~300 мс), чтобы перетащить. Переместите в папки или в хлебные крошки, чтобы переместить. Удерживайте Shift, чтобы скопировать.",
   "project.explorer.help.section.dnd.title": "Перетащите & Бросьте",
-  "project.explorer.help.section.flyout.body": "Боковая панель проводника файлов делится фильтром типов и поддерживает перетаскивание.",
+  "project.explorer.help.section.flyout.body": "Боковая панель проводника файлов всегда доступна и использует общий фильтр типов. Она также поддерживает перетаскивание.",
   "project.explorer.help.section.flyout.title": "Панель вылета",
   "project.explorer.help.section.open_select.body": "Нажмите, чтобы открыть. Установите флажок для выбора массовых действий. Shift+клик выделяет диапазон.",
   "project.explorer.help.section.open_select.title": "Открыть и выбрать",

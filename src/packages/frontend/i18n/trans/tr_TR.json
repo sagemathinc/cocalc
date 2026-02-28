@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Sağ Tıklama Menüsü",
   "project.explorer.help.section.dnd.body": "Uzun basın (~300ms) ve sürükleyin. Taşımak için klasörlere veya yol izlerine bırakın. Kopyalamak için Shift tuşunu basılı tutun.",
   "project.explorer.help.section.dnd.title": "Sürükle ve Bırak",
-  "project.explorer.help.section.flyout.body": "Yan panel dosya tarayıcısı tür filtresini paylaşır ve sürükle-bırak destekler.",
+  "project.explorer.help.section.flyout.body": "Yan panel dosya tarayıcısı her zaman erişilebilir durumdadır ve tür filtresini paylaşır. Sürükle ve bırak işlevini de destekler.",
   "project.explorer.help.section.flyout.title": "Uçuş Paneli",
   "project.explorer.help.section.open_select.body": "Açmak için tıklayın. Toplu işlemler için seçmek üzere kutuyu işaretleyin. Aralık seçmek için Shift+click yapın.",
   "project.explorer.help.section.open_select.title": "Aç & Seç",

@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Menu contextuel",
   "project.explorer.help.section.dnd.body": "Appuyez longuement (~300 ms) pour glisser. Déposez sur des dossiers ou des fil d'Ariane pour déplacer. Maintenez Shift pour copier à la place.",
   "project.explorer.help.section.dnd.title": "Glisser-Déposer",
-  "project.explorer.help.section.flyout.body": "Le navigateur de fichiers du panneau latéral partage le filtre de type et prend en charge le glisser-déposer.",
+  "project.explorer.help.section.flyout.body": "Le navigateur de fichiers du panneau latéral est toujours accessible et partage le filtre de type. Il prend également en charge le glisser-déposer.",
   "project.explorer.help.section.flyout.title": "Volet rabattable",
   "project.explorer.help.section.open_select.body": "Cliquez pour ouvrir. Cochez la case pour sélectionner pour des actions groupées. Shift+clic sélectionne une plage.",
   "project.explorer.help.section.open_select.title": "Ouvrir & Sélectionner",

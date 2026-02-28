@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "قائمة النقر بزر الفأرة الأيمن",
   "project.explorer.help.section.dnd.body": "اضغط مطولاً (~300 مللي ثانية) للسحب. أسقطها على المجلدات أو المسارات للتنقل. اضغط مع الاستمرار على Shift للنسخ بدلاً من النقل.",
   "project.explorer.help.section.dnd.title": "السحب والإفلات",
-  "project.explorer.help.section.flyout.body": "يدعم مستعرض الملفات في اللوحة الجانبية مرشح النوع ويدعم السحب والإفلات.",
+  "project.explorer.help.section.flyout.body": "متصفح الملفات في اللوحة الجانبية متاح دائمًا ويشارك مرشح النوع. كما يدعم السحب والإفلات.",
   "project.explorer.help.section.flyout.title": "لوحة Flyout",
   "project.explorer.help.section.open_select.body": "انقر لفتح. حدد المربع لاختيار إجراءات مجمعة. Shift+انقر لتحديد نطاق.",
   "project.explorer.help.section.open_select.title": "فتح وتحديد",

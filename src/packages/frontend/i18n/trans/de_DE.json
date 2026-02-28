@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Rechtsklick-Menü",
   "project.explorer.help.section.dnd.body": "Langes Drücken (~300 ms), um zu ziehen. Auf Ordner oder Breadcrumbs ablegen, um zu verschieben. Halten Sie die Umschalttaste gedrückt, um stattdessen zu kopieren.",
   "project.explorer.help.section.dnd.title": "Drag & Drop",
-  "project.explorer.help.section.flyout.body": "Der Seitenbereich-Dateibrowser teilt den Typfilter und unterstützt Drag-and-Drop.",
+  "project.explorer.help.section.flyout.body": "Der Seitenbereich-Dateibrowser ist immer zugänglich und teilt den Typfilter. Er unterstützt auch Drag-and-Drop.",
   "project.explorer.help.section.flyout.title": "Flyout-Panel",
   "project.explorer.help.section.open_select.body": "Klicken zum Öffnen. Aktivieren Sie das Kästchen, um für Massenaktionen auszuwählen. Mit Umschalt+Klick wird ein Bereich ausgewählt.",
   "project.explorer.help.section.open_select.title": "Öffnen & Auswählen",

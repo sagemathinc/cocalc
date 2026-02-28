@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "右键菜单",
   "project.explorer.help.section.dnd.body": "长按（约300毫秒）即可拖动。拖放到文件夹或面包屑上以移动。按住Shift键以复制。",
   "project.explorer.help.section.dnd.title": "拖放",
-  "project.explorer.help.section.flyout.body": "侧边栏文件浏览器共享类型过滤器并支持拖放。",
+  "project.explorer.help.section.flyout.body": "侧边栏文件浏览器始终可访问，并共享类型过滤器。它还支持拖放。",
   "project.explorer.help.section.flyout.title": "弹出面板",
   "project.explorer.help.section.open_select.body": "点击以打开。选中框以选择用于批量操作。Shift+点击选择一个范围。",
   "project.explorer.help.section.open_select.title": "打开和选择",

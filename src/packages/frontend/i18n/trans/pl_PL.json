@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Menu kontekstowe",
   "project.explorer.help.section.dnd.body": "Długie naciśnięcie (~300 ms), aby przeciągnąć. Upuść na foldery lub okruszki, aby przenieść. Przytrzymaj Shift, aby skopiować.",
   "project.explorer.help.section.dnd.title": "Przeciągnij i Upuść",
-  "project.explorer.help.section.flyout.body": "Boczny panel przeglądarki plików udostępnia filtr typów i obsługuje przeciąganie i upuszczanie.",
+  "project.explorer.help.section.flyout.body": "Boczny panel przeglądarki plików jest zawsze dostępny i współdzieli filtr typów. Obsługuje także przeciąganie i upuszczanie.",
   "project.explorer.help.section.flyout.title": "Panel wysuwany",
   "project.explorer.help.section.open_select.body": "Kliknij, aby otworzyć. Zaznacz pole, aby wybrać do działań zbiorczych. Shift+klik wybiera zakres.",
   "project.explorer.help.section.open_select.title": "Otwórz i Wybierz",

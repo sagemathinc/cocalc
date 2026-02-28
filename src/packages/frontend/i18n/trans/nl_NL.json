@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Rechtermuisklikmenu",
   "project.explorer.help.section.dnd.body": "Lang indrukken (~300ms) om te slepen. Laat vallen op mappen of broodkruimels om te verplaatsen. Houd Shift ingedrukt om te kopiëren.",
   "project.explorer.help.section.dnd.title": "Slepen & Neerzetten",
-  "project.explorer.help.section.flyout.body": "De zijpaneelbestandsbrowser deelt het typefilter en ondersteunt slepen-en-neerzetten.",
+  "project.explorer.help.section.flyout.body": "De zijpaneel bestandsbrowser is altijd toegankelijk en deelt het typefilter. Het ondersteunt ook slepen en neerzetten.",
   "project.explorer.help.section.flyout.title": "Flyout-paneel",
   "project.explorer.help.section.open_select.body": "Klik om te openen. Vink het vakje aan om te selecteren voor bulkacties. Shift+klik selecteert een bereik.",
   "project.explorer.help.section.open_select.title": "Open & Select",

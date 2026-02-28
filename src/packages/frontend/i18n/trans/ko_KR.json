@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "마우스 오른쪽 버튼 메뉴",
   "project.explorer.help.section.dnd.body": "길게 누르기(~300ms)로 드래그하세요. 폴더나 경로에 드롭하여 이동합니다. Shift 키를 누르고 있으면 복사됩니다.",
   "project.explorer.help.section.dnd.title": "드래그 앤 드롭",
-  "project.explorer.help.section.flyout.body": "사이드 패널 파일 브라우저는 유형 필터를 공유하고 드래그 앤 드롭을 지원합니다.",
+  "project.explorer.help.section.flyout.body": "측면 패널 파일 탐색기는 항상 접근 가능하며 유형 필터를 공유합니다. 또한 드래그 앤 드롭을 지원합니다.",
   "project.explorer.help.section.flyout.title": "플라이아웃 패널",
   "project.explorer.help.section.open_select.body": "클릭하여 엽니다. 대량 작업을 위해 상자를 선택하세요. Shift+클릭으로 범위를 선택합니다.",
   "project.explorer.help.section.open_select.title": "열기 및 선택",

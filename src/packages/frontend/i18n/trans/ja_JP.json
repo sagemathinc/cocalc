@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "右クリックメニュー",
   "project.explorer.help.section.dnd.body": "長押し（約300ms）してドラッグします。フォルダーやパンくずリストにドロップして移動します。Shiftキーを押しながらコピーします。",
   "project.explorer.help.section.dnd.title": "ドラッグ＆ドロップ",
-  "project.explorer.help.section.flyout.body": "サイドパネルのファイルブラウザはタイプフィルターを共有し、ドラッグアンドドロップをサポートします。",
+  "project.explorer.help.section.flyout.body": "サイドパネルのファイルブラウザは常にアクセス可能で、タイプフィルターを共有しています。また、ドラッグアンドドロップもサポートしています。",
   "project.explorer.help.section.flyout.title": "フライアウトパネル",
   "project.explorer.help.section.open_select.body": "クリックして開く。ボックスをチェックして一括操作を選択します。Shift+クリックで範囲を選択します。",
   "project.explorer.help.section.open_select.title": "開いて選択",

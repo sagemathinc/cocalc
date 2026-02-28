@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Menu contestuale",
   "project.explorer.help.section.dnd.body": "Premi a lungo (~300 ms) per trascinare. Rilascia su cartelle o breadcrumb per spostare. Tieni premuto Shift per copiare invece.",
   "project.explorer.help.section.dnd.title": "Trascina e Rilascia",
-  "project.explorer.help.section.flyout.body": "Il browser di file nel pannello laterale condivide il filtro di tipo e supporta il drag-and-drop.",
+  "project.explorer.help.section.flyout.body": "Il browser file del pannello laterale è sempre accessibile e condivide il filtro del tipo. Supporta anche il trascinamento.",
   "project.explorer.help.section.flyout.title": "Pannello a comparsa",
   "project.explorer.help.section.open_select.body": "Fai clic per aprire. Seleziona la casella per le azioni in blocco. Shift+clic seleziona un intervallo.",
   "project.explorer.help.section.open_select.title": "Apri e seleziona",

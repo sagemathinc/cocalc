@@ -1339,7 +1339,7 @@
   "project.explorer.help.section.context_menu.title": "Eskuin-Klik Menua",
   "project.explorer.help.section.dnd.body": "Sakatu luze (~300ms) arrastatzeko. Askatu karpetetan edo ogi apurretan mugitzen uzteko. Eutsi Shift kopiatzeko.",
   "project.explorer.help.section.dnd.title": "Arrastatu eta Jaregin",
-  "project.explorer.help.section.flyout.body": "Alboko panelaren fitxategi arakatzaileak motaren iragazkia partekatzen du eta arrastatu eta jaregin onartzen du.",
+  "project.explorer.help.section.flyout.body": "Alboko-panelean dagoen fitxategi-nabigatzailea beti eskuragarri dago eta mota-iragazkia partekatzen du. Arrastatu eta jaregin ere onartzen du.",
   "project.explorer.help.section.flyout.title": "Hegaldi Panela",
   "project.explorer.help.section.open_select.body": "Egin klik irekitzeko. Koadroa markatu ekintza masiboetarako hautatzeko. Shift+klik eginez sorta bat hautatzen du.",
   "project.explorer.help.section.open_select.title": "Ireki eta Hautatu",
