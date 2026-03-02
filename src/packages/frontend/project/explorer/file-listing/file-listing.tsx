@@ -957,20 +957,25 @@ export const FileListing: React.FC<Props> = ({
         ellipsis: true,
         render: (_, record) => renderFileName(record, dimFileExtensions),
       },
-      {
-        title: intl.formatMessage({
-          id: "project.explorer.file-listing.column.date",
-          defaultMessage: "Date Modified",
-        }),
-        key: "time",
-        dataIndex: "mtime",
-        width: 170,
-        sorter: true,
-        sortOrder: getSortOrder("time"),
-        showSorterTooltip: false,
-        ellipsis: true,
-        render: (mtime) => renderTimestamp(mtime),
-      },
+      // Date column hidden on mobile to maximize file name space
+      ...(IS_MOBILE
+        ? []
+        : [
+            {
+              title: intl.formatMessage({
+                id: "project.explorer.file-listing.column.date",
+                defaultMessage: "Date Modified",
+              }),
+              key: "time",
+              dataIndex: "mtime",
+              width: 170,
+              sorter: true,
+              sortOrder: getSortOrder("time"),
+              showSorterTooltip: false,
+              ellipsis: true,
+              render: (mtime: number | undefined) => renderTimestamp(mtime),
+            },
+          ]),
       // Size and View columns hidden when container is narrow
       ...(isNarrow
         ? []
