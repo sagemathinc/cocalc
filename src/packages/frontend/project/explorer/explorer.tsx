@@ -1270,6 +1270,7 @@ function DirectoryTreePanel({
 
   // Starred directories: entries ending with "/" are directories
   const starredDirs = starred.filter((p) => p.endsWith("/"));
+  const hasStarredDirs = starredDirs.length > 0;
   const isHomeSelected = current_path === "";
 
   return (
@@ -1283,7 +1284,7 @@ function DirectoryTreePanel({
       }}
     >
       {/* Starred directories quick-access panel */}
-      {starredDirs.length > 0 && (
+      {hasStarredDirs && (
         <div
           style={{
             maxHeight: "25%",
@@ -1327,6 +1328,7 @@ function DirectoryTreePanel({
           color: COLORS.GRAY_D,
           overflow: "hidden",
           flexShrink: 0,
+          borderTop: hasStarredDirs ? `2px solid ${COLORS.GRAY_M}` : undefined,
           backgroundColor: isHomeSelected ? COLORS.BLUE_LLL : undefined,
         }}
       >
