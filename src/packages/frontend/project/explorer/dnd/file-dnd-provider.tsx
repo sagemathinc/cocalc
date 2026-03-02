@@ -334,7 +334,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       if (!dragData?.paths) return;
       const { x, y } = pointerPos.current;
       const el = document.elementFromPoint(x, y);
-      const row = el?.closest?.("tr[data-row-key], [data-folder-drop-path]");
+      const row = el?.closest?.("[data-row-key], [data-folder-drop-path]");
       if (row && !row.hasAttribute("data-folder-drop-path")) {
         const currentDir = dragData.paths[0]
           ? path_split(dragData.paths[0]).head

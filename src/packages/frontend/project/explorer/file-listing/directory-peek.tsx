@@ -66,12 +66,14 @@ export default function DirectoryPeek({
   dirPathRef.current = dirPath;
 
   // Watch dirPath for changes and bump version when it changes.
+  // Re-register interest periodically (every 15s) to prevent expiry.
   useEffect(() => {
     const listings = redux
       .getProjectStore(project_id)
       ?.get_listings(computeServerId);
     if (!listings) return;
     listings.watch(dirPath);
+    const interval = setInterval(() => listings.watch(dirPath), 15_000);
     const handleChange = (paths: string[]) => {
       if (paths.includes(dirPathRef.current)) {
         setVersion((v) => v + 1);
@@ -79,6 +81,7 @@ export default function DirectoryPeek({
     };
     listings.on("change", handleChange);
     return () => {
+      clearInterval(interval);
       listings.removeListener("change", handleChange);
     };
   }, [project_id, computeServerId, dirPath]);

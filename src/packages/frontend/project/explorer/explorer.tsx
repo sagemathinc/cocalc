@@ -1125,14 +1125,20 @@ function DirectoryTreePanel({
   }, [show_hidden, loadPath]);
 
   // Watch expanded directories for changes, so the tree stays live.
+  // Re-register interest periodically (every 15s) to prevent expiry.
   useEffect(() => {
     const listings = redux
       .getProjectStore(project_id)
       ?.get_listings(compute_server_id ?? 0);
     if (!listings) return;
-    for (const key of expandedKeys) {
-      listings.watch(treeKeyToPath(key));
-    }
+    const refreshWatch = () => {
+      for (const key of expandedKeys) {
+        listings.watch(treeKeyToPath(key));
+      }
+    };
+    refreshWatch();
+    const interval = setInterval(refreshWatch, 15_000);
+    return () => clearInterval(interval);
   }, [project_id, compute_server_id, expandedKeys]);
 
   // Listen for change events and reload any affected loaded tree paths.
@@ -1300,13 +1306,7 @@ function DirectoryTreePanel({
     };
 
     return buildChildren("");
-  }, [
-    childrenByPath,
-    project_id,
-    treeVersion,
-    starredSet,
-    handleToggleStar,
-  ]);
+  }, [childrenByPath, project_id, treeVersion, starredSet, handleToggleStar]);
 
   // Starred directories: entries ending with "/" are directories
   const starredDirs = starred.filter((p) => p.endsWith("/"));
