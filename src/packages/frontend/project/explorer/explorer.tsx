@@ -1104,8 +1104,20 @@ function DirectoryTreePanel({
         setError("");
       } catch (err) {
         if (gen !== generationRef.current) return; // stale error
-        console.warn("Failed to load directory tree path:", path, err);
-        setError(`${err}`);
+        // ENOENT is expected for stale saved expanded keys — silently prune them
+        const isNotFound = `${err}`.includes("ENOENT");
+        if (isNotFound) {
+          // Remove the deleted directory from expanded keys
+          const key = pathToTreeKey(path);
+          setExpandedKeys((prev) => {
+            const next = prev.filter((k) => k !== key);
+            saveDirectoryTreeExpandedKeys(project_id, next);
+            return next;
+          });
+        } else {
+          console.warn("Failed to load directory tree path:", path, err);
+          setError(`${err}`);
+        }
       } finally {
         if (gen === generationRef.current) {
           loadingPathsRef.current.delete(path);
