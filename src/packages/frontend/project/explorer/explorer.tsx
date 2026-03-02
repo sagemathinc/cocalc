@@ -30,6 +30,7 @@ import {
   A,
   ActivityDisplay,
   ErrorDisplay,
+  HelpIcon,
   Icon,
   Loading,
   Paragraph,
@@ -694,7 +695,15 @@ export function Explorer() {
               minWidth: `${DIRECTORY_TREE_MIN_WIDTH_PX}px`,
             }}
           >
-            <div style={{ flex: "0 0 auto", padding: "4px 2px" }}>
+            <div
+              style={{
+                flex: "0 0 auto",
+                padding: "4px 2px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
+              }}
+            >
               <BootstrapButton
                 onClick={toggleDirectoryTree}
                 active
@@ -702,6 +711,23 @@ export function Explorer() {
               >
                 <Icon name="network" style={{ transform: "rotate(270deg)" }} />
               </BootstrapButton>
+              <span style={{ fontWeight: 500, fontSize: "90%" }}>
+                Directory Tree{" "}
+                <HelpIcon title="Directory Tree" maxWidth="300px">
+                  <ul style={{ paddingLeft: "18px", margin: 0 }}>
+                    <li>Quickly navigate to any directory.</li>
+                    <li>
+                      Star directories for quick access — they appear at the
+                      top.
+                    </li>
+                    <li>Drag the border to resize the panel width.</li>
+                    <li>Drag and drop files onto directories to move them.</li>
+                    <li>
+                      Hold <b>Shift</b> while dropping to copy instead of move.
+                    </li>
+                  </ul>
+                </HelpIcon>
+              </span>
             </div>
             <DirectoryTreePanel
               project_id={project_id}
@@ -1283,41 +1309,7 @@ function DirectoryTreePanel({
         overflow: "hidden",
       }}
     >
-      {/* Starred directories quick-access panel */}
-      {hasStarredDirs && (
-        <div
-          style={{
-            maxHeight: "25%",
-            overflowY: "auto",
-            overflowX: "hidden",
-            flexShrink: 0,
-            borderBottom: `1px solid ${COLORS.GRAY_LL}`,
-          }}
-        >
-          <div
-            style={{
-              fontWeight: "bold",
-              padding: `${FLYOUT_PADDING} ${FLYOUT_PADDING} 2px`,
-              fontSize: "85%",
-              color: COLORS.GRAY_D,
-            }}
-          >
-            Starred
-          </div>
-          {starredDirs.map((starPath) => (
-            <StarredDirItem
-              key={starPath}
-              starPath={starPath}
-              current_path={current_path}
-              on_open_directory={on_open_directory}
-              setStarredPath={setStarredPath}
-            />
-          ))}
-        </div>
-      )}
-
-      {/* Home — fixed entry above the scrollable tree, always visible.
-          Styled identically to the starred-dirs items for visual consistency. */}
+      {/* Home — always on top, styled like starred-dirs items */}
       <div
         ref={homeDropRef}
         className="cc-project-flyout-file-item"
@@ -1328,7 +1320,6 @@ function DirectoryTreePanel({
           color: COLORS.GRAY_D,
           overflow: "hidden",
           flexShrink: 0,
-          borderTop: hasStarredDirs ? `2px solid ${COLORS.GRAY_M}` : undefined,
           backgroundColor: isHomeSelected ? COLORS.BLUE_LLL : undefined,
         }}
       >
@@ -1363,6 +1354,30 @@ function DirectoryTreePanel({
           </span>
         </div>
       </div>
+
+      {/* Starred directories — no header, separated by GRAY_L bars */}
+      {hasStarredDirs && (
+        <div
+          style={{
+            maxHeight: "25%",
+            overflowY: "auto",
+            overflowX: "hidden",
+            flexShrink: 0,
+            borderTop: `2px solid ${COLORS.GRAY_L}`,
+            borderBottom: `2px solid ${COLORS.GRAY_L}`,
+          }}
+        >
+          {starredDirs.map((starPath) => (
+            <StarredDirItem
+              key={starPath}
+              starPath={starPath}
+              current_path={current_path}
+              on_open_directory={on_open_directory}
+              setStarredPath={setStarredPath}
+            />
+          ))}
+        </div>
+      )}
 
       {/* Main directory tree — shows root children directly, no extra indent */}
       <div
