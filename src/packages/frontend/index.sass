@@ -69,19 +69,11 @@
 .close
   font-size : 20pt
 
-// Explorer file listing table
+// Explorer file listing table (using react-virtuoso TableVirtuoso)
 .cc-explorer-table
-  // Make the antd table fill the flex container, pagination at bottom
-  .ant-table-wrapper
-    flex: 1 1 auto
-    display: flex
-    flex-direction: column
-  .ant-spin-nested-loading, .ant-spin-container
-    flex: 1 1 auto
-    display: flex
-    flex-direction: column
-  .ant-table
-    flex: 1 1 auto
+  // Ensure the virtuoso table fills the flex container
+  table
+    width: 100%
   // Remove all default row backgrounds (including zebra stripes)
   .ant-table-row > td
     background: white !important
@@ -109,36 +101,6 @@
   .cc-explorer-row-drop-invalid > td,
   .cc-explorer-row-drop-invalid:hover > td
     background-color: colors.$COL_ANTD_BG_RED_L !important
-  // Clean header styling (matches flyout panel background)
-  .ant-table-thead > tr > th
-    background: colors.$COL_GRAY_LL !important
-    border-bottom: 1px solid colors.$COL_GRAY_L0 !important
-    font-weight: 600
-  // Pointer cursor on sortable headers
-  .ant-table-column-has-sorters
-    cursor: pointer
-  // Only show vertical scrollbar when content overflows (antd defaults to scroll)
-  .ant-table-body
-    overflow-y: auto !important
-  // AntD virtual-table scrollbar: make it easier to see and grab.
-  .ant-table-tbody-virtual-scrollbar.ant-table-tbody-virtual-scrollbar-vertical
-    width: 10px !important
-    right: 2px !important
-    opacity: 1 !important
-  .ant-table-tbody-virtual-scrollbar-thumb
-    width: 100% !important
-    min-height: 30px !important
-    background: colors.$COL_GRAY_M !important
-    border-radius: 8px !important
-  .ant-table-tbody-virtual-scrollbar-thumb.ant-table-tbody-virtual-scrollbar-thumb-moving
-    background: colors.$COL_GRAY_M !important
-
-// Expanded directory peek row: remove default cell padding.
-// Must be at top level (not nested under .cc-explorer-table) to match
-// antd's specificity chain, same pattern as .cc-project-expanded-row.
-.cc-explorer-expanded-row
-  .ant-table-cell
-    padding: 0 !important
 
 // Explorer right-click context menu: compact item sizing
 .cc-explorer-context-menu

@@ -3,12 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// File listing using antd Table with virtual scrolling.
+// File listing using react-virtuoso TableVirtuoso for efficient virtual scrolling.
 
-import { Alert, Menu, Spin, Table } from "antd";
-import type { ColumnsType, TableProps } from "antd/es/table";
-import type { ColumnFilterItem } from "antd/es/table/interface";
+import { Alert, Checkbox, Dropdown, Menu, Spin } from "antd";
 import type { MenuProps } from "antd";
+import type { ColumnFilterItem } from "antd/es/table/interface";
+import { FilterOutlined } from "@ant-design/icons";
 import * as immutable from "immutable";
 import React, {
   useCallback,
@@ -19,6 +19,7 @@ import React, {
 } from "react";
 import { useInterval } from "react-interval-hook";
 import { FormattedMessage, useIntl } from "react-intl";
+import { TableVirtuoso, type TableVirtuosoHandle } from "react-virtuoso";
 
 import {
   AppRedux,
@@ -64,6 +65,47 @@ import {
 
 const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
 
+// ---------- Per-directory scroll position cache ----------
+
+import type { StateSnapshot } from "react-virtuoso";
+
+const SCROLL_CACHE_MAX = 100;
+const scrollCache = new Map<string, StateSnapshot>();
+
+function scrollCacheKey(projectId: string, path: string): string {
+  return `${projectId}::${path}`;
+}
+
+function saveScrollState(
+  key: string,
+  ref: React.RefObject<TableVirtuosoHandle | null>,
+) {
+  ref.current?.getState((state) => {
+    // Only cache if the user has actually scrolled
+    if (state.scrollTop > 0) {
+      // Move to end (most-recently-used) by deleting and re-inserting
+      scrollCache.delete(key);
+      scrollCache.set(key, state);
+      // Evict oldest if over limit
+      if (scrollCache.size > SCROLL_CACHE_MAX) {
+        const oldest = scrollCache.keys().next().value;
+        if (oldest != null) scrollCache.delete(oldest);
+      }
+    }
+  });
+}
+
+// ---------- Column widths ----------
+const COL_W = {
+  CHECKBOX: 40,
+  TYPE: 60,
+  STAR: 55,
+  PUBLIC: 40,
+  DATE: 170,
+  SIZE: 130,
+  VIEW: 40,
+} as const;
+
 // ---------- DnD Row ----------
 
 /** Context for passing DnD data from FileListing to custom table rows */
@@ -73,48 +115,112 @@ interface DndRowContextType {
   disableActions: boolean;
   getRecord: (name: string) => FileEntry | undefined;
   getDragPaths: (name: string) => string[];
+  getVirtualEntry: (index: number) => VirtualEntry | undefined;
+  onRow: (record: FileEntry) => {
+    onClick: (e: React.MouseEvent) => void;
+    onMouseDown: () => void;
+    onContextMenu: (e: React.MouseEvent) => void;
+    style: React.CSSProperties;
+  };
+  rowClassName: (record: FileEntry) => string;
 }
 
 const DndRowContext = React.createContext<DndRowContextType | null>(null);
 
 /**
- * Custom row for the antd virtual Table.  Uses <div> instead of <tr> because
- * antd's virtual scroll container is a <div>, not a <tbody>.
- * Each row is a drag source (except ".."); folder rows are also drop targets.
+ * Stable component references for TableVirtuoso's `components` prop.
+ * MUST be defined at module level (not inline in JSX) — Virtuoso uses
+ * referential equality, and new references cause full unmount/remount,
+ * which triggers infinite update loops with stateful children (e.g. antd Dropdown).
  */
-function DndRow(props: React.HTMLAttributes<HTMLDivElement>) {
+const VirtuosoTable = ({
+  style,
+  ...props
+}: React.HTMLAttributes<HTMLTableElement> & {
+  style?: React.CSSProperties;
+}) => (
+  <table
+    {...props}
+    style={{ ...style, tableLayout: "fixed", width: "100%" }}
+    className="ant-table-content"
+  />
+);
+
+const VirtuosoTableHead = React.forwardRef<
+  HTMLTableSectionElement,
+  React.HTMLAttributes<HTMLTableSectionElement>
+>((props, ref) => <thead {...props} ref={ref} className="ant-table-thead" />);
+
+/**
+ * Custom <tr> for TableVirtuoso. Reads data-item-index to look up the
+ * VirtualEntry; dispatches to DnD sub-components based on entry type.
+ */
+function VirtualTableRow(props: React.HTMLAttributes<HTMLTableRowElement>) {
   const ctx = React.useContext(DndRowContext);
-  const rowKey = (props as any)["data-row-key"] as string | undefined;
+  const index = (props as any)["data-item-index"] as number | undefined;
 
-  if (!ctx || !rowKey || ctx.disableActions) {
-    return <div {...props} />;
+  if (!ctx || index == null) {
+    return <tr {...props} />;
   }
 
-  const record = ctx.getRecord(rowKey);
-  if (!record || record.name === "..") {
-    if (record?.name === "..") {
-      return <DndDropOnlyRow {...props} ctx={ctx} />;
-    }
-    return <div {...props} />;
+  const entry = ctx.getVirtualEntry(index);
+  if (!entry || isPeekEntry(entry)) {
+    // Peek rows are rendered as plain <tr> (no DnD)
+    return <tr {...props} />;
   }
 
-  return <DndDraggableRow {...props} ctx={ctx} record={record} />;
+  if (ctx.disableActions) {
+    const rowProps = ctx.onRow(entry);
+    const cls = ctx.rowClassName(entry);
+    return (
+      <tr
+        {...props}
+        onClick={rowProps.onClick}
+        onMouseDown={rowProps.onMouseDown}
+        onContextMenu={rowProps.onContextMenu}
+        style={{ ...props.style, ...rowProps.style }}
+        className={`ant-table-row ${cls} ${props.className ?? ""}`}
+      />
+    );
+  }
+
+  if (entry.name === "..") {
+    const rowProps = ctx.onRow(entry);
+    return (
+      <VirtualDropOnlyRow
+        {...props}
+        ctx={ctx}
+        rowProps={rowProps}
+        className={`ant-table-row ${props.className ?? ""}`}
+      />
+    );
+  }
+
+  return <VirtualDraggableRow {...props} ctx={ctx} record={entry} />;
 }
 
 /** Row for the ".." parent directory — drop target only */
-function DndDropOnlyRow({
+function VirtualDropOnlyRow({
   ctx,
+  rowProps,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & { ctx: DndRowContextType }) {
+}: React.HTMLAttributes<HTMLTableRowElement> & {
+  ctx: DndRowContextType;
+  rowProps: ReturnType<DndRowContextType["onRow"]>;
+}) {
   const parentPath = ctx.currentPath.split("/").slice(0, -1).join("/");
   const { dropRef, isOver } = useFolderDrop(
     `explorer-folder-${parentPath}`,
     parentPath,
   );
   return (
-    <div
+    <tr
       {...props}
       ref={dropRef}
+      onClick={rowProps.onClick}
+      onMouseDown={rowProps.onMouseDown}
+      onContextMenu={rowProps.onContextMenu}
+      style={{ ...props.style, ...rowProps.style }}
       data-folder-drop-path={parentPath}
       className={`${props.className ?? ""}${isOver ? " cc-explorer-row-drop-target" : ""}`}
     />
@@ -122,11 +228,11 @@ function DndDropOnlyRow({
 }
 
 /** Regular file/folder row — draggable; folders are also droppable */
-function DndDraggableRow({
+function VirtualDraggableRow({
   ctx,
   record,
   ...props
-}: React.HTMLAttributes<HTMLDivElement> & {
+}: React.HTMLAttributes<HTMLTableRowElement> & {
   ctx: DndRowContextType;
   record: FileEntry;
 }) {
@@ -149,7 +255,7 @@ function DndDraggableRow({
 
   // Merge drag ref + drop ref
   const mergedRef = React.useCallback(
-    (node: HTMLDivElement | null) => {
+    (node: HTMLTableRowElement | null) => {
       dragRef(node);
       if (isFolder) dropRef(node);
     },
@@ -165,19 +271,30 @@ function DndDraggableRow({
           ? " cc-explorer-row-checked"
           : "";
 
+  const rowProps = ctx.onRow(record);
+  const cls = ctx.rowClassName(record);
+
   return (
-    <div
+    <tr
       {...props}
       {...dragListeners}
       {...dragAttributes}
       ref={mergedRef}
+      onClick={rowProps.onClick}
+      onMouseDown={rowProps.onMouseDown}
+      onContextMenu={rowProps.onContextMenu}
+      style={{ ...props.style, ...rowProps.style }}
       {...(isFolder ? { "data-folder-drop-path": fullPath } : {})}
-      className={`${props.className ?? ""}${extraClass}`}
+      className={`ant-table-row ${cls} ${props.className ?? ""}${extraClass}`}
     />
   );
 }
 
-const TABLE_COMPONENTS = { body: { row: DndRow } };
+const VIRTUOSO_COMPONENTS = {
+  Table: VirtuosoTable,
+  TableHead: VirtuosoTableHead,
+  TableRow: VirtualTableRow,
+};
 
 // ---------- Types ----------
 
@@ -193,6 +310,16 @@ interface FileEntry {
   issymlink?: boolean;
   link_target?: string;
   is_public?: boolean;
+}
+
+interface PeekEntry {
+  _isPeek: true;
+  _peekForName: string;
+  name: string;
+}
+type VirtualEntry = FileEntry | PeekEntry;
+function isPeekEntry(entry: VirtualEntry): entry is PeekEntry {
+  return "_isPeek" in entry;
 }
 
 function listingMembershipKey(entry: FileEntry): string {
@@ -252,45 +379,6 @@ export function watchFiles({ actions, current_path }): void {
   } catch (err) {
     console.warn("ERROR watching directory", err);
   }
-}
-
-// ---------- Helper: available scroll height for the table body ----------
-
-/**
- * Compute the pixel height available for the scrollable table body.
- * Measures the container top + the table header height and returns
- * `window.innerHeight - top - theadHeight` so the table fills the
- * remaining viewport.  Uses requestAnimationFrame + delay so the DOM
- * has settled.  Only re-measures on resize — not on content — to avoid
- * feedback loops.
- */
-function useAvailableHeight(el: HTMLDivElement | null) {
-  const [height, setHeight] = useState(400);
-
-  useEffect(() => {
-    if (!el) return;
-
-    function recalc() {
-      const rect = el!.getBoundingClientRect();
-      const thead = el!.querySelector<HTMLElement>(".ant-table-thead");
-      const theadH = thead?.offsetHeight ?? 40;
-      // Leave 4px breathing room at the bottom
-      const available = window.innerHeight - rect.top - theadH - 4;
-      setHeight(Math.max(200, available));
-    }
-
-    const rafId = requestAnimationFrame(() => {
-      recalc();
-      setTimeout(recalc, 150);
-    });
-    window.addEventListener("resize", recalc);
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.removeEventListener("resize", recalc);
-    };
-  }, [el]);
-
-  return height;
 }
 
 // ---------- Helper: responsive container width ----------
@@ -467,6 +555,26 @@ function renderTimestamp(mtime?: number): React.ReactNode {
 // TODO: When the screen is narrow, hide some columns (Type, Size, Public)
 // similar to how the projects table removes columns below certain widths.
 
+// ---------- Sort indicator ----------
+
+function SortIndicator({
+  columnKey,
+  sortColumn,
+  sortDescending,
+}: {
+  columnKey: string;
+  sortColumn: string | undefined;
+  sortDescending: boolean | undefined;
+}) {
+  if (sortColumn !== columnKey) return null;
+  return (
+    <Icon
+      name={sortDescending ? "caret-down" : "caret-up"}
+      style={{ color: COLORS.ANTD_LINK_BLUE, marginLeft: 4 }}
+    />
+  );
+}
+
 // ---------- Main component ----------
 
 export const FileListing: React.FC<Props> = ({
@@ -564,11 +672,10 @@ export const FileListing: React.FC<Props> = ({
   const dimFileExtensions = !!other_settings?.get?.("dim_file_extensions");
   const typeFilter = useTypedRedux({ project_id }, "type_filter") ?? null;
 
-  // -- Scrollable table: compute available height for table body --
+  // -- Container refs --
   // Use callback ref (useState) so hooks re-run when the DOM node appears
   // after early-return renders (empty directory, project-not-running, etc.)
   const [containerEl, containerRef] = useState<HTMLDivElement | null>(null);
-  const scrollHeight = useAvailableHeight(containerEl);
   const containerWidth = useContainerWidth(containerEl);
   const isNarrow = IS_MOBILE || containerWidth < NARROW_WIDTH_PX;
 
@@ -654,32 +761,6 @@ export const FileListing: React.FC<Props> = ({
     }
     return map;
   }, [dataSource]);
-
-  const dndRowCtx: DndRowContextType = useMemo(
-    () => ({
-      currentPath: current_path,
-      projectId: project_id,
-      disableActions: !!student_project_functionality.disableActions,
-      getRecord: (name: string) => recordMap.get(name),
-      getDragPaths: (name: string) => {
-        // If this file is already in checked_files, drag all checked.
-        // Otherwise, add it and drag all.
-        const fp = misc.path_to_file(current_path, name);
-        if (checked_files.has(fp)) {
-          return checked_files.toArray();
-        }
-        // Select this file too for the drag
-        return [...checked_files.toArray(), fp];
-      },
-    }),
-    [
-      current_path,
-      project_id,
-      recordMap,
-      checked_files,
-      student_project_functionality.disableActions,
-    ],
-  );
 
   // -- Row click handler --
   const handleRowClick = useCallback(
@@ -868,262 +949,90 @@ export const FileListing: React.FC<Props> = ({
   const sortColumn = active_file_sort?.get("column_name");
   const sortDescending = active_file_sort?.get("is_descending");
 
-  function getSortOrder(columnKey: string): "ascend" | "descend" | undefined {
-    if (sortColumn === columnKey) {
-      return sortDescending ? "descend" : "ascend";
-    }
-    return undefined;
-  }
-
-  // -- Type filters --
+  // -- Type filters (for Dropdown menu in header) --
   const typeFilters = useMemo(
     () => computeTypeFilters(type_counts, listingForRender),
     [type_counts, listingForRender],
   );
 
-  // -- Columns --
-  const columns: ColumnsType<FileEntry> = useMemo(() => {
-    const cols: ColumnsType<FileEntry> = [
-      // Type icon column — hidden on mobile to save space
-      ...(IS_MOBILE
-        ? []
-        : [
+  const typeFilterMenuItems = useMemo(
+    () => [
+      ...(typeFilter != null
+        ? [
             {
-              key: "type",
-              width: 60,
-              render: (_: any, record: FileEntry) =>
-                renderFileIcon(
-                  record,
-                  record.isdir ? expandedDirs.includes(record.name) : false,
-                ),
-              onCell: (record: FileEntry) => {
-                if (!record.isdir) return {};
-                const isExpanded = expandedDirs.includes(record.name);
-                return {
-                  onClick: (e: React.MouseEvent) =>
-                    toggleExpandDir(record.name, e),
-                  className: isExpanded
-                    ? "cc-explorer-cell-expanded"
-                    : undefined,
-                  style: { cursor: "pointer" },
-                };
-              },
-              filters: typeFilters,
-              filterMultiple: false,
-              filteredValue: typeFilter != null ? [typeFilter] : null,
+              key: "__clear__",
+              icon: <Icon name="times" />,
+              label: (
+                <span style={{ fontStyle: "italic", color: COLORS.GRAY }}>
+                  Clear filter
+                </span>
+              ),
             },
-          ]),
-      {
-        key: "starred",
-        width: 40,
-        sorter: true,
-        sortOrder: getSortOrder("starred"),
-        showSorterTooltip: false,
-        render: (_, record) => {
-          const fp = misc.path_to_file(current_path, record.name);
-          const pathForStar = record.isdir ? `${fp}/` : fp;
-          const isStarred = starred.includes(pathForStar);
-          return (
-            <Icon
-              name={isStarred ? "star-filled" : "star"}
-              onClick={(e) => {
-                e?.preventDefault();
-                e?.stopPropagation();
-                handleToggleStar(record, !isStarred);
-              }}
-              style={{
-                cursor: "pointer",
-                fontSize: "14pt",
-                color: isStarred ? COLORS.STAR : COLORS.GRAY_L,
-              }}
-            />
-          );
-        },
-      },
-      {
-        key: "public",
-        width: 40,
-        sorter: true,
-        sortOrder: getSortOrder("public"),
-        showSorterTooltip: false,
-        render: (_, record) =>
-          record.is_public ? (
-            <Icon name="share-square" style={{ color: COLORS.TAB }} />
-          ) : null,
-      },
-      {
-        title: intl.formatMessage(labels.name),
-        key: "name",
-        dataIndex: "name",
-        sorter: true,
-        sortOrder: getSortOrder("name"),
-        showSorterTooltip: false,
-        ellipsis: true,
-        render: (_, record) => renderFileName(record, dimFileExtensions),
-      },
-      // Date column hidden on mobile to maximize file name space
-      ...(IS_MOBILE
-        ? []
-        : [
-            {
-              title: intl.formatMessage({
-                id: "project.explorer.file-listing.column.date",
-                defaultMessage: "Date Modified",
-              }),
-              key: "time",
-              dataIndex: "mtime",
-              width: 170,
-              sorter: true,
-              sortOrder: getSortOrder("time"),
-              showSorterTooltip: false,
-              ellipsis: true,
-              render: (mtime: number | undefined) => renderTimestamp(mtime),
-            },
-          ]),
-      // Size and View columns hidden when container is narrow
-      ...(isNarrow
-        ? []
-        : [
-            {
-              title: intl.formatMessage(labels.size),
-              key: "size",
-              dataIndex: "size",
-              width: 130,
-              sorter: true,
-              sortOrder: getSortOrder("size"),
-              showSorterTooltip: false,
-              ellipsis: true,
-              align: "right" as const,
-              render: (_: any, record: FileEntry) => {
-                if (record.isdir) {
-                  if (record.size == null) return null;
-                  return (
-                    <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
-                      {record.size} {misc.plural(record.size, "item")}
-                    </span>
-                  );
-                }
-                const sizeStr = misc.human_readable_size(record.size);
-                if (student_project_functionality.disableActions) {
-                  return (
-                    <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
-                      {sizeStr}
-                    </span>
-                  );
-                }
-                const fp = misc.path_to_file(current_path, record.name);
-                const fileUrl = url_href(
-                  actions.project_id,
-                  fp,
-                  computeServerId,
-                );
-                return (
-                  <a
-                    href={fileUrl}
-                    onClick={(e) => handleDownloadClick(e, record)}
-                    style={{
-                      color: COLORS.TAB,
-                      padding: 0,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {sizeStr}{" "}
-                    <Icon name="cloud-download" style={{ color: COLORS.TAB }} />
-                  </a>
-                );
-              },
-            },
-            {
-              // Quick view column (eye icon for viewable files)
-              key: "view",
-              width: 40,
-              render: (_: any, record: FileEntry) => {
-                if (record.isdir) return null;
-                if (student_project_functionality.disableActions) return null;
-                const ext = (
-                  misc.filename_extension(record.name) ?? ""
-                ).toLowerCase();
-                if (!VIEWABLE_FILE_EXT.includes(ext)) return null;
-                return (
-                  <a
-                    href={url_href(
-                      actions.project_id,
-                      misc.path_to_file(current_path, record.name),
-                      computeServerId,
-                    )}
-                    onClick={(e) => handleViewClick(e, record)}
-                    style={{ color: COLORS.TAB, padding: 0 }}
-                  >
-                    <Icon name="eye" />
-                  </a>
-                );
-              },
-            },
-          ]),
-    ];
-
-    return cols;
-  }, [
-    current_path,
-    starred,
-    dimFileExtensions,
-    typeFilters,
-    typeFilter,
-    sortColumn,
-    sortDescending,
-    computeServerId,
-    student_project_functionality.disableActions,
-    isNarrow,
-    intl,
-    expandedDirs,
-    toggleExpandDir,
-  ]);
-
-  // -- Row selection (checkboxes) --
-  const rowSelection: TableProps<FileEntry>["rowSelection"] = useMemo(
-    () => ({
-      selectedRowKeys,
-      onChange: (newSelectedKeys: React.Key[]) => {
-        actions.set_all_files_unchecked();
-        if (newSelectedKeys.length > 0) {
-          actions.set_file_list_checked(
-            newSelectedKeys.map((k) =>
-              misc.path_to_file(current_path, k as string),
-            ),
-          );
-        }
-      },
-      onSelect: (record: FileEntry, selected: boolean, _rows, nativeEvent) => {
-        const fullPath = misc.path_to_file(current_path, record.name);
-        if ((nativeEvent as MouseEvent)?.shiftKey) {
-          actions.set_selected_file_range(fullPath, selected);
-        }
-        actions.set_most_recent_file_click(fullPath);
-      },
-      getCheckboxProps: (record: FileEntry) => ({
-        disabled: record.name === "..",
-      }),
-      columnWidth: 40,
-    }),
-    [selectedRowKeys, current_path, actions],
+            { type: "divider" as const, key: "__divider__" },
+          ]
+        : []),
+      ...typeFilters.map((f) => ({
+        key: String(f.value),
+        label: f.text,
+      })),
+    ],
+    [typeFilters, typeFilter],
   );
 
-  // -- Table onChange (sorting + filtering) --
-  const handleTableChange: TableProps<FileEntry>["onChange"] = useCallback(
-    (_pagination, filters, sorter: any, extra) => {
-      // Only update sort when the user actually clicked a column header
-      if (extra.action === "sort") {
-        const activeSorter = Array.isArray(sorter) ? sorter[0] : sorter;
-        if (activeSorter?.columnKey) {
-          sort_by(activeSorter.columnKey as string);
-        }
+  // -- Virtual data: insert PeekEntry rows after expanded directories --
+  const virtualData: VirtualEntry[] = useMemo(() => {
+    const result: VirtualEntry[] = [];
+    for (const entry of dataSource) {
+      result.push(entry);
+      if (entry.isdir && expandedDirs.includes(entry.name)) {
+        result.push({
+          _isPeek: true,
+          _peekForName: entry.name,
+          name: `__peek__${entry.name}`,
+        });
       }
-      // Sync type filter to Redux (shared with flyout)
-      const typeValues = filters?.type as string[] | null;
-      const newFilter = typeValues?.[0] ?? undefined;
-      actions.setState({ type_filter: newFilter } as any);
-    },
-    [sort_by, actions],
+    }
+    return result;
+  }, [dataSource, expandedDirs]);
+
+  // -- Count visible columns for peek row colSpan --
+  const numCols = useMemo(() => {
+    let n = 3; // checkbox + star + name (always visible)
+    if (!student_project_functionality.disableActions) {
+      // checkbox column is present
+    } else {
+      n--; // no checkbox
+    }
+    if (!IS_MOBILE) n += 2; // type + date
+    n += 1; // public
+    if (!isNarrow) n += 2; // size + view
+    return n;
+  }, [isNarrow, student_project_functionality.disableActions]);
+
+  // -- Virtuoso ref for scrollToIndex --
+  const virtuosoRef = useRef<TableVirtuosoHandle>(null);
+
+  // -- Save scroll position when navigating away from a directory --
+  useEffect(() => {
+    if (prev_current_path != null && prev_current_path !== current_path) {
+      saveScrollState(
+        scrollCacheKey(project_id, prev_current_path),
+        virtuosoRef,
+      );
+    }
+  }, [current_path, prev_current_path, project_id]);
+
+  // Also save on unmount (e.g. switching tabs)
+  useEffect(() => {
+    return () => {
+      saveScrollState(scrollCacheKey(project_id, current_path), virtuosoRef);
+    };
+  }, [project_id, current_path]);
+
+  // -- Restore scroll position for current directory --
+  const restoreSnapshot = useMemo(
+    () => scrollCache.get(scrollCacheKey(project_id, current_path)) ?? null,
+    [project_id, current_path],
   );
 
   // -- Row event handlers (memoized to avoid re-render churn) --
@@ -1195,6 +1104,86 @@ export const FileListing: React.FC<Props> = ({
       search_focused,
     ],
   );
+
+  // -- DnD row context (includes virtual entry lookup, onRow, rowClassName) --
+  const dndRowCtx: DndRowContextType = useMemo(
+    () => ({
+      currentPath: current_path,
+      projectId: project_id,
+      disableActions: !!student_project_functionality.disableActions,
+      getRecord: (name: string) => recordMap.get(name),
+      getDragPaths: (name: string) => {
+        const fp = misc.path_to_file(current_path, name);
+        if (checked_files.has(fp)) {
+          return checked_files.toArray();
+        }
+        return [...checked_files.toArray(), fp];
+      },
+      getVirtualEntry: (index: number) => virtualData[index],
+      onRow,
+      rowClassName,
+    }),
+    [
+      current_path,
+      project_id,
+      recordMap,
+      checked_files,
+      student_project_functionality.disableActions,
+      virtualData,
+      onRow,
+      rowClassName,
+    ],
+  );
+
+  // -- Scroll to selected file when keyboard-navigating --
+  useEffect(() => {
+    if (selected_file_index == null || selected_file_index < 0) return;
+    const targetName = dataSource[selected_file_index]?.name;
+    if (!targetName) return;
+    const virtualIndex = virtualData.findIndex(
+      (e) => !isPeekEntry(e) && (e as FileEntry).name === targetName,
+    );
+    if (virtualIndex >= 0) {
+      virtuosoRef.current?.scrollToIndex({
+        index: virtualIndex,
+        align: "center",
+      });
+    }
+  }, [selected_file_index]);
+
+  // -- Checkbox handlers --
+  const handleSelectAll = useCallback(
+    (e: { target: { checked: boolean } }) => {
+      actions.set_all_files_unchecked();
+      if (e.target.checked) {
+        actions.set_file_list_checked(
+          dataSource
+            .filter((item) => item.name !== "..")
+            .map((item) => misc.path_to_file(current_path, item.name)),
+        );
+      }
+    },
+    [dataSource, current_path, actions],
+  );
+
+  const handleCheckboxChange = useCallback(
+    (record: FileEntry, checked: boolean, e?: React.MouseEvent) => {
+      const fullPath = misc.path_to_file(current_path, record.name);
+      if (e?.shiftKey) {
+        actions.set_selected_file_range(fullPath, checked);
+      } else {
+        actions.set_file_checked(fullPath, checked);
+      }
+      actions.set_most_recent_file_click(fullPath);
+    },
+    [current_path, actions],
+  );
+
+  // Select-all checkbox state
+  const selectableCount = dataSource.filter((d) => d.name !== "..").length;
+  const allChecked =
+    selectableCount > 0 && selectedRowKeys.length === selectableCount;
+  const someChecked = selectedRowKeys.length > 0 && !allChecked;
 
   // -- Early returns for special states --
   if (!isRunning && listingForRender.length === 0) {
@@ -1284,41 +1273,335 @@ export const FileListing: React.FC<Props> = ({
           className={`smc-vfill cc-explorer-table${shift_is_down ? " noselect" : ""}`}
           style={{ minHeight: 0, position: "relative" }}
         >
-          <Table<FileEntry>
-            size="small"
-            columns={columns}
-            dataSource={dataSource}
-            rowKey="name"
-            virtual
-            components={TABLE_COMPONENTS}
-            rowSelection={
-              student_project_functionality.disableActions
-                ? undefined
-                : rowSelection
-            }
-            pagination={false}
-            scroll={{ x: containerWidth, y: scrollHeight }}
-            showSorterTooltip={false}
-            sortDirections={["ascend", "descend", "ascend"]}
-            onChange={handleTableChange}
-            onRow={onRow}
-            rowClassName={rowClassName}
-            expandable={{
-              expandedRowRender: (record) => (
-                <DirectoryPeek
-                  project_id={project_id}
-                  dirPath={misc.path_to_file(current_path, record.name)}
-                  onClose={() =>
-                    setExpandedDirs((prev) =>
-                      prev.filter((d) => d !== record.name),
-                    )
-                  }
-                />
-              ),
-              expandedRowKeys: expandedDirs,
-              rowExpandable: (record) => !!record.isdir,
-              showExpandColumn: false,
-              expandedRowClassName: () => "cc-explorer-expanded-row",
+          <TableVirtuoso
+            ref={virtuosoRef}
+            style={{ flex: 1, minHeight: 0 }}
+            data={virtualData}
+            overscan={200}
+            {...(restoreSnapshot ? { restoreStateFrom: restoreSnapshot } : {})}
+            components={VIRTUOSO_COMPONENTS}
+            fixedHeaderContent={() => {
+              const thStyle: React.CSSProperties = {
+                padding: "8px 8px",
+                textAlign: "left",
+                position: "sticky",
+                top: 0,
+                background: COLORS.GRAY_LL,
+                borderBottom: `1px solid ${COLORS.GRAY_L0}`,
+                fontWeight: 600,
+                fontSize: "13px",
+                zIndex: 1,
+                cursor: "pointer",
+              };
+              return (
+                <tr>
+                  {!student_project_functionality.disableActions && (
+                    <th
+                      style={{
+                        ...thStyle,
+                        width: COL_W.CHECKBOX,
+                        cursor: "default",
+                      }}
+                    >
+                      <Checkbox
+                        checked={allChecked}
+                        indeterminate={someChecked}
+                        onChange={handleSelectAll}
+                      />
+                    </th>
+                  )}
+                  {!IS_MOBILE && (
+                    <th style={{ ...thStyle, width: COL_W.TYPE }}>
+                      <Dropdown
+                        menu={{
+                          items: typeFilterMenuItems,
+                          selectable: true,
+                          selectedKeys: typeFilter != null ? [typeFilter] : [],
+                          onClick: ({ key }) => {
+                            const newFilter =
+                              key === "__clear__" || key === typeFilter
+                                ? undefined
+                                : key;
+                            actions.setState({
+                              type_filter: newFilter,
+                            } as any);
+                          },
+                        }}
+                        trigger={["click"]}
+                      >
+                        <span>
+                          <FilterOutlined
+                            style={{
+                              color:
+                                typeFilter != null
+                                  ? COLORS.ANTD_LINK_BLUE
+                                  : undefined,
+                            }}
+                          />
+                        </span>
+                      </Dropdown>
+                    </th>
+                  )}
+                  <th
+                    style={{ ...thStyle, width: COL_W.STAR }}
+                    onClick={() => sort_by("starred")}
+                  >
+                    <Icon
+                      name="star"
+                      style={{ fontSize: "14pt", verticalAlign: "sub" }}
+                    />
+                    <SortIndicator
+                      columnKey="starred"
+                      sortColumn={sortColumn}
+                      sortDescending={sortDescending}
+                    />
+                  </th>
+                  <th
+                    style={{ ...thStyle, width: COL_W.PUBLIC }}
+                    onClick={() => sort_by("public")}
+                  >
+                    <SortIndicator
+                      columnKey="public"
+                      sortColumn={sortColumn}
+                      sortDescending={sortDescending}
+                    />
+                  </th>
+                  <th style={{ ...thStyle }} onClick={() => sort_by("name")}>
+                    {intl.formatMessage(labels.name)}
+                    <SortIndicator
+                      columnKey="name"
+                      sortColumn={sortColumn}
+                      sortDescending={sortDescending}
+                    />
+                  </th>
+                  {!IS_MOBILE && (
+                    <th
+                      style={{ ...thStyle, width: COL_W.DATE }}
+                      onClick={() => sort_by("time")}
+                    >
+                      {intl.formatMessage({
+                        id: "project.explorer.file-listing.column.date",
+                        defaultMessage: "Date Modified",
+                      })}
+                      <SortIndicator
+                        columnKey="time"
+                        sortColumn={sortColumn}
+                        sortDescending={sortDescending}
+                      />
+                    </th>
+                  )}
+                  {!isNarrow && (
+                    <>
+                      <th
+                        style={{
+                          ...thStyle,
+                          width: COL_W.SIZE,
+                          textAlign: "right",
+                        }}
+                        onClick={() => sort_by("size")}
+                      >
+                        {intl.formatMessage(labels.size)}
+                        <SortIndicator
+                          columnKey="size"
+                          sortColumn={sortColumn}
+                          sortDescending={sortDescending}
+                        />
+                      </th>
+                      <th
+                        style={{
+                          ...thStyle,
+                          width: COL_W.VIEW,
+                          cursor: "default",
+                        }}
+                      />
+                    </>
+                  )}
+                </tr>
+              );
+            }}
+            itemContent={(_index, entry) => {
+              // -- Peek row (expanded directory content) --
+              if (isPeekEntry(entry)) {
+                return (
+                  <td
+                    colSpan={numCols}
+                    style={{ padding: 0, background: "white" }}
+                  >
+                    <DirectoryPeek
+                      project_id={project_id}
+                      dirPath={misc.path_to_file(
+                        current_path,
+                        entry._peekForName,
+                      )}
+                      onClose={() =>
+                        setExpandedDirs((prev) =>
+                          prev.filter((d) => d !== entry._peekForName),
+                        )
+                      }
+                    />
+                  </td>
+                );
+              }
+
+              // -- Regular file/folder row cells --
+              const record = entry as FileEntry;
+              const fp = misc.path_to_file(current_path, record.name);
+              const isChecked = checked_files.has(fp);
+              const pathForStar = record.isdir ? `${fp}/` : fp;
+              const isStarred = starred.includes(pathForStar);
+              const isExpanded =
+                record.isdir && expandedDirs.includes(record.name);
+
+              const cellStyle: React.CSSProperties = {
+                padding: "6px 8px",
+                borderBottom: "none",
+                background: "white",
+                whiteSpace: "nowrap",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+              };
+
+              return (
+                <>
+                  {!student_project_functionality.disableActions && (
+                    <td style={{ ...cellStyle, width: COL_W.CHECKBOX }}>
+                      <Checkbox
+                        checked={isChecked}
+                        disabled={record.name === ".."}
+                        onClick={(e) => e.stopPropagation()}
+                        onChange={(e) =>
+                          handleCheckboxChange(
+                            record,
+                            e.target.checked,
+                            e.nativeEvent as any,
+                          )
+                        }
+                      />
+                    </td>
+                  )}
+                  {!IS_MOBILE && (
+                    <td
+                      style={{
+                        ...cellStyle,
+                        width: COL_W.TYPE,
+                        cursor: record.isdir ? "pointer" : undefined,
+                      }}
+                      className={
+                        isExpanded ? "cc-explorer-cell-expanded" : undefined
+                      }
+                      onClick={
+                        record.isdir
+                          ? (e) => toggleExpandDir(record.name, e)
+                          : undefined
+                      }
+                    >
+                      {renderFileIcon(record, isExpanded)}
+                    </td>
+                  )}
+                  <td style={{ ...cellStyle, width: COL_W.STAR }}>
+                    <Icon
+                      name={isStarred ? "star-filled" : "star"}
+                      onClick={(e) => {
+                        e?.preventDefault();
+                        e?.stopPropagation();
+                        handleToggleStar(record, !isStarred);
+                      }}
+                      style={{
+                        cursor: "pointer",
+                        fontSize: "14pt",
+                        color: isStarred ? COLORS.STAR : COLORS.GRAY_L,
+                      }}
+                    />
+                  </td>
+                  <td style={{ ...cellStyle, width: COL_W.PUBLIC }}>
+                    {record.is_public ? (
+                      <Icon name="share-square" style={{ color: COLORS.TAB }} />
+                    ) : null}
+                  </td>
+                  <td style={{ ...cellStyle }}>
+                    {renderFileName(record, dimFileExtensions)}
+                  </td>
+                  {!IS_MOBILE && (
+                    <td style={{ ...cellStyle, width: COL_W.DATE }}>
+                      {renderTimestamp(record.mtime)}
+                    </td>
+                  )}
+                  {!isNarrow && (
+                    <>
+                      <td
+                        style={{
+                          ...cellStyle,
+                          width: COL_W.SIZE,
+                          textAlign: "right",
+                        }}
+                      >
+                        {record.isdir ? (
+                          record.size != null ? (
+                            <span
+                              style={{
+                                color: COLORS.TAB,
+                                whiteSpace: "nowrap",
+                              }}
+                            >
+                              {record.size} {misc.plural(record.size, "item")}
+                            </span>
+                          ) : null
+                        ) : student_project_functionality.disableActions ? (
+                          <span
+                            style={{
+                              color: COLORS.TAB,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {misc.human_readable_size(record.size)}
+                          </span>
+                        ) : (
+                          <a
+                            href={url_href(
+                              actions.project_id,
+                              fp,
+                              computeServerId,
+                            )}
+                            onClick={(e) => handleDownloadClick(e, record)}
+                            style={{
+                              color: COLORS.TAB,
+                              padding: 0,
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {misc.human_readable_size(record.size)}{" "}
+                            <Icon
+                              name="cloud-download"
+                              style={{ color: COLORS.TAB }}
+                            />
+                          </a>
+                        )}
+                      </td>
+                      <td style={{ ...cellStyle, width: COL_W.VIEW }}>
+                        {!record.isdir &&
+                          !student_project_functionality.disableActions &&
+                          VIEWABLE_FILE_EXT.includes(
+                            (
+                              misc.filename_extension(record.name) ?? ""
+                            ).toLowerCase(),
+                          ) && (
+                            <a
+                              href={url_href(
+                                actions.project_id,
+                                fp,
+                                computeServerId,
+                              )}
+                              onClick={(e) => handleViewClick(e, record)}
+                              style={{ color: COLORS.TAB, padding: 0 }}
+                            >
+                              <Icon name="eye" />
+                            </a>
+                          )}
+                      </td>
+                    </>
+                  )}
+                </>
+              );
             }}
           />
         </div>
