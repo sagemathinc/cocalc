@@ -76,6 +76,7 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "@cocalc/frontend/project/page/flyouts/state";
+import { migrateStarsOnMove } from "@cocalc/frontend/project/page/flyouts/store";
 import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
@@ -2575,6 +2576,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         dest: opts.dest + "/" /* target is assumed to be a directory */,
         compute_server_id,
       });
+      // Migrate starred file bookmarks to their new locations
+      await migrateStarsOnMove(this.project_id, opts.src, opts.dest);
     } catch (err) {
       error = err;
     } finally {

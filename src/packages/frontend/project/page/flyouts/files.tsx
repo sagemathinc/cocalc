@@ -9,10 +9,13 @@ import { List, Map } from "immutable";
 import { debounce, fromPairs } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
+import { useFolderDrop } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
+
 import {
   React,
   TypedMap,
   redux,
+  useCallback,
   useEffect,
   useIsMountedRef,
   useLayoutEffect,
@@ -112,6 +115,21 @@ export function FilesFlyout({
     null,
   );
   const current_path = useTypedRedux({ project_id }, "current_path");
+
+  // Background drop target: dropping a file anywhere on the flyout panel
+  // moves it to the current directory (same behavior as the explorer table).
+  const { dropRef: flyoutDropRef } = useFolderDrop(
+    `flyout-files-bg-${current_path}`,
+    current_path,
+  );
+  const combinedRootRef = useCallback(
+    (node: HTMLDivElement | null) => {
+      (rootRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
+      flyoutDropRef(node);
+    },
+    [flyoutDropRef],
+  );
+
   const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const directoryListings: Map<
@@ -759,7 +777,7 @@ export function FilesFlyout({
 
   return (
     <div
-      ref={rootRef}
+      ref={combinedRootRef}
       style={{ flex: "1 0 auto", flexDirection: "column", display: "flex" }}
     >
       <FilesHeader

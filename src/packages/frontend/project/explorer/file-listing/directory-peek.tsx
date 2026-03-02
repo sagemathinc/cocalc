@@ -24,6 +24,7 @@ import {
   useFileDrag,
   useFolderDrop,
 } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
+import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import type { FileAction } from "@cocalc/frontend/project_actions";
@@ -50,8 +51,8 @@ const MAX_HEIGHT = 300;
  *  so that 10k-file directories don't mount 10k DOM nodes at once. */
 const VIRTUALIZE_THRESHOLD = 200;
 
-/** Grid height when using VirtuosoGrid (accounts for close button + padding). */
-const GRID_HEIGHT = MAX_HEIGHT - 40;
+/** Grid height when using VirtuosoGrid (accounts for header row + padding). */
+const GRID_HEIGHT = MAX_HEIGHT - 48;
 
 const PEEK_ITEM_WIDTH = 150;
 
@@ -68,7 +69,10 @@ const GridListContainer = React.forwardRef<
 ));
 GridListContainer.displayName = "GridListContainer";
 
-export default function DirectoryPeek({
+/** Memoized so parent re-renders (e.g. listing data change) don't
+ *  unmount/remount the component and lose its fetched entries state.
+ *  Only re-renders when project_id or dirPath actually changes. */
+const DirectoryPeek = React.memo(function DirectoryPeek({
   project_id,
   dirPath,
   onClose,
@@ -77,11 +81,23 @@ export default function DirectoryPeek({
   const { actions } = useProjectContext();
   const computeServerId =
     useTypedRedux({ project_id }, "compute_server_id") ?? 0;
+  const showHidden = useTypedRedux({ project_id }, "show_hidden");
   const student = useStudentProjectFunctionality(project_id);
 
   const [loading, setLoading] = useState(true);
   const [entries, setEntries] = useState<PeekEntry[]>([]);
   const [error, setError] = useState<string | null>(null);
+  // Delayed spinner: only show after 400ms to avoid flashing on quick
+  // remounts (e.g. parent re-render after drop or periodic re-watch).
+  const [showSpinner, setShowSpinner] = useState(false);
+  useEffect(() => {
+    if (!loading || entries.length > 0) {
+      setShowSpinner(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowSpinner(true), 400);
+    return () => clearTimeout(timer);
+  }, [loading, entries.length]);
   // Bumped whenever the listing service reports a change for dirPath,
   // causing the fetch effect below to re-run.
   const [version, setVersion] = useState(0);
@@ -124,8 +140,16 @@ export default function DirectoryPeek({
         });
         if (cancelled) return;
 
-        const files: PeekEntry[] = (result?.files ?? [])
-          .filter((f) => f.name !== ".." && f.name !== ".")
+        const raw = (result?.files ?? []).filter(
+          (f) => f.name !== ".." && f.name !== ".",
+        );
+
+        // Apply file masks (dim compiled/derived files like .pyc, .aux, etc.)
+        compute_file_masks(raw);
+
+        const files: PeekEntry[] = raw
+          // Hide dotfiles unless show_hidden is enabled
+          .filter((f) => showHidden || !f.name.startsWith("."))
           .map((f) => ({
             ...f,
             fullPath: misc.path_to_file(dirPath, f.name),
@@ -153,7 +177,7 @@ export default function DirectoryPeek({
     return () => {
       cancelled = true;
     };
-  }, [dirPath, project_id, computeServerId, version]);
+  }, [dirPath, project_id, computeServerId, version, showHidden]);
 
   function handleClick(entry: PeekEntry) {
     if (entry.isdir) {
@@ -207,17 +231,25 @@ export default function DirectoryPeek({
           : { maxHeight: MAX_HEIGHT, overflowY: "auto" }),
       }}
     >
-      {/* Close button + count badge for large directories */}
+      {/* Close button — flow layout for large dirs (avoids scrollbar overlap),
+          absolute positioning for small dirs where it works fine. */}
       <div
-        style={{
-          position: "absolute",
-          top: 4,
-          right: 4,
-          zIndex: 1,
-          display: "flex",
-          alignItems: "center",
-          gap: 4,
-        }}
+        style={
+          isLarge
+            ? {
+                display: "flex",
+                justifyContent: "flex-end",
+                alignItems: "center",
+                gap: 4,
+                marginBottom: 4,
+              }
+            : {
+                position: "absolute",
+                top: 4,
+                right: 4,
+                zIndex: 1,
+              }
+        }
       >
         {isLarge && (
           <span style={{ fontSize: 11, color: COLORS.GRAY_M }}>
@@ -237,7 +269,7 @@ export default function DirectoryPeek({
         </Button>
       </div>
 
-      {loading && (
+      {showSpinner && (
         <div style={{ textAlign: "center", padding: 12 }}>
           <Spin size="small" />
         </div>
@@ -257,7 +289,7 @@ export default function DirectoryPeek({
         </div>
       )}
 
-      {!loading && entries.length > 0 && !isLarge && (
+      {entries.length > 0 && !isLarge && (
         <Flex wrap gap="small">
           {entries.map((entry) => (
             <PeekItem
@@ -273,7 +305,7 @@ export default function DirectoryPeek({
         </Flex>
       )}
 
-      {!loading && entries.length > 0 && isLarge && (
+      {entries.length > 0 && isLarge && (
         <VirtuosoGrid
           style={{ height: GRID_HEIGHT }}
           totalCount={entries.length}
@@ -296,7 +328,16 @@ export default function DirectoryPeek({
       )}
     </div>
   );
+}, arePropsEqual);
+
+function arePropsEqual(
+  prev: Readonly<DirectoryPeekProps>,
+  next: Readonly<DirectoryPeekProps>,
+): boolean {
+  return prev.project_id === next.project_id && prev.dirPath === next.dirPath;
 }
+
+export default DirectoryPeek;
 
 // Individual file/folder chip in the peek
 
@@ -343,7 +384,8 @@ function PeekItem({
             fontSize: 12,
             color: entry.isdir ? COLORS.ANTD_LINK_BLUE : COLORS.GRAY_D,
             background: "transparent",
-            opacity: isDragging && !disableActions ? 0.4 : 1,
+            opacity:
+              isDragging && !disableActions ? 0.4 : entry.mask ? 0.65 : 1,
           }}
           onMouseEnter={(e) => {
             (e.currentTarget as HTMLElement).style.background = COLORS.GRAY_LLL;
@@ -360,17 +402,41 @@ function PeekItem({
               color: entry.isdir ? COLORS.FILE_ICON : undefined,
             }}
           />
-          <span
-            style={{
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            {entry.name}
-          </span>
+          <PeekFileName name={entry.name} isdir={entry.isdir} />
         </div>
       </Tooltip>
     </Dropdown>
+  );
+}
+
+/** Renders filename with dimmed extension, matching the main explorer listing. */
+function PeekFileName({ name, isdir }: { name: string; isdir?: boolean }) {
+  if (isdir) {
+    return (
+      <span
+        style={{
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {name}
+      </span>
+    );
+  }
+  const parts = misc.separate_file_extension(name);
+  return (
+    <span
+      style={{
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {parts.name}
+      {parts.ext ? (
+        <span style={{ color: COLORS.FILE_DIMMED }}>.{parts.ext}</span>
+      ) : null}
+    </span>
   );
 }

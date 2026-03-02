@@ -55,7 +55,7 @@ import { COLORS } from "@cocalc/util/theme";
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
 import { ActionBar, ActionBarInfo } from "./action-bar";
-import { useFolderDrop } from "./dnd/file-dnd-provider";
+import { useFileDrag, useFolderDrop } from "./dnd/file-dnd-provider";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
@@ -842,15 +842,31 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
 }) {
   const id = `explorer-dir-tree-${project_id}-${path || TREE_HOME_KEY}`;
   const { dropRef, isOver, isInvalidDrop } = useFolderDrop(id, path);
+  const canDrag = path !== "";
+  const { dragRef, dragListeners, dragAttributes, isDragging } = useFileDrag(
+    `drag-dir-tree-${project_id}-${path || TREE_HOME_KEY}`,
+    canDrag ? [path] : [],
+    project_id,
+  );
   // Read current_path from Redux directly so the treeData memo doesn't need
   // to depend on it — only the 2 affected nodes re-render on navigation.
   const currentPath = useTypedRedux({ project_id }, "current_path") ?? "";
   const isSelected = currentPath === path;
   const starPath = path === "" ? "" : `${path}/`;
 
+  // Merge drag + drop refs onto the same element
+  const combinedRef = React.useCallback(
+    (node: HTMLSpanElement | null) => {
+      dropRef(node);
+      dragRef(node);
+    },
+    [dropRef, dragRef],
+  );
+
   return (
     <span
-      ref={dropRef}
+      ref={combinedRef}
+      {...(canDrag ? { ...dragListeners, ...dragAttributes } : {})}
       data-folder-drop-path={path}
       style={{
         display: "flex",
@@ -863,6 +879,7 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
         borderRadius: "4px",
         padding: "2px 4px",
         whiteSpace: "nowrap",
+        opacity: isDragging ? 0.4 : 1,
         background: isOver
           ? COLORS.BLUE_LL
           : isInvalidDrop

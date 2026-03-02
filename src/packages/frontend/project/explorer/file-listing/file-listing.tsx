@@ -966,11 +966,8 @@ export const FileListing: React.FC<Props> = ({
             {
               key: "__clear__",
               icon: <Icon name="times" />,
-              label: (
-                <span style={{ fontStyle: "italic", color: COLORS.GRAY }}>
-                  Clear filter
-                </span>
-              ),
+              label: "Clear filter",
+              style: { background: COLORS.ANTD_ORANGE },
             },
             { type: "divider" as const, key: "__divider__" },
           ]
@@ -1306,6 +1303,7 @@ export const FileListing: React.FC<Props> = ({
             ref={virtuosoRef}
             style={{ flex: 1, minHeight: 0 }}
             data={virtualData}
+            computeItemKey={(_index, entry) => entry.name}
             overscan={200}
             onScroll={handleVirtuosoScroll}
             {...(restoreSnapshot ? { restoreStateFrom: restoreSnapshot } : {})}
@@ -1319,7 +1317,7 @@ export const FileListing: React.FC<Props> = ({
                 background: COLORS.GRAY_LL,
                 borderBottom: `1px solid ${COLORS.GRAY_L0}`,
                 fontWeight: 600,
-                fontSize: "13px",
+                fontSize: undefined,
                 zIndex: 1,
                 cursor: "pointer",
               };
@@ -1356,6 +1354,7 @@ export const FileListing: React.FC<Props> = ({
                               type_filter: newFilter,
                             } as any);
                           },
+                          style: { maxHeight: "50vh", overflowY: "auto" },
                         }}
                         trigger={["click"]}
                       >
