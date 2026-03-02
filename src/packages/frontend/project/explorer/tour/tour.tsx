@@ -119,7 +119,7 @@ export default function ExplorerTour({
       description: (
         <>
           Click the upload button to select files from your computer and upload
-          them to your project. You an also just drag and drop files onto the
+          them to your project. You can also just drag and drop files onto the
           listing. There's also a library of Jupyter notebooks and other
           content.
         </>

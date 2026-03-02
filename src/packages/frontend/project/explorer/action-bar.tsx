@@ -145,9 +145,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   function render_action_button(name: FileAction): React.JSX.Element {
     const disabled =
       isDisabledSnapshots(name) &&
-      (props.current_path != null
-        ? props.current_path.startsWith(".snapshots")
-        : undefined);
+      (props.current_path?.startsWith(".snapshots") ?? false);
     const obj = FILE_ACTIONS[name];
     const handle_click = (_e: React.MouseEvent) => {
       props.actions.set_file_action(name);

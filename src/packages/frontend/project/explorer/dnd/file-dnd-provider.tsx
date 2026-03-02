@@ -28,7 +28,12 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { redux, useActions } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { is_valid_uuid_string, path_split, plural } from "@cocalc/util/misc";
+import {
+  is_valid_uuid_string,
+  path_split,
+  plural,
+  uuid,
+} from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 // ---------- Types ----------
@@ -429,6 +434,10 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
           actions.fetch_directory_listing();
         } catch (err) {
           console.warn("File drag-and-drop operation failed:", err);
+          actions.set_activity({
+            id: uuid(),
+            error: `Drag-and-drop failed: ${err}`,
+          });
           restoreSelection();
         }
         return;

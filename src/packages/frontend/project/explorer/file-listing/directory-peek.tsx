@@ -330,6 +330,8 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
   );
 }, arePropsEqual);
 
+// onClose is excluded intentionally — it must be stabilized with useCallback
+// in the parent (FileListing) and does not affect render output.
 function arePropsEqual(
   prev: Readonly<DirectoryPeekProps>,
   next: Readonly<DirectoryPeekProps>,

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -21,7 +21,7 @@ const HelpStyle = {
   top: "40px",
   position: "absolute",
   width: "100%",
-  height: "38",
+  height: "38px",
   boxShadow: "#999 6px 6px 6px",
   zIndex: 100,
   borderRadius: "15px",
@@ -45,8 +45,8 @@ interface Props {
   file_search: string;
   current_path?: string;
   actions: ProjectActions;
-  create_file: (a, b) => void;
-  create_folder: (a) => void;
+  create_file: (ext?: string, switch_over?: boolean) => void;
+  create_folder: (switch_over?: boolean) => void;
   selected_file?: ListingItem; // if given, file selected by cursor, which we open on pressing enter
   selected_file_index?: number;
   file_creation_error?: string;
@@ -77,10 +77,8 @@ export const SearchBar = React.memo((props: Props) => {
   const intl = useIntl();
   const { project_id } = useProjectContext();
 
-  // edit → run → edit
-  // TODO use "state" to show a progress spinner while a command is running
-  // @ts-ignore
-  const [state, set_state] = React.useState<"edit" | "run">("edit");
+  // TODO use state/set_state to show a progress spinner while a command runs
+  const [, set_state] = React.useState<"edit" | "run">("edit");
   const [error, set_error] = React.useState<string | undefined>(undefined);
   const [stdout, set_stdout] = React.useState<string | undefined>(undefined);
 

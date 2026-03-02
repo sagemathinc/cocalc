@@ -305,13 +305,15 @@ export function LogFlyout({
   }, [flyoutWidth]);
 
   // trigger a search state change, only once and with a debounce
-  const setSearchState = debounce(
-    (val: string): void => {
-      actions?.setState({ search: val });
-    },
-    20,
-    { leading: false, trailing: true },
-  );
+  const setSearchState = useRef(
+    debounce(
+      (val: string): void => {
+        actions?.setState({ search: val });
+      },
+      20,
+      { leading: false, trailing: true },
+    ),
+  ).current;
 
   const handleOnChange = useCallback((val: string) => {
     setScrollIdx(null);

@@ -131,7 +131,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     }
     // library only exists on kucalc, for now.
     if (!available_features?.library) return;
-    if (kucalc !== "yes") return;
+    if (kucalc !== KUCALC_COCALC_COM) return;
     return (
       <Button onClick={handle_library_click}>
         <Icon name="book" /> <VisibleLG>Library</VisibleLG>

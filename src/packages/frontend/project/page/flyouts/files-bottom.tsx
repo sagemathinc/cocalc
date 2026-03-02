@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -96,10 +96,12 @@ export function FilesBottom({
 
   const collapseRef = useRef<HTMLDivElement>(null);
 
-  const triggerResize = debounce(() => setResize((r) => r + 1), 50, {
-    leading: false,
-    trailing: true,
-  });
+  const triggerResize = useRef(
+    debounce(() => setResize((r) => r + 1), 50, {
+      leading: false,
+      trailing: true,
+    }),
+  ).current;
 
   function setTerminalFontSize(next: number | Function) {
     const sani = (val) => Math.round(Math.min(18, Math.max(6, val)));

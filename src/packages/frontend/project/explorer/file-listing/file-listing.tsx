@@ -149,10 +149,13 @@ const VirtuosoTable = ({
   />
 );
 
+VirtuosoTable.displayName = "FileExplorerTable";
+
 const VirtuosoTableHead = React.forwardRef<
   HTMLTableSectionElement,
   React.HTMLAttributes<HTMLTableSectionElement>
 >((props, ref) => <thead {...props} ref={ref} className="ant-table-thead" />);
+VirtuosoTableHead.displayName = "FileExplorerHead";
 
 /**
  * Custom <tr> for TableVirtuoso. Reads data-item-index to look up the
@@ -803,7 +806,7 @@ export const FileListing: React.FC<Props> = ({
         return [];
       }
 
-      const multiple = checked_files.size > 1;
+      const multiple = selectedRowKeys.length > 1;
       const nameStr = misc.trunc_middle(record.name, 30);
       const typeStr = intl.formatMessage(labels.file_or_folder, {
         isDir: String(!!record.isdir),
@@ -908,6 +911,7 @@ export const FileListing: React.FC<Props> = ({
     [
       current_path,
       checked_files,
+      selectedRowKeys,
       computeServerId,
       student_project_functionality,
       intl,
@@ -1175,7 +1179,7 @@ export const FileListing: React.FC<Props> = ({
         align: "center",
       });
     }
-  }, [selected_file_index]);
+  }, [selected_file_index, dataSource, virtualData]);
 
   // -- Checkbox handlers --
   const handleSelectAll = useCallback(

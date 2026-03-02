@@ -341,6 +341,7 @@ export function FilesFlyout({
     strippedPublicPaths,
     maskFiles,
     typeFilter,
+    activePath,
   ]);
 
   // Compute available type filter options from the unfiltered listing
@@ -387,11 +388,13 @@ export function FilesFlyout({
     setShowCheckboxIndex(null);
   }, [directoryListings, current_path]);
 
-  const triggerRootResize = debounce(
-    () => setRootHeightPx(rootRef.current?.clientHeight ?? 0),
-    50,
-    { leading: false, trailing: true },
-  );
+  const triggerRootResize = useRef(
+    debounce(
+      () => setRootHeightPx(rootRef.current?.clientHeight ?? 0),
+      50,
+      { leading: false, trailing: true },
+    ),
+  ).current;
 
   // observe the root element's height
   useLayoutEffect(() => {
@@ -761,7 +764,7 @@ export function FilesFlyout({
     );
   }
 
-  function clearAllSelections(switchMode) {
+  function clearAllSelections(switchMode: boolean) {
     if (switchMode) setMode("open");
     setPrevSelected(null);
     actions?.set_all_files_unchecked();
