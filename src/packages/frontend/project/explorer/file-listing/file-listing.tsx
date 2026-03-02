@@ -77,25 +77,24 @@ interface DndRowContextType {
 const DndRowContext = React.createContext<DndRowContextType | null>(null);
 
 /**
- * Custom <tr> for the antd Table.  Each row is a drag source (except "..");
- * folder rows are also drop targets.
+ * Custom row for the antd virtual Table.  Uses <div> instead of <tr> because
+ * antd's virtual scroll container is a <div>, not a <tbody>.
+ * Each row is a drag source (except ".."); folder rows are also drop targets.
  */
-function DndRow(props: React.HTMLAttributes<HTMLTableRowElement>) {
+function DndRow(props: React.HTMLAttributes<HTMLDivElement>) {
   const ctx = React.useContext(DndRowContext);
   const rowKey = (props as any)["data-row-key"] as string | undefined;
 
   if (!ctx || !rowKey || ctx.disableActions) {
-    // Fallback: header row, missing context, or actions disabled (student project)
-    return <tr {...props} />;
+    return <div {...props} />;
   }
 
   const record = ctx.getRecord(rowKey);
   if (!record || record.name === "..") {
-    // ".." is droppable (parent dir) but not draggable
     if (record?.name === "..") {
       return <DndDropOnlyRow {...props} ctx={ctx} />;
     }
-    return <tr {...props} />;
+    return <div {...props} />;
   }
 
   return <DndDraggableRow {...props} ctx={ctx} record={record} />;
@@ -105,14 +104,14 @@ function DndRow(props: React.HTMLAttributes<HTMLTableRowElement>) {
 function DndDropOnlyRow({
   ctx,
   ...props
-}: React.HTMLAttributes<HTMLTableRowElement> & { ctx: DndRowContextType }) {
+}: React.HTMLAttributes<HTMLDivElement> & { ctx: DndRowContextType }) {
   const parentPath = ctx.currentPath.split("/").slice(0, -1).join("/");
   const { dropRef, isOver } = useFolderDrop(
     `explorer-folder-${parentPath}`,
     parentPath,
   );
   return (
-    <tr
+    <div
       {...props}
       ref={dropRef}
       data-folder-drop-path={parentPath}
@@ -126,7 +125,7 @@ function DndDraggableRow({
   ctx,
   record,
   ...props
-}: React.HTMLAttributes<HTMLTableRowElement> & {
+}: React.HTMLAttributes<HTMLDivElement> & {
   ctx: DndRowContextType;
   record: FileEntry;
 }) {
@@ -149,7 +148,7 @@ function DndDraggableRow({
 
   // Merge drag ref + drop ref
   const mergedRef = React.useCallback(
-    (node: HTMLTableRowElement | null) => {
+    (node: HTMLDivElement | null) => {
       dragRef(node);
       if (isFolder) dropRef(node);
     },
@@ -166,7 +165,7 @@ function DndDraggableRow({
           : "";
 
   return (
-    <tr
+    <div
       {...props}
       {...dragListeners}
       {...dragAttributes}

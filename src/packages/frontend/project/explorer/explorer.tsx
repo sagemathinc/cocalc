@@ -711,7 +711,7 @@ export function Explorer() {
               >
                 <Icon name="network" style={{ transform: "rotate(270deg)" }} />
               </BootstrapButton>
-              <span style={{ fontWeight: 500, fontSize: "90%" }}>
+              <span>
                 Directory Tree{" "}
                 <HelpIcon title="Directory Tree" maxWidth="300px">
                   <ul style={{ paddingLeft: "18px", margin: 0 }}>
