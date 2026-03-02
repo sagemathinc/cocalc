@@ -1,9 +1,18 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
+import {
+  Alert,
+  Button,
+  Input,
+  InputRef,
+  Radio,
+  Select,
+  Space,
+  Tooltip,
+} from "antd";
 import immutable from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
@@ -29,6 +38,7 @@ import {
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { separate_file_extension, strictMod } from "@cocalc/util/misc";
+import { renderTypeFilterLabel } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
@@ -72,6 +82,9 @@ interface Props {
   modeState: ["open" | "select", (mode: "open" | "select") => void];
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
+  typeFilter: string | null;
+  setTypeFilter: (filter: string | null) => void;
+  typeFilterOptions: string[];
 }
 
 export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
@@ -95,6 +108,9 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     modeState,
     selectAllFiles,
     clearAllSelections,
+    typeFilter,
+    setTypeFilter,
+    typeFilterOptions,
   } = props;
 
   const intl = useIntl();
@@ -389,16 +405,59 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
               justifyContent: "space-between",
             }}
           >
-            <Radio.Group size="small">
-              {renderSortButton(
-                "starred",
-                <Icon name="star-filled" style={{ fontSize: "10pt" }} />,
-              )}
-              {renderSortButton("name", "Name")}
-              {renderSortButton("size", "Size")}
-              {renderSortButton("time", "Time")}
-              {renderSortButton("type", "Type")}
-            </Radio.Group>
+            <Space size="small">
+              <Radio.Group size="small">
+                {renderSortButton(
+                  "starred",
+                  <Icon name="star-filled" style={{ fontSize: "10pt" }} />,
+                )}
+                {renderSortButton("name", "Name")}
+                {renderSortButton("size", "Size")}
+                {renderSortButton("time", "Time")}
+              </Radio.Group>
+              <Select
+                size="small"
+                allowClear
+                placeholder="Type"
+                value={typeFilter}
+                onChange={(val) =>
+                  setTypeFilter(val === "__clear__" || val == null ? null : val)
+                }
+                style={{ minWidth: 80 }}
+                popupMatchSelectWidth={false}
+                className={
+                  typeFilter != null
+                    ? "cc-flyout-type-filter-active"
+                    : undefined
+                }
+                options={[
+                  ...(typeFilter != null
+                    ? [
+                        {
+                          label: (
+                            <span
+                              style={{
+                                color: COLORS.GRAY,
+                                display: "block",
+                                borderBottom: `1px solid ${COLORS.GRAY_L0}`,
+                                paddingBottom: 4,
+                                marginBottom: 2,
+                              }}
+                            >
+                              <Icon name="times-circle" /> Clear filter
+                            </span>
+                          ),
+                          value: "__clear__",
+                        },
+                      ]
+                    : []),
+                  ...typeFilterOptions.map((ext) => ({
+                    label: renderTypeFilterLabel(ext),
+                    value: ext,
+                  })),
+                ]}
+              />
+            </Space>
             <Space.Compact direction="horizontal" size={"small"}>
               <Tooltip
                 title={intl.formatMessage(labels.upload_tooltip)}

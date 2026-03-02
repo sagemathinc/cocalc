@@ -4,6 +4,9 @@
  */
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
+
+import { FileDndProvider } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
+import { useExplorerSettings } from "@cocalc/frontend/project/explorer/use-explorer-settings";
 import { Button, Modal, Tooltip } from "antd";
 import { useIntl } from "react-intl";
 
@@ -95,6 +98,11 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     is_active,
     mainWidthPx,
   });
+
+  // Sort persistence via DKV — must be in an always-mounted component so
+  // flyout sort changes are saved even when the Explorer tab isn't active.
+  useExplorerSettings(project_id);
+
   const fullscreen = useTypedRedux("page", "fullscreen");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const modal = useTypedRedux({ project_id }, "modal");
@@ -395,13 +403,15 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <OOMWarning project_id={project_id} />
         <SoftwareEnvUpgrade project_id={project_id} />
         <ProjectWarningBanner />
-        {renderTopRow()}
-        {is_deleted && <DeletedProjectWarning />}
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {renderActivityBarButtons()}
-          {renderFlyout()}
-          {renderMainContent()}
-        </div>
+        <FileDndProvider project_id={project_id}>
+          {renderTopRow()}
+          {is_deleted && <DeletedProjectWarning />}
+          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            {renderActivityBarButtons()}
+            {renderFlyout()}
+            {renderMainContent()}
+          </div>
+        </FileDndProvider>
       </div>
     </ProjectContext.Provider>
   );

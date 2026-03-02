@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -102,8 +102,12 @@ export interface ProjectStoreState {
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
   file_action?: FileAction;
   file_action_source?: FileActionSource;
+  copy_destination_project_id?: string; // pre-populate cross-project copy dialog (e.g. from DnD)
   file_search?: string;
+  show_directory_tree?: boolean;
   show_hidden?: boolean;
+  hide_masked_files?: boolean; // temporary per-session toggle to completely hide masked files
+  type_filter?: string; // file extension filter shared between explorer table and flyout
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
@@ -319,6 +323,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       page_number: 0,
       checked_files: immutable.Set(),
       show_library: false,
+      show_directory_tree: false,
       file_listing_scroll_top: undefined,
       active_file_sort: TypedMap({
         is_descending: false,
@@ -384,6 +389,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "show_hidden",
         "compute_server_id",
         "starred_files",
+        "type_filter",
       ] as const,
       fn: () => {
         const search_escape_char = "/";
@@ -439,9 +445,42 @@ export class ProjectStore extends Store<ProjectStoreState> {
           compute_snapshot_display_names(listing);
         }
 
+        // Compute public file info early, so sorting by "public" works.
+        // The mutation is idempotent so calling it here and again below is safe.
+        {
+          const tmpData = { listing, public: {} };
+          mutate_data_to_compute_public_files(
+            tmpData,
+            this.get("stripped_public_paths"),
+            this.get("current_path"),
+          );
+        }
+
         const search = this.get("file_search");
         if (search && search[0] !== search_escape_char) {
           listing = _matched_files(search.toLowerCase(), listing);
+        }
+
+        // Compute type counts BEFORE type filtering, so the dropdown
+        // always shows all available types even when a filter is active.
+        const type_counts: Record<string, number> = {};
+        for (const item of listing) {
+          const ext = item.isdir
+            ? "folder"
+            : misc.filename_extension(item.name)?.toLowerCase() || "(none)";
+          type_counts[ext] = (type_counts[ext] ?? 0) + 1;
+        }
+
+        // Apply type filter (shared between explorer and flyout)
+        const typeFilter = this.get("type_filter");
+        if (typeFilter) {
+          listing = listing.filter((item) => {
+            if (item.isdir) return typeFilter === "folder";
+            return (
+              (misc.filename_extension(item.name)?.toLowerCase() ||
+                "(none)") === typeFilter
+            );
+          });
         }
 
         const sorter = (() => {
@@ -492,6 +531,18 @@ export class ProjectStore extends Store<ProjectStoreState> {
                   return misc.cmp(a.name.toLowerCase(), b.name.toLowerCase());
                 }
               };
+            case "public":
+              return (a, b) => {
+                const aPublic = !!a.is_public;
+                const bPublic = !!b.is_public;
+                if (aPublic && !bPublic) {
+                  return -1;
+                } else if (!aPublic && bPublic) {
+                  return 1;
+                } else {
+                  return misc.cmp(a.name.toLowerCase(), b.name.toLowerCase());
+                }
+              };
           }
         })();
 
@@ -523,6 +574,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           public: {},
           path: this.get("current_path"),
           file_map,
+          type_counts,
         };
 
         mutate_data_to_compute_public_files(

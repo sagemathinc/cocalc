@@ -7,7 +7,7 @@
 
 import { Alert as AntdAlert, Button as AntdButton, Radio, Space } from "antd";
 import * as immutable from "immutable";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import {
   Alert,
@@ -56,7 +56,6 @@ interface ReactProps {
   project_id: string;
   file_map?: Record<string, any>;
   actions: ProjectActions;
-  //new_name?: string;
   name: string;
   renameFormId?: string;
   onActionChange?: (loading: boolean) => void;
@@ -70,22 +69,35 @@ export function ActionBox(props: ReactProps) {
 
   const [copy_destination_directory, set_copy_destination_directory] =
     useState<string>("");
+  const dnd_copy_dest = useTypedRedux(
+    { project_id },
+    "copy_destination_project_id",
+  );
   const [copy_destination_project_id, set_copy_destination_project_id] =
-    useState<string>(project_id);
+    useState<string>(dnd_copy_dest ?? project_id);
   const [copy_from_compute_server_to, set_copy_from_compute_server_to] =
     useState<"compute-server" | "project">("compute-server");
   const [move_destination, set_move_destination] = useState<string>("");
   const [move_error, set_move_error] = useState<string>("");
   const [copy_error, set_copy_error] = useState<string>("");
   const [actionLoading, setActionLoading] = useState<boolean>(false);
-  //const [new_name, set_new_name] = useState<string>(props.new_name ?? "");
   const [show_different_project, set_show_different_project] =
-    useState<boolean>(false);
+    useState<boolean>(!!dnd_copy_dest && dnd_copy_dest !== project_id);
   const [overwrite_newer, set_overwrite_newer] = useState<boolean>();
   const [delete_extra_files, set_delete_extra_files] = useState<boolean>();
   const [dest_compute_server_id, set_dest_compute_server_id] = useState<number>(
     compute_server_id ?? 0,
   );
+
+  // Always clear the DnD copy destination when this dialog unmounts,
+  // regardless of how it was closed (cancel, success, or parent unmount).
+  useEffect(() => {
+    return () => {
+      if (dnd_copy_dest) {
+        props.actions.setState({ copy_destination_project_id: undefined });
+      }
+    };
+  }, [dnd_copy_dest]);
 
   function cancel_action(): void {
     props.actions.set_file_action();

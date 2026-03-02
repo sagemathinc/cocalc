@@ -1,13 +1,14 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Space } from "antd";
+import { Button, Space } from "antd";
 import { join } from "path";
 import React from "react";
 import { defineMessage, useIntl } from "react-intl";
-import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
+
+import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import { Icon, Tip, VisibleLG } from "@cocalc/frontend/components";
 import LinkRetry from "@cocalc/frontend/components/link-retry";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
@@ -17,8 +18,6 @@ import { Available } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-
-import TourButton from "./tour/button";
 
 const OPEN_MSG = defineMessage({
   id: "project.explorer.misc-side-buttons.open_dir.tooltip",
@@ -32,6 +31,7 @@ interface Props {
   kucalc?: string;
   project_id: string;
   show_hidden?: boolean;
+  hide_masked_files?: boolean;
 }
 
 export const MiscSideButtons: React.FC<Props> = (props) => {
@@ -42,6 +42,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     kucalc,
     project_id,
     show_hidden,
+    hide_masked_files,
   } = props;
 
   const intl = useIntl();
@@ -65,7 +66,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   function render_hidden_toggle(): React.JSX.Element {
     const icon = show_hidden ? "eye" : "eye-slash";
     return (
-      <Button bsSize="small" onClick={handle_hidden_toggle}>
+      <BootstrapButton active={!!show_hidden} onClick={handle_hidden_toggle}>
         <Tip
           title={intl.formatMessage(labels.hidden_files, {
             hidden: show_hidden,
@@ -74,7 +75,32 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
         >
           <Icon name={icon} />
         </Tip>
-      </Button>
+      </BootstrapButton>
+    );
+  }
+
+  function render_masked_toggle(): React.JSX.Element {
+    // Temporary toggle: hides masked (auto-generated) files completely for this session.
+    // Resets automatically when navigating to a different directory.
+    return (
+      <BootstrapButton
+        active={!!hide_masked_files}
+        onClick={(e) => {
+          e.preventDefault();
+          actions.setState({ hide_masked_files: !hide_masked_files });
+        }}
+      >
+        <Tip
+          title={
+            hide_masked_files
+              ? "Show masked files (auto-generated temporary files)"
+              : "Hide masked files (auto-generated temporary files)"
+          }
+          placement={"bottom"}
+        >
+          <Icon name="mask" />
+        </Tip>
+      </BootstrapButton>
     );
   }
 
@@ -85,7 +111,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       return;
     }
     return (
-      <Button bsSize="small" onClick={handle_backup}>
+      <Button onClick={handle_backup}>
         <Icon name="life-saver" />{" "}
         <VisibleLG>
           <span style={{ fontSize: 12 }}>Backups</span>
@@ -107,7 +133,7 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     if (!available_features?.library) return;
     if (kucalc !== "yes") return;
     return (
-      <Button bsSize={"small"} onClick={handle_library_click}>
+      <Button onClick={handle_library_click}>
         <Icon name="book" /> <VisibleLG>Library</VisibleLG>
       </Button>
     );
@@ -164,7 +190,6 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
     }
     return (
       <Button
-        bsSize="small"
         className="upload-button"
         title={intl.formatMessage(labels.upload_tooltip)}
       >
@@ -175,9 +200,14 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
   }
 
   return (
-    <ButtonToolbar
-      style={{ whiteSpace: "nowrap", padding: "0" }}
-      className="pull-right"
+    <Space
+      wrap
+      style={{
+        whiteSpace: "nowrap",
+        padding: "0",
+        display: "flex",
+        justifyContent: "flex-end",
+      }}
     >
       <Space.Compact>
         {render_jupyterlab_button()}
@@ -187,13 +217,11 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
         {render_upload_button()}
         {render_library_button()}
       </Space.Compact>
-      <div className="pull-right">
-        <Space.Compact>
-          {render_hidden_toggle()}
-          {render_backup()}
-          <TourButton project_id={project_id} />
-        </Space.Compact>
-      </div>
-    </ButtonToolbar>
+      <Space.Compact>
+        {render_hidden_toggle()}
+        {render_masked_toggle()}
+        {render_backup()}
+      </Space.Compact>
+    </Space>
   );
 };

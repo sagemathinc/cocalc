@@ -1,27 +1,36 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert } from "antd";
-import * as immutable from "immutable";
+import { DndContext, useDraggable } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
+import { Alert, Button as AntButton, Tree } from "antd";
+
+import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
+import type { TreeDataNode, TreeProps } from "antd";
 import * as _ from "lodash";
-import React from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FormattedMessage } from "react-intl";
+
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
-import { Button, ButtonGroup, Col, Row } from "@cocalc/frontend/antd-bootstrap";
 import {
   project_redux_name,
-  rclass,
   redux,
-  rtypes,
-  TypedMap,
+  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ShallowTypedMap } from "@cocalc/frontend/app-framework/ShallowTypedMap";
 import {
   A,
   ActivityDisplay,
   ErrorDisplay,
+  HelpIcon,
   Icon,
   Loading,
   Paragraph,
@@ -29,22 +38,24 @@ import {
 } from "@cocalc/frontend/components";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
-import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { CustomSoftwareReset } from "@cocalc/frontend/custom-software/reset-bar";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { Library } from "@cocalc/frontend/library";
-import {
-  Available,
-  MainConfiguration,
-} from "@cocalc/frontend/project_configuration";
-import type { FileAction } from "@cocalc/frontend/project_actions";
+import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import { FLYOUT_PADDING } from "@cocalc/frontend/project/page/flyouts/consts";
+import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
+import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
-import { ProjectMap, ProjectStatus } from "@cocalc/frontend/todo-types";
+import { ProjectStatus } from "@cocalc/frontend/todo-types";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
+import * as misc from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
+
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
-import { AccessErrors } from "./access-errors";
-import { ActionBar } from "./action-bar";
+import { ActionBar, ActionBarInfo } from "./action-bar";
+import { useFolderDrop } from "./dnd/file-dnd-provider";
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
@@ -54,11 +65,6 @@ import { PathNavigator } from "./path-navigator";
 import { SearchBar } from "./search-bar";
 import ExplorerTour from "./tour/tour";
 import { ListingItem } from "./types";
-
-function pager_range(page_size, page_number) {
-  const start_index = page_size * page_number;
-  return { start_index, end_index: start_index + page_size };
-}
 
 export type Configuration = ShallowTypedMap<{ main: MainConfiguration }>;
 
@@ -71,193 +77,224 @@ const error_style: React.CSSProperties = {
   boxShadow: "5px 5px 5px grey",
 } as const;
 
-interface ReactProps {
-  project_id: string;
-  actions: ProjectActions;
-  name: string;
+const FLEX_ROW_STYLE: React.CSSProperties = {
+  display: "flex",
+  flexFlow: "row wrap",
+  justifyContent: "space-between",
+  alignItems: "stretch",
+} as const;
+
+const TREE_HOME_KEY = "__home__";
+const DIRECTORY_TREE_DEFAULT_WIDTH_PX = 280;
+const DIRECTORY_TREE_MIN_WIDTH_PX = 180;
+const DIRECTORY_TREE_MAX_WIDTH_PX = 520;
+
+function isPositiveNumber(value: unknown): value is number {
+  return typeof value === "number" && !isNaN(value) && value > 0;
 }
 
-interface ReduxProps {
-  project_map?: ProjectMap;
-  get_my_group: (project_id: string) => "admin" | "public";
-  get_total_project_quotas: (project_id: string) => { member_host: boolean };
-  other_settings?: immutable.Map<string, any>;
-  is_logged_in?: boolean;
-  kucalc?: string;
-  site_name?: string;
-  images: ComputeImages;
-  active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
-  current_path: string;
-  history_path: string;
-  activity?: object;
-  page_number: number;
-  file_action?: FileAction;
-  file_search: string;
-  show_hidden?: boolean;
-  error?: string;
-  checked_files: immutable.Set<string>;
-  selected_file_index?: number;
-  file_creation_error?: string;
-  ext_selection?: string;
-  displayed_listing: {
-    listing: ListingItem[];
-    error: any;
-    file_map: Map<string, any>;
-  };
-  new_name?: string;
-  library?: object;
-  show_library?: boolean;
-  public_paths?: immutable.List<string>; // used only to trigger table init
-  configuration?: Configuration;
-  available_features?: Available;
-  file_listing_scroll_top?: number;
-  show_custom_software_reset?: boolean;
-  explorerTour?: boolean;
-  compute_server_id: number;
+function directoryTreeWidthKey(project_id: string): string {
+  return `${project_id}::explorer-directory-tree-width`;
 }
 
-interface State {
-  shift_is_down: boolean;
-}
-
-export function Explorer() {
-  const { project_id } = useProjectContext();
-  return (
-    <Explorer0
-      name={project_redux_name(project_id)}
-      project_id={project_id}
-      actions={redux.getProjectActions(project_id)}
-    />
+function getDirectoryTreeWidth(project_id: string): number {
+  const width = LS.get<number>(directoryTreeWidthKey(project_id));
+  if (!isPositiveNumber(width)) return DIRECTORY_TREE_DEFAULT_WIDTH_PX;
+  return Math.max(
+    DIRECTORY_TREE_MIN_WIDTH_PX,
+    Math.min(width, DIRECTORY_TREE_MAX_WIDTH_PX),
   );
 }
 
-// TODO: change/rewrite Explorer to not have any rtypes.objects and
-// add a shouldComponentUpdate!!
-const Explorer0 = rclass(
-  class Explorer extends React.Component<ReactProps & ReduxProps, State> {
-    newFileRef = React.createRef<any>();
-    searchAndTerminalBar = React.createRef<any>();
-    fileListingRef = React.createRef<any>();
-    currentDirectoryRef = React.createRef<any>();
-    miscButtonsRef = React.createRef<any>();
+function setDirectoryTreeWidth(project_id: string, width: number): void {
+  LS.set(directoryTreeWidthKey(project_id), width);
+}
 
-    static reduxProps = ({ name }) => {
-      return {
-        projects: {
-          project_map: rtypes.immutable.Map,
-          get_my_group: rtypes.func.isRequired,
-          get_total_project_quotas: rtypes.func.isRequired,
-        },
+function directoryTreeVisibleKey(project_id: string): string {
+  return `${project_id}::explorer-directory-tree-visible`;
+}
 
-        account: {
-          other_settings: rtypes.immutable.Map,
-          is_logged_in: rtypes.bool,
-        },
+function getDirectoryTreeVisible(project_id: string): boolean {
+  const val = LS.get<boolean>(directoryTreeVisibleKey(project_id));
+  return val === true;
+}
 
-        customize: {
-          kucalc: rtypes.string,
-          site_name: rtypes.string,
-        },
+function setDirectoryTreeVisible(project_id: string, visible: boolean): void {
+  LS.set(directoryTreeVisibleKey(project_id), visible);
+}
 
-        compute_images: {
-          images: rtypes.immutable.Map,
-        },
+const MAX_TREE_EXPANDED = 20;
 
-        [name]: {
-          active_file_sort: rtypes.immutable.Map,
-          current_path: rtypes.string,
-          history_path: rtypes.string,
-          activity: rtypes.object,
-          page_number: rtypes.number.isRequired,
-          file_action: rtypes.string,
-          file_search: rtypes.string,
-          show_hidden: rtypes.bool,
-          error: rtypes.string,
-          checked_files: rtypes.immutable,
-          selected_file_index: rtypes.number,
-          file_creation_error: rtypes.string,
-          ext_selection: rtypes.string,
-          displayed_listing: rtypes.object,
-          new_name: rtypes.string,
-          library: rtypes.object,
-          show_library: rtypes.bool,
-          public_paths: rtypes.immutable, // used only to trigger table init
-          configuration: rtypes.immutable,
-          available_features: rtypes.object,
-          file_listing_scroll_top: rtypes.number,
-          show_custom_software_reset: rtypes.bool,
-          explorerTour: rtypes.bool,
-          compute_server_id: rtypes.number,
-        },
-      };
-    };
+function directoryTreeExpandedKeysKey(project_id: string): string {
+  return `${project_id}::explorer-directory-tree-expanded-keys`;
+}
 
-    static defaultProps = {
-      page_number: 0,
-      file_search: "",
-      new_name: "",
-      redux,
-    };
+function getDirectoryTreeExpandedKeys(project_id: string): string[] {
+  const keys = LS.get<string[]>(directoryTreeExpandedKeysKey(project_id));
+  if (!Array.isArray(keys)) return [];
+  return keys.filter((k) => k !== TREE_HOME_KEY);
+}
 
-    constructor(props) {
-      super(props);
-      this.state = {
-        shift_is_down: false,
-      };
+function saveDirectoryTreeExpandedKeys(
+  project_id: string,
+  keys: string[],
+): void {
+  LS.set(
+    directoryTreeExpandedKeysKey(project_id),
+    keys.slice(0, MAX_TREE_EXPANDED),
+  );
+}
+
+function directoryTreeScrollTopKey(project_id: string): string {
+  return `${project_id}::explorer-directory-tree-scroll-top`;
+}
+
+function getDirectoryTreeScrollTop(project_id: string): number {
+  const val = LS.get<number>(directoryTreeScrollTopKey(project_id));
+  return typeof val === "number" && val >= 0 ? val : 0;
+}
+
+function saveDirectoryTreeScrollTop(
+  project_id: string,
+  scrollTop: number,
+): void {
+  LS.set(directoryTreeScrollTopKey(project_id), scrollTop);
+}
+
+const TREE_PANEL_STYLE: React.CSSProperties = {
+  overflowY: "auto",
+  overflowX: "hidden",
+  padding: "0 4px 0 0",
+} as const;
+
+export function Explorer() {
+  const { project_id, actions, group } = useProjectContext();
+  const name = project_redux_name(project_id);
+
+  // -- Project store fields --
+  const active_file_sort = useTypedRedux({ project_id }, "active_file_sort");
+  const current_path = useTypedRedux({ project_id }, "current_path") ?? "";
+  const activity = useTypedRedux({ project_id }, "activity");
+  const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
+  const show_directory_tree = useTypedRedux(
+    { project_id },
+    "show_directory_tree",
+  );
+  // Restore tree visibility from localStorage on mount
+  useEffect(() => {
+    const saved = getDirectoryTreeVisible(project_id);
+    if (saved && !show_directory_tree) {
+      actions?.setState({ show_directory_tree: true });
     }
-
-    componentDidMount() {
-      // Update AFTER react draws everything
-      // Should probably be moved elsewhere
-      // Prevents cascading changes which impact responsiveness
-      // https://github.com/sagemathinc/cocalc/pull/3705#discussion_r268263750
-      $(window).on("keydown", this.handle_files_key_down);
-      $(window).on("keyup", this.handle_files_key_up);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project_id]);
+  const show_hidden = useTypedRedux({ project_id }, "show_hidden");
+  const hide_masked_files = useTypedRedux({ project_id }, "hide_masked_files");
+  // Reset hide_masked_files on directory change — it is a temporary per-directory toggle.
+  useEffect(() => {
+    if (hide_masked_files) {
+      actions?.setState({ hide_masked_files: false });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [current_path]);
+  const error = useTypedRedux({ project_id }, "error");
+  const checked_files = useTypedRedux({ project_id }, "checked_files");
+  const selected_file_index = useTypedRedux(
+    { project_id },
+    "selected_file_index",
+  );
+  const file_creation_error = useTypedRedux(
+    { project_id },
+    "file_creation_error",
+  );
+  const ext_selection = useTypedRedux({ project_id }, "ext_selection");
+  const displayed_listing = useTypedRedux(
+    { project_id },
+    "displayed_listing",
+  ) as any;
+  const show_library = useTypedRedux({ project_id }, "show_library");
+  const configuration = useTypedRedux({ project_id }, "configuration") as
+    | Configuration
+    | undefined;
+  const available_features = useTypedRedux(
+    { project_id },
+    "available_features",
+  );
+  const show_custom_software_reset = useTypedRedux(
+    { project_id },
+    "show_custom_software_reset",
+  );
+  const explorerTour = useTypedRedux({ project_id }, "explorerTour");
+  const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  // trigger table init
+  useTypedRedux({ project_id }, "public_paths");
 
-    componentWillUnmount() {
-      $(window).off("keydown", this.handle_files_key_down);
-      $(window).off("keyup", this.handle_files_key_up);
+  // -- Global store fields --
+  const project_map = useTypedRedux("projects", "project_map");
+  const other_settings = useTypedRedux("account", "other_settings");
+  const is_logged_in = useTypedRedux("account", "is_logged_in");
+  const kucalc = useTypedRedux("customize", "kucalc");
+  const site_name = useTypedRedux("customize", "site_name");
+  const images = useTypedRedux("compute_images", "images");
+
+  // -- Local state --
+  const [shiftIsDown, setShiftIsDown] = useState(false);
+  const [searchFocused, setSearchFocused] = useState(true);
+  const [directoryTreeWidth, setDirectoryTreeWidthState] = useState<number>(
+    () => getDirectoryTreeWidth(project_id),
+  );
+  const [oldDirectoryTreeWidth, setOldDirectoryTreeWidth] =
+    useState<number>(directoryTreeWidth);
+
+  // -- Refs for ExplorerTour --
+  const newFileRef = useRef<any>(null);
+  const searchAndTerminalBar = useRef<any>(null);
+  const fileListingRef = useRef<any>(null);
+  const currentDirectoryRef = useRef<any>(null);
+  const miscButtonsRef = useRef<any>(null);
+
+  // -- Keyboard event listeners (replaces jQuery) --
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Shift") setShiftIsDown(true);
     }
-
-    handle_files_key_down = (e): void => {
-      if (e.key === "Shift") {
-        this.setState({ shift_is_down: true });
-      }
+    function handleKeyUp(e: KeyboardEvent) {
+      if (e.key === "Shift") setShiftIsDown(false);
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    window.addEventListener("keyup", handleKeyUp);
+    return () => {
+      window.removeEventListener("keydown", handleKeyDown);
+      window.removeEventListener("keyup", handleKeyUp);
     };
+  }, []);
 
-    handle_files_key_up = (e): void => {
-      if (e.key === "Shift") {
-        this.setState({ shift_is_down: false });
-      }
-    };
+  useEffect(() => {
+    const width = getDirectoryTreeWidth(project_id);
+    setDirectoryTreeWidthState(width);
+    setOldDirectoryTreeWidth(width);
+  }, [project_id]);
 
-    previous_page = () => {
-      if (this.props.page_number > 0) {
-        this.props.actions.setState({
-          page_number: this.props.page_number - 1,
-        });
-      }
-    };
+  // -- Derived state --
+  const projectIsRunning = deriveProjectIsRunning(
+    group,
+    project_map,
+    project_id,
+  );
 
-    next_page = () => {
-      this.props.actions.setState({
-        page_number: this.props.page_number + 1,
-      });
-    };
-
-    create_file = (ext, switch_over) => {
+  // -- Callbacks --
+  const createFile = useCallback(
+    (ext?: string, switch_over?: boolean) => {
       if (switch_over == undefined) {
         switch_over = true;
       }
-      const { file_search } = this.props;
       if (
         ext == undefined &&
         file_search.lastIndexOf(".") <= file_search.lastIndexOf("/")
       ) {
-        let disabled_ext;
-        if (this.props.configuration != undefined) {
-          ({ disabled_ext } = this.props.configuration.get("main", {
+        let disabled_ext: any;
+        if (configuration != undefined) {
+          ({ disabled_ext } = (configuration as any).get("main", {
             disabled_ext: [],
           }));
         } else {
@@ -265,452 +302,467 @@ const Explorer0 = rclass(
         }
         ext = default_ext(disabled_ext);
       }
-
-      this.props.actions.create_file({
+      actions?.create_file({
         name: file_search,
         ext,
-        current_path: this.props.current_path,
+        current_path,
         switch_over,
       });
-      this.props.actions.setState({ file_search: "", page_number: 0 });
-    };
+      actions?.setState({ file_search: "" });
+    },
+    [file_search, current_path, configuration, actions],
+  );
 
-    create_folder = (switch_over = true): void => {
-      this.props.actions.create_folder({
-        name: this.props.file_search,
-        current_path: this.props.current_path,
+  const createFolder = useCallback(
+    (switch_over = true) => {
+      actions?.create_folder({
+        name: file_search,
+        current_path,
         switch_over,
       });
-      this.props.actions.setState({ file_search: "", page_number: 0 });
-    };
+      actions?.setState({ file_search: "" });
+    },
+    [file_search, current_path, actions],
+  );
 
-    render_paging_buttons(num_pages: number): React.JSX.Element | undefined {
-      if (num_pages > 1) {
-        return (
-          <Row>
-            <Col sm={4}>
-              <ButtonGroup style={{ marginBottom: "5px" }}>
-                <Button
-                  onClick={this.previous_page}
-                  disabled={this.props.page_number <= 0}
-                >
-                  <Icon name="angle-double-left" /> Prev
-                </Button>
-                <Button disabled>
-                  {`${this.props.page_number + 1}/${num_pages}`}
-                </Button>
-                <Button
-                  onClick={this.next_page}
-                  disabled={this.props.page_number >= num_pages - 1}
-                >
-                  Next <Icon name="angle-double-right" />
-                </Button>
-              </ButtonGroup>
-            </Col>
-          </Row>
-        );
-      }
-    }
+  const toggleDirectoryTree = useCallback(() => {
+    const next = !show_directory_tree;
+    actions?.setState({ show_directory_tree: next });
+    setDirectoryTreeVisible(project_id, next);
+  }, [actions, project_id, show_directory_tree]);
 
-    render_library() {
-      return (
-        <Row>
-          <Col md={12} mdOffset={0} lg={8} lgOffset={2}>
-            <SettingBox
-              icon={"book"}
-              title={
-                <span>
-                  Library{" "}
-                  <A href="https://doc.cocalc.com/project-library.html">
-                    (help...)
-                  </A>
-                </span>
-              }
-              close={() => this.props.actions.toggle_library(false)}
-            >
-              <Library
-                project_id={this.props.project_id}
-                onClose={() => this.props.actions.toggle_library(false)}
-              />
-            </SettingBox>
-          </Col>
-        </Row>
+  const updateDirectoryTreeWidth = useCallback(
+    (width: number) => {
+      const nextWidth = Math.max(
+        DIRECTORY_TREE_MIN_WIDTH_PX,
+        Math.min(width, DIRECTORY_TREE_MAX_WIDTH_PX),
       );
-    }
+      setDirectoryTreeWidthState(nextWidth);
+      setDirectoryTreeWidth(project_id, nextWidth);
+    },
+    [project_id],
+  );
 
-    render_files_actions(listing, project_is_running) {
-      return (
-        <ActionBar
-          project_id={this.props.project_id}
-          checked_files={this.props.checked_files}
-          page_number={this.props.page_number}
-          page_size={this.file_listing_page_size()}
-          current_path={this.props.current_path}
-          listing={listing}
-          project_map={this.props.project_map}
-          images={this.props.images}
-          actions={this.props.actions}
-          available_features={this.props.available_features}
-          show_custom_software_reset={this.props.show_custom_software_reset}
-          project_is_running={project_is_running}
-        />
-      );
-    }
+  const resetDirectoryTreeWidth = useCallback(() => {
+    updateDirectoryTreeWidth(DIRECTORY_TREE_DEFAULT_WIDTH_PX);
+  }, [updateDirectoryTreeWidth]);
 
-    render_new_file() {
-      return (
-        <div ref={this.newFileRef}>
-          <NewButton
-            file_search={this.props.file_search}
-            current_path={this.props.current_path}
-            actions={this.props.actions}
-            create_file={this.create_file}
-            create_folder={this.create_folder}
-            configuration={this.props.configuration}
-            disabled={!!this.props.ext_selection}
+  const handleDirectoryTreeDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const deltaX = event.delta?.x ?? 0;
+      updateDirectoryTreeWidth(oldDirectoryTreeWidth + deltaX);
+    },
+    [oldDirectoryTreeWidth, updateDirectoryTreeWidth],
+  );
+
+  // -- Early return if not initialized --
+  if (checked_files == undefined) {
+    return <Loading />;
+  }
+
+  const { listing, file_map, type_counts } = displayed_listing ?? {};
+  const directory_error = displayed_listing?.error;
+
+  // -- Render helpers --
+  function renderError() {
+    if (!error) return null;
+    return (
+      <ErrorDisplay
+        error={error}
+        style={error_style}
+        onClose={() => actions?.setState({ error: "" })}
+      />
+    );
+  }
+
+  function renderActivity() {
+    return (
+      <ActivityDisplay
+        trunc={80}
+        activity={_.values(activity?.toJS?.() ?? activity)}
+        on_clear={() => actions?.clear_all_activity()}
+        style={{ top: "100px" }}
+      />
+    );
+  }
+
+  function renderLibrary() {
+    return (
+      <div style={{ maxWidth: "800px", margin: "0 auto" }}>
+        <SettingBox
+          icon={"book"}
+          title={
+            <span>
+              Library{" "}
+              <A href="https://doc.cocalc.com/project-library.html">
+                (help...)
+              </A>
+            </span>
+          }
+          close={() => actions?.toggle_library(false)}
+        >
+          <Library
+            project_id={project_id}
+            onClose={() => actions?.toggle_library(false)}
           />
+        </SettingBox>
+      </div>
+    );
+  }
+
+  function renderFilesActions() {
+    if (listing == undefined) return null;
+    const visibleListing = hide_masked_files
+      ? listing.filter((f) => !f.mask)
+      : listing;
+    return (
+      <ActionBar
+        project_id={project_id}
+        checked_files={checked_files}
+        current_path={current_path}
+        listing={visibleListing}
+        project_map={project_map as any}
+        images={images as any}
+        actions={actions as ProjectActions}
+        available_features={available_features as any}
+        show_custom_software_reset={show_custom_software_reset}
+        project_is_running={projectIsRunning}
+        show_directory_tree={!!show_directory_tree}
+        on_toggle_directory_tree={toggleDirectoryTree}
+      />
+    );
+  }
+
+  function renderNewFile() {
+    return (
+      <div ref={newFileRef}>
+        <NewButton
+          file_search={file_search}
+          current_path={current_path}
+          actions={actions as ProjectActions}
+          create_file={createFile}
+          create_folder={createFolder}
+          configuration={configuration}
+          disabled={!!ext_selection}
+        />
+      </div>
+    );
+  }
+
+  function renderFileListing() {
+    if (directory_error) {
+      const quotas = redux
+        .getStore("projects")
+        ?.get_total_project_quotas(project_id);
+      return (
+        <div>
+          <FetchDirectoryErrors
+            error={directory_error}
+            path={current_path}
+            quotas={quotas}
+            is_logged_in={!!is_logged_in}
+          />
+          <br />
+          <AntButton
+            onClick={() =>
+              actions?.fetch_directory_listing({
+                force: true,
+                path: current_path,
+              })
+            }
+          >
+            <Icon name="refresh" /> Try again to get directory listing
+          </AntButton>
         </div>
       );
-    }
-
-    render_activity() {
+    } else if (listing != undefined) {
       return (
-        <ActivityDisplay
-          trunc={80}
-          activity={_.values(this.props.activity)}
-          on_clear={() => this.props.actions.clear_all_activity()}
-          style={{ top: "100px" }}
-        />
+        <FileUploadWrapper
+          project_id={project_id}
+          dest_path={current_path}
+          event_handlers={{
+            complete: () => actions?.fetch_directory_listing(),
+          }}
+          config={{ clickable: ".upload-button" }}
+          style={{ minHeight: 0 }}
+          className="smc-vfill"
+        >
+          <FileListing
+            isRunning={projectIsRunning}
+            name={name}
+            active_file_sort={active_file_sort}
+            listing={listing}
+            file_map={file_map}
+            file_search={file_search}
+            checked_files={checked_files}
+            current_path={current_path}
+            actions={actions as ProjectActions}
+            create_file={createFile}
+            create_folder={createFolder}
+            selected_file_index={selected_file_index}
+            project_id={project_id}
+            shift_is_down={shiftIsDown}
+            sort_by={(actions as ProjectActions)?.set_sorted_file_column}
+            other_settings={other_settings as any}
+            redux={redux}
+            configuration_main={configuration?.get("main") as any}
+            type_counts={type_counts}
+            search_focused={searchFocused}
+            hide_masked_files={hide_masked_files ?? false}
+          />
+        </FileUploadWrapper>
       );
-    }
-
-    render_error() {
-      if (this.props.error) {
+    } else {
+      if (projectIsRunning) {
+        redux.getProjectStore(project_id)?.get_listings();
         return (
-          <ErrorDisplay
-            error={this.props.error}
-            style={error_style}
-            onClose={() => this.props.actions.setState({ error: "" })}
+          <div style={{ textAlign: "center" }}>
+            <Loading theme={"medium"} />
+          </div>
+        );
+      } else {
+        return (
+          <Alert
+            type="warning"
+            icon={<Icon name="ban" />}
+            style={{ textAlign: "center" }}
+            showIcon
+            description={
+              <Paragraph>
+                <FormattedMessage
+                  id="project.explorer.start_project.warning"
+                  defaultMessage={`In order to see the files in this directory, you have to <a>start this project</a>.`}
+                  values={{
+                    a: (c) => (
+                      <a
+                        onClick={() => {
+                          redux
+                            .getActions("projects")
+                            .start_project(project_id);
+                        }}
+                      >
+                        {c}
+                      </a>
+                    ),
+                  }}
+                />
+              </Paragraph>
+            }
           />
         );
       }
     }
+  }
 
-    render_access_error() {
-      return <AccessErrors is_logged_in={!!this.props.is_logged_in} />;
-    }
-
-    render_file_listing(
-      listing: ListingItem[] | undefined,
-      file_map,
-      fetch_directory_error: any,
-      project_is_running: boolean,
-    ) {
-      if (fetch_directory_error) {
-        return (
-          <div>
-            <FetchDirectoryErrors
-              error={fetch_directory_error}
-              path={this.props.current_path}
-              quotas={this.props.get_total_project_quotas(
-                this.props.project_id,
-              )}
-              is_logged_in={!!this.props.is_logged_in}
-            />
-            <br />
-            <Button
-              onClick={() =>
-                this.props.actions.fetch_directory_listing({
-                  force: true,
-                  path: this.props.current_path,
-                })
-              }
-            >
-              <Icon name="refresh" /> Try again to get directory listing
-            </Button>
-          </div>
-        );
-      } else if (listing != undefined) {
-        return (
-          <FileUploadWrapper
-            project_id={this.props.project_id}
-            dest_path={this.props.current_path}
-            event_handlers={{
-              complete: () => this.props.actions.fetch_directory_listing(),
-            }}
-            config={{ clickable: ".upload-button" }}
-            style={{
-              flex: "1 0 auto",
-              display: "flex",
-              flexDirection: "column",
-            }}
-            className="smc-vfill"
-          >
-            <FileListing
-              isRunning={project_is_running}
-              name={this.props.name}
-              active_file_sort={this.props.active_file_sort}
-              listing={listing}
-              file_map={file_map}
-              file_search={this.props.file_search}
-              checked_files={this.props.checked_files}
-              current_path={this.props.current_path}
-              actions={this.props.actions}
-              create_file={this.create_file}
-              create_folder={this.create_folder}
-              selected_file_index={this.props.selected_file_index}
-              project_id={this.props.project_id}
-              shift_is_down={this.state.shift_is_down}
-              sort_by={this.props.actions.set_sorted_file_column}
-              other_settings={this.props.other_settings}
-              library={this.props.library}
-              redux={redux}
-              last_scroll_top={this.props.file_listing_scroll_top}
-              configuration_main={this.props.configuration?.get("main")}
-            />
-          </FileUploadWrapper>
-        );
-      } else {
-        if (project_is_running) {
-          // ensure directory listing starts getting computed.
-          redux.getProjectStore(this.props.project_id).get_listings();
-          return (
-            <div style={{ textAlign: "center" }}>
-              <Loading theme={"medium"} />
-            </div>
-          );
-        } else {
-          return (
-            <Alert
-              type="warning"
-              icon={<Icon name="ban" />}
-              style={{ textAlign: "center" }}
-              showIcon
-              description={
-                <Paragraph>
-                  <FormattedMessage
-                    id="project.explorer.start_project.warning"
-                    defaultMessage={`In order to see the files in this directory, you have to <a>start this project</a>.`}
-                    values={{
-                      a: (c) => (
-                        <a
-                          onClick={() => {
-                            redux
-                              .getActions("projects")
-                              .start_project(this.props.project_id);
-                          }}
-                        >
-                          {c}
-                        </a>
-                      ),
-                    }}
-                  />
-                </Paragraph>
-              }
-            />
-          );
-        }
-      }
-    }
-
-    file_listing_page_size() {
-      return (
-        this.props.other_settings &&
-        this.props.other_settings.get("page_size", 50)
-      );
-    }
-
-    render_control_row(
-      visible_listing: ListingItem[] | undefined,
-    ): React.JSX.Element {
-      return (
+  function renderControlRow() {
+    return (
+      <div
+        style={{
+          display: "flex",
+          flexFlow: IS_MOBILE ? undefined : "row wrap",
+          justifyContent: "space-between",
+          alignItems: "stretch",
+          marginBottom: "15px",
+        }}
+      >
         <div
           style={{
+            flex: "3 1 auto",
             display: "flex",
-            flexFlow: IS_MOBILE ? undefined : "row wrap",
-            justifyContent: "space-between",
-            alignItems: "stretch",
-            marginBottom: "15px",
+            flexDirection: "column",
           }}
         >
+          <div style={{ display: "flex", flex: "1 1 auto" }}>
+            <SelectComputeServerForFileExplorer
+              project_id={project_id}
+              key="compute-server"
+              style={{ marginRight: "5px", borderRadius: "5px" }}
+            />
+            <div
+              ref={currentDirectoryRef}
+              className="cc-project-files-path-nav"
+            >
+              <PathNavigator project_id={project_id} />
+            </div>
+          </div>
+          {!!compute_server_id && (
+            <div style={{ fontSize: "10pt", marginBottom: "5px" }}>
+              <ComputeServerDocStatus
+                standalone
+                id={compute_server_id}
+                requestedId={compute_server_id}
+                project_id={project_id}
+              />
+            </div>
+          )}
+        </div>
+        {!IS_MOBILE && (
+          <div
+            style={{ flex: "0 1 auto", margin: "0 10px" }}
+            className="cc-project-files-create-dropdown"
+          >
+            {renderNewFile()}
+          </div>
+        )}
+        {!IS_MOBILE && (
+          <SearchTerminalBar
+            ref={searchAndTerminalBar}
+            actions={actions as ProjectActions}
+            current_path={current_path}
+            file_search={file_search}
+            listing={listing}
+            selected_file_index={selected_file_index}
+            file_creation_error={file_creation_error}
+            create_file={createFile}
+            create_folder={createFolder}
+            on_focus={() => setSearchFocused(true)}
+            on_blur={() => setSearchFocused(false)}
+          />
+        )}
+        <div style={{ flex: "0 1 auto" }}>
+          <UsersViewing project_id={project_id} />
+        </div>
+      </div>
+    );
+  }
+
+  function renderProjectFilesButtons() {
+    return (
+      <div
+        ref={miscButtonsRef}
+        style={{ flex: "1 0 auto", textAlign: "right" }}
+      >
+        <MiscSideButtons
+          project_id={project_id}
+          current_path={current_path}
+          show_hidden={show_hidden ?? false}
+          hide_masked_files={hide_masked_files ?? false}
+          actions={actions as ProjectActions}
+          kucalc={kucalc}
+          available_features={available_features as any}
+        />
+      </div>
+    );
+  }
+
+  function renderCustomSoftwareReset() {
+    if (!show_custom_software_reset) return null;
+    if (checked_files.size > 0) return null;
+    return (
+      <CustomSoftwareReset
+        project_id={project_id}
+        images={images as any}
+        project_map={project_map as any}
+        actions={actions as ProjectActions}
+        available_features={available_features as any}
+        site_name={site_name}
+      />
+    );
+  }
+
+  // -- Main render --
+  const showTree = !!show_directory_tree && !IS_MOBILE && projectIsRunning;
+
+  return (
+    <div className={"smc-vfill"}>
+      <div
+        style={{
+          flex: "0 0 auto",
+          display: "flex",
+          flexDirection: "column",
+          padding: "2px 2px 0 2px",
+        }}
+      >
+        {renderError()}
+        {renderActivity()}
+        {renderControlRow()}
+        {ext_selection != null && <AskNewFilename project_id={project_id} />}
+      </div>
+
+      <div
+        ref={fileListingRef}
+        className="smc-vfill"
+        style={{ minHeight: 0, display: "flex", flexDirection: "row", gap: 0 }}
+      >
+        {/* Left column: toggle button + directory tree */}
+        {showTree && (
           <div
             style={{
-              flex: "3 1 auto",
               display: "flex",
               flexDirection: "column",
+              flex: `0 0 ${directoryTreeWidth}px`,
+              width: `${directoryTreeWidth}px`,
+              minWidth: `${DIRECTORY_TREE_MIN_WIDTH_PX}px`,
             }}
           >
-            <div style={{ display: "flex", flex: "1 1 auto" }}>
-              <SelectComputeServerForFileExplorer
-                project_id={this.props.project_id}
-                key="compute-server"
-                style={{ marginRight: "5px", borderRadius: "5px" }}
-              />
-              <div
-                ref={this.currentDirectoryRef}
-                className="cc-project-files-path-nav"
-              >
-                <PathNavigator project_id={this.props.project_id} />
-              </div>
-            </div>
-            {!!this.props.compute_server_id && (
-              <div
-                style={{
-                  fontSize: "10pt",
-                  marginBottom: "5px",
-                }}
-              >
-                <ComputeServerDocStatus
-                  standalone
-                  id={this.props.compute_server_id}
-                  requestedId={this.props.compute_server_id}
-                  project_id={this.props.project_id}
-                />
-              </div>
-            )}
-          </div>
-          {!IS_MOBILE && (
             <div
               style={{
-                flex: "0 1 auto",
-                margin: "0 10px",
+                flex: "0 0 auto",
+                padding: "4px 2px",
+                display: "flex",
+                alignItems: "center",
+                gap: "6px",
               }}
-              className="cc-project-files-create-dropdown"
             >
-              {this.render_new_file()}
+              <BootstrapButton
+                onClick={toggleDirectoryTree}
+                active
+                title="Hide directory tree"
+              >
+                <Icon name="network" style={{ transform: "rotate(270deg)" }} />
+              </BootstrapButton>
+              <span style={{ fontWeight: 500, fontSize: "90%" }}>
+                Directory Tree{" "}
+                <HelpIcon title="Directory Tree" maxWidth="300px">
+                  <ul style={{ paddingLeft: "18px", margin: 0 }}>
+                    <li>Quickly navigate to any directory.</li>
+                    <li>
+                      Star directories for quick access — they appear at the
+                      top.
+                    </li>
+                    <li>Drag the border to resize the panel width.</li>
+                    <li>Drag and drop files onto directories to move them.</li>
+                    <li>
+                      Hold <b>Shift</b> while dropping to copy instead of move.
+                    </li>
+                  </ul>
+                </HelpIcon>
+              </span>
             </div>
-          )}
-          {!IS_MOBILE && (
-            <SearchTerminalBar
-              ref={this.searchAndTerminalBar}
-              actions={this.props.actions}
-              current_path={this.props.current_path}
-              file_search={this.props.file_search}
-              visible_listing={visible_listing}
-              selected_file_index={this.props.selected_file_index}
-              file_creation_error={this.props.file_creation_error}
-              create_file={this.create_file}
-              create_folder={this.create_folder}
+            <DirectoryTreePanel
+              project_id={project_id}
+              current_path={current_path}
+              compute_server_id={compute_server_id}
+              show_hidden={!!show_hidden}
+              on_open_directory={(path: string) =>
+                (actions as ProjectActions)?.open_directory(path, true, false)
+              }
             />
-          )}
-          <div
-            style={{
-              flex: "0 1 auto",
-            }}
-          >
-            <UsersViewing project_id={this.props.project_id} />
           </div>
-        </div>
-      );
-    }
-
-    render_project_files_buttons(): React.JSX.Element {
-      return (
+        )}
+        {/* Dragbar (full height when tree visible) */}
+        {showTree && (
+          <DndContext
+            onDragStart={() => setOldDirectoryTreeWidth(directoryTreeWidth)}
+            onDragEnd={handleDirectoryTreeDragEnd}
+          >
+            <DirectoryTreeDragbar
+              oldWidth={oldDirectoryTreeWidth}
+              onReset={resetDirectoryTreeWidth}
+            />
+          </DndContext>
+        )}
+        {/* Right column: action bar + file table */}
         <div
-          ref={this.miscButtonsRef}
-          style={{ flex: "1 0 auto", marginBottom: "15px", textAlign: "right" }}
+          className="smc-vfill"
+          style={{ minHeight: 0, minWidth: 0, flex: 1 }}
         >
-          <MiscSideButtons
-            project_id={this.props.project_id}
-            current_path={this.props.current_path}
-            show_hidden={
-              this.props.show_hidden != undefined
-                ? this.props.show_hidden
-                : false
-            }
-            actions={this.props.actions}
-            kucalc={this.props.kucalc}
-            available_features={this.props.available_features}
-          />
-        </div>
-      );
-    }
-
-    render_custom_software_reset() {
-      if (!this.props.show_custom_software_reset) {
-        return undefined;
-      }
-      // also don't show this box, if any files are selected
-      if (this.props.checked_files.size > 0) {
-        return undefined;
-      }
-      return (
-        <CustomSoftwareReset
-          project_id={this.props.project_id}
-          images={this.props.images}
-          project_map={this.props.project_map}
-          actions={this.props.actions}
-          available_features={this.props.available_features}
-          site_name={this.props.site_name}
-        />
-      );
-    }
-
-    render() {
-      let project_is_running: boolean,
-        project_state: ProjectStatus | undefined,
-        visible_listing: ListingItem[] | undefined;
-
-      if (this.props.checked_files == undefined) {
-        // hasn't loaded/initialized at all
-        return <Loading />;
-      }
-
-      const my_group = this.props.get_my_group(this.props.project_id);
-
-      // regardless of consequences, for admins a project is always running
-      // see https://github.com/sagemathinc/cocalc/issues/3863
-      if (my_group === "admin") {
-        project_state = new ProjectStatus({ state: "running" });
-        project_is_running = true;
-        // next, we check if this is a common user (not public)
-      } else if (my_group !== "public") {
-        project_state = this.props.project_map?.getIn([
-          this.props.project_id,
-          "state",
-        ]) as any;
-        project_is_running = project_state?.get("state") == "running";
-      } else {
-        project_is_running = false;
-      }
-
-      const displayed_listing = this.props.displayed_listing;
-      const { listing, file_map } = displayed_listing;
-      const directory_error = displayed_listing.error;
-
-      const file_listing_page_size = this.file_listing_page_size();
-      if (listing != undefined) {
-        const { start_index, end_index } = pager_range(
-          file_listing_page_size,
-          this.props.page_number,
-        );
-        visible_listing = listing.slice(start_index, end_index);
-      }
-
-      const FLEX_ROW_STYLE = {
-        display: "flex",
-        flexFlow: "row wrap",
-        justifyContent: "space-between",
-        alignItems: "stretch",
-      };
-
-      // be careful with adding height:'100%'. it could cause flex to miscalculate. see #3904
-      return (
-        <div className={"smc-vfill"}>
           <div
             style={{
               flex: "0 0 auto",
-              display: "flex",
-              flexDirection: "column",
-              padding: "2px 2px 0 2px",
+              padding: "0 2px",
             }}
           >
-            {this.render_error()}
-            {this.render_activity()}
-            {this.render_control_row(visible_listing)}
-            {this.props.ext_selection != null && (
-              <AskNewFilename project_id={this.props.project_id} />
-            )}
             <div style={FLEX_ROW_STYLE}>
               <div
                 style={{
@@ -719,56 +771,665 @@ const Explorer0 = rclass(
                   minWidth: "20em",
                 }}
               >
-                {listing != undefined
-                  ? this.render_files_actions(listing, project_is_running)
-                  : undefined}
+                {renderFilesActions()}
               </div>
-              {this.render_project_files_buttons()}
+              {renderProjectFilesButtons()}
             </div>
-
-            {project_is_running
-              ? this.render_custom_software_reset()
-              : undefined}
-
-            {this.props.show_library ? this.render_library() : undefined}
+            {listing != null && (
+              <ActionBarInfo
+                project_id={project_id}
+                checked_files={checked_files}
+                listing={
+                  hide_masked_files ? listing.filter((f) => !f.mask) : listing
+                }
+                project_is_running={projectIsRunning}
+              />
+            )}
+            {projectIsRunning ? renderCustomSoftwareReset() : null}
+            {show_library ? renderLibrary() : null}
           </div>
+          {renderFileListing()}
+        </div>
+      </div>
+      <ExplorerTour
+        open={explorerTour}
+        project_id={project_id}
+        newFileRef={newFileRef}
+        searchAndTerminalBar={searchAndTerminalBar}
+        fileListingRef={fileListingRef}
+        currentDirectoryRef={currentDirectoryRef}
+        miscButtonsRef={miscButtonsRef}
+      />
+    </div>
+  );
+}
 
-          <div
-            ref={this.fileListingRef}
-            className="smc-vfill"
+function pathToTreeKey(path: string): string {
+  return path === "" ? TREE_HOME_KEY : path;
+}
+
+function treeKeyToPath(key: React.Key): string {
+  const value = String(key);
+  return value === TREE_HOME_KEY ? "" : value;
+}
+
+function getAncestorPaths(path: string): string[] {
+  if (path === "") return [""];
+  const parts = path.split("/");
+  const ancestors: string[] = [""];
+  let current = "";
+  for (const part of parts) {
+    current = current === "" ? part : `${current}/${part}`;
+    ancestors.push(current);
+  }
+  return ancestors;
+}
+
+const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
+  project_id,
+  path,
+  label,
+  isSelected,
+  isStarred,
+  onToggleStar,
+}: {
+  project_id: string;
+  path: string;
+  label: string;
+  isSelected: boolean;
+  isStarred: boolean;
+  onToggleStar: () => void;
+}) {
+  const id = `explorer-dir-tree-${project_id}-${path || TREE_HOME_KEY}`;
+  const { dropRef, isOver, isInvalidDrop } = useFolderDrop(id, path);
+
+  return (
+    <span
+      ref={dropRef}
+      data-folder-drop-path={path}
+      style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "6px",
+        width: "100%",
+        maxWidth: "100%",
+        minWidth: 0,
+        boxSizing: "border-box",
+        borderRadius: "4px",
+        padding: "2px 4px",
+        whiteSpace: "nowrap",
+        background: isOver
+          ? COLORS.BLUE_LL
+          : isInvalidDrop
+            ? COLORS.ANTD_RED_WARN
+            : isSelected
+              ? COLORS.BLUE_LLL
+              : "transparent",
+      }}
+    >
+      {path === "" ? (
+        <Icon name="home" style={{ color: COLORS.FILE_ICON }} />
+      ) : (
+        <Icon
+          name={isStarred ? "star-filled" : "star"}
+          onClick={(e) => {
+            e?.preventDefault();
+            e?.stopPropagation();
+            onToggleStar();
+          }}
+          style={{
+            cursor: "pointer",
+            color: isStarred ? COLORS.STAR : COLORS.GRAY_L,
+            flexShrink: 0,
+          }}
+        />
+      )}
+      <span
+        title={label}
+        style={{
+          minWidth: 0,
+          flex: 1,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {label}
+      </span>
+    </span>
+  );
+});
+
+DirectoryTreeNodeTitle.displayName = "DirectoryTreeNodeTitle";
+
+function DirectoryTreeDragbar({
+  oldWidth,
+  onReset,
+}: {
+  oldWidth: number;
+  onReset: () => void;
+}) {
+  const { project_id } = useProjectContext();
+  const { attributes, listeners, setNodeRef, transform, active } = useDraggable(
+    {
+      id: `directory-tree-drag-${project_id}`,
+    },
+  );
+
+  const dx = useMemo(() => {
+    if (!transform || !oldWidth) return 0;
+    const posX = oldWidth + transform.x;
+    if (posX < DIRECTORY_TREE_MIN_WIDTH_PX) {
+      return -(oldWidth - DIRECTORY_TREE_MIN_WIDTH_PX);
+    }
+    if (posX > DIRECTORY_TREE_MAX_WIDTH_PX) {
+      return DIRECTORY_TREE_MAX_WIDTH_PX - oldWidth;
+    }
+    return transform.x;
+  }, [transform, oldWidth]);
+
+  return (
+    <div
+      ref={setNodeRef}
+      className="cc-project-flyout-dragbar"
+      style={{
+        transform: transform ? `translate3d(${dx}px, 0, 0)` : undefined,
+        flex: "0 0 5px",
+        width: "5px",
+        height: "100%",
+        cursor: "col-resize",
+        ...(active ? { zIndex: 1000, backgroundColor: COLORS.GRAY } : {}),
+      }}
+      {...listeners}
+      {...attributes}
+      onDoubleClick={onReset}
+    />
+  );
+}
+
+function StarredDirItem({
+  starPath,
+  current_path,
+  on_open_directory,
+  setStarredPath,
+}: {
+  starPath: string;
+  current_path: string;
+  on_open_directory: (path: string) => void;
+  setStarredPath: (path: string, starred: boolean) => void;
+}) {
+  const path = starPath.slice(0, -1); // strip trailing "/"
+  const isSelected = current_path === path;
+  const { dropRef } = useFolderDrop(`explorer-starred-${starPath}`, path);
+  return (
+    <div
+      ref={dropRef}
+      className="cc-project-flyout-file-item"
+      onClick={() => on_open_directory(path)}
+      style={{
+        width: "100%",
+        cursor: "pointer",
+        color: COLORS.GRAY_D,
+        overflow: "hidden",
+        backgroundColor: isSelected ? COLORS.BLUE_LLL : undefined,
+      }}
+    >
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "row",
+          flex: "1",
+          padding: FLYOUT_PADDING,
+          overflow: "hidden",
+          alignItems: "center",
+        }}
+      >
+        <Icon
+          name="star-filled"
+          onClick={(e) => {
+            e?.preventDefault();
+            e?.stopPropagation();
+            setStarredPath(starPath, false);
+          }}
+          style={{
+            fontSize: "120%",
+            marginRight: FLYOUT_PADDING,
+            color: COLORS.STAR,
+            cursor: "pointer",
+            flexShrink: 0,
+          }}
+        />
+        <span
+          title={path || "Home"}
+          style={{
+            flex: 1,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+            color: isSelected ? COLORS.ANTD_LINK_BLUE : undefined,
+          }}
+        >
+          {path || "Home"}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function DirectoryTreePanel({
+  project_id,
+  current_path,
+  compute_server_id,
+  show_hidden,
+  on_open_directory,
+}: {
+  project_id: string;
+  current_path: string;
+  compute_server_id?: number;
+  show_hidden: boolean;
+  on_open_directory: (path: string) => void;
+}) {
+  const [childrenByPath, setChildrenByPath] = useState<
+    Record<string, string[]>
+  >({});
+  const [treeVersion, setTreeVersion] = useState(0);
+  const [expandedKeys, setExpandedKeys] = useState<string[]>(() =>
+    getDirectoryTreeExpandedKeys(project_id),
+  );
+  const [error, setError] = useState<string>("");
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const { starred, setStarredPath } = useStarredFilesManager(project_id);
+  const { dropRef: homeDropRef } = useFolderDrop(
+    "explorer-folder-home-root",
+    "",
+  );
+  const showHiddenRef = useRef(show_hidden);
+  const loadedPathsRef = useRef<Set<string>>(new Set());
+  const loadingPathsRef = useRef<Set<string>>(new Set());
+  // Incremented on context reset (project/compute-server change) so that
+  // in-flight async responses from a previous context are discarded.
+  const generationRef = useRef(0);
+
+  const loadPath = useCallback(
+    async (path: string, force = false) => {
+      if (!force && loadedPathsRef.current.has(path)) return;
+      if (loadingPathsRef.current.has(path)) return;
+      loadingPathsRef.current.add(path);
+      const gen = generationRef.current;
+      try {
+        const listing = await webapp_client.project_client.directory_listing({
+          project_id,
+          path,
+          hidden: true,
+          compute_server_id: compute_server_id ?? 0,
+        });
+        if (gen !== generationRef.current) return; // stale response
+        const dirs = (listing?.files ?? [])
+          .filter(
+            (entry) =>
+              entry.isdir &&
+              entry.name !== "." &&
+              entry.name !== ".." &&
+              (showHiddenRef.current || !entry.name.startsWith(".")),
+          )
+          .map((entry) => misc.path_to_file(path, entry.name))
+          .sort((a, b) => misc.cmp(a, b));
+        setChildrenByPath((prev) => ({ ...prev, [path]: dirs }));
+        if (!loadedPathsRef.current.has(path)) {
+          setTreeVersion((v) => v + 1);
+        }
+        loadedPathsRef.current.add(path);
+        setError("");
+      } catch (err) {
+        if (gen !== generationRef.current) return; // stale error
+        console.warn("Failed to load directory tree path:", path, err);
+        setError(`${err}`);
+      } finally {
+        if (gen === generationRef.current) {
+          loadingPathsRef.current.delete(path);
+        }
+      }
+    },
+    [compute_server_id, project_id],
+  );
+
+  useEffect(() => {
+    showHiddenRef.current = show_hidden;
+  }, [show_hidden]);
+
+  useEffect(() => {
+    generationRef.current += 1;
+    setChildrenByPath({});
+    const savedKeys = getDirectoryTreeExpandedKeys(project_id);
+    setExpandedKeys(savedKeys);
+    setError("");
+    loadedPathsRef.current = new Set();
+    loadingPathsRef.current.clear();
+    setTreeVersion((v) => v + 1);
+    void loadPath("", true);
+    // Pre-load all previously expanded paths so the tree restores its shape
+    for (const key of savedKeys) {
+      const path = treeKeyToPath(key);
+      if (path !== "") void loadPath(path);
+    }
+  }, [project_id, compute_server_id, loadPath]);
+
+  useEffect(() => {
+    if (loadedPathsRef.current.size === 0) return;
+    for (const path of loadedPathsRef.current) {
+      void loadPath(path, true);
+    }
+  }, [show_hidden, loadPath]);
+
+  // Watch expanded directories for changes, so the tree stays live.
+  useEffect(() => {
+    const listings = redux
+      .getProjectStore(project_id)
+      ?.get_listings(compute_server_id ?? 0);
+    if (!listings) return;
+    for (const key of expandedKeys) {
+      listings.watch(treeKeyToPath(key));
+    }
+  }, [project_id, compute_server_id, expandedKeys]);
+
+  // Listen for change events and reload any affected loaded tree paths.
+  // This covers moves/copies into expanded subdirectories as well as any
+  // external filesystem change detected by the conat listing service.
+  useEffect(() => {
+    const listings = redux
+      .getProjectStore(project_id)
+      ?.get_listings(compute_server_id ?? 0);
+    if (!listings) return;
+    const handleChange = (paths: string[]) => {
+      for (const path of paths) {
+        if (loadedPathsRef.current.has(path)) {
+          void loadPath(path, true);
+        }
+      }
+    };
+    listings.on("change", handleChange);
+    return () => {
+      listings.removeListener("change", handleChange);
+    };
+  }, [project_id, compute_server_id, loadPath]);
+
+  useEffect(() => {
+    const ancestorPaths = getAncestorPaths(current_path);
+    setExpandedKeys((prev) => {
+      const next = new Set(prev);
+      for (const path of ancestorPaths) {
+        next.add(pathToTreeKey(path));
+      }
+      return Array.from(next);
+    });
+    for (const path of ancestorPaths) {
+      if (!loadedPathsRef.current.has(path)) {
+        void loadPath(path);
+      }
+    }
+  }, [current_path, loadPath]);
+
+  // Persist expanded keys whenever they change (capped at MAX_TREE_EXPANDED)
+  useEffect(() => {
+    saveDirectoryTreeExpandedKeys(project_id, expandedKeys);
+  }, [project_id, expandedKeys]);
+
+  // Scroll selected node into view when current_path changes.
+  // We manipulate scrollTop directly on the container rather than using
+  // scrollIntoView, which can scroll wrong ancestor containers (window, etc.).
+  // Two passes: 100ms (after React paint) and 400ms (after expand animations).
+  useEffect(() => {
+    function scrollSelected() {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const selected = container.querySelector(
+        ".ant-tree-node-selected",
+      ) as HTMLElement | null;
+      if (!selected) return;
+      const containerTop = container.getBoundingClientRect().top;
+      const selectedTop = selected.getBoundingClientRect().top;
+      const relativeTop = selectedTop - containerTop + container.scrollTop;
+      // Center the selected node in the visible area
+      const target =
+        relativeTop - container.clientHeight / 2 + selected.offsetHeight / 2;
+      container.scrollTo({ top: target, behavior: "smooth" });
+    }
+    const t1 = setTimeout(scrollSelected, 100);
+    const t2 = setTimeout(scrollSelected, 400);
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+    };
+  }, [current_path]);
+
+  // Restore scroll position after initial data loads on mount / project change
+  useEffect(() => {
+    const savedScrollTop = getDirectoryTreeScrollTop(project_id);
+    if (savedScrollTop <= 0) return;
+    const timer = setTimeout(() => {
+      if (scrollContainerRef.current) {
+        scrollContainerRef.current.scrollTop = savedScrollTop;
+      }
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [project_id, compute_server_id]);
+
+  const handleTreeScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      const el = e.currentTarget;
+      // Prevent horizontal drift — overflow-x:hidden clips visually but
+      // scrollLeft can still be set programmatically (scrollIntoView,
+      // antd Tree, dnd-kit). Force it back to 0.
+      if (el.scrollLeft !== 0) {
+        el.scrollLeft = 0;
+      }
+      saveDirectoryTreeScrollTop(project_id, el.scrollTop);
+    },
+    [project_id],
+  );
+
+  const onExpand: TreeProps["onExpand"] = useCallback(
+    (keys) => {
+      const normalizedKeys = keys.map((key) => String(key));
+      setExpandedKeys(normalizedKeys);
+      for (const key of normalizedKeys) {
+        const path = treeKeyToPath(key);
+        if (!loadedPathsRef.current.has(path)) {
+          void loadPath(path);
+        }
+      }
+    },
+    [loadPath],
+  );
+
+  const onSelect: TreeProps["onSelect"] = useCallback(
+    (selectedKeys, info) => {
+      const key = selectedKeys[0] ?? info.node.key;
+      if (key == null) return;
+      on_open_directory(treeKeyToPath(key));
+    },
+    [on_open_directory],
+  );
+
+  // Note: loadedPathsRef is intentionally not a dependency. `treeVersion`
+  // is incremented whenever loadedPathsRef gains new paths, which triggers
+  // this memo to rebuild with the latest ref contents.
+  const treeData: TreeDataNode[] = useMemo(() => {
+    const loadedPaths = loadedPathsRef.current;
+    const buildChildren = (parentPath: string): TreeDataNode[] => {
+      const children = childrenByPath[parentPath] ?? [];
+      return children.map((childPath) => {
+        const childChildren = loadedPaths.has(childPath)
+          ? buildChildren(childPath)
+          : undefined;
+        const starPath = `${childPath}/`;
+        const isStarred = starred.includes(starPath);
+        return {
+          key: pathToTreeKey(childPath),
+          title: (
+            <DirectoryTreeNodeTitle
+              project_id={project_id}
+              path={childPath}
+              label={misc.path_split(childPath).tail || childPath}
+              isSelected={current_path === childPath}
+              isStarred={isStarred}
+              onToggleStar={() => setStarredPath(starPath, !isStarred)}
+            />
+          ),
+          children: childChildren,
+          isLeaf:
+            loadedPaths.has(childPath) &&
+            (childrenByPath[childPath]?.length ?? 0) === 0,
+        };
+      });
+    };
+
+    return buildChildren("");
+  }, [
+    childrenByPath,
+    current_path,
+    project_id,
+    treeVersion,
+    starred,
+    setStarredPath,
+  ]);
+
+  // Starred directories: entries ending with "/" are directories
+  const starredDirs = starred.filter((p) => p.endsWith("/"));
+  const hasStarredDirs = starredDirs.length > 0;
+  const isHomeSelected = current_path === "";
+
+  return (
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        flex: "1 1 0",
+        minHeight: 0,
+        overflow: "hidden",
+      }}
+    >
+      {/* Home — always on top, styled like starred-dirs items */}
+      <div
+        ref={homeDropRef}
+        className="cc-project-flyout-file-item"
+        onClick={() => on_open_directory("")}
+        style={{
+          width: "100%",
+          cursor: "pointer",
+          color: COLORS.GRAY_D,
+          overflow: "hidden",
+          flexShrink: 0,
+          backgroundColor: isHomeSelected ? COLORS.BLUE_LLL : undefined,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "row",
+            flex: "1",
+            padding: FLYOUT_PADDING,
+            overflow: "hidden",
+            alignItems: "center",
+          }}
+        >
+          <Icon
+            name="home"
             style={{
-              flex: "1 0 auto",
-              display: "flex",
-              flexDirection: "column",
-              padding: "0 5px 5px 5px",
+              fontSize: "120%",
+              marginRight: FLYOUT_PADDING,
+              flexShrink: 0,
+            }}
+          />
+          <span
+            style={{
+              flex: 1,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              color: isHomeSelected ? COLORS.ANTD_LINK_BLUE : undefined,
             }}
           >
-            {this.render_file_listing(
-              visible_listing,
-              file_map,
-              directory_error,
-              project_is_running,
-            )}
-            {listing != undefined
-              ? this.render_paging_buttons(
-                  Math.ceil(listing.length / file_listing_page_size),
-                )
-              : undefined}
-          </div>
-          <ExplorerTour
-            open={this.props.explorerTour}
-            project_id={this.props.project_id}
-            newFileRef={this.newFileRef}
-            searchAndTerminalBar={this.searchAndTerminalBar}
-            fileListingRef={this.fileListingRef}
-            currentDirectoryRef={this.currentDirectoryRef}
-            miscButtonsRef={this.miscButtonsRef}
-          />
+            Home
+          </span>
         </div>
-      );
-    }
-  },
-);
+      </div>
+
+      {/* Starred directories — no header, separated by GRAY_L bars */}
+      {hasStarredDirs && (
+        <div
+          style={{
+            maxHeight: "25%",
+            overflowY: "auto",
+            overflowX: "hidden",
+            flexShrink: 0,
+            borderTop: `2px solid ${COLORS.GRAY_L}`,
+            borderBottom: `2px solid ${COLORS.GRAY_L}`,
+          }}
+        >
+          {starredDirs.map((starPath) => (
+            <StarredDirItem
+              key={starPath}
+              starPath={starPath}
+              current_path={current_path}
+              on_open_directory={on_open_directory}
+              setStarredPath={setStarredPath}
+            />
+          ))}
+        </div>
+      )}
+
+      {/* Main directory tree — shows root children directly, no extra indent */}
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleTreeScroll}
+        style={{
+          ...TREE_PANEL_STYLE,
+          flex: "1 1 0",
+          minHeight: 0,
+        }}
+      >
+        <Tree
+          blockNode
+          showLine={{ showLeafIcon: false }}
+          virtual={false}
+          treeData={treeData}
+          expandedKeys={expandedKeys}
+          selectedKeys={
+            current_path !== "" ? [pathToTreeKey(current_path)] : []
+          }
+          onExpand={onExpand}
+          onSelect={onSelect}
+        />
+        {!!error && (
+          <div
+            style={{ color: COLORS.ANTD_RED, fontSize: "11px", padding: "4px" }}
+          >
+            {error}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/**
+ * Determine if the project should be considered "running" for UI purposes.
+ * Admins always see a running project (issue #3863).
+ * Public viewers never see running features.
+ */
+function deriveProjectIsRunning(
+  group: string | undefined,
+  project_map: any,
+  project_id: string,
+): boolean {
+  if (group === "admin") return true;
+  if (group === "public" || group == null) return false;
+  const project_state = project_map?.getIn([project_id, "state"]) as
+    | ProjectStatus
+    | undefined;
+  return project_state?.get("state") === "running";
+}
 
 const SearchTerminalBar = React.forwardRef(
   (
@@ -776,21 +1437,24 @@ const SearchTerminalBar = React.forwardRef(
       current_path,
       file_search,
       actions,
-      visible_listing,
+      listing,
       selected_file_index,
       file_creation_error,
       create_file,
       create_folder,
+      on_focus,
+      on_blur,
     }: {
-      ref: React.Ref<any>;
       current_path: string;
       file_search: string;
       actions: ProjectActions;
-      visible_listing: ListingItem[] | undefined;
+      listing: ListingItem[] | undefined;
       selected_file_index?: number;
       file_creation_error?: string;
       create_file: (ext?: string, switch_over?: boolean) => void;
       create_folder: (switch_over?: boolean) => void;
+      on_focus?: () => void;
+      on_blur?: () => void;
     },
     ref: React.LegacyRef<HTMLDivElement> | undefined,
   ) => {
@@ -802,17 +1466,17 @@ const SearchTerminalBar = React.forwardRef(
           actions={actions}
           current_path={current_path}
           selected_file={
-            visible_listing != undefined
-              ? visible_listing[selected_file_index || 0]
-              : undefined
+            listing != undefined ? listing[selected_file_index ?? 0] : undefined
           }
           selected_file_index={selected_file_index}
           file_creation_error={file_creation_error}
           num_files_displayed={
-            visible_listing != undefined ? visible_listing.length : undefined
+            listing != undefined ? listing.length : undefined
           }
           create_file={create_file}
           create_folder={create_folder}
+          on_focus={on_focus}
+          on_blur={on_blur}
         />
       </div>
     );

@@ -3,17 +3,19 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Space, Tooltip } from "antd";
+import { Button, Space, Tooltip } from "antd";
 import * as immutable from "immutable";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
-import { Gap, Icon } from "@cocalc/frontend/components";
+
+import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
+import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
+import ExplorerHelp from "@cocalc/frontend/project/explorer/explorer-help";
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import * as misc from "@cocalc/util/misc";
@@ -29,8 +31,6 @@ interface Props {
   project_id?: string;
   checked_files: immutable.Set<string>;
   listing: { name: string; isdir: boolean }[];
-  page_number: number;
-  page_size: number;
   current_path?: string;
   project_map?: immutable.Map<string, string>;
   images?: ComputeImages;
@@ -38,61 +38,50 @@ interface Props {
   available_features?;
   show_custom_software_reset?: boolean;
   project_is_running?: boolean;
+  show_directory_tree?: boolean;
+  on_toggle_directory_tree?: () => void;
 }
 
 export const ActionBar: React.FC<Props> = (props: Props) => {
   const intl = useIntl();
-  const [select_entire_directory, set_select_entire_directory] = useState<
-    "hidden" | "check" | "clear"
-  >("hidden");
   const student_project_functionality = useStudentProjectFunctionality(
     props.actions.project_id,
   );
   const disableActions = student_project_functionality.disableActions;
 
-  useEffect(() => {
-    // user changed directory, hide the "select entire directory" button
-    if (select_entire_directory !== "hidden") {
-      set_select_entire_directory("hidden");
-    }
-  }, [props.current_path]);
-
-  useEffect(() => {
-    if (
-      props.checked_files.size === props.listing.length &&
-      select_entire_directory === "check"
-    ) {
-      // user just clicked the "select entire directory" button, show the "clear" button
-      set_select_entire_directory("clear");
-    }
-  }, [props.checked_files, props.listing, select_entire_directory]);
-
+  // When file actions are disabled (student projects), still render the
+  // directory tree toggle — it is navigation, not a file action.
   if (disableActions) {
-    return <div></div>;
+    if (
+      !props.on_toggle_directory_tree ||
+      props.show_directory_tree ||
+      IS_MOBILE
+    ) {
+      return <div></div>;
+    }
+    return (
+      <div style={{ padding: "0" }}>
+        <BootstrapButton
+          onClick={props.on_toggle_directory_tree}
+          title="Show directory tree"
+        >
+          <Icon name="network" style={{ transform: "rotate(270deg)" }} />
+        </BootstrapButton>
+      </div>
+    );
   }
 
   function clear_selection(): void {
     props.actions.set_all_files_unchecked();
-    if (select_entire_directory !== "hidden") {
-      set_select_entire_directory("hidden");
-    }
   }
 
   function check_all_click_handler(): void {
     if (props.checked_files.size === 0) {
-      const files_on_page = props.listing.slice(
-        props.page_size * props.page_number,
-        props.page_size * (props.page_number + 1),
-      );
       props.actions.set_file_list_checked(
-        files_on_page.map((file) =>
+        props.listing.map((file) =>
           misc.path_to_file(props.current_path ?? "", file.name),
         ),
       );
-      if (props.listing.length > props.page_size) {
-        // if there are more items than one page, show a button to select everything
-        set_select_entire_directory("check");
-      }
     } else {
       clear_selection();
     }
@@ -126,88 +115,31 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
 
     return (
-      <Button
-        bsSize="small"
-        cocalc-test="check-all"
-        onClick={check_all_click_handler}
-      >
+      <Button data-cocalc-test="check-all" onClick={check_all_click_handler}>
         <Icon name={button_icon} /> {button_text}
       </Button>
     );
   }
 
-  function do_select_entire_directory(): void {
-    props.actions.set_file_list_checked(
-      props.listing.map((file) =>
-        misc.path_to_file(props.current_path ?? "", file.name),
-      ),
-    );
-  }
-
-  function render_select_entire_directory(): React.JSX.Element | undefined {
-    switch (select_entire_directory) {
-      case "check":
-        return (
-          <Button bsSize="xsmall" onClick={do_select_entire_directory}>
-            Select All {props.listing.length} Items
-          </Button>
-        );
-      case "clear":
-        return (
-          <Button bsSize="xsmall" onClick={clear_selection}>
-            Clear Entire Selection
-          </Button>
-        );
-    }
-  }
-
-  function render_currently_selected(): React.JSX.Element | undefined {
-    if (props.listing.length === 0) {
+  function render_directory_tree_toggle(): React.JSX.Element | undefined {
+    // When the tree is visible, the toggle is rendered above the tree panel
+    // in explorer.tsx — don't duplicate it here. Tree is also not available
+    // on mobile.
+    if (
+      !props.on_toggle_directory_tree ||
+      props.show_directory_tree ||
+      IS_MOBILE
+    ) {
       return;
     }
-    const checked = props.checked_files.size;
-    const total = props.listing.length;
-    const style = ROW_INFO_STYLE;
-
-    if (checked === 0) {
-      return (
-        <div style={style}>
-          <span>
-            {total} {intl.formatMessage(labels.item_plural, { total })}
-          </span>
-          <div style={{ display: "inline" }}>
-            {" "}
-            &mdash;{" "}
-            <FormattedMessage
-              id="project.explorer.action-bar.currently_selected.info"
-              defaultMessage={
-                "Click the checkbox to the left of a file to copy, download, etc."
-              }
-            />
-          </div>
-        </div>
-      );
-    } else {
-      return (
-        <div style={style}>
-          <span>
-            {intl.formatMessage(
-              {
-                id: "project.explorer.action-bar.currently_selected.items",
-                defaultMessage: "{checked} of {total} {items} selected",
-              },
-              {
-                checked,
-                total,
-                items: intl.formatMessage(labels.item_plural, { total }),
-              },
-            )}
-          </span>
-          <Gap />
-          {render_select_entire_directory()}
-        </div>
-      );
-    }
+    return (
+      <BootstrapButton
+        onClick={props.on_toggle_directory_tree}
+        title="Show directory tree"
+      >
+        <Icon name="network" style={{ transform: "rotate(270deg)" }} />
+      </BootstrapButton>
+    );
   }
 
   function render_action_button(name: FileAction): React.JSX.Element {
@@ -222,11 +154,10 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     };
 
     return (
-      <Tooltip title={intl.formatMessage(obj.name)}>
-        <Button onClick={handle_click} disabled={disabled} key={name}>
+      <Tooltip title={intl.formatMessage(obj.name)} key={name}>
+        <Button onClick={handle_click} disabled={disabled}>
           <Icon name={obj.icon} />
         </Button>
-        &nbsp;
       </Tooltip>
     );
   }
@@ -305,20 +236,76 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     return null;
   }
   return (
-    <div style={{ flex: "1 0 auto" }}>
-      <div style={{ flex: "1 0 auto" }}>
-        <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
-          <Space.Compact>
-            {props.project_is_running ? render_check_all_button() : undefined}
-          </Space.Compact>
-          {render_button_area()}
-        </ButtonToolbar>
-      </div>
-      <div style={{ flex: "1 0 auto" }}>
-        {props.project_is_running ? render_currently_selected() : undefined}
-      </div>
-    </div>
+    <Space wrap style={{ whiteSpace: "nowrap", padding: "0" }}>
+      {props.project_is_running ? render_directory_tree_toggle() : undefined}
+      {props.project_is_running ? render_check_all_button() : undefined}
+      {render_button_area()}
+    </Space>
   );
+};
+
+/** Info line shown below the action bar — "N items" + Help button. */
+export const ActionBarInfo: React.FC<
+  Pick<Props, "project_id" | "checked_files" | "listing" | "project_is_running">
+> = (props) => {
+  const intl = useIntl();
+  if (!props.project_is_running || props.listing.length === 0) {
+    return null;
+  }
+  const checked = props.checked_files.size;
+  const total = props.listing.length;
+
+  const helpButton = props.project_id ? (
+    <ExplorerHelp project_id={props.project_id} />
+  ) : null;
+
+  if (checked === 0) {
+    return (
+      <div
+        style={{
+          ...ROW_INFO_STYLE,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <span style={{ flex: 1 }}>
+          {total} {intl.formatMessage(labels.item_plural, { total })} &mdash;{" "}
+          <FormattedMessage
+            id="project.explorer.action-bar.currently_selected.info"
+            defaultMessage={
+              "Select files via checkbox or drag and drop to move them."
+            }
+          />
+        </span>
+        {helpButton}
+      </div>
+    );
+  } else {
+    return (
+      <div
+        style={{
+          ...ROW_INFO_STYLE,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <span style={{ flex: 1 }}>
+          {intl.formatMessage(
+            {
+              id: "project.explorer.action-bar.currently_selected.items",
+              defaultMessage: "{checked} of {total} {items} selected",
+            },
+            {
+              checked,
+              total,
+              items: intl.formatMessage(labels.item_plural, { total }),
+            },
+          )}
+        </span>
+        {helpButton}
+      </div>
+    );
+  }
 };
 
 // Ordered by frequency of use — most common first, share last (often the

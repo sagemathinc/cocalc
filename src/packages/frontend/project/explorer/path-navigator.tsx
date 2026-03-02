@@ -69,6 +69,7 @@ export const PathNavigator: React.FC<Props> = React.memo(
           key: 0,
           on_click: () => actions?.open_directory("", true, false),
           active: currentPathDepth === -1,
+          dndNamespace: mode,
         }),
       );
 
@@ -96,6 +97,7 @@ export const PathNavigator: React.FC<Props> = React.memo(
             on_click: (path) => actions?.open_directory(path, true, false),
             active: is_current,
             history: is_history,
+            dndNamespace: mode,
           }),
         );
       });

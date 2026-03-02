@@ -337,6 +337,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
 
   return (
     <div
+      className="cc-projects-nav"
       style={{
         overflow: "hidden",
         height: `${height}px`,

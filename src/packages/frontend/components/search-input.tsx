@@ -31,6 +31,8 @@ interface Props {
   on_down?: () => void;
   on_up?: () => void;
   on_escape?: (value: string) => void;
+  on_blur?: () => void;
+  on_focus?: () => void;
   style?: React.CSSProperties;
   input_class?: string;
   autoFocus?: boolean;
@@ -146,6 +148,8 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
       }}
       onKeyDown={key_down}
       onKeyUp={key_up}
+      onBlur={props.on_blur}
+      onFocus={props.on_focus}
       disabled={props.disabled}
       enterButton={props.buttonAfter}
       status={props.status}

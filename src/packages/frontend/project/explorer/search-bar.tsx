@@ -53,6 +53,8 @@ interface Props {
   num_files_displayed?: number;
   disabled?: boolean;
   ext_selection?: string;
+  on_blur?: () => void;
+  on_focus?: () => void;
 }
 
 // Commands such as CD throw a setState error.
@@ -250,7 +252,6 @@ export const SearchBar = React.memo((props: Props) => {
       const opening_a_dir = selected_file.isdir;
       if (opening_a_dir) {
         actions.open_directory(new_path);
-        actions.setState({ page_number: 0 });
       } else {
         actions.open_file({
           path: new_path,
@@ -304,7 +305,8 @@ export const SearchBar = React.memo((props: Props) => {
         autoSelect
         placeholder={intl.formatMessage({
           id: "project.explorer.search-bar.placeholder",
-          defaultMessage: 'Filter files or "/" for terminal...',
+          defaultMessage:
+            'Filter files (.py -test /regex/) or "/" for terminal...',
         })}
         value={file_search}
         on_change={on_change}
@@ -312,6 +314,8 @@ export const SearchBar = React.memo((props: Props) => {
         on_up={on_up_press}
         on_down={on_down_press}
         on_clear={on_clear}
+        on_blur={props.on_blur}
+        on_focus={props.on_focus}
         disabled={disabled || !!ext_selection}
       />
       {render_file_creation_error()}
