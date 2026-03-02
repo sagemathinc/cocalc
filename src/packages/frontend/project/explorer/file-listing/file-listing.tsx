@@ -29,6 +29,7 @@ import {
 import { Icon, IconName, TimeAgo, Tip } from "@cocalc/frontend/components";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { labels } from "@cocalc/frontend/i18n";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
@@ -519,7 +520,7 @@ export const FileListing: React.FC<Props> = ({
   const [containerEl, containerRef] = useState<HTMLDivElement | null>(null);
   const scrollHeight = useAvailableHeight(containerEl);
   const containerWidth = useContainerWidth(containerEl);
-  const isNarrow = containerWidth < NARROW_WIDTH_PX;
+  const isNarrow = IS_MOBILE || containerWidth < NARROW_WIDTH_PX;
 
   // -- Background drop target: dropping anywhere on the table background moves
   // files to the current directory. No highlight (user expectation: silent drop).
@@ -829,27 +830,35 @@ export const FileListing: React.FC<Props> = ({
   // -- Columns --
   const columns: ColumnsType<FileEntry> = useMemo(() => {
     const cols: ColumnsType<FileEntry> = [
-      {
-        key: "type",
-        width: 60,
-        render: (_, record) =>
-          renderFileIcon(
-            record,
-            record.isdir ? expandedDirs.includes(record.name) : false,
-          ),
-        onCell: (record) => {
-          if (!record.isdir) return {};
-          const isExpanded = expandedDirs.includes(record.name);
-          return {
-            onClick: (e: React.MouseEvent) => toggleExpandDir(record.name, e),
-            className: isExpanded ? "cc-explorer-cell-expanded" : undefined,
-            style: { cursor: "pointer" },
-          };
-        },
-        filters: typeFilters,
-        filterMultiple: false,
-        filteredValue: typeFilter != null ? [typeFilter] : null,
-      },
+      // Type icon column — hidden on mobile to save space
+      ...(IS_MOBILE
+        ? []
+        : [
+            {
+              key: "type",
+              width: 60,
+              render: (_: any, record: FileEntry) =>
+                renderFileIcon(
+                  record,
+                  record.isdir ? expandedDirs.includes(record.name) : false,
+                ),
+              onCell: (record: FileEntry) => {
+                if (!record.isdir) return {};
+                const isExpanded = expandedDirs.includes(record.name);
+                return {
+                  onClick: (e: React.MouseEvent) =>
+                    toggleExpandDir(record.name, e),
+                  className: isExpanded
+                    ? "cc-explorer-cell-expanded"
+                    : undefined,
+                  style: { cursor: "pointer" },
+                };
+              },
+              filters: typeFilters,
+              filterMultiple: false,
+              filteredValue: typeFilter != null ? [typeFilter] : null,
+            },
+          ]),
       {
         key: "starred",
         width: 40,
