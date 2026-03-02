@@ -195,6 +195,29 @@ interface FileEntry {
   is_public?: boolean;
 }
 
+function listingMembershipKey(entry: FileEntry): string {
+  return `${entry.name}:${entry.isdir ? 1 : 0}`;
+}
+
+function hasSameListingMembership(a: FileEntry[], b: FileEntry[]): boolean {
+  if (a === b) return true;
+  if (a.length !== b.length) return false;
+  const aKeys = new Set<string>();
+  for (const entry of a) {
+    aKeys.add(listingMembershipKey(entry));
+  }
+  if (aKeys.size !== a.length) {
+    // Defensive: duplicate basenames should not happen in one directory.
+    return false;
+  }
+  for (const entry of b) {
+    if (!aKeys.has(listingMembershipKey(entry))) {
+      return false;
+    }
+  }
+  return true;
+}
+
 interface Props {
   actions: ProjectActions;
   redux: AppRedux;
@@ -474,6 +497,33 @@ export const FileListing: React.FC<Props> = ({
   const { starred, setStarredPath } = useStarredFilesManager(project_id);
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
+  const hasCheckedSelection = useMemo(
+    () =>
+      checked_files.some(
+        (fp) => misc.path_split(fp as string).head === current_path,
+      ),
+    [checked_files, current_path],
+  );
+  const listingForRenderRef = useRef<FileEntry[]>(listing as FileEntry[]);
+  const fileMapForRenderRef = useRef<object>(file_map);
+  const listingPathRef = useRef<string>(current_path);
+
+  // Keep metadata updates flowing through Redux, but while files are checked,
+  // suppress table reordering from metadata-only churn.
+  if (
+    listingPathRef.current !== current_path ||
+    !hasCheckedSelection ||
+    !hasSameListingMembership(
+      listingForRenderRef.current,
+      listing as FileEntry[],
+    )
+  ) {
+    listingPathRef.current = current_path;
+    listingForRenderRef.current = listing as FileEntry[];
+    fileMapForRenderRef.current = file_map;
+  }
+  const listingForRender = listingForRenderRef.current;
+  const fileMapForRender = fileMapForRenderRef.current;
 
   // -- Directory watching --
   const prev_current_path = usePrevious(current_path);
@@ -496,7 +546,7 @@ export const FileListing: React.FC<Props> = ({
   const [missing, setMissing] = useState(0);
 
   useEffect(() => {
-    if (isRunning || listing.length === 0) return;
+    if (isRunning || listingForRender.length === 0) return;
     let cancelled = false;
     (async () => {
       const m = await redux
@@ -508,7 +558,7 @@ export const FileListing: React.FC<Props> = ({
     return () => {
       cancelled = true;
     };
-  }, [current_path, isRunning, listing.length]);
+  }, [current_path, isRunning, listingForRender.length]);
 
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
   const dimFileExtensions = !!other_settings?.get?.("dim_file_extensions");
@@ -573,12 +623,12 @@ export const FileListing: React.FC<Props> = ({
 
   // -- Enriched data source --
   const dataSource: FileEntry[] = useMemo(() => {
-    const entries = listing.map((item) => ({
+    const entries = listingForRender.map((item) => ({
       ...item,
-      is_public: (file_map as any)?.[item.name]?.is_public ?? false,
+      is_public: (fileMapForRender as any)?.[item.name]?.is_public ?? false,
     }));
     return hide_masked_files ? entries.filter((e) => !e.mask) : entries;
-  }, [listing, file_map, hide_masked_files]);
+  }, [listingForRender, fileMapForRender, hide_masked_files]);
 
   // -- Selection keys (full paths in checked_files → file names for Table) --
   // Use dataSource (not listing) so hidden masked files are excluded from selection.
@@ -823,8 +873,8 @@ export const FileListing: React.FC<Props> = ({
 
   // -- Type filters --
   const typeFilters = useMemo(
-    () => computeTypeFilters(type_counts, listing),
-    [type_counts, listing],
+    () => computeTypeFilters(type_counts, listingForRender),
+    [type_counts, listingForRender],
   );
 
   // -- Columns --
@@ -1137,7 +1187,7 @@ export const FileListing: React.FC<Props> = ({
   );
 
   // -- Early returns for special states --
-  if (!isRunning && listing.length === 0) {
+  if (!isRunning && listingForRender.length === 0) {
     return (
       <Alert
         style={{
@@ -1173,7 +1223,7 @@ export const FileListing: React.FC<Props> = ({
   }
 
   // -- No files --
-  if (listing.length === 0 && file_search[0] !== TERM_MODE_CHAR) {
+  if (listingForRender.length === 0 && file_search[0] !== TERM_MODE_CHAR) {
     return (
       <NoFiles
         name={name}
@@ -1190,7 +1240,7 @@ export const FileListing: React.FC<Props> = ({
 
   return (
     <>
-      {!isRunning && listing.length > 0 && (
+      {!isRunning && listingForRender.length > 0 && (
         <div
           style={{
             textAlign: "center",

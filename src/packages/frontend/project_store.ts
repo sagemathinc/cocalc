@@ -681,45 +681,41 @@ export class ProjectStore extends Store<ProjectStoreState> {
         let directory_listings_for_server =
           this.getIn(["directory_listings", computeServerId]) ??
           immutable.Map();
-
-        const missing: string[] = [];
+        let changed = false;
         for (const path of paths) {
+          const previous = directory_listings_for_server.get(path);
+          let files;
           if (listingsTable.getMissing(path)) {
-            missing.push(path);
+            // For large directories, publish the final full listing only.
+            // This avoids UI "flip" from partial -> full updates.
+            try {
+              files = immutable.fromJS(
+                await listingsTable.getListingDirectly(path),
+              );
+            } catch {
+              // fallback (e.g., project not running)
+              files = await listingsTable.getForStore(path);
+            }
+          } else {
+            files = await listingsTable.getForStore(path);
           }
-          const files = await listingsTable.getForStore(path);
+          if (immutable.is(previous, files)) continue;
+
           directory_listings_for_server = directory_listings_for_server.set(
             path,
             files,
           );
+          changed = true;
         }
-        const f = () => {
-          const actions = redux.getProjectActions(this.project_id);
-          const directory_listings = this.get("directory_listings").set(
-            computeServerId,
-            directory_listings_for_server,
-          );
-          actions.setState({ directory_listings });
-        };
-        f();
-
-        if (missing.length > 0) {
-          for (const path of missing) {
-            try {
-              const files = immutable.fromJS(
-                await listingsTable.getListingDirectly(path),
-              );
-              directory_listings_for_server = directory_listings_for_server.set(
-                path,
-                files,
-              );
-            } catch {
-              // happens if e.g., the project is not running
-              continue;
-            }
-          }
-          f();
+        if (!changed) {
+          return;
         }
+        const actions = redux.getProjectActions(this.project_id);
+        const directory_listings = this.get("directory_listings").set(
+          computeServerId,
+          directory_listings_for_server,
+        );
+        actions.setState({ directory_listings });
       });
     }
     if (this.listings[computeServerId] == null) {
