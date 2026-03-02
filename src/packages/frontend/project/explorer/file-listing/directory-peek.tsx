@@ -12,8 +12,9 @@
 
 import { Button, Dropdown, Flex, Spin, Tooltip } from "antd";
 import type { MenuProps } from "antd";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useIntl } from "react-intl";
+import { VirtuosoGrid } from "react-virtuoso";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
@@ -44,6 +45,28 @@ interface PeekEntry extends DirectoryListingEntry {
 }
 
 const MAX_HEIGHT = 300;
+
+/** Above this many entries we switch from a plain Flex to VirtuosoGrid
+ *  so that 10k-file directories don't mount 10k DOM nodes at once. */
+const VIRTUALIZE_THRESHOLD = 200;
+
+/** Grid height when using VirtuosoGrid (accounts for close button + padding). */
+const GRID_HEIGHT = MAX_HEIGHT - 40;
+
+const PEEK_ITEM_WIDTH = 150;
+
+/** Stable wrapper for VirtuosoGrid's list container — flex-wrap grid. */
+const GridListContainer = React.forwardRef<
+  HTMLDivElement,
+  React.HTMLAttributes<HTMLDivElement>
+>((props, ref) => (
+  <div
+    ref={ref}
+    {...props}
+    style={{ ...props.style, display: "flex", flexWrap: "wrap", gap: 4 }}
+  />
+));
+GridListContainer.displayName = "GridListContainer";
 
 export default function DirectoryPeek({
   project_id,
@@ -87,6 +110,7 @@ export default function DirectoryPeek({
   }, [project_id, computeServerId, dirPath]);
 
   // Fetch the directory listing; re-runs on dirPath change or version bump.
+  // Only show loading spinner on first load (entries empty); refreshes are silent.
   useEffect(() => {
     let cancelled = false;
 
@@ -117,6 +141,7 @@ export default function DirectoryPeek({
         });
 
         setEntries(files);
+        setError(null);
       } catch (err) {
         if (!cancelled) setError(`${err}`);
       } finally {
@@ -166,6 +191,8 @@ export default function DirectoryPeek({
     dirPath,
   );
 
+  const isLarge = entries.length > VIRTUALIZE_THRESHOLD;
+
   return (
     <div
       ref={peekDropRef}
@@ -174,28 +201,41 @@ export default function DirectoryPeek({
         background: COLORS.BLUE_LLLL,
         padding: "8px 8px 8px 12px",
         position: "relative",
-        maxHeight: MAX_HEIGHT,
-        overflowY: "auto",
+        // When virtualized, VirtuosoGrid handles its own scrolling.
+        ...(isLarge
+          ? { overflow: "hidden" }
+          : { maxHeight: MAX_HEIGHT, overflowY: "auto" }),
       }}
     >
-      {/* Close button */}
-      <Button
-        type="text"
-        size="small"
-        onClick={(e) => {
-          e.stopPropagation();
-          onClose();
-        }}
+      {/* Close button + count badge for large directories */}
+      <div
         style={{
           position: "absolute",
           top: 4,
           right: 4,
           zIndex: 1,
-          color: COLORS.GRAY_M,
+          display: "flex",
+          alignItems: "center",
+          gap: 4,
         }}
       >
-        <Icon name="times" />
-      </Button>
+        {isLarge && (
+          <span style={{ fontSize: 11, color: COLORS.GRAY_M }}>
+            {entries.length.toLocaleString()} items
+          </span>
+        )}
+        <Button
+          type="text"
+          size="small"
+          onClick={(e) => {
+            e.stopPropagation();
+            onClose();
+          }}
+          style={{ color: COLORS.GRAY_M }}
+        >
+          <Icon name="times" />
+        </Button>
+      </div>
 
       {loading && (
         <div style={{ textAlign: "center", padding: 12 }}>
@@ -217,7 +257,7 @@ export default function DirectoryPeek({
         </div>
       )}
 
-      {!loading && entries.length > 0 && (
+      {!loading && entries.length > 0 && !isLarge && (
         <Flex wrap gap="small">
           {entries.map((entry) => (
             <PeekItem
@@ -231,6 +271,28 @@ export default function DirectoryPeek({
             />
           ))}
         </Flex>
+      )}
+
+      {!loading && entries.length > 0 && isLarge && (
+        <VirtuosoGrid
+          style={{ height: GRID_HEIGHT }}
+          totalCount={entries.length}
+          overscan={300}
+          components={{ List: GridListContainer }}
+          itemContent={(index) => {
+            const entry = entries[index];
+            return (
+              <PeekItem
+                entry={entry}
+                icon={getIcon(entry)}
+                project_id={project_id}
+                onClick={() => handleClick(entry)}
+                contextMenuItems={getContextMenuItems(entry)}
+                disableActions={student.disableActions}
+              />
+            );
+          }}
+        />
       )}
     </div>
   );
@@ -277,7 +339,7 @@ function PeekItem({
             padding: "2px 8px",
             borderRadius: 4,
             cursor: "pointer",
-            width: 150,
+            width: PEEK_ITEM_WIDTH,
             fontSize: 12,
             color: entry.isdir ? COLORS.ANTD_LINK_BLUE : COLORS.GRAY_D,
             background: "transparent",

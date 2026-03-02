@@ -58,8 +58,8 @@ import DirectoryPeek from "./directory-peek";
 import NoFiles from "./no-files";
 import {
   TERM_MODE_CHAR,
+  TypeFilterLabel,
   VIEWABLE_FILE_EXT,
-  renderTypeFilterLabel,
   sortedTypeFilterOptions,
 } from "./utils";
 
@@ -81,7 +81,6 @@ function saveScrollState(
   ref: React.RefObject<TableVirtuosoHandle | null>,
 ) {
   ref.current?.getState((state) => {
-    // Only cache if the user has actually scrolled
     if (state.scrollTop > 0) {
       // Move to end (most-recently-used) by deleting and re-inserting
       scrollCache.delete(key);
@@ -91,6 +90,10 @@ function saveScrollState(
         const oldest = scrollCache.keys().next().value;
         if (oldest != null) scrollCache.delete(oldest);
       }
+    } else {
+      // User is at the top — remove any stale cached position so we
+      // don't restore an outdated scroll offset on next visit.
+      scrollCache.delete(key);
     }
   });
 }
@@ -429,7 +432,7 @@ function computeTypeFilters(
     }
   }
   return sortedTypeFilterOptions(extensions).map((ext) => ({
-    text: renderTypeFilterLabel(ext),
+    text: <TypeFilterLabel ext={ext} />,
     value: ext,
   }));
 }
@@ -445,7 +448,7 @@ function renderFileIcon(
     return (
       <span style={{ color, verticalAlign: "sub", whiteSpace: "nowrap" }}>
         <Icon
-          name="folder-open"
+          name={isExpanded ? "folder-open" : "folder"}
           style={{ fontSize: "14pt", verticalAlign: "sub" }}
         />
         <Icon
@@ -616,8 +619,9 @@ export const FileListing: React.FC<Props> = ({
   const fileMapForRenderRef = useRef<object>(file_map);
   const listingPathRef = useRef<string>(current_path);
 
-  // Keep metadata updates flowing through Redux, but while files are checked,
-  // suppress table reordering from metadata-only churn.
+  // Intentional: while files are checked, freeze the sort order so
+  // rows don't jump around under the user's selection.  Reordering
+  // only takes effect once the selection is cleared (or directory changes).
   if (
     listingPathRef.current !== current_path ||
     !hasCheckedSelection ||
@@ -1012,17 +1016,40 @@ export const FileListing: React.FC<Props> = ({
   // -- Virtuoso ref for scrollToIndex --
   const virtuosoRef = useRef<TableVirtuosoHandle>(null);
 
+  // Track latest scrollTop synchronously so directory-switch saves
+  // don't race with Virtuoso's async getState() callback.
+  const lastScrollTopRef = useRef<number>(0);
+  const handleVirtuosoScroll = useCallback(
+    (e: React.UIEvent<HTMLDivElement>) => {
+      lastScrollTopRef.current = (e.target as HTMLDivElement).scrollTop;
+    },
+    [],
+  );
+
   // -- Save scroll position when navigating away from a directory --
+  // Uses the synchronous lastScrollTopRef to avoid the race where
+  // getState() fires after Virtuoso already renders the new directory.
   useEffect(() => {
     if (prev_current_path != null && prev_current_path !== current_path) {
-      saveScrollState(
-        scrollCacheKey(project_id, prev_current_path),
-        virtuosoRef,
-      );
+      const key = scrollCacheKey(project_id, prev_current_path);
+      const scrollTop = lastScrollTopRef.current;
+      if (scrollTop > 0) {
+        scrollCache.delete(key);
+        scrollCache.set(key, { scrollTop, ranges: [] });
+        if (scrollCache.size > SCROLL_CACHE_MAX) {
+          const oldest = scrollCache.keys().next().value;
+          if (oldest != null) scrollCache.delete(oldest);
+        }
+      } else {
+        scrollCache.delete(key);
+      }
+      // Reset for new directory
+      lastScrollTopRef.current = 0;
     }
   }, [current_path, prev_current_path, project_id]);
 
-  // Also save on unmount (e.g. switching tabs)
+  // Also save on unmount (e.g. switching tabs) — getState is fine here
+  // since the directory hasn't changed yet.
   useEffect(() => {
     return () => {
       saveScrollState(scrollCacheKey(project_id, current_path), virtuosoRef);
@@ -1115,9 +1142,11 @@ export const FileListing: React.FC<Props> = ({
       getDragPaths: (name: string) => {
         const fp = misc.path_to_file(current_path, name);
         if (checked_files.has(fp)) {
+          // Dragging a checked file — drag all checked files together
           return checked_files.toArray();
         }
-        return [...checked_files.toArray(), fp];
+        // Dragging an unchecked file — drag only that file
+        return [fp];
       },
       getVirtualEntry: (index: number) => virtualData[index],
       onRow,
@@ -1278,6 +1307,7 @@ export const FileListing: React.FC<Props> = ({
             style={{ flex: 1, minHeight: 0 }}
             data={virtualData}
             overscan={200}
+            onScroll={handleVirtuosoScroll}
             {...(restoreSnapshot ? { restoreStateFrom: restoreSnapshot } : {})}
             components={VIRTUOSO_COMPONENTS}
             fixedHeaderContent={() => {
@@ -1606,9 +1636,21 @@ export const FileListing: React.FC<Props> = ({
           />
         </div>
       </DndRowContext.Provider>
-      {/* Floating context menu */}
+      {/* Floating context menu — nudge into viewport when near edges */}
       {contextMenu && (
         <div
+          ref={(el) => {
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            if (rect.right > vw) {
+              el.style.left = `${Math.max(0, vw - rect.width)}px`;
+            }
+            if (rect.bottom > vh) {
+              el.style.top = `${Math.max(0, vh - rect.height)}px`;
+            }
+          }}
           style={{
             position: "fixed",
             left: contextMenu.x,

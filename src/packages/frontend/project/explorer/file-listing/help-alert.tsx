@@ -77,7 +77,7 @@ function CreationHelpAlert({
             <>
               <span style={emphasis_style}>{file_search}</span> will be created
               as a <span style={emphasis_style}>folder path</span> if
-              non-existant
+              non-existent
             </>
           }
         />

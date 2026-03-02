@@ -502,7 +502,9 @@ export function Explorer() {
             selected_file_index={selected_file_index}
             project_id={project_id}
             shift_is_down={shiftIsDown}
-            sort_by={(actions as ProjectActions)?.set_sorted_file_column}
+            sort_by={
+              (actions as ProjectActions)?.set_sorted_file_column ?? (() => {})
+            }
             other_settings={other_settings as any}
             redux={redux}
             configuration_main={configuration?.get("main") as any}
@@ -1203,12 +1205,8 @@ function DirectoryTreePanel({
         relativeTop - container.clientHeight / 2 + selected.offsetHeight / 2;
       container.scrollTo({ top: target, behavior: "smooth" });
     }
-    const t1 = setTimeout(scrollSelected, 100);
-    const t2 = setTimeout(scrollSelected, 400);
-    return () => {
-      clearTimeout(t1);
-      clearTimeout(t2);
-    };
+    const t = setTimeout(scrollSelected, 200);
+    return () => clearTimeout(t);
   }, [current_path]);
 
   // Restore scroll position after initial data loads on mount / project change

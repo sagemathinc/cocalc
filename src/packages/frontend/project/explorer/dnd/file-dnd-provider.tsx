@@ -253,6 +253,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
   const [shiftKey, setShiftKey] = useState(false);
   const [overFolder, setOverFolder] = useState<string | null>(null);
   const [isInvalidTarget, setIsInvalidTarget] = useState(false);
+  const isInvalidTargetRef = useRef(false);
   const pointerPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   // Save pre-drag checked files to restore on cancel
   const preDragCheckedRef = useRef<string[] | null>(null);
@@ -263,7 +264,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     }),
   );
 
-  // Track Shift key and pointer position globally during drag
+  // Track Shift key globally
   useEffect(() => {
     const down = (e: KeyboardEvent) => {
       if (e.key === "Shift") setShiftKey(true);
@@ -271,16 +272,29 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     const up = (e: KeyboardEvent) => {
       if (e.key === "Shift") setShiftKey(false);
     };
-    const move = (e: PointerEvent) => {
-      pointerPos.current = { x: e.clientX, y: e.clientY };
-    };
     window.addEventListener("keydown", down);
     window.addEventListener("keyup", up);
-    window.addEventListener("pointermove", move);
     return () => {
       window.removeEventListener("keydown", down);
       window.removeEventListener("keyup", up);
-      window.removeEventListener("pointermove", move);
+    };
+  }, []);
+
+  // Track pointer position only during active drag
+  useEffect(() => {
+    if (!activeData) return;
+    const move = (e: PointerEvent) => {
+      pointerPos.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("pointermove", move);
+    return () => window.removeEventListener("pointermove", move);
+  }, [activeData]);
+
+  // Safety cleanup: if component unmounts during a drag, reset body styles
+  useEffect(() => {
+    return () => {
+      document.body.style.cursor = "";
+      document.body.classList.remove("cc-file-dragging");
     };
   }, []);
 
@@ -319,35 +333,37 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     }
   }, []);
 
+  // Keep ref in sync with state so handleDragMove can read without dependency
+  useEffect(() => {
+    isInvalidTargetRef.current = isInvalidTarget;
+  }, [isInvalidTarget]);
+
   // onDragMove fires on every pointer move — use it to detect hovering
   // over non-folder file rows (which are not droppable targets).
   // Throttled to avoid excessive DOM queries.
   const lastMoveCheck = useRef(0);
-  const handleDragMove = useCallback(
-    (event: DragMoveEvent) => {
-      // Only check when no droppable is active (folders handle themselves)
-      if (event.over != null) return;
-      const now = Date.now();
-      if (now - lastMoveCheck.current < 80) return;
-      lastMoveCheck.current = now;
-      const dragData = event.active?.data?.current as FileDragData | undefined;
-      if (!dragData?.paths) return;
-      const { x, y } = pointerPos.current;
-      const el = document.elementFromPoint(x, y);
-      const row = el?.closest?.("[data-row-key], [data-folder-drop-path]");
-      if (row && !row.hasAttribute("data-folder-drop-path")) {
-        const currentDir = dragData.paths[0]
-          ? path_split(dragData.paths[0]).head
-          : "";
-        setOverFolder(currentDir);
-        setIsInvalidTarget(true);
-      } else if (isInvalidTarget) {
-        setOverFolder(null);
-        setIsInvalidTarget(false);
-      }
-    },
-    [isInvalidTarget],
-  );
+  const handleDragMove = useCallback((event: DragMoveEvent) => {
+    // Only check when no droppable is active (folders handle themselves)
+    if (event.over != null) return;
+    const now = Date.now();
+    if (now - lastMoveCheck.current < 80) return;
+    lastMoveCheck.current = now;
+    const dragData = event.active?.data?.current as FileDragData | undefined;
+    if (!dragData?.paths) return;
+    const { x, y } = pointerPos.current;
+    const el = document.elementFromPoint(x, y);
+    const row = el?.closest?.("[data-row-key], [data-folder-drop-path]");
+    if (row && !row.hasAttribute("data-folder-drop-path")) {
+      const currentDir = dragData.paths[0]
+        ? path_split(dragData.paths[0]).head
+        : "";
+      setOverFolder(currentDir);
+      setIsInvalidTarget(true);
+    } else if (isInvalidTargetRef.current) {
+      setOverFolder(null);
+      setIsInvalidTarget(false);
+    }
+  }, []);
 
   // Restore the pre-drag selection (used on cancel / invalid drop)
   const restoreSelection = useCallback(() => {
@@ -368,6 +384,11 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
 
       const dragData = event.active.data.current as FileDragData | undefined;
       if (!dragData || dragData.type !== "file-drag") {
+        restoreSelection();
+        return;
+      }
+
+      if (!actions) {
         restoreSelection();
         return;
       }
@@ -393,19 +414,19 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
 
         try {
           if (shiftKey) {
-            await actions?.copy_paths({
+            await actions.copy_paths({
               src: dragData.paths,
               dest: dropData.path,
             });
           } else {
-            await actions?.move_files({
+            await actions.move_files({
               src: dragData.paths,
               dest: dropData.path,
             });
           }
-          actions?.set_all_files_unchecked();
+          actions.set_all_files_unchecked();
           preDragCheckedRef.current = null;
-          actions?.fetch_directory_listing();
+          actions.fetch_directory_listing();
         } catch (err) {
           console.warn("File drag-and-drop operation failed:", err);
           restoreSelection();

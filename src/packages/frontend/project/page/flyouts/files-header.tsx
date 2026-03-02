@@ -38,7 +38,7 @@ import {
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { separate_file_extension, strictMod } from "@cocalc/util/misc";
-import { renderTypeFilterLabel } from "@cocalc/frontend/project/explorer/file-listing/utils";
+import { TypeFilterLabel } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
@@ -452,7 +452,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
                       ]
                     : []),
                   ...typeFilterOptions.map((ext) => ({
-                    label: renderTypeFilterLabel(ext),
+                    label: <TypeFilterLabel ext={ext} />,
                     value: ext,
                   })),
                 ]}

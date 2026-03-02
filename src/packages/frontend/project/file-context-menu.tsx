@@ -84,7 +84,9 @@ export function buildFileActionItems(
           defaultMessage: "Copy filename",
         }),
         icon: <Icon name="copy" />,
-        onClick: () => navigator.clipboard.writeText(filename),
+        onClick: () => {
+          navigator.clipboard.writeText(filename).catch(() => {});
+        },
       },
       {
         key: "copy-path",
@@ -93,7 +95,9 @@ export function buildFileActionItems(
           defaultMessage: "Copy path",
         }),
         icon: <Icon name="copy" />,
-        onClick: () => navigator.clipboard.writeText(displayPath),
+        onClick: () => {
+          navigator.clipboard.writeText(displayPath).catch(() => {});
+        },
       },
       { key: "divider-copy", type: "divider" },
     );

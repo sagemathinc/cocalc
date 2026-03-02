@@ -3,14 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import React from "react";
-
-import { Icon } from "@cocalc/frontend/components";
-import { file_options } from "@cocalc/frontend/editor-tmp";
-import { NEW_FILETYPE_ICONS } from "@cocalc/frontend/project/new/consts";
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
-import { COLORS } from "@cocalc/util/theme";
 
 export const TERM_MODE_CHAR = "/";
 
@@ -126,41 +120,7 @@ export function sortedTypeFilterOptions(
   return result;
 }
 
-/**
- * Render a rich label for a file-type filter option:
- *   [icon] Human Name  .ext
- * Used by both the explorer table column filter and the flyout type dropdown.
- */
-export function renderTypeFilterLabel(ext: string): React.ReactNode {
-  if (ext === "folder") {
-    return React.createElement(
-      "span",
-      { style: { whiteSpace: "nowrap" } },
-      React.createElement(Icon, {
-        name: "folder-open",
-        style: { width: 20, marginRight: 6 },
-      }),
-      "Folder",
-    );
-  }
-
-  const iconOverride =
-    NEW_FILETYPE_ICONS[ext as keyof typeof NEW_FILETYPE_ICONS];
-  const info = file_options(`file.${ext}`);
-  const iconName = iconOverride ?? info?.icon ?? "file";
-  const name = info?.name;
-
-  return React.createElement(
-    "span",
-    { style: { whiteSpace: "nowrap" } },
-    React.createElement(Icon, {
-      name: iconName,
-      style: { width: 20, marginRight: 6 },
-    }),
-    name ? `${name} ` : "",
-    React.createElement("span", { style: { color: COLORS.GRAY } }, `.${ext}`),
-  );
-}
+export { TypeFilterLabel } from "./components";
 
 export function generate_click_for(
   file_action_name: FileAction,

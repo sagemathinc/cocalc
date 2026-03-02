@@ -23,10 +23,16 @@ interface ExplorerSettings {
   showDirectoryTree?: boolean;
 }
 
+interface ExplorerDKV {
+  get(key: string): ExplorerSettings | undefined;
+  set(key: string, value: ExplorerSettings): void;
+  close?(): void;
+}
+
 const DKV_NAME = "explorer-settings";
 
 export function useExplorerSettings(project_id: string): void {
-  const dkvRef = useRef<any>(null);
+  const dkvRef = useRef<ExplorerDKV | null>(null);
   const initializedRef = useRef(false);
 
   // Watch Redux sort state for changes
@@ -61,7 +67,7 @@ export function useExplorerSettings(project_id: string): void {
           return;
         }
 
-        dkvRef.current = conatDkv;
+        dkvRef.current = conatDkv as unknown as ExplorerDKV;
 
         // Restore persisted explorer settings into Redux
         const saved: ExplorerSettings | undefined = conatDkv.get(project_id);

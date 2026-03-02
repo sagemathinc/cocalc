@@ -42,6 +42,7 @@ import track from "@cocalc/frontend/user-tracking";
 import {
   capitalize,
   copy_without,
+  filename_extension,
   human_readable_size,
   path_split,
   path_to_file,
@@ -223,8 +224,7 @@ export function FilesFlyout({
         if (typeFilter == null) return true;
         if (typeFilter === "folder") return !!file.isdir;
         if (file.isdir) return false;
-        const ext =
-          separate_file_extension(file.name).ext?.toLowerCase() || "(none)";
+        const ext = filename_extension(file.name)?.toLowerCase() || "(none)";
         return ext === typeFilter;
       });
 
@@ -338,8 +338,7 @@ export function FilesFlyout({
       if (f.isdir) {
         extensions.add("folder");
       } else {
-        const ext =
-          separate_file_extension(f.name ?? "").ext?.toLowerCase() || "(none)";
+        const ext = filename_extension(f.name ?? "")?.toLowerCase() || "(none)";
         extensions.add(ext);
       }
     }
