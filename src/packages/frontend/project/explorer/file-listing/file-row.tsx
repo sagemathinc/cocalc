@@ -333,8 +333,8 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function handle_click(e) {
     if (
-      window.getSelection()?.toString() ??
-      "" !== selection_at_last_mouse_down
+      (window.getSelection()?.toString() ?? "") !==
+      selection_at_last_mouse_down
     ) {
       // This is a trick so that you can select a filename without
       // the click to do the selection triggering opening of the file.

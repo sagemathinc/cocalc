@@ -829,19 +829,22 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
   project_id,
   path,
   label,
-  isSelected,
   isStarred,
   onToggleStar,
 }: {
   project_id: string;
   path: string;
   label: string;
-  isSelected: boolean;
   isStarred: boolean;
-  onToggleStar: () => void;
+  onToggleStar: (starPath: string, starred: boolean) => void;
 }) {
   const id = `explorer-dir-tree-${project_id}-${path || TREE_HOME_KEY}`;
   const { dropRef, isOver, isInvalidDrop } = useFolderDrop(id, path);
+  // Read current_path from Redux directly so the treeData memo doesn't need
+  // to depend on it — only the 2 affected nodes re-render on navigation.
+  const currentPath = useTypedRedux({ project_id }, "current_path") ?? "";
+  const isSelected = currentPath === path;
+  const starPath = path === "" ? "" : `${path}/`;
 
   return (
     <span
@@ -875,7 +878,7 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
           onClick={(e) => {
             e?.preventDefault();
             e?.stopPropagation();
-            onToggleStar();
+            onToggleStar(starPath, !isStarred);
           }}
           style={{
             cursor: "pointer",
@@ -1251,9 +1254,23 @@ function DirectoryTreePanel({
     [on_open_directory],
   );
 
+  // Stable callback for star toggling — avoids new closures per tree node
+  const handleToggleStar = useCallback(
+    (starPath: string, starredValue: boolean) => {
+      setStarredPath(starPath, starredValue);
+    },
+    [setStarredPath],
+  );
+
+  const starredSet = useMemo(() => new Set(starred), [starred]);
+
   // Note: loadedPathsRef is intentionally not a dependency. `treeVersion`
   // is incremented whenever loadedPathsRef gains new paths, which triggers
   // this memo to rebuild with the latest ref contents.
+  //
+  // `current_path` is NOT a dependency — DirectoryTreeNodeTitle receives it
+  // as a prop and derives `isSelected` internally, so navigation does not
+  // rebuild the entire tree.
   const treeData: TreeDataNode[] = useMemo(() => {
     const loadedPaths = loadedPathsRef.current;
     const buildChildren = (parentPath: string): TreeDataNode[] => {
@@ -1263,7 +1280,6 @@ function DirectoryTreePanel({
           ? buildChildren(childPath)
           : undefined;
         const starPath = `${childPath}/`;
-        const isStarred = starred.includes(starPath);
         return {
           key: pathToTreeKey(childPath),
           title: (
@@ -1271,9 +1287,8 @@ function DirectoryTreePanel({
               project_id={project_id}
               path={childPath}
               label={misc.path_split(childPath).tail || childPath}
-              isSelected={current_path === childPath}
-              isStarred={isStarred}
-              onToggleStar={() => setStarredPath(starPath, !isStarred)}
+              isStarred={starredSet.has(starPath)}
+              onToggleStar={handleToggleStar}
             />
           ),
           children: childChildren,
@@ -1287,11 +1302,10 @@ function DirectoryTreePanel({
     return buildChildren("");
   }, [
     childrenByPath,
-    current_path,
     project_id,
     treeVersion,
-    starred,
-    setStarredPath,
+    starredSet,
+    handleToggleStar,
   ]);
 
   // Starred directories: entries ending with "/" are directories

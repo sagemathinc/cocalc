@@ -45,6 +45,7 @@ import {
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
+import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 
 import {
@@ -620,6 +621,10 @@ export const FileListing: React.FC<Props> = ({
   // -- Text selection trick (prevent opening file when selecting text) --
   const selectionRef = useRef("");
 
+  // Updated every render; read inside useCallback via ref to avoid adding as dep.
+  const nowMsRef = useRef(server_time().getTime());
+  nowMsRef.current = server_time().getTime();
+
   // -- Enriched data source --
   const dataSource: FileEntry[] = useMemo(() => {
     const entries = listingForRender.map((item) => ({
@@ -1149,6 +1154,7 @@ export const FileListing: React.FC<Props> = ({
         ...fileItemStyle(
           typeof record.mtime === "number" ? record.mtime * 1000 : 0,
           !!record.mask,
+          nowMsRef.current,
         ),
       },
     }),

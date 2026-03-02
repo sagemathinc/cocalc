@@ -17,6 +17,7 @@ import {
   React,
   useActions,
   useRef,
+  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName } from "@cocalc/frontend/components";
@@ -592,8 +593,21 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
       }
     : {};
 
+  // Lazy context menu: only build items when the dropdown opens.
+  const [contextMenuItems, setContextMenuItems] =
+    useState<MenuProps["items"]>();
+
   return (
-    <Dropdown menu={{ items: getContextMenu() }} trigger={["contextMenu"]}>
+    <Dropdown
+      menu={{ items: contextMenuItems }}
+      trigger={["contextMenu"]}
+      destroyPopupOnHide
+      onOpenChange={(open) => {
+        if (open) {
+          setContextMenuItems(getContextMenu());
+        }
+      }}
+    >
       <div
         ref={dndRef}
         key={item.name}

@@ -51,6 +51,7 @@ import {
   tab_to_path,
   unreachable,
 } from "@cocalc/util/misc";
+import { server_time } from "@cocalc/util/relative-time";
 import {
   FLYOUT_EXTRA2_WIDTH_PX,
   FLYOUT_EXTRA_WIDTH_PX,
@@ -463,7 +464,7 @@ export function FilesFlyout({
       }
     }
 
-    const fn = file.name;
+    const fn = path_to_file(current_path, file.name);
     if (checked_files.includes(fn)) {
       actions?.set_file_list_unchecked(List([fn]));
     }
@@ -628,6 +629,9 @@ export function FilesFlyout({
     }
   }
 
+  // Compute once per render pass — avoids per-row server_time() allocations.
+  const nowMs = server_time().getTime();
+
   function renderListItem(index: number, item: DirectoryListingEntry) {
     const { mtime, mask = false } = item;
     const age = typeof mtime === "number" ? 1000 * mtime : null;
@@ -656,7 +660,7 @@ export function FilesFlyout({
             actions?.close_tab(path_to_file(current_path, name));
           }
         }}
-        itemStyle={fileItemStyle(age ?? 0, mask)}
+        itemStyle={fileItemStyle(age ?? 0, mask, nowMs)}
         onPublic={() => showFileSharingDialog(directoryFiles[index])}
         selected={isSelected}
         showCheckbox={
