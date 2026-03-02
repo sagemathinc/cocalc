@@ -120,6 +120,18 @@
   // Only show vertical scrollbar when content overflows (antd defaults to scroll)
   .ant-table-body
     overflow-y: auto !important
+  // AntD virtual-table scrollbar: make it easier to see and grab.
+  .ant-table-tbody-virtual-scrollbar.ant-table-tbody-virtual-scrollbar-vertical
+    width: 10px !important
+    right: 2px !important
+    opacity: 1 !important
+  .ant-table-tbody-virtual-scrollbar-thumb
+    width: 100% !important
+    min-height: 30px !important
+    background: colors.$COL_GRAY_M !important
+    border-radius: 8px !important
+  .ant-table-tbody-virtual-scrollbar-thumb.ant-table-tbody-virtual-scrollbar-thumb-moving
+    background: colors.$COL_GRAY_M !important
 
 // Expanded directory peek row: remove default cell padding.
 // Must be at top level (not nested under .cc-explorer-table) to match

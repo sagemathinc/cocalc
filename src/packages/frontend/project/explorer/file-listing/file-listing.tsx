@@ -1229,6 +1229,7 @@ export const FileListing: React.FC<Props> = ({
             columns={columns}
             dataSource={dataSource}
             rowKey="name"
+            virtual
             components={TABLE_COMPONENTS}
             rowSelection={
               student_project_functionality.disableActions
@@ -1236,7 +1237,7 @@ export const FileListing: React.FC<Props> = ({
                 : rowSelection
             }
             pagination={false}
-            scroll={{ y: scrollHeight }}
+            scroll={{ x: containerWidth, y: scrollHeight }}
             showSorterTooltip={false}
             sortDirections={["ascend", "descend", "ascend"]}
             onChange={handleTableChange}
