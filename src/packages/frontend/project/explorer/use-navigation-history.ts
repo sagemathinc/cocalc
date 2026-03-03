@@ -84,7 +84,8 @@ export function useNavigationHistory(
 ): NavigationHistory {
   const dkvKey = `${storageKey}:${project_id}`;
   const dkvRef = useRef<NavDKV | null>(null);
-  const initializedRef = useRef(false);
+  // Reactive flag so the reconciliation effect re-runs after DKV init.
+  const [initialized, setInitialized] = useState(false);
   // Track whether a navigation was triggered by goBack/goForward
   // so recordNavigation can skip recording it.
   const isBackForwardRef = useRef(false);
@@ -129,28 +130,45 @@ export function useNavigationHistory(
 
         const saved = conatDkv.get(dkvKey);
         if (saved?.history && saved.history.length > 0) {
-          setHistory(saved.history);
-          setCursor(saved.cursor ?? 0);
+          // Restore saved history, but reconcile: if currentPath
+          // differs from the saved front entry (user navigated before
+          // DKV loaded), push currentPath onto the restored history.
+          let h = saved.history;
+          let c = saved.cursor ?? 0;
+          if (h[c] !== currentPath) {
+            const merged = pushToHistory(h, c, currentPath);
+            h = merged.history;
+            c = merged.cursor;
+            // Persist the reconciled state
+            try {
+              conatDkv.set(dkvKey, { history: h, cursor: c } as any);
+            } catch {
+              // ignore
+            }
+          }
+          setHistory(h);
+          setCursor(c);
         }
 
-        initializedRef.current = true;
+        setInitialized(true);
       } catch {
         // DKV unavailable — navigation history won't persist
-        initializedRef.current = true;
+        setInitialized(true);
       }
     },
     () => {
       dkvRef.current?.close?.();
       dkvRef.current = null;
-      initializedRef.current = false;
+      setInitialized(false);
     },
     [project_id, storageKey],
   );
 
   // When currentPath changes from outside (not via back/forward),
-  // record it in history.
+  // record it in history.  Also re-runs when `initialized` flips to true
+  // so any navigation that occurred before DKV loaded gets recorded.
   useEffect(() => {
-    if (!initializedRef.current) return;
+    if (!initialized) return;
     if (isBackForwardRef.current) {
       isBackForwardRef.current = false;
       return;
@@ -162,7 +180,7 @@ export function useNavigationHistory(
     setHistory(next.history);
     setCursor(next.cursor);
     persist(next.history, next.cursor);
-  }, [currentPath]);
+  }, [currentPath, initialized]);
 
   const canGoBack = cursor < history.length - 1;
   const canGoForward = cursor > 0;

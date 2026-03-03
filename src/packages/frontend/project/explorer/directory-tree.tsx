@@ -136,9 +136,15 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
     canDrag ? [path] : [],
     project_id,
   );
-  // Read current_path from Redux directly so the treeData memo doesn't need
+  // Use the explorer's own browsing path (falls back to current_path if not
+  // yet set).  Reading directly from Redux so the treeData memo doesn't need
   // to depend on it — only the 2 affected nodes re-render on navigation.
-  const currentPath = useTypedRedux({ project_id }, "current_path") ?? "";
+  const explorerBrowsingPath = useTypedRedux(
+    { project_id },
+    "explorer_browsing_path",
+  );
+  const reduxCurrentPath = useTypedRedux({ project_id }, "current_path") ?? "";
+  const currentPath = explorerBrowsingPath ?? reduxCurrentPath;
   const isSelected = currentPath === path;
   const starPath = path === "" ? "" : `${path}/`;
 
