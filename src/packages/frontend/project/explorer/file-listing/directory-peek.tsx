@@ -199,6 +199,7 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
       intl,
       multiple: false,
       disableActions: student.disableActions,
+      inSnapshots: dirPath.startsWith(".snapshots"),
       fullPath: entry.fullPath,
       triggerFileAction: (action) => triggerFileAction(entry, action),
     });

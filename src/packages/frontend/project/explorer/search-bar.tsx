@@ -15,26 +15,27 @@ import { full_path_text } from "@cocalc/frontend/project/explorer/file-listing/u
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_to_file } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { ListingItem } from "./types";
 
-const HelpStyle = {
+const HelpStyle: React.CSSProperties = {
   wordWrap: "break-word",
   top: "40px",
   position: "absolute",
   width: "100%",
   height: "38px",
-  boxShadow: "#999 6px 6px 6px",
+  boxShadow: `${COLORS.GRAY_L} 6px 6px 6px`,
   zIndex: 100,
   borderRadius: "15px",
-} as const;
+};
 
 export const outputMinitermStyle: React.CSSProperties = {
-  background: "white",
+  background: COLORS.WHITE,
   position: "absolute",
   zIndex: 10,
-  boxShadow: "-4px 4px 7px #aaa",
+  boxShadow: `-4px 4px 7px ${COLORS.GRAY_L}`,
   maxHeight: "450px",
   overflow: "auto",
   right: 0,
@@ -42,7 +43,7 @@ export const outputMinitermStyle: React.CSSProperties = {
   marginRight: "5px",
   borderRadius: "5px",
   width: "100%",
-} as const;
+};
 
 interface Props {
   file_search: string;
@@ -229,10 +230,10 @@ export const SearchBar = React.memo((props: Props) => {
             style={{
               right: "5px",
               top: "0px",
-              color: "#666",
+              color: COLORS.GRAY_M,
               fontSize: "14pt",
               position: "absolute",
-              background: "white",
+              background: COLORS.WHITE,
             }}
           >
             <Icon name="times" />
@@ -303,7 +304,6 @@ export const SearchBar = React.memo((props: Props) => {
 
   function on_clear(): void {
     actions.clear_selected_file_index();
-    //set_input("");
     set_stdout("");
     set_error("");
   }
@@ -337,7 +337,7 @@ export const SearchBar = React.memo((props: Props) => {
       {render_help_info()}
       <div style={{ ...outputMinitermStyle, width: "100%", left: 0 }}>
         {render_output(error, {
-          color: "darkred",
+          color: COLORS.FG_RED,
           margin: 0,
         })}
         {render_output(stdout, { margin: 0 })}

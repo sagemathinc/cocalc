@@ -89,8 +89,8 @@ export function useExplorerSettings(project_id: string): void {
         }
 
         initializedRef.current = true;
-      } catch (err) {
-        console.warn("Failed to init explorer-settings DKV:", err);
+      } catch {
+        // DKV unavailable — settings won't persist but the explorer still works.
         initializedRef.current = true;
       }
     },
@@ -125,8 +125,8 @@ export function useExplorerSettings(project_id: string): void {
           showDirectoryTree,
         });
       }
-    } catch (err) {
-      console.warn("Failed to save sort settings:", err);
+    } catch {
+      // DKV unavailable — silently skip persistence.
     }
   }, [activeFileSort, project_id, showDirectoryTree]);
 }

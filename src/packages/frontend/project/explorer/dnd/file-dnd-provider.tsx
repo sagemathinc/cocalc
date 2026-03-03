@@ -23,11 +23,15 @@ import type {
   DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
+  Modifier,
 } from "@dnd-kit/core";
-import type { Modifier } from "@dnd-kit/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
-import { redux, useActions } from "@cocalc/frontend/app-framework";
+import {
+  redux,
+  useActions,
+  useTypedRedux,
+} from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import {
   is_valid_uuid_string,
@@ -149,6 +153,9 @@ const snapToPointerModifier: Modifier = ({
     y: transform.y + (event.clientY - activeNodeRect.top) + 12,
   };
 };
+
+/** Pre-allocated array so we don't create a new one every render. */
+const DRAG_OVERLAY_MODIFIERS: Modifier[] = [snapToPointerModifier];
 
 // ---------- Overlay ----------
 
@@ -388,7 +395,8 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     if (!dragData?.paths) return;
     const { x, y } = pointerPos.current;
     const el = document.elementFromPoint(x, y);
-    const row = el?.closest?.("[data-row-key], [data-folder-drop-path]");
+    if (!el) return; // pointer outside viewport — don't change overlay state
+    const row = el.closest?.("[data-row-key], [data-folder-drop-path]");
     if (row && !row.hasAttribute("data-folder-drop-path")) {
       // Hovering over a non-folder file row — show neutral hint
       setOverFolder(null);
@@ -408,6 +416,21 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     }
     preDragCheckedRef.current = null;
   }, [actions]);
+
+  // When a cross-project copy dialog is dismissed (file_action goes from
+  // "copy" back to undefined), restore the pre-drag checked files.
+  const file_action = useTypedRedux({ project_id }, "file_action");
+  const prevFileAction = useRef(file_action);
+  useEffect(() => {
+    if (
+      prevFileAction.current === "copy" &&
+      !file_action &&
+      preDragCheckedRef.current
+    ) {
+      restoreSelection();
+    }
+    prevFileAction.current = file_action;
+  }, [file_action, restoreSelection]);
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
@@ -462,7 +485,6 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
           preDragCheckedRef.current = null;
           actions.fetch_directory_listing();
         } catch (err) {
-          console.warn("File drag-and-drop operation failed:", err);
           actions.set_activity({
             id: uuid(),
             error: `Drag-and-drop failed: ${err}`,
@@ -478,7 +500,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       if (targetProjectId) {
         // Open the copy dialog pre-populated for cross-project copy.
         // Files stay checked so the action-box can use them.
-        preDragCheckedRef.current = null;
+        // Keep preDragCheckedRef alive so we can restore on cancel.
         actions?.setState({
           file_action: "copy",
           copy_destination_project_id: targetProjectId,
@@ -513,7 +535,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       onDragCancel={handleDragCancel}
     >
       {children}
-      <DragOverlay dropAnimation={null} modifiers={[snapToPointerModifier]}>
+      <DragOverlay dropAnimation={null} modifiers={DRAG_OVERLAY_MODIFIERS}>
         {activeData && (
           <FileDragOverlayContent
             data={activeData}

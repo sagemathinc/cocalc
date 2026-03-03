@@ -7,6 +7,7 @@ import React from "react";
 import { Alert } from "antd";
 
 import { Text } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 
 /**
  * Floating alert shown below the search input when the user is typing
@@ -55,7 +56,7 @@ export function HelpAlert({
       message = (
         <>
           <Text keyboard>
-            <span style={{ color: "black" }}>Shift+Return</span>
+            <span style={{ color: COLORS.GRAY_D }}>Shift+Return</span>
           </Text>{" "}
           creates folder path <strong>{file_search}</strong>
         </>
@@ -65,7 +66,7 @@ export function HelpAlert({
       message = (
         <>
           <Text keyboard>
-            <span style={{ color: "black" }}>Shift+Return</span>
+            <span style={{ color: COLORS.GRAY_D }}>Shift+Return</span>
           </Text>{" "}
           creates folder <strong>{file_search}</strong>
         </>

@@ -3,8 +3,6 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { DndContext, useDraggable } from "@dnd-kit/core";
-import type { DragEndEvent } from "@dnd-kit/core";
 import { Alert, Button as AntButton, Tree } from "antd";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
@@ -110,19 +108,6 @@ function setDirectoryTreeWidth(project_id: string, width: number): void {
   LS.set(directoryTreeWidthKey(project_id), width);
 }
 
-function directoryTreeVisibleKey(project_id: string): string {
-  return `${project_id}::explorer-directory-tree-visible`;
-}
-
-function getDirectoryTreeVisible(project_id: string): boolean {
-  const val = LS.get<boolean>(directoryTreeVisibleKey(project_id));
-  return val === true;
-}
-
-function setDirectoryTreeVisible(project_id: string, visible: boolean): void {
-  LS.set(directoryTreeVisibleKey(project_id), visible);
-}
-
 const MAX_TREE_EXPANDED = 20;
 
 function directoryTreeExpandedKeysKey(project_id: string): string {
@@ -180,14 +165,6 @@ export function Explorer() {
     { project_id },
     "show_directory_tree",
   );
-  // Restore tree visibility from localStorage on mount
-  useEffect(() => {
-    const saved = getDirectoryTreeVisible(project_id);
-    if (saved && !show_directory_tree) {
-      actions?.setState({ show_directory_tree: true });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [project_id]);
   const show_hidden = useTypedRedux({ project_id }, "show_hidden");
   const hide_masked_files = useTypedRedux({ project_id }, "hide_masked_files");
   // Reset hide_masked_files on directory change — it is a temporary per-directory toggle.
@@ -244,8 +221,6 @@ export function Explorer() {
   const [directoryTreeWidth, setDirectoryTreeWidthState] = useState<number>(
     () => getDirectoryTreeWidth(project_id),
   );
-  const [oldDirectoryTreeWidth, setOldDirectoryTreeWidth] =
-    useState<number>(directoryTreeWidth);
 
   // -- Refs for ExplorerTour --
   const newFileRef = useRef<any>(null);
@@ -271,9 +246,7 @@ export function Explorer() {
   }, []);
 
   useEffect(() => {
-    const width = getDirectoryTreeWidth(project_id);
-    setDirectoryTreeWidthState(width);
-    setOldDirectoryTreeWidth(width);
+    setDirectoryTreeWidthState(getDirectoryTreeWidth(project_id));
   }, [project_id]);
 
   // -- Derived state --
@@ -327,10 +300,8 @@ export function Explorer() {
   );
 
   const toggleDirectoryTree = useCallback(() => {
-    const next = !show_directory_tree;
-    actions?.setState({ show_directory_tree: next });
-    setDirectoryTreeVisible(project_id, next);
-  }, [actions, project_id, show_directory_tree]);
+    actions?.setState({ show_directory_tree: !show_directory_tree });
+  }, [actions, show_directory_tree]);
 
   const updateDirectoryTreeWidth = useCallback(
     (width: number) => {
@@ -348,13 +319,13 @@ export function Explorer() {
     updateDirectoryTreeWidth(DIRECTORY_TREE_DEFAULT_WIDTH_PX);
   }, [updateDirectoryTreeWidth]);
 
-  const handleDirectoryTreeDragEnd = useCallback(
-    (event: DragEndEvent) => {
-      const deltaX = event.delta?.x ?? 0;
-      updateDirectoryTreeWidth(oldDirectoryTreeWidth + deltaX);
-    },
-    [oldDirectoryTreeWidth, updateDirectoryTreeWidth],
-  );
+  // Ensure listings are initialized when the project is running but
+  // displayed_listing hasn't loaded yet (side-effect moved out of render).
+  useEffect(() => {
+    if (projectIsRunning && displayed_listing == null) {
+      redux.getProjectStore(project_id)?.get_listings();
+    }
+  }, [projectIsRunning, displayed_listing, project_id]);
 
   // -- Early return if not initialized --
   if (checked_files == undefined) {
@@ -517,7 +488,6 @@ export function Explorer() {
       );
     } else {
       if (projectIsRunning) {
-        redux.getProjectStore(project_id)?.get_listings();
         return (
           <div style={{ textAlign: "center" }}>
             <Loading theme={"medium"} />
@@ -746,15 +716,11 @@ export function Explorer() {
         )}
         {/* Dragbar (full height when tree visible) */}
         {showTree && (
-          <DndContext
-            onDragStart={() => setOldDirectoryTreeWidth(directoryTreeWidth)}
-            onDragEnd={handleDirectoryTreeDragEnd}
-          >
-            <DirectoryTreeDragbar
-              oldWidth={oldDirectoryTreeWidth}
-              onReset={resetDirectoryTreeWidth}
-            />
-          </DndContext>
+          <DirectoryTreeDragbar
+            currentWidth={directoryTreeWidth}
+            onWidthChange={updateDirectoryTreeWidth}
+            onReset={resetDirectoryTreeWidth}
+          />
         )}
         {/* Right column: action bar + file table */}
         <div
@@ -931,45 +897,54 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
 DirectoryTreeNodeTitle.displayName = "DirectoryTreeNodeTitle";
 
 function DirectoryTreeDragbar({
-  oldWidth,
+  onWidthChange,
+  currentWidth,
   onReset,
 }: {
-  oldWidth: number;
+  onWidthChange: (width: number) => void;
+  currentWidth: number;
   onReset: () => void;
 }) {
-  const { project_id } = useProjectContext();
-  const { attributes, listeners, setNodeRef, transform, active } = useDraggable(
-    {
-      id: `directory-tree-drag-${project_id}`,
-    },
-  );
+  const [dragging, setDragging] = useState(false);
 
-  const dx = useMemo(() => {
-    if (!transform || !oldWidth) return 0;
-    const posX = oldWidth + transform.x;
-    if (posX < DIRECTORY_TREE_MIN_WIDTH_PX) {
-      return -(oldWidth - DIRECTORY_TREE_MIN_WIDTH_PX);
-    }
-    if (posX > DIRECTORY_TREE_MAX_WIDTH_PX) {
-      return DIRECTORY_TREE_MAX_WIDTH_PX - oldWidth;
-    }
-    return transform.x;
-  }, [transform, oldWidth]);
+  const handlePointerDown = useCallback(
+    (e: React.PointerEvent) => {
+      e.preventDefault();
+      const startX = e.clientX;
+      const startWidth = currentWidth;
+      setDragging(true);
+
+      function onMove(ev: PointerEvent) {
+        const newWidth = startWidth + (ev.clientX - startX);
+        onWidthChange(
+          Math.max(
+            DIRECTORY_TREE_MIN_WIDTH_PX,
+            Math.min(newWidth, DIRECTORY_TREE_MAX_WIDTH_PX),
+          ),
+        );
+      }
+      function onUp() {
+        setDragging(false);
+        document.removeEventListener("pointermove", onMove);
+        document.removeEventListener("pointerup", onUp);
+      }
+      document.addEventListener("pointermove", onMove);
+      document.addEventListener("pointerup", onUp);
+    },
+    [currentWidth, onWidthChange],
+  );
 
   return (
     <div
-      ref={setNodeRef}
       className="cc-project-flyout-dragbar"
       style={{
-        transform: transform ? `translate3d(${dx}px, 0, 0)` : undefined,
         flex: "0 0 5px",
         width: "5px",
         height: "100%",
         cursor: "col-resize",
-        ...(active ? { zIndex: 1000, backgroundColor: COLORS.GRAY } : {}),
+        ...(dragging ? { zIndex: 1000, backgroundColor: COLORS.GRAY } : {}),
       }}
-      {...listeners}
-      {...attributes}
+      onPointerDown={handlePointerDown}
       onDoubleClick={onReset}
     />
   );
@@ -1121,7 +1096,6 @@ function DirectoryTreePanel({
             return next;
           });
         } else {
-          console.warn("Failed to load directory tree path:", path, err);
           setError(`${err}`);
         }
       } finally {

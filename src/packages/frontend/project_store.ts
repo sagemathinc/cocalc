@@ -461,16 +461,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
           listing = _matched_files(search.toLowerCase(), listing);
         }
 
-        // Compute type counts BEFORE type filtering, so the dropdown
-        // always shows all available types even when a filter is active.
-        const type_counts: Record<string, number> = {};
-        for (const item of listing) {
-          const ext = item.isdir
-            ? "folder"
-            : misc.filename_extension(item.name)?.toLowerCase() || "(none)";
-          type_counts[ext] = (type_counts[ext] ?? 0) + 1;
-        }
-
         // Apply type filter (shared between explorer and flyout)
         const typeFilter = this.get("type_filter");
         if (typeFilter) {
@@ -562,6 +552,17 @@ export class ProjectStore extends Store<ProjectStoreState> {
             }
             return result;
           })();
+        }
+
+        // Compute type counts AFTER hidden-file filtering but BEFORE type
+        // filtering, so the dropdown shows all visible extensions even when
+        // a type filter is active.
+        const type_counts: Record<string, number> = {};
+        for (const item of listing) {
+          const ext = item.isdir
+            ? "folder"
+            : misc.filename_extension(item.name)?.toLowerCase() || "(none)";
+          type_counts[ext] = (type_counts[ext] ?? 0) + 1;
         }
 
         const file_map = {};

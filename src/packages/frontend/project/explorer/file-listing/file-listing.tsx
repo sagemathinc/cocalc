@@ -19,7 +19,11 @@ import React, {
 } from "react";
 import { useInterval } from "react-interval-hook";
 import { FormattedMessage, useIntl } from "react-intl";
-import { TableVirtuoso, type TableVirtuosoHandle } from "react-virtuoso";
+import {
+  TableVirtuoso,
+  type TableVirtuosoHandle,
+  type StateSnapshot,
+} from "react-virtuoso";
 
 import {
   AppRedux,
@@ -66,8 +70,6 @@ import {
 const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
 
 // ---------- Per-directory scroll position cache ----------
-
-import type { StateSnapshot } from "react-virtuoso";
 
 const SCROLL_CACHE_MAX = 100;
 const scrollCache = new Map<string, StateSnapshot>();
@@ -616,6 +618,7 @@ export const FileListing: React.FC<Props> = ({
   const intl = useIntl();
   const [starting, setStarting] = useState(false);
   const { starred, setStarredPath } = useStarredFilesManager(project_id);
+  const starredSet = useMemo(() => new Set(starred), [starred]);
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
   const hasCheckedSelection = useMemo(
@@ -1238,7 +1241,7 @@ export const FileListing: React.FC<Props> = ({
   );
 
   const handleCheckboxChange = useCallback(
-    (record: FileEntry, checked: boolean, e?: React.MouseEvent) => {
+    (record: FileEntry, checked: boolean, e?: { shiftKey?: boolean }) => {
       const fullPath = misc.path_to_file(current_path, record.name);
       if (e?.shiftKey) {
         actions.set_selected_file_range(fullPath, checked);
@@ -1255,6 +1258,358 @@ export const FileListing: React.FC<Props> = ({
   const allChecked =
     selectableCount > 0 && selectedRowKeys.length === selectableCount;
   const someChecked = selectedRowKeys.length > 0 && !allChecked;
+
+  // -- Stable header renderer for TableVirtuoso --
+  const fixedHeaderContent = useCallback(() => {
+    const thStyle: React.CSSProperties = {
+      padding: "8px 8px",
+      textAlign: "left",
+      position: "sticky",
+      top: 0,
+      background: COLORS.GRAY_LL,
+      borderBottom: `1px solid ${COLORS.GRAY_L0}`,
+      fontWeight: 600,
+      fontSize: undefined,
+      zIndex: 1,
+      cursor: "pointer",
+    };
+    return (
+      <tr>
+        {!student_project_functionality.disableActions && (
+          <th style={{ ...thStyle, width: COL_W.CHECKBOX, cursor: "default" }}>
+            <Checkbox
+              checked={allChecked}
+              indeterminate={someChecked}
+              onChange={handleSelectAll}
+            />
+          </th>
+        )}
+        {!IS_MOBILE && (
+          <th style={{ ...thStyle, width: COL_W.TYPE }}>
+            <Dropdown
+              menu={{
+                items: typeFilterMenuItems,
+                selectable: true,
+                selectedKeys: typeFilter != null ? [typeFilter] : [],
+                onClick: ({ key }) => {
+                  const newFilter =
+                    key === "__clear__" || key === typeFilter ? undefined : key;
+                  actions.setState({ type_filter: newFilter } as any);
+                },
+                style: { maxHeight: "50vh", overflowY: "auto" },
+              }}
+              trigger={["click"]}
+            >
+              <span>
+                <FilterOutlined
+                  style={{
+                    color: typeFilter != null ? COLORS.ANTD_ORANGE : undefined,
+                  }}
+                />
+              </span>
+            </Dropdown>
+          </th>
+        )}
+        <th
+          style={{ ...thStyle, width: COL_W.STAR }}
+          onClick={() => sort_by("starred")}
+        >
+          <Icon
+            name="star"
+            style={{ fontSize: "14pt", verticalAlign: "sub" }}
+          />
+          <SortIndicator
+            columnKey="starred"
+            sortColumn={sortColumn}
+            sortDescending={sortDescending}
+          />
+        </th>
+        <th
+          style={{ ...thStyle, width: COL_W.PUBLIC }}
+          onClick={() => sort_by("public")}
+        >
+          <SortIndicator
+            columnKey="public"
+            sortColumn={sortColumn}
+            sortDescending={sortDescending}
+          />
+        </th>
+        <th style={{ ...thStyle }} onClick={() => sort_by("name")}>
+          {intl.formatMessage(labels.name)}
+          <SortIndicator
+            columnKey="name"
+            sortColumn={sortColumn}
+            sortDescending={sortDescending}
+          />
+        </th>
+        {!IS_MOBILE && (
+          <th
+            style={{ ...thStyle, width: COL_W.DATE }}
+            onClick={() => sort_by("time")}
+          >
+            {intl.formatMessage({
+              id: "project.explorer.file-listing.column.date",
+              defaultMessage: "Date Modified",
+            })}
+            <SortIndicator
+              columnKey="time"
+              sortColumn={sortColumn}
+              sortDescending={sortDescending}
+            />
+          </th>
+        )}
+        {!isNarrow && (
+          <>
+            <th
+              style={{ ...thStyle, width: COL_W.SIZE, textAlign: "right" }}
+              onClick={() => sort_by("size")}
+            >
+              {intl.formatMessage(labels.size)}
+              <SortIndicator
+                columnKey="size"
+                sortColumn={sortColumn}
+                sortDescending={sortDescending}
+              />
+            </th>
+            <th
+              style={{ ...thStyle, width: COL_W.ACTIONS, cursor: "default" }}
+            />
+          </>
+        )}
+      </tr>
+    );
+  }, [
+    student_project_functionality.disableActions,
+    allChecked,
+    someChecked,
+    handleSelectAll,
+    typeFilterMenuItems,
+    typeFilter,
+    actions,
+    sort_by,
+    sortColumn,
+    sortDescending,
+    isNarrow,
+    intl,
+  ]);
+
+  // -- Stable row renderer for TableVirtuoso --
+  const itemContent = useCallback(
+    (_index: number, entry: VirtualEntry) => {
+      // -- Peek row (expanded directory content) --
+      if (isPeekEntry(entry)) {
+        return (
+          <td
+            colSpan={numCols}
+            style={{ padding: 0, background: COLORS.WHITE }}
+          >
+            <DirectoryPeek
+              project_id={project_id}
+              dirPath={misc.path_to_file(current_path, entry._peekForName)}
+              onClose={() =>
+                setExpandedDirs((prev) =>
+                  prev.filter((d) => d !== entry._peekForName),
+                )
+              }
+            />
+          </td>
+        );
+      }
+
+      // -- Empty placeholder row (no files match filters) --
+      if (isEmptyEntry(entry)) {
+        return (
+          <td
+            colSpan={numCols}
+            style={{ padding: 0, background: COLORS.WHITE }}
+          >
+            <EmptyPlaceholder
+              project_id={project_id}
+              actions={actions}
+              file_search={file_search}
+              type_filter={typeFilter}
+              create_file={create_file}
+              create_folder={create_folder}
+              configuration_main={configuration_main}
+            />
+          </td>
+        );
+      }
+
+      // -- Regular file/folder row cells --
+      const record = entry as FileEntry;
+      const fp = misc.path_to_file(current_path, record.name);
+      const isChecked = checked_files.has(fp);
+      const pathForStar = record.isdir ? `${fp}/` : fp;
+      const isStarred = starredSet.has(pathForStar);
+      const isExpanded = record.isdir && expandedDirs.includes(record.name);
+
+      const cellStyle: React.CSSProperties = {
+        padding: "6px 8px",
+        borderBottom: "none",
+        background: COLORS.WHITE,
+        whiteSpace: "nowrap",
+        overflow: "hidden",
+        textOverflow: "ellipsis",
+      };
+
+      return (
+        <>
+          {!student_project_functionality.disableActions && (
+            <td style={{ ...cellStyle, width: COL_W.CHECKBOX }}>
+              <Checkbox
+                checked={isChecked}
+                disabled={record.name === ".."}
+                onClick={(e) => e.stopPropagation()}
+                onChange={(e) =>
+                  handleCheckboxChange(record, e.target.checked, e.nativeEvent)
+                }
+              />
+            </td>
+          )}
+          {!IS_MOBILE && (
+            <td
+              style={{
+                ...cellStyle,
+                width: COL_W.TYPE,
+                cursor: record.isdir ? "pointer" : undefined,
+              }}
+              className={isExpanded ? "cc-explorer-cell-expanded" : undefined}
+              onClick={
+                record.isdir
+                  ? (e) => toggleExpandDir(record.name, e)
+                  : undefined
+              }
+            >
+              {renderFileIcon(record, isExpanded)}
+            </td>
+          )}
+          <td style={{ ...cellStyle, width: COL_W.STAR }}>
+            <Icon
+              name={isStarred ? "star-filled" : "star"}
+              onClick={(e) => {
+                e?.preventDefault();
+                e?.stopPropagation();
+                handleToggleStar(record, !isStarred);
+              }}
+              style={{
+                cursor: "pointer",
+                fontSize: "14pt",
+                color: isStarred ? COLORS.STAR : COLORS.GRAY_L,
+              }}
+            />
+          </td>
+          <td style={{ ...cellStyle, width: COL_W.PUBLIC }}>
+            {record.is_public ? (
+              <Icon name="share-square" style={{ color: COLORS.TAB }} />
+            ) : null}
+          </td>
+          <td style={{ ...cellStyle }}>
+            {renderFileName(record, dimFileExtensions)}
+          </td>
+          {!IS_MOBILE && (
+            <td style={{ ...cellStyle, width: COL_W.DATE }}>
+              {renderTimestamp(record.mtime)}
+            </td>
+          )}
+          {!isNarrow && (
+            <>
+              <td
+                style={{ ...cellStyle, width: COL_W.SIZE, textAlign: "right" }}
+              >
+                {!student_project_functionality.disableActions &&
+                (record.isdir ? record.size != null : true) ? (
+                  <Button
+                    type="text"
+                    size="small"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDownloadClick(e, record);
+                    }}
+                    style={{
+                      color: COLORS.TAB,
+                      whiteSpace: "nowrap",
+                      padding: "0 4px",
+                      height: "auto",
+                    }}
+                  >
+                    <Icon
+                      name="cloud-download"
+                      className="cc-explorer-hover-icon"
+                      style={{ color: COLORS.TAB, marginRight: 4 }}
+                    />
+                    {record.isdir
+                      ? `${record.size} ${misc.plural(record.size, "item")}`
+                      : misc.human_readable_size(record.size)}
+                  </Button>
+                ) : (
+                  <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
+                    {record.isdir
+                      ? record.size != null
+                        ? `${record.size} ${misc.plural(record.size, "item")}`
+                        : null
+                      : misc.human_readable_size(record.size)}
+                  </span>
+                )}
+              </td>
+              <td
+                style={{
+                  ...cellStyle,
+                  width: COL_W.ACTIONS,
+                  textAlign: "center",
+                }}
+              >
+                {record.name !== ".." &&
+                  !student_project_functionality.disableActions && (
+                    <Button
+                      type="text"
+                      size="small"
+                      className="cc-explorer-hover-icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const items = buildContextMenu(record);
+                        if (items && items.length > 0) {
+                          setContextMenu({
+                            items,
+                            x: e.clientX,
+                            y: e.clientY,
+                          });
+                        }
+                      }}
+                      style={{ color: COLORS.TAB }}
+                    >
+                      <Icon name="ellipsis" rotate="90" />
+                    </Button>
+                  )}
+              </td>
+            </>
+          )}
+        </>
+      );
+    },
+    [
+      numCols,
+      project_id,
+      current_path,
+      checked_files,
+      starredSet,
+      expandedDirs,
+      student_project_functionality.disableActions,
+      isNarrow,
+      dimFileExtensions,
+      handleCheckboxChange,
+      handleToggleStar,
+      handleDownloadClick,
+      toggleExpandDir,
+      buildContextMenu,
+      actions,
+      file_search,
+      typeFilter,
+      create_file,
+      create_folder,
+      configuration_main,
+    ],
+  );
 
   // -- Early returns for special states --
   if (!isRunning && listingForRender.length === 0) {
@@ -1335,368 +1690,19 @@ export const FileListing: React.FC<Props> = ({
               minHeight: 0,
             }}
             data={virtualData}
-            computeItemKey={(_index, entry) => entry.name}
+            computeItemKey={(_index, entry) =>
+              isPeekEntry(entry)
+                ? `\0peek\0${entry._peekForName}`
+                : isEmptyEntry(entry)
+                  ? "\0empty\0"
+                  : entry.name
+            }
             overscan={200}
             onScroll={handleVirtuosoScroll}
             {...(restoreSnapshot ? { restoreStateFrom: restoreSnapshot } : {})}
             components={VIRTUOSO_COMPONENTS}
-            fixedHeaderContent={() => {
-              const thStyle: React.CSSProperties = {
-                padding: "8px 8px",
-                textAlign: "left",
-                position: "sticky",
-                top: 0,
-                background: COLORS.GRAY_LL,
-                borderBottom: `1px solid ${COLORS.GRAY_L0}`,
-                fontWeight: 600,
-                fontSize: undefined,
-                zIndex: 1,
-                cursor: "pointer",
-              };
-              return (
-                <tr>
-                  {!student_project_functionality.disableActions && (
-                    <th
-                      style={{
-                        ...thStyle,
-                        width: COL_W.CHECKBOX,
-                        cursor: "default",
-                      }}
-                    >
-                      <Checkbox
-                        checked={allChecked}
-                        indeterminate={someChecked}
-                        onChange={handleSelectAll}
-                      />
-                    </th>
-                  )}
-                  {!IS_MOBILE && (
-                    <th style={{ ...thStyle, width: COL_W.TYPE }}>
-                      <Dropdown
-                        menu={{
-                          items: typeFilterMenuItems,
-                          selectable: true,
-                          selectedKeys: typeFilter != null ? [typeFilter] : [],
-                          onClick: ({ key }) => {
-                            const newFilter =
-                              key === "__clear__" || key === typeFilter
-                                ? undefined
-                                : key;
-                            actions.setState({
-                              type_filter: newFilter,
-                            } as any);
-                          },
-                          style: { maxHeight: "50vh", overflowY: "auto" },
-                        }}
-                        trigger={["click"]}
-                      >
-                        <span>
-                          <FilterOutlined
-                            style={{
-                              color:
-                                typeFilter != null
-                                  ? COLORS.ANTD_ORANGE
-                                  : undefined,
-                            }}
-                          />
-                        </span>
-                      </Dropdown>
-                    </th>
-                  )}
-                  <th
-                    style={{ ...thStyle, width: COL_W.STAR }}
-                    onClick={() => sort_by("starred")}
-                  >
-                    <Icon
-                      name="star"
-                      style={{ fontSize: "14pt", verticalAlign: "sub" }}
-                    />
-                    <SortIndicator
-                      columnKey="starred"
-                      sortColumn={sortColumn}
-                      sortDescending={sortDescending}
-                    />
-                  </th>
-                  <th
-                    style={{ ...thStyle, width: COL_W.PUBLIC }}
-                    onClick={() => sort_by("public")}
-                  >
-                    <SortIndicator
-                      columnKey="public"
-                      sortColumn={sortColumn}
-                      sortDescending={sortDescending}
-                    />
-                  </th>
-                  <th style={{ ...thStyle }} onClick={() => sort_by("name")}>
-                    {intl.formatMessage(labels.name)}
-                    <SortIndicator
-                      columnKey="name"
-                      sortColumn={sortColumn}
-                      sortDescending={sortDescending}
-                    />
-                  </th>
-                  {!IS_MOBILE && (
-                    <th
-                      style={{ ...thStyle, width: COL_W.DATE }}
-                      onClick={() => sort_by("time")}
-                    >
-                      {intl.formatMessage({
-                        id: "project.explorer.file-listing.column.date",
-                        defaultMessage: "Date Modified",
-                      })}
-                      <SortIndicator
-                        columnKey="time"
-                        sortColumn={sortColumn}
-                        sortDescending={sortDescending}
-                      />
-                    </th>
-                  )}
-                  {!isNarrow && (
-                    <>
-                      <th
-                        style={{
-                          ...thStyle,
-                          width: COL_W.SIZE,
-                          textAlign: "right",
-                        }}
-                        onClick={() => sort_by("size")}
-                      >
-                        {intl.formatMessage(labels.size)}
-                        <SortIndicator
-                          columnKey="size"
-                          sortColumn={sortColumn}
-                          sortDescending={sortDescending}
-                        />
-                      </th>
-                      <th
-                        style={{
-                          ...thStyle,
-                          width: COL_W.ACTIONS,
-                          cursor: "default",
-                        }}
-                      />
-                    </>
-                  )}
-                </tr>
-              );
-            }}
-            itemContent={(_index, entry) => {
-              // -- Peek row (expanded directory content) --
-              if (isPeekEntry(entry)) {
-                return (
-                  <td
-                    colSpan={numCols}
-                    style={{ padding: 0, background: "white" }}
-                  >
-                    <DirectoryPeek
-                      project_id={project_id}
-                      dirPath={misc.path_to_file(
-                        current_path,
-                        entry._peekForName,
-                      )}
-                      onClose={() =>
-                        setExpandedDirs((prev) =>
-                          prev.filter((d) => d !== entry._peekForName),
-                        )
-                      }
-                    />
-                  </td>
-                );
-              }
-
-              // -- Empty placeholder row (no files match filters) --
-              if (isEmptyEntry(entry)) {
-                return (
-                  <td
-                    colSpan={numCols}
-                    style={{ padding: 0, background: "white" }}
-                  >
-                    <EmptyPlaceholder
-                      project_id={project_id}
-                      actions={actions}
-                      file_search={file_search}
-                      type_filter={typeFilter}
-                      create_file={create_file}
-                      create_folder={create_folder}
-                      configuration_main={configuration_main}
-                    />
-                  </td>
-                );
-              }
-
-              // -- Regular file/folder row cells --
-              const record = entry as FileEntry;
-              const fp = misc.path_to_file(current_path, record.name);
-              const isChecked = checked_files.has(fp);
-              const pathForStar = record.isdir ? `${fp}/` : fp;
-              const isStarred = starred.includes(pathForStar);
-              const isExpanded =
-                record.isdir && expandedDirs.includes(record.name);
-
-              const cellStyle: React.CSSProperties = {
-                padding: "6px 8px",
-                borderBottom: "none",
-                background: "white",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-              };
-
-              return (
-                <>
-                  {!student_project_functionality.disableActions && (
-                    <td style={{ ...cellStyle, width: COL_W.CHECKBOX }}>
-                      <Checkbox
-                        checked={isChecked}
-                        disabled={record.name === ".."}
-                        onClick={(e) => e.stopPropagation()}
-                        onChange={(e) =>
-                          handleCheckboxChange(
-                            record,
-                            e.target.checked,
-                            e.nativeEvent as any,
-                          )
-                        }
-                      />
-                    </td>
-                  )}
-                  {!IS_MOBILE && (
-                    <td
-                      style={{
-                        ...cellStyle,
-                        width: COL_W.TYPE,
-                        cursor: record.isdir ? "pointer" : undefined,
-                      }}
-                      className={
-                        isExpanded ? "cc-explorer-cell-expanded" : undefined
-                      }
-                      onClick={
-                        record.isdir
-                          ? (e) => toggleExpandDir(record.name, e)
-                          : undefined
-                      }
-                    >
-                      {renderFileIcon(record, isExpanded)}
-                    </td>
-                  )}
-                  <td style={{ ...cellStyle, width: COL_W.STAR }}>
-                    <Icon
-                      name={isStarred ? "star-filled" : "star"}
-                      onClick={(e) => {
-                        e?.preventDefault();
-                        e?.stopPropagation();
-                        handleToggleStar(record, !isStarred);
-                      }}
-                      style={{
-                        cursor: "pointer",
-                        fontSize: "14pt",
-                        color: isStarred ? COLORS.STAR : COLORS.GRAY_L,
-                      }}
-                    />
-                  </td>
-                  <td style={{ ...cellStyle, width: COL_W.PUBLIC }}>
-                    {record.is_public ? (
-                      <Icon name="share-square" style={{ color: COLORS.TAB }} />
-                    ) : null}
-                  </td>
-                  <td style={{ ...cellStyle }}>
-                    {renderFileName(record, dimFileExtensions)}
-                  </td>
-                  {!IS_MOBILE && (
-                    <td style={{ ...cellStyle, width: COL_W.DATE }}>
-                      {renderTimestamp(record.mtime)}
-                    </td>
-                  )}
-                  {!isNarrow && (
-                    <>
-                      <td
-                        style={{
-                          ...cellStyle,
-                          width: COL_W.SIZE,
-                          textAlign: "right",
-                        }}
-                      >
-                        {!student_project_functionality.disableActions &&
-                        (record.isdir ? record.size != null : true) ? (
-                          <Button
-                            type="text"
-                            size="small"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDownloadClick(e, record);
-                            }}
-                            style={{
-                              color: COLORS.TAB,
-                              whiteSpace: "nowrap",
-                              padding: "0 4px",
-                              height: "auto",
-                            }}
-                          >
-                            <Icon
-                              name="cloud-download"
-                              className="cc-explorer-hover-icon"
-                              style={{
-                                color: COLORS.TAB,
-                                marginRight: 4,
-                              }}
-                            />
-                            {record.isdir
-                              ? `${record.size} ${misc.plural(record.size, "item")}`
-                              : misc.human_readable_size(record.size)}
-                          </Button>
-                        ) : (
-                          <span
-                            style={{
-                              color: COLORS.TAB,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {record.isdir
-                              ? record.size != null
-                                ? `${record.size} ${misc.plural(record.size, "item")}`
-                                : null
-                              : misc.human_readable_size(record.size)}
-                          </span>
-                        )}
-                      </td>
-                      <td
-                        style={{
-                          ...cellStyle,
-                          width: COL_W.ACTIONS,
-                          textAlign: "center",
-                        }}
-                      >
-                        {record.name !== ".." &&
-                          !student_project_functionality.disableActions && (
-                            <Button
-                              type="text"
-                              size="small"
-                              className="cc-explorer-hover-icon"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                // Don't select the file here — the menu
-                                // action's triggerFileAction will do it
-                                // when the user actually picks an action.
-                                const items = buildContextMenu(record);
-                                if (items && items.length > 0) {
-                                  setContextMenu({
-                                    items,
-                                    x: e.clientX,
-                                    y: e.clientY,
-                                  });
-                                }
-                              }}
-                              style={{ color: COLORS.TAB }}
-                            >
-                              <Icon name="ellipsis" rotate="90" />
-                            </Button>
-                          )}
-                      </td>
-                    </>
-                  )}
-                </>
-              );
-            }}
+            fixedHeaderContent={fixedHeaderContent}
+            itemContent={itemContent}
           />
         </div>
       </DndRowContext.Provider>

@@ -13,7 +13,6 @@ import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-fea
 import { ACTIVE_FILTER_BTN_STYLE } from "@cocalc/frontend/project/explorer/action-bar";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
-import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { full_path_text } from "./utils";
 
@@ -96,9 +95,7 @@ function FilteredEmpty({
     file_search.length === 0 ? (
       "Create or Upload Files..."
     ) : (
-      <>
-        {capitalize("create")} {actualNewFilename}
-      </>
+      <>Create {actualNewFilename}</>
     );
 
   return (
