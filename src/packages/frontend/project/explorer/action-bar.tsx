@@ -38,6 +38,15 @@ export const ACTIVE_FILTER_BTN_STYLE: React.CSSProperties = {
   marginLeft: 6,
 };
 
+/** Green-tinted badge for additive indicators (something is shown, not filtered). */
+const ACTIVE_ADDITIVE_BTN_STYLE: React.CSSProperties = {
+  background: COLORS.ANTD_GREEN,
+  color: "black",
+  borderRadius: 4,
+  whiteSpace: "nowrap",
+  marginLeft: 6,
+};
+
 interface Props {
   project_id?: string;
   checked_files: immutable.Set<string>;
@@ -267,6 +276,7 @@ export const ActionBarInfo: React.FC<
     type_filter?: string;
     file_search?: string;
     hide_masked_files?: boolean;
+    show_hidden?: boolean;
     /** The project-wide current_path (active file context). */
     current_path?: string;
     /** The explorer's own browsing path (may differ from current_path). */
@@ -351,6 +361,21 @@ export const ActionBarInfo: React.FC<
         onClick={() => props.actions.setState({ hide_masked_files: false })}
       >
         Masked files <Icon name="times-circle" />
+      </Button>,
+    );
+  }
+
+  // Additive indicator: hidden files are being shown (green = adding, not filtering)
+  if (props.show_hidden) {
+    filterBadges.push(
+      <Button
+        key="hidden"
+        type="text"
+        size="small"
+        style={ACTIVE_ADDITIVE_BTN_STYLE}
+        onClick={() => props.actions.setState({ show_hidden: false })}
+      >
+        Hidden files <Icon name="times-circle" />
       </Button>,
     );
   }

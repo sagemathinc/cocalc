@@ -737,6 +737,7 @@ export function Explorer() {
                 type_filter={type_filter ?? undefined}
                 file_search={file_search || undefined}
                 hide_masked_files={hide_masked_files ?? false}
+                show_hidden={!!show_hidden}
                 current_path={reduxCurrentPath}
                 explorer_browsing_path={current_path}
                 onSwitchToCurrentPath={() => navigateExplorer(reduxCurrentPath)}

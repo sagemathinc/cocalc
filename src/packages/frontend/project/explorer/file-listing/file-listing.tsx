@@ -896,6 +896,34 @@ export const FileListing: React.FC<Props> = ({
           }),
           onClick: () => handleRowClick(record, {} as any),
         });
+        // "Open in new window" — same as the file tab context menu
+        if (!record.isdir) {
+          ctx.push({
+            key: "new-window",
+            icon: <Icon name="external-link" />,
+            label: intl.formatMessage({
+              id: "project.page.file-tab.context-menu.open-new-window",
+              defaultMessage: "Open in new window",
+            }),
+            onClick: () =>
+              actions.open_file({ path: fp, new_browser_window: true }),
+          });
+        }
+        // "View" raw link — for viewable text/image files
+        if (!record.isdir) {
+          const ext = (
+            misc.filename_extension(record.name) ?? ""
+          ).toLowerCase();
+          if (VIEWABLE_FILE_EXT.includes(ext)) {
+            const fileUrl = url_href(actions.project_id, fp, computeServerId);
+            ctx.push({
+              key: "view",
+              icon: <Icon name="eye" />,
+              label: intl.formatMessage(labels.view_file),
+              onClick: () => open_new_tab(fileUrl),
+            });
+          }
+        }
       }
 
       ctx.push({ key: "divider-header", type: "divider" });
@@ -933,24 +961,10 @@ export const FileListing: React.FC<Props> = ({
         });
       }
 
-      // Download/View — immediate actions, no selection changes
+      // Download — immediate action, no selection changes
       const showDownload = !student_project_functionality.disableActions;
       if (!record.isdir && showDownload && !multiple) {
-        const ext = (misc.filename_extension(record.name) ?? "").toLowerCase();
-        const showView = VIEWABLE_FILE_EXT.includes(ext);
-        const fileUrl = url_href(actions.project_id, fp, computeServerId);
-
         ctx.push({ key: "divider-download", type: "divider" });
-
-        if (showView) {
-          ctx.push({
-            key: "view",
-            icon: <Icon name="eye" />,
-            label: intl.formatMessage(labels.view_file),
-            onClick: () => open_new_tab(fileUrl),
-          });
-        }
-
         ctx.push({
           key: "download",
           label: intl.formatMessage(labels.download),

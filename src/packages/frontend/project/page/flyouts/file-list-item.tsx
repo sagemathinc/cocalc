@@ -493,6 +493,34 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         }),
         onClick: () => onClick?.(),
       });
+      // "Open in new window" — same as the file tab context menu
+      if (!isdir) {
+        const fp = path_to_file(current_path, name);
+        ctx.push({
+          key: "new-window",
+          icon: <Icon name="external-link" />,
+          label: intl.formatMessage({
+            id: "project.page.file-tab.context-menu.open-new-window",
+            defaultMessage: "Open in new window",
+          }),
+          onClick: () =>
+            actions?.open_file({ path: fp, new_browser_window: true }),
+        });
+      }
+      // "View" raw link — for viewable text/image files
+      if (!isdir) {
+        const ext = (filename_extension(name) ?? "").toLowerCase();
+        if (VIEWABLE_FILE_EXT.includes(ext)) {
+          const fp = path_to_file(current_path, name);
+          const fileUrl = url_href(project_id, fp);
+          ctx.push({
+            key: "view",
+            icon: <Icon name="eye" />,
+            label: intl.formatMessage(labels.view_file),
+            onClick: () => window.open(fileUrl, "_blank"),
+          });
+        }
+      }
     }
 
     ctx.push({ key: "divider-header", type: "divider" });
