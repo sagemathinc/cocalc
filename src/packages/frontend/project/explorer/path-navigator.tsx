@@ -24,7 +24,8 @@ const LONG_PRESS_MS = 400;
 const DROPDOWN_MENU_STYLE: React.CSSProperties = {
   maxHeight: "30vh",
   overflowY: "auto",
-  width: 350,
+  overflowX: "hidden",
+  maxWidth: 350,
 };
 
 interface Props {
@@ -109,11 +110,25 @@ function LongPressButton({
   const [dropdownOpen, setDropdownOpen] = React.useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  // Close the dropdown on any click outside (antd doesn't handle this
-  // when trigger={[]}).
+  // When the dropdown is open, listen for clicks outside to close it,
+  // AND for pointerup anywhere to support press-drag-release selection
+  // (like native browser back/forward menus).
   React.useEffect(() => {
     if (!dropdownOpen) return;
-    function handleClickOutside(e: MouseEvent) {
+
+    function handlePointerUpOnDocument(e: PointerEvent) {
+      // Find element under the cursor — might be a menu item the
+      // user dragged to after long-pressing the button.
+      const el = document.elementFromPoint(e.clientX, e.clientY);
+      const menuItem = el?.closest?.(
+        ".ant-dropdown-menu-item",
+      ) as HTMLElement | null;
+      if (menuItem) {
+        // Simulate a click on the menu item so antd fires its onClick
+        menuItem.click();
+        return; // menu onClick handler will close the dropdown
+      }
+      // Released outside any menu item — close the dropdown
       if (
         wrapperRef.current &&
         !wrapperRef.current.contains(e.target as Node)
@@ -121,14 +136,15 @@ function LongPressButton({
         setDropdownOpen(false);
       }
     }
-    // Use capture + setTimeout so we don't close before a menu item click
+
+    // Delay registration so the opening pointerup doesn't immediately close
     const timer = setTimeout(
-      () => document.addEventListener("click", handleClickOutside, true),
+      () => document.addEventListener("pointerup", handlePointerUpOnDocument),
       0,
     );
     return () => {
       clearTimeout(timer);
-      document.removeEventListener("click", handleClickOutside, true);
+      document.removeEventListener("pointerup", handlePointerUpOnDocument);
     };
   }, [dropdownOpen]);
 
@@ -394,14 +410,18 @@ export const PathNavigator: React.FC<Props> = React.memo(
       <Breadcrumb style={style} className={className} items={make_path()} />
     );
     return mode === "files" ? (
-      <Flex justify="space-between" align="center" style={{ width: "100%" }}>
-        <div style={{ flex: 1, minWidth: 0 }}>{bc}</div>
-        {renderNavButtons()}
+      <Flex align="center" style={{ width: "100%" }}>
+        <div style={{ flex: "1 1 0", minWidth: 0, overflow: "hidden" }}>
+          {bc}
+        </div>
+        <div style={{ flexShrink: 0 }}>{renderNavButtons()}</div>
       </Flex>
     ) : (
       <Flex align="center" style={{ flex: 1, minWidth: 0 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>{bc}</div>
-        {renderNavButtons()}
+        <div style={{ flex: "1 1 0", minWidth: 0, overflow: "hidden" }}>
+          {bc}
+        </div>
+        <div style={{ flexShrink: 0 }}>{renderNavButtons()}</div>
       </Flex>
     );
   },
