@@ -291,11 +291,7 @@ export default function ExplorerHelp({ project_id }: Props) {
         <HelpContent project_id={project_id} onClose={() => setOpen(false)} />
       }
     >
-      <Button
-        type="text"
-        size="small"
-        style={{ color: COLORS.BS_BLUE_TEXT, fontSize: 12 }}
-      >
+      <Button type="text" size="small" style={{ color: COLORS.ANTD_LINK_BLUE }}>
         <Icon name="question-circle" /> {intl.formatMessage(labels.help)}
       </Button>
     </Popover>

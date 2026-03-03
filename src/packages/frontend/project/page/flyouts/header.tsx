@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -39,9 +39,17 @@ export function FlyoutHeader(_: Readonly<Props>) {
   const intl = useIntl();
   const { actions, project_id, is_active } = useProjectContext();
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
-  const reduxCurrentPath = useTypedRedux({ project_id }, "current_path") ?? "";
-  const { flyoutPath, flyoutHistory, navigateFlyout } =
-    useFlyoutNavigation(project_id);
+  const {
+    flyoutPath,
+    flyoutHistory,
+    navigateFlyout,
+    canGoBack,
+    canGoForward,
+    goBack,
+    goForward,
+    backHistory,
+    forwardHistory,
+  } = useFlyoutNavigation(project_id);
 
   // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
   const tours = useTypedRedux("account", "tours");
@@ -153,6 +161,15 @@ export function FlyoutHeader(_: Readonly<Props>) {
             className="cc-project-fixedtab-fullpage"
             style={style}
             onClick={() => {
+              // When expanding the files flyout, navigate the explorer
+              // to the flyout's current directory so it opens there.
+              if (flyout === "files" && flyoutPath != null) {
+                navigateFlyout(flyoutPath); // ensure history is recorded
+                actions?.setState({
+                  explorer_browsing_path: flyoutPath,
+                  explorer_history_path: flyoutHistory,
+                } as any);
+              }
               // flyouts and full pages share the same internal name
               actions?.set_active_tab(flyout);
               track("switch-to-fixed-tab", {
@@ -175,7 +192,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
       case "files":
         return (
           <div style={{ width: "100%" }}>
-            <div>
+            <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
               <SelectComputeServerForFileExplorer
                 size="small"
                 project_id={project_id}
@@ -194,21 +211,13 @@ export function FlyoutHeader(_: Readonly<Props>) {
                 currentPath={flyoutPath}
                 historyPath={flyoutHistory}
                 onNavigate={navigateFlyout}
+                canGoBack={canGoBack}
+                canGoForward={canGoForward}
+                onGoBack={goBack}
+                onGoForward={goForward}
+                backHistory={backHistory}
+                forwardHistory={forwardHistory}
               />
-              {flyoutPath !== reduxCurrentPath && (
-                <Tooltip
-                  title={`Switch to the directory of the currently active file: ${reduxCurrentPath || "Home"}`}
-                >
-                  <Button
-                    type="text"
-                    size="small"
-                    style={{ color: COLORS.ANTD_LINK_BLUE, padding: "0 4px" }}
-                    onClick={() => navigateFlyout(reduxCurrentPath)}
-                  >
-                    <Icon name="swap" />
-                  </Button>
-                </Tooltip>
-              )}
             </div>
             {!!compute_server_id && (
               <div style={{ fontSize: "10pt" }}>

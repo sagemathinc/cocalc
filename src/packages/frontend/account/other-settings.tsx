@@ -210,6 +210,20 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
+  function render_follow_current_path(): Rendered {
+    return (
+      <Switch
+        checked={!!props.other_settings.get("follow_current_path")}
+        onChange={(e) => on_change("follow_current_path", e.target.checked)}
+      >
+        <FormattedMessage
+          id="account.other-settings.follow_current_path"
+          defaultMessage={`<strong>Current directory follows files:</strong> when you switch file tabs, automatically navigate the explorer and flyout to that file's directory.`}
+        />
+      </Switch>
+    );
+  }
+
   function render_dim_file_extensions(): Rendered {
     return (
       <Switch
@@ -457,6 +471,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
             </>
           }
         >
+          {render_follow_current_path()}
           {render_dim_file_extensions()}
           {render_mask_files()}
           {render_default_file_sort()}

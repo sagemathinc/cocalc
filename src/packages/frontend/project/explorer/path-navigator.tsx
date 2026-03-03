@@ -4,7 +4,9 @@
  */
 
 import { HomeOutlined } from "@ant-design/icons";
-import { Breadcrumb, Button, Flex, Tooltip } from "antd";
+import { Breadcrumb, Button, Dropdown, Flex, Space, Tooltip } from "antd";
+import type { MenuProps } from "antd";
+import { useCallback, useRef } from "react";
 
 import {
   CSS,
@@ -15,6 +17,15 @@ import {
 import { Icon } from "@cocalc/frontend/components";
 import { trunc_middle } from "@cocalc/util/misc";
 import { createPathSegmentLink } from "./path-segment-link";
+
+const LONG_PRESS_MS = 400;
+
+/** Style for items in the long-press history dropdown */
+const DROPDOWN_MENU_STYLE: React.CSSProperties = {
+  maxHeight: "30vh",
+  overflowY: "auto",
+  width: 350,
+};
 
 interface Props {
   project_id: string;
@@ -37,6 +48,152 @@ interface Props {
    * back to `actions.open_directory(path, true, false)`.
    */
   onNavigate?: (path: string) => void;
+  /** Browser-like back/forward navigation */
+  canGoBack?: boolean;
+  canGoForward?: boolean;
+  onGoBack?: () => void;
+  onGoForward?: () => void;
+  /** History entries for long-press dropdowns */
+  backHistory?: string[];
+  forwardHistory?: string[];
+}
+
+/**
+ * Build antd menu items from a list of directory paths.
+ * Clicking an item navigates to that directory (as a new navigation,
+ * not a back/forward step).
+ */
+function historyMenuItems(
+  paths: string[],
+  navigate: (path: string) => void,
+): MenuProps["items"] {
+  return paths.map((p, i) => ({
+    key: `${i}-${p}`,
+    label: (
+      <span
+        title={p || "Home"}
+        style={{
+          display: "block",
+          maxWidth: 320,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {p || "Home"}
+      </span>
+    ),
+    onClick: () => navigate(p),
+  }));
+}
+
+/**
+ * A button that fires onClick on normal click and shows a dropdown
+ * on long-press (~400ms hold).
+ */
+function LongPressButton({
+  icon,
+  disabled,
+  onClick,
+  title,
+  dropdownItems,
+}: {
+  icon: React.ReactNode;
+  disabled?: boolean;
+  onClick: () => void;
+  title: string;
+  dropdownItems?: MenuProps["items"];
+}) {
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressedRef = useRef(false);
+  const [dropdownOpen, setDropdownOpen] = React.useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  // Close the dropdown on any click outside (antd doesn't handle this
+  // when trigger={[]}).
+  React.useEffect(() => {
+    if (!dropdownOpen) return;
+    function handleClickOutside(e: MouseEvent) {
+      if (
+        wrapperRef.current &&
+        !wrapperRef.current.contains(e.target as Node)
+      ) {
+        setDropdownOpen(false);
+      }
+    }
+    // Use capture + setTimeout so we don't close before a menu item click
+    const timer = setTimeout(
+      () => document.addEventListener("click", handleClickOutside, true),
+      0,
+    );
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", handleClickOutside, true);
+    };
+  }, [dropdownOpen]);
+
+  const handlePointerDown = useCallback(() => {
+    if (disabled) return;
+    longPressedRef.current = false;
+    timerRef.current = setTimeout(() => {
+      longPressedRef.current = true;
+      if (dropdownItems && dropdownItems.length > 0) {
+        setDropdownOpen(true);
+      }
+    }, LONG_PRESS_MS);
+  }, [disabled, dropdownItems]);
+
+  const handlePointerUp = useCallback(() => {
+    if (timerRef.current != null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+    if (!longPressedRef.current && !disabled) {
+      onClick();
+    }
+  }, [disabled, onClick]);
+
+  const handlePointerLeave = useCallback(() => {
+    if (timerRef.current != null) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  const btn = (
+    <Tooltip title={dropdownOpen ? "" : title}>
+      <Button
+        icon={icon}
+        type="text"
+        disabled={disabled}
+        onPointerDown={handlePointerDown}
+        onPointerUp={handlePointerUp}
+        onPointerLeave={handlePointerLeave}
+        onClick={(e) => e.preventDefault()}
+      />
+    </Tooltip>
+  );
+
+  if (!dropdownItems || dropdownItems.length === 0) {
+    return btn;
+  }
+
+  return (
+    <div ref={wrapperRef} style={{ display: "inline-block" }}>
+      <Dropdown
+        open={dropdownOpen}
+        onOpenChange={setDropdownOpen}
+        trigger={[]}
+        menu={{
+          items: dropdownItems,
+          style: DROPDOWN_MENU_STYLE,
+          onClick: () => setDropdownOpen(false),
+        }}
+      >
+        {btn}
+      </Dropdown>
+    </div>
+  );
 }
 
 // This path consists of several PathSegmentLinks
@@ -48,6 +205,12 @@ export const PathNavigator: React.FC<Props> = React.memo(
       className = "cc-path-navigator",
       mode = "files",
       onNavigate,
+      canGoBack,
+      canGoForward,
+      onGoBack,
+      onGoForward,
+      backHistory,
+      forwardHistory,
     } = props;
     const reduxCurrentPath = useTypedRedux({ project_id }, "current_path");
     const reduxHistoryPath = useTypedRedux({ project_id }, "history_path");
@@ -132,23 +295,96 @@ export const PathNavigator: React.FC<Props> = React.memo(
       return v;
     }
 
-    function renderUP() {
+    // Show a swap button when the browsing path diverges from
+    // the project-wide current_path (active file context).
+    const pathsDiverge = onNavigate != null && currentPath !== reduxCurrentPath;
+
+    function renderNavButtons() {
+      const hasBackForward = onGoBack != null && onGoForward != null;
       const canGoUp = currentPath !== "";
 
-      return (
-        <Button
-          icon={<Icon name="arrow-circle-up" />}
-          type="text"
-          onClick={() => {
-            if (!canGoUp) return;
-            const pathSegments = currentPath.split("/");
-            pathSegments.pop();
-            const parentPath = pathSegments.join("/");
-            navigate(parentPath);
-          }}
-          disabled={!canGoUp}
-          title={canGoUp ? "Go up one directory" : "Already at home directory"}
+      const backBtn = hasBackForward ? (
+        <LongPressButton
+          icon={<Icon name="left-circle-o" />}
+          disabled={!canGoBack}
+          onClick={onGoBack!}
+          title="Go back to previous directory"
+          dropdownItems={
+            backHistory ? historyMenuItems(backHistory, navigate) : undefined
+          }
         />
+      ) : null;
+
+      const forwardBtn = hasBackForward ? (
+        <LongPressButton
+          icon={<Icon name="right-circle-o" />}
+          disabled={!canGoForward}
+          onClick={onGoForward!}
+          title="Go forward to next directory"
+          dropdownItems={
+            forwardHistory
+              ? historyMenuItems(forwardHistory, navigate)
+              : undefined
+          }
+        />
+      ) : null;
+
+      const upBtn =
+        mode === "files" ? (
+          <Button
+            icon={<Icon name="arrow-circle-up" />}
+            type="text"
+            onClick={() => {
+              if (!canGoUp) return;
+              const pathSegments = currentPath.split("/");
+              pathSegments.pop();
+              const parentPath = pathSegments.join("/");
+              navigate(parentPath);
+            }}
+            disabled={!canGoUp}
+            title={
+              canGoUp ? "Go up one directory" : "Already at home directory"
+            }
+          />
+        ) : null;
+
+      // Always render to reserve space — invisible placeholder when paths match.
+      const syncBtn = onNavigate != null && (
+        <Tooltip
+          title={
+            pathsDiverge
+              ? `Switch to the directory of the currently active file: ${reduxCurrentPath || "Home"}`
+              : ""
+          }
+        >
+          <Button
+            icon={<Icon name="swap" />}
+            type="text"
+            disabled={!pathsDiverge}
+            style={pathsDiverge ? undefined : { opacity: 0, cursor: "default" }}
+            onClick={() => pathsDiverge && navigate(reduxCurrentPath)}
+          />
+        </Tooltip>
+      );
+
+      // Only wrap in Space.Compact if there are back/forward buttons
+      if (hasBackForward) {
+        return (
+          <Space.Compact size="small">
+            {syncBtn}
+            {backBtn}
+            {forwardBtn}
+            {upBtn}
+          </Space.Compact>
+        );
+      }
+
+      // Fallback: no back/forward (legacy callers)
+      return (
+        <>
+          {syncBtn}
+          {upBtn}
+        </>
       );
     }
 
@@ -160,10 +396,13 @@ export const PathNavigator: React.FC<Props> = React.memo(
     return mode === "files" ? (
       <Flex justify="space-between" align="center" style={{ width: "100%" }}>
         <div style={{ flex: 1, minWidth: 0 }}>{bc}</div>
-        {renderUP()}
+        {renderNavButtons()}
       </Flex>
     ) : (
-      bc
+      <Flex align="center" style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>{bc}</div>
+        {renderNavButtons()}
+      </Flex>
     );
   },
 );

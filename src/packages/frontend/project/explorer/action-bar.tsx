@@ -296,12 +296,7 @@ export const ActionBarInfo: React.FC<
     <Tooltip
       title={`Switch to the directory of the currently active file: ${props.current_path || "Home"}`}
     >
-      <Button
-        type="text"
-        size="small"
-        style={{ color: COLORS.ANTD_LINK_BLUE }}
-        onClick={props.onSwitchToCurrentPath}
-      >
+      <Button type="text" size="small" onClick={props.onSwitchToCurrentPath}>
         <Icon name="swap" /> Switch
       </Button>
     </Tooltip>

@@ -4,7 +4,7 @@
  */
 
 /**
- * Hook for the flyout's independent browsing path.
+ * Hook for the flyout's independent browsing path with back/forward history.
  *
  * Both the flyout header (PathNavigator breadcrumb) and the flyout body
  * (file listing) need access to the flyout's browsing path and a
@@ -17,13 +17,17 @@ import { useCallback } from "react";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { navigateBrowsingPath } from "@cocalc/frontend/project/explorer/navigate-browsing-path";
+import {
+  useNavigationHistory,
+  type NavigationHistory,
+} from "@cocalc/frontend/project/explorer/use-navigation-history";
 
-interface FlyoutNavigation {
+interface FlyoutNavigation extends NavigationHistory {
   /** Directory the flyout is currently showing. */
   flyoutPath: string;
   /** History path for breadcrumb depth. */
   flyoutHistory: string;
-  /** Navigate the flyout to a different directory. */
+  /** Navigate the flyout to a different directory (records history). */
   navigateFlyout: (path: string) => void;
 }
 
@@ -41,7 +45,7 @@ export function useFlyoutNavigation(project_id: string): FlyoutNavigation {
   const flyoutPath = flyoutBrowsingPath ?? reduxCurrentPath;
   const flyoutHistory = flyoutHistoryPath ?? flyoutPath;
 
-  const navigateFlyout = useCallback(
+  const navigateFlyoutRaw = useCallback(
     (path: string) => {
       navigateBrowsingPath(
         project_id,
@@ -54,5 +58,26 @@ export function useFlyoutNavigation(project_id: string): FlyoutNavigation {
     [project_id, flyoutHistory],
   );
 
-  return { flyoutPath, flyoutHistory, navigateFlyout };
+  const navHistory = useNavigationHistory(
+    project_id,
+    flyoutPath,
+    navigateFlyoutRaw,
+    "flyout",
+  );
+
+  // Wrap navigation so every explicit navigation records history.
+  const navigateFlyout = useCallback(
+    (path: string) => {
+      navigateFlyoutRaw(path);
+      navHistory.recordNavigation(path);
+    },
+    [navigateFlyoutRaw, navHistory.recordNavigation],
+  );
+
+  return {
+    flyoutPath,
+    flyoutHistory,
+    navigateFlyout,
+    ...navHistory,
+  };
 }

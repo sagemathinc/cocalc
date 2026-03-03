@@ -654,6 +654,7 @@ Table({
             confirm_close: false,
             mask_files: false,
             dim_file_extensions: false,
+            follow_current_path: false,
             page_size: 500,
             standby_timeout_m: 15,
             default_file_sort: "name",

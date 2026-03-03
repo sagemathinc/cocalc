@@ -642,6 +642,20 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         this.set_current_path(misc.path_split(path).head);
 
+        // When "Current directory follows files" is enabled, sync the
+        // explorer and flyout browsing paths to the active file's directory.
+        if (
+          redux
+            .getStore("account")
+            ?.getIn(["other_settings", "follow_current_path"])
+        ) {
+          const fileDir = misc.path_split(path).head;
+          this.setState({
+            explorer_browsing_path: fileDir,
+            flyout_browsing_path: fileDir,
+          });
+        }
+
         // Reopen the file if relationship has changed
         const is_public =
           redux.getProjectsStore().get_my_group(this.project_id) === "public";

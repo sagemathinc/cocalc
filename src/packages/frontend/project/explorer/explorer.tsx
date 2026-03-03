@@ -53,6 +53,7 @@ import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
 import { navigateBrowsingPath } from "./navigate-browsing-path";
+import { useNavigationHistory } from "./use-navigation-history";
 import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
 import { PathNavigator } from "./path-navigator";
@@ -239,7 +240,7 @@ export function Explorer() {
 
   // Navigate within the explorer — updates only the explorer's own browsing
   // path, leaving the project-wide current_path (active file context) alone.
-  const navigateExplorer = useCallback(
+  const navigateExplorerRaw = useCallback(
     (path: string) => {
       navigateBrowsingPath(
         project_id,
@@ -250,6 +251,22 @@ export function Explorer() {
       );
     },
     [project_id, explorerHistory],
+  );
+
+  const navHistory = useNavigationHistory(
+    project_id,
+    current_path,
+    navigateExplorerRaw,
+    "explorer",
+  );
+
+  // Wrap navigation so that every explicit navigation records history.
+  const navigateExplorer = useCallback(
+    (path: string) => {
+      navigateExplorerRaw(path);
+      navHistory.recordNavigation(path);
+    },
+    [navigateExplorerRaw, navHistory.recordNavigation],
   );
 
   const toggleDirectoryTree = useCallback(() => {
@@ -514,6 +531,12 @@ export function Explorer() {
                 currentPath={current_path}
                 historyPath={explorerHistory}
                 onNavigate={navigateExplorer}
+                canGoBack={navHistory.canGoBack}
+                canGoForward={navHistory.canGoForward}
+                onGoBack={navHistory.goBack}
+                onGoForward={navHistory.goForward}
+                backHistory={navHistory.backHistory}
+                forwardHistory={navHistory.forwardHistory}
               />
             </div>
           </div>
