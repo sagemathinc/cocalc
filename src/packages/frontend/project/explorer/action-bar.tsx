@@ -27,6 +27,18 @@ const ROW_INFO_STYLE = {
   margin: "5px 3px",
 } as const;
 
+/** Shared style for the "type filter active" warning badge.
+ *  Used in both the explorer info line and the flyout type dropdown. */
+export const ACTIVE_TYPE_FILTER_STYLE: React.CSSProperties = {
+  background: COLORS.ANTD_ORANGE,
+  color: "black",
+  borderRadius: 4,
+  padding: "1px 8px",
+  cursor: "pointer",
+  whiteSpace: "nowrap",
+  marginLeft: 6,
+};
+
 interface Props {
   project_id?: string;
   checked_files: immutable.Set<string>;
@@ -266,15 +278,7 @@ export const ActionBarInfo: React.FC<
 
   const filterWarning = props.type_filter != null && (
     <span
-      style={{
-        background: COLORS.ANTD_ORANGE,
-        color: "white",
-        borderRadius: 4,
-        padding: "1px 8px",
-        cursor: "pointer",
-        whiteSpace: "nowrap",
-        marginLeft: 6,
-      }}
+      style={ACTIVE_TYPE_FILTER_STYLE}
       onClick={() => props.actions.setState({ type_filter: undefined } as any)}
     >
       Only showing .{props.type_filter} files &mdash; ✕ clear
