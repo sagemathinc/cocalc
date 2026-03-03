@@ -226,6 +226,7 @@ export function Explorer() {
   );
   const explorerTour = useTypedRedux({ project_id }, "explorerTour");
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  const type_filter = useTypedRedux({ project_id }, "type_filter");
   // trigger table init
   useTypedRedux({ project_id }, "public_paths");
 
@@ -777,7 +778,7 @@ export function Explorer() {
               </div>
               {renderProjectFilesButtons()}
             </div>
-            {listing != null && (
+            {listing != null && actions != null && (
               <ActionBarInfo
                 project_id={project_id}
                 checked_files={checked_files}
@@ -785,6 +786,8 @@ export function Explorer() {
                   hide_masked_files ? listing.filter((f) => !f.mask) : listing
                 }
                 project_is_running={projectIsRunning}
+                actions={actions}
+                type_filter={type_filter ?? undefined}
               />
             )}
             {projectIsRunning ? renderCustomSoftwareReset() : null}

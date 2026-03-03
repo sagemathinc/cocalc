@@ -186,15 +186,36 @@ function FileDragOverlayContent({
   }
 
   const op = isCopy ? "Copy" : "Move";
-  const target =
-    overFolder != null
-      ? ` \u2192 ${path_split(overFolder).tail || "Home"}`
-      : "";
+  if (overFolder != null) {
+    // Hovering over a valid folder drop target
+    const target = path_split(overFolder).tail || "Home";
+    return (
+      <div
+        style={{
+          padding: "4px 10px",
+          background: `${COLORS.ANTD_LINK_BLUE}e0`,
+          color: COLORS.WHITE,
+          borderRadius: 4,
+          fontSize: "12px",
+          whiteSpace: "nowrap",
+          width: "max-content",
+          pointerEvents: "none",
+        }}
+      >
+        <Icon
+          name={isCopy ? "copy" : "arrow-right"}
+          style={{ marginRight: 6 }}
+        />
+        {op} {n} {plural(n, "file")} &rarr; {target}
+      </div>
+    );
+  }
+  // Not over any folder — show neutral hint
   return (
     <div
       style={{
         padding: "4px 10px",
-        background: `${COLORS.ANTD_LINK_BLUE}e0`,
+        background: `${COLORS.GRAY_D}d0`,
         color: COLORS.WHITE,
         borderRadius: 4,
         fontSize: "12px",
@@ -203,9 +224,8 @@ function FileDragOverlayContent({
         pointerEvents: "none",
       }}
     >
-      <Icon name={isCopy ? "copy" : "arrow-right"} style={{ marginRight: 6 }} />
-      {op} {n} {plural(n, "file")}
-      {target}
+      <Icon name={isCopy ? "copy" : "arrows"} style={{ marginRight: 6 }} />
+      {op} {n} {plural(n, "file")} onto a folder
     </div>
   );
 }
@@ -265,7 +285,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
-      activationConstraint: { delay: 300, tolerance: 5 },
+      activationConstraint: { distance: 3 },
     }),
   );
 
@@ -330,8 +350,15 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       const isAlreadyIn = dragData.paths.every(
         (p) => path_split(p).head === dropData.path,
       );
-      setOverFolder(dropData.path);
-      setIsInvalidTarget(isSelf || isAlreadyIn);
+      if (isAlreadyIn && !isSelf) {
+        // Files are already in this directory — treat as no target
+        // (no red error; just show the neutral "drag onto a folder" hint)
+        setOverFolder(null);
+        setIsInvalidTarget(false);
+      } else {
+        setOverFolder(dropData.path);
+        setIsInvalidTarget(isSelf);
+      }
     } else {
       setOverFolder(null);
       setIsInvalidTarget(false);
@@ -359,11 +386,9 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     const el = document.elementFromPoint(x, y);
     const row = el?.closest?.("[data-row-key], [data-folder-drop-path]");
     if (row && !row.hasAttribute("data-folder-drop-path")) {
-      const currentDir = dragData.paths[0]
-        ? path_split(dragData.paths[0]).head
-        : "";
-      setOverFolder(currentDir);
-      setIsInvalidTarget(true);
+      // Hovering over a non-folder file row — show neutral hint
+      setOverFolder(null);
+      setIsInvalidTarget(false);
     } else if (isInvalidTargetRef.current) {
       setOverFolder(null);
       setIsInvalidTarget(false);

@@ -86,6 +86,14 @@
   .ant-table-row:hover > td
     background-color: colors.$COL_BLUE_LLLL !important
     transition: none !important
+  // Hover-only icons: download in size column, context menu at row end
+  .cc-explorer-hover-icon
+    visibility: hidden
+  .ant-table-row:hover .cc-explorer-hover-icon
+    visibility: visible
+  // On mobile, always show (no hover available)
+  &.cc-explorer-table-mobile .cc-explorer-hover-icon
+    visibility: visible
   // Checked (selected via checkbox): matches flyout selected style
   .cc-explorer-row-checked > td
     background-color: colors.$COL_BLUE_LLL !important

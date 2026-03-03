@@ -244,7 +244,14 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
 
 /** Info line shown below the action bar — "N items" + Help button. */
 export const ActionBarInfo: React.FC<
-  Pick<Props, "project_id" | "checked_files" | "listing" | "project_is_running">
+  Pick<
+    Props,
+    | "project_id"
+    | "checked_files"
+    | "listing"
+    | "project_is_running"
+    | "actions"
+  > & { type_filter?: string }
 > = (props) => {
   const intl = useIntl();
   if (!props.project_is_running || props.listing.length === 0) {
@@ -257,6 +264,23 @@ export const ActionBarInfo: React.FC<
     <ExplorerHelp project_id={props.project_id} />
   ) : null;
 
+  const filterWarning = props.type_filter != null && (
+    <span
+      style={{
+        background: COLORS.ANTD_ORANGE,
+        color: "white",
+        borderRadius: 4,
+        padding: "1px 8px",
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        marginLeft: 6,
+      }}
+      onClick={() => props.actions.setState({ type_filter: undefined } as any)}
+    >
+      Only showing .{props.type_filter} files &mdash; ✕ clear
+    </span>
+  );
+
   if (checked === 0) {
     return (
       <div
@@ -267,13 +291,19 @@ export const ActionBarInfo: React.FC<
         }}
       >
         <span style={{ flex: 1 }}>
-          {total} {intl.formatMessage(labels.item_plural, { total })} &mdash;{" "}
-          <FormattedMessage
-            id="project.explorer.action-bar.currently_selected.info"
-            defaultMessage={
-              "Select files via checkbox or drag and drop to move them."
-            }
-          />
+          {total} {intl.formatMessage(labels.item_plural, { total })}
+          {filterWarning || (
+            <>
+              {" "}
+              &mdash;{" "}
+              <FormattedMessage
+                id="project.explorer.action-bar.currently_selected.info"
+                defaultMessage={
+                  "Select files via checkbox or drag and drop to move them."
+                }
+              />
+            </>
+          )}
         </span>
         {helpButton}
       </div>
@@ -299,6 +329,7 @@ export const ActionBarInfo: React.FC<
               items: intl.formatMessage(labels.item_plural, { total }),
             },
           )}
+          {filterWarning}
         </span>
         {helpButton}
       </div>

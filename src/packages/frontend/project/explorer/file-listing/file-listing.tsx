@@ -5,7 +5,7 @@
 
 // File listing using react-virtuoso TableVirtuoso for efficient virtual scrolling.
 
-import { Alert, Checkbox, Dropdown, Menu, Spin } from "antd";
+import { Alert, Button, Checkbox, Dropdown, Menu, Spin } from "antd";
 import type { MenuProps } from "antd";
 import type { ColumnFilterItem } from "antd/es/table/interface";
 import { FilterOutlined } from "@ant-design/icons";
@@ -106,7 +106,7 @@ const COL_W = {
   PUBLIC: 40,
   DATE: 170,
   SIZE: 130,
-  VIEW: 40,
+  ACTIONS: 40,
 } as const;
 
 // ---------- DnD Row ----------
@@ -943,16 +943,6 @@ export const FileListing: React.FC<Props> = ({
     [current_path, actions],
   );
 
-  const handleViewClick = useCallback(
-    (e: React.MouseEvent, record: FileEntry) => {
-      e.preventDefault();
-      e.stopPropagation();
-      const fp = misc.path_to_file(current_path, record.name);
-      open_new_tab(url_href(actions.project_id, fp, computeServerId));
-    },
-    [current_path, actions, computeServerId],
-  );
-
   // -- Sort state mapping --
   const sortColumn = active_file_sort?.get("column_name");
   const sortDescending = active_file_sort?.get("is_descending");
@@ -1010,7 +1000,7 @@ export const FileListing: React.FC<Props> = ({
     }
     if (!IS_MOBILE) n += 2; // type + date
     n += 1; // public
-    if (!isNarrow) n += 2; // size + view
+    if (!isNarrow) n += 2; // size + actions
     return n;
   }, [isNarrow, student_project_functionality.disableActions]);
 
@@ -1146,7 +1136,12 @@ export const FileListing: React.FC<Props> = ({
           // Dragging a checked file — drag all checked files together
           return checked_files.toArray();
         }
-        // Dragging an unchecked file — drag only that file
+        if (checked_files.size > 0) {
+          // Dragging an unchecked file while others are checked —
+          // add it to selection and drag all together
+          return [...checked_files.toArray(), fp];
+        }
+        // Dragging an unchecked file with nothing else checked
         return [fp];
       },
       getVirtualEntry: (index: number) => virtualData[index],
@@ -1300,7 +1295,7 @@ export const FileListing: React.FC<Props> = ({
       <DndRowContext.Provider value={dndRowCtx}>
         <div
           ref={containerAndDropRef}
-          className={`smc-vfill cc-explorer-table${shift_is_down ? " noselect" : ""}`}
+          className={`smc-vfill cc-explorer-table${IS_MOBILE ? " cc-explorer-table-mobile" : ""}${shift_is_down ? " noselect" : ""}`}
           style={{ minHeight: 0, position: "relative" }}
         >
           <TableVirtuoso
@@ -1367,7 +1362,7 @@ export const FileListing: React.FC<Props> = ({
                             style={{
                               color:
                                 typeFilter != null
-                                  ? COLORS.ANTD_LINK_BLUE
+                                  ? COLORS.ANTD_ORANGE
                                   : undefined,
                             }}
                           />
@@ -1443,7 +1438,7 @@ export const FileListing: React.FC<Props> = ({
                       <th
                         style={{
                           ...thStyle,
-                          width: COL_W.VIEW,
+                          width: COL_W.ACTIONS,
                           cursor: "default",
                         }}
                       />
@@ -1568,67 +1563,85 @@ export const FileListing: React.FC<Props> = ({
                           textAlign: "right",
                         }}
                       >
-                        {record.isdir ? (
-                          record.size != null ? (
-                            <span
+                        {!student_project_functionality.disableActions &&
+                        (record.isdir ? record.size != null : true) ? (
+                          <Button
+                            type="text"
+                            size="small"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDownloadClick(e, record);
+                            }}
+                            style={{
+                              color: COLORS.TAB,
+                              whiteSpace: "nowrap",
+                              padding: "0 4px",
+                              height: "auto",
+                            }}
+                          >
+                            <Icon
+                              name="cloud-download"
+                              className="cc-explorer-hover-icon"
                               style={{
                                 color: COLORS.TAB,
-                                whiteSpace: "nowrap",
+                                marginRight: 4,
                               }}
-                            >
-                              {record.size} {misc.plural(record.size, "item")}
-                            </span>
-                          ) : null
-                        ) : student_project_functionality.disableActions ? (
+                            />
+                            {record.isdir
+                              ? `${record.size} ${misc.plural(record.size, "item")}`
+                              : misc.human_readable_size(record.size)}
+                          </Button>
+                        ) : (
                           <span
                             style={{
                               color: COLORS.TAB,
                               whiteSpace: "nowrap",
                             }}
                           >
-                            {misc.human_readable_size(record.size)}
+                            {record.isdir
+                              ? record.size != null
+                                ? `${record.size} ${misc.plural(record.size, "item")}`
+                                : null
+                              : misc.human_readable_size(record.size)}
                           </span>
-                        ) : (
-                          <a
-                            href={url_href(
-                              actions.project_id,
-                              fp,
-                              computeServerId,
-                            )}
-                            onClick={(e) => handleDownloadClick(e, record)}
-                            style={{
-                              color: COLORS.TAB,
-                              padding: 0,
-                              whiteSpace: "nowrap",
-                            }}
-                          >
-                            {misc.human_readable_size(record.size)}{" "}
-                            <Icon
-                              name="cloud-download"
-                              style={{ color: COLORS.TAB }}
-                            />
-                          </a>
                         )}
                       </td>
-                      <td style={{ ...cellStyle, width: COL_W.VIEW }}>
-                        {!record.isdir &&
-                          !student_project_functionality.disableActions &&
-                          VIEWABLE_FILE_EXT.includes(
-                            (
-                              misc.filename_extension(record.name) ?? ""
-                            ).toLowerCase(),
-                          ) && (
-                            <a
-                              href={url_href(
-                                actions.project_id,
-                                fp,
-                                computeServerId,
-                              )}
-                              onClick={(e) => handleViewClick(e, record)}
-                              style={{ color: COLORS.TAB, padding: 0 }}
+                      <td
+                        style={{
+                          ...cellStyle,
+                          width: COL_W.ACTIONS,
+                          textAlign: "center",
+                        }}
+                      >
+                        {record.name !== ".." &&
+                          !student_project_functionality.disableActions && (
+                            <Button
+                              type="text"
+                              size="small"
+                              className="cc-explorer-hover-icon"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                const fp2 = misc.path_to_file(
+                                  current_path,
+                                  record.name,
+                                );
+                                if (checked_files.size <= 1) {
+                                  actions.set_all_files_unchecked();
+                                  actions.set_file_list_checked([fp2]);
+                                }
+                                const items = buildContextMenu(record);
+                                if (items && items.length > 0) {
+                                  setContextMenu({
+                                    items,
+                                    x: e.clientX,
+                                    y: e.clientY,
+                                  });
+                                }
+                              }}
+                              style={{ color: COLORS.TAB }}
                             >
-                              <Icon name="eye" />
-                            </a>
+                              <Icon name="ellipsis" rotate="90" />
+                            </Button>
                           )}
                       </td>
                     </>
