@@ -10,7 +10,8 @@
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   pointerWithin,
   useDroppable,
   useDraggable,
@@ -284,8 +285,11 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
   const preDragCheckedRef = useRef<string[] | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, {
+    useSensor(MouseSensor, {
       activationConstraint: { distance: 3 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 300, tolerance: 5 },
     }),
   );
 

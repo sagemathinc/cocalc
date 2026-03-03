@@ -205,7 +205,11 @@ function TrulyEmpty({
       </div>
       <div style={{ fontSize: "11pt", marginBottom: 16, color: COLORS.GRAY_L }}>
         Create files using the buttons below, or type a filename in the search
-        box and press <Text keyboard>Shift+Return</Text>.
+        box and press{" "}
+        <Text keyboard>
+          <span style={{ color: COLORS.GRAY_D }}>Shift+Return</span>
+        </Text>
+        .
       </div>
       <FileTypeSelector
         create_file={create_file}
