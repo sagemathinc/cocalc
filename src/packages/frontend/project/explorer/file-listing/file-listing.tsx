@@ -170,8 +170,8 @@ function VirtualTableRow(props: React.HTMLAttributes<HTMLTableRowElement>) {
   }
 
   const entry = ctx.getVirtualEntry(index);
-  if (!entry || isPeekEntry(entry)) {
-    // Peek rows are rendered as plain <tr> (no DnD)
+  if (!entry || isPeekEntry(entry) || isEmptyEntry(entry)) {
+    // Peek and empty-placeholder rows are rendered as plain <tr> (no DnD)
     return <tr {...props} />;
   }
 
@@ -323,9 +323,16 @@ interface PeekEntry {
   _peekForName: string;
   name: string;
 }
-type VirtualEntry = FileEntry | PeekEntry;
+interface EmptyEntry {
+  _isEmpty: true;
+  name: string;
+}
+type VirtualEntry = FileEntry | PeekEntry | EmptyEntry;
 function isPeekEntry(entry: VirtualEntry): entry is PeekEntry {
   return "_isPeek" in entry;
+}
+function isEmptyEntry(entry: VirtualEntry): entry is EmptyEntry {
+  return "_isEmpty" in entry;
 }
 
 function listingMembershipKey(entry: FileEntry): string {
@@ -1008,11 +1015,14 @@ export const FileListing: React.FC<Props> = ({
     [typeFilters, typeFilter],
   );
 
-  // -- Virtual data: insert PeekEntry rows after expanded directories --
+  // -- Virtual data: insert PeekEntry rows after expanded directories,
+  //    and an EmptyEntry when no real files are visible --
   const virtualData: VirtualEntry[] = useMemo(() => {
     const result: VirtualEntry[] = [];
+    let hasReal = false;
     for (const entry of dataSource) {
       result.push(entry);
+      if (entry.name !== "..") hasReal = true;
       if (entry.isdir && expandedDirs.includes(entry.name)) {
         result.push({
           _isPeek: true,
@@ -1021,8 +1031,13 @@ export const FileListing: React.FC<Props> = ({
         });
       }
     }
+    // When no real files exist (only ".." or nothing), append an empty marker
+    // that the itemContent renderer turns into the EmptyPlaceholder UI.
+    if (!hasReal && file_search[0] !== TERM_MODE_CHAR) {
+      result.push({ _isEmpty: true, name: "__empty__" });
+    }
     return result;
-  }, [dataSource, expandedDirs]);
+  }, [dataSource, expandedDirs, file_search]);
 
   // -- Count visible columns for peek row colSpan --
   const numCols = useMemo(() => {
@@ -1235,11 +1250,6 @@ export const FileListing: React.FC<Props> = ({
     [current_path, actions],
   );
 
-  // Are there any visible files (excluding the ".." parent nav entry)?
-  const hasVisibleFiles = virtualData.some(
-    (e) => !isPeekEntry(e) && (e as FileEntry).name !== "..",
-  );
-
   // Select-all checkbox state
   const selectableCount = dataSource.filter((d) => d.name !== "..").length;
   const allChecked =
@@ -1321,7 +1331,7 @@ export const FileListing: React.FC<Props> = ({
           <TableVirtuoso
             ref={virtuosoRef}
             style={{
-              flex: hasVisibleFiles ? 1 : "0 0 auto",
+              flex: 1,
               minHeight: 0,
             }}
             data={virtualData}
@@ -1489,6 +1499,26 @@ export const FileListing: React.FC<Props> = ({
                           prev.filter((d) => d !== entry._peekForName),
                         )
                       }
+                    />
+                  </td>
+                );
+              }
+
+              // -- Empty placeholder row (no files match filters) --
+              if (isEmptyEntry(entry)) {
+                return (
+                  <td
+                    colSpan={numCols}
+                    style={{ padding: 0, background: "white" }}
+                  >
+                    <EmptyPlaceholder
+                      project_id={project_id}
+                      actions={actions}
+                      file_search={file_search}
+                      type_filter={typeFilter}
+                      create_file={create_file}
+                      create_folder={create_folder}
+                      configuration_main={configuration_main}
                     />
                   </td>
                 );
@@ -1668,17 +1698,6 @@ export const FileListing: React.FC<Props> = ({
               );
             }}
           />
-          {!hasVisibleFiles && file_search[0] !== TERM_MODE_CHAR && (
-            <EmptyPlaceholder
-              project_id={project_id}
-              actions={actions}
-              file_search={file_search}
-              type_filter={typeFilter}
-              create_file={create_file}
-              create_folder={create_folder}
-              configuration_main={configuration_main}
-            />
-          )}
         </div>
       </DndRowContext.Provider>
       {/* Floating context menu — nudge into viewport when near edges */}

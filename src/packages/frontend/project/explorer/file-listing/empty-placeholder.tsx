@@ -13,6 +13,7 @@ import { useAvailableFeatures } from "@cocalc/frontend/project/use-available-fea
 import { ACTIVE_FILTER_BTN_STYLE } from "@cocalc/frontend/project/explorer/action-bar";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
+import { capitalize } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { full_path_text } from "./utils";
 
@@ -46,12 +47,15 @@ export default function EmptyPlaceholder({
   const hasFilter = !!type_filter || !!file_search;
 
   return (
-    <div style={{ flex: 1, overflowY: "auto" }}>
+    <div>
       {hasFilter ? (
         <FilteredEmpty
           actions={actions}
           file_search={file_search}
           type_filter={type_filter}
+          create_file={create_file}
+          create_folder={create_folder}
+          configuration_main={configuration_main}
         />
       ) : (
         <TrulyEmpty
@@ -72,11 +76,31 @@ function FilteredEmpty({
   actions,
   file_search,
   type_filter,
+  create_file,
+  create_folder,
+  configuration_main,
 }: {
   actions: ProjectActions;
   file_search: string;
   type_filter: string | null;
+  create_file: (ext?: string, switch_over?: boolean) => void;
+  create_folder: (switch_over?: boolean) => void;
+  configuration_main?: MainConfiguration;
 }) {
+  const actualNewFilename = useMemo(() => {
+    if (!file_search) return "";
+    return full_path_text(file_search, configuration_main?.disabled_ext ?? []);
+  }, [file_search, configuration_main?.disabled_ext]);
+
+  const buttonText =
+    file_search.length === 0 ? (
+      "Create or Upload Files..."
+    ) : (
+      <>
+        {capitalize("create")} {actualNewFilename}
+      </>
+    );
+
   return (
     <div
       style={{
@@ -88,7 +112,14 @@ function FilteredEmpty({
       <div style={{ fontSize: "14pt", marginBottom: 12 }}>
         No files match the current filters.
       </div>
-      <div style={{ display: "flex", justifyContent: "center", gap: 8 }}>
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "center",
+          gap: 8,
+          marginBottom: 20,
+        }}
+      >
         {type_filter != null && (
           <Button
             type="text"
@@ -114,6 +145,26 @@ function FilteredEmpty({
           </Button>
         )}
       </div>
+      <Button
+        type="primary"
+        size="large"
+        style={{
+          height: "80px",
+          fontSize: "24px",
+          padding: "30px",
+        }}
+        onClick={() => {
+          if (file_search.length === 0) {
+            actions.set_active_tab("new");
+          } else if (file_search.endsWith("/")) {
+            create_folder();
+          } else {
+            create_file();
+          }
+        }}
+      >
+        <Icon name="plus-circle" /> {buttonText}
+      </Button>
     </div>
   );
 }
