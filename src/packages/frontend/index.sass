@@ -77,8 +77,11 @@
   // Remove all default row backgrounds (including zebra stripes)
   .ant-table-row > td
     background: colors.$COL_WHITE !important
-    border-bottom: none !important
+    border-bottom: 1px solid colors.$COL_GRAY_LLL !important
     transition: none !important
+  // Open files: faint gray background so the user can spot them
+  .cc-explorer-row-open > td
+    background-color: colors.$COL_GRAY_LLL !important
   // Type cell with expanded directory peek: blue background
   .ant-table-row > td.cc-explorer-cell-expanded
     background-color: colors.$COL_BLUE_LLLL !important

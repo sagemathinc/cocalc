@@ -1421,6 +1421,12 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         this.foreground_project(change_history);
         this.set_current_path(path);
+        // Also anchor the explorer's browsing path so that session
+        // restore (which replays set_active_tab for each open file)
+        // doesn't drag it away from the URL-requested directory.
+        if (show_files) {
+          this.setState({ explorer_browsing_path: path });
+        }
         const store = this.get_store();
         if (store == undefined) {
           return;

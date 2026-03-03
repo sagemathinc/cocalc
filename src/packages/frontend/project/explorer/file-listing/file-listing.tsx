@@ -690,6 +690,11 @@ export const FileListing: React.FC<Props> = ({
   }, [current_path, isRunning, listingForRender.length]);
 
   const computeServerId = useTypedRedux({ project_id }, "compute_server_id");
+  const openFilesOrder = useTypedRedux({ project_id }, "open_files_order");
+  const openFilesSet = useMemo(
+    () => new Set(openFilesOrder?.toArray?.() ?? []),
+    [openFilesOrder],
+  );
   const dimFileExtensions = !!other_settings?.get?.("dim_file_extensions");
   const typeFilter = useTypedRedux({ project_id }, "type_filter") ?? null;
 
@@ -1178,9 +1183,11 @@ export const FileListing: React.FC<Props> = ({
         dataSource[selected_file_index]?.name === record.name &&
         file_search[0] !== TERM_MODE_CHAR;
       const isChecked = checked_files.has(fp);
+      const isOpen = openFilesSet.has(fp);
       return [
         isSelected ? "cc-explorer-row-selected" : "",
         isChecked ? "cc-explorer-row-checked" : "",
+        isOpen ? "cc-explorer-row-open" : "",
       ]
         .filter(Boolean)
         .join(" ");
@@ -1191,6 +1198,7 @@ export const FileListing: React.FC<Props> = ({
       dataSource,
       file_search,
       checked_files,
+      openFilesSet,
       search_focused,
     ],
   );
