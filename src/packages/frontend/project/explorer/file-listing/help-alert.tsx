@@ -6,11 +6,16 @@
 import React from "react";
 import { Alert } from "antd";
 
-const help_alert_error_style: React.CSSProperties = {
-  marginTop: "10px",
-  fontWeight: "bold",
-};
+import { Text } from "@cocalc/frontend/components";
 
+/**
+ * Floating alert shown below the search input when the user is typing
+ * a filename (not just filtering).  Three states:
+ *
+ * 1. **Hidden** — search text has no "." and doesn't end with "/" → pure filter
+ * 2. **Error** — illegal characters or names (backslash, leading /, . or ..)
+ * 3. **Info** — "Shift+Return creates <filename>"
+ */
 export function HelpAlert({
   file_search,
   actual_new_filename,
@@ -18,101 +23,81 @@ export function HelpAlert({
   file_search: string;
   actual_new_filename: string;
 }) {
-  const last_folder_index = file_search.lastIndexOf("/");
+  // --- Error checks (always take priority) ---
   if (file_search.indexOf("\\") !== -1) {
     return (
-      <Alert
-        style={help_alert_error_style}
-        type="error"
-        message="Warning: \\ is an illegal character"
-      />
-    );
-  } else if (file_search.indexOf("/") === 0) {
-    return (
-      <Alert
-        style={help_alert_error_style}
-        type="error"
-        message="Warning: Names cannot begin with /"
-      />
-    );
-  } else if ([".", ".."].indexOf(file_search) > -1) {
-    return (
-      <Alert
-        style={help_alert_error_style}
-        type="error"
-        message="Warning: Cannot create a file named . or .."
-      />
-    );
-  } else if (file_search.length > 0 && last_folder_index > 0) {
-    return (
-      <CreationHelpAlert
-        last_folder_index={last_folder_index}
-        file_search={file_search}
-        actual_new_filename={actual_new_filename}
-      />
+      <ErrorAlert message="Warning: \ is an illegal character in filenames" />
     );
   }
-  return null;
-}
+  if (file_search.indexOf("/") === 0) {
+    return <ErrorAlert message="Warning: Names cannot begin with /" />;
+  }
+  if (file_search === "." || file_search === "..") {
+    return <ErrorAlert message="Warning: Cannot create a file named . or .." />;
+  }
 
-const creation_alert_style: React.CSSProperties = { marginTop: "10px" };
-const emphasis_style: React.CSSProperties = { fontWeight: "bold" };
+  // --- Creation hint: only when the text looks like a filename ---
+  const hasDot = file_search.includes(".");
+  const endsWithSlash = file_search.endsWith("/");
 
-function CreationHelpAlert({
-  last_folder_index,
-  file_search,
-  actual_new_filename,
-}: {
-  last_folder_index: number;
-  file_search: string;
-  actual_new_filename: string;
-}) {
-  if (last_folder_index === file_search.length - 1) {
-    if (last_folder_index !== file_search.indexOf("/")) {
-      return (
-        <Alert
-          style={creation_alert_style}
-          type="info"
-          message={
-            <>
-              <span style={emphasis_style}>{file_search}</span> will be created
-              as a <span style={emphasis_style}>folder path</span> if
-              non-existent
-            </>
-          }
-        />
+  if (!hasDot && !endsWithSlash) {
+    // Pure filter — no alert
+    return null;
+  }
+
+  // Nested path hints
+  const lastFolderIndex = file_search.lastIndexOf("/");
+  let message: React.ReactNode;
+
+  if (endsWithSlash) {
+    if (lastFolderIndex > 0 && lastFolderIndex === file_search.length - 1) {
+      // e.g. "foo/bar/" — nested folder path
+      message = (
+        <>
+          <Text keyboard>
+            <span style={{ color: "black" }}>Shift+Return</span>
+          </Text>{" "}
+          creates folder path <strong>{file_search}</strong>
+        </>
       );
     } else {
-      return (
-        <Alert
-          style={creation_alert_style}
-          type="info"
-          message={
-            <>
-              Creates a <span style={emphasis_style}>folder</span> named{" "}
-              <span style={emphasis_style}>{file_search}</span>
-            </>
-          }
-        />
+      // e.g. "foo/" — single folder
+      message = (
+        <>
+          <Text keyboard>
+            <span style={{ color: "black" }}>Shift+Return</span>
+          </Text>{" "}
+          creates folder <strong>{file_search}</strong>
+        </>
       );
     }
+  } else if (lastFolderIndex > 0) {
+    // e.g. "foo/bar.py" — file in a subfolder
+    message = (
+      <>
+        <Text keyboard>
+          <span style={{ color: "black" }}>Shift+Return</span>
+        </Text>{" "}
+        creates{" "}
+        <strong>{actual_new_filename.slice(lastFolderIndex + 1)}</strong> in
+        folder <strong>{file_search.slice(0, lastFolderIndex + 1)}</strong>
+      </>
+    );
   } else {
-    return (
-      <Alert
-        style={creation_alert_style}
-        type="info"
-        message={
-          <>
-            <span style={emphasis_style}>
-              {actual_new_filename.slice(last_folder_index + 1)}
-            </span>{" "}
-            will be created under the folder path{" "}
-            <span style={emphasis_style}>
-              {file_search.slice(0, last_folder_index + 1)}
-            </span>
-          </>
-        }
-      />
+    // Simple filename with dot, e.g. "notes.md"
+    message = (
+      <>
+        <Text keyboard>
+          <span style={{ color: "black" }}>Shift+Return</span>
+        </Text>{" "}
+        creates <strong>{actual_new_filename}</strong>
+      </>
     );
   }
+
+  return <Alert type="info" showIcon message={message} />;
+}
+
+function ErrorAlert({ message }: { message: string }) {
+  return <Alert type="error" showIcon message={message} />;
 }

@@ -215,6 +215,19 @@ export const MiscSideButtons: React.FC<Props> = (props) => {
       </Space.Compact>
       <Space.Compact>
         {render_upload_button()}
+        {!student_project_functionality.disableActions && (
+          <Tip
+            title={intl.formatMessage(labels.new_tooltip)}
+            placement="bottom"
+          >
+            <Button
+              type="primary"
+              onClick={() => actions.set_active_tab("new")}
+            >
+              <Icon name="plus-circle" />
+            </Button>
+          </Tip>
+        )}
         {render_library_button()}
       </Space.Compact>
       <Space.Compact>

@@ -13,6 +13,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
+import { file_options } from "@cocalc/frontend/editor-tmp";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
 import ExplorerHelp from "@cocalc/frontend/project/explorer/explorer-help";
@@ -27,14 +28,12 @@ const ROW_INFO_STYLE = {
   margin: "5px 3px",
 } as const;
 
-/** Shared style for the "type filter active" warning badge.
- *  Used in both the explorer info line and the flyout type dropdown. */
-export const ACTIVE_TYPE_FILTER_STYLE: React.CSSProperties = {
+/** Shared style for the "active filter" badge buttons.
+ *  Used in both the explorer info line and the empty-placeholder. */
+export const ACTIVE_FILTER_BTN_STYLE: React.CSSProperties = {
   background: COLORS.ANTD_ORANGE,
   color: "black",
   borderRadius: 4,
-  padding: "1px 8px",
-  cursor: "pointer",
   whiteSpace: "nowrap",
   marginLeft: 6,
 };
@@ -100,10 +99,7 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
   }
 
   function render_check_all_button(): React.JSX.Element | undefined {
-    if (props.listing.length === 0) {
-      return;
-    }
-
+    const empty = props.listing.length === 0;
     const checked = props.checked_files.size > 0;
     const button_text = intl.formatMessage(
       {
@@ -127,7 +123,11 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     }
 
     return (
-      <Button data-cocalc-test="check-all" onClick={check_all_click_handler}>
+      <Button
+        data-cocalc-test="check-all"
+        onClick={check_all_click_handler}
+        disabled={empty}
+      >
         <Icon name={button_icon} /> {button_text}
       </Button>
     );
@@ -263,10 +263,14 @@ export const ActionBarInfo: React.FC<
     | "listing"
     | "project_is_running"
     | "actions"
-  > & { type_filter?: string }
+  > & {
+    type_filter?: string;
+    file_search?: string;
+    hide_masked_files?: boolean;
+  }
 > = (props) => {
   const intl = useIntl();
-  if (!props.project_is_running || props.listing.length === 0) {
+  if (!props.project_is_running) {
     return null;
   }
   const checked = props.checked_files.size;
@@ -276,14 +280,60 @@ export const ActionBarInfo: React.FC<
     <ExplorerHelp project_id={props.project_id} />
   ) : null;
 
-  const filterWarning = props.type_filter != null && (
-    <span
-      style={ACTIVE_TYPE_FILTER_STYLE}
-      onClick={() => props.actions.setState({ type_filter: undefined } as any)}
-    >
-      Only showing .{props.type_filter} files &mdash; ✕ clear
-    </span>
-  );
+  // Build filter badge list
+  const filterBadges: React.ReactNode[] = [];
+
+  if (props.type_filter != null) {
+    const ext = props.type_filter;
+    const displayName =
+      ext === "folder"
+        ? intl.formatMessage(labels.folder)
+        : (file_options(`file.${ext}`)?.name ?? `.${ext}`);
+    filterBadges.push(
+      <Button
+        key="type"
+        type="text"
+        size="small"
+        style={ACTIVE_FILTER_BTN_STYLE}
+        onClick={() =>
+          props.actions.setState({ type_filter: undefined } as any)
+        }
+      >
+        {displayName} <Icon name="times-circle" />
+      </Button>,
+    );
+  }
+
+  // Show search filter badge only for file filters, not "/" terminal mode.
+  if (props.file_search && !props.file_search.startsWith("/")) {
+    filterBadges.push(
+      <Button
+        key="search"
+        type="text"
+        size="small"
+        style={ACTIVE_FILTER_BTN_STYLE}
+        onClick={() => props.actions.set_file_search("")}
+      >
+        Contains &ldquo;{props.file_search}&rdquo; <Icon name="times-circle" />
+      </Button>,
+    );
+  }
+
+  if (props.hide_masked_files) {
+    filterBadges.push(
+      <Button
+        key="mask"
+        type="text"
+        size="small"
+        style={ACTIVE_FILTER_BTN_STYLE}
+        onClick={() => props.actions.setState({ hide_masked_files: false })}
+      >
+        Masked files <Icon name="times-circle" />
+      </Button>,
+    );
+  }
+
+  const hasFilter = filterBadges.length > 0;
 
   if (checked === 0) {
     return (
@@ -296,7 +346,15 @@ export const ActionBarInfo: React.FC<
       >
         <span style={{ flex: 1 }}>
           {total} {intl.formatMessage(labels.item_plural, { total })}
-          {filterWarning || (
+          {hasFilter && (
+            <>
+              {" "}
+              &mdash; Active {filterBadges.length === 1
+                ? "Filter"
+                : "Filters"}: {filterBadges}
+            </>
+          )}
+          {!hasFilter && (
             <>
               {" "}
               &mdash;{" "}
@@ -333,7 +391,14 @@ export const ActionBarInfo: React.FC<
               items: intl.formatMessage(labels.item_plural, { total }),
             },
           )}
-          {filterWarning}
+          {hasFilter && (
+            <>
+              {" "}
+              &mdash; Active {filterBadges.length === 1
+                ? "Filter"
+                : "Filters"}: {filterBadges}
+            </>
+          )}
         </span>
         {helpButton}
       </div>

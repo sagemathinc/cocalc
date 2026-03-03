@@ -55,7 +55,7 @@ import {
 } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import DirectoryPeek from "./directory-peek";
 
-import NoFiles from "./no-files";
+import EmptyPlaceholder from "./empty-placeholder";
 import {
   TERM_MODE_CHAR,
   TypeFilterLabel,
@@ -516,11 +516,11 @@ function renderFileName(
     ) : null;
 
   const nameLink = (
-    <a style={styles} cocalc-test="file-line">
+    <span style={styles} cocalc-test="file-line">
       {displayName}
       <span style={extStyle}>{ext === "" ? "" : `.${ext}`}</span>
       {linkTarget}
-    </a>
+    </span>
   );
 
   if (showTip) {
@@ -586,7 +586,7 @@ function SortIndicator({
 export const FileListing: React.FC<Props> = ({
   actions,
   redux,
-  name,
+  name: _name,
   active_file_sort,
   listing,
   file_map,
@@ -806,7 +806,15 @@ export const FileListing: React.FC<Props> = ({
         return [];
       }
 
-      const multiple = selectedRowKeys.length > 1;
+      const fp = misc.path_to_file(current_path, record.name);
+      const alreadyChecked = checked_files.has(fp);
+      // Effective selection count if the user triggers a file action:
+      // the target file will be added to the checked set.
+      const effectiveCount = alreadyChecked
+        ? checked_files.size
+        : checked_files.size + 1;
+      const multiple = effectiveCount > 1;
+
       const nameStr = misc.trunc_middle(record.name, 30);
       const typeStr = intl.formatMessage(labels.file_or_folder, {
         isDir: String(!!record.isdir),
@@ -820,10 +828,38 @@ export const FileListing: React.FC<Props> = ({
         ctx.push({
           key: "header",
           icon: <Icon name="files" />,
-          label: `${checked_files.size} ${misc.plural(checked_files.size, "file")}`,
+          label: `${effectiveCount} ${misc.plural(effectiveCount, "file")}`,
           disabled: true,
           style: { fontWeight: "bold", cursor: "default" },
         });
+        // "Open All Files" — collect non-directory files from the
+        // effective checked set and open each one.
+        const filePaths: string[] = [];
+        const effectiveSet = alreadyChecked
+          ? checked_files
+          : checked_files.add(fp);
+        for (const p of effectiveSet) {
+          const name = misc.path_split(p).tail;
+          const entry = recordMap.get(name);
+          if (entry && !entry.isdir) {
+            filePaths.push(p);
+          }
+        }
+        if (filePaths.length > 0) {
+          ctx.push({
+            key: "open-all",
+            icon: <Icon name="edit-filled" />,
+            label: `Open ${filePaths.length} ${misc.plural(filePaths.length, "file")}`,
+            onClick: () => {
+              for (let i = 0; i < filePaths.length; i++) {
+                actions.open_file({
+                  path: filePaths[i],
+                  foreground: i === 0,
+                });
+              }
+            },
+          });
+        }
       } else {
         ctx.push({
           key: "header",
@@ -845,12 +881,10 @@ export const FileListing: React.FC<Props> = ({
 
       ctx.push({ key: "divider-header", type: "divider" });
 
-      const fp = misc.path_to_file(current_path, record.name);
+      // File actions add the target file to the checked selection,
+      // then trigger the action dialog on the full set.
       const triggerFileAction = (action: FileAction) => {
-        if (!multiple) {
-          actions.set_all_files_unchecked();
-          actions.set_file_list_checked([fp]);
-        }
+        actions.set_file_checked(fp, true);
         actions.set_file_action(action);
       };
 
@@ -880,7 +914,7 @@ export const FileListing: React.FC<Props> = ({
         });
       }
 
-      // Download/View
+      // Download/View — immediate actions, no selection changes
       const showDownload = !student_project_functionality.disableActions;
       if (!record.isdir && showDownload && !multiple) {
         const ext = (misc.filename_extension(record.name) ?? "").toLowerCase();
@@ -911,7 +945,7 @@ export const FileListing: React.FC<Props> = ({
     [
       current_path,
       checked_files,
-      selectedRowKeys,
+      recordMap,
       computeServerId,
       student_project_functionality,
       intl,
@@ -1065,11 +1099,8 @@ export const FileListing: React.FC<Props> = ({
         if (student_project_functionality.disableActions) return;
         // The ".." parent-directory row has no valid actions — skip it
         if (record.name === "..") return;
-        const fp = misc.path_to_file(current_path, record.name);
-        if (checked_files.size <= 1) {
-          actions.set_all_files_unchecked();
-          actions.set_file_list_checked([fp]);
-        }
+        // Don't select the file here — the menu action's
+        // triggerFileAction will do it when the user picks an action.
         const items = buildContextMenu(record);
         if (items && items.length > 0) {
           setContextMenu({ items, x: e.clientX, y: e.clientY });
@@ -1204,6 +1235,11 @@ export const FileListing: React.FC<Props> = ({
     [current_path, actions],
   );
 
+  // Are there any visible files (excluding the ".." parent nav entry)?
+  const hasVisibleFiles = virtualData.some(
+    (e) => !isPeekEntry(e) && (e as FileEntry).name !== "..",
+  );
+
   // Select-all checkbox state
   const selectableCount = dataSource.filter((d) => d.name !== "..").length;
   const allChecked =
@@ -1246,22 +1282,6 @@ export const FileListing: React.FC<Props> = ({
     );
   }
 
-  // -- No files --
-  if (listingForRender.length === 0 && file_search[0] !== TERM_MODE_CHAR) {
-    return (
-      <NoFiles
-        name={name}
-        current_path={current_path}
-        actions={actions}
-        file_search={file_search}
-        create_folder={create_folder}
-        create_file={create_file}
-        project_id={project_id}
-        configuration_main={configuration_main}
-      />
-    );
-  }
-
   return (
     <>
       {!isRunning && listingForRender.length > 0 && (
@@ -1300,7 +1320,10 @@ export const FileListing: React.FC<Props> = ({
         >
           <TableVirtuoso
             ref={virtuosoRef}
-            style={{ flex: 1, minHeight: 0 }}
+            style={{
+              flex: hasVisibleFiles ? 1 : "0 0 auto",
+              minHeight: 0,
+            }}
             data={virtualData}
             computeItemKey={(_index, entry) => entry.name}
             overscan={200}
@@ -1621,14 +1644,9 @@ export const FileListing: React.FC<Props> = ({
                               className="cc-explorer-hover-icon"
                               onClick={(e) => {
                                 e.stopPropagation();
-                                const fp2 = misc.path_to_file(
-                                  current_path,
-                                  record.name,
-                                );
-                                if (checked_files.size <= 1) {
-                                  actions.set_all_files_unchecked();
-                                  actions.set_file_list_checked([fp2]);
-                                }
+                                // Don't select the file here — the menu
+                                // action's triggerFileAction will do it
+                                // when the user actually picks an action.
                                 const items = buildContextMenu(record);
                                 if (items && items.length > 0) {
                                   setContextMenu({
@@ -1650,6 +1668,17 @@ export const FileListing: React.FC<Props> = ({
               );
             }}
           />
+          {!hasVisibleFiles && file_search[0] !== TERM_MODE_CHAR && (
+            <EmptyPlaceholder
+              project_id={project_id}
+              actions={actions}
+              file_search={file_search}
+              type_filter={typeFilter}
+              create_file={create_file}
+              create_folder={create_folder}
+              configuration_main={configuration_main}
+            />
+          )}
         </div>
       </DndRowContext.Provider>
       {/* Floating context menu — nudge into viewport when near edges */}
@@ -1679,6 +1708,7 @@ export const FileListing: React.FC<Props> = ({
             onClick={() => setContextMenu(null)}
             className="cc-explorer-context-menu"
             style={{
+              minWidth: 180,
               borderRadius: 8,
               boxShadow: "0 6px 16px 0 rgba(0,0,0,0.12)",
             }}

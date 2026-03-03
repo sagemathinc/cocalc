@@ -87,8 +87,10 @@
     background-color: colors.$COL_BLUE_LLLL !important
     transition: none !important
   // Hover-only icons: download in size column, context menu at row end
+  // No transitions — they cause a "trailing" effect during scroll.
   .cc-explorer-hover-icon
     visibility: hidden
+    transition: none !important
   .ant-table-row:hover .cc-explorer-hover-icon
     visibility: visible
   // On mobile, always show (no hover available)

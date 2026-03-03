@@ -618,6 +618,7 @@ export function Explorer() {
             file_creation_error={file_creation_error}
             create_file={createFile}
             create_folder={createFolder}
+            disabled_ext={(configuration?.get("main") as any)?.disabled_ext}
             on_focus={() => setSearchFocused(true)}
             on_blur={() => setSearchFocused(false)}
           />
@@ -788,6 +789,8 @@ export function Explorer() {
                 project_is_running={projectIsRunning}
                 actions={actions}
                 type_filter={type_filter ?? undefined}
+                file_search={file_search || undefined}
+                hide_masked_files={hide_masked_files ?? false}
               />
             )}
             {projectIsRunning ? renderCustomSoftwareReset() : null}
@@ -1486,6 +1489,7 @@ const SearchTerminalBar = React.forwardRef(
       file_creation_error,
       create_file,
       create_folder,
+      disabled_ext,
       on_focus,
       on_blur,
     }: {
@@ -1497,6 +1501,7 @@ const SearchTerminalBar = React.forwardRef(
       file_creation_error?: string;
       create_file: (ext?: string, switch_over?: boolean) => void;
       create_folder: (switch_over?: boolean) => void;
+      disabled_ext?: string[];
       on_focus?: () => void;
       on_blur?: () => void;
     },
@@ -1519,6 +1524,7 @@ const SearchTerminalBar = React.forwardRef(
           }
           create_file={create_file}
           create_folder={create_folder}
+          disabled_ext={disabled_ext}
           on_focus={on_focus}
           on_blur={on_blur}
         />

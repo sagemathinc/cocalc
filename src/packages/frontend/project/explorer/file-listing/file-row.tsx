@@ -107,7 +107,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       body = <Icon name={name} style={{ fontSize: "14pt" }} />;
     }
 
-    return <a style={style}>{body}</a>;
+    return <span style={style}>{body}</span>;
   }
 
   function render_link_target() {
@@ -124,11 +124,11 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   function render_name_link(styles, name, ext) {
     const extStyle = props.dimFileExtensions ? DIMMED_STYLE : undefined;
     return (
-      <a style={styles} cocalc-test="file-line">
+      <span style={styles} cocalc-test="file-line">
         {misc.trunc_middle(name, 50)}
         <span style={extStyle}>{ext === "" ? "" : `.${ext}`}</span>
         {render_link_target()}
-      </a>
+      </span>
     );
   }
 
@@ -333,8 +333,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
 
   function handle_click(e) {
     if (
-      (window.getSelection()?.toString() ?? "") !==
-      selection_at_last_mouse_down
+      (window.getSelection()?.toString() ?? "") !== selection_at_last_mouse_down
     ) {
       // This is a trick so that you can select a filename without
       // the click to do the selection triggering opening of the file.

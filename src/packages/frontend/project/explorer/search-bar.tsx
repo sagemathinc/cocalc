@@ -4,17 +4,20 @@
  */
 
 import { Alert, Flex } from "antd";
-import React from "react";
+import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
+
 import { CSS, redux } from "@cocalc/frontend/app-framework";
 import { Icon, SearchInput } from "@cocalc/frontend/components";
+import { HelpAlert } from "@cocalc/frontend/project/explorer/file-listing/help-alert";
+import { TerminalModeDisplay } from "@cocalc/frontend/project/explorer/file-listing/terminal-mode-display";
+import { full_path_text } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_to_file } from "@cocalc/util/misc";
 import { useProjectContext } from "../context";
 import { TERM_MODE_CHAR } from "./file-listing";
 import { ListingItem } from "./types";
-import { TerminalModeDisplay } from "@cocalc/frontend/project/explorer/file-listing/terminal-mode-display";
 
 const HelpStyle = {
   wordWrap: "break-word",
@@ -53,6 +56,7 @@ interface Props {
   num_files_displayed?: number;
   disabled?: boolean;
   ext_selection?: string;
+  disabled_ext?: string[];
   on_blur?: () => void;
   on_focus?: () => void;
 }
@@ -72,6 +76,7 @@ export const SearchBar = React.memo((props: Props) => {
     num_files_displayed = 0,
     disabled = false,
     ext_selection,
+    disabled_ext,
   } = props;
 
   const intl = useIntl();
@@ -164,24 +169,31 @@ export const SearchBar = React.memo((props: Props) => {
     set_cmd({ input, id: _id.current });
   }
 
+  const actualNewFilename = useMemo(() => {
+    if (file_search.length === 0) return "";
+    return full_path_text(file_search, disabled_ext ?? []);
+  }, [file_search, disabled_ext]);
+
   function render_help_info(): React.JSX.Element | undefined {
     if (file_search[0] == TERM_MODE_CHAR) {
       return <TerminalModeDisplay style={HelpStyle} />;
     }
-    if (file_search.length > 0 && num_files_displayed > 0) {
-      let text;
-      const firstFolderPosition = file_search.indexOf("/");
-      if (file_search === " /") {
-        text = "Showing all folders in this directory";
-      } else if (firstFolderPosition === file_search.length - 1) {
-        text = `Showing folders matching ${file_search.slice(
-          0,
-          file_search.length - 1,
-        )}`;
-      } else {
-        text = `Showing files matching "${file_search}"`;
-      }
-      return <Alert style={HelpStyle} type="info" message={text} />;
+    if (file_search.length > 0) {
+      return (
+        <div
+          style={{
+            position: "absolute",
+            top: "40px",
+            width: "100%",
+            zIndex: 100,
+          }}
+        >
+          <HelpAlert
+            file_search={file_search}
+            actual_new_filename={actualNewFilename}
+          />
+        </div>
+      );
     }
   }
 
@@ -315,6 +327,11 @@ export const SearchBar = React.memo((props: Props) => {
         on_blur={props.on_blur}
         on_focus={props.on_focus}
         disabled={disabled || !!ext_selection}
+        status={
+          file_search.length > 0 && file_search[0] !== TERM_MODE_CHAR
+            ? "warning"
+            : undefined
+        }
       />
       {render_file_creation_error()}
       {render_help_info()}
