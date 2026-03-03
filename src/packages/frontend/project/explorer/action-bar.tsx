@@ -267,6 +267,12 @@ export const ActionBarInfo: React.FC<
     type_filter?: string;
     file_search?: string;
     hide_masked_files?: boolean;
+    /** The project-wide current_path (active file context). */
+    current_path?: string;
+    /** The explorer's own browsing path (may differ from current_path). */
+    explorer_browsing_path?: string;
+    /** Called to switch the explorer to current_path. */
+    onSwitchToCurrentPath?: () => void;
   }
 > = (props) => {
   const intl = useIntl();
@@ -278,6 +284,27 @@ export const ActionBarInfo: React.FC<
 
   const helpButton = props.project_id ? (
     <ExplorerHelp project_id={props.project_id} />
+  ) : null;
+
+  // "Switch" button: shown when the explorer's browsing path differs
+  // from the project-wide current_path (active file context).
+  const pathsDiverge =
+    props.current_path != null &&
+    props.explorer_browsing_path != null &&
+    props.current_path !== props.explorer_browsing_path;
+  const switchButton = pathsDiverge ? (
+    <Tooltip
+      title={`Switch to the directory of the currently active file: ${props.current_path || "Home"}`}
+    >
+      <Button
+        type="text"
+        size="small"
+        style={{ color: COLORS.ANTD_LINK_BLUE }}
+        onClick={props.onSwitchToCurrentPath}
+      >
+        <Icon name="swap" /> Switch
+      </Button>
+    </Tooltip>
   ) : null;
 
   // Build filter badge list
@@ -367,6 +394,7 @@ export const ActionBarInfo: React.FC<
             </>
           )}
         </span>
+        {switchButton}
         {helpButton}
       </div>
     );
@@ -400,6 +428,7 @@ export const ActionBarInfo: React.FC<
             </>
           )}
         </span>
+        {switchButton}
         {helpButton}
       </div>
     );

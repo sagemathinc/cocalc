@@ -6,7 +6,7 @@
 import { Alert, InputRef } from "antd";
 import { delay } from "awaiting";
 import { List, Map } from "immutable";
-import { debounce, fromPairs } from "lodash";
+import { debounce } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { useFolderDrop } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
@@ -35,22 +35,14 @@ import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
   DirectoryListing,
   DirectoryListingEntry,
-  FileMap,
 } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
-import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
-import { sortedTypeFilterOptions } from "@cocalc/frontend/project/explorer/file-listing/utils";
-import { mutate_data_to_compute_public_files } from "@cocalc/frontend/project_store";
 import track from "@cocalc/frontend/user-tracking";
 import {
   capitalize,
-  copy_without,
-  filename_extension,
   human_readable_size,
   path_split,
   path_to_file,
-  search_match,
-  search_split,
   separate_file_extension,
   tab_to_path,
   unreachable,
@@ -64,6 +56,8 @@ import {
 import { FileListItem } from "./file-list-item";
 import { FilesBottom } from "./files-bottom";
 import { FilesHeader } from "./files-header";
+import { useComputedFiles, useTypeFilterOptions } from "./use-computed-files";
+import { useFlyoutNavigation } from "./use-flyout-navigation";
 import { fileItemStyle } from "./utils";
 
 type PartialClickEvent = Pick<
@@ -71,30 +65,10 @@ type PartialClickEvent = Pick<
   "detail" | "shiftKey" | "ctrlKey" | "stopPropagation"
 >;
 
-const EMPTY_LISTING: [DirectoryListing, FileMap, null, boolean] = [
-  [],
-  {},
-  null,
-  true,
-];
-
 export type ActiveFileSort = TypedMap<{
   column_name: string;
   is_descending: boolean;
 }>;
-
-// modeled after ProjectStore::stripped_public_paths
-function useStrippedPublicPaths(project_id: string) {
-  const public_paths = useTypedRedux({ project_id }, "public_paths");
-  return useMemo(() => {
-    if (public_paths == null) return List();
-    return public_paths
-      .valueSeq()
-      .map((public_path: any) =>
-        copy_without(public_path.toJS(), ["id", "project_id"]),
-      );
-  }, [public_paths]);
-}
 
 export function FilesFlyout({
   flyoutWidth,
@@ -114,7 +88,8 @@ export function FilesFlyout({
   const [showCheckboxIndex, setShowCheckboxIndex] = useState<number | null>(
     null,
   );
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const { flyoutPath: current_path, navigateFlyout } =
+    useFlyoutNavigation(project_id);
 
   // Background drop target: dropping a file anywhere on the flyout panel
   // moves it to the current directory (same behavior as the explorer table).
@@ -130,7 +105,6 @@ export function FilesFlyout({
     [flyoutDropRef],
   );
 
-  const strippedPublicPaths = useStrippedPublicPaths(project_id);
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const directoryListings: Map<
     string,
@@ -201,168 +175,24 @@ export function FilesFlyout({
     }
   }, [checked_files]);
 
-  // active file: current editor is the file in the listing
-  // empty: either no files, or just the ".." for the parent dir
-  const [directoryFiles, fileMap, activeFile, isEmpty] = useMemo((): [
-    DirectoryListing,
-    FileMap,
-    DirectoryListingEntry | null,
-    boolean,
-  ] => {
-    if (directoryListings == null) return EMPTY_LISTING;
-    const filesStore = directoryListings.get(current_path);
-    if (filesStore == null) return EMPTY_LISTING;
-
-    // TODO this is an error, process it
-    if (typeof filesStore === "string") return EMPTY_LISTING;
-
-    const files: DirectoryListing | null = filesStore.toJS?.();
-    if (files == null) return EMPTY_LISTING;
-    let activeFile: DirectoryListingEntry | null = null;
-    if (maskFiles) {
-      compute_file_masks(files);
-    }
-    const searchWords = search_split(file_search.trim().toLowerCase());
-
-    const procFiles = files
-      .filter((file: DirectoryListingEntry) => {
-        file.name ??= ""; // sanitization
-
-        if (file_search === "") return true;
-        const fName = file.name.toLowerCase();
-        return (
-          search_match(fName, searchWords) ||
-          ((file.isdir ?? false) && search_match(`${fName}/`, searchWords))
-        );
-      })
-      .filter(
-        (file: DirectoryListingEntry) => hidden || !file.name.startsWith("."),
-      )
-      .filter((file: DirectoryListingEntry) => {
-        if (typeFilter == null) return true;
-        if (typeFilter === "folder") return !!file.isdir;
-        if (file.isdir) return false;
-        const ext = filename_extension(file.name)?.toLowerCase() || "(none)";
-        return ext === typeFilter;
-      });
-
-    // this shares the logic with what's in project_store.js
-    mutate_data_to_compute_public_files(
-      {
-        listing: procFiles,
-        public: {},
-      },
-      strippedPublicPaths,
-      current_path,
-    );
-
-    procFiles.sort((a, b) => {
-      // This replicated what project_store is doing
-      const col = activeFileSort.get("column_name");
-      switch (col) {
-        case "name":
-          return a.name.localeCompare(b.name);
-        case "size":
-          return (a.size ?? 0) - (b.size ?? 0);
-        case "time":
-          return (b.mtime ?? 0) - (a.mtime ?? 0);
-        case "type":
-          const aDir = a.isdir ?? false;
-          const bDir = b.isdir ?? false;
-          if (aDir && !bDir) return -1;
-          if (!aDir && bDir) return 1;
-          const aExt = a.name.split(".").pop() ?? "";
-          const bExt = b.name.split(".").pop() ?? "";
-          return aExt.localeCompare(bExt);
-        case "starred":
-          const pathA = path_to_file(current_path, a.name);
-          const pathB = path_to_file(current_path, b.name);
-          const starPathA = a.isdir ? `${pathA}/` : pathA;
-          const starPathB = b.isdir ? `${pathB}/` : pathB;
-          const starredA = manageStarredFiles.starred.includes(starPathA);
-          const starredB = manageStarredFiles.starred.includes(starPathB);
-
-          if (starredA && !starredB) {
-            return -1;
-          } else if (!starredA && starredB) {
-            return 1;
-          } else {
-            return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-          }
-        case "public":
-          const aPublic = !!a.is_public;
-          const bPublic = !!b.is_public;
-          if (aPublic && !bPublic) return -1;
-          if (!aPublic && bPublic) return 1;
-          return a.name.toLowerCase().localeCompare(b.name.toLowerCase());
-        default:
-          console.warn(`flyout/files: unknown sort column ${col}`);
-          return 0;
-      }
-    });
-
-    for (const file of procFiles) {
-      const fullPath = path_to_file(current_path, file.name);
-      if (openFiles.some((path) => path == fullPath)) {
-        file.isopen = true;
-      }
-      if (activePath === fullPath) {
-        file.isactive = true;
-        activeFile = file;
-      }
-    }
-
-    if (activeFileSort.get("is_descending")) {
-      procFiles.reverse(); // in-place op
-    }
-
-    const isEmpty = procFiles.length === 0;
-
-    // the ".." dir does not change the isEmpty state
-    // hide ".." if there is a search -- https://github.com/sagemathinc/cocalc/issues/6877
-    if (file_search === "" && current_path != "") {
-      procFiles.unshift({
-        name: "..",
-        isdir: true,
-      });
-    }
-
-    // map each filename to it's entry in the directory listing
-    const fileMap = fromPairs(procFiles.map((file) => [file.name, file]));
-
-    return [procFiles, fileMap, activeFile, isEmpty];
-  }, [
+  const [directoryFiles, fileMap, activeFile, isEmpty] = useComputedFiles({
+    project_id,
+    current_path,
+    activePath,
     directoryListings,
     activeFileSort,
-    hidden,
     file_search,
-    openFiles,
-    current_path,
-    strippedPublicPaths,
+    hidden,
     maskFiles,
     typeFilter,
-    activePath,
-  ]);
+    openFiles,
+    starred: manageStarredFiles.starred,
+  });
 
-  // Compute available type filter options from the unfiltered listing
-  const typeFilterOptions = useMemo(() => {
-    if (directoryListings == null) return [];
-    const filesStore = directoryListings.get(current_path);
-    if (filesStore == null || typeof filesStore === "string") return [];
-    const files: DirectoryListing | null = filesStore.toJS?.();
-    if (files == null) return [];
-
-    const extensions = new Set<string>();
-    for (const f of files) {
-      if (f.isdir) {
-        extensions.add("folder");
-      } else {
-        const ext = filename_extension(f.name ?? "")?.toLowerCase() || "(none)";
-        extensions.add(ext);
-      }
-    }
-    return sortedTypeFilterOptions(extensions);
-  }, [directoryListings, current_path]);
+  const typeFilterOptions = useTypeFilterOptions(
+    directoryListings,
+    current_path,
+  );
 
   const prev_current_path = usePrevious(current_path);
 
@@ -389,11 +219,10 @@ export function FilesFlyout({
   }, [directoryListings, current_path]);
 
   const triggerRootResize = useRef(
-    debounce(
-      () => setRootHeightPx(rootRef.current?.clientHeight ?? 0),
-      50,
-      { leading: false, trailing: true },
-    ),
+    debounce(() => setRootHeightPx(rootRef.current?.clientHeight ?? 0), 50, {
+      leading: false,
+      trailing: true,
+    }),
   ).current;
 
   // observe the root element's height
@@ -466,8 +295,7 @@ export function FilesFlyout({
       const fullPath = path_to_file(current_path, file.name);
 
       if (file.isdir) {
-        // true: change history, false: do not show "files" page
-        actions?.open_directory(fullPath, true, false);
+        navigateFlyout(fullPath);
         setSearchState("");
       } else {
         const foreground = should_open_in_foreground(e as React.MouseEvent);
@@ -806,6 +634,7 @@ export function FilesFlyout({
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
         typeFilterOptions={typeFilterOptions}
+        onNavigate={navigateFlyout}
       />
       {disableUploads ? (
         renderListing()

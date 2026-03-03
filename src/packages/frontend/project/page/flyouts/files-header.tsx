@@ -85,6 +85,8 @@ interface Props {
   typeFilter: string | null;
   setTypeFilter: (filter: string | null) => void;
   typeFilterOptions: string[];
+  /** Navigate within the flyout (independent of the explorer). */
+  onNavigate?: (path: string) => void;
 }
 
 export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
@@ -522,7 +524,11 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
             <Space.Compact direction="horizontal" size="small">
               <Button
                 onClick={() => {
-                  actions?.open_directory(".snapshots");
+                  if (props.onNavigate) {
+                    props.onNavigate(".snapshots");
+                  } else {
+                    actions?.open_directory(".snapshots");
+                  }
                   track("snapshots", {
                     action: "open",
                     where: "flyout-files",

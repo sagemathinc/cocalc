@@ -22,6 +22,7 @@ import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { ActiveHeader } from "./active-header";
+import { useFlyoutNavigation } from "./use-flyout-navigation";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
 
@@ -38,6 +39,10 @@ export function FlyoutHeader(_: Readonly<Props>) {
   const intl = useIntl();
   const { actions, project_id, is_active } = useProjectContext();
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  const reduxCurrentPath = useTypedRedux({ project_id }, "current_path") ?? "";
+  const { flyoutPath, flyoutHistory, navigateFlyout } =
+    useFlyoutNavigation(project_id);
+
   // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
   const tours = useTypedRedux("account", "tours");
   const [highlightFullpage, setHighlightFullpage] = useState<boolean>(false);
@@ -186,7 +191,24 @@ export function FlyoutHeader(_: Readonly<Props>) {
                 mode={"flyout"}
                 project_id={project_id}
                 className={"cc-project-flyout-path-navigator"}
+                currentPath={flyoutPath}
+                historyPath={flyoutHistory}
+                onNavigate={navigateFlyout}
               />
+              {flyoutPath !== reduxCurrentPath && (
+                <Tooltip
+                  title={`Switch to the directory of the currently active file: ${reduxCurrentPath || "Home"}`}
+                >
+                  <Button
+                    type="text"
+                    size="small"
+                    style={{ color: COLORS.ANTD_LINK_BLUE, padding: "0 4px" }}
+                    onClick={() => navigateFlyout(reduxCurrentPath)}
+                  >
+                    <Icon name="swap" />
+                  </Button>
+                </Tooltip>
+              )}
             </div>
             {!!compute_server_id && (
               <div style={{ fontSize: "10pt" }}>

@@ -108,6 +108,10 @@ export interface ProjectStoreState {
   show_hidden?: boolean;
   hide_masked_files?: boolean; // temporary per-session toggle to completely hide masked files
   type_filter?: string; // file extension filter shared between explorer table and flyout
+  explorer_browsing_path?: string; // independent browsing path for the explorer
+  explorer_history_path?: string; // breadcrumb history for the explorer
+  flyout_browsing_path?: string; // independent browsing path for the flyout panel
+  flyout_history_path?: string; // breadcrumb history for the flyout panel
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
@@ -382,6 +386,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       dependencies: [
         "active_file_sort",
         "current_path",
+        "explorer_browsing_path",
         "directory_listings",
         "stripped_public_paths",
         "file_search",
@@ -392,11 +397,15 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "type_filter",
       ] as const,
       fn: () => {
+        // The explorer has its own browsing path, independent of the
+        // project-wide current_path (which tracks the active file context).
+        const explorerPath =
+          this.get("explorer_browsing_path") ?? this.get("current_path");
         const search_escape_char = "/";
         const listingStored = this.getIn([
           "directory_listings",
           this.get("compute_server_id"),
-          this.get("current_path"),
+          explorerPath,
         ]);
         if (typeof listingStored === "string") {
           if (
@@ -441,7 +450,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           compute_file_masks(listing);
         }
 
-        if (this.get("current_path") === ".snapshots") {
+        if (explorerPath === ".snapshots") {
           compute_snapshot_display_names(listing);
         }
 
@@ -452,7 +461,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
           mutate_data_to_compute_public_files(
             tmpData,
             this.get("stripped_public_paths"),
-            this.get("current_path"),
+            explorerPath,
           );
         }
 
@@ -500,14 +509,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 const starredFiles = this.get("starred_files");
                 if (!starredFiles) return 0;
 
-                const pathA = misc.path_to_file(
-                  this.get("current_path"),
-                  a.name,
-                );
-                const pathB = misc.path_to_file(
-                  this.get("current_path"),
-                  b.name,
-                );
+                const pathA = misc.path_to_file(explorerPath, a.name);
+                const pathB = misc.path_to_file(explorerPath, b.name);
                 const starPathA = a.isdir ? `${pathA}/` : pathA;
                 const starPathB = b.isdir ? `${pathB}/` : pathB;
                 const starredA = starredFiles.includes(starPathA);
@@ -573,7 +576,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         const data = {
           listing,
           public: {},
-          path: this.get("current_path"),
+          path: explorerPath,
           file_map,
           type_counts,
         };
@@ -581,7 +584,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         mutate_data_to_compute_public_files(
           data,
           this.get("stripped_public_paths"),
-          this.get("current_path"),
+          explorerPath,
         );
 
         return data;

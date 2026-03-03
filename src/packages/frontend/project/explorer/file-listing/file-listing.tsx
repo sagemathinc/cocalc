@@ -382,6 +382,9 @@ interface Props {
   type_counts?: Record<string, number>;
   search_focused?: boolean;
   hide_masked_files?: boolean;
+  /** Called when navigating to a directory (double-click folder, ".." row).
+   *  If provided, used instead of actions.open_directory. */
+  onNavigateDirectory?: (path: string) => void;
 }
 
 // ---------- Helper: watch directory ----------
@@ -614,6 +617,7 @@ export const FileListing: React.FC<Props> = ({
   type_counts,
   search_focused,
   hide_masked_files,
+  onNavigateDirectory,
 }: Props) => {
   const intl = useIntl();
   const [starting, setStarting] = useState(false);
@@ -787,7 +791,12 @@ export const FileListing: React.FC<Props> = ({
       if (currentSel !== selectionRef.current) return;
 
       if (record.isdir) {
-        actions.open_directory(misc.path_to_file(current_path, record.name));
+        const dirPath = misc.path_to_file(current_path, record.name);
+        if (onNavigateDirectory) {
+          onNavigateDirectory(dirPath);
+        } else {
+          actions.open_directory(dirPath);
+        }
         actions.set_file_search("");
       } else {
         const foreground = should_open_in_foreground(e as any);
