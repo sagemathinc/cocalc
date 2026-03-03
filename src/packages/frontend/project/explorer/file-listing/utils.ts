@@ -16,6 +16,10 @@ export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
   "pdf",
   "png",
   "jpeg",
+  "py",
+  "r",
+  "rmd",
+  "qmd",
 ] as const;
 
 type Extension =
