@@ -39,6 +39,18 @@ Use terminal mode in the search bar to create test files:
 
 Type this in the explorer search bar (ref for `searchbox`) and press Enter.
 
+### Modifying Files Externally (for Refresh Banner Testing)
+
+To find the project's filesystem path, run `!pwd` in the explorer or flyout search bar. This executes `pwd` in the project sandbox and shows the full path in the terminal output area (below the search bar). The path varies per machine/setup.
+
+Once you have the path, you can modify files directly from the Bash tool:
+
+```bash
+date >> /path/to/project/a.txt
+```
+
+This triggers the Conat listing watch to detect the change and show the yellow "Refresh" banner in the explorer (outside the 5-second grace window). The banner appears promptly once the watch subscription is established.
+
 ## Global Navigation
 
 ### Top Navigation Bar

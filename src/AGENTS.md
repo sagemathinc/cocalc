@@ -168,6 +168,7 @@ CoCalc is organized as a monorepo with key packages:
 - **jsdom**: Browser environment simulation for frontend tests
 - Test files use `.test.ts` or `.spec.ts` extensions
 - Each package has its own jest.config.js
+- **Playwright MCP**: For interactive browser testing of the frontend UI, see [`packages/frontend/test/agent-playwright-testing.md`](packages/frontend/test/agent-playwright-testing.md) — covers the dev server setup, build-test loop, UI layout, and testing patterns for the file explorer and flyout panels. Always ask the developer for current dev account credentials.
 
 ### Import Patterns
 
