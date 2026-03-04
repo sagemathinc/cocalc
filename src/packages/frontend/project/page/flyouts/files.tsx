@@ -57,6 +57,10 @@ import { FileListItem } from "./file-list-item";
 import { FilesBottom } from "./files-bottom";
 import { FilesHeader } from "./files-header";
 import { useComputedFiles, useTypeFilterOptions } from "./use-computed-files";
+import {
+  fileListingFingerprint,
+  useDeferredListing,
+} from "@cocalc/frontend/project/explorer/use-deferred-listing";
 import { useFlyoutNavigation } from "./use-flyout-navigation";
 import { fileItemStyle } from "./utils";
 
@@ -175,7 +179,7 @@ export function FilesFlyout({
     }
   }, [checked_files]);
 
-  const [directoryFiles, fileMap, activeFile, isEmpty] = useComputedFiles({
+  const [rawDirectoryFiles, fileMap, activeFile, isEmpty] = useComputedFiles({
     project_id,
     current_path,
     activePath,
@@ -188,6 +192,36 @@ export function FilesFlyout({
     openFiles,
     starred: manageStarredFiles.starred,
   });
+
+  // -- Deferred listing: buffer filesystem updates, show Refresh button --
+  const autoUpdateListing = !!otherSettings?.get("auto_update_file_listing");
+
+  const {
+    displayListing: deferredDirectoryFiles,
+    hasPending: hasPendingListingUpdate,
+    flush: flushListingUpdate,
+    allowNextUpdate: allowNextListingUpdate,
+  } = useDeferredListing({
+    liveListing: rawDirectoryFiles,
+    currentPath: current_path,
+    alwaysPassThrough: autoUpdateListing,
+    fingerprint: fileListingFingerprint,
+  });
+  const directoryFiles = deferredDirectoryFiles ?? rawDirectoryFiles;
+
+  // Open the pass-through latch when a file action completes
+  const prevCheckedSize = useRef(checked_files?.size ?? 0);
+  useEffect(() => {
+    if (prevCheckedSize.current > 0 && (checked_files?.size ?? 0) === 0) {
+      allowNextListingUpdate();
+    }
+    prevCheckedSize.current = checked_files?.size ?? 0;
+  }, [checked_files?.size, allowNextListingUpdate]);
+
+  // Flush when user changes sort, filter, or visibility settings.
+  useEffect(() => {
+    allowNextListingUpdate();
+  }, [activeFileSort, file_search, hidden, typeFilter]);
 
   const typeFilterOptions = useTypeFilterOptions(
     directoryListings,
@@ -635,6 +669,8 @@ export function FilesFlyout({
         setTypeFilter={setTypeFilter}
         typeFilterOptions={typeFilterOptions}
         onNavigate={navigateFlyout}
+        hasPendingUpdate={hasPendingListingUpdate}
+        onRefreshListing={flushListingUpdate}
       />
       {disableUploads ? (
         renderListing()
@@ -668,6 +704,8 @@ export function FilesFlyout({
         open={open}
         showFileSharingDialog={showFileSharingDialog}
         getFile={getFile}
+        hasPendingUpdate={hasPendingListingUpdate}
+        onRefreshListing={flushListingUpdate}
       />
     </div>
   );

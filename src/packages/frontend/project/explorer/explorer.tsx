@@ -41,6 +41,10 @@ import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
 import { ActionBar, ActionBarInfo } from "./action-bar";
 import {
+  fileListingFingerprint,
+  useDeferredListing,
+} from "./use-deferred-listing";
+import {
   DirectoryTreePanel,
   DirectoryTreeDragbar,
   getDirectoryTreeWidth,
@@ -297,12 +301,56 @@ export function Explorer() {
     }
   }, [projectIsRunning, displayed_listing, project_id]);
 
+  // -- Deferred listing: buffer filesystem updates, show Refresh button --
+  const {
+    listing: rawListing,
+    file_map: rawFileMap,
+    type_counts,
+  } = displayed_listing ?? {};
+
+  const autoUpdateListing = !!other_settings?.get("auto_update_file_listing");
+
+  const {
+    displayListing: listing,
+    displayExtra: file_map,
+    hasPending: hasPendingListingUpdate,
+    flush: flushListingUpdate,
+    allowNextUpdate: allowNextListingUpdate,
+  } = useDeferredListing({
+    liveListing: rawListing,
+    liveExtra: rawFileMap,
+    currentPath: current_path,
+    alwaysPassThrough: autoUpdateListing,
+    fingerprint: fileListingFingerprint,
+  });
+
+  // Open the pass-through latch when a file action completes
+  // (checked files are cleared after actions like delete, move, etc.).
+  const prevCheckedSize = useRef(checked_files?.size ?? 0);
+  useEffect(() => {
+    if (prevCheckedSize.current > 0 && (checked_files?.size ?? 0) === 0) {
+      allowNextListingUpdate();
+    }
+    prevCheckedSize.current = checked_files?.size ?? 0;
+  }, [checked_files?.size, allowNextListingUpdate]);
+
+  // Flush when user changes sort, filter, or visibility settings —
+  // these are explicit user actions and should update the listing immediately.
+  useEffect(() => {
+    allowNextListingUpdate();
+  }, [
+    active_file_sort,
+    file_search,
+    show_hidden,
+    hide_masked_files,
+    type_filter,
+  ]);
+
   // -- Early return if not initialized --
   if (checked_files == undefined) {
     return <Loading />;
   }
 
-  const { listing, file_map, type_counts } = displayed_listing ?? {};
   const directory_error = displayed_listing?.error;
 
   // -- Render helpers --
@@ -573,6 +621,7 @@ export function Explorer() {
             disabled_ext={(configuration?.get("main") as any)?.disabled_ext}
             on_focus={() => setSearchFocused(true)}
             on_blur={() => setSearchFocused(false)}
+            onTerminalCommand={allowNextListingUpdate}
           />
         )}
         <div style={{ flex: "0 1 auto" }}>
@@ -741,6 +790,8 @@ export function Explorer() {
                 current_path={reduxCurrentPath}
                 explorer_browsing_path={current_path}
                 onSwitchToCurrentPath={() => navigateExplorer(reduxCurrentPath)}
+                hasPendingUpdate={hasPendingListingUpdate}
+                onRefreshListing={flushListingUpdate}
               />
             )}
             {projectIsRunning ? renderCustomSoftwareReset() : null}
@@ -794,6 +845,7 @@ const SearchTerminalBar = React.forwardRef(
       disabled_ext,
       on_focus,
       on_blur,
+      onTerminalCommand,
     }: {
       current_path: string;
       file_search: string;
@@ -806,6 +858,7 @@ const SearchTerminalBar = React.forwardRef(
       disabled_ext?: string[];
       on_focus?: () => void;
       on_blur?: () => void;
+      onTerminalCommand?: () => void;
     },
     ref: React.LegacyRef<HTMLDivElement> | undefined,
   ) => {
@@ -829,6 +882,7 @@ const SearchTerminalBar = React.forwardRef(
           disabled_ext={disabled_ext}
           on_focus={on_focus}
           on_blur={on_blur}
+          onTerminalCommand={onTerminalCommand}
         />
       </div>
     );

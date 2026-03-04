@@ -21,6 +21,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { compute_file_masks } from "@cocalc/frontend/project/explorer/compute-file-masks";
+import { isTerminalMode } from "@cocalc/frontend/project/explorer/file-listing";
 import {
   DirectoryListing,
   DirectoryListingEntry,
@@ -122,7 +123,7 @@ export function useComputedFiles({
       .filter((file: DirectoryListingEntry) => {
         file.name ??= ""; // sanitization
 
-        if (file_search === "") return true;
+        if (file_search === "" || isTerminalMode(file_search)) return true;
         const fName = file.name.toLowerCase();
         return (
           search_match(fName, searchWords) ||

@@ -133,6 +133,10 @@ export function useNavigationHistory(
           // Restore saved history, but reconcile: if currentPath
           // differs from the saved front entry (user navigated before
           // DKV loaded), push currentPath onto the restored history.
+          // Note: any intermediate navigations that occurred before DKV
+          // loaded are not merged — only the current path at the moment
+          // DKV loads is reconciled.  This is acceptable because DKV
+          // typically loads within seconds and nav history is non-vital.
           let h = saved.history;
           let c = saved.cursor ?? 0;
           if (h[c] !== currentPath) {

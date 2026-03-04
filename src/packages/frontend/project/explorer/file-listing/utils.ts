@@ -6,7 +6,16 @@
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 
+/** Characters that activate terminal mode when typed as the first character. */
+export const TERM_MODE_CHARS = ["/", "!"] as const;
+
+/** @deprecated Use `isTerminalMode` instead. */
 export const TERM_MODE_CHAR = "/";
+
+/** True when `search` starts with a terminal-mode prefix ("/" or "!"). */
+export function isTerminalMode(search: string): boolean {
+  return search.length > 0 && TERM_MODE_CHARS.includes(search[0] as any);
+}
 
 /** File extensions that support inline "View" in the explorer. */
 export const VIEWABLE_FILE_EXT: Readonly<string[]> = [

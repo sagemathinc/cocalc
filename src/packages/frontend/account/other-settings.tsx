@@ -224,6 +224,22 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
+  function render_auto_update_file_listing(): Rendered {
+    return (
+      <Switch
+        checked={!!props.other_settings.get("auto_update_file_listing")}
+        onChange={(e) =>
+          on_change("auto_update_file_listing", e.target.checked)
+        }
+      >
+        <FormattedMessage
+          id="account.other-settings.auto_update_file_listing"
+          defaultMessage={`<strong>Auto-update file listing:</strong> immediately apply filesystem changes instead of showing a Refresh button.`}
+        />
+      </Switch>
+    );
+  }
+
   function render_dim_file_extensions(): Rendered {
     return (
       <Switch
@@ -472,6 +488,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
           }
         >
           {render_follow_current_path()}
+          {render_auto_update_file_listing()}
           {render_dim_file_extensions()}
           {render_mask_files()}
           {render_default_file_sort()}

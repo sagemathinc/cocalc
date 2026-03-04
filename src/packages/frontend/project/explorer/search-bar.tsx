@@ -17,7 +17,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_to_file } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
-import { TERM_MODE_CHAR } from "./file-listing";
+import { isTerminalMode } from "./file-listing";
 import { ListingItem } from "./types";
 
 const HelpStyle: React.CSSProperties = {
@@ -60,6 +60,8 @@ interface Props {
   disabled_ext?: string[];
   on_blur?: () => void;
   on_focus?: () => void;
+  /** Called when a terminal command (prefixed with /) finishes executing. */
+  onTerminalCommand?: () => void;
 }
 
 // Commands such as CD throw a setState error.
@@ -95,6 +97,9 @@ export const SearchBar = React.memo((props: Props) => {
 
   React.useEffect(() => {
     if (cmd == null) return;
+    // Open the listing pass-through latch BEFORE the command runs,
+    // so filesystem updates triggered by the command are shown immediately.
+    props.onTerminalCommand?.();
     const { input, id } = cmd;
     const input0 = input + '\necho $HOME "`pwd`"';
     const compute_server_id = redux
@@ -176,7 +181,7 @@ export const SearchBar = React.memo((props: Props) => {
   }, [file_search, disabled_ext]);
 
   function render_help_info(): React.JSX.Element | undefined {
-    if (file_search[0] == TERM_MODE_CHAR) {
+    if (isTerminalMode(file_search)) {
       return <TerminalModeDisplay style={HelpStyle} />;
     }
     if (file_search.length > 0) {
@@ -255,7 +260,7 @@ export const SearchBar = React.memo((props: Props) => {
     if (current_path == null) {
       return;
     }
-    if (value.startsWith(TERM_MODE_CHAR)) {
+    if (isTerminalMode(value)) {
       const command = value.slice(1, value.length);
       execute_command(command);
     } else if (selected_file) {
@@ -315,8 +320,7 @@ export const SearchBar = React.memo((props: Props) => {
         autoSelect
         placeholder={intl.formatMessage({
           id: "project.explorer.search-bar.placeholder",
-          defaultMessage:
-            'Filter files (.py -test /regex/) or "/" for terminal...',
+          defaultMessage: 'Filter files or "!" or "/" for Terminal...',
         })}
         value={file_search}
         on_change={on_change}
@@ -328,7 +332,7 @@ export const SearchBar = React.memo((props: Props) => {
         on_focus={props.on_focus}
         disabled={disabled || !!ext_selection}
         status={
-          file_search.length > 0 && file_search[0] !== TERM_MODE_CHAR
+          file_search.length > 0 && !isTerminalMode(file_search)
             ? "warning"
             : undefined
         }

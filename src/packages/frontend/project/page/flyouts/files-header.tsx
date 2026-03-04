@@ -38,6 +38,8 @@ import {
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { separate_file_extension, strictMod } from "@cocalc/util/misc";
+import { isTerminalMode } from "@cocalc/frontend/project/explorer/file-listing";
+import { RefreshButton } from "@cocalc/frontend/project/explorer/refresh-button";
 import { TypeFilterLabel } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
@@ -87,6 +89,10 @@ interface Props {
   typeFilterOptions: string[];
   /** Navigate within the flyout (independent of the explorer). */
   onNavigate?: (path: string) => void;
+  /** True when a filesystem update is buffered and awaiting user confirmation. */
+  hasPendingUpdate?: boolean;
+  /** Flush the buffered listing update. */
+  onRefreshListing?: () => void;
 }
 
 export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
@@ -277,7 +283,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   }
 
   function activeFilterWarning() {
-    if (file_search === "") return;
+    if (file_search === "" || isTerminalMode(file_search)) return;
     if (!isEmpty) {
       return (
         <FlyoutFilterWarning filter={file_search} setFilter={setSearchState} />
@@ -286,7 +292,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   }
 
   function createFileIfNotExists() {
-    if (file_search === "" || !isEmpty) return;
+    if (file_search === "" || !isEmpty || isTerminalMode(file_search)) return;
 
     const what = file_search.trim().endsWith("/") ? "directory" : "file";
     const style: CSS = {
@@ -552,6 +558,11 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
         }}
       >
         {staleListingWarning()}
+        {props.hasPendingUpdate && (
+          <span style={{ padding: `0 ${FLYOUT_PADDING}` }}>
+            <RefreshButton onClick={props.onRefreshListing} />
+          </span>
+        )}
         {activeFilterWarning()}
         {createFileIfNotExists()}
         {renderFileCreationError()}

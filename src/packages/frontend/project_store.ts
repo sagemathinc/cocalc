@@ -32,6 +32,7 @@ import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
 import { ProjectActions, QUERIES } from "@cocalc/frontend/project_actions";
+import { isTerminalMode } from "@cocalc/frontend/project/explorer/file-listing";
 import type {
   FileAction,
   FileActionSource,
@@ -401,7 +402,6 @@ export class ProjectStore extends Store<ProjectStoreState> {
         // project-wide current_path (which tracks the active file context).
         const explorerPath =
           this.get("explorer_browsing_path") ?? this.get("current_path");
-        const search_escape_char = "/";
         const listingStored = this.getIn([
           "directory_listings",
           this.get("compute_server_id"),
@@ -466,7 +466,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         }
 
         const search = this.get("file_search");
-        if (search && search[0] !== search_escape_char) {
+        if (search && !isTerminalMode(search)) {
           listing = _matched_files(search.toLowerCase(), listing);
         }
 

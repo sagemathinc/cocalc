@@ -17,6 +17,8 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
 import ExplorerHelp from "@cocalc/frontend/project/explorer/explorer-help";
+import { isTerminalMode } from "@cocalc/frontend/project/explorer/file-listing";
+import { RefreshButton } from "@cocalc/frontend/project/explorer/refresh-button";
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import * as misc from "@cocalc/util/misc";
@@ -283,6 +285,10 @@ export const ActionBarInfo: React.FC<
     explorer_browsing_path?: string;
     /** Called to switch the explorer to current_path. */
     onSwitchToCurrentPath?: () => void;
+    /** True when a filesystem update is buffered and awaiting user confirmation. */
+    hasPendingUpdate?: boolean;
+    /** Flush the buffered listing update. */
+    onRefreshListing?: () => void;
   }
 > = (props) => {
   const intl = useIntl();
@@ -306,7 +312,12 @@ export const ActionBarInfo: React.FC<
     <Tooltip
       title={`Switch to the directory of the currently active file: ${props.current_path || "Home"}`}
     >
-      <Button type="text" size="small" onClick={props.onSwitchToCurrentPath}>
+      <Button
+        type="text"
+        size="small"
+        style={{ color: COLORS.ANTD_LINK_BLUE }}
+        onClick={props.onSwitchToCurrentPath}
+      >
         <Icon name="swap" /> Switch
       </Button>
     </Tooltip>
@@ -336,8 +347,8 @@ export const ActionBarInfo: React.FC<
     );
   }
 
-  // Show search filter badge only for file filters, not "/" terminal mode.
-  if (props.file_search && !props.file_search.startsWith("/")) {
+  // Show search filter badge only for file filters, not terminal mode (! or /).
+  if (props.file_search && !isTerminalMode(props.file_search)) {
     filterBadges.push(
       <Button
         key="search"
@@ -382,6 +393,10 @@ export const ActionBarInfo: React.FC<
 
   const hasFilter = filterBadges.length > 0;
 
+  const refreshButton = props.hasPendingUpdate ? (
+    <RefreshButton onClick={props.onRefreshListing} />
+  ) : null;
+
   if (checked === 0) {
     return (
       <div
@@ -413,6 +428,7 @@ export const ActionBarInfo: React.FC<
               />
             </>
           )}
+          {refreshButton && <> &middot; {refreshButton}</>}
         </span>
         {switchButton}
         {helpButton}
@@ -447,6 +463,7 @@ export const ActionBarInfo: React.FC<
                 : "Filters"}: {filterBadges}
             </>
           )}
+          {refreshButton && <> &middot; {refreshButton}</>}
         </span>
         {switchButton}
         {helpButton}

@@ -34,6 +34,9 @@ const DKV_NAME = "explorer-settings";
 export function useExplorerSettings(project_id: string): void {
   const dkvRef = useRef<ExplorerDKV | null>(null);
   const initializedRef = useRef(false);
+  // Tracks whether the user changed sort/tree settings before DKV loaded.
+  // When dirty, the DKV restore is skipped to avoid overwriting live choices.
+  const dirtyRef = useRef(false);
 
   // Watch Redux sort state for changes
   const activeFileSort = useTypedRedux({ project_id }, "active_file_sort");
@@ -41,6 +44,20 @@ export function useExplorerSettings(project_id: string): void {
     { project_id },
     "show_directory_tree",
   );
+
+  // Detect user changes before DKV initialization completes.
+  // Skip the initial render (firstRenderRef) — only subsequent changes
+  // indicate the user has interacted.
+  const firstRenderRef = useRef(true);
+  useEffect(() => {
+    if (firstRenderRef.current) {
+      firstRenderRef.current = false;
+      return;
+    }
+    if (!initializedRef.current) {
+      dirtyRef.current = true;
+    }
+  }, [activeFileSort, showDirectoryTree]);
 
   // Initialize DKV and restore persisted sort state.
   // The 3-arg form of useAsyncEffect provides a destroy callback for cleanup.
@@ -69,23 +86,28 @@ export function useExplorerSettings(project_id: string): void {
 
         dkvRef.current = conatDkv as unknown as ExplorerDKV;
 
-        // Restore persisted explorer settings into Redux
-        const saved: ExplorerSettings | undefined = conatDkv.get(project_id);
-        const actions = redux.getProjectActions(project_id);
-        if (saved?.sortColumn) {
-          const currentSort = redux
-            .getProjectStore(project_id)
-            ?.get("active_file_sort");
-          if (currentSort) {
+        // Restore persisted explorer settings into Redux — but only if
+        // the user hasn't already interacted (dirty flag) before DKV loaded.
+        if (!dirtyRef.current) {
+          const saved: ExplorerSettings | undefined = conatDkv.get(project_id);
+          const actions = redux.getProjectActions(project_id);
+          if (saved?.sortColumn) {
+            const currentSort = redux
+              .getProjectStore(project_id)
+              ?.get("active_file_sort");
+            if (currentSort) {
+              actions.setState({
+                active_file_sort: currentSort
+                  .set("column_name", saved.sortColumn)
+                  .set("is_descending", saved.sortDescending ?? false),
+              });
+            }
+          }
+          if (saved?.showDirectoryTree != null) {
             actions.setState({
-              active_file_sort: currentSort
-                .set("column_name", saved.sortColumn)
-                .set("is_descending", saved.sortDescending ?? false),
+              show_directory_tree: saved.showDirectoryTree,
             });
           }
-        }
-        if (saved?.showDirectoryTree != null) {
-          actions.setState({ show_directory_tree: saved.showDirectoryTree });
         }
 
         initializedRef.current = true;
@@ -99,6 +121,7 @@ export function useExplorerSettings(project_id: string): void {
       dkvRef.current?.close?.();
       dkvRef.current = null;
       initializedRef.current = false;
+      dirtyRef.current = false;
     },
     [project_id],
   );

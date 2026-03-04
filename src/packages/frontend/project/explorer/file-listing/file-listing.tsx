@@ -61,7 +61,7 @@ import DirectoryPeek from "./directory-peek";
 
 import EmptyPlaceholder from "./empty-placeholder";
 import {
-  TERM_MODE_CHAR,
+  isTerminalMode,
   TypeFilterLabel,
   VIEWABLE_FILE_EXT,
   sortedTypeFilterOptions,
@@ -337,29 +337,6 @@ function isEmptyEntry(entry: VirtualEntry): entry is EmptyEntry {
   return "_isEmpty" in entry;
 }
 
-function listingMembershipKey(entry: FileEntry): string {
-  return `${entry.name}:${entry.isdir ? 1 : 0}`;
-}
-
-function hasSameListingMembership(a: FileEntry[], b: FileEntry[]): boolean {
-  if (a === b) return true;
-  if (a.length !== b.length) return false;
-  const aKeys = new Set<string>();
-  for (const entry of a) {
-    aKeys.add(listingMembershipKey(entry));
-  }
-  if (aKeys.size !== a.length) {
-    // Defensive: duplicate basenames should not happen in one directory.
-    return false;
-  }
-  for (const entry of b) {
-    if (!aKeys.has(listingMembershipKey(entry))) {
-      return false;
-    }
-  }
-  return true;
-}
-
 interface Props {
   actions: ProjectActions;
   redux: AppRedux;
@@ -625,34 +602,11 @@ export const FileListing: React.FC<Props> = ({
   const starredSet = useMemo(() => new Set(starred), [starred]);
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
-  const hasCheckedSelection = useMemo(
-    () =>
-      checked_files.some(
-        (fp) => misc.path_split(fp as string).head === current_path,
-      ),
-    [checked_files, current_path],
-  );
-  const listingForRenderRef = useRef<FileEntry[]>(listing as FileEntry[]);
-  const fileMapForRenderRef = useRef<object>(file_map);
-  const listingPathRef = useRef<string>(current_path);
-
-  // Intentional: while files are checked, freeze the sort order so
-  // rows don't jump around under the user's selection.  Reordering
-  // only takes effect once the selection is cleared (or directory changes).
-  if (
-    listingPathRef.current !== current_path ||
-    !hasCheckedSelection ||
-    !hasSameListingMembership(
-      listingForRenderRef.current,
-      listing as FileEntry[],
-    )
-  ) {
-    listingPathRef.current = current_path;
-    listingForRenderRef.current = listing as FileEntry[];
-    fileMapForRenderRef.current = file_map;
-  }
-  const listingForRender = listingForRenderRef.current;
-  const fileMapForRender = fileMapForRenderRef.current;
+  // Listing buffering (freeze during selection / deferred updates) is now
+  // handled by `useDeferredListing` in the parent Explorer component.
+  // The `listing` and `file_map` props are already the committed snapshot.
+  const listingForRender = listing as FileEntry[];
+  const fileMapForRender = file_map;
 
   // -- Directory watching --
   const prev_current_path = usePrevious(current_path);
@@ -817,7 +771,7 @@ export const FileListing: React.FC<Props> = ({
         }
       }
     },
-    [current_path, actions],
+    [current_path, actions, onNavigateDirectory],
   );
 
   // -- Context menu builder --
@@ -1064,7 +1018,7 @@ export const FileListing: React.FC<Props> = ({
     }
     // When no real files exist (only ".." or nothing), append an empty marker
     // that the itemContent renderer turns into the EmptyPlaceholder UI.
-    if (!hasReal && file_search[0] !== TERM_MODE_CHAR) {
+    if (!hasReal && !isTerminalMode(file_search)) {
       result.push({ _isEmpty: true, name: "__empty__" });
     }
     return result;
@@ -1181,7 +1135,7 @@ export const FileListing: React.FC<Props> = ({
         selected_file_index >= 0 &&
         selected_file_index < dataSource.length &&
         dataSource[selected_file_index]?.name === record.name &&
-        file_search[0] !== TERM_MODE_CHAR;
+        !isTerminalMode(file_search);
       const isChecked = checked_files.has(fp);
       const isOpen = openFilesSet.has(fp);
       return [
