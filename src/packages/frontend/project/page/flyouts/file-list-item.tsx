@@ -659,7 +659,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     <Dropdown
       menu={{ items: contextMenuItems }}
       trigger={["contextMenu"]}
-      destroyPopupOnHide
+      destroyOnHidden
       onOpenChange={(open) => {
         if (open) {
           setContextMenuItems(getContextMenu());
