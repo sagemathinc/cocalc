@@ -47,7 +47,7 @@
     "dayjs": "^1.11.11",
     "decimal.js-light": "^2.5.1",
     "events": "3.3.0",
-    "immutable": "^4.3.0",
+    "immutable": "^4.3.8",
     "js-base64": "^3.7.7",
     "json-stable-stringify": "^1.0.1",
     "jsonic": "^1.0.1",
