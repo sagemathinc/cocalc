@@ -5,41 +5,43 @@
 
 /**
  * Small "Refresh" button shown when a deferred listing update is pending.
- * Renders either as a text button (with label) or icon-only (with tooltip),
- * controlled by the `iconOnly` prop.
+ * Styled like the orange "active filter" badge so it stands out.
  */
 
-import { Button, Tooltip } from "antd";
+import { Button } from "antd";
 import { useIntl } from "react-intl";
 
-import { Icon } from "@cocalc/frontend/components";
+import { Icon, Tip } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   onClick?: () => void;
-  /** When true, render icon-only with a tooltip. */
-  iconOnly?: boolean;
 }
 
-export function RefreshButton({ onClick, iconOnly }: Props) {
+export function RefreshButton({ onClick }: Props) {
   const intl = useIntl();
-  const label = intl.formatMessage(labels.refresh);
 
-  const btn = (
-    <Button
-      type="text"
-      size="small"
-      style={{
-        color: COLORS.ANTD_LINK_BLUE,
-        padding: iconOnly ? 0 : undefined,
-      }}
-      icon={<Icon name="sync-alt" />}
-      onClick={onClick}
+  return (
+    <Tip
+      title={intl.formatMessage(labels.refresh)}
+      tip="Click to apply pending filesystem changes. Enable automatic updates in Preferences → Other → File Explorer."
     >
-      {iconOnly ? undefined : label}
-    </Button>
+      <Button
+        type="text"
+        size="small"
+        style={{
+          background: COLORS.YELL_LLL,
+          color: "black",
+          borderRadius: 4,
+          whiteSpace: "nowrap",
+          marginLeft: 6,
+        }}
+        icon={<Icon name="sync-alt" />}
+        onClick={onClick}
+      >
+        {intl.formatMessage(labels.refresh)}
+      </Button>
+    </Tip>
   );
-
-  return iconOnly ? <Tooltip title={label}>{btn}</Tooltip> : btn;
 }

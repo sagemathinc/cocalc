@@ -293,7 +293,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
 
   const sensors = useSensors(
     useSensor(MouseSensor, {
-      activationConstraint: { distance: 3 },
+      activationConstraint: { distance: 3, delay: 300, tolerance: 5 },
     }),
     useSensor(TouchSensor, {
       activationConstraint: { delay: 300, tolerance: 5 },
