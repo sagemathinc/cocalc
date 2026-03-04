@@ -357,6 +357,8 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
         setHistoryIndex(0);
         return;
       }
+      setTermError(undefined);
+      setTermStdout(undefined);
       if (file_search) {
         addHistoryEntry(file_search);
       }
@@ -502,6 +504,45 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           />
         }
       />
+    );
+  }
+
+  function renderTerminalOutput(
+    text: string | undefined,
+    { color, onClose }: { color?: string; onClose: () => void },
+  ): React.JSX.Element | undefined {
+    if (!text) return;
+    return (
+      <pre
+        style={{
+          margin: 0,
+          padding: FLYOUT_PADDING,
+          maxHeight: "200px",
+          overflow: "auto",
+          fontSize: "12px",
+          position: "relative",
+          ...(color ? { color } : undefined),
+        }}
+      >
+        <a
+          onClick={onClose}
+          style={{
+            position: "sticky",
+            top: 0,
+            right: 0,
+            display: "block",
+            width: "fit-content",
+            marginLeft: "auto",
+            color: COLORS.GRAY_M,
+            background: COLORS.WHITE,
+            padding: "0 5px",
+            zIndex: 1,
+          }}
+        >
+          <Icon name="times" />
+        </a>
+        {text}
+      </pre>
     );
   }
 
@@ -739,57 +780,13 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
         {isTerminalMode(file_search) && (
           <TerminalModeDisplay style={{ padding: FLYOUT_PADDING, margin: 0 }} />
         )}
-        {termError && (
-          <pre
-            style={{
-              color: COLORS.FG_RED,
-              margin: 0,
-              padding: FLYOUT_PADDING,
-              maxHeight: "200px",
-              overflow: "auto",
-              fontSize: "12px",
-              position: "relative",
-            }}
-          >
-            <a
-              onClick={() => setTermError(undefined)}
-              style={{
-                position: "absolute",
-                right: "5px",
-                top: "0px",
-                color: COLORS.GRAY_M,
-              }}
-            >
-              <Icon name="times" />
-            </a>
-            {termError}
-          </pre>
-        )}
-        {termStdout && (
-          <pre
-            style={{
-              margin: 0,
-              padding: FLYOUT_PADDING,
-              maxHeight: "200px",
-              overflow: "auto",
-              fontSize: "12px",
-              position: "relative",
-            }}
-          >
-            <a
-              onClick={() => setTermStdout(undefined)}
-              style={{
-                position: "absolute",
-                right: "5px",
-                top: "0px",
-                color: COLORS.GRAY_M,
-              }}
-            >
-              <Icon name="times" />
-            </a>
-            {termStdout}
-          </pre>
-        )}
+        {renderTerminalOutput(termError, {
+          color: COLORS.FG_RED,
+          onClose: () => setTermError(undefined),
+        })}
+        {renderTerminalOutput(termStdout, {
+          onClose: () => setTermStdout(undefined),
+        })}
         {activeFilterWarning()}
         {createFileIfNotExists()}
         {renderFileCreationError()}

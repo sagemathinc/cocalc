@@ -279,27 +279,37 @@ export const SearchBar = React.memo((props: Props) => {
   ): React.JSX.Element | undefined {
     if (x) {
       return (
-        <pre style={style}>
-          <a
-            onClick={(e) => {
-              e.preventDefault();
-              set_stdout("");
-              set_error("");
-            }}
-            href=""
+        <div style={{ position: "relative" }}>
+          <div
             style={{
-              right: "5px",
-              top: "0px",
-              color: COLORS.GRAY_M,
-              fontSize: "14pt",
-              position: "absolute",
-              background: COLORS.WHITE,
+              position: "sticky",
+              top: 0,
+              zIndex: 1,
+              display: "flex",
+              justifyContent: "flex-end",
+              pointerEvents: "none",
             }}
           >
-            <Icon name="times" />
-          </a>
-          {x}
-        </pre>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                set_stdout("");
+                set_error("");
+              }}
+              href=""
+              style={{
+                color: COLORS.GRAY_M,
+                fontSize: "14pt",
+                background: COLORS.WHITE,
+                pointerEvents: "auto",
+                padding: "0 5px",
+              }}
+            >
+              <Icon name="times" />
+            </a>
+          </div>
+          <pre style={{ margin: 0, ...style }}>{x}</pre>
+        </div>
       );
     }
   }
