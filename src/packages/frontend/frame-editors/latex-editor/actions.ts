@@ -515,8 +515,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       // - output PDF does not yet exist (null = unknown => skip)
       const account: AccountStore = this.redux.getStore("account");
       if (!account) return;
-      await account.waitUntilReady();
+      const ready = await account.waitUntilReady();
       if (this._state === "closed") return;
+      if (!ready) return; // timed out — settings not loaded, skip auto-build
       const buildOnSave =
         account.getIn(["editor_settings", "build_on_save"]) ?? true;
       if (!buildOnSave) return;

@@ -173,12 +173,14 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
         });
       } catch (err) {
         if (cancelled) return;
-        if (expectsHtml) {
-          // Show the "missing output" UI with a Build button instead of a
-          // global error banner.  Any error (file not found, project offline,
-          // etc.) is treated as "output unavailable — build to regenerate".
+        if (expectsHtml && mode === "rmd") {
+          // RMD/QMD: show the "missing output" UI with a Build button instead
+          // of a global error banner.  The file may not have been built yet.
           setMissing(true);
         } else {
+          // Non-RMD (plain HTML editor) or non-HTML output: show error banner
+          // so users know about transient failures instead of silently losing
+          // the preview.
           actions.set_error(`${err}`);
         }
         return;

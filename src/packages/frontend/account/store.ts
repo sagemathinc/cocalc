@@ -7,7 +7,6 @@ import { List, Map } from "immutable";
 import { reduce } from "lodash";
 
 import { store as customizeStore } from "@cocalc/frontend/customize";
-import { once } from "@cocalc/util/async-utils";
 import { make_valid_name } from "@cocalc/util/misc";
 import { Store } from "@cocalc/util/redux/Store";
 import { get_total_upgrades } from "@cocalc/util/upgrades";
@@ -28,10 +27,23 @@ export class AccountStore extends Store<AccountState> {
 
   // Resolves immediately if account settings are already loaded, otherwise
   // waits for the store to emit "is_ready" (set by account/table.ts on first load).
-  async waitUntilReady(): Promise<void> {
-    if (!this.get("is_ready")) {
-      await once(this, "is_ready");
-    }
+  // Times out after timeoutMs (default 60s) to avoid leaking indefinite waits
+  // when editors are opened and closed before account init completes.
+  // Returns true if ready, false if timed out (settings may not be loaded).
+  async waitUntilReady(timeoutMs: number = 60000): Promise<boolean> {
+    if (this.get("is_ready")) return true;
+    return await new Promise<boolean>((resolve) => {
+      const onReady = () => {
+        clearTimeout(timer);
+        resolve(true);
+      };
+      const timer = setTimeout(() => {
+        // Clean up the event listener so it doesn't accumulate.
+        this.removeListener("is_ready", onReady);
+        resolve(false);
+      }, timeoutMs);
+      this.once("is_ready", onReady);
+    });
   }
 
   get_user_type(): string {

@@ -33,7 +33,11 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
 
   protected do_build_on_save(): boolean {
     const account: AccountStore = this.redux.getStore("account");
-    return account?.getIn(["editor_settings", "build_on_save"]) ?? true;
+    // Default to false until account settings are loaded to avoid
+    // triggering builds before we know the user's preference.
+    const settings = account?.get("editor_settings");
+    if (settings == null) return false;
+    return settings.get("build_on_save") ?? true;
   }
 
   protected _init_converter(): void {
@@ -45,6 +49,9 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     );
 
     const do_build = reuseInFlight(async () => {
+      // do_build_on_save() returns false when editor_settings is null
+      // (account not loaded yet), so early events are safely no-ops.
+      // Once settings load, it returns the user's actual preference.
       if (!this.do_build_on_save()) return;
       if (this._syncstring == null) return;
       const hash = this._syncstring.hash_of_saved_version();
@@ -54,21 +61,29 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       }
     });
 
+    // Register listeners immediately so no save-to-disk events are dropped.
     this._syncstring.on("save-to-disk", do_build);
     this._syncstring.on("after-change", do_build);
-    // Initial build: only if account ready, build_on_save enabled, and no output exists yet.
+
+    // Wait for account settings, seed _last_hash, then optionally auto-build.
     void (async () => {
       const account: AccountStore = this.redux.getStore("account");
       if (!account) return;
-      await account.waitUntilReady();
+      const ready = await account.waitUntilReady();
       if (this._state === "closed") return;
+      if (this._syncstring == null) return;
+
+      // Seed _last_hash so the next after-change doesn't treat the
+      // already-open file as "changed" on the first keystroke.
+      this._last_hash = this._syncstring.hash_of_saved_version();
+      if (!ready) return; // timed out — settings not loaded, skip auto-build
+
+      // Initial build: only if build_on_save enabled and no output exists yet.
       if (!this.do_build_on_save()) return;
       const outputs = await this._check_produced_files();
       if (this._state === "closed") return;
       if (this._syncstring == null) return; // closed between awaits
-      // Always seed _last_hash from the current saved version so the
-      // after-change handler doesn't treat the already-open file as
-      // "changed" on the first keystroke when we skip the initial build.
+      // Re-seed in case time passed during _check_produced_files.
       this._last_hash = this._syncstring.hash_of_saved_version();
       if (outputs === null) return; // listing unavailable => skip
       if (outputs.size > 0) return; // output already exists => skip

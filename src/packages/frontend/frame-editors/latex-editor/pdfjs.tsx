@@ -302,9 +302,13 @@ export function PDFJS({
   async function loadDoc(reload: number, isRetry = false): Promise<void> {
     // Race the PDF fetch against a 30-second timeout so we never hang in
     // "Loading..." forever (e.g. if the project container is unresponsive).
-    const timeoutPromise = new Promise<never>((_, reject) =>
-      setTimeout(() => reject(new Error("Timeout loading PDF")), 30000),
-    );
+    let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
+    const timeoutPromise = new Promise<never>((_, reject) => {
+      timeoutHandle = setTimeout(
+        () => reject(new Error("Timeout loading PDF")),
+        30000,
+      );
+    });
     let doc: PDFDocumentProxy;
     try {
       doc = await Promise.race([
@@ -395,6 +399,10 @@ export function PDFJS({
       // "missing" state so the user sees a Build button (or "Building..."
       // if a build is already in progress).
       setMissing(true);
+    } finally {
+      // Clear the timeout timer to prevent stale timer accumulation on
+      // frequent reloads (e.g. from PDFWatcher updates).
+      if (timeoutHandle != null) clearTimeout(timeoutHandle);
     }
   }
 

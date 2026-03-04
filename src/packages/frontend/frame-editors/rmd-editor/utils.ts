@@ -26,10 +26,16 @@ export async function checkProducedFiles(
   const computeServerId =
     project_actions.getComputeServerIdForFile({ path }) ?? 0;
   const dir = path_split(path).head;
-  await project_actions.fetch_directory_listing({
-    path: dir,
-    compute_server_id: computeServerId,
-  });
+  try {
+    await project_actions.fetch_directory_listing({
+      path: dir,
+      compute_server_id: computeServerId,
+    });
+  } catch {
+    // Listing fetch failed (project offline, transient error, etc.).
+    // Return null so callers skip auto-build rather than crashing.
+    return null;
+  }
   const dir_listings = project_store.getIn([
     "directory_listings",
     computeServerId,
