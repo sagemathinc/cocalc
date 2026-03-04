@@ -61,7 +61,9 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       }
     });
 
-    // Register listeners immediately so no save-to-disk events are dropped.
+    // Register listeners for build-on-save. These fire on ALL clients
+    // (including collaborators), which is intentional — builds are
+    // collaborative and all clients should see build output.
     this._syncstring.on("save-to-disk", do_build);
     this._syncstring.on("after-change", do_build);
 

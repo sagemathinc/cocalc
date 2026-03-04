@@ -10,7 +10,7 @@ import {
   ExecuteCodeStats,
   ExecuteCodeStreamEvent,
 } from "@cocalc/util/types/execute-code";
-import { asyncCache, executeCode } from "./execute-code";
+import { asyncCache, eventKey, executeCode, updates } from "./execute-code";
 import getLogger from "./logger";
 import { abspath } from "./misc_node";
 
@@ -110,19 +110,19 @@ export async function executeStream(
           const result = event.data as ExecuteCodeOutputAsync;
           // Include accumulated stats in final result
           result.stats = truncStats(stats);
-           stream({
-             type: "done",
-             data: result,
-           });
-           done = true;
-           stream(null); // End the stream
+          stream({
+            type: "done",
+            data: result,
+          });
+          done = true;
+          stream(null); // End the stream
           break;
 
         case "error":
           logger.debug(`executeStream: processing error event`);
-           stream({ error: event.data as string });
-           done = true;
-           stream(null);
+          stream({ error: event.data as string });
+          done = true;
+          stream(null);
           break;
 
         default:
@@ -177,6 +177,29 @@ export async function executeStream(
       done = true;
       stream(null);
       return currentJob;
+    }
+
+    // If the job is still running but our streamCB may not be attached
+    // (e.g. because aggregate deduplication returned a cached result
+    // without calling f()), listen for the job completion event so the
+    // client still gets notified when the build finishes.
+    const jobId = job?.type === "async" ? job.job_id : undefined;
+    if (!done && jobId) {
+      updates.once(
+        eventKey("finished", jobId),
+        (result: ExecuteCodeOutputAsync) => {
+          if (done) return; // streamCB already handled it
+          logger.debug(
+            `executeStream: job ${jobId} finished via updates event`,
+          );
+          stream({
+            type: "done",
+            data: result,
+          });
+          done = true;
+          stream(null);
+        },
+      );
     }
 
     // Stats monitoring is now handled by execute-code.ts via streamCB
