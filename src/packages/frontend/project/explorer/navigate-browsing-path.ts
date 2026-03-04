@@ -73,12 +73,17 @@ export function navigateBrowsingPath(
     selected_file_index: undefined,
   } as any);
 
-  // Watch directory so listings become available
+  // Watch directory so push-based listing updates arrive
   try {
     redux.getProjectStore(project_id)?.get_listings()?.watch(path, true);
   } catch {
     // listings not available yet
   }
+
+  // Immediately fetch the listing so the UI doesn't wait for the next
+  // push cycle (which can be up to MIN_INTEREST_INTERVAL_MS = 15s).
+  actions?.fetch_directory_listing({ path });
+
   actions?.set_all_files_unchecked();
 }
 
