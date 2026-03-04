@@ -79,15 +79,22 @@ A CoCalc project at `/projects/{project_id}/files/` has three main panels:
 
 Vertical icon bar with: Tabs, **Explorer**, New, Log, Find, Servers, Users, Upgrades, Processes, Settings.
 
-- Clicking an icon opens the corresponding **flyout panel** (narrow side panel).
-- The flyout panel opens between the activity bar and the main area.
+In the default "Full pages and flyout panels" mode, each activity bar item has TWO click targets:
+
+- **Clicking the text/icon** (e.g., "Explorer"): opens the **full page** view in the main area
+- **Clicking the caret-right arrow** next to it: toggles the **flyout panel** (narrow side panel between activity bar and main area)
+
+This distinction is important for testing — to open the flyout files panel, click the **caret-right** next to "Explorer", not the text itself.
+
 - **Bottom of activity bar** has two buttons:
   - **layout** button: opens a dropdown menu to switch between:
     - "Full pages and flyout panels" (default — both flyout + full page visible)
     - "Buttons toggle flyouts" (flyout-only mode)
     - "Buttons show full pages" (full-page-only mode)
     - Plus "Hide labels" toggle
-  - **vertical-right** button: collapses/expands the flyout panel
+  - **vertical-right** button: collapses the entire left side (activity bar + flyout)
+    - When collapsed, a **vertical-left** button appears to bring back the activity bar
+    - Note: re-expanding only shows the activity bar — the flyout must be reopened separately by clicking the caret-right arrow
 
 ### Flyout Panel (Left Side)
 
@@ -128,6 +135,46 @@ The main file explorer with a table layout:
   - Date Modified (relative time)
   - Size (bytes/items for folders)
   - Actions column (ellipsis menu on hover, download icon when selected)
+
+## File Tabs and Editor Navigation
+
+When you click a file in the explorer or flyout, it opens in a **file tab** in the main area. Multiple files can be open simultaneously.
+
+### Tab Bar
+
+Located between the flyout breadcrumb and the editor area:
+
+- **File tabs**: each open file has a tab with icon + filename + close ("remove") button
+- **Active tab**: has `[selected]` attribute in the snapshot
+- **"Add tab" button** (plus icon): opens a new empty tab
+- **"down-circle" button**: shows a dropdown of all open tabs (useful when many are open)
+- Tab tooltip shows: "Shift-click: new window. Right-click: context menu."
+
+### Navigating Between Files and Explorer
+
+- **Click a file** in explorer/flyout → opens the file editor, switches to that tab
+- **Click a file tab** → switches to that editor
+- **Click "home" button** (top left, above the tabs) → returns to the explorer/files view
+- The URL changes: `/files/` for explorer, `/files/d.md` for an open file
+- File tabs persist — you can switch between editors and the explorer without losing open files
+
+### Editor Types
+
+Different file types open different editors:
+
+- `.md` files: split-pane Markdown editor (left: source with formatting toolbar, right: rendered preview)
+- `.txt` files: plain text Code editor (with Save, TimeTravel, Assistant buttons)
+- `.py` files: Python code editor
+- `.js` files: JavaScript code editor
+- Each editor has: menu bar (File, Edit, Format, View, Help), toolbar, save button, TimeTravel button
+
+### Getting Back to Explorer
+
+Multiple ways to return to the file listing:
+
+1. **Click "home" button** (house icon, top-left above file tabs) — goes to `/files/`
+2. **Click Explorer in activity bar** — opens the explorer full page
+3. **Navigate via URL** — go to `/projects/{id}/files/`
 
 ## Decoupled Browsing Paths
 
