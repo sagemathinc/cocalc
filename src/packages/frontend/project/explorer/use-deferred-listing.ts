@@ -96,6 +96,23 @@ export function useDeferredListing<T, E = undefined>({
   // and auto-flushed (so the UI doesn't start blank / with a spinner).
   const mountFPRef = useRef(liveFP);
 
+  // Grace window: stays open for LATCH_TIMEOUT_MS after mount and
+  // after each directory change.  Unlike the latch (which closes after
+  // one update), the grace window auto-flushes ALL updates that arrive
+  // within the window.  This lets enrichment data (is_public, isopen)
+  // arrive asynchronously without triggering a "Refresh" banner.
+  const graceRef = useRef(true);
+  const graceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const openGraceWindow = useCallback(() => {
+    graceRef.current = true;
+    if (graceTimerRef.current != null) clearTimeout(graceTimerRef.current);
+    graceTimerRef.current = setTimeout(() => {
+      graceRef.current = false;
+      graceTimerRef.current = null;
+    }, LATCH_TIMEOUT_MS);
+  }, []);
+
   // Pass-through latch: when true, the next liveListing change will
   // be applied immediately and the latch will close.
   const latchRef = useRef(false);
@@ -128,25 +145,37 @@ export function useDeferredListing<T, E = undefined>({
     latchTimerRef.current = setTimeout(closeLatch, LATCH_TIMEOUT_MS);
   }, [flush, closeLatch]);
 
-  // Cleanup timer on unmount
+  // Open the grace window on mount.
+  useEffect(() => {
+    openGraceWindow();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Cleanup timers on unmount
   useEffect(() => {
     return () => {
       if (latchTimerRef.current != null) {
         clearTimeout(latchTimerRef.current);
+      }
+      if (graceTimerRef.current != null) {
+        clearTimeout(graceTimerRef.current);
       }
     };
   }, []);
 
   // Auto-flush when directory changes.  Also reset mountFPRef so that
   // the next content change (the new directory's listing arriving from
-  // Redux) will auto-flush instead of being buffered.
+  // Redux) will auto-flush instead of being buffered.  Re-open the
+  // grace window so enrichment data arriving after the new listing
+  // (is_public, isopen) is also auto-flushed.
   const prevPath = usePrevious(currentPath);
   useEffect(() => {
     if (prevPath != null && prevPath !== currentPath) {
       flush();
       mountFPRef.current = latestRef.current.fp;
+      openGraceWindow();
     }
-  }, [currentPath, prevPath, flush]);
+  }, [currentPath, prevPath, flush, openGraceWindow]);
 
   // Detect content changes via fingerprint (or reference as fallback).
   const contentChanged = fingerprintFn
@@ -169,6 +198,11 @@ export function useDeferredListing<T, E = undefined>({
       // Committed listing still matches the mount-time state
       // (empty array, undefined, or stale from before navigation).
       // Auto-flush so the UI doesn't start blank.
+      flush();
+    } else if (graceRef.current) {
+      // Within the grace window after mount/navigation — auto-flush
+      // follow-up updates like shared file info arriving after the
+      // base listing, without showing a "Refresh" banner.
       flush();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
