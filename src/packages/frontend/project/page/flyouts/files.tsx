@@ -704,8 +704,6 @@ export function FilesFlyout({
         open={open}
         showFileSharingDialog={showFileSharingDialog}
         getFile={getFile}
-        hasPendingUpdate={hasPendingListingUpdate}
-        onRefreshListing={flushListingUpdate}
       />
     </div>
   );

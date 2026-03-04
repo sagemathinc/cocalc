@@ -39,7 +39,6 @@ import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { separate_file_extension, strictMod } from "@cocalc/util/misc";
 import { isTerminalMode } from "@cocalc/frontend/project/explorer/file-listing";
-import { RefreshButton } from "@cocalc/frontend/project/explorer/refresh-button";
 import { TypeFilterLabel } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
@@ -559,9 +558,18 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
       >
         {staleListingWarning()}
         {props.hasPendingUpdate && (
-          <span style={{ padding: `0 ${FLYOUT_PADDING}` }}>
-            <RefreshButton onClick={props.onRefreshListing} />
-          </span>
+          <Alert
+            type="warning"
+            banner
+            showIcon={false}
+            style={{ padding: FLYOUT_PADDING, margin: 0, cursor: "pointer" }}
+            onClick={props.onRefreshListing}
+            message={
+              <>
+                <Icon name="sync-alt" /> {intl.formatMessage(labels.refresh)}
+              </>
+            }
+          />
         )}
         {activeFilterWarning()}
         {createFileIfNotExists()}

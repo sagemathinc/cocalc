@@ -21,7 +21,6 @@ import {
 import { ConnectionStatus } from "@cocalc/frontend/app/store";
 import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { RefreshButton } from "@cocalc/frontend/project/explorer/refresh-button";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { ConnectionStatusIcon } from "@cocalc/frontend/frame-editors/frame-tree/title-bar";
 import { open_new_tab } from "@cocalc/frontend/misc";
@@ -64,10 +63,6 @@ interface FilesBottomProps {
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
   getFile: (path: string) => DirectoryListingEntry | undefined;
-  /** True when a filesystem update is buffered and awaiting user confirmation. */
-  hasPendingUpdate?: boolean;
-  /** Flush the buffered listing update. */
-  onRefreshListing?: () => void;
 }
 
 export function FilesBottom({
@@ -83,8 +78,6 @@ export function FilesBottom({
   showFileSharingDialog,
   getFile,
   directoryFiles,
-  hasPendingUpdate,
-  onRefreshListing,
 }: FilesBottomProps) {
   const [mode, setMode] = modeState;
   const current_path = useTypedRedux({ project_id }, "current_path");
@@ -312,12 +305,6 @@ export function FilesBottom({
         <>
           <Icon name="files" /> {nFiles} {plural(nFiles, "file")}, {nDirs}{" "}
           {plural(nDirs, "folder")}
-          {hasPendingUpdate && (
-            <>
-              {" "}
-              &middot; <RefreshButton onClick={onRefreshListing} />
-            </>
-          )}
         </>
       );
     } else if (singleFile) {

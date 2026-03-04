@@ -281,6 +281,10 @@ function VirtualDraggableRow({
 
   const rowProps = ctx.onRow(record);
   const cls = ctx.rowClassName(record);
+  const onDragMouseDown = (dragListeners as any)?.onMouseDown as
+    | ((event: React.MouseEvent<HTMLTableRowElement>) => void)
+    | undefined;
+  const onVirtuosoMouseDown = props.onMouseDown;
 
   return (
     <tr
@@ -289,7 +293,11 @@ function VirtualDraggableRow({
       {...dragAttributes}
       ref={mergedRef}
       onClick={rowProps.onClick}
-      onMouseDown={rowProps.onMouseDown}
+      onMouseDown={(e) => {
+        onDragMouseDown?.(e);
+        onVirtuosoMouseDown?.(e);
+        rowProps.onMouseDown();
+      }}
       onContextMenu={rowProps.onContextMenu}
       style={{ ...props.style, ...rowProps.style }}
       {...(isFolder ? { "data-folder-drop-path": fullPath } : {})}
