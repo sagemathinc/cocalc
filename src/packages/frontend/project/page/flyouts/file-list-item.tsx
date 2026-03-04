@@ -203,11 +203,31 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     return [...checked_files.toArray(), fullPath];
   }, [isDndEnabled, checked_files, fullPath]);
 
-  const { dragRef, dragListeners, dragAttributes, isDragging } = useFileDrag(
+  const {
+    dragRef,
+    dragListeners: rawDragListeners,
+    dragAttributes,
+    isDragging,
+  } = useFileDrag(
     `flyout-drag-${fullPath}`,
     isDndEnabled ? dragPaths : [],
     project_id,
   );
+
+  // Suppress drag initiation when modifier keys are held (user is
+  // shift/ctrl-selecting files, not starting a drag operation).
+  const dragListeners = React.useMemo(() => {
+    if (!isDndEnabled || !rawDragListeners) return {};
+    const origMouseDown = (rawDragListeners as any).onMouseDown;
+    if (!origMouseDown) return rawDragListeners;
+    return {
+      ...rawDragListeners,
+      onMouseDown: (e: React.MouseEvent) => {
+        if (e.shiftKey || e.ctrlKey || e.metaKey) return;
+        origMouseDown(e);
+      },
+    };
+  }, [isDndEnabled, rawDragListeners]);
 
   // Folders and ".." are drop targets (but not in student/restricted mode)
   const isDropTarget = mode === "files" && !!item.isdir && !actionsDisabled;

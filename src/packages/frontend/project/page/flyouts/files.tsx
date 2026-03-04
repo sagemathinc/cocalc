@@ -66,7 +66,7 @@ import { fileItemStyle } from "./utils";
 
 type PartialClickEvent = Pick<
   React.MouseEvent | React.KeyboardEvent,
-  "detail" | "shiftKey" | "ctrlKey" | "stopPropagation"
+  "detail" | "shiftKey" | "ctrlKey" | "metaKey" | "stopPropagation"
 >;
 
 export type ActiveFileSort = TypedMap<{
@@ -396,6 +396,7 @@ export function FilesFlyout({
       detail: 1, // single click
       shiftKey: false,
       ctrlKey: false,
+      metaKey: false,
       stopPropagation: () => {},
     };
     // "hack" from explorer/file-listing/file-row.tsx to avoid a click,
@@ -419,7 +420,13 @@ export function FilesFlyout({
     }
 
     // similar, if in open mode and already opened, just switch to it as well
-    if (mode === "open" && file.isopen && !e.shiftKey && !e.ctrlKey) {
+    if (
+      mode === "open" &&
+      file.isopen &&
+      !e.shiftKey &&
+      !e.ctrlKey &&
+      !e.metaKey
+    ) {
       setPrevSelected(index);
       open(e, index);
       return;
@@ -443,10 +450,11 @@ export function FilesFlyout({
         break;
 
       case "open":
-        if (e.shiftKey || e.ctrlKey) {
-          // Shift case: no prevSelected, otherwise see above
+        if ((e.ctrlKey || e.metaKey) && checked_files.size > 0) {
+          // Ctrl-click with files already selected: toggle selection
           toggleSelected(index, file.name);
         } else {
+          // Normal open; ctrl-click with nothing selected → opens in background
           setPrevSelected(index);
           open(e, index);
         }

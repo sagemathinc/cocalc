@@ -294,7 +294,11 @@ function VirtualDraggableRow({
       ref={mergedRef}
       onClick={rowProps.onClick}
       onMouseDown={(e) => {
-        onDragMouseDown?.(e);
+        // Suppress drag initiation when modifier keys are held (user is
+        // shift/ctrl-selecting files, not starting a drag operation).
+        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
+          onDragMouseDown?.(e);
+        }
         onVirtuosoMouseDown?.(e);
         rowProps.onMouseDown();
       }}
@@ -757,6 +761,37 @@ export const FileListing: React.FC<Props> = ({
       const currentSel = window.getSelection()?.toString() ?? "";
       if (currentSel !== selectionRef.current) return;
 
+      // ".." always navigates regardless of modifiers
+      if (record.name === "..") {
+        const dirPath = misc.path_to_file(current_path, record.name);
+        if (onNavigateDirectory) {
+          onNavigateDirectory(dirPath);
+        } else {
+          actions.open_directory(dirPath);
+        }
+        actions.set_file_search("");
+        return;
+      }
+
+      const fp = misc.path_to_file(current_path, record.name);
+
+      // Shift-click: range selection from last clicked to current
+      if (e.shiftKey) {
+        actions.set_selected_file_range(fp, true);
+        actions.set_most_recent_file_click(fp);
+        return;
+      }
+
+      // Ctrl/Cmd-click: toggle selection when files are already selected
+      if ((e.ctrlKey || e.metaKey) && checked_files.size > 0) {
+        const isChecked = checked_files.has(fp);
+        actions.set_file_checked(fp, !isChecked);
+        actions.set_most_recent_file_click(fp);
+        return;
+      }
+
+      // Normal click (or ctrl-click with nothing selected → opens in background)
+      actions.set_most_recent_file_click(fp);
       if (record.isdir) {
         const dirPath = misc.path_to_file(current_path, record.name);
         if (onNavigateDirectory) {
@@ -767,19 +802,18 @@ export const FileListing: React.FC<Props> = ({
         actions.set_file_search("");
       } else {
         const foreground = should_open_in_foreground(e as any);
-        const path = misc.path_to_file(current_path, record.name);
         track("open-file", {
           project_id: actions.project_id,
-          path,
+          path: fp,
           how: "click-on-listing",
         });
-        actions.open_file({ path, foreground, explicit: true });
+        actions.open_file({ path: fp, foreground, explicit: true });
         if (foreground) {
           actions.set_file_search("");
         }
       }
     },
-    [current_path, actions, onNavigateDirectory],
+    [current_path, actions, onNavigateDirectory, checked_files],
   );
 
   // -- Context menu builder --
