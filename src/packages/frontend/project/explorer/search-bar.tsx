@@ -19,6 +19,8 @@ import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import { isTerminalMode } from "./file-listing";
 import { ListingItem } from "./types";
+import { SearchHistoryDropdown } from "./search-history-dropdown";
+import { useExplorerSearchHistory } from "./use-search-history";
 
 const HelpStyle: React.CSSProperties = {
   wordWrap: "break-word",
@@ -84,16 +86,66 @@ export const SearchBar = React.memo((props: Props) => {
 
   const intl = useIntl();
   const { project_id } = useProjectContext();
+  const {
+    history,
+    initialized: historyInitialized,
+    addHistoryEntry,
+  } = useExplorerSearchHistory(project_id);
 
   // TODO use state/set_state to show a progress spinner while a command runs
   const [, set_state] = React.useState<"edit" | "run">("edit");
   const [error, set_error] = React.useState<string | undefined>(undefined);
   const [stdout, set_stdout] = React.useState<string | undefined>(undefined);
+  const [historyMode, setHistoryMode] = React.useState(false);
+  const [historyIndex, setHistoryIndex] = React.useState(0);
+
+  const inputFocusedRef = React.useRef(false);
+  const previousSearchRef = React.useRef(file_search);
+  const skipNextClearHistoryRef = React.useRef(false);
 
   const _id = React.useRef<number>(0);
   const [cmd, set_cmd] = React.useState<
     { input: string; id: number } | undefined
   >(undefined);
+
+  React.useEffect(() => {
+    if (!historyMode) return;
+    if (history.length === 0) {
+      setHistoryMode(false);
+      setHistoryIndex(0);
+      return;
+    }
+    if (historyIndex >= history.length) {
+      setHistoryIndex(history.length - 1);
+    }
+  }, [history, historyIndex, historyMode]);
+
+  React.useEffect(() => {
+    const prev = previousSearchRef.current;
+    if (prev === file_search) {
+      return;
+    }
+    previousSearchRef.current = file_search;
+
+    if (file_search.length > 0) {
+      return;
+    }
+
+    if (!prev) {
+      return;
+    }
+
+    if (skipNextClearHistoryRef.current) {
+      skipNextClearHistoryRef.current = false;
+      return;
+    }
+
+    // If search text is cleared after focus left the input, assume it was
+    // used via click/directory navigation and save it.
+    if (!inputFocusedRef.current) {
+      addHistoryEntry(prev);
+    }
+  }, [addHistoryEntry, file_search]);
 
   React.useEffect(() => {
     if (cmd == null) return;
@@ -181,6 +233,9 @@ export const SearchBar = React.memo((props: Props) => {
   }, [file_search, disabled_ext]);
 
   function render_help_info(): React.JSX.Element | undefined {
+    if (historyMode) {
+      return;
+    }
     if (isTerminalMode(file_search)) {
       return <TerminalModeDisplay style={HelpStyle} />;
     }
@@ -257,13 +312,21 @@ export const SearchBar = React.memo((props: Props) => {
     value: string,
     { ctrl_down, shift_down }: { ctrl_down: boolean; shift_down: boolean },
   ): void {
+    if (historyMode) {
+      apply_history_selection();
+      return;
+    }
     if (current_path == null) {
       return;
     }
     if (isTerminalMode(value)) {
       const command = value.slice(1, value.length);
+      if (command.trim().length > 0) {
+        addHistoryEntry(value);
+      }
       execute_command(command);
     } else if (selected_file) {
+      addHistoryEntry(value);
       const new_path = path_to_file(current_path, selected_file.name);
       const opening_a_dir = selected_file.isdir;
       if (opening_a_dir) {
@@ -275,6 +338,7 @@ export const SearchBar = React.memo((props: Props) => {
         });
       }
       if (opening_a_dir || !ctrl_down) {
+        skipNextClearHistoryRef.current = true;
         actions.set_file_search("");
         actions.clear_selected_file_index();
       }
@@ -291,26 +355,97 @@ export const SearchBar = React.memo((props: Props) => {
   }
 
   function on_up_press(): void {
+    if (!historyMode && historyInitialized && history.length > 0) {
+      setHistoryMode(true);
+      setHistoryIndex(0);
+      return;
+    }
+    if (historyMode) {
+      setHistoryIndex((idx) => Math.max(idx - 1, 0));
+      return;
+    }
     if (selected_file_index > 0) {
       actions.decrement_selected_file_index();
     }
   }
 
   function on_down_press(): void {
+    if (historyMode) {
+      setHistoryIndex((idx) =>
+        Math.min(idx + 1, Math.max(0, history.length - 1)),
+      );
+      return;
+    }
     if (selected_file_index < num_files_displayed - 1) {
       actions.increment_selected_file_index();
     }
   }
 
   function on_change(search: string): void {
+    setHistoryMode(false);
+    setHistoryIndex(0);
     actions.zero_selected_file_index();
     actions.set_file_search(search);
   }
 
+  function on_escape(): boolean {
+    if (!historyMode) {
+      return false;
+    }
+    setHistoryMode(false);
+    setHistoryIndex(0);
+    return true;
+  }
+
+  function apply_history_selection(): void {
+    const value = history[historyIndex];
+    setHistoryMode(false);
+    setHistoryIndex(0);
+    if (value == null) {
+      return;
+    }
+    actions.zero_selected_file_index();
+    actions.set_file_search(value);
+  }
+
+  function on_focus(): void {
+    inputFocusedRef.current = true;
+    props.on_focus?.();
+  }
+
+  function on_blur(): void {
+    inputFocusedRef.current = false;
+    setHistoryMode(false);
+    setHistoryIndex(0);
+    props.on_blur?.();
+  }
+
   function on_clear(): void {
+    // Save the current search to history before clearing — the user
+    // explicitly dismissed it, which counts as "used".
+    if (file_search) {
+      addHistoryEntry(file_search);
+      skipNextClearHistoryRef.current = true;
+    }
+    setHistoryMode(false);
+    setHistoryIndex(0);
     actions.clear_selected_file_index();
     set_stdout("");
     set_error("");
+  }
+
+  function render_history_dropdown(): React.JSX.Element | undefined {
+    if (!historyMode || history.length === 0) {
+      return;
+    }
+    return (
+      <SearchHistoryDropdown
+        history={history}
+        historyIndex={historyIndex}
+        setHistoryIndex={setHistoryIndex}
+        onSelect={apply_history_selection}
+      />
+    );
   }
 
   return (
@@ -328,8 +463,9 @@ export const SearchBar = React.memo((props: Props) => {
         on_up={on_up_press}
         on_down={on_down_press}
         on_clear={on_clear}
-        on_blur={props.on_blur}
-        on_focus={props.on_focus}
+        on_escape={on_escape}
+        on_blur={on_blur}
+        on_focus={on_focus}
         disabled={disabled || !!ext_selection}
         status={
           file_search.length > 0 && !isTerminalMode(file_search)
@@ -338,6 +474,7 @@ export const SearchBar = React.memo((props: Props) => {
         }
       />
       {render_file_creation_error()}
+      {render_history_dropdown()}
       {render_help_info()}
       <div style={{ ...outputMinitermStyle, width: "100%", left: 0 }}>
         {render_output(error, {

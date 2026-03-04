@@ -671,6 +671,7 @@ export function FilesFlyout({
         onNavigate={navigateFlyout}
         hasPendingUpdate={hasPendingListingUpdate}
         onRefreshListing={flushListingUpdate}
+        onTerminalCommand={allowNextListingUpdate}
       />
       {disableUploads ? (
         renderListing()
