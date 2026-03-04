@@ -226,6 +226,7 @@ export function FilesFlyout({
   const typeFilterOptions = useTypeFilterOptions(
     directoryListings,
     current_path,
+    hidden,
   );
 
   const prev_current_path = usePrevious(current_path);

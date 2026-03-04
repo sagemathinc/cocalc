@@ -249,6 +249,7 @@ export function useComputedFiles({
 export function useTypeFilterOptions(
   directoryListings: Map<string, TypedMap<DirectoryListing> | null> | null,
   current_path: string,
+  showHidden?: boolean,
 ): string[] {
   return useMemo(() => {
     if (directoryListings == null) return [];
@@ -259,6 +260,9 @@ export function useTypeFilterOptions(
 
     const extensions = new Set<string>();
     for (const f of files) {
+      // Skip hidden files when they're not visible, so the dropdown
+      // doesn't show dotfile-only extensions.
+      if (!showHidden && f.name?.startsWith(".")) continue;
       if (f.isdir) {
         extensions.add("folder");
       } else {
@@ -267,5 +271,5 @@ export function useTypeFilterOptions(
       }
     }
     return sortedTypeFilterOptions(extensions);
-  }, [directoryListings, current_path]);
+  }, [directoryListings, current_path, showHidden]);
 }
