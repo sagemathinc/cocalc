@@ -310,6 +310,11 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
   // Save pre-drag checked files to restore on cancel
   const preDragCheckedRef = useRef<string[] | null>(null);
 
+  // Flag to prevent stale onDragEnd from executing after blur/visibility
+  // force-cancel.  dnd-kit may still fire onDragEnd when the user returns
+  // and clicks — this ref tells handleDragEnd to treat it as a cancel.
+  const forceCancelledRef = useRef(false);
+
   const sensors = useSensors(
     useSensor(MouseSensor, {
       activationConstraint: { distance: 3, delay: 300, tolerance: 5 },
@@ -449,6 +454,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     if (!activeData) return;
     const cleanup = () => {
       if (document.hidden) {
+        forceCancelledRef.current = true;
         setActiveData(null);
         setOverFolder(null);
         document.body.style.cursor = "";
@@ -458,6 +464,7 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     };
     const blurCleanup = () => {
       // window blur fires when user Alt+Tabs or clicks outside browser
+      forceCancelledRef.current = true;
       setActiveData(null);
       setOverFolder(null);
       document.body.style.cursor = "";
@@ -493,6 +500,14 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       setOverFolder(null);
       document.body.style.cursor = "";
       document.body.classList.remove("cc-file-dragging");
+
+      // If the drag was force-cancelled by blur/visibility handlers,
+      // skip the operation — the drag data from dnd-kit may be stale.
+      if (forceCancelledRef.current) {
+        forceCancelledRef.current = false;
+        restoreSelection();
+        return;
+      }
 
       const dragData = event.active.data.current as FileDragData | undefined;
       if (!dragData || dragData.type !== "file-drag") {

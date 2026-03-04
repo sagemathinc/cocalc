@@ -83,7 +83,7 @@ export function navigateBrowsingPath(
 }
 
 /** Resolve ".." segments in a relative path: "a/b/.." → "a", "a/.." → "" */
-function normalizeDotDot(path: string): string {
+export function normalizeDotDot(path: string): string {
   if (!path.includes("..")) return path;
   const parts: string[] = [];
   for (const seg of path.split("/")) {

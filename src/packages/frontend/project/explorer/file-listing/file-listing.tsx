@@ -1274,13 +1274,18 @@ export const FileListing: React.FC<Props> = ({
     (record: FileEntry, checked: boolean, e?: { shiftKey?: boolean }) => {
       const fullPath = misc.path_to_file(current_path, record.name);
       if (e?.shiftKey) {
-        actions.set_selected_file_range(fullPath, checked);
+        actions.set_selected_file_range(
+          fullPath,
+          checked,
+          current_path,
+          dataSource,
+        );
       } else {
         actions.set_file_checked(fullPath, checked);
       }
       actions.set_most_recent_file_click(fullPath);
     },
-    [current_path, actions],
+    [current_path, actions, dataSource],
   );
 
   // Select-all checkbox state

@@ -56,7 +56,10 @@ import {
 import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
-import { navigateBrowsingPath } from "./navigate-browsing-path";
+import {
+  navigateBrowsingPath,
+  normalizeDotDot,
+} from "./navigate-browsing-path";
 import { useNavigationHistory } from "./use-navigation-history";
 import { MiscSideButtons } from "./misc-side-buttons";
 import { NewButton } from "./new-button";
@@ -265,8 +268,11 @@ export function Explorer() {
   );
 
   // Wrap navigation so that every explicit navigation records history.
+  // Normalize the path first so history records the resolved form
+  // (e.g. "a/b/.." → "a"), matching what navigateBrowsingPath stores.
   const navigateExplorer = useCallback(
-    (path: string) => {
+    (rawPath: string) => {
+      const path = normalizeDotDot(rawPath.replace(/\/+$/, ""));
       navigateExplorerRaw(path);
       navHistory.recordNavigation(path);
     },

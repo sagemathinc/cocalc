@@ -609,7 +609,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
       if (showView) {
         ctx.push({
-          key: "view",
+          key: "view-download",
           icon: <Icon name="eye" />,
           label: <A href={url}>{intl.formatMessage(labels.view_file)}</A>,
         });

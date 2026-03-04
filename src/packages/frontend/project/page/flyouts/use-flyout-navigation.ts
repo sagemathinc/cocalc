@@ -16,7 +16,10 @@
 import { useCallback } from "react";
 
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
-import { navigateBrowsingPath } from "@cocalc/frontend/project/explorer/navigate-browsing-path";
+import {
+  navigateBrowsingPath,
+  normalizeDotDot,
+} from "@cocalc/frontend/project/explorer/navigate-browsing-path";
 import {
   useNavigationHistory,
   type NavigationHistory,
@@ -66,8 +69,11 @@ export function useFlyoutNavigation(project_id: string): FlyoutNavigation {
   );
 
   // Wrap navigation so every explicit navigation records history.
+  // Normalize the path first so history records the resolved form
+  // (e.g. "a/b/.." → "a"), matching what navigateBrowsingPath stores.
   const navigateFlyout = useCallback(
-    (path: string) => {
+    (rawPath: string) => {
+      const path = normalizeDotDot(rawPath.replace(/\/+$/, ""));
       navigateFlyoutRaw(path);
       navHistory.recordNavigation(path);
     },

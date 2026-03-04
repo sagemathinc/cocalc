@@ -267,7 +267,13 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
             const full_path = s.slice(i + 1);
             if (full_path.slice(0, i) === s.slice(0, i)) {
               const path = s.slice(2 * i + 2);
-              actions?.open_directory(path);
+              // Navigate within the flyout (if available), not the global
+              // explorer path — the flyout has its own browsing state.
+              if (props.onNavigate) {
+                props.onNavigate(path);
+              } else {
+                actions?.open_directory(path);
+              }
             }
           }
           if (!output.stderr) {
