@@ -652,7 +652,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           const fileDir = misc.path_split(path).head;
           this.setState({
             explorer_browsing_path: fileDir,
+            explorer_history_path: fileDir,
             flyout_browsing_path: fileDir,
+            flyout_history_path: fileDir,
           });
         }
 
@@ -1425,7 +1427,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // restore (which replays set_active_tab for each open file)
         // doesn't drag it away from the URL-requested directory.
         if (show_files) {
-          this.setState({ explorer_browsing_path: path });
+          this.setState({
+            explorer_browsing_path: path,
+            explorer_history_path: path,
+          });
         }
         const store = this.get_store();
         if (store == undefined) {

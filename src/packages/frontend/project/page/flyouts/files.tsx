@@ -375,8 +375,14 @@ export function FilesFlyout({
   /** Select (or deselect) a contiguous range of files from prevSelected to index. */
   function selectRange(index: number, add: boolean) {
     if (prevSelected == null) return false;
+    // Guard against stale anchor: after search/filter/sort changes,
+    // prevSelected may be out of bounds or point to a different file.
+    if (prevSelected >= directoryFiles.length) return false;
     const start = Math.min(prevSelected, index);
-    const end = Math.max(prevSelected, index);
+    const end = Math.min(
+      Math.max(prevSelected, index),
+      directoryFiles.length - 1,
+    );
     const fileNames: string[] = [];
     for (let i = start; i <= end; i++) {
       const fn = directoryFiles[i].name;

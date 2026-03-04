@@ -362,6 +362,8 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     (event: DragStartEvent) => {
       const data = event.active.data.current as FileDragData | undefined;
       if (data?.type !== "file-drag") return;
+      // Clear any stale force-cancel flag from a previous drag session.
+      forceCancelledRef.current = false;
       // Initialize pointer position from the activator event so that
       // cross-project tab detection works even without any pointer movement.
       const coords = getEventCoords(event.activatorEvent);
@@ -437,14 +439,17 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     }
   }, []);
 
-  // Restore the pre-drag selection (used on cancel / invalid drop)
+  // Restore the pre-drag selection (used on cancel / invalid drop).
+  // Idempotent: no-op if already restored (prevents double-call from
+  // blur + visibility handlers from clearing the user's selection).
   const restoreSelection = useCallback(() => {
+    if (preDragCheckedRef.current == null) return;
     const saved = preDragCheckedRef.current;
+    preDragCheckedRef.current = null;
     actions?.set_all_files_unchecked();
-    if (saved && saved.length > 0) {
+    if (saved.length > 0) {
       actions?.set_file_list_checked(saved);
     }
-    preDragCheckedRef.current = null;
   }, [actions]);
 
   // Fail-safe: if the browser loses focus mid-drag (mouseup outside window,

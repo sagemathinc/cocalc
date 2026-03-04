@@ -565,12 +565,15 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           // Only override selection in single-item mode. In multi mode we preserve
           // the existing checked set (see note above).
           if (!multiple) {
+            // Clear existing selection first so exactly one file is checked —
+            // otherwise the previous selection + the right-clicked file would
+            // both be checked while showing single-file actions.
+            actions?.set_all_files_unchecked();
             if (onChecked != null) {
               onChecked(true);
             } else {
               if (item.name === "..") return;
               const pathFn = path_to_file(current_path, item.name);
-              actions?.set_all_files_unchecked();
               actions?.set_file_list_checked([pathFn]);
             }
           }
