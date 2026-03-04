@@ -93,6 +93,13 @@ export function useNavigationHistory(
   const [history, setHistory] = useState<string[]>([currentPath]);
   const [cursor, setCursor] = useState(0);
 
+  // Mirror state in refs so callbacks always read the latest values
+  // even when React hasn't re-rendered yet (e.g. rapid back clicks).
+  const historyRef = useRef(history);
+  const cursorRef = useRef(cursor);
+  historyRef.current = history;
+  cursorRef.current = cursor;
+
   // Persist current state to DKV (debounced by React batching)
   const persist = useCallback(
     (h: string[], c: number) => {
@@ -190,31 +197,39 @@ export function useNavigationHistory(
   const canGoForward = cursor > 0;
 
   const goBack = useCallback(() => {
-    if (cursor >= history.length - 1) return;
-    const newCursor = cursor + 1;
+    const h = historyRef.current;
+    const c = cursorRef.current;
+    if (c >= h.length - 1) return;
+    const newCursor = c + 1;
     setCursor(newCursor);
-    persist(history, newCursor);
+    cursorRef.current = newCursor;
+    persist(h, newCursor);
     isBackForwardRef.current = true;
-    onNavigate(history[newCursor]);
-  }, [cursor, history, onNavigate, persist]);
+    onNavigate(h[newCursor]);
+  }, [onNavigate, persist]);
 
   const goForward = useCallback(() => {
-    if (cursor <= 0) return;
-    const newCursor = cursor - 1;
+    const h = historyRef.current;
+    const c = cursorRef.current;
+    if (c <= 0) return;
+    const newCursor = c - 1;
     setCursor(newCursor);
-    persist(history, newCursor);
+    cursorRef.current = newCursor;
+    persist(h, newCursor);
     isBackForwardRef.current = true;
-    onNavigate(history[newCursor]);
-  }, [cursor, history, onNavigate, persist]);
+    onNavigate(h[newCursor]);
+  }, [onNavigate, persist]);
 
   const recordNavigation = useCallback(
     (path: string) => {
-      const next = pushToHistory(history, cursor, path);
+      const next = pushToHistory(historyRef.current, cursorRef.current, path);
       setHistory(next.history);
       setCursor(next.cursor);
+      historyRef.current = next.history;
+      cursorRef.current = next.cursor;
       persist(next.history, next.cursor);
     },
-    [history, cursor, persist],
+    [persist],
   );
 
   // Entries behind the cursor (for the back long-press dropdown)

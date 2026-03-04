@@ -24,6 +24,7 @@ import {
   redux,
   useAsyncEffect,
   useEffect,
+  useIsMountedRef,
   usePrevious,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -163,6 +164,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   const [termError, setTermError] = React.useState<string | undefined>();
   const [termStdout, setTermStdout] = React.useState<string | undefined>();
   const termIdRef = React.useRef(0);
+  const isMountedRef = useIsMountedRef();
 
   const [highlighNothingFound, setHighlighNothingFound] = React.useState(false);
   const file_search_prev = usePrevious(file_search);
@@ -250,7 +252,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
       compute_server_id,
       filesystem: true,
       cb(err, output) {
-        if (id !== termIdRef.current) return;
+        if (id !== termIdRef.current || !isMountedRef.current) return;
         if (err) {
           setTermError(JSON.stringify(err));
         } else {

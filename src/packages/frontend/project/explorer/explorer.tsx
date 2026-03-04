@@ -477,8 +477,7 @@ export function Explorer() {
           project_id={project_id}
           dest_path={current_path}
           event_handlers={{
-            complete: () =>
-              actions?.fetch_directory_listing({ path: current_path }),
+            complete: () => actions?.fetch_directory_listing(),
           }}
           config={{ clickable: ".upload-button" }}
           style={{ minHeight: 0 }}

@@ -470,10 +470,14 @@ export class ProjectStore extends Store<ProjectStoreState> {
           listing = _matched_files(search.toLowerCase(), listing);
         }
 
-        // Compute type counts BEFORE type filtering so the dropdown
-        // shows all available extensions even when a filter is active.
+        // Compute type counts BEFORE type filtering (so the dropdown
+        // shows all available extensions even when a filter is active)
+        // but AFTER applying the hidden-file predicate (so dotfile-only
+        // extensions don't appear in the dropdown when hidden files are off).
+        const showHidden = this.get("show_hidden");
         const type_counts: Record<string, number> = {};
         for (const item of listing) {
+          if (!showHidden && item.name.startsWith(".")) continue;
           const ext = item.isdir
             ? "folder"
             : misc.filename_extension(item.name)?.toLowerCase() || "(none)";
