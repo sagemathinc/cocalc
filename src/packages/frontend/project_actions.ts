@@ -1629,8 +1629,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ most_recent_file_click: file });
   }
 
-  // Set the selected state of all files between the most_recent_file_click and the given file
-  set_selected_file_range(file: string, checked: boolean): void {
+  // Set the selected state of all files between the most_recent_file_click and the given file.
+  // Optional browsingPath + listing override for decoupled browsing paths
+  // (explorer/flyout may show a different directory than store.current_path).
+  set_selected_file_range(
+    file: string,
+    checked: boolean,
+    browsingPath?: string,
+    listing?: { name: string }[],
+  ): void {
     let range;
     const store = this.get_store();
     if (store == undefined) {
@@ -1642,11 +1649,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       range = [file];
     } else {
       // get the range of files
-      const current_path = store.get("current_path");
-      const names = store
-        .get("displayed_listing")
-        .listing.map((a) => misc.path_to_file(current_path, a.name));
-      range = misc.get_array_range(names, most_recent, file);
+      const current_path = browsingPath ?? store.get("current_path");
+      const displayedListing =
+        listing ?? store.get("displayed_listing")?.listing;
+      if (!displayedListing) {
+        range = [file];
+      } else {
+        const names = displayedListing.map((a) =>
+          misc.path_to_file(current_path, a.name),
+        );
+        range = misc.get_array_range(names, most_recent, file);
+      }
     }
 
     if (checked) {

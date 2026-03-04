@@ -184,19 +184,31 @@ export function useDeferredListing<T, E = undefined>({
 }
 
 /**
- * Fingerprint a file listing by name + mtime + size per entry.
+ * Fingerprint a file listing for deferred-update change detection.
+ *
+ * Includes name, mtime, size, and UI-relevant flags (is_public, isopen).
+ * This is intentionally limited to fields that represent real state changes
+ * the user should see — cosmetic/computed fields (isactive, mask, display_name)
+ * are excluded to avoid false-positive "pending update" notifications.
+ *
  * Uses an incremental hash so the fingerprint is a compact number
  * even for directories with thousands of files.
  */
 export function fileListingFingerprint(
-  listing: Array<{ name: string; mtime?: number; size?: number }> | undefined,
+  listing:
+    | Array<{
+        name: string;
+        mtime?: number;
+        size?: number;
+        is_public?: boolean;
+        isopen?: boolean;
+      }>
+    | undefined,
 ): string {
   if (!listing) return "";
-  // Build a compact string and hash it — avoids keeping a huge
-  // concatenated string in memory for large directories.
   let raw = String(listing.length);
   for (const e of listing) {
-    raw += `\n${e.name}:${e.mtime ?? 0}:${e.size ?? 0}`;
+    raw += `\n${e.name}:${e.mtime ?? 0}:${e.size ?? 0}:${e.is_public ? 1 : 0}:${e.isopen ? 1 : 0}`;
   }
   return String(hash_string(raw));
 }

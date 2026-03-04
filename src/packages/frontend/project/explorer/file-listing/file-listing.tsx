@@ -775,9 +775,12 @@ export const FileListing: React.FC<Props> = ({
 
       const fp = misc.path_to_file(current_path, record.name);
 
-      // Shift-click: range selection from last clicked to current
+      // Shift-click: range selection from last clicked to current.
+      // Pass current_path and dataSource so range computation uses the
+      // actually-displayed listing (not store.current_path which may differ
+      // when the explorer uses a decoupled browsing path).
       if (e.shiftKey) {
-        actions.set_selected_file_range(fp, true);
+        actions.set_selected_file_range(fp, true, current_path, dataSource);
         actions.set_most_recent_file_click(fp);
         return;
       }
@@ -813,7 +816,7 @@ export const FileListing: React.FC<Props> = ({
         }
       }
     },
-    [current_path, actions, onNavigateDirectory, checked_files],
+    [current_path, actions, onNavigateDirectory, checked_files, dataSource],
   );
 
   // -- Context menu builder --

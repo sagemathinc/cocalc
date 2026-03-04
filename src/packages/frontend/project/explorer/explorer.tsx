@@ -613,7 +613,11 @@ export function Explorer() {
             actions={actions as ProjectActions}
             current_path={current_path}
             file_search={file_search}
-            listing={listing}
+            listing={
+              hide_masked_files && listing
+                ? listing.filter((f) => !f.mask)
+                : listing
+            }
             selected_file_index={selected_file_index}
             file_creation_error={file_creation_error}
             create_file={createFile}

@@ -92,6 +92,9 @@ interface Props {
   typeFilterOptions: string[];
   /** Navigate within the flyout (independent of the explorer). */
   onNavigate?: (path: string) => void;
+  /** The flyout's independent browsing path. When provided, overrides
+   *  Redux `current_path` for terminal commands, file creation, and uploads. */
+  browsingPath?: string;
   /** True when a filesystem update is buffered and awaiting user confirmation. */
   hasPendingUpdate?: boolean;
   /** Flush the buffered listing update. */
@@ -145,7 +148,9 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     { project_id },
     "file_creation_error",
   );
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const redux_current_path = useTypedRedux({ project_id }, "current_path");
+  // Use the flyout's browsing path when provided, fall back to Redux
+  const current_path = props.browsingPath ?? redux_current_path;
 
   const {
     history,
@@ -209,8 +214,8 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     }
   }, [history, historyIndex, historyMode]);
 
-  function applyHistorySelection(): void {
-    const value = history[historyIndex];
+  function applyHistorySelection(idx?: number): void {
+    const value = history[idx ?? historyIndex];
     setHistoryMode(false);
     setHistoryIndex(0);
     if (value == null) return;
@@ -308,9 +313,12 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     // left arrow key: go up a directory
     if (e.code === "ArrowLeft") {
       if (current_path != "") {
-        actions?.set_current_path(
-          current_path.split("/").slice(0, -1).join("/"),
-        );
+        const parent = current_path.split("/").slice(0, -1).join("/");
+        if (props.onNavigate) {
+          props.onNavigate(parent);
+        } else {
+          actions?.set_current_path(parent);
+        }
       }
       return;
     }

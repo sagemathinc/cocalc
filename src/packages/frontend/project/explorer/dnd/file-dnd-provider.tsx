@@ -146,13 +146,32 @@ const snapToPointerModifier: Modifier = ({
   transform,
 }) => {
   if (!activatorEvent || !activeNodeRect) return transform;
-  const event = activatorEvent as PointerEvent;
+  // Extract pointer coordinates — works for both MouseEvent and TouchEvent
+  const coords = getEventCoords(activatorEvent);
+  if (!coords) return transform;
   return {
     ...transform,
-    x: transform.x + (event.clientX - activeNodeRect.left) + 12,
-    y: transform.y + (event.clientY - activeNodeRect.top) + 12,
+    x: transform.x + (coords.x - activeNodeRect.left) + 12,
+    y: transform.y + (coords.y - activeNodeRect.top) + 12,
   };
 };
+
+/** Extract clientX/clientY from mouse, pointer, or touch events. */
+function getEventCoords(event: Event): { x: number; y: number } | null {
+  if ("clientX" in event && typeof (event as any).clientX === "number") {
+    return {
+      x: (event as MouseEvent).clientX,
+      y: (event as MouseEvent).clientY,
+    };
+  }
+  // TouchEvent: read from touches or changedTouches
+  const te = event as TouchEvent;
+  const touch = te.touches?.[0] ?? te.changedTouches?.[0];
+  if (touch) {
+    return { x: touch.clientX, y: touch.clientY };
+  }
+  return null;
+}
 
 /** Pre-allocated array so we don't create a new one every render. */
 const DRAG_OVERLAY_MODIFIERS: Modifier[] = [snapToPointerModifier];
@@ -338,6 +357,12 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     (event: DragStartEvent) => {
       const data = event.active.data.current as FileDragData | undefined;
       if (data?.type !== "file-drag") return;
+      // Initialize pointer position from the activator event so that
+      // cross-project tab detection works even without any pointer movement.
+      const coords = getEventCoords(event.activatorEvent);
+      if (coords) {
+        pointerPos.current = coords;
+      }
       // Save current checked files so we can restore on cancel
       const store = redux.getProjectStore(project_id);
       const currentChecked = store?.get("checked_files");
@@ -416,6 +441,36 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     }
     preDragCheckedRef.current = null;
   }, [actions]);
+
+  // Fail-safe: if the browser loses focus mid-drag (mouseup outside window,
+  // Alt+Tab, etc.), the mouseup event is missed and drag state gets stuck.
+  // Reset on visibilitychange or blur.
+  useEffect(() => {
+    if (!activeData) return;
+    const cleanup = () => {
+      if (document.hidden) {
+        setActiveData(null);
+        setOverFolder(null);
+        document.body.style.cursor = "";
+        document.body.classList.remove("cc-file-dragging");
+        restoreSelection();
+      }
+    };
+    const blurCleanup = () => {
+      // window blur fires when user Alt+Tabs or clicks outside browser
+      setActiveData(null);
+      setOverFolder(null);
+      document.body.style.cursor = "";
+      document.body.classList.remove("cc-file-dragging");
+      restoreSelection();
+    };
+    document.addEventListener("visibilitychange", cleanup);
+    window.addEventListener("blur", blurCleanup);
+    return () => {
+      document.removeEventListener("visibilitychange", cleanup);
+      window.removeEventListener("blur", blurCleanup);
+    };
+  }, [activeData, restoreSelection]);
 
   // When a cross-project copy dialog is dismissed (file_action goes from
   // "copy" back to undefined), restore the pre-drag checked files.

@@ -540,6 +540,7 @@ export function FilesFlyout({
         mode="files"
         item={item}
         index={index}
+        browsingPath={current_path}
         extra={renderListItemExtra(item)}
         extra2={renderListItemExtra2(item)}
         onClick={(e) => handleFileClick(e, index)}
@@ -677,6 +678,7 @@ export function FilesFlyout({
         setTypeFilter={setTypeFilter}
         typeFilterOptions={typeFilterOptions}
         onNavigate={navigateFlyout}
+        browsingPath={current_path}
         hasPendingUpdate={hasPendingListingUpdate}
         onRefreshListing={flushListingUpdate}
         onTerminalCommand={allowNextListingUpdate}

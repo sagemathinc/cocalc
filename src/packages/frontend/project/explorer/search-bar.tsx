@@ -407,8 +407,8 @@ export const SearchBar = React.memo((props: Props) => {
     return true;
   }
 
-  function apply_history_selection(): void {
-    const value = history[historyIndex];
+  function apply_history_selection(idx?: number): void {
+    const value = history[idx ?? historyIndex];
     setHistoryMode(false);
     setHistoryIndex(0);
     if (value == null) {

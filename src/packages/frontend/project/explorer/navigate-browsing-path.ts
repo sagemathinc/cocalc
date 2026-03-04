@@ -57,6 +57,9 @@ export function navigateBrowsingPath(
   if (path.endsWith("/")) {
     path = path.slice(0, -1);
   }
+  // Resolve ".." segments so paths like "foo/bar/.." become "foo"
+  // instead of polluting breadcrumbs/cache keys with literal "..".
+  path = normalizeDotDot(path);
 
   const nextHistory = computeHistoryPath(prevHistory, path);
   const actions = redux.getProjectActions(project_id);
@@ -64,6 +67,10 @@ export function navigateBrowsingPath(
   actions?.setState({
     [pathKey]: path,
     [historyKey]: nextHistory,
+    // Clear selection state — stale anchors / keyboard indices from the
+    // previous directory would cause incorrect range/keyboard selections.
+    most_recent_file_click: undefined,
+    selected_file_index: undefined,
   } as any);
 
   // Watch directory so listings become available
@@ -73,4 +80,18 @@ export function navigateBrowsingPath(
     // listings not available yet
   }
   actions?.set_all_files_unchecked();
+}
+
+/** Resolve ".." segments in a relative path: "a/b/.." → "a", "a/.." → "" */
+function normalizeDotDot(path: string): string {
+  if (!path.includes("..")) return path;
+  const parts: string[] = [];
+  for (const seg of path.split("/")) {
+    if (seg === "..") {
+      parts.pop();
+    } else if (seg !== "" && seg !== ".") {
+      parts.push(seg);
+    }
+  }
+  return parts.join("/");
 }

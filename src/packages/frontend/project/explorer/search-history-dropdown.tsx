@@ -25,7 +25,9 @@ interface Props {
   history: string[];
   historyIndex: number;
   setHistoryIndex: (idx: number) => void;
-  onSelect: () => void;
+  /** Called with the clicked index so the caller doesn't depend on
+   *  `historyIndex` state (which may not be updated yet due to batching). */
+  onSelect: (idx: number) => void;
   style?: React.CSSProperties;
 }
 
@@ -59,7 +61,7 @@ export const SearchHistoryDropdown: React.FC<Props> = React.memo(
             onMouseEnter={() => setHistoryIndex(idx)}
             onClick={() => {
               setHistoryIndex(idx);
-              onSelect();
+              onSelect(idx);
             }}
           >
             <Icon name="history" />

@@ -123,6 +123,10 @@ interface Item {
 interface FileListItemProps {
   // we only set this from the "files" flyout, not "log", since in the log you can't select multiple files
   checked_files?: immutable.Set<string>;
+  /** Override the directory path used for DnD and context-menu operations.
+   *  When omitted, falls back to Redux `current_path`. Flyout callers must
+   *  pass the flyout's independent browsing path here. */
+  browsingPath?: string;
   displayedNameOverride?: string; // override the name
   extra?: React.JSX.Element | string | null; // null means don't show anything
   extra2?: React.JSX.Element | string | null; // null means don't show anything
@@ -150,6 +154,7 @@ interface FileListItemProps {
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const {
+    browsingPath,
     checked_files,
     displayedNameOverride,
     extra,
@@ -179,7 +184,9 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const showPublish = mode === "files";
   const intl = useIntl();
   const { project_id } = useProjectContext();
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const redux_current_path = useTypedRedux({ project_id }, "current_path");
+  // Use the prop when provided (flyout), fall back to Redux (log/active modes)
+  const current_path = browsingPath ?? redux_current_path;
   const actions = useActions({ project_id });
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);

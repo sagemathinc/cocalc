@@ -176,6 +176,15 @@ function LongPressButton({
     }
   }, []);
 
+  // Clean up timer if component unmounts mid-press
+  React.useEffect(() => {
+    return () => {
+      if (timerRef.current != null) {
+        clearTimeout(timerRef.current);
+      }
+    };
+  }, []);
+
   const btn = (
     <Tooltip title={dropdownOpen ? "" : title}>
       <Button
