@@ -3,14 +3,16 @@ Launcher buttons shown for a running compute server.
 */
 
 import { Button, Modal, Spin, Tooltip } from "antd";
-import { Icon } from "@cocalc/frontend/components";
-import { useImages } from "@cocalc/frontend/compute/images-hook";
 import { useMemo, useState } from "react";
-import { LauncherButton, getRoute } from "./proxy";
+
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { Icon } from "@cocalc/frontend/components";
 import ShowError from "@cocalc/frontend/components/error";
+import { useImages } from "@cocalc/frontend/compute/images-hook";
+
 import { useServer } from "./compute-server";
 import { getApps } from "./menu";
+import { LauncherButton, getRoute } from "./proxy";
 
 export default function Launcher({
   style,
@@ -105,10 +107,10 @@ function AppLauncher({
   const compute_servers_dns = useTypedRedux("customize", "compute_servers_dns");
   const image = configuration.image;
   const app = (IMAGES[image]?.apps ?? IMAGES["defaults"]?.apps ?? [])[name];
-  if (app == null) {
-    return <ShowError error={`Unknown application '${name}'`} />;
-  }
   const route = useMemo(() => {
+    if (app == null) {
+      return null;
+    }
     try {
       return getRoute({ app, configuration, IMAGES });
     } catch (err) {
@@ -116,6 +118,10 @@ function AppLauncher({
       return null;
     }
   }, [app, configuration, IMAGES]);
+
+  if (app == null) {
+    return <ShowError error={`Unknown application '${name}'`} />;
+  }
 
   return (
     <div>

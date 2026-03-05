@@ -22,7 +22,7 @@ Note: the provider could be changed at any time – what's important is to end u
 
 After introducing new messages, these are the steps to get all translations into CoCalc:
 
-`frontend/package.json` has four script entries, which are for [SimpleLocalize](https://simplelocalize.io/).
+`frontend/package.json` has four script entries, which are for [SimpleLocalize](https://simplelocalize.io/). You have to have `simplelocalize` installed.
 
 1.  `pnpm i18n:extract`:
 
@@ -33,9 +33,9 @@ After introducing new messages, these are the steps to get all translations into
 
     Basically, the `i18n/extracted.json` will be sent to SimpleLocalize.
     The `--overwrite` switch is set, such that all new `defaultMessage`s will show up in the English language source.
-    This also means it makes no sense to touch the English language strings – they must be fixed in the source code in CoCalc's code base.
+    This also means it makes no sense to touch the English language strings – they must be fixed in the source code in CoCalc's code base. This upload step also triggers auto-translation for all languages if SimpleLocalize auto-translation is configured.
 
-1.  Open/refresh SimpleLocalize
+1.  (optional) Review in SimpleLocalize
 
     It will show the new keys or changed English language sources – translate them – save the changes – review if necessary. You can use the sort mechanism to list the ones without a translation at the top. Existing translations with the same ID will not be touched. The English translation might be out of sync with the `defaultMessage`, and you can ignore it – we use the `defaultMessage` for English.
 
@@ -54,6 +54,17 @@ After introducing new messages, these are the steps to get all translations into
 1.  Reload the `frontend` after a compile, such that `await import...` will load the updated compiled translation file for the configured locale.
 
 Note: if just a translation has been updated, you only need to do the `i18n:download` & `i18n:compile` steps.
+
+Note: you can also run `pnpm i18n:update` which combines all steps in one go.
+
+**Important:** Whenever you add or change i18n keys in the source code, run `pnpm i18n:update` in `packages/frontend` immediately afterward. This extracts the new keys, uploads them for auto-translation, downloads the results, and compiles the translation files. Skipping this step leaves the new keys untranslated for all non-English locales.
+
+**Updating an existing message:** SimpleLocalize only auto-translates _new_ keys. If you change the `defaultMessage` of an existing key, the old translations will remain unchanged. To force re-translation, you must first delete the key from SimpleLocalize, then run the update pipeline:
+
+```bash
+pnpm i18n:delete <key-id>   # removes the key and all its translations from SimpleLocalize
+pnpm i18n:update             # re-extracts, uploads (as new), auto-translates, downloads, compiles
+```
 
 ### Unused keys
 
@@ -86,6 +97,7 @@ CoCalc specific rules for implementing translations, of which I think are good t
 - **richTextElements**: in `app/localize.tsx`, a few default `richTextElements` are defined – just for convenience. Anchor tags must be defined individually, because link text and href can't be wrapped that way.
 - **Query parameter**: A new `?lang=en` (or `=de`, `=zh`, ...) query parameters lets you change the language as well. This also changes the account setting. Hence, a URL with `?lang=en` can be used to reset the account setting to English.
 - **Descriptions**: add descriptions, especially for jupyter notebooks or latex, to add more context. The description is not only shown in the translation tool, but also passed on to the language model doing the automatic translations.
+- **Single quotes in ICU messages**: In ICU MessageFormat, a single `'` starts a quoted/escaped section — everything between `'...'` is treated as literal text. This means `'{variable}'` will **not** interpolate the variable; it will render as the literal string `{variable}`. To include a literal single-quote character around an interpolated variable, use two single-quotes: `''{variable}''`. For example, `defaultMessage: "Rename ''{filename}''"` renders as `Rename 'foo.txt'`.
 
 ## Style
 
@@ -103,7 +115,6 @@ This is about auto-translations, in "Settings → Auto-translation":
 - To start: when you add a new language, set its full code, e.g. "fr_FR", name "French" and language "French". Translation provider: OpenAI.
 - You need the API key, it's in Integrations → REST API. See notes above.
 - In the Auto-translate configuration, OpenAI → Configure:
-
   - API key: a separate one to track usage, it's fine to restrict its capabilities to list and use models.
   - GPT-4o
   - System prompt: here, the key point is to give some context and to instruct it to retain those ICU messages. That's what I came up with after a few tests and iterations:

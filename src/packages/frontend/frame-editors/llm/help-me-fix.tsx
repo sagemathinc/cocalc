@@ -1,20 +1,25 @@
 /*
-A generic button for helping a user fix problems using chatgpt.
-If chatgpt is disabled or not available it renders as null.
+ *  This file is part of CoCalc: Copyright © 2020 - 2026 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+/*
+A generic button for helping a user fix problems using an LLM.
+If LLM support is disabled or not available it renders as null.
+Clicking a button opens a modal dialog (via showHelpMeFixDialog).
 */
 
-import { Alert, Space } from "antd";
 import type { BaseButtonProps } from "antd/lib/button/button";
-import { CSSProperties, useState } from "react";
-import useAsyncEffect from "use-async-effect";
+import { CSSProperties } from "react";
+import { Space } from "antd";
 
-import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { AIAvatar } from "@cocalc/frontend/components";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import type { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import type { ProjectsStore } from "@cocalc/frontend/projects/store";
+
 import HelpMeFixButton from "./help-me-fix-button";
-import { createMessage } from "./help-me-fix-utils";
+import { showHelpMeFixDialog } from "./help-me-fix-dialog";
 
 // Re-export getHelp for backward compatibility
 export { getHelp } from "./help-me-fix-utils";
@@ -22,6 +27,7 @@ export { getHelp } from "./help-me-fix-utils";
 interface Props {
   error: string | (() => string); // the error it produced. This is viewed as code.
   line?: string | (() => string); // the line content where the error was produced, if available
+  lineNumber?: number; // line number (1-based) where the error was produced, if available
   input?: string | (() => string); // the input, e.g., code you ran
   task?: string; // what you're doing, e.g., "ran a cell in a Jupyter notebook" or "ran a code formatter"
   tag?: string;
@@ -31,6 +37,9 @@ interface Props {
   outerStyle?: CSSProperties;
   size?: BaseButtonProps["size"];
   prioritize?: "start" | "start-end" | "end"; // start: truncate right, start-end: truncate middle, end: truncate left.
+  onReplace?: (opts: { code: string; run?: boolean }) => void;
+  cellId?: string;
+  notebookFrameActions?: NotebookFrameActions;
 }
 
 function get(f: undefined | string | (() => string)): string {
@@ -42,6 +51,7 @@ function get(f: undefined | string | (() => string)): string {
 export default function HelpMeFix({
   error,
   line,
+  lineNumber,
   task,
   input,
   tag,
@@ -51,16 +61,12 @@ export default function HelpMeFix({
   outerStyle,
   size,
   prioritize,
+  onReplace,
+  cellId,
+  notebookFrameActions,
 }: Props) {
   const { redux, project_id, path } = useFrameContext();
-  const [gettingHelp, setGettingHelp] = useState<boolean>(false);
-  const [errorGettingHelp, setErrorGettingHelp] = useState<string>("");
   const projectsStore: ProjectsStore = redux.getStore("projects");
-  const [model, setModel] = useLanguageModelSetting(project_id);
-  const [solutionTokens, setSolutionTokens] = useState<number>(0);
-  const [hintTokens, setHintTokens] = useState<number>(0);
-
-  // Check permissions for both hint and complete solution
   const canGetHint = projectsStore.hasLanguageModelEnabled(
     project_id,
     "help-me-fix-hint",
@@ -74,56 +80,24 @@ export default function HelpMeFix({
     return null;
   }
 
-  function createMessageMode(
-    mode: "solution" | "hint",
-    full: boolean = false,
-  ): string {
-    return createMessage({
+  function handleClick(mode: "hint" | "solution") {
+    showHelpMeFixDialog({
+      mode,
+      project_id,
+      path,
       error: get(error),
       line: get(line),
-      task,
+      lineNumber,
       input: get(input),
+      task,
+      tag,
       language,
       extraFileInfo,
-      model,
       prioritize,
-      open: true,
-      full,
-      isHint: mode === "hint",
+      onReplace,
+      cellId,
+      notebookFrameActions,
     });
-  }
-
-  const solutionText = createMessageMode("solution");
-  const hintText = createMessageMode("hint");
-
-  useAsyncEffect(async () => {
-    // compute the number of tokens (this MUST be a lazy import):
-    const { getMaxTokens, numTokensEstimate } =
-      await import("@cocalc/frontend/misc/llm");
-
-    setSolutionTokens(numTokensEstimate(solutionText, getMaxTokens(model)));
-    setHintTokens(numTokensEstimate(hintText, getMaxTokens(model)));
-  }, [model, solutionText, hintText]);
-
-  async function onConfirm(mode: "solution" | "hint") {
-    setGettingHelp(true);
-    setErrorGettingHelp("");
-    try {
-      // scroll to bottom *after* the message gets sent.
-      const actions = await getChatActions(redux, project_id, path);
-      setTimeout(() => actions.scrollToBottom(), 100);
-      const inputText = createMessageMode(mode, true);
-      const tagSuffix = mode === "hint" ? "hint" : "solution";
-      await actions.sendChat({
-        input: inputText,
-        tag: `help-me-fix-${tagSuffix}${tag ? `:${tag}` : ""}`,
-        noNotification: true,
-      });
-    } catch (err) {
-      setErrorGettingHelp(`${err}`);
-    } finally {
-      setGettingHelp(false);
-    }
   }
 
   return (
@@ -133,42 +107,20 @@ export default function HelpMeFix({
         {canGetHint && (
           <HelpMeFixButton
             mode="hint"
-            model={model}
-            setModel={setModel}
-            project_id={project_id}
-            inputText={hintText}
-            tokens={hintTokens}
             size={size}
             style={style}
-            gettingHelp={gettingHelp}
-            onConfirm={() => onConfirm("hint")}
+            onClick={() => handleClick("hint")}
           />
         )}
         {canGetSolution && (
           <HelpMeFixButton
             mode="solution"
-            model={model}
-            setModel={setModel}
-            project_id={project_id}
-            inputText={solutionText}
-            tokens={solutionTokens}
             size={size}
             style={style}
-            gettingHelp={gettingHelp}
-            onConfirm={() => onConfirm("solution")}
+            onClick={() => handleClick("solution")}
           />
         )}
       </Space>
-      {errorGettingHelp && (
-        <Alert
-          style={{ maxWidth: "600px", margin: "15px 0" }}
-          type="error"
-          showIcon
-          closable
-          message={errorGettingHelp}
-          onClick={() => setErrorGettingHelp("")}
-        />
-      )}
     </div>
   );
 }

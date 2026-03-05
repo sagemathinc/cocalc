@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -24,6 +24,7 @@ import { capitalize, field_cmp, set } from "@cocalc/util/misc";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { terminal } from "../terminal-editor/editor";
+import { TerminalFrame } from "../terminal-editor/terminal";
 import { time_travel } from "../time-travel-editor/editor";
 import { CellNotebook } from "./cell-notebook/cell-notebook";
 import { Introspect } from "./introspect/introspect";
@@ -130,6 +131,15 @@ const introspect: EditorDescription = {
   commands: set(["decrease_font_size", "increase_font_size"]),
 } as const;
 
+const jupyter_console: EditorDescription = {
+  type: "shell",
+  short: jupyter.editor.console_label,
+  name: jupyter.editor.console_label,
+  icon: "ipynb",
+  component: TerminalFrame,
+  commands: terminal.commands,
+} as const;
+
 const jupyter_json: EditorDescription = {
   type: "jupyter_json_view",
   short: jupyter.editor.raw_json_view_short,
@@ -154,6 +164,7 @@ export const EDITOR_SPEC = {
   jupyter_slideshow_revealjs,
   jupyter_table_of_contents,
   introspect,
+  shell: jupyter_console,
   terminal,
   time_travel,
   jupyter_json,

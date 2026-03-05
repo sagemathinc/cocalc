@@ -1,15 +1,21 @@
-import React from "react";
-import { useEffect, useRef, useMemo, useState, useCallback } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import {
   Editor,
   Element,
-  NodeEntry,
   Node,
+  NodeEntry,
+  Path,
   Range,
   Text,
   Transforms,
-  Path,
 } from "slate";
+
 import Children from "./children";
 import { WindowingParams } from "./children";
 import Hotkeys from "../utils/hotkeys";
@@ -111,7 +117,8 @@ export const Editable: React.FC<EditableProps> = (props: EditableProps) => {
     ...attributes
   } = props;
   const editor = useSlate();
-  const ref = props.divref ?? useRef<HTMLDivElement>(null);
+  const fallbackRef = useRef<HTMLDivElement>(null);
+  const ref = props.divref ?? fallbackRef;
 
   // Return true if the given event should be handled
   // by the event handler code defined below.

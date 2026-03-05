@@ -49,7 +49,7 @@ export const CourseTabBar: React.FC<Props> = (props: Props) => {
     }),
     Tab({
       eventKey: "course_actions",
-      title: intl.formatMessage(course.actions),
+      title: intl.formatMessage(labels.actions),
     }),
     Tab({
       eventKey: "course_configuration",

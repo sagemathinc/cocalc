@@ -69,15 +69,16 @@ export default function LicenseEditor({
   minDiskGb = MIN_DISK_GB,
   minRamGb = 4,
 }: Props) {
-  if (info.type == "vouchers") {
-    return <Alert type="error" message="Editing vouchers is not allowed." />;
-  }
-
+  const isVoucher = info.type == "vouchers";
+  const startValue = isVoucher ? undefined : info.start;
+  const endValue = isVoucher ? undefined : info.end;
+  const isSubscription =
+    !isVoucher && info.subscription != null && info.subscription != "no";
   const [start, setStart] = useState<dayjs.Dayjs | undefined>(
-    info.start ? dayjs(info.start) : undefined,
+    startValue ? dayjs(startValue) : undefined,
   );
   const [end, setEnd] = useState<dayjs.Dayjs | undefined>(
-    info.end ? dayjs(info.end) : undefined,
+    endValue ? dayjs(endValue) : undefined,
   );
   const columns = [
     {
@@ -105,8 +106,6 @@ export default function LicenseEditor({
     }
     onChange({ ...info, [field]: value });
   };
-
-  const isSubscription = info.subscription != null && info.subscription != "no";
 
   const endPresets = useMemo(() => {
     if (isSubscription || start == null) {
@@ -137,6 +136,10 @@ export default function LicenseEditor({
       </div>
     );
   }, [isSubscription, start?.valueOf() ?? 0]);
+
+  if (isVoucher) {
+    return <Alert type="error" message="Editing vouchers is not allowed." />;
+  }
 
   let data = [
     {

@@ -1,6 +1,6 @@
 [project]
 name = "cocalc-api"
-version = "0.5.0"
+version = "0.5.1"
 description = "Python client for the CoCalc API"
 authors = [{ name="William Stein", email="wstein@sagemath.com" }, {name="Harald Schilly", email="hsy@sagemath.com"}]
 readme = "README.md"

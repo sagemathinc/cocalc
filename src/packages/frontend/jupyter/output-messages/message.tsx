@@ -157,6 +157,8 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
           style={{ margin: "5px 0" }}
           input={actions.store.getIn(["cells", id, "input"]) ?? ""}
           traceback={Anser.ansiToText(traceback.trim())}
+          id={id}
+          actions={actions}
         />
       ) : undefined;
 

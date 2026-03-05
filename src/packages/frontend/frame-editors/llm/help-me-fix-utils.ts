@@ -1,7 +1,13 @@
-import getChatActions from "@cocalc/frontend/chat/get-actions";
+/*
+ *  This file is part of CoCalc: Copyright © 2020 - 2026 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
+
 import { CUTOFF } from "./consts";
+import { showHelpMeFixDialog } from "./help-me-fix-dialog";
 import { modelToMention } from "./llm-selector";
 import shortenError from "./shorten-error";
 
@@ -34,6 +40,7 @@ export interface CreateMessageOpts {
   open: boolean;
   full: boolean;
   isHint?: boolean;
+  cellContext?: string;
 }
 
 export async function getHelp({
@@ -46,38 +53,22 @@ export async function getHelp({
   task,
   language,
   extraFileInfo,
-  redux,
   prioritize,
-  model,
   isHint = false,
 }: GetHelpOptions) {
-  const messageText = createMessage({
+  await showHelpMeFixDialog({
+    mode: isHint ? "hint" : "solution",
+    project_id,
+    path,
     error,
-    task,
     line,
     input,
+    task,
+    tag,
     language,
     extraFileInfo,
-    model,
     prioritize,
-    open: true,
-    full: true,
-    isHint,
   });
-
-  try {
-    const actions = await getChatActions(redux, project_id, path);
-    setTimeout(() => actions.scrollToBottom(), 100);
-    const tagSuffix = isHint ? "hint" : "solution";
-    await actions.sendChat({
-      input: messageText,
-      tag: `help-me-fix-${tagSuffix}${tag ? `:${tag}` : ""}`,
-      noNotification: true,
-    });
-  } catch (err) {
-    console.error("Error getting help:", err);
-    throw err;
-  }
 }
 
 export function createMessage({
@@ -92,6 +83,7 @@ export function createMessage({
   open,
   full,
   isHint = false,
+  cellContext,
 }: CreateMessageOpts): string {
   const message: string[] = [];
   const prefix = full ? modelToMention(model) + " " : "";
@@ -108,6 +100,10 @@ export function createMessage({
 
   if (task) {
     message.push(`I ${task}.`);
+  }
+
+  if (cellContext) {
+    message.push(cellContext);
   }
 
   error = trimStr(error, language);
@@ -153,6 +149,10 @@ export function createMessage({
   }
 
   if (full) message.push("</details>");
+
+  message.push(
+    "Only show the relevant code snippet and maybe an explanation that fixes the issue. Do not repeat the entire file or document.",
+  );
 
   return message.join("\n\n");
 }

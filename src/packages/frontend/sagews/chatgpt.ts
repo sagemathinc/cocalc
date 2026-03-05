@@ -27,14 +27,6 @@ interface HelpParams {
 function getHelpCommon(params: HelpParams, isHint: boolean): void {
   const { codemirror, stderr, uuid, project_id, path } = params;
 
-  // Show confirmation dialog
-  const action = isHint ? "get a hint" : "get help to fix this error";
-  const confirmMessage = `This will query a language model to ${action}. The error message and your code will be sent to the AI service for analysis. Do you want to continue?`;
-
-  if (!window.confirm(confirmMessage)) {
-    return; // User cancelled
-  }
-
   const val = codemirror.getValue();
   const i = val.indexOf(uuid);
   if (i == -1) return;

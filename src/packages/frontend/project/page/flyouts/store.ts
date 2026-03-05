@@ -21,6 +21,8 @@ import { sortBy, uniq } from "lodash";
 import { useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
+import { path_split, path_to_file } from "@cocalc/util/misc";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { CONAT_BOOKMARKS_KEY } from "@cocalc/util/consts/bookmarks";
@@ -116,4 +118,57 @@ export function useStarredFilesManager(
     starred,
     setStarredPath,
   };
+}
+
+/**
+ * Migrate starred file bookmarks after a move operation.
+ * For each moved path, if it (or its directory form) was starred,
+ * unstar the old location and star the new one.
+ *
+ * This is a standalone async function (not a hook) so it can be called
+ * from ProjectActions.move_files(), covering both action-box and DnD moves.
+ */
+export async function migrateStarsOnMove(
+  project_id: string,
+  srcPaths: string[],
+  destDir: string,
+): Promise<void> {
+  try {
+    const store = redux.getStore("account");
+    const account_id = store.get_account_id();
+    if (!account_id) return;
+
+    const bm = await webapp_client.conat_client.dkv<string[]>({
+      account_id,
+      name: CONAT_BOOKMARKS_KEY,
+    });
+
+    const current: string[] = bm.get(project_id) ?? [];
+    if (current.length === 0) return;
+
+    const starredSet = new Set(current);
+    let changed = false;
+
+    for (const src of srcPaths) {
+      const tail = path_split(src).tail;
+      const newPath = path_to_file(destDir, tail);
+
+      // Check both file form ("foo.txt") and directory form ("folder/")
+      for (const oldKey of [src, src + "/"]) {
+        if (starredSet.has(oldKey)) {
+          starredSet.delete(oldKey);
+          // Preserve directory trailing slash convention
+          const newKey = oldKey.endsWith("/") ? newPath + "/" : newPath;
+          starredSet.add(newKey);
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      bm.set(project_id, sortBy(Array.from(starredSet)));
+    }
+  } catch (err) {
+    console.warn("migrateStarsOnMove failed:", err);
+  }
 }

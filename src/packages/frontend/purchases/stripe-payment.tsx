@@ -83,6 +83,11 @@ export default function StripePayment({
     })();
   }, []);
 
+  const lineItemsKey = JSON.stringify(lineItems ?? []);
+  useEffect(() => {
+    setRequiresPayment(false);
+  }, [lineItemsKey]);
+
   if (lineItems == null || lineItems.length == 0) {
     // no payment needed.
     return null;
@@ -93,10 +98,6 @@ export default function StripePayment({
     const lineItemAmountStripe = decimalToStripe(lineItem.amount);
     totalStripe += lineItemAmountStripe;
   }
-
-  useEffect(() => {
-    setRequiresPayment(false);
-  }, [JSON.stringify(lineItems)]);
 
   const showOneClick =
     (hasPaymentMethods === true || hasPaymentMethods == null) &&

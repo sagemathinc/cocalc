@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -7,12 +7,12 @@
 Show the last latex build log, i.e., output from last time we ran the LaTeX build process.
 */
 
-import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import { Button, Flex } from "antd";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 
 import { AntdTabItem, Tab, Tabs } from "@cocalc/frontend/antd-bootstrap";
 import { CSS, React, Rendered, useRedux } from "@cocalc/frontend/app-framework";
+import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import { Icon, r_join, Tip } from "@cocalc/frontend/components";
 import Stopwatch from "@cocalc/frontend/editors/stopwatch/stopwatch";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -22,7 +22,7 @@ import { ExecuteCodeOutput } from "@cocalc/util/types/execute-code";
 import { getResourceUsage } from "../rmd-editor/utils";
 import { Actions } from "./actions";
 import { BuildCommand } from "./build-command";
-import { use_build_logs } from "./hooks";
+import { useBuildLogs } from "./hooks";
 import { BUILD_SPECS, BuildLog, BuildLogs, BuildSpecName } from "./types";
 
 // after that many seconds, warn visibly about a long running task and e.g. highlight the stop button
@@ -40,7 +40,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
   const { name, actions, path, font_size: font_size_orig, status } = props;
 
   const font_size = 0.8 * font_size_orig;
-  const build_logs: BuildLogs = use_build_logs(name);
+  const build_logs: BuildLogs = useBuildLogs(name);
   //const job_infos: JobInfos = use_job_infos(name);
   const build_command = useRedux([name, "build_command"]);
   const build_command_hardcoded =

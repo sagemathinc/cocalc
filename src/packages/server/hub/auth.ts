@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -63,6 +63,7 @@ import {
 } from "@cocalc/server/auth/sso/types";
 import { callback2 as cb2 } from "@cocalc/util/async-utils";
 import * as misc from "@cocalc/util/misc";
+import { ssoNormalizeExclusiveDomains } from "@cocalc/util/sso-normalize-domains";
 import { DNS } from "@cocalc/util/theme";
 import {
   PRIMARY_SSO,
@@ -257,14 +258,17 @@ export class PassportManager {
       "icon",
       "public",
       "exclusive_domains",
+      "update_on_login",
       "do_not_hide",
     ] as const;
     for (const name in this.passports) {
       if (name === "site_conf") continue;
       // this is sent to the web client → do not include any secret info!
+      const infoSource = this.passports[name].info ?? {};
+      ssoNormalizeExclusiveDomains(infoSource);
       const info: PassportStrategyFrontend = {
         name,
-        ...(_.pick(this.passports[name].info, keys) as {
+        ...(_.pick(infoSource, keys) as {
           [key in (typeof keys)[number]]: any;
         }),
       };

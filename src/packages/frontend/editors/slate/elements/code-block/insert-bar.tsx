@@ -1,17 +1,18 @@
-//import { useFileContext } from "@cocalc/frontend/lib/file-context";
-// import OpenAIAvatar from "@cocalc/frontend/components/openai-avatar";
-import { Icon } from "@cocalc/frontend/components/icon";
-import { Button } from "antd";
+import { Button, Space } from "antd";
 import { Node, Path, Transforms } from "slate";
+
+import { Icon } from "@cocalc/frontend/components/icon";
+import { COLORS } from "@cocalc/util/theme";
+
 import { findElement } from "../../control";
-import { toSlate } from "./index";
 import { ReactEditor } from "../../slate-react";
 import { toDisplayMath } from "../math/index";
+import { toSlate } from "./index";
 
 function InsertButton({ children, onClick }) {
   return (
     <Button
-      style={{ color: "#666" }}
+      style={{ color: COLORS.GRAY_M }}
       size="small"
       onClick={(e) => {
         e.stopPropagation(); // keep the editor with the insert bar itself from getting selected
@@ -56,7 +57,7 @@ export default function InsertBar({ editor, element, info, above }) {
       }}
     >
       <div className="cocalc-slate-insert-cell-controls">
-        <Button.Group>
+        <Space.Compact>
           <InsertButton
             onClick={() => {
               insert(toSlate({ token: { content: "", info, type: "fence" } }));
@@ -101,7 +102,7 @@ export default function InsertBar({ editor, element, info, above }) {
             <Icon name="paste" /> Paste
           </InsertButton>
           */}
-        </Button.Group>
+        </Space.Compact>
       </div>
     </div>
   );

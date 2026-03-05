@@ -315,7 +315,9 @@ export class CoreStream<T = any> extends EventEmitter {
     await until(
       async () => {
         let messages: StoredMessage[] = [];
-        let changes: (SetOperation | DeleteOperation | StoredMessage)[] = [];
+        // TODO: tracking changes during getAll and suppressing sending duplicates
+        // via the changefeed is not implemented.
+        // let changes: (SetOperation | DeleteOperation | StoredMessage)[] = [];
         try {
           if (this.isClosed()) {
             return true;
@@ -359,12 +361,12 @@ export class CoreStream<T = any> extends EventEmitter {
           noEmit,
           noSeqCheck: true,
         });
-        if (changes.length > 0) {
-          this.processPersistentMessages(changes, {
-            noEmit,
-            noSeqCheck: false,
-          });
-        }
+        // if (changes.length > 0) {
+        //   this.processPersistentMessages(changes, {
+        //     noEmit,
+        //     noSeqCheck: false,
+        //   });
+        // }
         // success!
         return true;
       },

@@ -11,8 +11,22 @@ export function set_account_table(obj: object): void {
 }
 
 export function ugly_error(err: any): void {
-  if (typeof err != "string") {
-    err = JSON.stringify(err);
+  let message = "";
+  if (typeof err === "string") {
+    message = err;
+  } else if (err instanceof Error) {
+    message = err.message;
+  } else if (err?.message && typeof err.message === "string") {
+    message = err.message;
+  } else {
+    try {
+      message = JSON.stringify(err);
+    } catch {
+      message = String(err);
+    }
   }
-  alert_message({ type: "error", message: `Settings error -- ${err}` });
+  if (!message) {
+    message = "Unknown error";
+  }
+  alert_message({ type: "error", message: `Settings error -- ${message}` });
 }

@@ -113,6 +113,11 @@ jobs:
       - name: build
         run: cd src && pnpm run make
 
+      - name: lint (eslint)
+        run: cd src/packages/static && pnpm run lint
+      - name: lint (eslint frontend)
+        run: cd src/packages/frontend && pnpm run lint
+
       # This runs all the tests with text output and jest-junit reporters to generate junit.xml reports
       # That test-github-ci target runs workspaces.py for testing, which in turn runs the depchecks
       - name: test

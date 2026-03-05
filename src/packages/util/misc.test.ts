@@ -362,6 +362,41 @@ describe("suggest_duplicate_filename", () => {
   });
 });
 
+describe("is_valid email_address", () => {
+  const ivea = misc.is_valid_email_address;
+  test("valid", () => {
+    expect(ivea("foo@bar.com")).toBe(true);
+    expect(ivea("foo+bar@bar.com")).toBe(true);
+    expect(ivea("foo.bar@bar.com")).toBe(true);
+    expect(ivea("foo-bar@bar.com")).toBe(true);
+    expect(ivea("foo_bar@bar.com")).toBe(true);
+    expect(ivea("123@bar.com")).toBe(true);
+    expect(ivea("foo@123.com")).toBe(true);
+    expect(ivea("foo@bar.co.uk")).toBe(true);
+    expect(ivea("foobar@bar.com")).toBe(true);
+    expect(ivea("foo.bar@bar.com")).toBe(true);
+    expect(ivea("foo+bar@bar.com")).toBe(true);
+    expect(ivea("FOO@BAR.BAZ")).toBe(true);
+  });
+  test("invalid", () => {
+    expect(ivea(123)).toBe(false);
+    expect(ivea({})).toBe(false);
+    expect(ivea([])).toBe(false);
+    expect(ivea(null)).toBe(false);
+    expect(ivea(undefined)).toBe(false);
+    expect(ivea("abc")).toBe(false);
+    expect(ivea("abc@foo@bar.com")).toBe(false);
+    expect(ivea("foo@bar.")).toBe(false);
+    expect(ivea("foo@.bar.com")).toBe(false);
+    expect(ivea("foo@bar..com")).toBe(false);
+    expect(ivea("@bar.com")).toBe(false);
+    expect(ivea("foo@")).toBe(false);
+    expect(ivea("foo")).toBe(false);
+    expect(ivea("foo bar@bar.com")).toBe(false);
+    expect(ivea("foo@bar@bar.com")).toBe(false);
+  });
+});
+
 describe("isValidAnonymousID", () => {
   const isValid = misc.isValidAnonymousID;
 

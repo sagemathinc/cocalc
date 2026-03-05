@@ -1,37 +1,43 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { Alert, Flex } from "antd";
-import React from "react";
+import React, { useMemo } from "react";
 import { useIntl } from "react-intl";
+
 import { CSS, redux } from "@cocalc/frontend/app-framework";
 import { Icon, SearchInput } from "@cocalc/frontend/components";
+import { HelpAlert } from "@cocalc/frontend/project/explorer/file-listing/help-alert";
+import { TerminalModeDisplay } from "@cocalc/frontend/project/explorer/file-listing/terminal-mode-display";
+import { full_path_text } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_to_file } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
-import { TERM_MODE_CHAR } from "./file-listing";
+import { isTerminalMode } from "./file-listing";
 import { ListingItem } from "./types";
-import { TerminalModeDisplay } from "@cocalc/frontend/project/explorer/file-listing/terminal-mode-display";
+import { SearchHistoryDropdown } from "./search-history-dropdown";
+import { useExplorerSearchHistory } from "./use-search-history";
 
-const HelpStyle = {
+const HelpStyle: React.CSSProperties = {
   wordWrap: "break-word",
   top: "40px",
   position: "absolute",
   width: "100%",
-  height: "38",
-  boxShadow: "#999 6px 6px 6px",
+  height: "38px",
+  boxShadow: `${COLORS.GRAY_L} 6px 6px 6px`,
   zIndex: 100,
   borderRadius: "15px",
-} as const;
+};
 
 export const outputMinitermStyle: React.CSSProperties = {
-  background: "white",
+  background: COLORS.WHITE,
   position: "absolute",
   zIndex: 10,
-  boxShadow: "-4px 4px 7px #aaa",
+  boxShadow: `-4px 4px 7px ${COLORS.GRAY_L}`,
   maxHeight: "450px",
   overflow: "auto",
   right: 0,
@@ -39,20 +45,25 @@ export const outputMinitermStyle: React.CSSProperties = {
   marginRight: "5px",
   borderRadius: "5px",
   width: "100%",
-} as const;
+};
 
 interface Props {
   file_search: string;
   current_path?: string;
   actions: ProjectActions;
-  create_file: (a, b) => void;
-  create_folder: (a) => void;
+  create_file: (ext?: string, switch_over?: boolean) => void;
+  create_folder: (switch_over?: boolean) => void;
   selected_file?: ListingItem; // if given, file selected by cursor, which we open on pressing enter
   selected_file_index?: number;
   file_creation_error?: string;
   num_files_displayed?: number;
   disabled?: boolean;
   ext_selection?: string;
+  disabled_ext?: string[];
+  on_blur?: () => void;
+  on_focus?: () => void;
+  /** Called when a terminal command (prefixed with /) finishes executing. */
+  onTerminalCommand?: () => void;
 }
 
 // Commands such as CD throw a setState error.
@@ -70,17 +81,27 @@ export const SearchBar = React.memo((props: Props) => {
     num_files_displayed = 0,
     disabled = false,
     ext_selection,
+    disabled_ext,
   } = props;
 
   const intl = useIntl();
   const { project_id } = useProjectContext();
+  const {
+    history,
+    initialized: historyInitialized,
+    addHistoryEntry,
+  } = useExplorerSearchHistory(project_id);
 
-  // edit → run → edit
-  // TODO use "state" to show a progress spinner while a command is running
-  // @ts-ignore
-  const [state, set_state] = React.useState<"edit" | "run">("edit");
+  // TODO use state/set_state to show a progress spinner while a command runs
+  const [, set_state] = React.useState<"edit" | "run">("edit");
   const [error, set_error] = React.useState<string | undefined>(undefined);
   const [stdout, set_stdout] = React.useState<string | undefined>(undefined);
+  const [historyMode, setHistoryMode] = React.useState(false);
+  const [historyIndex, setHistoryIndex] = React.useState(0);
+
+  const inputFocusedRef = React.useRef(false);
+  const previousSearchRef = React.useRef(file_search);
+  const skipNextClearHistoryRef = React.useRef(false);
 
   const _id = React.useRef<number>(0);
   const [cmd, set_cmd] = React.useState<
@@ -88,7 +109,49 @@ export const SearchBar = React.memo((props: Props) => {
   >(undefined);
 
   React.useEffect(() => {
+    if (!historyMode) return;
+    if (history.length === 0) {
+      setHistoryMode(false);
+      setHistoryIndex(0);
+      return;
+    }
+    if (historyIndex >= history.length) {
+      setHistoryIndex(history.length - 1);
+    }
+  }, [history, historyIndex, historyMode]);
+
+  React.useEffect(() => {
+    const prev = previousSearchRef.current;
+    if (prev === file_search) {
+      return;
+    }
+    previousSearchRef.current = file_search;
+
+    if (file_search.length > 0) {
+      return;
+    }
+
+    if (!prev) {
+      return;
+    }
+
+    if (skipNextClearHistoryRef.current) {
+      skipNextClearHistoryRef.current = false;
+      return;
+    }
+
+    // If search text is cleared after focus left the input, assume it was
+    // used via click/directory navigation and save it.
+    if (!inputFocusedRef.current) {
+      addHistoryEntry(prev);
+    }
+  }, [addHistoryEntry, file_search]);
+
+  React.useEffect(() => {
     if (cmd == null) return;
+    // Open the listing pass-through latch BEFORE the command runs,
+    // so filesystem updates triggered by the command are shown immediately.
+    props.onTerminalCommand?.();
     const { input, id } = cmd;
     const input0 = input + '\necho $HOME "`pwd`"';
     const compute_server_id = redux
@@ -164,24 +227,34 @@ export const SearchBar = React.memo((props: Props) => {
     set_cmd({ input, id: _id.current });
   }
 
+  const actualNewFilename = useMemo(() => {
+    if (file_search.length === 0) return "";
+    return full_path_text(file_search, disabled_ext ?? []);
+  }, [file_search, disabled_ext]);
+
   function render_help_info(): React.JSX.Element | undefined {
-    if (file_search[0] == TERM_MODE_CHAR) {
+    if (historyMode) {
+      return;
+    }
+    if (isTerminalMode(file_search)) {
       return <TerminalModeDisplay style={HelpStyle} />;
     }
-    if (file_search.length > 0 && num_files_displayed > 0) {
-      let text;
-      const firstFolderPosition = file_search.indexOf("/");
-      if (file_search === " /") {
-        text = "Showing all folders in this directory";
-      } else if (firstFolderPosition === file_search.length - 1) {
-        text = `Showing folders matching ${file_search.slice(
-          0,
-          file_search.length - 1,
-        )}`;
-      } else {
-        text = `Showing files matching "${file_search}"`;
-      }
-      return <Alert style={HelpStyle} type="info" message={text} />;
+    if (file_search.length > 0) {
+      return (
+        <div
+          style={{
+            position: "absolute",
+            top: "40px",
+            width: "100%",
+            zIndex: 100,
+          }}
+        >
+          <HelpAlert
+            file_search={file_search}
+            actual_new_filename={actualNewFilename}
+          />
+        </div>
+      );
     }
   }
 
@@ -206,27 +279,37 @@ export const SearchBar = React.memo((props: Props) => {
   ): React.JSX.Element | undefined {
     if (x) {
       return (
-        <pre style={style}>
-          <a
-            onClick={(e) => {
-              e.preventDefault();
-              set_stdout("");
-              set_error("");
-            }}
-            href=""
+        <div style={{ position: "relative" }}>
+          <div
             style={{
-              right: "5px",
-              top: "0px",
-              color: "#666",
-              fontSize: "14pt",
-              position: "absolute",
-              background: "white",
+              position: "sticky",
+              top: 0,
+              zIndex: 1,
+              display: "flex",
+              justifyContent: "flex-end",
+              pointerEvents: "none",
             }}
           >
-            <Icon name="times" />
-          </a>
-          {x}
-        </pre>
+            <a
+              onClick={(e) => {
+                e.preventDefault();
+                set_stdout("");
+                set_error("");
+              }}
+              href=""
+              style={{
+                color: COLORS.GRAY_M,
+                fontSize: "14pt",
+                background: COLORS.WHITE,
+                pointerEvents: "auto",
+                padding: "0 5px",
+              }}
+            >
+              <Icon name="times" />
+            </a>
+          </div>
+          <pre style={{ margin: 0, ...style }}>{x}</pre>
+        </div>
       );
     }
   }
@@ -239,18 +322,25 @@ export const SearchBar = React.memo((props: Props) => {
     value: string,
     { ctrl_down, shift_down }: { ctrl_down: boolean; shift_down: boolean },
   ): void {
+    if (historyMode) {
+      apply_history_selection();
+      return;
+    }
     if (current_path == null) {
       return;
     }
-    if (value.startsWith(TERM_MODE_CHAR)) {
+    if (isTerminalMode(value)) {
       const command = value.slice(1, value.length);
+      if (command.trim().length > 0) {
+        addHistoryEntry(value);
+      }
       execute_command(command);
     } else if (selected_file) {
+      addHistoryEntry(value);
       const new_path = path_to_file(current_path, selected_file.name);
       const opening_a_dir = selected_file.isdir;
       if (opening_a_dir) {
         actions.open_directory(new_path);
-        actions.setState({ page_number: 0 });
       } else {
         actions.open_file({
           path: new_path,
@@ -258,6 +348,7 @@ export const SearchBar = React.memo((props: Props) => {
         });
       }
       if (opening_a_dir || !ctrl_down) {
+        skipNextClearHistoryRef.current = true;
         actions.set_file_search("");
         actions.clear_selected_file_index();
       }
@@ -274,27 +365,97 @@ export const SearchBar = React.memo((props: Props) => {
   }
 
   function on_up_press(): void {
+    if (!historyMode && historyInitialized && history.length > 0) {
+      setHistoryMode(true);
+      setHistoryIndex(0);
+      return;
+    }
+    if (historyMode) {
+      setHistoryIndex((idx) => Math.max(idx - 1, 0));
+      return;
+    }
     if (selected_file_index > 0) {
       actions.decrement_selected_file_index();
     }
   }
 
   function on_down_press(): void {
+    if (historyMode) {
+      setHistoryIndex((idx) =>
+        Math.min(idx + 1, Math.max(0, history.length - 1)),
+      );
+      return;
+    }
     if (selected_file_index < num_files_displayed - 1) {
       actions.increment_selected_file_index();
     }
   }
 
   function on_change(search: string): void {
+    setHistoryMode(false);
+    setHistoryIndex(0);
     actions.zero_selected_file_index();
     actions.set_file_search(search);
   }
 
+  function on_escape(): boolean {
+    if (!historyMode) {
+      return false;
+    }
+    setHistoryMode(false);
+    setHistoryIndex(0);
+    return true;
+  }
+
+  function apply_history_selection(idx?: number): void {
+    const value = history[idx ?? historyIndex];
+    setHistoryMode(false);
+    setHistoryIndex(0);
+    if (value == null) {
+      return;
+    }
+    actions.zero_selected_file_index();
+    actions.set_file_search(value);
+  }
+
+  function on_focus(): void {
+    inputFocusedRef.current = true;
+    props.on_focus?.();
+  }
+
+  function on_blur(): void {
+    inputFocusedRef.current = false;
+    setHistoryMode(false);
+    setHistoryIndex(0);
+    props.on_blur?.();
+  }
+
   function on_clear(): void {
+    // Save the current search to history before clearing — the user
+    // explicitly dismissed it, which counts as "used".
+    if (file_search) {
+      addHistoryEntry(file_search);
+      skipNextClearHistoryRef.current = true;
+    }
+    setHistoryMode(false);
+    setHistoryIndex(0);
     actions.clear_selected_file_index();
-    //set_input("");
     set_stdout("");
     set_error("");
+  }
+
+  function render_history_dropdown(): React.JSX.Element | undefined {
+    if (!historyMode || history.length === 0) {
+      return;
+    }
+    return (
+      <SearchHistoryDropdown
+        history={history}
+        historyIndex={historyIndex}
+        setHistoryIndex={setHistoryIndex}
+        onSelect={apply_history_selection}
+      />
+    );
   }
 
   return (
@@ -304,7 +465,7 @@ export const SearchBar = React.memo((props: Props) => {
         autoSelect
         placeholder={intl.formatMessage({
           id: "project.explorer.search-bar.placeholder",
-          defaultMessage: 'Filter files or "/" for terminal...',
+          defaultMessage: 'Filter files or "!" or "/" for Terminal...',
         })}
         value={file_search}
         on_change={on_change}
@@ -312,13 +473,22 @@ export const SearchBar = React.memo((props: Props) => {
         on_up={on_up_press}
         on_down={on_down_press}
         on_clear={on_clear}
+        on_escape={on_escape}
+        on_blur={on_blur}
+        on_focus={on_focus}
         disabled={disabled || !!ext_selection}
+        status={
+          file_search.length > 0 && !isTerminalMode(file_search)
+            ? "warning"
+            : undefined
+        }
       />
       {render_file_creation_error()}
+      {render_history_dropdown()}
       {render_help_info()}
       <div style={{ ...outputMinitermStyle, width: "100%", left: 0 }}>
         {render_output(error, {
-          color: "darkred",
+          color: COLORS.FG_RED,
           margin: 0,
         })}
         {render_output(stdout, { margin: 0 })}

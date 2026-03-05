@@ -1,16 +1,17 @@
 import React, { useCallback, useRef } from "react";
-import { Editor, Range, Element, Ancestor, Descendant } from "slate";
-
-import ElementComponent from "./element";
-import TextComponent from "./text";
-import { ReactEditor } from "..";
-import { useSlateStatic } from "../hooks/use-slate-static";
-import { useDecorate } from "../hooks/use-decorate";
-import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
-import { RenderElementProps, RenderLeafProps } from "./editable";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
+import { Ancestor, Descendant, Editor, Element, Range } from "slate";
+
 import { shallowCompare } from "@cocalc/util/misc";
+
 import { SlateEditor } from "../../editable-markdown";
+import { ReactEditor } from "..";
+import { useDecorate } from "../hooks/use-decorate";
+import { useSlateStatic } from "../hooks/use-slate-static";
+import { NODE_TO_INDEX, NODE_TO_PARENT } from "../utils/weak-maps";
+import ElementComponent from "./element";
+import { RenderElementProps, RenderLeafProps } from "./editable";
+import TextComponent from "./text";
 
 export interface WindowingParams {
   rowStyle?: React.CSSProperties;
@@ -50,6 +51,12 @@ const Children: React.FC<Props> = React.memo(
   }) => {
     const decorate = useDecorate();
     const editor = useSlateStatic() as SlateEditor;
+    const virtuosoRef = useRef<VirtuosoHandle>(null);
+    const scrollerRef = useRef<HTMLDivElement | null>(null);
+    // see https://github.com/petyosi/react-virtuoso/issues/274
+    const handleScrollerRef = useCallback((ref) => {
+      scrollerRef.current = ref;
+    }, []);
     let path;
     try {
       path = ReactEditor.findPath(editor, node);
@@ -157,12 +164,6 @@ const Children: React.FC<Props> = React.memo(
       NODE_TO_PARENT.set(n, node);
     }
 
-    const virtuosoRef = useRef<VirtuosoHandle>(null);
-    const scrollerRef = useRef<HTMLDivElement | null>(null);
-    // see https://github.com/petyosi/react-virtuoso/issues/274
-    const handleScrollerRef = useCallback((ref) => {
-      scrollerRef.current = ref;
-    }, []);
     if (windowing != null) {
       // using windowing
 
@@ -214,7 +215,7 @@ const Children: React.FC<Props> = React.memo(
           console.warn(
             "SLATE -- issue in renderChild",
             node.children[index],
-            err
+            err,
           );
         }
       }
@@ -231,7 +232,7 @@ const Children: React.FC<Props> = React.memo(
       return true;
     }
     return shallowCompare(prev, next);
-  }
+  },
 );
 
 export default Children;

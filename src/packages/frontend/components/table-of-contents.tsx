@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -42,10 +42,14 @@ export function TableOfContents(props: Props) {
     return <>{props.ifEmpty}</>;
   }
 
+  return <TableOfContentsBody {...props} />;
+}
+
+function TableOfContentsBody(props: Props) {
   return useMemo(() => {
     const entries: React.JSX.Element[] = [];
     for (const entry of props.contents ?? []) {
-      entries.push(<Entry {...props} entry={entry} />);
+      entries.push(<Entry key={entry.get("id")} {...props} entry={entry} />);
     }
     return (
       <div

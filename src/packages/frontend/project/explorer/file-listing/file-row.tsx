@@ -1,10 +1,12 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Popover, Col, Row } from "antd";
+import { Button, Col, Dropdown, type MenuProps, Popover, Row } from "antd";
 import memoizeOne from "memoize-one";
+import { useIntl } from "react-intl";
+
 import { CSS, React, useState } from "@cocalc/frontend/app-framework";
 import {
   Icon,
@@ -15,25 +17,22 @@ import {
 } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { labels } from "@cocalc/frontend/i18n";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { ProjectActions } from "@cocalc/frontend/project_actions";
+import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
+import { url_href } from "@cocalc/frontend/project/utils";
+import {
+  type FileAction,
+  ProjectActions,
+} from "@cocalc/frontend/project_actions";
 import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import { url_href } from "@cocalc/frontend/project/utils";
+
 import { FileCheckbox } from "./file-checkbox";
 import { PublicButton } from "./public-button";
-import { generate_click_for } from "./utils";
-
-export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
-  "md",
-  "txt",
-  "html",
-  "pdf",
-  "png",
-  "jpeg",
-] as const;
+import { VIEWABLE_FILE_EXT, generate_click_for } from "./utils";
 
 const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
 
@@ -60,9 +59,12 @@ interface Props {
   isStarred?: boolean;
   onToggleStar?: (path: string, starred: boolean) => void;
   dimFileExtensions?: boolean;
+  /** Number of currently checked files – used for context menu mode */
+  checkedCount?: number;
 }
 
 export const FileRow: React.FC<Props> = React.memo((props) => {
+  const intl = useIntl();
   const student_project_functionality = useStudentProjectFunctionality(
     props.actions.project_id,
   );
@@ -105,7 +107,7 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       body = <Icon name={name} style={{ fontSize: "14pt" }} />;
     }
 
-    return <a style={style}>{body}</a>;
+    return <span style={style}>{body}</span>;
   }
 
   function render_link_target() {
@@ -122,11 +124,11 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
   function render_name_link(styles, name, ext) {
     const extStyle = props.dimFileExtensions ? DIMMED_STYLE : undefined;
     return (
-      <a style={styles} cocalc-test="file-line">
+      <span style={styles} cocalc-test="file-line">
         {misc.trunc_middle(name, 50)}
         <span style={extStyle}>{ext === "" ? "" : `.${ext}`}</span>
         {render_link_target()}
-      </a>
+      </span>
     );
   }
 
@@ -207,14 +209,131 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     return misc.path_to_file(props.current_path, props.name);
   }
 
+  function getContextMenu(): MenuProps["items"] {
+    if (props.name === ".." || student_project_functionality.disableActions) {
+      return [];
+    }
+
+    // Intentionally keep the current multi-selection when right-clicking another row.
+    // This avoids accidentally clearing a selection due to slightly off-target clicks;
+    // the action dialog confirms and lists exactly which files will be affected.
+    const multiple = (props.checkedCount ?? 0) > 1;
+    const nameStr = misc.trunc_middle(props.name, 30);
+    const typeStr = intl.formatMessage(labels.file_or_folder, {
+      isDir: String(!!props.isdir),
+    });
+    const sizeStr = props.size ? misc.human_readable_size(props.size) : "";
+
+    const ctx: NonNullable<MenuProps["items"]> = [];
+
+    // Header
+    if (multiple) {
+      ctx.push({
+        key: "header",
+        icon: <Icon name="files" />,
+        label: `${props.checkedCount} ${misc.plural(props.checkedCount ?? 0, "file")}`,
+        disabled: true,
+        style: { fontWeight: "bold", cursor: "default" },
+      });
+    } else {
+      ctx.push({
+        key: "header",
+        icon: <Icon name={props.isdir ? "folder-open" : "file"} />,
+        label: `${typeStr} ${nameStr}${sizeStr ? ` (${sizeStr})` : ""}`,
+        title: props.name,
+        disabled: true,
+        style: { fontWeight: "bold", cursor: "default" },
+      });
+      ctx.push({
+        key: "open",
+        icon: <Icon name="edit-filled" />,
+        label: intl.formatMessage(labels.open_file_or_folder, {
+          isDir: String(!!props.isdir),
+        }),
+        onClick: () => handle_click({} as any),
+      });
+    }
+
+    ctx.push({ key: "divider-header", type: "divider" });
+
+    // Standard file actions
+    const fp = full_path();
+    const triggerFileAction = (action: FileAction) => {
+      // Only force selection in single-item mode. In multi mode we intentionally
+      // preserve the existing checked set (see note above).
+      if (!multiple) {
+        props.actions.set_all_files_unchecked();
+        props.actions.set_file_list_checked([fp]);
+      }
+      props.actions.set_file_action(action);
+    };
+    ctx.push(
+      ...buildFileActionItems({
+        isdir: props.isdir,
+        intl,
+        multiple,
+        disableActions: student_project_functionality.disableActions,
+        inSnapshots: props.current_path?.startsWith(".snapshots") ?? false,
+        triggerFileAction,
+      }),
+    );
+
+    // Publish/share entry — always shown for single files, with state awareness
+    if (!multiple && !student_project_functionality.disableActions) {
+      ctx.push({
+        key: "share",
+        label: intl.formatMessage(labels.publish_status, {
+          isPublished: String(!!props.is_public),
+          isDir: String(!!props.isdir),
+        }),
+        icon: <Icon name="share-square" />,
+        disabled: props.current_path?.startsWith(".snapshots") ?? false,
+        onClick: () => triggerFileAction("share"),
+      });
+    }
+
+    // Download/View for single non-directory files
+    const showDownload = !student_project_functionality.disableActions;
+    if (!props.isdir && showDownload && !multiple) {
+      const ext = (misc.filename_extension(props.name) ?? "").toLowerCase();
+      const showView = VIEWABLE_FILE_EXT.includes(ext);
+      const fileUrl = url_href(
+        props.actions.project_id,
+        fp,
+        props.computeServerId,
+      );
+
+      ctx.push({ key: "divider-download", type: "divider" });
+
+      if (showView) {
+        ctx.push({
+          key: "view",
+          icon: <Icon name="eye" />,
+          label: intl.formatMessage(labels.view_file),
+          onClick: () => open_new_tab(fileUrl),
+        });
+      }
+
+      ctx.push({
+        key: "download",
+        label: intl.formatMessage(labels.download),
+        icon: <Icon name="cloud-download" />,
+        onClick: () => {
+          props.actions.download_file({ path: fp, log: true });
+        },
+      });
+    }
+
+    return ctx;
+  }
+
   function handle_mouse_down() {
     set_selection_at_last_mouse_down(window.getSelection()?.toString() ?? "");
   }
 
   function handle_click(e) {
     if (
-      window.getSelection()?.toString() ??
-      "" !== selection_at_last_mouse_down
+      (window.getSelection()?.toString() ?? "") !== selection_at_last_mouse_down
     ) {
       // This is a trick so that you can select a filename without
       // the click to do the selection triggering opening of the file.
@@ -369,7 +488,8 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
     props.computeServerId,
   );
 
-  return (
+  const contextMenuItems = getContextMenu();
+  const row = (
     <Row
       style={row_styles}
       onMouseDown={handle_mouse_down}
@@ -426,6 +546,16 @@ export const FileRow: React.FC<Props> = React.memo((props) => {
       </Col>
     </Row>
   );
+
+  if (contextMenuItems && contextMenuItems.length > 0) {
+    return (
+      <Dropdown menu={{ items: contextMenuItems }} trigger={["contextMenu"]}>
+        {row}
+      </Dropdown>
+    );
+  }
+
+  return row;
 });
 
 const directory_size_style: React.CSSProperties = {

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -20,7 +20,6 @@ import {
   useIsMountedRef,
   useMemo,
   useRef,
-  useRedux,
   useTypedRedux,
   useState,
 } from "../app-framework";
@@ -114,8 +113,7 @@ export const AddCollaborators: React.FC<Props> = ({
     () => project_map?.get(project_id),
     [project_id, project_map],
   );
-  const get_account_id = useRedux("account", "get_account_id");
-  const current_account_id = get_account_id();
+  const current_account_id = useTypedRedux("account", "account_id");
   const strict_collaborator_management =
     useTypedRedux("customize", "strict_collaborator_management") ?? false;
   const manage_users_owner_only =

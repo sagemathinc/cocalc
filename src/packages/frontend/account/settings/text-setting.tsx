@@ -5,7 +5,9 @@
 
 import { Input } from "antd";
 
-import { LabeledRow } from "../../components";
+import { COLORS } from "@cocalc/util/theme";
+
+import { LabeledRow } from "@cocalc/frontend/components";
 
 // in a grid:   Title [text input]
 interface Props {
@@ -17,8 +19,8 @@ interface Props {
   onPressEnter?: (e) => void;
   maxLength?: number;
   disabled?: boolean;
+  title?: string; // tooltip text
 }
-
 
 // Note -- we disable all password manager autocomplete, since this is a component
 // that's used internally in the app for configuration. See https://github.com/sagemathinc/cocalc/issues/6868
@@ -27,7 +29,7 @@ export function TextSetting(props: Props): React.JSX.Element {
   return (
     <LabeledRow
       label={props.label}
-      style={props.disabled ? { color: "#666" } : undefined}
+      style={props.disabled ? { color: COLORS.GRAY_M } : undefined}
     >
       <Input
         value={props.value}
@@ -37,6 +39,7 @@ export function TextSetting(props: Props): React.JSX.Element {
         onPressEnter={props.onPressEnter}
         maxLength={props.maxLength}
         disabled={props.disabled}
+        title={props.title}
         autoComplete={"off"}
         data-lpignore="true"
         data-1p-ignore

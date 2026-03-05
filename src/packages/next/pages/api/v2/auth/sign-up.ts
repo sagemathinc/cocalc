@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -35,9 +35,9 @@ import { v4 } from "uuid";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import createAccount from "@cocalc/server/accounts/create-account";
 import isAccountAvailable from "@cocalc/server/auth/is-account-available";
-import isDomainExclusiveSSO from "@cocalc/server/auth/is-domain-exclusive-sso";
 import passwordStrength from "@cocalc/server/auth/password-strength";
 import reCaptcha from "@cocalc/server/auth/recaptcha";
+import { isExclusiveSSOEmail } from "@cocalc/server/auth/throttle";
 import redeemRegistrationToken from "@cocalc/server/auth/tokens/redeem";
 import sendWelcomeEmail from "@cocalc/server/email/welcome-email";
 import getSiteLicenseId from "@cocalc/server/public-paths/site-license-id";
@@ -45,7 +45,6 @@ import {
   is_valid_email_address as isValidEmailAddress,
   len,
 } from "@cocalc/util/misc";
-
 import getAccountId from "lib/account/get-account";
 import { apiRoute, apiRouteOperation } from "lib/api";
 import assertTrusted from "lib/api/assert-trusted";
@@ -112,28 +111,51 @@ export async function signUp(req, res) {
   const { email_signup, anonymous_signup, anonymous_signup_licensed_shares } =
     await getServerSettings();
 
-  const owner_id = await getAccountId(req);
+  // Track whether this is a licensed-share anonymous signup, so we can
+  // skip checks that don't apply (e.g., registration tokens).
+  let licensedShareSignup = false;
+
+  let owner_id = await getAccountId(req);
   if (owner_id) {
     if (isAnonymous) {
-      res.json({
-        issues: {
-          api: "Creation of anonymous accounts via the API is not allowed.",
-        },
-      });
-      return;
-    }
-    // no captcha required -- api access
-    // We ONLY allow creation without checking the captcha
-    // for trusted users.
-    try {
-      await assertTrusted(owner_id);
-    } catch (err) {
-      res.json({
-        issues: {
-          api: `${err}`,
-        },
-      });
-      return;
+      // Allow anonymous signup for licensed shared files, but only for
+      // browser users (cookie auth), not API-key users.  The frontend
+      // shows the anonymous option when the user has a stale cookie from
+      // a previous session or signed in via the in-page form.
+      if (
+        !req.header("Authorization") &&
+        (await isAllowedLicensedShareSignup({
+          anonymous_signup_licensed_shares,
+          publicPathId,
+        }))
+      ) {
+        // Licensed share anonymous signup — clear owner_id so the new
+        // anonymous account gets signed in (signUserIn is skipped when
+        // owner_id is set, which would leave an orphaned account).
+        owner_id = undefined;
+        licensedShareSignup = true;
+      } else {
+        res.json({
+          issues: {
+            api: "Creation of anonymous accounts via the API is not allowed.",
+          },
+        });
+        return;
+      }
+    } else {
+      // no captcha required -- api access
+      // We ONLY allow creation without checking the captcha
+      // for trusted users.
+      try {
+        await assertTrusted(owner_id);
+      } catch (err) {
+        res.json({
+          issues: {
+            api: `${err}`,
+          },
+        });
+        return;
+      }
     }
   } else {
     try {
@@ -152,11 +174,13 @@ export async function signUp(req, res) {
     // Check anonymous sign up conditions.
     if (!anonymous_signup) {
       if (
-        anonymous_signup_licensed_shares &&
-        publicPathId &&
-        (await hasSiteLicenseId(publicPathId))
+        await isAllowedLicensedShareSignup({
+          anonymous_signup_licensed_shares,
+          publicPathId,
+        })
       ) {
         // an unlisted public path with a license when anonymous_signup_licensed_shares is set is allowed
+        licensedShareSignup = true;
       } else {
         res.json({
           issues: {
@@ -176,11 +200,12 @@ export async function signUp(req, res) {
       });
       return;
     }
-    const exclusive = await isDomainExclusiveSSO(email);
+    const exclusive = await isExclusiveSSOEmail(email);
     if (exclusive) {
+      const name = exclusive.display ?? exclusive.name;
       res.json({
         issues: {
-          email: `To sign up with "@${exclusive}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
+          email: `To sign up with "${name}", you have to use the corresponding single sign on mechanism.  Delete your email address above, then click the SSO icon.`,
         },
       });
       return;
@@ -194,16 +219,20 @@ export async function signUp(req, res) {
     }
   }
 
+  // Licensed-share anonymous signups don't require a registration token —
+  // the site license on the public path is the authorization.
   let tokenInfo;
-  try {
-    tokenInfo = await redeemRegistrationToken(registrationToken);
-  } catch (err) {
-    res.json({
-      issues: {
-        registrationToken: `Issue with registration token -- ${err.message}`,
-      },
-    });
-    return;
+  if (!licensedShareSignup) {
+    try {
+      tokenInfo = await redeemRegistrationToken(registrationToken);
+    } catch (err) {
+      res.json({
+        issues: {
+          registrationToken: `Issue with registration token -- ${err.message}`,
+        },
+      });
+      return;
+    }
   }
 
   try {
@@ -266,6 +295,24 @@ export function checkObviousConditions({
 
 async function hasSiteLicenseId(id: string): Promise<boolean> {
   return !!(await getSiteLicenseId(id));
+}
+
+// Whether anonymous signup is allowed for a licensed shared public path.
+// Requires the anonymous_signup_licensed_shares setting to be enabled,
+// a publicPathId to be provided, and the public path to be unlisted
+// with a site license attached.
+async function isAllowedLicensedShareSignup({
+  anonymous_signup_licensed_shares,
+  publicPathId,
+}: {
+  anonymous_signup_licensed_shares: boolean;
+  publicPathId?: string;
+}): Promise<boolean> {
+  return !!(
+    anonymous_signup_licensed_shares &&
+    publicPathId &&
+    (await hasSiteLicenseId(publicPathId))
+  );
 }
 
 export default apiRoute({

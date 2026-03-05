@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -12,7 +12,7 @@ import { FormattedMessage, useIntl } from "react-intl";
 import {
   CSS,
   redux,
-  useRedux,
+  useStore,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import {
@@ -52,13 +52,12 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
   const { project, user_map, mode = "project" } = props;
   const isFlyout = mode === "flyout";
   const intl = useIntl();
-  const get_account_id = useRedux("account", "get_account_id");
-  const sort_by_activity = useRedux("projects", "sort_by_activity");
+  const current_account_id = useTypedRedux("account", "account_id");
+  const projectStore = useStore("projects");
   const student = useStudentProjectFunctionality(project.get("project_id"));
   const [error, setError] = useState<string>("");
 
   const project_id = project.get("project_id");
-  const current_account_id = get_account_id();
   const users = project.get("users");
   const current_user_group = users?.getIn([current_account_id, "group"]);
   const is_requester_owner = current_user_group === "owner";
@@ -97,7 +96,7 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
 
   function user_remove_confirm_text(account_id: string) {
     const style: CSS = { maxWidth: "300px" };
-    if (account_id === get_account_id()) {
+    if (account_id === current_account_id) {
       return (
         <div style={style}>
           <FormattedMessage
@@ -347,9 +346,9 @@ export const CurrentCollaboratorsPanel: React.FC<Props> = (props: Props) => {
       .map((v, k) => ({ account_id: k, group: v.get("group") }))
       .toList()
       .toJS();
-    return sort_by_activity(users, project.get("project_id")).map(
-      (u: any, i: number) => render_user(u, i === users.length - 1),
-    );
+    return projectStore
+      .sort_by_activity(users, project.get("project_id"))
+      .map((u: any, i: number) => render_user(u, i === users.length - 1));
   }
 
   function render_setting() {

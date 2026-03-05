@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -59,14 +59,14 @@ const PLUGINS = [
   [mentionPlugin],
 ];
 
-function usePlugins(m, plugins) {
+function applyPlugins(m, plugins) {
   for (const [plugin, options] of plugins) {
     m.use(plugin, options);
   }
 }
 
 export const markdown_it = new MarkdownIt(OPTIONS);
-usePlugins(markdown_it, PLUGINS);
+applyPlugins(markdown_it, PLUGINS);
 
 /*
 export function markdownParser() {
@@ -99,7 +99,7 @@ function inject_linenumbers_plugin(md) {
 }
 const markdown_it_line_numbers = new MarkdownIt(OPTIONS);
 markdown_it_line_numbers.use(inject_linenumbers_plugin);
-usePlugins(markdown_it_line_numbers, PLUGINS);
+applyPlugins(markdown_it_line_numbers, PLUGINS);
 
 /*
 Turn the given markdown *string* into an HTML *string*.

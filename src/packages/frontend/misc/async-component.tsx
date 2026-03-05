@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -29,7 +29,7 @@ const { useEffect, useRef, useState } = React;
 import { useIsMountedRef } from "@cocalc/frontend/app-framework/hooks";
 
 export function AsyncComponent(f: () => Promise<any>) {
-  return (props) => {
+  function AsyncComponentWrapper(props) {
     const [isLoaded, setIsLoaded] = useState<boolean>(false);
     const componentRef = useRef<any>(null);
     const isMountedRef = useIsMountedRef();
@@ -49,5 +49,7 @@ export function AsyncComponent(f: () => Promise<any>) {
     } else {
       return <div>Loading...</div>;
     }
-  };
+  }
+
+  return AsyncComponentWrapper;
 }

@@ -178,6 +178,7 @@ export const GOOGLE_MODELS = [
   "gemini-2.0-flash-lite-8k",
   "gemini-3-flash-preview-16k", // Preview model, context limited to 16k
   "gemini-3-pro-preview-8k", // Preview model, context limited to 8k
+  "gemini-3.1-pro-preview-8k", // Preview model, context limited to 8k
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
@@ -197,6 +198,7 @@ const CANONICAL_GOOGLE_MODELS_THINKING = [
   "gemini-2.5-pro",
   "gemini-3-flash-preview",
   "gemini-3-pro-preview",
+  "gemini-3.1-pro-preview",
 ] as const;
 
 export type CanonicalGoogleModel = (typeof CANONICAL_GOOGLE_MODELS)[number];
@@ -220,6 +222,7 @@ export const GOOGLE_MODEL_TO_ID: Partial<{
   "gemini-2.5-pro-8k": "gemini-2.5-pro",
   "gemini-3-flash-preview-16k": "gemini-3-flash-preview",
   "gemini-3-pro-preview-8k": "gemini-3-pro-preview",
+  "gemini-3.1-pro-preview-8k": "gemini-3.1-pro-preview",
 } as const;
 
 /**
@@ -247,22 +250,26 @@ export const ANTHROPIC_MODELS = [
   "claude-4-sonnet-8k",
   "claude-4-opus-8k",
   "claude-4-5-sonnet-8k", // added 2025
+  "claude-4-6-sonnet-8k", // added 2026-02
   "claude-4-5-opus-8k", // added 2025
+  "claude-4-6-opus-8k", // added 2026-02
   "claude-4-5-haiku-8k", // added 2025
 ] as const;
 
 // https://docs.anthropic.com/en/docs/about-claude/models/overview#model-aliases
 // if it points to null, the model is no longer supported
 export const ANTHROPIC_VERSION: { [name in AnthropicModel]: string | null } = {
-  "claude-3-5-sonnet": "claude-3-5-sonnet-latest",
-  "claude-3-5-sonnet-4k": "claude-3-5-sonnet-latest",
-  "claude-3-5-haiku-8k": "claude-3-5-haiku-latest",
+  "claude-3-5-sonnet": null,
+  "claude-3-5-sonnet-4k": null,
+  "claude-3-5-haiku-8k": null,
   "claude-3-haiku": "claude-3-haiku-20240307",
   "claude-3-haiku-8k": "claude-3-haiku-20240307",
   "claude-4-sonnet-8k": "claude-sonnet-4-0",
   "claude-4-opus-8k": "claude-opus-4-0",
   "claude-4-5-sonnet-8k": "claude-sonnet-4-5",
+  "claude-4-6-sonnet-8k": "claude-sonnet-4-6",
   "claude-4-5-opus-8k": "claude-opus-4-5",
+  "claude-4-6-opus-8k": "claude-opus-4-6",
   "claude-4-5-haiku-8k": "claude-haiku-4-5",
   "claude-3-sonnet": null,
   "claude-3-sonnet-4k": null,
@@ -355,6 +362,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gpt-5-mini-8k",
   ),
   google: [
+    "gemini-3.1-pro-preview-8k",
     "gemini-3-flash-preview-16k",
     "gemini-3-pro-preview-8k",
     "gemini-2.5-flash-8k",
@@ -362,11 +370,13 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
   ],
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-small-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
-    // we show opus and the context restricted models (to avoid high costs)
+    // latest of each tier; keep 4.5 temporarily for users who have it configured
     return (
+      m === "claude-4-5-haiku-8k" ||
       m === "claude-4-5-sonnet-8k" ||
+      m === "claude-4-6-sonnet-8k" ||
       m === "claude-4-5-opus-8k" ||
-      m === "claude-4-5-haiku-8k"
+      m === "claude-4-6-opus-8k"
     );
   }),
   ollama: [], // this is empty, because these models are not hardcoded
@@ -869,6 +879,7 @@ export const LLM_USERNAMES: LLM2String = {
   "gemini-2.5-flash-8k": "Gemini 2.5 Flash",
   "gemini-2.5-pro-8k": "Gemini 2.5 Pro",
   "gemini-3-pro-preview-8k": "Gemini 3 Pro",
+  "gemini-3.1-pro-preview-8k": "Gemini 3.1 Pro",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
@@ -884,7 +895,9 @@ export const LLM_USERNAMES: LLM2String = {
   "claude-4-sonnet-8k": "Claude 4 Sonnet",
   "claude-4-opus-8k": "Claude 4 Opus",
   "claude-4-5-sonnet-8k": "Claude 4.5 Sonnet",
+  "claude-4-6-sonnet-8k": "Claude 4.6 Sonnet",
   "claude-4-5-opus-8k": "Claude 4.5 Opus",
+  "claude-4-6-opus-8k": "Claude 4.6 Opus",
   "claude-4-5-haiku-8k": "Claude 4.5 Haiku",
   "claude-3-opus": "Claude 3 Opus",
   "claude-3-opus-8k": "Claude 3 Opus",
@@ -959,6 +972,8 @@ export const LLM_DESCR: LLM2String = {
     "Google's Gemini 2.5 Pro Generative AI model (8k token context)",
   "gemini-3-pro-preview-8k":
     "Google's Gemini 3 Pro Generative AI model (8k token context)",
+  "gemini-3.1-pro-preview-8k":
+    "Google's Gemini 3.1 Pro model with enhanced reasoning (8k token context)",
   "mistral-small-latest":
     "Small general purpose tasks, text classification, customer service. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -987,8 +1002,12 @@ export const LLM_DESCR: LLM2String = {
     "Excels at writing and complex tasks (Anthropic, 8k token context)",
   "claude-4-5-sonnet-8k":
     "Most intelligent model with advanced reasoning (Anthropic, 8k token context)",
+  "claude-4-6-sonnet-8k":
+    "Advanced reasoning and coding model (Anthropic, 8k token context)",
   "claude-4-5-opus-8k":
     "Flagship model excelling at complex tasks and writing (Anthropic, 8k token context)",
+  "claude-4-6-opus-8k":
+    "Most intelligent model for agents and coding (Anthropic, 8k token context)",
   "claude-4-5-haiku-8k":
     "Fastest and most cost-efficient model (Anthropic, 8k token context)",
   "claude-3-sonnet-4k":
@@ -1287,6 +1306,12 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 8_000,
     free: false,
   },
+  "gemini-3.1-pro-preview-8k": {
+    prompt_tokens: usd1Mtokens(2),
+    completion_tokens: usd1Mtokens(12),
+    max_tokens: 8_000,
+    free: false,
+  },
   // https://mistral.ai/technology/
   "mistral-small-latest": {
     prompt_tokens: usd1Mtokens(0.2),
@@ -1391,7 +1416,19 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 8_000,
     free: false,
   },
+  "claude-4-6-sonnet-8k": {
+    prompt_tokens: usd1Mtokens(3),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 8_000,
+    free: false,
+  },
   "claude-4-5-opus-8k": {
+    prompt_tokens: usd1Mtokens(5),
+    completion_tokens: usd1Mtokens(25),
+    max_tokens: 8_000,
+    free: false,
+  },
+  "claude-4-6-opus-8k": {
     prompt_tokens: usd1Mtokens(5),
     completion_tokens: usd1Mtokens(25),
     max_tokens: 8_000,

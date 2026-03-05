@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020 - 2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -23,7 +23,7 @@ import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { capitalize, is_different, path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
-import { use_build_logs } from "./hooks";
+import { useBuildLogs } from "./hooks";
 import { BuildLogs } from "./types";
 
 function group_to_level(group: string): string {
@@ -147,6 +147,7 @@ const Item: React.FC<ItemProps> = React.memo(
           task={"ran latex"}
           error={item.get("message") ?? ""}
           line={item.get("content") ?? ""}
+          lineNumber={line}
           input={() => {
             const s = actions._syncstring.to_str();
             const v = s
@@ -215,12 +216,11 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
   (props) => {
     const { name, actions } = props;
 
-    const build_logs: BuildLogs = use_build_logs(name);
+    const build_logs: BuildLogs = useBuildLogs(name);
     const status: string = useRedux([name, "status"]) ?? "";
     const knitr: boolean = useRedux([name, "knitr"]);
     const includeError: string = useRedux([name, "includeError"]) ?? "";
-    
-    
+
     function render_status(): Rendered {
       if (status) {
         return (

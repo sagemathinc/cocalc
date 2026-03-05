@@ -42,7 +42,21 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `cd packages/[package] && pnpm build` - Build and compile a specific package
   - For packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
+  - You can pass file arguments: `cd packages/[package] && pnpm test -- [test-file]` to run a single test file
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
+- **IMPORTANT**: When modifying colors in `packages/util/theme.ts`, run `cd packages/frontend && pnpm update-color-scheme` to regenerate the SASS color variables in `packages/frontend/_colors.sass`
+
+### Workspace Management (`workspaces.py`)
+
+The root-level `workspaces.py` script orchestrates operations across all packages in the monorepo. Use it instead of running raw pnpm commands when working across the workspace:
+
+- `python3 workspaces.py install` - Install dependencies for all packages (use after updating package.json files)
+- `python3 workspaces.py build` - Build all packages that have changed
+- `python3 workspaces.py clean` - Delete dist and node_modules folders
+- `python3 workspaces.py version-check` - Check dependency version consistency across all packages
+- `python3 workspaces.py test` - Run tests for all packages
+
+**IMPORTANT**: After updating dependencies in any `package.json`, run `python3 workspaces.py version-check` to ensure consistency, then `python3 workspaces.py install` to update the lockfile and install.
 
 ### Development
 
@@ -155,6 +169,7 @@ CoCalc is organized as a monorepo with key packages:
 - **jsdom**: Browser environment simulation for frontend tests
 - Test files use `.test.ts` or `.spec.ts` extensions
 - Each package has its own jest.config.js
+- **Playwright MCP**: For interactive browser testing of the frontend UI, see [`packages/frontend/test/agent-playwright-testing.md`](packages/frontend/test/agent-playwright-testing.md) — covers the dev server setup, build-test loop, UI layout, and testing patterns for the file explorer and flyout panels. Always ask the developer for current dev account credentials.
 
 ### Import Patterns
 

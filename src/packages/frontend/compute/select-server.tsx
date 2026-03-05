@@ -299,7 +299,7 @@ export default function SelectServer({
             ? null
             : `${value}`
         }
-        onDropdownVisibleChange={setOpen}
+        onOpenChange={setOpen}
         style={{
           width: open ? "300px" : undefined,
           background,

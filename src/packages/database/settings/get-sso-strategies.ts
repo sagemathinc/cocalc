@@ -1,11 +1,12 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import getPool from "@cocalc/database/pool";
-import type { Strategy } from "@cocalc/util/types/sso";
 import { ssoDispayedName } from "@cocalc/util/auth";
+import { ssoNormalizeExclusiveDomains } from "@cocalc/util/sso-normalize-domains";
+import type { Strategy } from "@cocalc/util/types/sso";
 
 /** Returns an array of public info about strategies.
  * Cached a bit so safe to call a lot.
@@ -19,7 +20,8 @@ export default async function getStrategies(): Promise<Strategy[]> {
            COALESCE(info -> 'display',           conf -> 'display')           as display,
            COALESCE(info -> 'public',            conf -> 'public')            as public,
            COALESCE(info -> 'exclusive_domains', conf -> 'exclusive_domains') as exclusive_domains,
-           COALESCE(info -> 'do_not_hide',      'false'::JSONB)               as do_not_hide
+           COALESCE(info -> 'do_not_hide',      'false'::JSONB)               as do_not_hide,
+           COALESCE(info -> 'update_on_login',  'false'::JSONB)               as update_on_login
 
     FROM passport_settings
     WHERE strategy != 'site_conf'
@@ -31,14 +33,18 @@ export default async function getStrategies(): Promise<Strategy[]> {
       name: row.strategy,
     });
 
+    ssoNormalizeExclusiveDomains(row);
+    const exclusiveDomains = row.exclusive_domains ?? [];
+
     return {
       name: row.strategy,
       display,
       icon: row.icon, // don't use row.strategy as a fallback icon, since that icon likely does not exist
       backgroundColor: COLORS[row.strategy] ?? "",
       public: row.public ?? true,
-      exclusiveDomains: row.exclusive_domains ?? [],
+      exclusiveDomains,
       doNotHide: row.do_not_hide ?? false,
+      updateOnLogin: row.update_on_login ?? false,
     };
   });
 }

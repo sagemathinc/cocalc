@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -11,34 +11,36 @@ extra support for being connected to:
   - frame-editor (via actions)
 */
 
-import { callback, delay } from "awaiting";
-import { Map } from "immutable";
-import { debounce } from "lodash";
-import { Terminal as XTerminal } from "@xterm/xterm";
+import "@xterm/xterm/css/xterm.css";
+
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
-import "@xterm/xterm/css/xterm.css";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { Terminal as XTerminal } from "@xterm/xterm";
+import { callback, delay } from "awaiting";
+import { Map } from "immutable";
+import { debounce } from "lodash";
+
 import { ProjectActions, redux } from "@cocalc/frontend/app-framework";
+import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { get_buffer, set_buffer } from "@cocalc/frontend/copy-paste-buffer";
 import { file_associations } from "@cocalc/frontend/file-associations";
 import { isCoCalcURL } from "@cocalc/frontend/lib/cocalc-urls";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import {
   close,
   endswith,
   filename_extension,
   replace_all,
 } from "@cocalc/util/misc";
+import { termPath } from "@cocalc/util/terminal/names";
 import { Actions, CodeEditorState } from "../code-editor/actions";
 import { ConnectionStatus } from "../frame-tree/types";
 import { touch, touch_project } from "../generic/client";
+import { ConatTerminal } from "./conat-terminal";
 import { ConnectedTerminalInterface } from "./connected-terminal-interface";
 import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
-import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
-import { ConatTerminal } from "./conat-terminal";
-import { termPath } from "@cocalc/util/terminal/names";
 
 declare const $: any;
 
@@ -761,14 +763,32 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     this.conn_write({ cmd: "set_command", command, args });
   }
 
+  // Update command/args and kill+reconnect with the new command.
+  // Unlike set_command, this does not send a message to the backend
+  // (which isn't implemented anyway) — it just restarts the process.
+  restart(command: string | undefined, args: string[] | undefined): void {
+    this.command = command;
+    this.args = args;
+    this.kill();
+  }
+
   init_terminal_data(): void {
     this.terminal.onKey(({ key }) => {
       if (this.ignoreData) {
         this.conn_write(key);
       }
     });
+    // CPR (Cursor Position Request): when the PTY sends ESC[6n, xterm.js responds
+    // with ESC[row;colR via onData. We must forward this even during rendering
+    // (ignoreData > 0), but only for live sessions — not during history replay
+    // (ignore_terminal_data = true), which would send phantom replies.
+    // Test: run scripts/cpr_test.py in a CoCalc terminal for a visual demo.
+    const CPR_RESPONSE_RE = /^\x1b\[\d+;\d+R$/;
     this.terminal.onData((data) => {
-      if (!this.ignoreData) {
+      if (
+        !this.ignoreData ||
+        (!this.ignore_terminal_data && CPR_RESPONSE_RE.test(data))
+      ) {
         this.conn_write(data);
       }
     });
@@ -810,10 +830,16 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   }
 
   set_font_size(font_size: number): void {
+    if (this.isClosed() || this.terminal == null) {
+      return;
+    }
     this.terminal.options.fontSize = font_size;
   }
 
   getOption(option: string): any {
+    if (this.isClosed() || this.terminal == null) {
+      return;
+    }
     return this.terminal.options[option];
   }
 
