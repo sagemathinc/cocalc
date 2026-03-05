@@ -214,8 +214,15 @@ export function useDeferredListing<T, E = undefined>({
     if (alwaysPassThrough) {
       batchedFlush();
     } else if (latchRef.current) {
-      batchedFlush();
-      closeLatch();
+      // Close the latch inside the batched callback, not synchronously —
+      // otherwise a second update arriving within the 10ms batch window
+      // would see the latch already closed and be silently dropped.
+      if (batchTimerRef.current != null) clearTimeout(batchTimerRef.current);
+      batchTimerRef.current = setTimeout(() => {
+        batchTimerRef.current = null;
+        closeLatch();
+        flush();
+      }, BATCH_FLUSH_MS);
     } else if (committed.fp === mountFPRef.current) {
       // Committed listing still matches the mount-time state
       // (empty array, undefined, or stale from before navigation).

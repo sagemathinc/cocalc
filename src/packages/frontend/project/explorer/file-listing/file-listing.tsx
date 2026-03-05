@@ -1546,6 +1546,7 @@ export const FileListing: React.FC<Props> = ({
                 ? (e) => {
                     e.preventDefault();
                     e.stopPropagation();
+                    actions.set_all_files_unchecked();
                     actions.set_file_checked(fp, true);
                     actions.set_file_action("share");
                   }
