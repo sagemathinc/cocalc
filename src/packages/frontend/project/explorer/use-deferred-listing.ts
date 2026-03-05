@@ -31,6 +31,9 @@ import { hash_string } from "@cocalc/util/misc";
 /** How long the pass-through latch stays open (ms). */
 const LATCH_TIMEOUT_MS = 5_000;
 
+/** Debounce for batching rapid Redux updates into one render (ms). */
+const BATCH_FLUSH_MS = 10;
+
 interface UseDeferredListingOpts<T, E> {
   /** The live (latest) listing from Redux / computed selector. */
   liveListing: T | undefined;
@@ -126,6 +129,18 @@ export function useDeferredListing<T, E = undefined>({
     });
   }, []);
 
+  // Debounced flush: collapses rapid Redux updates (listing + public
+  // paths + starred files) into a single render.  Reads from latestRef
+  // so it always commits the most recent data.
+  const batchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const batchedFlush = useCallback(() => {
+    if (batchTimerRef.current != null) clearTimeout(batchTimerRef.current);
+    batchTimerRef.current = setTimeout(() => {
+      batchTimerRef.current = null;
+      flush();
+    }, BATCH_FLUSH_MS);
+  }, [flush]);
+
   const closeLatch = useCallback(() => {
     latchRef.current = false;
     if (latchTimerRef.current != null) {
@@ -160,6 +175,9 @@ export function useDeferredListing<T, E = undefined>({
       if (graceTimerRef.current != null) {
         clearTimeout(graceTimerRef.current);
       }
+      if (batchTimerRef.current != null) {
+        clearTimeout(batchTimerRef.current);
+      }
     };
   }, []);
 
@@ -187,26 +205,30 @@ export function useDeferredListing<T, E = undefined>({
   // and close the latch.
   // Also auto-flush the very first real data (undefined → something),
   // so the listing doesn't stay stuck on the Loading spinner.
+  //
+  // Uses batchedFlush (10ms debounce) so that rapid cascading Redux
+  // updates (listing + public paths + starred files) collapse into a
+  // single render instead of causing a row-by-row "waterfall" effect.
   useEffect(() => {
     if (!contentChanged) return;
     if (alwaysPassThrough) {
-      flush();
+      batchedFlush();
     } else if (latchRef.current) {
-      flush();
+      batchedFlush();
       closeLatch();
     } else if (committed.fp === mountFPRef.current) {
       // Committed listing still matches the mount-time state
       // (empty array, undefined, or stale from before navigation).
       // Auto-flush so the UI doesn't start blank.
-      flush();
+      batchedFlush();
     } else if (graceRef.current) {
       // Within the grace window after mount/navigation — auto-flush
       // follow-up updates like shared file info arriving after the
       // base listing, without showing a "Refresh" banner.
-      flush();
+      batchedFlush();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveFP, liveListing, alwaysPassThrough, flush, closeLatch]);
+  }, [liveFP, liveListing, alwaysPassThrough, batchedFlush, closeLatch]);
 
   return {
     displayListing: committed.listing,
