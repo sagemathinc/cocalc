@@ -325,7 +325,7 @@ function create_email_body(
 <br/><br/>
 <b>To accept the invitation:
 <ol>
-<li>Open <a href="${base_url}/app">CoCalc</a></li>
+<li>Open <a href="${base_url}/auth/sign-up?email=${encodeURIComponent(email_address)}">CoCalc</a></li>
 <li>Sign up/in using <i>exactly</i> your email address <code>${email_address}</code></li>
 <li>${direct_link}</li>
 </ol></b>
