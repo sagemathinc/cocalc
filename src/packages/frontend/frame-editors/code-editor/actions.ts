@@ -887,7 +887,11 @@ export class Actions<
   }
 
   // Set the type of the given node, e.g., 'cm', 'markdown', etc.
-  // NOTE: This is only meant to be used in derived classes right now.
+  // IMPORTANT: `type` must be the KEY of the editor's EDITOR_SPEC object,
+  // NOT the `type:` field inside an EditorDescription.  The two can differ —
+  // for example the RMD/QMD editor has key "pdfjs_canvas" but EditorDescription
+  // type "pdfjs-canvas".  frame-tree.tsx dispatches via `editor_spec[type]`
+  // (key lookup), so passing the EditorDescription type value will fail at runtime.
   set_frame_type(id: string, type: string): void {
     const node = this._get_frame_node(id);
     if (node == null) return; // no such node

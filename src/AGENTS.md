@@ -42,6 +42,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `cd packages/[package] && pnpm build` - Build and compile a specific package
   - For packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
 - `cd packages/[package] && pnpm test` - Run tests for a specific package
+  - You can pass file arguments: `cd packages/[package] && pnpm test -- [test-file]` to run a single test file
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
 - **IMPORTANT**: When modifying colors in `packages/util/theme.ts`, run `cd packages/frontend && pnpm update-color-scheme` to regenerate the SASS color variables in `packages/frontend/_colors.sass`
 

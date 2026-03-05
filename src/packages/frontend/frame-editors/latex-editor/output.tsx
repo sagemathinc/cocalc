@@ -346,7 +346,6 @@ export function Output(props: OutputProps) {
             font_size={font_size}
             is_current={is_current}
             is_visible={is_visible}
-            status={status}
             initialPage={storedPageToRestore}
             zoom={pdfZoom}
             onZoom={handleZoomChange}

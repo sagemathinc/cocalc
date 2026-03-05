@@ -7,6 +7,7 @@
  */
 
 import { delay } from "awaiting";
+import { EventEmitter } from "node:stream";
 import { ExecuteCodeStreamEvent } from "@cocalc/util/types/execute-code";
 
 describe("executeStream function - unit tests", () => {
@@ -15,16 +16,21 @@ describe("executeStream function - unit tests", () => {
     get: jest.fn(),
     set: jest.fn(),
   };
+  const mockUpdates = new EventEmitter();
+  const mockEventKey = (type: string, job_id: string) => `${type}-${job_id}`;
 
   beforeEach(() => {
     // Reset modules and mocks for proper test isolation
     jest.resetModules();
     jest.clearAllMocks();
+    mockUpdates.removeAllListeners();
 
     // Re-mock for each test to ensure clean state
     jest.doMock("./execute-code", () => ({
       executeCode: mockExecuteCode,
       asyncCache: mockAsyncCache,
+      updates: mockUpdates,
+      eventKey: mockEventKey,
     }));
 
     mockAsyncCache.get.mockClear();
@@ -199,6 +205,8 @@ describe("executeStream function - unit tests", () => {
     jest.doMock("./execute-code", () => ({
       executeCode: mockExecuteCode,
       asyncCache: mockAsyncCache,
+      updates: mockUpdates,
+      eventKey: mockEventKey,
     }));
   });
 
@@ -654,6 +662,8 @@ describe("executeStream function - unit tests", () => {
     jest.doMock("./execute-code", () => ({
       executeCode: mockExecuteCode,
       asyncCache: mockAsyncCache,
+      updates: mockUpdates,
+      eventKey: mockEventKey,
     }));
   });
 

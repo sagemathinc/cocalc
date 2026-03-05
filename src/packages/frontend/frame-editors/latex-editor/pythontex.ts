@@ -32,6 +32,7 @@ export async function pythontex(
   status: Function,
   output_directory: string | undefined,
   set_job_info: (info: ExecuteCodeOutputAsync) => void,
+  compute_server_id?: number,
 ): Promise<ExecOutput> {
   const { base, directory } = parse_path(path);
   const rerun = force ? "--rerun=always" : ""; // forced build implies to run all snippets
@@ -46,6 +47,7 @@ export async function pythontex(
     project_id,
     aggregate,
     command,
+    compute_server_id,
     runDir: output_directory || directory,
     set_job_info,
     // for python plots -- https://github.com/sagemathinc/cocalc/issues/4203

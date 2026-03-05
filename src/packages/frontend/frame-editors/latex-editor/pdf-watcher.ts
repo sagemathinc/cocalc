@@ -21,15 +21,18 @@ export class PDFWatcher {
   private watch_dir: string;
   private pdf_filename: string;
   private on_change: (mtime: number, force: boolean) => void;
+  private compute_server_id: number;
 
   constructor(
     project_id: string,
     pdf_path: string,
     on_change: (mtime: number, force: boolean) => void,
+    compute_server_id: number = 0,
   ) {
     this.project_id = project_id;
     this.pdf_path = pdf_path;
     this.on_change = on_change;
+    this.compute_server_id = compute_server_id;
 
     const { head: directory, tail: pdfFilename } = path_split(this.pdf_path);
     this.watch_dir = directory ?? "";
@@ -38,7 +41,10 @@ export class PDFWatcher {
 
   async init(): Promise<void> {
     try {
-      this.directory_listings = listings(this.project_id, 0);
+      this.directory_listings = listings(
+        this.project_id,
+        this.compute_server_id,
+      );
       await this.directory_listings.watch(this.watch_dir);
 
       // Get initial mtime
@@ -60,11 +66,9 @@ export class PDFWatcher {
             );
 
             if (updatedPdfFile?.mtime) {
-              if (
-                this.last_pdf_mtime !== undefined &&
-                this.last_pdf_mtime !== updatedPdfFile.mtime
-              ) {
-                // PDF file changed - trigger callback
+              if (this.last_pdf_mtime !== updatedPdfFile.mtime) {
+                // PDF file changed or created for the first time - trigger callback.
+                // Note: undefined !== number is true, so first creation is caught here.
                 this.on_change(updatedPdfFile.mtime, false);
               }
               this.last_pdf_mtime = updatedPdfFile.mtime;

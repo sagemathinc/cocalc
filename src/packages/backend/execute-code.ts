@@ -68,8 +68,8 @@ log.debug("configuration:", {
 });
 
 type AsyncAwait = "finished";
-const updates = new EventEmitter();
-const eventKey = (type: AsyncAwait, job_id: string): string =>
+export const updates = new EventEmitter();
+export const eventKey = (type: AsyncAwait, job_id: string): string =>
   `${type}-${job_id}`;
 
 export const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
