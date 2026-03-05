@@ -1746,6 +1746,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (changes.checked_files.size === 0) {
       changes.file_action = undefined;
       changes.file_action_source = undefined;
+      // Clear the shift-click anchor so the next shift-click starts fresh
+      // instead of ranging from the previously-unchecked file.
+      (changes as any).most_recent_file_click = undefined;
     }
 
     this.setState(changes);
@@ -1761,6 +1764,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       checked_files: store.get("checked_files").clear(),
       file_action: undefined,
       file_action_source: undefined,
+      most_recent_file_click: undefined,
     });
   }
 
