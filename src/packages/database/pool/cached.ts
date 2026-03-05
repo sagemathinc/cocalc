@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2021 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2021-2025 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -22,12 +22,13 @@ fine, since this would only be a problem when they change the name
 of multiple projects.
 */
 
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import LRU from "lru-cache";
-import { Pool } from "pg";
+import { Pool, type QueryResult } from "pg";
 
 import getLogger from "@cocalc/backend/logger";
-import getPool from "./pool";
+import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+
+import getPool, { type PoolOptionInput } from "./pool";
 
 const L = getLogger("db:pool:cached");
 
@@ -52,38 +53,60 @@ for (const cacheTime in MAX_AGE_S) {
   });
 }
 
-const cachedQuery = reuseInFlight(async (cacheTime: CacheTime, ...args) => {
-  const cache = caches[cacheTime];
-  if (cache == null) {
-    throw Error(`invalid cache "${cacheTime}"`);
-  }
-  const key = JSON.stringify(args);
-  if (cache.has(key)) {
-    // console.log(`YES - using cache for ${key}`);
-    return cache.get(key);
-  }
-  // console.log(`NOT using cache for ${key}`);
-
-  const pool = getPool();
-  try {
-    // @ts-ignore - no clue how to typescript this.
-    const result = await pool.query(...args);
-    if (result.rows.length > 0) {
-      // We only cache query if it returned something.
-      cache.set(key, result);
+const cachedQuery = reuseInFlight(
+  async (
+    cacheTime: CacheTime,
+    ensureExists: boolean,
+    ...args: Parameters<Pool["query"]>
+  ) => {
+    const cache = caches[cacheTime];
+    if (cache == null) {
+      throw Error(`invalid cache "${cacheTime}"`);
     }
-    return result;
-  } catch (err) {
-    L.error(`cachedQuery error: ${err}`);
-    throw err;
-  }
-});
+    const key = JSON.stringify(args);
+    if (cache.has(key)) {
+      // console.log(`YES - using cache for ${key}`);
+      return cache.get(key);
+    }
+    // console.log(`NOT using cache for ${key}`);
 
-export default function getCachedPool(cacheTime: CacheTime) {
+    const pool = getPool({ ensureExists });
+    try {
+      const queryPromise = pool.query as (
+        ...queryArgs: Parameters<Pool["query"]>
+      ) => Promise<QueryResult>;
+      const result = await queryPromise(...args);
+      if (result.rows.length > 0) {
+        // We only cache query if it returned something.
+        cache.set(key, result);
+      }
+      return result;
+    } catch (err) {
+      L.error(`cachedQuery error: ${err}`);
+      throw err;
+    }
+  },
+);
+
+type PoolOptions = {
+  cacheTime?: CacheTime;
+  ensureExists?: boolean;
+};
+
+function normalizePoolOptions(opts?: PoolOptionInput): PoolOptions {
+  if (typeof opts === "string") {
+    return { cacheTime: opts };
+  }
+  return opts ?? {};
+}
+
+export default function getCachedPool(options?: PoolOptionInput) {
+  const { cacheTime, ensureExists = true } = normalizePoolOptions(options);
   if (!cacheTime) {
-    return getPool();
+    return getPool({ ensureExists });
   }
   return {
-    query: async (...args) => await cachedQuery(cacheTime, ...args),
+    query: async (...args: Parameters<Pool["query"]>) =>
+      await cachedQuery(cacheTime, ensureExists, ...args),
   } as any as Pool; // obviously not really a Pool, but is enough for what we're doing.
 }

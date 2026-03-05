@@ -9,7 +9,7 @@ to this target or the target project isn't running.
 import LRU from "lru-cache";
 
 import getLogger from "@cocalc/hub/logger";
-import { database } from "@cocalc/hub/servers/database";
+import { getDatabase } from "@cocalc/hub/servers/database";
 import { ProjectControlFunction } from "@cocalc/server/projects/control";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { NamedServerName } from "@cocalc/util/types/servers";
@@ -91,6 +91,7 @@ export async function getTarget({
     throw Error(`user does not have write access to project`);
   }
 
+  const database = getDatabase();
   const project = projectControl(project_id);
   let state = await project.state();
   let host = state.ip;
@@ -184,6 +185,7 @@ async function _namedServerPort(
   if (p) {
     return p;
   }
+  const database = getDatabase();
   const project = hub_projects.new_project(
     // NOT @cocalc/server/projects/control like above...
     project_id,

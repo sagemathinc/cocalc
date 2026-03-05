@@ -1,4 +1,9 @@
 /*
+ *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+/*
 Stripe Synchronization
 
 ALMOST DEPRECATED -- only used/matters for users with legacy upgrade subscriptions
