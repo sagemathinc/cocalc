@@ -407,7 +407,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     const direction = isActive ? (
       <Icon
         style={{ marginLeft: FLYOUT_PADDING }}
-        name={activeFileSort.get("is_descending") ? "caret-up" : "caret-down"}
+        name={activeFileSort.get("is_descending") ? "caret-down" : "caret-up"}
       />
     ) : undefined;
 
