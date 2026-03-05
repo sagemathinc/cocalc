@@ -76,6 +76,7 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "@cocalc/frontend/project/page/flyouts/state";
+import { migrateStarsOnMove } from "@cocalc/frontend/project/page/flyouts/store";
 import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
@@ -563,7 +564,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     switch (key) {
       case "files":
         if (opts.change_history) {
-          this.set_url_to_path(store.get("current_path") ?? "", "");
+          const filesPath =
+            store.get("explorer_browsing_path") ??
+            store.get("current_path") ??
+            "";
+          this.set_url_to_path(filesPath, "");
         }
         if (opts.update_file_listing) {
           this.fetch_directory_listing();
@@ -573,7 +578,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "new":
         change.file_creation_error = undefined;
         if (opts.change_history) {
-          this.push_state(`new/${store.get("current_path")}`, "");
+          const newPath =
+            store.get("new_page_path") ?? store.get("current_path") ?? "";
+          this.push_state(`new/${newPath}`, "");
         }
         const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
@@ -640,6 +647,32 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.push_state(`files/${path}`);
         }
         this.set_current_path(misc.path_split(path).head);
+
+        // Switching to an editor tab updates both "+New" contexts so that
+        // file creation targets the directory of the active file.
+        {
+          const fileDir = misc.path_split(path).head;
+          this.setState({
+            new_page_path: fileDir,
+            flyout_new_path: fileDir,
+          });
+        }
+
+        // When "Current directory follows files" is enabled, sync the
+        // explorer and flyout browsing paths to the active file's directory.
+        if (
+          redux
+            .getStore("account")
+            ?.getIn(["other_settings", "follow_current_path"])
+        ) {
+          const fileDir = misc.path_split(path).head;
+          this.setState({
+            explorer_browsing_path: fileDir,
+            explorer_history_path: fileDir,
+            flyout_browsing_path: fileDir,
+            flyout_history_path: fileDir,
+          });
+        }
 
         // Reopen the file if relationship has changed
         const is_public =
@@ -1406,6 +1439,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         this.foreground_project(change_history);
         this.set_current_path(path);
+        // Also anchor the explorer's browsing path so that session
+        // restore (which replays set_active_tab for each open file)
+        // doesn't drag it away from the URL-requested directory.
+        if (show_files) {
+          this.setState({
+            explorer_browsing_path: path,
+            explorer_history_path: path,
+            new_page_path: path,
+            flyout_new_path: path,
+          });
+        }
         const store = this.get_store();
         if (store == undefined) {
           return;
@@ -1608,8 +1652,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.setState({ most_recent_file_click: file });
   }
 
-  // Set the selected state of all files between the most_recent_file_click and the given file
-  set_selected_file_range(file: string, checked: boolean): void {
+  // Set the selected state of all files between the most_recent_file_click and the given file.
+  // Optional browsingPath + listing override for decoupled browsing paths
+  // (explorer/flyout may show a different directory than store.current_path).
+  set_selected_file_range(
+    file: string,
+    checked: boolean,
+    browsingPath?: string,
+    listing?: { name: string }[],
+  ): void {
     let range;
     const store = this.get_store();
     if (store == undefined) {
@@ -1621,11 +1672,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       range = [file];
     } else {
       // get the range of files
-      const current_path = store.get("current_path");
-      const names = store
-        .get("displayed_listing")
-        .listing.map((a) => misc.path_to_file(current_path, a.name));
-      range = misc.get_array_range(names, most_recent, file);
+      const current_path = browsingPath ?? store.get("current_path");
+      const displayedListing =
+        listing ?? store.get("displayed_listing")?.listing;
+      if (!displayedListing) {
+        range = [file];
+      } else {
+        const names = displayedListing.map((a) =>
+          misc.path_to_file(current_path, a.name),
+        );
+        range = misc.get_array_range(names, most_recent, file);
+      }
     }
 
     if (checked) {
@@ -1707,6 +1764,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (changes.checked_files.size === 0) {
       changes.file_action = undefined;
       changes.file_action_source = undefined;
+      // Clear the shift-click anchor so the next shift-click starts fresh
+      // instead of ranging from the previously-unchecked file.
+      (changes as any).most_recent_file_click = undefined;
     }
 
     this.setState(changes);
@@ -1722,6 +1782,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       checked_files: store.get("checked_files").clear(),
       file_action: undefined,
       file_action_source: undefined,
+      most_recent_file_click: undefined,
     });
   }
 
@@ -2575,6 +2636,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         dest: opts.dest + "/" /* target is assumed to be a directory */,
         compute_server_id,
       });
+      // Migrate starred file bookmarks to their new locations
+      await migrateStarsOnMove(this.project_id, opts.src, opts.dest);
     } catch (err) {
       error = err;
     } finally {
@@ -3340,6 +3403,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
       case "new": // ignore foreground for these and below, since would be nonsense
         this.set_current_path(full_path);
+        // Deep-link: anchor both "+New" contexts to the URL-requested directory
+        this.setState({
+          new_page_path: full_path,
+          flyout_new_path: full_path,
+        });
         this.set_active_tab("new", { change_history: change_history });
         break;
 

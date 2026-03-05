@@ -40,7 +40,7 @@
     "debug": "^4.4.0",
     "expect": "^26.6.2",
     "he": "^1.2.0",
-    "immutable": "^4.3.0",
+    "immutable": "^4.3.8",
     "json-stable-stringify": "^1.0.1",
     "jsonfile": "^6.1.0",
     "jupyter-paths": "^2.0.3",

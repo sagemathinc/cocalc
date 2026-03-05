@@ -349,6 +349,15 @@ describe("await", () => {
     check(s);
     if (s.type !== "async") return;
     expect(Array.isArray(s.stats)).toBeTruthy();
+    if (!Array.isArray(s.stats)) return;
+    expect(s.stats.length).toBeGreaterThan(0);
+    for (const stat of s.stats) {
+      expect(Number.isFinite(stat.cpu_pct)).toBeTruthy();
+      expect(Number.isFinite(stat.cpu_secs)).toBeTruthy();
+      expect(Number.isFinite(stat.mem_rss)).toBeTruthy();
+      expect(stat.cpu_secs).toBeGreaterThanOrEqual(0);
+      expect(stat.mem_rss).toBeGreaterThanOrEqual(0);
+    }
   });
 
   it("returns immediately if already done", async () => {

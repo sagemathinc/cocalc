@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -8,10 +8,16 @@ import immutable from "immutable";
 import { useIntl } from "react-intl";
 
 import {
+  useFileDrag,
+  useFolderDrop,
+} from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
+
+import {
   CSS,
   React,
   useActions,
   useRef,
+  useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { A, Icon, IconName } from "@cocalc/frontend/components";
@@ -19,7 +25,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
+import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
 import { url_href } from "@cocalc/frontend/project/utils";
 import {
@@ -117,6 +123,10 @@ interface Item {
 interface FileListItemProps {
   // we only set this from the "files" flyout, not "log", since in the log you can't select multiple files
   checked_files?: immutable.Set<string>;
+  /** Override the directory path used for DnD and context-menu operations.
+   *  When omitted, falls back to Redux `current_path`. Flyout callers must
+   *  pass the flyout's independent browsing path here. */
+  browsingPath?: string;
   displayedNameOverride?: string; // override the name
   extra?: React.JSX.Element | string | null; // null means don't show anything
   extra2?: React.JSX.Element | string | null; // null means don't show anything
@@ -144,6 +154,7 @@ interface FileListItemProps {
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const {
+    browsingPath,
     checked_files,
     displayedNameOverride,
     extra,
@@ -173,7 +184,9 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const showPublish = mode === "files";
   const intl = useIntl();
   const { project_id } = useProjectContext();
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const redux_current_path = useTypedRedux({ project_id }, "current_path");
+  // Use the prop when provided (flyout), fall back to Redux (log/active modes)
+  const current_path = browsingPath ?? redux_current_path;
   const actions = useActions({ project_id });
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
@@ -181,6 +194,67 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const selectable = onChecked != null;
   const itemRef = useRef<HTMLDivElement>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
+
+  // -- DnD: drag source + folder drop target --
+  const isParentDir = item.name === "..";
+  const actionsDisabled = student_project_functionality.disableActions;
+  const isDndEnabled = mode === "files" && !isParentDir && !actionsDisabled;
+  const fullPath = path_to_file(current_path, item.name);
+
+  // Compute paths for dragging: all checked files, plus this one if not already checked
+  const dragPaths = React.useMemo(() => {
+    if (!isDndEnabled || !checked_files) return [fullPath];
+    if (checked_files.has(fullPath)) {
+      return checked_files.toArray();
+    }
+    return [...checked_files.toArray(), fullPath];
+  }, [isDndEnabled, checked_files, fullPath]);
+
+  const {
+    dragRef,
+    dragListeners: rawDragListeners,
+    dragAttributes,
+    isDragging,
+  } = useFileDrag(
+    `flyout-drag-${fullPath}`,
+    isDndEnabled ? dragPaths : [],
+    project_id,
+  );
+
+  // Suppress drag initiation when modifier keys are held (user is
+  // shift/ctrl-selecting files, not starting a drag operation).
+  const dragListeners = React.useMemo(() => {
+    if (!isDndEnabled || !rawDragListeners) return {};
+    const origMouseDown = (rawDragListeners as any).onMouseDown;
+    if (!origMouseDown) return rawDragListeners;
+    return {
+      ...rawDragListeners,
+      onMouseDown: (e: React.MouseEvent) => {
+        if (e.shiftKey || e.ctrlKey || e.metaKey) return;
+        origMouseDown(e);
+      },
+    };
+  }, [isDndEnabled, rawDragListeners]);
+
+  // Folders and ".." are drop targets (but not in student/restricted mode)
+  const isDropTarget = mode === "files" && !!item.isdir && !actionsDisabled;
+  const dropPath = isParentDir
+    ? current_path.split("/").slice(0, -1).join("/")
+    : fullPath;
+  const { dropRef, isOver } = useFolderDrop(
+    `flyout-drop-${fullPath}`,
+    dropPath,
+    isDropTarget,
+  );
+
+  // Merge refs for the outer div — always attach both since hooks are always called
+  const dndRef = React.useCallback(
+    (node: HTMLDivElement | null) => {
+      dragRef(node);
+      dropRef(node);
+    },
+    [dragRef, dropRef],
+  );
 
   function renderCloseItem(item: Item): React.JSX.Element | null {
     if (onClose == null || !item.isopen) return null;
@@ -446,6 +520,34 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         }),
         onClick: () => onClick?.(),
       });
+      // "Open in new window" — same as the file tab context menu
+      if (!isdir) {
+        const fp = path_to_file(current_path, name);
+        ctx.push({
+          key: "new-window",
+          icon: <Icon name="external-link" />,
+          label: intl.formatMessage({
+            id: "project.page.file-tab.context-menu.open-new-window",
+            defaultMessage: "Open in new window",
+          }),
+          onClick: () =>
+            actions?.open_file({ path: fp, new_browser_window: true }),
+        });
+      }
+      // "View" raw link — for viewable text/image files
+      if (!isdir) {
+        const ext = (filename_extension(name) ?? "").toLowerCase();
+        if (VIEWABLE_FILE_EXT.includes(ext)) {
+          const fp = path_to_file(current_path, name);
+          const fileUrl = url_href(project_id, fp);
+          ctx.push({
+            key: "view",
+            icon: <Icon name="eye" />,
+            label: intl.formatMessage(labels.view_file),
+            onClick: () => window.open(fileUrl, "_blank"),
+          });
+        }
+      }
     }
 
     ctx.push({ key: "divider-header", type: "divider" });
@@ -458,16 +560,20 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         multiple,
         disableActions: student_project_functionality.disableActions,
         inSnapshots: current_path?.startsWith(".snapshots") ?? false,
+        fullPath: path_to_file(current_path, item.name),
         triggerFileAction: (action) => {
           // Only override selection in single-item mode. In multi mode we preserve
           // the existing checked set (see note above).
           if (!multiple) {
+            // Clear existing selection first so exactly one file is checked —
+            // otherwise the previous selection + the right-clicked file would
+            // both be checked while showing single-file actions.
+            actions?.set_all_files_unchecked();
             if (onChecked != null) {
               onChecked(true);
             } else {
               if (item.name === "..") return;
               const pathFn = path_to_file(current_path, item.name);
-              actions?.set_all_files_unchecked();
               actions?.set_file_list_checked([pathFn]);
             }
           }
@@ -506,7 +612,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
       if (showView) {
         ctx.push({
-          key: "view",
+          key: "view-download",
           icon: <Icon name="eye" />,
           label: <A href={url}>{intl.formatMessage(labels.view_file)}</A>,
         });
@@ -538,19 +644,45 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
           : FILE_ITEM_OPENED_STYLE
         : {};
 
+  const DROP_HIGHLIGHT: React.CSSProperties = isOver
+    ? {
+        backgroundColor: COLORS.BLUE_LLL,
+        outline: `2px solid ${COLORS.BLUE_L}`,
+      }
+    : {};
+
+  // Lazy context menu: only build items when the dropdown opens.
+  const [contextMenuItems, setContextMenuItems] =
+    useState<MenuProps["items"]>();
+
   return (
-    <Dropdown menu={{ items: getContextMenu() }} trigger={["contextMenu"]}>
+    <Dropdown
+      menu={{ items: contextMenuItems }}
+      trigger={["contextMenu"]}
+      destroyOnHidden
+      onOpenChange={(open) => {
+        if (open) {
+          setContextMenuItems(getContextMenu());
+        }
+      }}
+    >
       <div
+        ref={dndRef}
         key={item.name}
         className="cc-project-flyout-file-item"
         // additional mouseLeave to prevent stale hover state icon
         onMouseLeave={handleMouseLeave}
+        {...(isDndEnabled ? dragListeners : {})}
+        {...(isDndEnabled ? dragAttributes : {})}
+        {...(isDropTarget ? { "data-folder-drop-path": dropPath } : {})}
         style={{
           ...FILE_ITEM_LINE_STYLE,
           ...activeStyle,
           ...itemStyle,
           ...style,
           ...(selected ? FILE_ITEM_SELECTED_STYLE : {}),
+          ...(isDragging ? { opacity: 0.4 } : {}),
+          ...DROP_HIGHLIGHT,
         }}
       >
         {renderBody()}

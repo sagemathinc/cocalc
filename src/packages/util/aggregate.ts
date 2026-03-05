@@ -127,7 +127,6 @@ export function aggregate(options, f?: any) {
     const recent = done[key];
     if (recent != null && leq(opts.aggregate, recent.aggregate)) {
       // result is known from a previous call.
-      // Let the normal callback flow handle streaming events - don't bypass executeStream's logic
       opts.cb(...recent.args);
       return;
     }
@@ -136,6 +135,10 @@ export function aggregate(options, f?: any) {
       if (leq(opts.aggregate, current.aggregate)) {
         // already running with old enough aggregate value -- just wait and return as part of that
         current.callbacks.push(opts.cb);
+        // Also fan-out streaming events to this caller's streamCB.
+        if (typeof opts.streamCB === "function") {
+          current.streamCBs.push(opts.streamCB);
+        }
       } else {
         // already running, but newer aggregate value.  We will run this one once the current one is done.
         current.next.push(opts);
@@ -147,17 +150,41 @@ export function aggregate(options, f?: any) {
     // call f again in case new requests came in during the call.
 
     // Nothing is going on right now with the given key.  Evaluate f.
+    const streamCBs: Function[] = [];
+    if (typeof opts.streamCB === "function") {
+      streamCBs.push(opts.streamCB);
+    }
     state[key] = {
       aggregate: opts.aggregate, // aggregate value for current run
       next: [], // things requested to be run in the future -- these are opts with same key
       callbacks: [opts.cb], // callbacks to call when this evaluation completes
+      streamCBs, // streaming callbacks — fan out events to all waiting callers
       time: new Date(),
       args: undefined,
+    };
+
+    // Replace streamCB with a fan-out that dispatches to all registered
+    // streaming callbacks (the original caller plus any deduped callers).
+    // Always install the fan-out — even if the first caller has no streamCB,
+    // a later deduped caller might add one.  We capture the streamCBs array
+    // directly so late events after state[key] is deleted don't misfire.
+    opts.streamCB = function (...args) {
+      for (const scb of streamCBs) {
+        try {
+          scb(...args);
+        } catch (_) {
+          // don't let one failing callback break others
+        }
+      }
     };
 
     // This gets called when f completes.
     opts.cb = function (...args) {
       const { callbacks, next } = state[key];
+      // Cache result for future dedup, but drop closures to avoid
+      // retaining stream/request objects in the done cache.
+      state[key].streamCBs = [];
+      state[key].callbacks = [];
       done[key] = state[key];
       done[key].args = args;
       clear_old(done);

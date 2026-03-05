@@ -24,8 +24,8 @@
       "postcss@<8.4.31": "^8.4.31",
       "qs@<6.14.1": "^6.14.1",
       "retry-request@<7.0.1": "^7.0.2",
-      "@langchain/core": "^1.1.26",
-      "langchain": "^1.2.25",
+      "@langchain/core": "^1.1.30",
+      "langchain": "^1.2.29",
       "ansi-styles@>=6": "5.2.0",
       "katex@<0.16.9": "^0.16.10",
       "nanoid@<3.3.8": "^3.3.8",
@@ -43,7 +43,15 @@
       "lodash@>=4.0.0 <4.17.23": "4.17.23",
       "lodash-es@>=4.0.0 <4.17.23": "4.17.23",
       "@isaacs/brace-expansion@<=5.0.0": "5.0.1",
-      "fast-xml-parser@>=5.0.9 <5.3.6": "5.3.6"
+      "fast-xml-parser@>=5.0.0 <5.3.8": "5.3.8",
+      "serialize-javascript@<=7.0.2": "7.0.3",
+      "basic-ftp@<5.2.0": "5.2.0",
+      "minimatch@>=3.0.0 <3.1.4": "3.1.4",
+      "minimatch@>=9.0.0 <9.0.7": "9.0.7",
+      "minimatch@>=10.0.0 <10.2.3": "10.2.3",
+      "ajv@>=6.0.0 <6.14.0": "6.14.0",
+      "ajv@>=8.0.0 <8.18.0": "8.18.0",
+      "immutable@>=5.0.0 <5.1.5": "5.1.5"
     },
     "onlyBuiltDependencies": [
       "websocket-sftp",

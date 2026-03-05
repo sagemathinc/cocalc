@@ -1,12 +1,69 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 
+/** Characters that activate terminal mode when typed as the first character. */
+export const TERM_MODE_CHARS = ["/", "!"] as const;
+
+/** @deprecated Use `isTerminalMode` instead. */
 export const TERM_MODE_CHAR = "/";
+
+/** True when `search` starts with a terminal-mode prefix ("/" or "!"). */
+export function isTerminalMode(search: string): boolean {
+  return search.length > 0 && TERM_MODE_CHARS.includes(search[0] as any);
+}
+
+/** File extensions that support inline "View" in the explorer. */
+export const VIEWABLE_FILE_EXT: Readonly<string[]> = [
+  "c",
+  "cc",
+  "cfg",
+  "conf",
+  "cpp",
+  "css",
+  "csv",
+  "go",
+  "h",
+  "hpp",
+  "html",
+  "ini",
+  "java",
+  "jpeg",
+  "jpg",
+  "js",
+  "json",
+  "jsx",
+  "log",
+  "lua",
+  "md",
+  "pdf",
+  "pl",
+  "png",
+  "py",
+  "qmd",
+  "r",
+  "rb",
+  "rmd",
+  "rs",
+  "rst",
+  "rtex",
+  "sass",
+  "scss",
+  "sh",
+  "svg",
+  "tex",
+  "toml",
+  "ts",
+  "tsx",
+  "txt",
+  "xml",
+  "yaml",
+  "yml",
+] as const;
 
 type Extension =
   | "sagews"
@@ -75,6 +132,42 @@ export function full_path_text(file_search: string, disabled_ext: string[]) {
     return `${file_search}`;
   }
 }
+
+/**
+ * Compute sorted type filter options from a set of extensions present
+ * in the current directory. Ordering: "folder" first, then prioritized
+ * extensions from EXTs (in that order), then remaining alphabetically.
+ *
+ * Used by both the large explorer table and the flyout type filter.
+ */
+export function sortedTypeFilterOptions(
+  extensions: Iterable<string>,
+): string[] {
+  const extSet = new Set(extensions);
+  const result: string[] = [];
+
+  // 1. Folder first
+  if (extSet.has("folder")) {
+    result.push("folder");
+    extSet.delete("folder");
+  }
+
+  // 2. Prioritized extensions from EXTs, in order
+  for (const ext of EXTs) {
+    if (extSet.has(ext)) {
+      result.push(ext);
+      extSet.delete(ext);
+    }
+  }
+
+  // 3. Remaining extensions alphabetically
+  const rest = Array.from(extSet).sort();
+  result.push(...rest);
+
+  return result;
+}
+
+export { TypeFilterLabel } from "./components";
 
 export function generate_click_for(
   file_action_name: FileAction,

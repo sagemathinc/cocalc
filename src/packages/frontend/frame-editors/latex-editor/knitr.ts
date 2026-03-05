@@ -33,6 +33,7 @@ export async function knitr(
   time: number | undefined,
   status: Function,
   set_job_info: (info: ExecuteCodeOutputAsync) => void,
+  compute_server_id?: number,
 ): Promise<ExecOutput> {
   const { directory, filename } = parse_path(path);
   const expr = `require(knitr); opts_knit$set(concordance = TRUE, progress = FALSE); knit("${filename}")`;
@@ -42,6 +43,7 @@ export async function knitr(
     project_id,
     command: R_CMD,
     args: [...R_ARGS, expr],
+    compute_server_id,
     runDir: directory,
     aggregate: time ? { value: time } : undefined,
     set_job_info,
