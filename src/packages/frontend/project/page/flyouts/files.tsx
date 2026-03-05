@@ -369,6 +369,8 @@ export function FilesFlyout({
           foreground,
           explicit: true,
         });
+        // Let the "is open" indicator through immediately.
+        allowNextListingUpdate();
       }
     }
 
