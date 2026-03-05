@@ -6,24 +6,31 @@
 /**
  * Per-project explorer settings persisted via Conat DKV.
  *
- * Automatically watches explorer UI settings in Redux and persists
- * changes to DKV. On mount, restores the last persisted settings.
- * Works for both the large explorer and the flyout where applicable.
+ * `useSettingsDKV` is the shared lifecycle hook that manages account-ready
+ * wait, DKV open/close, dirty detection, and restore.  The two public
+ * hooks — `useExplorerSettings` and `useFlyoutSettings` — add their own
+ * restore logic and auto-persist effects on top.
  */
 
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import useAsyncEffect from "use-async-effect";
 
-import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { TypedMap, redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+
+import type { ActiveFileSort } from "@cocalc/frontend/project/page/flyouts/files";
 
 interface ExplorerSettings {
   sortColumn?: string;
   sortDescending?: boolean;
   showDirectoryTree?: boolean;
+  // Flyout-specific sort (independent of the explorer)
+  flyoutSortColumn?: string;
+  flyoutSortDescending?: boolean;
 }
 
-interface ExplorerDKV {
+/** Narrow interface for the DKV store used by both hooks. */
+interface SettingsDKV {
   get(key: string): ExplorerSettings | undefined;
   set(key: string, value: ExplorerSettings): void;
   close?(): void;
@@ -31,25 +38,44 @@ interface ExplorerDKV {
 
 const DKV_NAME = "explorer-settings";
 
-export function useExplorerSettings(project_id: string): void {
-  const dkvRef = useRef<ExplorerDKV | null>(null);
+// ---------------------------------------------------------------------------
+// Shared DKV lifecycle hook
+// ---------------------------------------------------------------------------
+
+interface UseSettingsDKVResult {
+  dkvRef: React.MutableRefObject<SettingsDKV | null>;
+  initializedRef: React.MutableRefObject<boolean>;
+  /**
+   * Pass as a `useEffect` callback whose dependency list includes the
+   * watched values.  On the first call (mount) it is a no-op; on
+   * subsequent calls before DKV init it sets the dirty flag so the
+   * restore is skipped.
+   */
+  markDirtyBeforeInit: () => void;
+}
+
+/**
+ * Shared DKV lifecycle for per-project explorer/flyout settings.
+ *
+ * Opens a reference-counted DKV connection (via Conat), waits for the
+ * account store, handles `isMounted` guards, and cleans up on unmount.
+ * When the store is ready it calls `onRestore` with the saved settings
+ * — unless the user already interacted (dirty).
+ */
+function useSettingsDKV(
+  project_id: string,
+  onRestore: ((saved: ExplorerSettings | undefined) => void) | null,
+): UseSettingsDKVResult {
+  const dkvRef = useRef<SettingsDKV | null>(null);
   const initializedRef = useRef(false);
-  // Tracks whether the user changed sort/tree settings before DKV loaded.
-  // When dirty, the DKV restore is skipped to avoid overwriting live choices.
   const dirtyRef = useRef(false);
-
-  // Watch Redux sort state for changes
-  const activeFileSort = useTypedRedux({ project_id }, "active_file_sort");
-  const showDirectoryTree = useTypedRedux(
-    { project_id },
-    "show_directory_tree",
-  );
-
-  // Detect user changes before DKV initialization completes.
-  // Skip the initial render (firstRenderRef) — only subsequent changes
-  // indicate the user has interacted.
   const firstRenderRef = useRef(true);
-  useEffect(() => {
+
+  // Keep a ref to onRestore so the async init always calls the latest version.
+  const onRestoreRef = useRef(onRestore);
+  onRestoreRef.current = onRestore;
+
+  const markDirtyBeforeInit = useCallback(() => {
     if (firstRenderRef.current) {
       firstRenderRef.current = false;
       return;
@@ -57,20 +83,15 @@ export function useExplorerSettings(project_id: string): void {
     if (!initializedRef.current) {
       dirtyRef.current = true;
     }
-  }, [activeFileSort, showDirectoryTree]);
+  }, []);
 
-  // Initialize DKV and restore persisted sort state.
-  // The 3-arg form of useAsyncEffect provides a destroy callback for cleanup.
   useAsyncEffect(
     async (isMounted) => {
-      const store = redux.getStore("account");
-      await store.async_wait({
-        until: () => store.get_account_id() != null,
-        timeout: 0,
-      });
-      if (!isMounted()) return;
+      const account = redux.getStore("account");
+      const ready = await account.waitUntilReady();
+      if (!ready || !isMounted()) return;
 
-      const account_id = store.get_account_id();
+      const account_id = account.get_account_id();
 
       try {
         const conatDkv = await webapp_client.conat_client.dkv<ExplorerSettings>(
@@ -84,49 +105,73 @@ export function useExplorerSettings(project_id: string): void {
           return;
         }
 
-        dkvRef.current = conatDkv as unknown as ExplorerDKV;
+        dkvRef.current = conatDkv as unknown as SettingsDKV;
 
-        // Restore persisted explorer settings into Redux — but only if
-        // the user hasn't already interacted (dirty flag) before DKV loaded.
         if (!dirtyRef.current) {
-          const saved: ExplorerSettings | undefined = conatDkv.get(project_id);
-          const actions = redux.getProjectActions(project_id);
-          if (saved?.sortColumn) {
-            const currentSort = redux
-              .getProjectStore(project_id)
-              ?.get("active_file_sort");
-            if (currentSort) {
-              actions.setState({
-                active_file_sort: currentSort
-                  .set("column_name", saved.sortColumn)
-                  .set("is_descending", saved.sortDescending ?? false),
-              });
-            }
-          }
-          if (saved?.showDirectoryTree != null) {
-            actions.setState({
-              show_directory_tree: saved.showDirectoryTree,
-            });
-          }
+          onRestoreRef.current?.(conatDkv.get(project_id));
         }
 
         initializedRef.current = true;
       } catch {
-        // DKV unavailable — settings won't persist but the explorer still works.
         initializedRef.current = true;
       }
     },
     () => {
-      // Cleanup: close DKV on unmount or project_id change
       dkvRef.current?.close?.();
       dkvRef.current = null;
       initializedRef.current = false;
       dirtyRef.current = false;
+      firstRenderRef.current = true;
     },
     [project_id],
   );
 
-  // Auto-persist explorer settings changes to DKV
+  return { dkvRef, initializedRef, markDirtyBeforeInit };
+}
+
+// ---------------------------------------------------------------------------
+// Explorer settings (sort column, sort direction, directory tree toggle)
+// ---------------------------------------------------------------------------
+
+export function useExplorerSettings(project_id: string): void {
+  const activeFileSort = useTypedRedux({ project_id }, "active_file_sort");
+  const showDirectoryTree = useTypedRedux(
+    { project_id },
+    "show_directory_tree",
+  );
+
+  const { dkvRef, initializedRef, markDirtyBeforeInit } = useSettingsDKV(
+    project_id,
+    (saved) => {
+      const actions = redux.getProjectActions(project_id);
+      if (saved?.sortColumn) {
+        const currentSort = redux
+          .getProjectStore(project_id)
+          ?.get("active_file_sort");
+        if (currentSort) {
+          actions.setState({
+            active_file_sort: currentSort
+              .set("column_name", saved.sortColumn)
+              .set("is_descending", saved.sortDescending ?? false),
+          });
+        }
+      }
+      if (saved?.showDirectoryTree != null) {
+        actions.setState({
+          show_directory_tree: saved.showDirectoryTree,
+        });
+      }
+    },
+  );
+
+  // Detect user changes before DKV initialization completes.
+  useEffect(markDirtyBeforeInit, [
+    markDirtyBeforeInit,
+    activeFileSort,
+    showDirectoryTree,
+  ]);
+
+  // Auto-persist explorer settings changes to DKV.
   useEffect(() => {
     if (!initializedRef.current || !dkvRef.current || !activeFileSort) return;
 
@@ -135,7 +180,6 @@ export function useExplorerSettings(project_id: string): void {
 
     try {
       const current: ExplorerSettings = dkvRef.current.get(project_id) ?? {};
-      // Only write if actually changed
       if (
         current.sortColumn !== columnName ||
         current.sortDescending !== isDescending ||
@@ -152,4 +196,70 @@ export function useExplorerSettings(project_id: string): void {
       // DKV unavailable — silently skip persistence.
     }
   }, [activeFileSort, project_id, showDirectoryTree]);
+}
+
+// ---------------------------------------------------------------------------
+// Flyout sort settings (independent sort column + direction)
+// ---------------------------------------------------------------------------
+
+const DEFAULT_FLYOUT_SORT: ActiveFileSort = TypedMap({
+  column_name: "time",
+  is_descending: false,
+});
+
+/**
+ * Per-project flyout sort order persisted via Conat DKV.
+ *
+ * Returns `[activeFileSort, setActiveFileSort]` backed by the same
+ * DKV store as the explorer settings, but using `flyoutSortColumn` /
+ * `flyoutSortDescending` fields so the two panels stay independent.
+ */
+export function useFlyoutSettings(
+  project_id: string,
+): [ActiveFileSort, React.Dispatch<React.SetStateAction<ActiveFileSort>>] {
+  const [flyoutSort, setFlyoutSort] =
+    useState<ActiveFileSort>(DEFAULT_FLYOUT_SORT);
+
+  const { dkvRef, initializedRef, markDirtyBeforeInit } = useSettingsDKV(
+    project_id,
+    (saved) => {
+      if (saved?.flyoutSortColumn) {
+        setFlyoutSort(
+          TypedMap({
+            column_name: saved.flyoutSortColumn,
+            is_descending: saved.flyoutSortDescending ?? false,
+          }),
+        );
+      }
+    },
+  );
+
+  // Detect user changes before DKV initialization completes.
+  useEffect(markDirtyBeforeInit, [markDirtyBeforeInit, flyoutSort]);
+
+  // Auto-persist flyout sort changes to DKV.
+  useEffect(() => {
+    if (!initializedRef.current || !dkvRef.current || !flyoutSort) return;
+
+    const col = flyoutSort.get("column_name");
+    const desc = flyoutSort.get("is_descending");
+
+    try {
+      const current: ExplorerSettings = dkvRef.current.get(project_id) ?? {};
+      if (
+        current.flyoutSortColumn !== col ||
+        current.flyoutSortDescending !== desc
+      ) {
+        dkvRef.current.set(project_id, {
+          ...current,
+          flyoutSortColumn: col,
+          flyoutSortDescending: desc,
+        });
+      }
+    } catch {
+      // DKV unavailable — silently skip persistence.
+    }
+  }, [flyoutSort, project_id]);
+
+  return [flyoutSort, setFlyoutSort];
 }

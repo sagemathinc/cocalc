@@ -26,7 +26,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading, TimeAgo } from "@cocalc/frontend/components";
-import { local_storage } from "@cocalc/frontend/editor-local-storage";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
@@ -38,6 +37,7 @@ import {
   DirectoryListingEntry,
 } from "@cocalc/frontend/project/explorer/types";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
+import { useFlyoutSettings } from "@cocalc/frontend/project/explorer/use-explorer-settings";
 import track from "@cocalc/frontend/user-tracking";
 import {
   capitalize,
@@ -120,23 +120,9 @@ export function FilesFlyout({
   );
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
   // Flyout-local sort order — independent of the explorer's Redux state.
-  // Persisted per-project in localStorage.
-  const [activeFileSort, setActiveFileSort] = useState<ActiveFileSort>(() => {
-    const saved = local_storage(project_id, "flyout-files", "sort") as any;
-    if (saved && typeof saved === "object" && saved.column_name) {
-      return TypedMap({
-        column_name: String(saved.column_name),
-        is_descending: !!saved.is_descending,
-      });
-    }
-    return TypedMap({ column_name: "time", is_descending: false });
-  });
-  useEffect(() => {
-    local_storage(project_id, "flyout-files", "sort", {
-      column_name: activeFileSort.get("column_name"),
-      is_descending: activeFileSort.get("is_descending"),
-    });
-  }, [activeFileSort]);
+  // Persisted per-project per-user via Conat DKV (same store as explorer,
+  // but using separate flyoutSortColumn / flyoutSortDescending fields).
+  const [activeFileSort, setActiveFileSort] = useFlyoutSettings(project_id);
   const handleSortColumn = useCallback((name: string) => {
     setActiveFileSort((prev) => {
       if (prev.get("column_name") === name) {
