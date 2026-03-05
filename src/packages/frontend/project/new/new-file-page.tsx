@@ -78,7 +78,9 @@ export default function NewFilePage(props: Props) {
   const actions = useActions({ project_id });
   const availableFeatures = useAvailableFeatures(project_id);
   const [extensionWarning, setExtensionWarning] = useState<boolean>(false);
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const new_page_path = useTypedRedux({ project_id }, "new_page_path");
+  const redux_current_path = useTypedRedux({ project_id }, "current_path");
+  const current_path = new_page_path ?? redux_current_path;
   const filename0 = useTypedRedux({ project_id }, "default_filename");
   const [filename, setFilename] = useState<string>(
     filename0 ? filename0 : default_filename(undefined, project_id),

@@ -113,6 +113,8 @@ export interface ProjectStoreState {
   explorer_history_path?: string; // breadcrumb history for the explorer
   flyout_browsing_path?: string; // independent browsing path for the flyout panel
   flyout_history_path?: string; // breadcrumb history for the flyout panel
+  new_page_path?: string; // current dir for "+New" page (last of: explorer nav, file tab switch)
+  flyout_new_path?: string; // current dir for flyout/new (last of: flyout nav, file tab switch)
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted

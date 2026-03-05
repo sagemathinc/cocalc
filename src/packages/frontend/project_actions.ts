@@ -578,7 +578,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "new":
         change.file_creation_error = undefined;
         if (opts.change_history) {
-          this.push_state(`new/${store.get("current_path")}`, "");
+          const newPath =
+            store.get("new_page_path") ?? store.get("current_path") ?? "";
+          this.push_state(`new/${newPath}`, "");
         }
         const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
@@ -1488,6 +1490,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       history_path,
       page_number: 0,
       most_recent_file_click: undefined,
+      // File tab switches update both "+New" contexts so that file
+      // creation targets the directory of the most recently active file.
+      new_page_path: path,
+      flyout_new_path: path,
     });
 
     store.get_listings().watch(path, true);

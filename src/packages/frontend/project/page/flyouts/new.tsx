@@ -69,7 +69,9 @@ export function NewFlyout({
   const rfn = other_settings.get(NEW_FILENAMES);
   const selected = rfn ?? DEFAULT_NEW_FILENAMES;
   const actions = useActions({ project_id });
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const flyout_new_path = useTypedRedux({ project_id }, "flyout_new_path");
+  const redux_current_path = useTypedRedux({ project_id }, "current_path");
+  const current_path = flyout_new_path ?? redux_current_path;
   const availableFeatures = useAvailableFeatures(project_id);
   const file_creation_error = useTypedRedux(
     { project_id },
@@ -209,7 +211,7 @@ export function NewFlyout({
   function fileIcon() {
     const name: IconName = isNewFiletypeIconName(ext)
       ? NEW_FILETYPE_ICONS[ext!]
-      : file_options(`foo.${ext}`)?.icon ?? "file";
+      : (file_options(`foo.${ext}`)?.icon ?? "file");
     return (
       <Icon
         name={name}

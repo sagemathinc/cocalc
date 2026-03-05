@@ -64,6 +64,8 @@ export function navigateBrowsingPath(
   const nextHistory = computeHistoryPath(prevHistory, path);
   const actions = redux.getProjectActions(project_id);
 
+  const isExplorer = pathKey === "explorer_browsing_path";
+
   actions?.setState({
     [pathKey]: path,
     [historyKey]: nextHistory,
@@ -71,11 +73,14 @@ export function navigateBrowsingPath(
     // previous directory would cause incorrect range/keyboard selections.
     most_recent_file_click: undefined,
     selected_file_index: undefined,
+    // Propagate to the corresponding "+New" context so file creation
+    // targets the directory the user is currently browsing.
+    ...(isExplorer ? { new_page_path: path } : { flyout_new_path: path }),
   } as any);
 
   // Keep the browser URL in sync with the explorer's browsing path so that
   // page refresh restores the correct directory (not the stale current_path).
-  if (pathKey === "explorer_browsing_path") {
+  if (isExplorer) {
     actions?.set_url_to_path(path);
   }
 
