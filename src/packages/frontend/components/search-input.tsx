@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -22,15 +22,23 @@ interface Props {
   size?;
   default_value?: string;
   value?: string;
-  on_change?: (value: string, opts: { ctrl_down: boolean }) => void;
+  on_change?: (
+    value: string,
+    opts: { ctrl_down: boolean; shift_down: boolean },
+  ) => void;
   on_clear?: () => void;
-  on_submit?: (value: string, opts: { ctrl_down: boolean }) => void;
+  on_submit?: (
+    value: string,
+    opts: { ctrl_down: boolean; shift_down: boolean },
+  ) => void;
   buttonAfter?;
   disabled?: boolean;
   clear_on_submit?: boolean;
   on_down?: () => void;
   on_up?: () => void;
-  on_escape?: (value: string) => void;
+  on_escape?: (value: string) => boolean | void;
+  on_blur?: () => void;
+  on_focus?: () => void;
   style?: React.CSSProperties;
   input_class?: string;
   autoFocus?: boolean;
@@ -61,9 +69,9 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
   }, []);
 
   useEffect(() => {
-    if (focus == null) return;
+    if (props.focus == null) return;
     input_ref.current?.focus();
-  }, [focus]);
+  }, [props.focus]);
 
   function get_opts(): { ctrl_down: boolean; shift_down: boolean } {
     return { ctrl_down, shift_down };
@@ -116,12 +124,15 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
       case 17:
         set_ctrl_down(false);
         break;
+      case 16:
+        set_shift_down(false);
+        break;
     }
   }
 
   function escape(): void {
-    if (typeof props.on_escape === "function") {
-      props.on_escape(value);
+    if (props.on_escape?.(value)) {
+      return;
     }
     clear_value();
   }
@@ -146,6 +157,8 @@ export const SearchInput: React.FC<Props> = React.memo((props) => {
       }}
       onKeyDown={key_down}
       onKeyUp={key_up}
+      onBlur={props.on_blur}
+      onFocus={props.on_focus}
       disabled={props.disabled}
       enterButton={props.buttonAfter}
       status={props.status}

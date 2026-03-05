@@ -3,17 +3,22 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Space, Tooltip } from "antd";
+import { Button, Space, Tooltip } from "antd";
 import * as immutable from "immutable";
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { FormattedMessage, useIntl } from "react-intl";
-import { Button, ButtonToolbar } from "@cocalc/frontend/antd-bootstrap";
-import { Gap, Icon } from "@cocalc/frontend/components";
+
+import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
+import { Icon } from "@cocalc/frontend/components";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
+import { file_options } from "@cocalc/frontend/editor-tmp";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
+import ExplorerHelp from "@cocalc/frontend/project/explorer/explorer-help";
+import { isTerminalMode } from "@cocalc/frontend/project/explorer/file-listing";
+import { RefreshButton } from "@cocalc/frontend/project/explorer/refresh-button";
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import * as misc from "@cocalc/util/misc";
@@ -25,12 +30,29 @@ const ROW_INFO_STYLE = {
   margin: "5px 3px",
 } as const;
 
+/** Shared style for the "active filter" badge buttons.
+ *  Used in both the explorer info line and the empty-placeholder. */
+export const ACTIVE_FILTER_BTN_STYLE: React.CSSProperties = {
+  background: COLORS.ANTD_ORANGE,
+  color: "black",
+  borderRadius: 4,
+  whiteSpace: "nowrap",
+  marginLeft: 6,
+};
+
+/** Green-tinted badge for additive indicators (something is shown, not filtered). */
+const ACTIVE_ADDITIVE_BTN_STYLE: React.CSSProperties = {
+  background: COLORS.ANTD_GREEN,
+  color: "black",
+  borderRadius: 4,
+  whiteSpace: "nowrap",
+  marginLeft: 6,
+};
+
 interface Props {
   project_id?: string;
   checked_files: immutable.Set<string>;
   listing: { name: string; isdir: boolean }[];
-  page_number: number;
-  page_size: number;
   current_path?: string;
   project_map?: immutable.Map<string, string>;
   images?: ComputeImages;
@@ -38,71 +60,57 @@ interface Props {
   available_features?;
   show_custom_software_reset?: boolean;
   project_is_running?: boolean;
+  show_directory_tree?: boolean;
+  on_toggle_directory_tree?: () => void;
 }
 
 export const ActionBar: React.FC<Props> = (props: Props) => {
   const intl = useIntl();
-  const [select_entire_directory, set_select_entire_directory] = useState<
-    "hidden" | "check" | "clear"
-  >("hidden");
   const student_project_functionality = useStudentProjectFunctionality(
     props.actions.project_id,
   );
   const disableActions = student_project_functionality.disableActions;
 
-  useEffect(() => {
-    // user changed directory, hide the "select entire directory" button
-    if (select_entire_directory !== "hidden") {
-      set_select_entire_directory("hidden");
-    }
-  }, [props.current_path]);
-
-  useEffect(() => {
-    if (
-      props.checked_files.size === props.listing.length &&
-      select_entire_directory === "check"
-    ) {
-      // user just clicked the "select entire directory" button, show the "clear" button
-      set_select_entire_directory("clear");
-    }
-  }, [props.checked_files, props.listing, select_entire_directory]);
-
+  // When file actions are disabled (student projects), still render the
+  // directory tree toggle — it is navigation, not a file action.
   if (disableActions) {
-    return <div></div>;
+    if (
+      !props.on_toggle_directory_tree ||
+      props.show_directory_tree ||
+      IS_MOBILE
+    ) {
+      return <div></div>;
+    }
+    return (
+      <div style={{ padding: "0" }}>
+        <BootstrapButton
+          onClick={props.on_toggle_directory_tree}
+          title="Show directory tree"
+        >
+          <Icon name="network" style={{ transform: "rotate(270deg)" }} />
+        </BootstrapButton>
+      </div>
+    );
   }
 
   function clear_selection(): void {
     props.actions.set_all_files_unchecked();
-    if (select_entire_directory !== "hidden") {
-      set_select_entire_directory("hidden");
-    }
   }
 
   function check_all_click_handler(): void {
     if (props.checked_files.size === 0) {
-      const files_on_page = props.listing.slice(
-        props.page_size * props.page_number,
-        props.page_size * (props.page_number + 1),
-      );
       props.actions.set_file_list_checked(
-        files_on_page.map((file) =>
+        props.listing.map((file) =>
           misc.path_to_file(props.current_path ?? "", file.name),
         ),
       );
-      if (props.listing.length > props.page_size) {
-        // if there are more items than one page, show a button to select everything
-        set_select_entire_directory("check");
-      }
     } else {
       clear_selection();
     }
   }
 
   function render_check_all_button(): React.JSX.Element | undefined {
-    if (props.listing.length === 0) {
-      return;
-    }
-
+    const empty = props.listing.length === 0;
     const checked = props.checked_files.size > 0;
     const button_text = intl.formatMessage(
       {
@@ -127,106 +135,50 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
 
     return (
       <Button
-        bsSize="small"
-        cocalc-test="check-all"
+        data-cocalc-test="check-all"
         onClick={check_all_click_handler}
+        disabled={empty}
       >
         <Icon name={button_icon} /> {button_text}
       </Button>
     );
   }
 
-  function do_select_entire_directory(): void {
-    props.actions.set_file_list_checked(
-      props.listing.map((file) =>
-        misc.path_to_file(props.current_path ?? "", file.name),
-      ),
-    );
-  }
-
-  function render_select_entire_directory(): React.JSX.Element | undefined {
-    switch (select_entire_directory) {
-      case "check":
-        return (
-          <Button bsSize="xsmall" onClick={do_select_entire_directory}>
-            Select All {props.listing.length} Items
-          </Button>
-        );
-      case "clear":
-        return (
-          <Button bsSize="xsmall" onClick={clear_selection}>
-            Clear Entire Selection
-          </Button>
-        );
-    }
-  }
-
-  function render_currently_selected(): React.JSX.Element | undefined {
-    if (props.listing.length === 0) {
+  function render_directory_tree_toggle(): React.JSX.Element | undefined {
+    // When the tree is visible, the toggle is rendered above the tree panel
+    // in explorer.tsx — don't duplicate it here. Tree is also not available
+    // on mobile.
+    if (
+      !props.on_toggle_directory_tree ||
+      props.show_directory_tree ||
+      IS_MOBILE
+    ) {
       return;
     }
-    const checked = props.checked_files.size;
-    const total = props.listing.length;
-    const style = ROW_INFO_STYLE;
-
-    if (checked === 0) {
-      return (
-        <div style={style}>
-          <span>
-            {total} {intl.formatMessage(labels.item_plural, { total })}
-          </span>
-          <div style={{ display: "inline" }}>
-            {" "}
-            &mdash;{" "}
-            <FormattedMessage
-              id="project.explorer.action-bar.currently_selected.info"
-              defaultMessage={
-                "Click the checkbox to the left of a file to copy, download, etc."
-              }
-            />
-          </div>
-        </div>
-      );
-    } else {
-      return (
-        <div style={style}>
-          <span>
-            {intl.formatMessage(
-              {
-                id: "project.explorer.action-bar.currently_selected.items",
-                defaultMessage: "{checked} of {total} {items} selected",
-              },
-              {
-                checked,
-                total,
-                items: intl.formatMessage(labels.item_plural, { total }),
-              },
-            )}
-          </span>
-          <Gap />
-          {render_select_entire_directory()}
-        </div>
-      );
-    }
+    return (
+      <BootstrapButton
+        onClick={props.on_toggle_directory_tree}
+        title="Show directory tree"
+      >
+        <Icon name="network" style={{ transform: "rotate(270deg)" }} />
+      </BootstrapButton>
+    );
   }
 
   function render_action_button(name: FileAction): React.JSX.Element {
     const disabled =
       isDisabledSnapshots(name) &&
-      (props.current_path != null
-        ? props.current_path.startsWith(".snapshots")
-        : undefined);
+      (props.current_path?.startsWith(".snapshots") ?? false);
     const obj = FILE_ACTIONS[name];
     const handle_click = (_e: React.MouseEvent) => {
       props.actions.set_file_action(name);
     };
 
     return (
-      <Tooltip title={intl.formatMessage(obj.name)}>
-        <Button onClick={handle_click} disabled={disabled} key={name}>
+      <Tooltip title={intl.formatMessage(obj.name)} key={name}>
+        <Button onClick={handle_click} disabled={disabled}>
           <Icon name={obj.icon} />
         </Button>
-        &nbsp;
       </Tooltip>
     );
   }
@@ -305,20 +257,219 @@ export const ActionBar: React.FC<Props> = (props: Props) => {
     return null;
   }
   return (
-    <div style={{ flex: "1 0 auto" }}>
-      <div style={{ flex: "1 0 auto" }}>
-        <ButtonToolbar style={{ whiteSpace: "nowrap", padding: "0" }}>
-          <Space.Compact>
-            {props.project_is_running ? render_check_all_button() : undefined}
-          </Space.Compact>
-          {render_button_area()}
-        </ButtonToolbar>
-      </div>
-      <div style={{ flex: "1 0 auto" }}>
-        {props.project_is_running ? render_currently_selected() : undefined}
-      </div>
-    </div>
+    <Space wrap style={{ whiteSpace: "nowrap", padding: "0" }}>
+      {props.project_is_running ? render_directory_tree_toggle() : undefined}
+      {props.project_is_running ? render_check_all_button() : undefined}
+      {render_button_area()}
+    </Space>
   );
+};
+
+/** Info line shown below the action bar — "N items" + Help button. */
+export const ActionBarInfo: React.FC<
+  Pick<
+    Props,
+    | "project_id"
+    | "checked_files"
+    | "listing"
+    | "project_is_running"
+    | "actions"
+  > & {
+    type_filter?: string;
+    file_search?: string;
+    hide_masked_files?: boolean;
+    show_hidden?: boolean;
+    /** The project-wide current_path (active file context). */
+    current_path?: string;
+    /** The explorer's own browsing path (may differ from current_path). */
+    explorer_browsing_path?: string;
+    /** Called to switch the explorer to current_path. */
+    onSwitchToCurrentPath?: () => void;
+    /** True when a filesystem update is buffered and awaiting user confirmation. */
+    hasPendingUpdate?: boolean;
+    /** Flush the buffered listing update. */
+    onRefreshListing?: () => void;
+  }
+> = (props) => {
+  const intl = useIntl();
+  if (!props.project_is_running) {
+    return null;
+  }
+  const checked = props.checked_files.size;
+  const total = props.listing.length;
+
+  const helpButton = props.project_id ? (
+    <ExplorerHelp project_id={props.project_id} />
+  ) : null;
+
+  // "Switch" button: shown when the explorer's browsing path differs
+  // from the project-wide current_path (active file context).
+  const pathsDiverge =
+    props.current_path != null &&
+    props.explorer_browsing_path != null &&
+    props.current_path !== props.explorer_browsing_path;
+  const switchButton = pathsDiverge ? (
+    <Tooltip
+      title={`Switch to the directory of the currently active file: ${props.current_path || "Home"}`}
+    >
+      <Button
+        type="text"
+        size="small"
+        style={{ color: COLORS.ANTD_LINK_BLUE }}
+        onClick={props.onSwitchToCurrentPath}
+      >
+        <Icon name="swap" /> Switch
+      </Button>
+    </Tooltip>
+  ) : null;
+
+  // Build filter badge list
+  const filterBadges: React.ReactNode[] = [];
+
+  if (props.type_filter != null) {
+    const ext = props.type_filter;
+    const displayName =
+      ext === "folder"
+        ? intl.formatMessage(labels.folder)
+        : (file_options(`file.${ext}`)?.name ?? `.${ext}`);
+    filterBadges.push(
+      <Button
+        key="type"
+        type="text"
+        size="small"
+        style={ACTIVE_FILTER_BTN_STYLE}
+        onClick={() =>
+          props.actions.setState({ type_filter: undefined } as any)
+        }
+      >
+        {displayName} <Icon name="times-circle" />
+      </Button>,
+    );
+  }
+
+  // Show search filter badge only for file filters, not terminal mode (! or /).
+  if (props.file_search && !isTerminalMode(props.file_search)) {
+    filterBadges.push(
+      <Button
+        key="search"
+        type="text"
+        size="small"
+        style={ACTIVE_FILTER_BTN_STYLE}
+        onClick={() => props.actions.set_file_search("")}
+      >
+        Contains &ldquo;{props.file_search}&rdquo; <Icon name="times-circle" />
+      </Button>,
+    );
+  }
+
+  if (props.hide_masked_files) {
+    filterBadges.push(
+      <Button
+        key="mask"
+        type="text"
+        size="small"
+        style={ACTIVE_FILTER_BTN_STYLE}
+        onClick={() => props.actions.setState({ hide_masked_files: false })}
+      >
+        Masked files <Icon name="times-circle" />
+      </Button>,
+    );
+  }
+
+  // Additive indicator: hidden files are being shown (green = adding, not filtering)
+  if (props.show_hidden) {
+    filterBadges.push(
+      <Button
+        key="hidden"
+        type="text"
+        size="small"
+        style={ACTIVE_ADDITIVE_BTN_STYLE}
+        onClick={() => props.actions.setState({ show_hidden: false })}
+      >
+        Hidden files <Icon name="times-circle" />
+      </Button>,
+    );
+  }
+
+  const hasFilter = filterBadges.length > 0;
+
+  const refreshButton = props.hasPendingUpdate ? (
+    <RefreshButton onClick={props.onRefreshListing} />
+  ) : null;
+
+  if (checked === 0) {
+    return (
+      <div
+        style={{
+          ...ROW_INFO_STYLE,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <span style={{ flex: 1 }}>
+          {total} {intl.formatMessage(labels.item_plural, { total })}
+          {hasFilter && (
+            <>
+              {" "}
+              &mdash; Active {filterBadges.length === 1
+                ? "Filter"
+                : "Filters"}: {filterBadges}
+            </>
+          )}
+          {!hasFilter && (
+            <>
+              {" "}
+              &mdash;{" "}
+              <FormattedMessage
+                id="project.explorer.action-bar.currently_selected.info"
+                defaultMessage={
+                  "Select files via checkbox or drag and drop to move them."
+                }
+              />
+            </>
+          )}
+          {refreshButton && <> &middot; {refreshButton}</>}
+        </span>
+        {switchButton}
+        {helpButton}
+      </div>
+    );
+  } else {
+    return (
+      <div
+        style={{
+          ...ROW_INFO_STYLE,
+          display: "flex",
+          alignItems: "center",
+        }}
+      >
+        <span style={{ flex: 1 }}>
+          {intl.formatMessage(
+            {
+              id: "project.explorer.action-bar.currently_selected.items",
+              defaultMessage: "{checked} of {total} {items} selected",
+            },
+            {
+              checked,
+              total,
+              items: intl.formatMessage(labels.item_plural, { total }),
+            },
+          )}
+          {hasFilter && (
+            <>
+              {" "}
+              &mdash; Active {filterBadges.length === 1
+                ? "Filter"
+                : "Filters"}: {filterBadges}
+            </>
+          )}
+          {refreshButton && <> &middot; {refreshButton}</>}
+        </span>
+        {switchButton}
+        {helpButton}
+      </div>
+    );
+  }
 };
 
 // Ordered by frequency of use — most common first, share last (often the
