@@ -76,10 +76,11 @@ When a package has multiple major versions in the tree (e.g. ajv 6.x and 8.x), u
 "ajv@>=8.0.0 <8.18.0": "8.18.0"
 ```
 
-### 5. Install and verify
+### 5. Version-check, install, and verify
 
+After any `package.json` changes, **always** run version-check first, then install:
 ```bash
-cd src && python3 workspaces.py install
+cd src && python3 workspaces.py version-check && python3 workspaces.py install
 grep '<package>@<old-version>' src/packages/pnpm-lock.yaml   # should return nothing
 ```
 
