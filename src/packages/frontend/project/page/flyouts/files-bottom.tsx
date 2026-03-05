@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -16,7 +16,6 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ConnectionStatus } from "@cocalc/frontend/app/store";
 import { Icon } from "@cocalc/frontend/components";
@@ -24,7 +23,7 @@ import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { ConnectionStatusIcon } from "@cocalc/frontend/frame-editors/frame-tree/title-bar";
 import { open_new_tab } from "@cocalc/frontend/misc";
-import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/file-row";
+import { VIEWABLE_FILE_EXT } from "@cocalc/frontend/project/explorer/file-listing/utils";
 import {
   DirectoryListing,
   DirectoryListingEntry,
@@ -63,6 +62,10 @@ interface FilesBottomProps {
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
   getFile: (path: string) => DirectoryListingEntry | undefined;
+  /** Flyout's independent browsing path (used for terminal sync). */
+  browsingPath: string;
+  /** Navigate the flyout to a directory. */
+  onNavigate: (path: string) => void;
 }
 
 export function FilesBottom({
@@ -78,9 +81,11 @@ export function FilesBottom({
   showFileSharingDialog,
   getFile,
   directoryFiles,
+  browsingPath,
+  onNavigate,
 }: FilesBottomProps) {
   const [mode, setMode] = modeState;
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const current_path = browsingPath;
   const actions = useActions({ project_id });
   const [activeKeys, setActiveKeys] = useState<PanelKey[]>([]);
   const [resize, setResize] = useState<number>(0);
@@ -96,10 +101,12 @@ export function FilesBottom({
 
   const collapseRef = useRef<HTMLDivElement>(null);
 
-  const triggerResize = debounce(() => setResize((r) => r + 1), 50, {
-    leading: false,
-    trailing: true,
-  });
+  const triggerResize = useRef(
+    debounce(() => setResize((r) => r + 1), 50, {
+      leading: false,
+      trailing: true,
+    }),
+  ).current;
 
   function setTerminalFontSize(next: number | Function) {
     const sani = (val) => Math.round(Math.min(18, Math.max(6, val)));
@@ -179,6 +186,8 @@ export function FilesBottom({
         setTerminalTitle={setTerminalTitle}
         syncPath={syncPath}
         sync={sync}
+        browsingPath={browsingPath}
+        onNavigate={onNavigate}
       />
     );
   }
@@ -309,7 +318,7 @@ export function FilesBottom({
       const name = singleFile.name;
       const iconName = singleFile.isdir
         ? "folder"
-        : file_options(name)?.icon ?? "file";
+        : (file_options(name)?.icon ?? "file");
       return (
         <div style={{ whiteSpace: "nowrap" }} title={name}>
           <Icon name={iconName} /> {trunc_middle(name, 20)}

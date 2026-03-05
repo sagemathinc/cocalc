@@ -1,9 +1,18 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Alert, Button, Input, InputRef, Radio, Space, Tooltip } from "antd";
+import {
+  Alert,
+  Button,
+  Input,
+  InputRef,
+  Radio,
+  Select,
+  Space,
+  Tooltip,
+} from "antd";
 import immutable from "immutable";
 import { FormattedMessage, useIntl } from "react-intl";
 import { VirtuosoHandle } from "react-virtuoso";
@@ -15,11 +24,11 @@ import {
   redux,
   useAsyncEffect,
   useEffect,
+  useIsMountedRef,
   usePrevious,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
-import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
@@ -29,6 +38,12 @@ import {
 import track from "@cocalc/frontend/user-tracking";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { separate_file_extension, strictMod } from "@cocalc/util/misc";
+import { isTerminalMode } from "@cocalc/frontend/project/explorer/file-listing";
+import { TerminalModeDisplay } from "@cocalc/frontend/project/explorer/file-listing/terminal-mode-display";
+import { TypeFilterLabel } from "@cocalc/frontend/project/explorer/file-listing/utils";
+import { SearchHistoryDropdown } from "@cocalc/frontend/project/explorer/search-history-dropdown";
+import { useExplorerSearchHistory } from "@cocalc/frontend/project/explorer/use-search-history";
+import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { DEFAULT_EXT, FLYOUT_PADDING } from "./consts";
@@ -54,6 +69,16 @@ function searchToFilename(search: string): string {
 
 interface Props {
   activeFileSort: ActiveFileSort;
+  /** Called when the user clicks a sort column button. */
+  onSortColumn: (name: string) => void;
+  /** Flyout-local hidden files toggle state. */
+  hidden: boolean;
+  setHidden: (v: boolean) => void;
+  /** Flyout-local "hide masked files" toggle. */
+  hideMaskedFiles: boolean;
+  setHideMaskedFiles: (v: boolean) => void;
+  /** Whether mask_files is enabled in account settings. */
+  maskFiles: boolean;
   disableUploads: boolean;
   handleSearchChange: (search: string) => void;
   isEmpty: boolean;
@@ -72,6 +97,20 @@ interface Props {
   modeState: ["open" | "select", (mode: "open" | "select") => void];
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
+  typeFilter: string | null;
+  setTypeFilter: (filter: string | null) => void;
+  typeFilterOptions: string[];
+  /** Navigate within the flyout (independent of the explorer). */
+  onNavigate?: (path: string) => void;
+  /** The flyout's independent browsing path. When provided, overrides
+   *  Redux `current_path` for terminal commands, file creation, and uploads. */
+  browsingPath?: string;
+  /** True when a filesystem update is buffered and awaiting user confirmation. */
+  hasPendingUpdate?: boolean;
+  /** Flush the buffered listing update. */
+  onRefreshListing?: () => void;
+  /** Called when a terminal command (prefixed with ! or /) finishes executing. */
+  onTerminalCommand?: () => void;
 }
 
 export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
@@ -95,6 +134,9 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     modeState,
     selectAllFiles,
     clearAllSelections,
+    typeFilter,
+    setTypeFilter,
+    typeFilterOptions,
   } = props;
 
   const intl = useIntl();
@@ -111,12 +153,28 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
 
   const kucalc = useTypedRedux("customize", "kucalc");
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
-  const hidden = useTypedRedux({ project_id }, "show_hidden");
+  const { hidden, setHidden, hideMaskedFiles, setHideMaskedFiles, maskFiles } =
+    props;
   const file_creation_error = useTypedRedux(
     { project_id },
     "file_creation_error",
   );
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const redux_current_path = useTypedRedux({ project_id }, "current_path");
+  // Use the flyout's browsing path when provided, fall back to Redux
+  const current_path = props.browsingPath ?? redux_current_path;
+
+  const {
+    history,
+    initialized: historyInitialized,
+    addHistoryEntry,
+  } = useExplorerSearchHistory(project_id);
+
+  const [historyMode, setHistoryMode] = React.useState(false);
+  const [historyIndex, setHistoryIndex] = React.useState(0);
+  const [termError, setTermError] = React.useState<string | undefined>();
+  const [termStdout, setTermStdout] = React.useState<string | undefined>();
+  const termIdRef = React.useRef(0);
+  const isMountedRef = useIsMountedRef();
 
   const [highlighNothingFound, setHighlighNothingFound] = React.useState(false);
   const file_search_prev = usePrevious(file_search);
@@ -155,66 +213,190 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     });
   }
 
+  // Close history mode if history becomes empty or index is out of range.
+  React.useEffect(() => {
+    if (!historyMode) return;
+    if (history.length === 0) {
+      setHistoryMode(false);
+      setHistoryIndex(0);
+      return;
+    }
+    if (historyIndex >= history.length) {
+      setHistoryIndex(history.length - 1);
+    }
+  }, [history, historyIndex, historyMode]);
+
+  function applyHistorySelection(idx?: number): void {
+    const value = history[idx ?? historyIndex];
+    setHistoryMode(false);
+    setHistoryIndex(0);
+    if (value == null) return;
+    setScrollIdx(null);
+    handleSearchChange(value);
+  }
+
+  function runTerminalCommand(command: string): void {
+    const input = command.trim();
+    if (!input) return;
+
+    setTermError(undefined);
+    setTermStdout(undefined);
+    props.onTerminalCommand?.();
+
+    const id = ++termIdRef.current;
+    const input0 = input + '\necho $HOME "`pwd`"';
+    const compute_server_id = redux
+      .getProjectStore(project_id)
+      ?.get("compute_server_id");
+
+    // Execute in the user's project sandbox via the CoCalc project API
+    // (same pattern as search-bar.tsx terminal mode).
+    webapp_client.exec({
+      project_id,
+      command: input0,
+      timeout: 10,
+      max_output: 100000,
+      bash: true,
+      path: current_path,
+      err_on_exit: false,
+      compute_server_id,
+      filesystem: true,
+      cb(err, output) {
+        if (id !== termIdRef.current || !isMountedRef.current) return;
+        if (err) {
+          setTermError(JSON.stringify(err));
+        } else {
+          if (output.stdout) {
+            let s = output.stdout.trim();
+            let i = s.lastIndexOf("\n");
+            if (i === -1) {
+              output.stdout = "";
+            } else {
+              s = s.slice(i + 1);
+              output.stdout = output.stdout.slice(0, i);
+            }
+            i = s.indexOf(" ");
+            const full_path = s.slice(i + 1);
+            if (full_path.slice(0, i) === s.slice(0, i)) {
+              const path = s.slice(2 * i + 2);
+              // Navigate within the flyout (if available), not the global
+              // explorer path — the flyout has its own browsing state.
+              if (props.onNavigate) {
+                props.onNavigate(path);
+              } else {
+                actions?.open_directory(path);
+              }
+            }
+          }
+          if (!output.stderr) {
+            actions?.log({ event: "termInSearch", input });
+          }
+          setTermError(output.stderr || undefined);
+          setTermStdout(output.stdout || undefined);
+          if (!output.stderr) {
+            setSearchState("");
+          }
+        }
+      },
+    });
+  }
+
   function filterKeyHandler(e: React.KeyboardEvent) {
-    // if arrow key down or up, then scroll to next item
-    const dx = e.code === "ArrowDown" ? 1 : e.code === "ArrowUp" ? -1 : 0;
-    if (dx != 0) {
-      doScroll(dx);
+    // --- History mode navigation ---
+    if (e.code === "ArrowUp") {
+      if (!historyMode && historyInitialized && history.length > 0) {
+        setHistoryMode(true);
+        setHistoryIndex(0);
+        return;
+      }
+      if (historyMode) {
+        setHistoryIndex((idx) => Math.max(idx - 1, 0));
+        return;
+      }
+      doScroll(-1);
+      return;
+    }
+
+    if (e.code === "ArrowDown") {
+      if (historyMode) {
+        setHistoryIndex((idx) =>
+          Math.min(idx + 1, Math.max(0, history.length - 1)),
+        );
+        return;
+      }
+      doScroll(1);
+      return;
     }
 
     // left arrow key: go up a directory
-    else if (e.code === "ArrowLeft") {
+    if (e.code === "ArrowLeft") {
       if (current_path != "") {
-        actions?.set_current_path(
-          current_path.split("/").slice(0, -1).join("/"),
-        );
+        const parent = current_path.split("/").slice(0, -1).join("/");
+        if (props.onNavigate) {
+          props.onNavigate(parent);
+        } else {
+          actions?.set_current_path(parent);
+        }
       }
+      return;
     }
 
     // return key pressed
-    else if (e.code === "Enter") {
+    if (e.code === "Enter") {
+      if (historyMode) {
+        applyHistorySelection();
+        return;
+      }
+      if (isTerminalMode(file_search)) {
+        const command = file_search.slice(1);
+        if (command.trim().length > 0) {
+          addHistoryEntry(file_search);
+        }
+        runTerminalCommand(command);
+        return;
+      }
       if (scrollIdx != null) {
+        addHistoryEntry(file_search);
         open(e, scrollIdx);
         setScrollIdx(null);
       } else if (file_search != "") {
         if (!isEmpty) {
+          addHistoryEntry(file_search);
           setSearchState("");
           open(e, 0);
         } else {
           if (e.shiftKey) {
-            // only if shift is pressed as well, create a file or folder
-            // this avoids accidentally creating jupyter notebooks (the default file type)
             createFileOrFolder();
             setSearchState("");
           } else {
-            // we change a state, such that at least something happens if user hits return
             setHighlighNothingFound(true);
           }
         }
       }
+      return;
     }
 
-    // if esc key is pressed, clear search and reset scroll index
-    else if (e.key === "Escape") {
+    // if esc key is pressed, close history or clear search
+    if (e.key === "Escape") {
+      if (historyMode) {
+        setHistoryMode(false);
+        setHistoryIndex(0);
+        return;
+      }
+      setTermError(undefined);
+      setTermStdout(undefined);
+      if (file_search) {
+        addHistoryEntry(file_search);
+      }
       handleSearchChange("");
     }
   }
 
   function wrapDropzone(children: React.JSX.Element): React.JSX.Element {
-    if (disableUploads) return children;
-    return (
-      <FileUploadWrapper
-        project_id={project_id}
-        dest_path={current_path}
-        event_handlers={{
-          complete: () => actions?.fetch_directory_listing(),
-        }}
-        config={{ clickable: `.${uploadClassName}` }}
-        className="smc-vfill"
-      >
-        {children}
-      </FileUploadWrapper>
-    );
+    // The upload button triggers the body FileUploadWrapper's Dropzone
+    // (which uses clickable: `.${uploadClassName}`), so no separate
+    // wrapper is needed here.
+    return children;
   }
 
   function renderSortButton(
@@ -225,7 +407,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     const direction = isActive ? (
       <Icon
         style={{ marginLeft: FLYOUT_PADDING }}
-        name={activeFileSort.get("is_descending") ? "caret-up" : "caret-down"}
+        name={activeFileSort.get("is_descending") ? "caret-down" : "caret-up"}
       />
     ) : undefined;
 
@@ -233,7 +415,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
       <Radio.Button
         value={name}
         style={{ background: isActive ? COLORS.ANTD_BG_BLUE_L : undefined }}
-        onClick={() => actions?.set_sorted_file_column(name)}
+        onClick={() => props.onSortColumn(name)}
       >
         {display}
         {direction}
@@ -259,7 +441,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   }
 
   function activeFilterWarning() {
-    if (file_search === "") return;
+    if (file_search === "" || isTerminalMode(file_search)) return;
     if (!isEmpty) {
       return (
         <FlyoutFilterWarning filter={file_search} setFilter={setSearchState} />
@@ -268,7 +450,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   }
 
   function createFileIfNotExists() {
-    if (file_search === "" || !isEmpty) return;
+    if (file_search === "" || !isEmpty || isTerminalMode(file_search)) return;
 
     const what = file_search.trim().endsWith("/") ? "directory" : "file";
     const style: CSS = {
@@ -341,6 +523,45 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
+  function renderTerminalOutput(
+    text: string | undefined,
+    { color, onClose }: { color?: string; onClose: () => void },
+  ): React.JSX.Element | undefined {
+    if (!text) return;
+    return (
+      <pre
+        style={{
+          margin: 0,
+          padding: FLYOUT_PADDING,
+          maxHeight: "200px",
+          overflow: "auto",
+          fontSize: "12px",
+          position: "relative",
+          ...(color ? { color } : undefined),
+        }}
+      >
+        <a
+          onClick={onClose}
+          style={{
+            position: "sticky",
+            top: 0,
+            right: 0,
+            display: "block",
+            width: "fit-content",
+            marginLeft: "auto",
+            color: COLORS.GRAY_M,
+            background: COLORS.WHITE,
+            padding: "0 5px",
+            zIndex: 1,
+          }}
+        >
+          <Icon name="times" />
+        </a>
+        {text}
+      </pre>
+    );
+  }
+
   function renderFileControls() {
     return (
       <div
@@ -389,16 +610,59 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
               justifyContent: "space-between",
             }}
           >
-            <Radio.Group size="small">
-              {renderSortButton(
-                "starred",
-                <Icon name="star-filled" style={{ fontSize: "10pt" }} />,
-              )}
-              {renderSortButton("name", "Name")}
-              {renderSortButton("size", "Size")}
-              {renderSortButton("time", "Time")}
-              {renderSortButton("type", "Type")}
-            </Radio.Group>
+            <Space size="small">
+              <Radio.Group size="small">
+                {renderSortButton(
+                  "starred",
+                  <Icon name="star-filled" style={{ fontSize: "10pt" }} />,
+                )}
+                {renderSortButton("name", "Name")}
+                {renderSortButton("size", "Size")}
+                {renderSortButton("time", "Time")}
+              </Radio.Group>
+              <Select
+                size="small"
+                allowClear
+                placeholder="Type"
+                value={typeFilter}
+                onChange={(val) =>
+                  setTypeFilter(val === "__clear__" || val == null ? null : val)
+                }
+                style={{ minWidth: 80 }}
+                popupMatchSelectWidth={false}
+                className={
+                  typeFilter != null
+                    ? "cc-flyout-type-filter-active"
+                    : undefined
+                }
+                options={[
+                  ...(typeFilter != null
+                    ? [
+                        {
+                          label: (
+                            <span
+                              style={{
+                                color: COLORS.GRAY,
+                                display: "block",
+                                borderBottom: `1px solid ${COLORS.GRAY_L0}`,
+                                paddingBottom: 4,
+                                marginBottom: 2,
+                              }}
+                            >
+                              <Icon name="times-circle" /> Clear filter
+                            </span>
+                          ),
+                          value: "__clear__",
+                        },
+                      ]
+                    : []),
+                  ...typeFilterOptions.map((ext) => ({
+                    label: <TypeFilterLabel ext={ext} />,
+                    value: ext,
+                  })),
+                ]}
+              />
+            </Space>
             <Space.Compact direction="horizontal" size={"small"}>
               <Tooltip
                 title={intl.formatMessage(labels.upload_tooltip)}
@@ -436,34 +700,77 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
             gap: FLYOUT_PADDING,
           }}
         >
-          <Input
-            ref={refInput}
-            placeholder="Filter..."
-            size="small"
-            value={file_search}
-            onKeyDown={filterKeyHandler}
-            onChange={(e) => handleSearchChange(e.target.value)}
-            onFocus={() => setScrollIdxHide(false)}
-            onBlur={() => setScrollIdxHide(true)}
-            style={{ flex: "1" }}
-            allowClear
-            prefix={<Icon name="search" />}
-          />
+          <div style={{ flex: "1", position: "relative" }}>
+            <Input
+              ref={refInput}
+              placeholder={'Filter or "!" / "/" for Terminal...'}
+              size="small"
+              value={file_search}
+              onKeyDown={filterKeyHandler}
+              onChange={(e) => {
+                setHistoryMode(false);
+                setHistoryIndex(0);
+                handleSearchChange(e.target.value);
+              }}
+              onFocus={() => setScrollIdxHide(false)}
+              onBlur={() => {
+                setScrollIdxHide(true);
+                setHistoryMode(false);
+                setHistoryIndex(0);
+              }}
+              style={{ width: "100%" }}
+              allowClear
+              status={
+                file_search.length > 0 && !isTerminalMode(file_search)
+                  ? "warning"
+                  : undefined
+              }
+              prefix={<Icon name="search" />}
+            />
+            {historyMode && history.length > 0 && (
+              <SearchHistoryDropdown
+                history={history}
+                historyIndex={historyIndex}
+                setHistoryIndex={setHistoryIndex}
+                onSelect={applyHistorySelection}
+                style={{ top: "32px" }}
+              />
+            )}
+          </div>
           <Space.Compact direction="horizontal" size="small">
             <BootstrapButton
               title={intl.formatMessage(labels.hidden_files, { hidden })}
               bsSize="xsmall"
               style={{ flex: "0" }}
-              onClick={() => actions?.setState({ show_hidden: !hidden })}
+              onClick={() => setHidden(!hidden)}
             >
               <Icon name={hidden ? "eye" : "eye-slash"} />
             </BootstrapButton>
+            {maskFiles && (
+              <BootstrapButton
+                active={hideMaskedFiles}
+                title={
+                  hideMaskedFiles
+                    ? "Show masked files (auto-generated temporary files)"
+                    : "Hide masked files (auto-generated temporary files)"
+                }
+                bsSize="xsmall"
+                style={{ flex: "0" }}
+                onClick={() => setHideMaskedFiles(!hideMaskedFiles)}
+              >
+                <Icon name="mask" />
+              </BootstrapButton>
+            )}
           </Space.Compact>
           {kucalc === KUCALC_COCALC_COM ? (
             <Space.Compact direction="horizontal" size="small">
               <Button
                 onClick={() => {
-                  actions?.open_directory(".snapshots");
+                  if (props.onNavigate) {
+                    props.onNavigate(".snapshots");
+                  } else {
+                    actions?.open_directory(".snapshots");
+                  }
                   track("snapshots", {
                     action: "open",
                     where: "flyout-files",
@@ -487,6 +794,30 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
         }}
       >
         {staleListingWarning()}
+        {props.hasPendingUpdate && (
+          <Alert
+            type="warning"
+            banner
+            showIcon={false}
+            style={{ padding: FLYOUT_PADDING, margin: 0, cursor: "pointer" }}
+            onClick={props.onRefreshListing}
+            message={
+              <>
+                <Icon name="sync-alt" /> {intl.formatMessage(labels.refresh)}
+              </>
+            }
+          />
+        )}
+        {isTerminalMode(file_search) && (
+          <TerminalModeDisplay style={{ padding: FLYOUT_PADDING, margin: 0 }} />
+        )}
+        {renderTerminalOutput(termError, {
+          color: COLORS.FG_RED,
+          onClose: () => setTermError(undefined),
+        })}
+        {renderTerminalOutput(termStdout, {
+          onClose: () => setTermStdout(undefined),
+        })}
         {activeFilterWarning()}
         {createFileIfNotExists()}
         {renderFileCreationError()}

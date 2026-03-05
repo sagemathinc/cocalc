@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -22,6 +22,7 @@ import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS, FixedTab } from "../file-tab";
 import { FIXED_TABS_BG_COLOR } from "../activity-bar-tabs";
 import { ActiveHeader } from "./active-header";
+import { useFlyoutNavigation } from "./use-flyout-navigation";
 import { FLYOUT_PADDING } from "./consts";
 import { LogHeader } from "./log-header";
 
@@ -38,6 +39,18 @@ export function FlyoutHeader(_: Readonly<Props>) {
   const intl = useIntl();
   const { actions, project_id, is_active } = useProjectContext();
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
+  const {
+    flyoutPath,
+    flyoutHistory,
+    navigateFlyout,
+    canGoBack,
+    canGoForward,
+    goBack,
+    goForward,
+    backHistory,
+    forwardHistory,
+  } = useFlyoutNavigation(project_id);
+
   // the flyout fullpage button explanation isn't an Antd tour, but has the same effect.
   const tours = useTypedRedux("account", "tours");
   const [highlightFullpage, setHighlightFullpage] = useState<boolean>(false);
@@ -148,6 +161,15 @@ export function FlyoutHeader(_: Readonly<Props>) {
             className="cc-project-fixedtab-fullpage"
             style={style}
             onClick={() => {
+              // When expanding the files flyout, navigate the explorer
+              // to the flyout's current directory so it opens there.
+              if (flyout === "files" && flyoutPath != null) {
+                navigateFlyout(flyoutPath); // ensure history is recorded
+                actions?.setState({
+                  explorer_browsing_path: flyoutPath,
+                  explorer_history_path: flyoutHistory,
+                } as any);
+              }
               // flyouts and full pages share the same internal name
               actions?.set_active_tab(flyout);
               track("switch-to-fixed-tab", {
@@ -170,7 +192,7 @@ export function FlyoutHeader(_: Readonly<Props>) {
       case "files":
         return (
           <div style={{ width: "100%" }}>
-            <div>
+            <div style={{ display: "flex", alignItems: "center", flex: 1 }}>
               <SelectComputeServerForFileExplorer
                 size="small"
                 project_id={project_id}
@@ -186,6 +208,15 @@ export function FlyoutHeader(_: Readonly<Props>) {
                 mode={"flyout"}
                 project_id={project_id}
                 className={"cc-project-flyout-path-navigator"}
+                currentPath={flyoutPath}
+                historyPath={flyoutHistory}
+                onNavigate={navigateFlyout}
+                canGoBack={canGoBack}
+                canGoForward={canGoForward}
+                onGoBack={goBack}
+                onGoForward={goForward}
+                backHistory={backHistory}
+                forwardHistory={forwardHistory}
               />
             </div>
             {!!compute_server_id && (

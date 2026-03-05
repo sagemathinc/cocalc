@@ -45,8 +45,7 @@ export const gtag_id = "AW-943259268";
 export const sign_up_id = "44ZfCImosncQhP3jwQM";
 
 // documentation
-export const JUPYTER_CLASSIC_MODERN =
-  "https://doc.cocalc.com/jupyter.html";
+export const JUPYTER_CLASSIC_MODERN = "https://doc.cocalc.com/jupyter.html";
 
 // this is used in packages/hub/email.coffee and hub.coffee to specify the template and ASM groups for sendgrid
 export const SENDGRID_TEMPLATE_ID = "0375d02c-945f-4415-a611-7dc3411e2a78";
@@ -79,6 +78,7 @@ const MAIN_COLORS = {
   GRAY_L0: "#e0e0e0",
   GRAY_LL: "#eeeeee",
   GRAY_LLL: "#f5f5f5",
+  WHITE: "#ffffff",
   // bootstrap 3 colors
   BS_GREEN_BGRND: "rgb(92,184,92)",
   BS_BLUE_BGRND: "rgb(66, 139, 202)",

@@ -39,6 +39,11 @@ export default function HomePageButton({ project_id, active, width }) {
         actions?.set_active_tab(pureFlyoutMode ? "home" : "files");
 
         actions?.set_current_path("");
+        // Reset "+New" contexts so file creation targets home directory
+        actions?.setState({
+          new_page_path: "",
+          flyout_new_path: "",
+        });
         actions?.setFlyoutExpanded("files", false, false);
         actions?.set_file_search("");
 
