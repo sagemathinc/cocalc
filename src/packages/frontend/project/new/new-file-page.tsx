@@ -413,6 +413,7 @@ export default function NewFilePage(props: Props) {
           <PathNavigator
             project_id={project_id}
             style={{ display: "inline-block", fontSize: "20px" }}
+            currentPath={current_path}
           />
           {!!compute_server_id && (
             <h4 style={{ display: "inline-block", fontSize: "20px" }}>

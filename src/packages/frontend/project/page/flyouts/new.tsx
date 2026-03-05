@@ -387,6 +387,7 @@ export function NewFlyout({
             mode={"flyout"}
             project_id={project_id}
             className={"cc-project-flyout-path-navigator"}
+            currentPath={current_path}
           />
         </Space>
         {!!compute_server_id && (
