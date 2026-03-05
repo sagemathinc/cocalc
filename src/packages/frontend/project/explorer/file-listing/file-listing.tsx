@@ -1535,7 +1535,23 @@ export const FileListing: React.FC<Props> = ({
               }}
             />
           </td>
-          <td style={{ ...cellStyle, width: COL_W.PUBLIC }}>
+          <td
+            style={{
+              ...cellStyle,
+              width: COL_W.PUBLIC,
+              cursor: record.is_public ? "pointer" : undefined,
+            }}
+            onClick={
+              record.is_public
+                ? (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    actions.set_file_checked(fp, true);
+                    actions.set_file_action("share");
+                  }
+                : undefined
+            }
+          >
             {record.is_public ? (
               <Icon name="share-square" style={{ color: COLORS.TAB }} />
             ) : null}

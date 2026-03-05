@@ -26,6 +26,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { Loading, TimeAgo } from "@cocalc/frontend/components";
+import { local_storage } from "@cocalc/frontend/editor-local-storage";
 import useVirtuosoScrollHook from "@cocalc/frontend/components/virtuoso-scroll-hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { file_options } from "@cocalc/frontend/editor-tmp";
@@ -118,12 +119,40 @@ export function FilesFlyout({
     compute_server_id,
   );
   const activeTab = useTypedRedux({ project_id }, "active_project_tab");
-  const activeFileSort: ActiveFileSort = useTypedRedux(
-    { project_id },
-    "active_file_sort",
-  );
+  // Flyout-local sort order — independent of the explorer's Redux state.
+  // Persisted per-project in localStorage.
+  const [activeFileSort, setActiveFileSort] = useState<ActiveFileSort>(() => {
+    const saved = local_storage(project_id, "flyout-files", "sort") as any;
+    if (saved && typeof saved === "object" && saved.column_name) {
+      return TypedMap({
+        column_name: String(saved.column_name),
+        is_descending: !!saved.is_descending,
+      });
+    }
+    return TypedMap({ column_name: "time", is_descending: false });
+  });
+  useEffect(() => {
+    local_storage(project_id, "flyout-files", "sort", {
+      column_name: activeFileSort.get("column_name"),
+      is_descending: activeFileSort.get("is_descending"),
+    });
+  }, [activeFileSort]);
+  const handleSortColumn = useCallback((name: string) => {
+    setActiveFileSort((prev) => {
+      if (prev.get("column_name") === name) {
+        return prev.set("is_descending", !prev.get("is_descending"));
+      }
+      return prev.set("column_name", name).set("is_descending", false);
+    });
+  }, []);
+
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
-  const hidden = useTypedRedux({ project_id }, "show_hidden");
+
+  // Flyout-local hidden-files toggle — independent of the explorer.
+  const [hidden, setHidden] = useState(false);
+
+  // Flyout-local "hide masked files" toggle, resets on directory change.
+  const [hideMaskedFiles, setHideMaskedFiles] = useState(false);
   const checked_files = useTypedRedux({ project_id }, "checked_files");
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
   const otherSettings = useTypedRedux("account", "other_settings");
@@ -208,7 +237,15 @@ export function FilesFlyout({
     alwaysPassThrough: autoUpdateListing,
     fingerprint: fileListingFingerprint,
   });
-  const directoryFiles = deferredDirectoryFiles ?? rawDirectoryFiles;
+  const committedListing = deferredDirectoryFiles ?? rawDirectoryFiles;
+  // Apply flyout-local mask filter (like explorer's hide_masked_files).
+  const directoryFiles = useMemo(
+    () =>
+      hideMaskedFiles
+        ? committedListing.filter((f) => !f.mask)
+        : committedListing,
+    [committedListing, hideMaskedFiles],
+  );
 
   // Open the pass-through latch when a file action completes
   const prevCheckedSize = useRef(checked_files?.size ?? 0);
@@ -222,7 +259,7 @@ export function FilesFlyout({
   // Flush when user changes sort, filter, or visibility settings.
   useEffect(() => {
     allowNextListingUpdate();
-  }, [activeFileSort, file_search, hidden, typeFilter]);
+  }, [activeFileSort, file_search, hidden, hideMaskedFiles, typeFilter]);
 
   const typeFilterOptions = useTypeFilterOptions(
     directoryListings,
@@ -237,9 +274,10 @@ export function FilesFlyout({
     setPrevSelected(null);
 
     // if the current_path changes and there was a previous one,
-    // we reset the checked files and type filter as well.
+    // we reset the checked files, type filter, and mask toggle.
     if (prev_current_path != null && prev_current_path !== current_path) {
       setTypeFilter(null);
+      setHideMaskedFiles(false);
       actions?.set_all_files_unchecked();
     }
 
@@ -666,6 +704,12 @@ export function FilesFlyout({
         activeFile={activeFile}
         getFile={getFile}
         activeFileSort={activeFileSort}
+        onSortColumn={handleSortColumn}
+        hidden={hidden}
+        setHidden={setHidden}
+        hideMaskedFiles={hideMaskedFiles}
+        setHideMaskedFiles={setHideMaskedFiles}
+        maskFiles={!!maskFiles}
         checked_files={checked_files}
         directoryFiles={directoryFiles}
         disableUploads={disableUploads}

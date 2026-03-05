@@ -69,6 +69,16 @@ function searchToFilename(search: string): string {
 
 interface Props {
   activeFileSort: ActiveFileSort;
+  /** Called when the user clicks a sort column button. */
+  onSortColumn: (name: string) => void;
+  /** Flyout-local hidden files toggle state. */
+  hidden: boolean;
+  setHidden: (v: boolean) => void;
+  /** Flyout-local "hide masked files" toggle. */
+  hideMaskedFiles: boolean;
+  setHideMaskedFiles: (v: boolean) => void;
+  /** Whether mask_files is enabled in account settings. */
+  maskFiles: boolean;
   disableUploads: boolean;
   handleSearchChange: (search: string) => void;
   isEmpty: boolean;
@@ -143,7 +153,8 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
 
   const kucalc = useTypedRedux("customize", "kucalc");
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
-  const hidden = useTypedRedux({ project_id }, "show_hidden");
+  const { hidden, setHidden, hideMaskedFiles, setHideMaskedFiles, maskFiles } =
+    props;
   const file_creation_error = useTypedRedux(
     { project_id },
     "file_creation_error",
@@ -404,7 +415,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
       <Radio.Button
         value={name}
         style={{ background: isActive ? COLORS.ANTD_BG_BLUE_L : undefined }}
-        onClick={() => actions?.set_sorted_file_column(name)}
+        onClick={() => props.onSortColumn(name)}
       >
         {display}
         {direction}
@@ -731,10 +742,25 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
               title={intl.formatMessage(labels.hidden_files, { hidden })}
               bsSize="xsmall"
               style={{ flex: "0" }}
-              onClick={() => actions?.setState({ show_hidden: !hidden })}
+              onClick={() => setHidden(!hidden)}
             >
               <Icon name={hidden ? "eye" : "eye-slash"} />
             </BootstrapButton>
+            {maskFiles && (
+              <BootstrapButton
+                active={hideMaskedFiles}
+                title={
+                  hideMaskedFiles
+                    ? "Show masked files (auto-generated temporary files)"
+                    : "Hide masked files (auto-generated temporary files)"
+                }
+                bsSize="xsmall"
+                style={{ flex: "0" }}
+                onClick={() => setHideMaskedFiles(!hideMaskedFiles)}
+              >
+                <Icon name="mask" />
+              </BootstrapButton>
+            )}
           </Space.Compact>
           {kucalc === KUCALC_COCALC_COM ? (
             <Space.Compact direction="horizontal" size="small">
