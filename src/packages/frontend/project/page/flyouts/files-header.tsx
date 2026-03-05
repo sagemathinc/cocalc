@@ -29,7 +29,6 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
-import { FileUploadWrapper } from "@cocalc/frontend/file-upload";
 import { labels } from "@cocalc/frontend/i18n";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import {
@@ -383,20 +382,10 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
   }
 
   function wrapDropzone(children: React.JSX.Element): React.JSX.Element {
-    if (disableUploads) return children;
-    return (
-      <FileUploadWrapper
-        project_id={project_id}
-        dest_path={current_path}
-        event_handlers={{
-          complete: () => actions?.fetch_directory_listing(),
-        }}
-        config={{ clickable: `.${uploadClassName}` }}
-        className="smc-vfill"
-      >
-        {children}
-      </FileUploadWrapper>
-    );
+    // The upload button triggers the body FileUploadWrapper's Dropzone
+    // (which uses clickable: `.${uploadClassName}`), so no separate
+    // wrapper is needed here.
+    return children;
   }
 
   function renderSortButton(

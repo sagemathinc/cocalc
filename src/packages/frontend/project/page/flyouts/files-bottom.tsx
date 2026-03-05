@@ -16,7 +16,6 @@ import {
   useLayoutEffect,
   useRef,
   useState,
-  useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { ConnectionStatus } from "@cocalc/frontend/app/store";
 import { Icon } from "@cocalc/frontend/components";
@@ -63,6 +62,10 @@ interface FilesBottomProps {
   clearAllSelections: (switchMode: boolean) => void;
   selectAllFiles: () => void;
   getFile: (path: string) => DirectoryListingEntry | undefined;
+  /** Flyout's independent browsing path (used for terminal sync). */
+  browsingPath: string;
+  /** Navigate the flyout to a directory. */
+  onNavigate: (path: string) => void;
 }
 
 export function FilesBottom({
@@ -78,9 +81,11 @@ export function FilesBottom({
   showFileSharingDialog,
   getFile,
   directoryFiles,
+  browsingPath,
+  onNavigate,
 }: FilesBottomProps) {
   const [mode, setMode] = modeState;
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const current_path = browsingPath;
   const actions = useActions({ project_id });
   const [activeKeys, setActiveKeys] = useState<PanelKey[]>([]);
   const [resize, setResize] = useState<number>(0);
@@ -181,6 +186,8 @@ export function FilesBottom({
         setTerminalTitle={setTerminalTitle}
         syncPath={syncPath}
         sync={sync}
+        browsingPath={browsingPath}
+        onNavigate={onNavigate}
       />
     );
   }

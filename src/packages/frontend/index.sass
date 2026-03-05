@@ -428,6 +428,29 @@ div.cocalc-xtermjs > div.terminal.xterm > div.xterm-viewport
   .dz-default.dz-message
     opacity  : .7
 
+// Flyout file-upload preview: compact overlay so it stays visible
+// within the flyout's constrained height.
+// FileUploadWrapper gives both the outer wrapper and the inner preview
+// div the same className, so "> .cc-flyout-dropzone" targets the preview.
+.cc-flyout-dropzone
+  > .cc-flyout-dropzone
+    position: absolute
+    top: 0
+    left: 0
+    right: 0
+    z-index: 10
+    background: white
+    max-height: 60%
+    overflow-y: auto
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15)
+    border-bottom: 1px solid #ccc
+    padding: 4px
+    .dropzone
+      min-height: 40px
+    h4
+      font-size: 13px
+      margin: 2px 10px
+
 .dropdown-splitbutton-left>div>ul.dropdown-menu
   right: 0
   left: auto

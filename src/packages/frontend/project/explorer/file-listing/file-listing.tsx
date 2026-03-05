@@ -1446,6 +1446,7 @@ export const FileListing: React.FC<Props> = ({
                   prev.filter((d) => d !== entry._peekForName),
                 )
               }
+              onNavigateDirectory={onNavigateDirectory}
             />
           </td>
         );

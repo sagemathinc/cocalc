@@ -37,6 +37,10 @@ interface TerminalFlyoutProps {
   setTerminalTitle: (title: string) => void;
   syncPath: number;
   sync: boolean;
+  /** Flyout's independent browsing path (terminal syncs with this). */
+  browsingPath: string;
+  /** Navigate the flyout to a directory (called when user cd's in terminal). */
+  onNavigate: (path: string) => void;
 }
 
 // This is modeled after frame-editors/terminal-editor/terminal.tsx
@@ -51,9 +55,11 @@ export function TerminalFlyout({
   setTerminalTitle,
   syncPath,
   sync,
+  browsingPath,
+  onNavigate,
 }: TerminalFlyoutProps) {
   const actions = useActions({ project_id });
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const current_path = browsingPath;
   const currentPathRef = useRef<string>(current_path);
   const account_id = useTypedRedux("account", "account_id");
   const terminal = useTypedRedux("account", "terminal");
@@ -143,7 +149,7 @@ export function TerminalFlyout({
         if (currentPathRef.current != payload) {
           const next =
             payload.charAt(0) === "/" ? ".smc/root" + payload : payload;
-          actions?.set_current_path(next);
+          onNavigate(next);
         }
       },
       _tree_is_single_leaf() {

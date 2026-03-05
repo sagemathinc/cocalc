@@ -87,6 +87,7 @@ export function FilesFlyout({
   } = useProjectContext();
   const isMountedRef = useIsMountedRef();
   const rootRef = useRef<HTMLDivElement>(null as any);
+  const uploadClassName = `upload-button-flyout-${project_id}`;
   const refInput = useRef<InputRef>(null as any);
   const [rootHeightPx, setRootHeightPx] = useState<number>(0);
   const [showCheckboxIndex, setShowCheckboxIndex] = useState<number | null>(
@@ -699,12 +700,15 @@ export function FilesFlyout({
           event_handlers={{
             complete: () => actions?.fetch_directory_listing(),
           }}
+          config={{ clickable: `.${uploadClassName}` }}
           style={{
             flex: "1 0 auto",
             display: "flex",
             flexDirection: "column",
+            position: "relative",
+            overflow: "hidden",
           }}
-          className="smc-vfill"
+          className="cc-flyout-dropzone"
         >
           {renderListing()}
         </FileUploadWrapper>
@@ -722,6 +726,8 @@ export function FilesFlyout({
         open={open}
         showFileSharingDialog={showFileSharingDialog}
         getFile={getFile}
+        browsingPath={current_path}
+        onNavigate={navigateFlyout}
       />
     </div>
   );

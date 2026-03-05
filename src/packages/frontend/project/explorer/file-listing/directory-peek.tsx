@@ -39,6 +39,8 @@ interface DirectoryPeekProps {
   dirPath: string;
   /** Close the expanded row */
   onClose: () => void;
+  /** Navigate the explorer to a directory (uses decoupled browsing path). */
+  onNavigateDirectory?: (path: string) => void;
 }
 
 interface PeekEntry extends DirectoryListingEntry {
@@ -76,6 +78,7 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
   project_id,
   dirPath,
   onClose,
+  onNavigateDirectory,
 }: DirectoryPeekProps) {
   const intl = useIntl();
   const { actions } = useProjectContext();
@@ -181,7 +184,11 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
 
   function handleClick(entry: PeekEntry) {
     if (entry.isdir) {
-      actions?.open_directory(entry.fullPath);
+      if (onNavigateDirectory) {
+        onNavigateDirectory(entry.fullPath);
+      } else {
+        actions?.open_directory(entry.fullPath);
+      }
     } else {
       actions?.open_file({ path: entry.fullPath });
     }
