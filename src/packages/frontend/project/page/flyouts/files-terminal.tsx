@@ -72,6 +72,7 @@ export function TerminalFlyout({
   const [terminalExists, setTerminalExists] = useState<boolean>(false);
   const [error, setError] = useState("");
   const syncRef = useRef<boolean>(sync);
+  const onNavigateRef = useRef(onNavigate);
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   useEffect(() => {
@@ -81,6 +82,10 @@ export function TerminalFlyout({
   useEffect(() => {
     syncRef.current = sync;
   }, [sync]);
+
+  useEffect(() => {
+    onNavigateRef.current = onNavigate;
+  }, [onNavigate]);
 
   // Design decision:
   // One terminal per project, one for each user, and persistent across flyout open/close.
@@ -149,7 +154,7 @@ export function TerminalFlyout({
         if (currentPathRef.current != payload) {
           const next =
             payload.charAt(0) === "/" ? ".smc/root" + payload : payload;
-          onNavigate(next);
+          onNavigateRef.current(next);
         }
       },
       _tree_is_single_leaf() {
