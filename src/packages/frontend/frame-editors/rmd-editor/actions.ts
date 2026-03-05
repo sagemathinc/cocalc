@@ -56,11 +56,6 @@ output: html_document
 `;
 
 export class Actions extends MarkdownConverterActions {
-  // Expose the shared run_converter as run_rmd_converter for public API compatibility.
-  get run_rmd_converter(): Function {
-    return this.run_converter;
-  }
-
   protected get minimal_template(): string {
     return MINIMAL;
   }

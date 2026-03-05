@@ -167,7 +167,7 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo(
       return (
         <div style={{ margin: "1rem", fontSize: `${font_size}px` }}>
           Document not built:{" "}
-          <Button bsSize={"small"} onClick={() => actions.run_rmd_converter()}>
+          <Button bsSize={"small"} onClick={() => actions.build()}>
             build now
           </Button>
           .
