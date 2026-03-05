@@ -3403,6 +3403,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
       case "new": // ignore foreground for these and below, since would be nonsense
         this.set_current_path(full_path);
+        // Deep-link: anchor both "+New" contexts to the URL-requested directory
+        this.setState({
+          new_page_path: full_path,
+          flyout_new_path: full_path,
+        });
         this.set_active_tab("new", { change_history: change_history });
         break;
 
