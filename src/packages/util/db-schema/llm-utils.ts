@@ -178,6 +178,7 @@ export const GOOGLE_MODELS = [
   "gemini-2.0-flash-lite-8k",
   "gemini-3-flash-preview-16k", // Preview model, context limited to 16k
   "gemini-3-pro-preview-8k", // Preview model, context limited to 8k
+  "gemini-3.1-pro-preview-8k", // Preview model, context limited to 8k
 ] as const;
 export type GoogleModel = (typeof GOOGLE_MODELS)[number];
 export function isGoogleModel(model: unknown): model is GoogleModel {
@@ -197,6 +198,7 @@ const CANONICAL_GOOGLE_MODELS_THINKING = [
   "gemini-2.5-pro",
   "gemini-3-flash-preview",
   "gemini-3-pro-preview",
+  "gemini-3.1-pro-preview",
 ] as const;
 
 export type CanonicalGoogleModel = (typeof CANONICAL_GOOGLE_MODELS)[number];
@@ -220,6 +222,7 @@ export const GOOGLE_MODEL_TO_ID: Partial<{
   "gemini-2.5-pro-8k": "gemini-2.5-pro",
   "gemini-3-flash-preview-16k": "gemini-3-flash-preview",
   "gemini-3-pro-preview-8k": "gemini-3-pro-preview",
+  "gemini-3.1-pro-preview-8k": "gemini-3.1-pro-preview",
 } as const;
 
 /**
@@ -359,6 +362,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "gpt-5-mini-8k",
   ),
   google: [
+    "gemini-3.1-pro-preview-8k",
     "gemini-3-flash-preview-16k",
     "gemini-3-pro-preview-8k",
     "gemini-2.5-flash-8k",
@@ -875,6 +879,7 @@ export const LLM_USERNAMES: LLM2String = {
   "gemini-2.5-flash-8k": "Gemini 2.5 Flash",
   "gemini-2.5-pro-8k": "Gemini 2.5 Pro",
   "gemini-3-pro-preview-8k": "Gemini 3 Pro",
+  "gemini-3.1-pro-preview-8k": "Gemini 3.1 Pro",
   "mistral-small-latest": "Mistral AI Small",
   "mistral-medium-latest": "Mistral AI Medium",
   "mistral-large-latest": "Mistral AI Large",
@@ -967,6 +972,8 @@ export const LLM_DESCR: LLM2String = {
     "Google's Gemini 2.5 Pro Generative AI model (8k token context)",
   "gemini-3-pro-preview-8k":
     "Google's Gemini 3 Pro Generative AI model (8k token context)",
+  "gemini-3.1-pro-preview-8k":
+    "Google's Gemini 3.1 Pro model with enhanced reasoning (8k token context)",
   "mistral-small-latest":
     "Small general purpose tasks, text classification, customer service. (Mistral AI, 4k token context)",
   "mistral-medium-latest":
@@ -1296,6 +1303,12 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gemini-3-pro-preview-8k": {
     prompt_tokens: usd1Mtokens(2),
     completion_tokens: usd1Mtokens(4),
+    max_tokens: 8_000,
+    free: false,
+  },
+  "gemini-3.1-pro-preview-8k": {
+    prompt_tokens: usd1Mtokens(2),
+    completion_tokens: usd1Mtokens(12),
     max_tokens: 8_000,
     free: false,
   },

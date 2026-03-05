@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -71,9 +71,14 @@ export function useSingleFile({
   }, [checked_files, directoryFiles, activeFile]);
 }
 
-// Depending on age, highlight  entries from the past past 24 hours and week
-export function fileItemStyle(time: number = 0, masked: boolean = false): CSS {
-  const diff = server_time().getTime() - time;
+// Depending on age, highlight  entries from the past past 24 hours and week.
+// Pass `nowMs` to avoid repeated `server_time()` calls when rendering many rows.
+export function fileItemStyle(
+  time: number = 0,
+  masked: boolean = false,
+  nowMs?: number,
+): CSS {
+  const diff = (nowMs ?? server_time().getTime()) - time;
   const days = Math.max(0, diff / 1000 / 60 / 60 / 24);
   let col = "rgba(1, 1, 1, 0)";
   if (days < 1 / 24) {

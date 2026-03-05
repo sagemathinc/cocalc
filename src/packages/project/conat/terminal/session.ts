@@ -197,7 +197,7 @@ export class Session {
       TMUX: undefined, // ensure not set
     };
     const command = this.options.command ?? DEFAULT_COMMAND;
-    const args = this.options.args ?? [];
+    const args = normalizeArgs(this.options.args);
     const initFilename: string = console_init_filename(this.termPath);
     if (await exists(initFilename)) {
       args.push("--init-file");
@@ -419,6 +419,20 @@ function getCWD(pathHead, cwd?): string {
     }
   }
   return pathHead;
+}
+
+function normalizeArgs(rawArgs: unknown): string[] {
+  const iter = Array.isArray(rawArgs)
+    ? rawArgs
+    : typeof (rawArgs as any)?.toArray === "function"
+      ? (rawArgs as any).toArray()
+      : typeof (rawArgs as any)?.[Symbol.iterator] === "function"
+        ? Array.from(rawArgs as Iterable<unknown>)
+        : undefined;
+  if (iter == null) {
+    return [];
+  }
+  return iter.filter((arg): arg is string => typeof arg === "string");
 }
 
 function historyFile(path: string): string | undefined {

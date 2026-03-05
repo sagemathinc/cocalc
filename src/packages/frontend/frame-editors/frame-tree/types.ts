@@ -85,6 +85,7 @@ type EditorType =
   | "sagews-document"
   | "search"
   | "settings"
+  | "shell"
   | "slate"
   | "slides-notes"
   | "slides-slideshow"

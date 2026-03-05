@@ -40,6 +40,7 @@ import {
   tab_to_path,
   unreachable,
 } from "@cocalc/util/misc";
+import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import {
@@ -304,13 +305,15 @@ export function LogFlyout({
   }, [flyoutWidth]);
 
   // trigger a search state change, only once and with a debounce
-  const setSearchState = debounce(
-    (val: string): void => {
-      actions?.setState({ search: val });
-    },
-    20,
-    { leading: false, trailing: true },
-  );
+  const setSearchState = useRef(
+    debounce(
+      (val: string): void => {
+        actions?.setState({ search: val });
+      },
+      20,
+      { leading: false, trailing: true },
+    ),
+  ).current;
 
   const handleOnChange = useCallback((val: string) => {
     setScrollIdx(null);
@@ -345,6 +348,9 @@ export function LogFlyout({
     );
   }
 
+  // Compute once per render pass — avoids per-row server_time() allocations.
+  const nowMs = server_time().getTime();
+
   function renderFileItem(index: number, entry: OpenedFile) {
     const time = entry.time;
     const account_id = entry.account_id;
@@ -358,7 +364,7 @@ export function LogFlyout({
         item={{ name: path, isopen: isOpened, isactive: isActive }}
         extra={renderFileItemExtra(entry)}
         extra2={renderFileItemExtra2(entry)}
-        itemStyle={fileItemStyle(time?.getTime())}
+        itemStyle={fileItemStyle(time?.getTime(), false, nowMs)}
         multiline={true}
         selected={!scrollIdxHide && index === scrollIdx}
         onClick={(e) => {
@@ -389,7 +395,7 @@ export function LogFlyout({
   function renderHistoryItem(index: number, entry: any) {
     const highlight = !scrollIdxHide && index === scrollIdx;
     const bgStyle = {
-      ...fileItemStyle(entry.time?.getTime()),
+      ...fileItemStyle(entry.time?.getTime(), false, nowMs),
       ...(highlight ? { background: COLORS.BLUE_LL } : {}),
     };
 

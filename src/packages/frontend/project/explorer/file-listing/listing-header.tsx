@@ -59,8 +59,8 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
               style={inner_icon_style}
               name={
                 active_file_sort.get("is_descending")
-                  ? "caret-up"
-                  : "caret-down"
+                  ? "caret-down"
+                  : "caret-up"
               }
             />
           ) : undefined}

@@ -68,8 +68,8 @@ log.debug("configuration:", {
 });
 
 type AsyncAwait = "finished";
-const updates = new EventEmitter();
-const eventKey = (type: AsyncAwait, job_id: string): string =>
+export const updates = new EventEmitter();
+export const eventKey = (type: AsyncAwait, job_id: string): string =>
   `${type}-${job_id}`;
 
 export const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
@@ -365,7 +365,7 @@ function doSpawn(
 
     while (true) {
       if (callback_done) return;
-      const { procs } = await monitor.processes(Date.now(), "execute-code");
+      const { procs } = await monitor.processes("execute-code");
       // reconstruct process tree
       const children: { [pid: number]: number[] } = {};
       for (const p of Object.values(procs)) {

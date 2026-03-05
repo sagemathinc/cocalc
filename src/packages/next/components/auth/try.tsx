@@ -72,6 +72,7 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
       }
 
       const result = await api("/auth/sign-up", {
+        anonymous: true,
         reCaptchaToken,
         publicPathId,
       });
@@ -87,15 +88,17 @@ function Try0({ minimal, onSuccess, publicPathId }: Props) {
   }
 
   function renderFooter() {
-    return !minimal && (
-      <>
-        <div>
-          Already have an account? <A href="/auth/sign-in">Sign In</A>
-        </div>
-        <div style={{ marginTop: "15px" }}>
-          Need an account? <A href="/auth/sign-up">Sign Up</A>
-        </div>
-      </>
+    return (
+      !minimal && (
+        <>
+          <div>
+            Already have an account? <A href="/auth/sign-in">Sign In</A>
+          </div>
+          <div style={{ marginTop: "15px" }}>
+            Need an account? <A href="/auth/sign-up">Sign Up</A>
+          </div>
+        </>
+      )
     );
   }
 

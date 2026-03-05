@@ -396,6 +396,7 @@ export function FileTab(props: Readonly<Props>) {
           isdir: false,
           intl,
           inSnapshots: in_snapshot_path(path),
+          fullPath: path,
           triggerFileAction: (action) => {
             actions.show_file_action_panel({
               path,

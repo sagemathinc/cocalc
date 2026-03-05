@@ -5,7 +5,7 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
-import { CSSProperties, useMemo, useState } from "react";
+import { CSSProperties, useMemo } from "react";
 
 import {
   CSS,
@@ -43,14 +43,9 @@ interface ProjectTabProps {
   project_id: string;
 }
 
-function useProjectStatusAlerts(project_id: string) {
-  const [any_alerts, set_any_alerts] = useState<boolean>(false);
+function useProjectStatusAlerts(project_id: string): boolean {
   const project_status = useTypedRedux({ project_id }, "status");
-  const any = project_status?.get("alerts").size > 0;
-  useMemo(() => {
-    set_any_alerts(any);
-  }, [any]);
-  return any_alerts;
+  return (project_status?.get("alerts")?.size ?? 0) > 0;
 }
 
 function ProjectTab({ project_id }: ProjectTabProps) {
@@ -337,6 +332,7 @@ export function ProjectsNav(props: ProjectsNavProps) {
 
   return (
     <div
+      className="cc-projects-nav"
       style={{
         overflow: "hidden",
         height: `${height}px`,

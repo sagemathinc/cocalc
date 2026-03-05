@@ -37,6 +37,10 @@ interface TerminalFlyoutProps {
   setTerminalTitle: (title: string) => void;
   syncPath: number;
   sync: boolean;
+  /** Flyout's independent browsing path (terminal syncs with this). */
+  browsingPath: string;
+  /** Navigate the flyout to a directory (called when user cd's in terminal). */
+  onNavigate: (path: string) => void;
 }
 
 // This is modeled after frame-editors/terminal-editor/terminal.tsx
@@ -51,9 +55,11 @@ export function TerminalFlyout({
   setTerminalTitle,
   syncPath,
   sync,
+  browsingPath,
+  onNavigate,
 }: TerminalFlyoutProps) {
   const actions = useActions({ project_id });
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const current_path = browsingPath;
   const currentPathRef = useRef<string>(current_path);
   const account_id = useTypedRedux("account", "account_id");
   const terminal = useTypedRedux("account", "terminal");
@@ -66,6 +72,7 @@ export function TerminalFlyout({
   const [terminalExists, setTerminalExists] = useState<boolean>(false);
   const [error, setError] = useState("");
   const syncRef = useRef<boolean>(sync);
+  const onNavigateRef = useRef(onNavigate);
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
 
   useEffect(() => {
@@ -75,6 +82,10 @@ export function TerminalFlyout({
   useEffect(() => {
     syncRef.current = sync;
   }, [sync]);
+
+  useEffect(() => {
+    onNavigateRef.current = onNavigate;
+  }, [onNavigate]);
 
   // Design decision:
   // One terminal per project, one for each user, and persistent across flyout open/close.
@@ -143,7 +154,7 @@ export function TerminalFlyout({
         if (currentPathRef.current != payload) {
           const next =
             payload.charAt(0) === "/" ? ".smc/root" + payload : payload;
-          actions?.set_current_path(next);
+          onNavigateRef.current(next);
         }
       },
       _tree_is_single_leaf() {
