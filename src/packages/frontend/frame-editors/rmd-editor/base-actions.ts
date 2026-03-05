@@ -65,7 +65,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       const hash = this._syncstring.hash_of_saved_version();
       if (this._last_hash != hash) {
         this._last_hash = hash;
-        await this.run_converter(hash);
+        await this.build();
       }
     });
 
@@ -97,7 +97,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       this._last_hash = this._syncstring.hash_of_saved_version();
       if (outputs === null) return; // listing unavailable => skip
       if (outputs.size > 0) return; // output already exists => skip
-      await this.run_converter(this._last_hash);
+      await this.build();
     })();
 
     this._init_build_coordinator();
