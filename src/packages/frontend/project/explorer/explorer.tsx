@@ -10,6 +10,7 @@ import * as _ from "lodash";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { FormattedMessage } from "react-intl";
 
+import { default_filename } from "@cocalc/frontend/account/default-file-name-generator";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import {
   project_redux_name,
@@ -222,15 +223,19 @@ export function Explorer() {
         }
         ext = default_ext(disabled_ext);
       }
+      const name =
+        file_search.length > 0
+          ? file_search
+          : default_filename(ext, project_id);
       actions?.create_file({
-        name: file_search,
+        name,
         ext,
         current_path,
         switch_over,
       });
       actions?.setState({ file_search: "" });
     },
-    [file_search, current_path, configuration, actions],
+    [file_search, current_path, configuration, actions, project_id],
   );
 
   const createFolder = useCallback(
