@@ -23,10 +23,11 @@ interface Opts {
   frontmatter: string;
   hash: string | number;
   set_job_info?: (info: any) => void;
+  compute_server_id?: number;
 }
 
 async function _convert(opts: Opts): Promise<ExecOutput> {
-  const { project_id, path, hash, set_job_info } = opts;
+  const { project_id, path, hash, set_job_info, compute_server_id } = opts;
   const x = path_split(path);
   const infile = x.tail;
   const args = ["render", infile, ...LOG];
@@ -35,6 +36,7 @@ async function _convert(opts: Opts): Promise<ExecOutput> {
     aggregate: hash ? { value: hash } : undefined,
     args,
     command: "quarto",
+    compute_server_id,
     project_id,
     runDir: x.head,
     set_job_info,

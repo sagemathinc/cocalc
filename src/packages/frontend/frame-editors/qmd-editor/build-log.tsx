@@ -20,10 +20,11 @@ import {
 } from "../rmd-editor/styles";
 import { getResourceUsage } from "../rmd-editor/utils";
 import { COLORS } from "@cocalc/util/theme";
+import { Actions } from "./actions";
 
 interface BuildLogProps {
   name: string;
-  actions: any;
+  actions: Actions;
   font_size: number;
 }
 
