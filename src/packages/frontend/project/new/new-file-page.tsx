@@ -414,6 +414,9 @@ export default function NewFilePage(props: Props) {
             project_id={project_id}
             style={{ display: "inline-block", fontSize: "20px" }}
             currentPath={current_path}
+            onNavigate={(path) =>
+              actions?.setState({ new_page_path: path } as any)
+            }
           />
           {!!compute_server_id && (
             <h4 style={{ display: "inline-block", fontSize: "20px" }}>
