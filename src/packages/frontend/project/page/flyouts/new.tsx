@@ -388,6 +388,7 @@ export function NewFlyout({
             project_id={project_id}
             className={"cc-project-flyout-path-navigator"}
             currentPath={current_path}
+            historyPath={current_path}
             onNavigate={(path) =>
               actions?.setState({ flyout_new_path: path } as any)
             }
