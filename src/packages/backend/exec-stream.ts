@@ -10,7 +10,7 @@ import {
   ExecuteCodeStats,
   ExecuteCodeStreamEvent,
 } from "@cocalc/util/types/execute-code";
-import { asyncCache, executeCode } from "./execute-code";
+import { asyncCache, eventKey, executeCode, updates } from "./execute-code";
 import getLogger from "./logger";
 import { abspath } from "./misc_node";
 
@@ -110,19 +110,19 @@ export async function executeStream(
           const result = event.data as ExecuteCodeOutputAsync;
           // Include accumulated stats in final result
           result.stats = truncStats(stats);
-           stream({
-             type: "done",
-             data: result,
-           });
-           done = true;
-           stream(null); // End the stream
+          stream({
+            type: "done",
+            data: result,
+          });
+          done = true;
+          stream(null); // End the stream
           break;
 
         case "error":
           logger.debug(`executeStream: processing error event`);
-           stream({ error: event.data as string });
-           done = true;
-           stream(null);
+          stream({ error: event.data as string });
+          done = true;
+          stream(null);
           break;
 
         default:
@@ -144,6 +144,25 @@ export async function executeStream(
       stream(null);
       return undefined;
     }
+
+    // Register the fallback completion listener BEFORE checking the cache
+    // to avoid a TOCTOU race: if the job finishes between the cache check
+    // and listener registration, the "finished" event would fire to nobody.
+    // The `done` guard makes this idempotent with the streamCB path.
+    const jobId = job.job_id;
+    updates.once(
+      eventKey("finished", jobId),
+      (result: ExecuteCodeOutputAsync) => {
+        if (done) return; // streamCB or early-complete path already handled it
+        logger.debug(`executeStream: job ${jobId} finished via updates event`);
+        stream({
+          type: "done",
+          data: result,
+        });
+        done = true;
+        stream(null);
+      },
+    );
 
     // Send initial job info with full async structure
     // Get the current job status from cache in case it completed immediately
