@@ -375,11 +375,11 @@ def clean(args) -> None:
     v = packages(args)
 
     if args.dist_only:
-        folders = ['dist']
+        folders = ['dist', 'dist-esm']
     elif args.node_modules_only:
         folders = ['node_modules']
     else:
-        folders = ['node_modules', 'dist', SUCCESSFUL_BUILD]
+        folders = ['node_modules', 'dist', 'dist-esm', SUCCESSFUL_BUILD]
 
     paths = []
     for path in v:

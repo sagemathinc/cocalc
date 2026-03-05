@@ -1,20 +1,9 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-/*
- * decaffeinate suggestions:
- * DS207: Consider shorter variations of null checks
- * Full docs: https://github.com/decaffeinate/decaffeinate/blob/master/docs/suggestions.md
- */
-//##############################################################################
-//
-// CoCalc: Collaborative web-based calculation
-// Copyright (C) 2017, Sagemath Inc.
-// MS-RSL
-//
-//##############################################################################
+import * as Immutable from "immutable";
 
 /*
 Custom Prop Validation for immutable.js types, so they work just like other
@@ -48,8 +37,8 @@ const check_is_immutable = function (
   props,
   propName,
   componentName,
-  location,
-  propFullName
+  _location?,
+  _propFullName?,
 ) {
   if (componentName == null) {
     componentName = "ANONYMOUS";
@@ -61,7 +50,7 @@ const check_is_immutable = function (
     return new Error(
       `Invalid prop \`${propName}\` of` +
         ` type ${type} supplied to` +
-        ` \`${componentName}\`, expected an immutable collection or frozen object.`
+        ` \`${componentName}\`, expected an immutable collection or frozen object.`,
     );
   }
 };
@@ -72,14 +61,14 @@ const allow_isRequired = function (validate) {
     props,
     propName,
     componentName,
-    location
+    location,
   ) {
     if (componentName == null) {
       componentName = "ANONYMOUS";
     }
     if (props[propName] == null && isRequired) {
       return new Error(
-        `Required prop \`${propName}\` was not specified in \`${componentName}\``
+        `Required prop \`${propName}\` was not specified in \`${componentName}\``,
       );
     }
     return validate(props, propName, componentName, location);
@@ -98,7 +87,7 @@ const create_immutable_type_required_chain = function (validate) {
     immutable_type_name,
     props,
     propName,
-    componentName
+    componentName,
   ) {
     if (componentName == null) {
       componentName = "ANONYMOUS";
@@ -107,16 +96,16 @@ const create_immutable_type_required_chain = function (validate) {
       const T = immutable_type_name;
       if (props[propName].toJS == null) {
         return new Error(
-          `NOT EVEN IMMUTABLE, wanted immutable.${T} ${props}, ${propName}`
+          `NOT EVEN IMMUTABLE, wanted immutable.${T} ${props}, ${propName}`,
         );
       }
-      if (require("immutable")[`${T}`][`is${T}`](props[propName])) {
+      if (Immutable[`${T}`][`is${T}`](props[propName])) {
         return null;
       } else {
         return new Error(
           `Component \`${componentName}\`` +
             ` expected ${propName} to be an immutable.${T}` +
-            ` but was supplied ${props[propName]}`
+            ` but was supplied ${props[propName]}`,
         );
       }
     } else {
@@ -126,17 +115,18 @@ const create_immutable_type_required_chain = function (validate) {
 
   // To add more immutable.js types, mimic code below.
   const check_immutable_chain = allow_isRequired(
-    check_type.bind(null, undefined)
+    check_type.bind(null, undefined),
   );
   check_immutable_chain.Map = allow_isRequired(check_type.bind(null, "Map"));
   check_immutable_chain.List = allow_isRequired(check_type.bind(null, "List"));
   check_immutable_chain.Set = allow_isRequired(check_type.bind(null, "Set"));
   check_immutable_chain.Stack = allow_isRequired(
-    check_type.bind(null, "Stack")
+    check_type.bind(null, "Stack"),
   );
   check_immutable_chain.category = "IMMUTABLE";
 
   return check_immutable_chain;
 };
 
-exports.immutable = create_immutable_type_required_chain(check_is_immutable);
+export const immutable =
+  create_immutable_type_required_chain(check_is_immutable);

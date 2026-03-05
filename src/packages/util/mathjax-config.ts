@@ -1,12 +1,12 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 // mathjax configuration: this could be cleaned up further or even parameterized with some code during startup
 // ATTN: do not use "xypic.js", frequently causes crash!
 
-exports.MathJaxConfig = {
+export const MathJaxConfig = {
   skipStartupTypeset: true,
   extensions: ["tex2jax.js", "asciimath2jax.js", "Safe.js"], // "static/mathjax_extensions/xypic.js"
   // NOTE: "output/CommonHTML" is the output default: http://docs.mathjax.org/en/latest/output.html
