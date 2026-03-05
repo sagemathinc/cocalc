@@ -41,12 +41,14 @@ import {
 import { print_html } from "@cocalc/frontend/frame-editors/frame-tree/print";
 import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import { randomId } from "@cocalc/conat/names";
 import {
   exec,
   getComputeServerId,
   project_api,
   server_time,
 } from "@cocalc/frontend/frame-editors/generic/client";
+import { BuildCoordinator } from "@cocalc/frontend/frame-editors/generic/build-coordinator";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { once } from "@cocalc/util/async-utils";
 import { ExecOutput } from "@cocalc/util/db-schema/projects";
@@ -131,6 +133,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     skipFramePopup?: boolean,
   ) => Promise<void>;
   private is_stopping: boolean = false; // if true, do not continue running any compile jobs
+  private buildCoordinator?: BuildCoordinator;
+  private _remoteBuildId?: string;
+  private _localBuildId?: string;
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
@@ -220,8 +225,47 @@ export class Actions extends BaseActions<LatexEditorState> {
         debounce(this.ensureNonempty.bind(this), 1500),
       );
       this._init_pdf_directory_watcher();
+      this._init_build_coordinator();
     }
     this.word_count = reuseInFlight(this._word_count.bind(this));
+  }
+
+  private _init_build_coordinator(): void {
+    this.buildCoordinator = new BuildCoordinator(this.project_id, this.path);
+    this.buildCoordinator.on("build-start", ({ buildId, aggregate }) => {
+      if (!this.is_building && buildId !== this._localBuildId) {
+        this._remoteBuildId = buildId;
+        void this._join_build(aggregate);
+      }
+    });
+    this.buildCoordinator.on("build-finished", ({ buildId }) => {
+      if (buildId === this._remoteBuildId) {
+        this._remoteBuildId = undefined;
+        this.is_building = false;
+        this.setState({ building: false });
+      }
+    });
+    this.buildCoordinator.on("build-stop", () => {
+      // Guard: skip if this client is the originator (prevents echo re-entry)
+      if (this.is_building && !this._localBuildId) {
+        this._remoteBuildId = undefined;
+        this.stop_build();
+      }
+    });
+  }
+
+  private async _join_build(aggregate: number): Promise<void> {
+    if (this.is_building) return;
+    this.is_building = true;
+    this.setState({ building: true });
+    try {
+      await this.run_build(aggregate, false);
+    } catch (err) {
+      this.set_error(`${err}`);
+    } finally {
+      this.is_building = false;
+      this.setState({ building: false });
+    }
   }
 
   // Watch the directory containing the PDF file for changes
@@ -780,6 +824,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   close(): void {
     this._forget_pdf_document();
+    this.buildCoordinator?.close();
     if (this.pdf_watcher != null) {
       this.pdf_watcher.close();
       this.pdf_watcher = undefined;
@@ -863,18 +908,24 @@ export class Actions extends BaseActions<LatexEditorState> {
         return;
       }
     }
+    const buildId = randomId();
     this.is_building = true;
     this.setState({ building: true });
+    this._localBuildId = buildId;
     try {
       await this.save_all(false);
-      await this.run_build(this.last_save_time(), force);
+      const time = force ? server_time().valueOf() : this.last_save_time();
+      this.buildCoordinator?.publishBuildStart(buildId, time, force);
+      await this.run_build(time, force);
     } catch (err) {
       this.set_error(`${err}`);
       // if there is an error, we issue a stop, but keep the build logs
       await this.stop_build();
     } finally {
+      this.buildCoordinator?.publishBuildFinished(buildId);
       this.is_building = false;
       this.setState({ building: false });
+      this._localBuildId = undefined;
     }
   };
 
@@ -910,6 +961,11 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // This stops all known jobs with a status "running" and resets the state.
   async stop_build(_id?: string) {
+    // Use _remoteBuildId as fallback so joiners can also stop builds
+    const idToStop = this._localBuildId ?? this._remoteBuildId;
+    if (idToStop) {
+      this.buildCoordinator?.publishBuildStop(idToStop);
+    }
     const build_logs = this.store.get("build_logs");
     try {
       this.is_stopping = true;
@@ -1770,9 +1826,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  // time 0 implies to take the last_save_time,
+  // If time is provided (non-zero), use it as the aggregate key base.
+  // Note: sagetex/pythontex use time+1/time+2 to force distinct aggregate
+  // keys for their re-run of latex. Only generate a fresh timestamp when
+  // time=0 and force=true.
   make_timestamp(time: number, force: boolean): number {
-    return force ? Date.now() : time || this.last_save_time();
+    if (time) return time;
+    return force ? server_time().valueOf() : this.last_save_time();
   }
 
   private async _word_count(

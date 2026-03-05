@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -10,6 +10,7 @@ Abstract base class shared by R Markdown and Quarto editor actions.
 import { Set } from "immutable";
 import { debounce } from "lodash";
 
+import { randomId } from "@cocalc/conat/names";
 import { type AccountStore } from "@cocalc/frontend/account";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
@@ -18,7 +19,8 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
-import { exec, ExecOutput } from "../generic/client";
+import { exec, ExecOutput, server_time } from "../generic/client";
+import { BuildCoordinator } from "../generic/build-coordinator";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { checkProducedFiles } from "./utils";
 
@@ -26,6 +28,9 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
   protected _last_hash: number | undefined = undefined;
   protected is_building: boolean = false;
   protected run_converter!: Function;
+  protected buildCoordinator?: BuildCoordinator;
+  private _remoteBuildId?: string;
+  private _localBuildId?: string;
 
   // Subclasses provide the format-specific build logic and empty-file template.
   protected abstract _run_converter(hash?: number): Promise<void>;
@@ -94,6 +99,48 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       if (outputs.size > 0) return; // output already exists => skip
       await this.run_converter(this._last_hash);
     })();
+
+    this._init_build_coordinator();
+  }
+
+  private _init_build_coordinator(): void {
+    this.buildCoordinator = new BuildCoordinator(this.project_id, this.path);
+    this.buildCoordinator.on("build-start", ({ buildId, aggregate }) => {
+      if (!this.is_building && buildId !== this._localBuildId) {
+        this._remoteBuildId = buildId;
+        void this._join_build(aggregate);
+      }
+    });
+    this.buildCoordinator.on("build-finished", ({ buildId }) => {
+      if (buildId === this._remoteBuildId) {
+        this._remoteBuildId = undefined;
+        this.is_building = false;
+        this.setState({ building: false });
+      }
+    });
+    this.buildCoordinator.on("build-stop", () => {
+      // Guard: skip if this client is the originator (prevents echo re-entry)
+      if (this.is_building && !this._localBuildId) {
+        this._remoteBuildId = undefined;
+        this.is_building = false;
+        this.setState({ building: false });
+        this.stop_build("");
+      }
+    });
+  }
+
+  private async _join_build(aggregate: any): Promise<void> {
+    if (this.is_building) return;
+    this.is_building = true;
+    this.setState({ building: true });
+    try {
+      await this._run_converter(aggregate);
+    } catch (err) {
+      this.set_error(`${err}`);
+    } finally {
+      this.is_building = false;
+      this.setState({ building: false });
+    }
   }
 
   async build(id?: string, force: boolean = false): Promise<void> {
@@ -111,25 +158,33 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
         return;
       }
     }
+    const actions = this.redux.getEditorActions(this.project_id, this.path);
+    if (actions == null) {
+      // opening/close a newly created file can trigger build when actions aren't
+      // ready yet.  https://github.com/sagemathinc/cocalc/issues/7249
+      return;
+    }
+    const buildId = randomId();
     this.is_building = true;
+    this._localBuildId = buildId;
     this.setState({ building: true });
     try {
-      const actions = this.redux.getEditorActions(this.project_id, this.path);
-      if (actions == null) {
-        // opening/close a newly created file can trigger build when actions aren't
-        // ready yet.  https://github.com/sagemathinc/cocalc/issues/7249
-        return;
-      }
       await (actions as BaseActions<CodeEditorState>).save(false);
+      const hash = force
+        ? server_time().valueOf()
+        : (this._syncstring?.hash_of_saved_version() ?? 0);
+      this.buildCoordinator?.publishBuildStart(buildId, hash, force);
       // For force builds, bypass the debounced function to ensure immediate execution
       if (force) {
-        await this._run_converter(Date.now());
+        await this._run_converter(hash);
       } else {
-        await this.run_converter(Date.now());
+        await this.run_converter(hash);
       }
     } finally {
+      this.buildCoordinator?.publishBuildFinished(buildId);
       this.is_building = false;
       this.setState({ building: false });
+      this._localBuildId = undefined;
     }
   }
 
@@ -140,6 +195,11 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
 
   // Stops the current build process and resets state.
   async stop_build(_id: string): Promise<void> {
+    // Use _remoteBuildId as fallback so joiners can also stop builds
+    const idToStop = this._localBuildId ?? this._remoteBuildId;
+    if (idToStop) {
+      this.buildCoordinator?.publishBuildStop(idToStop);
+    }
     const job_info = this.store.get("job_info")?.toJS() as
       | ExecuteCodeOutputAsync
       | undefined;
@@ -233,6 +293,11 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     ["iframe", "pdfjs_canvas", "markdown"].forEach((viewer) =>
       this.set_reload(viewer, hash),
     );
+  }
+
+  close(): void {
+    this.buildCoordinator?.close();
+    super.close();
   }
 
   // Never delete trailing whitespace for markdown files.

@@ -67,9 +67,12 @@ log.debug("configuration:", {
   MONITOR_STATS_LENGTH_MAX,
 });
 
-type AsyncAwait = "finished";
+type AsyncEvent = "finished" | "stdout" | "stderr" | "stats";
 export const updates = new EventEmitter();
-export const eventKey = (type: AsyncAwait, job_id: string): string =>
+// Event keys are per-job-id so many concurrent builds each use unique keys.
+// Raise the limit to avoid spurious warnings from Node.js.
+updates.setMaxListeners(100);
+export const eventKey = (type: AsyncEvent, job_id: string): string =>
   `${type}-${job_id}`;
 
 export const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
@@ -394,9 +397,12 @@ function doSpawn(
       obj.stats.push(statEntry);
       truncStats(obj);
       asyncCache.set(job_id, obj);
-      // Stream stats update if callback provided
+      // Stream stats update
       if (opts.streamCB) {
         opts.streamCB({ type: "stats", data: statEntry });
+      }
+      if (opts.job_id) {
+        updates.emit(eventKey("stats", opts.job_id), statEntry);
       }
 
       // initially, we record more frequently, but then we space it out up until the interval (probably 1 minute)
@@ -448,22 +454,24 @@ function doSpawn(
 
   // Send batched stream data
   const sendBatchedStream = () => {
-    if (!opts.streamCB) return;
-
     const hasStdout = streamBuffer.stdout.length > 0;
     const hasStderr = streamBuffer.stderr.length > 0;
 
-    if (hasStdout || hasStderr) {
-      // Send stdout if available
-      if (hasStdout) {
+    if (!hasStdout && !hasStderr) return;
+
+    if (hasStdout) {
+      if (opts.streamCB)
         opts.streamCB({ type: "stdout", data: streamBuffer.stdout });
-        streamBuffer.stdout = "";
-      }
-      // Send stderr if available
-      if (hasStderr) {
+      if (opts.job_id)
+        updates.emit(eventKey("stdout", opts.job_id), streamBuffer.stdout);
+      streamBuffer.stdout = "";
+    }
+    if (hasStderr) {
+      if (opts.streamCB)
         opts.streamCB({ type: "stderr", data: streamBuffer.stderr });
-        streamBuffer.stderr = "";
-      }
+      if (opts.job_id)
+        updates.emit(eventKey("stderr", opts.job_id), streamBuffer.stderr);
+      streamBuffer.stderr = "";
     }
   };
 
@@ -476,8 +484,8 @@ function doSpawn(
     sendBatchedStream();
   };
 
-  // Start batch timer if streaming is enabled, every 100ms
-  if (opts.streamCB) {
+  // Start batch timer if streaming or async job tracking is enabled
+  if (opts.streamCB || (opts.async_call && opts.job_id)) {
     streamBatchTimer = setInterval(sendBatchedStream, 100);
   }
 
@@ -509,15 +517,15 @@ function doSpawn(
       if (stdout.length < opts.max_output) {
         const newData = data.slice(0, opts.max_output - stdout.length);
         stdout += newData;
-        // Buffer the new portion for batched streaming
-        if (opts.streamCB && stdout.length > prevLength) {
+        // Buffer the new portion for batched streaming (async jobs always buffer)
+        if ((opts.streamCB || opts.job_id) && stdout.length > prevLength) {
           streamBuffer.stdout += newData;
         }
       }
     } else {
       stdout += data;
-      // Buffer the new data for batched streaming
-      if (opts.streamCB) {
+      // Buffer the new data for batched streaming (async jobs always buffer)
+      if (opts.streamCB || opts.job_id) {
         streamBuffer.stdout += data;
       }
     }
@@ -531,15 +539,15 @@ function doSpawn(
       if (stderr.length < opts.max_output) {
         const newData = data.slice(0, opts.max_output - stderr.length);
         stderr += newData;
-        // Buffer the new portion for batched streaming
-        if (opts.streamCB && stderr.length > prevLength) {
+        // Buffer the new portion for batched streaming (async jobs always buffer)
+        if ((opts.streamCB || opts.job_id) && stderr.length > prevLength) {
           streamBuffer.stderr += newData;
         }
       }
     } else {
       stderr += data;
-      // Buffer the new data for batched streaming
-      if (opts.streamCB) {
+      // Buffer the new data for batched streaming (async jobs always buffer)
+      if (opts.streamCB || opts.job_id) {
         streamBuffer.stderr += data;
       }
     }
@@ -617,7 +625,7 @@ function doSpawn(
     // Safety check: if we're using streaming and the process has exited but streams aren't done,
     // force completion after a short delay to prevent hanging
     if (
-      opts.streamCB &&
+      (opts.streamCB || opts.job_id) &&
       exit_code != null &&
       (!stdout_is_done || !stderr_is_done)
     ) {
@@ -634,7 +642,7 @@ function doSpawn(
     callback_done = true;
 
     // Flush any remaining buffered stream data before finishing
-    if (opts.streamCB) {
+    if (opts.streamCB || opts.job_id) {
       flushStreamBuffer();
     }
 

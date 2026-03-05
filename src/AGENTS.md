@@ -198,6 +198,7 @@ CoCalc is organized as a monorepo with key packages:
 - When creating a new file, run `git add [filename]` to track the file.
 - Prefix git commits with the package and general area. e.g. 'frontend/latex: ...' if it concerns latex editor changes in the packages/frontend/... code.
 - When pushing a new branch to Github, track it upstream. e.g. `git push --set-upstream origin feature-foo` for branch "feature-foo".
+- **Branch naming**: New branches should follow the pattern `[some-key-words]-[issue-number]`. e.g. `fix-invite-email-signup-link-8757` for issue #8757.
 
 ## React-intl / Internationalization (i18n)
 
