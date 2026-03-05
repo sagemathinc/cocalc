@@ -40,7 +40,9 @@ export class BuildCoordinator extends EventEmitter {
 
   private async init(project_id: string) {
     try {
-      console.log(`BuildCoordinator[${this.path}]: init starting, project=${project_id}`);
+      console.log(
+        `BuildCoordinator[${this.path}]: init starting, project=${project_id}`,
+      );
       const store = await dkv<BuildState>({
         project_id,
         name: "build",
@@ -70,7 +72,11 @@ export class BuildCoordinator extends EventEmitter {
       // Listen for state changes from other clients
       this.dkv.on("change", ({ key, value, prev }) => {
         if (key !== this.path) return;
-        console.log(`BuildCoordinator[${this.path}]: change event`, { key, value, prev });
+        console.log(`BuildCoordinator[${this.path}]: change event`, {
+          key,
+          value,
+          prev,
+        });
 
         if (value?.status === "running" && prev?.status !== "running") {
           this.emit("build-start", {
@@ -94,7 +100,12 @@ export class BuildCoordinator extends EventEmitter {
     aggregate: number | undefined,
     force?: boolean,
   ): void {
-    console.log(`BuildCoordinator[${this.path}]: publishBuildStart`, { buildId, aggregate, force, dkvReady: !!this.dkv });
+    console.log(`BuildCoordinator[${this.path}]: publishBuildStart`, {
+      buildId,
+      aggregate,
+      force,
+      dkvReady: !!this.dkv,
+    });
     this.dkv?.set(this.path, {
       buildId,
       status: "running",
