@@ -564,7 +564,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     switch (key) {
       case "files":
         if (opts.change_history) {
-          this.set_url_to_path(store.get("current_path") ?? "", "");
+          const filesPath =
+            store.get("explorer_browsing_path") ??
+            store.get("current_path") ??
+            "";
+          this.set_url_to_path(filesPath, "");
         }
         if (opts.update_file_listing) {
           this.fetch_directory_listing();

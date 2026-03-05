@@ -73,6 +73,12 @@ export function navigateBrowsingPath(
     selected_file_index: undefined,
   } as any);
 
+  // Keep the browser URL in sync with the explorer's browsing path so that
+  // page refresh restores the correct directory (not the stale current_path).
+  if (pathKey === "explorer_browsing_path") {
+    actions?.set_url_to_path(path);
+  }
+
   // Watch directory so push-based listing updates arrive
   try {
     redux.getProjectStore(project_id)?.get_listings()?.watch(path, true);
