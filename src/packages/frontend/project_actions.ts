@@ -648,6 +648,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         }
         this.set_current_path(misc.path_split(path).head);
 
+        // Switching to an editor tab updates both "+New" contexts so that
+        // file creation targets the directory of the active file.
+        {
+          const fileDir = misc.path_split(path).head;
+          this.setState({
+            new_page_path: fileDir,
+            flyout_new_path: fileDir,
+          });
+        }
+
         // When "Current directory follows files" is enabled, sync the
         // explorer and flyout browsing paths to the active file's directory.
         if (
@@ -1436,6 +1446,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.setState({
             explorer_browsing_path: path,
             explorer_history_path: path,
+            new_page_path: path,
+            flyout_new_path: path,
           });
         }
         const store = this.get_store();
@@ -1490,10 +1502,6 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       history_path,
       page_number: 0,
       most_recent_file_click: undefined,
-      // File tab switches update both "+New" contexts so that file
-      // creation targets the directory of the most recently active file.
-      new_page_path: path,
-      flyout_new_path: path,
     });
 
     store.get_listings().watch(path, true);
