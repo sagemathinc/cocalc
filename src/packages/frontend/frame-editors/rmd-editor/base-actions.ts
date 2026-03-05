@@ -33,9 +33,12 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
 
   protected do_build_on_save(): boolean {
     const account: AccountStore = this.redux.getStore("account");
-    // Default to false until account settings are loaded to avoid
-    // triggering builds before we know the user's preference.
-    const settings = account?.get("editor_settings");
+    // Default to false until account settings are fully loaded to avoid
+    // triggering builds before we know the user's preference.  The store
+    // is initialized with schema defaults (build_on_save: true) before
+    // is_ready fires, so checking editor_settings != null is not enough.
+    if (!account?.get("is_ready")) return false;
+    const settings = account.get("editor_settings");
     if (settings == null) return false;
     return settings.get("build_on_save") ?? true;
   }

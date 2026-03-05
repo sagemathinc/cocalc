@@ -173,15 +173,17 @@ export const IFrameHTML: React.FC<Props> = React.memo((props: Props) => {
         });
       } catch (err) {
         if (cancelled) return;
-        if (expectsHtml && mode === "rmd") {
-          // RMD/QMD: show the "missing output" UI with a Build button instead
-          // of a global error banner.  The file may not have been built yet.
+        const errMsg = `${err}`;
+        const isNotFound =
+          errMsg.includes("ENOENT") || errMsg.includes("no such file");
+        if (expectsHtml && mode === "rmd" && isNotFound) {
+          // RMD/QMD and file genuinely missing: show the "missing output"
+          // UI with a Build button.  The file may not have been built yet.
           setMissing(true);
         } else {
-          // Non-RMD (plain HTML editor) or non-HTML output: show error banner
-          // so users know about transient failures instead of silently losing
-          // the preview.
-          actions.set_error(`${err}`);
+          // Non-missing error (permission, I/O, etc.) or non-RMD mode:
+          // show error banner so users see the actual issue.
+          actions.set_error(errMsg);
         }
         return;
       } finally {

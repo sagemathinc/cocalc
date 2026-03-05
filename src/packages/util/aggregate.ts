@@ -181,6 +181,10 @@ export function aggregate(options, f?: any) {
     // This gets called when f completes.
     opts.cb = function (...args) {
       const { callbacks, next } = state[key];
+      // Cache result for future dedup, but drop closures to avoid
+      // retaining stream/request objects in the done cache.
+      state[key].streamCBs = [];
+      state[key].callbacks = [];
       done[key] = state[key];
       done[key].args = args;
       clear_old(done);

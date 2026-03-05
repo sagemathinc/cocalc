@@ -302,7 +302,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         if (this.not_ready()) return;
         const hash = this._syncstring.hash_of_saved_version();
         if (
-          account &&
+          account?.get("is_ready") &&
           account.getIn(["editor_settings", "build_on_save"]) &&
           this._last_syncstring_hash != hash
         ) {

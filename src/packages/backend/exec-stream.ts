@@ -145,6 +145,25 @@ export async function executeStream(
       return undefined;
     }
 
+    // Register the fallback completion listener BEFORE checking the cache
+    // to avoid a TOCTOU race: if the job finishes between the cache check
+    // and listener registration, the "finished" event would fire to nobody.
+    // The `done` guard makes this idempotent with the streamCB path.
+    const jobId = job.job_id;
+    updates.once(
+      eventKey("finished", jobId),
+      (result: ExecuteCodeOutputAsync) => {
+        if (done) return; // streamCB or early-complete path already handled it
+        logger.debug(`executeStream: job ${jobId} finished via updates event`);
+        stream({
+          type: "done",
+          data: result,
+        });
+        done = true;
+        stream(null);
+      },
+    );
+
     // Send initial job info with full async structure
     // Get the current job status from cache in case it completed immediately
     const currentJob = asyncCache.get(job.job_id);
@@ -177,29 +196,6 @@ export async function executeStream(
       done = true;
       stream(null);
       return currentJob;
-    }
-
-    // If the job is still running but our streamCB may not be attached
-    // (e.g. because aggregate deduplication returned a cached result
-    // without calling f()), listen for the job completion event so the
-    // client still gets notified when the build finishes.
-    const jobId = job?.type === "async" ? job.job_id : undefined;
-    if (!done && jobId) {
-      updates.once(
-        eventKey("finished", jobId),
-        (result: ExecuteCodeOutputAsync) => {
-          if (done) return; // streamCB already handled it
-          logger.debug(
-            `executeStream: job ${jobId} finished via updates event`,
-          );
-          stream({
-            type: "done",
-            data: result,
-          });
-          done = true;
-          stream(null);
-        },
-      );
     }
 
     // Stats monitoring is now handled by execute-code.ts via streamCB
