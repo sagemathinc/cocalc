@@ -246,7 +246,7 @@ async function executeCodeNoAggregate(
       asyncCache.set(job_id, job_config);
 
       const child = doSpawn(
-        { ...opts, origCommand, job_id, job_config },
+        { ...opts, origCommand, job_id, job_config, streamCB: opts.streamCB! },
         async (err, result) => {
           log.debug("async/doSpawn returned", {
             err,
@@ -300,7 +300,11 @@ async function executeCodeNoAggregate(
       return { ...job_config, pid };
     } else {
       // This is the blocking variant
-      return await callback(doSpawn, { ...opts, origCommand });
+      return await callback(doSpawn, {
+        ...opts,
+        origCommand,
+        streamCB: opts.streamCB!,
+      });
     }
   } finally {
     // do not delete the tempDir in async mode!
@@ -310,8 +314,13 @@ async function executeCodeNoAggregate(
   }
 }
 
+// After going through the `aggregate` wrapper, `streamCB` is always
+// set (to a fan-out function), even if no caller provided one.
+// Making it required here prevents dead-code guards like
+// `if (!opts.streamCB) { cb(err) }`.
 function doSpawn(
   opts: ExecuteCodeOptions & {
+    streamCB: NonNullable<ExecuteCodeOptions["streamCB"]>;
     origCommand: string;
     job_id?: string;
     job_config?: ExecuteCodeOutputAsync;
@@ -336,7 +345,7 @@ function doSpawn(
     detached: true, // so we can kill the entire process group if it times out
     cwd: opts.path,
     ...(opts.uid ? { uid: opts.uid } : undefined),
-    ...(opts.gid ? { uid: opts.gid } : undefined),
+    ...(opts.gid ? { gid: opts.gid } : undefined),
     env: {
       ...envForSpawn(),
       ...opts.env,
@@ -484,8 +493,10 @@ function doSpawn(
     sendBatchedStream();
   };
 
-  // Start batch timer if streaming or async job tracking is enabled
-  if (opts.streamCB || (opts.async_call && opts.job_id)) {
+  // Start batch timer for async jobs that need streaming.
+  // Note: opts.streamCB is always set by aggregate's fan-out wrapper,
+  // so opts.job_id is the real discriminator for streaming needs.
+  if (opts.async_call && opts.job_id) {
     streamBatchTimer = setInterval(sendBatchedStream, 100);
   }
 
@@ -517,15 +528,15 @@ function doSpawn(
       if (stdout.length < opts.max_output) {
         const newData = data.slice(0, opts.max_output - stdout.length);
         stdout += newData;
-        // Buffer the new portion for batched streaming (async jobs always buffer)
-        if ((opts.streamCB || opts.job_id) && stdout.length > prevLength) {
+        // Buffer the new portion for batched streaming
+        if (opts.job_id && stdout.length > prevLength) {
           streamBuffer.stdout += newData;
         }
       }
     } else {
       stdout += data;
-      // Buffer the new data for batched streaming (async jobs always buffer)
-      if (opts.streamCB || opts.job_id) {
+      // Buffer the new data for batched streaming
+      if (opts.job_id) {
         streamBuffer.stdout += data;
       }
     }
@@ -539,15 +550,15 @@ function doSpawn(
       if (stderr.length < opts.max_output) {
         const newData = data.slice(0, opts.max_output - stderr.length);
         stderr += newData;
-        // Buffer the new portion for batched streaming (async jobs always buffer)
-        if ((opts.streamCB || opts.job_id) && stderr.length > prevLength) {
+        // Buffer the new portion for batched streaming
+        if (opts.job_id && stderr.length > prevLength) {
           streamBuffer.stderr += newData;
         }
       }
     } else {
       stderr += data;
-      // Buffer the new data for batched streaming (async jobs always buffer)
-      if (opts.streamCB || opts.job_id) {
+      // Buffer the new data for batched streaming
+      if (opts.job_id) {
         streamBuffer.stderr += data;
       }
     }
@@ -625,7 +636,7 @@ function doSpawn(
     // Safety check: if we're using streaming and the process has exited but streams aren't done,
     // force completion after a short delay to prevent hanging
     if (
-      (opts.streamCB || opts.job_id) &&
+      opts.job_id &&
       exit_code != null &&
       (!stdout_is_done || !stderr_is_done)
     ) {
@@ -642,7 +653,7 @@ function doSpawn(
     callback_done = true;
 
     // Flush any remaining buffered stream data before finishing
-    if (opts.streamCB || opts.job_id) {
+    if (opts.job_id) {
       flushStreamBuffer();
     }
 
@@ -686,10 +697,9 @@ function doSpawn(
           };
           opts.streamCB({ type: "done", data: errorResult });
         }
-        // For streaming, don't call cb with error - let the stream handle it
-        if (!opts.streamCB) {
-          cb?.(err);
-        }
+        // Always call cb to resolve the promise and update asyncCache.
+        // Without this, the cache entry stays "running" forever.
+        cb?.(err);
       } else {
         // sync behavior, like it was before
         cb?.(err);
@@ -717,10 +727,8 @@ function doSpawn(
           };
           opts.streamCB({ type: "done", data: errorResult });
         }
-        // For streaming, don't call cb with error - let the stream handle it
-        if (!opts.streamCB) {
-          cb?.(stderr);
-        }
+        // Always call cb to resolve the promise and update asyncCache.
+        cb?.(stderr);
       } else {
         // sync behavor, like it was before
         cb?.(
