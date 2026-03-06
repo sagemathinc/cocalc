@@ -136,7 +136,7 @@ export async function cleanUpTempDir(tempDir: string | undefined) {
     try {
       await rm(tempDir, { force: true, recursive: true });
     } catch (err) {
-      console.log("WARNING: issue cleaning up tempDir", err);
+      log.warn("issue cleaning up tempDir", err);
     }
   }
 }
@@ -596,22 +596,11 @@ function doSpawn(
     stderr += to_json(err);
     // a fundamental issue, we were not running some code
     ran_code = false;
-    // For streaming, flush buffer and send error event
-    if (opts.streamCB && opts.async_call && opts.job_id) {
-      flushStreamBuffer(); // Flush any buffered data first
-      const errorResult: ExecuteCodeOutputAsync = {
-        type: "async",
-        job_id: opts.job_id,
-        stdout,
-        stderr,
-        exit_code: exit_code ?? 1,
-        status: "error",
-        elapsed_s: walltime(start_time),
-        start: opts.job_config?.start ?? Date.now(),
-        pid: child.pid,
-        stats: opts.job_config?.stats,
-      };
-      opts.streamCB({ type: "done", data: errorResult });
+    // Flush any buffered streaming data before finish() sends the done event.
+    // Note: we do NOT send streamCB({type:"done"}) here — finish() handles that
+    // uniformly for all exit paths, avoiding a double-done event.
+    if (opts.async_call && opts.job_id) {
+      flushStreamBuffer();
     }
     finish();
   });

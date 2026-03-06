@@ -49,8 +49,8 @@ export class BuildCoordinator {
   private closed = false;
   private changeHandler?: (event: {
     key: string;
-    value: any;
-    prev: any;
+    value: BuildState | undefined;
+    prev: BuildState | undefined;
   }) => void;
   private callbacks: BuildCoordinatorCallbacks;
 
@@ -88,9 +88,6 @@ export class BuildCoordinator {
       }
       this.dkv = store;
 
-      // Guard against close() racing with init()
-      if (this.closed) return;
-
       // Subscribe to changes BEFORE reading initial state so we cannot
       // miss a build-start that arrives between snapshot and subscribe.
       this.changeHandler = ({ key, value, prev }) => {
@@ -123,6 +120,9 @@ export class BuildCoordinator {
       this.pendingOps = undefined;
     } catch (err) {
       console.warn("BuildCoordinator: failed to init DKV", err);
+      this.callbacks.setError(
+        "BuildCoordinator: failed to initialize coordination — builds will work but won't sync across tabs",
+      );
       // DKV failed — discard buffered ops and disable further buffering
       // so later calls fall through to the dkv?.method() no-op path.
       this.pendingOps = undefined;

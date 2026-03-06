@@ -101,7 +101,11 @@ export async function executeStream(
     updates.on(eventKey("stats", jobId), handleStats);
     updates.once(eventKey("finished", jobId), handleFinished);
 
-    // Send initial job info (includes accumulated stdout/stderr from asyncCache)
+    // Send initial job info (includes accumulated stdout/stderr from asyncCache).
+    // Note: up to 100ms of buffered output may not yet be in asyncCache (batch
+    // timer hasn't flushed). This data will arrive via the updates listeners
+    // registered above, so it's not lost — just slightly delayed in the initial
+    // snapshot.  A future optimization could expose a per-job flush mechanism.
     const currentJob = asyncCache.get(job.job_id);
     const initialJobInfo: ExecuteCodeOutputAsync = {
       type: "async",

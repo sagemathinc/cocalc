@@ -12,7 +12,7 @@
  */
 
 import { delay } from "awaiting";
-import { EventEmitter } from "node:stream";
+import { EventEmitter } from "node:events";
 
 describe("executeStream function - unit tests", () => {
   const mockExecuteCode = jest.fn();
@@ -595,41 +595,15 @@ describe("executeStream function - unit tests", () => {
     expect(jobEvent).toBeDefined();
     expect(jobEvent?.data?.job_id).toBeDefined();
 
-    // Check what actually happened - either timeout occurred or command completed
+    // With a 1s timeout on a 5s sleep, the command should be killed.
+    // We expect either a done event with error status, or an error event.
+    expect(doneEvent || errorEvents.length > 0).toBeTruthy();
     if (doneEvent) {
-      // If we got a done event, check if it indicates an error/timeout
-      if (
-        doneEvent.data?.status === "error" ||
-        doneEvent.data?.exit_code !== 0
-      ) {
-        // Command was terminated (possibly due to timeout)
-      } else {
-        // Command completed normally
-      }
-    } else if (errorEvents.length > 0) {
-      // Error events received
-    } else {
-      // No completion events received - job may still be running
-      // Let's check if we can query the job status manually
-      const { executeCode } = await import("./execute-code");
-      try {
-        await executeCode({
-          async_get: jobEvent?.data?.job_id,
-          async_await: false,
-        });
-        // Manual job status check completed
-      } catch (err) {
-        // Manual job status check failed
-      }
+      // Timeout should produce a non-zero exit code or error status
+      const isError =
+        doneEvent.data?.status === "error" || doneEvent.data?.exit_code !== 0;
+      expect(isError).toBe(true);
     }
-
-    // At minimum, we should have the job event
-    expect(jobEvent).toBeDefined();
-
-    // The test should verify that timeout option was passed correctly
-    // Even if the actual timeout doesn't trigger in test environment,
-    // we can verify the option was set properly
-    expect(jobEvent?.data?.job_id).toBeDefined();
 
     // Re-mock for subsequent tests
     jest.doMock("./execute-code", () => ({
