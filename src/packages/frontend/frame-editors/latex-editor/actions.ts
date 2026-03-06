@@ -134,6 +134,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   ) => Promise<void>;
   private is_stopping: boolean = false; // if true, do not continue running any compile jobs
   private buildCoordinator?: BuildCoordinator;
+  private _lastBuiltTime?: number;
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
@@ -238,6 +239,9 @@ export class Actions extends BaseActions<LatexEditorState> {
       setBuilding: (v) => {
         this.is_building = v;
         this.setState({ building: v });
+        if (!v) {
+          this._lastBuiltTime = this.last_save_time();
+        }
       },
       setError: (err) => this.set_error(err),
     });
@@ -890,6 +894,17 @@ export class Actions extends BaseActions<LatexEditorState> {
     try {
       await this.save_all(false);
       const time = force ? server_time().valueOf() : this.last_save_time();
+      // Skip if nothing changed since last build — avoids DKV chatter that
+      // causes other clients to flicker their build spinner for a no-op.
+      // Must be AFTER save so last_save_time() reflects pending edits.
+      if (
+        !force &&
+        this._lastBuiltTime != null &&
+        time === this._lastBuiltTime
+      ) {
+        return; // finally block cleans up is_building / building state
+      }
+      this._lastBuiltTime = time;
       this.buildCoordinator?.publishBuildStart(buildId, time, force);
       await this.run_build(time, force);
     } catch (err) {

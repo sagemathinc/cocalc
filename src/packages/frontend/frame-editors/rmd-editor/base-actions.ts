@@ -29,6 +29,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
   protected is_building: boolean = false;
   protected run_converter!: Function;
   protected buildCoordinator?: BuildCoordinator;
+  private _lastBuiltHash?: number;
 
   // Subclasses provide the format-specific build logic and empty-file template.
   protected abstract _run_converter(hash?: number): Promise<void>;
@@ -111,6 +112,11 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       setBuilding: (v) => {
         this.is_building = v;
         this.setState({ building: v });
+        if (!v) {
+          // A joined build just completed — track the hash so subsequent
+          // no-op builds are skipped (same as originator's finally block).
+          this._lastBuiltHash = this._syncstring?.hash_of_saved_version();
+        }
       },
       setError: (err) => this.set_error(err),
     });
@@ -146,6 +152,16 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       const hash = force
         ? server_time().valueOf()
         : (this._syncstring?.hash_of_saved_version() ?? 0);
+      // Skip if hash hasn't changed since last completed build — avoids DKV
+      // chatter that causes other clients to flicker their build spinner.
+      // Must be AFTER save so hash_of_saved_version() reflects pending edits.
+      if (
+        !force &&
+        this._lastBuiltHash != null &&
+        hash === this._lastBuiltHash
+      ) {
+        return; // finally block cleans up is_building / building state
+      }
       this.buildCoordinator?.publishBuildStart(buildId, hash, force);
       // For force builds, bypass the debounced function to ensure immediate execution
       if (force) {
@@ -154,6 +170,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
         await this.run_converter(hash);
       }
     } finally {
+      this._lastBuiltHash = this._syncstring?.hash_of_saved_version();
       this.buildCoordinator?.publishBuildFinished(buildId);
       this.is_building = false;
       this.setState({ building: false });
