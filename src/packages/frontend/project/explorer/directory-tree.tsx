@@ -33,12 +33,56 @@ function isPositiveNumber(value: unknown): value is number {
   return typeof value === "number" && !isNaN(value) && value > 0;
 }
 
-function directoryTreeWidthKey(project_id: string): string {
-  return `${project_id}::explorer-directory-tree-width`;
+// -- Consolidated localStorage state for the explorer panel ---------------
+// One key per project: `${project_id}::explorer` → LSExplorer JSON.
+
+interface LSExplorerTree {
+  visible?: boolean;
+  width?: number;
+  expanded_keys?: string[];
+  scroll_top?: number;
 }
 
+export interface LSExplorer {
+  directory?: string;
+  tree?: LSExplorerTree;
+}
+
+function explorerLsKey(project_id: string): string {
+  return `${project_id}::explorer`;
+}
+
+function getExplorerState(project_id: string): LSExplorer {
+  return LS.get<LSExplorer>(explorerLsKey(project_id)) ?? {};
+}
+
+function updateExplorerTree(
+  project_id: string,
+  update: Partial<LSExplorerTree>,
+): void {
+  const state = getExplorerState(project_id);
+  LS.set(explorerLsKey(project_id), {
+    ...state,
+    tree: { ...state.tree, ...update },
+  });
+}
+
+export function getExplorerDirectory(project_id: string): string {
+  return getExplorerState(project_id).directory ?? "";
+}
+
+export function setExplorerDirectory(
+  project_id: string,
+  path: string,
+): void {
+  const state = getExplorerState(project_id);
+  LS.set(explorerLsKey(project_id), { ...state, directory: path });
+}
+
+// -- Tree getters/setters (same public API, backed by the JSON blob) ------
+
 export function getDirectoryTreeWidth(project_id: string): number {
-  const width = LS.get<number>(directoryTreeWidthKey(project_id));
+  const width = getExplorerState(project_id).tree?.width;
   if (!isPositiveNumber(width)) return DIRECTORY_TREE_DEFAULT_WIDTH_PX;
   return Math.max(
     DIRECTORY_TREE_MIN_WIDTH_PX,
@@ -47,17 +91,13 @@ export function getDirectoryTreeWidth(project_id: string): number {
 }
 
 export function setDirectoryTreeWidth(project_id: string, width: number): void {
-  LS.set(directoryTreeWidthKey(project_id), width);
+  updateExplorerTree(project_id, { width });
 }
 
 const MAX_TREE_EXPANDED = 20;
 
-function directoryTreeExpandedKeysKey(project_id: string): string {
-  return `${project_id}::explorer-directory-tree-expanded-keys`;
-}
-
 function getDirectoryTreeExpandedKeys(project_id: string): string[] {
-  const keys = LS.get<string[]>(directoryTreeExpandedKeysKey(project_id));
+  const keys = getExplorerState(project_id).tree?.expanded_keys;
   if (!Array.isArray(keys)) return [];
   return keys.filter((k) => k !== TREE_HOME_KEY);
 }
@@ -66,18 +106,13 @@ function saveDirectoryTreeExpandedKeys(
   project_id: string,
   keys: string[],
 ): void {
-  LS.set(
-    directoryTreeExpandedKeysKey(project_id),
-    keys.slice(0, MAX_TREE_EXPANDED),
-  );
-}
-
-function directoryTreeScrollTopKey(project_id: string): string {
-  return `${project_id}::explorer-directory-tree-scroll-top`;
+  updateExplorerTree(project_id, {
+    expanded_keys: keys.slice(0, MAX_TREE_EXPANDED),
+  });
 }
 
 function getDirectoryTreeScrollTop(project_id: string): number {
-  const val = LS.get<number>(directoryTreeScrollTopKey(project_id));
+  const val = getExplorerState(project_id).tree?.scroll_top;
   return typeof val === "number" && val >= 0 ? val : 0;
 }
 
@@ -85,7 +120,7 @@ function saveDirectoryTreeScrollTop(
   project_id: string,
   scrollTop: number,
 ): void {
-  LS.set(directoryTreeScrollTopKey(project_id), scrollTop);
+  updateExplorerTree(project_id, { scroll_top: scrollTop });
 }
 
 const TREE_PANEL_STYLE: React.CSSProperties = {

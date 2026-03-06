@@ -558,7 +558,13 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
           }
           actions.set_all_files_unchecked();
           preDragCheckedRef.current = null;
-          actions.fetch_directory_listing();
+          // Refresh both source and destination directories so listings
+          // update correctly even when browsing paths differ from current_path.
+          const srcDir = path_split(dragData.paths[0]).head;
+          actions.fetch_directory_listing({ path: srcDir });
+          if (dropData.path !== srcDir) {
+            actions.fetch_directory_listing({ path: dropData.path });
+          }
         } catch (err) {
           actions.set_activity({
             id: uuid(),

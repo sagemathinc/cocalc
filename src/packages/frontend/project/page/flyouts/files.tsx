@@ -730,7 +730,8 @@ export function FilesFlyout({
           project_id={project_id}
           dest_path={current_path}
           event_handlers={{
-            complete: () => actions?.fetch_directory_listing(),
+            complete: () =>
+              actions?.fetch_directory_listing({ path: current_path }),
           }}
           config={{ clickable: `.${uploadClassName}` }}
           style={{
