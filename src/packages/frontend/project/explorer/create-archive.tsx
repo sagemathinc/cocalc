@@ -45,7 +45,7 @@ export default function CreateArchive({
       setLoading(true);
       onActionChange?.(true);
       const files = checked_files.toArray();
-      const path = store.get("current_path");
+      const path = files.length > 0 ? path_split(files[0]).head : "";
       await actions.zip_files({
         src: path ? files.map((x: string) => x.slice(path.length + 1)) : files,
         dest: target + ".zip",

@@ -96,7 +96,10 @@ export default function FileActionModal() {
 
   const file_action = useTypedRedux({ project_id }, "file_action");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  // Use the explorer's independent browsing path (not the global
+  // current_path which tracks the active file tab).
+  const current_path =
+    useTypedRedux({ project_id }, "explorer_browsing_path") ?? "";
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const displayed_listing = useTypedRedux({ project_id }, "displayed_listing");
 
