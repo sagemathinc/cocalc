@@ -135,6 +135,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   private is_stopping: boolean = false; // if true, do not continue running any compile jobs
   private buildCoordinator?: BuildCoordinator;
   private _lastBuiltTime?: number;
+  private _buildWasStopped = false;
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
@@ -239,7 +240,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       setBuilding: (v) => {
         this.is_building = v;
         this.setState({ building: v });
-        if (!v) {
+        if (!v && !this._buildWasStopped) {
           this._lastBuiltTime = this.last_save_time();
         }
       },
@@ -889,6 +890,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     const buildId = randomId();
     this.is_building = true;
+    this._buildWasStopped = false;
     this.setState({ building: true });
     this.buildCoordinator?.setLocalBuildId(buildId);
     try {
@@ -951,6 +953,10 @@ export class Actions extends BaseActions<LatexEditorState> {
   // This stops all known jobs with a status "running" and resets the state.
   async stop_build(_id?: string) {
     this.buildCoordinator?.requestStop();
+    // A stopped build didn't complete — clear the "last built" time so
+    // the next build isn't skipped as a no-op.
+    this._lastBuiltTime = undefined;
+    this._buildWasStopped = true;
     const build_logs = this.store.get("build_logs");
     try {
       this.is_stopping = true;

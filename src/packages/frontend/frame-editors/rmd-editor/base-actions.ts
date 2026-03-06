@@ -30,6 +30,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
   protected run_converter!: Function;
   protected buildCoordinator?: BuildCoordinator;
   private _lastBuiltHash?: number;
+  private _buildWasStopped = false;
 
   // Subclasses provide the format-specific build logic and empty-file template.
   protected abstract _run_converter(hash?: number): Promise<void>;
@@ -112,9 +113,9 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       setBuilding: (v) => {
         this.is_building = v;
         this.setState({ building: v });
-        if (!v) {
+        if (!v && !this._buildWasStopped) {
           // A joined build just completed — track the hash so subsequent
-          // no-op builds are skipped (same as originator's finally block).
+          // no-op builds are skipped (same as originator's build path).
           this._lastBuiltHash = this._syncstring?.hash_of_saved_version();
         }
       },
@@ -145,6 +146,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     }
     const buildId = randomId();
     this.is_building = true;
+    this._buildWasStopped = false;
     this.buildCoordinator?.setLocalBuildId(buildId);
     this.setState({ building: true });
     try {
@@ -185,6 +187,10 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
   // Stops the current build process and resets state.
   async stop_build(_id: string): Promise<void> {
     this.buildCoordinator?.requestStop();
+    // A stopped build didn't complete — clear the "last built" hash so
+    // the next build isn't skipped as a no-op.
+    this._lastBuiltHash = undefined;
+    this._buildWasStopped = true;
     const job_info = this.store.get("job_info")?.toJS() as
       | ExecuteCodeOutputAsync
       | undefined;
