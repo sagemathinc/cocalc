@@ -23,9 +23,15 @@ agents (Claude Code, Gemini CLI, etc.) working on the CoCalc codebase.
 
 ## Maintenance
 
-> **IMPORTANT**: Update these docs when the architecture changes. If you add a
-> new package, change how conat routing works, modify the API layer, or alter
-> the frontend state management patterns, update the relevant file(s) here.
+> **IMPORTANT**: Feel free to update the documentation. In particular:
+>
+> - If you add a new package
+> - Notice a difference between code and docs -- code is authoritative
+> - Change how conat routing works
+> - Modify the API layer
+> - Alter the frontend state management patterns
+>
+> Update the relevant file(s) here.
 > These docs are consumed by coding agents and stale information causes
 > incorrect code generation.
 
