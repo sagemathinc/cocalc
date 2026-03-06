@@ -58,6 +58,13 @@ export class BuildCoordinator {
   private _remoteBuildId?: string;
   private _localBuildId?: string;
 
+  // Operations buffered while DKV is still initializing.
+  // Flushed in init() once the DKV is ready.  Set to undefined
+  // after init completes (success or failure) so later calls
+  // fall through to the dkv?.method() no-op path instead of
+  // accumulating closures indefinitely.
+  private pendingOps?: Array<() => void> = [];
+
   constructor(
     project_id: string,
     path: string,
@@ -81,18 +88,11 @@ export class BuildCoordinator {
       }
       this.dkv = store;
 
-      // Late joiner: if a build is already running, join it
-      const current = this.dkv.get(this.path);
-      if (current?.status === "running") {
-        this.handleBuildStart(current);
-      }
-
       // Guard against close() racing with init()
       if (this.closed) return;
 
-      // Listen for state changes from other clients.
-      // Store the handler so close() can detach it even when the
-      // ref-counted DKV stays alive (other editors in the same project).
+      // Subscribe to changes BEFORE reading initial state so we cannot
+      // miss a build-start that arrives between snapshot and subscribe.
       this.changeHandler = ({ key, value, prev }) => {
         if (key !== this.path) return;
 
@@ -105,8 +105,27 @@ export class BuildCoordinator {
         }
       };
       this.dkv.on("change", this.changeHandler);
+
+      // Late joiner: if a build is already running, join it.
+      // Safe after subscribe — duplicate joins are guarded by isBuilding().
+      const current = this.dkv.get(this.path);
+      if (current?.status === "running") {
+        this.handleBuildStart(current);
+      }
+
+      // Flush any operations that were buffered while DKV was initializing
+      // (e.g., user clicked Build before DKV connected).
+      if (this.pendingOps) {
+        for (const op of this.pendingOps) {
+          op();
+        }
+      }
+      this.pendingOps = undefined;
     } catch (err) {
       console.warn("BuildCoordinator: failed to init DKV", err);
+      // DKV failed — discard buffered ops and disable further buffering
+      // so later calls fall through to the dkv?.method() no-op path.
+      this.pendingOps = undefined;
     }
   }
 
@@ -124,6 +143,11 @@ export class BuildCoordinator {
     if (buildId === this._remoteBuildId) {
       this._remoteBuildId = undefined;
       this.callbacks.setBuilding(false);
+    }
+    // Clear _localBuildId on the delete echo so self-echoes of
+    // "running" that arrive before the delete are still recognized.
+    if (buildId === this._localBuildId) {
+      this._localBuildId = undefined;
     }
   }
 
@@ -149,6 +173,11 @@ export class BuildCoordinator {
       this.callbacks.setError(`${err}`);
     } finally {
       this.callbacks.setBuilding(false);
+      // Note: we intentionally do NOT clean up the DKV entry here if the
+      // originator crashed mid-build. Doing so risks prematurely deleting
+      // a live entry when the joiner simply finishes faster. Stale entries
+      // from crashed originators are handled by the ephemeral DKV's TTL.
+      // V2 will coordinate via the project backend for definitive cleanup.
     }
   }
 
@@ -169,35 +198,80 @@ export class BuildCoordinator {
     aggregate: number | undefined,
     force?: boolean,
   ): void {
-    this.dkv?.set(this.path, {
-      buildId,
-      status: "running",
-      aggregate,
-      force,
-    });
+    const doPublish = () => {
+      this.dkv?.set(this.path, {
+        buildId,
+        status: "running",
+        aggregate,
+        force,
+      });
+    };
+    if (this.dkv) {
+      doPublish();
+    } else {
+      this.pendingOps?.push(doPublish);
+    }
   }
 
   /** Announce build completion and clear the DKV entry. */
   publishBuildFinished(buildId: string): void {
-    // Only delete if the current entry matches our buildId — prevents
-    // a finishing client from deleting another client's concurrent build.
-    const current = this.dkv?.get(this.path);
-    if (!current || current.buildId === buildId) {
-      this.dkv?.delete(this.path);
-    }
-    if (this._localBuildId === buildId) {
-      this._localBuildId = undefined;
+    const doPublish = () => {
+      // Only delete if the current entry matches our buildId — prevents
+      // a finishing client from deleting another client's concurrent build.
+      const current = this.dkv?.get(this.path);
+      if (!current) {
+        // Entry already gone (or was never written) — deleting a
+        // non-existent key is a no-op that produces no echo, so
+        // clear _localBuildId immediately.
+        if (this._localBuildId === buildId) {
+          this._localBuildId = undefined;
+        }
+      } else if (current.buildId === buildId) {
+        this.dkv?.delete(this.path);
+        // _localBuildId cleared by handleBuildFinished when delete
+        // echo arrives.  The echo is guaranteed here because we're
+        // deleting an existing key (current is non-null).
+      } else {
+        // Another client's build overwrote the entry — no delete echo will
+        // arrive, so clear _localBuildId now.
+        if (this._localBuildId === buildId) {
+          this._localBuildId = undefined;
+        }
+      }
+    };
+    if (this.dkv) {
+      doPublish();
+    } else if (this.pendingOps) {
+      // Build finished while DKV was still initializing.  The buffered
+      // start + finish pair is now stale — flushing them back-to-back
+      // would overwrite any active remote entry and immediately delete
+      // it.  Drop all buffered ops and clear _localBuildId.
+      this.pendingOps.length = 0;
+      if (this._localBuildId === buildId) {
+        this._localBuildId = undefined;
+      }
+    } else {
+      // DKV init failed, no buffer — clear immediately.
+      if (this._localBuildId === buildId) {
+        this._localBuildId = undefined;
+      }
     }
   }
 
   /** Request all clients to stop the current build. */
   requestStop(): void {
     const idToStop = this._localBuildId ?? this._remoteBuildId;
-    if (idToStop) {
+    if (!idToStop) return;
+    const doPublish = () => {
       const current = this.dkv?.get(this.path);
       if (current?.status === "running" && current.buildId === idToStop) {
         this.dkv?.set(this.path, { ...current, status: "stopping" });
       }
+    };
+    if (this.dkv) {
+      doPublish();
+    } else {
+      this.pendingOps?.push(doPublish);
     }
   }
 
