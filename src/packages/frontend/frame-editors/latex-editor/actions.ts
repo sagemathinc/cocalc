@@ -134,8 +134,6 @@ export class Actions extends BaseActions<LatexEditorState> {
   ) => Promise<void>;
   private is_stopping: boolean = false; // if true, do not continue running any compile jobs
   private buildCoordinator?: BuildCoordinator;
-  private _remoteBuildId?: string;
-  private _localBuildId?: string;
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
@@ -231,46 +229,18 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private _init_build_coordinator(): void {
-    this.buildCoordinator = new BuildCoordinator(this.project_id, this.path);
-    this.buildCoordinator.on("build-start", ({ buildId, aggregate, force }) => {
-      if (!this.is_building && buildId !== this._localBuildId) {
-        this._remoteBuildId = buildId;
-        void this._join_build(aggregate, force);
-      }
+    this.buildCoordinator = new BuildCoordinator(this.project_id, this.path, {
+      join: async (aggregate, force) => {
+        await this.run_build(aggregate ?? 0, force);
+      },
+      stop: () => this.stop_build(),
+      isBuilding: () => this.is_building,
+      setBuilding: (v) => {
+        this.is_building = v;
+        this.setState({ building: v });
+      },
+      setError: (err) => this.set_error(err),
     });
-    this.buildCoordinator.on("build-finished", ({ buildId }) => {
-      if (buildId === this._remoteBuildId) {
-        this._remoteBuildId = undefined;
-        this.is_building = false;
-        this.setState({ building: false });
-      }
-    });
-    this.buildCoordinator.on("build-stop", () => {
-      // Honor stop requests from any client (including echo from self).
-      // Echo re-entry is prevented by publishBuildStop's own guard
-      // (only transitions "running" → "stopping", never re-publishes).
-      // stop_build() is idempotent (killing an already-killed PID is a no-op).
-      if (this.is_building) {
-        this.stop_build();
-      }
-    });
-  }
-
-  private async _join_build(
-    aggregate: number | undefined,
-    force?: boolean,
-  ): Promise<void> {
-    if (this.is_building) return;
-    this.is_building = true;
-    this.setState({ building: true });
-    try {
-      await this.run_build(aggregate ?? 0, force ?? false);
-    } catch (err) {
-      this.set_error(`${err}`);
-    } finally {
-      this.is_building = false;
-      this.setState({ building: false });
-    }
   }
 
   // Watch the directory containing the PDF file for changes
@@ -916,7 +886,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     const buildId = randomId();
     this.is_building = true;
     this.setState({ building: true });
-    this._localBuildId = buildId;
+    this.buildCoordinator?.setLocalBuildId(buildId);
     try {
       await this.save_all(false);
       const time = force ? server_time().valueOf() : this.last_save_time();
@@ -930,7 +900,6 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.buildCoordinator?.publishBuildFinished(buildId);
       this.is_building = false;
       this.setState({ building: false });
-      this._localBuildId = undefined;
     }
   };
 
@@ -966,11 +935,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // This stops all known jobs with a status "running" and resets the state.
   async stop_build(_id?: string) {
-    // Use _remoteBuildId as fallback so joiners can also stop builds
-    const idToStop = this._localBuildId ?? this._remoteBuildId;
-    if (idToStop) {
-      this.buildCoordinator?.publishBuildStop(idToStop);
-    }
+    this.buildCoordinator?.requestStop();
     const build_logs = this.store.get("build_logs");
     try {
       this.is_stopping = true;

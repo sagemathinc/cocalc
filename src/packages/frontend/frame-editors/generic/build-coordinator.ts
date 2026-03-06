@@ -14,9 +14,12 @@ State machine:
   (no entry)  → "running"   = build started
   "running"   → "stopping"  = stop requested
   any         → (deleted)   = build finished
-*/
 
-import { EventEmitter } from "events";
+The coordinator also manages the join lifecycle: when a remote build is
+detected, it calls the provided `join` callback and handles the state
+transitions (is_building, building UI state) uniformly.  This eliminates
+duplicated handler code in the LaTeX and RMD/QMD action classes.
+*/
 
 import { dkv, type DKV } from "@cocalc/conat/sync/dkv";
 
@@ -27,7 +30,20 @@ interface BuildState {
   force?: boolean;
 }
 
-export class BuildCoordinator extends EventEmitter {
+export interface BuildCoordinatorCallbacks {
+  /** Format-specific build function called when joining a remote build. */
+  join: (aggregate: number | undefined, force: boolean) => Promise<void>;
+  /** Stop the current build process (kill PIDs, etc.). */
+  stop: () => void;
+  /** Query whether a build is currently running. */
+  isBuilding: () => boolean;
+  /** Set the building state (both internal flag and Redux store). */
+  setBuilding: (building: boolean) => void;
+  /** Report an error to the user. */
+  setError: (err: string) => void;
+}
+
+export class BuildCoordinator {
   private dkv?: DKV<BuildState>;
   private path: string;
   private closed = false;
@@ -36,10 +52,19 @@ export class BuildCoordinator extends EventEmitter {
     value: any;
     prev: any;
   }) => void;
+  private callbacks: BuildCoordinatorCallbacks;
 
-  constructor(project_id: string, path: string) {
-    super();
+  // Build tracking state — managed here to avoid duplication in consumers.
+  private _remoteBuildId?: string;
+  private _localBuildId?: string;
+
+  constructor(
+    project_id: string,
+    path: string,
+    callbacks: BuildCoordinatorCallbacks,
+  ) {
     this.path = path;
+    this.callbacks = callbacks;
     this.init(project_id);
   }
 
@@ -56,14 +81,10 @@ export class BuildCoordinator extends EventEmitter {
       }
       this.dkv = store;
 
-      // Late joiner: if a build is already running, emit build-start
+      // Late joiner: if a build is already running, join it
       const current = this.dkv.get(this.path);
       if (current?.status === "running") {
-        this.emit("build-start", {
-          buildId: current.buildId,
-          aggregate: current.aggregate,
-          force: current.force,
-        });
+        this.handleBuildStart(current);
       }
 
       // Guard against close() racing with init()
@@ -76,15 +97,11 @@ export class BuildCoordinator extends EventEmitter {
         if (key !== this.path) return;
 
         if (value?.status === "running" && prev?.status !== "running") {
-          this.emit("build-start", {
-            buildId: value.buildId,
-            aggregate: value.aggregate,
-            force: value.force,
-          });
+          this.handleBuildStart(value);
         } else if (value?.status === "stopping") {
-          this.emit("build-stop", { buildId: value.buildId });
+          this.handleBuildStop();
         } else if (!value && prev) {
-          this.emit("build-finished", { buildId: prev.buildId });
+          this.handleBuildFinished(prev.buildId);
         }
       };
       this.dkv.on("change", this.changeHandler);
@@ -93,6 +110,60 @@ export class BuildCoordinator extends EventEmitter {
     }
   }
 
+  // -- Event handlers (replace duplicated code in LaTeX/RMD/QMD actions) --
+
+  private handleBuildStart(state: BuildState): void {
+    const { buildId, aggregate, force } = state;
+    if (!this.callbacks.isBuilding() && buildId !== this._localBuildId) {
+      this._remoteBuildId = buildId;
+      void this.joinBuild(aggregate, force);
+    }
+  }
+
+  private handleBuildFinished(buildId: string): void {
+    if (buildId === this._remoteBuildId) {
+      this._remoteBuildId = undefined;
+      this.callbacks.setBuilding(false);
+    }
+  }
+
+  private handleBuildStop(): void {
+    // Honor stop requests from any client (including echo from self).
+    // Echo re-entry is prevented by publishBuildStop's own guard
+    // (only transitions "running" → "stopping", never re-publishes).
+    // The stop callback is idempotent (killing an already-killed PID is a no-op).
+    if (this.callbacks.isBuilding()) {
+      this.callbacks.stop();
+    }
+  }
+
+  private async joinBuild(
+    aggregate: number | undefined,
+    force?: boolean,
+  ): Promise<void> {
+    if (this.callbacks.isBuilding()) return;
+    this.callbacks.setBuilding(true);
+    try {
+      await this.callbacks.join(aggregate, force ?? false);
+    } catch (err) {
+      this.callbacks.setError(`${err}`);
+    } finally {
+      this.callbacks.setBuilding(false);
+    }
+  }
+
+  // -- Public API for initiator builds (called from build() / stop_build()) --
+
+  /**
+   * Register a local build ID before publishing to the DKV.
+   * Must be called synchronously before publishBuildStart so the
+   * DKV self-echo is recognized and filtered out.
+   */
+  setLocalBuildId(buildId: string): void {
+    this._localBuildId = buildId;
+  }
+
+  /** Announce a build start to all clients via DKV. */
   publishBuildStart(
     buildId: string,
     aggregate: number | undefined,
@@ -106,6 +177,7 @@ export class BuildCoordinator extends EventEmitter {
     });
   }
 
+  /** Announce build completion and clear the DKV entry. */
   publishBuildFinished(buildId: string): void {
     // Only delete if the current entry matches our buildId — prevents
     // a finishing client from deleting another client's concurrent build.
@@ -113,18 +185,24 @@ export class BuildCoordinator extends EventEmitter {
     if (!current || current.buildId === buildId) {
       this.dkv?.delete(this.path);
     }
+    if (this._localBuildId === buildId) {
+      this._localBuildId = undefined;
+    }
   }
 
-  publishBuildStop(buildId: string): void {
-    const current = this.dkv?.get(this.path);
-    if (current?.status === "running" && current.buildId === buildId) {
-      this.dkv?.set(this.path, { ...current, status: "stopping" });
+  /** Request all clients to stop the current build. */
+  requestStop(): void {
+    const idToStop = this._localBuildId ?? this._remoteBuildId;
+    if (idToStop) {
+      const current = this.dkv?.get(this.path);
+      if (current?.status === "running" && current.buildId === idToStop) {
+        this.dkv?.set(this.path, { ...current, status: "stopping" });
+      }
     }
   }
 
   close(): void {
     this.closed = true;
-    this.removeAllListeners();
     // Detach change listener before closing the ref-counted DKV.
     // The DKV may stay alive if other editors in the same project
     // still hold references — without this, stale listeners accumulate.

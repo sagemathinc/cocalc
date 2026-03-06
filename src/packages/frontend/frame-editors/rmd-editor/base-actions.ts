@@ -29,8 +29,6 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
   protected is_building: boolean = false;
   protected run_converter!: Function;
   protected buildCoordinator?: BuildCoordinator;
-  private _remoteBuildId?: string;
-  private _localBuildId?: string;
 
   // Subclasses provide the format-specific build logic and empty-file template.
   protected abstract _run_converter(hash?: number): Promise<void>;
@@ -104,43 +102,18 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
   }
 
   private _init_build_coordinator(): void {
-    this.buildCoordinator = new BuildCoordinator(this.project_id, this.path);
-    this.buildCoordinator.on("build-start", ({ buildId, aggregate }) => {
-      if (!this.is_building && buildId !== this._localBuildId) {
-        this._remoteBuildId = buildId;
-        void this._join_build(aggregate);
-      }
+    this.buildCoordinator = new BuildCoordinator(this.project_id, this.path, {
+      join: async (aggregate, _force) => {
+        await this._run_converter(aggregate);
+      },
+      stop: () => this.stop_build(""),
+      isBuilding: () => this.is_building,
+      setBuilding: (v) => {
+        this.is_building = v;
+        this.setState({ building: v });
+      },
+      setError: (err) => this.set_error(err),
     });
-    this.buildCoordinator.on("build-finished", ({ buildId }) => {
-      if (buildId === this._remoteBuildId) {
-        this._remoteBuildId = undefined;
-        this.is_building = false;
-        this.setState({ building: false });
-      }
-    });
-    this.buildCoordinator.on("build-stop", () => {
-      // Honor stop requests from any client (including echo from self).
-      // Echo re-entry is prevented by publishBuildStop's own guard
-      // (only transitions "running" → "stopping", never re-publishes).
-      // stop_build() is idempotent (killing an already-killed PID is a no-op).
-      if (this.is_building) {
-        this.stop_build("");
-      }
-    });
-  }
-
-  private async _join_build(aggregate: number | undefined): Promise<void> {
-    if (this.is_building) return;
-    this.is_building = true;
-    this.setState({ building: true });
-    try {
-      await this._run_converter(aggregate);
-    } catch (err) {
-      this.set_error(`${err}`);
-    } finally {
-      this.is_building = false;
-      this.setState({ building: false });
-    }
   }
 
   async build(id?: string, force: boolean = false): Promise<void> {
@@ -166,7 +139,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     }
     const buildId = randomId();
     this.is_building = true;
-    this._localBuildId = buildId;
+    this.buildCoordinator?.setLocalBuildId(buildId);
     this.setState({ building: true });
     try {
       await (actions as BaseActions<CodeEditorState>).save(false);
@@ -184,7 +157,6 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       this.buildCoordinator?.publishBuildFinished(buildId);
       this.is_building = false;
       this.setState({ building: false });
-      this._localBuildId = undefined;
     }
   }
 
@@ -195,11 +167,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
 
   // Stops the current build process and resets state.
   async stop_build(_id: string): Promise<void> {
-    // Use _remoteBuildId as fallback so joiners can also stop builds
-    const idToStop = this._localBuildId ?? this._remoteBuildId;
-    if (idToStop) {
-      this.buildCoordinator?.publishBuildStop(idToStop);
-    }
+    this.buildCoordinator?.requestStop();
     const job_info = this.store.get("job_info")?.toJS() as
       | ExecuteCodeOutputAsync
       | undefined;
