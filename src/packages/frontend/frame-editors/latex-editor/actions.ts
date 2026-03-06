@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -41,12 +41,14 @@ import {
 import { print_html } from "@cocalc/frontend/frame-editors/frame-tree/print";
 import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import { randomId } from "@cocalc/conat/names";
 import {
   exec,
   getComputeServerId,
   project_api,
   server_time,
 } from "@cocalc/frontend/frame-editors/generic/client";
+import { BuildCoordinator } from "@cocalc/frontend/frame-editors/generic/build-coordinator";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { once } from "@cocalc/util/async-utils";
 import { ExecOutput } from "@cocalc/util/db-schema/projects";
@@ -131,6 +133,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     skipFramePopup?: boolean,
   ) => Promise<void>;
   private is_stopping: boolean = false; // if true, do not continue running any compile jobs
+  private buildCoordinator?: BuildCoordinator;
+  private _lastBuiltTime?: number;
+  private _buildWasStopped = false;
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
@@ -220,8 +225,27 @@ export class Actions extends BaseActions<LatexEditorState> {
         debounce(this.ensureNonempty.bind(this), 1500),
       );
       this._init_pdf_directory_watcher();
+      this._init_build_coordinator();
     }
     this.word_count = reuseInFlight(this._word_count.bind(this));
+  }
+
+  private _init_build_coordinator(): void {
+    this.buildCoordinator = new BuildCoordinator(this.project_id, this.path, {
+      join: async (aggregate, force) => {
+        await this.run_build(aggregate ?? 0, force);
+      },
+      stop: () => this.stop_build(),
+      isBuilding: () => this.is_building,
+      setBuilding: (v) => {
+        this.is_building = v;
+        this.setState({ building: v });
+        if (!v && !this._buildWasStopped) {
+          this._lastBuiltTime = this.last_save_time();
+        }
+      },
+      setError: (err) => this.set_error(err),
+    });
   }
 
   // Watch the directory containing the PDF file for changes
@@ -780,6 +804,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   close(): void {
     this._forget_pdf_document();
+    this.buildCoordinator?.close();
     if (this.pdf_watcher != null) {
       this.pdf_watcher.close();
       this.pdf_watcher = undefined;
@@ -863,16 +888,39 @@ export class Actions extends BaseActions<LatexEditorState> {
         return;
       }
     }
+    const buildId = randomId();
+    // Capture before reset: if previous build was stopped, we need a fresh
+    // timestamp to bypass backend aggregate dedup (cached partial results).
+    const wasStopped = this._buildWasStopped;
     this.is_building = true;
+    this._buildWasStopped = false;
     this.setState({ building: true });
+    this.buildCoordinator?.setLocalBuildId(buildId);
     try {
       await this.save_all(false);
-      await this.run_build(this.last_save_time(), force);
+      const time =
+        force || wasStopped ? server_time().valueOf() : this.last_save_time();
+      // Skip if nothing changed since last build — avoids DKV chatter that
+      // causes other clients to flicker their build spinner for a no-op.
+      // Must be AFTER save so last_save_time() reflects pending edits.
+      if (
+        !force &&
+        this._lastBuiltTime != null &&
+        time === this._lastBuiltTime
+      ) {
+        return; // finally block cleans up is_building / building state
+      }
+      this.buildCoordinator?.publishBuildStart(buildId, time, force);
+      await this.run_build(time, force);
+      if (!this._buildWasStopped) {
+        this._lastBuiltTime = this.last_save_time();
+      }
     } catch (err) {
       this.set_error(`${err}`);
       // if there is an error, we issue a stop, but keep the build logs
       await this.stop_build();
     } finally {
+      this.buildCoordinator?.publishBuildFinished(buildId);
       this.is_building = false;
       this.setState({ building: false });
     }
@@ -910,6 +958,11 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // This stops all known jobs with a status "running" and resets the state.
   async stop_build(_id?: string) {
+    this.buildCoordinator?.requestStop();
+    // A stopped build didn't complete — clear the "last built" time so
+    // the next build isn't skipped as a no-op.
+    this._lastBuiltTime = undefined;
+    this._buildWasStopped = true;
     const build_logs = this.store.get("build_logs");
     try {
       this.is_stopping = true;
@@ -1770,9 +1823,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  // time 0 implies to take the last_save_time,
+  // If time is provided (non-zero), use it as the aggregate key base.
+  // Note: sagetex/pythontex use time+1/time+2 to force distinct aggregate
+  // keys for their re-run of latex. Only generate a fresh timestamp when
+  // time=0 and force=true.
   make_timestamp(time: number, force: boolean): number {
-    return force ? Date.now() : time || this.last_save_time();
+    if (time) return time;
+    return force ? server_time().valueOf() : this.last_save_time();
   }
 
   private async _word_count(
