@@ -498,23 +498,17 @@ describe("BuildCoordinator", () => {
       const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
 
       // Simulate: user clicked Build before DKV was ready.
-      // setLocalBuildId was called, and the buffered start will
-      // write to DKV on flush.  The late-joiner check should
-      // recognize it as our own build.
+      // Both setLocalBuildId and publishBuildStart are called,
+      // with the start buffered for flush on init.
       coord.setLocalBuildId("my-build");
-
-      // Pre-populate DKV with an entry matching our local build ID
-      // (as if the buffered start was flushed just before the
-      // late-joiner check runs — they're in the same init sequence)
-      mockDkvInstance.set(PATH, {
-        buildId: "my-build",
-        status: "running",
-        aggregate: 100,
-      });
+      coord.publishBuildStart("my-build", 100);
 
       await initDkv();
 
-      // Should NOT join our own build
+      // The buffered start should have flushed to the DKV
+      expect(mockDkvInstance.get(PATH)?.buildId).toBe("my-build");
+
+      // Should NOT join our own build (self-echo filtered by _localBuildId)
       expect(cb.join).not.toHaveBeenCalled();
 
       coord.close();
@@ -618,7 +612,7 @@ describe("BuildCoordinator", () => {
       coord.close();
     });
 
-    test("ops after DKV init failure are no-ops (no crash)", async () => {
+    test("ops after DKV init failure are true no-ops", async () => {
       const cb = makeCallbacks();
       const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
 
@@ -626,11 +620,16 @@ describe("BuildCoordinator", () => {
       dkvReject(new Error("connection failed"));
       await tick();
 
-      // These should be silent no-ops — no crash
+      // These should be silent no-ops — no crash, no callbacks invoked
       coord.setLocalBuildId("b1");
       coord.publishBuildStart("b1", 100);
       coord.publishBuildFinished("b1");
       coord.requestStop();
+
+      // No build callbacks should have been triggered
+      expect(cb.join).not.toHaveBeenCalled();
+      expect(cb.stop).not.toHaveBeenCalled();
+      expect(cb.setBuilding).not.toHaveBeenCalled();
 
       coord.close();
     });
@@ -886,19 +885,31 @@ describe("BuildCoordinator", () => {
 
   describe("state machine", () => {
     test("running → stopping → deleted lifecycle", async () => {
-      const cb = makeCallbacks({ isBuilding: jest.fn(() => true) });
+      // Use a controlled join promise so we can emit all three events
+      // while the join is still active, then verify cleanup on resolve.
+      const joinControl = { resolve: (_v?: unknown) => {} };
+      const cb = makeCallbacks({
+        join: jest.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              joinControl.resolve = resolve;
+            }),
+        ),
+      });
       const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
       const store = await initDkv();
 
-      // running
+      // running — triggers join
       emitRemoteChange(
         store,
         PATH,
         { buildId: "r1", status: "running", aggregate: 1 },
         undefined,
       );
+      expect(cb.join).toHaveBeenCalled();
+      expect(cb.setBuilding).toHaveBeenCalledWith(true);
 
-      // running → stopping
+      // running → stopping — triggers stop callback
       emitRemoteChange(
         store,
         PATH,
@@ -907,11 +918,19 @@ describe("BuildCoordinator", () => {
       );
       expect(cb.stop).toHaveBeenCalled();
 
-      // stopping → deleted
+      // stopping → deleted — _joining guard defers setBuilding(false)
+      (cb.setBuilding as jest.Mock).mockClear();
       emitRemoteChange(store, PATH, undefined, {
         buildId: "r1",
         status: "stopping",
       });
+
+      // Resolve join and let finally block run
+      joinControl.resolve();
+      await tick();
+
+      // finally block calls setBuilding(false) for the deleted phase
+      expect(cb.setBuilding).toHaveBeenCalledWith(false);
 
       coord.close();
     });
