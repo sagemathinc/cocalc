@@ -129,7 +129,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     });
   }
 
-  private async _join_build(aggregate: any): Promise<void> {
+  private async _join_build(aggregate: number): Promise<void> {
     if (this.is_building) return;
     this.is_building = true;
     this.setState({ building: true });
