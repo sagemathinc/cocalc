@@ -232,10 +232,10 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private _init_build_coordinator(): void {
     this.buildCoordinator = new BuildCoordinator(this.project_id, this.path);
-    this.buildCoordinator.on("build-start", ({ buildId, aggregate }) => {
+    this.buildCoordinator.on("build-start", ({ buildId, aggregate, force }) => {
       if (!this.is_building && buildId !== this._localBuildId) {
         this._remoteBuildId = buildId;
-        void this._join_build(aggregate);
+        void this._join_build(aggregate, force);
       }
     });
     this.buildCoordinator.on("build-finished", ({ buildId }) => {
@@ -256,12 +256,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     });
   }
 
-  private async _join_build(aggregate: number | undefined): Promise<void> {
+  private async _join_build(
+    aggregate: number | undefined,
+    force?: boolean,
+  ): Promise<void> {
     if (this.is_building) return;
     this.is_building = true;
     this.setState({ building: true });
     try {
-      await this.run_build(aggregate ?? 0, false);
+      await this.run_build(aggregate ?? 0, force ?? false);
     } catch (err) {
       this.set_error(`${err}`);
     } finally {

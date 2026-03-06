@@ -31,6 +31,11 @@ export class BuildCoordinator extends EventEmitter {
   private dkv?: DKV<BuildState>;
   private path: string;
   private closed = false;
+  private changeHandler?: (event: {
+    key: string;
+    value: any;
+    prev: any;
+  }) => void;
 
   constructor(project_id: string, path: string) {
     super();
@@ -64,8 +69,10 @@ export class BuildCoordinator extends EventEmitter {
       // Guard against close() racing with init()
       if (this.closed) return;
 
-      // Listen for state changes from other clients
-      this.dkv.on("change", ({ key, value, prev }) => {
+      // Listen for state changes from other clients.
+      // Store the handler so close() can detach it even when the
+      // ref-counted DKV stays alive (other editors in the same project).
+      this.changeHandler = ({ key, value, prev }) => {
         if (key !== this.path) return;
 
         if (value?.status === "running" && prev?.status !== "running") {
@@ -79,7 +86,8 @@ export class BuildCoordinator extends EventEmitter {
         } else if (!value && prev) {
           this.emit("build-finished", { buildId: prev.buildId });
         }
-      });
+      };
+      this.dkv.on("change", this.changeHandler);
     } catch (err) {
       console.warn("BuildCoordinator: failed to init DKV", err);
     }
@@ -117,6 +125,13 @@ export class BuildCoordinator extends EventEmitter {
   close(): void {
     this.closed = true;
     this.removeAllListeners();
+    // Detach change listener before closing the ref-counted DKV.
+    // The DKV may stay alive if other editors in the same project
+    // still hold references — without this, stale listeners accumulate.
+    if (this.changeHandler && this.dkv) {
+      this.dkv.off("change", this.changeHandler);
+      this.changeHandler = undefined;
+    }
     this.dkv?.close();
   }
 }
