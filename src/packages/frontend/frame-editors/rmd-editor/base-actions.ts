@@ -8,7 +8,7 @@ Abstract base class shared by R Markdown and Quarto editor actions.
 */
 
 import { Set } from "immutable";
-import { debounce } from "lodash";
+import { debounce, type DebouncedFunc } from "lodash";
 
 import { randomId } from "@cocalc/conat/names";
 import { type AccountStore } from "@cocalc/frontend/account";
@@ -27,7 +27,7 @@ import { checkProducedFiles } from "./utils";
 export abstract class MarkdownConverterActions extends MarkdownActions {
   protected _last_hash: number | undefined = undefined;
   protected is_building: boolean = false;
-  protected run_converter!: Function;
+  protected run_converter!: DebouncedFunc<(hash?: number) => Promise<void>>;
   protected buildCoordinator?: BuildCoordinator;
   private _lastBuiltHash?: number;
   private _buildWasStopped = false;
@@ -164,13 +164,15 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       ) {
         return; // finally block cleans up is_building / building state
       }
-      this._lastBuiltHash = hash;
       this.buildCoordinator?.publishBuildStart(buildId, hash, force);
       // For force builds, bypass the debounced function to ensure immediate execution
       if (force) {
         await this._run_converter(hash);
       } else {
         await this.run_converter(hash);
+      }
+      if (!this._buildWasStopped) {
+        this._lastBuiltHash = this._syncstring?.hash_of_saved_version() ?? hash;
       }
     } finally {
       this.buildCoordinator?.publishBuildFinished(buildId);
@@ -193,7 +195,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     this._buildWasStopped = true;
     // Reset the debounce so the next build fires immediately instead of
     // being swallowed by the 5-second leading-edge window.
-    (this.run_converter as any)?.cancel?.();
+    this.run_converter?.cancel();
     const job_info = this.store.get("job_info")?.toJS() as
       | ExecuteCodeOutputAsync
       | undefined;

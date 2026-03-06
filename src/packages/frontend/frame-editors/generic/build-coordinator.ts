@@ -103,7 +103,7 @@ export class BuildCoordinator {
         ) {
           this.handleBuildStart(value);
         } else if (value?.status === "stopping") {
-          this.handleBuildStop();
+          this.handleBuildStop(value.buildId);
         } else if (!value && prev) {
           this.handleBuildFinished(prev.buildId);
         }
@@ -164,12 +164,14 @@ export class BuildCoordinator {
     }
   }
 
-  private handleBuildStop(): void {
+  private handleBuildStop(buildId: string): void {
     // Honor stop requests from any client (including echo from self).
-    // Echo re-entry is prevented by publishBuildStop's own guard
-    // (only transitions "running" → "stopping", never re-publishes).
-    // The stop callback is idempotent (killing an already-killed PID is a no-op).
-    if (this.callbacks.isBuilding()) {
+    // Only stop if this stop event matches the build we currently track.
+    // This prevents stale "stopping" events from a previous build from
+    // canceling a newer build that started shortly afterwards.
+    const isCurrentBuild =
+      buildId === this._localBuildId || buildId === this._remoteBuildId;
+    if (isCurrentBuild && this.callbacks.isBuilding()) {
       this.callbacks.stop();
     }
   }

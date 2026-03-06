@@ -906,9 +906,11 @@ export class Actions extends BaseActions<LatexEditorState> {
       ) {
         return; // finally block cleans up is_building / building state
       }
-      this._lastBuiltTime = time;
       this.buildCoordinator?.publishBuildStart(buildId, time, force);
       await this.run_build(time, force);
+      if (!this._buildWasStopped) {
+        this._lastBuiltTime = this.last_save_time();
+      }
     } catch (err) {
       this.set_error(`${err}`);
       // if there is an error, we issue a stop, but keep the build logs

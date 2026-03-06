@@ -23,11 +23,7 @@ import {
 // Mock DKV
 // ---------------------------------------------------------------------------
 
-type ChangeHandler = (event: {
-  key: string;
-  value: any;
-  prev: any;
-}) => void;
+type ChangeHandler = (event: { key: string; value: any; prev: any }) => void;
 
 class MockDKV {
   private data = new Map<string, any>();
@@ -122,12 +118,7 @@ function makeCallbacks(overrides?: Partial<BuildCoordinatorCallbacks>) {
 }
 
 /** Simulate a remote change event on the DKV (from another client). */
-function emitRemoteChange(
-  store: MockDKV,
-  key: string,
-  value: any,
-  prev: any,
-) {
+function emitRemoteChange(store: MockDKV, key: string, value: any, prev: any) {
   // Directly invoke listeners without modifying the store's data —
   // simulates a change arriving from a remote client.
   (store as any).listeners.forEach((fn: ChangeHandler) =>
@@ -380,10 +371,11 @@ describe("BuildCoordinator", () => {
       coord.close();
     });
 
-    test("stopping status triggers stop callback", async () => {
+    test("stopping status triggers stop callback for active build id", async () => {
       const cb = makeCallbacks({ isBuilding: jest.fn(() => true) });
       const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
       const store = await initDkv();
+      coord.setLocalBuildId("r1");
 
       // Simulate receiving a stop from remote
       emitRemoteChange(
@@ -394,6 +386,25 @@ describe("BuildCoordinator", () => {
       );
 
       expect(cb.stop).toHaveBeenCalled();
+
+      coord.close();
+    });
+
+    test("stale stopping status does not stop a newer active build", async () => {
+      const cb = makeCallbacks({ isBuilding: jest.fn(() => true) });
+      const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
+      const store = await initDkv();
+      coord.setLocalBuildId("new-build");
+
+      // A stale stop for an older build must not stop the current build.
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "old-build", status: "stopping" },
+        { buildId: "old-build", status: "running" },
+      );
+
+      expect(cb.stop).not.toHaveBeenCalled();
 
       coord.close();
     });
