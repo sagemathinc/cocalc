@@ -20,6 +20,7 @@ agents (Claude Code, Gemini CLI, etc.) working on the CoCalc codebase.
 - [files-terminals.md](files-terminals.md) — File operations, directory listings, terminal sessions
 - [auth.md](auth.md) — Authentication: cookies, SSO/OAuth, API keys, registration tokens
 - [llm.md](llm.md) — LLM/AI integration: multi-provider routing, cost tracking, streaming
+- [latex.md](latex.md) — LaTeX editor: build pipeline, SyncTeX, SageTeX/PythonTeX/Knitr, PDF viewer
 
 ## Maintenance
 
@@ -32,7 +33,7 @@ agents (Claude Code, Gemini CLI, etc.) working on the CoCalc codebase.
 > - Alter the frontend state management patterns
 >
 > Update the relevant file(s) here.
-> These docs are consumed by coding agents and stale information causes
+> These docs are consumed by coding agents and stale information might cause
 > incorrect code generation.
 
 Last reviewed: 2026-03-05
