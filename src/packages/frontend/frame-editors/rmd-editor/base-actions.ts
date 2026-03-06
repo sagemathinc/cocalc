@@ -119,8 +119,11 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       }
     });
     this.buildCoordinator.on("build-stop", () => {
-      // Guard: skip if this client is the originator (prevents echo re-entry)
-      if (this.is_building && !this._localBuildId) {
+      // Honor stop requests from any client (including echo from self).
+      // Echo re-entry is prevented by publishBuildStop's own guard
+      // (only transitions "running" → "stopping", never re-publishes).
+      // stop_build() is idempotent (killing an already-killed PID is a no-op).
+      if (this.is_building) {
         this.stop_build("");
       }
     });
@@ -232,6 +235,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       }
     }
     this.set_status("");
+    this.is_building = false;
     this.setState({ building: false });
   }
 

@@ -107,9 +107,9 @@ export class BuildCoordinator extends EventEmitter {
     }
   }
 
-  publishBuildStop(_buildId: string): void {
+  publishBuildStop(buildId: string): void {
     const current = this.dkv?.get(this.path);
-    if (current?.status === "running") {
+    if (current?.status === "running" && current.buildId === buildId) {
       this.dkv?.set(this.path, { ...current, status: "stopping" });
     }
   }
