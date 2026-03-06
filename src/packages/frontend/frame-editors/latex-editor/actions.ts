@@ -889,13 +889,17 @@ export class Actions extends BaseActions<LatexEditorState> {
       }
     }
     const buildId = randomId();
+    // Capture before reset: if previous build was stopped, we need a fresh
+    // timestamp to bypass backend aggregate dedup (cached partial results).
+    const wasStopped = this._buildWasStopped;
     this.is_building = true;
     this._buildWasStopped = false;
     this.setState({ building: true });
     this.buildCoordinator?.setLocalBuildId(buildId);
     try {
       await this.save_all(false);
-      const time = force ? server_time().valueOf() : this.last_save_time();
+      const time =
+        force || wasStopped ? server_time().valueOf() : this.last_save_time();
       // Skip if nothing changed since last build — avoids DKV chatter that
       // causes other clients to flicker their build spinner for a no-op.
       // Must be AFTER save so last_save_time() reflects pending edits.

@@ -145,15 +145,19 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       return;
     }
     const buildId = randomId();
+    // Capture before reset: if previous build was stopped, we need a fresh
+    // aggregate to bypass backend dedup (cached partial results).
+    const wasStopped = this._buildWasStopped;
     this.is_building = true;
     this._buildWasStopped = false;
     this.buildCoordinator?.setLocalBuildId(buildId);
     this.setState({ building: true });
     try {
       await (actions as BaseActions<CodeEditorState>).save(false);
-      const hash = force
-        ? server_time().valueOf()
-        : (this._syncstring?.hash_of_saved_version() ?? 0);
+      const hash =
+        force || wasStopped
+          ? server_time().valueOf()
+          : (this._syncstring?.hash_of_saved_version() ?? 0);
       // Skip if hash hasn't changed since last completed build — avoids DKV
       // chatter that causes other clients to flicker their build spinner.
       // Must be AFTER save so hash_of_saved_version() reflects pending edits.
