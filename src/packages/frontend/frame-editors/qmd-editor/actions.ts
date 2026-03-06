@@ -64,7 +64,6 @@ export class Actions extends MarkdownConverterActions {
     const md = this._syncstring.to_str();
     if (md == null) return;
     this.set_status("Running Quarto...");
-    this.setState({ building: true });
     this.set_error("");
     this.setState({ build_log: "", build_err: "" });
     let markdown = "";
@@ -98,7 +97,6 @@ export class Actions extends MarkdownConverterActions {
       return;
     } finally {
       this.set_status("");
-      this.setState({ building: false });
     }
     this.setState({ value: markdown });
   }
