@@ -14,6 +14,7 @@ import { EditableMarkdown } from "./slate";
 import { TableOfContents } from "./table-of-contents";
 import { set } from "@cocalc/util/misc";
 import { CodemirrorEditor } from "../code-editor/codemirror-editor";
+import { coding_agent } from "../llm/coding-agent-spec";
 import { SETTINGS_SPEC } from "../settings/editor";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
@@ -139,6 +140,7 @@ const EDITOR_SPEC = {
   cm,
   markdown,
   markdown_table_of_contents,
+  coding_agent,
   terminal,
   settings: SETTINGS_SPEC,
   time_travel,
