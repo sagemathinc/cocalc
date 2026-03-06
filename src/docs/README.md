@@ -17,6 +17,7 @@ agents (Claude Code, Gemini CLI, etc.) working on the CoCalc codebase.
 - [jupyter.md](jupyter.md) — Jupyter notebooks: kernel management, SyncDB format, execution, ipywidgets
 - [frame-editors.md](frame-editors.md) — Frame editors: binary tree layout, editor specs, registration
 - [course.md](course.md) — Course management: students, assignments, handouts, grading
+- [project-files.md](project-files.md) — File explorer, flyout panel, browsing paths, file actions, drag-and-drop
 - [files-terminals.md](files-terminals.md) — File operations, directory listings, terminal sessions
 - [auth.md](auth.md) — Authentication: cookies, SSO/OAuth, API keys, registration tokens
 - [llm.md](llm.md) — LLM/AI integration: multi-provider routing, cost tracking, streaming
