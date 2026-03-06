@@ -162,6 +162,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       ) {
         return; // finally block cleans up is_building / building state
       }
+      this._lastBuiltHash = hash;
       this.buildCoordinator?.publishBuildStart(buildId, hash, force);
       // For force builds, bypass the debounced function to ensure immediate execution
       if (force) {
@@ -170,7 +171,6 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
         await this.run_converter(hash);
       }
     } finally {
-      this._lastBuiltHash = this._syncstring?.hash_of_saved_version();
       this.buildCoordinator?.publishBuildFinished(buildId);
       this.is_building = false;
       this.setState({ building: false });
