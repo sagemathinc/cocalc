@@ -138,6 +138,12 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     } catch (err) {
       this.set_error(`${err}`);
     } finally {
+      // Clean up stale DKV entry if the initiator crashed without
+      // calling publishBuildFinished (e.g., browser tab closed mid-build).
+      if (this._remoteBuildId) {
+        this.buildCoordinator?.publishBuildFinished(this._remoteBuildId);
+        this._remoteBuildId = undefined;
+      }
       this.is_building = false;
       this.setState({ building: false });
     }
