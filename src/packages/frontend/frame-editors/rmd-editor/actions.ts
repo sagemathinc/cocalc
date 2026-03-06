@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -56,11 +56,6 @@ output: html_document
 `;
 
 export class Actions extends MarkdownConverterActions {
-  // Expose the shared run_converter as run_rmd_converter for public API compatibility.
-  get run_rmd_converter(): Function {
-    return this.run_converter;
-  }
-
   protected get minimal_template(): string {
     return MINIMAL;
   }
@@ -68,16 +63,18 @@ export class Actions extends MarkdownConverterActions {
   _init2(): void {
     super._init2(); // that's the one in markdown-editor/actions.ts
     this.build = this.build.bind(this);
-    // one extra thing after markdown.
-    this._syncstring.once("ready", () => {
-      this._init_converter();
-    });
-    this._check_produced_files();
-    this.setState({ custom_pdf_error_message });
-    this._syncstring.on(
-      "change",
-      debounce(this.ensureNonempty.bind(this), 1500),
-    );
+    if (!this.is_public) {
+      // one extra thing after markdown.
+      this._syncstring.once("ready", () => {
+        this._init_converter();
+      });
+      this._check_produced_files();
+      this.setState({ custom_pdf_error_message });
+      this._syncstring.on(
+        "change",
+        debounce(this.ensureNonempty.bind(this), 1500),
+      );
+    }
   }
 
   protected async _run_converter(hash?): Promise<void> {
@@ -92,7 +89,6 @@ export class Actions extends MarkdownConverterActions {
     const md = this._syncstring.to_str();
     if (md == null) return;
     this.set_status("Running RMarkdown...");
-    this.setState({ building: true });
     this.set_error("");
     this.setState({ build_log: "", build_err: "" });
     let markdown = "";
@@ -123,7 +119,6 @@ export class Actions extends MarkdownConverterActions {
       return;
     } finally {
       this.set_status("");
-      this.setState({ building: false });
     }
     this.setState({ value: markdown });
   }
