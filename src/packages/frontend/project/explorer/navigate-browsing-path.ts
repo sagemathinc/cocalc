@@ -13,13 +13,16 @@
  */
 
 import { redux } from "@cocalc/frontend/app-framework";
-import * as LS from "@cocalc/frontend/misc/local-storage-typed";
+import {
+  getExplorerDirectory,
+  setExplorerDirectory,
+} from "./directory-tree";
+import {
+  getFlyoutDirectory,
+  setFlyoutDirectory,
+} from "../page/flyouts/state";
 
 type BrowsingPathKey = "explorer_browsing_path" | "flyout_browsing_path";
-
-function lsKey(project_id: string, pathKey: BrowsingPathKey): string {
-  return `${project_id}::${pathKey}`;
-}
 
 /**
  * Read the last browsing path from localStorage.
@@ -29,7 +32,9 @@ export function getInitialBrowsingPath(
   project_id: string,
   pathKey: BrowsingPathKey,
 ): string {
-  return LS.get<string>(lsKey(project_id, pathKey)) ?? "";
+  return pathKey === "explorer_browsing_path"
+    ? getExplorerDirectory(project_id)
+    : getFlyoutDirectory(project_id);
 }
 
 /**
@@ -85,7 +90,11 @@ export function navigateBrowsingPath(
   const isExplorer = pathKey === "explorer_browsing_path";
 
   // Persist to localStorage so the path survives page reloads.
-  LS.set(lsKey(project_id, pathKey), path);
+  if (isExplorer) {
+    setExplorerDirectory(project_id, path);
+  } else {
+    setFlyoutDirectory(project_id, path);
+  }
 
   actions?.setState({
     [pathKey]: path,
