@@ -31,43 +31,45 @@ import {
   usePrevious,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon, IconName, TimeAgo, Tip } from "@cocalc/frontend/components";
+import { Icon } from "@cocalc/frontend/components";
 import { WATCH_THROTTLE_MS } from "@cocalc/frontend/conat/listings";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
-import { file_options } from "@cocalc/frontend/editor-tmp";
 import { labels } from "@cocalc/frontend/i18n";
 import { should_open_in_foreground } from "@cocalc/frontend/lib/should-open-in-foreground";
-import { open_new_tab } from "@cocalc/frontend/misc";
-import { buildFileActionItems } from "@cocalc/frontend/project/file-context-menu";
 import { useStarredFilesManager } from "@cocalc/frontend/project/page/flyouts/store";
 import { fileItemStyle } from "@cocalc/frontend/project/page/flyouts/utils";
-import { url_href } from "@cocalc/frontend/project/utils";
-import {
-  type FileAction,
-  ProjectActions,
-} from "@cocalc/frontend/project_actions";
+import { ProjectActions } from "@cocalc/frontend/project_actions";
 import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import track from "@cocalc/frontend/user-tracking";
 import * as misc from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 
-import {
-  useFileDrag,
-  useFolderDrop,
-} from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
+import { useFolderDrop } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import DirectoryPeek from "./directory-peek";
-
 import EmptyPlaceholder from "./empty-placeholder";
 import {
   isTerminalMode,
   TypeFilterLabel,
-  VIEWABLE_FILE_EXT,
   sortedTypeFilterOptions,
 } from "./utils";
-
-const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+import {
+  renderFileIcon,
+  renderFileName,
+  renderTimestamp,
+  SortIndicator,
+} from "./file-listing-utils";
+import { makeContextMenu } from "./file-listing-ctx";
+import { DndRowContext, VIRTUOSO_COMPONENTS } from "./file-listing-row";
+import { COL_W } from "./consts";
+import {
+  type DndRowContextType,
+  type FileEntry,
+  type VirtualEntry,
+  isPeekEntry,
+  isEmptyEntry,
+} from "./types";
 
 // ---------- Per-directory scroll position cache ----------
 
@@ -100,254 +102,8 @@ function saveScrollState(
   });
 }
 
-// ---------- Column widths ----------
-const COL_W = {
-  CHECKBOX: 40,
-  TYPE: 60,
-  STAR: 55,
-  PUBLIC: 40,
-  DATE: 170,
-  SIZE: 130,
-  ACTIONS: 40,
-} as const;
-
-// ---------- DnD Row ----------
-
-/** Context for passing DnD data from FileListing to custom table rows */
-interface DndRowContextType {
-  currentPath: string;
-  projectId: string;
-  disableActions: boolean;
-  getRecord: (name: string) => FileEntry | undefined;
-  getDragPaths: (name: string) => string[];
-  getVirtualEntry: (index: number) => VirtualEntry | undefined;
-  onRow: (record: FileEntry) => {
-    onClick: (e: React.MouseEvent) => void;
-    onMouseDown: () => void;
-    onContextMenu: (e: React.MouseEvent) => void;
-    style: React.CSSProperties;
-  };
-  rowClassName: (record: FileEntry) => string;
-}
-
-const DndRowContext = React.createContext<DndRowContextType | null>(null);
-
-/**
- * Stable component references for TableVirtuoso's `components` prop.
- * MUST be defined at module level (not inline in JSX) — Virtuoso uses
- * referential equality, and new references cause full unmount/remount,
- * which triggers infinite update loops with stateful children (e.g. antd Dropdown).
- */
-const VirtuosoTable = ({
-  style,
-  ...props
-}: React.HTMLAttributes<HTMLTableElement> & {
-  style?: React.CSSProperties;
-}) => (
-  <table
-    {...props}
-    style={{ ...style, tableLayout: "fixed", width: "100%" }}
-    className="ant-table-content"
-  />
-);
-
-VirtuosoTable.displayName = "FileExplorerTable";
-
-const VirtuosoTableHead = React.forwardRef<
-  HTMLTableSectionElement,
-  React.HTMLAttributes<HTMLTableSectionElement>
->((props, ref) => <thead {...props} ref={ref} className="ant-table-thead" />);
-VirtuosoTableHead.displayName = "FileExplorerHead";
-
-/**
- * Custom <tr> for TableVirtuoso. Reads data-item-index to look up the
- * VirtualEntry; dispatches to DnD sub-components based on entry type.
- */
-function VirtualTableRow(props: React.HTMLAttributes<HTMLTableRowElement>) {
-  const ctx = React.useContext(DndRowContext);
-  const index = (props as any)["data-item-index"] as number | undefined;
-
-  if (!ctx || index == null) {
-    return <tr {...props} />;
-  }
-
-  const entry = ctx.getVirtualEntry(index);
-  if (!entry || isPeekEntry(entry) || isEmptyEntry(entry)) {
-    // Peek and empty-placeholder rows are rendered as plain <tr> (no DnD)
-    return <tr {...props} />;
-  }
-
-  if (ctx.disableActions) {
-    const rowProps = ctx.onRow(entry);
-    const cls = ctx.rowClassName(entry);
-    return (
-      <tr
-        {...props}
-        onClick={rowProps.onClick}
-        onMouseDown={rowProps.onMouseDown}
-        onContextMenu={rowProps.onContextMenu}
-        style={{ ...props.style, ...rowProps.style }}
-        className={`ant-table-row ${cls} ${props.className ?? ""}`}
-      />
-    );
-  }
-
-  if (entry.name === "..") {
-    const rowProps = ctx.onRow(entry);
-    return (
-      <VirtualDropOnlyRow
-        {...props}
-        ctx={ctx}
-        rowProps={rowProps}
-        className={`ant-table-row ${props.className ?? ""}`}
-      />
-    );
-  }
-
-  return <VirtualDraggableRow {...props} ctx={ctx} record={entry} />;
-}
-
-/** Row for the ".." parent directory — drop target only */
-function VirtualDropOnlyRow({
-  ctx,
-  rowProps,
-  ...props
-}: React.HTMLAttributes<HTMLTableRowElement> & {
-  ctx: DndRowContextType;
-  rowProps: ReturnType<DndRowContextType["onRow"]>;
-}) {
-  const parentPath = ctx.currentPath.split("/").slice(0, -1).join("/");
-  const { dropRef, isOver } = useFolderDrop(
-    `explorer-folder-${parentPath}`,
-    parentPath,
-  );
-  return (
-    <tr
-      {...props}
-      ref={dropRef}
-      onClick={rowProps.onClick}
-      onMouseDown={rowProps.onMouseDown}
-      onContextMenu={rowProps.onContextMenu}
-      style={{ ...props.style, ...rowProps.style }}
-      data-folder-drop-path={parentPath}
-      className={`${props.className ?? ""}${isOver ? " cc-explorer-row-drop-target" : ""}`}
-    />
-  );
-}
-
-/** Regular file/folder row — draggable; folders are also droppable */
-function VirtualDraggableRow({
-  ctx,
-  record,
-  ...props
-}: React.HTMLAttributes<HTMLTableRowElement> & {
-  ctx: DndRowContextType;
-  record: FileEntry;
-}) {
-  const fullPath = misc.path_to_file(ctx.currentPath, record.name);
-  const dragPaths = ctx.getDragPaths(record.name);
-  const isFolder = !!record.isdir;
-
-  const { dragRef, dragListeners, dragAttributes, isDragging } = useFileDrag(
-    `explorer-row-${fullPath}`,
-    dragPaths,
-    ctx.projectId,
-  );
-
-  // Always call the hook (Rules of Hooks), but disable for non-folders
-  const { dropRef, isOver, isInvalidDrop } = useFolderDrop(
-    isFolder ? `explorer-folder-${fullPath}` : `noop-${fullPath}`,
-    fullPath,
-    isFolder,
-  );
-
-  // Merge drag ref + drop ref
-  const mergedRef = React.useCallback(
-    (node: HTMLTableRowElement | null) => {
-      dragRef(node);
-      if (isFolder) dropRef(node);
-    },
-    [dragRef, dropRef, isFolder],
-  );
-
-  const extraClass =
-    isFolder && isOver
-      ? " cc-explorer-row-drop-target"
-      : isFolder && isInvalidDrop
-        ? " cc-explorer-row-drop-invalid"
-        : isDragging
-          ? " cc-explorer-row-checked"
-          : "";
-
-  const rowProps = ctx.onRow(record);
-  const cls = ctx.rowClassName(record);
-  const onDragMouseDown = (dragListeners as any)?.onMouseDown as
-    | ((event: React.MouseEvent<HTMLTableRowElement>) => void)
-    | undefined;
-  const onVirtuosoMouseDown = props.onMouseDown;
-
-  return (
-    <tr
-      {...props}
-      {...dragListeners}
-      {...dragAttributes}
-      ref={mergedRef}
-      onClick={rowProps.onClick}
-      onMouseDown={(e) => {
-        // Suppress drag initiation when modifier keys are held (user is
-        // shift/ctrl-selecting files, not starting a drag operation).
-        if (!e.shiftKey && !e.ctrlKey && !e.metaKey) {
-          onDragMouseDown?.(e);
-        }
-        onVirtuosoMouseDown?.(e);
-        rowProps.onMouseDown();
-      }}
-      onContextMenu={rowProps.onContextMenu}
-      style={{ ...props.style, ...rowProps.style }}
-      {...(isFolder ? { "data-folder-drop-path": fullPath } : {})}
-      className={`ant-table-row ${cls} ${props.className ?? ""}${extraClass}`}
-    />
-  );
-}
-
-const VIRTUOSO_COMPONENTS = {
-  Table: VirtuosoTable,
-  TableHead: VirtuosoTableHead,
-  TableRow: VirtualTableRow,
-};
-
 // ---------- Types ----------
-
-/** Internal row data enriched with display info */
-interface FileEntry {
-  name: string;
-  size?: number;
-  mtime?: number;
-  mask?: boolean;
-  isdir?: boolean;
-  display_name?: string;
-  public?: any;
-  issymlink?: boolean;
-  link_target?: string;
-  is_public?: boolean;
-}
-
-interface PeekEntry {
-  _isPeek: true;
-  _peekForName: string;
-  name: string;
-}
-interface EmptyEntry {
-  _isEmpty: true;
-  name: string;
-}
-type VirtualEntry = FileEntry | PeekEntry | EmptyEntry;
-function isPeekEntry(entry: VirtualEntry): entry is PeekEntry {
-  return "_isPeek" in entry;
-}
-function isEmptyEntry(entry: VirtualEntry): entry is EmptyEntry {
-  return "_isEmpty" in entry;
-}
+// See ./types.ts for FileEntry, PeekEntry, EmptyEntry, VirtualEntry
 
 interface Props {
   actions: ProjectActions;
@@ -439,147 +195,6 @@ function computeTypeFilters(
     text: <TypeFilterLabel ext={ext} />,
     value: ext,
   }));
-}
-
-// ---------- Render helpers (extracted from FileRow) ----------
-
-function renderFileIcon(
-  record: FileEntry,
-  isExpanded?: boolean,
-): React.ReactNode {
-  const color = record.mask ? COLORS.GRAY_M : COLORS.FILE_ICON;
-  if (record.isdir) {
-    return (
-      <span style={{ color, verticalAlign: "sub", whiteSpace: "nowrap" }}>
-        <Icon
-          name={isExpanded ? "folder-open" : "folder"}
-          style={{ fontSize: "14pt", verticalAlign: "sub" }}
-        />
-        <Icon
-          name={isExpanded ? "caret-down" : "caret-right"}
-          style={{
-            marginLeft: "3px",
-            fontSize: "14pt",
-            verticalAlign: "sub",
-          }}
-        />
-      </span>
-    );
-  }
-  let iconName: IconName;
-  const info = file_options(record.name);
-  if (info != null) {
-    iconName = info.icon;
-  } else {
-    iconName = "file";
-  }
-  return (
-    <span style={{ color, verticalAlign: "sub", whiteSpace: "nowrap" }}>
-      <Icon name={iconName} style={{ fontSize: "14pt" }} />
-    </span>
-  );
-}
-
-function renderFileName(
-  record: FileEntry,
-  dimExtensions: boolean,
-): React.ReactNode {
-  let displayName = record.display_name ?? record.name;
-  let ext: string;
-  if (record.isdir) {
-    ext = "";
-  } else {
-    const parts = misc.separate_file_extension(displayName);
-    displayName = parts.name;
-    ext = parts.ext;
-  }
-
-  const showTip =
-    (record.display_name != null && record.name !== record.display_name) ||
-    displayName.length + ext.length > 40;
-
-  const styles: React.CSSProperties = {
-    whiteSpace: "nowrap",
-    overflow: "hidden",
-    textOverflow: "ellipsis",
-    verticalAlign: "middle",
-    color: record.mask ? COLORS.GRAY_M : COLORS.TAB,
-  };
-
-  const extStyle = dimExtensions ? DIMMED_STYLE : undefined;
-  const linkTarget =
-    record.link_target != null && record.link_target !== record.name ? (
-      <>
-        {" "}
-        <Icon name="arrow-right" style={{ margin: "0 10px" }} />{" "}
-        {record.link_target}{" "}
-      </>
-    ) : null;
-
-  const nameLink = (
-    <span style={styles} cocalc-test="file-line">
-      {displayName}
-      <span style={extStyle}>{ext === "" ? "" : `.${ext}`}</span>
-      {linkTarget}
-    </span>
-  );
-
-  if (showTip) {
-    return (
-      <Tip
-        title={
-          record.display_name
-            ? "Displayed filename is an alias. The actual name is:"
-            : "Full name"
-        }
-        tip={record.name}
-      >
-        {nameLink}
-      </Tip>
-    );
-  }
-  return nameLink;
-}
-
-function renderTimestamp(mtime?: number): React.ReactNode {
-  if (mtime == null) return null;
-  try {
-    return (
-      <TimeAgo
-        date={new Date(mtime * 1000).toISOString()}
-        style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}
-      />
-    );
-  } catch {
-    return (
-      <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
-        Invalid Date
-      </span>
-    );
-  }
-}
-
-// TODO: When the screen is narrow, hide some columns (Type, Size, Public)
-// similar to how the projects table removes columns below certain widths.
-
-// ---------- Sort indicator ----------
-
-function SortIndicator({
-  columnKey,
-  sortColumn,
-  sortDescending,
-}: {
-  columnKey: string;
-  sortColumn: string | undefined;
-  sortDescending: boolean | undefined;
-}) {
-  if (sortColumn !== columnKey) return null;
-  return (
-    <Icon
-      name={sortDescending ? "caret-down" : "caret-up"}
-      style={{ color: COLORS.ANTD_LINK_BLUE, marginLeft: 4 }}
-    />
-  );
 }
 
 // ---------- Main component ----------
@@ -821,164 +436,18 @@ export const FileListing: React.FC<Props> = ({
 
   // -- Context menu builder --
   const buildContextMenu = useCallback(
-    (record: FileEntry): MenuProps["items"] => {
-      if (
-        record.name === ".." ||
-        student_project_functionality.disableActions
-      ) {
-        return [];
-      }
-
-      const fp = misc.path_to_file(current_path, record.name);
-      const alreadyChecked = checked_files.has(fp);
-      // Effective selection count if the user triggers a file action:
-      // the target file will be added to the checked set.
-      const effectiveCount = alreadyChecked
-        ? checked_files.size
-        : checked_files.size + 1;
-      const multiple = effectiveCount > 1;
-
-      const nameStr = misc.trunc_middle(record.name, 30);
-      const typeStr = intl.formatMessage(labels.file_or_folder, {
-        isDir: String(!!record.isdir),
-      });
-      const sizeStr = record.size ? misc.human_readable_size(record.size) : "";
-
-      const ctx: NonNullable<MenuProps["items"]> = [];
-
-      // Header
-      if (multiple) {
-        ctx.push({
-          key: "header",
-          icon: <Icon name="files" />,
-          label: `${effectiveCount} ${misc.plural(effectiveCount, "file")}`,
-          disabled: true,
-          style: { fontWeight: "bold", cursor: "default" },
-        });
-        // "Open All Files" — collect non-directory files from the
-        // effective checked set and open each one.
-        const filePaths: string[] = [];
-        const effectiveSet = alreadyChecked
-          ? checked_files
-          : checked_files.add(fp);
-        for (const p of effectiveSet) {
-          const name = misc.path_split(p).tail;
-          const entry = recordMap.get(name);
-          if (entry && !entry.isdir) {
-            filePaths.push(p);
-          }
-        }
-        if (filePaths.length > 0) {
-          ctx.push({
-            key: "open-all",
-            icon: <Icon name="edit-filled" />,
-            label: `Open ${filePaths.length} ${misc.plural(filePaths.length, "file")}`,
-            onClick: () => {
-              for (let i = 0; i < filePaths.length; i++) {
-                actions.open_file({
-                  path: filePaths[i],
-                  foreground: i === 0,
-                });
-              }
-            },
-          });
-        }
-      } else {
-        ctx.push({
-          key: "header",
-          icon: <Icon name={record.isdir ? "folder-open" : "file"} />,
-          label: `${typeStr} ${nameStr}${sizeStr ? ` (${sizeStr})` : ""}`,
-          title: record.name,
-          disabled: true,
-          style: { fontWeight: "bold", cursor: "default" },
-        });
-        ctx.push({
-          key: "open",
-          icon: <Icon name="edit-filled" />,
-          label: intl.formatMessage(labels.open_file_or_folder, {
-            isDir: String(!!record.isdir),
-          }),
-          onClick: () => handleRowClick(record, {} as any),
-        });
-        // "Open in new window" — same as the file tab context menu
-        if (!record.isdir) {
-          ctx.push({
-            key: "new-window",
-            icon: <Icon name="external-link" />,
-            label: intl.formatMessage({
-              id: "project.page.file-tab.context-menu.open-new-window",
-              defaultMessage: "Open in new window",
-            }),
-            onClick: () =>
-              actions.open_file({ path: fp, new_browser_window: true }),
-          });
-        }
-        // "View" raw link — for viewable text/image files
-        if (!record.isdir) {
-          const ext = (
-            misc.filename_extension(record.name) ?? ""
-          ).toLowerCase();
-          if (VIEWABLE_FILE_EXT.includes(ext)) {
-            const fileUrl = url_href(actions.project_id, fp, computeServerId);
-            ctx.push({
-              key: "view",
-              icon: <Icon name="eye" />,
-              label: intl.formatMessage(labels.view_file),
-              onClick: () => open_new_tab(fileUrl),
-            });
-          }
-        }
-      }
-
-      ctx.push({ key: "divider-header", type: "divider" });
-
-      // File actions add the target file to the checked selection,
-      // then trigger the action dialog on the full set.
-      const triggerFileAction = (action: FileAction) => {
-        actions.set_file_checked(fp, true);
-        actions.set_file_action(action);
-      };
-
-      ctx.push(
-        ...buildFileActionItems({
-          isdir: !!record.isdir,
-          intl,
-          multiple,
-          disableActions: student_project_functionality.disableActions,
-          inSnapshots: current_path?.startsWith(".snapshots") ?? false,
-          triggerFileAction,
-          fullPath: fp,
-        }),
-      );
-
-      // Publish/share
-      if (!multiple && !student_project_functionality.disableActions) {
-        ctx.push({
-          key: "share",
-          label: intl.formatMessage(labels.publish_status, {
-            isPublished: String(!!record.is_public),
-            isDir: String(!!record.isdir),
-          }),
-          icon: <Icon name="share-square" />,
-          disabled: current_path?.startsWith(".snapshots") ?? false,
-          onClick: () => triggerFileAction("share"),
-        });
-      }
-
-      // Download — immediate action, no selection changes
-      const showDownload = !student_project_functionality.disableActions;
-      if (!record.isdir && showDownload && !multiple) {
-        ctx.push({ key: "divider-download", type: "divider" });
-        ctx.push({
-          key: "download",
-          label: intl.formatMessage(labels.download),
-          icon: <Icon name="cloud-download" />,
-          onClick: () => actions.download_file({ path: fp, log: true }),
-        });
-      }
-
-      return ctx;
-    },
+    (record: FileEntry): MenuProps["items"] =>
+      makeContextMenu({
+        record,
+        current_path,
+        checked_files,
+        recordMap,
+        computeServerId,
+        disableActions: !!student_project_functionality.disableActions,
+        intl,
+        actions,
+        handleRowClick,
+      }),
     [
       current_path,
       checked_files,
@@ -1006,10 +475,15 @@ export const FileListing: React.FC<Props> = ({
     (e: React.MouseEvent, record: FileEntry) => {
       e.preventDefault();
       e.stopPropagation();
-      actions.download_file({
-        path: misc.path_to_file(current_path, record.name),
-        log: true,
-      });
+      const fp = misc.path_to_file(current_path, record.name);
+      if (record.isdir) {
+        // Directories can't be downloaded directly — open the compress dialog
+        actions.set_all_files_unchecked();
+        actions.set_file_list_checked([fp]);
+        actions.set_file_action("compress");
+      } else {
+        actions.download_file({ path: fp, log: true });
+      }
     },
     [current_path, actions],
   );
@@ -1592,14 +1066,14 @@ export const FileListing: React.FC<Props> = ({
                       style={{ color: COLORS.TAB, marginRight: 4 }}
                     />
                     {record.isdir
-                      ? `${record.size} ${misc.plural(record.size, "item")}`
+                      ? `${record.size} ${misc.plural(record.size, "file")}`
                       : misc.human_readable_size(record.size)}
                   </Button>
                 ) : (
                   <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
                     {record.isdir
                       ? record.size != null
-                        ? `${record.size} ${misc.plural(record.size, "item")}`
+                        ? `${record.size} ${misc.plural(record.size, "file")}`
                         : null
                       : misc.human_readable_size(record.size)}
                   </span>
