@@ -1451,14 +1451,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.setState({
             explorer_browsing_path: path,
             explorer_history_path: path,
-            flyout_browsing_path: path,
-            flyout_history_path: path,
             new_page_path: path,
-            flyout_new_path: path,
           });
           // Persist so page reload restores the correct directory.
           setExplorerDirectory(this.project_id, path);
-          setFlyoutDirectory(this.project_id, path);
         }
         const store = this.get_store();
         if (store == undefined) {
