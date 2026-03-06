@@ -644,16 +644,22 @@ describe("BuildCoordinator", () => {
     test("entry already gone — clears _localBuildId immediately", async () => {
       const cb = makeCallbacks();
       const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
-      await initDkv();
+      const store = await initDkv();
 
       coord.setLocalBuildId("b1");
       // Don't publishBuildStart — entry was never written
 
       coord.publishBuildFinished("b1");
 
-      // After this, requestStop should be a no-op (no active build IDs)
-      coord.requestStop();
-      expect(mockDkvInstance.get(PATH)).toBeUndefined();
+      // Prove _localBuildId was cleared: a remote build reusing the same
+      // buildId "b1" must trigger join (not filtered as a local echo).
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "b1", status: "running", aggregate: 50 },
+        undefined,
+      );
+      expect(cb.join).toHaveBeenCalledWith(50, false);
 
       coord.close();
     });
@@ -678,6 +684,16 @@ describe("BuildCoordinator", () => {
 
       // Remote entry must survive (we didn't delete it)
       expect(store.get(PATH)?.buildId).toBe("remote-x");
+
+      // Prove _localBuildId was cleared: a remote build reusing "b1"
+      // must trigger join (not filtered as a local echo).
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "b1", status: "running", aggregate: 77 },
+        undefined,
+      );
+      expect(cb.join).toHaveBeenCalledWith(77, false);
 
       coord.close();
     });
