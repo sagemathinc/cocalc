@@ -128,10 +128,10 @@ directory.
 Build commands can be set in three ways (in priority order):
 
 1. **`% !TeX cocalc = <command>`** — hardcoded command in the document (highest priority)
-2. **`% !TeX program = <engine>`** — standard TeX directive (scanned in first 1000 lines)
-3. **SyncDB setting** — stored in the shared config and editable via the Build panel
+2. **SyncDB setting** — stored in the shared config and editable via the Build panel
+3. **`% !TeX program = <engine>`** — standard TeX directive (scanned in first 1000 lines, only used when SyncDB has no build command yet)
 
-The build command is stored in a SyncDB (auxiliary `.syncdoc` file) so it's
+The build command is stored in a SyncDB (auxiliary `.syncdb` file) so it's
 shared between collaborators.
 
 ## Computational LaTeX
@@ -280,12 +280,14 @@ Derived from ShareLaTeX's log parser (MIT license). Parses `latexmk` output
 into structured errors, warnings, and typesetting issues:
 
 ```typescript
+// See latex-log-parser.ts for the full interface
 interface IProcessedLatexLog {
   errors: Error[]; // fatal errors
   warnings: Error[]; // non-fatal warnings
   typesetting: Error[]; // overfull/underfull boxes
   all: Error[]; // combined
   files: string[]; // referenced files
+  deps: string[]; // dependency files (tex, bib) extracted via -deps
 }
 
 interface Error {
