@@ -477,10 +477,11 @@ export const FileListing: React.FC<Props> = ({
       e.stopPropagation();
       const fp = misc.path_to_file(current_path, record.name);
       if (record.isdir) {
-        // Directories can't be downloaded directly — open the compress dialog
+        // Directories can't be downloaded directly — open the download dialog
+        // which automatically enters archive mode (zip + download) for dirs.
         actions.set_all_files_unchecked();
         actions.set_file_list_checked([fp]);
-        actions.set_file_action("compress");
+        actions.set_file_action("download");
       } else {
         actions.download_file({ path: fp, log: true });
       }
@@ -1066,14 +1067,14 @@ export const FileListing: React.FC<Props> = ({
                       style={{ color: COLORS.TAB, marginRight: 4 }}
                     />
                     {record.isdir
-                      ? `${record.size} ${misc.plural(record.size, "file")}`
+                      ? `${record.size} ${misc.plural(record.size, "item")}`
                       : misc.human_readable_size(record.size)}
                   </Button>
                 ) : (
                   <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
                     {record.isdir
                       ? record.size != null
-                        ? `${record.size} ${misc.plural(record.size, "file")}`
+                        ? `${record.size} ${misc.plural(record.size, "item")}`
                         : null
                       : misc.human_readable_size(record.size)}
                   </span>

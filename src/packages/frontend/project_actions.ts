@@ -39,6 +39,7 @@ import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
+import * as LS from "@cocalc/frontend/misc/local-storage-typed";
 import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import {
   query as client_query,
@@ -672,6 +673,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             flyout_browsing_path: fileDir,
             flyout_history_path: fileDir,
           });
+          // Persist so independent mode can pick up the last known path.
+          LS.set(`${this.project_id}::explorer_browsing_path`, fileDir);
+          LS.set(`${this.project_id}::flyout_browsing_path`, fileDir);
         }
 
         // Reopen the file if relationship has changed
@@ -1446,9 +1450,14 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.setState({
             explorer_browsing_path: path,
             explorer_history_path: path,
+            flyout_browsing_path: path,
+            flyout_history_path: path,
             new_page_path: path,
             flyout_new_path: path,
           });
+          // Persist so page reload restores the correct directory.
+          LS.set(`${this.project_id}::explorer_browsing_path`, path);
+          LS.set(`${this.project_id}::flyout_browsing_path`, path);
         }
         const store = this.get_store();
         if (store == undefined) {

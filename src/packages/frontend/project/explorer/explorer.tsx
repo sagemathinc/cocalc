@@ -58,6 +58,7 @@ import { FetchDirectoryErrors } from "./fetch-directory-errors";
 import { FileListing } from "./file-listing";
 import { default_ext } from "./file-listing/utils";
 import {
+  getInitialBrowsingPath,
   navigateBrowsingPath,
   normalizeDotDot,
 } from "./navigate-browsing-path";
@@ -102,9 +103,49 @@ export function Explorer() {
     { project_id },
     "explorer_history_path",
   );
+  // Initialize on first mount.  When "follow current path" is on,
+  // start at the active file's directory; when off, restore from
+  // localStorage (falling back to project root).
+  useEffect(() => {
+    if (explorerBrowsingPath != null) return;
+    let cancelled = false;
+    (async () => {
+      const accountStore = redux.getStore("account");
+      await accountStore?.waitUntilReady();
+      // Guard against race: if the user navigated (or another effect ran)
+      // while we waited, the path is no longer null — don't overwrite.
+      if (cancelled) return;
+      const store = redux.getProjectStore(project_id);
+      if (store?.get("explorer_browsing_path") != null) return;
+      const followSetting = !!accountStore?.getIn([
+        "other_settings",
+        "follow_current_path",
+      ]);
+      const initial = followSetting
+        ? reduxCurrentPath
+        : getInitialBrowsingPath(project_id, "explorer_browsing_path");
+      const projActions = redux.getProjectActions(project_id);
+      projActions?.setState({
+        explorer_browsing_path: initial,
+        explorer_history_path: initial,
+      } as any);
+      // Trigger a listing fetch so the restored directory isn't empty.
+      projActions?.fetch_directory_listing({ path: initial });
+      try {
+        store?.get_listings()?.watch(initial, true);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // The explorer's own browsing path — independent of the project-wide
   // current_path (which tracks the active file context / tab).
-  const current_path = explorerBrowsingPath ?? reduxCurrentPath;
+  // Fall back to project root (""), NOT reduxCurrentPath, so the explorer
+  // doesn't follow tab switches when "Current directory follows files" is off.
+  const current_path = explorerBrowsingPath ?? "";
   const explorerHistory = explorerHistoryPath ?? current_path;
   const activity = useTypedRedux({ project_id }, "activity");
   const file_search = useTypedRedux({ project_id }, "file_search") ?? "";
