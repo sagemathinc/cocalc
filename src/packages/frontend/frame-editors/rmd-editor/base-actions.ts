@@ -191,6 +191,9 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     // the next build isn't skipped as a no-op.
     this._lastBuiltHash = undefined;
     this._buildWasStopped = true;
+    // Reset the debounce so the next build fires immediately instead of
+    // being swallowed by the 5-second leading-edge window.
+    (this.run_converter as any)?.cancel?.();
     const job_info = this.store.get("job_info")?.toJS() as
       | ExecuteCodeOutputAsync
       | undefined;
