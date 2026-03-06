@@ -276,13 +276,13 @@ describe("BuildCoordinator", () => {
       coord.close();
     });
 
-    test("remote build finish resets building state", async () => {
-      const joinPromise = { resolve: (_v?: unknown) => {} };
+    test("remote build finish resets building state after join completes", async () => {
+      const joinControl = { resolve: (_v?: unknown) => {} };
       const cb = makeCallbacks({
         join: jest.fn(
           () =>
             new Promise<void>((resolve) => {
-              joinPromise.resolve = resolve;
+              joinControl.resolve = resolve;
             }),
         ),
       });
@@ -297,17 +297,22 @@ describe("BuildCoordinator", () => {
         undefined,
       );
 
-      // Remote build finishes (entry deleted)
+      // Remote build finishes (entry deleted) — but join() is still running,
+      // so setBuilding(false) is deferred to joinBuild's finally block.
       emitRemoteChange(store, PATH, undefined, {
         buildId: "r1",
         status: "running",
       });
 
-      expect(cb.setBuilding).toHaveBeenCalledWith(false);
+      // Not yet — join is still pending
+      expect(cb.setBuilding).not.toHaveBeenCalledWith(false);
 
-      // Let the join promise resolve to avoid unhandled rejection
-      joinPromise.resolve();
+      // Let the join promise resolve
+      joinControl.resolve();
       await tick();
+
+      // NOW setBuilding(false) should have been called by finally block
+      expect(cb.setBuilding).toHaveBeenCalledWith(false);
 
       coord.close();
     });
@@ -733,6 +738,109 @@ describe("BuildCoordinator", () => {
   });
 
   // =========================================================================
+  // Join lifecycle race conditions
+  // =========================================================================
+
+  describe("join lifecycle races (P1 fix)", () => {
+    test("build-finished during active join does not clear building state", async () => {
+      // This tests the P1 race: originator finishes (deletes DKV entry)
+      // while our joinBuild's join() callback is still running.
+      // handleBuildFinished must NOT call setBuilding(false) — that would
+      // allow a concurrent joinBuild to start.
+
+      const joinControl = { resolve: (_v?: unknown) => {} };
+      const cb = makeCallbacks({
+        join: jest.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              joinControl.resolve = resolve;
+            }),
+        ),
+      });
+      const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
+      const store = await initDkv();
+
+      // Remote build starts → joinBuild begins, join() is pending
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "r1", status: "running", aggregate: 42 },
+        undefined,
+      );
+      expect(cb.join).toHaveBeenCalledWith(42, false);
+      expect(cb.setBuilding).toHaveBeenCalledWith(true);
+
+      // Originator finishes WHILE our join() is still running
+      (cb.setBuilding as jest.Mock).mockClear();
+      emitRemoteChange(store, PATH, undefined, {
+        buildId: "r1",
+        status: "running",
+      });
+
+      // setBuilding(false) should NOT have been called yet — join is active
+      expect(cb.setBuilding).not.toHaveBeenCalledWith(false);
+
+      // Now the join completes — finally block should clean up
+      joinControl.resolve();
+      await tick();
+
+      expect(cb.setBuilding).toHaveBeenCalledWith(false);
+
+      coord.close();
+    });
+
+    test("new build-start during active join does not launch concurrent join", async () => {
+      // Extension of P1: after handleBuildFinished is suppressed, a new
+      // build-start arrives.  Since isBuilding() is still true (we didn't
+      // prematurely clear it), the new start must be ignored.
+
+      const joinControl = { resolve: (_v?: unknown) => {} };
+      const cb = makeCallbacks({
+        join: jest.fn(
+          () =>
+            new Promise<void>((resolve) => {
+              joinControl.resolve = resolve;
+            }),
+        ),
+      });
+      const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
+      const store = await initDkv();
+
+      // Remote build A starts → joinBuild begins
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "r1", status: "running", aggregate: 1 },
+        undefined,
+      );
+      expect(cb.join).toHaveBeenCalledTimes(1);
+
+      // Build A finishes (while join still running)
+      emitRemoteChange(store, PATH, undefined, {
+        buildId: "r1",
+        status: "running",
+      });
+
+      // New build B starts — should NOT launch a second join because
+      // isBuilding() is still true (the _joining guard prevented early clear)
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "r2", status: "running", aggregate: 2 },
+        undefined,
+      );
+      // Still only one join call — the second was blocked by isBuilding
+      expect(cb.join).toHaveBeenCalledTimes(1);
+
+      // Clean up
+      joinControl.resolve();
+      await tick();
+
+      coord.close();
+    });
+  });
+
+  // =========================================================================
   // Change event filtering (ignores other paths)
   // =========================================================================
 
@@ -792,7 +900,7 @@ describe("BuildCoordinator", () => {
       coord.close();
     });
 
-    test("re-entering running from running (new build) triggers join", async () => {
+    test("running → running with new buildId triggers join (P2 fix)", async () => {
       const cb = makeCallbacks();
       const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
       const store = await initDkv();
@@ -809,18 +917,46 @@ describe("BuildCoordinator", () => {
       // Allow join to complete so isBuilding resets
       await tick();
 
-      // Second remote build (different buildId, prev was running)
-      // The guard `prev?.status !== "running"` means this transition
-      // (running→running with different buildId) is NOT treated as a
-      // new start.  This is by design — the DKV entry is overwritten,
-      // and the coordinator relies on the delete+set sequence.
+      // Second remote build (different buildId, prev was running).
+      // This can happen when DKV batches two writes into a single
+      // change event (start(A) → delete(A) → start(B) coalesced).
       emitRemoteChange(
         store,
         PATH,
         { buildId: "r2", status: "running", aggregate: 2 },
         { buildId: "r1", status: "running" },
       );
-      // prev.status === "running" → guard filters it out
+      // With the P2 fix, the buildId change is detected as a new start
+      expect(cb.join).toHaveBeenCalledTimes(2);
+      expect(cb.join).toHaveBeenLastCalledWith(2, false);
+
+      coord.close();
+    });
+
+    test("running → running with SAME buildId does not re-trigger join", async () => {
+      const cb = makeCallbacks();
+      const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
+      const store = await initDkv();
+
+      // Remote build starts
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "r1", status: "running", aggregate: 1 },
+        undefined,
+      );
+      expect(cb.join).toHaveBeenCalledTimes(1);
+
+      // Allow join to complete
+      await tick();
+
+      // Same buildId echoed again (e.g., DKV re-sync) — no new join
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "r1", status: "running", aggregate: 1 },
+        { buildId: "r1", status: "running" },
+      );
       expect(cb.join).toHaveBeenCalledTimes(1);
 
       coord.close();

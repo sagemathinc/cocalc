@@ -57,6 +57,10 @@ export class BuildCoordinator {
   // Build tracking state — managed here to avoid duplication in consumers.
   private _remoteBuildId?: string;
   private _localBuildId?: string;
+  // True while joinBuild() is awaiting the join callback.  Prevents
+  // handleBuildFinished from clearing building state prematurely when
+  // the originator finishes before our local join() completes.
+  private _joining = false;
 
   // Operations buffered while DKV is still initializing.
   // Flushed in init() once the DKV is ready.  Set to undefined
@@ -93,7 +97,10 @@ export class BuildCoordinator {
       this.changeHandler = ({ key, value, prev }) => {
         if (key !== this.path) return;
 
-        if (value?.status === "running" && prev?.status !== "running") {
+        if (
+          value?.status === "running" &&
+          (prev?.status !== "running" || value.buildId !== prev.buildId)
+        ) {
           this.handleBuildStart(value);
         } else if (value?.status === "stopping") {
           this.handleBuildStop();
@@ -142,7 +149,13 @@ export class BuildCoordinator {
   private handleBuildFinished(buildId: string): void {
     if (buildId === this._remoteBuildId) {
       this._remoteBuildId = undefined;
-      this.callbacks.setBuilding(false);
+      // If joinBuild() is still awaiting join(), let its finally block
+      // handle setBuilding(false).  Clearing it here would allow a new
+      // handleBuildStart to launch a concurrent joinBuild, causing
+      // overlapping compiles and inconsistent state.
+      if (!this._joining) {
+        this.callbacks.setBuilding(false);
+      }
     }
     // Clear _localBuildId on the delete echo so self-echoes of
     // "running" that arrive before the delete are still recognized.
@@ -166,12 +179,14 @@ export class BuildCoordinator {
     force?: boolean,
   ): Promise<void> {
     if (this.callbacks.isBuilding()) return;
+    this._joining = true;
     this.callbacks.setBuilding(true);
     try {
       await this.callbacks.join(aggregate, force ?? false);
     } catch (err) {
       this.callbacks.setError(`${err}`);
     } finally {
+      this._joining = false;
       this.callbacks.setBuilding(false);
       // Note: we intentionally do NOT clean up the DKV entry here if the
       // originator crashed mid-build. Doing so risks prematurely deleting
