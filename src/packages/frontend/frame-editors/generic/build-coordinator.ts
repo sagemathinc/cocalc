@@ -242,14 +242,17 @@ export class BuildCoordinator {
     if (this.dkv) {
       doPublish();
     } else if (this.pendingOps) {
-      // Build finished while DKV was still initializing.  The buffered
-      // start + finish pair is now stale — flushing them back-to-back
-      // would overwrite any active remote entry and immediately delete
-      // it.  Drop all buffered ops and clear _localBuildId.
-      this.pendingOps.length = 0;
+      // Build finished while DKV was still initializing.  Only clear
+      // the buffer if no newer build has started — a force-rebuild may
+      // have already pushed its own start op that we must preserve.
       if (this._localBuildId === buildId) {
+        // No newer build — the buffered start + finish pair is stale.
+        this.pendingOps.length = 0;
         this._localBuildId = undefined;
       }
+      // else: a newer build overwrote _localBuildId.  Leave the buffer
+      // intact so the newer build's start op flushes when DKV inits.
+      // The stale start(A) is harmless — start(B) will overwrite it.
     } else {
       // DKV init failed, no buffer — clear immediately.
       if (this._localBuildId === buildId) {
