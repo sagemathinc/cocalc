@@ -46,6 +46,7 @@ type EditorType =
   | "chat"
   | "chatroom"
   | "cm-lean"
+  | "coding-agent"
   | "cm"
   | "course-assignments"
   | "course-actions"

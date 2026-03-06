@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -15,6 +15,7 @@ import { CodemirrorEditor } from "../code-editor/codemirror-editor";
 import { createEditor } from "../frame-tree/editor";
 import { EditorDescription } from "../frame-tree/types";
 import { TableOfContents } from "../markdown-editor/table-of-contents";
+import { coding_agent } from "../llm/coding-agent-spec";
 import { terminal } from "../terminal-editor/editor";
 import { time_travel } from "../time-travel-editor/editor";
 import { Build } from "./build";
@@ -219,6 +220,7 @@ const EDITOR_SPEC = {
   build,
   latex_table_of_contents,
   word_count,
+  coding_agent,
   terminal,
   //settings: SETTINGS_SPEC,
   time_travel,
