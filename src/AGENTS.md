@@ -77,6 +77,16 @@ After making changes to files in `packages/frontend`:
 
 ## Architecture Overview
 
+For detailed architecture documentation, see [`docs/`](docs/README.md):
+
+- [System Overview](docs/overview.md) — High-level architecture and data flow
+- [Frontend](docs/frontend.md) — React app, state management, client layer
+- [Conat](docs/conat.md) — Messaging system: DKV, PubSub, request/response
+- [Hub & Server](docs/hub.md) — Central server, API dispatch, database
+- [Next.js](docs/next.md) — SSR pages, REST API routes, conat bridge
+- [External API](docs/api.md) — Python client, HTTP endpoints, call flow
+- [Project Daemon](docs/project.md) — Per-project services and conat integration
+
 ### Package Structure
 
 CoCalc is organized as a monorepo with key packages:
