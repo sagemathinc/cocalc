@@ -39,13 +39,12 @@ export interface ExecuteStreamOptions {
   project_id?: string;
   debug?: string;
   stream: (event: StreamEvent | null) => void;
-  waitForCompletion?: boolean;
 }
 
 export async function executeStream(
   options: ExecuteStreamOptions,
 ): Promise<ExecuteCodeOutput | undefined> {
-  const { stream, debug, project_id, waitForCompletion, ...opts } = options;
+  const { stream, debug, project_id, ...opts } = options;
 
   if (debug) {
     logger.debug(`executeStream: ${debug}`);

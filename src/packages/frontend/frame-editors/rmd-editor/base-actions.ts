@@ -121,15 +121,12 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     this.buildCoordinator.on("build-stop", () => {
       // Guard: skip if this client is the originator (prevents echo re-entry)
       if (this.is_building && !this._localBuildId) {
-        this._remoteBuildId = undefined;
-        this.is_building = false;
-        this.setState({ building: false });
         this.stop_build("");
       }
     });
   }
 
-  private async _join_build(aggregate: number): Promise<void> {
+  private async _join_build(aggregate: number | undefined): Promise<void> {
     if (this.is_building) return;
     this.is_building = true;
     this.setState({ building: true });
@@ -138,12 +135,6 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     } catch (err) {
       this.set_error(`${err}`);
     } finally {
-      // Clean up stale DKV entry if the initiator crashed without
-      // calling publishBuildFinished (e.g., browser tab closed mid-build).
-      if (this._remoteBuildId) {
-        this.buildCoordinator?.publishBuildFinished(this._remoteBuildId);
-        this._remoteBuildId = undefined;
-      }
       this.is_building = false;
       this.setState({ building: false });
     }
