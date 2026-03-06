@@ -97,9 +97,8 @@ export default function Download({
         dest = files[0];
       }
       actions.download_file({ path: dest, log: files });
-      await actions.fetch_directory_listing({
-        path: store.get("explorer_browsing_path") ?? "",
-      });
+      const refreshPath = files.length > 0 ? path_split(files[0]).head : "";
+      await actions.fetch_directory_listing({ path: refreshPath });
       actions.set_all_files_unchecked();
       actions.set_file_action();
     } catch (err) {

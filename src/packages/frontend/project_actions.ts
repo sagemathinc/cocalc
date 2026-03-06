@@ -1815,7 +1815,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const listing = store.getIn([
       "directory_listings",
       compute_server_id,
-      store.get("current_path"),
+      store.get("explorer_browsing_path") ?? store.get("current_path"),
     ]);
 
     if (typeof listing === "string") {
