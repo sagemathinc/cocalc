@@ -55,9 +55,11 @@ import {
   trunc_middle,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
-import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
+// LanguageModelTitleBarButton is still available for standalone use but the
+// title-bar assistant button now opens the side chat in assistant mode.
 import {
   APPLICATION_MENU,
   COMMANDS,
@@ -208,10 +210,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   const [close_and_halt_confirm, set_close_and_halt_confirm] =
     useState<boolean>(false);
 
-  const [showAIDialogs, setShowAIDialogs] = useState<{
-    main: boolean;
-    popover: boolean;
-  }>({ main: false, popover: false });
   const [showNewAI, setShowNewAI] = useState<boolean>(false);
 
   const [helpSearch, setHelpSearch] = useState<string>("");
@@ -593,7 +591,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
-  function renderAssistant(noLabel, where: "main" | "popover"): Rendered {
+  function renderAssistant(noLabel, _where: "main" | "popover"): Rendered {
     if (
       !manageCommands.isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
@@ -601,20 +599,11 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return;
     }
     return (
-      <LanguageModelTitleBarButton
-        path={props.path}
-        type={props.type}
-        showDialog={showAIDialogs[where]}
-        setShowDialog={(value: boolean) => {
-          setShowAIDialogs((prev) => ({ ...prev, [where]: value }));
-        }}
-        project_id={props.project_id}
-        buttonRef={getTourRef("chatgpt")}
-        key={`ai-button-${where}`}
-        id={props.id}
-        actions={props.actions}
-        buttonSize={button_size()}
-        buttonStyle={{
+      <Button
+        key="assistant"
+        ref={getTourRef("chatgpt")}
+        size={button_size()}
+        style={{
           ...button_style(),
           ...(!darkMode
             ? {
@@ -623,9 +612,30 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               }
             : undefined),
         }}
-        visible={props.tab_is_visible && props.is_visible}
-        noLabel={noLabel}
-      />
+        onClick={() => {
+          // Open the side chat frame in "assistant" mode.
+          const projectActions = redux.getProjectActions(props.project_id);
+          projectActions.open_chat({
+            path: props.path,
+            chat_mode: "assistant",
+          });
+        }}
+      >
+        <AIAvatar
+          size={16}
+          iconColor={COLORS.AI_ASSISTANT_TXT}
+          innerStyle={{ top: "2px" }}
+        />
+        {noLabel ? (
+          ""
+        ) : (
+          <VisibleMDLG>
+            <span style={{ marginLeft: "5px" }}>
+              {intl.formatMessage(labels.assistant)}
+            </span>
+          </VisibleMDLG>
+        )}
+      </Button>
     );
   }
 

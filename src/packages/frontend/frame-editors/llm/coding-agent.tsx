@@ -6,8 +6,12 @@
 /*
 An interactive coding agent frame panel with collaborative sessions.
 
-State is stored in a SyncDB (hidden meta file) so all collaborators
-see the same conversation.  Sessions let users start fresh conversations.
+State is stored in a SyncDB so all collaborators see the same conversation.
+When embedded in the side chat, it piggybacks on the existing chat syncdb
+(records with event="coding-agent").  When used as a standalone frame, it
+creates its own hidden meta file.
+
+Sessions let users start fresh conversations.
 The agent can suggest search/replace edits and execute shell commands
 (with user confirmation).
 */
@@ -50,17 +54,6 @@ const { TextArea } = Input;
 /*  Types                                                              */
 /* ------------------------------------------------------------------ */
 
-interface SyncMessage {
-  session_id: string;
-  date: string; // ISO
-  sender: "user" | "assistant" | "system";
-  content: string;
-  account_id?: string;
-  event: "message" | "exec_request" | "exec_result";
-  // snapshot of the document when the user sent the message (for merging)
-  base_snapshot?: string;
-}
-
 interface DisplayMessage {
   sender: "user" | "assistant" | "system";
   content: string;
@@ -76,6 +69,9 @@ interface DisplayMessage {
 
 const TAG = "coding-agent";
 const SYNCDB_CHANGE_THROTTLE = 300;
+
+// The event value used in the chat syncdb to identify coding-agent records.
+const CODING_AGENT_EVENT = "coding-agent";
 
 function agentSyncdbPath(path: string): string {
   return hidden_meta_file(path, "coding-agent");
@@ -318,10 +314,39 @@ function parseExecBlocks(text: string): ExecBlock[] {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Main component                                                     */
+/*  SyncDB helpers for the two schemas                                 */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Sender ID used in the chat syncdb for non-user messages.
+ * We need a unique sender_id because (date, sender_id, event) is the
+ * primary key in the chat syncdb.
+ */
+function agentSenderId(sender: "assistant" | "system"): string {
+  return `coding-agent-${sender}`;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Main component — standalone frame wrapper                          */
 /* ------------------------------------------------------------------ */
 
 export default function CodingAgent(_props: EditorComponentProps) {
+  return <CodingAgentCore />;
+}
+
+/**
+ * Embedded version for use inside the side chat frame.
+ * Receives the chat syncdb so we don't create a separate file.
+ */
+export function CodingAgentEmbedded({ chatSyncdb }: { chatSyncdb: any }) {
+  return <CodingAgentCore chatSyncdb={chatSyncdb} />;
+}
+
+/* ------------------------------------------------------------------ */
+/*  Core component                                                     */
+/* ------------------------------------------------------------------ */
+
+function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const { project_id, path, actions } = useFrameContext();
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState("");
@@ -336,14 +361,22 @@ export default function CodingAgent(_props: EditorComponentProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(false);
 
+  // Whether we're using the chat syncdb schema (embedded mode) or our own.
+  const usesChatSchema = chatSyncdb != null;
+
   // SyncDB state
-  const [syncdb, setSyncdb] = useState<any>(null);
+  const [syncdb, setSyncdb] = useState<any>(chatSyncdb ?? null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [sessionId, setSessionId] = useState<string>("");
   const [allSessions, setAllSessions] = useState<string[]>([]);
 
-  // Initialize the syncdb
+  // Initialize own syncdb (standalone mode only)
   useEffect(() => {
+    if (usesChatSchema) {
+      // In embedded mode, the syncdb is provided by the parent.
+      return;
+    }
+
     const syncdbPath = agentSyncdbPath(path);
 
     // Ensure the file isn't marked as deleted
@@ -382,9 +415,34 @@ export default function CodingAgent(_props: EditorComponentProps) {
 
     return () => {
       db.removeListener("change", handleChange);
-      // Don't close the syncdb here — it may be shared / managed by the sync_client.
     };
   }, [project_id, path]);
+
+  // When using the chat syncdb (embedded mode), listen for changes.
+  useEffect(() => {
+    if (!usesChatSchema || !chatSyncdb) return;
+
+    const handleChange = () => {
+      if (chatSyncdb.get_state() === "ready") {
+        loadSessionsAndMessages(chatSyncdb);
+      }
+    };
+
+    if (chatSyncdb.get_state() === "ready") {
+      setSyncdb(chatSyncdb);
+      loadSessionsAndMessages(chatSyncdb);
+    } else {
+      chatSyncdb.once("ready", () => {
+        setSyncdb(chatSyncdb);
+        loadSessionsAndMessages(chatSyncdb);
+      });
+    }
+    chatSyncdb.on("change", handleChange);
+
+    return () => {
+      chatSyncdb.removeListener("change", handleChange);
+    };
+  }, [chatSyncdb]);
 
   /**
    * Read all sessions from syncdb and load messages for the active session.
@@ -393,7 +451,6 @@ export default function CodingAgent(_props: EditorComponentProps) {
     (db: any) => {
       if (db?.get_state() !== "ready") return;
 
-      // Get all records
       const allRecords = db.get();
       if (allRecords == null) return;
 
@@ -401,6 +458,11 @@ export default function CodingAgent(_props: EditorComponentProps) {
       const msgsBySession = new Map<string, DisplayMessage[]>();
 
       allRecords.forEach((record: any) => {
+        // In chat schema mode, only look at coding-agent records.
+        if (usesChatSchema) {
+          if (record.get("event") !== CODING_AGENT_EVENT) return;
+        }
+
         const sid = record.get("session_id");
         if (!sid) return;
         sessionsSet.add(sid);
@@ -408,14 +470,28 @@ export default function CodingAgent(_props: EditorComponentProps) {
         if (!msgsBySession.has(sid)) {
           msgsBySession.set(sid, []);
         }
-        msgsBySession.get(sid)!.push({
-          sender: record.get("sender") ?? "user",
-          content: record.get("content") ?? "",
-          date: record.get("date") ?? "",
-          event: record.get("event") ?? "message",
-          account_id: record.get("account_id"),
-          base_snapshot: record.get("base_snapshot"),
-        });
+
+        if (usesChatSchema) {
+          // Chat syncdb schema: fields stored as extra JSON fields.
+          msgsBySession.get(sid)!.push({
+            sender: record.get("sender") ?? "user",
+            content: record.get("content") ?? "",
+            date: record.get("date") ?? "",
+            event: record.get("msg_event") ?? "message",
+            account_id: record.get("account_id"),
+            base_snapshot: record.get("base_snapshot"),
+          });
+        } else {
+          // Standalone syncdb schema.
+          msgsBySession.get(sid)!.push({
+            sender: record.get("sender") ?? "user",
+            content: record.get("content") ?? "",
+            date: record.get("date") ?? "",
+            event: record.get("event") ?? "message",
+            account_id: record.get("account_id"),
+            base_snapshot: record.get("base_snapshot"),
+          });
+        }
       });
 
       const sessions = Array.from(sessionsSet).sort();
@@ -443,7 +519,7 @@ export default function CodingAgent(_props: EditorComponentProps) {
         setMessages([]);
       }
     },
-    [sessionId],
+    [sessionId, usesChatSchema],
   );
 
   // Auto-scroll to bottom when messages change
@@ -469,15 +545,27 @@ export default function CodingAgent(_props: EditorComponentProps) {
 
   const handleClearSession = useCallback(() => {
     if (!syncdb || !sessionId) return;
-    // Delete all messages for this session
     const allRecords = syncdb.get();
     if (allRecords != null) {
       allRecords.forEach((record: any) => {
-        if (record.get("session_id") === sessionId) {
-          syncdb.delete({
-            session_id: sessionId,
-            date: record.get("date"),
-          });
+        if (usesChatSchema) {
+          if (
+            record.get("event") === CODING_AGENT_EVENT &&
+            record.get("session_id") === sessionId
+          ) {
+            syncdb.delete({
+              date: record.get("date"),
+              sender_id: record.get("sender_id"),
+              event: CODING_AGENT_EVENT,
+            });
+          }
+        } else {
+          if (record.get("session_id") === sessionId) {
+            syncdb.delete({
+              session_id: sessionId,
+              date: record.get("date"),
+            });
+          }
         }
       });
       syncdb.commit();
@@ -485,18 +573,50 @@ export default function CodingAgent(_props: EditorComponentProps) {
     setMessages([]);
     setPendingEdits(undefined);
     setPendingExec([]);
-  }, [syncdb, sessionId]);
+  }, [syncdb, sessionId, usesChatSchema]);
 
+  /** Write a single message to the syncdb. */
   const writeMessage = useCallback(
-    (msg: Omit<SyncMessage, "session_id">) => {
+    (msg: {
+      date: string;
+      sender: "user" | "assistant" | "system";
+      content: string;
+      account_id?: string;
+      msg_event: string;
+      base_snapshot?: string;
+    }) => {
       if (!syncdb || syncdb.get_state() !== "ready") return;
-      syncdb.set({
-        session_id: sessionId || uuid(),
-        ...msg,
-      });
+      const sid = sessionId || uuid();
+
+      if (usesChatSchema) {
+        syncdb.set({
+          date: msg.date,
+          sender_id:
+            msg.sender === "user"
+              ? (msg.account_id ?? "unknown")
+              : agentSenderId(msg.sender),
+          event: CODING_AGENT_EVENT,
+          session_id: sid,
+          content: msg.content,
+          sender: msg.sender,
+          msg_event: msg.msg_event,
+          account_id: msg.account_id,
+          base_snapshot: msg.base_snapshot,
+        });
+      } else {
+        syncdb.set({
+          session_id: sid,
+          date: msg.date,
+          sender: msg.sender,
+          content: msg.content,
+          account_id: msg.account_id,
+          event: msg.msg_event,
+          base_snapshot: msg.base_snapshot,
+        });
+      }
       syncdb.commit();
     },
-    [syncdb, sessionId],
+    [syncdb, sessionId, usesChatSchema],
   );
 
   const handleSubmit = useCallback(async () => {
@@ -524,18 +644,14 @@ export default function CodingAgent(_props: EditorComponentProps) {
       redux.getStore("account")?.get_account_id?.() ?? "unknown";
 
     // Write user message to syncdb
-    if (syncdb?.get_state() === "ready") {
-      syncdb.set({
-        session_id: activeSessionId,
-        date: now,
-        sender: "user",
-        content: prompt,
-        account_id: accountId,
-        event: "message",
-        base_snapshot: baseSnapshot,
-      });
-      syncdb.commit();
-    }
+    writeMessage({
+      date: now,
+      sender: "user",
+      content: prompt,
+      account_id: accountId,
+      msg_event: "message",
+      base_snapshot: baseSnapshot,
+    });
 
     setInput("");
     setGenerating(true);
@@ -592,16 +708,12 @@ export default function CodingAgent(_props: EditorComponentProps) {
 
           // Write assistant message to syncdb
           const assistantDate = new Date().toISOString();
-          if (syncdb?.get_state() === "ready") {
-            syncdb.set({
-              session_id: activeSessionId,
-              date: assistantDate,
-              sender: "assistant",
-              content: assistantContent,
-              event: "message",
-            });
-            syncdb.commit();
-          }
+          writeMessage({
+            date: assistantDate,
+            sender: "assistant",
+            content: assistantContent,
+            msg_event: "message",
+          });
 
           // Check for search/replace blocks
           const srBlocks = parseSearchReplaceBlocks(assistantContent);
@@ -649,6 +761,7 @@ export default function CodingAgent(_props: EditorComponentProps) {
     project_id,
     sessionId,
     syncdb,
+    writeMessage,
   ]);
 
   const handleCancel = useCallback(() => {
@@ -729,7 +842,7 @@ export default function CodingAgent(_props: EditorComponentProps) {
           date: now,
           sender: "system",
           content: `Executed: \`${command}\`\n\n${output}`,
-          event: "exec_result",
+          msg_event: "exec_result",
         });
       } catch (err: any) {
         const now = new Date().toISOString();
@@ -737,7 +850,7 @@ export default function CodingAgent(_props: EditorComponentProps) {
           date: now,
           sender: "system",
           content: `Error executing \`${command}\`: ${err.message ?? err}`,
-          event: "exec_result",
+          msg_event: "exec_result",
         });
       }
       // Remove the executed command from pending

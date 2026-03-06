@@ -12,9 +12,10 @@ export default async function getChatActions(
   path: string,
   maxWaitSeconds: number = 10,
   width: number = 0.7,
+  chat_mode?: "chat" | "assistant",
 ): Promise<ChatActions> {
   const projectActions = redux.getProjectActions(project_id);
-  projectActions.open_chat({ path, width });
+  projectActions.open_chat({ path, width, chat_mode });
   const start = Date.now();
 
   while (Date.now() - start <= 1000 * maxWaitSeconds) {

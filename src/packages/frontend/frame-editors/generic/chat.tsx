@@ -1,22 +1,29 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { Segmented } from "antd";
 import { useEffect, useState } from "react";
+
 import { redux } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import { initChat } from "@cocalc/frontend/chat/register";
 import SideChat from "@cocalc/frontend/chat/side-chat";
+import { Icon } from "@cocalc/frontend/components";
+import { chatroom } from "@cocalc/frontend/frame-editors/chat-editor/editor";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { CodingAgentEmbedded } from "@cocalc/frontend/frame-editors/llm/coding-agent";
 import { labels } from "@cocalc/frontend/i18n";
 import { hidden_meta_file } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { EditorComponentProps, EditorDescription } from "../frame-tree/types";
-import { chatroom } from "@cocalc/frontend/frame-editors/chat-editor/editor";
 
 export function chatFile(path: string): string {
   return hidden_meta_file(path, "sage-chat");
 }
+
+type ChatMode = "chat" | "assistant";
 
 function Chat({ font_size, desc }: EditorComponentProps) {
   const { project_id, path: path0, actions, id: frameId } = useFrameContext();
@@ -24,6 +31,14 @@ function Chat({ font_size, desc }: EditorComponentProps) {
   const [sideChatActions, setSideChatActions] = useState<ChatActions | null>(
     null,
   );
+
+  // Read the active tab mode from the frame tree state.
+  const mode: ChatMode = desc.get("chat_mode") ?? "chat";
+
+  const setMode = (newMode: ChatMode) => {
+    actions.set_frame_tree({ id: frameId, chat_mode: newMode });
+  };
+
   useEffect(() => {
     (async () => {
       // properly set the side chat compute server, if necessary
@@ -40,14 +55,58 @@ function Chat({ font_size, desc }: EditorComponentProps) {
   if (sideChatActions == null) {
     return null;
   }
+
   return (
-    <SideChat
-      actions={sideChatActions}
-      project_id={project_id}
-      path={path}
-      fontSize={font_size}
-      desc={desc}
-    />
+    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Tab selector */}
+      <div
+        style={{
+          padding: "6px 8px",
+          borderBottom: `1px solid ${COLORS.GRAY_L}`,
+          background: COLORS.GRAY_LLL,
+        }}
+      >
+        <Segmented
+          value={mode}
+          onChange={(v) => setMode(v as ChatMode)}
+          options={[
+            {
+              value: "chat",
+              label: (
+                <span>
+                  <Icon name="comment" /> Chat
+                </span>
+              ),
+            },
+            {
+              value: "assistant",
+              label: (
+                <span>
+                  <Icon name="robot" /> Assistant
+                </span>
+              ),
+            },
+          ]}
+          block
+          size="small"
+        />
+      </div>
+
+      {/* Content area */}
+      <div style={{ flex: 1, overflow: "hidden" }}>
+        {mode === "chat" ? (
+          <SideChat
+            actions={sideChatActions}
+            project_id={project_id}
+            path={path}
+            fontSize={font_size}
+            desc={desc}
+          />
+        ) : (
+          <CodingAgentEmbedded chatSyncdb={sideChatActions.syncdb} />
+        )}
+      </div>
+    </div>
   );
 }
 

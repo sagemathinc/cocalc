@@ -1246,7 +1246,16 @@ export class ProjectActions extends Actions<ProjectStoreState> {
   }
 
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat = ({ path, width = 0.7 }: { path: string; width?: number }) => {
+  // When chat_mode is set (e.g. "assistant"), the chat frame will switch to that tab.
+  open_chat = ({
+    path,
+    width = 0.7,
+    chat_mode,
+  }: {
+    path: string;
+    width?: number;
+    chat_mode?: "chat" | "assistant";
+  }) => {
     const info = this.get_store()
       ?.get("open_files")
       .getIn([path, "component"]) as any;
@@ -1259,7 +1268,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const editorActions = redux.getEditorActions(this.project_id, path);
     if (editorActions?.["show_focused_frame_of_type"] != null) {
       // @ts-ignore -- todo will go away when everything is a frame editor
-      editorActions.show_focused_frame_of_type("chat", "col", false, width);
+      const frameId = editorActions.show_focused_frame_of_type(
+        "chat",
+        "col",
+        false,
+        width,
+      );
+      if (chat_mode && frameId) {
+        editorActions.set_frame_tree({ id: frameId, chat_mode });
+      }
       this.set_chat_state(path, "internal");
     } else {
       // First create the chat actions:
