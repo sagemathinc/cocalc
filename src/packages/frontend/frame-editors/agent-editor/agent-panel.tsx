@@ -32,6 +32,7 @@ import {
   Spin,
   Tooltip,
 } from "antd";
+import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -92,7 +93,7 @@ const ASSISTANT_MSG_STYLE: CSS = {
 const SYSTEM_MSG_STYLE: CSS = {
   marginBottom: 8,
   padding: "8px 12px",
-  background: "#f6ffed",
+  background: COLORS.BS_GREEN_LL,
   borderRadius: 8,
   fontSize: "0.9em",
 } as const;
@@ -100,8 +101,8 @@ const SYSTEM_MSG_STYLE: CSS = {
 const ERROR_MSG_STYLE: CSS = {
   marginBottom: 8,
   padding: "8px 12px",
-  background: "#fff2f0",
-  border: "1px solid #ffccc7",
+  background: COLORS.ANTD_BG_RED_L,
+  border: `1px solid ${COLORS.ANTD_BG_RED_M}`,
   borderRadius: 8,
   fontSize: "0.9em",
 } as const;
@@ -339,7 +340,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const [syncdb, setSyncdb] = useState<any>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [sessionId, setSessionId] = useState<string>("");
-  const [allSessions, setAllSessions] = useState<string[]>([]);
+  const [_allSessions, setAllSessions] = useState<string[]>([]);
 
   // Completed turns (stashed)
   const [turns, setTurns] = useState<Turn[]>([]);
@@ -728,7 +729,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   );
 
   const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
+    (e: KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         handleSubmit();
@@ -882,15 +883,15 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         <div
           style={{
             padding: "4px 12px",
-            background: "#fff2f0",
-            borderBottom: "1px solid #ffccc7",
+            background: COLORS.ANTD_BG_RED_L,
+            borderBottom: `1px solid ${COLORS.ANTD_BG_RED_M}`,
             display: "flex",
             alignItems: "center",
             gap: 8,
             fontSize: "0.85em",
           }}
         >
-          <Icon name="warning" style={{ color: "#ff4d4f" }} />
+          <Icon name="warning" style={{ color: COLORS.ANTD_RED_WARN }} />
           <span style={{ flex: 1 }}>
             {appErrors.length} app error(s) — included in next prompt for
             auto-fix
@@ -952,7 +953,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           style={{
             padding: "6px 12px",
             borderTop: `1px solid ${COLORS.GRAY_L}`,
-            background: "#fffbe6",
+            background: COLORS.YELL_LLL,
           }}
         >
           <div style={{ marginBottom: 4, fontWeight: 500 }}>

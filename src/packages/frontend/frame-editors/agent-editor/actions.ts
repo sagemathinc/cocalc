@@ -66,5 +66,4 @@ export class Actions extends CodeEditorActions<AgentEditorState> {
   clearAppErrors(): void {
     this.setState({ app_errors: [] } as any);
   }
-
 }

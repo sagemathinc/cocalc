@@ -53,7 +53,7 @@ interface BridgeHostOptions {
  * Returns a cleanup function.
  */
 export function createBridgeHost(
-  iframeRef: React.RefObject<HTMLIFrameElement | null>,
+  iframeRef: { current: HTMLIFrameElement | null },
   options: BridgeHostOptions,
 ): () => void {
   const { project_id, appDir: _appDir, editorPath } = options;

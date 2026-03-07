@@ -110,7 +110,7 @@ const ASSISTANT_MSG_STYLE: CSS = {
 const SYSTEM_MSG_STYLE: CSS = {
   marginBottom: 8,
   padding: "8px 12px",
-  background: "#f6ffed",
+  background: COLORS.BS_GREEN_LL,
   borderRadius: 8,
   fontSize: "0.9em",
 } as const;
@@ -1033,7 +1033,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           style={{
             padding: "6px 12px",
             borderTop: `1px solid ${COLORS.GRAY_L}`,
-            background: "#fffbe6",
+            background: COLORS.YELL_LLL,
           }}
         >
           <div style={{ marginBottom: 4, fontWeight: 500 }}>

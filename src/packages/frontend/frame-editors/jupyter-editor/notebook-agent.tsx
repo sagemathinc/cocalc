@@ -15,8 +15,17 @@ When used inside the side-chat panel it piggybacks on the chat syncdb
 (records with event="notebook-agent").
 */
 
-import { Alert, Button, Input, Popconfirm, Space, Spin, Tooltip } from "antd";
-import { useCallback, useEffect, useRef, useState } from "react";
+import {
+  Alert,
+  Button,
+  Input,
+  Popconfirm,
+  Select,
+  Space,
+  Spin,
+  Tooltip,
+} from "antd";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -57,6 +66,8 @@ interface ToolCall {
 const TAG = "notebook-agent";
 const NOTEBOOK_AGENT_EVENT = "notebook-agent";
 const MAX_OUTPUT_CHARS = 4000;
+const CELL_EXEC_POLL_MS = 500;
+const CELL_EXEC_TIMEOUT_MS = 120_000;
 
 /* ------------------------------------------------------------------ */
 /*  Styles                                                             */
@@ -91,7 +102,7 @@ const ASSISTANT_MSG_STYLE: CSS = {
 const SYSTEM_MSG_STYLE: CSS = {
   marginBottom: 8,
   padding: "8px 12px",
-  background: "#f6ffed",
+  background: COLORS.BS_GREEN_LL,
   borderRadius: 8,
   fontSize: "0.9em",
 } as const;
@@ -99,8 +110,8 @@ const SYSTEM_MSG_STYLE: CSS = {
 const ERROR_MSG_STYLE: CSS = {
   marginBottom: 8,
   padding: "8px 12px",
-  background: "#fff2f0",
-  border: "1px solid #ffccc7",
+  background: COLORS.ANTD_BG_RED_L,
+  border: `1px solid ${COLORS.ANTD_BG_RED_M}`,
   borderRadius: 8,
   fontSize: "0.9em",
 } as const;
@@ -157,6 +168,12 @@ Insert a new cell after the cell at the given 0-based index. Use index -1 to ins
 Replace the contents of the cell at the given 0-based index.
 \`\`\`tool
 {"name": "set_cell", "args": {"index": 0, "content": "new code here"}}
+\`\`\`
+
+### delete_cell
+Delete the cell at the given 0-based index.
+\`\`\`tool
+{"name": "delete_cell", "args": {"index": 2}}
 \`\`\`
 
 ## Important
@@ -291,13 +308,31 @@ async function executeTool(
         });
       }
       const cellId = cellList[idx];
-      // Trigger execution — the result will be polled/awaited
       jupyterActions.run_cell(cellId, true);
+
+      // Poll until the cell finishes executing (state goes idle/undefined)
+      const deadline = Date.now() + CELL_EXEC_TIMEOUT_MS;
+      await new Promise<void>((resolve) => {
+        const check = () => {
+          const cell = store.getIn(["cells", cellId]) as any;
+          const state = cell?.get("state");
+          if (!state || state === "idle" || Date.now() >= deadline) {
+            resolve();
+            return;
+          }
+          setTimeout(check, CELL_EXEC_POLL_MS);
+        };
+        // Give the kernel a moment to start before first check
+        setTimeout(check, CELL_EXEC_POLL_MS);
+      });
+
+      const cell = store.getIn(["cells", cellId]) as any;
+      const output = cell ? getCellOutput(cell) : "";
       return JSON.stringify({
-        status: "started",
+        status: "completed",
         index: idx,
         id: cellId,
-        note: "Cell execution started. The output will appear when done.",
+        output: truncate(output),
       });
     }
 
@@ -341,6 +376,18 @@ async function executeTool(
       const content = toolCall.args.content ?? "";
       jupyterActions.set_cell_input(cellId, content, true);
       return JSON.stringify({ status: "updated", index: idx, id: cellId });
+    }
+
+    case "delete_cell": {
+      const idx = toolCall.args.index ?? 0;
+      if (idx < 0 || idx >= cellList.length) {
+        return JSON.stringify({
+          error: `Index ${idx} out of range (0..${cellList.length - 1})`,
+        });
+      }
+      const cellId = cellList[idx];
+      jupyterActions.delete_cell(cellId);
+      return JSON.stringify({ status: "deleted", index: idx, id: cellId });
     }
 
     default:
@@ -749,8 +796,12 @@ export function NotebookAgent({
     [handleSubmit],
   );
 
-  // allSessions is tracked for future session-switching UI
-  void allSessions;
+  const sessionOptions = useMemo(() => {
+    return allSessions.map((sid, i) => ({
+      value: sid,
+      label: `Session ${i + 1}`,
+    }));
+  }, [allSessions]);
 
   return (
     <div style={CONTAINER_STYLE}>
@@ -787,6 +838,15 @@ export function NotebookAgent({
           background: COLORS.GRAY_LLL,
         }}
       >
+        {allSessions.length > 1 && (
+          <Select
+            size="small"
+            style={{ minWidth: 120 }}
+            value={sessionId}
+            onChange={setSessionId}
+            options={sessionOptions}
+          />
+        )}
         <Tooltip title="Start a new conversation">
           <Button size="small" onClick={handleNewSession}>
             <Icon name="plus" /> New
