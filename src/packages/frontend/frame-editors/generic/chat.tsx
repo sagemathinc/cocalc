@@ -11,6 +11,7 @@ import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import { initChat } from "@cocalc/frontend/chat/register";
 import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Icon } from "@cocalc/frontend/components";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { chatroom } from "@cocalc/frontend/frame-editors/chat-editor/editor";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { NotebookAgent } from "@cocalc/frontend/frame-editors/jupyter-editor/notebook-agent";
@@ -84,7 +85,7 @@ function Chat({ font_size, desc }: EditorComponentProps) {
               value: "assistant",
               label: (
                 <span>
-                  <Icon name="robot" /> Assistant
+                  <AIAvatar size={14} /> Assistant
                 </span>
               ),
             },

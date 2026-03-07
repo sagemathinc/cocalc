@@ -425,11 +425,23 @@ All paths relative to `packages/frontend/`.
 
 ---
 
-## Known Bugs (POC) — Fixed
+## Known Bugs (POC) — Remaining
 
 1. **Lone "Build" button at bottom** — kept for now. Reconsider
    placement: perhaps contextual actions inline with the assistant's
    response (near the Apply button).
+
+## Recently Fixed
+
+- Assistant tab icon: now uses `AIAvatar` instead of generic robot icon
+- Diff rendering: search/replace blocks rendered as `` ```diff `` instead
+  of raw markers (which markdown parsed as blockquotes)
+- Apply feedback: shows error when search blocks don't match
+- Turn ordering: chronological by first message date, not random UUID sort
+- Session fragmentation: explicit session_id on first-turn writes
+- Bridge origin validation + writefile path traversal guard
+- `.ai` → `.app` extension, frame type mismatch, LangChain brace escaping,
+  Shift+Enter sends, Turns UI
 
 ---
 
