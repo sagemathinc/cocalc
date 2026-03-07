@@ -386,7 +386,7 @@ async function executeTool(
         });
       }
       const cellId = cellList[idx];
-      jupyterActions.delete_cell(cellId);
+      jupyterActions.delete_cells([cellId]);
       return JSON.stringify({ status: "deleted", index: idx, id: cellId });
     }
 

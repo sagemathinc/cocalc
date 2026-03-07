@@ -82,7 +82,7 @@ export interface FrameActions extends Actions {
   zoom_page_height?: (id: string) => void;
   sync?: (id: string, editor_actions: EditorActions) => void;
   show_table_of_contents?: (id: string) => void;
-  build?: (id: string, boolean) => void;
+  build?: (id?: string, force?: boolean) => Promise<void>;
   force_build?: (id: string) => void;
   clean?: (id: string) => void;
   word_count?: (time: number, force: boolean) => void;
@@ -245,8 +245,15 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       new ManageCommands({
         props,
         studentProjectFunctionality: student_project_functionality,
-        setShowAI: (val: boolean) =>
-          setShowAIDialogs((prev) => ({ ...prev, main: val })),
+        setShowAI: (val: boolean) => {
+          if (val) {
+            const projectActions = redux.getProjectActions(props.project_id);
+            projectActions.open_chat({
+              path: props.path,
+              chat_mode: "assistant",
+            });
+          }
+        },
         setShowNewAI,
         helpSearch,
         setHelpSearch,
@@ -259,7 +266,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       student_project_functionality,
       helpSearch,
       setHelpSearch,
-      setShowAIDialogs,
       setShowNewAI,
       read_only,
       editorSettings,

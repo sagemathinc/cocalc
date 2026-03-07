@@ -214,6 +214,9 @@ export class Actions<
   // and store for time travel when this editor is closed.
   public timeTravelActions?: TimeTravelActions;
 
+  // Optional build action – overridden in editors that compile (e.g., LaTeX).
+  build?(id?: string, force?: boolean): Promise<void>;
+
   // multifile support. this will be set to the path of the parent file (master)
   protected parent_file: string | undefined = undefined;
 
