@@ -262,6 +262,107 @@ function extractCodeBlock(text: string): string | undefined {
 }
 
 /* ------------------------------------------------------------------ */
+/*  Line-number-based edit blocks                                      */
+/* ------------------------------------------------------------------ */
+
+interface EditBlock {
+  startLine: number; // 1-based inclusive
+  endLine: number; // 1-based inclusive
+  replacement: string;
+}
+
+/**
+ * Parse line-number-based edit blocks from the LLM response.
+ * Format:
+ *   <<<EDIT lines 5-8
+ *   replacement text
+ *   <<<END
+ *
+ * Single-line form:
+ *   <<<EDIT line 5
+ *   replacement text
+ *   <<<END
+ */
+function parseEditBlocks(text: string): EditBlock[] {
+  const blocks: EditBlock[] = [];
+  const regex = /<<<EDIT\s+lines?\s+(\d+)(?:\s*-\s*(\d+))?\n([\s\S]*?)<<<END/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    const startLine = parseInt(match[1], 10);
+    const endLine = match[2] ? parseInt(match[2], 10) : startLine;
+    const replacement = match[3].replace(/\n$/, "");
+    blocks.push({ startLine, endLine, replacement });
+  }
+  return blocks;
+}
+
+/**
+ * Apply line-number-based edit blocks to a document.
+ * Blocks are sorted by startLine descending so earlier line numbers
+ * remain valid as we splice from the bottom up.
+ */
+function applyEditBlocks(
+  base: string,
+  blocks: EditBlock[],
+): { result: string; applied: number; failed: number } {
+  const lines = base.split("\n");
+  let applied = 0;
+  let failed = 0;
+
+  // Process from bottom to top so earlier indices stay stable.
+  const sorted = [...blocks].sort((a, b) => b.startLine - a.startLine);
+
+  for (const block of sorted) {
+    // Validate line range (1-based)
+    if (
+      block.startLine < 1 ||
+      block.endLine < block.startLine ||
+      block.startLine > lines.length
+    ) {
+      failed++;
+      continue;
+    }
+    // Clamp endLine to document length
+    const endLine = Math.min(block.endLine, lines.length);
+    const replacementLines =
+      block.replacement === "" ? [] : block.replacement.split("\n");
+    // splice: remove from startLine-1 to endLine (inclusive), insert replacement
+    lines.splice(
+      block.startLine - 1,
+      endLine - block.startLine + 1,
+      ...replacementLines,
+    );
+    applied++;
+  }
+  return { result: lines.join("\n"), applied, failed };
+}
+
+/**
+ * Transform <<<EDIT/<<<END blocks in the assistant message
+ * into ```diff fenced code blocks for proper rendering.
+ * Uses the base snapshot to show the original lines being replaced.
+ */
+function formatEditBlocksAsDiff(text: string, base: string): string {
+  const baseLines = base.split("\n");
+  return text.replace(
+    /<<<EDIT\s+lines?\s+(\d+)(?:\s*-\s*(\d+))?\n([\s\S]*?)<<<END/g,
+    (_match, startStr: string, endStr: string | undefined, body: string) => {
+      const startLine = parseInt(startStr, 10);
+      const endLine = endStr ? parseInt(endStr, 10) : startLine;
+      const clampedEnd = Math.min(endLine, baseLines.length);
+      const oldLines = baseLines.slice(startLine - 1, clampedEnd);
+      const newLines = body.replace(/\n$/, "").split("\n");
+      const diffLines = [
+        `@@ lines ${startLine}-${clampedEnd} @@`,
+        ...oldLines.map((l) => `- ${l}`),
+        ...newLines.map((l) => `+ ${l}`),
+      ];
+      return "```diff\n" + diffLines.join("\n") + "\n```";
+    },
+  );
+}
+
+/* ------------------------------------------------------------------ */
 /*  System prompt builder                                              */
 /* ------------------------------------------------------------------ */
 
@@ -306,24 +407,45 @@ function buildSystemPrompt(
     lines.push(`Selected text:\n\`\`\`\n${ctx.selection}\n\`\`\``);
   }
 
+  // Send the document with numbered lines so the LLM can reference them.
+  const contentLines = ctx.content.split("\n");
+  const numbered = contentLines
+    .map((line, i) => `${String(i + 1).padStart(4)}  ${line}`)
+    .join("\n");
+
   lines.push("");
-  lines.push("Full document content:");
+  lines.push("Full document content (with line numbers):");
   lines.push("```");
-  lines.push(ctx.content);
+  lines.push(numbered);
   lines.push("```");
 
   lines.push("");
-  lines.push(`When you want to edit the file, use search/replace blocks in this exact format:
+  lines.push(`When you want to edit the file, use line-based edit blocks. Reference the line numbers shown above.
 
-<<<SEARCH
-exact text to find
->>>REPLACE
+To replace lines N through M (inclusive), use:
+
+<<<EDIT lines N-M
+replacement text here (without line numbers)
+<<<END
+
+To replace a single line N, use:
+
+<<<EDIT line N
 replacement text
 <<<END
 
-You can include multiple search/replace blocks in one response.
-The SEARCH text must match the document exactly (including whitespace).
-Keep blocks minimal — only include the lines that need to change plus a few lines of surrounding context for unique matching.
+To insert new lines, replace the line at the insertion point with that line plus the new lines.
+
+To delete lines N-M, use an empty replacement:
+
+<<<EDIT lines N-M
+<<<END
+
+IMPORTANT:
+- The replacement text must NOT include line numbers — only the actual code.
+- You can include multiple edit blocks in one response. They are applied from bottom to top, so line numbers remain stable.
+- Keep edits minimal — only include the lines that actually need to change.
+- When making multiple edits, double-check that your line numbers match the document above.
 
 If you need to run a shell command, output a block like:
 
@@ -398,6 +520,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string>("");
   const [pendingEdits, setPendingEdits] = useState<
+    | { type: "edit_blocks"; blocks: EditBlock[]; base: string }
     | { type: "search_replace"; blocks: SearchReplace[]; base: string }
     | { type: "full_replace"; code: string; base: string }
     | undefined
@@ -785,23 +908,33 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             session_id: activeSessionId,
           });
 
-          // Check for search/replace blocks
-          const srBlocks = parseSearchReplaceBlocks(assistantContent);
-          if (srBlocks.length > 0) {
+          // Check for line-number edit blocks first (preferred format)
+          const editBlocks = parseEditBlocks(assistantContent);
+          if (editBlocks.length > 0) {
             setPendingEdits({
-              type: "search_replace",
-              blocks: srBlocks,
+              type: "edit_blocks",
+              blocks: editBlocks,
               base: baseSnapshot,
             });
           } else {
-            // Fallback: check for a plain code block
-            const code = extractCodeBlock(assistantContent);
-            if (code) {
+            // Fallback: legacy search/replace blocks
+            const srBlocks = parseSearchReplaceBlocks(assistantContent);
+            if (srBlocks.length > 0) {
               setPendingEdits({
-                type: "full_replace",
-                code,
+                type: "search_replace",
+                blocks: srBlocks,
                 base: baseSnapshot,
               });
+            } else {
+              // Fallback: check for a plain code block
+              const code = extractCodeBlock(assistantContent);
+              if (code) {
+                setPendingEdits({
+                  type: "full_replace",
+                  code,
+                  base: baseSnapshot,
+                });
+              }
             }
           }
 
@@ -845,8 +978,35 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     const currentContent = getEditorContent(actions);
 
     let newContent: string;
-    if (pendingEdits.type === "search_replace") {
-      // Apply search/replace to the clean base snapshot
+    if (pendingEdits.type === "edit_blocks") {
+      // Apply line-number-based edits to the base snapshot
+      const { result: modified, applied, failed } = applyEditBlocks(
+        pendingEdits.base,
+        pendingEdits.blocks,
+      );
+
+      if (applied === 0) {
+        setError(
+          `Could not apply edits: none of the ${failed} edit block(s) had valid line ranges.`,
+        );
+        setPendingEdits(undefined);
+        return;
+      }
+
+      if (failed > 0) {
+        setError(
+          `Applied ${applied} edit(s), but ${failed} had invalid line ranges.`,
+        );
+      }
+
+      // Three-way merge: base is the snapshot, local is current doc, remote is modified
+      newContent = three_way_merge({
+        base: pendingEdits.base,
+        local: currentContent,
+        remote: modified,
+      });
+    } else if (pendingEdits.type === "search_replace") {
+      // Legacy: apply search/replace to the clean base snapshot
       const { result: modified, applied, failed } = applySearchReplace(
         pendingEdits.base,
         pendingEdits.blocks,
@@ -866,7 +1026,6 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         );
       }
 
-      // Three-way merge: base is the snapshot, local is current doc, remote is modified
       newContent = three_way_merge({
         base: pendingEdits.base,
         local: currentContent,
@@ -1052,26 +1211,48 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             content, suggest edits, run shell commands, and trigger builds.
           </Paragraph>
         )}
-        {messages.map((msg, i) => (
-          <div
-            key={`${msg.date}-${i}`}
-            style={
-              msg.sender === "user"
-                ? USER_MSG_STYLE
-                : msg.sender === "system"
-                  ? SYSTEM_MSG_STYLE
-                  : ASSISTANT_MSG_STYLE
+        {messages.map((msg, i) => {
+          // Find the base snapshot for this assistant message
+          // (the most recent user message before it has the snapshot)
+          let renderedContent = msg.content;
+          if (msg.sender === "assistant") {
+            // Look for a base snapshot from a preceding user message
+            let baseSnapshot = "";
+            for (let j = i - 1; j >= 0; j--) {
+              if (messages[j].sender === "user" && messages[j].base_snapshot) {
+                baseSnapshot = messages[j].base_snapshot!;
+                break;
+              }
             }
-          >
-            {msg.sender === "user" ? (
-              msg.content
-            ) : (
-              <StaticMarkdown
-                value={formatSearchReplaceAsDiff(msg.content)}
-              />
-            )}
-          </div>
-        ))}
+            // Try edit blocks first (new format), then legacy search/replace
+            if (parseEditBlocks(renderedContent).length > 0 && baseSnapshot) {
+              renderedContent = formatEditBlocksAsDiff(
+                renderedContent,
+                baseSnapshot,
+              );
+            } else {
+              renderedContent = formatSearchReplaceAsDiff(renderedContent);
+            }
+          }
+          return (
+            <div
+              key={`${msg.date}-${i}`}
+              style={
+                msg.sender === "user"
+                  ? USER_MSG_STYLE
+                  : msg.sender === "system"
+                    ? SYSTEM_MSG_STYLE
+                    : ASSISTANT_MSG_STYLE
+              }
+            >
+              {msg.sender === "user" ? (
+                msg.content
+              ) : (
+                <StaticMarkdown value={renderedContent} />
+              )}
+            </div>
+          );
+        })}
         {generating && (
           <div style={{ textAlign: "center", padding: 8 }}>
             <Spin size="small" />
@@ -1095,9 +1276,11 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         >
           <Icon name="check" />
           <span>
-            {pendingEdits.type === "search_replace"
+            {pendingEdits.type === "edit_blocks"
               ? `${pendingEdits.blocks.length} edit(s) suggested.`
-              : "Full replacement suggested."}
+              : pendingEdits.type === "search_replace"
+                ? `${pendingEdits.blocks.length} search/replace edit(s) suggested.`
+                : "Full replacement suggested."}
           </span>
           <Button size="small" type="primary" onClick={handleApplyEdits}>
             Apply to Editor
