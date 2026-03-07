@@ -16,7 +16,21 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 
-export class Actions extends CodeEditorActions<CodeEditorState> {
+export interface AppError {
+  type: string; // "error" | "console.error" | "unhandledrejection"
+  message: string;
+  source?: string;
+  line?: number;
+  col?: number;
+  timestamp: number;
+}
+
+interface AgentEditorState extends CodeEditorState {
+  app_errors?: AppError[];
+  sibling_files?: string[];
+}
+
+export class Actions extends CodeEditorActions<AgentEditorState> {
   protected doctype: string = "syncdb";
   protected primary_keys = ["session_id", "date"];
   protected string_cols = ["content"];
@@ -39,5 +53,23 @@ export class Actions extends CodeEditorActions<CodeEditorState> {
   // as a general-purpose change signal that components can watch.
   reloadAppPreview(): void {
     this.setState({ resize: (this.store.get("resize") ?? 0) + 1 });
+  }
+
+  // Report errors from the iframe app preview
+  reportAppErrors(errors: AppError[]): void {
+    const existing = (this.store.get("app_errors") as any) ?? [];
+    // Keep last 50 errors to avoid unbounded growth
+    const merged = [...existing, ...errors].slice(-50);
+    this.setState({ app_errors: merged } as any);
+  }
+
+  // Clear app errors (e.g., after agent acknowledges them)
+  clearAppErrors(): void {
+    this.setState({ app_errors: [] } as any);
+  }
+
+  // Store sibling file listing for context
+  setSiblingFiles(files: string[]): void {
+    this.setState({ sibling_files: files } as any);
   }
 }

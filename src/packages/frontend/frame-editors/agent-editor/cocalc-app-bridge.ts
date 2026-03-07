@@ -445,6 +445,58 @@ const BRIDGE_SDK_SOURCE = `
     _basePath: ""
   };
 
+  // Error capture: report uncaught errors and unhandled rejections to parent
+  var errorBuffer = [];
+  var errorFlushTimer = null;
+
+  function flushErrors() {
+    if (errorBuffer.length === 0) return;
+    var errors = errorBuffer.slice();
+    errorBuffer = [];
+    errorFlushTimer = null;
+    window.parent.postMessage({
+      type: "cocalc-bridge-errors",
+      errors: errors
+    }, "*");
+  }
+
+  function captureError(info) {
+    errorBuffer.push(info);
+    if (!errorFlushTimer) {
+      errorFlushTimer = setTimeout(flushErrors, 200);
+    }
+  }
+
+  window.onerror = function(message, source, lineno, colno) {
+    captureError({
+      type: "error",
+      message: String(message),
+      source: source || "",
+      line: lineno,
+      col: colno
+    });
+  };
+
+  window.addEventListener("unhandledrejection", function(event) {
+    captureError({
+      type: "unhandledrejection",
+      message: event.reason ? String(event.reason.message || event.reason) : "Unhandled promise rejection"
+    });
+  });
+
+  // Intercept console.error to capture logged errors
+  var origConsoleError = console.error;
+  console.error = function() {
+    var args = Array.prototype.slice.call(arguments);
+    captureError({
+      type: "console.error",
+      message: args.map(function(a) {
+        return typeof a === "object" ? JSON.stringify(a) : String(a);
+      }).join(" ")
+    });
+    origConsoleError.apply(console, arguments);
+  };
+
   // Notify parent that bridge is ready
   window.parent.postMessage({ type: "cocalc-bridge-ready" }, "*");
 

@@ -28,6 +28,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
+import type { AppError } from "./actions";
 import { createBridgeHost } from "./bridge-host";
 
 export function appDir(path: string): string {
@@ -38,7 +39,7 @@ export function appDir(path: string): string {
 type AppMode = "app" | "server";
 
 export default function AppPreview({ name }: EditorComponentProps) {
-  const { project_id, path } = useFrameContext();
+  const { project_id, path, actions } = useFrameContext();
   const [exists, setExists] = useState<boolean | null>(null);
   const [localReload, setLocalReload] = useState(0);
   const [mode, setMode] = useState<AppMode>("app");
@@ -81,6 +82,26 @@ export default function AppPreview({ name }: EditorComponentProps) {
     window.addEventListener("message", onBridgeReady);
     return () => window.removeEventListener("message", onBridgeReady);
   }, [project_id]);
+
+  // Listen for error reports from the iframe app
+  useEffect(() => {
+    function onBridgeErrors(event: MessageEvent) {
+      if (event.data?.type !== "cocalc-bridge-errors") return;
+      const iframe = iframeRef.current;
+      if (!iframe?.contentWindow || event.source !== iframe.contentWindow)
+        return;
+      const errors: AppError[] = (event.data.errors || []).map((e: any) => ({
+        ...e,
+        timestamp: Date.now(),
+      }));
+      if (errors.length > 0) {
+        (actions as any).reportAppErrors?.(errors);
+      }
+    }
+
+    window.addEventListener("message", onBridgeErrors);
+    return () => window.removeEventListener("message", onBridgeErrors);
+  }, [actions]);
 
   const checkExists = useCallback(async () => {
     try {

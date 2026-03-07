@@ -9,16 +9,25 @@ Agent conversation panel for the .ai editor.
 The user talks to the agent which creates an application in the
 hidden app directory.  The agent can create/modify files and the
 result is shown in the AppPreview panel on the right.
+
+Features:
+- Multi-language code execution (Python, R, Julia, etc.)
+- UV-based Python environment management
+- Sibling file context awareness
+- App error capture and auto-feedback
+- Turn management (done/stash, turn history)
+- Auto-apply writeFile blocks
 */
 
 import { join } from "path";
 
 import {
   Alert,
+  Badge,
   Button,
+  Collapse,
   Input,
   Popconfirm,
-  Select,
   Space,
   Spin,
   Tooltip,
@@ -26,7 +35,7 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { redux } from "@cocalc/frontend/app-framework";
+import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import type { CSS } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
@@ -39,6 +48,7 @@ import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
 import { appDir } from "./app-preview";
 import { getBridgeSDKSource } from "./cocalc-app-bridge";
+import type { AppError } from "./actions";
 import LLMSelector from "../llm/llm-selector";
 
 const { TextArea } = Input;
@@ -87,6 +97,15 @@ const SYSTEM_MSG_STYLE: CSS = {
   fontSize: "0.9em",
 } as const;
 
+const ERROR_MSG_STYLE: CSS = {
+  marginBottom: 8,
+  padding: "8px 12px",
+  background: "#fff2f0",
+  border: "1px solid #ffccc7",
+  borderRadius: 8,
+  fontSize: "0.9em",
+} as const;
+
 const INPUT_AREA_STYLE: CSS = {
   borderTop: `1px solid ${COLORS.GRAY_L}`,
   padding: "8px 12px",
@@ -94,9 +113,14 @@ const INPUT_AREA_STYLE: CSS = {
 
 /**
  * Build a system prompt for the app-building agent.
+ * Includes sibling file listing and any app errors for context.
  */
-function buildSystemPrompt(appDirectory: string): string {
-  return `You are an AI app-building agent in CoCalc.
+function buildSystemPrompt(
+  appDirectory: string,
+  siblingFiles?: string[],
+  appErrors?: AppError[],
+): string {
+  let prompt = `You are an AI app-building agent in CoCalc.
 The user describes an application they want. You create it by writing files.
 
 The app files go in the directory: ${appDirectory}/
@@ -216,28 +240,6 @@ Use this when the app needs specific Python packages.
 
 All methods return Promises (except portURL).
 
-Example: an app that shows project files:
-\`\`\`html
-<script src="cocalc-app-bridge.js"></script>
-<script>
-  cocalc.listFiles(".").then(r => {
-    document.body.innerHTML = "<ul>" +
-      r.files.map(f => "<li>" + f.name + "</li>").join("") +
-      "</ul>";
-  });
-</script>
-\`\`\`
-
-Example: an app with uv-managed Python dependencies:
-\`\`\`javascript
-async function setup() {
-  await cocalc.uv.init();
-  await cocalc.uv.add("numpy matplotlib");
-  const result = await cocalc.uv.run("import numpy; print(numpy.__version__)");
-  console.log("NumPy version:", result.stdout);
-}
-\`\`\`
-
 ## Server Apps (Dash, Shiny, Flask, etc.)
 
 For traditional client/server apps, the agent should:
@@ -249,6 +251,31 @@ The app preview has an App/Server toggle. In Server mode, it proxies to
 \`/{project_id}/port/{port}/\` which is how CoCalc serves running servers.
 
 Keep responses concise and focused. Build incrementally — start simple, then enhance.`;
+
+  // Add sibling file context
+  if (siblingFiles && siblingFiles.length > 0) {
+    prompt += `\n\n## Project Files (in same directory as the .ai file)
+
+The following files exist next to the .ai file. You can read them with
+cocalc.readFile() from the app or reference them in exec commands:
+
+${siblingFiles.map((f) => `- ${f}`).join("\n")}
+
+When the user asks about data or files, check these first. Use cocalc.exec
+or cocalc.readFile in the app to load and process them.`;
+  }
+
+  // Add app errors context
+  if (appErrors && appErrors.length > 0) {
+    const recentErrors = appErrors.slice(-5);
+    prompt += `\n\n## Recent App Errors
+
+The app preview has reported the following JavaScript errors. Fix them:
+
+${recentErrors.map((e) => `- [${e.type}] ${e.message}${e.source ? ` (${e.source}:${e.line})` : ""}`).join("\n")}`;
+  }
+
+  return prompt;
 }
 
 /**
@@ -290,13 +317,19 @@ function parseExecBlocks(text: string): ExecBlock[] {
   return blocks;
 }
 
-export default function AgentPanel(_props: EditorComponentProps) {
+/** A completed turn (stashed) */
+interface Turn {
+  id: string;
+  messages: DisplayMessage[];
+  summary: string; // first user message, truncated
+}
+
+export default function AgentPanel({ name }: EditorComponentProps) {
   const { project_id, path, actions } = useFrameContext();
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string>("");
-  const [pendingWrites, setPendingWrites] = useState<WriteFileBlock[]>([]);
   const [pendingExec, setPendingExec] = useState<ExecBlock[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(false);
@@ -308,6 +341,36 @@ export default function AgentPanel(_props: EditorComponentProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [sessionId, setSessionId] = useState<string>("");
   const [allSessions, setAllSessions] = useState<string[]>([]);
+
+  // Completed turns (stashed)
+  const [turns, setTurns] = useState<Turn[]>([]);
+  const [showTurns, setShowTurns] = useState(false);
+
+  // App errors from the store
+  const appErrors: AppError[] =
+    (useRedux(name, "app_errors") as any) ?? [];
+
+  // Sibling files
+  const [siblingFiles, setSiblingFiles] = useState<string[]>([]);
+
+  // Load sibling files on mount
+  useEffect(() => {
+    async function loadSiblings() {
+      try {
+        const parentDir = path_split(path).head || ".";
+        const api = webapp_client.conat_client.projectApi({ project_id });
+        const listing = await api.system.listing({ path: parentDir });
+        const files = (listing || [])
+          .map((f: any) => f.name)
+          .filter((n: string) => !n.startsWith(".") && n !== path_split(path).tail);
+        setSiblingFiles(files);
+        (actions as any).setSiblingFiles?.(files);
+      } catch {
+        // non-fatal
+      }
+    }
+    loadSiblings();
+  }, [project_id, path]);
 
   // Get the syncdb from the actions (the .ai file's syncdb)
   useEffect(() => {
@@ -406,10 +469,23 @@ export default function AgentPanel(_props: EditorComponentProps) {
     const newId = uuid();
     setSessionId(newId);
     setMessages([]);
-    setPendingWrites([]);
     setPendingExec([]);
     setError("");
   }, []);
+
+  // Done/stash: move current messages to turn history, start fresh
+  const handleDone = useCallback(() => {
+    if (messages.length === 0) return;
+    const firstUserMsg = messages.find((m) => m.sender === "user");
+    const summary = firstUserMsg
+      ? firstUserMsg.content.slice(0, 80) + (firstUserMsg.content.length > 80 ? "..." : "")
+      : "Turn";
+    setTurns((prev) => [
+      ...prev,
+      { id: sessionId || uuid(), messages: [...messages], summary },
+    ]);
+    handleNewSession();
+  }, [messages, sessionId, handleNewSession]);
 
   const handleClearSession = useCallback(() => {
     if (!syncdb || !sessionId) return;
@@ -426,7 +502,6 @@ export default function AgentPanel(_props: EditorComponentProps) {
       syncdb.commit();
     }
     setMessages([]);
-    setPendingWrites([]);
     setPendingExec([]);
   }, [syncdb, sessionId]);
 
@@ -468,6 +543,9 @@ export default function AgentPanel(_props: EditorComponentProps) {
         // non-fatal — the bridge is optional
       }
 
+      // Clear app errors before applying new files
+      (actions as any).clearAppErrors?.();
+
       for (const block of blocks) {
         try {
           await webapp_client.project_client.writeFile({
@@ -487,7 +565,6 @@ export default function AgentPanel(_props: EditorComponentProps) {
       }
       // Trigger app preview reload
       (actions as any).reloadAppPreview?.();
-      setPendingWrites([]);
 
       const now = new Date().toISOString();
       const fileList = blocks.map((b) => `\`${b.path}\``).join(", ");
@@ -506,7 +583,6 @@ export default function AgentPanel(_props: EditorComponentProps) {
     if (!prompt || generating) return;
 
     setError("");
-    setPendingWrites([]);
     setPendingExec([]);
     cancelRef.current = false;
 
@@ -532,7 +608,7 @@ export default function AgentPanel(_props: EditorComponentProps) {
     setGenerating(true);
 
     try {
-      const system = buildSystemPrompt(dir);
+      const system = buildSystemPrompt(dir, siblingFiles, appErrors);
 
       const currentMessages = messages.filter((m) => m.event === "message");
       const history = currentMessages.map((m) => ({
@@ -585,10 +661,10 @@ export default function AgentPanel(_props: EditorComponentProps) {
             event: "message",
           });
 
-          // Check for writefile blocks and auto-apply them
+          // Auto-apply writefile blocks
           const writeBlocks = parseWriteFileBlocks(assistantContent);
           if (writeBlocks.length > 0) {
-            setPendingWrites(writeBlocks);
+            applyWriteFiles(writeBlocks);
           }
 
           // Check for exec blocks
@@ -616,6 +692,9 @@ export default function AgentPanel(_props: EditorComponentProps) {
     project_id,
     sessionId,
     writeMessage,
+    applyWriteFiles,
+    siblingFiles,
+    appErrors,
   ]);
 
   const handleCancel = useCallback(() => {
@@ -680,12 +759,59 @@ export default function AgentPanel(_props: EditorComponentProps) {
     [handleSubmit],
   );
 
-  const sessionOptions = useMemo(() => {
-    return allSessions.map((sid, i) => ({
-      value: sid,
-      label: `Session ${i + 1}`,
-    }));
-  }, [allSessions]);
+  // Restore a stashed turn
+  const handleRestoreTurn = useCallback(
+    (turn: Turn) => {
+      // Stash current if non-empty
+      if (messages.length > 0) {
+        handleDone();
+      }
+      setMessages(turn.messages);
+      setTurns((prev) => prev.filter((t) => t.id !== turn.id));
+    },
+    [messages, handleDone],
+  );
+
+  const turnItems = useMemo(
+    () =>
+      turns.map((turn) => ({
+        key: turn.id,
+        label: (
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
+            <span style={{ flex: 1, fontSize: "0.85em" }}>{turn.summary}</span>
+            <Button
+              size="small"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleRestoreTurn(turn);
+              }}
+            >
+              Restore
+            </Button>
+          </div>
+        ),
+        children: (
+          <div style={{ maxHeight: 200, overflow: "auto", fontSize: "0.85em" }}>
+            {turn.messages
+              .filter((m) => m.event === "message")
+              .map((m, i) => (
+                <div key={i} style={{ marginBottom: 4 }}>
+                  <strong>{m.sender}:</strong>{" "}
+                  {m.content.slice(0, 200)}
+                  {m.content.length > 200 ? "..." : ""}
+                </div>
+              ))}
+          </div>
+        ),
+      })),
+    [turns, handleRestoreTurn],
+  );
 
   return (
     <div style={CONTAINER_STYLE}>
@@ -722,33 +848,100 @@ export default function AgentPanel(_props: EditorComponentProps) {
           background: COLORS.GRAY_LLL,
         }}
       >
-        {allSessions.length > 1 && (
-          <Select
-            size="small"
-            style={{ minWidth: 120 }}
-            value={sessionId}
-            onChange={setSessionId}
-            options={sessionOptions}
-          />
+        {turns.length > 0 && (
+          <Tooltip title="Show/hide previous turns">
+            <Badge count={turns.length} size="small">
+              <Button
+                size="small"
+                type={showTurns ? "primary" : "default"}
+                onClick={() => setShowTurns(!showTurns)}
+              >
+                <Icon name="history" />
+              </Button>
+            </Badge>
+          </Tooltip>
         )}
-        <Tooltip title="Start a new conversation session">
+        <Tooltip title="Start a new conversation">
           <Button size="small" onClick={handleNewSession}>
             <Icon name="plus" /> New
           </Button>
         </Tooltip>
         {sessionId && messages.length > 0 && (
-          <Popconfirm
-            title="Clear all messages in this session?"
-            onConfirm={handleClearSession}
-            okText="Clear"
-            cancelText="Cancel"
+          <>
+            <Tooltip title="Stash this conversation and start fresh">
+              <Button size="small" onClick={handleDone}>
+                <Icon name="check" /> Done
+              </Button>
+            </Tooltip>
+            <Popconfirm
+              title="Clear all messages in this conversation?"
+              onConfirm={handleClearSession}
+              okText="Clear"
+              cancelText="Cancel"
+            >
+              <Button size="small" danger>
+                <Icon name="trash" />
+              </Button>
+            </Popconfirm>
+          </>
+        )}
+        {/* File context indicator */}
+        {siblingFiles.length > 0 && (
+          <Tooltip
+            title={`${siblingFiles.length} file(s) in project dir: ${siblingFiles.slice(0, 5).join(", ")}${siblingFiles.length > 5 ? "..." : ""}`}
           >
-            <Button size="small" danger>
-              <Icon name="trash" /> Clear
-            </Button>
-          </Popconfirm>
+            <span
+              style={{
+                fontSize: "0.8em",
+                color: COLORS.GRAY_M,
+                marginLeft: "auto",
+              }}
+            >
+              <Icon name="folder-open" /> {siblingFiles.length} files
+            </span>
+          </Tooltip>
         )}
       </div>
+
+      {/* Turn history */}
+      {showTurns && turns.length > 0 && (
+        <div
+          style={{
+            maxHeight: 300,
+            overflow: "auto",
+            borderBottom: `1px solid ${COLORS.GRAY_L}`,
+          }}
+        >
+          <Collapse size="small" items={turnItems} />
+        </div>
+      )}
+
+      {/* App error banner */}
+      {appErrors.length > 0 && (
+        <div
+          style={{
+            padding: "4px 12px",
+            background: "#fff2f0",
+            borderBottom: "1px solid #ffccc7",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            fontSize: "0.85em",
+          }}
+        >
+          <Icon name="warning" style={{ color: "#ff4d4f" }} />
+          <span style={{ flex: 1 }}>
+            {appErrors.length} app error(s) — included in next prompt for
+            auto-fix
+          </span>
+          <Button
+            size="small"
+            onClick={() => (actions as any).clearAppErrors?.()}
+          >
+            Dismiss
+          </Button>
+        </div>
+      )}
 
       {/* Messages */}
       <div style={MESSAGES_STYLE}>
@@ -762,6 +955,19 @@ export default function AgentPanel(_props: EditorComponentProps) {
           >
             Describe the application you want to build. The agent will create
             files and the result will appear in the App preview on the right.
+            {siblingFiles.length > 0 && (
+              <>
+                <br />
+                <br />
+                <span style={{ fontSize: "0.9em" }}>
+                  Files in your project directory are available as context:{" "}
+                  {siblingFiles.slice(0, 5).join(", ")}
+                  {siblingFiles.length > 5
+                    ? `, ... (${siblingFiles.length} total)`
+                    : ""}
+                </span>
+              </>
+            )}
           </Paragraph>
         )}
         {messages.map((msg, i) => (
@@ -771,7 +977,9 @@ export default function AgentPanel(_props: EditorComponentProps) {
               msg.sender === "user"
                 ? USER_MSG_STYLE
                 : msg.sender === "system"
-                  ? SYSTEM_MSG_STYLE
+                  ? msg.content.includes("Error")
+                    ? ERROR_MSG_STYLE
+                    : SYSTEM_MSG_STYLE
                   : ASSISTANT_MSG_STYLE
             }
           >
@@ -789,34 +997,6 @@ export default function AgentPanel(_props: EditorComponentProps) {
         )}
         <div ref={messagesEndRef} />
       </div>
-
-      {/* Pending writes action bar */}
-      {pendingWrites.length > 0 && (
-        <div
-          style={{
-            padding: "6px 12px",
-            borderTop: `1px solid ${COLORS.GRAY_L}`,
-            background: COLORS.GRAY_LLL,
-            display: "flex",
-            alignItems: "center",
-            gap: 8,
-            flexWrap: "wrap",
-          }}
-        >
-          <Icon name="file" />
-          <span>{pendingWrites.length} file(s) to write.</span>
-          <Button
-            size="small"
-            type="primary"
-            onClick={() => applyWriteFiles(pendingWrites)}
-          >
-            <Icon name="check" /> Apply
-          </Button>
-          <Button size="small" onClick={() => setPendingWrites([])}>
-            Dismiss
-          </Button>
-        </div>
-      )}
 
       {/* Pending exec commands */}
       {pendingExec.length > 0 && (
