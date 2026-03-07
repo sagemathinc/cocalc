@@ -550,7 +550,13 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         sessionsSet.add(pendingId);
       }
 
-      const sessions = Array.from(sessionsSet).sort();
+      // Sort sessions chronologically by earliest message date.
+      // Sessions with no messages yet (pending) sort last.
+      const sessions = Array.from(sessionsSet).sort((a, b) => {
+        const aDate = msgsBySession.get(a)?.[0]?.date ?? "\uffff";
+        const bDate = msgsBySession.get(b)?.[0]?.date ?? "\uffff";
+        return aDate.localeCompare(bDate);
+      });
       setAllSessions(sessions);
 
       // If no session exists or the current session is gone, pick the latest

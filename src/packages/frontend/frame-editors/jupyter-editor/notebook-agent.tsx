@@ -493,7 +493,11 @@ export function NotebookAgent({
         sessionsSet.add(pendingId);
       }
 
-      const sessions = Array.from(sessionsSet).sort();
+      const sessions = Array.from(sessionsSet).sort((a, b) => {
+        const aDate = msgsBySession.get(a)?.[0]?.date ?? "\uffff";
+        const bDate = msgsBySession.get(b)?.[0]?.date ?? "\uffff";
+        return aDate.localeCompare(bDate);
+      });
       setAllSessions(sessions);
 
       const activeSession =
