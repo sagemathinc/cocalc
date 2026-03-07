@@ -427,31 +427,9 @@ All paths relative to `packages/frontend/`.
 
 ## Known Bugs (POC) — Fixed
 
-1. ~~**`.ai` extension should be `.app`**~~ — Done. Registration
-   changed to `*.app`.
-
-2. ~~**Frame type mismatch**~~ — Done. Aligned `EditorDescription.type`
-   values with EDITOR_SPEC keys (`agent`, `app_preview`). Updated
-   `EditorType` union and `_raw_default_frame_tree()`.
-
-3. ~~**"Single '}' in template" error**~~ — Done. Root cause was
-   LangChain's `ChatPromptTemplate` parsing `{...}` as template
-   variables in the system prompt (e.g., LaTeX `\begin{document}`).
-   Fixed in `evaluate-lc.ts` by escaping braces (`{` → `{{`,
-   `}` → `}}`) in the system message before template construction.
-
-4. ~~**Shift+Enter should send**~~ — Done. Both coding agent and
-   notebook agent now accept Shift+Enter, Ctrl+Enter, and Cmd+Enter.
-
-5. **Lone "Build" button at bottom** — kept for now. Reconsider
+1. **Lone "Build" button at bottom** — kept for now. Reconsider
    placement: perhaps contextual actions inline with the assistant's
    response (near the Apply button).
-
-6. ~~**"+New" blinks and vanishes; need "Turns" UI**~~ — Done.
-   Replaced Select dropdown + "+New" button with a "Turns (N)"
-   dropdown button (like "Chats" in regular side chat). New sessions
-   are preserved via a `pendingNewSessionRef` until a message is
-   sent. "+ New Turn" is an item in the dropdown.
 
 ---
 

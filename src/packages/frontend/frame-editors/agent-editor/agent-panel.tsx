@@ -525,10 +525,23 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       (actions as any).clearAppErrors?.();
 
       for (const block of blocks) {
+        // Resolve the path relative to the app directory and reject
+        // any path that escapes it (e.g., "../" traversal).
+        const resolvedPath = join(dir, block.path);
+        if (!resolvedPath.startsWith(dir + "/") && resolvedPath !== dir) {
+          const now = new Date().toISOString();
+          writeMessage({
+            date: now,
+            sender: "system",
+            content: `Blocked write to \`${block.path}\`: path escapes app directory.`,
+            event: "exec_result",
+          });
+          continue;
+        }
         try {
           await webapp_client.project_client.writeFile({
             project_id,
-            path: block.path,
+            path: resolvedPath,
             content: block.content,
           });
         } catch (err: any) {
@@ -536,7 +549,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           writeMessage({
             date: now,
             sender: "system",
-            content: `Error writing \`${block.path}\`: ${err.message ?? err}`,
+            content: `Error writing \`${resolvedPath}\`: ${err.message ?? err}`,
             event: "exec_result",
           });
         }

@@ -150,12 +150,17 @@ export function createBridgeHost(
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
 
-    // Verify the message came from our iframe
+    // Verify the message came from our iframe window
     if (event.source !== iframe.contentWindow) return;
+
+    // Reject requests from unexpected origins (defense in depth).
+    // The iframe loads same-origin content, so its origin must match ours.
+    if (event.origin !== window.location.origin) return;
 
     const req: BridgeRequest = data.request;
     if (!req?.id) return;
 
+    const targetOrigin = window.location.origin;
     handleRequest(req)
       .then((result) => {
         const response: BridgeResponse = {
@@ -163,7 +168,7 @@ export function createBridgeHost(
           id: req.id,
           result,
         };
-        iframe.contentWindow?.postMessage(response, "*");
+        iframe.contentWindow?.postMessage(response, targetOrigin);
       })
       .catch((err) => {
         const response: BridgeResponse = {
@@ -171,7 +176,7 @@ export function createBridgeHost(
           id: req.id,
           error: err?.message ?? `${err}`,
         };
-        iframe.contentWindow?.postMessage(response, "*");
+        iframe.contentWindow?.postMessage(response, targetOrigin);
       });
   }
 

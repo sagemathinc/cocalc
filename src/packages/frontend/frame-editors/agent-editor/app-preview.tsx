@@ -4,11 +4,11 @@
  */
 
 /*
-App preview panel for the .ai agent editor.
+App preview panel for the .app agent editor.
 
 Displays the application that the agent creates in an iframe.
-The app files live in a hidden directory derived from the .ai filename,
-e.g.  foo.ai  →  .foo.ai.app/   which contains index.html, Python files, etc.
+The app files live in a hidden directory derived from the .app filename,
+e.g.  foo.app  →  .foo.app.app/   which contains index.html, Python files, etc.
 
 The iframe app can communicate with the CoCalc project via a bridge:
   - The bridge host (parent side) listens for postMessage requests

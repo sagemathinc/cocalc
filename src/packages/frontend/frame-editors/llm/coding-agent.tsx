@@ -600,9 +600,10 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       account_id?: string;
       msg_event: string;
       base_snapshot?: string;
+      session_id?: string;
     }) => {
       if (!syncdb || syncdb.get_state() !== "ready") return;
-      const sid = sessionId || uuid();
+      const sid = msg.session_id || sessionId || uuid();
 
       if (usesChatSchema) {
         syncdb.set({
@@ -667,6 +668,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       account_id: accountId,
       msg_event: "message",
       base_snapshot: baseSnapshot,
+      session_id: activeSessionId,
     });
 
     setInput("");
@@ -729,6 +731,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             sender: "assistant",
             content: assistantContent,
             msg_event: "message",
+            session_id: activeSessionId,
           });
 
           // Check for search/replace blocks

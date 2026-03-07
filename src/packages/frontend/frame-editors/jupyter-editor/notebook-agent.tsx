@@ -568,9 +568,10 @@ export function NotebookAgent({
       content: string;
       account_id?: string;
       msg_event: string;
+      session_id?: string;
     }) => {
       if (!syncdb || syncdb.get_state() !== "ready") return;
-      const sid = sessionId || uuid();
+      const sid = msg.session_id || sessionId || uuid();
 
       syncdb.set({
         date: msg.date,
@@ -671,6 +672,7 @@ export function NotebookAgent({
       content: prompt,
       account_id: accountId,
       msg_event: "message",
+      session_id: activeSessionId,
     });
 
     setInput("");
@@ -734,6 +736,7 @@ export function NotebookAgent({
           sender: "assistant",
           content: assistantText,
           msg_event: "message",
+          session_id: activeSessionId,
         });
 
         // Parse tool calls
@@ -761,6 +764,7 @@ export function NotebookAgent({
           sender: "system",
           content: toolResultContent,
           msg_event: "tool_result",
+          session_id: activeSessionId,
         });
 
         // Add to history for next turn
