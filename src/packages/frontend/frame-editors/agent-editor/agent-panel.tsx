@@ -11,6 +11,8 @@ hidden app directory.  The agent can create/modify files and the
 result is shown in the AppPreview panel on the right.
 */
 
+import { join } from "path";
+
 import {
   Alert,
   Button,
@@ -36,6 +38,7 @@ import { path_split, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
 import { appDir } from "./app-preview";
+import { getBridgeSDKSource } from "./cocalc-app-bridge";
 import LLMSelector from "../llm/llm-selector";
 
 const { TextArea } = Input;
@@ -118,6 +121,64 @@ command here
 \`\`\`
 
 The user will be asked to confirm before execution.
+
+## Bridge API — Connecting the App to the Project
+
+The app runs in an iframe. To let it interact with the CoCalc project
+(read/write files, execute code, store state), include this script tag
+in your HTML:
+
+<script src="cocalc-app-bridge.js"></script>
+
+This makes \`window.cocalc\` available with these methods:
+
+- \`cocalc.exec(command, args?, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Run a shell command in the project. opts: {timeout, path}
+
+- \`cocalc.python(code, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Run Python code. Shortcut for exec("python3", ["-c", code]).
+
+- \`cocalc.readFile(path)\` → \`{content}\`
+  Read a text file from the project.
+
+- \`cocalc.writeFile(path, content)\` → \`{ok}\`
+  Write a text file to the project.
+
+- \`cocalc.deleteFile(path)\` → \`{ok}\`
+  Delete a file.
+
+- \`cocalc.listFiles(path, opts?)\` → \`{files: [...]}\`
+  List directory contents. opts: {hidden: boolean}
+
+- \`cocalc.kvGet(key)\` / \`cocalc.kvSet(key, value)\` / \`cocalc.kvGetAll()\`
+  App-scoped ephemeral key-value store (per session, in memory).
+
+- \`cocalc.ping()\` → \`{pong, timestamp}\`
+  Check bridge connectivity.
+
+All methods return Promises.
+
+Example: an app that shows project files:
+\`\`\`html
+<script src="cocalc-app-bridge.js"></script>
+<script>
+  cocalc.listFiles(".").then(r => {
+    document.body.innerHTML = "<ul>" +
+      r.files.map(f => "<li>" + f.name + "</li>").join("") +
+      "</ul>";
+  });
+</script>
+\`\`\`
+
+## Server Apps (Dash, Shiny, Flask, etc.)
+
+For traditional client/server apps, the agent should:
+1. Write the server code (e.g., a Flask/Dash/Shiny app) to the app directory
+2. Start the server via an exec block, binding to a specific port (e.g., 8050)
+3. Tell the user to switch the App Preview to "Server" mode and enter the port
+
+The app preview has an App/Server toggle. In Server mode, it proxies to
+\`/{project_id}/port/{port}/\` which is how CoCalc serves running servers.
 
 Keep responses concise and focused. Build incrementally — start simple, then enhance.`;
 }
@@ -327,6 +388,18 @@ export default function AgentPanel(_props: EditorComponentProps) {
 
   const applyWriteFiles = useCallback(
     async (blocks: WriteFileBlock[]) => {
+      // Auto-write the bridge SDK to the app directory so apps can use it
+      const bridgePath = join(dir, "cocalc-app-bridge.js");
+      try {
+        await webapp_client.project_client.writeFile({
+          project_id,
+          path: bridgePath,
+          content: getBridgeSDKSource(),
+        });
+      } catch {
+        // non-fatal — the bridge is optional
+      }
+
       for (const block of blocks) {
         try {
           await webapp_client.project_client.writeFile({
