@@ -3,6 +3,7 @@ import { EventIterator } from "@cocalc/util/event-iterator";
 import { getLogger } from "@cocalc/conat/client";
 import { SERVICE, CLIENT_KEEPALIVE, KEEPALIVE_TIMEOUT } from "./util";
 import { ConatError } from "@cocalc/conat/core/client";
+import { isValidUUID } from "@cocalc/util/misc";
 
 const logger = getLogger("hub:changefeeds:client");
 
@@ -25,6 +26,11 @@ export function changefeed({
   client: Client;
   account_id: string;
 }) {
+  if (!isValidUUID(account_id)) {
+    throw new ConatError(`invalid account_id -- '${account_id}'`, {
+      code: 400,
+    });
+  }
   const table = Object.keys(query)[0];
   const socket = client.socket.connect(changefeedSubject({ account_id }), {
     reconnection: false,
