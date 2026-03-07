@@ -172,6 +172,39 @@ const BRIDGE_SDK_SOURCE = `
     },
 
     /**
+     * Run code in a given language. Supports: python, R, julia, node,
+     * ruby, perl, bash, sh, octave, sage.
+     * @param {string} lang - Language name (case-insensitive)
+     * @param {string} code - Code to execute
+     * @param {Object} [opts] - Options: timeout (seconds), path (working dir)
+     * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+     */
+    run: function(lang, code, opts) {
+      var langMap = {
+        python: { cmd: "python3", flag: "-c" },
+        python3: { cmd: "python3", flag: "-c" },
+        r: { cmd: "Rscript", flag: "-e" },
+        julia: { cmd: "julia", flag: "-e" },
+        node: { cmd: "node", flag: "-e" },
+        ruby: { cmd: "ruby", flag: "-e" },
+        perl: { cmd: "perl", flag: "-e" },
+        bash: { cmd: "bash", flag: "-c" },
+        sh: { cmd: "sh", flag: "-c" },
+        octave: { cmd: "octave", flag: "--eval" },
+        sage: { cmd: "sage", flag: "-c" }
+      };
+      var entry = langMap[(lang || "").toLowerCase()];
+      if (!entry) {
+        return Promise.reject(new Error("Unknown language: " + lang +
+          ". Supported: " + Object.keys(langMap).join(", ")));
+      }
+      return request("exec", Object.assign(
+        { command: entry.cmd, args: [entry.flag, code] },
+        opts || {}
+      ));
+    },
+
+    /**
      * Run a Python script in the project and return its output.
      * Convenience wrapper around exec.
      * @param {string} code - Python code to execute
@@ -183,6 +216,215 @@ const BRIDGE_SDK_SOURCE = `
         { command: "python3", args: ["-c", code] },
         opts || {}
       ));
+    },
+
+    /**
+     * Run R code via Rscript.
+     * @param {string} code - R code to execute
+     * @param {Object} [opts] - Options: timeout (seconds), path (working dir)
+     * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+     */
+    R: function(code, opts) {
+      return request("exec", Object.assign(
+        { command: "Rscript", args: ["-e", code] },
+        opts || {}
+      ));
+    },
+
+    /**
+     * Run Julia code.
+     * @param {string} code - Julia code to execute
+     * @param {Object} [opts] - Options: timeout (seconds), path (working dir)
+     * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+     */
+    julia: function(code, opts) {
+      return request("exec", Object.assign(
+        { command: "julia", args: ["-e", code] },
+        opts || {}
+      ));
+    },
+
+    /**
+     * Run make with optional target and args.
+     * @param {string} [target] - Make target (default: runs default target)
+     * @param {Object} [opts] - Options: timeout (seconds), path (working dir), args (extra args)
+     * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+     */
+    make: function(target, opts) {
+      var args = [];
+      if (target) args.push(target);
+      if (opts && opts.args) args = args.concat(opts.args);
+      return request("exec", Object.assign(
+        { command: "make", args: args },
+        opts || {},
+        { args: args }
+      ));
+    },
+
+    /**
+     * Run latexmk on a LaTeX file.
+     * @param {string} file - The .tex file to compile
+     * @param {Object} [opts] - Options: timeout, path, args (extra latexmk flags)
+     * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+     */
+    latexmk: function(file, opts) {
+      var args = ["-pdf"];
+      if (opts && opts.args) args = args.concat(opts.args);
+      args.push(file);
+      return request("exec", Object.assign(
+        { command: "latexmk", args: args },
+        opts || {},
+        { args: args }
+      ));
+    },
+
+    /**
+     * Compile C/C++ code with gcc/g++.
+     * @param {string[]} files - Source files to compile
+     * @param {Object} [opts] - Options: timeout, path, output (output file), compiler ("gcc" or "g++"), args (extra flags)
+     * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+     */
+    gcc: function(files, opts) {
+      opts = opts || {};
+      var compiler = opts.compiler || "gcc";
+      var args = (files || []).slice();
+      if (opts.output) { args.push("-o"); args.push(opts.output); }
+      if (opts.args) args = args.concat(opts.args);
+      return request("exec", Object.assign(
+        { command: compiler, args: args },
+        opts,
+        { args: args }
+      ));
+    },
+
+    /**
+     * UV-based Python environment management.
+     * Manages a local virtual environment in the app directory.
+     */
+    uv: {
+      /**
+       * Initialize a uv Python project in the app directory.
+       * Creates pyproject.toml and .venv if they don't exist.
+       * @param {Object} [opts] - Options: pythonVersion (e.g. "3.12"), timeout
+       * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+       */
+      init: function(opts) {
+        opts = opts || {};
+        var args = ["init", "--no-workspace"];
+        if (opts.pythonVersion) { args.push("--python"); args.push(opts.pythonVersion); }
+        return request("exec", Object.assign(
+          { command: "uv", args: args },
+          { timeout: opts.timeout || 60 }
+        ));
+      },
+
+      /**
+       * Add packages to the uv environment.
+       * @param {string|string[]} packages - Package name(s) to install
+       * @param {Object} [opts] - Options: timeout
+       * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+       */
+      add: function(packages, opts) {
+        opts = opts || {};
+        var pkgs = typeof packages === "string" ? packages.split(/\s+/) : packages;
+        var args = ["add"].concat(pkgs);
+        return request("exec", Object.assign(
+          { command: "uv", args: args },
+          { timeout: opts.timeout || 120 }
+        ));
+      },
+
+      /**
+       * Remove packages from the uv environment.
+       * @param {string|string[]} packages - Package name(s) to remove
+       * @param {Object} [opts] - Options: timeout
+       * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+       */
+      remove: function(packages, opts) {
+        opts = opts || {};
+        var pkgs = typeof packages === "string" ? packages.split(/\s+/) : packages;
+        var args = ["remove"].concat(pkgs);
+        return request("exec", Object.assign(
+          { command: "uv", args: args },
+          { timeout: opts.timeout || 60 }
+        ));
+      },
+
+      /**
+       * Sync the uv environment (install all declared dependencies).
+       * @param {Object} [opts] - Options: timeout
+       * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+       */
+      sync: function(opts) {
+        opts = opts || {};
+        return request("exec", Object.assign(
+          { command: "uv", args: ["sync"] },
+          { timeout: opts.timeout || 120 }
+        ));
+      },
+
+      /**
+       * Run Python code using the uv-managed environment.
+       * Equivalent to: uv run python -c "code"
+       * @param {string} code - Python code to execute
+       * @param {Object} [opts] - Options: timeout (seconds)
+       * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+       */
+      run: function(code, opts) {
+        return request("exec", Object.assign(
+          { command: "uv", args: ["run", "python", "-c", code] },
+          opts || {}
+        ));
+      },
+
+      /**
+       * Run a Python script file using the uv-managed environment.
+       * Equivalent to: uv run python script.py [args...]
+       * @param {string} script - Path to the Python script
+       * @param {string[]} [args] - Script arguments
+       * @param {Object} [opts] - Options: timeout (seconds)
+       * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+       */
+      runScript: function(script, args, opts) {
+        var cmdArgs = ["run", "python", script].concat(args || []);
+        return request("exec", Object.assign(
+          { command: "uv", args: cmdArgs },
+          opts || {}
+        ));
+      },
+
+      /**
+       * Run an arbitrary command in the uv environment.
+       * Equivalent to: uv run <command> [args...]
+       * @param {string} command - Command to run
+       * @param {string[]} [args] - Command arguments
+       * @param {Object} [opts] - Options: timeout (seconds)
+       * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+       */
+      exec: function(command, args, opts) {
+        var cmdArgs = ["run", command].concat(args || []);
+        return request("exec", Object.assign(
+          { command: "uv", args: cmdArgs },
+          opts || {}
+        ));
+      },
+
+      /**
+       * Install pip packages into the uv environment (without adding to pyproject.toml).
+       * Equivalent to: uv pip install <packages>
+       * @param {string|string[]} packages - Package name(s)
+       * @param {Object} [opts] - Options: timeout
+       * @returns {Promise<{stdout: string, stderr: string, exit_code: number}>}
+       */
+      pip: function(packages, opts) {
+        opts = opts || {};
+        var pkgs = typeof packages === "string" ? packages.split(/\s+/) : packages;
+        var args = ["pip", "install"].concat(pkgs);
+        return request("exec", Object.assign(
+          { command: "uv", args: args },
+          { timeout: opts.timeout || 120 }
+        ));
+      }
     },
 
     /**

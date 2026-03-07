@@ -132,11 +132,64 @@ in your HTML:
 
 This makes \`window.cocalc\` available with these methods:
 
+### Shell & Code Execution
+
 - \`cocalc.exec(command, args?, opts?)\` → \`{stdout, stderr, exit_code}\`
   Run a shell command in the project. opts: {timeout, path}
 
+- \`cocalc.run(lang, code, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Run code in a supported language. lang is one of: python, R, julia,
+  node, ruby, perl, bash, sh, octave, sage.
+
 - \`cocalc.python(code, opts?)\` → \`{stdout, stderr, exit_code}\`
   Run Python code. Shortcut for exec("python3", ["-c", code]).
+
+- \`cocalc.R(code, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Run R code via Rscript -e.
+
+- \`cocalc.julia(code, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Run Julia code via julia -e.
+
+- \`cocalc.make(target?, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Run make. opts.args for extra flags.
+
+- \`cocalc.latexmk(file, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Compile a .tex file with latexmk -pdf. opts.args for extra flags.
+
+- \`cocalc.gcc(files, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Compile C/C++. files is an array. opts: {output, compiler ("gcc"/"g++"), args}
+
+### UV Python Environment (cocalc.uv)
+
+Manage a local uv-based Python virtual environment in the app directory.
+Use this when the app needs specific Python packages.
+
+- \`cocalc.uv.init(opts?)\` → \`{stdout, stderr, exit_code}\`
+  Initialize a uv project (creates pyproject.toml + .venv). opts: {pythonVersion}
+
+- \`cocalc.uv.add(packages)\` → \`{stdout, stderr, exit_code}\`
+  Add packages. packages is a string ("numpy pandas") or array.
+
+- \`cocalc.uv.remove(packages)\` → \`{stdout, stderr, exit_code}\`
+  Remove packages.
+
+- \`cocalc.uv.sync()\` → \`{stdout, stderr, exit_code}\`
+  Sync/install all declared dependencies.
+
+- \`cocalc.uv.run(code, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Run Python code using the uv environment: uv run python -c "code".
+  Use this instead of cocalc.python() when you need uv-managed packages.
+
+- \`cocalc.uv.runScript(script, args?, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Run a Python script file: uv run python script.py
+
+- \`cocalc.uv.exec(command, args?, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Run any command in the uv environment: uv run <command> [args]
+
+- \`cocalc.uv.pip(packages, opts?)\` → \`{stdout, stderr, exit_code}\`
+  Install packages via uv pip (without adding to pyproject.toml).
+
+### File Operations
 
 - \`cocalc.readFile(path)\` → \`{content}\`
   Read a text file from the project.
@@ -150,13 +203,18 @@ This makes \`window.cocalc\` available with these methods:
 - \`cocalc.listFiles(path, opts?)\` → \`{files: [...]}\`
   List directory contents. opts: {hidden: boolean}
 
+### Key-Value Store & Utilities
+
 - \`cocalc.kvGet(key)\` / \`cocalc.kvSet(key, value)\` / \`cocalc.kvGetAll()\`
   App-scoped ephemeral key-value store (per session, in memory).
 
 - \`cocalc.ping()\` → \`{pong, timestamp}\`
   Check bridge connectivity.
 
-All methods return Promises.
+- \`cocalc.portURL(port)\` → string
+  Get the CoCalc proxy URL for a given port number.
+
+All methods return Promises (except portURL).
 
 Example: an app that shows project files:
 \`\`\`html
@@ -168,6 +226,16 @@ Example: an app that shows project files:
       "</ul>";
   });
 </script>
+\`\`\`
+
+Example: an app with uv-managed Python dependencies:
+\`\`\`javascript
+async function setup() {
+  await cocalc.uv.init();
+  await cocalc.uv.add("numpy matplotlib");
+  const result = await cocalc.uv.run("import numpy; print(numpy.__version__)");
+  console.log("NumPy version:", result.stdout);
+}
 \`\`\`
 
 ## Server Apps (Dash, Shiny, Flask, etc.)
