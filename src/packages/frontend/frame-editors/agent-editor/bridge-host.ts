@@ -105,10 +105,8 @@ export function createBridgeHost(
       }
 
       case "deleteFile": {
-        await webapp_client.project_client.deleteFile({
-          project_id,
-          path: req.path,
-        });
+        const api = await webapp_client.project_client.api(project_id);
+        await api.delete_files([req.path]);
         return { ok: true };
       }
 

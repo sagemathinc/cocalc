@@ -346,9 +346,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const [showTurns, setShowTurns] = useState(false);
 
   // App errors from the store
-  const appErrors: AppError[] =
-    (useRedux(name, "app_errors") as any) ?? [];
-
+  const appErrors: AppError[] = (useRedux(name, "app_errors") as any) ?? [];
 
   // Get the syncdb from the actions (the .ai file's syncdb)
   useEffect(() => {
@@ -456,7 +454,8 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     if (messages.length === 0) return;
     const firstUserMsg = messages.find((m) => m.sender === "user");
     const summary = firstUserMsg
-      ? firstUserMsg.content.slice(0, 80) + (firstUserMsg.content.length > 80 ? "..." : "")
+      ? firstUserMsg.content.slice(0, 80) +
+        (firstUserMsg.content.length > 80 ? "..." : "")
       : "Turn";
     setTurns((prev) => [
       ...prev,
@@ -588,10 +587,12 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     try {
       const system = buildSystemPrompt(dir, appErrors);
 
-      const currentMessages = messages.filter((m) => m.event === "message");
-      const history = currentMessages.map((m) => ({
-        role: m.sender as "user" | "assistant",
-        content: m.content,
+      // Include all messages in history so the LLM can see exec results
+      const history = messages.map((m) => ({
+        role:
+          m.sender === "assistant" ? ("assistant" as const) : ("user" as const),
+        content:
+          m.event === "exec_result" ? `[System: ${m.content}]` : m.content,
       }));
 
       const llmStream = webapp_client.openai_client.queryStream({
@@ -779,8 +780,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               .filter((m) => m.event === "message")
               .map((m, i) => (
                 <div key={i} style={{ marginBottom: 4 }}>
-                  <strong>{m.sender}:</strong>{" "}
-                  {m.content.slice(0, 200)}
+                  <strong>{m.sender}:</strong> {m.content.slice(0, 200)}
                   {m.content.length > 200 ? "..." : ""}
                 </div>
               ))}

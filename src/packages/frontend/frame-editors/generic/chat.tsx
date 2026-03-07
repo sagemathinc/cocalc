@@ -13,6 +13,7 @@ import SideChat from "@cocalc/frontend/chat/side-chat";
 import { Icon } from "@cocalc/frontend/components";
 import { chatroom } from "@cocalc/frontend/frame-editors/chat-editor/editor";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { NotebookAgent } from "@cocalc/frontend/frame-editors/jupyter-editor/notebook-agent";
 import { CodingAgentEmbedded } from "@cocalc/frontend/frame-editors/llm/coding-agent";
 import { labels } from "@cocalc/frontend/i18n";
 import { hidden_meta_file } from "@cocalc/util/misc";
@@ -28,6 +29,7 @@ type ChatMode = "chat" | "assistant";
 function Chat({ font_size, desc }: EditorComponentProps) {
   const { project_id, path: path0, actions, id: frameId } = useFrameContext();
   const path = chatFile(path0);
+  const isJupyter = path0.endsWith(".ipynb");
   const [sideChatActions, setSideChatActions] = useState<ChatActions | null>(
     null,
   );
@@ -101,6 +103,12 @@ function Chat({ font_size, desc }: EditorComponentProps) {
             path={path}
             fontSize={font_size}
             desc={desc}
+          />
+        ) : isJupyter ? (
+          <NotebookAgent
+            chatSyncdb={sideChatActions.syncdb}
+            jupyterActions={(actions as any).jupyter_actions}
+            project_id={project_id}
           />
         ) : (
           <CodingAgentEmbedded chatSyncdb={sideChatActions.syncdb} />
