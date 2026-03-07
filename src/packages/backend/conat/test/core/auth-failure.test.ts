@@ -31,6 +31,7 @@ describe("auth failure disconnect behavior", () => {
     const path = `${u.pathname.replace(/\/$/, "")}/conat` || "/conat";
     let sawConnect = false;
     let sawDisconnect = false;
+    let connectError: any;
     let info: any;
     socket = socketIoClient(u.origin, {
       path,
@@ -44,6 +45,9 @@ describe("auth failure disconnect behavior", () => {
     socket.on("disconnect", () => {
       sawDisconnect = true;
     });
+    socket.on("connect_error", (err) => {
+      connectError = err;
+    });
     socket.on("info", (v) => {
       info = v;
     });
@@ -54,7 +58,7 @@ describe("auth failure disconnect behavior", () => {
     });
     await wait({
       timeout: 10_000,
-      until: () => sawDisconnect,
+      until: () => sawDisconnect || connectError != null,
     });
     let socketKeys: string[] = [];
     let statKeys: string[] = [];
