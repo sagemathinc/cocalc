@@ -113,11 +113,10 @@ const INPUT_AREA_STYLE: CSS = {
 
 /**
  * Build a system prompt for the app-building agent.
- * Includes sibling file listing and any app errors for context.
+ * Includes app errors for context.
  */
 function buildSystemPrompt(
   appDirectory: string,
-  siblingFiles?: string[],
   appErrors?: AppError[],
 ): string {
   let prompt = `You are an AI app-building agent in CoCalc.
@@ -252,18 +251,18 @@ The app preview has an App/Server toggle. In Server mode, it proxies to
 
 Keep responses concise and focused. Build incrementally — start simple, then enhance.`;
 
-  // Add sibling file context
-  if (siblingFiles && siblingFiles.length > 0) {
-    prompt += `\n\n## Project Files (in same directory as the .ai file)
+  // Tell the agent how to discover project files on demand
+  prompt += `\n\n## Discovering Project Files
 
-The following files exist next to the .ai file. You can read them with
-cocalc.readFile() from the app or reference them in exec commands:
+To see what files exist next to the .ai file, use an exec block:
 
-${siblingFiles.map((f) => `- ${f}`).join("\n")}
+\`\`\`exec
+ls ${appDirectory}/../
+\`\`\`
 
-When the user asks about data or files, check these first. Use cocalc.exec
-or cocalc.readFile in the app to load and process them.`;
-  }
+You can also use cocalc.listFiles() from the app or cocalc.exec("ls", [path])
+to list directory contents. When the user asks about data or files, list the
+directory first, then read the relevant files with cocalc.readFile().`;
 
   // Add app errors context
   if (appErrors && appErrors.length > 0) {
@@ -350,27 +349,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const appErrors: AppError[] =
     (useRedux(name, "app_errors") as any) ?? [];
 
-  // Sibling files
-  const [siblingFiles, setSiblingFiles] = useState<string[]>([]);
-
-  // Load sibling files on mount
-  useEffect(() => {
-    async function loadSiblings() {
-      try {
-        const parentDir = path_split(path).head || ".";
-        const api = webapp_client.conat_client.projectApi({ project_id });
-        const listing = await api.system.listing({ path: parentDir });
-        const files = (listing || [])
-          .map((f: any) => f.name)
-          .filter((n: string) => !n.startsWith(".") && n !== path_split(path).tail);
-        setSiblingFiles(files);
-        (actions as any).setSiblingFiles?.(files);
-      } catch {
-        // non-fatal
-      }
-    }
-    loadSiblings();
-  }, [project_id, path]);
 
   // Get the syncdb from the actions (the .ai file's syncdb)
   useEffect(() => {
@@ -608,7 +586,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     setGenerating(true);
 
     try {
-      const system = buildSystemPrompt(dir, siblingFiles, appErrors);
+      const system = buildSystemPrompt(dir, appErrors);
 
       const currentMessages = messages.filter((m) => m.event === "message");
       const history = currentMessages.map((m) => ({
@@ -693,7 +671,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     sessionId,
     writeMessage,
     applyWriteFiles,
-    siblingFiles,
     appErrors,
   ]);
 
@@ -885,22 +862,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             </Popconfirm>
           </>
         )}
-        {/* File context indicator */}
-        {siblingFiles.length > 0 && (
-          <Tooltip
-            title={`${siblingFiles.length} file(s) in project dir: ${siblingFiles.slice(0, 5).join(", ")}${siblingFiles.length > 5 ? "..." : ""}`}
-          >
-            <span
-              style={{
-                fontSize: "0.8em",
-                color: COLORS.GRAY_M,
-                marginLeft: "auto",
-              }}
-            >
-              <Icon name="folder-open" /> {siblingFiles.length} files
-            </span>
-          </Tooltip>
-        )}
       </div>
 
       {/* Turn history */}
@@ -955,19 +916,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           >
             Describe the application you want to build. The agent will create
             files and the result will appear in the App preview on the right.
-            {siblingFiles.length > 0 && (
-              <>
-                <br />
-                <br />
-                <span style={{ fontSize: "0.9em" }}>
-                  Files in your project directory are available as context:{" "}
-                  {siblingFiles.slice(0, 5).join(", ")}
-                  {siblingFiles.length > 5
-                    ? `, ... (${siblingFiles.length} total)`
-                    : ""}
-                </span>
-              </>
-            )}
           </Paragraph>
         )}
         {messages.map((msg, i) => (

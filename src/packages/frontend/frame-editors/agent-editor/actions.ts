@@ -27,7 +27,6 @@ export interface AppError {
 
 interface AgentEditorState extends CodeEditorState {
   app_errors?: AppError[];
-  sibling_files?: string[];
 }
 
 export class Actions extends CodeEditorActions<AgentEditorState> {
@@ -68,8 +67,4 @@ export class Actions extends CodeEditorActions<AgentEditorState> {
     this.setState({ app_errors: [] } as any);
   }
 
-  // Store sibling file listing for context
-  setSiblingFiles(files: string[]): void {
-    this.setState({ sibling_files: files } as any);
-  }
 }
