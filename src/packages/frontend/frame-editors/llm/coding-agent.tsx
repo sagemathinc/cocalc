@@ -19,9 +19,9 @@ The agent can suggest search/replace edits and execute shell commands
 import {
   Alert,
   Button,
+  Dropdown,
   Input,
   Popconfirm,
-  Select,
   Space,
   Spin,
   Tooltip,
@@ -494,6 +494,17 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         }
       });
 
+      // If we have a pending new session (just created, no messages yet),
+      // include it in the list so the UI doesn't discard it.
+      const pendingId = pendingNewSessionRef.current;
+      if (pendingId && sessionsSet.has(pendingId)) {
+        // Session now has records — clear the pending ref.
+        pendingNewSessionRef.current = "";
+      }
+      if (pendingId && !sessionsSet.has(pendingId)) {
+        sessionsSet.add(pendingId);
+      }
+
       const sessions = Array.from(sessionsSet).sort();
       setAllSessions(sessions);
 
@@ -534,8 +545,13 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     }
   }, [sessionId, syncdb]);
 
+  // Ref to hold a newly created session ID that has no records yet,
+  // so loadSessionsAndMessages doesn't discard it.
+  const pendingNewSessionRef = useRef<string>("");
+
   const handleNewSession = useCallback(() => {
     const newId = uuid();
+    pendingNewSessionRef.current = newId;
     setSessionId(newId);
     setMessages([]);
     setPendingEdits(undefined);
@@ -865,7 +881,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "Enter" && (e.shiftKey || e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         handleSubmit();
       }
@@ -875,13 +891,17 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
   const hasBuild = typeof actions.build === "function";
 
-  // Session selector options
-  const sessionOptions = useMemo(() => {
-    return allSessions.map((sid, i) => ({
-      value: sid,
-      label: `Session ${i + 1}`,
-    }));
-  }, [allSessions]);
+  // Turns dropdown menu items (most recent first)
+  const turnsMenuItems = useMemo(() => {
+    const items = allSessions
+      .map((sid, i) => ({
+        key: sid,
+        label: `Turn ${i + 1}${sid === sessionId ? "  •" : ""}`,
+      }))
+      .reverse();
+    items.push({ key: "__new__", label: "+ New Turn" });
+    return items;
+  }, [allSessions, sessionId]);
 
   return (
     <div style={CONTAINER_STYLE}>
@@ -918,29 +938,32 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           background: COLORS.GRAY_LLL,
         }}
       >
-        {allSessions.length > 1 && (
-          <Select
-            size="small"
-            style={{ minWidth: 120 }}
-            value={sessionId}
-            onChange={setSessionId}
-            options={sessionOptions}
-          />
-        )}
-        <Tooltip title="Start a new conversation session">
-          <Button size="small" onClick={handleNewSession}>
-            <Icon name="plus" /> New
+        <Dropdown
+          menu={{
+            items: turnsMenuItems,
+            onClick: ({ key }) => {
+              if (key === "__new__") {
+                handleNewSession();
+              } else {
+                setSessionId(key);
+              }
+            },
+          }}
+          trigger={["click"]}
+        >
+          <Button size="small">
+            <Icon name="history" /> Turns ({allSessions.length})
           </Button>
-        </Tooltip>
+        </Dropdown>
         {sessionId && messages.length > 0 && (
           <Popconfirm
-            title="Clear all messages in this session?"
+            title="Clear all messages in this turn?"
             onConfirm={handleClearSession}
             okText="Clear"
             cancelText="Cancel"
           >
             <Button size="small" danger>
-              <Icon name="trash" /> Clear
+              <Icon name="trash" />
             </Button>
           </Popconfirm>
         )}
@@ -1109,7 +1132,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask the coding agent... (Ctrl+Enter to send)"
+            placeholder="Ask the coding agent... (Shift+Enter to send)"
             autoSize={{ minRows: 1, maxRows: 6 }}
             disabled={generating}
             style={{ flex: 1 }}

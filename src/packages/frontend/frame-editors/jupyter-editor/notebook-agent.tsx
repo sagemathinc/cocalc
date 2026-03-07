@@ -18,12 +18,11 @@ When used inside the side-chat panel it piggybacks on the chat syncdb
 import {
   Alert,
   Button,
+  Dropdown,
   Input,
   Popconfirm,
-  Select,
   Space,
   Spin,
-  Tooltip,
 } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -486,6 +485,14 @@ export function NotebookAgent({
         });
       });
 
+      const pendingId = pendingNewSessionRef.current;
+      if (pendingId && sessionsSet.has(pendingId)) {
+        pendingNewSessionRef.current = "";
+      }
+      if (pendingId && !sessionsSet.has(pendingId)) {
+        sessionsSet.add(pendingId);
+      }
+
       const sessions = Array.from(sessionsSet).sort();
       setAllSessions(sessions);
 
@@ -523,8 +530,12 @@ export function NotebookAgent({
     }
   }, [sessionId, syncdb]);
 
+  const pendingNewSessionRef = useRef<string>("");
+
   const handleNewSession = useCallback(() => {
-    setSessionId(uuid());
+    const newId = uuid();
+    pendingNewSessionRef.current = newId;
+    setSessionId(newId);
     setMessages([]);
     setError("");
   }, []);
@@ -788,7 +799,7 @@ export function NotebookAgent({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
+      if (e.key === "Enter" && (e.shiftKey || e.metaKey || e.ctrlKey)) {
         e.preventDefault();
         handleSubmit();
       }
@@ -796,12 +807,16 @@ export function NotebookAgent({
     [handleSubmit],
   );
 
-  const sessionOptions = useMemo(() => {
-    return allSessions.map((sid, i) => ({
-      value: sid,
-      label: `Session ${i + 1}`,
-    }));
-  }, [allSessions]);
+  const turnsMenuItems = useMemo(() => {
+    const items = allSessions
+      .map((sid, i) => ({
+        key: sid,
+        label: `Turn ${i + 1}${sid === sessionId ? "  •" : ""}`,
+      }))
+      .reverse();
+    items.push({ key: "__new__", label: "+ New Turn" });
+    return items;
+  }, [allSessions, sessionId]);
 
   return (
     <div style={CONTAINER_STYLE}>
@@ -838,23 +853,26 @@ export function NotebookAgent({
           background: COLORS.GRAY_LLL,
         }}
       >
-        {allSessions.length > 1 && (
-          <Select
-            size="small"
-            style={{ minWidth: 120 }}
-            value={sessionId}
-            onChange={setSessionId}
-            options={sessionOptions}
-          />
-        )}
-        <Tooltip title="Start a new conversation">
-          <Button size="small" onClick={handleNewSession}>
-            <Icon name="plus" /> New
+        <Dropdown
+          menu={{
+            items: turnsMenuItems,
+            onClick: ({ key }) => {
+              if (key === "__new__") {
+                handleNewSession();
+              } else {
+                setSessionId(key);
+              }
+            },
+          }}
+          trigger={["click"]}
+        >
+          <Button size="small">
+            <Icon name="history" /> Turns ({allSessions.length})
           </Button>
-        </Tooltip>
+        </Dropdown>
         {sessionId && messages.length > 0 && (
           <Popconfirm
-            title="Clear all messages in this conversation?"
+            title="Clear all messages in this turn?"
             onConfirm={handleClearSession}
             okText="Clear"
             cancelText="Cancel"
@@ -877,7 +895,7 @@ export function NotebookAgent({
             }}
           >
             Ask questions about your notebook, request changes, or ask the agent
-            to run cells. (Ctrl+Enter to send)
+            to run cells. (Shift+Enter to send)
           </Paragraph>
         )}
         {messages.map((msg, i) => (
@@ -926,7 +944,7 @@ export function NotebookAgent({
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask about your notebook... (Ctrl+Enter to send)"
+            placeholder="Ask about your notebook... (Shift+Enter to send)"
             autoSize={{ minRows: 1, maxRows: 6 }}
             disabled={generating}
             style={{ flex: 1 }}

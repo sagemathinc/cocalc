@@ -255,7 +255,7 @@ Keep responses concise and focused. Build incrementally — start simple, then e
   // Tell the agent how to discover project files on demand
   prompt += `\n\n## Discovering Project Files
 
-To see what files exist next to the .ai file, use an exec block:
+To see what files exist next to the .app file, use an exec block:
 
 \`\`\`exec
 ls ${appDirectory}/../

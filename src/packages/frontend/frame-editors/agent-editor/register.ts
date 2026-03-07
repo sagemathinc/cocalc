@@ -4,13 +4,13 @@
  */
 
 /*
-Register the .ai agent editor
+Register the .app agent editor (CoCalc Apps)
 */
 
 import { register_file_editor } from "@cocalc/frontend/frame-editors/frame-tree/register";
 
 register_file_editor({
-  ext: "ai",
+  ext: "app",
   editor: async () => await import("./editor"),
   actions: async () => await import("./actions"),
 });

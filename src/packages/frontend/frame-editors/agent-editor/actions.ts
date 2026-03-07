@@ -4,9 +4,9 @@
  */
 
 /*
-Actions for the .ai agent editor.
+Actions for the .app agent editor.
 
-The .ai file uses a SyncDB to store agent conversation sessions.
+The .app file uses a SyncDB to store agent conversation sessions.
 Each record has: session_id, date, sender, content, event, account_id.
 */
 
@@ -42,8 +42,8 @@ export class Actions extends CodeEditorActions<AgentEditorState> {
     return {
       type: "node",
       direction: "col",
-      first: { type: "ai-agent" },
-      second: { type: "ai-app-preview" },
+      first: { type: "agent" },
+      second: { type: "app_preview" },
       pos: 0.4,
     };
   }

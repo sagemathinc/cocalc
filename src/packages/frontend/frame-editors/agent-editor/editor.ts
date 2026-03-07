@@ -4,7 +4,7 @@
  */
 
 /*
-Top-level editor spec for .ai files.
+Top-level editor spec for .app files.
 
 Default layout: Agent conversation on the left, App preview on the right.
 */
@@ -19,7 +19,7 @@ import AgentPanel from "./agent-panel";
 import AppPreview from "./app-preview";
 
 const agent: EditorDescription = {
-  type: "ai-agent",
+  type: "agent",
   short: "Agent",
   name: "AI Agent",
   icon: "robot",
@@ -28,7 +28,7 @@ const agent: EditorDescription = {
 } as const;
 
 const app_preview: EditorDescription = {
-  type: "ai-app-preview",
+  type: "app_preview",
   short: "App",
   name: "App Preview",
   icon: "eye",
