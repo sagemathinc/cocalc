@@ -198,14 +198,59 @@ function parseSearchReplaceBlocks(text: string): SearchReplace[] {
  * Apply search/replace blocks to a base snapshot (the clean document
  * the agent last saw).  Returns the modified text.
  */
-function applySearchReplace(base: string, blocks: SearchReplace[]): string {
+function applySearchReplace(
+  base: string,
+  blocks: SearchReplace[],
+): { result: string; applied: number; failed: number } {
   let result = base;
+  let applied = 0;
+  let failed = 0;
   for (const { search, replace } of blocks) {
     const idx = result.indexOf(search);
-    if (idx === -1) continue; // skip if not found
+    if (idx === -1) {
+      // Try trimmed match as fallback (LLM sometimes adds/removes whitespace)
+      const trimmedSearch = search.trim();
+      const lines = result.split("\n");
+      let found = false;
+      for (let i = 0; i < lines.length; i++) {
+        if (lines[i].trim() === trimmedSearch) {
+          // Found a line that matches when trimmed — use it
+          const lineStart = lines.slice(0, i).join("\n").length + (i > 0 ? 1 : 0);
+          const lineEnd = lineStart + lines[i].length;
+          result = result.slice(0, lineStart) + replace + result.slice(lineEnd);
+          applied++;
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        failed++;
+      }
+      continue;
+    }
     result = result.slice(0, idx) + replace + result.slice(idx + search.length);
+    applied++;
   }
-  return result;
+  return { result, applied, failed };
+}
+
+/**
+ * Transform <<<SEARCH/>>>REPLACE/<<<END blocks in the assistant message
+ * into ```diff fenced code blocks for proper rendering.
+ */
+function formatSearchReplaceAsDiff(text: string): string {
+  return text.replace(
+    /<<<SEARCH\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g,
+    (_match, searchPart: string, replacePart: string) => {
+      const searchLines = searchPart.replace(/\n$/, "").split("\n");
+      const replaceLines = replacePart.replace(/\n$/, "").split("\n");
+      const diffLines = [
+        ...searchLines.map((l) => `- ${l}`),
+        ...replaceLines.map((l) => `+ ${l}`),
+      ];
+      return "```diff\n" + diffLines.join("\n") + "\n```";
+    },
+  );
 }
 
 /**
@@ -796,10 +841,25 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     let newContent: string;
     if (pendingEdits.type === "search_replace") {
       // Apply search/replace to the clean base snapshot
-      const modified = applySearchReplace(
+      const { result: modified, applied, failed } = applySearchReplace(
         pendingEdits.base,
         pendingEdits.blocks,
       );
+
+      if (applied === 0) {
+        setError(
+          `Could not apply edits: none of the ${failed} search block(s) matched the document.`,
+        );
+        setPendingEdits(undefined);
+        return;
+      }
+
+      if (failed > 0) {
+        setError(
+          `Applied ${applied} edit(s), but ${failed} search block(s) did not match.`,
+        );
+      }
+
       // Three-way merge: base is the snapshot, local is current doc, remote is modified
       newContent = three_way_merge({
         base: pendingEdits.base,
@@ -1000,7 +1060,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             {msg.sender === "user" ? (
               msg.content
             ) : (
-              <StaticMarkdown value={msg.content} />
+              <StaticMarkdown
+                value={formatSearchReplaceAsDiff(msg.content)}
+              />
             )}
           </div>
         ))}
