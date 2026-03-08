@@ -3,20 +3,16 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Col, Input, Row, Space, Spin } from "antd";
-import type { TooltipPlacement } from "antd/lib/tooltip";
+import { Button, Col, Input, Row, Space } from "antd";
 import { ReactNode, useRef, useState } from "react";
-import { FormattedMessage, useIntl } from "react-intl";
+import { useIntl } from "react-intl";
 
 import { useActions } from "@cocalc/frontend/app-framework";
 import { Icon, Markdown, Tip } from "@cocalc/frontend/components";
-import ShowError from "@cocalc/frontend/components/error";
-import { COPY_TIMEOUT_MS } from "@cocalc/frontend/course/consts";
 import { MarkdownInput } from "@cocalc/frontend/editors/markdown-input";
-import { labels } from "@cocalc/frontend/i18n";
 import { NotebookScores } from "@cocalc/frontend/jupyter/nbgrader/autograde";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { BigTime } from ".";
+import { CopyStepStatus } from ".";
 import { CourseActions } from "../actions";
 import { NbgraderScores } from "../nbgrader/scores";
 import {
@@ -218,7 +214,7 @@ export function StudentAssignmentInfo({
     if (!is_editing) {
       if (!comments?.trim()) return;
       return (
-        <div style={{ width: "100%", paddingRight: "5px" }}>
+        <div style={{ width: "100%" }}>
           <Markdown
             value={comments}
             style={{
@@ -313,7 +309,8 @@ export function StudentAssignmentInfo({
                 clicked_nbgrader.current.valueOf() <=
                 3000
             ) {
-              // avoid firing nbgrader twice on rapid double-clicks
+              // User *just* clicked, and we want to avoid double click
+              // running nbgrader twice.
               return;
             }
 
@@ -334,164 +331,10 @@ export function StudentAssignmentInfo({
     return render_nbgrader_scores();
   }
 
-  function render_last_time(time: string | number | Date) {
-    return (
-      <Space key="time" wrap>
-        <BigTime date={time} />
-      </Space>
-    );
-  }
-
-  function render_recopy_confirm(
-    step: Steps,
-    copy: Function,
-    copy_tip: string,
-    placement,
-  ) {
-    if (recopy[step]) {
-      const v: React.JSX.Element[] = [];
-      v.push(
-        <Tip
-          key="copy_cancel"
-          title={intl.formatMessage(labels.cancel)}
-          tip={intl.formatMessage(labels.cancel)}
-        >
-          <Button size={size} onClick={() => set_recopy(step, false)}>
-            {intl.formatMessage(labels.cancel)}
-          </Button>
-        </Tip>,
-      );
-      v.push(
-        <Tip
-          key="recopy_confirm"
-          title={step}
-          placement={placement}
-          tip={copy_tip}
-        >
-          <Button
-            danger
-            size={size}
-            onClick={() => {
-              set_recopy(step, false);
-              copy();
-            }}
-          >
-            <FormattedMessage
-              id="course.student-assignment-info.recopy_confirm.label"
-              defaultMessage={`Yes, {activity} again`}
-              description={"Confirm an activity, like 'assign', 'collect', ..."}
-              values={{ activity: step_intl(step, false).toLowerCase() }}
-            />
-          </Button>
-        </Tip>,
-      );
-      if (step.toLowerCase() === "assign") {
-        // inline-block because buttons above are float:left
-        v.push(
-          <div key="what-happens">
-            <a
-              target="_blank"
-              rel="noopener noreferrer"
-              href="https://doc.cocalc.com/teaching-tips_and_tricks.html#how-exactly-are-assignments-copied-to-students"
-            >
-              {intl.formatMessage({
-                id: "course.student-assignment-info.recopy.what_happens",
-                defaultMessage: "What happens when I assign again?",
-                description:
-                  "Asking the question, what happens if all files are transferred to all students in an online course once again.",
-              })}
-            </a>
-          </div>,
-        );
-      }
-      return v;
-    } else {
-      return [
-        <Tip key="copy" title={step} placement={placement} tip={copy_tip}>
-          <Button
-            size={size}
-            icon={<Icon name="redo" />}
-            onClick={() => set_recopy(step, true)}
-            aria-label={`Redo ${step.toLowerCase()} for this student`}
-          />
-        </Tip>,
-      ];
-    }
-  }
-
-  function render_open(open, tip: string, placement: TooltipPlacement) {
-    return (
-      <Tip key="open" title="Open assignment" tip={tip} placement={placement}>
-        <Button
-          onClick={open}
-          size={size}
-          icon={<Icon name="folder-open" />}
-          aria-label="Open assignment folder"
-        />
-      </Tip>
-    );
-  }
-
   function step_intl(step: Steps, active: boolean): string {
     return intl.formatMessage(active ? STEPS_INTL_ACTIVE : STEPS_INTL, {
       step: STEP_NAMES.indexOf(step),
     });
-  }
-
-  function render_copying(step: Steps, stop) {
-    return [
-      <Button key="stop" danger onClick={stop} size={size}>
-        {intl.formatMessage(labels.cancel)}
-      </Button>,
-      <Button key="copy" disabled={true} size={size}>
-        <Spin /> {step_intl(step, true)}
-      </Button>,
-    ];
-  }
-
-  function render_copy(
-    step: Steps,
-    copy: () => void,
-    tip: string,
-    placement: TooltipPlacement,
-  ) {
-    return (
-      <Tip key="copy" title={step} tip={tip} placement={placement}>
-        <Button
-          onClick={copy}
-          size={size}
-          icon={<Icon name="caret-right" />}
-          aria-label={`${step} this student`}
-        />
-      </Tip>
-    );
-  }
-
-  function render_error(step: Steps, error) {
-    if (typeof error !== "string") {
-      error = `${error}`;
-    }
-    if (error.includes("[object Object]")) {
-      // already too late to know the actual error -- it got mangled/reported incorrectly
-      error = "";
-    }
-    // We search for two different error messages, since different errors happen in
-    // KuCalc versus other places cocalc runs.  It depends on what is doing the copy.
-    if (
-      error.indexOf("No such file or directory") !== -1 ||
-      error.indexOf("ENOENT") != -1
-    ) {
-      error = `The student might have renamed or deleted the directory that contained their assignment.  Open their project and see what happened.   If they renamed it, you could rename it back, then collect the assignment again -- \n${error}`;
-    } else {
-      error = `Try to ${step.toLowerCase()} again -- \n${error}`;
-    }
-    return (
-      <ShowError
-        key="error"
-        error={error}
-        style={{ padding: "4px 4px", overflowWrap: "anywhere" }}
-      />
-    );
   }
 
   function Status({
@@ -506,36 +349,24 @@ export function StudentAssignmentInfo({
     const do_open = () => open(type, info.assignment_id, info.student_id);
     const do_copy = () => copy(type, info.assignment_id, info.student_id);
     const do_stop = () => stop(type, info.assignment_id, info.student_id);
-    const v: React.JSX.Element[] = [];
-    const placement: TooltipPlacement = step === "Return" ? "left" : "right";
-    if (enable_copy) {
-      const now = webapp_client.server_time();
-      const in_progress =
-        data.start != null && now - data.start < COPY_TIMEOUT_MS;
-      if (in_progress) {
-        v.push(...render_copying(step, do_stop));
-        v.push(render_open(do_open, open_tip, placement));
-      } else if (data.time) {
-        v.push(render_open(do_open, open_tip as string, placement));
-        v.push(
-          ...render_recopy_confirm(
-            step,
-            do_copy,
-            copy_tip as string,
-            placement,
-          ),
-        );
-      } else {
-        v.push(render_copy(step, do_copy, copy_tip as string, placement));
-      }
-    }
-    if (data.time) {
-      v.push(render_last_time(data.time));
-    }
-    if (data.error && !omit_errors) {
-      v.push(render_error(step, data.error));
-    }
-    return <Space wrap>{v}</Space>;
+    const placement = step === "Return" ? "left" : "right";
+    return (
+      <CopyStepStatus
+        stepLabel={step}
+        activityLabel={step_intl(step, false)}
+        data={data}
+        enableCopy={enable_copy}
+        tips={{ copy: copy_tip, open: open_tip }}
+        handlers={{ open: do_open, copy: do_copy, stop: do_stop }}
+        recopy={recopy[step]}
+        setRecopy={(value) => set_recopy(step, value)}
+        omitErrors={omit_errors}
+        placement={placement}
+        size={size}
+        copyingLabel={step_intl(step, true)}
+        showWhatHappensLink={step.toLowerCase() === "assign"}
+      />
+    );
   }
 
   let show_grade_col, show_return_graded;
@@ -721,7 +552,8 @@ export function StudentAssignmentInfo({
           {title}
         </Col>
         <Col md={20} key="rest">
-          <Row gutter={[8, 0]}>
+          {/* Gutter adds inner spacing but also negative row margins; zero margins avoid horizontal scroll. */}
+          <Row gutter={[8, 0]} style={{ marginLeft: 0, marginRight: 0 }}>
             {render_assignment_col()}
             {render_collect_col()}
             {render_peer_assign_col()}

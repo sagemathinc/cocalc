@@ -9,7 +9,7 @@ import { useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
 // CoCalc and course components
-import { useRedux } from "@cocalc/frontend/app-framework";
+import { AppRedux, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
 import { course } from "@cocalc/frontend/i18n";
@@ -27,6 +27,7 @@ interface HandoutsPanelReactProps {
   name: string;
   actions: CourseActions;
   project_id: string;
+  redux: AppRedux;
   handouts: HandoutsMap; // handout_id -> handout
   students: StudentsMap; // student_id -> student
   user_map: UserMap;
@@ -38,6 +39,7 @@ export function HandoutsPanel({
   name,
   actions,
   project_id,
+  redux,
   handouts,
   students,
   user_map,
@@ -145,9 +147,9 @@ export function HandoutsPanel({
         key={handout_id}
         handout={get_handout(handout_id)}
         project_id={project_id}
+        redux={redux}
         students={students}
         user_map={user_map}
-        actions={actions}
         is_expanded={expanded_handouts?.has(handout_id) ?? false}
         name={name}
       />

@@ -578,7 +578,7 @@ export function Student({
     const header = (
       <StudentAssignmentInfoHeader
         key="header"
-        title="Assignment"
+        mode="student"
         peer_grade={peer_grade}
       />
     );
