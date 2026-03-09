@@ -13,7 +13,7 @@ the running build immediately.
 State machine:
   (no entry)  → "running"   = build started
   "running"   → "stopping"  = stop requested
-  any         → (deleted)   = build finished
+  any         → "finished"  = build finished
 
 The coordinator also manages the join lifecycle: when a remote build is
 detected, it calls the provided `join` callback and handles the state
@@ -25,7 +25,7 @@ import { dkv, type DKV } from "@cocalc/conat/sync/dkv";
 
 interface BuildState {
   buildId: string;
-  status: "running" | "stopping";
+  status: "running" | "stopping" | "finished";
   aggregate?: number;
   force?: boolean;
 }
@@ -104,7 +104,11 @@ export class BuildCoordinator {
           this.handleBuildStart(value);
         } else if (value?.status === "stopping") {
           this.handleBuildStop(value.buildId);
+        } else if (value?.status === "finished") {
+          this.handleBuildFinished(value.buildId);
         } else if (!value && prev) {
+          // Backwards compatibility: older clients used delete as the
+          // terminal transition. Keep honoring that if we see it.
           this.handleBuildFinished(prev.buildId);
         }
       };
@@ -230,26 +234,27 @@ export class BuildCoordinator {
     }
   }
 
-  /** Announce build completion and clear the DKV entry. */
+  /** Announce build completion. */
   publishBuildFinished(buildId: string): void {
     const doPublish = () => {
-      // Only delete if the current entry matches our buildId — prevents
-      // a finishing client from deleting another client's concurrent build.
+      // Only publish "finished" if the current entry matches our buildId —
+      // prevents a finishing client from clobbering another client's newer build.
+      //
+      // IMPORTANT: on ephemeral DKV streams, connected clients may not observe
+      // deletes. Use a visible terminal state instead of relying on delete.
       const current = this.dkv?.get(this.path);
       if (!current) {
-        // Entry already gone (or was never written) — deleting a
-        // non-existent key is a no-op that produces no echo, so
+        // Entry already gone (or was never written) — no self-echo will arrive, so
         // clear _localBuildId immediately.
         if (this._localBuildId === buildId) {
           this._localBuildId = undefined;
         }
       } else if (current.buildId === buildId) {
-        this.dkv?.delete(this.path);
-        // _localBuildId cleared by handleBuildFinished when delete
-        // echo arrives.  The echo is guaranteed here because we're
-        // deleting an existing key (current is non-null).
+        this.dkv?.set(this.path, { ...current, status: "finished" });
+        // _localBuildId is cleared by handleBuildFinished when the
+        // self-echo of "finished" arrives.
       } else {
-        // Another client's build overwrote the entry — no delete echo will
+        // Another client's build overwrote the entry — no self-echo will
         // arrive, so clear _localBuildId now.
         if (this._localBuildId === buildId) {
           this._localBuildId = undefined;

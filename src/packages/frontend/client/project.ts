@@ -280,6 +280,14 @@ export class ProjectClient {
         service: EXEC_STREAM_SERVICE,
       });
       let lastSeq = -1;
+      let sawDone = false;
+      let ended = false;
+
+      const emitEnd = () => {
+        if (ended) return;
+        ended = true;
+        execStream.emit("end");
+      };
 
       const req = cn.requestMany(
         subject,
@@ -291,8 +299,19 @@ export class ProjectClient {
       );
       for await (const resp of await req) {
         if (resp.data == null) {
-          // Stream ended
-          execStream.emit("end");
+          // Stream ended. This should normally happen only after a "done"
+          // event. Surface an explicit error if it doesn't, so callers don't
+          // hang forever waiting for completion.
+          if (!sawDone) {
+            const suffix = execStream.job_id
+              ? ` for job ${execStream.job_id}`
+              : "";
+            execStream.emit(
+              "error",
+              new Error(`Exec stream ended before done${suffix}`),
+            );
+          }
+          emitEnd();
           break;
         }
 
@@ -300,11 +319,13 @@ export class ProjectClient {
 
         if (error) {
           execStream.emit("error", new Error(error));
+          emitEnd();
           break;
         }
 
         if (seq != null && lastSeq + 1 != seq) {
           execStream.emit("error", new Error("Missed response in stream"));
+          emitEnd();
           break;
         }
 
@@ -328,15 +349,17 @@ export class ProjectClient {
             execStream.emit("stats", data);
             break;
           case "done":
+            sawDone = true;
             execStream.emit("done", data);
-            execStream.emit("end");
-            break;
+            emitEnd();
+            return;
           default:
             console.warn("Unknown execStream response type:", type);
         }
       }
     } catch (err) {
       execStream.emit("error", err);
+      execStream.emit("end");
     }
   }
 
