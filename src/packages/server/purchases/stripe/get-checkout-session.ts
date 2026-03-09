@@ -15,6 +15,8 @@ import { decimalToStripe, decimalAdd } from "@cocalc/util/stripe/calc";
 import { url } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchases:stripe:get-checkout-session");
+const LINE_ITEMS_METADATA_KEY = "line_items_json";
+const DESCRIPTION_METADATA_KEY = "checkout_description";
 
 interface Options extends CheckoutSessionOptions {
   // user that is paying: assumed already authenticated/valid
@@ -74,8 +76,18 @@ export default async function getCheckoutSession({
   const cutoff = Math.floor((Date.now() - 1000 * 60 * 60) / 1000);
   for (const session of openSessions.data) {
     if (session.metadata?.purpose == purpose && session.client_secret) {
+      // Store a deterministic fingerprint of the checkout inputs in metadata so
+      // later calls can safely reuse the same open session instead of expiring it
+      // and creating a fresh one every time the UI asks for the client secret.
       if (
-        !isEqual(session.metadata?.lineItems, JSON.stringify(lineItems)) ||
+        !isEqual(
+          session.metadata?.[LINE_ITEMS_METADATA_KEY],
+          JSON.stringify(lineItems),
+        ) ||
+        !isEqual(
+          session.metadata?.[DESCRIPTION_METADATA_KEY],
+          description ?? "",
+        ) ||
         session.created <= cutoff
       ) {
         logger.debug("getCheckoutSession: expiring checkout session");
@@ -83,7 +95,7 @@ export default async function getCheckoutSession({
         await stripe.checkout.sessions.expire(session.id);
       } else {
         logger.debug("getCheckoutSession: using existing checkout session");
-        // we use it -- same line items
+        // Reuse the existing open session when the checkout inputs still match.
         return { clientSecret: session.client_secret };
       }
     }
@@ -94,6 +106,8 @@ export default async function getCheckoutSession({
 
   metadata = {
     ...metadata,
+    [LINE_ITEMS_METADATA_KEY]: JSON.stringify(lineItems),
+    [DESCRIPTION_METADATA_KEY]: description ?? "",
     total_excluding_tax_usd: `${total_excluding_tax_usd}`,
   };
   const session = await stripe.checkout.sessions.create({
