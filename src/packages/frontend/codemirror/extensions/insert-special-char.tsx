@@ -6,8 +6,8 @@
 import * as CodeMirror from "codemirror";
 import { Button, Modal } from "antd";
 
-import { alert_message } from "../../alerts";
-import { show_react_modal } from "../../misc";
+import { alert_message } from "@cocalc/frontend/alerts";
+import { show_react_modal } from "@cocalc/frontend/misc";
 
 import emojis from "markdown-it-emoji/lib/data/full.json";
 
@@ -28,11 +28,7 @@ export async function get_insert_special_char_from_user(): Promise<
       cursor: "pointer",
     };
     const symbols: React.JSX.Element[] = SYMBOLS.map((symbol, i) => (
-      <span
-        key={i}
-        style={style}
-        onClick={() => cb(undefined, symbol)}
-      >
+      <span key={i} style={style} onClick={() => cb(undefined, symbol)}>
         {symbol.char}
       </span>
     ));
@@ -96,7 +92,7 @@ CodeMirror.defineExtension(
         cm.replaceRange(link, sel.from(), sel.to());
       }
     }
-  }
+  },
 );
 
 const SYMBOLS: Options[] = [

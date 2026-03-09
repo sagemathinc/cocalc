@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -28,6 +28,7 @@ import { fromJS, List, Map } from "immutable";
 import { debounce, union } from "lodash";
 import { normalize as path_normalize } from "path";
 
+import { type AccountStore } from "@cocalc/frontend/account";
 import { Store, TypedMap } from "@cocalc/frontend/app-framework";
 import {
   TableOfContentsEntry,
@@ -40,11 +41,14 @@ import {
 import { print_html } from "@cocalc/frontend/frame-editors/frame-tree/print";
 import { FrameTree } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import { randomId } from "@cocalc/conat/names";
 import {
   exec,
+  getComputeServerId,
   project_api,
   server_time,
 } from "@cocalc/frontend/frame-editors/generic/client";
+import { BuildCoordinator } from "@cocalc/frontend/frame-editors/generic/build-coordinator";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { once } from "@cocalc/util/async-utils";
 import { ExecOutput } from "@cocalc/util/db-schema/projects";
@@ -114,6 +118,7 @@ interface LatexEditorState extends CodeEditorState {
   output_panel_id_for_sync?: string; // stores the output panel ID for SyncTeX operations
   // job_infos: JobInfos;
   autoSyncInProgress?: boolean; // unified flag to prevent sync loops - true when any auto sync operation is in progress
+  building?: boolean; // true while a build is actively running (mirrors is_building for redux consumers)
 }
 
 export class Actions extends BaseActions<LatexEditorState> {
@@ -128,6 +133,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     skipFramePopup?: boolean,
   ) => Promise<void>;
   private is_stopping: boolean = false; // if true, do not continue running any compile jobs
+  private buildCoordinator?: BuildCoordinator;
+  private _lastBuiltTime?: number;
+  private _buildWasStopped = false;
   private ext: string = "tex";
   private knitr: boolean = false; // true, if we deal with a knitr file
   private filename_knitr: string; // .rnw or .rtex
@@ -217,8 +225,27 @@ export class Actions extends BaseActions<LatexEditorState> {
         debounce(this.ensureNonempty.bind(this), 1500),
       );
       this._init_pdf_directory_watcher();
+      this._init_build_coordinator();
     }
     this.word_count = reuseInFlight(this._word_count.bind(this));
+  }
+
+  private _init_build_coordinator(): void {
+    this.buildCoordinator = new BuildCoordinator(this.project_id, this.path, {
+      join: async (aggregate, force) => {
+        await this.run_build(aggregate ?? 0, force);
+      },
+      stop: () => this.stop_build(),
+      isBuilding: () => this.is_building,
+      setBuilding: (v) => {
+        this.is_building = v;
+        this.setState({ building: v });
+        if (!v && !this._buildWasStopped) {
+          this._lastBuiltTime = this.last_save_time();
+        }
+      },
+      setError: (err) => this.set_error(err),
+    });
   }
 
   // Watch the directory containing the PDF file for changes
@@ -231,6 +258,7 @@ export class Actions extends BaseActions<LatexEditorState> {
       (_mtime: number, force: boolean) => {
         this.update_pdf(this.last_save_time(), force);
       },
+      getComputeServerId({ project_id: this.project_id, path: this.path }),
     );
     await this.pdf_watcher.init();
   }
@@ -290,7 +318,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   private init_latexmk(): void {
-    const account: any = this.redux.getStore("account");
+    const account: AccountStore = this.redux.getStore("account");
 
     this._syncstring.on(
       "save-to-disk",
@@ -298,7 +326,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         if (this.not_ready()) return;
         const hash = this._syncstring.hash_of_saved_version();
         if (
-          account &&
+          account?.get("is_ready") &&
           account.getIn(["editor_settings", "build_on_save"]) &&
           this._last_syncstring_hash != hash
         ) {
@@ -346,7 +374,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         return;
       }
     }
-    if (this._state == "closed") {
+    if (this._state === "closed") {
       return;
     }
 
@@ -405,6 +433,32 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
+  // Tri-state: true = file exists, false = confirmed absent, null = unknown/error (skip auto-build)
+  private async outputFileExists(filePath: string): Promise<boolean | null> {
+    try {
+      const project_actions = this.redux.getProjectActions(this.project_id);
+      if (project_actions == null) return null;
+      const project_store = project_actions.get_store();
+      if (project_store == null) return null;
+      const csid = getComputeServerId({
+        project_id: this.project_id,
+        path: this.path,
+      });
+      const { head: dir, tail: filename } = path_split(filePath);
+      await project_actions.fetch_directory_listing({
+        path: dir,
+        compute_server_id: csid,
+      });
+      const dir_listings = project_store.getIn(["directory_listings", csid]);
+      if (dir_listings == null) return null;
+      const listing = dir_listings.get(dir ?? "");
+      if (listing == null) return null;
+      return listing.some((entry) => entry.get("name") === filename);
+    } catch {
+      return null;
+    }
+  }
+
   private async init_config(): Promise<void> {
     this.setState({ build_command: "" }); // empty means not yet initialized
 
@@ -423,7 +477,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         // user closed it
         return;
       }
-      if (this._state == "closed") return;
+      if (this._state === "closed") return;
     }
 
     // If the build command is NOT already
@@ -435,7 +489,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
     if (this._syncdb.get_one({ key: "build_command" }) == null) {
       await this.init_build_directive();
-      if (this._state == "closed") return;
+      if (this._state === "closed") return;
     } else {
       // this scans for the "cocalc" directive, which hardcodes the build command
       await this.init_build_directive(true);
@@ -479,8 +533,21 @@ export class Actions extends BaseActions<LatexEditorState> {
     this._syncdb.on("change", set_cmd);
 
     if (this.is_likely_master()) {
-      // We now definitely have the build command set and the document loaded,
-      // and it is likely a master latex file, so let's kick off our initial build.
+      // Only build on open if:
+      // - account settings are confirmed loaded (is_ready)
+      // - build_on_save is enabled
+      // - output PDF does not yet exist (null = unknown => skip)
+      const account: AccountStore = this.redux.getStore("account");
+      if (!account) return;
+      const ready = await account.waitUntilReady();
+      if (this._state === "closed") return;
+      if (!ready) return; // timed out — settings not loaded, skip auto-build
+      const buildOnSave =
+        account.getIn(["editor_settings", "build_on_save"]) ?? true;
+      if (!buildOnSave) return;
+      const pdfExists = await this.outputFileExists(pdf_path(this.path));
+      if (this._state === "closed") return;
+      if (pdfExists !== false) return; // exists or unknown => don't build
       this.force_build();
     }
   }
@@ -737,6 +804,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   close(): void {
     this._forget_pdf_document();
+    this.buildCoordinator?.close();
     if (this.pdf_watcher != null) {
       this.pdf_watcher.close();
       this.pdf_watcher = undefined;
@@ -820,16 +888,41 @@ export class Actions extends BaseActions<LatexEditorState> {
         return;
       }
     }
+    const buildId = randomId();
+    // Capture before reset: if previous build was stopped, we need a fresh
+    // timestamp to bypass backend aggregate dedup (cached partial results).
+    const wasStopped = this._buildWasStopped;
     this.is_building = true;
+    this._buildWasStopped = false;
+    this.setState({ building: true });
+    this.buildCoordinator?.setLocalBuildId(buildId);
     try {
       await this.save_all(false);
-      await this.run_build(this.last_save_time(), force);
+      const time =
+        force || wasStopped ? server_time().valueOf() : this.last_save_time();
+      // Skip if nothing changed since last build — avoids DKV chatter that
+      // causes other clients to flicker their build spinner for a no-op.
+      // Must be AFTER save so last_save_time() reflects pending edits.
+      if (
+        !force &&
+        this._lastBuiltTime != null &&
+        time === this._lastBuiltTime
+      ) {
+        return; // finally block cleans up is_building / building state
+      }
+      this.buildCoordinator?.publishBuildStart(buildId, time, force);
+      await this.run_build(time, force);
+      if (!this._buildWasStopped) {
+        this._lastBuiltTime = this.last_save_time();
+      }
     } catch (err) {
       this.set_error(`${err}`);
       // if there is an error, we issue a stop, but keep the build logs
       await this.stop_build();
     } finally {
+      this.buildCoordinator?.publishBuildFinished(buildId);
       this.is_building = false;
+      this.setState({ building: false });
     }
   };
 
@@ -865,6 +958,11 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   // This stops all known jobs with a status "running" and resets the state.
   async stop_build(_id?: string) {
+    this.buildCoordinator?.requestStop();
+    // A stopped build didn't complete — clear the "last built" time so
+    // the next build isn't skipped as a no-op.
+    this._lastBuiltTime = undefined;
+    this._buildWasStopped = true;
     const build_logs = this.store.get("build_logs");
     try {
       this.is_stopping = true;
@@ -958,6 +1056,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         this.make_timestamp(time, force),
         status,
         set_job_info,
+        getComputeServerId({ project_id: this.project_id, path: this.path }),
       );
     } catch (err) {
       this.set_error(err);
@@ -1059,6 +1158,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory(),
         set_job_info,
+        getComputeServerId({ project_id: this.project_id, path: this.path }),
       );
       // console.log(output);
     } catch (err) {
@@ -1114,7 +1214,7 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   private async update_gutters_soon(): Promise<void> {
     await delay(500);
-    if (this._state == "closed") return;
+    if (this._state === "closed") return;
     this.update_gutters();
   }
 
@@ -1291,6 +1391,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory(),
         set_job_info,
+        getComputeServerId({ project_id: this.project_id, path: this.path }),
       );
       if (!output) throw new Error("Unable to run SageTeX.");
       if (output.stderr.indexOf("sagetex.VersionError") != -1) {
@@ -1337,6 +1438,7 @@ export class Actions extends BaseActions<LatexEditorState> {
         status,
         this.get_output_directory(),
         set_job_info,
+        getComputeServerId({ project_id: this.project_id, path: this.path }),
       );
       // Now run latex again, since we had to run pythontex, which changes the inserted snippets.
       // This +2 forces re-running latex... but still deduplicates it in case of multiple users. (+1 is for sagetex)
@@ -1721,9 +1823,13 @@ export class Actions extends BaseActions<LatexEditorState> {
     }
   }
 
-  // time 0 implies to take the last_save_time,
+  // If time is provided (non-zero), use it as the aggregate key base.
+  // Note: sagetex/pythontex use time+1/time+2 to force distinct aggregate
+  // keys for their re-run of latex. Only generate a fresh timestamp when
+  // time=0 and force=true.
   make_timestamp(time: number, force: boolean): number {
-    return force ? Date.now() : time || this.last_save_time();
+    if (time) return time;
+    return force ? server_time().valueOf() : this.last_save_time();
   }
 
   private async _word_count(
@@ -1873,7 +1979,7 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   public updateTableOfContents(force: boolean = false): void {
-    if (this._state == "closed" || this._syncstring == null) {
+    if (this._state === "closed" || this._syncstring == null) {
       // no need since not initialized yet or already closed.
       return;
     }

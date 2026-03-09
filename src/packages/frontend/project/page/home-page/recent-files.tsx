@@ -44,11 +44,20 @@ export function HomeRecentFiles({
 }: Props): React.JSX.Element {
   const intl = useIntl();
   const project_log = useTypedRedux({ project_id }, "project_log");
+  const directory_listings = useTypedRedux(
+    { project_id },
+    "directory_listings",
+  );
   const user_map = useTypedRedux("users", "user_map");
 
   const [searchTerm, setSearchTerm] = useState<string>("");
 
-  const log: OpenedFile[] = useRecentFiles(project_log, max, searchTerm);
+  const log: OpenedFile[] = useRecentFiles(
+    project_log,
+    max,
+    searchTerm,
+    directory_listings,
+  );
 
   function renderItemInfo({ account_id, time }) {
     return (

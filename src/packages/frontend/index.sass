@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -69,6 +69,76 @@
 .close
   font-size : 20pt
 
+// Explorer file listing table (using react-virtuoso TableVirtuoso)
+.cc-explorer-table
+  // Ensure the virtuoso table fills the flex container
+  table
+    width: 100%
+  // Remove all default row backgrounds (including zebra stripes)
+  .ant-table-row > td
+    background: colors.$COL_WHITE !important
+    border-bottom: 1px solid colors.$COL_GRAY_LLL !important
+    transition: none !important
+  // Open files: faint gray background so the user can spot them
+  .cc-explorer-row-open > td
+    background-color: colors.$COL_GRAY_LLL !important
+  // Type cell with expanded directory peek: blue background
+  .ant-table-row > td.cc-explorer-cell-expanded
+    background-color: colors.$COL_BLUE_LLLL !important
+  // Hover: faint blue (kept subtle so DnD drop-target highlight stands out)
+  .ant-table-row:hover > td
+    background-color: colors.$COL_BLUE_LLLL !important
+    transition: none !important
+  // Hover-only icons: download in size column, context menu at row end
+  // No transitions — they cause a "trailing" effect during scroll.
+  .cc-explorer-hover-icon
+    visibility: hidden
+    transition: none !important
+  .ant-table-row:hover .cc-explorer-hover-icon
+    visibility: visible
+  // On mobile, always show (no hover available)
+  &.cc-explorer-table-mobile .cc-explorer-hover-icon
+    visibility: visible
+  // Checked (selected via checkbox): matches flyout selected style
+  .cc-explorer-row-checked > td
+    background-color: colors.$COL_BLUE_LLL !important
+  // Keyboard-selected row: blue background (matching flyout selection)
+  .cc-explorer-row-selected > td
+    background-color: colors.$COL_BLUE_LLL !important
+  // DnD drop target: folder row being hovered during drag
+  // Must override both default bg and hover bg, hence doubled specificity
+  .cc-explorer-row-drop-target > td,
+  .cc-explorer-row-drop-target:hover > td
+    background-color: colors.$COL_BLUE_LLL !important
+  // DnD invalid drop target (e.g. folder onto itself): red tint
+  .cc-explorer-row-drop-invalid > td,
+  .cc-explorer-row-drop-invalid:hover > td
+    background-color: colors.$COL_ANTD_BG_RED_L !important
+
+// Explorer right-click context menu: compact item sizing
+.cc-explorer-context-menu
+  .ant-menu-item
+    height: 28px
+    line-height: 28px
+    padding: 0 12px !important
+    margin: 0 !important
+    font-size: 13px
+  .ant-menu-item-divider
+    margin: 4px 0 !important
+
+// DnD: highlight all folder drop targets when a file is being dragged
+body.cc-file-dragging
+  [data-folder-drop-path]
+    background-color: rgba(colors.$COL_RUN, 0.06) !important
+    transition: background-color 0.15s
+  // Explorer folder rows: need to target <td> inside the <tr>
+  .cc-explorer-table tr[data-folder-drop-path] > td
+    background-color: rgba(colors.$COL_RUN, 0.06) !important
+  // Project tabs: non-active tabs are cross-project copy targets
+  .cc-projects-nav .ant-tabs-tab:not(.ant-tabs-tab-active)
+    background-color: rgba(colors.$COL_RUN, 0.12) !important
+    transition: background-color 0.15s
+
 .center
   text-align : center
 
@@ -77,10 +147,11 @@ body
   width      : 100vw
   overflow-x : hidden
 
-div#smc-react-container
+div#smc-react-container,
+div#cocalc-webapp-container
   overflow   : hidden
   position   : absolute
-  top        : 0px
+  inset      : 0
 
 
 
@@ -358,6 +429,29 @@ div.cocalc-xtermjs > div.terminal.xterm > div.xterm-viewport
   .dz-default.dz-message
     opacity  : .7
 
+// Flyout file-upload preview: compact overlay so it stays visible
+// within the flyout's constrained height.
+// FileUploadWrapper gives both the outer wrapper and the inner preview
+// div the same className, so "> .cc-flyout-dropzone" targets the preview.
+.cc-flyout-dropzone
+  > .cc-flyout-dropzone
+    position: absolute
+    top: 0
+    left: 0
+    right: 0
+    z-index: 10
+    background: white
+    max-height: 60%
+    overflow-y: auto
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15)
+    border-bottom: 1px solid #ccc
+    padding: 4px
+    .dropzone
+      min-height: 40px
+    h4
+      font-size: 13px
+      margin: 2px 10px
+
 .dropdown-splitbutton-left>div>ul.dropdown-menu
   right: 0
   left: auto
@@ -422,3 +516,7 @@ span.cc-project-fixedtab-drag:hover
 
 div.cc-project-flyout-file-item:hover
   background-color: colors.$COL_BLUE_LLLL
+
+// Flyout type filter: orange highlight when a filter is active
+.cc-flyout-type-filter-active .ant-select-selector
+  background-color: colors.$COL_ANTD_ORANGE !important

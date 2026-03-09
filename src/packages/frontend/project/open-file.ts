@@ -452,11 +452,16 @@ export function log_file_open(
 
   redux.getActions("file_use")?.mark_file(project_id, path, "open");
   const actions = redux.getProjectActions(project_id);
+  // Record the compute server ID so recent-files can filter correctly
+  // across multiple compute servers. Uses per-file assignment if known,
+  // otherwise falls back to 0 (home base).
+  const compute_server_id = actions.getComputeServerIdForFile({ path }) ?? 0;
   const id = actions.log({
     event: "open",
     action: "open",
     filename: path,
     deleted,
+    compute_server_id,
   });
 
   // Save the log entry id, so it is possible to optionally

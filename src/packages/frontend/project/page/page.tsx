@@ -1,9 +1,12 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import { DndContext, useDraggable } from "@dnd-kit/core";
+
+import { FileDndProvider } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
+import { useExplorerSettings } from "@cocalc/frontend/project/explorer/use-explorer-settings";
 import { Button, Modal, Tooltip } from "antd";
 import { useIntl } from "react-intl";
 
@@ -30,6 +33,7 @@ import track from "@cocalc/frontend/user-tracking";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { AnonymousName } from "../anonymous-name";
+import FileActionModal from "../file-action-modal";
 import {
   ProjectContext,
   useProjectContext,
@@ -94,6 +98,11 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     is_active,
     mainWidthPx,
   });
+
+  // Sort persistence via DKV — must be in an always-mounted component so
+  // flyout sort changes are saved even when the Explorer tab isn't active.
+  useExplorerSettings(project_id);
+
   const fullscreen = useTypedRedux("page", "fullscreen");
   const active_top_tab = useTypedRedux("page", "active_top_tab");
   const modal = useTypedRedux({ project_id }, "modal");
@@ -375,6 +384,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         {renderEditorContent()}
         {render_project_content()}
         {render_project_modal()}
+        <FileActionModal />
       </div>
     );
   }
@@ -393,13 +403,15 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <OOMWarning project_id={project_id} />
         <SoftwareEnvUpgrade project_id={project_id} />
         <ProjectWarningBanner />
-        {renderTopRow()}
-        {is_deleted && <DeletedProjectWarning />}
-        <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-          {renderActivityBarButtons()}
-          {renderFlyout()}
-          {renderMainContent()}
-        </div>
+        <FileDndProvider project_id={project_id}>
+          {renderTopRow()}
+          {is_deleted && <DeletedProjectWarning />}
+          <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+            {renderActivityBarButtons()}
+            {renderFlyout()}
+            {renderMainContent()}
+          </div>
+        </FileDndProvider>
       </div>
     </ProjectContext.Provider>
   );

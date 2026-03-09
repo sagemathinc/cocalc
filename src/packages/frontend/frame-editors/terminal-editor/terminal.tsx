@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -22,6 +22,7 @@ import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import useResizeObserver from "use-resize-observer";
 import useComputeServerId from "@cocalc/frontend/compute/file-hook";
 import { termPath } from "@cocalc/util/terminal/names";
+import { normalizeArgs } from "./normalize-args";
 
 interface Props {
   actions: any;
@@ -56,6 +57,9 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   );
 
   const node = props.actions._get_frame_node(props.id);
+  const frameType = props.desc.get("type");
+  const command = props.desc.get("command");
+  const shellNeedsKernel = frameType === "shell" && !command;
   const computeServerId = useComputeServerId({
     project_id: props.project_id,
     path: termPath({
@@ -87,6 +91,30 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     init_terminal();
   }, [props.id]);
 
+  // When the command or args change (e.g. frame type switched from
+  // terminal to shell, or kernel connection_file updated on restart),
+  // the old terminal process is no longer valid.  close_terminal() in
+  // the TerminalManager removes the old instance, so we need to
+  // reinitialize to pick up the new command/args from the frame tree.
+  // We stringify args for stable comparison (it can be an Immutable List).
+  // Always delete the stale terminal ref even if hidden — otherwise the
+  // visibility effect (above) will see a non-null ref and skip reinit
+  // when the frame becomes visible again.
+  const argsKey = JSON.stringify(normalizeArgs(props.desc.get("args")));
+  useEffect(() => {
+    // command/type transitions can happen while no terminal instance exists
+    // (e.g. shell frame showing "Kernel not running"). In that case, we still
+    // must initialize once command/type becomes runnable and frame is visible.
+    if (terminalRef.current != null) {
+      delete_terminal();
+    }
+    if (props.is_visible) {
+      init_terminal();
+    }
+    // If hidden, the visibility useEffect will call init_terminal()
+    // when the frame becomes visible (terminalRef.current is now null).
+  }, [frameType, command, argsKey]);
+
   useEffect(() => {
     if (props.is_current) {
       terminalRef.current?.focus();
@@ -107,6 +135,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function init_terminal(): void {
+    if (shellNeedsKernel) return;
     if (!props.is_visible) return;
     const node: any = terminalDOMRef.current;
     if (node == null) {
@@ -156,21 +185,23 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
   }
 
   function render_command(): Rendered {
-    const command = props.desc.get("command");
     if (!command) return;
-    const args: string[] = props.desc.get("args") ?? [];
-    // Quote if args have spaces:
-    for (let i = 0; i < args.length; i++) {
-      if (/\s/.test(args[i])) {
-        // has whitespace -- this is not bulletproof, since
-        // args[i] could have a " in it. But this is just for
-        // display purposes, so it doesn't have to be bulletproof.
-        args[i] = `"${args[i]}"`;
-      }
-    }
+    const args = normalizeArgs(props.desc.get("args")).map((arg) =>
+      /\s/.test(arg) ? `"${arg}"` : arg,
+    );
     return (
       <div style={COMMAND_STYLE}>
         {command} {args.join(" ")}
+      </div>
+    );
+  }
+
+  function render_shell_needs_kernel(): Rendered {
+    if (!shellNeedsKernel) return;
+    return (
+      <div style={{ margin: "auto", fontSize: "14pt", padding: "15px" }}>
+        <div>Kernel not running.</div>
+        <div>Run a notebook cell to start the kernel and connect console.</div>
       </div>
     );
   }
@@ -205,7 +236,11 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
           terminalRef.current?.focus();
         }}
       >
-        <div className={"smc-vfill cocalc-xtermjs"} ref={terminalDOMRef} />
+        {shellNeedsKernel ? (
+          render_shell_needs_kernel()
+        ) : (
+          <div className={"smc-vfill cocalc-xtermjs"} ref={terminalDOMRef} />
+        )}
       </div>
     </div>
   );

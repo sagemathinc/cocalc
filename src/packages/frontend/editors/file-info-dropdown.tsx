@@ -11,7 +11,7 @@ import { CSS, React, useActions } from "@cocalc/frontend/app-framework";
 import { DropdownMenu, Icon, IconName } from "@cocalc/frontend/components";
 import { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { file_actions } from "@cocalc/frontend/project_store";
+import { FILE_ACTIONS } from "@cocalc/frontend/project_actions";
 import { capitalize, filename_extension } from "@cocalc/util/misc";
 
 interface Props {
@@ -51,15 +51,16 @@ const EditorFileInfoDropdown: React.FC<Props> = React.memo(
           // otherwise 'foo' leads to 'random.'
           new_ext = undefined;
         }
-        // Special calse -- not an action on this one file
+        // Special case -- not an action on this one file
         actions.set_active_tab("new", { new_ext });
         return;
       }
-      for (const key in file_actions) {
+      for (const key in FILE_ACTIONS) {
         if (key === name) {
           actions.show_file_action_panel({
             path: filename,
             action: key,
+            source: "editor",
           });
           break;
         }
@@ -93,8 +94,8 @@ const EditorFileInfoDropdown: React.FC<Props> = React.memo(
         }
         // create a map from name to icon
         items = {};
-        for (const key in file_actions) {
-          const { icon, hideFlyout } = file_actions[key];
+        for (const key in FILE_ACTIONS) {
+          const { icon, hideFlyout } = FILE_ACTIONS[key];
           if (mode === "flyout" && hideFlyout) continue;
           items[key] = icon;
         }

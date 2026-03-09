@@ -12,6 +12,7 @@ import { defineMessage, IntlShape, useIntl } from "react-intl";
 
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
+import type { FileCommand } from "@cocalc/frontend/project_actions";
 import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { IS_MACOS } from "@cocalc/frontend/feature";
@@ -643,6 +644,7 @@ addCommands({
 
   build: {
     group: "build",
+    disabled: ({ props }) => !!props.editor_actions?.store?.get("building"),
     label: defineMessage({
       id: "command.generic.build.label",
       defaultMessage: "Build",
@@ -673,6 +675,7 @@ addCommands({
   },
   force_build: {
     group: "build",
+    disabled: ({ props }) => !!props.editor_actions?.store?.get("building"),
     label: defineMessage({
       id: "command.generic.force_build.label",
       defaultMessage: "Force Build",
@@ -685,8 +688,7 @@ addCommands({
   },
   stop_build: {
     group: "build",
-    // TODO does not react to changes
-    // disabled: ({ props }) => props.editor_actions.is_running !== true,
+    disabled: ({ props }) => !props.editor_actions?.store?.get("building"),
     label: defineMessage({
       id: "command.generic.stop_build.label",
       defaultMessage: "Stop",
@@ -953,6 +955,7 @@ addCommands({
   },
   download_pdf: {
     group: "export",
+    disable: "disableActions",
     // ATTN: this must be an IntlMessage
     label: defineMessage({
       id: "menu.generic.download_pdf.label",
@@ -1018,6 +1021,7 @@ addCommands({
     }),
     label: menu.new_file,
     ...fileAction("new"),
+    disable: undefined,
   },
   new_ai: {
     pos: 0.5,
@@ -1050,6 +1054,7 @@ addCommands({
       description: "Label on menu item",
     }),
     ...fileAction("open"),
+    disable: undefined,
   },
   open_recent: {
     pos: 2,
@@ -1066,6 +1071,7 @@ addCommands({
       description: "Label on menu item",
     }),
     ...fileAction("open_recent"),
+    disable: undefined,
   },
   save: {
     pos: 0,
@@ -1244,6 +1250,7 @@ addCommands({
       description: "Editor for a file in a user interface",
     }),
     ...fileAction("close"),
+    disable: undefined,
   },
   settings: {
     pos: 10,
@@ -1563,14 +1570,15 @@ addCommands({
   },
 });
 
-function fileAction(action) {
+function fileAction(action: FileCommand) {
   return {
-    alwaysShow: true,
+    disable: "disableActions" as const,
     onClick: ({ props }) => {
       const actions = redux.getProjectActions(props.project_id);
       actions.show_file_action_panel({
         path: props.path,
         action,
+        source: "editor",
       });
     },
   };

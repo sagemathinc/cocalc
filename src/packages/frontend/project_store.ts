@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -31,10 +31,11 @@ import { get_local_storage } from "@cocalc/frontend/misc";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { remove } from "@cocalc/frontend/project-file";
 import { ProjectLogMap } from "@cocalc/frontend/project/history/types";
-import {
-  FILE_ACTIONS,
-  ProjectActions,
-  QUERIES,
+import { ProjectActions, QUERIES } from "@cocalc/frontend/project_actions";
+import { isTerminalMode } from "@cocalc/frontend/project/explorer/file-listing";
+import type {
+  FileAction,
+  FileActionSource,
 } from "@cocalc/frontend/project_actions";
 import {
   Available as AvailableFeatures,
@@ -58,7 +59,7 @@ import {
   FlyoutLogFilter,
 } from "./project/page/flyouts/utils";
 
-export { FILE_ACTIONS as file_actions, ProjectActions };
+export { ProjectActions };
 
 export type ModalInfo = TypedMap<{
   title: string | React.JSX.Element;
@@ -100,9 +101,20 @@ export interface ProjectStoreState {
   active_file_sort: TypedMap<{ column_name: string; is_descending: boolean }>;
   page_number: number;
   starred_files?: immutable.List<string>; // paths to starred files (synced from conat)
-  file_action?: string; // undefined is meaningfully none here
+  file_action?: FileAction;
+  file_action_source?: FileActionSource;
+  copy_destination_project_id?: string; // pre-populate cross-project copy dialog (e.g. from DnD)
   file_search?: string;
+  show_directory_tree?: boolean;
   show_hidden?: boolean;
+  hide_masked_files?: boolean; // temporary per-session toggle to completely hide masked files
+  type_filter?: string; // file extension filter shared between explorer table and flyout
+  explorer_browsing_path?: string; // independent browsing path for the explorer
+  explorer_history_path?: string; // breadcrumb history for the explorer
+  flyout_browsing_path?: string; // independent browsing path for the flyout panel
+  flyout_history_path?: string; // breadcrumb history for the flyout panel
+  new_page_path?: string; // current dir for "+New" page (last of: explorer nav, file tab switch)
+  flyout_new_path?: string; // current dir for flyout/new (last of: flyout nav, file tab switch)
   error?: string;
   checked_files: immutable.Set<string>;
   selected_file_index?: number; // Index on file listing to highlight starting at 0. undefined means none highlighted
@@ -318,6 +330,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       page_number: 0,
       checked_files: immutable.Set(),
       show_library: false,
+      show_directory_tree: false,
       file_listing_scroll_top: undefined,
       active_file_sort: TypedMap({
         is_descending: false,
@@ -376,6 +389,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       dependencies: [
         "active_file_sort",
         "current_path",
+        "explorer_browsing_path",
         "directory_listings",
         "stripped_public_paths",
         "file_search",
@@ -383,13 +397,17 @@ export class ProjectStore extends Store<ProjectStoreState> {
         "show_hidden",
         "compute_server_id",
         "starred_files",
+        "type_filter",
       ] as const,
       fn: () => {
-        const search_escape_char = "/";
+        // The explorer has its own browsing path, independent of the
+        // project-wide current_path (which tracks the active file context).
+        const explorerPath =
+          this.get("explorer_browsing_path") ?? "";
         const listingStored = this.getIn([
           "directory_listings",
           this.get("compute_server_id"),
-          this.get("current_path"),
+          explorerPath,
         ]);
         if (typeof listingStored === "string") {
           if (
@@ -434,13 +452,50 @@ export class ProjectStore extends Store<ProjectStoreState> {
           compute_file_masks(listing);
         }
 
-        if (this.get("current_path") === ".snapshots") {
+        if (explorerPath === ".snapshots") {
           compute_snapshot_display_names(listing);
         }
 
+        // Compute public file info early, so sorting by "public" works.
+        // The mutation is idempotent so calling it here and again below is safe.
+        {
+          const tmpData = { listing, public: {} };
+          mutate_data_to_compute_public_files(
+            tmpData,
+            this.get("stripped_public_paths"),
+            explorerPath,
+          );
+        }
+
         const search = this.get("file_search");
-        if (search && search[0] !== search_escape_char) {
+        if (search && !isTerminalMode(search)) {
           listing = _matched_files(search.toLowerCase(), listing);
+        }
+
+        // Compute type counts BEFORE type filtering (so the dropdown
+        // shows all available extensions even when a filter is active)
+        // but AFTER applying the hidden-file predicate (so dotfile-only
+        // extensions don't appear in the dropdown when hidden files are off).
+        const showHidden = this.get("show_hidden");
+        const type_counts: Record<string, number> = {};
+        for (const item of listing) {
+          if (!showHidden && item.name.startsWith(".")) continue;
+          const ext = item.isdir
+            ? "folder"
+            : misc.filename_extension(item.name)?.toLowerCase() || "(none)";
+          type_counts[ext] = (type_counts[ext] ?? 0) + 1;
+        }
+
+        // Apply type filter (shared between explorer and flyout)
+        const typeFilter = this.get("type_filter");
+        if (typeFilter) {
+          listing = listing.filter((item) => {
+            if (item.isdir) return typeFilter === "folder";
+            return (
+              (misc.filename_extension(item.name)?.toLowerCase() ||
+                "(none)") === typeFilter
+            );
+          });
         }
 
         const sorter = (() => {
@@ -470,14 +525,8 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 const starredFiles = this.get("starred_files");
                 if (!starredFiles) return 0;
 
-                const pathA = misc.path_to_file(
-                  this.get("current_path"),
-                  a.name,
-                );
-                const pathB = misc.path_to_file(
-                  this.get("current_path"),
-                  b.name,
-                );
+                const pathA = misc.path_to_file(explorerPath, a.name);
+                const pathB = misc.path_to_file(explorerPath, b.name);
                 const starPathA = a.isdir ? `${pathA}/` : pathA;
                 const starPathB = b.isdir ? `${pathB}/` : pathB;
                 const starredA = starredFiles.includes(starPathA);
@@ -486,6 +535,18 @@ export class ProjectStore extends Store<ProjectStoreState> {
                 if (starredA && !starredB) {
                   return -1;
                 } else if (!starredA && starredB) {
+                  return 1;
+                } else {
+                  return misc.cmp(a.name.toLowerCase(), b.name.toLowerCase());
+                }
+              };
+            case "public":
+              return (a, b) => {
+                const aPublic = !!a.is_public;
+                const bPublic = !!b.is_public;
+                if (aPublic && !bPublic) {
+                  return -1;
+                } else if (!aPublic && bPublic) {
                   return 1;
                 } else {
                   return misc.cmp(a.name.toLowerCase(), b.name.toLowerCase());
@@ -520,14 +581,15 @@ export class ProjectStore extends Store<ProjectStoreState> {
         const data = {
           listing,
           public: {},
-          path: this.get("current_path"),
+          path: explorerPath,
           file_map,
+          type_counts,
         };
 
         mutate_data_to_compute_public_files(
           data,
           this.get("stripped_public_paths"),
-          this.get("current_path"),
+          explorerPath,
         );
 
         return data;
@@ -628,45 +690,41 @@ export class ProjectStore extends Store<ProjectStoreState> {
         let directory_listings_for_server =
           this.getIn(["directory_listings", computeServerId]) ??
           immutable.Map();
-
-        const missing: string[] = [];
+        let changed = false;
         for (const path of paths) {
+          const previous = directory_listings_for_server.get(path);
+          let files;
           if (listingsTable.getMissing(path)) {
-            missing.push(path);
+            // For large directories, publish the final full listing only.
+            // This avoids UI "flip" from partial -> full updates.
+            try {
+              files = immutable.fromJS(
+                await listingsTable.getListingDirectly(path),
+              );
+            } catch {
+              // fallback (e.g., project not running)
+              files = await listingsTable.getForStore(path);
+            }
+          } else {
+            files = await listingsTable.getForStore(path);
           }
-          const files = await listingsTable.getForStore(path);
+          if (immutable.is(previous, files)) continue;
+
           directory_listings_for_server = directory_listings_for_server.set(
             path,
             files,
           );
+          changed = true;
         }
-        const f = () => {
-          const actions = redux.getProjectActions(this.project_id);
-          const directory_listings = this.get("directory_listings").set(
-            computeServerId,
-            directory_listings_for_server,
-          );
-          actions.setState({ directory_listings });
-        };
-        f();
-
-        if (missing.length > 0) {
-          for (const path of missing) {
-            try {
-              const files = immutable.fromJS(
-                await listingsTable.getListingDirectly(path),
-              );
-              directory_listings_for_server = directory_listings_for_server.set(
-                path,
-                files,
-              );
-            } catch {
-              // happens if e.g., the project is not running
-              continue;
-            }
-          }
-          f();
+        if (!changed) {
+          return;
         }
+        const actions = redux.getProjectActions(this.project_id);
+        const directory_listings = this.get("directory_listings").set(
+          computeServerId,
+          directory_listings_for_server,
+        );
+        actions.setState({ directory_listings });
       });
     }
     if (this.listings[computeServerId] == null) {

@@ -68,6 +68,8 @@ export type LSFlyout = {
   showStarred?: boolean;
   activeTabSort?: FlyoutActiveTabSort;
   logFilter?: FlyoutLogFilter[];
+  /** Flyout's independent browsing directory. */
+  directory?: string;
 };
 
 function isPositiveNumber(val: any): val is number {
@@ -229,4 +231,15 @@ export function getFlyoutActiveTabSort(
 ): FlyoutActiveTabSort {
   const activeTabSort = LS.get<LSFlyout>(lsKey(project_id))?.activeTabSort;
   return isFlyoutActiveTabSort(activeTabSort) ? activeTabSort : "custom";
+}
+
+export function getFlyoutDirectory(project_id: string): string {
+  return LS.get<LSFlyout>(lsKey(project_id))?.directory ?? "";
+}
+
+export function setFlyoutDirectory(project_id: string, path: string): void {
+  const key = lsKey(project_id);
+  const current = LS.get<LSFlyout>(key) ?? {};
+  current.directory = path;
+  LS.set(key, current);
 }

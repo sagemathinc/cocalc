@@ -78,6 +78,7 @@ interface RunJobOpts {
   aggregate: ExecOptsBlocking["aggregate"];
   args?: string[];
   command: string;
+  compute_server_id?: number;
   env?: { [key: string]: string };
   project_id: string;
   runDir: string; // a directory! (output_directory if in /tmp, or the directory of the file's path)
@@ -91,6 +92,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     aggregate,
     args,
     command,
+    compute_server_id,
     env,
     project_id,
     runDir,
@@ -106,6 +108,7 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
     args,
     bash: !haveArgs,
     command,
+    compute_server_id,
     env,
     err_on_exit: false,
     path: runDir,

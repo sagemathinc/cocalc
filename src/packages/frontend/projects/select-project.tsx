@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -19,6 +19,7 @@ interface Props {
   value?: string; // currently selected project
   defaultValue?: string;
   style?: CSS;
+  filtersPosition?: "side" | "below";
 }
 
 export function SelectProject({
@@ -28,6 +29,7 @@ export function SelectProject({
   value,
   defaultValue,
   style,
+  filtersPosition = "side",
 }: Props) {
   const project_map = useTypedRedux("projects", "project_map");
   const all_projects_have_been_loaded = useTypedRedux(
@@ -105,57 +107,82 @@ export function SelectProject({
     return <Loading />;
   }
 
+  const selector = (
+    <Select
+      allowClear
+      style={
+        filtersPosition === "side"
+          ? { marginRight: "15px", flex: 1 }
+          : { width: "100%" }
+      }
+      showSearch={true}
+      placeholder={"Select a project..."}
+      optionFilterProp={"children"}
+      value={value}
+      defaultValue={defaultValue}
+      onChange={onChange}
+      filterOption={(input, option) =>
+        option
+          ? (`${option.children}`.toLowerCase().indexOf(input.toLowerCase()) ??
+              0) >= 0
+          : false
+      }
+    >
+      {data.map((v) => (
+        <Select.Option key={v.id} value={v.id}>
+          {v.title}
+        </Select.Option>
+      ))}
+    </Select>
+  );
+
+  const filters = (
+    <div
+      style={
+        filtersPosition === "side"
+          ? { margin: "auto" }
+          : {
+              marginTop: "8px",
+              display: "flex",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "8px 14px",
+            }
+      }
+    >
+      <Checkbox
+        checked={include_hidden}
+        onChange={(e) => set_include_hidden(e.target.checked)}
+      >
+        Hidden
+      </Checkbox>
+      <Checkbox
+        checked={include_deleted}
+        onChange={(e) => set_include_deleted(e.target.checked)}
+      >
+        Deleted
+      </Checkbox>
+      {!all_projects_have_been_loaded && (
+        <a onClick={() => redux.getActions("projects").load_all_projects()}>
+          Load all projects...
+        </a>
+      )}
+    </div>
+  );
+
   return (
     <div style={style}>
-      <div style={{ display: "flex", flexDirection: "row" }}>
-        <Select
-          allowClear
-          style={{ marginRight: "15px", flex: 1 }}
-          showSearch={true}
-          placeholder={"Select a project..."}
-          optionFilterProp={"children"}
-          value={value}
-          defaultValue={defaultValue}
-          onChange={onChange}
-          filterOption={(input, option) =>
-            option
-              ? (`${option.children}`
-                  .toLowerCase()
-                  .indexOf(input.toLowerCase()) ?? 0) >= 0
-              : false
-          }
-        >
-          {data.map((v) => (
-            <Select.Option key={v.id} value={v.id}>
-              {v.title}
-            </Select.Option>
-          ))}
-        </Select>
-        <div style={{ margin: "auto" }}>
-          <Checkbox
-            checked={include_hidden}
-            onChange={(e) => set_include_hidden(e.target.checked)}
-          >
-            Hidden
-          </Checkbox>
-          <Checkbox
-            checked={include_deleted}
-            onChange={(e) => set_include_deleted(e.target.checked)}
-          >
-            Deleted
-          </Checkbox>
-          {!all_projects_have_been_loaded && (
-            <span>
-              <br />
-              <a
-                onClick={() => redux.getActions("projects").load_all_projects()}
-              >
-                Load all projects...
-              </a>
-            </span>
-          )}
+      {filtersPosition === "side" ? (
+        <div style={{ display: "flex", flexDirection: "row" }}>
+          {selector}
+          {filters}
         </div>
-      </div>
+      ) : (
+        <div>
+          {selector}
+          {filters}
+        </div>
+      )}
     </div>
   );
 }

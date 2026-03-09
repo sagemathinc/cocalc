@@ -23,12 +23,12 @@ export function TerminalModeDisplay({ style }) {
       description={
         extra && (
           <>
-            Terminal mode is triggered by a leading <code>/</code> in the file
-            filter box. If you would like to display all folders instead, enter
-            a space in front of the <code>/</code>. Terminal mode allows you to
-            quickly use common Linux commands like <code>mv</code> or{" "}
-            <code>cp</code> in the displayed directory without having to click
-            on the file listing UI. Start{" "}
+            Terminal mode is triggered by a leading <code>!</code> or{" "}
+            <code>/</code> in the file filter box. If you would like to filter
+            for folders instead, enter a space in front of the <code>/</code>.
+            Terminal mode allows you to quickly use common Linux commands like{" "}
+            <code>mv</code> or <code>cp</code> in the displayed directory
+            without having to click on the file listing UI. Start{" "}
             <A href="https://www.google.com/search?q=introduction+to+command+line">
               here
             </A>{" "}

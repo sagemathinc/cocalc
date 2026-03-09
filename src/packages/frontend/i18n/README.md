@@ -55,6 +55,15 @@ Note: if just a translation has been updated, you only need to do the `i18n:down
 
 Note: you can also run `pnpm i18n:update` which combines all steps in one go.
 
+**Important:** Whenever you add or change i18n keys in the source code, run `pnpm i18n:update` in `packages/frontend` immediately afterward. This extracts the new keys, uploads them for auto-translation, downloads the results, and compiles the translation files. Skipping this step leaves the new keys untranslated for all non-English locales.
+
+**Updating an existing message:** SimpleLocalize only auto-translates _new_ keys. If you change the `defaultMessage` of an existing key, the old translations will remain unchanged. To force re-translation, you must first delete the key from SimpleLocalize, then run the update pipeline:
+
+```bash
+pnpm i18n:delete <key-id>   # removes the key and all its translations from SimpleLocalize
+pnpm i18n:update             # re-extracts, uploads (as new), auto-translates, downloads, compiles
+```
+
 ### Unused keys
 
 Development goes on, and it might happen that keys are no longer in use.
@@ -86,6 +95,7 @@ CoCalc specific rules for implementing translations, of which I think are good t
 - **richTextElements**: in `app/localize.tsx`, a few default `richTextElements` are defined – just for convenience. Anchor tags must be defined individually, because link text and href can't be wrapped that way.
 - **Query parameter**: A new `?lang=en` (or `=de`, `=zh`, ...) query parameters lets you change the language as well. This also changes the account setting. Hence, a URL with `?lang=en` can be used to reset the account setting to English.
 - **Descriptions**: add descriptions, especially for jupyter notebooks or latex, to add more context. The description is not only shown in the translation tool, but also passed on to the language model doing the automatic translations.
+- **Single quotes in ICU messages**: In ICU MessageFormat, a single `'` starts a quoted/escaped section — everything between `'...'` is treated as literal text. This means `'{variable}'` will **not** interpolate the variable; it will render as the literal string `{variable}`. To include a literal single-quote character around an interpolated variable, use two single-quotes: `''{variable}''`. For example, `defaultMessage: "Rename ''{filename}''"` renders as `Rename 'foo.txt'`.
 
 ## Style
 

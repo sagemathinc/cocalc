@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -11,6 +11,7 @@ import { Actions, CodeEditorState } from "../code-editor/actions";
 import * as tree_ops from "../frame-tree/tree-ops";
 import { close, len } from "@cocalc/util/misc";
 import { Terminal } from "./connected-terminal";
+import { normalizeArgs } from "./normalize-args";
 
 export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
   private terminals: { [key: string]: Terminal<T> } = {};
@@ -39,7 +40,8 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     const numbers = {};
     for (let id0 in this.actions._get_leaf_ids()) {
       const node0 = tree_ops.get_node(this.actions._get_tree(), id0);
-      if (node0 == null || node0.get("type") != "terminal") {
+      const nodeType = node0?.get("type");
+      if (node0 == null || (nodeType != "terminal" && nodeType != "shell")) {
         continue;
       }
       let n = node0.get("number");
@@ -70,11 +72,17 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
     if (this.terminals[id] != null) {
       parent.appendChild(this.terminals[id].element);
     } else {
+      // Read command/args from the frame tree node.  For shell frames in
+      // the Jupyter editor these are written by setShellFrameCommand()
+      // (or by watchJupyterStore on connection_file change).  This is the
+      // only place where a new ConnectedTerminal picks up its initial
+      // command, so the frame tree metadata must be up-to-date before
+      // the TerminalFrame component mounts and calls this method.
       let command: string | undefined = undefined;
       let args: string[] | undefined = undefined;
       if (node != null) {
         command = node.get("command");
-        args = node.get("args");
+        args = normalizeArgs(node.get("args"), true);
       }
       this.terminals[id] = new Terminal<T>(
         this.actions,
@@ -142,5 +150,18 @@ export class TerminalManager<T extends CodeEditorState = CodeEditorState> {
       return;
     }
     this.terminals[id].set_command(command, args);
+  }
+
+  // Update command/args and restart the terminal process.
+  // Graceful no-op if the terminal doesn't exist yet.
+  restart(
+    id: string,
+    command: string | undefined,
+    args: string[] | undefined,
+  ): void {
+    if (this.terminals[id] == null) {
+      return;
+    }
+    this.terminals[id].restart(command, args);
   }
 }
