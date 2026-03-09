@@ -528,6 +528,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const [pendingExec, setPendingExec] = useState<ExecBlock[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(false);
+  // Ref to always call the latest loadSessionsAndMessages from change handlers,
+  // avoiding stale closures in the useEffect event listeners.
+  const loadRef = useRef<(db: any) => void>(() => {});
 
   // Whether we're using the chat syncdb schema (embedded mode) or our own.
   const usesChatSchema = chatSyncdb != null;
@@ -560,12 +563,12 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
     const handleReady = () => {
       setSyncdb(db);
-      loadSessionsAndMessages(db);
+      loadRef.current(db);
     };
 
     const handleChange = () => {
       if (db.get_state() === "ready") {
-        loadSessionsAndMessages(db);
+        loadRef.current(db);
       }
     };
 
@@ -592,17 +595,17 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
     const handleChange = () => {
       if (chatSyncdb.get_state() === "ready") {
-        loadSessionsAndMessages(chatSyncdb);
+        loadRef.current(chatSyncdb);
       }
     };
 
     if (chatSyncdb.get_state() === "ready") {
       setSyncdb(chatSyncdb);
-      loadSessionsAndMessages(chatSyncdb);
+      loadRef.current(chatSyncdb);
     } else {
       chatSyncdb.once("ready", () => {
         setSyncdb(chatSyncdb);
-        loadSessionsAndMessages(chatSyncdb);
+        loadRef.current(chatSyncdb);
       });
     }
     chatSyncdb.on("change", handleChange);
@@ -706,6 +709,8 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     },
     [sessionId, usesChatSchema],
   );
+  // Keep the ref in sync so change handlers always call the latest version.
+  loadRef.current = loadSessionsAndMessages;
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -1040,17 +1045,14 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       });
     }
 
-    // Apply via syncstring (goes through sync layer, propagates to all collaborators)
-    const ss = actions._syncstring;
-    if (ss?.from_str) {
-      ss.from_str(newContent);
-      ss.commit?.();
-    } else {
-      // Fallback: set via CodeMirror
-      const cm = actions._get_cm?.(undefined, true);
-      if (cm) {
-        cm.setValue(newContent);
-      }
+    // Apply via the public set_value API — this updates both the
+    // CodeMirror editor and the syncstring, handles undo mode, and
+    // emits the "change" event so derived classes (e.g. LaTeX preview)
+    // react properly.
+    try {
+      actions.set_value(newContent);
+    } catch (err) {
+      setError(`Failed to apply edits: ${err}`);
     }
     setPendingEdits(undefined);
   }, [pendingEdits, actions]);
