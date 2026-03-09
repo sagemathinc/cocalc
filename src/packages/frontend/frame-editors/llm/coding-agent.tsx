@@ -20,8 +20,10 @@ import { Alert, Button, Dropdown, Popconfirm, Spin, Tooltip } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { redux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { CSS } from "@cocalc/frontend/app-framework";
+import { LLMCostEstimationChat } from "@cocalc/frontend/chat/llm-cost-estimation";
+import type { CostEstimate } from "@cocalc/frontend/chat/types";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
@@ -29,7 +31,9 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { EditorComponentProps } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
+import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { three_way_merge } from "@cocalc/util/dmp";
 import {
   filename_extension,
@@ -564,9 +568,12 @@ export function CodingAgentEmbedded({ chatSyncdb }: { chatSyncdb: any }) {
 function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const { project_id, path, actions } = useFrameContext();
   const [model, setModel] = useLanguageModelSetting(project_id);
+  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+  const llm_markup = useTypedRedux("customize", "llm_markup");
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string>("");
+  const [costEstimate, setCostEstimate] = useState<CostEstimate>(null);
   const [pendingEdits, setPendingEdits] = useState<
     | { type: "edit_blocks"; blocks: EditBlock[]; base: string }
     | { type: "search_replace"; blocks: SearchReplace[]; base: string }
@@ -596,6 +603,36 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     setSessionIdState(id);
   }, []);
   const [allSessions, setAllSessions] = useState<string[]>([]);
+
+  // LLM cost estimation — recompute when input or model changes
+  const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const handleInputChange = useCallback(
+    (value: string) => {
+      setInput(value);
+      // Debounce cost estimation (500ms)
+      if (estimateTimeoutRef.current) {
+        clearTimeout(estimateTimeoutRef.current);
+      }
+      estimateTimeoutRef.current = setTimeout(async () => {
+        if (!value.trim() || !model) {
+          setCostEstimate(null);
+          return;
+        }
+        if (isFreeModel(model, isCoCalcCom)) {
+          setCostEstimate({ min: 0, max: 0 });
+          return;
+        }
+        const { numTokensEstimate } = await import("@cocalc/frontend/misc/llm");
+        // Estimate tokens for system prompt + history + input
+        const currentMessages = messages.filter((m) => m.event === "message");
+        const historyText = currentMessages.map((m) => m.content).join("\n");
+        const tokens = numTokensEstimate([historyText, value].join("\n"));
+        const est = calcMinMaxEstimation(tokens, model, llm_markup);
+        setCostEstimate(est);
+      }, 500);
+    },
+    [model, isCoCalcCom, llm_markup, messages],
+  );
 
   // Initialize own syncdb (standalone mode only)
   useEffect(() => {
@@ -1458,48 +1495,64 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         />
       )}
 
-      {/* Input area */}
-      <div style={INPUT_AREA_STYLE}>
-        <MarkdownInput
-          value={input}
-          onChange={setInput}
-          onShiftEnter={(value) => {
-            handleSubmit(value);
-          }}
-          placeholder="Ask the coding agent..."
-          height="auto"
-          fixedMode="markdown"
-          compact
-          hideHelp
-          style={{ minHeight: "72px", maxHeight: "200px", overflow: "auto" }}
-        />
+      {/* Input area — flex row with input on left, buttons on right */}
+      <div style={{ ...INPUT_AREA_STYLE, display: "flex" }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <MarkdownInput
+            value={input}
+            onChange={handleInputChange}
+            onShiftEnter={(value) => {
+              handleSubmit(value);
+            }}
+            placeholder="Ask the coding agent..."
+            height="auto"
+            editBarStyle={{ overflow: "auto" }}
+            style={{ minHeight: "72px", maxHeight: "200px", overflow: "auto" }}
+          />
+        </div>
         <div
           style={{
-            marginTop: 4,
             display: "flex",
-            gap: 8,
-            alignItems: "center",
+            flexDirection: "column",
+            marginLeft: 4,
           }}
         >
+          <div style={{ flex: 1 }} />
+          {costEstimate && (
+            <LLMCostEstimationChat
+              costEstimate={costEstimate}
+              compact
+              style={{
+                flex: 0,
+                fontSize: "85%",
+                textAlign: "center",
+                margin: "0 0 4px 0",
+              }}
+            />
+          )}
           {generating ? (
-            <Button size="small" onClick={handleCancel}>
+            <Button onClick={handleCancel} style={{ height: "36px" }}>
               <Icon name="stop" /> Stop
             </Button>
           ) : (
-            <Button
-              size="small"
-              type="primary"
-              onClick={() => handleSubmit()}
-              disabled={!input.trim()}
-            >
-              <Icon name="paper-plane" /> Send
-            </Button>
+            <Tooltip title="Send message (shift+enter)">
+              <Button
+                type="primary"
+                onClick={() => handleSubmit()}
+                disabled={!input.trim()}
+                style={{ height: "36px" }}
+                icon={<Icon name="paper-plane" />}
+              >
+                Send
+              </Button>
+            </Tooltip>
           )}
+          <div style={{ height: "4px" }} />
           <Tooltip title="Close this turn and start a new one">
             <Button
-              size="small"
               onClick={handleDone}
               disabled={!hasAssistantResponse}
+              style={{ height: "36px" }}
             >
               <Icon name="check" /> Done
             </Button>
