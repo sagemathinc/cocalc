@@ -110,7 +110,7 @@ const ASSISTANT_MSG_STYLE: CSS = {
   padding: "8px 12px",
 } as const;
 
-const DIFF_MAX_HEIGHT = 150;
+const DIFF_MAX_HEIGHT = 200;
 
 /**
  * Wraps rendered markdown so that `pre` blocks (diffs, code) are
@@ -125,40 +125,15 @@ function CollapsibleDiffs({ children }: { children: React.ReactNode }) {
     if (!el) return;
     const pres = el.querySelectorAll("pre");
     pres.forEach((pre) => {
-      // Apply compact styling
+      // Apply compact styling — scrollable within the max-height
       pre.style.fontSize = "0.82em";
       pre.style.maxHeight = `${DIFF_MAX_HEIGHT}px`;
-      pre.style.overflow = "hidden";
-      pre.style.cursor = "pointer";
+      pre.style.overflow = "auto";
       pre.style.position = "relative";
     });
   });
 
-  const handleClick = useCallback((e: React.MouseEvent) => {
-    // Find if the click target is inside a <pre>
-    let target = e.target as HTMLElement | null;
-    while (target && target !== containerRef.current) {
-      if (target.tagName === "PRE") {
-        // Toggle expand
-        const currentMax = target.style.maxHeight;
-        if (currentMax && currentMax !== "none") {
-          target.style.maxHeight = "none";
-          target.style.overflow = "auto";
-        } else {
-          target.style.maxHeight = `${DIFF_MAX_HEIGHT}px`;
-          target.style.overflow = "hidden";
-        }
-        return;
-      }
-      target = target.parentElement;
-    }
-  }, []);
-
-  return (
-    <div ref={containerRef} onClick={handleClick}>
-      {children}
-    </div>
-  );
+  return <div ref={containerRef}>{children}</div>;
 }
 
 /**
