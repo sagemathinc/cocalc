@@ -12,6 +12,9 @@ The mock DKV simulates the real DKV's behavior:
 - set/delete fire "change" events synchronously (self-echo)
 - The dkv() factory returns a promise, allowing tests to control
   init timing (pre-init buffering vs post-init direct calls)
+
+Note: the real ephemeral DKV does not reliably surface deletes to connected
+clients, so the coordinator uses a visible "finished" state for completion.
 */
 
 import {
@@ -162,7 +165,7 @@ describe("BuildCoordinator", () => {
       coord.close();
     });
 
-    test("publishBuildFinished deletes the DKV entry", async () => {
+    test('publishBuildFinished writes terminal "finished" state', async () => {
       const cb = makeCallbacks();
       const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
       const store = await initDkv();
@@ -172,12 +175,17 @@ describe("BuildCoordinator", () => {
       expect(store.get(PATH)).toBeDefined();
 
       coord.publishBuildFinished("b1");
-      expect(store.get(PATH)).toBeUndefined();
+      expect(store.get(PATH)).toEqual({
+        buildId: "b1",
+        status: "finished",
+        aggregate: 100,
+        force: undefined,
+      });
 
       coord.close();
     });
 
-    test("publishBuildFinished does not delete another client's entry", async () => {
+    test("publishBuildFinished does not overwrite another client's entry", async () => {
       const cb = makeCallbacks();
       const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
       const store = await initDkv();
@@ -194,6 +202,7 @@ describe("BuildCoordinator", () => {
 
       // Remote entry must survive
       expect(store.get(PATH)?.buildId).toBe("remote-1");
+      expect(store.get(PATH)?.status).toBe("running");
 
       coord.close();
     });
@@ -288,12 +297,14 @@ describe("BuildCoordinator", () => {
         undefined,
       );
 
-      // Remote build finishes (entry deleted) — but join() is still running,
+      // Remote build finishes — but join() is still running,
       // so setBuilding(false) is deferred to joinBuild's finally block.
-      emitRemoteChange(store, PATH, undefined, {
-        buildId: "r1",
-        status: "running",
-      });
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "r1", status: "finished" },
+        { buildId: "r1", status: "running" },
+      );
 
       // Not yet — join is still pending
       expect(cb.setBuilding).not.toHaveBeenCalledWith(false);
@@ -473,6 +484,23 @@ describe("BuildCoordinator", () => {
       mockDkvInstance.set(PATH, {
         buildId: "stopping-build",
         status: "stopping",
+        aggregate: 10,
+      });
+
+      const coord = new BuildCoordinator(PROJECT_ID, PATH, cb);
+      await initDkv();
+
+      expect(cb.join).not.toHaveBeenCalled();
+
+      coord.close();
+    });
+
+    test("does not join a build in finished state", async () => {
+      const cb = makeCallbacks();
+
+      mockDkvInstance.set(PATH, {
+        buildId: "finished-build",
+        status: "finished",
         aggregate: 10,
       });
 
@@ -895,7 +923,7 @@ describe("BuildCoordinator", () => {
   // =========================================================================
 
   describe("state machine", () => {
-    test("running → stopping → deleted lifecycle", async () => {
+    test("running → stopping → finished lifecycle", async () => {
       // Use a controlled join promise so we can emit all three events
       // while the join is still active, then verify cleanup on resolve.
       const joinControl = { resolve: (_v?: unknown) => {} };
@@ -929,18 +957,20 @@ describe("BuildCoordinator", () => {
       );
       expect(cb.stop).toHaveBeenCalled();
 
-      // stopping → deleted — _joining guard defers setBuilding(false)
+      // stopping → finished — _joining guard defers setBuilding(false)
       (cb.setBuilding as jest.Mock).mockClear();
-      emitRemoteChange(store, PATH, undefined, {
-        buildId: "r1",
-        status: "stopping",
-      });
+      emitRemoteChange(
+        store,
+        PATH,
+        { buildId: "r1", status: "finished" },
+        { buildId: "r1", status: "stopping" },
+      );
 
       // Resolve join and let finally block run
       joinControl.resolve();
       await tick();
 
-      // finally block calls setBuilding(false) for the deleted phase
+      // finally block calls setBuilding(false) for the finished phase
       expect(cb.setBuilding).toHaveBeenCalledWith(false);
 
       coord.close();
