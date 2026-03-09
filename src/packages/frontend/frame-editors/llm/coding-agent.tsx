@@ -161,6 +161,64 @@ function CollapsibleDiffs({ children }: { children: React.ReactNode }) {
   );
 }
 
+/**
+ * Small isolated component for the rename modal so typing doesn't
+ * re-render the entire CodingAgentCore tree.
+ */
+function RenameModal({
+  open,
+  currentName,
+  onSave,
+  onCancel,
+}: {
+  open: boolean;
+  currentName: string;
+  onSave: (name: string) => void;
+  onCancel: () => void;
+}) {
+  const [value, setValue] = useState(currentName);
+  const inputRef = useRef<any>(null);
+
+  // Reset value and focus when the modal opens.
+  useEffect(() => {
+    if (open) {
+      setValue(currentName);
+      // Focus + select after antd animation completes
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.select();
+      }, 100);
+    }
+  }, [open, currentName]);
+
+  const handleOk = () => {
+    const trimmed = value.trim();
+    if (trimmed) {
+      onSave(trimmed);
+    }
+  };
+
+  return (
+    <Modal
+      title="Rename Turn"
+      open={open}
+      onOk={handleOk}
+      onCancel={onCancel}
+      okText="Save"
+      destroyOnClose
+    >
+      <Input
+        ref={inputRef}
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onPressEnter={handleOk}
+        placeholder="Enter a name for this turn..."
+        maxLength={80}
+      />
+    </Modal>
+  );
+}
+
 const SYSTEM_MSG_STYLE: CSS = {
   marginBottom: 8,
   padding: "8px 12px",
@@ -617,7 +675,6 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     new Map(),
   );
   const [renameModalOpen, setRenameModalOpen] = useState(false);
-  const [renameValue, setRenameValue] = useState("");
 
   // LLM cost estimation — recompute when input or model changes
   const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -1358,18 +1415,8 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   }, [sessionId, sessionNames, allSessions]);
 
   const handleRename = useCallback(() => {
-    const current = sessionNames.get(sessionId) ?? "";
-    setRenameValue(current);
     setRenameModalOpen(true);
-  }, [sessionId, sessionNames]);
-
-  const handleRenameOk = useCallback(() => {
-    const trimmed = renameValue.trim();
-    if (trimmed) {
-      writeSessionName(trimmed);
-    }
-    setRenameModalOpen(false);
-  }, [renameValue, writeSessionName]);
+  }, []);
 
   return (
     <div style={CONTAINER_STYLE}>
@@ -1716,24 +1763,16 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         </div>
       </div>
 
-      {/* Rename turn modal */}
-      <Modal
-        title="Rename Turn"
+      {/* Rename turn modal — separate component to isolate re-renders */}
+      <RenameModal
         open={renameModalOpen}
-        onOk={handleRenameOk}
+        currentName={sessionNames.get(sessionId) ?? ""}
+        onSave={(name) => {
+          writeSessionName(name);
+          setRenameModalOpen(false);
+        }}
         onCancel={() => setRenameModalOpen(false)}
-        okText="Save"
-        destroyOnClose
-      >
-        <Input
-          autoFocus
-          value={renameValue}
-          onChange={(e) => setRenameValue(e.target.value)}
-          onPressEnter={handleRenameOk}
-          placeholder="Enter a name for this turn..."
-          maxLength={80}
-        />
-      </Modal>
+      />
     </div>
   );
 }
