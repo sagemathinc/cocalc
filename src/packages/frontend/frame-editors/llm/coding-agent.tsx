@@ -37,6 +37,7 @@ import { Icon, Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { EditorComponentProps } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
@@ -1540,9 +1541,11 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
               {msg.sender === "user" ? (
                 <StaticMarkdown value={msg.content} />
               ) : msg.sender === "assistant" ? (
-                <CollapsibleDiffs>
-                  <StaticMarkdown value={renderedContent} />
-                </CollapsibleDiffs>
+                <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+                  <CollapsibleDiffs>
+                    <StaticMarkdown value={renderedContent} />
+                  </CollapsibleDiffs>
+                </FileContext.Provider>
               ) : (
                 <StaticMarkdown value={renderedContent} />
               )}
