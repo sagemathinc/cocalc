@@ -1007,7 +1007,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       if (!syncdb || syncdb.get_state() !== "ready") return;
       const targetSid = sid || sessionId;
       if (!targetSid) return;
-      const date = "session_name"; // sentinel value
+      // In chat schema, primary key is [date, sender_id, event].
+      // Embed session_id in the date to make each name record unique.
+      const date = `session_name:${targetSid}`;
       if (usesChatSchema) {
         syncdb.set({
           date,
