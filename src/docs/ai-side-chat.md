@@ -11,11 +11,11 @@ side chat panel, available in every frame editor. Clicking the tab (or
 the title-bar Assistant button) switches from the regular collaborative
 chat to an AI coding agent whose capabilities depend on the file type:
 
-| File type | Agent variant | Edit mechanism |
-|-----------|--------------|----------------|
-| Code files (`.py`, `.tex`, `.js`, etc.) | **Coding Agent** | Search/replace blocks + three-way merge |
-| Jupyter notebooks (`.ipynb`) | **Notebook Agent** | Tool-calling loop against JupyterActions |
-| `.app` files | **App Agent** | writefile blocks + live iframe preview |
+| File type                               | Agent variant      | Edit mechanism                           |
+| --------------------------------------- | ------------------ | ---------------------------------------- |
+| Code files (`.py`, `.tex`, `.js`, etc.) | **Coding Agent**   | Search/replace blocks + three-way merge  |
+| Jupyter notebooks (`.ipynb`)            | **Notebook Agent** | Tool-calling loop against JupyterActions |
+| `.app` files                            | **App Agent**      | writefile blocks + live iframe preview   |
 
 All three share persistent sessions via SyncDB, LLM streaming, and a
 common conversational UI pattern.
@@ -55,6 +55,14 @@ decide which tab is active. Switching tabs writes back via
 across reloads and is collaborative (all viewers of the same frame see
 the same tab).
 
+**SyncDB readiness gate**: `initChat()` returns actions immediately,
+but `actions.syncdb` is only set asynchronously after the SyncDB
+"ready" event fires. To prevent agent components from mounting with
+`syncdb=undefined` (which would cause them to fall back to standalone
+mode and show stale data from a different storage file), `chat.tsx`
+polls for `actions.syncdb` every 200ms and only renders the agent
+component once it is available. A `<Spin />` is shown in the meantime.
+
 ---
 
 ## 1. Coding Agent (any code file)
@@ -72,27 +80,48 @@ the same tab).
 |      print("hi")                |+----------+|
 |                                 || AI [model]||
 |                                 |+----------+|
-|                                 || Session v ||
-|                                 || [+New][Clr]|
+|                                 || Session ▼ ||
+|                                 || [+New]    ||
+|                                 || [Build]   ||
+|                                 || [Clear]   ||
 |                                 |+----------+|
 |                                 || Messages  ||
 |                                 || +--------+||
-|                                 || | user   |||
+|                                 || |user(md) |||
 |                                 || +--------+||
 |                                 || assistant ||
-|                                 || <<<SEARCH ||
-|                                 || >>>REPLAC ||
-|                                 || <<<END    ||
+|                                 || ┌diff────┐||
+|                                 || │collaps. │||
+|                                 || └────────┘||
 |                                 |+----------+|
 |                                 ||[Apply][B] ||
 |                                 |+----------+|
 |                                 ||[>cmd] [x] ||
 |                                 |+----------+|
+|                                 || markdown  ||
 |                                 || input...  ||
 |                                 || [Send]    ||
+|                                 || [✓ Done]  ||
 |                                 |+----------+|
 +----------------------------------------------+
 ```
+
+**Session bar**: Contains the turn/session dropdown, an explicit
+**"+ New Turn"** button, the **Build** button (for LaTeX and other
+buildable file types), and a Clear button. The Build button was moved
+here from a separate row at the bottom of the panel.
+
+**Input area**: Uses the multimode `MarkdownInput` component (same as
+the side chat) with `fixedMode="markdown"`, supporting rich text
+editing. Below the input are **Send** and **Done** buttons. The Done
+button closes the current turn and starts a new one (enabled only
+after the assistant has responded).
+
+**User messages**: Rendered as **StaticMarkdown** — users can include
+formatting, code snippets, and links in their prompts.
+
+**Diff display**: Search/replace blocks are rendered as collapsible
+diffs (see below).
 
 ### Edit Flow
 
@@ -104,6 +133,7 @@ the same tab).
    - File extension (for language-appropriate prompting)
 
 2. **LLM responds** with one or more search/replace blocks:
+
    ```
    <<<SEARCH
    exact text to find in the file
@@ -130,11 +160,28 @@ the same tab).
    with per-command Run / Dismiss buttons and a confirmation popup
    before running. Results are written back as system messages.
 
+### Collapsible Diffs
+
+Search/replace blocks in assistant responses are rendered as
+` ```diff ` code blocks. To keep the chat readable when edits are
+large, these are wrapped in a **CollapsibleDiffs** component:
+
+- Font size is reduced to `0.82em`
+- Max height is capped at **150px** with `overflow: hidden`
+- Clicking a diff block **toggles** it between collapsed (150px) and
+  fully expanded (`max-height: none`, `overflow: auto`)
+- The cursor changes to `pointer` to signal interactivity
+
+This is implemented via a `useEffect` that applies inline styles to
+all `<pre>` elements inside the container, plus a delegated click
+handler that walks up from the click target to find the enclosing
+`<pre>`.
+
 ### Dual Mode
 
-| Mode | SyncDB source | Record filter |
-|------|--------------|---------------|
-| **Embedded** (side chat) | Chat's own SyncDB | `event = "coding-agent"` |
+| Mode                         | SyncDB source                      | Record filter                     |
+| ---------------------------- | ---------------------------------- | --------------------------------- |
+| **Embedded** (side chat)     | Chat's own SyncDB                  | `event = "coding-agent"`          |
 | **Standalone** (frame panel) | Hidden file `.{name}.coding-agent` | Primary keys `[session_id, date]` |
 
 In embedded mode, agent messages use synthetic sender IDs
@@ -149,7 +196,7 @@ collisions with real chat messages.
 
 ### UI Layout
 
-```
+````
 +----------------------------------------------+
 | Jupyter Notebook                | Side Chat   |
 | +--------------------------+    |+-----------+|
@@ -174,14 +221,14 @@ collisions with real chat messages.
 |                                 || [Send]     ||
 |                                 |+-----------+|
 +----------------------------------------------+
-```
+````
 
 ### Tool-Calling Loop
 
 Instead of search/replace, the notebook agent uses a **multi-turn
 tool loop** (up to 10 iterations):
 
-```
+````
 User prompt
     |
     v
@@ -206,21 +253,22 @@ User prompt
              |
              v
     (loop --- up to 10 iterations)
-```
+````
 
 ### Available Tools
 
-| Tool | Args | Description |
-|------|------|-------------|
-| `cell_count` | -- | Total number of cells |
-| `get_cell` | `index` | Single cell input + output |
-| `get_cells` | `start, end` | Range of cells |
-| `run_cell` | `index` | Run cell, poll until done (500ms, 2min timeout) |
-| `insert_cell` | `after_index, content, cell_type` | Insert new cell |
-| `set_cell` | `index, content` | Replace cell content |
-| `delete_cell` | `index` | Delete cell |
+| Tool          | Args                              | Description                                     |
+| ------------- | --------------------------------- | ----------------------------------------------- |
+| `cell_count`  | --                                | Total number of cells                           |
+| `get_cell`    | `index`                           | Single cell input + output                      |
+| `get_cells`   | `start, end`                      | Range of cells                                  |
+| `run_cell`    | `index`                           | Run cell, poll until done (500ms, 2min timeout) |
+| `insert_cell` | `after_index, content, cell_type` | Insert new cell                                 |
+| `set_cell`    | `index, content`                  | Replace cell content                            |
+| `delete_cell` | `index`                           | Delete cell                                     |
 
 Tool blocks are JSON inside fenced code:
+
 ```
 \`\`\`tool
 {"name": "run_cell", "args": {"index": 2}}
@@ -243,19 +291,19 @@ Same as coding agent: piggybacks on the chat SyncDB with
 
 **Directory**: `frame-editors/agent-editor/`
 
-| File | Purpose |
-|------|---------|
-| `register.ts` | Registers `.app` file type |
-| `editor.ts` | Editor spec: `ai-agent` + `ai-app-preview` frames |
-| `actions.ts` | Extends CodeEditorActions; stores `app_errors` |
-| `agent-panel.tsx` | Conversation UI for app-building agent |
-| `app-preview.tsx` | Renders index.html in sandboxed iframe |
-| `cocalc-app-bridge.ts` | Bridge SDK source (injected into iframe) |
-| `bridge-host.ts` | postMessage handler for bridge requests |
+| File                   | Purpose                                           |
+| ---------------------- | ------------------------------------------------- |
+| `register.ts`          | Registers `.app` file type                        |
+| `editor.ts`            | Editor spec: `ai-agent` + `ai-app-preview` frames |
+| `actions.ts`           | Extends CodeEditorActions; stores `app_errors`    |
+| `agent-panel.tsx`      | Conversation UI for app-building agent            |
+| `app-preview.tsx`      | Renders index.html in sandboxed iframe            |
+| `cocalc-app-bridge.ts` | Bridge SDK source (injected into iframe)          |
+| `bridge-host.ts`       | postMessage handler for bridge requests           |
 
 ### UI Layout
 
-```
+````
 +-----------------------+-----------------------+
 | Agent Panel            | App Preview            |
 | +-------------------+  | +-------------------+  |
@@ -284,13 +332,14 @@ Same as coding agent: piggybacks on the chat SyncDB with
 | | [Send]            |  | |                   |  |
 | +-------------------+  | +-------------------+  |
 +-----------------------+-----------------------+
-```
+````
 
 Default split: 40% agent panel, 60% app preview.
 
 ### Write Blocks
 
 The agent writes files via fenced code blocks:
+
 ```
 \`\`\`writefile path/to/file.html
 <!DOCTYPE html>
@@ -306,14 +355,14 @@ app directory before each write batch.
 
 Injected into the iframe, provides runtime access to CoCalc services:
 
-| Category | Methods |
-|----------|---------|
-| **Shell** | `cocalc.exec(cmd, args?, opts?)` |
-| **Code** | `cocalc.run(lang, code)`, `cocalc.python(code)`, `cocalc.R(code)`, `cocalc.julia(code)` |
-| **Files** | `cocalc.readFile(path)`, `cocalc.writeFile(path, content)`, `cocalc.deleteFile(path)`, `cocalc.listFiles(path)` |
-| **Python env** | `cocalc.uv.init(packages?)`, `cocalc.uv.add(pkg)`, `cocalc.uv.run(code)` |
-| **KV store** | `cocalc.kvGet(key)`, `cocalc.kvSet(key, val)`, `cocalc.kvDelete(key)`, `cocalc.kvGetAll()` |
-| **Utilities** | `cocalc.ping()`, `cocalc.portURL(port)` |
+| Category       | Methods                                                                                                         |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| **Shell**      | `cocalc.exec(cmd, args?, opts?)`                                                                                |
+| **Code**       | `cocalc.run(lang, code)`, `cocalc.python(code)`, `cocalc.R(code)`, `cocalc.julia(code)`                         |
+| **Files**      | `cocalc.readFile(path)`, `cocalc.writeFile(path, content)`, `cocalc.deleteFile(path)`, `cocalc.listFiles(path)` |
+| **Python env** | `cocalc.uv.init(packages?)`, `cocalc.uv.add(pkg)`, `cocalc.uv.run(code)`                                        |
+| **KV store**   | `cocalc.kvGet(key)`, `cocalc.kvSet(key, val)`, `cocalc.kvDelete(key)`, `cocalc.kvGetAll()`                      |
+| **Utilities**  | `cocalc.ping()`, `cocalc.portURL(port)`                                                                         |
 
 Communication is via postMessage between iframe and parent:
 
@@ -355,11 +404,11 @@ All three agents store messages in SyncDB with the same schema:
 
 ### Embedded vs Standalone storage
 
-|   | SyncDB source | Primary keys | Filtering |
-|---|--------------|--------------|-----------|
-| **Embedded** (side chat) | Chat's SyncDB (`.name.sage-chat`) | `[date, sender_id, event]` | `event = "coding-agent"` or `"notebook-agent"` |
-| **Standalone** (own frame) | Hidden meta file | `[session_id, date]` | None needed |
-| **App agent** (`.app`) | `.app` file's own SyncDB | `[session_id, date]` | None needed |
+|                            | SyncDB source                     | Primary keys               | Filtering                                      |
+| -------------------------- | --------------------------------- | -------------------------- | ---------------------------------------------- |
+| **Embedded** (side chat)   | Chat's SyncDB (`.name.sage-chat`) | `[date, sender_id, event]` | `event = "coding-agent"` or `"notebook-agent"` |
+| **Standalone** (own frame) | Hidden meta file                  | `[session_id, date]`       | None needed                                    |
+| **App agent** (`.app`)     | `.app` file's own SyncDB          | `[session_id, date]`       | None needed                                    |
 
 ### Session Management
 
@@ -377,14 +426,18 @@ All agents use the same streaming pattern:
 const stream = webapp_client.openai_client.queryStream({
   input,
   system,
-  history,    // [{role: "user"|"assistant", content}]
-  model,      // from useLanguageModelSetting(project_id)
+  history, // [{role: "user"|"assistant", content}]
+  model, // from useLanguageModelSetting(project_id)
   project_id,
-  tag,        // "coding-agent" | "notebook-agent" | "ai-agent"
+  tag, // "coding-agent" | "notebook-agent" | "ai-agent"
 });
 
-stream.on("token", (token) => { /* append to response */ });
-stream.on("error", (err) => { /* display error */ });
+stream.on("token", (token) => {
+  /* append to response */
+});
+stream.on("error", (err) => {
+  /* display error */
+});
 ```
 
 Model selection is per-project, persisted via `useLanguageModelSetting`.
@@ -393,33 +446,33 @@ Model selection is per-project, persisted via `useLanguageModelSetting`.
 
 ## Key Design Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| Reuse side chat panel (tabs) rather than a separate frame | Minimal UI footprint; users already know where side chat is |
-| Search/replace + three-way merge for code files | Handles concurrent user edits gracefully; works for any text file |
-| Tool-calling loop for notebooks | Jupyter cells are structured objects, not a single text buffer; tools are more natural |
-| Bridge SDK via postMessage for .app apps | Iframe sandbox isolation; no special privileges needed |
-| SyncDB for session storage | Collaborative -- all project members see the same conversation |
-| Base snapshot captured at send time | Consistent merge baseline even if user edits during LLM response |
+| Decision                                                  | Rationale                                                                              |
+| --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Reuse side chat panel (tabs) rather than a separate frame | Minimal UI footprint; users already know where side chat is                            |
+| Search/replace + three-way merge for code files           | Handles concurrent user edits gracefully; works for any text file                      |
+| Tool-calling loop for notebooks                           | Jupyter cells are structured objects, not a single text buffer; tools are more natural |
+| Bridge SDK via postMessage for .app apps                  | Iframe sandbox isolation; no special privileges needed                                 |
+| SyncDB for session storage                                | Collaborative -- all project members see the same conversation                         |
+| Base snapshot captured at send time                       | Consistent merge baseline even if user edits during LLM response                       |
 
 ---
 
 ## File Index
 
-| Component | Path |
-|-----------|------|
-| Chat frame (tab switcher) | `frame-editors/generic/chat.tsx` |
-| Coding agent | `frame-editors/llm/coding-agent.tsx` |
-| Coding agent spec | `frame-editors/llm/coding-agent-spec.ts` |
-| Notebook agent | `frame-editors/jupyter-editor/notebook-agent.tsx` |
-| Agent editor panel | `frame-editors/agent-editor/agent-panel.tsx` |
-| Agent editor spec | `frame-editors/agent-editor/editor.ts` |
-| Agent actions | `frame-editors/agent-editor/actions.ts` |
-| App preview | `frame-editors/agent-editor/app-preview.tsx` |
-| Bridge SDK source | `frame-editors/agent-editor/cocalc-app-bridge.ts` |
-| Bridge host | `frame-editors/agent-editor/bridge-host.ts` |
-| Title bar (assistant button) | `frame-editors/frame-tree/title-bar.tsx` |
-| Project actions (open_chat) | `project_actions.ts` |
+| Component                    | Path                                              |
+| ---------------------------- | ------------------------------------------------- |
+| Chat frame (tab switcher)    | `frame-editors/generic/chat.tsx`                  |
+| Coding agent                 | `frame-editors/llm/coding-agent.tsx`              |
+| Coding agent spec            | `frame-editors/llm/coding-agent-spec.ts`          |
+| Notebook agent               | `frame-editors/jupyter-editor/notebook-agent.tsx` |
+| Agent editor panel           | `frame-editors/agent-editor/agent-panel.tsx`      |
+| Agent editor spec            | `frame-editors/agent-editor/editor.ts`            |
+| Agent actions                | `frame-editors/agent-editor/actions.ts`           |
+| App preview                  | `frame-editors/agent-editor/app-preview.tsx`      |
+| Bridge SDK source            | `frame-editors/agent-editor/cocalc-app-bridge.ts` |
+| Bridge host                  | `frame-editors/agent-editor/bridge-host.ts`       |
+| Title bar (assistant button) | `frame-editors/frame-tree/title-bar.tsx`          |
+| Project actions (open_chat)  | `project_actions.ts`                              |
 
 All paths relative to `packages/frontend/`.
 
@@ -427,14 +480,35 @@ All paths relative to `packages/frontend/`.
 
 ## Known Bugs (POC) — Remaining
 
-1. **Lone "Build" button at bottom** — kept for now. Reconsider
-   placement: perhaps contextual actions inline with the assistant's
-   response (near the Apply button).
+_(None currently tracked — report new issues as they arise.)_
 
 ## Recently Fixed
 
+- **Stale data on page refresh**: Agent components mounted before the
+  chat SyncDB was ready, falling back to standalone mode and showing
+  old data from a `.coding-agent` meta file. Fixed with a SyncDB
+  readiness gate in `chat.tsx` (polls every 200ms, shows spinner).
+- **Stale closure in session reload**: `loadSessionsAndMessages`
+  captured a stale `sessionId` via closure. Fixed by introducing a
+  `sessionIdRef` that is always current.
+- **Build button placement**: Moved from a standalone row at the
+  bottom of the panel to the session bar at the top, next to the
+  turn selector and "+ New" button.
+- **Input area upgrade**: Replaced plain `TextArea` with the multimode
+  `MarkdownInput` component (`fixedMode="markdown"`, `compact`).
+- **"+ New Turn" button**: Moved from a dropdown menu entry to an
+  explicit button in the session bar for discoverability.
+- **"Done" button**: Added below the Send button. Closes the current
+  turn (marks it complete) and starts a new one. Disabled until the
+  assistant has responded at least once.
+- **User messages as markdown**: User messages now render via
+  `StaticMarkdown` instead of plain text.
+- **Collapsible diffs**: Search/replace diff blocks are capped at
+  150px height with smaller font; click to expand/collapse.
+- **antd Tooltip deprecation**: Migrated `overlayInnerStyle` to
+  `styles={{ body: {} }}` in `run-button/index.tsx`.
 - Assistant tab icon: now uses `AIAvatar` instead of generic robot icon
-- Diff rendering: search/replace blocks rendered as `` ```diff `` instead
+- Diff rendering: search/replace blocks rendered as ` ```diff ` instead
   of raw markers (which markdown parsed as blockquotes)
 - Apply feedback: shows error when search blocks don't match
 - Turn ordering: chronological by first message date, not random UUID sort

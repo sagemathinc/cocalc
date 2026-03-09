@@ -16,16 +16,7 @@ The agent can suggest search/replace edits and execute shell commands
 (with user confirmation).
 */
 
-import {
-  Alert,
-  Button,
-  Dropdown,
-  Input,
-  Popconfirm,
-  Space,
-  Spin,
-  Tooltip,
-} from "antd";
+import { Alert, Button, Dropdown, Popconfirm, Spin, Tooltip } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -33,6 +24,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import type { CSS } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { EditorComponentProps } from "@cocalc/frontend/frame-editors/frame-tree/types";
@@ -47,8 +39,6 @@ import {
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import LLMSelector from "./llm-selector";
-
-const { TextArea } = Input;
 
 /* ------------------------------------------------------------------ */
 /*  Types                                                              */
@@ -890,162 +880,165 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     [syncdb, sessionId, usesChatSchema],
   );
 
-  const handleSubmit = useCallback(async () => {
-    const prompt = input.trim();
-    if (!prompt || generating) return;
+  const handleSubmit = useCallback(
+    async (directInput?: string) => {
+      const prompt = (directInput ?? input).trim();
+      if (!prompt || generating) return;
 
-    setError("");
-    setPendingEdits(undefined);
-    setPendingExec([]);
-    cancelRef.current = false;
+      setError("");
+      setPendingEdits(undefined);
+      setPendingExec([]);
+      cancelRef.current = false;
 
-    // Ensure we have a session
-    let activeSessionId = sessionId;
-    if (!activeSessionId) {
-      activeSessionId = uuid();
-      setSessionId(activeSessionId);
-    }
+      // Ensure we have a session
+      let activeSessionId = sessionId;
+      if (!activeSessionId) {
+        activeSessionId = uuid();
+        setSessionId(activeSessionId);
+      }
 
-    // Snapshot the document now (for merging later)
-    const ctx = getEditorContext(actions);
-    const baseSnapshot = ctx.content;
+      // Snapshot the document now (for merging later)
+      const ctx = getEditorContext(actions);
+      const baseSnapshot = ctx.content;
 
-    const now = new Date().toISOString();
-    const accountId =
-      redux.getStore("account")?.get_account_id?.() ?? "unknown";
+      const now = new Date().toISOString();
+      const accountId =
+        redux.getStore("account")?.get_account_id?.() ?? "unknown";
 
-    // Write user message to syncdb
-    writeMessage({
-      date: now,
-      sender: "user",
-      content: prompt,
-      account_id: accountId,
-      msg_event: "message",
-      base_snapshot: baseSnapshot,
-      session_id: activeSessionId,
-    });
-
-    setInput("");
-    setGenerating(true);
-
-    try {
-      const hasBuild = typeof actions.build === "function";
-      const system = buildSystemPrompt(path, ctx, hasBuild);
-
-      // Build conversation history from current session messages
-      const currentMessages = messages.filter((m) => m.event === "message");
-      const history = currentMessages.map((m) => ({
-        role: m.sender as "user" | "assistant",
-        content: m.content,
-      }));
-
-      const llmStream = webapp_client.openai_client.queryStream({
-        input: prompt,
-        system,
-        history,
-        model,
-        project_id,
-        tag: TAG,
+      // Write user message to syncdb
+      writeMessage({
+        date: now,
+        sender: "user",
+        content: prompt,
+        account_id: accountId,
+        msg_event: "message",
+        base_snapshot: baseSnapshot,
+        session_id: activeSessionId,
       });
 
-      let assistantContent = "";
-      // We use a local temp message array to show streaming in real time
-      const streamingMsgs = [
-        ...messages,
-        {
-          sender: "user" as const,
-          content: prompt,
-          date: now,
-          event: "message",
-          account_id: accountId,
-        },
-      ];
+      setInput("");
+      setGenerating(true);
 
-      llmStream.on("token", (token: string | null) => {
-        if (cancelRef.current) return;
-        if (token != null) {
-          assistantContent += token;
-          setMessages([
-            ...streamingMsgs,
-            {
+      try {
+        const hasBuild = typeof actions.build === "function";
+        const system = buildSystemPrompt(path, ctx, hasBuild);
+
+        // Build conversation history from current session messages
+        const currentMessages = messages.filter((m) => m.event === "message");
+        const history = currentMessages.map((m) => ({
+          role: m.sender as "user" | "assistant",
+          content: m.content,
+        }));
+
+        const llmStream = webapp_client.openai_client.queryStream({
+          input: prompt,
+          system,
+          history,
+          model,
+          project_id,
+          tag: TAG,
+        });
+
+        let assistantContent = "";
+        // We use a local temp message array to show streaming in real time
+        const streamingMsgs = [
+          ...messages,
+          {
+            sender: "user" as const,
+            content: prompt,
+            date: now,
+            event: "message",
+            account_id: accountId,
+          },
+        ];
+
+        llmStream.on("token", (token: string | null) => {
+          if (cancelRef.current) return;
+          if (token != null) {
+            assistantContent += token;
+            setMessages([
+              ...streamingMsgs,
+              {
+                sender: "assistant",
+                content: assistantContent,
+                date: "",
+                event: "message",
+              },
+            ]);
+          } else {
+            // Stream ended
+            setGenerating(false);
+
+            // Write assistant message to syncdb
+            const assistantDate = new Date().toISOString();
+            writeMessage({
+              date: assistantDate,
               sender: "assistant",
               content: assistantContent,
-              date: "",
-              event: "message",
-            },
-          ]);
-        } else {
-          // Stream ended
-          setGenerating(false);
-
-          // Write assistant message to syncdb
-          const assistantDate = new Date().toISOString();
-          writeMessage({
-            date: assistantDate,
-            sender: "assistant",
-            content: assistantContent,
-            msg_event: "message",
-            session_id: activeSessionId,
-          });
-
-          // Check for line-number edit blocks first (preferred format)
-          const editBlocks = parseEditBlocks(assistantContent);
-          if (editBlocks.length > 0) {
-            setPendingEdits({
-              type: "edit_blocks",
-              blocks: editBlocks,
-              base: baseSnapshot,
+              msg_event: "message",
+              session_id: activeSessionId,
             });
-          } else {
-            // Fallback: legacy search/replace blocks
-            const srBlocks = parseSearchReplaceBlocks(assistantContent);
-            if (srBlocks.length > 0) {
+
+            // Check for line-number edit blocks first (preferred format)
+            const editBlocks = parseEditBlocks(assistantContent);
+            if (editBlocks.length > 0) {
               setPendingEdits({
-                type: "search_replace",
-                blocks: srBlocks,
+                type: "edit_blocks",
+                blocks: editBlocks,
                 base: baseSnapshot,
               });
             } else {
-              // Fallback: check for a plain code block
-              const code = extractCodeBlock(assistantContent);
-              if (code) {
+              // Fallback: legacy search/replace blocks
+              const srBlocks = parseSearchReplaceBlocks(assistantContent);
+              if (srBlocks.length > 0) {
                 setPendingEdits({
-                  type: "full_replace",
-                  code,
+                  type: "search_replace",
+                  blocks: srBlocks,
                   base: baseSnapshot,
                 });
+              } else {
+                // Fallback: check for a plain code block
+                const code = extractCodeBlock(assistantContent);
+                if (code) {
+                  setPendingEdits({
+                    type: "full_replace",
+                    code,
+                    base: baseSnapshot,
+                  });
+                }
               }
             }
-          }
 
-          // Check for exec blocks
-          const execBlocks = parseExecBlocks(assistantContent);
-          if (execBlocks.length > 0) {
-            setPendingExec(execBlocks);
+            // Check for exec blocks
+            const execBlocks = parseExecBlocks(assistantContent);
+            if (execBlocks.length > 0) {
+              setPendingExec(execBlocks);
+            }
           }
-        }
-      });
+        });
 
-      llmStream.on("error", (err: Error) => {
+        llmStream.on("error", (err: Error) => {
+          setError(err.message ?? `${err}`);
+          setGenerating(false);
+        });
+      } catch (err: any) {
         setError(err.message ?? `${err}`);
         setGenerating(false);
-      });
-    } catch (err: any) {
-      setError(err.message ?? `${err}`);
-      setGenerating(false);
-    }
-  }, [
-    input,
-    messages,
-    generating,
-    actions,
-    path,
-    model,
-    project_id,
-    sessionId,
-    syncdb,
-    writeMessage,
-  ]);
+      }
+    },
+    [
+      input,
+      messages,
+      generating,
+      actions,
+      path,
+      model,
+      project_id,
+      sessionId,
+      syncdb,
+      writeMessage,
+    ],
+  );
 
   const handleCancel = useCallback(() => {
     cancelRef.current = true;
@@ -1186,14 +1179,14 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     actions.build?.();
   }, [actions]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && (e.shiftKey || e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        handleSubmit();
-      }
-    },
-    [handleSubmit],
+  // "Done" closes the current turn and starts a new one.
+  const handleDone = useCallback(() => {
+    handleNewSession();
+  }, [handleNewSession]);
+
+  // Whether the current turn has at least one assistant response.
+  const hasAssistantResponse = messages.some(
+    (m) => m.sender === "assistant" && m.event === "message",
   );
 
   const hasBuild = typeof actions.build === "function";
@@ -1271,6 +1264,12 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             </Button>
           </Popconfirm>
         )}
+        <div style={{ flex: 1 }} />
+        {hasBuild && (
+          <Button size="small" onClick={handleBuild}>
+            <Icon name="play" /> Build
+          </Button>
+        )}
       </div>
 
       {/* Messages */}
@@ -1322,7 +1321,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
               }
             >
               {msg.sender === "user" ? (
-                msg.content
+                <StaticMarkdown value={msg.content} />
               ) : msg.sender === "assistant" ? (
                 <CollapsibleDiffs>
                   <StaticMarkdown value={renderedContent} />
@@ -1461,43 +1460,50 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
       {/* Input area */}
       <div style={INPUT_AREA_STYLE}>
-        <Space.Compact style={{ width: "100%" }}>
-          <TextArea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask the coding agent... (Shift+Enter to send)"
-            autoSize={{ minRows: 1, maxRows: 6 }}
-            disabled={generating}
-            style={{ flex: 1 }}
-          />
-          {generating ? (
-            <Button onClick={handleCancel}>
-              <Icon name="stop" /> Stop
-            </Button>
-          ) : (
-            <Button
-              type="primary"
-              onClick={handleSubmit}
-              disabled={!input.trim()}
-            >
-              <Icon name="paper-plane" /> Send
-            </Button>
-          )}
-        </Space.Compact>
+        <MarkdownInput
+          value={input}
+          onChange={setInput}
+          onShiftEnter={(value) => {
+            handleSubmit(value);
+          }}
+          placeholder="Ask the coding agent..."
+          height="auto"
+          fixedMode="markdown"
+          compact
+          hideHelp
+          style={{ minHeight: "72px", maxHeight: "200px", overflow: "auto" }}
+        />
         <div
           style={{
             marginTop: 4,
             display: "flex",
             gap: 8,
-            flexWrap: "wrap",
+            alignItems: "center",
           }}
         >
-          {hasBuild && (
-            <Button size="small" onClick={handleBuild}>
-              <Icon name="play" /> Build
+          {generating ? (
+            <Button size="small" onClick={handleCancel}>
+              <Icon name="stop" /> Stop
+            </Button>
+          ) : (
+            <Button
+              size="small"
+              type="primary"
+              onClick={() => handleSubmit()}
+              disabled={!input.trim()}
+            >
+              <Icon name="paper-plane" /> Send
             </Button>
           )}
+          <Tooltip title="Close this turn and start a new one">
+            <Button
+              size="small"
+              onClick={handleDone}
+              disabled={!hasAssistantResponse}
+            >
+              <Icon name="check" /> Done
+            </Button>
+          </Tooltip>
         </div>
       </div>
     </div>
