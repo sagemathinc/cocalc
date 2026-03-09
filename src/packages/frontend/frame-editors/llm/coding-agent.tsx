@@ -107,6 +107,60 @@ const ASSISTANT_MSG_STYLE: CSS = {
   padding: "8px 12px",
 } as const;
 
+const DIFF_MAX_HEIGHT = 150;
+
+/**
+ * Wraps rendered markdown so that `pre` blocks (diffs, code) are
+ * compact by default and expandable on click.
+ */
+function CollapsibleDiffs({ children }: { children: React.ReactNode }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  // After mount, attach overflow detection + click handlers to <pre> elements.
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const pres = el.querySelectorAll("pre");
+    pres.forEach((pre) => {
+      // Apply compact styling
+      pre.style.fontSize = "0.82em";
+      pre.style.maxHeight = `${DIFF_MAX_HEIGHT}px`;
+      pre.style.overflow = "hidden";
+      pre.style.cursor = "pointer";
+      pre.style.position = "relative";
+    });
+  });
+
+  const handleClick = useCallback(
+    (e: React.MouseEvent) => {
+      // Find if the click target is inside a <pre>
+      let target = e.target as HTMLElement | null;
+      while (target && target !== containerRef.current) {
+        if (target.tagName === "PRE") {
+          // Toggle expand
+          const currentMax = target.style.maxHeight;
+          if (currentMax && currentMax !== "none") {
+            target.style.maxHeight = "none";
+            target.style.overflow = "auto";
+          } else {
+            target.style.maxHeight = `${DIFF_MAX_HEIGHT}px`;
+            target.style.overflow = "hidden";
+          }
+          return;
+        }
+        target = target.parentElement;
+      }
+    },
+    [],
+  );
+
+  return (
+    <div ref={containerRef} onClick={handleClick}>
+      {children}
+    </div>
+  );
+}
+
 const SYSTEM_MSG_STYLE: CSS = {
   marginBottom: 8,
   padding: "8px 12px",
@@ -1123,14 +1177,12 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
   // Turns dropdown menu items (most recent first)
   const turnsMenuItems = useMemo(() => {
-    const items = allSessions
+    return allSessions
       .map((sid, i) => ({
         key: sid,
         label: `Turn ${i + 1}${sid === sessionId ? "  •" : ""}`,
       }))
       .reverse();
-    items.push({ key: "__new__", label: "+ New Turn" });
-    return items;
   }, [allSessions, sessionId]);
 
   return (
@@ -1172,11 +1224,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           menu={{
             items: turnsMenuItems,
             onClick: ({ key }) => {
-              if (key === "__new__") {
-                handleNewSession();
-              } else {
-                setSessionId(key);
-              }
+              setSessionId(key);
             },
           }}
           trigger={["click"]}
@@ -1185,6 +1233,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             <Icon name="history" /> Turns ({allSessions.length})
           </Button>
         </Dropdown>
+        <Button size="small" onClick={handleNewSession}>
+          <Icon name="plus" /> New
+        </Button>
         {sessionId && messages.length > 0 && (
           <Popconfirm
             title="Clear all messages in this turn?"
@@ -1249,6 +1300,10 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             >
               {msg.sender === "user" ? (
                 msg.content
+              ) : msg.sender === "assistant" ? (
+                <CollapsibleDiffs>
+                  <StaticMarkdown value={renderedContent} />
+                </CollapsibleDiffs>
               ) : (
                 <StaticMarkdown value={renderedContent} />
               )}
