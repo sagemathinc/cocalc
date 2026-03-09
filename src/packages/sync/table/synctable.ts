@@ -34,7 +34,14 @@ import { keys, throttle } from "lodash";
 import { callback2, cancel_scheduled, once } from "@cocalc/util/async-utils";
 import { wait } from "@cocalc/util/async-wait";
 import { query_function } from "./query-function";
-import { assert_uuid, copy, is_array, is_object, len } from "@cocalc/util/misc";
+import {
+  assert_uuid,
+  copy,
+  is_array,
+  is_object,
+  isValidUUID,
+  len,
+} from "@cocalc/util/misc";
 import * as schema from "@cocalc/util/schema";
 import mergeDeep from "@cocalc/util/immutable-deep-merge";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
@@ -733,8 +740,24 @@ export class SyncTable extends EventEmitter {
         this.client.is_browser() &&
         !this.project_id
       ) {
+        const account_id = this.client.client_id?.();
+        if (!isValidUUID(account_id)) {
+          if (first) {
+            // Avoid noisy warnings while account_id is still being initialized.
+            first = false;
+          } else {
+            warned = true;
+            console.log(
+              `WARNING: ${this.table} -- waiting for valid account id before creating changefeed; will retry in ${delay_ms}ms`,
+            );
+          }
+          await delay(delay_ms);
+          delay_ms = Math.min(20000, delay_ms * 1.25);
+          continue;
+        }
+        const valid_account_id = account_id as string;
         this.changefeed = new ConatChangefeed({
-          account_id: this.client.client_id?.()!,
+          account_id: valid_account_id,
           query: this.query,
           options: this.options,
         });
