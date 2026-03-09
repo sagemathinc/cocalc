@@ -53,6 +53,9 @@ export function BuildControls({
   const other_settings = useTypedRedux("account", "other_settings");
   const isDarkMode = other_settings?.get("dark_mode") ?? false;
 
+  // Track building state to disable buttons during builds
+  const is_building: boolean = useRedux(actions.name, "building") ?? false;
+
   // Get PDF dark mode disabled state from Redux store
   const pdfDarkModeDisabledMap = useRedux(
     actions.name,
@@ -86,12 +89,14 @@ export function BuildControls({
       label: "Force Build",
       icon: <Icon name="play-circle" />,
       onClick: handleForceBuild,
+      disabled: is_building,
     },
     {
       key: "clean",
       label: "Clean",
       icon: <Icon name="trash" />,
       onClick: handleClean,
+      disabled: is_building,
     },
     {
       type: "divider",
@@ -141,6 +146,7 @@ export function BuildControls({
       <Dropdown.Button
         type="primary"
         size={size}
+        disabled={is_building}
         icon={<Icon name="caret-down" />}
         menu={{ items: buildMenuItems }}
         trigger={["click"]}

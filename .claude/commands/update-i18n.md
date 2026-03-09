@@ -18,7 +18,7 @@ This command runs the full i18n update sequence:
 
 ## Commands executed
 
-Run this in `./packages/frontend/`
+Run this in `./src/packages/frontend/`
 
 Step 1:
 
@@ -44,6 +44,6 @@ pnpm i18n:download && pnpm i18n:compile
 
 ## Prerequisites
 
-- Must be in the `packages/frontend` directory
+- Must be in the `src/packages/frontend` directory
 - SIMPLELOCALIZE_KEY environment variable must be set
 - Changes to translation strings should already be committed to source code

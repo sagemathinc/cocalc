@@ -96,7 +96,11 @@ export default function FileActionModal() {
 
   const file_action = useTypedRedux({ project_id }, "file_action");
   const checked_files = useTypedRedux({ project_id }, "checked_files");
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  // Derive the directory from checked files — works for both explorer
+  // and flyout actions regardless of which browsing path is active.
+  const current_path = checked_files?.size
+    ? path_split(checked_files.first()).head
+    : "";
   const compute_server_id = useTypedRedux({ project_id }, "compute_server_id");
   const displayed_listing = useTypedRedux({ project_id }, "displayed_listing");
 
@@ -202,7 +206,7 @@ export default function FileActionModal() {
                 }
                 actions.set_file_action();
                 actions.set_all_files_unchecked();
-                actions.fetch_directory_listing();
+                actions.fetch_directory_listing({ path: current_path });
               } catch {
                 // errors shown via set_activity
               } finally {

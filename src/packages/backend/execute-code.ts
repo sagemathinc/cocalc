@@ -67,9 +67,12 @@ log.debug("configuration:", {
   MONITOR_STATS_LENGTH_MAX,
 });
 
-type AsyncAwait = "finished";
+type AsyncEvent = "finished" | "stdout" | "stderr" | "stats";
 export const updates = new EventEmitter();
-export const eventKey = (type: AsyncAwait, job_id: string): string =>
+// Event keys are per-job-id so many concurrent builds each use unique keys.
+// Raise the limit to avoid spurious warnings from Node.js.
+updates.setMaxListeners(100);
+export const eventKey = (type: AsyncEvent, job_id: string): string =>
   `${type}-${job_id}`;
 
 export const asyncCache = new LRU<string, ExecuteCodeOutputAsync>({
@@ -133,7 +136,7 @@ export async function cleanUpTempDir(tempDir: string | undefined) {
     try {
       await rm(tempDir, { force: true, recursive: true });
     } catch (err) {
-      console.log("WARNING: issue cleaning up tempDir", err);
+      log.warn("issue cleaning up tempDir", err);
     }
   }
 }
@@ -243,7 +246,7 @@ async function executeCodeNoAggregate(
       asyncCache.set(job_id, job_config);
 
       const child = doSpawn(
-        { ...opts, origCommand, job_id, job_config },
+        { ...opts, origCommand, job_id, job_config, streamCB: opts.streamCB! },
         async (err, result) => {
           log.debug("async/doSpawn returned", {
             err,
@@ -297,7 +300,11 @@ async function executeCodeNoAggregate(
       return { ...job_config, pid };
     } else {
       // This is the blocking variant
-      return await callback(doSpawn, { ...opts, origCommand });
+      return await callback(doSpawn, {
+        ...opts,
+        origCommand,
+        streamCB: opts.streamCB!,
+      });
     }
   } finally {
     // do not delete the tempDir in async mode!
@@ -307,8 +314,13 @@ async function executeCodeNoAggregate(
   }
 }
 
+// After going through the `aggregate` wrapper, `streamCB` is always
+// set (to a fan-out function), even if no caller provided one.
+// Making it required here prevents dead-code guards like
+// `if (!opts.streamCB) { cb(err) }`.
 function doSpawn(
   opts: ExecuteCodeOptions & {
+    streamCB: NonNullable<ExecuteCodeOptions["streamCB"]>;
     origCommand: string;
     job_id?: string;
     job_config?: ExecuteCodeOutputAsync;
@@ -333,7 +345,7 @@ function doSpawn(
     detached: true, // so we can kill the entire process group if it times out
     cwd: opts.path,
     ...(opts.uid ? { uid: opts.uid } : undefined),
-    ...(opts.gid ? { uid: opts.gid } : undefined),
+    ...(opts.gid ? { gid: opts.gid } : undefined),
     env: {
       ...envForSpawn(),
       ...opts.env,
@@ -394,9 +406,12 @@ function doSpawn(
       obj.stats.push(statEntry);
       truncStats(obj);
       asyncCache.set(job_id, obj);
-      // Stream stats update if callback provided
+      // Stream stats update
       if (opts.streamCB) {
         opts.streamCB({ type: "stats", data: statEntry });
+      }
+      if (opts.job_id) {
+        updates.emit(eventKey("stats", opts.job_id), statEntry);
       }
 
       // initially, we record more frequently, but then we space it out up until the interval (probably 1 minute)
@@ -448,22 +463,24 @@ function doSpawn(
 
   // Send batched stream data
   const sendBatchedStream = () => {
-    if (!opts.streamCB) return;
-
     const hasStdout = streamBuffer.stdout.length > 0;
     const hasStderr = streamBuffer.stderr.length > 0;
 
-    if (hasStdout || hasStderr) {
-      // Send stdout if available
-      if (hasStdout) {
+    if (!hasStdout && !hasStderr) return;
+
+    if (hasStdout) {
+      if (opts.streamCB)
         opts.streamCB({ type: "stdout", data: streamBuffer.stdout });
-        streamBuffer.stdout = "";
-      }
-      // Send stderr if available
-      if (hasStderr) {
+      if (opts.job_id)
+        updates.emit(eventKey("stdout", opts.job_id), streamBuffer.stdout);
+      streamBuffer.stdout = "";
+    }
+    if (hasStderr) {
+      if (opts.streamCB)
         opts.streamCB({ type: "stderr", data: streamBuffer.stderr });
-        streamBuffer.stderr = "";
-      }
+      if (opts.job_id)
+        updates.emit(eventKey("stderr", opts.job_id), streamBuffer.stderr);
+      streamBuffer.stderr = "";
     }
   };
 
@@ -476,8 +493,10 @@ function doSpawn(
     sendBatchedStream();
   };
 
-  // Start batch timer if streaming is enabled, every 100ms
-  if (opts.streamCB) {
+  // Start batch timer for async jobs that need streaming.
+  // Note: opts.streamCB is always set by aggregate's fan-out wrapper,
+  // so opts.job_id is the real discriminator for streaming needs.
+  if (opts.async_call && opts.job_id) {
     streamBatchTimer = setInterval(sendBatchedStream, 100);
   }
 
@@ -510,14 +529,14 @@ function doSpawn(
         const newData = data.slice(0, opts.max_output - stdout.length);
         stdout += newData;
         // Buffer the new portion for batched streaming
-        if (opts.streamCB && stdout.length > prevLength) {
+        if (opts.job_id && stdout.length > prevLength) {
           streamBuffer.stdout += newData;
         }
       }
     } else {
       stdout += data;
       // Buffer the new data for batched streaming
-      if (opts.streamCB) {
+      if (opts.job_id) {
         streamBuffer.stdout += data;
       }
     }
@@ -532,14 +551,14 @@ function doSpawn(
         const newData = data.slice(0, opts.max_output - stderr.length);
         stderr += newData;
         // Buffer the new portion for batched streaming
-        if (opts.streamCB && stderr.length > prevLength) {
+        if (opts.job_id && stderr.length > prevLength) {
           streamBuffer.stderr += newData;
         }
       }
     } else {
       stderr += data;
       // Buffer the new data for batched streaming
-      if (opts.streamCB) {
+      if (opts.job_id) {
         streamBuffer.stderr += data;
       }
     }
@@ -577,22 +596,11 @@ function doSpawn(
     stderr += to_json(err);
     // a fundamental issue, we were not running some code
     ran_code = false;
-    // For streaming, flush buffer and send error event
-    if (opts.streamCB && opts.async_call && opts.job_id) {
-      flushStreamBuffer(); // Flush any buffered data first
-      const errorResult: ExecuteCodeOutputAsync = {
-        type: "async",
-        job_id: opts.job_id,
-        stdout,
-        stderr,
-        exit_code: exit_code ?? 1,
-        status: "error",
-        elapsed_s: walltime(start_time),
-        start: opts.job_config?.start ?? Date.now(),
-        pid: child.pid,
-        stats: opts.job_config?.stats,
-      };
-      opts.streamCB({ type: "done", data: errorResult });
+    // Flush any buffered streaming data before finish() sends the done event.
+    // Note: we do NOT send streamCB({type:"done"}) here — finish() handles that
+    // uniformly for all exit paths, avoiding a double-done event.
+    if (opts.async_call && opts.job_id) {
+      flushStreamBuffer();
     }
     finish();
   });
@@ -617,7 +625,7 @@ function doSpawn(
     // Safety check: if we're using streaming and the process has exited but streams aren't done,
     // force completion after a short delay to prevent hanging
     if (
-      opts.streamCB &&
+      opts.job_id &&
       exit_code != null &&
       (!stdout_is_done || !stderr_is_done)
     ) {
@@ -634,7 +642,7 @@ function doSpawn(
     callback_done = true;
 
     // Flush any remaining buffered stream data before finishing
-    if (opts.streamCB) {
+    if (opts.job_id) {
       flushStreamBuffer();
     }
 
@@ -678,10 +686,9 @@ function doSpawn(
           };
           opts.streamCB({ type: "done", data: errorResult });
         }
-        // For streaming, don't call cb with error - let the stream handle it
-        if (!opts.streamCB) {
-          cb?.(err);
-        }
+        // Always call cb to resolve the promise and update asyncCache.
+        // Without this, the cache entry stays "running" forever.
+        cb?.(err);
       } else {
         // sync behavior, like it was before
         cb?.(err);
@@ -709,10 +716,8 @@ function doSpawn(
           };
           opts.streamCB({ type: "done", data: errorResult });
         }
-        // For streaming, don't call cb with error - let the stream handle it
-        if (!opts.streamCB) {
-          cb?.(stderr);
-        }
+        // Always call cb to resolve the promise and update asyncCache.
+        cb?.(stderr);
       } else {
         // sync behavor, like it was before
         cb?.(

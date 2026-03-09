@@ -52,7 +52,8 @@ export function FilesSelectedControls({
   activeFile,
 }: FilesSelectedControlsProps) {
   const intl = useIntl();
-  const current_path = useTypedRedux({ project_id }, "current_path");
+  const current_path =
+    useTypedRedux({ project_id }, "flyout_browsing_path") ?? "";
   const actions = useActions({ project_id });
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);

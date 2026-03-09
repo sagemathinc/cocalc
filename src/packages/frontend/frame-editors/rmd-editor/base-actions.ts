@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -8,8 +8,9 @@ Abstract base class shared by R Markdown and Quarto editor actions.
 */
 
 import { Set } from "immutable";
-import { debounce } from "lodash";
+import { debounce, type DebouncedFunc } from "lodash";
 
+import { randomId } from "@cocalc/conat/names";
 import { type AccountStore } from "@cocalc/frontend/account";
 import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
 import { ExecuteCodeOutputAsync } from "@cocalc/util/types/execute-code";
@@ -18,14 +19,18 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 import { FrameTree } from "../frame-tree/types";
-import { exec, ExecOutput } from "../generic/client";
+import { exec, ExecOutput, server_time } from "../generic/client";
+import { BuildCoordinator } from "../generic/build-coordinator";
 import { Actions as MarkdownActions } from "../markdown-editor/actions";
 import { checkProducedFiles } from "./utils";
 
 export abstract class MarkdownConverterActions extends MarkdownActions {
   protected _last_hash: number | undefined = undefined;
   protected is_building: boolean = false;
-  protected run_converter!: Function;
+  protected run_converter!: DebouncedFunc<(hash?: number) => Promise<void>>;
+  protected buildCoordinator?: BuildCoordinator;
+  private _lastBuiltHash?: number;
+  private _buildWasStopped = false;
 
   // Subclasses provide the format-specific build logic and empty-file template.
   protected abstract _run_converter(hash?: number): Promise<void>;
@@ -60,7 +65,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       const hash = this._syncstring.hash_of_saved_version();
       if (this._last_hash != hash) {
         this._last_hash = hash;
-        await this.run_converter(hash);
+        await this.build();
       }
     });
 
@@ -92,8 +97,30 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       this._last_hash = this._syncstring.hash_of_saved_version();
       if (outputs === null) return; // listing unavailable => skip
       if (outputs.size > 0) return; // output already exists => skip
-      await this.run_converter(this._last_hash);
+      await this.build();
     })();
+
+    this._init_build_coordinator();
+  }
+
+  private _init_build_coordinator(): void {
+    this.buildCoordinator = new BuildCoordinator(this.project_id, this.path, {
+      join: async (aggregate, _force) => {
+        await this._run_converter(aggregate);
+      },
+      stop: () => this.stop_build(""),
+      isBuilding: () => this.is_building,
+      setBuilding: (v) => {
+        this.is_building = v;
+        this.setState({ building: v });
+        if (!v && !this._buildWasStopped) {
+          // A joined build just completed — track the hash so subsequent
+          // no-op builds are skipped (same as originator's build path).
+          this._lastBuiltHash = this._syncstring?.hash_of_saved_version();
+        }
+      },
+      setError: (err) => this.set_error(err),
+    });
   }
 
   async build(id?: string, force: boolean = false): Promise<void> {
@@ -111,23 +138,48 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
         return;
       }
     }
+    const actions = this.redux.getEditorActions(this.project_id, this.path);
+    if (actions == null) {
+      // opening/close a newly created file can trigger build when actions aren't
+      // ready yet.  https://github.com/sagemathinc/cocalc/issues/7249
+      return;
+    }
+    const buildId = randomId();
+    // Capture before reset: if previous build was stopped, we need a fresh
+    // aggregate to bypass backend dedup (cached partial results).
+    const wasStopped = this._buildWasStopped;
     this.is_building = true;
+    this._buildWasStopped = false;
+    this.buildCoordinator?.setLocalBuildId(buildId);
     this.setState({ building: true });
     try {
-      const actions = this.redux.getEditorActions(this.project_id, this.path);
-      if (actions == null) {
-        // opening/close a newly created file can trigger build when actions aren't
-        // ready yet.  https://github.com/sagemathinc/cocalc/issues/7249
-        return;
-      }
       await (actions as BaseActions<CodeEditorState>).save(false);
+      const hash =
+        force || wasStopped
+          ? server_time().valueOf()
+          : (this._syncstring?.hash_of_saved_version() ?? 0);
+      // Skip if hash hasn't changed since last completed build — avoids DKV
+      // chatter that causes other clients to flicker their build spinner.
+      // Must be AFTER save so hash_of_saved_version() reflects pending edits.
+      if (
+        !force &&
+        this._lastBuiltHash != null &&
+        hash === this._lastBuiltHash
+      ) {
+        return; // finally block cleans up is_building / building state
+      }
+      this.buildCoordinator?.publishBuildStart(buildId, hash, force);
       // For force builds, bypass the debounced function to ensure immediate execution
       if (force) {
-        await this._run_converter(Date.now());
+        await this._run_converter(hash);
       } else {
-        await this.run_converter(Date.now());
+        await this.run_converter(hash);
+      }
+      if (!this._buildWasStopped) {
+        this._lastBuiltHash = this._syncstring?.hash_of_saved_version() ?? hash;
       }
     } finally {
+      this.buildCoordinator?.publishBuildFinished(buildId);
       this.is_building = false;
       this.setState({ building: false });
     }
@@ -140,6 +192,14 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
 
   // Stops the current build process and resets state.
   async stop_build(_id: string): Promise<void> {
+    this.buildCoordinator?.requestStop();
+    // A stopped build didn't complete — clear the "last built" hash so
+    // the next build isn't skipped as a no-op.
+    this._lastBuiltHash = undefined;
+    this._buildWasStopped = true;
+    // Reset the debounce so the next build fires immediately instead of
+    // being swallowed by the 5-second leading-edge window.
+    this.run_converter?.cancel();
     const job_info = this.store.get("job_info")?.toJS() as
       | ExecuteCodeOutputAsync
       | undefined;
@@ -175,6 +235,7 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
       }
     }
     this.set_status("");
+    this.is_building = false;
     this.setState({ building: false });
   }
 
@@ -233,6 +294,11 @@ export abstract class MarkdownConverterActions extends MarkdownActions {
     ["iframe", "pdfjs_canvas", "markdown"].forEach((viewer) =>
       this.set_reload(viewer, hash),
     );
+  }
+
+  close(): void {
+    this.buildCoordinator?.close();
+    super.close();
   }
 
   // Never delete trailing whitespace for markdown files.
