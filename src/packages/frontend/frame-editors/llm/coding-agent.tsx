@@ -131,28 +131,25 @@ function CollapsibleDiffs({ children }: { children: React.ReactNode }) {
     });
   });
 
-  const handleClick = useCallback(
-    (e: React.MouseEvent) => {
-      // Find if the click target is inside a <pre>
-      let target = e.target as HTMLElement | null;
-      while (target && target !== containerRef.current) {
-        if (target.tagName === "PRE") {
-          // Toggle expand
-          const currentMax = target.style.maxHeight;
-          if (currentMax && currentMax !== "none") {
-            target.style.maxHeight = "none";
-            target.style.overflow = "auto";
-          } else {
-            target.style.maxHeight = `${DIFF_MAX_HEIGHT}px`;
-            target.style.overflow = "hidden";
-          }
-          return;
+  const handleClick = useCallback((e: React.MouseEvent) => {
+    // Find if the click target is inside a <pre>
+    let target = e.target as HTMLElement | null;
+    while (target && target !== containerRef.current) {
+      if (target.tagName === "PRE") {
+        // Toggle expand
+        const currentMax = target.style.maxHeight;
+        if (currentMax && currentMax !== "none") {
+          target.style.maxHeight = "none";
+          target.style.overflow = "auto";
+        } else {
+          target.style.maxHeight = `${DIFF_MAX_HEIGHT}px`;
+          target.style.overflow = "hidden";
         }
-        target = target.parentElement;
+        return;
       }
-    },
-    [],
-  );
+      target = target.parentElement;
+    }
+  }, []);
 
   return (
     <div ref={containerRef} onClick={handleClick}>
@@ -269,7 +266,8 @@ function applySearchReplace(
       for (let i = 0; i < lines.length; i++) {
         if (lines[i].trim() === trimmedSearch) {
           // Found a line that matches when trimmed — use it
-          const lineStart = lines.slice(0, i).join("\n").length + (i > 0 ? 1 : 0);
+          const lineStart =
+            lines.slice(0, i).join("\n").length + (i > 0 ? 1 : 0);
           const lineEnd = lineStart + lines[i].length;
           result = result.slice(0, lineStart) + replace + result.slice(lineEnd);
           applied++;
@@ -558,8 +556,14 @@ export default function CodingAgent(_props: EditorComponentProps) {
 /**
  * Embedded version for use inside the side chat frame.
  * Receives the chat syncdb so we don't create a separate file.
+ * IMPORTANT: chatSyncdb must be a valid, ready SyncDB — the parent
+ * component must wait for it before rendering this component.
  */
 export function CodingAgentEmbedded({ chatSyncdb }: { chatSyncdb: any }) {
+  if (chatSyncdb == null) {
+    console.warn("CodingAgentEmbedded: chatSyncdb is null — not rendering");
+    return null;
+  }
   return <CodingAgentCore chatSyncdb={chatSyncdb} />;
 }
 
@@ -592,7 +596,15 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   // SyncDB state
   const [syncdb, setSyncdb] = useState<any>(chatSyncdb ?? null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [sessionId, setSessionId] = useState<string>("");
+  const [sessionId, setSessionIdState] = useState<string>("");
+  // Keep a ref in sync with sessionId so that loadSessionsAndMessages
+  // (called from SyncDB event handlers) always reads the latest value
+  // without needing to be recreated — avoids stale closure bugs.
+  const sessionIdRef = useRef<string>("");
+  const setSessionId = useCallback((id: string) => {
+    sessionIdRef.current = id;
+    setSessionIdState(id);
+  }, []);
   const [allSessions, setAllSessions] = useState<string[]>([]);
 
   // Initialize own syncdb (standalone mode only)
@@ -626,12 +638,14 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       }
     };
 
+    // Register listener first — catches changes that arrive during init.
+    db.on("change", handleChange);
+
     if (db.get_state() === "ready") {
       handleReady();
     } else {
       db.once("ready", handleReady);
     }
-    db.on("change", handleChange);
 
     db.once("error", (err: any) => {
       console.warn(`CodingAgent syncdb error: ${err}`);
@@ -644,6 +658,8 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   }, [project_id, path]);
 
   // When using the chat syncdb (embedded mode), listen for changes.
+  // Following the pattern from chat/register.ts: register the change
+  // listener BEFORE checking ready, so we never miss the initial emit.
   useEffect(() => {
     if (!usesChatSchema || !chatSyncdb) return;
 
@@ -652,6 +668,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         loadRef.current(chatSyncdb);
       }
     };
+
+    // Register listener first — catches changes that arrive during init.
+    chatSyncdb.on("change", handleChange);
 
     if (chatSyncdb.get_state() === "ready") {
       setSyncdb(chatSyncdb);
@@ -662,7 +681,6 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         loadRef.current(chatSyncdb);
       });
     }
-    chatSyncdb.on("change", handleChange);
 
     return () => {
       chatSyncdb.removeListener("change", handleChange);
@@ -671,6 +689,8 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
   /**
    * Read all sessions from syncdb and load messages for the active session.
+   * Reads sessionId from sessionIdRef (not closure) to avoid stale data
+   * when called from SyncDB event handlers between React renders.
    */
   const loadSessionsAndMessages = useCallback(
     (db: any) => {
@@ -679,6 +699,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       const allRecords = db.get();
       if (allRecords == null) return;
 
+      const currentSessionId = sessionIdRef.current;
       const sessionsSet = new Set<string>();
       const msgsBySession = new Map<string, DisplayMessage[]>();
 
@@ -741,13 +762,13 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
       // If no session exists or the current session is gone, pick the latest
       const activeSession =
-        sessionId && sessionsSet.has(sessionId)
-          ? sessionId
+        currentSessionId && sessionsSet.has(currentSessionId)
+          ? currentSessionId
           : sessions.length > 0
             ? sessions[sessions.length - 1]
             : "";
 
-      if (activeSession !== sessionId) {
+      if (activeSession !== currentSessionId) {
         setSessionId(activeSession);
       }
 
@@ -761,7 +782,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         setMessages([]);
       }
     },
-    [sessionId, usesChatSchema],
+    [usesChatSchema],
   );
   // Keep the ref in sync so change handlers always call the latest version.
   loadRef.current = loadSessionsAndMessages;
@@ -1039,10 +1060,11 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     let newContent: string;
     if (pendingEdits.type === "edit_blocks") {
       // Apply line-number-based edits to the base snapshot
-      const { result: modified, applied, failed } = applyEditBlocks(
-        pendingEdits.base,
-        pendingEdits.blocks,
-      );
+      const {
+        result: modified,
+        applied,
+        failed,
+      } = applyEditBlocks(pendingEdits.base, pendingEdits.blocks);
 
       if (applied === 0) {
         setError(
@@ -1066,10 +1088,11 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       });
     } else if (pendingEdits.type === "search_replace") {
       // Legacy: apply search/replace to the clean base snapshot
-      const { result: modified, applied, failed } = applySearchReplace(
-        pendingEdits.base,
-        pendingEdits.blocks,
-      );
+      const {
+        result: modified,
+        applied,
+        failed,
+      } = applySearchReplace(pendingEdits.base, pendingEdits.blocks);
 
       if (applied === 0) {
         setError(

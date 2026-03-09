@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Segmented } from "antd";
+import { Segmented, Spin } from "antd";
 import { useEffect, useState } from "react";
 
 import { redux } from "@cocalc/frontend/app-framework";
@@ -34,6 +34,10 @@ function Chat({ font_size, desc }: EditorComponentProps) {
   const [sideChatActions, setSideChatActions] = useState<ChatActions | null>(
     null,
   );
+  // Track when the chat syncdb is ready (actions.syncdb becomes non-null).
+  // CodingAgentEmbedded must NOT mount until this is set, otherwise it
+  // falls back to standalone mode and shows stale data.
+  const [chatSyncdbReady, setChatSyncdbReady] = useState(false);
 
   // Read the active tab mode from the frame tree state.
   const mode: ChatMode = desc.get("chat_mode") ?? "chat";
@@ -52,6 +56,22 @@ function Chat({ font_size, desc }: EditorComponentProps) {
       sideChatActions.frameTreeActions = actions;
       sideChatActions.frameId = frameId;
       setSideChatActions(sideChatActions);
+
+      // sideChatActions.syncdb is set in the SyncDB "ready" handler
+      // inside initChat. Poll briefly until it's available so agent
+      // components don't mount with syncdb=undefined.
+      if (sideChatActions.syncdb) {
+        setChatSyncdbReady(true);
+      } else {
+        const check = setInterval(() => {
+          if (sideChatActions.syncdb) {
+            clearInterval(check);
+            setChatSyncdbReady(true);
+          }
+        }, 200);
+        // Safety: stop polling after 60s
+        setTimeout(() => clearInterval(check), 60_000);
+      }
     })();
   }, []);
 
@@ -105,6 +125,17 @@ function Chat({ font_size, desc }: EditorComponentProps) {
             fontSize={font_size}
             desc={desc}
           />
+        ) : !chatSyncdbReady ? (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              height: "100%",
+            }}
+          >
+            <Spin />
+          </div>
         ) : isJupyter ? (
           <NotebookAgent
             chatSyncdb={sideChatActions.syncdb}

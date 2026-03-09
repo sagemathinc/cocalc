@@ -313,7 +313,7 @@ export default function RunButton({
       <Popover
         open={project_id == null ? undefined : is_visible && showPopover}
         trigger={project_id == null ? "click" : []}
-        overlayInnerStyle={{ width: "350px" }}
+        styles={{ body: { width: "350px" } }}
         title={
           <>
             {project_id != null && (
