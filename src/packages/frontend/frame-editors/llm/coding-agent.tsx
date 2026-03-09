@@ -657,12 +657,20 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const handleInputChange = useCallback(
     (value: string) => {
       setInput(value);
+      // Clear estimate immediately when input is empty — no need to debounce.
+      if (!value.trim()) {
+        if (estimateTimeoutRef.current) {
+          clearTimeout(estimateTimeoutRef.current);
+        }
+        setCostEstimate(null);
+        return;
+      }
       // Debounce cost estimation (500ms)
       if (estimateTimeoutRef.current) {
         clearTimeout(estimateTimeoutRef.current);
       }
       estimateTimeoutRef.current = setTimeout(async () => {
-        if (!value.trim() || !model) {
+        if (!model) {
           setCostEstimate(null);
           return;
         }
