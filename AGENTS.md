@@ -58,20 +58,6 @@ The root-level `src/workspaces.py` script orchestrates operations across all pac
 
 **IMPORTANT**: After updating dependencies in any `package.json`, run `python3 src/workspaces.py version-check` to ensure consistency, then `python3 src/workspaces.py install` to update the lockfile and install.
 
-### Dependency Management
-
-**Package versions must be uniform across all CoCalc packages in the monorepo.**
-
-When updating npm packages:
-
-- **ALWAYS update associated `@types/[name]` packages** when updating an npm package `[name]` if `@types/[name]` is installed
-- **Check all packages in the workspace** that depend on the package being updated
-- **Ensure version consistency** across all packages - the same package must use the same version everywhere
-- Run `pnpm version-check` from the root directory (`cocalc/src/`) to verify version consistency
-- Run `pnpm install` after updating dependencies in any package
-- Use `pnpm list [package]` to verify the installed version across the workspace
-- Example: When updating `pg` from `^8.7.1` to `^8.16.3`, also update `@types/pg` from `^8.6.1` to `^8.16.0` in **all packages** that use them
-
 ### Development
 
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
@@ -91,11 +77,7 @@ After making changes to files in `src/packages/frontend`:
 
 #### Modernizing Legacy Callback Code
 
-When working with legacy callback-based code (using `async.series`, `defaults()`, nested callbacks), follow the comprehensive modernization guide:
-
-**📖 See [dev/MODERNIZE_CODE.md](./dev/MODERNIZE_CODE.md)** for the complete step-by-step process to convert callback-based code to modern async/await TypeScript.
-
-This guide covers:
+When working with legacy callback-based code (using `async.series`, `defaults()`, nested callbacks), convert to modern async/await TypeScript:
 
 - Converting `async.series`/`async.parallel` to native async/await
 - Replacing `defaults()` with TypeScript destructuring
