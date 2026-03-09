@@ -79,7 +79,7 @@ After making changes to files in `src/packages/frontend`:
 
 When working with legacy callback-based code (using `async.series`, `defaults()`, nested callbacks), follow the comprehensive modernization guide:
 
-**See [`src/.claude/skills/modernize-code/SKILL.md`](src/.claude/skills/modernize-code/SKILL.md)** for the complete step-by-step process to convert callback-based code to modern async/await TypeScript.
+**See [`.claude/skills/modernize-code/SKILL.md`](.claude/skills/modernize-code/SKILL.md)** for the complete step-by-step process to convert callback-based code to modern async/await TypeScript.
 
 This guide covers:
 
