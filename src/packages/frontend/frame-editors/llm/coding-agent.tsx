@@ -16,7 +16,16 @@ The agent can suggest search/replace edits and execute shell commands
 (with user confirmation).
 */
 
-import { Alert, Button, Dropdown, Popconfirm, Spin, Tooltip } from "antd";
+import {
+  Alert,
+  Button,
+  Dropdown,
+  Input,
+  Modal,
+  Popconfirm,
+  Spin,
+  Tooltip,
+} from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -33,7 +42,7 @@ import type { EditorComponentProps } from "@cocalc/frontend/frame-editors/frame-
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
+import { getOneFreeModel, isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { three_way_merge } from "@cocalc/util/dmp";
 import {
   filename_extension,
@@ -603,6 +612,12 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     setSessionIdState(id);
   }, []);
   const [allSessions, setAllSessions] = useState<string[]>([]);
+  // Map of session_id → human-readable name (stored in SyncDB as special records)
+  const [sessionNames, setSessionNames] = useState<Map<string, string>>(
+    new Map(),
+  );
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [renameValue, setRenameValue] = useState("");
 
   // LLM cost estimation — recompute when input or model changes
   const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -729,6 +744,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       const currentSessionId = sessionIdRef.current;
       const sessionsSet = new Set<string>();
       const msgsBySession = new Map<string, DisplayMessage[]>();
+      const names = new Map<string, string>();
 
       allRecords.forEach((record: any) => {
         // In chat schema mode, only look at coding-agent records.
@@ -739,6 +755,16 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         const sid = record.get("session_id");
         if (!sid) return;
         sessionsSet.add(sid);
+
+        // Extract session names from special "session_name" records.
+        const eventField = usesChatSchema
+          ? record.get("msg_event")
+          : record.get("event");
+        if (eventField === "session_name") {
+          const name = record.get("content");
+          if (name) names.set(sid, name);
+          return; // don't add to messages
+        }
 
         if (!msgsBySession.has(sid)) {
           msgsBySession.set(sid, []);
@@ -766,6 +792,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           });
         }
       });
+      setSessionNames(names);
 
       // If we have a pending new session (just created, no messages yet),
       // include it in the list so the UI doesn't discard it.
@@ -917,6 +944,80 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     [syncdb, sessionId, usesChatSchema],
   );
 
+  /** Write (or overwrite) the human-readable name for a session. */
+  const writeSessionName = useCallback(
+    (name: string, sid?: string) => {
+      if (!syncdb || syncdb.get_state() !== "ready") return;
+      const targetSid = sid || sessionId;
+      if (!targetSid) return;
+      const date = "session_name"; // sentinel value
+      if (usesChatSchema) {
+        syncdb.set({
+          date,
+          sender_id: agentSenderId("system"),
+          event: CODING_AGENT_EVENT,
+          session_id: targetSid,
+          content: name,
+          sender: "system",
+          msg_event: "session_name",
+        });
+      } else {
+        syncdb.set({
+          session_id: targetSid,
+          date,
+          sender: "system",
+          content: name,
+          event: "session_name",
+        });
+      }
+      syncdb.commit();
+      // Update local state immediately for responsiveness.
+      setSessionNames((prev) => new Map(prev).set(targetSid, name));
+    },
+    [syncdb, sessionId, usesChatSchema],
+  );
+
+  /**
+   * Auto-generate a short name for a session after the first Q&A pair.
+   * Uses a free model on cocalc.com; the user's selected model otherwise.
+   */
+  const autoNameSession = useCallback(
+    async (userPrompt: string, assistantReply: string, sid: string) => {
+      // Don't overwrite an existing name
+      if (sessionNames.has(sid)) return;
+      try {
+        const nameModel = isCoCalcCom ? getOneFreeModel() : model;
+        const stream = webapp_client.openai_client.queryStream({
+          input: `Given this conversation between a user and a coding assistant, generate a very short descriptive title (at most 7 words). Reply with ONLY the title, no quotes, no punctuation at the end.\n\nUser: ${userPrompt.slice(0, 500)}\n\nAssistant: ${assistantReply.slice(0, 500)}`,
+          system:
+            "You generate short descriptive titles for conversations. Reply with only the title.",
+          history: [],
+          model: nameModel,
+          project_id,
+          tag: "coding-agent:auto-name",
+        });
+        let title = "";
+        stream.on("token", (token: string | null) => {
+          if (token != null) {
+            title += token;
+          } else {
+            // Stream ended — save the name
+            const trimmed = title.trim().slice(0, 80);
+            if (trimmed) {
+              writeSessionName(trimmed, sid);
+            }
+          }
+        });
+        stream.on("error", () => {
+          // Silently ignore — auto-naming is best-effort
+        });
+      } catch {
+        // Silently ignore
+      }
+    },
+    [isCoCalcCom, model, project_id, sessionNames, writeSessionName],
+  );
+
   const handleSubmit = useCallback(
     async (directInput?: string) => {
       const prompt = (directInput ?? input).trim();
@@ -1050,6 +1151,11 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             const execBlocks = parseExecBlocks(assistantContent);
             if (execBlocks.length > 0) {
               setPendingExec(execBlocks);
+            }
+
+            // Auto-name the session after the first Q&A exchange.
+            if (history.length === 0) {
+              autoNameSession(prompt, assistantContent, activeSessionId);
             }
           }
         });
@@ -1231,12 +1337,39 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   // Turns dropdown menu items (most recent first)
   const turnsMenuItems = useMemo(() => {
     return allSessions
-      .map((sid, i) => ({
-        key: sid,
-        label: `Turn ${i + 1}${sid === sessionId ? "  •" : ""}`,
-      }))
+      .map((sid, i) => {
+        const name = sessionNames.get(sid);
+        const label = name ? `${name}` : `Turn ${i + 1}`;
+        return {
+          key: sid,
+          label: `${label}${sid === sessionId ? "  •" : ""}`,
+        };
+      })
       .reverse();
-  }, [allSessions, sessionId]);
+  }, [allSessions, sessionId, sessionNames]);
+
+  // Label for the current session (shown in Turns button)
+  const currentSessionLabel = useMemo(() => {
+    if (!sessionId) return "Turns";
+    const name = sessionNames.get(sessionId);
+    if (name) return name;
+    const idx = allSessions.indexOf(sessionId);
+    return idx >= 0 ? `Turn ${idx + 1}` : "Turns";
+  }, [sessionId, sessionNames, allSessions]);
+
+  const handleRename = useCallback(() => {
+    const current = sessionNames.get(sessionId) ?? "";
+    setRenameValue(current);
+    setRenameModalOpen(true);
+  }, [sessionId, sessionNames]);
+
+  const handleRenameOk = useCallback(() => {
+    const trimmed = renameValue.trim();
+    if (trimmed) {
+      writeSessionName(trimmed);
+    }
+    setRenameModalOpen(false);
+  }, [renameValue, writeSessionName]);
 
   return (
     <div style={CONTAINER_STYLE}>
@@ -1283,9 +1416,32 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           trigger={["click"]}
         >
           <Button size="small">
-            <Icon name="history" /> Turns ({allSessions.length})
+            <Icon name="history" />{" "}
+            <span
+              style={{
+                maxWidth: 120,
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+                display: "inline-block",
+                verticalAlign: "middle",
+              }}
+            >
+              {currentSessionLabel}
+            </span>{" "}
+            ({allSessions.length})
           </Button>
         </Dropdown>
+        {sessionId && (
+          <Tooltip title="Rename this turn">
+            <Button
+              size="small"
+              type="text"
+              onClick={handleRename}
+              icon={<Icon name="pencil" />}
+            />
+          </Tooltip>
+        )}
         <Button size="small" onClick={handleNewSession}>
           <Icon name="plus" /> New
         </Button>
@@ -1559,6 +1715,25 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           </Tooltip>
         </div>
       </div>
+
+      {/* Rename turn modal */}
+      <Modal
+        title="Rename Turn"
+        open={renameModalOpen}
+        onOk={handleRenameOk}
+        onCancel={() => setRenameModalOpen(false)}
+        okText="Save"
+        destroyOnClose
+      >
+        <Input
+          autoFocus
+          value={renameValue}
+          onChange={(e) => setRenameValue(e.target.value)}
+          onPressEnter={handleRenameOk}
+          placeholder="Enter a name for this turn..."
+          maxLength={80}
+        />
+      </Modal>
     </div>
   );
 }
