@@ -5,5 +5,5 @@ Build the frontend code for development, after changing files in the frontend pa
 Run this command:
 
 ```bash
-cd packages/static && pnpm build-dev
+cd src/packages/static && pnpm build-dev
 ```
