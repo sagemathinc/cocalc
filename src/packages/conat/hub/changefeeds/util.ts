@@ -11,9 +11,9 @@ export const MAX_GLOBAL = 50_000;
 
 const DEBUG_DEVEL_MODE = false;
 
-export let CLIENT_KEEPALIVE = 90_000;
-export let SERVER_KEEPALIVE = 45_000;
-export let KEEPALIVE_TIMEOUT = 15_000;
+export let CLIENT_KEEPALIVE = 120_000;
+export let SERVER_KEEPALIVE = 60_000;
+export let KEEPALIVE_TIMEOUT = 30_000;
 
 if (DEBUG_DEVEL_MODE) {
   console.log(

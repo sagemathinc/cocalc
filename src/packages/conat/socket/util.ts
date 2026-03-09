@@ -24,8 +24,8 @@ export const PING_PONG_INTERVAL = 45000;
 export const DEFAULT_MAX_QUEUE_SIZE = 1000;
 
 export let DEFAULT_COMMAND_TIMEOUT = 10_000;
-export let DEFAULT_KEEP_ALIVE = 25_000;
-export let DEFAULT_KEEP_ALIVE_TIMEOUT = 10_000;
+export let DEFAULT_KEEP_ALIVE = 45_000;
+export let DEFAULT_KEEP_ALIVE_TIMEOUT = 30_000;
 
 export function setDefaultSocketTimeouts({
   command = DEFAULT_COMMAND_TIMEOUT,
