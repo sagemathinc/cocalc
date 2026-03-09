@@ -300,16 +300,35 @@ export class ProjectClient {
       for await (const resp of await req) {
         if (resp.data == null) {
           // Stream ended. This should normally happen only after a "done"
-          // event. Surface an explicit error if it doesn't, so callers don't
-          // hang forever waiting for completion.
+          // event. If we already know the async job id, fall back to the
+          // normal async_get API to recover the final result from the project.
           if (!sawDone) {
-            const suffix = execStream.job_id
-              ? ` for job ${execStream.job_id}`
-              : "";
-            execStream.emit(
-              "error",
-              new Error(`Exec stream ended before done${suffix}`),
-            );
+            const jobId = execStream.job_id;
+            if (jobId) {
+              try {
+                const result = await this.exec({
+                  project_id: opts.project_id,
+                  compute_server_id: opts.compute_server_id,
+                  async_get: jobId,
+                  async_await: true,
+                  async_stats: true,
+                });
+                sawDone = true;
+                execStream.emit("done", result);
+              } catch (err) {
+                execStream.emit(
+                  "error",
+                  new Error(
+                    `Exec stream ended before done for job ${jobId}; async_get failed: ${err}`,
+                  ),
+                );
+              }
+            } else {
+              execStream.emit(
+                "error",
+                new Error("Exec stream ended before done"),
+              );
+            }
           }
           emitEnd();
           break;
