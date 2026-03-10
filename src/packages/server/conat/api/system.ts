@@ -1,6 +1,6 @@
 import getCustomize from "@cocalc/database/settings/customize";
 export { getCustomize };
-import { record_user_tracking } from "@cocalc/database/postgres/user-tracking";
+import { record_user_tracking } from "@cocalc/database/postgres/account/user-tracking";
 import { db } from "@cocalc/database";
 import manageApiKeys from "@cocalc/server/api/manage";
 export { manageApiKeys };

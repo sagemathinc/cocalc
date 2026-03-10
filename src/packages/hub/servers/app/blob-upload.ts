@@ -8,7 +8,7 @@ allows for attaching files to github issue comments.
 
 import { Router } from "express";
 import { callback2 } from "@cocalc/util/async-utils";
-import { database } from "../database";
+import { getDatabase } from "../database";
 const { save_blob } = require("@cocalc/hub/blobs");
 import { getLogger } from "@cocalc/hub/logger";
 import {
@@ -28,6 +28,7 @@ function dbg(...args): void {
 }
 
 export default function init(router: Router) {
+  const database = getDatabase();
   router.post("/blobs", async (req, res) => {
     const account_id = await getAccount(req);
     if (!account_id) {

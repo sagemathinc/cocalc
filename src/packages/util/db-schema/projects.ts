@@ -112,11 +112,8 @@ Table({
           users(obj, db, account_id) {
             return db._user_set_query_project_users(obj, account_id);
           },
-          manage_users_owner_only(obj, db, account_id) {
-            return db._user_set_query_project_manage_users_owner_only(
-              obj,
-              account_id,
-            );
+          manage_users_owner_only(obj, db) {
+            return db._user_set_query_project_manage_users_owner_only(obj);
           },
           action_request: true, // used to request that an action be performed, e.g., "save"; handled by before_change
           compute_image: true,
@@ -143,7 +140,8 @@ Table({
 
               const siteSettings =
                 (await callback2(db.get_server_settings_cached, {})) ?? {};
-              const siteEnforced = !!siteSettings.strict_collaborator_management;
+              const siteEnforced =
+                !!siteSettings.strict_collaborator_management;
               if (siteEnforced && obj.manage_users_owner_only !== true) {
                 throw Error(
                   "Collaborator management is enforced by the site administrator and cannot be disabled.",
