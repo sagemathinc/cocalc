@@ -3,10 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import type {
-  PostgreSQL,
-  VerifyEmailCreateTokenResult,
-} from "../types";
+import type { PostgreSQL, VerifyEmailCreateTokenResult } from "../types";
 import randomKey from "random-key";
 import { hours_ago } from "@cocalc/util/misc";
 
@@ -52,8 +49,17 @@ export async function verifyEmailCreateToken(
     throw new Error("account has no email address");
   }
 
+  // Reuse the existing token if there is one for the same email address
+  if (old_challenge?.token && old_challenge.email === email_address) {
+    return {
+      email_address,
+      token: old_challenge.token,
+      old_challenge,
+    };
+  }
+
   // Generate a new token
-  const token = randomKey.generate(127);
+  const token = randomKey.generate(16).toLowerCase();
 
   // Create the challenge object
   const challenge = {

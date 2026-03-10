@@ -112,7 +112,7 @@ export async function reset_password(
     }
   } catch (err) {
     console.warn(`Error -- ${err}`);
-    return;
+    throw err;
   }
 }
 

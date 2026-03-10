@@ -696,11 +696,21 @@ describe("import_patches - legacy format", () => {
     },
   ];
 
-  it("rejects legacy patch format due to missing is_snapshot", async () => {
+  it("imports legacy patch format with is_snapshot defaulting to false", async () => {
     const d = db();
-    await expect(
-      callback2(d.import_patches.bind(d), { patches }),
-    ).rejects.toMatch(/is_snapshot/);
+    await callback2(d.import_patches.bind(d), { patches });
+
+    // Verify the patch was imported correctly
+    const pool = getPool();
+    const { rows } = await pool.query(
+      "SELECT string_id, patch, user_id, is_snapshot, snapshot FROM patches WHERE string_id = $1",
+      [stringId],
+    );
+    expect(rows.length).toBe(1);
+    expect(rows[0].patch).toBe("legacy patch");
+    expect(rows[0].user_id).toBe(5);
+    expect(rows[0].is_snapshot).toBe(false);
+    expect(rows[0].snapshot).toBe("legacy snapshot");
   });
 });
 

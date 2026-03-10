@@ -178,8 +178,9 @@ export function deleteAll(db: PostgreSQL, opts: DeleteAllOpts): void {
         ) => {
           db._query({
             query: `DELETE FROM ${table}`,
+            safety_check: false,
             cb: tableCb,
-          } as any); // safety_check not in type definition but exists in implementation
+          } as any);
         };
         async.map(tables, deleteFromTable, stepCb);
       },

@@ -23,6 +23,7 @@ const defer = <T>(): Deferred<T> => {
 
 type PgMock = typeof import("pg") & {
   __reset: () => void;
+  __getPoolInstances: () => Array<{ options: Record<string, unknown> }>;
   __getPoolQueryMock: () => jest.Mock;
   __getClientQueryMock: () => jest.Mock;
   __getClientInstances: () => Array<{ options: Record<string, unknown> }>;
@@ -122,6 +123,7 @@ jest.mock("pg", () => {
       clientQueryImpl = jest.fn().mockResolvedValue({ rows: [] });
       clientEndImpl = jest.fn().mockResolvedValue(undefined);
     },
+    __getPoolInstances: () => poolInstances,
     __getPoolQueryMock: () => poolQueryImpl,
     __getClientQueryMock: () => clientQueryImpl,
     __getClientInstances: () => clientInstances,
@@ -232,6 +234,46 @@ describe("pool getPool ensureExists", () => {
     expect(poolQueryMock).not.toHaveBeenCalled();
   });
 
+  it("recreates the pool and retries after ensureDatabaseExists failure", async () => {
+    const { pgMock, poolModule } = await loadPool();
+    const failure = new Error("no db");
+    const clientQuery = jest
+      .fn()
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({});
+    pgMock.__setClientImpls({
+      connect: jest
+        .fn()
+        .mockRejectedValueOnce(failure)
+        .mockResolvedValue(undefined),
+      query: clientQuery,
+      end: jest.fn().mockResolvedValue(undefined),
+    });
+
+    const getPool = poolModule.default as (options?: unknown) => Pool;
+    const firstPool = getPool();
+
+    await new Promise<void>((resolve) => {
+      firstPool.query("SELECT 1", (err: unknown) => {
+        expect(err).toBe(failure);
+        resolve();
+      });
+    });
+
+    const secondPool = getPool();
+    expect(secondPool).not.toBe(firstPool);
+    expect(pgMock.__getPoolInstances()).toHaveLength(2);
+
+    await secondPool.query("SELECT 2");
+
+    expect(clientQuery).toHaveBeenCalledWith(
+      "SELECT 1 FROM pg_database WHERE datname = $1",
+      ["cocalc"],
+    );
+    expect(clientQuery).toHaveBeenCalledWith('CREATE DATABASE "cocalc"');
+    expect(pgMock.__getPoolQueryMock()).toHaveBeenCalledWith("SELECT 2");
+  });
+
   it("runs schema sync under advisory lock when needed", async () => {
     const { pgMock, poolModule, schemaMock } = await loadPool();
     schemaMock.schemaNeedsSync.mockResolvedValue(true);
@@ -268,5 +310,50 @@ describe("pool getPool ensureExists", () => {
     expect(clientQuery).toHaveBeenCalledWith("SELECT pg_advisory_unlock($1)", [
       expect.any(Number),
     ]);
+  });
+
+  it("recreates the pool and retries after schema sync failure", async () => {
+    const { pgMock, poolModule, schemaMock } = await loadPool();
+    const failure = new Error("schema sync failed");
+    schemaMock.schemaNeedsSync.mockResolvedValue(true);
+    schemaMock.syncSchema
+      .mockRejectedValueOnce(failure)
+      .mockResolvedValue(undefined);
+
+    const clientQuery = jest.fn(async (query: string) => {
+      if (query.includes("FROM pg_database")) {
+        return { rows: [{ 1: 1 }] };
+      }
+      if (query.startsWith("SELECT pg_try_advisory_lock")) {
+        return { rows: [{ locked: true }] };
+      }
+      if (query.startsWith("SELECT pg_advisory_unlock")) {
+        return { rows: [{ pg_advisory_unlock: true }] };
+      }
+      return { rows: [] };
+    });
+    pgMock.__setClientImpls({
+      query: clientQuery,
+      end: jest.fn().mockResolvedValue(undefined),
+    });
+
+    const getPool = poolModule.default as (options?: unknown) => Pool;
+    const firstPool = getPool();
+
+    await new Promise<void>((resolve) => {
+      firstPool.query("SELECT 1", (err: unknown) => {
+        expect(err).toBe(failure);
+        resolve();
+      });
+    });
+
+    const secondPool = getPool();
+    expect(secondPool).not.toBe(firstPool);
+    expect(pgMock.__getPoolInstances()).toHaveLength(2);
+
+    await secondPool.query("SELECT 2");
+
+    expect(schemaMock.syncSchema).toHaveBeenCalledTimes(2);
+    expect(pgMock.__getPoolQueryMock()).toHaveBeenCalledWith("SELECT 2");
   });
 });

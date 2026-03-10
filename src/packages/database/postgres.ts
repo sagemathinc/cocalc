@@ -609,6 +609,7 @@ export class PostgreSQL extends EventEmitter implements PostgreSQLMethods {
       client.release(err);
       this.emit("disconnect");
       recordDisconnected();
+      this.disconnect();
       this.connect({});
     };
     client.on("error", onError);

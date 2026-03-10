@@ -174,13 +174,13 @@ export async function doAccountCreationActions(
     }
   }
 
-  // Mark as done even if there were errors
-  await accountCreationActionsSuccess(db, {
-    account_id: opts.account_id,
-  });
-
-  // If there were any errors, throw the first one
+  // If there were any errors, throw so retries are not suppressed
   if (errors.length > 0) {
     throw new Error(errors[0]);
   }
+
+  // Only mark as done when all actions succeeded
+  await accountCreationActionsSuccess(db, {
+    account_id: opts.account_id,
+  });
 }

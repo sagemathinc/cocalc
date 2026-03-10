@@ -1103,6 +1103,7 @@ export async function import_patches(
         user_id: legacyPatch.user,
         patch: legacyPatch.patch,
         snapshot: legacyPatch.snapshot,
+        is_snapshot: false,
         sent: legacyPatch.sent,
         prev: legacyPatch.prev,
       };

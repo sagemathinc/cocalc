@@ -142,6 +142,7 @@ export default function getPool(options?: PoolOptionInput): Pool {
     if (ensureExists && ensureExistsPromise == null) {
       ensureExistsPromise = ensureDatabaseExists().catch((err) => {
         ensureExistsPromise = undefined;
+        pool = undefined;
         throw err;
       });
     }
@@ -149,6 +150,7 @@ export default function getPool(options?: PoolOptionInput): Pool {
       const base = ensureExistsPromise ?? Promise.resolve();
       ensureSchemaPromise = base.then(ensureSchemaReady).catch((err) => {
         ensureSchemaPromise = undefined;
+        pool = undefined;
         throw err;
       });
     }
@@ -247,7 +249,15 @@ export async function getPoolClient(
 }
 
 export function getClient(): Client {
-  return new Client({ password: dbPassword(), user, host, database, ssl });
+  const { host: primaryHost, port } = getPrimaryHost();
+  return new Client({
+    password: dbPassword(),
+    user,
+    host: primaryHost,
+    port,
+    database,
+    ssl,
+  });
 }
 
 const TEST = "smc_ephemeral_testing_database";

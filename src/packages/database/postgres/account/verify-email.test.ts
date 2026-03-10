@@ -168,9 +168,9 @@ describe("Email verification methods", () => {
       expect(rows[0].email_address_challenge.time).toBeDefined();
     });
 
-    it("replaces old challenge when creating new token", async () => {
+    it("reuses existing token when email has not changed", async () => {
       const accountId = uuid();
-      const email = `replace-token-${Date.now()}@example.com`;
+      const email = `reuse-token-${Date.now()}@example.com`;
       const oldToken = "old-token-12345";
       const oldChallenge = {
         email,
@@ -188,18 +188,52 @@ describe("Email verification methods", () => {
       });
 
       expect(result.email_address).toBe(email);
-      expect(result.token).toBeDefined();
+      // Token should be reused since email hasn't changed
+      expect(result.token).toBe(oldToken);
+      expect(result.old_challenge).toBeDefined();
+      expect(result.old_challenge.token).toBe(oldToken);
+
+      // Challenge in DB should remain unchanged (no write needed)
+      const { rows } = await pool.query(
+        "SELECT email_address_challenge FROM accounts WHERE account_id = $1",
+        [accountId],
+      );
+      expect(rows[0].email_address_challenge.token).toBe(oldToken);
+    });
+
+    it("generates new token when email has changed", async () => {
+      const accountId = uuid();
+      const oldEmail = `old-email-${Date.now()}@example.com`;
+      const newEmail = `new-email-${Date.now()}@example.com`;
+      const oldToken = "old-token-67890";
+      const oldChallenge = {
+        email: oldEmail,
+        token: oldToken,
+        time: new Date(Date.now() - 1000 * 60 * 60),
+      };
+
+      await pool.query(
+        "INSERT INTO accounts (account_id, email_address, email_address_challenge) VALUES ($1, $2, $3)",
+        [accountId, newEmail, JSON.stringify(oldChallenge)],
+      );
+
+      const result = await verify_email_create_token_wrapper({
+        account_id: accountId,
+      });
+
+      expect(result.email_address).toBe(newEmail);
+      // Token should be new since email changed
       expect(result.token).not.toBe(oldToken);
       expect(result.old_challenge).toBeDefined();
       expect(result.old_challenge.token).toBe(oldToken);
 
-      // Verify new challenge was stored
+      // New challenge should be stored
       const { rows } = await pool.query(
         "SELECT email_address_challenge FROM accounts WHERE account_id = $1",
         [accountId],
       );
       expect(rows[0].email_address_challenge.token).toBe(result.token);
-      expect(rows[0].email_address_challenge.token).not.toBe(oldToken);
+      expect(rows[0].email_address_challenge.email).toBe(newEmail);
     });
   });
 
