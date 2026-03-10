@@ -88,15 +88,10 @@ export function RenameModal({
   const [value, setValue] = useState(currentName);
   const inputRef = useRef<any>(null);
 
-  // Reset value and focus when the modal opens.
+  // Reset value when the modal opens.
   useEffect(() => {
     if (open) {
       setValue(currentName);
-      // Focus + select after antd animation completes
-      setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.select();
-      }, 100);
     }
   }, [open, currentName]);
 
@@ -115,6 +110,12 @@ export function RenameModal({
       onCancel={onCancel}
       okText="Save"
       destroyOnClose
+      afterOpenChange={(visible) => {
+        if (visible) {
+          inputRef.current?.focus();
+          inputRef.current?.select();
+        }
+      }}
     >
       <Input
         ref={inputRef}

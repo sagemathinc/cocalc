@@ -447,3 +447,27 @@ Keep responses concise and focused.`);
 
   return lines.join("\n");
 }
+
+/* ------------------------------------------------------------------ */
+/*  Text truncation                                                    */
+/* ------------------------------------------------------------------ */
+
+const TRUNCATE_LIMIT = 1000;
+const TRUNCATE_KEEP = 500;
+
+/**
+ * Middle-truncate long text for LLM history.  Keeps the first and
+ * last `TRUNCATE_KEEP` characters, replacing the middle with a short
+ * marker so the LLM knows content was omitted.
+ */
+export function truncateMiddle(
+  text: string,
+  limit: number = TRUNCATE_LIMIT,
+  keep: number = TRUNCATE_KEEP,
+): string {
+  if (text.length <= limit) return text;
+  const head = text.slice(0, keep);
+  const tail = text.slice(-keep);
+  const omitted = text.length - 2 * keep;
+  return `${head}\n\n[… ${omitted} characters omitted …]\n\n${tail}`;
+}

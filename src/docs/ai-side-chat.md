@@ -196,7 +196,9 @@ blocks. To keep the chat readable when edits are large, these are
 wrapped in a **CollapsibleDiffs** component:
 
 - Font size is reduced to `0.82em`
-- Max height is capped at **200px** with `overflow: auto` (scrollable)
+- **Diff blocks**: Max height is 75% of the scroll container (auto-computed
+  via `findScrollParent`) — users can review long diffs
+- **Show-lines blocks** (document context): Capped at 55px (~3 lines)
 
 This is implemented via a `useEffect` (with `[children]` dependency)
 that applies inline styles to all `<pre>` elements inside the
@@ -506,97 +508,24 @@ All paths relative to `packages/frontend/`.
 
 ---
 
-## Tasks
-
-### P1 — Critical
-
-- [ ] **Shared agent abstraction**: CodingAgentCore and NotebookAgent
-  duplicate ~60% of their logic (SyncDB lifecycle, LLM streaming,
-  session management, cost estimation, message rendering). Extract
-  shared hooks / base component so adding a new agent type doesn't
-  require copying 1000+ lines.
+## Remaining Tasks
 
 ### P2 — Important
 
-- [ ] **`isJupyter` hardcode in `chat.tsx`**: Agent selection is
-  `isJupyter ? <NotebookAgent/> : <CodingAgentEmbedded/>` — adding a
-  3rd agent type has no entry point. Needs an agent registry pattern.
-- [ ] **Streaming token accumulation**: Rebuilds the full messages
-  array on every token via `setMessages([...streamingMsgs, {...}])`.
-  Quadratic allocation during fast streaming.
-- [ ] **Exec results not fed back to LLM**: Command output is
-  displayed as system messages but not included in the LLM history,
-  so the agent cannot reason about command results.
 - [ ] **`notebook-agent.tsx` stale `sessionId` closure**: History
   loading captures `sessionId` via closure instead of using a ref.
   Same bug that was already fixed in coding-agent.
-- [ ] **Cancel doesn't abort the stream**: Cancel button sets a flag
-  but the underlying fetch keeps running. Needs `stream.destroy()`
-  or AbortController.
-- [ ] **`RenameModal` setTimeout for focus**: Should use antd's
-  `afterOpenChange` callback instead of `setTimeout(100ms)`.
-- [ ] **No error boundary** around `CodingAgentCore` — a crash in the
-  agent component takes down the entire editor frame.
 - [ ] **`buildSystemPrompt` coupled to CodeMirror**: Uses CM-specific
-  APIs (`getScrollInfo`, `lineAtHeight`). Won't work if the editor
-  switches to Monaco or another backend.
+  APIs (`getScrollInfo`, `lineAtHeight`). Gracefully degrades via
+  syncstring fallback when CM unavailable. Future concern.
 - [ ] **Session name via sentinel date**: Uses `"session_name:${sid}"`
   as the date field — relies on string parsing. Works but fragile.
-- [ ] **`parseEditBlocks` silently drops invalid ranges**: Should
-  report which blocks failed and why, rather than silently skipping.
 
 ### P3 — Minor
 
-- [ ] **Dead code in `notebook-agent.tsx`**: History builder has
-  unreachable branches.
-- [ ] **`agentSenderId()` opaque string format**: Returns
-  `"coding-agent-assistant"` — could collide with other sender_id
-  patterns. Consider a namespace prefix.
 - [ ] **No keyboard shortcut** to open the agent panel.
 - [ ] **Session list doesn't show timestamps** or sort by recency in
   the dropdown.
-- [ ] **`getOneFreeModel()` can fail silently**: If no free model is
-  available, auto-naming silently does nothing. Should fall back to
-  the user's selected model.
-- [ ] **No test coverage** for `coding-agent-utils.ts` — all the pure
-  functions (parse, apply, format) are easily unit-testable.
-- [ ] **Session garbage collection**: Abandoned sessions accumulate
-  in the SyncDB with no cleanup mechanism.
-
-## Recently Fixed
-
-- **Stale data on page refresh**: Agent components mounted before the
-  chat SyncDB was ready, falling back to standalone mode and showing
-  old data from a `.coding-agent` meta file. Fixed with a SyncDB
-  readiness gate in `chat.tsx` (polls every 200ms, shows spinner).
-- **Stale closure in session reload**: `loadSessionsAndMessages`
-  captured a stale `sessionId` via closure. Fixed by introducing a
-  `sessionIdRef` that is always current.
-- **Build button placement**: Moved from a standalone row at the
-  bottom of the panel to the session bar at the top, next to the
-  turn selector and "+ New" button.
-- **Input area upgrade**: Replaced plain `TextArea` with the multimode
-  `MarkdownInput` component (`fixedMode="markdown"`, `compact`).
-- **"+ New Turn" button**: Moved from a dropdown menu entry to an
-  explicit button in the session bar for discoverability.
-- **"Done" button**: Added below the Send button. Closes the current
-  turn (marks it complete) and starts a new one. Disabled until the
-  assistant has responded at least once.
-- **User messages as markdown**: User messages now render via
-  `StaticMarkdown` instead of plain text.
-- **Collapsible diffs**: Edit diff blocks are capped at 200px height
-  with smaller font and scrollable overflow.
-- **antd Tooltip deprecation**: Migrated `overlayInnerStyle` to
-  `styles={{ body: {} }}` in `run-button/index.tsx`.
-- Assistant tab icon: now uses `AIAvatar` instead of generic robot icon
-- Diff rendering: search/replace blocks rendered as ` ```diff ` instead
-  of raw markers (which markdown parsed as blockquotes)
-- Apply feedback: shows error when search blocks don't match
-- Turn ordering: chronological by first message date, not random UUID sort
-- Session fragmentation: explicit session_id on first-turn writes
-- Bridge origin validation + writefile path traversal guard
-- `.ai` → `.app` extension, frame type mismatch, LangChain brace escaping,
-  Shift+Enter sends, Turns UI
 
 ---
 
@@ -611,12 +540,18 @@ All paths relative to `packages/frontend/`.
   command blocks, notebook tool calls (including `run_cell`) run
   without user confirmation. Should destructive operations (delete,
   overwrite) require approval?
-- **Shared agent abstraction**: CodingAgentCore and NotebookAgent
-  duplicate significant logic (SyncDB lifecycle, LLM streaming,
-  session management, cost estimation). Extract a shared base or
-  set of hooks to make adding new agent types easier.
-- **Session garbage collection**: Abandoned sessions accumulate in the
-  SyncDB with no cleanup mechanism.
-- **Exec results feedback**: Command output from `exec` blocks is
-  displayed as system messages but not fed back into the LLM context,
-  so the agent cannot reason about command results.
+- **Editor context indicator**: Above the input box, show a small
+  `GRAY_LLL`-background block summarizing what the LLM will "see" from
+  the editor, derived from CodeMirror state:
+  - **Cursor only**: "Cursor at line 42"
+  - **Line range selected**: "Lines 10–25 selected"
+  - **Partial text selected in a single line**: 'Line 17: "the selected
+    word or phrase"' (verbatim copy, so the LLM knows the user is asking
+    about that specific text)
+  This context is already captured by `getEditorContext()` and included
+  in the system prompt, but the user currently has no visibility into
+  what the agent receives. Showing it in the UI achieves two things:
+  (1) the user can verify/adjust the context before sending, and
+  (2) it teaches users that cursor position and selection influence the
+  agent's behavior, encouraging them to select the relevant code before
+  asking a question.

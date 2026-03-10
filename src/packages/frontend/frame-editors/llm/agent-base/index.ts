@@ -5,6 +5,7 @@
 
 // Barrel export for the shared agent base.
 export { AgentError } from "./agent-error";
+export { AgentErrorBoundary } from "./agent-error-boundary";
 export { AgentHeader } from "./agent-header";
 export { AgentInputArea } from "./agent-input-area";
 export { AgentMessages } from "./agent-messages";

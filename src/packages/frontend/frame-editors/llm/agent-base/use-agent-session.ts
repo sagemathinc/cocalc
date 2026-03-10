@@ -325,6 +325,8 @@ export function useAgentSession(
   }, []);
 
   // ---- handleClearSession ----
+  // Deletes all records for the current session, then switches to the
+  // most recent remaining session (or creates a fresh one).
   const handleClearSession = useCallback(() => {
     if (!syncdb || !sessionIdRef.current) return;
     const sid = sessionIdRef.current;
@@ -353,8 +355,19 @@ export function useAgentSession(
       });
       syncdb.commit();
     }
+    // Switch away from the now-empty session
+    const remaining = allSessions.filter((s) => s !== sid);
+    if (remaining.length > 0) {
+      setSessionId(remaining[remaining.length - 1]);
+    } else {
+      // No sessions left — start fresh
+      const newId = uuid();
+      pendingNewSessionRef.current = newId;
+      setSessionId(newId);
+    }
     setMessages([]);
-  }, [syncdb, eventName, usesChatSchema]);
+    setError("");
+  }, [syncdb, eventName, usesChatSchema, allSessions]);
 
   // ---- writeSessionName ----
   const writeSessionName = useCallback(

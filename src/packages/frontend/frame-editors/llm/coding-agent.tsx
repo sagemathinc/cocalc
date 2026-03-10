@@ -37,6 +37,7 @@ import { path_split, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 import {
+  AgentErrorBoundary,
   AgentHeader,
   AgentInputArea,
   AgentMessages,
@@ -63,6 +64,7 @@ import {
   parseSearchReplaceBlocks,
   parseShowBlocks,
   SHOW_BLOCK_REGEX,
+  truncateMiddle,
 } from "./coding-agent-utils";
 
 /* ------------------------------------------------------------------ */
@@ -70,7 +72,11 @@ import {
 /* ------------------------------------------------------------------ */
 
 export default function CodingAgent(_props: EditorComponentProps) {
-  return <CodingAgentCore />;
+  return (
+    <AgentErrorBoundary>
+      <CodingAgentCore />
+    </AgentErrorBoundary>
+  );
 }
 
 /**
@@ -84,7 +90,11 @@ export function CodingAgentEmbedded({ chatSyncdb }: { chatSyncdb: any }) {
     console.warn("CodingAgentEmbedded: chatSyncdb is null — not rendering");
     return null;
   }
-  return <CodingAgentCore chatSyncdb={chatSyncdb} />;
+  return (
+    <AgentErrorBoundary>
+      <CodingAgentCore chatSyncdb={chatSyncdb} />
+    </AgentErrorBoundary>
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -132,6 +142,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const handleSubmitRef = useRef<(directInput?: string) => Promise<void>>(
     async () => {},
   );
+
+  // Active LLM stream ref — allows cancel to stop processing tokens.
+  const streamRef = useRef<{ removeAllListeners: () => void } | null>(null);
 
   // ---- Cost estimation ----
   const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -187,7 +200,11 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       }
       context = context.slice(0, 1000);
 
-      const nameModel = isCoCalcCom ? getOneFreeModel() : model;
+      // Use a free model on cocalc.com to avoid charging the user for
+      // naming; fall back to their selected model if none is available.
+      const freeModel = isCoCalcCom ? getOneFreeModel() : undefined;
+      const nameModel =
+        freeModel && isFreeModel(freeModel, isCoCalcCom) ? freeModel : model;
       const stream = webapp_client.openai_client.queryStream({
         input: `Given this conversation between a user and a coding assistant, generate a very short descriptive title (at most 7 words). Reply with ONLY the title, no quotes, no punctuation at the end.\n\n${context}`,
         system:
@@ -262,12 +279,23 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         const hasBuild = typeof actions.build === "function";
         const system = buildSystemPrompt(path, ctx, hasBuild);
 
-        const currentMessages = session.messages.filter(
-          (m) => m.event === "message",
+        // Include conversation messages plus exec results and show_lines
+        // responses — the LLM needs to see command output and requested
+        // document lines to reason about them.  Error events are excluded
+        // (internal UI state, not part of the logical conversation).
+        const HISTORY_EVENTS = new Set([
+          "message",
+          "exec_result",
+          "show_lines",
+        ]);
+        const currentMessages = session.messages.filter((m) =>
+          HISTORY_EVENTS.has(m.event),
         );
         const history = currentMessages.map((m) => ({
-          role: m.sender as "user" | "assistant",
-          content: m.content,
+          role: (m.sender === "assistant" ? "assistant" : "user") as
+            | "user"
+            | "assistant",
+          content: truncateMiddle(m.content),
         }));
 
         const llmStream = webapp_client.openai_client.queryStream({
@@ -278,8 +306,19 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           project_id,
           tag: TAG,
         });
+        streamRef.current = llmStream;
 
         let assistantContent = "";
+        // Build the streaming array once: history + user msg + mutable
+        // assistant placeholder.  On each token we mutate the placeholder's
+        // content and create a shallow copy of the array (O(1) per element)
+        // instead of re-spreading the full history every time (was O(N)).
+        const assistantMsg: DisplayMessage = {
+          sender: "assistant",
+          content: "",
+          date: "",
+          event: "message",
+        };
         const streamingMsgs = [
           ...session.messages,
           {
@@ -289,21 +328,23 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             event: "message",
             account_id: accountId,
           },
+          assistantMsg,
         ];
 
         llmStream.on("token", (token: string | null) => {
-          if (session.cancelRef.current) return;
+          if (session.cancelRef.current) {
+            // Stop processing and detach all listeners so the stream
+            // callback is not invoked for remaining tokens.
+            llmStream.removeAllListeners();
+            streamRef.current = null;
+            return;
+          }
           if (token != null) {
             assistantContent += token;
-            session.setMessages([
-              ...streamingMsgs,
-              {
-                sender: "assistant",
-                content: assistantContent,
-                date: "",
-                event: "message",
-              },
-            ]);
+            assistantMsg.content = assistantContent;
+            // Shallow copy triggers React re-render without reallocating
+            // every element — the array structure is already built.
+            session.setMessages([...streamingMsgs]);
           } else {
             // Stream ended
             session.setGenerating(false);

@@ -75,13 +75,15 @@ export const SYNCDB_CHANGE_THROTTLE = 300;
 /**
  * Sender ID used in the chat syncdb for non-user messages.
  * Primary key in chat syncdb is (date, sender_id, event), so each
- * agent type needs a unique prefix to avoid collisions.
+ * agent type needs a unique prefix to avoid collisions with real
+ * user account IDs (which are UUIDs like "xxxxxxxx-xxxx-...").
+ * The "agent:" prefix ensures this can never match a UUID.
  */
 export function agentSenderId(
   eventName: string,
   sender: "assistant" | "system",
 ): string {
-  return `${eventName}-${sender}`;
+  return `agent:${eventName}:${sender}`;
 }
 
 /* ------------------------------------------------------------------ */

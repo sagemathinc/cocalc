@@ -434,16 +434,23 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
         language as string,
       );
 
-      // Build history from all messages, sorted by time
-      const msgWithTime = session.messages.map((m) => ({
-        role:
-          m.sender === "system"
-            ? ("user" as const)
-            : (m.sender as "user" | "assistant"),
-        content:
-          m.event === "tool_result" ? `[Tool Result]\n${m.content}` : m.content,
-        date: m.date,
-      }));
+      // Build history from conversation messages and tool results.
+      // Both are needed: "message" events are the user/assistant turns,
+      // "tool_result" events are system responses the LLM needs to see.
+      const HISTORY_EVENTS = new Set(["message", "tool_result"]);
+      const msgWithTime = session.messages
+        .filter((m) => HISTORY_EVENTS.has(m.event))
+        .map((m) => ({
+          role:
+            m.sender === "assistant"
+              ? ("assistant" as const)
+              : ("user" as const),
+          content:
+            m.event === "tool_result"
+              ? `[Tool Result]\n${m.content}`
+              : m.content,
+          date: m.date,
+        }));
       msgWithTime.sort(
         (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
       );
