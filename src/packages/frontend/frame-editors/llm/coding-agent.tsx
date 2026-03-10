@@ -37,7 +37,6 @@ import { path_split, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 import {
-  AgentError,
   AgentHeader,
   AgentInputArea,
   AgentMessages,
@@ -48,7 +47,7 @@ import {
 import type { DisplayMessage } from "./agent-base";
 import { CollapsibleDiffs, RenameModal } from "./coding-agent-components";
 import type { EditBlock, ExecBlock, SearchReplace } from "./coding-agent-types";
-import { TAG } from "./coding-agent-types";
+import { DIFF_MAX_HEIGHT, TAG } from "./coding-agent-types";
 import {
   applyEditBlocks,
   applySearchReplace,
@@ -120,7 +119,13 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const [renameModalOpen, setRenameModalOpen] = useState(false);
   // Tracks whether edits have been applied in this turn — highlights the
   // Done button to encourage the user to close the turn and save tokens.
+  // Reset when the session (turn) changes (e.g. user clicks Done).
   const [editsApplied, setEditsApplied] = useState(false);
+  const prevSessionIdRef = useRef(session.sessionId);
+  if (prevSessionIdRef.current !== session.sessionId) {
+    prevSessionIdRef.current = session.sessionId;
+    if (editsApplied) setEditsApplied(false);
+  }
 
   // Ref to always call the latest handleSubmit so auto-continuation
   // (e.g. <<<SHOW fulfillment) avoids stale closures.
@@ -222,7 +227,6 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       const prompt = (directInput ?? input).trim();
       if (!prompt || session.generating) return;
 
-      session.setError("");
       setPendingEdits(undefined);
       setPendingExec([]);
       setEditsApplied(false);
@@ -343,9 +347,12 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
             // Check for <<<SHOW blocks
             const showBlocks = parseShowBlocks(assistantContent);
+            const lang = path.split(".").pop() ?? "";
             const showResponse = fulfillShowBlocks(
               showBlocks,
               getEditorContent(actions),
+              undefined,
+              lang,
             );
             if (showResponse) {
               const showDate = new Date().toISOString();
@@ -375,11 +382,21 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         });
 
         llmStream.on("error", (err: Error) => {
-          session.setError(err.message ?? `${err}`);
+          session.writeMessage({
+            date: new Date().toISOString(),
+            sender: "system",
+            content: `Error: ${err.message ?? err}`,
+            msg_event: "error",
+          });
           session.setGenerating(false);
         });
       } catch (err: any) {
-        session.setError(err.message ?? `${err}`);
+        session.writeMessage({
+          date: new Date().toISOString(),
+          sender: "system",
+          content: `Error: ${err.message ?? err}`,
+          msg_event: "error",
+        });
         session.setGenerating(false);
       }
     },
@@ -394,7 +411,6 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       project_id,
       session.writeMessage,
       session.setGenerating,
-      session.setError,
       session.setMessages,
       session.setSessionId,
     ],
@@ -416,16 +432,22 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       } = applyEditBlocks(pendingEdits.base, pendingEdits.blocks);
 
       if (applied === 0) {
-        session.setError(
-          `Could not apply edits: none of the ${failed} edit block(s) had valid line ranges.`,
-        );
+        session.writeMessage({
+          date: new Date().toISOString(),
+          sender: "system",
+          content: `Error: Could not apply edits — none of the ${failed} edit block(s) had valid line ranges.`,
+          msg_event: "error",
+        });
         setPendingEdits(undefined);
         return;
       }
       if (failed > 0) {
-        session.setError(
-          `Applied ${applied} edit(s), but ${failed} had invalid line ranges.`,
-        );
+        session.writeMessage({
+          date: new Date().toISOString(),
+          sender: "system",
+          content: `Warning: Applied ${applied} edit(s), but ${failed} had invalid line ranges.`,
+          msg_event: "error",
+        });
       }
 
       newContent = three_way_merge({
@@ -441,16 +463,22 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       } = applySearchReplace(pendingEdits.base, pendingEdits.blocks);
 
       if (applied === 0) {
-        session.setError(
-          `Could not apply edits: none of the ${failed} search block(s) matched the document.`,
-        );
+        session.writeMessage({
+          date: new Date().toISOString(),
+          sender: "system",
+          content: `Error: Could not apply edits — none of the ${failed} search block(s) matched the document.`,
+          msg_event: "error",
+        });
         setPendingEdits(undefined);
         return;
       }
       if (failed > 0) {
-        session.setError(
-          `Applied ${applied} edit(s), but ${failed} search block(s) did not match.`,
-        );
+        session.writeMessage({
+          date: new Date().toISOString(),
+          sender: "system",
+          content: `Warning: Applied ${applied} edit(s), but ${failed} search block(s) did not match.`,
+          msg_event: "error",
+        });
       }
 
       newContent = three_way_merge({
@@ -470,10 +498,15 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       actions.set_value(newContent);
       setEditsApplied(true);
     } catch (err) {
-      session.setError(`Failed to apply edits: ${err}`);
+      session.writeMessage({
+        date: new Date().toISOString(),
+        sender: "system",
+        content: `Error: Failed to apply edits — ${err}`,
+        msg_event: "error",
+      });
     }
     setPendingEdits(undefined);
-  }, [pendingEdits, actions, session.setError]);
+  }, [pendingEdits, actions, session.writeMessage]);
 
   // ---- Exec command ----
   const handleExecCommand = useCallback(
@@ -567,23 +600,14 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           </FileContext.Provider>
         );
       }
-      // system — show_lines messages are collapsed to ~3 lines with fade
+      // system — show_lines: plain syntax-highlighted code, no toolbar
       if (msg.event === "show_lines") {
         return (
-          <div
-            style={{
-              maxHeight: "4.5em",
-              overflow: "hidden",
-              WebkitMaskImage:
-                "linear-gradient(to bottom, black 50%, transparent 100%)",
-              maskImage:
-                "linear-gradient(to bottom, black 50%, transparent 100%)",
-              fontSize: "0.85em",
-              opacity: 0.7,
-            }}
-          >
-            <StaticMarkdown value={msg.content} />
-          </div>
+          <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+            <CollapsibleDiffs maxHeight={DIFF_MAX_HEIGHT}>
+              <StaticMarkdown value={msg.content} />
+            </CollapsibleDiffs>
+          </FileContext.Provider>
         );
       }
       return <StaticMarkdown value={msg.content} />;
@@ -726,11 +750,6 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           ))}
         </div>
       )}
-
-      <AgentError
-        error={session.error}
-        onClose={() => session.setError("")}
-      />
 
       <AgentInputArea
         session={session}

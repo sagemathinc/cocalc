@@ -45,8 +45,11 @@ interface AgentMessagesProps {
 function defaultMessageStyle(msg: DisplayMessage): React.CSSProperties {
   if (msg.sender === "user") return USER_MSG_STYLE;
   if (msg.sender === "system") {
-    // Show error-styled system messages when content contains "Error"
-    if (msg.content.includes("Error")) return ERROR_MSG_STYLE;
+    // Error messages (stream failures, apply failures, etc.)
+    if (msg.event === "error") return ERROR_MSG_STYLE;
+    // show_lines messages use a neutral gray — they're auto-fulfilled
+    // context, not important system notifications.
+    if (msg.event === "show_lines") return USER_MSG_STYLE;
     return SYSTEM_MSG_STYLE;
   }
   return ASSISTANT_MSG_STYLE;

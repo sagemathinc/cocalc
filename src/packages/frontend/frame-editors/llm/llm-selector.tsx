@@ -124,6 +124,7 @@ export default function LLMSelector({
     const compactDisplay = (
       <>
         <LanguageModelVendorAvatar model={btnModel} />{" "}
+        <strong>{modelToName(btnModel)}</strong>{" "}
         <LLMModelPrice model={btnModel} />
       </>
     );
@@ -246,6 +247,7 @@ export default function LLMSelector({
       const ollamaCompactDisplay = (
         <>
           <LanguageModelVendorAvatar model={ollamaModel} />{" "}
+          <strong>{modelToName(ollamaModel)}</strong>{" "}
           <LLMModelPrice model={ollamaModel} />
         </>
       );
@@ -287,6 +289,7 @@ export default function LLMSelector({
       const customCompactDisplay = (
         <>
           <LanguageModelVendorAvatar model={customOpenAIModel} />{" "}
+          <strong>{modelToName(customOpenAIModel)}</strong>{" "}
           <LLMModelPrice model={customOpenAIModel} />
         </>
       );
@@ -318,7 +321,8 @@ export default function LLMSelector({
       );
       const compactEntry = (
         <>
-          <LanguageModelVendorAvatar model={um} />
+          <LanguageModelVendorAvatar model={um} />{" "}
+          <strong>{display || model}</strong>
         </>
       );
       user.push({

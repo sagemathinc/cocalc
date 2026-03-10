@@ -93,13 +93,13 @@ export function AgentInputArea({
               <Button
                 onClick={handleNewSession}
                 disabled={!hasAssistantResponse}
+                type={doneHighlight ? "primary" : "default"}
                 style={{
                   height: "36px",
                   ...(doneHighlight
                     ? {
                         background: "#52c41a",
                         borderColor: "#52c41a",
-                        color: "#fff",
                       }
                     : {}),
                 }}

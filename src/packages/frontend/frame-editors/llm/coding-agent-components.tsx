@@ -11,16 +11,36 @@ Extracted to keep the main CodingAgentCore component focused.
 import { Input, Modal } from "antd";
 import { useEffect, useRef, useState } from "react";
 
-import { DIFF_MAX_HEIGHT } from "./coding-agent-types";
+/**
+ * Find the closest ancestor with `overflowY` set to "auto" or "scroll".
+ * Returns `null` when nothing scrollable is found before `<body>`.
+ */
+function findScrollParent(el: HTMLElement): HTMLElement | null {
+  let cur = el.parentElement;
+  while (cur && cur !== document.body) {
+    const ov = getComputedStyle(cur).overflowY;
+    if (ov === "auto" || ov === "scroll") return cur;
+    cur = cur.parentElement;
+  }
+  return null;
+}
 
 /**
  * Wraps rendered markdown so that `pre` blocks (diffs, code) are
  * compact by default and scrollable within a max-height.
+ *
+ * @param maxHeight  Fixed pixel cap for `<pre>` blocks.
+ *   When omitted, the component auto-computes 75 % of the nearest
+ *   scrollable ancestor's height — ideal for diff blocks that the
+ *   user needs to review.
  */
 export function CollapsibleDiffs({
   children,
+  maxHeight,
 }: {
   children: React.ReactNode;
+  /** Fixed pixel cap. When omitted, 75 % of the scroll container. */
+  maxHeight?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -28,14 +48,24 @@ export function CollapsibleDiffs({
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
+
+    let resolvedMax: string;
+    if (maxHeight != null) {
+      resolvedMax = `${maxHeight}px`;
+    } else {
+      const scrollParent = findScrollParent(el);
+      const parentH = scrollParent?.clientHeight ?? 400;
+      resolvedMax = `${Math.floor(parentH * 0.75)}px`;
+    }
+
     const pres = el.querySelectorAll("pre");
     pres.forEach((pre) => {
       pre.style.fontSize = "0.82em";
-      pre.style.maxHeight = `${DIFF_MAX_HEIGHT}px`;
+      pre.style.maxHeight = resolvedMax;
       pre.style.overflow = "auto";
       pre.style.position = "relative";
     });
-  }, [children]);
+  }, [children, maxHeight]);
 
   return <div ref={containerRef}>{children}</div>;
 }

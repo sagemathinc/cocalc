@@ -13,6 +13,7 @@ Pure utility functions for the coding agent:
 - System prompt builder
 */
 
+import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { filename_extension } from "@cocalc/util/misc";
 
 import type {
@@ -280,6 +281,8 @@ export function fulfillShowBlocks(
   blocks: ShowBlock[],
   content: string,
   maxLines: number = MAX_VISIBLE_LINES,
+  /** Language tag for syntax-highlighted code fences (e.g. "latex"). */
+  language: string = "",
 ): string | null {
   if (blocks.length === 0) return null;
   const contentLines = content.split("\n");
@@ -294,8 +297,11 @@ export function fulfillShowBlocks(
       .slice(start - 1, end)
       .map((line, i) => `${String(start + i).padStart(4)}  ${line}`)
       .join("\n");
+    // Use backtickSequence to guard against backticks in the content
+    const open = backtickSequence(slice, language || undefined);
+    const close = backtickSequence(slice);
     parts.push(
-      `Lines ${start}\u2013${end} of ${contentLines.length}:\n\`\`\`\n${slice}\n\`\`\``,
+      `Lines ${start}\u2013${end} of ${contentLines.length}:\n${open}\n${slice}\n${close}`,
     );
   }
   return parts.join("\n\n");
