@@ -16,7 +16,7 @@ management.  This file contains only coding-agent-specific logic:
 */
 
 import { Button, Popconfirm, Tooltip } from "antd";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -146,6 +146,19 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   // Active LLM stream ref — allows cancel to stop processing tokens.
   const streamRef = useRef<{ removeAllListeners: () => void } | null>(null);
 
+  // ---- Cleanup on unmount ----
+  // Clear pending timers and detach any active stream so callbacks
+  // don't fire on unmounted component state.
+  useEffect(() => {
+    return () => {
+      if (estimateTimeoutRef.current) {
+        clearTimeout(estimateTimeoutRef.current);
+      }
+      streamRef.current?.removeAllListeners();
+      streamRef.current = null;
+    };
+  }, []);
+
   // ---- Editor context indicator ----
   // Snapshot taken when the input area receives focus — this is the
   // context the LLM will receive.  No last-second re-read on send;
@@ -198,14 +211,20 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           setCostEstimate({ min: 0, max: 0 });
           return;
         }
-        const { numTokensEstimate } = await import("@cocalc/frontend/misc/llm");
-        const currentMessages = session.messages.filter(
-          (m) => m.event === "message",
-        );
-        const historyText = currentMessages.map((m) => m.content).join("\n");
-        const tokens = numTokensEstimate([historyText, value].join("\n"));
-        const est = calcMinMaxEstimation(tokens, model, llm_markup);
-        setCostEstimate(est);
+        try {
+          const { numTokensEstimate } =
+            await import("@cocalc/frontend/misc/llm");
+          const currentMessages = session.messages.filter(
+            (m) => m.event === "message",
+          );
+          const historyText = currentMessages.map((m) => m.content).join("\n");
+          const tokens = numTokensEstimate([historyText, value].join("\n"));
+          const est = calcMinMaxEstimation(tokens, model, llm_markup);
+          setCostEstimate(est);
+        } catch {
+          // Unknown model or cost lookup failure — skip estimation
+          setCostEstimate(null);
+        }
       }, 500);
     },
     [model, isCoCalcCom, llm_markup, session.messages],
@@ -375,8 +394,14 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             // every element — the array structure is already built.
             session.setMessages([...streamingMsgs]);
           } else {
-            // Stream ended
+            // Stream ended — always persist the message, but only
+            // apply UI state (generating, pendingEdits) if the user
+            // hasn't switched to a different session mid-stream.
             session.setGenerating(false);
+            streamRef.current = null;
+
+            const sessionChanged =
+              session.sessionIdRef.current !== activeSessionId;
 
             const assistantDate = new Date().toISOString();
             session.writeMessage({
@@ -387,63 +412,67 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
               session_id: activeSessionId,
             });
 
-            // Check for edit blocks
-            const editBlocks = parseEditBlocks(assistantContent);
-            if (editBlocks.length > 0) {
-              setPendingEdits({
-                type: "edit_blocks",
-                blocks: editBlocks,
-                base: baseSnapshot,
-              });
-            } else {
-              const srBlocks = parseSearchReplaceBlocks(assistantContent);
-              if (srBlocks.length > 0) {
+            // Only apply UI state if the session hasn't changed
+            // mid-stream (e.g. user clicked "New Turn" while streaming).
+            if (!sessionChanged) {
+              // Check for edit blocks
+              const editBlocks = parseEditBlocks(assistantContent);
+              if (editBlocks.length > 0) {
                 setPendingEdits({
-                  type: "search_replace",
-                  blocks: srBlocks,
+                  type: "edit_blocks",
+                  blocks: editBlocks,
                   base: baseSnapshot,
                 });
               } else {
-                const code = extractCodeBlock(assistantContent);
-                if (code) {
+                const srBlocks = parseSearchReplaceBlocks(assistantContent);
+                if (srBlocks.length > 0) {
                   setPendingEdits({
-                    type: "full_replace",
-                    code,
+                    type: "search_replace",
+                    blocks: srBlocks,
                     base: baseSnapshot,
                   });
+                } else {
+                  const code = extractCodeBlock(assistantContent);
+                  if (code) {
+                    setPendingEdits({
+                      type: "full_replace",
+                      code,
+                      base: baseSnapshot,
+                    });
+                  }
                 }
               }
-            }
 
-            // Check for <<<SHOW blocks
-            const showBlocks = parseShowBlocks(assistantContent);
-            const lang = path.split(".").pop() ?? "";
-            const showResponse = fulfillShowBlocks(
-              showBlocks,
-              getEditorContent(actions),
-              undefined,
-              lang,
-            );
-            if (showResponse) {
-              const showDate = new Date().toISOString();
-              session.writeMessage({
-                date: showDate,
-                sender: "system",
-                content: showResponse,
-                msg_event: "show_lines",
-                session_id: activeSessionId,
-              });
-              setTimeout(() => {
-                handleSubmitRef.current(
-                  "Here are the lines you requested. Continue with your task.",
-                );
-              }, 100);
-            }
+              // Check for <<<SHOW blocks
+              const showBlocks = parseShowBlocks(assistantContent);
+              const lang = path.split(".").pop() ?? "";
+              const showResponse = fulfillShowBlocks(
+                showBlocks,
+                getEditorContent(actions),
+                undefined,
+                lang,
+              );
+              if (showResponse) {
+                const showDate = new Date().toISOString();
+                session.writeMessage({
+                  date: showDate,
+                  sender: "system",
+                  content: showResponse,
+                  msg_event: "show_lines",
+                  session_id: activeSessionId,
+                });
+                setTimeout(() => {
+                  handleSubmitRef.current(
+                    "Here are the lines you requested. Continue with your task.",
+                  );
+                }, 100);
+              }
 
-            // Check for command blocks
-            const execBlocks = parseExecBlocks(assistantContent);
-            if (execBlocks.length > 0) {
-              setPendingExec(execBlocks);
+              // Check for command blocks
+              const execBlocks = parseExecBlocks(assistantContent);
+              if (execBlocks.length > 0) {
+                setPendingExec(execBlocks);
+              }
             }
 
             // Session naming is user-triggered via the magic wand button

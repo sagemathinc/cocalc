@@ -24,11 +24,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { hidden_meta_file, uuid } from "@cocalc/util/misc";
 
-import type {
-  AgentSession,
-  DisplayMessage,
-  WriteMessageParams,
-} from "./types";
+import type { AgentSession, DisplayMessage, WriteMessageParams } from "./types";
 import { agentSenderId, SYNCDB_CHANGE_THROTTLE } from "./types";
 
 /* ------------------------------------------------------------------ */
@@ -58,9 +54,7 @@ export interface UseAgentSessionOptions {
 /*  Hook                                                               */
 /* ------------------------------------------------------------------ */
 
-export function useAgentSession(
-  options: UseAgentSessionOptions,
-): AgentSession {
+export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
   const {
     chatSyncdb,
     eventName,
@@ -79,7 +73,12 @@ export function useAgentSession(
   const [sessionNames, setSessionNames] = useState<Map<string, string>>(
     new Map(),
   );
-  const [generating, setGenerating] = useState(false);
+  const [generating, setGeneratingState] = useState(false);
+  const generatingRef = useRef(false);
+  const setGenerating = useCallback((v: boolean) => {
+    generatingRef.current = v;
+    setGeneratingState(v);
+  }, []);
   const [error, setError] = useState<string>("");
 
   // ---- Refs for stale-closure avoidance ----
@@ -119,13 +118,17 @@ export function useAgentSession(
         if (!sid) return;
         sessionsSet.add(sid);
 
-        // Extract session names from special "session_name" records.
+        // Always skip session_name records from the message list —
+        // their non-ISO date field ("session_name:{sid}") would produce
+        // NaN in the date sort and corrupt message ordering.
         const eventField = usesChatSchema
           ? record.get("msg_event")
           : record.get("event");
-        if (supportSessionNames && eventField === "session_name") {
-          const name = record.get("content");
-          if (name) names.set(sid, name);
+        if (eventField === "session_name") {
+          if (supportSessionNames) {
+            const name = record.get("content");
+            if (name) names.set(sid, name);
+          }
           return;
         }
 
@@ -216,7 +219,10 @@ export function useAgentSession(
     };
 
     const handleChange = () => {
-      if (db.get_state() === "ready") {
+      // Skip during generation — the streaming token handler is
+      // managing setMessages directly; a reload would overwrite
+      // the in-progress assistant content and cause flickering.
+      if (db.get_state() === "ready" && !generatingRef.current) {
         loadRef.current(db);
       }
     };
@@ -236,6 +242,8 @@ export function useAgentSession(
 
     return () => {
       db.removeListener("change", handleChange);
+      db.removeListener("ready", handleReady);
+      db.close();
     };
   }, [project_id, path, eventName]);
 
@@ -244,25 +252,27 @@ export function useAgentSession(
     if (!usesChatSchema || !chatSyncdb) return;
 
     const handleChange = () => {
-      if (chatSyncdb.get_state() === "ready") {
+      if (chatSyncdb.get_state() === "ready" && !generatingRef.current) {
         loadRef.current(chatSyncdb);
       }
+    };
+
+    const handleReady = () => {
+      setSyncdb(chatSyncdb);
+      loadRef.current(chatSyncdb);
     };
 
     chatSyncdb.on("change", handleChange);
 
     if (chatSyncdb.get_state() === "ready") {
-      setSyncdb(chatSyncdb);
-      loadRef.current(chatSyncdb);
+      handleReady();
     } else {
-      chatSyncdb.once("ready", () => {
-        setSyncdb(chatSyncdb);
-        loadRef.current(chatSyncdb);
-      });
+      chatSyncdb.once("ready", handleReady);
     }
 
     return () => {
       chatSyncdb.removeListener("change", handleChange);
+      chatSyncdb.removeListener("ready", handleReady);
     };
   }, [chatSyncdb]);
 
