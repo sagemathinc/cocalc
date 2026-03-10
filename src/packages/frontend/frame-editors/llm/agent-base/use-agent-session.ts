@@ -277,8 +277,14 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
   }, [chatSyncdb]);
 
   // ---- Auto-scroll to bottom ----
+  // Scroll only the immediate messages container, not ancestor elements.
+  // Using scrollIntoView would propagate to ancestor containers and shift
+  // the entire editor frame upward (scroll leak).
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    const el = messagesEndRef.current?.parentElement;
+    if (el) {
+      el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    }
   }, [messages]);
 
   // ---- Reload when sessionId changes ----

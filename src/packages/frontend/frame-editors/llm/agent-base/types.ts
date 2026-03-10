@@ -98,14 +98,13 @@ export const CONTAINER_STYLE: CSS = {
 } as const;
 
 export const MESSAGES_STYLE: CSS = {
-  flex: 1,
+  flex: "1 1 auto",
+  minHeight: 0,
   overflowY: "auto",
-  padding: "8px 12px",
 } as const;
 
 export const USER_MSG_STYLE: CSS = {
   background: COLORS.GRAY_LLL,
-  borderRadius: 8,
   padding: "8px 12px",
   marginBottom: 8,
   whiteSpace: "pre-wrap",
@@ -134,6 +133,7 @@ export const ERROR_MSG_STYLE: CSS = {
 } as const;
 
 export const INPUT_AREA_STYLE: CSS = {
+  flex: "0 0 auto",
   borderTop: `1px solid ${COLORS.GRAY_L}`,
   padding: "8px 12px",
 } as const;

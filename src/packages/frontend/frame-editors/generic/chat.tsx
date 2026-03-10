@@ -140,8 +140,10 @@ function Chat({ font_size, desc }: EditorComponentProps) {
         />
       </div>
 
-      {/* Content area */}
-      <div style={{ flex: 1, overflow: "hidden" }}>
+      {/* Content area — position:relative + absolute child guarantees
+           a definite height for the embedded agent, avoiding flex-height
+           resolution issues that prevent overflowY from working. */}
+      <div style={{ flex: 1, position: "relative" }}>
         {mode === "chat" ? (
           <SideChat
             actions={sideChatActions}
@@ -162,7 +164,9 @@ function Chat({ font_size, desc }: EditorComponentProps) {
             <Spin />
           </div>
         ) : (
-          <EmbeddedAgent chatSyncdb={sideChatActions.syncdb} />
+          <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
+            <EmbeddedAgent chatSyncdb={sideChatActions.syncdb} />
+          </div>
         )}
       </div>
     </div>

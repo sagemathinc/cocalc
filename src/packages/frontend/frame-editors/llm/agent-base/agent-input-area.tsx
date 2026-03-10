@@ -29,6 +29,8 @@ interface AgentInputAreaProps {
   doneHighlight?: boolean;
   /** Optional content above the buttons (e.g. cost estimation). */
   aboveButtons?: React.ReactNode;
+  /** Called when the user clicks Stop — e.g. to restore the input. */
+  onCancel?: () => void;
 }
 
 export function AgentInputArea({
@@ -39,12 +41,14 @@ export function AgentInputArea({
   showDone = false,
   doneHighlight = false,
   aboveButtons,
+  onCancel,
 }: AgentInputAreaProps) {
   const { generating, handleNewSession, messages } = session;
 
   const handleCancel = () => {
     session.cancelRef.current = true;
     session.setGenerating(false);
+    onCancel?.();
   };
 
   const hasAssistantResponse = messages.some(

@@ -27,6 +27,7 @@ export function AgentHeader({
   return (
     <div
       style={{
+        flex: "0 0 auto",
         padding: "6px 12px",
         borderBottom: `1px solid ${COLORS.GRAY_L}`,
         display: "flex",

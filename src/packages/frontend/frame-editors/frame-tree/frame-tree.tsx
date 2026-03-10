@@ -443,8 +443,11 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           display: "flex",
           flexDirection: "row",
           flex: 1,
-          overflow: "hidden",
+          overflow: "clip",
         };
+      } else {
+        // Prevent scrollIntoView from propagating scroll to this container.
+        data.outer_style = { overflow: "clip" };
       }
       return data;
     }
@@ -521,7 +524,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
 
     // TODO we only need this additional div for that safari hack. one that's no longer an issue, remove it.
     return (
-      <div className={"smc-vfill"} ref={elementRef}>
+      <div className={"smc-vfill"} style={{ overflow: "clip" }} ref={elementRef}>
         {render_root()}
       </div>
     );

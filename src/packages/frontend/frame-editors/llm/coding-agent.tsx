@@ -143,6 +143,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     async () => {},
   );
 
+  // Stores the last submitted prompt so Stop can restore it.
+  const lastSubmittedRef = useRef("");
+
   // Active LLM stream ref — allows cancel to stop processing tokens.
   const streamRef = useRef<{ removeAllListeners: () => void } | null>(null);
 
@@ -320,6 +323,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         session_id: activeSessionId,
       });
 
+      lastSubmittedRef.current = prompt;
       setInput("");
       session.setGenerating(true);
 
@@ -745,6 +749,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       {pendingEdits && (
         <div
           style={{
+            flex: "0 0 auto",
             padding: "6px 12px",
             borderTop: `1px solid ${COLORS.GRAY_L}`,
             background: COLORS.GRAY_LLL,
@@ -788,6 +793,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       {pendingExec.length > 0 && (
         <div
           style={{
+            flex: "0 0 auto",
             padding: "6px 12px",
             borderTop: `1px solid ${COLORS.GRAY_L}`,
             background: COLORS.YELL_LLL,
@@ -853,6 +859,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       {editorContextLabel && (
         <div
           style={{
+            flex: "0 0 auto",
             padding: "3px 12px",
             background: COLORS.YELL_LLL,
             fontSize: "0.85em",
@@ -867,6 +874,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       <AgentInputArea
         session={session}
         onSubmit={() => handleSubmit()}
+        onCancel={() => setInput(lastSubmittedRef.current)}
         sendDisabled={!input.trim()}
         showDone
         doneHighlight={editsApplied}
