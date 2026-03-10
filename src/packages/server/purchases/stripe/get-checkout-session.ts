@@ -15,6 +15,8 @@ import { decimalToStripe, decimalAdd } from "@cocalc/util/stripe/calc";
 import { url } from "@cocalc/server/messages/send";
 
 const logger = getLogger("purchases:stripe:get-checkout-session");
+const LINE_ITEMS_METADATA_KEY = "line_items_json";
+const DESCRIPTION_METADATA_KEY = "checkout_description";
 
 interface Options extends CheckoutSessionOptions {
   // user that is paying: assumed already authenticated/valid
@@ -29,9 +31,11 @@ export default async function getCheckoutSession({
   return_url,
   metadata,
 }: Options): Promise<CheckoutSessionSecret> {
+  const project_id = metadata?.project_id;
   logger.debug("getCheckoutSession", {
     account_id,
     purpose,
+    project_id,
     description,
     lineItems,
     return_url,
@@ -68,22 +72,60 @@ export default async function getCheckoutSession({
     status: "open",
     customer,
   });
+  logger.debug("getCheckoutSession: listed open checkout sessions", {
+    account_id,
+    purpose,
+    project_id,
+    customer,
+    open_session_count: openSessions.data.length,
+  });
   // cutoff = an hour ago in stripe time.  Restricting only to status='open'
   // as above should work, but doesn't, since we had many reports of users
   // with open checkout sessions that didn't work. This might help.
   const cutoff = Math.floor((Date.now() - 1000 * 60 * 60) / 1000);
   for (const session of openSessions.data) {
     if (session.metadata?.purpose == purpose && session.client_secret) {
+      // Store a deterministic fingerprint of the checkout inputs in metadata so
+      // later calls can safely reuse the same open session instead of expiring it
+      // and creating a fresh one every time the UI asks for the client secret.
       if (
-        !isEqual(session.metadata?.lineItems, JSON.stringify(lineItems)) ||
+        !isEqual(
+          session.metadata?.[LINE_ITEMS_METADATA_KEY],
+          JSON.stringify(lineItems),
+        ) ||
+        !isEqual(
+          session.metadata?.[DESCRIPTION_METADATA_KEY],
+          description ?? "",
+        ) ||
         session.created <= cutoff
       ) {
-        logger.debug("getCheckoutSession: expiring checkout session");
+        logger.debug("getCheckoutSession: expiring checkout session", {
+          account_id,
+          purpose,
+          project_id,
+          session_id: session.id,
+          session_created: session.created,
+          line_items_match: isEqual(
+            session.metadata?.[LINE_ITEMS_METADATA_KEY],
+            JSON.stringify(lineItems),
+          ),
+          description_match: isEqual(
+            session.metadata?.[DESCRIPTION_METADATA_KEY],
+            description ?? "",
+          ),
+          older_than_cutoff: session.created <= cutoff,
+        });
         // The line items or description changed or its older than an hour, so don't use it.
         await stripe.checkout.sessions.expire(session.id);
       } else {
-        logger.debug("getCheckoutSession: using existing checkout session");
-        // we use it -- same line items
+        logger.debug("getCheckoutSession: using existing checkout session", {
+          account_id,
+          purpose,
+          project_id,
+          session_id: session.id,
+          session_created: session.created,
+        });
+        // Reuse the existing open session when the checkout inputs still match.
         return { clientSecret: session.client_secret };
       }
     }
@@ -94,8 +136,18 @@ export default async function getCheckoutSession({
 
   metadata = {
     ...metadata,
+    [LINE_ITEMS_METADATA_KEY]: JSON.stringify(lineItems),
+    [DESCRIPTION_METADATA_KEY]: description ?? "",
     total_excluding_tax_usd: `${total_excluding_tax_usd}`,
   };
+  logger.debug("getCheckoutSession: creating checkout session", {
+    account_id,
+    purpose,
+    project_id,
+    customer,
+    line_item_count: lineItemsWithoutCredit.length,
+    total_excluding_tax_usd,
+  });
   const session = await stripe.checkout.sessions.create({
     customer,
     ui_mode: "embedded",
@@ -144,6 +196,13 @@ export default async function getCheckoutSession({
   if (!session.client_secret) {
     throw Error("unable to create session");
   }
+
+  logger.debug("getCheckoutSession: created checkout session", {
+    account_id,
+    purpose,
+    project_id,
+    session_id: session.id,
+  });
 
   return { clientSecret: session.client_secret };
 }
