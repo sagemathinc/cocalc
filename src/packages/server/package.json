@@ -55,7 +55,7 @@
     "@google-cloud/storage-transfer": "^3.3.0",
     "@isaacs/ttlcache": "^1.4.1",
     "@langchain/anthropic": "^1.3.22",
-    "@langchain/core": "^1.1.30",
+    "@langchain/core": "^1.1.31",
     "@langchain/google-genai": "^2.1.24",
     "@langchain/mistralai": "1.0.2",
     "@langchain/ollama": "^1.2.6",
