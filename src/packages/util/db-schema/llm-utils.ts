@@ -136,6 +136,8 @@ export const MODELS_OPENAI = [
   "gpt-5",
   "gpt-5.2-8k", // context limited
   "gpt-5.2",
+  "gpt-5.4-8k", // context limited
+  "gpt-5.4",
   "gpt-5-mini-8k", // context limited
   "gpt-5-mini",
 ] as const;
@@ -359,6 +361,7 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "o3-8k" ||
       m === "o4-mini-8k" ||
       m === "gpt-5.2-8k" ||
+      m === "gpt-5.4-8k" ||
       m === "gpt-5-mini-8k",
   ),
   google: [
@@ -926,6 +929,8 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-5": "GPT-5 128k",
   "gpt-5.2-8k": "GPT-5.2",
   "gpt-5.2": "GPT-5.2 128k",
+  "gpt-5.4-8k": "GPT-5.4",
+  "gpt-5.4": "GPT-5.4 128k",
   "gpt-5-mini-8k": "GPT-5 Mini",
   "gpt-5-mini": "GPT-5 Mini 128k",
   "gemini-3-flash-preview-16k": "Gemini 3 Flash",
@@ -1048,6 +1053,10 @@ export const LLM_DESCR: LLM2String = {
     "OpenAI's most advanced model with built-in reasoning (8k token context)",
   "gpt-5.2":
     "OpenAI's most advanced model with built-in reasoning (128k token context)",
+  "gpt-5.4-8k":
+    "OpenAI's most powerful model for professional work (8k token context)",
+  "gpt-5.4":
+    "OpenAI's most powerful model for professional work (128k token context)",
   "gpt-5-mini-8k":
     "Fast and cost-efficient version of GPT-5 (8k token context)",
   "gpt-5-mini": "Fast and cost-efficient version of GPT-5 (128k token context)",
@@ -1502,6 +1511,18 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gpt-5.2": {
     prompt_tokens: usd1Mtokens(1.25),
     completion_tokens: usd1Mtokens(10),
+    max_tokens: 128000,
+    free: false,
+  },
+  "gpt-5.4-8k": {
+    prompt_tokens: usd1Mtokens(2.5),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 8192,
+    free: false,
+  },
+  "gpt-5.4": {
+    prompt_tokens: usd1Mtokens(2.5),
+    completion_tokens: usd1Mtokens(15),
     max_tokens: 128000,
     free: false,
   },
