@@ -33,7 +33,7 @@ import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation"
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { getOneFreeModel, isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { three_way_merge } from "@cocalc/util/dmp";
-import { path_split, uuid } from "@cocalc/util/misc";
+import { path_split, trunc, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 import {
@@ -146,6 +146,34 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   // Active LLM stream ref — allows cancel to stop processing tokens.
   const streamRef = useRef<{ removeAllListeners: () => void } | null>(null);
 
+  // ---- Editor context indicator ----
+  // Snapshot taken when the input area receives focus — this is the
+  // context the LLM will receive.  No last-second re-read on send;
+  // the user sees exactly what gets sent.
+  const editorContextRef = useRef<ReturnType<typeof getEditorContext> | null>(
+    null,
+  );
+  const [editorContextLabel, setEditorContextLabel] = useState("");
+  const updateEditorContext = useCallback(() => {
+    const ctx = getEditorContext(actions);
+    editorContextRef.current = ctx;
+    let label = "";
+    if (ctx.cursorLine != null) {
+      if (ctx.selection && ctx.selectionRange) {
+        const { fromLine, toLine } = ctx.selectionRange;
+        if (fromLine === toLine) {
+          // Single-line partial selection — show the verbatim text
+          label = `Line ${fromLine + 1}: "${trunc(ctx.selection, 60)}"`;
+        } else {
+          label = `Lines ${fromLine + 1}–${toLine + 1} selected`;
+        }
+      } else {
+        label = `Cursor at line ${ctx.cursorLine + 1}`;
+      }
+    }
+    setEditorContextLabel(label);
+  }, [actions]);
+
   // ---- Cost estimation ----
   const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleInputChange = useCallback(
@@ -170,9 +198,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           setCostEstimate({ min: 0, max: 0 });
           return;
         }
-        const { numTokensEstimate } = await import(
-          "@cocalc/frontend/misc/llm"
-        );
+        const { numTokensEstimate } = await import("@cocalc/frontend/misc/llm");
         const currentMessages = session.messages.filter(
           (m) => m.event === "message",
         );
@@ -255,7 +281,10 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         session.setSessionId(activeSessionId);
       }
 
-      const ctx = getEditorContext(actions);
+      // Use the context snapshot from when the input was focused —
+      // what the user saw is what the LLM gets.  Fall back to a fresh
+      // read if no snapshot exists (e.g. first message, auto-continuation).
+      const ctx = editorContextRef.current ?? getEditorContext(actions);
       const baseSnapshot = ctx.content;
 
       const now = new Date().toISOString();
@@ -621,9 +650,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           }
         }
         // Strip <<<SHOW blocks
-        renderedContent = renderedContent
-          .replace(SHOW_BLOCK_REGEX, "")
-          .trim();
+        renderedContent = renderedContent.replace(SHOW_BLOCK_REGEX, "").trim();
         // Format edit blocks as diffs
         if (parseEditBlocks(renderedContent).length > 0 && baseSnapshot) {
           renderedContent = formatEditBlocksAsDiff(
@@ -792,6 +819,22 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         </div>
       )}
 
+      {/* Editor context indicator — shows cursor/selection so the user
+           knows what the LLM will "see" from the editor */}
+      {editorContextLabel && (
+        <div
+          style={{
+            padding: "3px 12px",
+            background: COLORS.YELL_LLL,
+            fontSize: "0.85em",
+            color: COLORS.GRAY_M,
+            borderTop: `1px solid ${COLORS.GRAY_L}`,
+          }}
+        >
+          {editorContextLabel}
+        </div>
+      )}
+
       <AgentInputArea
         session={session}
         onSubmit={() => handleSubmit()}
@@ -813,17 +856,28 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           ) : undefined
         }
       >
-        <MarkdownInput
-          value={input}
-          onChange={handleInputChange}
-          onShiftEnter={(value) => {
-            handleSubmit(value);
+        <div
+          onFocus={updateEditorContext}
+          onBlur={(e) => {
+            // Only clear when focus leaves the entire input area,
+            // not when moving between children (e.g. textarea → toolbar).
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setEditorContextLabel("");
+            }
           }}
-          placeholder="Ask the coding agent..."
-          height="auto"
-          editBarStyle={{ overflow: "auto" }}
-          style={{ minHeight: "72px", maxHeight: "200px", overflow: "auto" }}
-        />
+        >
+          <MarkdownInput
+            value={input}
+            onChange={handleInputChange}
+            onShiftEnter={(value) => {
+              handleSubmit(value);
+            }}
+            placeholder="Ask the coding agent..."
+            height="auto"
+            editBarStyle={{ overflow: "auto" }}
+            style={{ minHeight: "72px", maxHeight: "200px", overflow: "auto" }}
+          />
+        </div>
       </AgentInputArea>
 
       <RenameModal

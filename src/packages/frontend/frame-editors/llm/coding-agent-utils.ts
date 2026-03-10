@@ -41,6 +41,8 @@ export function getEditorContext(actions: any): {
   visibleRange?: { firstLine: number; lastLine: number };
   cursorLine?: number;
   selection?: string;
+  /** 0-based line range of the current selection, if any. */
+  selectionRange?: { fromLine: number; toLine: number };
 } {
   const cm = actions._get_cm?.(undefined, true);
   if (cm == null) {
@@ -59,11 +61,19 @@ export function getEditorContext(actions: any): {
     "local",
   );
 
+  let selectionRange: { fromLine: number; toLine: number } | undefined;
+  if (selection) {
+    const from = cm.getCursor("from");
+    const to = cm.getCursor("to");
+    selectionRange = { fromLine: from.line, toLine: to.line };
+  }
+
   return {
     content,
     visibleRange: { firstLine, lastLine },
     cursorLine: cursor.line,
     selection: selection || undefined,
+    selectionRange,
   };
 }
 
@@ -116,8 +126,7 @@ export function applySearchReplace(
           const lineStart =
             lines.slice(0, i).join("\n").length + (i > 0 ? 1 : 0);
           const lineEnd = lineStart + lines[i].length;
-          result =
-            result.slice(0, lineStart) + replace + result.slice(lineEnd);
+          result = result.slice(0, lineStart) + replace + result.slice(lineEnd);
           applied++;
           found = true;
           break;
@@ -170,8 +179,7 @@ export function extractCodeBlock(text: string): string | undefined {
  */
 export function parseEditBlocks(text: string): EditBlock[] {
   const blocks: EditBlock[] = [];
-  const regex =
-    /<<<EDIT\s+lines?\s+(\d+)(?:\s*-\s*(\d+))?\n([\s\S]*?)<<<END/g;
+  const regex = /<<<EDIT\s+lines?\s+(\d+)(?:\s*-\s*(\d+))?\n([\s\S]*?)<<<END/g;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     const startLine = parseInt(match[1], 10);
@@ -248,8 +256,7 @@ export function formatEditBlocksAsDiff(text: string, base: string): string {
 /* ------------------------------------------------------------------ */
 
 /** Shared regex source for matching <<<SHOW blocks. */
-const SHOW_BLOCK_SOURCE =
-  String.raw`<<<SHOW\s+lines?\s+(\d+)(?:\s*-\s*(\d+))?[\s\S]*?<<<END`;
+const SHOW_BLOCK_SOURCE = String.raw`<<<SHOW\s+lines?\s+(\d+)(?:\s*-\s*(\d+))?[\s\S]*?<<<END`;
 
 /**
  * Regex to strip <<<SHOW blocks from rendered content (they're
