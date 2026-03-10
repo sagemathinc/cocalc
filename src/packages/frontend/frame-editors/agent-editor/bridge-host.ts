@@ -9,6 +9,14 @@ proxies them to the CoCalc project via conat APIs.
 
 The iframe app includes cocalc-app-bridge.js which sends typed
 messages; this module processes them and sends responses back.
+
+NOTE on file access scope: readFile, writeFile, deleteFile, listFiles,
+and exec intentionally allow access to the entire project filesystem.
+The security boundary in CoCalc is the *project* itself (each project
+runs in its own sandboxed container).  An app embedded in a project is
+expected to interact with all project files, just like a terminal or
+any other editor frame can.  Path confinement within the app would
+break legitimate use cases without adding meaningful security.
 */
 
 import { webapp_client } from "@cocalc/frontend/webapp-client";

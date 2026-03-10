@@ -65,6 +65,8 @@ interface Props {
   size?: SizeType;
   style?: CSS;
   project_id?: string;
+  /** Compact display for tight spaces: shows only vendor icon + price tag. */
+  narrow?: boolean;
 }
 
 // ATTN: if you change this LLMSelector, you also have to change useLLMMenuOptions
@@ -74,6 +76,7 @@ export default function LLMSelector({
   setModel,
   size = "middle",
   project_id,
+  narrow = false,
 }: Props) {
   const is_cocalc_com = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
@@ -100,7 +103,7 @@ export default function LLMSelector({
     if (!selectableLLMs.includes(btnModel as any)) return;
     if (typeof btnModel !== "string") return;
 
-    const model = (
+    const modelLabel = (
       <>
         <strong>{modelToName(btnModel)}</strong>{" "}
         <LLMModelPrice model={btnModel} />
@@ -108,19 +111,26 @@ export default function LLMSelector({
     );
     const tooltip = (
       <>
-        <strong>{model}</strong>: {title}
+        <strong>{modelLabel}</strong>: {title}
       </>
     );
-    const display = (
+    const fullDisplay = (
       <>
-        <LanguageModelVendorAvatar model={btnModel} /> <strong>{model}</strong>{" "}
-        – <span style={OPTION_TITLE_STYLE}>{title}</span>
+        <LanguageModelVendorAvatar model={btnModel} />{" "}
+        <strong>{modelLabel}</strong> –{" "}
+        <span style={OPTION_TITLE_STYLE}>{title}</span>
+      </>
+    );
+    const compactDisplay = (
+      <>
+        <LanguageModelVendorAvatar model={btnModel} />{" "}
+        <LLMModelPrice model={btnModel} />
       </>
     );
     return {
       value: btnModel,
-      display,
-      label: <Tooltip title={tooltip}>{display}</Tooltip>,
+      display: narrow ? compactDisplay : fullDisplay,
+      label: <Tooltip title={tooltip}>{fullDisplay}</Tooltip>,
     };
   }
 
@@ -226,15 +236,22 @@ export default function LLMSelector({
           {desc ?? "Ollama"}
         </>
       );
+      const ollamaFullDisplay = (
+        <>
+          <LanguageModelVendorAvatar model={ollamaModel} />{" "}
+          <strong>{modelToName(ollamaModel)}</strong>{" "}
+          <LLMModelPrice model={ollamaModel} />
+        </>
+      );
+      const ollamaCompactDisplay = (
+        <>
+          <LanguageModelVendorAvatar model={ollamaModel} />{" "}
+          <LLMModelPrice model={ollamaModel} />
+        </>
+      );
       options.push({
         value: ollamaModel,
-        display: (
-          <>
-            <LanguageModelVendorAvatar model={ollamaModel} />{" "}
-            <strong>{modelToName(ollamaModel)}</strong>{" "}
-            <LLMModelPrice model={ollamaModel} />
-          </>
-        ),
+        display: narrow ? ollamaCompactDisplay : ollamaFullDisplay,
         label: (
           <Tooltip title={text}>
             <LanguageModelVendorAvatar model={ollamaModel} /> {text}
@@ -260,15 +277,22 @@ export default function LLMSelector({
           – {desc ?? "OpenAI (custom)"}
         </>
       );
+      const customFullDisplay = (
+        <>
+          <LanguageModelVendorAvatar model={customOpenAIModel} />{" "}
+          <strong>{modelToName(customOpenAIModel)}</strong>{" "}
+          <LLMModelPrice model={customOpenAIModel} />
+        </>
+      );
+      const customCompactDisplay = (
+        <>
+          <LanguageModelVendorAvatar model={customOpenAIModel} />{" "}
+          <LLMModelPrice model={customOpenAIModel} />
+        </>
+      );
       options.push({
         value: customOpenAIModel,
-        display: (
-          <>
-            <LanguageModelVendorAvatar model={customOpenAIModel} />{" "}
-            <strong>{modelToName(customOpenAIModel)}</strong>{" "}
-            <LLMModelPrice model={customOpenAIModel} />
-          </>
-        ),
+        display: narrow ? customCompactDisplay : customFullDisplay,
         label: (
           <Tooltip title={text}>
             <LanguageModelVendorAvatar model={customOpenAIModel} /> {text}
@@ -292,9 +316,14 @@ export default function LLMSelector({
           <strong>{display || model}</strong> – {LLM_PROVIDER[service].name}
         </>
       );
+      const compactEntry = (
+        <>
+          <LanguageModelVendorAvatar model={um} />
+        </>
+      );
       user.push({
         value: um,
-        display: entry,
+        display: narrow ? compactEntry : entry,
         label: <Tooltip title={text}>{entry}</Tooltip>,
       });
     }
@@ -393,12 +422,12 @@ export default function LLMSelector({
         size={size}
         value={model}
         onChange={setModel}
-        style={{ width: 300 }}
+        style={narrow ? undefined : { width: 300 }}
         optionLabelProp={"display"}
         popupMatchSelectWidth={false}
         options={getOptions()}
       />
-      {renderHelp()}
+      {!narrow && renderHelp()}
     </Space>
   );
 }

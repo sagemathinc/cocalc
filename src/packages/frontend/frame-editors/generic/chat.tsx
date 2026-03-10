@@ -4,6 +4,7 @@
  */
 
 import { Segmented, Spin } from "antd";
+import type { ComponentType } from "react";
 import { useEffect, useState } from "react";
 
 import { redux } from "@cocalc/frontend/app-framework";
@@ -21,6 +22,16 @@ import { hidden_meta_file } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { EditorComponentProps, EditorDescription } from "../frame-tree/types";
 
+// Agent lookup — maps file path to the right embedded agent component.
+// Both agents share the same { chatSyncdb } interface.  To add a new
+// agent type, add an entry here and create the component.
+function getEmbeddedAgent(
+  path: string,
+): ComponentType<{ chatSyncdb: any }> {
+  if (path.endsWith(".ipynb")) return NotebookAgent;
+  return CodingAgentEmbedded;
+}
+
 export function chatFile(path: string): string {
   return hidden_meta_file(path, "sage-chat");
 }
@@ -30,7 +41,7 @@ type ChatMode = "chat" | "assistant";
 function Chat({ font_size, desc }: EditorComponentProps) {
   const { project_id, path: path0, actions, id: frameId } = useFrameContext();
   const path = chatFile(path0);
-  const isJupyter = path0.endsWith(".ipynb");
+  const EmbeddedAgent = getEmbeddedAgent(path0);
   const [sideChatActions, setSideChatActions] = useState<ChatActions | null>(
     null,
   );
@@ -47,6 +58,9 @@ function Chat({ font_size, desc }: EditorComponentProps) {
   };
 
   useEffect(() => {
+    let checkInterval: ReturnType<typeof setInterval> | undefined;
+    let safetyTimeout: ReturnType<typeof setTimeout> | undefined;
+
     (async () => {
       // properly set the side chat compute server, if necessary
       await redux
@@ -63,16 +77,27 @@ function Chat({ font_size, desc }: EditorComponentProps) {
       if (sideChatActions.syncdb) {
         setChatSyncdbReady(true);
       } else {
-        const check = setInterval(() => {
+        checkInterval = setInterval(() => {
           if (sideChatActions.syncdb) {
-            clearInterval(check);
+            clearInterval(checkInterval);
+            checkInterval = undefined;
             setChatSyncdbReady(true);
           }
         }, 200);
         // Safety: stop polling after 60s
-        setTimeout(() => clearInterval(check), 60_000);
+        safetyTimeout = setTimeout(() => {
+          if (checkInterval) {
+            clearInterval(checkInterval);
+            checkInterval = undefined;
+          }
+        }, 60_000);
       }
     })();
+
+    return () => {
+      if (checkInterval) clearInterval(checkInterval);
+      if (safetyTimeout) clearTimeout(safetyTimeout);
+    };
   }, []);
 
   if (sideChatActions == null) {
@@ -136,14 +161,8 @@ function Chat({ font_size, desc }: EditorComponentProps) {
           >
             <Spin />
           </div>
-        ) : isJupyter ? (
-          <NotebookAgent
-            chatSyncdb={sideChatActions.syncdb}
-            jupyterActions={(actions as any).jupyter_actions}
-            project_id={project_id}
-          />
         ) : (
-          <CodingAgentEmbedded chatSyncdb={sideChatActions.syncdb} />
+          <EmbeddedAgent chatSyncdb={sideChatActions.syncdb} />
         )}
       </div>
     </div>

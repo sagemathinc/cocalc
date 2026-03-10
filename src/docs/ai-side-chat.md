@@ -13,7 +13,7 @@ chat to an AI coding agent whose capabilities depend on the file type:
 
 | File type                               | Agent variant      | Edit mechanism                           |
 | --------------------------------------- | ------------------ | ---------------------------------------- |
-| Code files (`.py`, `.tex`, `.js`, etc.) | **Coding Agent**   | Search/replace blocks + three-way merge  |
+| Code files (`.py`, `.tex`, `.js`, etc.) | **Coding Agent**   | Line-based edit blocks + three-way merge |
 | Jupyter notebooks (`.ipynb`)            | **Notebook Agent** | Tool-calling loop against JupyterActions |
 | `.app` files                            | **App Agent**      | writefile blocks + live iframe preview   |
 
@@ -127,55 +127,80 @@ diffs (see below).
 
 1. **User sends message.** The agent captures a snapshot of the editor
    state:
-   - Full document content (the "base snapshot", stored with the message)
+   - Visible viewport content (up to 100 lines, the "base snapshot",
+     stored with the message)
    - Cursor position and selection
    - Visible viewport range
    - File extension (for language-appropriate prompting)
 
-2. **LLM responds** with one or more search/replace blocks:
+   Only the visible portion of the document is included in the system
+   prompt. The LLM can request additional lines via `<<<SHOW` blocks
+   (see below).
+
+2. **LLM responds** with one or more line-based edit blocks:
 
    ```
-   <<<SEARCH
-   exact text to find in the file
-   >>>REPLACE
-   replacement text
+   <<<EDIT lines N-M
+   replacement text (without line numbers)
    <<<END
    ```
 
-3. **Edits appear as pending.** An action bar shows:
-   - "Apply to Editor" -- applies all blocks
-   - "Apply & Build" -- applies and triggers `actions.build()` (LaTeX, etc.)
-   - "Dismiss" -- discards
+   For a single line: `<<<EDIT line N`. To delete lines, use an empty
+   replacement. Multiple edit blocks are applied bottom-to-top so line
+   numbers remain stable.
 
-4. **Three-way merge on apply.** Because the user may have kept editing
+   A legacy `<<<SEARCH`/`>>>REPLACE`/`<<<END` format is also supported
+   as a fallback.
+
+3. **LLM requests more context** (optional). If the LLM needs to see
+   parts of the file outside the visible viewport, it emits:
+
+   ```
+   <<<SHOW lines N-M
+   <<<END
+   ```
+
+   These are automatically fulfilled: the requested lines (up to 100
+   per request) are extracted from the document and injected as the
+   next user message, and the LLM continues its response. This loop
+   is transparent to the user.
+
+4. **Edits appear as pending.** An action bar shows:
+   - "Apply to Editor" — applies all blocks
+   - "Apply & Build" — applies and triggers `actions.build()` (LaTeX, etc.)
+   - "Dismiss" — discards
+
+5. **Three-way merge on apply.** Because the user may have kept editing
    while the AI was responding:
    - **Base** = the snapshot captured at step 1
    - **Local** = current editor content (user's version)
-   - **Remote** = base + search/replace patches applied
+   - **Remote** = base + edit blocks applied
    - Result = `three_way_merge(base, local, remote)`
 
    This ensures concurrent user edits are not lost.
 
-5. **Shell command blocks** (` ```exec ... ``` `) are queued separately
+6. **Undo support.** Edits are applied via `actions.set_value()` which
+   uses `cm.setValueNoJump()` → `cm.diffApply()` → `cm.replaceRange()`.
+   Since `replaceRange` is a standard CodeMirror operation, each change
+   is recorded in the editor's undo history. The user can **Ctrl+Z** to
+   undo agent edits just like any manual edit.
+
+7. **Shell command blocks** (` ```exec ... ``` `) are queued separately
    with per-command Run / Dismiss buttons and a confirmation popup
    before running. Results are written back as system messages.
 
 ### Collapsible Diffs
 
-Search/replace blocks in assistant responses are rendered as
-` ```diff ` code blocks. To keep the chat readable when edits are
-large, these are wrapped in a **CollapsibleDiffs** component:
+Edit blocks in assistant responses are rendered as ` ```diff ` code
+blocks. To keep the chat readable when edits are large, these are
+wrapped in a **CollapsibleDiffs** component:
 
 - Font size is reduced to `0.82em`
-- Max height is capped at **150px** with `overflow: hidden`
-- Clicking a diff block **toggles** it between collapsed (150px) and
-  fully expanded (`max-height: none`, `overflow: auto`)
-- The cursor changes to `pointer` to signal interactivity
+- Max height is capped at **200px** with `overflow: auto` (scrollable)
 
-This is implemented via a `useEffect` that applies inline styles to
-all `<pre>` elements inside the container, plus a delegated click
-handler that walks up from the click target to find the enclosing
-`<pre>`.
+This is implemented via a `useEffect` (with `[children]` dependency)
+that applies inline styles to all `<pre>` elements inside the
+container after content changes.
 
 ### Dual Mode
 
@@ -449,7 +474,7 @@ Model selection is per-project, persisted via `useLanguageModelSetting`.
 | Decision                                                  | Rationale                                                                              |
 | --------------------------------------------------------- | -------------------------------------------------------------------------------------- |
 | Reuse side chat panel (tabs) rather than a separate frame | Minimal UI footprint; users already know where side chat is                            |
-| Search/replace + three-way merge for code files           | Handles concurrent user edits gracefully; works for any text file                      |
+| Line-based edit blocks + three-way merge for code files   | Handles concurrent user edits gracefully; works for any text file; line numbers are more reliable than text search |
 | Tool-calling loop for notebooks                           | Jupyter cells are structured objects, not a single text buffer; tools are more natural |
 | Bridge SDK via postMessage for .app apps                  | Iframe sandbox isolation; no special privileges needed                                 |
 | SyncDB for session storage                                | Collaborative -- all project members see the same conversation                         |
@@ -462,7 +487,10 @@ Model selection is per-project, persisted via `useLanguageModelSetting`.
 | Component                    | Path                                              |
 | ---------------------------- | ------------------------------------------------- |
 | Chat frame (tab switcher)    | `frame-editors/generic/chat.tsx`                  |
-| Coding agent                 | `frame-editors/llm/coding-agent.tsx`              |
+| Coding agent (main)          | `frame-editors/llm/coding-agent.tsx`              |
+| Coding agent types           | `frame-editors/llm/coding-agent-types.ts`         |
+| Coding agent utilities       | `frame-editors/llm/coding-agent-utils.ts`         |
+| Coding agent UI components   | `frame-editors/llm/coding-agent-components.tsx`   |
 | Coding agent spec            | `frame-editors/llm/coding-agent-spec.ts`          |
 | Notebook agent               | `frame-editors/jupyter-editor/notebook-agent.tsx` |
 | Agent editor panel           | `frame-editors/agent-editor/agent-panel.tsx`      |
@@ -478,9 +506,62 @@ All paths relative to `packages/frontend/`.
 
 ---
 
-## Known Bugs (POC) — Remaining
+## Tasks
 
-_(None currently tracked — report new issues as they arise.)_
+### P1 — Critical
+
+- [ ] **Shared agent abstraction**: CodingAgentCore and NotebookAgent
+  duplicate ~60% of their logic (SyncDB lifecycle, LLM streaming,
+  session management, cost estimation, message rendering). Extract
+  shared hooks / base component so adding a new agent type doesn't
+  require copying 1000+ lines.
+
+### P2 — Important
+
+- [ ] **`isJupyter` hardcode in `chat.tsx`**: Agent selection is
+  `isJupyter ? <NotebookAgent/> : <CodingAgentEmbedded/>` — adding a
+  3rd agent type has no entry point. Needs an agent registry pattern.
+- [ ] **Streaming token accumulation**: Rebuilds the full messages
+  array on every token via `setMessages([...streamingMsgs, {...}])`.
+  Quadratic allocation during fast streaming.
+- [ ] **Exec results not fed back to LLM**: Command output is
+  displayed as system messages but not included in the LLM history,
+  so the agent cannot reason about command results.
+- [ ] **`notebook-agent.tsx` stale `sessionId` closure**: History
+  loading captures `sessionId` via closure instead of using a ref.
+  Same bug that was already fixed in coding-agent.
+- [ ] **Cancel doesn't abort the stream**: Cancel button sets a flag
+  but the underlying fetch keeps running. Needs `stream.destroy()`
+  or AbortController.
+- [ ] **`RenameModal` setTimeout for focus**: Should use antd's
+  `afterOpenChange` callback instead of `setTimeout(100ms)`.
+- [ ] **No error boundary** around `CodingAgentCore` — a crash in the
+  agent component takes down the entire editor frame.
+- [ ] **`buildSystemPrompt` coupled to CodeMirror**: Uses CM-specific
+  APIs (`getScrollInfo`, `lineAtHeight`). Won't work if the editor
+  switches to Monaco or another backend.
+- [ ] **Session name via sentinel date**: Uses `"session_name:${sid}"`
+  as the date field — relies on string parsing. Works but fragile.
+- [ ] **`parseEditBlocks` silently drops invalid ranges**: Should
+  report which blocks failed and why, rather than silently skipping.
+
+### P3 — Minor
+
+- [ ] **Dead code in `notebook-agent.tsx`**: History builder has
+  unreachable branches.
+- [ ] **`agentSenderId()` opaque string format**: Returns
+  `"coding-agent-assistant"` — could collide with other sender_id
+  patterns. Consider a namespace prefix.
+- [ ] **No keyboard shortcut** to open the agent panel.
+- [ ] **Session list doesn't show timestamps** or sort by recency in
+  the dropdown.
+- [ ] **`getOneFreeModel()` can fail silently**: If no free model is
+  available, auto-naming silently does nothing. Should fall back to
+  the user's selected model.
+- [ ] **No test coverage** for `coding-agent-utils.ts` — all the pure
+  functions (parse, apply, format) are easily unit-testable.
+- [ ] **Session garbage collection**: Abandoned sessions accumulate
+  in the SyncDB with no cleanup mechanism.
 
 ## Recently Fixed
 
@@ -503,8 +584,8 @@ _(None currently tracked — report new issues as they arise.)_
   assistant has responded at least once.
 - **User messages as markdown**: User messages now render via
   `StaticMarkdown` instead of plain text.
-- **Collapsible diffs**: Search/replace diff blocks are capped at
-  150px height with smaller font; click to expand/collapse.
+- **Collapsible diffs**: Edit diff blocks are capped at 200px height
+  with smaller font and scrollable overflow.
 - **antd Tooltip deprecation**: Migrated `overlayInnerStyle` to
   `styles={{ body: {} }}` in `run-button/index.tsx`.
 - Assistant tab icon: now uses `AIAvatar` instead of generic robot icon
@@ -521,21 +602,21 @@ _(None currently tracked — report new issues as they arise.)_
 
 ## Open Questions / Next Steps
 
-- **Undo support**: Applying edits is currently a one-shot write to
-  syncstring. Should there be an explicit undo that reverts to the
-  base snapshot?
 - **Multi-file edits**: The coding agent currently operates on a single
   file. Supporting edits across multiple files would need a different
   context-gathering and apply strategy.
-- **Token budget / context window**: Large files may exceed the model's
-  context. Should we send only the visible portion + selection, or
-  always send the full file with truncation warnings?
 - **Streaming apply**: Could edits be applied incrementally as the LLM
   streams, rather than waiting for the full response?
-- **Security**: The .app bridge SDK gives iframe apps access to file
-  I/O and shell commands. What sandboxing / permission model is
-  appropriate?
 - **Notebook agent tool confirmation**: Unlike the coding agent's
   command blocks, notebook tool calls (including `run_cell`) run
   without user confirmation. Should destructive operations (delete,
   overwrite) require approval?
+- **Shared agent abstraction**: CodingAgentCore and NotebookAgent
+  duplicate significant logic (SyncDB lifecycle, LLM streaming,
+  session management, cost estimation). Extract a shared base or
+  set of hooks to make adding new agent types easier.
+- **Session garbage collection**: Abandoned sessions accumulate in the
+  SyncDB with no cleanup mechanism.
+- **Exec results feedback**: Command output from `exec` blocks is
+  displayed as system messages but not fed back into the LLM context,
+  so the agent cannot reason about command results.

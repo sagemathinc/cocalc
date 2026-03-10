@@ -6,119 +6,45 @@
 /*
 Notebook AI Agent – an LLM-powered assistant for Jupyter notebooks.
 
-The agent can inspect cells (input/output), insert new cells, and run
-cells.  It communicates with the LLM via structured ```tool blocks that
-are parsed client-side, executed against JupyterActions, and the results
-fed back for the next turn.
-
-When used inside the side-chat panel it piggybacks on the chat syncdb
-(records with event="notebook-agent").
+Uses the shared agent-base hook and UI components for session/SyncDB
+management.  This file contains only notebook-agent-specific logic:
+- Tool-calling loop (up to 10 iterations)
+- Tool parsing and execution against JupyterActions
+- System prompt for notebook context
 */
 
-import {
-  Alert,
-  Button,
-  Dropdown,
-  Input,
-  Popconfirm,
-  Space,
-  Spin,
-} from "antd";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Input } from "antd";
+import { useCallback, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux } from "@cocalc/frontend/app-framework";
-import type { CSS } from "@cocalc/frontend/app-framework";
-import { Icon, Paragraph } from "@cocalc/frontend/components";
-import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
-import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { uuid } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 
+import {
+  AgentError,
+  AgentHeader,
+  AgentInputArea,
+  AgentMessages,
+  AgentSessionBar,
+  CONTAINER_STYLE,
+  useAgentSession,
+} from "@cocalc/frontend/frame-editors/llm/agent-base";
+import type { DisplayMessage } from "@cocalc/frontend/frame-editors/llm/agent-base";
+
 const { TextArea } = Input;
-
-/* ------------------------------------------------------------------ */
-/*  Types                                                              */
-/* ------------------------------------------------------------------ */
-
-interface DisplayMessage {
-  sender: "user" | "assistant" | "system";
-  content: string;
-  date: string;
-  event: string; // "message" | "tool_result"
-  account_id?: string;
-}
-
-/** A tool invocation parsed from the LLM response. */
-interface ToolCall {
-  name: string;
-  args: Record<string, any>;
-}
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
 /* ------------------------------------------------------------------ */
 
 const TAG = "notebook-agent";
-const NOTEBOOK_AGENT_EVENT = "notebook-agent";
 const MAX_OUTPUT_CHARS = 4000;
-const CELL_EXEC_POLL_MS = 500;
-const CELL_EXEC_TIMEOUT_MS = 120_000;
-
-/* ------------------------------------------------------------------ */
-/*  Styles                                                             */
-/* ------------------------------------------------------------------ */
-
-const CONTAINER_STYLE: CSS = {
-  display: "flex",
-  flexDirection: "column",
-  height: "100%",
-  overflow: "hidden",
-} as const;
-
-const MESSAGES_STYLE: CSS = {
-  flex: 1,
-  overflowY: "auto",
-  padding: "8px 12px",
-} as const;
-
-const USER_MSG_STYLE: CSS = {
-  background: COLORS.GRAY_LLL,
-  borderRadius: 8,
-  padding: "8px 12px",
-  marginBottom: 8,
-  whiteSpace: "pre-wrap",
-} as const;
-
-const ASSISTANT_MSG_STYLE: CSS = {
-  marginBottom: 8,
-  padding: "8px 12px",
-} as const;
-
-const SYSTEM_MSG_STYLE: CSS = {
-  marginBottom: 8,
-  padding: "8px 12px",
-  background: COLORS.BS_GREEN_LL,
-  borderRadius: 8,
-  fontSize: "0.9em",
-} as const;
-
-const ERROR_MSG_STYLE: CSS = {
-  marginBottom: 8,
-  padding: "8px 12px",
-  background: COLORS.ANTD_BG_RED_L,
-  border: `1px solid ${COLORS.ANTD_BG_RED_M}`,
-  borderRadius: 8,
-  fontSize: "0.9em",
-} as const;
-
-const INPUT_AREA_STYLE: CSS = {
-  borderTop: `1px solid ${COLORS.GRAY_L}`,
-  padding: "8px 12px",
-} as const;
+const CELL_RUN_POLL_MS = 500;
+const CELL_RUN_TIMEOUT_MS = 120_000;
 
 /* ------------------------------------------------------------------ */
 /*  System prompt                                                      */
@@ -152,7 +78,7 @@ Get a range of cells. "start" and "end" are 0-based, inclusive.
 \`\`\`
 
 ### run_cell
-Run a cell by its 0-based index. The result will be reported once execution completes.
+Run a cell by its 0-based index. The result will be reported once completion.
 \`\`\`tool
 {"name": "run_cell", "args": {"index": 0}}
 \`\`\`
@@ -187,6 +113,11 @@ Delete the cell at the given 0-based index.
 /*  Tool parsing                                                       */
 /* ------------------------------------------------------------------ */
 
+interface ToolCall {
+  name: string;
+  args: Record<string, any>;
+}
+
 function parseToolBlocks(text: string): ToolCall[] {
   const blocks: ToolCall[] = [];
   const regex = /```tool\n([\s\S]*?)```/g;
@@ -205,7 +136,7 @@ function parseToolBlocks(text: string): ToolCall[] {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tool execution                                                     */
+/*  Tool helpers                                                       */
 /* ------------------------------------------------------------------ */
 
 function truncate(s: string, maxLen: number = MAX_OUTPUT_CHARS): string {
@@ -241,7 +172,11 @@ function getCellOutput(cell: any): string {
   return parts.join("");
 }
 
-async function executeTool(
+/* ------------------------------------------------------------------ */
+/*  Tool dispatcher                                                    */
+/* ------------------------------------------------------------------ */
+
+async function runTool(
   toolCall: ToolCall,
   jupyterActions: JupyterActions,
 ): Promise<string> {
@@ -263,17 +198,13 @@ async function executeTool(
       const cellId = cellList[idx];
       const cell = store.getIn(["cells", cellId]) as any;
       if (!cell) return JSON.stringify({ error: "Cell not found" });
-      const cellType = cell.get("cell_type") ?? "code";
-      const input = cell.get("input") ?? "";
-      const output = getCellOutput(cell);
-      const state = cell.get("state") ?? null;
       return JSON.stringify({
         index: idx,
         id: cellId,
-        cell_type: cellType,
-        input: truncate(input),
-        output: truncate(output),
-        state,
+        cell_type: cell.get("cell_type") ?? "code",
+        input: truncate(cell.get("input") ?? ""),
+        output: truncate(getCellOutput(cell)),
+        state: cell.get("state") ?? null,
       });
     }
 
@@ -309,8 +240,8 @@ async function executeTool(
       const cellId = cellList[idx];
       jupyterActions.run_cell(cellId, true);
 
-      // Poll until the cell finishes executing (state goes idle/undefined)
-      const deadline = Date.now() + CELL_EXEC_TIMEOUT_MS;
+      // Poll until idle or timeout
+      const deadline = Date.now() + CELL_RUN_TIMEOUT_MS;
       await new Promise<void>((resolve) => {
         const check = () => {
           const cell = store.getIn(["cells", cellId]) as any;
@@ -319,19 +250,17 @@ async function executeTool(
             resolve();
             return;
           }
-          setTimeout(check, CELL_EXEC_POLL_MS);
+          setTimeout(check, CELL_RUN_POLL_MS);
         };
-        // Give the kernel a moment to start before first check
-        setTimeout(check, CELL_EXEC_POLL_MS);
+        setTimeout(check, CELL_RUN_POLL_MS);
       });
 
       const cell = store.getIn(["cells", cellId]) as any;
-      const output = cell ? getCellOutput(cell) : "";
       return JSON.stringify({
         status: "completed",
         index: idx,
         id: cellId,
-        output: truncate(output),
+        output: truncate(cell ? getCellOutput(cell) : ""),
       });
     }
 
@@ -341,7 +270,6 @@ async function executeTool(
       const cellType = toolCall.args.cell_type ?? "code";
       let newId: string;
       if (afterIdx < 0 || cellList.length === 0) {
-        // Insert at the beginning
         newId = jupyterActions.insert_cell_at(0, true);
       } else {
         const clampedIdx = Math.min(afterIdx, cellList.length - 1);
@@ -355,11 +283,10 @@ async function executeTool(
         jupyterActions.set_cell_input(newId, content, true);
       }
       const newCellList: string[] = store.get("cell_list")?.toJS() ?? [];
-      const newIdx = newCellList.indexOf(newId);
       return JSON.stringify({
         status: "inserted",
         id: newId,
-        index: newIdx,
+        index: newCellList.indexOf(newId),
         cell_type: cellType,
       });
     }
@@ -372,8 +299,7 @@ async function executeTool(
         });
       }
       const cellId = cellList[idx];
-      const content = toolCall.args.content ?? "";
-      jupyterActions.set_cell_input(cellId, content, true);
+      jupyterActions.set_cell_input(cellId, toolCall.args.content ?? "", true);
       return JSON.stringify({ status: "updated", index: idx, id: cellId });
     }
 
@@ -395,207 +321,24 @@ async function executeTool(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Sender ID helpers (for chat syncdb schema)                         */
-/* ------------------------------------------------------------------ */
-
-function agentSenderId(sender: "assistant" | "system"): string {
-  return `notebook-agent-${sender}`;
-}
-
-/* ------------------------------------------------------------------ */
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-interface NotebookAgentProps {
-  chatSyncdb: any; // the side chat syncdb
-  jupyterActions: JupyterActions;
-  project_id: string;
-}
-
-export function NotebookAgent({
-  chatSyncdb,
-  jupyterActions,
-  project_id,
-}: NotebookAgentProps) {
+export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
+  const { project_id, actions } = useFrameContext();
+  const jupyterActions: JupyterActions = (actions as any).jupyter_actions;
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string>("");
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const cancelRef = useRef(false);
   const llmStreamRef = useRef<any>(null);
 
-  const [syncdb, setSyncdb] = useState<any>(null);
-  const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [sessionId, setSessionId] = useState<string>("");
-  const [allSessions, setAllSessions] = useState<string[]>([]);
+  // ---- Shared session management ----
+  const session = useAgentSession({
+    chatSyncdb,
+    eventName: "notebook-agent",
+    project_id,
+  });
 
-  // Initialize syncdb from the chat syncdb
-  useEffect(() => {
-    if (!chatSyncdb) return;
-
-    const handleChange = () => {
-      if (chatSyncdb.get_state() === "ready") {
-        loadSessionsAndMessages(chatSyncdb);
-      }
-    };
-
-    if (chatSyncdb.get_state() === "ready") {
-      setSyncdb(chatSyncdb);
-      loadSessionsAndMessages(chatSyncdb);
-    } else {
-      chatSyncdb.once("ready", () => {
-        setSyncdb(chatSyncdb);
-        loadSessionsAndMessages(chatSyncdb);
-      });
-    }
-    chatSyncdb.on("change", handleChange);
-
-    return () => {
-      chatSyncdb.removeListener("change", handleChange);
-    };
-  }, [chatSyncdb]);
-
-  const loadSessionsAndMessages = useCallback(
-    (db: any) => {
-      if (db?.get_state() !== "ready") return;
-
-      const allRecords = db.get();
-      if (allRecords == null) return;
-
-      const sessionsSet = new Set<string>();
-      const msgsBySession = new Map<string, DisplayMessage[]>();
-
-      allRecords.forEach((record: any) => {
-        if (record.get("event") !== NOTEBOOK_AGENT_EVENT) return;
-        const sid = record.get("session_id");
-        if (!sid) return;
-        sessionsSet.add(sid);
-
-        if (!msgsBySession.has(sid)) {
-          msgsBySession.set(sid, []);
-        }
-
-        msgsBySession.get(sid)!.push({
-          sender: record.get("sender") ?? "user",
-          content: record.get("content") ?? "",
-          date: record.get("date") ?? "",
-          event: record.get("msg_event") ?? "message",
-          account_id: record.get("account_id"),
-        });
-      });
-
-      const pendingId = pendingNewSessionRef.current;
-      if (pendingId && sessionsSet.has(pendingId)) {
-        pendingNewSessionRef.current = "";
-      }
-      if (pendingId && !sessionsSet.has(pendingId)) {
-        sessionsSet.add(pendingId);
-      }
-
-      const sessions = Array.from(sessionsSet).sort((a, b) => {
-        const aDate = msgsBySession.get(a)?.[0]?.date ?? "\uffff";
-        const bDate = msgsBySession.get(b)?.[0]?.date ?? "\uffff";
-        return aDate.localeCompare(bDate);
-      });
-      setAllSessions(sessions);
-
-      const activeSession =
-        sessionId && sessionsSet.has(sessionId)
-          ? sessionId
-          : sessions.length > 0
-            ? sessions[sessions.length - 1]
-            : "";
-
-      if (activeSession !== sessionId) {
-        setSessionId(activeSession);
-      }
-
-      if (activeSession) {
-        const msgs = msgsBySession.get(activeSession) ?? [];
-        msgs.sort(
-          (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
-        );
-        setMessages(msgs);
-      } else {
-        setMessages([]);
-      }
-    },
-    [sessionId],
-  );
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    if (syncdb?.get_state() === "ready") {
-      loadSessionsAndMessages(syncdb);
-    }
-  }, [sessionId, syncdb]);
-
-  const pendingNewSessionRef = useRef<string>("");
-
-  const handleNewSession = useCallback(() => {
-    const newId = uuid();
-    pendingNewSessionRef.current = newId;
-    setSessionId(newId);
-    setMessages([]);
-    setError("");
-  }, []);
-
-  const handleClearSession = useCallback(() => {
-    if (!syncdb || !sessionId) return;
-    const allRecords = syncdb.get();
-    if (allRecords != null) {
-      allRecords.forEach((record: any) => {
-        if (
-          record.get("event") === NOTEBOOK_AGENT_EVENT &&
-          record.get("session_id") === sessionId
-        ) {
-          syncdb.delete({
-            date: record.get("date"),
-            sender_id: record.get("sender_id"),
-            event: NOTEBOOK_AGENT_EVENT,
-          });
-        }
-      });
-      syncdb.commit();
-    }
-    setMessages([]);
-  }, [syncdb, sessionId]);
-
-  const writeMessage = useCallback(
-    (msg: {
-      date: string;
-      sender: "user" | "assistant" | "system";
-      content: string;
-      account_id?: string;
-      msg_event: string;
-      session_id?: string;
-    }) => {
-      if (!syncdb || syncdb.get_state() !== "ready") return;
-      const sid = msg.session_id || sessionId || uuid();
-
-      syncdb.set({
-        date: msg.date,
-        sender_id:
-          msg.sender === "user"
-            ? (msg.account_id ?? "unknown")
-            : agentSenderId(msg.sender),
-        event: NOTEBOOK_AGENT_EVENT,
-        session_id: sid,
-        content: msg.content,
-        sender: msg.sender,
-        msg_event: msg.msg_event,
-        account_id: msg.account_id,
-      });
-      syncdb.commit();
-    },
-    [syncdb, sessionId],
-  );
-
-  /** Run a single LLM turn. Returns the assistant response text. */
+  // ---- Single LLM turn (returns assistant text) ----
   const runLlmTurn = useCallback(
     async (
       prompt: string,
@@ -615,16 +358,14 @@ export function NotebookAgent({
         llmStreamRef.current = stream;
 
         stream.on("token", (token: string | null) => {
-          if (cancelRef.current) {
+          if (session.cancelRef.current) {
             resolve(assistantContent);
             return;
           }
           if (token != null) {
             assistantContent += token;
-            // Update the messages to show streaming
-            setMessages((prev) => {
+            session.setMessages((prev) => {
               const updated = [...prev];
-              // Find or add the streaming assistant message
               const lastMsg = updated[updated.length - 1];
               if (lastMsg?.sender === "assistant" && lastMsg.date === "") {
                 lastMsg.content = assistantContent;
@@ -650,27 +391,28 @@ export function NotebookAgent({
         });
       });
     },
-    [model, project_id],
+    [model, project_id, session.cancelRef, session.setMessages],
   );
 
+  // ---- Submit handler with tool-calling loop ----
   const handleSubmit = useCallback(async () => {
     const prompt = input.trim();
-    if (!prompt || generating) return;
+    if (!prompt || session.generating) return;
 
-    setError("");
-    cancelRef.current = false;
+    session.setError("");
+    session.cancelRef.current = false;
 
-    let activeSessionId = sessionId;
+    let activeSessionId = session.sessionId;
     if (!activeSessionId) {
       activeSessionId = uuid();
-      setSessionId(activeSessionId);
+      session.setSessionId(activeSessionId);
     }
 
     const now = new Date().toISOString();
     const accountId =
       redux.getStore("account")?.get_account_id?.() ?? "unknown";
 
-    writeMessage({
+    session.writeMessage({
       date: now,
       sender: "user",
       content: prompt,
@@ -680,7 +422,7 @@ export function NotebookAgent({
     });
 
     setInput("");
-    setGenerating(true);
+    session.setGenerating(true);
 
     try {
       const kernelName =
@@ -692,26 +434,8 @@ export function NotebookAgent({
         language as string,
       );
 
-      // Build history from all messages (including tool results)
-      const allMessages = messages.filter(
-        (m) => m.sender === "user" || m.sender === "assistant",
-      );
-      let history = allMessages.map((m) => ({
-        role: m.sender as "user" | "assistant",
-        content: m.content,
-      }));
-
-      // Also include system/tool_result messages as "user" role so LLM sees tool output
-      const toolResultMsgs = messages.filter((m) => m.event === "tool_result");
-      for (const tr of toolResultMsgs) {
-        history.push({
-          role: "user" as const,
-          content: `[Tool Result]\n${tr.content}`,
-        });
-      }
-
-      // Re-sort by time to maintain order
-      const msgWithTime = messages.map((m) => ({
+      // Build history from all messages, sorted by time
+      const msgWithTime = session.messages.map((m) => ({
         role:
           m.sender === "system"
             ? ("user" as const)
@@ -723,19 +447,19 @@ export function NotebookAgent({
       msgWithTime.sort(
         (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
       );
-      history = msgWithTime.map(({ role, content }) => ({ role, content }));
+      let history = msgWithTime.map(({ role, content }) => ({ role, content }));
 
       let currentPrompt = prompt;
-      let maxLoops = 10; // safety limit for tool-calling loops
+      let maxLoops = 10;
 
       while (maxLoops > 0) {
         maxLoops--;
 
         const assistantText = await runLlmTurn(currentPrompt, history, system);
-        if (cancelRef.current) break;
+        if (session.cancelRef.current) break;
 
         const assistantDate = new Date().toISOString();
-        writeMessage({
+        session.writeMessage({
           date: assistantDate,
           sender: "assistant",
           content: assistantText,
@@ -743,18 +467,13 @@ export function NotebookAgent({
           session_id: activeSessionId,
         });
 
-        // Parse tool calls
         const toolCalls = parseToolBlocks(assistantText);
-        if (toolCalls.length === 0) {
-          // No tools — done
-          break;
-        }
+        if (toolCalls.length === 0) break;
 
-        // Execute all tool calls and collect results
         const results: string[] = [];
         for (const tc of toolCalls) {
           try {
-            const result = await executeTool(tc, jupyterActions);
+            const result = await runTool(tc, jupyterActions);
             results.push(`**${tc.name}**: ${result}`);
           } catch (err: any) {
             results.push(`**${tc.name}**: Error — ${err.message ?? err}`);
@@ -762,49 +481,56 @@ export function NotebookAgent({
         }
 
         const toolResultContent = results.join("\n\n");
-        const toolDate = new Date().toISOString();
-        writeMessage({
-          date: toolDate,
+        session.writeMessage({
+          date: new Date().toISOString(),
           sender: "system",
           content: toolResultContent,
           msg_event: "tool_result",
           session_id: activeSessionId,
         });
 
-        // Add to history for next turn
         history.push({ role: "assistant", content: assistantText });
         history.push({
           role: "user",
           content: `[Tool Result]\n${toolResultContent}`,
         });
 
-        // Continue the loop — ask LLM to process tool results
         currentPrompt = `Here are the tool results:\n\n${toolResultContent}\n\nContinue based on these results. If you need more information, use more tools. Otherwise, provide your answer.`;
       }
     } catch (err: any) {
-      setError(err.message ?? `${err}`);
+      session.setError(err.message ?? `${err}`);
     } finally {
-      setGenerating(false);
+      session.setGenerating(false);
       llmStreamRef.current = null;
     }
   }, [
     input,
-    messages,
-    generating,
+    session.messages,
+    session.generating,
+    session.sessionId,
+    session.writeMessage,
+    session.setGenerating,
+    session.setError,
+    session.setSessionId,
+    session.cancelRef,
     model,
     project_id,
-    sessionId,
-    writeMessage,
     runLlmTurn,
     jupyterActions,
   ]);
 
-  const handleCancel = useCallback(() => {
-    cancelRef.current = true;
-    setGenerating(false);
-    // The stream will naturally stop being processed due to cancelRef
-  }, []);
+  // ---- Message renderer ----
+  const renderMessage = useCallback(
+    (msg: DisplayMessage, _i: number) => {
+      if (msg.sender === "user") {
+        return msg.content;
+      }
+      return <StaticMarkdown value={msg.content} />;
+    },
+    [],
+  );
 
+  // ---- Key handler for shift+enter ----
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === "Enter" && (e.shiftKey || e.metaKey || e.ctrlKey)) {
@@ -815,163 +541,44 @@ export function NotebookAgent({
     [handleSubmit],
   );
 
-  const turnsMenuItems = useMemo(() => {
-    const items = allSessions
-      .map((sid, i) => ({
-        key: sid,
-        label: `Turn ${i + 1}${sid === sessionId ? "  •" : ""}`,
-      }))
-      .reverse();
-    items.push({ key: "__new__", label: "+ New Turn" });
-    return items;
-  }, [allSessions, sessionId]);
-
+  // ---- Render ----
   return (
     <div style={CONTAINER_STYLE}>
-      {/* Header */}
-      <div
-        style={{
-          padding: "6px 12px",
-          borderBottom: `1px solid ${COLORS.GRAY_L}`,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap",
-        }}
+      <AgentHeader
+        title="Notebook Agent"
+        model={model}
+        setModel={setModel}
+        project_id={project_id}
+      />
+
+      <AgentSessionBar session={session} />
+
+      <AgentMessages
+        session={session}
+        renderMessage={renderMessage}
+        emptyText="Ask questions about your notebook, request changes, or ask the agent to run cells. (Shift+Enter to send)"
+      />
+
+      <AgentError
+        error={session.error}
+        onClose={() => session.setError("")}
+      />
+
+      <AgentInputArea
+        session={session}
+        onSubmit={handleSubmit}
+        sendDisabled={!input.trim()}
       >
-        <AIAvatar size={20} />
-        <span style={{ fontWeight: 500 }}>Notebook Agent</span>
-        <div style={{ flex: 1 }} />
-        <LLMSelector
-          model={model}
-          setModel={setModel}
-          project_id={project_id}
-          size="small"
+        <TextArea
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={handleKeyDown}
+          placeholder="Ask about your notebook... (Shift+Enter to send)"
+          autoSize={{ minRows: 1, maxRows: 6 }}
+          disabled={session.generating}
+          style={{ flex: 1 }}
         />
-      </div>
-
-      {/* Session bar */}
-      <div
-        style={{
-          padding: "4px 12px",
-          borderBottom: `1px solid ${COLORS.GRAY_L}`,
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          background: COLORS.GRAY_LLL,
-        }}
-      >
-        <Dropdown
-          menu={{
-            items: turnsMenuItems,
-            onClick: ({ key }) => {
-              if (key === "__new__") {
-                handleNewSession();
-              } else {
-                setSessionId(key);
-              }
-            },
-          }}
-          trigger={["click"]}
-        >
-          <Button size="small">
-            <Icon name="history" /> Turns ({allSessions.length})
-          </Button>
-        </Dropdown>
-        {sessionId && messages.length > 0 && (
-          <Popconfirm
-            title="Clear all messages in this turn?"
-            onConfirm={handleClearSession}
-            okText="Clear"
-            cancelText="Cancel"
-          >
-            <Button size="small" danger>
-              <Icon name="trash" />
-            </Button>
-          </Popconfirm>
-        )}
-      </div>
-
-      {/* Messages */}
-      <div style={MESSAGES_STYLE}>
-        {messages.length === 0 && (
-          <Paragraph
-            style={{
-              color: COLORS.GRAY_M,
-              textAlign: "center",
-              marginTop: 20,
-            }}
-          >
-            Ask questions about your notebook, request changes, or ask the agent
-            to run cells. (Shift+Enter to send)
-          </Paragraph>
-        )}
-        {messages.map((msg, i) => (
-          <div
-            key={`${msg.date}-${i}`}
-            style={
-              msg.sender === "user"
-                ? USER_MSG_STYLE
-                : msg.sender === "system"
-                  ? msg.content.includes("Error")
-                    ? ERROR_MSG_STYLE
-                    : SYSTEM_MSG_STYLE
-                  : ASSISTANT_MSG_STYLE
-            }
-          >
-            {msg.sender === "user" ? (
-              msg.content
-            ) : (
-              <StaticMarkdown value={msg.content} />
-            )}
-          </div>
-        ))}
-        {generating && (
-          <div style={{ textAlign: "center", padding: 8 }}>
-            <Spin size="small" />
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Error display */}
-      {error && (
-        <Alert
-          type="error"
-          message={error}
-          closable
-          onClose={() => setError("")}
-          style={{ margin: "4px 12px" }}
-        />
-      )}
-
-      {/* Input area */}
-      <div style={INPUT_AREA_STYLE}>
-        <Space.Compact style={{ width: "100%" }}>
-          <TextArea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Ask about your notebook... (Shift+Enter to send)"
-            autoSize={{ minRows: 1, maxRows: 6 }}
-            disabled={generating}
-            style={{ flex: 1 }}
-          />
-          {generating ? (
-            <Button onClick={handleCancel}>
-              <Icon name="stop" /> Stop
-            </Button>
-          ) : (
-            <Button
-              type="primary"
-              onClick={handleSubmit}
-              disabled={!input.trim()}
-            >
-              <Icon name="paper-plane" /> Send
-            </Button>
-          )}
-        </Space.Compact>
-      </div>
+      </AgentInputArea>
     </div>
   );
 }

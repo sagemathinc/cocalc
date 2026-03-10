@@ -1,0 +1,89 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+/*
+Shared messages list for agent panels.  Maps messages with per-sender
+styling and delegates content rendering to a caller-provided function,
+allowing each agent to customize how messages are displayed (e.g.
+collapsible diffs for the coding agent, tool results for the notebook
+agent).
+*/
+
+import { Spin } from "antd";
+
+import { Paragraph } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
+
+import type { AgentSession, DisplayMessage } from "./types";
+import {
+  ASSISTANT_MSG_STYLE,
+  ERROR_MSG_STYLE,
+  MESSAGES_STYLE,
+  SYSTEM_MSG_STYLE,
+  USER_MSG_STYLE,
+} from "./types";
+
+interface AgentMessagesProps {
+  session: AgentSession;
+  /**
+   * Render the content of a single message.  Called for every message;
+   * the component handles the outer container div and sender-based
+   * styling.
+   */
+  renderMessage: (msg: DisplayMessage, index: number) => React.ReactNode;
+  /** Placeholder text shown when there are no messages. */
+  emptyText?: string;
+  /**
+   * Optional function to compute the style for a message.
+   * Defaults to sender-based styling (user/assistant/system).
+   */
+  messageStyle?: (msg: DisplayMessage) => React.CSSProperties;
+}
+
+function defaultMessageStyle(msg: DisplayMessage): React.CSSProperties {
+  if (msg.sender === "user") return USER_MSG_STYLE;
+  if (msg.sender === "system") {
+    // Show error-styled system messages when content contains "Error"
+    if (msg.content.includes("Error")) return ERROR_MSG_STYLE;
+    return SYSTEM_MSG_STYLE;
+  }
+  return ASSISTANT_MSG_STYLE;
+}
+
+export function AgentMessages({
+  session,
+  renderMessage,
+  emptyText = "Send a message to get started.",
+  messageStyle = defaultMessageStyle,
+}: AgentMessagesProps) {
+  const { messages, generating, messagesEndRef } = session;
+
+  return (
+    <div style={MESSAGES_STYLE}>
+      {messages.length === 0 && (
+        <Paragraph
+          style={{
+            color: COLORS.GRAY_M,
+            textAlign: "center",
+            marginTop: 20,
+          }}
+        >
+          {emptyText}
+        </Paragraph>
+      )}
+      {messages.map((msg, i) => (
+        <div key={`${msg.date}-${i}`} style={messageStyle(msg)}>
+          {renderMessage(msg, i)}
+        </div>
+      ))}
+      {generating && (
+        <div style={{ textAlign: "center", padding: 8 }}>
+          <Spin size="small" />
+        </div>
+      )}
+      <div ref={messagesEndRef} />
+    </div>
+  );
+}

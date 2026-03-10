@@ -60,7 +60,8 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
       }
 
       case "coding-agent":
-        // coding-agent messages are handled by the CodingAgent component
+      case "notebook-agent":
+        // Agent messages are handled by their own components
         // embedded in the side chat — nothing to do here.
         return;
 
