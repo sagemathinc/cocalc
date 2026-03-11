@@ -895,7 +895,11 @@ export class Actions<
   }
 
   /** Move a frame to a new position relative to another frame. */
-  move_frame(sourceId: string, targetId: string, position: tree_ops.DropPosition): void {
+  move_frame(
+    sourceId: string,
+    targetId: string,
+    position: tree_ops.DropPosition,
+  ): void {
     this._tree_op("move_node", sourceId, targetId, position);
     // Normalize: collapse single-child nodes left by the move
     this._tree_op("collapse_trivial");
@@ -910,6 +914,7 @@ export class Actions<
       if (position === "tab" || !tree_ops.is_leaf_id(tree, fullId)) {
         local = local.delete("full_id");
         this.setState({ local_view_state: local });
+        this._save_local_view_state();
       }
     }
     // Focus the moved frame

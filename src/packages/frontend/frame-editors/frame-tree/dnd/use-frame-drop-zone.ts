@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 
 export type DropZone =
@@ -118,12 +118,12 @@ export function useFrameDropZone(
     ],
   );
 
-  // Reset zone when not hovering
-  if (!isOver && activeZone !== null) {
+  useEffect(() => {
+    if (isOver || activeZone === null) return;
     lastZoneRef.current = null;
     setActiveZone(null);
     onZoneChange?.(frameId, null);
-  }
+  }, [activeZone, frameId, isOver, onZoneChange]);
 
   const isValidDrop = isSelfDrag ? canExtractFromTabs : true;
 

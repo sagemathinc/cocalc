@@ -11,6 +11,7 @@ import {
   get_leaf_ids,
   get_parent_id,
   extract_from_tabs,
+  reorder_tab,
 } from "../tree-ops";
 import type { ImmutableFrameTree } from "../types";
 
@@ -640,5 +641,63 @@ describe("extract_from_tabs", () => {
     }) as ImmutableFrameTree;
     const result = extract_from_tabs(tree, "a", "bottom");
     expect(result.get("sizes").toJS()).toEqual([0.5, 0.5]);
+  });
+});
+
+describe("reorder_tab", () => {
+  it("moves a tab before a sibling", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        { id: "a", type: "cm" },
+        { id: "b", type: "terminal" },
+        { id: "c", type: "jupyter" },
+      ],
+      activeTab: 0,
+    }) as ImmutableFrameTree;
+    const result = reorder_tab(tree, "tabs1", "c", "a");
+    expect(
+      result
+        .get("children")
+        .map((child) => child.get("id"))
+        .toJS(),
+    ).toEqual(["c", "a", "b"]);
+    expect(result.get("activeTab")).toBe(0);
+  });
+
+  it("moves a tab to the end when beforeFrameId is null", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        { id: "a", type: "cm" },
+        { id: "b", type: "terminal" },
+        { id: "c", type: "jupyter" },
+      ],
+      activeTab: 1,
+    }) as ImmutableFrameTree;
+    const result = reorder_tab(tree, "tabs1", "a", null);
+    expect(
+      result
+        .get("children")
+        .map((child) => child.get("id"))
+        .toJS(),
+    ).toEqual(["b", "c", "a"]);
+    expect(result.get("activeTab")).toBe(2);
+  });
+
+  it("is a no-op when the source tab is missing", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        { id: "a", type: "cm" },
+        { id: "b", type: "terminal" },
+      ],
+      activeTab: 0,
+    }) as ImmutableFrameTree;
+    const result = reorder_tab(tree, "tabs1", "missing", "a");
+    expect(result).toBe(tree);
   });
 });
