@@ -630,7 +630,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         <AIAvatar
           size={16}
           iconColor={COLORS.AI_ASSISTANT_TXT}
-          innerStyle={{ top: "2px" }}
         />
         {noLabel ? (
           ""

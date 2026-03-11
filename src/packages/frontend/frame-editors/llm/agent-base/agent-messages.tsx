@@ -76,11 +76,15 @@ export function AgentMessages({
           {emptyText}
         </Paragraph>
       )}
-      {messages.map((msg, i) => (
-        <div key={`${msg.date}-${i}`} style={messageStyle(msg)}>
-          {renderMessage(msg, i)}
-        </div>
-      ))}
+      {messages.map((msg, i) => {
+        const content = renderMessage(msg, i);
+        if (content == null) return null;
+        return (
+          <div key={`${msg.date}-${i}`} style={messageStyle(msg)}>
+            {content}
+          </div>
+        );
+      })}
       {generating && (
         <div style={{ textAlign: "center", padding: 8 }}>
           <Spin size="small" />

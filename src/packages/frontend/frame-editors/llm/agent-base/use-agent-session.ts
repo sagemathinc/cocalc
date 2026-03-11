@@ -46,8 +46,6 @@ export interface UseAgentSessionOptions {
    * notebook agent is always embedded.
    */
   path?: string;
-  /** Enable session naming (rename UI, auto-name). Default false. */
-  supportSessionNames?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -60,7 +58,6 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
     eventName,
     project_id,
     path,
-    supportSessionNames = false,
   } = options;
 
   const usesChatSchema = chatSyncdb != null;
@@ -125,10 +122,8 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
           ? record.get("msg_event")
           : record.get("event");
         if (eventField === "session_name") {
-          if (supportSessionNames) {
-            const name = record.get("content");
-            if (name) names.set(sid, name);
-          }
+          const name = record.get("content");
+          if (name) names.set(sid, name);
           return;
         }
 
@@ -149,9 +144,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
         msgsBySession.get(sid)!.push(msg);
       });
 
-      if (supportSessionNames) {
-        setSessionNames(names);
-      }
+      setSessionNames(names);
 
       // Keep pending new sessions visible
       const pendingId = pendingNewSessionRef.current;
@@ -192,7 +185,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
         setMessages([]);
       }
     },
-    [usesChatSchema, eventName, supportSessionNames],
+    [usesChatSchema, eventName],
   );
 
   // Keep the ref in sync so change handlers always call the latest version.

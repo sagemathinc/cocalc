@@ -31,7 +31,7 @@ import type { EditorComponentProps } from "@cocalc/frontend/frame-editors/frame-
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { getOneFreeModel, isFreeModel } from "@cocalc/util/db-schema/llm-utils";
+import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { three_way_merge } from "@cocalc/util/dmp";
 import { path_split, trunc, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -43,10 +43,12 @@ import {
   AgentMessages,
   AgentSessionBar,
   CONTAINER_STYLE,
+  RenameModal,
   useAgentSession,
+  useAutoNameSession,
 } from "./agent-base";
 import type { DisplayMessage } from "./agent-base";
-import { CollapsibleDiffs, RenameModal } from "./coding-agent-components";
+import { CollapsibleDiffs } from "./coding-agent-components";
 import type { EditBlock, ExecBlock, SearchReplace } from "./coding-agent-types";
 import { DIFF_MAX_HEIGHT, TAG } from "./coding-agent-types";
 import {
@@ -113,11 +115,11 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     eventName: "coding-agent",
     project_id,
     path,
-    supportSessionNames: true,
   });
 
   // ---- Coding-agent-specific state ----
   const [input, setInput] = useState("");
+  const [inputKey, setInputKey] = useState(0);
   const [costEstimate, setCostEstimate] = useState<CostEstimate>(null);
   const [pendingEdits, setPendingEdits] = useState<
     | { type: "edit_blocks"; blocks: EditBlock[]; base: string }
@@ -145,6 +147,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
   // Stores the last submitted prompt so Stop can restore it.
   const lastSubmittedRef = useRef("");
+  const inputLockedRef = useRef(false);
 
   // Active LLM stream ref — allows cancel to stop processing tokens.
   const streamRef = useRef<{ removeAllListeners: () => void } | null>(null);
@@ -194,6 +197,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleInputChange = useCallback(
     (value: string) => {
+      if (inputLockedRef.current) return;
       setInput(value);
       if (!value.trim()) {
         if (estimateTimeoutRef.current) {
@@ -233,58 +237,12 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     [model, isCoCalcCom, llm_markup, session.messages],
   );
 
-  // ---- Auto-name session (user-triggered via magic wand button) ----
-  const autoNameSession = useCallback(async () => {
-    const sid = session.sessionId;
-    if (!sid || session.messages.length === 0) return;
-    try {
-      // Gather the first ~1000 characters from user + assistant messages
-      let context = "";
-      for (const msg of session.messages) {
-        if (msg.sender === "user" || msg.sender === "assistant") {
-          context += `${msg.sender === "user" ? "User" : "Assistant"}: ${msg.content}\n\n`;
-          if (context.length >= 1000) break;
-        }
-      }
-      context = context.slice(0, 1000);
-
-      // Use a free model on cocalc.com to avoid charging the user for
-      // naming; fall back to their selected model if none is available.
-      const freeModel = isCoCalcCom ? getOneFreeModel() : undefined;
-      const nameModel =
-        freeModel && isFreeModel(freeModel, isCoCalcCom) ? freeModel : model;
-      const stream = webapp_client.openai_client.queryStream({
-        input: `Given this conversation between a user and a coding assistant, generate a very short descriptive title (at most 7 words). Reply with ONLY the title, no quotes, no punctuation at the end.\n\n${context}`,
-        system:
-          "You generate short descriptive titles for conversations. Reply with only the title.",
-        history: [],
-        model: nameModel,
-        project_id,
-        tag: "coding-agent:auto-name",
-      });
-      let title = "";
-      stream.on("token", (token: string | null) => {
-        if (token != null) {
-          title += token;
-        } else {
-          const trimmed = title.trim().slice(0, 80);
-          if (trimmed) {
-            session.writeSessionName(trimmed, sid);
-          }
-        }
-      });
-      stream.on("error", () => {});
-    } catch {
-      // Silently ignore — naming is best-effort
-    }
-  }, [
-    isCoCalcCom,
+  const autoNameSession = useAutoNameSession({
+    session,
     model,
     project_id,
-    session.sessionId,
-    session.messages,
-    session.writeSessionName,
-  ]);
+    tag: TAG,
+  });
 
   // ---- Submit handler ----
   const handleSubmit = useCallback(
@@ -324,7 +282,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       });
 
       lastSubmittedRef.current = prompt;
+      inputLockedRef.current = true;
       setInput("");
+      setInputKey((k) => k + 1);
       session.setGenerating(true);
 
       try {
@@ -401,6 +361,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             // Stream ended — always persist the message, but only
             // apply UI state (generating, pendingEdits) if the user
             // hasn't switched to a different session mid-stream.
+            inputLockedRef.current = false;
             session.setGenerating(false);
             streamRef.current = null;
 
@@ -491,6 +452,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             content: `Error: ${err.message ?? err}`,
             msg_event: "error",
           });
+          inputLockedRef.current = false;
           session.setGenerating(false);
         });
       } catch (err: any) {
@@ -500,6 +462,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           content: `Error: ${err.message ?? err}`,
           msg_event: "error",
         });
+        inputLockedRef.current = false;
         session.setGenerating(false);
       }
     },
@@ -874,7 +837,11 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       <AgentInputArea
         session={session}
         onSubmit={() => handleSubmit()}
-        onCancel={() => setInput(lastSubmittedRef.current)}
+        onCancel={() => {
+          inputLockedRef.current = false;
+          setInput(lastSubmittedRef.current);
+          setInputKey((k) => k + 1);
+        }}
         sendDisabled={!input.trim()}
         showDone
         doneHighlight={editsApplied}
@@ -904,6 +871,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           }}
         >
           <MarkdownInput
+            key={inputKey}
             value={input}
             onChange={handleInputChange}
             onShiftEnter={(value) => {

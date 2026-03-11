@@ -57,7 +57,17 @@ export function AgentInputArea({
 
   return (
     <div style={{ ...INPUT_AREA_STYLE, display: "flex" }}>
-      <div style={{ flex: 1, minWidth: 0 }}>{children}</div>
+      <div
+        style={{
+          flex: 1,
+          minWidth: 0,
+          ...(generating
+            ? { pointerEvents: "none", opacity: 0.5 }
+            : undefined),
+        }}
+      >
+        {children}
+      </div>
       <div
         style={{
           display: "flex",

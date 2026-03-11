@@ -17,14 +17,14 @@ management.  This file contains notebook-agent-specific logic:
 - Confirm-to-run cell execution (run_cell)
 */
 
-import { Button, Input } from "antd";
-import { useCallback, useRef, useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -36,8 +36,13 @@ import {
   AgentInputArea,
   AgentMessages,
   AgentSessionBar,
+  ASSISTANT_MSG_STYLE,
   CONTAINER_STYLE,
+  ERROR_MSG_STYLE,
+  RenameModal,
+  SYSTEM_MSG_STYLE,
   useAgentSession,
+  useAutoNameSession,
 } from "@cocalc/frontend/frame-editors/llm/agent-base";
 import type { DisplayMessage } from "@cocalc/frontend/frame-editors/llm/agent-base";
 
@@ -48,13 +53,156 @@ import {
   buildSystemPrompt,
   getNotebookContext,
   parseToolBlocks,
-  runCell,
   runToolBatch,
 } from "./notebook-agent-utils";
-import type { NotebookContext, PendingRun } from "./notebook-agent-utils";
+import type { NotebookContext } from "./notebook-agent-utils";
 import type { JupyterEditorActions } from "./actions";
 
-const { TextArea } = Input;
+/* ------------------------------------------------------------------ */
+/*  Tool result display                                                */
+/* ------------------------------------------------------------------ */
+
+import type { CSS } from "@cocalc/frontend/app-framework";
+
+/** User messages: slightly darker than the shared default to stand out. */
+const NB_USER_MSG_STYLE: CSS = {
+  background: COLORS.GRAY_LL,
+  padding: "8px 12px",
+  marginBottom: 8,
+  whiteSpace: "pre-wrap",
+};
+
+/** Tool result activity lines: faint and compact — clearly secondary. */
+const TOOL_RESULT_STYLE: CSS = {
+  marginBottom: 2,
+  padding: "2px 12px",
+  background: COLORS.GRAY_LLL,
+  fontSize: "0.8em",
+  color: COLORS.GRAY_M,
+  fontFamily: "monospace",
+};
+
+/**
+ * Try to find and parse a JSON object from a string, even if there's
+ * a prefix like "**run_cell** (cell #3): ".
+ */
+function extractJson(s: string): any | undefined {
+  const idx = s.indexOf("{");
+  if (idx < 0) return undefined;
+  try {
+    return JSON.parse(s.slice(idx));
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * Summarize a JSON tool result into a readable phrase.
+ */
+function summarizeJson(tool: string, data: any): string {
+  switch (tool) {
+    case "cell_count":
+      return `${data.cell_count} cells`;
+    case "get_cell":
+    case "get_cells":
+      return "fetched cell data";
+    case "set_cell":
+      return data.status === "updated"
+        ? `set cell #${data.index}`
+        : `set_cell: ${data.error ?? data.status}`;
+    case "edit_cell":
+      if (data.status === "updated")
+        return `edited cell #${data.index} (${data.applied} applied)`;
+      if (data.status === "no_changes")
+        return `edit_cell #${data.index}: no match`;
+      return `edit_cell: ${data.error ?? data.status}`;
+    case "insert_cells":
+      if (data.status === "inserted")
+        return `inserted ${data.cells?.length ?? 0} cell(s)`;
+      return `insert_cells: ${data.error ?? data.status}`;
+    case "run_cell": {
+      if (data.status === "completed") {
+        const out = data.output?.trim();
+        if (!out) return `ran cell #${data.index}`;
+        const short = out.length > 60 ? out.slice(0, 60) + "..." : out;
+        return `ran cell #${data.index} \u2192 ${short}`;
+      }
+      if (data.status === "timeout")
+        return `ran cell #${data.index} (timed out)`;
+      if (data.status === "pending_confirmation")
+        return `cell #${data.index ?? "?"} queued`;
+      return `run_cell: ${data.error ?? data.status}`;
+    }
+    default:
+      return `${tool}: ${data.error ?? data.status ?? "done"}`;
+  }
+}
+
+/**
+ * Strip fenced code blocks (```...```) and replace with a short
+ * inline code preview of the first meaningful line.
+ */
+function defenceContent(s: string): string {
+  return s
+    .replace(/```\w*\n([\s\S]*?)```/g, (_match, code: string) => {
+      const firstLine = code.trim().split("\n")[0] ?? "";
+      const preview =
+        firstLine.length > 40 ? firstLine.slice(0, 40) + "..." : firstLine;
+      return preview ? `\`${preview}\`` : "";
+    })
+    .replace(/\n{2,}/g, " ")
+    .trim();
+}
+
+/**
+ * Parse a single tool-result entry into a readable JSX node.
+ */
+function summarizeToolEntry(raw: string): React.ReactElement | string {
+  // Extract tool name — handles **bold** with optional parenthetical
+  const match = raw.match(
+    /^\*{0,2}(\w+)\*{0,2}(?:\s*\([^)]*\))?\s*:\s*([\s\S]*)/,
+  );
+  if (!match) {
+    const short = raw.length > 80 ? raw.slice(0, 80) + "..." : raw;
+    return short;
+  }
+
+  const tool = match[1];
+  const rest = match[2].trim();
+
+  // Try JSON parse for structured summaries
+  const data = extractJson(rest);
+  if (data) return summarizeJson(tool, data);
+
+  // Plain text: strip fenced code blocks → inline code previews
+  const cleaned = defenceContent(rest);
+  if (cleaned.length > 120) {
+    const lines = rest.split("\n").length;
+    return `${tool}: ${lines} lines`;
+  }
+  return `${tool}: ${cleaned}`;
+}
+
+/**
+ * Convert raw tool-result content into readable summary elements.
+ */
+function formatToolResultForDisplay(content: string): React.ReactElement {
+  const entries = content
+    .split("\n\n")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const parts = entries.map(summarizeToolEntry);
+  if (parts.length <= 1) {
+    return <div>{parts[0] || "Done."}</div>;
+  }
+  return (
+    <div>
+      {parts.map((p, i) => (
+        <div key={i}>{p}</div>
+      ))}
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ */
 /*  Component                                                          */
@@ -65,6 +213,8 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
   const jupyterActions: JupyterActions = (actions as any).jupyter_actions;
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState("");
+  const [inputKey, setInputKey] = useState(0);
+  const inputLockedRef = useRef(false);
   const llmStreamRef = useRef<any>(null);
   const lastSubmittedRef = useRef("");
 
@@ -72,14 +222,20 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
   const notebookContextRef = useRef<NotebookContext | null>(null);
   const [editorContextLabel, setEditorContextLabel] = useState("");
 
-  // Pending cell runs awaiting user confirmation
-  const [pendingRuns, setPendingRuns] = useState<PendingRun[]>([]);
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
 
   // ---- Shared session management ----
   const session = useAgentSession({
     chatSyncdb,
     eventName: "notebook-agent",
     project_id,
+  });
+
+  const autoNameSession = useAutoNameSession({
+    session,
+    model,
+    project_id,
+    tag: TAG,
   });
 
   // ---- Context capture (called on input focus) ----
@@ -149,51 +305,9 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
     [model, project_id, session.cancelRef, session.setMessages],
   );
 
-  // ---- Confirm/dismiss pending cell runs ----
-  const handleConfirmRun = useCallback(
-    async (run: PendingRun) => {
-      setPendingRuns((prev) => prev.filter((r) => r.cellId !== run.cellId));
-      try {
-        const result = await runCell(jupyterActions, run.cellId, run.cellIndex);
-        const activeSessionId = session.sessionId;
-        if (activeSessionId) {
-          session.writeMessage({
-            date: new Date().toISOString(),
-            sender: "system",
-            content: `**run_cell** (cell #${run.cellIndex}): ${result}`,
-            msg_event: "tool_result",
-            session_id: activeSessionId,
-          });
-        }
-      } catch (err: any) {
-        session.setError(
-          `Failed to run cell #${run.cellIndex}: ${err.message ?? err}`,
-        );
-      }
-    },
-    [jupyterActions, session.sessionId, session.writeMessage, session.setError],
-  );
-
-  const handleDismissRun = useCallback(
-    (run: PendingRun) => {
-      setPendingRuns((prev) => prev.filter((r) => r.cellId !== run.cellId));
-      const activeSessionId = session.sessionId;
-      if (activeSessionId) {
-        session.writeMessage({
-          date: new Date().toISOString(),
-          sender: "system",
-          content: `**run_cell** (cell #${run.cellIndex}): User declined to run this cell.`,
-          msg_event: "tool_result",
-          session_id: activeSessionId,
-        });
-      }
-    },
-    [session.sessionId, session.writeMessage],
-  );
-
   // ---- Submit handler with tool-calling loop ----
-  const handleSubmit = useCallback(async () => {
-    const prompt = input.trim();
+  const handleSubmit = useCallback(async (directInput?: string) => {
+    const prompt = (directInput ?? input).trim();
     if (!prompt || session.generating) return;
 
     session.setError("");
@@ -219,7 +333,9 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
     });
 
     lastSubmittedRef.current = prompt;
+    inputLockedRef.current = true;
     setInput("");
+    setInputKey((k) => k + 1);
     session.setGenerating(true);
 
     try {
@@ -270,17 +386,13 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
         const toolCalls = parseToolBlocks(assistantText);
         if (toolCalls.length === 0) break;
 
-        // Run batch with live index refresh
-        const { results, pendingRuns: newPendingRuns } = await runToolBatch(
+        // Run batch with live index refresh + scroll to affected cells
+        const results = await runToolBatch(
           toolCalls,
           jupyterActions,
           ctx.language,
+          actions as JupyterEditorActions,
         );
-
-        // Add any new pending runs
-        if (newPendingRuns.length > 0) {
-          setPendingRuns((prev) => [...prev, ...newPendingRuns]);
-        }
 
         const toolResultContent = results.join("\n\n");
         session.writeMessage({
@@ -302,6 +414,7 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
     } catch (err: any) {
       session.setError(err.message ?? `${err}`);
     } finally {
+      inputLockedRef.current = false;
       session.setGenerating(false);
       llmStreamRef.current = null;
     }
@@ -328,21 +441,36 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
       if (msg.sender === "user") {
         return msg.content;
       }
-      return <StaticMarkdown value={msg.content} />;
+      // Strip ```tool JSON blocks from assistant messages — they are
+      // machine-readable tool invocations, not meant for the user.
+      let content = msg.content;
+      if (msg.sender === "assistant") {
+        content = content.replace(/```tool\n[\s\S]*?```/g, "").trim();
+      }
+      // Tool results: show a compact summary of what happened.
+      if (msg.event === "tool_result") {
+        return formatToolResultForDisplay(content);
+      }
+      if (!content) return null;
+      return (
+        <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+          <StaticMarkdown value={content} />
+        </FileContext.Provider>
+      );
     },
     [],
   );
 
-  // ---- Key handler for shift+enter ----
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === "Enter" && (e.shiftKey || e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        handleSubmit();
-      }
-    },
-    [handleSubmit],
-  );
+  // ---- Custom message styling ----
+  const messageStyle = useCallback((msg: DisplayMessage) => {
+    if (msg.sender === "user") return NB_USER_MSG_STYLE;
+    if (msg.sender === "system") {
+      if (msg.event === "error") return ERROR_MSG_STYLE;
+      if (msg.event === "tool_result") return TOOL_RESULT_STYLE;
+      return SYSTEM_MSG_STYLE;
+    }
+    return ASSISTANT_MSG_STYLE;
+  }, []);
 
   // ---- Render ----
   return (
@@ -354,11 +482,16 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
         project_id={project_id}
       />
 
-      <AgentSessionBar session={session} />
+      <AgentSessionBar
+        session={session}
+        onAutoName={autoNameSession}
+        onRename={() => setRenameModalOpen(true)}
+      />
 
       <AgentMessages
         session={session}
         renderMessage={renderMessage}
+        messageStyle={messageStyle}
         emptyText="Ask questions about your notebook, request changes, or ask the agent to run cells. (Shift+Enter to send)"
       />
 
@@ -366,45 +499,6 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
         error={session.error}
         onClose={() => session.setError("")}
       />
-
-      {/* Pending runs bar */}
-      {pendingRuns.length > 0 && (
-        <div
-          style={{
-            flex: "0 0 auto",
-            padding: "4px 12px",
-            background: COLORS.ANTD_BG_BLUE_L,
-            borderTop: `1px solid ${COLORS.BLUE_LLL}`,
-            fontSize: "0.85em",
-          }}
-        >
-          {pendingRuns.map((run) => (
-            <div
-              key={run.cellId}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                padding: "2px 0",
-              }}
-            >
-              <Icon name="play" />
-              <span>Run cell #{run.cellIndex}?</span>
-              <span style={{ flex: 1 }} />
-              <Button
-                size="small"
-                type="primary"
-                onClick={() => handleConfirmRun(run)}
-              >
-                Run
-              </Button>
-              <Button size="small" onClick={() => handleDismissRun(run)}>
-                Dismiss
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
 
       {/* Context indicator */}
       {editorContextLabel && (
@@ -424,21 +518,49 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
 
       <AgentInputArea
         session={session}
-        onSubmit={handleSubmit}
-        onCancel={() => setInput(lastSubmittedRef.current)}
+        onSubmit={() => handleSubmit()}
+        onCancel={() => {
+          inputLockedRef.current = false;
+          setInput(lastSubmittedRef.current);
+          setInputKey((k) => k + 1);
+        }}
         sendDisabled={!input.trim()}
+        showDone
       >
-        <TextArea
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          onKeyDown={handleKeyDown}
+        <div
           onFocus={updateContext}
-          placeholder="Ask about your notebook... (Shift+Enter to send)"
-          autoSize={{ minRows: 1, maxRows: 6 }}
-          disabled={session.generating}
-          style={{ flex: 1 }}
-        />
+          onBlur={(e) => {
+            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+              setEditorContextLabel("");
+            }
+          }}
+        >
+          <MarkdownInput
+            key={inputKey}
+            value={input}
+            onChange={(v) => {
+              if (!inputLockedRef.current) setInput(v);
+            }}
+            onShiftEnter={(value) => {
+              handleSubmit(value);
+            }}
+            placeholder="Ask about your notebook..."
+            height="auto"
+            editBarStyle={{ overflow: "auto" }}
+            style={{ minHeight: "72px", maxHeight: "200px", overflow: "auto" }}
+          />
+        </div>
       </AgentInputArea>
+
+      <RenameModal
+        open={renameModalOpen}
+        currentName={session.sessionNames.get(session.sessionId) ?? ""}
+        onSave={(name) => {
+          session.writeSessionName(name);
+          setRenameModalOpen(false);
+        }}
+        onCancel={() => setRenameModalOpen(false)}
+      />
     </div>
   );
 }

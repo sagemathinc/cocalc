@@ -22,13 +22,28 @@ import { hidden_meta_file } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { EditorComponentProps, EditorDescription } from "../frame-tree/types";
 
+// File extensions where the coding agent is NOT useful — non-text
+// editors that don't support set_value or are not code-like.
+const NO_AGENT_EXTENSIONS = new Set([
+  "board",
+  "slides",
+  "pdf",
+  "x11",
+  "term",
+  "course",
+  "time-travel",
+]);
+
 // Agent lookup — maps file path to the right embedded agent component.
 // Both agents share the same { chatSyncdb } interface.  To add a new
 // agent type, add an entry here and create the component.
+// Returns null for file types that don't support the coding agent.
 function getEmbeddedAgent(
   path: string,
-): ComponentType<{ chatSyncdb: any }> {
+): ComponentType<{ chatSyncdb: any }> | null {
   if (path.endsWith(".ipynb")) return NotebookAgent;
+  const ext = path.split(".").pop() ?? "";
+  if (NO_AGENT_EXTENSIONS.has(ext)) return null;
   return CodingAgentEmbedded;
 }
 
@@ -104,47 +119,52 @@ function Chat({ font_size, desc }: EditorComponentProps) {
     return null;
   }
 
+  // If no agent is available for this file type, force chat-only mode.
+  const effectiveMode = EmbeddedAgent == null ? "chat" : mode;
+
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
-      {/* Tab selector */}
-      <div
-        style={{
-          padding: "6px 8px",
-          borderBottom: `1px solid ${COLORS.GRAY_L}`,
-          background: COLORS.GRAY_LLL,
-        }}
-      >
-        <Segmented
-          value={mode}
-          onChange={(v) => setMode(v as ChatMode)}
-          options={[
-            {
-              value: "chat",
-              label: (
-                <span>
-                  <Icon name="comment" /> Chat
-                </span>
-              ),
-            },
-            {
-              value: "assistant",
-              label: (
-                <span>
-                  <AIAvatar size={14} /> Assistant
-                </span>
-              ),
-            },
-          ]}
-          block
-          size="small"
-        />
-      </div>
+      {/* Tab selector — only show when an agent is available */}
+      {EmbeddedAgent != null && (
+        <div
+          style={{
+            padding: "6px 8px",
+            borderBottom: `1px solid ${COLORS.GRAY_L}`,
+            background: COLORS.GRAY_LLL,
+          }}
+        >
+          <Segmented
+            value={effectiveMode}
+            onChange={(v) => setMode(v as ChatMode)}
+            options={[
+              {
+                value: "chat",
+                label: (
+                  <span>
+                    <Icon name="comment" /> Chat
+                  </span>
+                ),
+              },
+              {
+                value: "assistant",
+                label: (
+                  <span>
+                    <AIAvatar size={14} /> Assistant
+                  </span>
+                ),
+              },
+            ]}
+            block
+            size="small"
+          />
+        </div>
+      )}
 
       {/* Content area — position:relative + absolute child guarantees
            a definite height for the embedded agent, avoiding flex-height
            resolution issues that prevent overflowY from working. */}
       <div style={{ flex: 1, position: "relative" }}>
-        {mode === "chat" ? (
+        {effectiveMode === "chat" ? (
           <SideChat
             actions={sideChatActions}
             project_id={project_id}
@@ -165,7 +185,9 @@ function Chat({ font_size, desc }: EditorComponentProps) {
           </div>
         ) : (
           <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
-            <EmbeddedAgent chatSyncdb={sideChatActions.syncdb} />
+            {EmbeddedAgent && (
+              <EmbeddedAgent chatSyncdb={sideChatActions.syncdb} />
+            )}
           </div>
         )}
       </div>

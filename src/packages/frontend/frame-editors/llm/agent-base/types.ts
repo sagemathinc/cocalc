@@ -128,7 +128,7 @@ export const ERROR_MSG_STYLE: CSS = {
   padding: "8px 12px",
   background: COLORS.ANTD_BG_RED_L,
   border: `1px solid ${COLORS.ANTD_BG_RED_M}`,
-  borderRadius: 8,
+  borderRadius: 0,
   fontSize: "0.9em",
 } as const;
 

@@ -295,7 +295,7 @@ export function parseToolBlocks(text: string): ToolCall[] {
 /*  Index resolution                                                   */
 /* ------------------------------------------------------------------ */
 
-export type PendingRun = { cellIndex: number /* 1-based */; cellId: string };
+// PendingRun removed — cells now run immediately without confirmation.
 
 /**
  * Convert a 1-based index to 0-based with bounds check.
@@ -326,29 +326,70 @@ const MUTATING_TOOLS = new Set([
 ]);
 
 /**
+ * Scroll the notebook to show a specific cell by setting it as the
+ * current cell in the most recent notebook frame.
+ */
+function scrollToCell(
+  editorActions: JupyterEditorActions | undefined,
+  cellId: string,
+): void {
+  if (!editorActions) return;
+  try {
+    const frameId = (
+      editorActions as any
+    )._get_most_recent_active_frame_id_of_type("jupyter_cell_notebook");
+    if (!frameId) return;
+    const frameActions = editorActions.get_frame_actions(frameId);
+    if (frameActions?.set_cur_id) {
+      frameActions.set_cur_id(cellId);
+    }
+  } catch {
+    // Best-effort — scrolling is not critical
+  }
+}
+
+/**
  * Run a batch of tool calls, re-reading cell_list after any mutation.
- * Returns { results, pendingRuns }.
+ * Scrolls the notebook to show the affected cell after each mutation.
  */
 export async function runToolBatch(
   toolCalls: ToolCall[],
   jupyterActions: JupyterActions,
   language: string,
-): Promise<{ results: string[]; pendingRuns: PendingRun[] }> {
+  editorActions?: JupyterEditorActions,
+): Promise<string[]> {
   const store = jupyterActions.store;
   let cellList: string[] = store.get("cell_list")?.toJS() ?? [];
   const results: string[] = [];
-  const pendingRuns: PendingRun[] = [];
 
   for (const tc of toolCalls) {
+    let affectedCellId: string | undefined;
     try {
       const result = await runSingleTool(
         tc,
         jupyterActions,
         cellList,
-        pendingRuns,
         language,
       );
       results.push(`**${tc.name}**: ${result}`);
+
+      // Extract the affected cell ID directly from the tool result.
+      // Each mutating tool returns JSON with an `id` field (or `cells`
+      // array for insert_cells).  This is more reliable than
+      // re-resolving indices, which can shift after insertions.
+      if (MUTATING_TOOLS.has(tc.name)) {
+        try {
+          const parsed = JSON.parse(result);
+          if (parsed.id) {
+            affectedCellId = parsed.id;
+          } else if (parsed.cells?.length > 0) {
+            // insert_cells — scroll to the last inserted cell
+            affectedCellId = parsed.cells[parsed.cells.length - 1].id;
+          }
+        } catch {
+          // Non-JSON result — skip scroll
+        }
+      }
     } catch (err: any) {
       results.push(`**${tc.name}**: Error \u2014 ${err.message ?? err}`);
     }
@@ -357,16 +398,20 @@ export async function runToolBatch(
     if (MUTATING_TOOLS.has(tc.name)) {
       cellList = store.get("cell_list")?.toJS() ?? [];
     }
+
+    // Scroll to the affected cell
+    if (affectedCellId) {
+      scrollToCell(editorActions, affectedCellId);
+    }
   }
 
-  return { results, pendingRuns };
+  return results;
 }
 
 async function runSingleTool(
   toolCall: ToolCall,
   jupyterActions: JupyterActions,
   cellList: string[],
-  pendingRuns: PendingRun[],
   language: string,
 ): Promise<string> {
   const store = jupyterActions.store;
@@ -501,14 +546,7 @@ async function runSingleTool(
     case "run_cell": {
       const res = resolveIndex(toolCall.args.index, cellList);
       if ("error" in res) return JSON.stringify(res);
-      pendingRuns.push({
-        cellIndex: toolCall.args.index,
-        cellId: res.cellId,
-      });
-      return JSON.stringify({
-        status: "pending_confirmation",
-        message: `Cell #${toolCall.args.index} queued. The user will confirm before running.`,
-      });
+      return await runCell(jupyterActions, res.cellId, toolCall.args.index);
     }
 
     default:
@@ -517,40 +555,56 @@ async function runSingleTool(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Cell run (after user confirms)                                     */
+/*  Cell run                                                           */
 /* ------------------------------------------------------------------ */
 
 /**
  * Run a cell and poll until completion or timeout.
  * Returns the output as a string.
+ *
+ * Cell state lifecycle: undefined/"done" → "start" → "busy" → "done".
+ * `run_cell` sets state to "start" synchronously.  We poll until the
+ * cell reaches state "done" (the default for cells that aren't running)
+ * AND has an `end` timestamp ≥ our invocation time — proving *this*
+ * execution completed, not a stale previous one.
  */
 export async function runCell(
   jupyterActions: JupyterActions,
   cellId: string,
   cellIndex: number,
 ): Promise<string> {
+  const invokedAt = Date.now();
   jupyterActions.run_cell(cellId, true);
 
   const store = jupyterActions.store;
-  const deadline = Date.now() + CELL_RUN_TIMEOUT_MS;
+  const deadline = invokedAt + CELL_RUN_TIMEOUT_MS;
 
-  await new Promise<void>((resolve) => {
+  const timedOut = await new Promise<boolean>((resolve) => {
     const check = () => {
+      if (Date.now() >= deadline) {
+        resolve(true);
+        return;
+      }
       const cell = store.getIn(["cells", cellId]) as any;
       const state = cell?.get("state");
-      if (!state || state === "idle" || Date.now() >= deadline) {
-        resolve();
+      const end = cell?.get("end");
+      // Cell is finished when state is "done" (or absent, which defaults
+      // to "done") AND has an end timestamp from *this* execution.
+      if ((!state || state === "done") && end != null && end >= invokedAt) {
+        resolve(false);
         return;
       }
       setTimeout(check, CELL_RUN_POLL_MS);
     };
+    // First check after a short delay — run_cell sets "start" synchronously
+    // but we need to give the kernel a moment to begin.
     setTimeout(check, CELL_RUN_POLL_MS);
   });
 
   const cell = store.getIn(["cells", cellId]) as any;
   const output = cell ? getCellOutput(cell) : "";
   return JSON.stringify({
-    status: Date.now() >= deadline ? "timeout" : "completed",
+    status: timedOut ? "timeout" : "completed",
     index: cellIndex,
     id: cellId,
     output: truncate(output),
@@ -681,7 +735,7 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
 
   lines.push("### run_cell");
   lines.push(
-    "Request running a cell. The user will be asked to confirm before it runs.",
+    "Run a cell and return its output. The cell is executed immediately.",
   );
   lines.push("```tool");
   lines.push('{"name": "run_cell", "args": {"index": 4}}');
@@ -706,7 +760,7 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
   lines.push("## Running Rules");
   lines.push("");
   lines.push(
-    "- To run a cell, use `run_cell`. The user will confirm before it runs.",
+    "- To run a cell, use `run_cell`. It executes immediately and returns the output.",
   );
   lines.push(
     "- After insert_cells, subsequent tool calls in the same response will see updated cell indices.",

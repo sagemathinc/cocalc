@@ -22,7 +22,7 @@ export function AgentError({ error, onClose }: AgentErrorProps) {
       message={error}
       closable
       onClose={onClose}
-      style={{ margin: "4px 12px" }}
+      style={{ margin: "4px 12px", borderRadius: 0 }}
     />
   );
 }
