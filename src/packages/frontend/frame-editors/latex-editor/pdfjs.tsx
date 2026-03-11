@@ -40,7 +40,7 @@ import { COLORS } from "@cocalc/util/theme";
 import { Actions, Actions as LatexEditorActions } from "./actions";
 import { dblclick } from "./mouse-click";
 import { SyncHighlight } from "./pdfjs-annotation";
-import { getDocument, url_to_pdf } from "./pdfjs-doc-cache";
+import { forgetDocument, getDocument, url_to_pdf } from "./pdfjs-doc-cache";
 import Page, { BG_COL, PAGE_GAP } from "./pdfjs-page";
 
 interface PDFJSProps {
@@ -112,6 +112,7 @@ export function PDFJS({
   const [cursor, setCursor] = useState<"grabbing" | "grab">("grab");
 
   const divRef = useRef<HTMLDivElement>(null);
+  const loadRequestRef = useRef(0);
 
   // Configure pinch-to-zoom with appropriate settings
   const pinchToZoomConfig = {
@@ -136,7 +137,11 @@ export function PDFJS({
   usePinchToZoom(pinchToZoomConfig);
 
   useEffect(() => {
-    loadDoc(reload ?? 0);
+    const requestId = loadRequestRef.current + 1;
+    loadRequestRef.current = requestId;
+    // Each reload gets its own request id so a slow/stale completion from an
+    // older load can't overwrite state from the current PDF reload.
+    void loadDoc(reload ?? 0, false, requestId);
   }, [reload]);
 
   // Cleanup timeouts on unmount
@@ -299,7 +304,15 @@ export function PDFJS({
     return <Loading theme="medium" />;
   }
 
-  async function loadDoc(reload: number, isRetry = false): Promise<void> {
+  async function loadDoc(
+    reload: number,
+    isRetry = false,
+    requestId: number = loadRequestRef.current,
+  ): Promise<void> {
+    if (!isRetry && isMounted.current && loadRequestRef.current === requestId) {
+      setMissing(false);
+    }
+
     // Race the PDF fetch against a 30-second timeout so we never hang in
     // "Loading..." forever (e.g. if the project container is unresponsive).
     let timeoutHandle: ReturnType<typeof setTimeout> | undefined;
@@ -309,13 +322,11 @@ export function PDFJS({
         30000,
       );
     });
+    const url = url_to_pdf(project_id, path, reload);
     let doc: PDFDocumentProxy;
     try {
-      doc = await Promise.race([
-        getDocument(url_to_pdf(project_id, path, reload)),
-        timeoutPromise,
-      ]);
-      if (!isMounted.current) return;
+      doc = await Promise.race([getDocument(url), timeoutPromise]);
+      if (!isMounted.current || loadRequestRef.current !== requestId) return;
       setMissing(false);
       const v: Promise<PDFPageProxy>[] = [];
       for (let n = 1; n <= doc.numPages; n++) {
@@ -324,7 +335,7 @@ export function PDFJS({
         v.push(page);
       }
       const pages: PDFPageProxy[] = await Promise.all(v);
-      if (!isMounted.current) return;
+      if (!isMounted.current || loadRequestRef.current !== requestId) return;
       setDoc(doc);
       setLoaded(true);
       setPages(pages);
@@ -384,14 +395,17 @@ export function PDFJS({
     } catch (err) {
       const errStr = err?.toString() ?? "";
       console.log(`WARNING: error loading PDF -- ${errStr}`);
-      if (!isMounted.current) return;
+      // Drop both cached and in-flight state before retrying; otherwise a timed
+      // out startup load can keep being reused for the whole SPA session.
+      forgetDocument(url);
+      if (!isMounted.current || loadRequestRef.current !== requestId) return;
       // pdf.js can throw transient parse errors when the file is being
       // rewritten by a build process.  Retry once after a short delay
       // before giving up and showing the "missing" state.
       if (!isRetry) {
         await delay(3000);
-        if (isMounted.current) {
-          await loadDoc(reload, true);
+        if (isMounted.current && loadRequestRef.current === requestId) {
+          await loadDoc(reload, true, requestId);
         }
         return;
       }
