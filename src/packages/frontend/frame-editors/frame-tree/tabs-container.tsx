@@ -109,11 +109,14 @@ function DraggableTabLabel({
   }
   const gapWidth = showGap ? sourceTabWidthRef.current || 60 : 0;
 
-  // Combined ref for both draggable and droppable
+  // Drag ref stays on the label span; drop ref expands to the full
+  // .ant-tabs-tab wrapper so the entire tab pill is a valid drop target
+  // (not just the inner label text).
   const combinedRef = useCallback(
     (el: HTMLElement | null) => {
       setDragRef(el);
-      setDropRef(el);
+      const tabEl = el?.closest(".ant-tabs-tab") as HTMLElement | null;
+      setDropRef(tabEl ?? el);
     },
     [setDragRef, setDropRef],
   );
