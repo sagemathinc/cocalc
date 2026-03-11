@@ -175,10 +175,16 @@ export function formatSearchReplaceAsDiff(text: string): string {
 
 /**
  * Extract the first fenced code block (fallback when no search/replace blocks).
+ * Skips ```exec blocks — those are shell commands, not file content.
  */
 export function extractCodeBlock(text: string): string | undefined {
-  const match = text.match(/```[\w]*\n([\s\S]*?)```/);
-  return match?.[1];
+  const regex = /```(\w*)\n([\s\S]*?)```/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    if (match[1] === "exec") continue;
+    return match[2];
+  }
+  return undefined;
 }
 
 /* ------------------------------------------------------------------ */

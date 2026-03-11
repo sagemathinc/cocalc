@@ -254,6 +254,48 @@ describe("extractCodeBlock", () => {
   it("returns undefined when no code block", () => {
     expect(extractCodeBlock("no code here")).toBeUndefined();
   });
+
+  it("skips exec blocks and returns the next code block", () => {
+    const text = `Here's how to compile:
+\`\`\`exec
+gcc hello.c -o ./hello && ./hello
+\`\`\`
+
+Here's the code:
+\`\`\`c
+#include <stdio.h>
+int main() { printf("hello\\n"); return 0; }
+\`\`\``;
+    const result = extractCodeBlock(text);
+    expect(result).toContain("#include <stdio.h>");
+    expect(result).not.toContain("gcc");
+  });
+
+  it("returns undefined when only exec blocks exist", () => {
+    const text = "Run this:\n```exec\nmake clean && make\n```";
+    expect(extractCodeBlock(text)).toBeUndefined();
+  });
+
+  it("extracts block with no language tag", () => {
+    const text = "```\nsome code\n```";
+    expect(extractCodeBlock(text)).toBe("some code\n");
+  });
+
+  it("extracts first non-exec block among multiple", () => {
+    const text = `\`\`\`exec
+cmd1
+\`\`\`
+\`\`\`exec
+cmd2
+\`\`\`
+\`\`\`python
+print("hello")
+\`\`\`
+\`\`\`js
+console.log("hi")
+\`\`\``;
+    expect(extractCodeBlock(text)).toBe('print("hello")\n');
+  });
 });
 
 /* ------------------------------------------------------------------ */

@@ -15,7 +15,7 @@ management.  This file contains only coding-agent-specific logic:
 - <<<SHOW block auto-fulfillment
 */
 
-import { Button, Popconfirm, Tooltip } from "antd";
+import { Button, Tooltip } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -668,7 +668,8 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         // Strip <<<SHOW blocks
         renderedContent = renderedContent.replace(SHOW_BLOCK_REGEX, "").trim();
         // Format edit blocks as diffs
-        if (parseEditBlocks(renderedContent).length > 0 && baseSnapshot) {
+        // Note: baseSnapshot can be "" for empty files — that's valid.
+        if (parseEditBlocks(renderedContent).length > 0 && baseSnapshot != null) {
           renderedContent = formatEditBlocksAsDiff(
             renderedContent,
             baseSnapshot,
@@ -806,22 +807,13 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
               >
                 {cmd.command}
               </code>
-              <Popconfirm
-                title={
-                  <>
-                    Run this command?
-                    <br />
-                    <code>{cmd.command}</code>
-                  </>
-                }
-                onConfirm={() => handleExecCommand(cmd.command)}
-                okText="Run"
-                cancelText="Cancel"
+              <Button
+                size="small"
+                type="primary"
+                onClick={() => handleExecCommand(cmd.command)}
               >
-                <Button size="small" type="primary">
-                  <Icon name="play" /> Run
-                </Button>
-              </Popconfirm>
+                <Icon name="play" /> Run
+              </Button>
               <Button
                 size="small"
                 onClick={() =>

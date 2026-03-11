@@ -123,8 +123,9 @@ export const SYSTEM_MSG_STYLE: CSS = {
   marginBottom: 8,
   padding: "8px 12px",
   background: COLORS.BS_GREEN_LL,
-  borderRadius: 8,
   fontSize: "0.9em",
+  maxHeight: "50vh",
+  overflowY: "auto",
 } as const;
 
 export const ERROR_MSG_STYLE: CSS = {
