@@ -127,8 +127,8 @@ export function forgetDocument(url: string): void {
   const entry = inflight[url];
   if (entry != null) {
     delete inflight[url];
-    // This invalidates a load that is still pending inside pdf.js itself, which
-    // is what lets a retry start from scratch after startup or timeout issues.
-    void entry.loadingTask.destroy().catch(() => undefined);
+    // Dropping the inflight entry is enough to let the next caller start a
+    // fresh load. We intentionally do not destroy the shared pdf.js loading
+    // task here, since other viewers may still be awaiting the same URL.
   }
 }

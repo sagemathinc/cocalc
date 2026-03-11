@@ -70,28 +70,29 @@ describe("pdfjs-doc-cache", () => {
     const firstTask = deferred<any>();
     const secondTask = deferred<any>();
     const firstLoadingTask = {
-      destroy: jest.fn().mockImplementation(async () => {
-        firstTask.reject(new Error("destroyed"));
-      }),
+      destroy: jest.fn().mockResolvedValue(undefined),
       promise: firstTask.promise,
     };
     const secondLoadingTask = {
       destroy: jest.fn().mockResolvedValue(undefined),
       promise: secondTask.promise,
     };
+    const staleDoc = { numPages: 4 };
     const freshDoc = { numPages: 5 };
 
     pdfjsGetDocument
       .mockReturnValueOnce(firstLoadingTask)
       .mockReturnValueOnce(secondLoadingTask);
 
-    const stale = getDocument(url).catch((err) => err);
+    const stale = getDocument(url);
     forgetDocument(url);
     secondTask.resolve(freshDoc);
+    firstTask.resolve(staleDoc);
 
     await expect(getDocument(url)).resolves.toBe(freshDoc);
-    await expect(stale).resolves.toBeInstanceOf(Error);
-    expect(firstLoadingTask.destroy).toHaveBeenCalledTimes(1);
+    await expect(stale).resolves.toBe(staleDoc);
+    await expect(getDocument(url)).resolves.toBe(freshDoc);
+    expect(firstLoadingTask.destroy).not.toHaveBeenCalled();
     expect(pdfjsGetDocument).toHaveBeenCalledTimes(2);
 
     forgetDocument(url);
