@@ -126,8 +126,42 @@
   .ant-menu-item-divider
     margin: 4px 0 !important
 
+// DnD: drag handle in frame editor title bar
+.cc-frame-drag-handle
+  cursor: grab
+  padding: 0 10px
+  color: colors.$COL_GRAY
+  display: flex
+  align-items: center
+  border-right: 1px solid colors.$COL_GRAY_L
+  margin-right: 4px
+  transition: background 0.15s, color 0.15s
+
+  &:hover
+    background: colors.$COL_BLUE_LLLL
+    color: colors.$COL_BLUE_D
+
+// DnD: blue dashed border on the frame when hovering its drag handle
+.cc-frame-leaf-container:has(.cc-frame-drag-handle:hover)
+  outline: 2px dashed colors.$COL_BLUE_L
+  outline-offset: -2px
+
+// DnD: visual feedback when dragging a frame in the frame editor
+body.cc-frame-dragging
+  cursor: grabbing !important
+  user-select: none
+
+  *
+    cursor: grabbing !important
+
 // DnD: highlight all folder drop targets when a file is being dragged
 body.cc-file-dragging
+  cursor: grabbing !important
+  user-select: none
+
+  *
+    cursor: grabbing !important
+
   [data-folder-drop-path]
     background-color: rgba(colors.$COL_RUN, 0.06) !important
     transition: background-color 0.15s

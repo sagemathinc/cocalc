@@ -20,10 +20,15 @@ export type FrameDirection = "row" | "col";
 export interface FrameTree {
   direction?: FrameDirection;
   type: string;
+  // Legacy binary fields (migrated on load)
   first?: FrameTree;
   second?: FrameTree;
-  font_size?: number;
   pos?: number;
+  // N-ary fields
+  children?: FrameTree[];
+  sizes?: number[];
+  activeTab?: number; // only for type: "tabs"
+  font_size?: number;
 }
 
 // Someday!

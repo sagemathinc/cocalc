@@ -23,7 +23,6 @@ import type {
   DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
-  Modifier,
 } from "@dnd-kit/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -32,14 +31,19 @@ import {
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import {
+  MOUSE_SENSOR_OPTIONS,
+  TOUCH_SENSOR_OPTIONS,
+  DRAG_OVERLAY_MODIFIERS,
+  DragOverlayContent,
+  getEventCoords,
+} from "@cocalc/frontend/components/dnd";
 import {
   is_valid_uuid_string,
   path_split,
   plural,
   uuid,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 // ---------- Types ----------
 
@@ -129,131 +133,37 @@ export function findFolderDropPathAtPoint(x: number, y: number): string | null {
   return null;
 }
 
-// ---------- Overlay modifier (snap to pointer with small offset) ----------
-
-/**
- * Position the DragOverlay at the pointer (bottom-right of cursor)
- * instead of at the original element's origin.
- *
- * By default, DragOverlay renders at: elementOrigin + transform.
- * We want it at: pointerPosition + (12, 12).
- * Since pointerPosition = initialPointer + transform, we adjust:
- *   modifiedTransform = transform + (initialPointer - elementOrigin) + offset
- */
-const snapToPointerModifier: Modifier = ({
-  activatorEvent,
-  activeNodeRect,
-  transform,
-}) => {
-  if (!activatorEvent || !activeNodeRect) return transform;
-  // Extract pointer coordinates — works for both MouseEvent and TouchEvent
-  const coords = getEventCoords(activatorEvent);
-  if (!coords) return transform;
-  return {
-    ...transform,
-    x: transform.x + (coords.x - activeNodeRect.left) + 12,
-    y: transform.y + (coords.y - activeNodeRect.top) + 12,
-  };
-};
-
-/** Extract clientX/clientY from mouse, pointer, or touch events. */
-function getEventCoords(event: Event): { x: number; y: number } | null {
-  if ("clientX" in event && typeof (event as any).clientX === "number") {
-    return {
-      x: (event as MouseEvent).clientX,
-      y: (event as MouseEvent).clientY,
-    };
-  }
-  // TouchEvent: read from touches or changedTouches
-  const te = event as TouchEvent;
-  const touch = te.touches?.[0] ?? te.changedTouches?.[0];
-  if (touch) {
-    return { x: touch.clientX, y: touch.clientY };
-  }
-  return null;
-}
-
-/** Pre-allocated array so we don't create a new one every render. */
-const DRAG_OVERLAY_MODIFIERS: Modifier[] = [snapToPointerModifier];
-
 // ---------- Overlay ----------
 
-function FileDragOverlayContent({
-  data,
-  isCopy,
-  overFolder,
-  isInvalid,
-}: {
-  data: FileDragData;
-  isCopy: boolean;
-  overFolder: string | null;
-  isInvalid: boolean;
-}) {
+function FileDragOverlayContent({ data, isCopy, overFolder, isInvalid }) {
   const n = data.paths.length;
-
   if (isInvalid && overFolder != null) {
     const folderName = path_split(overFolder).tail || "Home";
     return (
-      <div
-        style={{
-          padding: "4px 10px",
-          background: `${COLORS.ANTD_RED}e0`,
-          color: COLORS.WHITE,
-          borderRadius: 4,
-          fontSize: "12px",
-          whiteSpace: "nowrap",
-          width: "max-content",
-          pointerEvents: "none",
-        }}
-      >
-        <Icon name="times-circle" style={{ marginRight: 6 }} />
-        Cannot move into {folderName}
-      </div>
+      <DragOverlayContent
+        icon="times-circle"
+        text={`Cannot move into ${folderName}`}
+        variant="invalid"
+      />
     );
   }
-
   const op = isCopy ? "Copy" : "Move";
   if (overFolder != null) {
-    // Hovering over a valid folder drop target
     const target = path_split(overFolder).tail || "Home";
     return (
-      <div
-        style={{
-          padding: "4px 10px",
-          background: `${COLORS.ANTD_LINK_BLUE}e0`,
-          color: COLORS.WHITE,
-          borderRadius: 4,
-          fontSize: "12px",
-          whiteSpace: "nowrap",
-          width: "max-content",
-          pointerEvents: "none",
-        }}
-      >
-        <Icon
-          name={isCopy ? "copy" : "arrow-right"}
-          style={{ marginRight: 6 }}
-        />
-        {op} {n} {plural(n, "file")} &rarr; {target}
-      </div>
+      <DragOverlayContent
+        icon={isCopy ? "copy" : "arrow-right"}
+        text={`${op} ${n} ${plural(n, "file")} → ${target}`}
+        variant="valid"
+      />
     );
   }
-  // Not over any folder — show neutral hint
   return (
-    <div
-      style={{
-        padding: "4px 10px",
-        background: `${COLORS.GRAY_D}d0`,
-        color: COLORS.WHITE,
-        borderRadius: 4,
-        fontSize: "12px",
-        whiteSpace: "nowrap",
-        width: "max-content",
-        pointerEvents: "none",
-      }}
-    >
-      <Icon name={isCopy ? "copy" : "arrows"} style={{ marginRight: 6 }} />
-      {op} {n} {plural(n, "file")} onto a folder
-    </div>
+    <DragOverlayContent
+      icon={isCopy ? "copy" : "arrows"}
+      text={`${op} ${n} ${plural(n, "file")} onto a folder`}
+      variant="neutral"
+    />
   );
 }
 
@@ -316,12 +226,8 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
   const forceCancelledRef = useRef(false);
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: { distance: 3, delay: 300, tolerance: 5 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 300, tolerance: 5 },
-    }),
+    useSensor(MouseSensor, MOUSE_SENSOR_OPTIONS),
+    useSensor(TouchSensor, TOUCH_SENSOR_OPTIONS),
   );
 
   // Track Shift key globally

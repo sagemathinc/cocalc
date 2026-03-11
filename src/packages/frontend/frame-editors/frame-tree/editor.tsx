@@ -25,6 +25,7 @@ import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { FILE_ACTIONS } from "@cocalc/frontend/project-file";
 import { is_different } from "@cocalc/util/misc";
 import { chat } from "../generic/chat";
+import { FrameDndProvider } from "./dnd/frame-dnd-provider";
 import FormatError from "./format-error";
 import { FrameTree } from "./frame-tree";
 import StatusBar from "./status-bar";
@@ -169,39 +170,41 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
       const editor_state = local.get("editor_state");
       return (
         <div className={"smc-vfill"}>
-          <FrameTree
-            editor_spec={editor_spec}
-            name={name}
-            actions={actions}
-            frame_tree={frame_tree}
-            editor_state={editor_state}
-            project_id={project_id}
-            path={path}
-            active_id={local.get("active_id")}
-            full_id={local.get("full_id")}
-            font_size={local.get("font_size")}
-            is_only={frame_tree.get("type") !== "node"}
-            cursors={cursors}
-            read_only={read_only}
-            is_public={is_public}
-            value={value}
-            reload={reload}
-            resize={resize}
-            misspelled_words={misspelled_words}
-            has_unsaved_changes={has_unsaved_changes}
-            has_uncommitted_changes={has_uncommitted_changes}
-            is_saving={is_saving}
-            editor_settings={editor_settings}
-            terminal={terminal}
-            settings={settings}
-            status={status}
-            complete={complete}
-            derived_file_types={derived_file_types}
-            available_features={available_features}
-            local_view_state={local_view_state}
-            is_visible={visible ?? true}
-            tab_is_visible={tab_is_visible}
-          />
+          <FrameDndProvider actions={actions}>
+            <FrameTree
+              editor_spec={editor_spec}
+              name={name}
+              actions={actions}
+              frame_tree={frame_tree}
+              editor_state={editor_state}
+              project_id={project_id}
+              path={path}
+              active_id={local.get("active_id")}
+              full_id={local.get("full_id")}
+              font_size={local.get("font_size")}
+              is_only={frame_tree.get("type") !== "node" && frame_tree.get("type") !== "tabs"}
+              cursors={cursors}
+              read_only={read_only}
+              is_public={is_public}
+              value={value}
+              reload={reload}
+              resize={resize}
+              misspelled_words={misspelled_words}
+              has_unsaved_changes={has_unsaved_changes}
+              has_uncommitted_changes={has_uncommitted_changes}
+              is_saving={is_saving}
+              editor_settings={editor_settings}
+              terminal={terminal}
+              settings={settings}
+              status={status}
+              complete={complete}
+              derived_file_types={derived_file_types}
+              available_features={available_features}
+              local_view_state={local_view_state}
+              is_visible={visible ?? true}
+              tab_is_visible={tab_is_visible}
+            />
+          </FrameDndProvider>
         </div>
       );
     }

@@ -190,6 +190,14 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
     if (cmRef.current == null) {
       return;
     }
+    // Save scroll/selection state on the CM instance itself before removing
+    // the DOM element.  When this CM is reused via _cm[id], the saved state
+    // is more reliable than props.editor_state, which may be stale due to
+    // React rendering before unmount effects run.
+    const state = get_state(cmRef.current);
+    if (state != null) {
+      (cmRef.current as any).__saved_state = state;
+    }
     // remove from DOM -- "Remove this from your tree to delete an editor instance."
     // NOTE: there is still potentially a reference to the cm in actions._cm[id];
     // that's how we can bring back this frame (with given id) very efficiently.
@@ -260,15 +268,32 @@ export const CodemirrorEditor: React.FC<Props> = React.memo((props: Props) => {
         node.parentNode.insertBefore(cm.getWrapperElement(), node.nextSibling);
         update_codemirror(options);
       }
+      // Restore scroll/selection state for reused CMs.
+      // Priority 1: __saved_state (set in cm_destroy before DOM removal).
+      // Priority 2: props.editor_state from the redux store (updated on
+      //   every scroll via throttled save_editor_state).
+      // __saved_state may be missing when the DOM element was already
+      // detached by React before the cleanup effect ran (e.g., tab
+      // switching), causing get_state() to see height=0 and return
+      // undefined.  The redux store state is at most ~150ms stale
+      // (throttle interval) which is acceptable for scroll position.
+      const savedState = (cm as any).__saved_state;
+      if (savedState) {
+        set_state(cm, savedState);
+        delete (cm as any).__saved_state;
+      } else if (props.editor_state != null && props.editor_state.size > 0) {
+        set_state(cm, props.editor_state.toJS() as any);
+      }
     } else {
       cmRef.current = CodeMirror.fromTextArea(node, options);
       // We explicitly re-add all the extraKeys due to weird precedence.
       cmRef.current.addKeyMap(options.extraKeys);
       init_new_codemirror();
-    }
-
-    if (props.editor_state != null) {
-      set_state(cmRef.current, props.editor_state.toJS() as any);
+      // Only restore saved state for NEW CM instances from props.
+      // Reused CMs get their state from __saved_state above.
+      if (props.editor_state != null) {
+        set_state(cmRef.current, props.editor_state.toJS() as any);
+      }
     }
 
     if (!props.is_public) {

@@ -811,6 +811,7 @@ export class Actions<
     let frame_tree = fromJS(rawTree) as Map<string, any>;
     frame_tree = tree_ops.assign_ids(frame_tree);
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
+    frame_tree = tree_ops.migrateToNary(frame_tree);
     return frame_tree;
   }
 
@@ -884,6 +885,69 @@ export class Actions<
 
   set_frame_tree_leafs(obj): void {
     this._tree_op("set_leafs", obj);
+  }
+
+  /** Swap two frames by their IDs. */
+  swap_frames(idA: string, idB: string): void {
+    this._tree_op("swap_nodes", idA, idB);
+    this.set_resize?.();
+  }
+
+  /** Move a frame to a new position relative to another frame. */
+  move_frame(sourceId: string, targetId: string, position: string): void {
+    this._tree_op("move_node", sourceId, targetId, position);
+    // Normalize: collapse single-child nodes left by the move
+    this._tree_op("collapse_trivial");
+    // Validate full_id
+    const tree = this._get_tree();
+    let local = this.store.get("local_view_state");
+    const fullId = local?.get("full_id");
+    if (fullId) {
+      // Always clear on tab merge (structural context changes even
+      // though the leaf is still a leaf).
+      // Also clear if the leaf was removed from the tree entirely.
+      if (position === "tab" || !tree_ops.is_leaf_id(tree, fullId)) {
+        local = local.delete("full_id");
+        this.setState({ local_view_state: local });
+      }
+    }
+    // Focus the moved frame
+    this.set_active_id(sourceId, true);
+    this.set_resize?.();
+  }
+
+  /** Add a new tab to an existing tabs container. */
+  add_tab(tabsId: string, type: string, path?: string): void {
+    const before = this._get_leaf_ids();
+    this._tree_op("add_tab", tabsId, type, path);
+    // Emit new-frame and focus the new tab
+    const after = this._get_leaf_ids();
+    for (const newId in after) {
+      if (!before[newId]) {
+        this.set_active_id(newId);
+        this.store.emit("new-frame", { id: newId, type });
+        break;
+      }
+    }
+    this.set_resize?.();
+  }
+
+  /** Reorder a tab within its tabs container. */
+  reorder_tab(
+    tabsId: string,
+    sourceFrameId: string,
+    beforeFrameId: string | null,
+  ): void {
+    this._tree_op("reorder_tab", tabsId, sourceFrameId, beforeFrameId);
+    this.set_active_id(sourceFrameId, true);
+  }
+
+  /** Extract a tab from its tab container, splitting it out to the given edge. */
+  extract_tab(sourceId: string, position: string): void {
+    this._tree_op("extract_from_tabs", sourceId, position);
+    this._tree_op("collapse_trivial");
+    this.set_active_id(sourceId, true);
+    this.set_resize?.();
   }
 
   // Set the type of the given node, e.g., 'cm', 'markdown', etc.
