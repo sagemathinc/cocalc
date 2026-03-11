@@ -339,10 +339,10 @@ export class Actions extends BaseActions<LatexEditorState> {
               this.parent_file,
             ) as Actions;
             // we're careful, maybe getEditorActions returns something else ...
-            await parent_actions?.build?.("", false);
+            await parent_actions?.auto_build("");
           } else if (this.parent_file == null && this.is_likely_master()) {
             // also check is_likely_master, b/c there must be a \\document* command.
-            await this.build("", false);
+            await this.auto_build("");
           }
         }
       }),
@@ -869,9 +869,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     await this.build();
   }
 
-  // used by generic framework – this is bound to the instance, otherwise "this" is undefined, hence
-  // make sure to use an arrow function!
-  build = async (id?: string, force: boolean = false): Promise<void> => {
+  private async buildInternal(
+    id: string | undefined,
+    force: boolean,
+    useFreshAggregate: boolean,
+  ): Promise<void> {
     this.set_error("");
     this.set_status("");
     if (id) {
@@ -899,12 +901,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     try {
       await this.save_all(false);
       const time =
-        force || wasStopped ? server_time().valueOf() : this.last_save_time();
+        force || wasStopped || useFreshAggregate
+          ? server_time().valueOf()
+          : this.last_save_time();
       // Skip if nothing changed since last build — avoids DKV chatter that
       // causes other clients to flicker their build spinner for a no-op.
       // Must be AFTER save so last_save_time() reflects pending edits.
       if (
         !force &&
+        !useFreshAggregate &&
         this._lastBuiltTime != null &&
         time === this._lastBuiltTime
       ) {
@@ -924,7 +929,17 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.is_building = false;
       this.setState({ building: false });
     }
+  }
+
+  // used by generic framework – this is bound to the instance, otherwise "this" is undefined, hence
+  // make sure to use an arrow function!
+  build = async (id?: string, force: boolean = false): Promise<void> => {
+    await this.buildInternal(id, force, true);
   };
+
+  private async auto_build(id?: string): Promise<void> {
+    await this.buildInternal(id, false, false);
+  }
 
   async clean(): Promise<void> {
     await this.build_action("clean");
