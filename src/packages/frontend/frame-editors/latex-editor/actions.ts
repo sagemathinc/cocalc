@@ -975,6 +975,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     } finally {
       this.set_status("");
       this.is_building = false;
+      this.setState({ building: false });
       this.is_stopping = false;
     }
   }
