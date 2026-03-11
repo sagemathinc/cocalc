@@ -32,6 +32,7 @@ import openSupportTab from "@cocalc/frontend/support/open";
 import userTracking from "@cocalc/frontend/user-tracking";
 import { DARK_MODE_ICON } from "@cocalc/util/consts/ui";
 import { filename_extension } from "@cocalc/util/misc";
+import { RUN_COMMANDS } from "@cocalc/frontend/frame-editors/code-editor/editor";
 import { addCommands } from "./commands";
 import {
   BUILD_ON_SAVE_ICON_DISABLED,
@@ -642,6 +643,23 @@ addCommands({
     keyboard: `${IS_MACOS ? "⌘" : "control"} + shift + F`,
   },
 
+  run_code: {
+    group: "build",
+    pos: -1,
+    label: defineMessage({
+      id: "command.generic.run_code.label",
+      defaultMessage: "Run",
+    }),
+    title: defineMessage({
+      id: "command.generic.run_code.title",
+      defaultMessage:
+        "Run this file in a terminal using the appropriate interpreter or compiler.",
+    }),
+    icon: "play-circle",
+    isVisible: ({ props }) => {
+      return RUN_COMMANDS[filename_extension(props.path)] != null;
+    },
+  },
   build: {
     group: "build",
     disabled: ({ props }) => !!props.editor_actions?.store?.get("building"),
