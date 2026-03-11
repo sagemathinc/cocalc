@@ -895,7 +895,7 @@ export class Actions<
   }
 
   /** Move a frame to a new position relative to another frame. */
-  move_frame(sourceId: string, targetId: string, position: string): void {
+  move_frame(sourceId: string, targetId: string, position: tree_ops.DropPosition): void {
     this._tree_op("move_node", sourceId, targetId, position);
     // Normalize: collapse single-child nodes left by the move
     this._tree_op("collapse_trivial");
@@ -944,7 +944,7 @@ export class Actions<
   }
 
   /** Extract a tab from its tab container, splitting it out to the given edge. */
-  extract_tab(sourceId: string, position: string): void {
+  extract_tab(sourceId: string, position: tree_ops.DropPosition): void {
     this._tree_op("extract_from_tabs", sourceId, position);
     this._tree_op("collapse_trivial");
     this.set_active_id(sourceId, true);

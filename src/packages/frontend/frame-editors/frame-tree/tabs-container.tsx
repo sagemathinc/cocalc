@@ -19,11 +19,13 @@ import type { IconName } from "@cocalc/frontend/components/icon";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { isIntlMessage } from "@cocalc/frontend/i18n";
 import { COLORS } from "@cocalc/util/theme";
+import { path_split } from "@cocalc/util/misc";
 import type { EditorSpec, NodeDesc } from "./types";
 import { FRAME_TAB_BAR_STYLE, buildSwitchToFileItems } from "./style";
 import type { Rendered } from "@cocalc/frontend/app-framework";
 import type { FrameDragData } from "./dnd/frame-dnd-provider";
 import { FrameDndZoneContext } from "./dnd/frame-dnd-provider";
+import { has_id } from "./tree-ops";
 
 /** Context telling child frames they are inside a tab container. */
 export const TabContainerContext = React.createContext<{
@@ -201,17 +203,9 @@ export function TabsContainer({
   // (e.g. close_frame, DnD operations) that only update active_id.
   const activeTab = useMemo(() => {
     if (!active_id || !children) return storedActiveTab;
-    const idx = children.findIndex((child: Map<string, any>) => {
-      if (child.get("id") === active_id) return true;
-      // Check if active_id is a descendant of this child (for nested nodes)
-      const childChildren = child.get("children");
-      if (childChildren) {
-        return childChildren.some(
-          (c: Map<string, any>) => c.get("id") === active_id,
-        );
-      }
-      return false;
-    });
+    const idx = children.findIndex((child: Map<string, any>) =>
+      child.get("id") === active_id || has_id(child, active_id),
+    );
     return idx >= 0 ? idx : storedActiveTab;
   }, [active_id, children, storedActiveTab]);
 
@@ -258,7 +252,7 @@ export function TabsContainer({
         const rawLabel = spec?.short ?? spec?.name ?? type;
         const childPath: string | undefined = child.get("path");
         const label = childPath
-          ? (childPath.split("/").pop() ?? type)
+          ? (path_split(childPath).tail || type)
           : type === "node"
             ? "Split"
             : isIntlMessage(rawLabel)
@@ -341,6 +335,8 @@ export function TabsContainer({
   React.useEffect(() => {
     if (isTabBarHighlighted) {
       setDropZone(tabsId, "tab");
+    } else {
+      setDropZone(tabsId, null);
     }
   }, [isTabBarHighlighted, tabsId, setDropZone]);
 

@@ -8,7 +8,7 @@
 // in the memoized FrameTree component.
 
 import { useDndContext } from "@dnd-kit/core";
-import React, { useContext, useEffect, useRef, useState } from "react";
+import React, { useContext, useEffect, useMemo, useRef, useState } from "react";
 
 import { Rendered } from "@cocalc/frontend/app-framework";
 import { IFrameContext, FrameContext } from "./frame-context";
@@ -43,18 +43,23 @@ export const FrameLeafContainer: React.FC<Props> = ({
   const { tabContainerId, tabSiblingCount } = useContext(TabContainerContext);
 
   useEffect(() => {
-    if (titleBarRef.current) {
-      setTitleBarHeight(titleBarRef.current.offsetHeight);
-    }
-  });
+    const el = titleBarRef.current;
+    if (!el) return;
+    setTitleBarHeight(el.offsetHeight);
+    const ro = new ResizeObserver(() => setTitleBarHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   const { setDropZone } = useContext(FrameDndZoneContext);
 
+  const tabInfo = useMemo(
+    () => ({ tabContainerId, tabSiblingCount }),
+    [tabContainerId, tabSiblingCount],
+  );
+
   const { dropRef, isOver, isDragActive, activeZone, onPointerMove } =
-    useFrameDropZone(id, frameLabel, titleBarHeight, {
-      tabContainerId,
-      tabSiblingCount,
-    }, setDropZone);
+    useFrameDropZone(id, frameLabel, titleBarHeight, tabInfo, setDropZone);
 
   // Detect if THIS frame is being dragged
   const { active } = useDndContext();

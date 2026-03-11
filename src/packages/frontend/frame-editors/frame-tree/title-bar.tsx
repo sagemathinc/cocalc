@@ -314,7 +314,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   );
   const disableTourRefs = useRef<boolean>(false);
   const tourRefs = useRef<{ [name: string]: { current: any } }>({});
-  const dragHandleRef = useRef<HTMLDivElement>(null);
   const getTourRef = (name: string) => {
     if (disableTourRefs.current) return null;
     if (tourRefs.current[name] == null) {
@@ -867,16 +866,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
     const handle = (
       <div
-        ref={
-          props.is_only
-            ? undefined
-            : (el) => {
-                (
-                  dragHandleRef as React.MutableRefObject<HTMLDivElement | null>
-                ).current = el;
-                setDragNodeRef(el);
-              }
-        }
+        ref={props.is_only ? undefined : setDragNodeRef}
         {...(props.is_only ? {} : dragListeners)}
         {...(props.is_only ? {} : dragAttributes)}
         className="cc-frame-drag-handle"

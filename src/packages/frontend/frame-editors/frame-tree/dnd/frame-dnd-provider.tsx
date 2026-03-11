@@ -123,6 +123,9 @@ export function FrameDndProvider({ actions, children }: Props) {
           setCurrentZone(null);
         }
       } else {
+        // Skip redundant updates when zone hasn't changed for the same frame
+        const prev = dropZoneRef.current;
+        if (prev?.frameId === frameId && prev.zone === zone) return;
         dropZoneRef.current = { frameId, zone };
         setCurrentZone(zone);
         setDropAction(zoneLabels[zone] || zoneLabels.center);
@@ -222,16 +225,21 @@ export function FrameDndProvider({ actions, children }: Props) {
     [zoneLabels],
   );
 
+  const resetDragState = useCallback(() => {
+    document.body.classList.remove("cc-frame-dragging");
+    setActiveData(null);
+    activeDataRef.current = null;
+    setDropTarget(null);
+    setIsSelfHover(false);
+    setSelfHoverTabContainerId(null);
+    setCurrentZone(null);
+    dropZoneRef.current = null;
+  }, []);
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      document.body.classList.remove("cc-frame-dragging");
       const data = activeData;
-      setActiveData(null);
-      activeDataRef.current = null;
-      setDropTarget(null);
-      setIsSelfHover(false);
-      setSelfHoverTabContainerId(null);
-      setCurrentZone(null);
+      resetDragState();
 
       if (!data || !event.over) return;
 
@@ -253,7 +261,6 @@ export function FrameDndProvider({ actions, children }: Props) {
             actions.move_frame(sourceId, firstChildId, "tab");
           }
         }
-        dropZoneRef.current = null;
         return;
       }
 
@@ -271,7 +278,6 @@ export function FrameDndProvider({ actions, children }: Props) {
             actions.move_frame(sourceId, targetId, "tab");
           }
         }
-        dropZoneRef.current = null;
         return;
       }
 
@@ -291,7 +297,6 @@ export function FrameDndProvider({ actions, children }: Props) {
         if (tabContainerId && zone !== "center" && zone !== "tab") {
           actions.extract_tab(sourceId, zone);
         }
-        dropZoneRef.current = null;
         return;
       }
 
@@ -309,22 +314,11 @@ export function FrameDndProvider({ actions, children }: Props) {
           actions.move_frame(sourceId, targetId, zone);
         }
       }
-
-      dropZoneRef.current = null;
     },
-    [activeData, actions],
+    [activeData, actions, resetDragState],
   );
 
-  const handleDragCancel = useCallback(() => {
-    document.body.classList.remove("cc-frame-dragging");
-    setActiveData(null);
-    activeDataRef.current = null;
-    setDropTarget(null);
-    setIsSelfHover(false);
-    setSelfHoverTabContainerId(null);
-    setCurrentZone(null);
-    dropZoneRef.current = null;
-  }, []);
+  const handleDragCancel = resetDragState;
 
   // Determine overlay text, icon, and variant
   let overlayText: string;

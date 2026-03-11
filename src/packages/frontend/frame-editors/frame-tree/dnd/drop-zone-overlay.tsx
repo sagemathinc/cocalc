@@ -26,13 +26,22 @@ const BASE_STYLE: React.CSSProperties = {
   transition: "all 0.1s ease",
 };
 
+const ZONE_STYLE_ACTIVE: React.CSSProperties = {
+  ...BASE_STYLE,
+  background: ZONE_HIGHLIGHT,
+  border: ZONE_BORDER,
+  borderRadius: 2,
+};
+
+const ZONE_STYLE_INACTIVE: React.CSSProperties = {
+  ...BASE_STYLE,
+  background: "transparent",
+  border: "none",
+  borderRadius: 2,
+};
+
 function zoneStyle(active: boolean): React.CSSProperties {
-  return {
-    ...BASE_STYLE,
-    background: active ? ZONE_HIGHLIGHT : "transparent",
-    border: active ? ZONE_BORDER : "none",
-    borderRadius: 2,
-  };
+  return active ? ZONE_STYLE_ACTIVE : ZONE_STYLE_INACTIVE;
 }
 
 export function DropZoneOverlay({

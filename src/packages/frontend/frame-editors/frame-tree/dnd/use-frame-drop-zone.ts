@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useDroppable } from "@dnd-kit/core";
 
 export type DropZone =
@@ -66,6 +66,7 @@ export function useFrameDropZone(
   onZoneChange?: (frameId: string, zone: DropZone) => void,
 ) {
   const [activeZone, setActiveZone] = useState<DropZone>(null);
+  const lastZoneRef = useRef<DropZone>(null);
   const { setNodeRef, isOver, active } = useDroppable({
     id: `frame-body-${frameId}`,
     data: {
@@ -84,10 +85,9 @@ export function useFrameDropZone(
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      if (!isDragActive) return; // fast path: no drag in progress
       let zone: DropZone = null;
-      if (!isDragActive) {
-        // zone stays null
-      } else if (isSelfDrag && !canExtractFromTabs) {
+      if (isSelfDrag && !canExtractFromTabs) {
         // zone stays null
       } else {
         const rect = e.currentTarget.getBoundingClientRect();
@@ -103,6 +103,8 @@ export function useFrameDropZone(
           zone = computed;
         }
       }
+      if (zone === lastZoneRef.current) return; // no change
+      lastZoneRef.current = zone;
       setActiveZone(zone);
       onZoneChange?.(frameId, zone);
     },
@@ -118,6 +120,7 @@ export function useFrameDropZone(
 
   // Reset zone when not hovering
   if (!isOver && activeZone !== null) {
+    lastZoneRef.current = null;
     setActiveZone(null);
     onZoneChange?.(frameId, null);
   }
