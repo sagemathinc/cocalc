@@ -179,6 +179,9 @@ interface Props {
   renderChild: (child: NodeDesc) => Rendered;
   // editor_spec: map from type to spec (for labels/icons)
   editor_spec: EditorSpec;
+  // Currently focused frame ID — used to sync activeTab when focus changes
+  // programmatically (e.g. close_frame, DnD operations).
+  active_id?: string;
 }
 
 export function TabsContainer({
@@ -186,10 +189,31 @@ export function TabsContainer({
   actions,
   renderChild,
   editor_spec,
+  active_id,
 }: Props) {
   const children = frame_tree.get("children");
-  const activeTab = frame_tree.get("activeTab", 0);
+  const storedActiveTab = frame_tree.get("activeTab", 0);
   const tabsId = frame_tree.get("id") as string;
+
+  // Derive activeTab: if active_id points to a child of this tab container
+  // (or a descendant of one), prefer that over the stored activeTab.
+  // This keeps the visible tab in sync after programmatic focus changes
+  // (e.g. close_frame, DnD operations) that only update active_id.
+  const activeTab = useMemo(() => {
+    if (!active_id || !children) return storedActiveTab;
+    const idx = children.findIndex((child: Map<string, any>) => {
+      if (child.get("id") === active_id) return true;
+      // Check if active_id is a descendant of this child (for nested nodes)
+      const childChildren = child.get("children");
+      if (childChildren) {
+        return childChildren.some(
+          (c: Map<string, any>) => c.get("id") === active_id,
+        );
+      }
+      return false;
+    });
+    return idx >= 0 ? idx : storedActiveTab;
+  }, [active_id, children, storedActiveTab]);
 
   // For multi-file editors (e.g. LaTeX), get the list of switchable files
   const switchToFiles: List<string> | undefined = useRedux([

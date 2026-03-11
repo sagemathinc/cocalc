@@ -373,6 +373,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             actions={actions}
             renderChild={render_one}
             editor_spec={editor_spec}
+            active_id={active_id}
           />
         );
       }

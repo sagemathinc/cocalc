@@ -48,21 +48,17 @@ export const FrameLeafContainer: React.FC<Props> = ({
     }
   });
 
+  const { setDropZone } = useContext(FrameDndZoneContext);
+
   const { dropRef, isOver, isDragActive, activeZone, onPointerMove } =
     useFrameDropZone(id, frameLabel, titleBarHeight, {
       tabContainerId,
       tabSiblingCount,
-    });
-  const { setDropZone } = useContext(FrameDndZoneContext);
+    }, setDropZone);
 
   // Detect if THIS frame is being dragged
   const { active } = useDndContext();
   const isBeingDragged = active?.data?.current?.frameId === id;
-
-  // Report active zone to the provider so handleDragEnd can read it
-  useEffect(() => {
-    setDropZone(id, activeZone);
-  }, [activeZone, id, setDropZone]);
 
   return (
     <FrameContext.Provider value={contextValue}>

@@ -61,6 +61,9 @@ export function useFrameDropZone(
   frameLabel: string,
   titleBarHeight: number = 0,
   tabInfo?: TabContainerInfo,
+  /** Called synchronously on every zone change so the provider's ref
+   *  is always up-to-date when onDragEnd fires (avoids useEffect lag). */
+  onZoneChange?: (frameId: string, zone: DropZone) => void,
 ) {
   const [activeZone, setActiveZone] = useState<DropZone>(null);
   const { setNodeRef, isOver, active } = useDroppable({
@@ -81,29 +84,42 @@ export function useFrameDropZone(
 
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
+      let zone: DropZone = null;
       if (!isDragActive) {
-        setActiveZone(null);
-        return;
-      }
-      if (isSelfDrag && !canExtractFromTabs) {
-        setActiveZone(null);
-        return;
-      }
-      const rect = e.currentTarget.getBoundingClientRect();
-      const zone = computeDropZone(rect, e.clientX, e.clientY, titleBarHeight);
-      if (isSelfDrag && canExtractFromTabs) {
-        // Only allow edge zones for self-drag tab extraction
-        setActiveZone(EDGE_ZONES.has(zone) ? zone : null);
+        // zone stays null
+      } else if (isSelfDrag && !canExtractFromTabs) {
+        // zone stays null
       } else {
-        setActiveZone(zone);
+        const rect = e.currentTarget.getBoundingClientRect();
+        const computed = computeDropZone(
+          rect,
+          e.clientX,
+          e.clientY,
+          titleBarHeight,
+        );
+        if (isSelfDrag && canExtractFromTabs) {
+          zone = EDGE_ZONES.has(computed) ? computed : null;
+        } else {
+          zone = computed;
+        }
       }
+      setActiveZone(zone);
+      onZoneChange?.(frameId, zone);
     },
-    [isDragActive, isSelfDrag, canExtractFromTabs, titleBarHeight],
+    [
+      isDragActive,
+      isSelfDrag,
+      canExtractFromTabs,
+      titleBarHeight,
+      frameId,
+      onZoneChange,
+    ],
   );
 
   // Reset zone when not hovering
   if (!isOver && activeZone !== null) {
     setActiveZone(null);
+    onZoneChange?.(frameId, null);
   }
 
   const isValidDrop = isSelfDrag ? canExtractFromTabs : true;

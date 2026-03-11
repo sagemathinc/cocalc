@@ -640,6 +640,7 @@ export class Actions<
     } else {
       frame_tree = tree_ops.assign_ids(frame_tree);
       frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
+      frame_tree = tree_ops.migrateToNary(frame_tree);
     }
     local_view_state = local_view_state.set("frame_tree", frame_tree);
 

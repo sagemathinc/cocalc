@@ -699,8 +699,19 @@ export function move_node(
         if (targetIdx >= 0) {
           const insertIdx = insertFirst ? targetIdx : targetIdx + 1;
           const newChildren = children.insert(insertIdx, sourceNode);
-          const newSize = 1.0 / newChildren.size;
-          const newSizes = fromJS(Array(newChildren.size).fill(newSize));
+          // Preserve existing sizes: borrow half the target's slot for
+          // the new sibling instead of resetting all sizes to 1/n.
+          const oldSizes = parent.get("sizes");
+          let newSizes;
+          if (oldSizes && oldSizes.size === children.size) {
+            const targetSize = oldSizes.get(targetIdx) / 2;
+            newSizes = oldSizes
+              .set(targetIdx, targetSize)
+              .insert(insertIdx, targetSize);
+          } else {
+            const newSize = 1.0 / newChildren.size;
+            newSizes = fromJS(Array(newChildren.size).fill(newSize));
+          }
           const newParent = parent
             .set("children", newChildren)
             .set("sizes", newSizes);
@@ -731,6 +742,43 @@ export function move_node(
       }
     }
     if (!targetNode) return result;
+
+    // After collapse, try inserting into the surviving child's parent
+    // (same-direction optimization) to avoid an unnecessary nested split.
+    const parentId2 = get_parent_id(result, effectiveTargetId);
+    if (parentId2) {
+      const parent2 = get_node(result, parentId2);
+      if (
+        parent2 &&
+        parent2.get("direction") === direction &&
+        parent2.get("type") === "node"
+      ) {
+        const children2 = parent2.get("children");
+        if (children2) {
+          const targetIdx2 = children2.findIndex(
+            (c: ImmutableFrameTree) => c.get("id") === effectiveTargetId,
+          );
+          if (targetIdx2 >= 0) {
+            const insertIdx2 = insertFirst ? targetIdx2 : targetIdx2 + 1;
+            const newChildren2 = children2.insert(insertIdx2, sourceNode);
+            const oldSizes2 = parent2.get("sizes");
+            // Borrow size from the target's slot for the new sibling
+            const targetSize = oldSizes2
+              ? oldSizes2.get(targetIdx2) / 2
+              : 1.0 / newChildren2.size;
+            const newSizes2 = oldSizes2
+              ? oldSizes2
+                  .set(targetIdx2, targetSize)
+                  .insert(insertIdx2, targetSize)
+              : fromJS(Array(newChildren2.size).fill(1.0 / newChildren2.size));
+            const newParent2 = parent2
+              .set("children", newChildren2)
+              .set("sizes", newSizes2);
+            return replaceNode(result, parentId2, newParent2);
+          }
+        }
+      }
+    }
   }
   const ids = getAllIds(result);
   const childrenArr = insertFirst
