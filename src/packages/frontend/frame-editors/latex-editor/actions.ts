@@ -157,6 +157,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   private parsed_output_log?: IProcessedLatexLog;
 
   private _last_sync_time = 0;
+  private _pdf_watcher_init_token = 0;
+  private _project_started_listener?: () => void;
 
   // PDF file watcher - watches directory for PDF file changes
   private pdf_watcher?: PDFWatcher;
@@ -224,10 +226,24 @@ export class Actions extends BaseActions<LatexEditorState> {
         "change",
         debounce(this.ensureNonempty.bind(this), 1500),
       );
-      this._init_pdf_directory_watcher();
+      this._project_started_listener = () => {
+        void this._handle_project_started();
+      };
+      this.redux
+        .getProjectStore(this.project_id)
+        .on("started", this._project_started_listener);
+      void this._init_pdf_directory_watcher();
       this._init_build_coordinator();
     }
     this.word_count = reuseInFlight(this._word_count.bind(this));
+  }
+
+  private async _handle_project_started(): Promise<void> {
+    // The PDF preview may have tried to load while the project was still stopped
+    // or starting. Once the project is actually running, re-arm the watcher and
+    // force a fresh reload so the preview recovers without a full page refresh.
+    await this._init_pdf_directory_watcher();
+    this.update_pdf(server_time().valueOf(), true);
   }
 
   private _init_build_coordinator(): void {
@@ -251,7 +267,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   // Watch the directory containing the PDF file for changes
   private async _init_pdf_directory_watcher(): Promise<void> {
     const pdfPath = pdf_path(this.path);
-    this.pdf_watcher = new PDFWatcher(
+    const token = ++this._pdf_watcher_init_token;
+    const pdf_watcher = new PDFWatcher(
       this.project_id,
       pdfPath,
       // We ignore the PDFs timestamp (mtime) and use last_save_time for consistency with build-triggered updates
@@ -260,7 +277,15 @@ export class Actions extends BaseActions<LatexEditorState> {
       },
       getComputeServerId({ project_id: this.project_id, path: this.path }),
     );
-    await this.pdf_watcher.init();
+    await pdf_watcher.init();
+    // If another watcher init started while we were awaiting, drop this one so
+    // we don't keep multiple directory subscriptions alive for the same editor.
+    if (token !== this._pdf_watcher_init_token) {
+      pdf_watcher.close();
+      return;
+    }
+    this.pdf_watcher?.close();
+    this.pdf_watcher = pdf_watcher;
   }
 
   // similar to jupyter, where an empty document is really
@@ -803,8 +828,15 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   close(): void {
+    this._pdf_watcher_init_token += 1;
     this._forget_pdf_document();
     this.buildCoordinator?.close();
+    if (this._project_started_listener != null) {
+      this.redux
+        .getProjectStore(this.project_id)
+        .removeListener("started", this._project_started_listener);
+      this._project_started_listener = undefined;
+    }
     if (this.pdf_watcher != null) {
       this.pdf_watcher.close();
       this.pdf_watcher = undefined;
