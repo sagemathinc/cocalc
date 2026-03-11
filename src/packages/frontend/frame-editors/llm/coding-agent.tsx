@@ -604,7 +604,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             project_id,
             command: "/bin/bash",
             args: ["-c", command],
-            timeout: 60,
+            timeout: 30,
             max_output: 100000,
             bash: false,
             path: dir,
