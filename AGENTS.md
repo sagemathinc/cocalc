@@ -61,6 +61,7 @@ The root-level `src/workspaces.py` script orchestrates operations across all pac
 ### Development
 
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
+- **IMPORTANT**: In tests and code comments, use only generic names, email addresses, and company names. Do not include customer or real-world identifiers, except for `Sagemath, Inc.` or when the developer explicitly says otherwise.
 
 #### When Working on Frontend Code
 
