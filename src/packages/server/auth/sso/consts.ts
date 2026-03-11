@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2022 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2022-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -29,3 +29,6 @@ export const BLACKLISTED_STRATEGIES = [
 ] as const;
 
 export const SSO_API_KEY_COOKIE_NAME = base_path + "get_api_key";
+export const SSO_LINK_ACCOUNT_CACHE_NAME = "sso-link-account";
+export const SSO_LINK_ACCOUNT_COOKIE_NAME = base_path + "sso_link_account";
+export const SSO_LINK_ACCOUNT_MAX_AGE_MS = 60 * 60 * 1000;
