@@ -1,15 +1,16 @@
 # Frame Editors
 
-This document explains CoCalc's frame editor system — the binary tree layout
-that lets users view multiple panes (source, preview, terminal, table of
-contents, etc.) for a single file.
+This document explains CoCalc's frame editor system — the layout tree that lets
+users view multiple panes (source, preview, terminal, table of contents, etc.)
+for a single file.
 
 ## Overview
 
 Every file in CoCalc opens in a **frame editor**: a container that arranges one
-or more **frames** (editor panes) in a resizable binary tree layout. Each file
-type defines its own **editor spec** — a map of available frame types with their
-React components, commands, and toolbar buttons.
+or more **frames** (editor panes) in a resizable layout tree with split nodes
+and tab containers. Each file type defines its own **editor spec** — a map of
+available frame types with their React components, commands, and toolbar
+buttons.
 
 ```
 ┌─────────────────────────────────────────┐
@@ -24,9 +25,13 @@ React components, commands, and toolbar buttons.
 └─────────────────────────────────────────┘
 ```
 
-The layout is a **binary tree**: each node is either a leaf (a single frame) or
-an internal node that splits its children horizontally (`"row"`) or vertically
-(`"col"`).
+The layout is a tree: each node is either a leaf (a single frame), a split node
+that arranges children horizontally (`"row"`) or vertically (`"col"`), or a
+tab container. Legacy binary trees are still loaded, but current state is
+normalized to the newer `children`/`sizes` representation.
+
+For the current drag-and-drop behavior and tab/split mutation logic, see
+`docs/frame-editor-dnd.md`.
 
 ## Architecture
 
@@ -35,24 +40,27 @@ an internal node that splits its children horizontally (`"row"`) or vertically
 ```
 createEditor({ editor_spec })
   → FrameTreeEditor (editor.tsx)
-    → FrameTree (frame-tree.tsx)        ← recursive binary tree renderer
+    → FrameTree (frame-tree.tsx)        ← recursive split/tab tree renderer
       → Leaf (leaf.tsx)                 ← renders a single frame
         → EditorDescription.component  ← the actual editor React component
       → TitleBar (title-bar.tsx)        ← frame selector tabs, buttons
     → StatusBar (status-bar.tsx)        ← bottom status line
 ```
 
-### Binary Tree Structure
+### Frame Tree Structure
 
 ```typescript
 // packages/frontend/frame-editors/frame-tree/types.ts
 interface FrameTree {
   direction?: "row" | "col"; // split direction (internal nodes)
   type: string; // editor type name (leaf nodes)
-  first?: FrameTree; // left/top child
-  second?: FrameTree; // right/bottom child
+  first?: FrameTree; // legacy left/top child
+  second?: FrameTree; // legacy right/bottom child
+  pos?: number; // legacy split position (0-1)
+  children?: FrameTree[]; // current split or tabs children
+  sizes?: number[]; // split sizes for type:"node"
+  activeTab?: number; // selected child for type:"tabs"
   font_size?: number; // per-frame font size
-  pos?: number; // split position (0-1)
 }
 ```
 
@@ -62,6 +70,7 @@ Tree operations are in `tree-ops.ts`:
 - `set_leafs(tree, obj)` — update all leaf nodes
 - `delete_node(tree, id)` — remove a node (sibling takes parent's place)
 - `generate_id(tree)` — assign unique IDs to all nodes
+- `migrateToNary(tree)` — convert legacy binary trees to `children`/`sizes`
 
 ## EditorDescription
 

@@ -10,6 +10,8 @@ FrameTitleBar - title bar in a frame, in the frame tree
 
 // cSpell:ignore rescan subframe
 
+import { useDraggable } from "@dnd-kit/core";
+
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
 import type { MenuProps } from "antd/lib";
@@ -69,7 +71,8 @@ import {
 import { SaveButton } from "./save-button";
 import TitleBarTour from "./title-bar-tour";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
-import { TITLE_BAR_BORDER } from "./style";
+import type { FrameDragData } from "./dnd/frame-dnd-provider";
+import { TITLE_BAR_BORDER, buildSwitchToFileItems } from "./style";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -188,6 +191,24 @@ export interface FrameTitleBarProps {
 export function FrameTitleBar(props: FrameTitleBarProps) {
   // Whether this is *the* active currently focused frame:
   const is_active = props.active_id === props.id;
+
+  const {
+    attributes: dragAttributes,
+    listeners: dragListeners,
+    setNodeRef: setDragNodeRef,
+    isDragging,
+  } = useDraggable({
+    id: `frame-drag-${props.id}`,
+    data: {
+      type: "frame-drag",
+      frameId: props.id,
+      frameType: props.type,
+      frameLabel: isIntlMessage(props.spec?.short)
+        ? props.spec.short.defaultMessage
+        : (props.spec?.short ?? props.type),
+    } satisfies FrameDragData,
+  });
+
   const track = useMemo(() => {
     const { project_id, path } = props;
     return (action: string) => {
@@ -504,18 +525,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return;
     }
 
-    const items: MenuItems = switch_to_files.toJS().map((path) => {
-      return {
-        key: path,
-        label: (
-          <>
-            {props.path == path ? <b>{path}</b> : path}
-            {props.actions.path == path ? " (main)" : ""}
-          </>
-        ),
-        onClick: () => props.actions.switch_to_file(path, props.id),
-      };
-    });
+    const items: MenuItems = buildSwitchToFileItems(
+      switch_to_files.toJS(),
+      props.actions.path,
+      props.path,
+      (path) => props.actions.switch_to_file(path, props.id),
+    );
 
     return (
       <DropdownMenu
@@ -677,8 +692,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
   }
 
-  function renderMenu(name: string) {
-    const { label, pos, groups } = MENUS[name];
+  /** Build the MenuItems array for a named menu (shared by renderMenu and renderDragHandle). */
+  function getMenuItems(name: string): MenuItem[] {
+    const { groups } = MENUS[name];
     const v: MenuItem[] = [];
     for (const group of groups) {
       let i = 0;
@@ -690,7 +706,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         }
         if (helpSearch.trim() && commandName == SEARCH_COMMANDS) {
           const search = helpSearch.trim().toLowerCase();
-          // special case -- the search menu item
           for (const commandName in COMMANDS) {
             for (const item of manageCommands.searchCommands(
               commandName,
@@ -721,6 +736,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         v.push(...w.map((x) => x.item));
       }
     }
+    return v;
+  }
+
+  function renderMenu(name: string) {
+    const { label, pos } = MENUS[name];
+    const v = getMenuItems(name);
     if (v.length == 0) {
       return null;
     }
@@ -748,6 +769,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
     const v: { menu: React.JSX.Element; pos: number }[] = [];
     for (const name in MENUS) {
+      // "app" menu is integrated into the drag handle
+      if (name === "app") continue;
       const x = renderMenu(name);
       if (x != null) {
         v.push(x);
@@ -834,6 +857,58 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         disableTourRefs.current = false;
       }
     }
+  }
+
+  function renderDragHandle(): Rendered {
+    // Build the application menu items for the drag-handle dropdown.
+    // Even when is_only, the menu is useful (change type, etc.)
+    const appMenuItems = MENUS["app"] ? getMenuItems("app") : [];
+
+    const handle = (
+      <div
+        ref={props.is_only ? undefined : setDragNodeRef}
+        {...(props.is_only ? {} : dragListeners)}
+        {...(props.is_only ? {} : dragAttributes)}
+        className="cc-frame-drag-handle"
+        style={
+          isDragging
+            ? {
+                cursor: "grabbing",
+                background: COLORS.BLUE_D,
+                color: "#fff",
+                borderRight: `1px solid ${COLORS.BLUE_D}`,
+              }
+            : undefined
+        }
+      >
+        <Icon name="bars" />
+        <span style={{ marginLeft: 4, fontWeight: 450, whiteSpace: "nowrap" }}>
+          {(() => {
+            const spec = props.editor_spec?.[props.type];
+            if (!spec) return props.type;
+            return (
+              manageCommands.spec2display(spec, "short") ||
+              manageCommands.spec2display(spec, "name") ||
+              props.type
+            );
+          })()}
+        </span>
+      </div>
+    );
+
+    if (appMenuItems.length === 0) {
+      return handle;
+    }
+
+    return (
+      <Dropdown
+        menu={{ items: appMenuItems }}
+        trigger={["click"]}
+        placement="bottomLeft"
+      >
+        {handle}
+      </Dropdown>
+    );
   }
 
   function renderMainMenusAndButtons(): Rendered {
@@ -1346,6 +1421,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           id={`titlebar-${props.id}`}
           className={"cc-frame-tree-title-bar"}
         >
+          {renderDragHandle()}
           {renderMainMenusAndButtons()}
           {is_active && renderConnectionStatus()}
           {is_active && allButtonsPopover()}
