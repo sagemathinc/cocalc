@@ -11,7 +11,15 @@ FrameTitleBar - title bar in a frame, in the frame tree
 // cSpell:ignore rescan subframe
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
+import {
+  Button,
+  Dropdown,
+  Input,
+  InputNumber,
+  Popover,
+  Space,
+  Tooltip,
+} from "antd";
 import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
@@ -58,6 +66,7 @@ import { COLORS } from "@cocalc/util/theme";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
+import { hasEmbeddedAgent } from "../generic/has-embedded-agent";
 // LanguageModelTitleBarButton is still available for standalone use but the
 // title-bar assistant button now opens the side chat in assistant mode.
 import {
@@ -604,7 +613,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     ) {
       return;
     }
-    return (
+    const projectActions = redux.getProjectActions(props.project_id);
+    const showAgent = hasEmbeddedAgent(props.path);
+
+    const aiButton = (
       <Button
         key="assistant"
         ref={getTourRef("chatgpt")}
@@ -619,18 +631,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             : undefined),
         }}
         onClick={() => {
-          // Open the side chat frame in "assistant" mode.
-          const projectActions = redux.getProjectActions(props.project_id);
           projectActions.open_chat({
             path: props.path,
             chat_mode: "assistant",
           });
         }}
       >
-        <AIAvatar
-          size={16}
-          iconColor={COLORS.AI_ASSISTANT_TXT}
-        />
+        <AIAvatar size={16} iconColor={COLORS.AI_ASSISTANT_TXT} />
         {noLabel ? (
           ""
         ) : (
@@ -641,6 +648,39 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           </VisibleMDLG>
         )}
       </Button>
+    );
+
+    if (!showAgent) {
+      // No agent for this file type — just the AI button (opens chat in
+      // assistant mode, which is the inline LLM helper).
+      return aiButton;
+    }
+
+    // File supports an embedded agent — show [AI | Chat] compact group.
+    return (
+      <Space.Compact key="assistant-chat-group">
+        {aiButton}
+        <Button
+          size={button_size()}
+          style={button_style()}
+          onClick={() => {
+            projectActions.open_chat({
+              path: props.path,
+            });
+          }}
+        >
+          <Icon name="comment" />
+          {noLabel ? (
+            ""
+          ) : (
+            <VisibleMDLG>
+              <span style={{ marginLeft: "5px" }}>
+                {intl.formatMessage(labels.chat)}
+              </span>
+            </VisibleMDLG>
+          )}
+        </Button>
+      </Space.Compact>
     );
   }
 

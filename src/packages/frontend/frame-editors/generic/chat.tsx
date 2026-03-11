@@ -22,17 +22,8 @@ import { hidden_meta_file } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { EditorComponentProps, EditorDescription } from "../frame-tree/types";
 
-// File extensions where the coding agent is NOT useful — non-text
-// editors that don't support set_value or are not code-like.
-const NO_AGENT_EXTENSIONS = new Set([
-  "board",
-  "slides",
-  "pdf",
-  "x11",
-  "term",
-  "course",
-  "time-travel",
-]);
+export { hasEmbeddedAgent } from "./has-embedded-agent";
+import { hasEmbeddedAgent } from "./has-embedded-agent";
 
 // Agent lookup — maps file path to the right embedded agent component.
 // Both agents share the same { chatSyncdb } interface.  To add a new
@@ -41,9 +32,8 @@ const NO_AGENT_EXTENSIONS = new Set([
 function getEmbeddedAgent(
   path: string,
 ): ComponentType<{ chatSyncdb: any }> | null {
+  if (!hasEmbeddedAgent(path)) return null;
   if (path.endsWith(".ipynb")) return NotebookAgent;
-  const ext = path.split(".").pop() ?? "";
-  if (NO_AGENT_EXTENSIONS.has(ext)) return null;
   return CodingAgentEmbedded;
 }
 
@@ -145,7 +135,12 @@ function Chat({ font_size, desc }: EditorComponentProps) {
             background: COLORS.GRAY_LLL,
           }}
         >
+          {/* Highlight the active segment in AI color when assistant is selected */}
+          {effectiveMode === "assistant" && (
+            <style>{`.chat-mode-toggle .ant-segmented-item-selected { background: ${COLORS.AI_ASSISTANT_BG} !important; }`}</style>
+          )}
           <Segmented
+            className="chat-mode-toggle"
             value={effectiveMode}
             onChange={(v) => setMode(v as ChatMode)}
             options={[
@@ -161,13 +156,12 @@ function Chat({ font_size, desc }: EditorComponentProps) {
                 value: "assistant",
                 label: (
                   <span>
-                    <AIAvatar size={14} /> Assistant
+                    <AIAvatar size={16} /> Assistant
                   </span>
                 ),
               },
             ]}
             block
-            size="small"
           />
         </div>
       )}
