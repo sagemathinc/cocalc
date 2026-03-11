@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -21,8 +21,7 @@ const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+)/i;
 // Jupyter classic doesn't and it conflicts too much with markdown.  Use $'s and e.g., \begin{equation}.
 // const MATHSPLIT = /(\$\$?|\\(?:begin|end)\{[a-z]*\*?\}|(?:\n\s*)+|\\(?:\(|\)|\[|\]))/i;
 
-// This runs under node.js and is js (not ts) so can't use import.
-const { regex_split } = require("./regex-split");
+import { regex_split } from "./regex-split";
 
 //  The math is in blocks i through j, so
 //    collect it into one block and clear the others.
@@ -56,8 +55,7 @@ function process_math(i, j, pre_process, math, blocks, tags) {
 //
 
 // Do *NOT* conflict with the ones used in ./markdown-utils.ts
-const MATH_ESCAPE = "\uFE32\uFE33"; // unused unicode -- hardcoded below too
-exports.MATH_ESCAPE = MATH_ESCAPE;
+export const MATH_ESCAPE = "\uFE32\uFE33"; // unused unicode -- hardcoded below too
 
 const DEFAULT_TAGS = {
   open: MATH_ESCAPE,
@@ -66,12 +64,12 @@ const DEFAULT_TAGS = {
   display_close: MATH_ESCAPE,
 };
 
-function remove_math(text, tags = DEFAULT_TAGS) {
-  let math = []; // stores math strings for later
-  let start;
-  let end;
-  let last;
-  let braces;
+export function remove_math(text: string, tags = DEFAULT_TAGS) {
+  let math: string[] = []; // stores math strings for later
+  let start: number | null = null;
+  let end: string | null = null;
+  let last: number | null = null;
+  let braces: number = 0;
 
   // Except for extreme edge cases, this should catch precisely those pieces of the markdown
   // source that will later be turned into code spans. While MathJax will not TeXify code spans,
@@ -88,7 +86,7 @@ function remove_math(text, tags = DEFAULT_TAGS) {
         return wholematch.replace(/\$/g, "~D");
       });
     de_tilde = function (text) {
-      return text.replace(/~([TD])/g, function (wholematch, character) {
+      return text.replace(/~([TD])/g, function (_wholematch, character) {
         return { T: "~", D: "$" }[character];
       });
     };
@@ -101,7 +99,7 @@ function remove_math(text, tags = DEFAULT_TAGS) {
   let blocks = regex_split(text.replace(/\r\n?/g, "\n"), MATHSPLIT);
 
   for (let i = 1, m = blocks.length; i < m; i += 2) {
-    const block = blocks[i];
+    const block = blocks[i] as string;
     if (start) {
       //
       //  If we are in math, look for the end delimiter,
@@ -159,17 +157,16 @@ function remove_math(text, tags = DEFAULT_TAGS) {
   }
   return [de_tilde(blocks.join("")), math];
 }
-exports.remove_math = remove_math;
 
 //
 //  Put back the math strings that were saved.
 //
-function replace_math(text, math, tags) {
+export function replace_math(text, math, tags?) {
   // Replace all the math group placeholders in the text
   // with the saved strings.
   if (tags == null) {
     // Easy to do with a regexp
-    return text.replace(/\uFE32\uFE33(\d+)\uFE32\uFE33/g, function (match, n) {
+    return text.replace(/\uFE32\uFE33(\d+)\uFE32\uFE33/g, function (_match, n) {
       return math[n];
     });
   } else {
@@ -197,5 +194,3 @@ function replace_math(text, math, tags) {
     return text;
   }
 }
-
-exports.replace_math = replace_math;

@@ -153,7 +153,7 @@ export default async function handleMessage(
       }
       if (mesg.id != null) {
         // send back confirmation that a signal was sent
-        socket.write_mesg("json", message.signal_sent({ id: mesg.id }));
+        socket.write_mesg("json", message.success({ id: mesg.id }));
       }
       return;
 

@@ -19,6 +19,14 @@ export default function moduleRules(
   return {
     rules: [
       {
+        // TypeScript emits ESM without .js extensions in import specifiers,
+        // but dist-esm/package.json declares "type":"module" which makes
+        // rspack enforce fully-specified imports. Disable that requirement.
+        test: /\.js$/,
+        include: /dist-esm/,
+        resolve: { fullySpecified: false },
+      },
+      {
         test: /\.(js|jsx|ts|tsx|mjs|cjs)$/,
         // the swc-loader absolutely mangles some upstream libraries so they
         // are totally broken!  Examples include: jquery and react-virtuoso.

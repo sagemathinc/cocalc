@@ -135,6 +135,7 @@ src/go-landing
 
 **/dist
 **/dist/
+**/dist-esm/
 **/dist-measure/
 **/dist-prod/
 **/dist-prod-measure/

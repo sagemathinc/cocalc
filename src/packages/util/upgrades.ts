@@ -1,16 +1,15 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-const { PROJECT_UPGRADES } = require("./schema");
-
-const misc = require("./misc");
+import { PROJECT_UPGRADES } from "./schema";
+import { cmp, map_sum } from "./misc";
 
 // This is used by the frontend in r_account.  It's also used by the backend
 // to double check the claims of the frontend.
 // stripe_subscriptions_data = stripe_customer?.subscriptions?.data
-function get_total_upgrades(stripe_subscriptions_data, DEBUG = false) {
+export function get_total_upgrades(stripe_subscriptions_data, DEBUG = false) {
   if (DEBUG) {
     return PROJECT_UPGRADES.subscription.professional.benefits;
   }
@@ -22,7 +21,7 @@ function get_total_upgrades(stripe_subscriptions_data, DEBUG = false) {
   // always running isn't in any of the subscriptions and I don't want to edit benefits
   // for all of them, so just put a zero 0 (since this whole old upgrades thing
   // will eventually go away). https://github.com/sagemathinc/cocalc/issues/4802
-  let total = { always_running: 0 };
+  let total: Record<string, number> = { always_running: 0 };
   for (let sub of subs) {
     if (sub.status != "active" && sub.status != "trialing") {
       // not yet paid for or no longer available.
@@ -35,13 +34,11 @@ function get_total_upgrades(stripe_subscriptions_data, DEBUG = false) {
     }
     const benefits = info.benefits;
     for (let q = 0; q < sub.quantity; q++) {
-      total = misc.map_sum(total, benefits);
+      total = map_sum(total, benefits);
     }
   }
   return total;
 }
-
-exports.get_total_upgrades = get_total_upgrades;
 
 //
 // INPUT:
@@ -51,17 +48,17 @@ exports.get_total_upgrades = get_total_upgrades;
 // OUTPUT:
 //     {available:{cores:10, network:3, ...},   excess:{project_id:{cores:2, ...}}  }
 //
-function available_upgrades(stripe_subscriptions_data, projects) {
+export function available_upgrades(stripe_subscriptions_data, projects) {
   let project_id, upgrades;
   const available = get_total_upgrades(stripe_subscriptions_data); // start with amount available being your quota
-  const excess = {}; // nothing exceeds quota
+  const excess: Record<string, Record<string, number>> = {}; // nothing exceeds quota
   // sort projects by project_id so that excess will be well defined
-  const v = [];
+  const v: { project_id: string; upgrades: any }[] = [];
   for (project_id in projects) {
     upgrades = projects[project_id];
     v.push({ project_id, upgrades });
   }
-  v.sort((a, b) => misc.cmp(a.project_id, b.project_id));
+  v.sort((a, b) => cmp(a.project_id, b.project_id));
   for ({ project_id, upgrades } of v) {
     for (let prop in upgrades) {
       const curval = upgrades[prop];
@@ -83,7 +80,6 @@ function available_upgrades(stripe_subscriptions_data, projects) {
   }
   return { available, excess };
 }
-exports.available_upgrades = available_upgrades;
 
 // INPUT: same as above, but also a single project_id
 //
@@ -93,13 +89,10 @@ exports.available_upgrades = available_upgrades;
 //      {cores:2, network:1, disk_quota:2000, memory:1000}
 //
 //
-function upgrade_maxes(stripe_subscriptions_data, projects, project_id) {
-  const { available, excess } = available_upgrades(
-    stripe_subscriptions_data,
-    projects,
-  );
+export function upgrade_maxes(stripe_subscriptions_data, projects, project_id) {
+  const { available } = available_upgrades(stripe_subscriptions_data, projects);
   const allocated = projects[project_id];
-  const maxes = {};
+  const maxes: Record<string, number> = {};
   for (let param in available) {
     const avail = available[param];
     const max = PROJECT_UPGRADES.max_per_project[param]; // the maximum allowed for this param for any project
@@ -108,5 +101,3 @@ function upgrade_maxes(stripe_subscriptions_data, projects, project_id) {
   }
   return maxes;
 }
-
-exports.upgrade_maxes = upgrade_maxes;
