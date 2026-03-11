@@ -30,6 +30,11 @@ export function migrateToNary(tree: ImmutableFrameTree): ImmutableFrameTree {
   const first = tree.get("first");
   const second = tree.get("second");
   if (!first && !second) return tree; // leaf — nothing to do
+  // Handle one-sided legacy splits: promote the single child directly
+  if (!first || !second) {
+    const child = first || second;
+    return migrateToNary(child);
+  }
   const pos = tree.get("pos") ?? 0.5;
   const migratedFirst = migrateToNary(first);
   const migratedSecond = migrateToNary(second);
@@ -61,6 +66,16 @@ export function set(tree: ImmutableFrameTree, obj: any): ImmutableFrameTree {
       for (const k in obj) {
         const v = obj[k];
         if (k !== "id") {
+          // Translate legacy "pos" into N-ary "sizes" when the node
+          // uses children/sizes (callers like show_pages still write pos).
+          if (k === "pos" && v != null && node.has("children")) {
+            const n = node.get("children").size;
+            if (n === 2) {
+              node = node.set("sizes", fromJS([v, 1 - v]));
+            }
+            // Don't store "pos" on N-ary nodes
+            continue;
+          }
           if (v == null) {
             // null or undefined means "delete", just like with syncdb
             node = node.delete(k);

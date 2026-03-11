@@ -239,6 +239,9 @@ export function FrameDndProvider({ actions, children }: Props) {
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const data = activeData;
+      // Capture zone info BEFORE resetting drag state, since
+      // resetDragState() clears dropZoneRef.current.
+      const savedZoneInfo = dropZoneRef.current;
       resetDragState();
 
       if (!data || !event.over) return;
@@ -282,7 +285,7 @@ export function FrameDndProvider({ actions, children }: Props) {
       }
 
       const targetId = overData.frameId;
-      const zoneInfo = dropZoneRef.current;
+      const zoneInfo = savedZoneInfo;
       // Only use the zone if it was reported for the actual drop target;
       // otherwise fall back to "center" to prevent stale zones from a
       // previously hovered frame being applied to the wrong target.

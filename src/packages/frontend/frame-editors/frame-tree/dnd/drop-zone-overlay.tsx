@@ -88,7 +88,7 @@ export function DropZoneOverlay({
           top: titleBarHeight || 0,
           left: 0,
           right: 0,
-          height: `calc(25% - ${titleBarHeight / 2}px)`,
+          height: `calc(25% - ${titleBarHeight}px)`,
         }}
       />
       {/* Bottom zone */}
