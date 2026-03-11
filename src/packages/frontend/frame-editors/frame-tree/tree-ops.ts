@@ -8,7 +8,7 @@ Tree operations — supports both legacy binary (first/second/pos) and
 N-ary (children/sizes) representations.
 */
 
-import { fromJS } from "immutable";
+import { fromJS, List } from "immutable";
 import { FrameDirection, ImmutableFrameTree, SetMap } from "./types";
 import { len, uuid } from "@cocalc/util/misc";
 
@@ -21,11 +21,60 @@ export function migrateToNary(tree: ImmutableFrameTree): ImmutableFrameTree {
   // Already N-ary — recurse into children
   if (tree.has("children")) {
     const children = tree.get("children");
-    const newChildren = children.map((child: ImmutableFrameTree) =>
-      migrateToNary(child),
-    );
-    if (newChildren !== children) return tree.set("children", newChildren);
-    return tree;
+    const sizes = tree.get("sizes");
+    const nextChildren: ImmutableFrameTree[] = [];
+    const nextSizes: number[] = [];
+
+    children.forEach((child: ImmutableFrameTree, i: number) => {
+      const migrated = migrateToNary(child);
+      if (migrated == null) return;
+      nextChildren.push(migrated);
+      if (sizes && i < sizes.size) {
+        nextSizes.push(sizes.get(i));
+      }
+    });
+
+    if (nextChildren.length === 1) {
+      return nextChildren[0];
+    }
+
+    let node = tree;
+    const nextChildrenList = List(nextChildren);
+    if (!children.equals(nextChildrenList)) {
+      node = node.set("children", nextChildrenList);
+    }
+
+    if (tree.get("type") === "node" && nextChildren.length >= 2) {
+      let normalizedSizes: number[];
+      if (nextSizes.length === nextChildren.length) {
+        const total = nextSizes.reduce((sum, size) => sum + size, 0);
+        normalizedSizes =
+          total > 0
+            ? nextSizes.map((size) => size / total)
+            : Array(nextChildren.length).fill(1 / nextChildren.length);
+      } else {
+        normalizedSizes = Array(nextChildren.length).fill(
+          1 / nextChildren.length,
+        );
+      }
+      const nextSizesList = List(normalizedSizes);
+      if (!sizes || !sizes.equals(nextSizesList)) {
+        node = node.set("sizes", nextSizesList);
+      }
+    }
+
+    if (tree.get("type") === "tabs" && nextChildren.length >= 2) {
+      const activeTab = tree.get("activeTab") ?? 0;
+      const clampedActiveTab = Math.max(
+        0,
+        Math.min(activeTab, nextChildren.length - 1),
+      );
+      if (activeTab !== clampedActiveTab) {
+        node = node.set("activeTab", clampedActiveTab);
+      }
+    }
+
+    return node;
   }
   const first = tree.get("first");
   const second = tree.get("second");

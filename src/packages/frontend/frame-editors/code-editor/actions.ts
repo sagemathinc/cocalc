@@ -641,6 +641,12 @@ export class Actions<
       frame_tree = tree_ops.assign_ids(frame_tree);
       frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
       frame_tree = tree_ops.migrateToNary(frame_tree);
+      frame_tree = tree_ops.collapse_trivial(frame_tree);
+      try {
+        tree_ops.get_some_leaf_id(frame_tree);
+      } catch {
+        frame_tree = this._default_frame_tree();
+      }
     }
     local_view_state = local_view_state.set("frame_tree", frame_tree);
 
@@ -813,6 +819,7 @@ export class Actions<
     frame_tree = tree_ops.assign_ids(frame_tree);
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
     frame_tree = tree_ops.migrateToNary(frame_tree);
+    frame_tree = tree_ops.collapse_trivial(frame_tree);
     return frame_tree;
   }
 

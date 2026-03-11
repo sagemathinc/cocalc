@@ -40,7 +40,8 @@ export const FrameLeafContainer: React.FC<Props> = ({
 }) => {
   const titleBarRef = useRef<HTMLDivElement>(null);
   const [titleBarHeight, setTitleBarHeight] = useState(0);
-  const { tabContainerId, tabSiblingCount } = useContext(TabContainerContext);
+  const { tabContainerId, tabSiblingCount, tabChildIds } =
+    useContext(TabContainerContext);
 
   useEffect(() => {
     const el = titleBarRef.current;
@@ -54,8 +55,8 @@ export const FrameLeafContainer: React.FC<Props> = ({
   const { setDropZone } = useContext(FrameDndZoneContext);
 
   const tabInfo = useMemo(
-    () => ({ tabContainerId, tabSiblingCount }),
-    [tabContainerId, tabSiblingCount],
+    () => ({ tabContainerId, tabSiblingCount, tabChildIds }),
+    [tabContainerId, tabSiblingCount, tabChildIds],
   );
 
   const { dropRef, isOver, isDragActive, activeZone, onPointerMove } =

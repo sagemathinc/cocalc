@@ -8,7 +8,7 @@
 // alive); inactive tabs are hidden with display:none so that state like
 // CodeMirror scroll positions is preserved across tab switches.
 
-import React, { useCallback, useContext, useMemo, useRef } from "react";
+import React, { useCallback, useContext, useMemo } from "react";
 import { useDraggable, useDroppable, useDndContext } from "@dnd-kit/core";
 import { ConfigProvider, Dropdown, Tabs } from "antd";
 import type { MenuProps } from "antd";
@@ -31,7 +31,8 @@ import { has_id } from "./tree-ops";
 export const TabContainerContext = React.createContext<{
   tabContainerId: string | null;
   tabSiblingCount: number;
-}>({ tabContainerId: null, tabSiblingCount: 0 });
+  tabChildIds: string[];
+}>({ tabContainerId: null, tabSiblingCount: 0, tabChildIds: [] });
 
 /**
  * DraggableTabLabel — wraps each tab's label to make it a drag source
@@ -91,25 +92,10 @@ function DraggableTabLabel({
     active.data.current.frameId !== frameId;
   const showGap = isOver && isSiblingDrag;
 
-  // Measure the DRAGGED tab's width (not the hovered tab, to avoid a
-  // feedback loop where marginLeft inflates our own .ant-tabs-tab).
-  const sourceTabWidthRef = useRef(0);
-  if (showGap && active) {
-    // Find the dragged tab's DOM node via its droppable sibling ID
-    const sourceFrameId = active.data.current?.frameId;
-    if (sourceFrameId && sourceTabWidthRef.current === 0) {
-      const sourceEl = document.querySelector(
-        `[data-frame-tab-id="${sourceFrameId}"]`,
-      );
-      const sourceTab = sourceEl?.closest(".ant-tabs-tab") as HTMLElement;
-      if (sourceTab) {
-        sourceTabWidthRef.current = sourceTab.offsetWidth;
-      }
-    }
-  } else {
-    sourceTabWidthRef.current = 0;
-  }
-  const gapWidth = showGap ? sourceTabWidthRef.current || 60 : 0;
+  // Keep the full tab pill droppable and only shift the visible label
+  // inside it; using layout-affecting margin here makes the tab itself move,
+  // which can work against hover targeting during reorder.
+  const previewOffset = showGap ? 12 : 0;
 
   // Drag ref stays on the label span; drop ref expands to the full
   // .ant-tabs-tab wrapper so the entire tab pill is a valid drop target
@@ -135,8 +121,13 @@ function DraggableTabLabel({
         maxWidth: 150,
         cursor: isDragging ? "grabbing" : "grab",
         opacity: isDragging ? 0.5 : 1,
-        marginLeft: gapWidth,
-        transition: "margin-left 0.15s ease",
+        transform: `translateX(${previewOffset}px)`,
+        transition:
+          "transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease",
+        boxShadow: showGap ? `inset 2px 0 0 ${COLORS.BLUE_D}` : undefined,
+        background: showGap ? `${COLORS.BLUE_D}12` : undefined,
+        borderRadius: 4,
+        paddingLeft: showGap ? 6 : 0,
         gap: 4,
       }}
     >
@@ -203,8 +194,9 @@ export function TabsContainer({
   // (e.g. close_frame, DnD operations) that only update active_id.
   const activeTab = useMemo(() => {
     if (!active_id || !children) return storedActiveTab;
-    const idx = children.findIndex((child: Map<string, any>) =>
-      child.get("id") === active_id || has_id(child, active_id),
+    const idx = children.findIndex(
+      (child: Map<string, any>) =>
+        child.get("id") === active_id || has_id(child, active_id),
     );
     return idx >= 0 ? idx : storedActiveTab;
   }, [active_id, children, storedActiveTab]);
@@ -236,9 +228,8 @@ export function TabsContainer({
   // whether the dragged frame is already in this container)
   const childIds = useMemo(
     () =>
-      children
-        ?.map((c: Map<string, any>) => c.get("id") as string)
-        .toArray() ?? [],
+      children?.map((c: Map<string, any>) => c.get("id") as string).toArray() ??
+      [],
     [children],
   );
 
@@ -252,7 +243,7 @@ export function TabsContainer({
         const rawLabel = spec?.short ?? spec?.name ?? type;
         const childPath: string | undefined = child.get("path");
         const label = childPath
-          ? (path_split(childPath).tail || type)
+          ? path_split(childPath).tail || type
           : type === "node"
             ? "Split"
             : isIntlMessage(rawLabel)
@@ -344,8 +335,9 @@ export function TabsContainer({
     () => ({
       tabContainerId: tabsId,
       tabSiblingCount: children?.size ?? 0,
+      tabChildIds: childIds,
     }),
-    [tabsId, children?.size],
+    [tabsId, children?.size, childIds],
   );
 
   if (!children || children.size === 0) {

@@ -54,6 +54,7 @@ export function computeDropZone(
 interface TabContainerInfo {
   tabContainerId: string | null;
   tabSiblingCount: number;
+  tabChildIds?: string[];
 }
 
 export function useFrameDropZone(
@@ -74,6 +75,7 @@ export function useFrameDropZone(
       frameId,
       frameLabel,
       tabContainerId: tabInfo?.tabContainerId ?? null,
+      tabChildIds: tabInfo?.tabChildIds ?? [],
     },
   });
   const isDragActive = active?.data?.current?.type === "frame-drag";

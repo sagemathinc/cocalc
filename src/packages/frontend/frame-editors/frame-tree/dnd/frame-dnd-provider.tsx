@@ -33,6 +33,29 @@ export interface FrameDragData {
   frameLabel: string;
 }
 
+function isEdgeZone(
+  zone: DropZone,
+): zone is "top" | "bottom" | "left" | "right" {
+  return (
+    zone === "top" || zone === "bottom" || zone === "left" || zone === "right"
+  );
+}
+
+export function shouldExtractTabFromDrop(
+  sourceId: string,
+  zone: DropZone,
+  overData?: {
+    tabContainerId?: string | null;
+    tabChildIds?: string[];
+  } | null,
+): boolean {
+  return (
+    isEdgeZone(zone) &&
+    overData?.tabContainerId != null &&
+    overData.tabChildIds?.includes(sourceId) === true
+  );
+}
+
 /** Context for child drop zones to report active zone to the provider. */
 export const FrameDndZoneContext = React.createContext<{
   setDropZone: (frameId: string, zone: DropZone) => void;
@@ -206,10 +229,14 @@ export function FrameDndProvider({ actions, children }: Props) {
       }
 
       if (overData?.type === "frame-drop" && overData.frameLabel) {
-        const isSelf = overData.frameId === activeDataRef.current?.frameId;
-        setIsSelfHover(isSelf);
-        if (isSelf) {
-          // Self-hover: check if tab extraction is possible
+        const sourceId = activeDataRef.current?.frameId;
+        const isSelf = overData.frameId === sourceId;
+        const isSameTabContainer =
+          !!sourceId && overData.tabChildIds?.includes(sourceId);
+        setIsSelfHover(isSelf || isSameTabContainer);
+        if (isSelf || isSameTabContainer) {
+          // Same tab container: edge zones extract the dragged tab from the
+          // container instead of splitting a child inside it.
           setSelfHoverTabContainerId(overData.tabContainerId ?? null);
           setDropTarget(null);
         } else {
@@ -290,14 +317,11 @@ export function FrameDndProvider({ actions, children }: Props) {
       // otherwise fall back to "center" to prevent stale zones from a
       // previously hovered frame being applied to the wrong target.
       const zone =
-        zoneInfo?.frameId === targetId
-          ? zoneInfo!.zone || "center"
-          : "center";
+        zoneInfo?.frameId === targetId ? zoneInfo!.zone || "center" : "center";
 
       if (sourceId === targetId) {
         // Self-drop: extract tab from tab container if on an edge zone
-        const tabContainerId = overData.tabContainerId;
-        if (tabContainerId && zone !== "center" && zone !== "tab") {
+        if (shouldExtractTabFromDrop(sourceId, zone, overData)) {
           actions.extract_tab(sourceId, zone);
         }
         return;
@@ -308,6 +332,10 @@ export function FrameDndProvider({ actions, children }: Props) {
       } else if (zone === "tab") {
         actions.move_frame(sourceId, targetId, "tab");
       } else {
+        if (shouldExtractTabFromDrop(sourceId, zone, overData)) {
+          actions.extract_tab(sourceId, zone);
+          return;
+        }
         // When the target is inside a tab container, split the tab
         // container itself rather than nesting a split node inside it.
         const tabContainerId = overData.tabContainerId;

@@ -1,4 +1,16 @@
+jest.mock(
+  "@cocalc/frontend/components/dnd",
+  () => ({
+    MOUSE_SENSOR_OPTIONS: {},
+    TOUCH_SENSOR_OPTIONS: {},
+    DRAG_OVERLAY_MODIFIERS: [],
+    DragOverlayContent: () => null,
+  }),
+  { virtual: true },
+);
+
 import { computeDropZone } from "../use-frame-drop-zone";
+import { shouldExtractTabFromDrop } from "../frame-dnd-provider";
 
 function makeRect({
   left = 0,
@@ -46,5 +58,40 @@ describe("computeDropZone", () => {
     expect(computeDropZone(rect, 5, 10, 0)).toBe("left");
     expect(computeDropZone(rect, 188, 4, 0)).toBe("top");
     expect(computeDropZone(rect, 192, 20, 0)).toBe("right");
+  });
+});
+
+describe("shouldExtractTabFromDrop", () => {
+  it("extracts when dragging a tab to an edge inside its own tab container", () => {
+    expect(
+      shouldExtractTabFromDrop("a", "left", {
+        tabContainerId: "tabs1",
+        tabChildIds: ["a", "b", "c"],
+      }),
+    ).toBe(true);
+  });
+
+  it("does not extract for non-edge zones", () => {
+    expect(
+      shouldExtractTabFromDrop("a", "center", {
+        tabContainerId: "tabs1",
+        tabChildIds: ["a", "b", "c"],
+      }),
+    ).toBe(false);
+    expect(
+      shouldExtractTabFromDrop("a", "tab", {
+        tabContainerId: "tabs1",
+        tabChildIds: ["a", "b", "c"],
+      }),
+    ).toBe(false);
+  });
+
+  it("does not extract when dragging an external frame over a tab container edge", () => {
+    expect(
+      shouldExtractTabFromDrop("external", "right", {
+        tabContainerId: "tabs1",
+        tabChildIds: ["a", "b", "c"],
+      }),
+    ).toBe(false);
   });
 });

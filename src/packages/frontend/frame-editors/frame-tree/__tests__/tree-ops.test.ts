@@ -85,6 +85,30 @@ describe("migrateToNary", () => {
     expect(result.get("type")).toBe("cm");
     expect(result.has("children")).toBe(false);
   });
+
+  it("promotes a one-sided legacy split to its single child", () => {
+    const tree = makeTree({
+      type: "node",
+      direction: "col",
+      first: { type: "terminal" },
+    });
+    const result = migrateToNary(tree);
+    expect(result.get("type")).toBe("terminal");
+    expect(result.has("children")).toBe(false);
+  });
+
+  it("collapses malformed N-ary nodes with only one surviving child", () => {
+    const tree = fromJS({
+      id: "root",
+      type: "node",
+      direction: "col",
+      children: [{ id: "a", type: "terminal" }, null],
+      sizes: [0.7, 0.3],
+    }) as ImmutableFrameTree;
+    const result = migrateToNary(tree);
+    expect(result.get("id")).toBe("a");
+    expect(result.get("type")).toBe("terminal");
+  });
 });
 
 describe("swap_nodes", () => {
