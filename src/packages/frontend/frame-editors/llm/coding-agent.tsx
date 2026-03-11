@@ -137,6 +137,12 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   if (prevSessionIdRef.current !== session.sessionId) {
     prevSessionIdRef.current = session.sessionId;
     if (editsApplied) setEditsApplied(false);
+    // Cancel any pending SHOW auto-continuation — it belongs to the
+    // previous session and must not fire into the new one.
+    if (showTimerRef.current) {
+      clearTimeout(showTimerRef.current);
+      showTimerRef.current = null;
+    }
   }
 
   // Ref to always call the latest handleSubmit so auto-continuation
@@ -444,22 +450,32 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
                   msg_event: "show_lines",
                   session_id: activeSessionId,
                 });
-                // Track the timer so it can be cancelled on
-                // unmount, Stop, or session switch.
-                showTimerRef.current = setTimeout(() => {
-                  showTimerRef.current = null;
-                  handleSubmitRef.current(
-                    "Here are the lines you requested. Continue with your task.",
-                  );
-                }, 100);
+                // Check for command blocks BEFORE scheduling auto-
+                // continuation — if exec blocks exist, the user needs
+                // to run them first, so we don't auto-continue.
+                const execBlocks = parseExecBlocks(assistantContent);
+                if (execBlocks.length > 0) {
+                  setPendingExec(execBlocks);
+                } else {
+                  // Track the timer so it can be cancelled on
+                  // unmount, Stop, or session switch.
+                  const sessionAtShow = activeSessionId;
+                  showTimerRef.current = setTimeout(() => {
+                    showTimerRef.current = null;
+                    // Guard: only auto-continue if still in the same session.
+                    if (session.sessionIdRef.current !== sessionAtShow) return;
+                    handleSubmitRef.current(
+                      "Here are the lines you requested. Continue with your task.",
+                    );
+                  }, 100);
+                }
+              } else {
+                // No SHOW blocks — check for command blocks only.
+                const execBlocks = parseExecBlocks(assistantContent);
+                if (execBlocks.length > 0) {
+                  setPendingExec(execBlocks);
+                }
               }
-
-              // Check for command blocks
-              const execBlocks = parseExecBlocks(assistantContent);
-              if (execBlocks.length > 0) {
-                setPendingExec(execBlocks);
-              }
-            }
 
             // Session naming is user-triggered via the magic wand button
             // in the session bar — no automatic LLM calls.
