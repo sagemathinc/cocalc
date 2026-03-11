@@ -75,12 +75,18 @@ function Chat({ font_size, desc }: EditorComponentProps) {
   useEffect(() => {
     let checkInterval: ReturnType<typeof setInterval> | undefined;
     let safetyTimeout: ReturnType<typeof setTimeout> | undefined;
+    // Guard against the async IIFE resuming after unmount — if the
+    // component unmounts during the await, cleanup runs first, then
+    // the IIFE resumes and would create an uncleaned setInterval.
+    let mounted = true;
 
     (async () => {
       // properly set the side chat compute server, if necessary
       await redux
         .getProjectActions(project_id)
         .setSideChatComputeServerId(path0);
+      if (!mounted) return;
+
       const sideChatActions = initChat(project_id, path);
       sideChatActions.frameTreeActions = actions;
       sideChatActions.frameId = frameId;
@@ -93,6 +99,11 @@ function Chat({ font_size, desc }: EditorComponentProps) {
         setChatSyncdbReady(true);
       } else {
         checkInterval = setInterval(() => {
+          if (!mounted) {
+            clearInterval(checkInterval);
+            checkInterval = undefined;
+            return;
+          }
           if (sideChatActions.syncdb) {
             clearInterval(checkInterval);
             checkInterval = undefined;
@@ -110,6 +121,7 @@ function Chat({ font_size, desc }: EditorComponentProps) {
     })();
 
     return () => {
+      mounted = false;
       if (checkInterval) clearInterval(checkInterval);
       if (safetyTimeout) clearTimeout(safetyTimeout);
     };

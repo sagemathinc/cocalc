@@ -351,18 +351,26 @@ function scrollToCell(
 /**
  * Run a batch of tool calls, re-reading cell_list after any mutation.
  * Scrolls the notebook to show the affected cell after each mutation.
+ *
+ * @param cancelRef — when `.current` becomes `true`, the batch aborts
+ *   early and any in-progress `runCell` poll stops immediately.
  */
 export async function runToolBatch(
   toolCalls: ToolCall[],
   jupyterActions: JupyterActions,
   language: string,
   editorActions?: JupyterEditorActions,
+  cancelRef?: { current: boolean },
 ): Promise<string[]> {
   const store = jupyterActions.store;
   let cellList: string[] = store.get("cell_list")?.toJS() ?? [];
   const results: string[] = [];
 
   for (const tc of toolCalls) {
+    // Check for cancellation between tool calls so we don't
+    // run the next tool (potentially a 120s runCell) after Stop.
+    if (cancelRef?.current) break;
+
     let affectedCellId: string | undefined;
     try {
       const result = await runSingleTool(
@@ -370,6 +378,7 @@ export async function runToolBatch(
         jupyterActions,
         cellList,
         language,
+        cancelRef,
       );
       results.push(`**${tc.name}**: ${result}`);
 
@@ -413,6 +422,7 @@ async function runSingleTool(
   jupyterActions: JupyterActions,
   cellList: string[],
   language: string,
+  cancelRef?: { current: boolean },
 ): Promise<string> {
   const store = jupyterActions.store;
 
@@ -546,7 +556,7 @@ async function runSingleTool(
     case "run_cell": {
       const res = resolveIndex(toolCall.args.index, cellList);
       if ("error" in res) return JSON.stringify(res);
-      return await runCell(jupyterActions, res.cellId, toolCall.args.index);
+      return await runCell(jupyterActions, res.cellId, toolCall.args.index, cancelRef);
     }
 
     default:
@@ -572,6 +582,7 @@ export async function runCell(
   jupyterActions: JupyterActions,
   cellId: string,
   cellIndex: number,
+  cancelRef?: { current: boolean },
 ): Promise<string> {
   const invokedAt = Date.now();
   jupyterActions.run_cell(cellId, true);
@@ -581,6 +592,12 @@ export async function runCell(
 
   const timedOut = await new Promise<boolean>((resolve) => {
     const check = () => {
+      // Abort immediately when cancelled — don't keep polling for
+      // up to 120s after the user clicks Stop or the component unmounts.
+      if (cancelRef?.current) {
+        resolve(true);
+        return;
+      }
       if (Date.now() >= deadline) {
         resolve(true);
         return;

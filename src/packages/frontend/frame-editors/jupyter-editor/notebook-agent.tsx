@@ -17,7 +17,7 @@ management.  This file contains notebook-agent-specific logic:
 - Confirm-to-run cell execution (run_cell)
 */
 
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux } from "@cocalc/frontend/app-framework";
@@ -217,6 +217,28 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
   const inputLockedRef = useRef(false);
   const llmStreamRef = useRef<any>(null);
   const lastSubmittedRef = useRef("");
+  // Stored resolve function for the pending runLlmTurn Promise.
+  // Cancel/unmount calls this so the Promise settles and handleSubmit
+  // reaches its finally block instead of hanging forever.
+  const llmResolveRef = useRef<((value: string) => void) | null>(null);
+
+  // ---- Cleanup on unmount ----
+  // Settle any pending LLM promise, then detach the stream so callbacks
+  // don't fire on unmounted state.
+  useEffect(() => {
+    return () => {
+      llmResolveRef.current?.("");
+      llmResolveRef.current = null;
+      const stream = llmStreamRef.current;
+      if (stream) {
+        stream.removeAllListeners();
+        // Keep a no-op error handler so late transport errors don't
+        // become uncaught EventEmitter exceptions.
+        stream.on("error", () => {});
+        llmStreamRef.current = null;
+      }
+    };
+  }, []);
 
   // Context snapshot (taken on input focus)
   const notebookContextRef = useRef<NotebookContext | null>(null);
@@ -258,6 +280,7 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
     ): Promise<string> => {
       return new Promise<string>((resolve, reject) => {
         let assistantContent = "";
+        llmResolveRef.current = resolve;
         const stream = webapp_client.openai_client.queryStream({
           input: prompt,
           system,
@@ -270,6 +293,7 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
 
         stream.on("token", (token: string | null) => {
           if (session.cancelRef.current) {
+            llmResolveRef.current = null;
             resolve(assistantContent);
             return;
           }
@@ -291,12 +315,14 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
               return updated;
             });
           } else {
+            llmResolveRef.current = null;
             llmStreamRef.current = null;
             resolve(assistantContent);
           }
         });
 
         stream.on("error", (err: Error) => {
+          llmResolveRef.current = null;
           llmStreamRef.current = null;
           reject(err);
         });
@@ -308,7 +334,9 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
   // ---- Submit handler with tool-calling loop ----
   const handleSubmit = useCallback(async (directInput?: string) => {
     const prompt = (directInput ?? input).trim();
-    if (!prompt || session.generating) return;
+    // Use the ref (not React state) to avoid the batching window where
+    // `session.generating` is still false even though we've started.
+    if (!prompt || session.generatingRef.current) return;
 
     session.setError("");
     session.cancelRef.current = false;
@@ -392,7 +420,9 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
           jupyterActions,
           ctx.language,
           actions as JupyterEditorActions,
+          session.cancelRef,
         );
+        if (session.cancelRef.current) break;
 
         const toolResultContent = results.join("\n\n");
         session.writeMessage({
@@ -422,7 +452,6 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
     input,
     actions,
     session.messages,
-    session.generating,
     session.sessionId,
     session.writeMessage,
     session.setGenerating,
@@ -520,6 +549,17 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
         session={session}
         onSubmit={() => handleSubmit()}
         onCancel={() => {
+          // Settle the pending runLlmTurn promise so handleSubmit
+          // reaches its finally block instead of hanging forever.
+          llmResolveRef.current?.("");
+          llmResolveRef.current = null;
+          // Detach the stream so no more tokens are processed.
+          const stream = llmStreamRef.current;
+          if (stream) {
+            stream.removeAllListeners();
+            stream.on("error", () => {});
+            llmStreamRef.current = null;
+          }
           inputLockedRef.current = false;
           setInput(lastSubmittedRef.current);
           setInputKey((k) => k + 1);

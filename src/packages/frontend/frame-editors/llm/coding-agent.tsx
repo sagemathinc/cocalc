@@ -150,7 +150,13 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const inputLockedRef = useRef(false);
 
   // Active LLM stream ref — allows cancel to stop processing tokens.
-  const streamRef = useRef<{ removeAllListeners: () => void } | null>(null);
+  const streamRef = useRef<{
+    removeAllListeners: () => void;
+    on: (event: string, handler: (...args: any[]) => void) => void;
+  } | null>(null);
+  // SHOW auto-continuation timer — cleared on unmount/cancel/session switch
+  // to prevent stale callbacks firing into the wrong session.
+  const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ---- Cleanup on unmount ----
   // Clear pending timers and detach any active stream so callbacks
@@ -160,8 +166,17 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
       if (estimateTimeoutRef.current) {
         clearTimeout(estimateTimeoutRef.current);
       }
-      streamRef.current?.removeAllListeners();
-      streamRef.current = null;
+      if (showTimerRef.current) {
+        clearTimeout(showTimerRef.current);
+      }
+      const stream = streamRef.current;
+      if (stream) {
+        stream.removeAllListeners();
+        // Keep a no-op error handler so late transport/auth errors
+        // don't become uncaught EventEmitter exceptions.
+        stream.on("error", () => {});
+        streamRef.current = null;
+      }
     };
   }, []);
 
@@ -248,7 +263,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const handleSubmit = useCallback(
     async (directInput?: string) => {
       const prompt = (directInput ?? input).trim();
-      if (!prompt || session.generating) return;
+      // Use the ref (not React state) to avoid the batching window where
+      // `session.generating` is still false even though we've started.
+      if (!prompt || session.generatingRef.current) return;
 
       setPendingEdits(undefined);
       setPendingExec([]);
@@ -345,9 +362,10 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
         llmStream.on("token", (token: string | null) => {
           if (session.cancelRef.current) {
-            // Stop processing and detach all listeners so the stream
-            // callback is not invoked for remaining tokens.
+            // Stop processing and detach listeners so no more tokens
+            // are handled.  Keep a no-op error handler for safety.
             llmStream.removeAllListeners();
+            llmStream.on("error", () => {});
             streamRef.current = null;
             return;
           }
@@ -426,7 +444,10 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
                   msg_event: "show_lines",
                   session_id: activeSessionId,
                 });
-                setTimeout(() => {
+                // Track the timer so it can be cancelled on
+                // unmount, Stop, or session switch.
+                showTimerRef.current = setTimeout(() => {
+                  showTimerRef.current = null;
                   handleSubmitRef.current(
                     "Here are the lines you requested. Continue with your task.",
                   );
@@ -469,7 +490,6 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     [
       input,
       session.messages,
-      session.generating,
       session.sessionId,
       actions,
       path,
@@ -838,6 +858,20 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         session={session}
         onSubmit={() => handleSubmit()}
         onCancel={() => {
+          // Detach the stream so no more tokens are processed after
+          // the user clicks Stop.  Keep a no-op error handler so late
+          // transport errors don't become uncaught exceptions.
+          const stream = streamRef.current;
+          if (stream) {
+            stream.removeAllListeners();
+            stream.on("error", () => {});
+            streamRef.current = null;
+          }
+          // Cancel any pending SHOW auto-continuation.
+          if (showTimerRef.current) {
+            clearTimeout(showTimerRef.current);
+            showTimerRef.current = null;
+          }
           inputLockedRef.current = false;
           setInput(lastSubmittedRef.current);
           setInputKey((k) => k + 1);

@@ -429,6 +429,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
     setSessionId,
     messagesEndRef,
     cancelRef,
+    generatingRef,
     sessionIdRef,
     pendingNewSessionRef,
   };

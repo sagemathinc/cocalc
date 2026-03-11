@@ -62,6 +62,10 @@ export interface AgentSession {
   // Refs
   messagesEndRef: React.RefObject<HTMLDivElement | null>;
   cancelRef: React.MutableRefObject<boolean>;
+  /** Synchronous ref for the generating flag — use this in submit guards
+   *  to avoid the React-state-batching window where `generating` (state)
+   *  is still false even though generation has started. */
+  generatingRef: React.MutableRefObject<boolean>;
   sessionIdRef: React.MutableRefObject<string>;
   pendingNewSessionRef: React.MutableRefObject<string>;
 }

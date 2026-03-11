@@ -115,6 +115,12 @@ export function applySearchReplace(
   let applied = 0;
   let failed = 0;
   for (const { search, replace } of blocks) {
+    // Reject empty/whitespace-only search blocks — matching at offset 0
+    // or the first blank line would corrupt the document.
+    if (!search.trim()) {
+      failed++;
+      continue;
+    }
     const idx = result.indexOf(search);
     if (idx === -1) {
       // Try trimmed match as fallback (LLM sometimes adds/removes whitespace)
@@ -126,7 +132,12 @@ export function applySearchReplace(
           const lineStart =
             lines.slice(0, i).join("\n").length + (i > 0 ? 1 : 0);
           const lineEnd = lineStart + lines[i].length;
-          result = result.slice(0, lineStart) + replace + result.slice(lineEnd);
+          // Best-effort replacement: use the replacement text as-is.
+          // We don't re-indent because the replacement may already
+          // include indentation, and blindly prepending the original
+          // line's indent would double-indent.
+          result =
+            result.slice(0, lineStart) + replace + result.slice(lineEnd);
           applied++;
           found = true;
           break;
