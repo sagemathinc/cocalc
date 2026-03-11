@@ -281,7 +281,9 @@ export function FrameDndProvider({ actions, children }: Props) {
       // otherwise fall back to "center" to prevent stale zones from a
       // previously hovered frame being applied to the wrong target.
       const zone =
-        zoneInfo?.frameId === targetId ? zoneInfo.zone || "center" : "center";
+        zoneInfo?.frameId === targetId
+          ? zoneInfo!.zone || "center"
+          : "center";
 
       if (sourceId === targetId) {
         // Self-drop: extract tab from tab container if on an edge zone
