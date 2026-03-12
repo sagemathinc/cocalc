@@ -40,6 +40,8 @@ interface AgentMessagesProps {
    * Defaults to sender-based styling (user/assistant/system).
    */
   messageStyle?: (msg: DisplayMessage) => React.CSSProperties;
+  /** Font size in pixels — from the frame's zoom level. */
+  fontSize?: number;
 }
 
 function defaultMessageStyle(msg: DisplayMessage): React.CSSProperties {
@@ -60,11 +62,17 @@ export function AgentMessages({
   renderMessage,
   emptyText = "Send a message to get started.",
   messageStyle = defaultMessageStyle,
+  fontSize,
 }: AgentMessagesProps) {
   const { messages, generating, messagesEndRef } = session;
 
   return (
-    <div style={MESSAGES_STYLE}>
+    <div
+      style={{
+        ...MESSAGES_STYLE,
+        ...(fontSize != null ? { fontSize: `${fontSize}px` } : undefined),
+      }}
+    >
       {messages.length === 0 && (
         <Paragraph
           style={{

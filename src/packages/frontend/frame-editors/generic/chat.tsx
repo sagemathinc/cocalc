@@ -30,7 +30,7 @@ import { hasEmbeddedAgent } from "./has-embedded-agent";
 // Returns null for file types that don't support the coding agent.
 function getEmbeddedAgent(
   path: string,
-): ComponentType<{ chatSyncdb: any }> | null {
+): ComponentType<{ chatSyncdb: any; fontSize?: number }> | null {
   if (!hasEmbeddedAgent(path)) return null;
   if (path.endsWith(".ipynb")) return NotebookAgent;
   return CodingAgentEmbedded;
@@ -182,7 +182,10 @@ function Chat({ font_size, desc }: EditorComponentProps) {
         ) : (
           <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
             {EmbeddedAgent && (
-              <EmbeddedAgent chatSyncdb={sideChatActions.syncdb} />
+              <EmbeddedAgent
+                chatSyncdb={sideChatActions.syncdb}
+                fontSize={font_size}
+              />
             )}
           </div>
         )}

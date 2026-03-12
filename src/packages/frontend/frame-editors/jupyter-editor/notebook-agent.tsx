@@ -208,7 +208,13 @@ function formatToolResultForDisplay(content: string): React.ReactElement {
 /*  Component                                                          */
 /* ------------------------------------------------------------------ */
 
-export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
+export function NotebookAgent({
+  chatSyncdb,
+  fontSize,
+}: {
+  chatSyncdb: any;
+  fontSize?: number;
+}) {
   const { project_id, actions } = useFrameContext();
   const jupyterActions: JupyterActions = (actions as any).jupyter_actions;
   const [model, setModel] = useLanguageModelSetting(project_id);
@@ -547,6 +553,7 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
         session={session}
         renderMessage={renderMessage}
         messageStyle={messageStyle}
+        fontSize={fontSize}
         emptyText="Ask questions about your notebook, request changes, or ask the agent to run cells. (Shift+Enter to send)"
       />
 

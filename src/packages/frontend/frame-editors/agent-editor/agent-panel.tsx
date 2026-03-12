@@ -361,7 +361,7 @@ interface Turn {
 }
 
 export default function AgentPanel({ name }: EditorComponentProps) {
-  const { project_id, path, actions } = useFrameContext();
+  const { project_id, path, actions, font_size } = useFrameContext();
   const [model, setModel] = useLanguageModelSetting(project_id);
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
@@ -1042,7 +1042,12 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       {/* Messages — disable the code toolbar and render writefile blocks
            with proper language syntax highlighting */}
       <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
-        <div style={MESSAGES_STYLE}>
+        <div
+          style={{
+            ...MESSAGES_STYLE,
+            fontSize: `${font_size}px`,
+          }}
+        >
           {messages.length === 0 && (
             <Paragraph
               style={{

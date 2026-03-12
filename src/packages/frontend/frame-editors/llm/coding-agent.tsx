@@ -88,14 +88,20 @@ export default function CodingAgent(_props: EditorComponentProps) {
  * IMPORTANT: chatSyncdb must be a valid, ready SyncDB — the parent
  * component must wait for it before rendering this component.
  */
-export function CodingAgentEmbedded({ chatSyncdb }: { chatSyncdb: any }) {
+export function CodingAgentEmbedded({
+  chatSyncdb,
+  fontSize,
+}: {
+  chatSyncdb: any;
+  fontSize?: number;
+}) {
   if (chatSyncdb == null) {
     console.warn("CodingAgentEmbedded: chatSyncdb is null — not rendering");
     return null;
   }
   return (
     <AgentErrorBoundary>
-      <CodingAgentCore chatSyncdb={chatSyncdb} />
+      <CodingAgentCore chatSyncdb={chatSyncdb} fontSize={fontSize} />
     </AgentErrorBoundary>
   );
 }
@@ -104,8 +110,19 @@ export function CodingAgentEmbedded({ chatSyncdb }: { chatSyncdb: any }) {
 /*  Core component                                                     */
 /* ------------------------------------------------------------------ */
 
-function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
-  const { project_id, path, actions, id: frameId } = useFrameContext();
+function CodingAgentCore({
+  chatSyncdb,
+  fontSize: fontSizeProp,
+}: { chatSyncdb?: any; fontSize?: number } = {}) {
+  const {
+    project_id,
+    path,
+    actions,
+    id: frameId,
+    font_size: frameContextFontSize,
+  } = useFrameContext();
+  // Prefer the explicit prop (from embedded side-chat), fall back to frame context.
+  const fontSize = fontSizeProp ?? frameContextFontSize;
   const [model, setModel] = useLanguageModelSetting(project_id);
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
@@ -795,6 +812,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         <AgentMessages
           session={session}
           renderMessage={renderMessage}
+          fontSize={fontSize}
           emptyText="Ask the agent to help with your document. It can see the editor content, suggest edits, run shell commands, and trigger builds."
         />
       </FileContext.Provider>
