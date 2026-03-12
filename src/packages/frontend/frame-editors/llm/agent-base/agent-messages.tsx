@@ -79,6 +79,8 @@ export function AgentMessages({
             color: COLORS.GRAY_M,
             textAlign: "center",
             marginTop: 20,
+            marginLeft: 5,
+            marginRight: 5,
           }}
         >
           {emptyText}
