@@ -33,7 +33,7 @@ import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation"
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { three_way_merge } from "@cocalc/util/dmp";
-import { path_split, trunc, uuid } from "@cocalc/util/misc";
+import { filename_extension, path_split, trunc, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 import {
@@ -48,6 +48,7 @@ import {
   useAutoNameSession,
 } from "./agent-base";
 import type { DisplayMessage } from "./agent-base";
+import { RUN_COMMANDS } from "../code-editor/editor";
 import { CollapsibleDiffs } from "./coding-agent-components";
 import type { EditBlock, ExecBlock, SearchReplace } from "./coding-agent-types";
 import { DIFF_MAX_HEIGHT, TAG } from "./coding-agent-types";
@@ -104,7 +105,7 @@ export function CodingAgentEmbedded({ chatSyncdb }: { chatSyncdb: any }) {
 /* ------------------------------------------------------------------ */
 
 function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
-  const { project_id, path, actions } = useFrameContext();
+  const { project_id, path, actions, id: frameId } = useFrameContext();
   const [model, setModel] = useLanguageModelSetting(project_id);
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
@@ -699,7 +700,12 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     actions.build?.();
   }, [actions]);
 
+  const handleRunCode = useCallback(() => {
+    actions.run_code?.(frameId);
+  }, [actions, frameId]);
+
   const hasBuild = typeof actions.build === "function";
+  const hasRunCode = RUN_COMMANDS[filename_extension(path)] != null;
 
   // ---- Message renderer ----
   const renderMessage = useCallback(
@@ -770,11 +776,18 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         onAutoName={autoNameSession}
         onRename={() => setRenameModalOpen(true)}
         extraButtons={
-          hasBuild ? (
-            <Button size="small" onClick={handleBuild}>
-              <Icon name="play" /> Build
-            </Button>
-          ) : undefined
+          <>
+            {hasRunCode && (
+              <Button size="small" onClick={handleRunCode}>
+                <Icon name="play" /> Run
+              </Button>
+            )}
+            {hasBuild && (
+              <Button size="small" onClick={handleBuild}>
+                <Icon name="play" /> Build
+              </Button>
+            )}
+          </>
         }
       />
 
