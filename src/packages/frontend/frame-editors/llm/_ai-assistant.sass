@@ -15,3 +15,10 @@
   // When assistant mode is active, highlight the selected segment
   &.cc-chat-mode-assistant .ant-segmented-item-selected
     background: colors.$COL_AI_ASSISTANT_BG !important
+
+// App agent writefile blocks — height-limited code with smaller font
+.cc-agent-writefile-blocks
+  pre
+    max-height: 50vh
+    overflow: auto
+    font-size: 0.82em

@@ -41,6 +41,7 @@ import { Icon, Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
+import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { AgentInputArea } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-input-area";
@@ -300,6 +301,38 @@ function parseWriteFileBlocks(text: string): WriteFileBlock[] {
     });
   }
   return blocks;
+}
+
+/** Map file extension to markdown language hint for syntax highlighting. */
+const EXT_TO_LANG: Record<string, string> = {
+  html: "html",
+  htm: "html",
+  css: "css",
+  js: "javascript",
+  ts: "typescript",
+  tsx: "tsx",
+  jsx: "jsx",
+  json: "json",
+  py: "python",
+  md: "markdown",
+  svg: "xml",
+};
+
+/**
+ * Transform writefile blocks in assistant messages for display.
+ * Replaces ```writefile path``` with a file-path label + properly
+ * language-tagged fenced code block so StaticMarkdown renders
+ * syntax highlighting instead of a plain "writefile" block.
+ */
+function formatWriteFileBlocks(text: string): string {
+  return text.replace(
+    /```writefile\s+(\S+)\n([\s\S]*?)```/g,
+    (_match, filePath: string, content: string) => {
+      const ext = filePath.split(".").pop() ?? "";
+      const lang = EXT_TO_LANG[ext] ?? ext;
+      return `**\u2192 ${filePath}**\n\`\`\`${lang}\n${content}\`\`\``;
+    },
+  );
 }
 
 /**
@@ -1006,47 +1039,54 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         </div>
       )}
 
-      {/* Messages */}
-      <div style={MESSAGES_STYLE}>
-        {messages.length === 0 && (
-          <Paragraph
-            style={{
-              color: COLORS.GRAY_M,
-              textAlign: "center",
-              marginTop: 20,
-            }}
-          >
-            Describe the application you want to build. The agent will create
-            files and the result will appear in the App preview on the right.
-          </Paragraph>
-        )}
-        {messages.map((msg, i) => (
-          <div
-            key={`${msg.date}-${i}`}
-            style={
-              msg.sender === "user"
-                ? USER_MSG_STYLE
-                : msg.sender === "system"
-                  ? msg.content.includes("Error")
-                    ? ERROR_MSG_STYLE
-                    : SYSTEM_MSG_STYLE
-                  : ASSISTANT_MSG_STYLE
-            }
-          >
-            {msg.sender === "user" ? (
-              msg.content
-            ) : (
-              <StaticMarkdown value={msg.content} />
-            )}
-          </div>
-        ))}
-        {generating && (
-          <div style={{ textAlign: "center", padding: 8 }}>
-            <Spin size="small" />
-          </div>
-        )}
-        <div ref={messagesEndRef} />
-      </div>
+      {/* Messages — disable the code toolbar and render writefile blocks
+           with proper language syntax highlighting */}
+      <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+        <div style={MESSAGES_STYLE}>
+          {messages.length === 0 && (
+            <Paragraph
+              style={{
+                color: COLORS.GRAY_M,
+                textAlign: "center",
+                marginTop: 20,
+              }}
+            >
+              Describe the application you want to build. The agent will create
+              files and the result will appear in the App preview on the right.
+            </Paragraph>
+          )}
+          {messages.map((msg, i) => (
+            <div
+              key={`${msg.date}-${i}`}
+              style={
+                msg.sender === "user"
+                  ? USER_MSG_STYLE
+                  : msg.sender === "system"
+                    ? msg.content.includes("Error")
+                      ? ERROR_MSG_STYLE
+                      : SYSTEM_MSG_STYLE
+                    : ASSISTANT_MSG_STYLE
+              }
+            >
+              {msg.sender === "user" ? (
+                msg.content
+              ) : (
+                <div className="cc-agent-writefile-blocks">
+                  <StaticMarkdown
+                    value={formatWriteFileBlocks(msg.content)}
+                  />
+                </div>
+              )}
+            </div>
+          ))}
+          {generating && (
+            <div style={{ textAlign: "center", padding: 8 }}>
+              <Spin size="small" />
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+      </FileContext.Provider>
 
       {/* Pending exec commands */}
       {pendingExec.length > 0 && (
