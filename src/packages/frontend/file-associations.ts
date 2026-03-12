@@ -471,11 +471,12 @@ file_associations["board"] = {
   exclude_from_compute_server: true,
 };
 
-file_associations["ai"] = {
+file_associations["app"] = {
   editor: "ai",
   icon: "robot",
   opts: {},
   name: "AI Agent",
+  exclude_from_menu: true,
 };
 
 file_associations["slides"] = {

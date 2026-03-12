@@ -2787,9 +2787,13 @@ export class Actions<
     if (this.isClosed()) return;
 
     // Build the run command from the template.
+    // Shell-escape the filename to handle spaces and metacharacters safely.
     const { tail: file } = path_split(this.path);
     const name = file.replace(/\.[^.]+$/, "");
-    const cmd = template.replace(/\{file\}/g, file).replace(/\{name\}/g, name);
+    const shellEscape = (s: string) => "'" + s.replace(/'/g, "'\\''") + "'";
+    const cmd = template
+      .replace(/\{file\}/g, shellEscape(file))
+      .replace(/\{name\}/g, shellEscape(name));
 
     // Find or create a plain terminal frame.
     let terminalId = this._get_most_recent_terminal_id();

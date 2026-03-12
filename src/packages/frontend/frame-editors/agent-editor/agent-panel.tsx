@@ -44,7 +44,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { path_split, uuid } from "@cocalc/util/misc";
+import { uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
 import { appDir } from "./app-preview";
@@ -490,9 +490,10 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       content: string;
       account_id?: string;
       event: string;
+      session_id?: string;
     }) => {
       if (!syncdb || syncdb.get_state() !== "ready") return;
-      const sid = sessionId || uuid();
+      const sid = msg.session_id || sessionId || uuid();
 
       syncdb.set({
         session_id: sid,
@@ -525,9 +526,11 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       (actions as any).clearAppErrors?.();
 
       for (const block of blocks) {
-        // Resolve the path relative to the app directory and reject
-        // any path that escapes it (e.g., "../" traversal).
-        const resolvedPath = join(dir, block.path);
+        // block.path comes from the LLM and already includes the app
+        // directory prefix (the system prompt tells it to use
+        // `${appDirectory}/filename`).  Normalize to resolve any ".."
+        // segments, then reject paths that escape the app directory.
+        const resolvedPath = join(block.path);
         if (!resolvedPath.startsWith(dir + "/") && resolvedPath !== dir) {
           const now = new Date().toISOString();
           writeMessage({
@@ -593,6 +596,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       content: prompt,
       account_id: accountId,
       event: "message",
+      session_id: activeSessionId,
     });
 
     setInput("");
@@ -652,6 +656,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             sender: "assistant",
             content: assistantContent,
             event: "message",
+            session_id: activeSessionId,
           });
 
           // Auto-apply writefile blocks
@@ -696,7 +701,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
   const handleExecCommand = useCallback(
     async (command: string) => {
-      const execDir = path_split(path).head || ".";
       try {
         const result = await exec(
           {
@@ -706,7 +710,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             timeout: 60,
             max_output: 100000,
             bash: false,
-            path: execDir,
+            path: dir,
             err_on_exit: false,
           },
           path,
