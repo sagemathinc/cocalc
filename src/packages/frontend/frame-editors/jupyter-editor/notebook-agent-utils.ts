@@ -520,7 +520,10 @@ async function runSingleTool(
       let prevId: string | undefined;
 
       if (afterIndex1 === 0) {
-        // Insert at the very beginning
+        // Insert before the first cell.  We set prevId to undefined here
+        // and handle the first insertion specially below using
+        // insert_cell_adjacent(cellList[0], -1) to avoid a pos=0
+        // collision with the existing first cell.
         prevId = undefined;
       } else {
         const res = resolveIndex(afterIndex1, cellList);
@@ -531,7 +534,15 @@ async function runSingleTool(
       for (const { cell_type, source } of parsed) {
         let newId: string;
         if (prevId == null) {
-          newId = jupyterActions.insert_cell_at(0, true);
+          // First insertion at the beginning: use insert_cell_adjacent
+          // with delta=-1 to get a position before the first cell.
+          // insert_cell_at(0) would create a pos=0 collision with the
+          // existing first cell, producing undefined ordering.
+          if (cellList.length > 0) {
+            newId = jupyterActions.insert_cell_adjacent(cellList[0], -1, true);
+          } else {
+            newId = jupyterActions.insert_cell_at(0, true);
+          }
         } else {
           newId = jupyterActions.insert_cell_adjacent(prevId, 1, true);
         }

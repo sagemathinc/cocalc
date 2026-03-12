@@ -221,6 +221,11 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
   // Cancel/unmount calls this so the Promise settles and handleSubmit
   // reaches its finally block instead of hanging forever.
   const llmResolveRef = useRef<((value: string) => void) | null>(null);
+  // Per-invocation abort ref — when a new handleSubmit starts, the
+  // previous invocation's abort ref is set to true so any surviving
+  // runCell polling loop (in a setTimeout) stops even though
+  // cancelRef has been reset to false by the new invocation.
+  const prevAbortRef = useRef<{ current: boolean } | null>(null);
 
   // ---- Cleanup on unmount ----
   // Settle any pending LLM promise, then detach the stream so callbacks
@@ -303,7 +308,13 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
               const updated = [...prev];
               const lastMsg = updated[updated.length - 1];
               if (lastMsg?.sender === "assistant" && lastMsg.date === "") {
-                lastMsg.content = assistantContent;
+                // Create a new object — mutating lastMsg in-place would
+                // violate React's immutability model (same object ref as
+                // prev) and can cause skipped re-renders.
+                updated[updated.length - 1] = {
+                  ...lastMsg,
+                  content: assistantContent,
+                };
               } else {
                 updated.push({
                   sender: "assistant",
@@ -339,7 +350,22 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
     if (!prompt || session.generatingRef.current) return;
 
     session.setError("");
+    // Abort any previous invocation's surviving polling loops before
+    // resetting cancelRef — prevents the old runCell setTimeout from
+    // seeing cancelRef=false and continuing to run.
+    if (prevAbortRef.current) prevAbortRef.current.current = true;
+    const abortRef = { current: false };
+    prevAbortRef.current = abortRef;
     session.cancelRef.current = false;
+
+    // Composite cancel signal — fires on user cancel OR new invocation.
+    // Passed to runToolBatch/runCell instead of the raw cancelRef so
+    // that stale polling loops from a previous submit are killed.
+    const cancelSignal = {
+      get current() {
+        return session.cancelRef.current || abortRef.current;
+      },
+    };
 
     let activeSessionId = session.sessionId;
     if (!activeSessionId) {
@@ -400,7 +426,7 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
         loops--;
 
         const assistantText = await runLlmTurn(currentPrompt, history, system);
-        if (session.cancelRef.current) break;
+        if (cancelSignal.current) break;
 
         const assistantDate = new Date().toISOString();
         session.writeMessage({
@@ -420,9 +446,9 @@ export function NotebookAgent({ chatSyncdb }: { chatSyncdb: any }) {
           jupyterActions,
           ctx.language,
           actions as JupyterEditorActions,
-          session.cancelRef,
+          cancelSignal,
         );
-        if (session.cancelRef.current) break;
+        if (cancelSignal.current) break;
 
         const toolResultContent = results.join("\n\n");
         session.writeMessage({

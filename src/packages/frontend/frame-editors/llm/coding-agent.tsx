@@ -140,6 +140,11 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   if (prevSessionIdRef.current !== session.sessionId) {
     prevSessionIdRef.current = session.sessionId;
     if (editsApplied) setEditsApplied(false);
+    // Clear stale pending state from the previous session — otherwise
+    // the "Apply to Editor" and "Commands to run" bars stay visible
+    // and would act on the wrong session's context.
+    if (pendingEdits) setPendingEdits(undefined);
+    if (pendingExec.length > 0) setPendingExec([]);
     // Cancel any pending SHOW auto-continuation — it belongs to the
     // previous session and must not fire into the new one.
     if (showTimerRef.current) {
@@ -378,6 +383,10 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           if (token != null) {
             assistantContent += token;
             assistantMsg.content = assistantContent;
+            // Don't update messages if the user switched sessions mid-stream —
+            // the streaming array belongs to the old session and would overwrite
+            // the newly selected session's messages on every token.
+            if (session.sessionIdRef.current !== activeSessionId) return;
             // Shallow copy triggers React re-render without reallocating
             // every element — the array structure is already built.
             session.setMessages([...streamingMsgs]);

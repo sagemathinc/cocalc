@@ -378,6 +378,28 @@ describe("fulfillShowBlocks", () => {
     )!;
     expect(result).toContain("```python");
   });
+
+  it("skips blocks where startLine exceeds document length", () => {
+    const result = fulfillShowBlocks(
+      [{ startLine: 500, endLine: 510 }],
+      content,
+    );
+    // All blocks are out of range — nothing to show
+    expect(result).toBeNull();
+  });
+
+  it("returns valid blocks when mixed with out-of-range ones", () => {
+    const result = fulfillShowBlocks(
+      [
+        { startLine: 500, endLine: 510 }, // out of range — skipped
+        { startLine: 1, endLine: 3 },     // valid
+      ],
+      content,
+    )!;
+    expect(result).toContain("line 1");
+    expect(result).toContain("line 3");
+    expect(result).not.toContain("500");
+  });
 });
 
 /* ------------------------------------------------------------------ */

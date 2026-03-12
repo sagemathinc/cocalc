@@ -318,6 +318,9 @@ export function fulfillShowBlocks(
       contentLines.length,
       Math.min(block.endLine, start + maxLines - 1),
     );
+    // Skip if start is beyond the document — produces an empty/inverted
+    // range that would confuse the LLM and waste tokens on retries.
+    if (end < start) continue;
     const slice = contentLines
       .slice(start - 1, end)
       .map((line, i) => `${String(start + i).padStart(4)}  ${line}`)
@@ -329,6 +332,7 @@ export function fulfillShowBlocks(
       `Lines ${start}\u2013${end} of ${contentLines.length}:\n${open}\n${slice}\n${close}`,
     );
   }
+  if (parts.length === 0) return null;
   return parts.join("\n\n");
 }
 
