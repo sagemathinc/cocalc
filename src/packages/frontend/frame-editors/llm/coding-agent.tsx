@@ -202,22 +202,23 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   const updateEditorContext = useCallback(() => {
     const ctx = getEditorContext(actions);
     editorContextRef.current = ctx;
+    const filename = trunc(path.split("/").pop() ?? path, 30);
     let label = "";
     if (ctx.cursorLine != null) {
       if (ctx.selection && ctx.selectionRange) {
         const { fromLine, toLine } = ctx.selectionRange;
         if (fromLine === toLine) {
           // Single-line partial selection — show the verbatim text
-          label = `Line ${fromLine + 1}: "${trunc(ctx.selection, 60)}"`;
+          label = `Line ${fromLine + 1} of ${filename}: "${trunc(ctx.selection, 60)}"`;
         } else {
-          label = `Lines ${fromLine + 1}–${toLine + 1} selected`;
+          label = `Lines ${fromLine + 1}–${toLine + 1} of ${filename} selected`;
         }
       } else {
-        label = `Cursor at line ${ctx.cursorLine + 1}`;
+        label = `Cursor at line ${ctx.cursorLine + 1} of ${filename}`;
       }
     }
     setEditorContextLabel(label);
-  }, [actions]);
+  }, [actions, path]);
 
   // ---- Cost estimation ----
   const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
