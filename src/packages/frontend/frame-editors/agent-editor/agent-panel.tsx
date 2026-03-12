@@ -364,8 +364,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
   // Ref to always call the latest loadSessionsAndMessages from the
   // syncdb change listener (avoids stale closure over old sessionId).
-  const loadRef = useRef(loadSessionsAndMessages);
-  loadRef.current = loadSessionsAndMessages;
+  const loadRef = useRef<((db: any) => void) | null>(null);
 
   // Get the syncdb from the actions (the .ai file's syncdb)
   useEffect(() => {
@@ -374,12 +373,12 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
     const handleReady = () => {
       setSyncdb(db);
-      loadRef.current(db);
+      loadRef.current?.(db);
     };
 
     const handleChange = () => {
       if (db.get_state() === "ready") {
-        loadRef.current(db);
+        loadRef.current?.(db);
       }
     };
 
@@ -446,6 +445,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     },
     [sessionId],
   );
+  loadRef.current = loadSessionsAndMessages;
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });

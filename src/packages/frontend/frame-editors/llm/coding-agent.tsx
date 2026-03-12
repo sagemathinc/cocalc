@@ -199,6 +199,24 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     null,
   );
   const [editorContextLabel, setEditorContextLabel] = useState("");
+  const inputWrapperRef = useRef<HTMLDivElement>(null);
+
+  // Clear context label when focus moves anywhere outside the input area.
+  // This catches cross-frame focus changes (e.g., clicking CodeMirror)
+  // that don't fire React's onBlur on the wrapper div.
+  useEffect(() => {
+    const handleFocusIn = (e: FocusEvent) => {
+      if (
+        inputWrapperRef.current &&
+        !inputWrapperRef.current.contains(e.target as Node)
+      ) {
+        setEditorContextLabel("");
+      }
+    };
+    document.addEventListener("focusin", handleFocusIn);
+    return () => document.removeEventListener("focusin", handleFocusIn);
+  }, []);
+
   const updateEditorContext = useCallback(() => {
     const ctx = getEditorContext(actions);
     editorContextRef.current = ctx;
@@ -926,14 +944,8 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         }
       >
         <div
+          ref={inputWrapperRef}
           onFocus={updateEditorContext}
-          onBlur={(e) => {
-            // Only clear when focus leaves the entire input area,
-            // not when moving between children (e.g. textarea → toolbar).
-            if (!e.currentTarget.contains(e.relatedTarget as Node)) {
-              setEditorContextLabel("");
-            }
-          }}
         >
           <MarkdownInput
             key={inputKey}
