@@ -9,7 +9,7 @@ Build: `cd packages/static && pnpm build-dev`
 
 ## Overview
 
-File management is central to every CoCalc project.  Users browse, open,
+File management is central to every CoCalc project. Users browse, open,
 create, upload, move, copy, compress, download, and delete files through
 two independent UI surfaces that share a single Redux store per project:
 
@@ -34,11 +34,11 @@ two independent UI surfaces that share a single Redux store per project:
 
 - **Explorer** — the main file browser, shown when the "Files" tab is active.
   Has a resizable directory tree panel on the left and a virtual-scrolling
-  file table on the right.  Supports drag-and-drop, context menus, inline
+  file table on the right. Supports drag-and-drop, context menus, inline
   rename, type/extension filtering, and breadcrumb navigation.
 
 - **Flyout** — a narrow sidebar panel that can remain visible while editing
-  files.  Shows a compact file listing with the same navigation, filtering,
+  files. Shows a compact file listing with the same navigation, filtering,
   and file-action capabilities as the explorer.
 
 Both panels maintain **independent browsing paths** so the user can browse
@@ -49,17 +49,17 @@ one directory in the explorer while keeping the flyout pointed at another.
 A project has three directory-path concepts in its Redux store
 (`ProjectStoreState` in `project_store.ts`):
 
-| Redux key | Meaning | Persisted to |
-|---|---|---|
-| `current_path` | Directory of the **active file tab**. Updated by `set_current_path()` when the user opens a file or switches tabs. | URL (browser address bar) |
-| `explorer_browsing_path` | The directory the **explorer** is showing. Independent of which file tab is active. | `localStorage` (`${project_id}::explorer` JSON) |
-| `flyout_browsing_path` | The directory the **flyout** is showing. Independent of both the explorer and the active tab. | `localStorage` (`${project_id}::flyout` JSON) |
+| Redux key                | Meaning                                                                                                            | Persisted to                                    |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------- |
+| `current_path`           | Directory of the **active file tab**. Updated by `set_current_path()` when the user opens a file or switches tabs. | URL (browser address bar)                       |
+| `explorer_browsing_path` | The directory the **explorer** is showing. Independent of which file tab is active.                                | `localStorage` (`${project_id}::explorer` JSON) |
+| `flyout_browsing_path`   | The directory the **flyout** is showing. Independent of both the explorer and the active tab.                      | `localStorage` (`${project_id}::flyout` JSON)   |
 
 ### Why three paths?
 
 Historically there was only `current_path`, and it served double duty: it
 was the directory shown in the file listing AND the directory implied by the
-active file tab.  This coupling meant that switching between file tabs would
+active file tab. This coupling meant that switching between file tabs would
 jump the file listing to a different directory — disorienting when the user
 was in the middle of browsing.
 
@@ -73,7 +73,7 @@ Account setting: `other_settings.follow_current_path`
 
 When **enabled**: every file-tab switch propagates `current_path` into both
 `explorer_browsing_path` and `flyout_browsing_path`, giving the old
-follow-the-tab behavior.  This happens in `set_active_tab()` in
+follow-the-tab behavior. This happens in `set_active_tab()` in
 `project_actions.ts`.
 
 When **disabled**: `current_path` still updates (for URL and legacy code),
@@ -94,7 +94,7 @@ Both panels use the same pattern (see `explorer.tsx` and
 ### Navigation helper
 
 `navigate-browsing-path.ts` provides `navigateBrowsingPath()`, used by both
-panels.  It:
+panels. It:
 
 - Normalizes ".." segments
 - Computes the history path (for breadcrumb depth)
@@ -113,18 +113,18 @@ panels.  It:
 The explorer uses `react-virtuoso` `TableVirtuoso` for efficient rendering
 of large directories (500+ files):
 
-| File | Purpose |
-|---|---|
-| `file-listing.tsx` | Main component: columns, sorting, context menu, selection |
-| `file-listing-row.tsx` | Custom `<tr>` components for DnD (drag + folder drop) |
-| `file-listing-ctx.tsx` | Context menu builder (`makeContextMenu()`) |
-| `file-listing-utils.tsx` | Icon/name/date rendering helpers |
-| `types.ts` | `FileEntry`, `VirtualEntry`, `PeekEntry` type definitions |
-| `consts.ts` | Column widths |
-| `utils.ts` | Sorting, filtering, extension lists |
+| File                     | Purpose                                                   |
+| ------------------------ | --------------------------------------------------------- |
+| `file-listing.tsx`       | Main component: columns, sorting, context menu, selection |
+| `file-listing-row.tsx`   | Custom `<tr>` components for DnD (drag + folder drop)     |
+| `file-listing-ctx.tsx`   | Context menu builder (`makeContextMenu()`)                |
+| `file-listing-utils.tsx` | Icon/name/date rendering helpers                          |
+| `types.ts`               | `FileEntry`, `VirtualEntry`, `PeekEntry` type definitions |
+| `consts.ts`              | Column widths                                             |
+| `utils.ts`               | Sorting, filtering, extension lists                       |
 
 **Key design constraint**: Virtuoso uses referential equality on its
-`components` prop.  The `VIRTUOSO_COMPONENTS` object and sub-components
+`components` prop. The `VIRTUOSO_COMPONENTS` object and sub-components
 (`VirtuosoTable`, `VirtuosoTableHead`, `VirtualTableRow`) are defined at
 **module level** — not inside a component — to prevent infinite
 unmount/remount loops.
@@ -134,7 +134,7 @@ unmount/remount loops.
 `packages/frontend/project/page/flyouts/files.tsx`
 
 Uses plain `react-virtuoso` `Virtuoso` (not table mode) with a custom
-`FileListItem` row component.  The flyout has its own sort state
+`FileListItem` row component. The flyout has its own sort state
 (persisted via Conat DKV settings, not Redux) and its own hidden-files
 toggle (local `useState`, not shared with explorer).
 
@@ -177,6 +177,7 @@ whether the action was triggered from the explorer, the flyout, or a
 context menu, and regardless of what `current_path` happens to be.
 
 Components that follow this pattern:
+
 - `download.tsx` — zip archive creation and single-file download
 - `create-archive.tsx` — compress to zip
 - `file-action-modal.tsx` — delete, move, copy (derives `current_path` prop)
@@ -185,7 +186,7 @@ Components that follow this pattern:
 ### `fetch_directory_listing()` caveat
 
 `actions.fetch_directory_listing()` without a `path` argument falls back to
-`store.get("current_path")` internally.  Always pass an explicit `{ path }`
+`store.get("current_path")` internally. Always pass an explicit `{ path }`
 when calling from a context where the browsing path may differ from
 `current_path`.
 
@@ -193,8 +194,19 @@ when calling from a context where the browsing path may differ from
 
 `packages/frontend/project/explorer/dnd/file-dnd-provider.tsx`
 
-Uses `@dnd-kit/core` with long-press activation (150ms mouse, 250ms touch).
-The `FileDndProvider` wraps both explorer and flyout.
+Uses `@dnd-kit/core`. The `FileDndProvider` wraps both explorer and flyout.
+It now shares the common DnD foundation in
+`packages/frontend/components/dnd/` with the frame editor DnD implementation,
+so drag activation behavior, overlay positioning, and overlay styling stay
+consistent across explorer and frame-editor interactions. See also
+`docs/frame-editor-dnd.md`.
+
+Shared pieces imported by the explorer:
+
+- `MOUSE_SENSOR_OPTIONS`
+- `TOUCH_SENSOR_OPTIONS`
+- `DRAG_OVERLAY_MODIFIERS`
+- `DragOverlayContent`
 
 - **Drag sources**: file/folder rows (`useFileDrag`)
 - **Drop targets**: folder rows, breadcrumb segments, ".." row, background
@@ -208,7 +220,7 @@ The `FileDndProvider` wraps both explorer and flyout.
 `packages/frontend/project/explorer/directory-tree.tsx`
 
 A resizable panel showing the project's directory hierarchy as an antd
-`<Tree>`.  The tree is independent of the file listing — clicking a tree
+`<Tree>`. The tree is independent of the file listing — clicking a tree
 node navigates the explorer's browsing path.
 
 State is persisted to localStorage as part of the `${project_id}::explorer`
@@ -216,12 +228,12 @@ JSON blob:
 
 ```typescript
 interface LSExplorer {
-  directory?: string;       // explorer's last browsing directory
+  directory?: string; // explorer's last browsing directory
   tree?: {
-    visible?: boolean;      // tree panel shown/hidden
-    width?: number;         // panel width in px
+    visible?: boolean; // tree panel shown/hidden
+    width?: number; // panel width in px
     expanded_keys?: string[]; // expanded tree nodes (max 20)
-    scroll_top?: number;    // scroll position
+    scroll_top?: number; // scroll position
   };
 }
 ```
@@ -230,10 +242,10 @@ interface LSExplorer {
 
 Two JSON blobs per project, accessed via `@cocalc/frontend/misc/local-storage-typed`:
 
-| Key pattern | Contents | Managed by |
-|---|---|---|
-| `${project_id}::explorer` | `LSExplorer` — browsing directory + tree panel state | `directory-tree.tsx` |
-| `${project_id}::flyout` | `LSFlyout` — browsing directory + flyout UI state (width, expanded tab, scroll positions, sort, filter) | `project/page/flyouts/state.ts` |
+| Key pattern               | Contents                                                                                                | Managed by                      |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `${project_id}::explorer` | `LSExplorer` — browsing directory + tree panel state                                                    | `directory-tree.tsx`            |
+| `${project_id}::flyout`   | `LSFlyout` — browsing directory + flyout UI state (width, expanded tab, scroll positions, sort, filter) | `project/page/flyouts/state.ts` |
 
 The typed wrapper prefixes all keys with `appBasePath::` (e.g.
 `/::abc123::explorer` in the browser).
@@ -241,30 +253,30 @@ The typed wrapper prefixes all keys with `appBasePath::` (e.g.
 ## File Upload
 
 `packages/frontend/file-upload.tsx` provides `FileUploadWrapper`, used by
-both explorer and flyout.  The upload target directory is the panel's
-current browsing path.  On completion, the wrapper calls
+both explorer and flyout. The upload target directory is the panel's
+current browsing path. On completion, the wrapper calls
 `fetch_directory_listing({ path })` with an explicit path to refresh the
 correct directory.
 
 ## Key Source Files
 
-| File | Description |
-|---|---|
-| `project/explorer/explorer.tsx` | Explorer top-level: layout, init, toolbar, path state |
-| `project/explorer/file-listing/file-listing.tsx` | Virtual-scrolling file table |
-| `project/explorer/directory-tree.tsx` | Tree panel + LS persistence |
-| `project/explorer/navigate-browsing-path.ts` | Shared navigation logic for both panels |
-| `project/explorer/dnd/file-dnd-provider.tsx` | Drag-and-drop infrastructure |
-| `project/explorer/action-box.tsx` | File action form components |
-| `project/file-action-modal.tsx` | Modal wrapper for file actions |
-| `project/page/flyouts/files.tsx` | Flyout file listing |
-| `project/page/flyouts/use-flyout-navigation.ts` | Flyout browsing path hook |
-| `project/page/flyouts/state.ts` | Flyout LS persistence |
-| `project/page/flyouts/files-header.tsx` | Flyout breadcrumb + toolbar |
-| `project/page/flyouts/files-controls.tsx` | Flyout filter/sort controls |
-| `project_actions.ts` | `ProjectActions` — file ops, set_current_path, open_directory |
-| `project_store.ts` | `ProjectStoreState` — all Redux keys |
-| `project-file.ts` | `FILE_ACTIONS` registry, `FileAction` type |
+| File                                             | Description                                                   |
+| ------------------------------------------------ | ------------------------------------------------------------- |
+| `project/explorer/explorer.tsx`                  | Explorer top-level: layout, init, toolbar, path state         |
+| `project/explorer/file-listing/file-listing.tsx` | Virtual-scrolling file table                                  |
+| `project/explorer/directory-tree.tsx`            | Tree panel + LS persistence                                   |
+| `project/explorer/navigate-browsing-path.ts`     | Shared navigation logic for both panels                       |
+| `project/explorer/dnd/file-dnd-provider.tsx`     | Drag-and-drop infrastructure                                  |
+| `project/explorer/action-box.tsx`                | File action form components                                   |
+| `project/file-action-modal.tsx`                  | Modal wrapper for file actions                                |
+| `project/page/flyouts/files.tsx`                 | Flyout file listing                                           |
+| `project/page/flyouts/use-flyout-navigation.ts`  | Flyout browsing path hook                                     |
+| `project/page/flyouts/state.ts`                  | Flyout LS persistence                                         |
+| `project/page/flyouts/files-header.tsx`          | Flyout breadcrumb + toolbar                                   |
+| `project/page/flyouts/files-controls.tsx`        | Flyout filter/sort controls                                   |
+| `project_actions.ts`                             | `ProjectActions` — file ops, set_current_path, open_directory |
+| `project_store.ts`                               | `ProjectStoreState` — all Redux keys                          |
+| `project-file.ts`                                | `FILE_ACTIONS` registry, `FileAction` type                    |
 
 ## Common Patterns for Agents
 
@@ -300,9 +312,8 @@ const explorerDir = store.get("explorer_browsing_path") ?? "";
 const flyoutDir = store.get("flyout_browsing_path") ?? "";
 
 // From checked files (context-agnostic — preferred in file actions)
-const dir = checked_files.size > 0
-  ? path_split(checked_files.first()).head
-  : "";
+const dir =
+  checked_files.size > 0 ? path_split(checked_files.first()).head : "";
 ```
 
 ### Refresh a directory listing

@@ -81,6 +81,9 @@ export async function set_state(
     cm.refresh();
   }
   if (state.sel) {
-    cm.getDoc().setSelections(state.sel);
+    // Use scroll:false to prevent setSelections from calling
+    // ensureCursorVisible, which would override the viewport
+    // scroll position we just restored above.
+    cm.getDoc().setSelections(state.sel, undefined, { scroll: false });
   }
 }
