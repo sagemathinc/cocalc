@@ -41,5 +41,5 @@ export const TAG = "coding-agent";
 /** Maximum number of document lines to include in the system prompt. */
 export const MAX_VISIBLE_LINES = 100;
 
-/** Max height for diff/code display blocks (px). ~3 lines. */
-export const DIFF_MAX_HEIGHT = 55;
+/** Max height for diff/code display blocks (px). ~8 lines of code. */
+export const DIFF_MAX_HEIGHT = 150;

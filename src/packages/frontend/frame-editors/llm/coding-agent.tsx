@@ -133,6 +133,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   // Done button to encourage the user to close the turn and save tokens.
   // Reset when the session (turn) changes (e.g. user clicks Done).
   const [editsApplied, setEditsApplied] = useState(false);
+  // SHOW auto-continuation timer — cleared on unmount/cancel/session switch
+  // to prevent stale callbacks firing into the wrong session.
+  const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevSessionIdRef = useRef(session.sessionId);
   if (prevSessionIdRef.current !== session.sessionId) {
     prevSessionIdRef.current = session.sessionId;
@@ -160,9 +163,6 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
     removeAllListeners: () => void;
     on: (event: string, handler: (...args: any[]) => void) => void;
   } | null>(null);
-  // SHOW auto-continuation timer — cleared on unmount/cancel/session switch
-  // to prevent stale callbacks firing into the wrong session.
-  const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // ---- Cleanup on unmount ----
   // Clear pending timers and detach any active stream so callbacks
@@ -479,6 +479,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
 
             // Session naming is user-triggered via the magic wand button
             // in the session bar — no automatic LLM calls.
+            }
           }
         });
 
@@ -488,7 +489,9 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
             sender: "system",
             content: `Error: ${err.message ?? err}`,
             msg_event: "error",
+            session_id: activeSessionId,
           });
+          streamRef.current = null;
           inputLockedRef.current = false;
           session.setGenerating(false);
         });
@@ -498,6 +501,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           sender: "system",
           content: `Error: ${err.message ?? err}`,
           msg_event: "error",
+          session_id: activeSessionId,
         });
         inputLockedRef.current = false;
         session.setGenerating(false);
@@ -613,6 +617,10 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
   // ---- Exec command ----
   const handleExecCommand = useCallback(
     async (command: string) => {
+      // Capture session ID before the async gap — if the user switches
+      // sessions while the command runs, the result still lands in the
+      // session that triggered it.
+      const execSessionId = session.sessionIdRef.current;
       const dir = path_split(path).head || ".";
       try {
         const result = await exec(
@@ -642,6 +650,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           sender: "system",
           content: `Ran: \`${command}\`\n\n${output}`,
           msg_event: "exec_result",
+          session_id: execSessionId,
         });
       } catch (err: any) {
         session.writeMessage({
@@ -649,6 +658,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           sender: "system",
           content: `Error running \`${command}\`: ${err.message ?? err}`,
           msg_event: "exec_result",
+          session_id: execSessionId,
         });
       }
       setPendingExec((prev) => prev.filter((e) => e.command !== command));

@@ -780,6 +780,9 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
     "- To run a cell, use `run_cell`. It executes immediately and returns the output.",
   );
   lines.push(
+    "- After inserting code cells, run them in order so the user sees the results. You can include multiple `run_cell` blocks in the same response.",
+  );
+  lines.push(
     "- After insert_cells, subsequent tool calls in the same response will see updated cell indices.",
   );
   lines.push("");

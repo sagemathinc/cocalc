@@ -226,12 +226,13 @@ export function applyEditBlocks(
     if (
       block.startLine < 1 ||
       block.endLine < block.startLine ||
-      block.startLine > lines.length
+      block.startLine > lines.length ||
+      block.endLine > lines.length
     ) {
       failed++;
       continue;
     }
-    const endLine = Math.min(block.endLine, lines.length);
+    const endLine = block.endLine;
     const replacementLines =
       block.replacement === "" ? [] : block.replacement.split("\n");
     lines.splice(

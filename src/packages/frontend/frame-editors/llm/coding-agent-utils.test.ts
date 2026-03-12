@@ -196,6 +196,22 @@ describe("applyEditBlocks", () => {
     ]);
     expect(failed).toBe(2);
   });
+
+  it("fails when endLine exceeds document length", () => {
+    const { applied, failed } = applyEditBlocks(doc, [
+      { startLine: 3, endLine: 20, replacement: "wrong span" },
+    ]);
+    expect(applied).toBe(0);
+    expect(failed).toBe(1);
+  });
+
+  it("succeeds when endLine equals document length", () => {
+    const { result, applied } = applyEditBlocks(doc, [
+      { startLine: 4, endLine: 5, replacement: "new4\nnew5" },
+    ]);
+    expect(applied).toBe(1);
+    expect(result).toBe("line1\nline2\nline3\nnew4\nnew5");
+  });
 });
 
 /* ------------------------------------------------------------------ */
