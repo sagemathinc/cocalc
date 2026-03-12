@@ -1,0 +1,17 @@
+/*
+ *  This file is part of CoCalc: Copyright © 2026 Sagemath, Inc.
+ *  License: MS-RSL – see LICENSE.md for details
+ */
+
+@use '../../colors'
+
+// Chat/Agent mode toggle (Segmented control in side chat)
+.cc-chat-mode-toggle
+  // Container around the toggle
+  padding: 6px 8px
+  border-bottom: 1px solid colors.$COL_GRAY_L
+  background: colors.$COL_GRAY_LLL
+
+  // When assistant mode is active, highlight the selected segment
+  &.cc-chat-mode-assistant .ant-segmented-item-selected
+    background: colors.$COL_AI_ASSISTANT_BG !important

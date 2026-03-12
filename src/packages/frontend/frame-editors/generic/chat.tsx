@@ -19,7 +19,6 @@ import { NotebookAgent } from "@cocalc/frontend/frame-editors/jupyter-editor/not
 import { CodingAgentEmbedded } from "@cocalc/frontend/frame-editors/llm/coding-agent";
 import { labels } from "@cocalc/frontend/i18n";
 import { hidden_meta_file } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { EditorComponentProps, EditorDescription } from "../frame-tree/types";
 
 export { hasEmbeddedAgent } from "./has-embedded-agent";
@@ -129,18 +128,9 @@ function Chat({ font_size, desc }: EditorComponentProps) {
       {/* Tab selector — only show when an agent is available */}
       {EmbeddedAgent != null && (
         <div
-          style={{
-            padding: "6px 8px",
-            borderBottom: `1px solid ${COLORS.GRAY_L}`,
-            background: COLORS.GRAY_LLL,
-          }}
+          className={`cc-chat-mode-toggle${effectiveMode === "assistant" ? " cc-chat-mode-assistant" : ""}`}
         >
-          {/* Highlight the active segment in AI color when assistant is selected */}
-          {effectiveMode === "assistant" && (
-            <style>{`.chat-mode-toggle .ant-segmented-item-selected { background: ${COLORS.AI_ASSISTANT_BG} !important; }`}</style>
-          )}
           <Segmented
-            className="chat-mode-toggle"
             value={effectiveMode}
             onChange={(v) => setMode(v as ChatMode)}
             options={[
