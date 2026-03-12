@@ -99,10 +99,15 @@ CoCalc is organized as a monorepo with key packages:
 - **database** - PostgreSQL database layer with queries and schema
 - **util** - Shared utilities and types used across packages
 - **comm** - Communication layer including WebSocket types
-- **conat** - CoCalc's container/compute orchestration system
+- **conat** - Distributed messaging system (NATS-like pub/sub, DKV, request/response)
 - **sync** - Real-time synchronization system for collaborative editing
 - **project** - Project-level services and management
 - **static** - Static assets and build configuration
+- **server** - Server-side service implementations (LLM, purchases, conat API handlers)
+- **ai** - AI/LLM integration utilities
+- **jupyter** - Jupyter notebook kernel and execution support
+- **terminal** - Terminal emulation and pty management
+- **compute** - Compute server orchestration (on-prem and cloud)
 - **next** - Next.js server components
 
 ### Key Architectural Patterns
@@ -269,36 +274,9 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 - Ignore everything in `node_modules` or `dist` directories
 - Ignore all files not tracked by Git, unless they are newly created files
 
-# CoCalc Python API Client Investigation
+# CoCalc Python API Client
 
-## Overview
-
-The `src/python/cocalc-api/` directory contains a uv-based Python client library for the CoCalc API, published as the `cocalc-api` package on PyPI.
-
-It also contains a test framework (`src/python/cocalc-api/tests/README.md`) and an MCP client (`src/python/cocalc-api/src/cocalc_api/mcp/README.md`).
-For convenience, a `src/python/cocalc-api/Makefile` exists.
-
-## Client-Server Architecture Investigation
-
-### API Call Flow
-
-1. **cocalc-api Client** (Python) → HTTP POST requests
-2. **Next.js API Routes** (`/api/conat/{hub,project}`) → Bridge to conat messaging
-3. **ConatClient** (server-side) → NATS-like messaging protocol
-4. **Hub API Implementation** (`src/packages/conat/hub/api/`) → Actual business logic
-
-### Endpoints Discovered
-
-#### Hub API: `POST /api/conat/hub`
-
-- **Bridge**: `src/packages/next/pages/api/conat/hub.ts` → `hubBridge()` → conat subject `hub.account.{account_id}.api`
-- **Implementation**: `src/packages/conat/hub/api/projects.ts`
-- **Available Methods**: `createProject`, `start`, `stop`, `setQuotas`, `addCollaborator`, `removeCollaborator`, etc.
-
-#### Project API: `POST /api/conat/project`
-
-- **Bridge**: `src/packages/next/pages/api/conat/project.ts` → `projectBridge()` → conat project subjects
-- **Implementation**: `src/packages/conat/project/api/` (system.ping, system.exec, system.jupyterExecute)
+For architecture and development details, see [`src/python/cocalc-api/`](src/python/cocalc-api/DEVELOPMENT.md).
 
 # important-instruction-reminders
 
