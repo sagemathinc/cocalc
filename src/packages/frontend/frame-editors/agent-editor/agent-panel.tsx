@@ -26,24 +26,28 @@ import {
   Badge,
   Button,
   Collapse,
-  Input,
   Popconfirm,
-  Space,
   Spin,
   Tooltip,
 } from "antd";
-import type { KeyboardEvent } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { redux, useRedux } from "@cocalc/frontend/app-framework";
+import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { CSS } from "@cocalc/frontend/app-framework";
+import { LLMCostEstimationChat } from "@cocalc/frontend/chat/llm-cost-estimation";
+import type { CostEstimate } from "@cocalc/frontend/chat/types";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
+import { AgentInputArea } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-input-area";
+import type { AgentSession } from "@cocalc/frontend/frame-editors/llm/agent-base/types";
+import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
+import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
@@ -51,8 +55,6 @@ import { appDir } from "./app-preview";
 import { getBridgeSDKSource } from "./cocalc-app-bridge";
 import type { AppError } from "./actions";
 import LLMSelector from "../llm/llm-selector";
-
-const { TextArea } = Input;
 
 interface DisplayMessage {
   sender: "user" | "assistant" | "system";
@@ -72,7 +74,8 @@ const CONTAINER_STYLE: CSS = {
 } as const;
 
 const MESSAGES_STYLE: CSS = {
-  flex: 1,
+  flex: "1 1 auto",
+  minHeight: 0,
   overflowY: "auto",
   padding: "8px 12px",
 } as const;
@@ -105,11 +108,6 @@ const ERROR_MSG_STYLE: CSS = {
   border: `1px solid ${COLORS.ANTD_BG_RED_M}`,
   borderRadius: 8,
   fontSize: "0.9em",
-} as const;
-
-const INPUT_AREA_STYLE: CSS = {
-  borderTop: `1px solid ${COLORS.GRAY_L}`,
-  padding: "8px 12px",
 } as const;
 
 /**
@@ -327,12 +325,20 @@ interface Turn {
 export default function AgentPanel({ name }: EditorComponentProps) {
   const { project_id, path, actions } = useFrameContext();
   const [model, setModel] = useLanguageModelSetting(project_id);
+  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+  const llm_markup = useTypedRedux("customize", "llm_markup");
   const [input, setInput] = useState("");
   const [generating, setGenerating] = useState(false);
   const [error, setError] = useState<string>("");
+  const [costEstimate, setCostEstimate] = useState<CostEstimate>(null);
   const [pendingExec, setPendingExec] = useState<ExecBlock[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(false);
+  const generatingRef = useRef(false);
+  const sessionIdRef = useRef("");
+  const pendingNewSessionRef = useRef("");
+  const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastSubmittedRef = useRef("");
 
   const dir = appDir(path);
 
@@ -572,132 +578,133 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     [project_id, actions, writeMessage],
   );
 
-  const handleSubmit = useCallback(async () => {
-    const prompt = input.trim();
-    if (!prompt || generating) return;
+  const handleSubmit = useCallback(
+    async (submittedValue?: string) => {
+      const prompt = (submittedValue ?? input).trim();
+      if (!prompt || generating) return;
 
-    setError("");
-    setPendingExec([]);
-    cancelRef.current = false;
+      lastSubmittedRef.current = prompt;
+      setError("");
+      setPendingExec([]);
+      cancelRef.current = false;
 
-    let activeSessionId = sessionId;
-    if (!activeSessionId) {
-      activeSessionId = uuid();
-      setSessionId(activeSessionId);
-    }
+      let activeSessionId = sessionId;
+      if (!activeSessionId) {
+        activeSessionId = uuid();
+        setSessionId(activeSessionId);
+      }
 
-    const now = new Date().toISOString();
-    const accountId =
-      redux.getStore("account")?.get_account_id?.() ?? "unknown";
+      const now = new Date().toISOString();
+      const accountId =
+        redux.getStore("account")?.get_account_id?.() ?? "unknown";
 
-    writeMessage({
-      date: now,
-      sender: "user",
-      content: prompt,
-      account_id: accountId,
-      event: "message",
-      session_id: activeSessionId,
-    });
-
-    setInput("");
-    setGenerating(true);
-
-    try {
-      const system = buildSystemPrompt(dir, appErrors);
-
-      // Include all messages in history so the LLM can see exec results
-      const history = messages.map((m) => ({
-        role:
-          m.sender === "assistant" ? ("assistant" as const) : ("user" as const),
-        content:
-          m.event === "exec_result" ? `[System: ${m.content}]` : m.content,
-      }));
-
-      const llmStream = webapp_client.openai_client.queryStream({
-        input: prompt,
-        system,
-        history,
-        model,
-        project_id,
-        tag: TAG,
+      writeMessage({
+        date: now,
+        sender: "user",
+        content: prompt,
+        account_id: accountId,
+        event: "message",
+        session_id: activeSessionId,
       });
 
-      let assistantContent = "";
-      const streamingMsgs = [
-        ...messages,
-        {
-          sender: "user" as const,
-          content: prompt,
-          date: now,
-          event: "message",
-          account_id: accountId,
-        },
-      ];
+      setInput("");
+      setGenerating(true);
 
-      llmStream.on("token", (token: string | null) => {
-        if (cancelRef.current) return;
-        if (token != null) {
-          assistantContent += token;
-          setMessages([
-            ...streamingMsgs,
-            {
+      try {
+        const system = buildSystemPrompt(dir, appErrors);
+
+        // Include all messages in history so the LLM can see exec results
+        const history = messages.map((m) => ({
+          role:
+            m.sender === "assistant"
+              ? ("assistant" as const)
+              : ("user" as const),
+          content:
+            m.event === "exec_result" ? `[System: ${m.content}]` : m.content,
+        }));
+
+        const llmStream = webapp_client.openai_client.queryStream({
+          input: prompt,
+          system,
+          history,
+          model,
+          project_id,
+          tag: TAG,
+        });
+
+        let assistantContent = "";
+        const streamingMsgs = [
+          ...messages,
+          {
+            sender: "user" as const,
+            content: prompt,
+            date: now,
+            event: "message",
+            account_id: accountId,
+          },
+        ];
+
+        llmStream.on("token", (token: string | null) => {
+          if (cancelRef.current) return;
+          if (token != null) {
+            assistantContent += token;
+            setMessages([
+              ...streamingMsgs,
+              {
+                sender: "assistant",
+                content: assistantContent,
+                date: "",
+                event: "message",
+              },
+            ]);
+          } else {
+            setGenerating(false);
+
+            const assistantDate = new Date().toISOString();
+            writeMessage({
+              date: assistantDate,
               sender: "assistant",
               content: assistantContent,
-              date: "",
               event: "message",
-            },
-          ]);
-        } else {
+              session_id: activeSessionId,
+            });
+
+            // Auto-apply writefile blocks
+            const writeBlocks = parseWriteFileBlocks(assistantContent);
+            if (writeBlocks.length > 0) {
+              applyWriteFiles(writeBlocks);
+            }
+
+            // Check for exec blocks
+            const execBlocks = parseExecBlocks(assistantContent);
+            if (execBlocks.length > 0) {
+              setPendingExec(execBlocks);
+            }
+          }
+        });
+
+        llmStream.on("error", (err: Error) => {
+          setError(err.message ?? `${err}`);
           setGenerating(false);
-
-          const assistantDate = new Date().toISOString();
-          writeMessage({
-            date: assistantDate,
-            sender: "assistant",
-            content: assistantContent,
-            event: "message",
-            session_id: activeSessionId,
-          });
-
-          // Auto-apply writefile blocks
-          const writeBlocks = parseWriteFileBlocks(assistantContent);
-          if (writeBlocks.length > 0) {
-            applyWriteFiles(writeBlocks);
-          }
-
-          // Check for exec blocks
-          const execBlocks = parseExecBlocks(assistantContent);
-          if (execBlocks.length > 0) {
-            setPendingExec(execBlocks);
-          }
-        }
-      });
-
-      llmStream.on("error", (err: Error) => {
+        });
+      } catch (err: any) {
         setError(err.message ?? `${err}`);
         setGenerating(false);
-      });
-    } catch (err: any) {
-      setError(err.message ?? `${err}`);
-      setGenerating(false);
-    }
-  }, [
-    input,
-    messages,
-    generating,
-    dir,
-    model,
-    project_id,
-    sessionId,
-    writeMessage,
-    applyWriteFiles,
-    appErrors,
-  ]);
-
-  const handleCancel = useCallback(() => {
-    cancelRef.current = true;
-    setGenerating(false);
-  }, []);
+      }
+    },
+    [
+      input,
+      messages,
+      generating,
+      dir,
+      model,
+      project_id,
+      sessionId,
+      writeMessage,
+      applyWriteFiles,
+      appErrors,
+    ],
+  );
 
   const handleExecCommand = useCallback(
     async (command: string) => {
@@ -745,14 +752,78 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     [project_id, path, writeMessage],
   );
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent<HTMLTextAreaElement>) => {
-      if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-        e.preventDefault();
-        handleSubmit();
+  const handleInputChange = useCallback(
+    (value: string) => {
+      setInput(value);
+      if (!value.trim()) {
+        if (estimateTimeoutRef.current) {
+          clearTimeout(estimateTimeoutRef.current);
+        }
+        setCostEstimate(null);
+        return;
       }
+      if (estimateTimeoutRef.current) {
+        clearTimeout(estimateTimeoutRef.current);
+      }
+      estimateTimeoutRef.current = setTimeout(async () => {
+        if (!model) {
+          setCostEstimate(null);
+          return;
+        }
+        if (isFreeModel(model, isCoCalcCom)) {
+          setCostEstimate({ min: 0, max: 0 });
+          return;
+        }
+        try {
+          const { numTokensEstimate } =
+            await import("@cocalc/frontend/misc/llm");
+          const currentMessages = messages.filter((m) => m.event === "message");
+          const historyText = currentMessages.map((m) => m.content).join("\n");
+          const tokens = numTokensEstimate([historyText, value].join("\n"));
+          const est = calcMinMaxEstimation(tokens, model, llm_markup);
+          setCostEstimate(est);
+        } catch {
+          setCostEstimate(null);
+        }
+      }, 500);
     },
-    [handleSubmit],
+    [model, isCoCalcCom, llm_markup, messages],
+  );
+
+  // Build a session-like object for AgentInputArea
+  const session: AgentSession = useMemo(
+    () => ({
+      syncdb,
+      messages,
+      sessionId,
+      allSessions: [],
+      sessionNames: new Map(),
+      generating,
+      error,
+      setGenerating,
+      setError,
+      setMessages,
+      writeMessage: writeMessage as any,
+      handleNewSession,
+      handleClearSession,
+      writeSessionName: () => {},
+      setSessionId,
+      messagesEndRef,
+      cancelRef,
+      generatingRef,
+      sessionIdRef,
+      pendingNewSessionRef,
+    }),
+    [
+      syncdb,
+      messages,
+      sessionId,
+      generating,
+      error,
+      handleNewSession,
+      handleClearSession,
+      writeMessage,
+    ],
   );
 
   // Restore a stashed turn
@@ -813,6 +884,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       {/* Header */}
       <div
         style={{
+          flex: "0 0 auto",
           padding: "6px 12px",
           borderBottom: `1px solid ${COLORS.GRAY_L}`,
           display: "flex",
@@ -835,6 +907,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       {/* Session bar */}
       <div
         style={{
+          flex: "0 0 auto",
           padding: "4px 12px",
           borderBottom: `1px solid ${COLORS.GRAY_L}`,
           display: "flex",
@@ -886,6 +959,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       {showTurns && turns.length > 0 && (
         <div
           style={{
+            flex: "0 0 auto",
             maxHeight: 300,
             overflow: "auto",
             borderBottom: `1px solid ${COLORS.GRAY_L}`,
@@ -899,6 +973,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       {appErrors.length > 0 && (
         <div
           style={{
+            flex: "0 0 auto",
             padding: "4px 12px",
             background: COLORS.ANTD_BG_RED_L,
             borderBottom: `1px solid ${COLORS.ANTD_BG_RED_M}`,
@@ -968,6 +1043,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       {pendingExec.length > 0 && (
         <div
           style={{
+            flex: "0 0 auto",
             padding: "6px 12px",
             borderTop: `1px solid ${COLORS.GRAY_L}`,
             background: COLORS.YELL_LLL,
@@ -997,22 +1073,13 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               >
                 {cmd.command}
               </code>
-              <Popconfirm
-                title={
-                  <>
-                    Run this command?
-                    <br />
-                    <code>{cmd.command}</code>
-                  </>
-                }
-                onConfirm={() => handleExecCommand(cmd.command)}
-                okText="Run"
-                cancelText="Cancel"
+              <Button
+                size="small"
+                type="primary"
+                onClick={() => handleExecCommand(cmd.command)}
               >
-                <Button size="small" type="primary">
-                  <Icon name="play" /> Run
-                </Button>
-              </Popconfirm>
+                <Icon name="play" /> Run
+              </Button>
               <Button
                 size="small"
                 onClick={() =>
@@ -1035,37 +1102,47 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           message={error}
           closable
           onClose={() => setError("")}
-          style={{ margin: "4px 12px" }}
+          style={{ flex: "0 0 auto", margin: "4px 12px" }}
         />
       )}
 
       {/* Input area */}
-      <div style={INPUT_AREA_STYLE}>
-        <Space.Compact style={{ width: "100%" }}>
-          <TextArea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            placeholder="Describe the app you want... (Ctrl+Enter to send)"
-            autoSize={{ minRows: 1, maxRows: 6 }}
-            disabled={generating}
-            style={{ flex: 1 }}
-          />
-          {generating ? (
-            <Button onClick={handleCancel}>
-              <Icon name="stop" /> Stop
-            </Button>
-          ) : (
-            <Button
-              type="primary"
-              onClick={handleSubmit}
-              disabled={!input.trim()}
-            >
-              <Icon name="paper-plane" /> Send
-            </Button>
-          )}
-        </Space.Compact>
-      </div>
+      <AgentInputArea
+        session={session}
+        onSubmit={() => handleSubmit()}
+        onCancel={() => {
+          setInput(lastSubmittedRef.current);
+        }}
+        sendDisabled={!input.trim()}
+        showDone
+        doneHighlight={false}
+        aboveButtons={
+          costEstimate ? (
+            <LLMCostEstimationChat
+              costEstimate={costEstimate}
+              compact
+              style={{
+                flex: 0,
+                fontSize: "85%",
+                textAlign: "center",
+                margin: "0 0 4px 0",
+              }}
+            />
+          ) : undefined
+        }
+      >
+        <MarkdownInput
+          value={input}
+          onChange={handleInputChange}
+          onShiftEnter={(value) => {
+            handleSubmit(value);
+          }}
+          placeholder="Describe the app you want..."
+          height="auto"
+          editBarStyle={{ overflow: "auto" }}
+          style={{ minHeight: "72px", maxHeight: "200px", overflow: "auto" }}
+        />
+      </AgentInputArea>
     </div>
   );
 }
