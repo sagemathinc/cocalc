@@ -440,10 +440,47 @@ const BRIDGE_SDK_SOURCE = `
       return base + "/" + pid + "/port/" + port + "/";
     },
 
+    /**
+     * Register a callback that fires when the app becomes visible
+     * (e.g., user switches to the tab containing this app).
+     * Multiple callbacks can be registered; they are called in order.
+     * @param {Function} callback - Called with no arguments
+     */
+    onShow: function(callback) {
+      if (typeof callback === "function") window.cocalc._showCallbacks.push(callback);
+    },
+
+    /**
+     * Register a callback that fires when the app becomes hidden
+     * (e.g., user switches to a different tab).
+     * Multiple callbacks can be registered; they are called in order.
+     * @param {Function} callback - Called with no arguments
+     */
+    onHide: function(callback) {
+      if (typeof callback === "function") window.cocalc._hideCallbacks.push(callback);
+    },
+
     // Internal: set by parent on init
     _projectId: "",
-    _basePath: ""
+    _basePath: "",
+    _showCallbacks: [],
+    _hideCallbacks: []
   };
+
+  // Listen for visibility push messages from parent
+  window.addEventListener("message", function(event) {
+    var data = event.data;
+    if (!data) return;
+    if (data.type === "cocalc-bridge-show") {
+      window.cocalc._showCallbacks.forEach(function(cb) {
+        try { cb(); } catch(e) { console.error("onShow callback error:", e); }
+      });
+    } else if (data.type === "cocalc-bridge-hide") {
+      window.cocalc._hideCallbacks.forEach(function(cb) {
+        try { cb(); } catch(e) { console.error("onHide callback error:", e); }
+      });
+    }
+  });
 
   // Error capture: report uncaught errors and unhandled rejections to parent
   var errorBuffer = [];

@@ -55,6 +55,7 @@ import type { EditorComponentProps } from "../frame-tree/types";
 import { appDir } from "./app-preview";
 import { getBridgeSDKSource } from "./cocalc-app-bridge";
 import type { AppError } from "./actions";
+import { applySearchReplace } from "../llm/coding-agent-utils";
 import LLMSelector from "../llm/llm-selector";
 
 interface DisplayMessage {
@@ -140,6 +141,17 @@ file contents here
 
 You can include multiple writefile blocks in one response.
 After writing files, the app preview will automatically reload.
+
+For small edits to existing files, prefer search/replace blocks instead of rewriting the entire file:
+
+<<<SEARCH ${appDirectory}/filename.ext
+exact text to find
+>>>REPLACE
+replacement text
+<<<END
+
+The SEARCH text must match exactly (including whitespace/indentation).
+You can include multiple search/replace blocks targeting different files.
 
 When you need to run a shell command (e.g., install a package, run a Python script), use:
 
@@ -325,7 +337,8 @@ const EXT_TO_LANG: Record<string, string> = {
  * syntax highlighting instead of a plain "writefile" block.
  */
 function formatWriteFileBlocks(text: string): string {
-  return text.replace(
+  // Transform writefile blocks
+  let result = text.replace(
     /```writefile\s+(\S+)\n([\s\S]*?)```/g,
     (_match, filePath: string, content: string) => {
       const ext = filePath.split(".").pop() ?? "";
@@ -333,6 +346,20 @@ function formatWriteFileBlocks(text: string): string {
       return `**\u2192 ${filePath}**\n\`\`\`${lang}\n${content}\`\`\``;
     },
   );
+  // Transform search/replace blocks into diff display
+  result = result.replace(
+    /<<<SEARCH\s+(\S+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g,
+    (_match, filePath: string, search: string, replace: string) => {
+      const searchLines = search.replace(/\n$/, "").split("\n");
+      const replaceLines = replace.replace(/\n$/, "").split("\n");
+      const diffLines = [
+        ...searchLines.map((l) => `- ${l}`),
+        ...replaceLines.map((l) => `+ ${l}`),
+      ];
+      return `**\u270E ${filePath}**\n\`\`\`diff\n${diffLines.join("\n")}\n\`\`\``;
+    },
+  );
+  return result;
 }
 
 /**
@@ -349,6 +376,34 @@ function parseExecBlocks(text: string): ExecBlock[] {
   while ((match = regex.exec(text)) !== null) {
     const cmd = match[1].trim();
     if (cmd) blocks.push({ command: cmd });
+  }
+  return blocks;
+}
+
+/**
+ * Parse search/replace blocks with file path:
+ *   <<<SEARCH path/to/file
+ *   old content
+ *   >>>REPLACE
+ *   new content
+ *   <<<END
+ */
+interface FileSearchReplace {
+  path: string;
+  search: string;
+  replace: string;
+}
+
+function parseFileSearchReplaceBlocks(text: string): FileSearchReplace[] {
+  const blocks: FileSearchReplace[] = [];
+  const regex = /<<<SEARCH\s+(\S+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    blocks.push({
+      path: match[1],
+      search: match[2].replace(/\n$/, ""),
+      replace: match[3].replace(/\n$/, ""),
+    });
   }
   return blocks;
 }
@@ -370,8 +425,11 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const [error, setError] = useState<string>("");
   const [costEstimate, setCostEstimate] = useState<CostEstimate>(null);
   const [pendingExec, setPendingExec] = useState<ExecBlock[]>([]);
+  const [autoExec, setAutoExec] = useState(false);
+  const autoExecRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(false);
+  autoExecRef.current = autoExec;
   const generatingRef = useRef(false);
   const sessionIdRef = useRef("");
   const pendingNewSessionRef = useRef("");
@@ -620,6 +678,135 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     [project_id, actions, writeMessage],
   );
 
+  const applySearchReplaceFiles = useCallback(
+    async (blocks: FileSearchReplace[]) => {
+      // Group blocks by file path
+      const byFile = new Map<string, FileSearchReplace[]>();
+      for (const block of blocks) {
+        const resolvedPath = join(block.path);
+        if (!resolvedPath.startsWith(dir + "/") && resolvedPath !== dir) {
+          const now = new Date().toISOString();
+          writeMessage({
+            date: now,
+            sender: "system",
+            content: `Blocked patch to \`${block.path}\`: path escapes app directory.`,
+            event: "exec_result",
+          });
+          continue;
+        }
+        if (!byFile.has(resolvedPath)) byFile.set(resolvedPath, []);
+        byFile.get(resolvedPath)!.push(block);
+      }
+
+      let totalApplied = 0;
+      let totalFailed = 0;
+      const patchedFiles: string[] = [];
+
+      for (const [filePath, fileBlocks] of byFile) {
+        try {
+          const buf = await webapp_client.project_client.readFile({
+            project_id,
+            path: filePath,
+          });
+          const content = buf.toString();
+          const srBlocks = fileBlocks.map((b) => ({
+            search: b.search,
+            replace: b.replace,
+          }));
+          const { result, applied, failed } = applySearchReplace(
+            content,
+            srBlocks,
+          );
+          totalApplied += applied;
+          totalFailed += failed;
+          if (applied > 0) {
+            await webapp_client.project_client.writeFile({
+              project_id,
+              path: filePath,
+              content: result,
+            });
+            patchedFiles.push(filePath);
+          }
+        } catch (err: any) {
+          totalFailed += fileBlocks.length;
+          const now = new Date().toISOString();
+          writeMessage({
+            date: now,
+            sender: "system",
+            content: `Error patching \`${filePath}\`: ${err.message ?? err}`,
+            event: "exec_result",
+          });
+        }
+      }
+
+      if (patchedFiles.length > 0) {
+        (actions as any).reloadAppPreview?.();
+        const now = new Date().toISOString();
+        writeMessage({
+          date: now,
+          sender: "system",
+          content: `Patched ${patchedFiles.length} file(s) (${totalApplied} applied, ${totalFailed} failed): ${patchedFiles.map((f) => `\`${f}\``).join(", ")}`,
+          event: "exec_result",
+        });
+      } else if (totalFailed > 0) {
+        const now = new Date().toISOString();
+        writeMessage({
+          date: now,
+          sender: "system",
+          content: `Search/replace failed: ${totalFailed} block(s) did not match.`,
+          event: "exec_result",
+        });
+      }
+    },
+    [project_id, dir, actions, writeMessage],
+  );
+
+  const handleExecCommand = useCallback(
+    async (command: string) => {
+      try {
+        const result = await exec(
+          {
+            project_id,
+            command: "/bin/bash",
+            args: ["-c", command],
+            timeout: 60,
+            max_output: 100000,
+            bash: false,
+            path: parentDir,
+            err_on_exit: false,
+          },
+          path,
+        );
+
+        const output = [
+          result.stdout ? `**stdout:**\n\`\`\`\n${result.stdout}\n\`\`\`` : "",
+          result.stderr ? `**stderr:**\n\`\`\`\n${result.stderr}\n\`\`\`` : "",
+          result.exit_code != null ? `Exit code: ${result.exit_code}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n\n");
+
+        const now = new Date().toISOString();
+        writeMessage({
+          date: now,
+          sender: "system",
+          content: `Executed: \`${command}\`\n\n${output}`,
+          event: "exec_result",
+        });
+      } catch (err: any) {
+        const now = new Date().toISOString();
+        writeMessage({
+          date: now,
+          sender: "system",
+          content: `Error executing \`${command}\`: ${err.message ?? err}`,
+          event: "exec_result",
+        });
+      }
+      setPendingExec((prev) => prev.filter((e) => e.command !== command));
+    },
+    [project_id, path, parentDir, writeMessage],
+  );
+
   const handleSubmit = useCallback(
     async (submittedValue?: string) => {
       const prompt = (submittedValue ?? input).trim();
@@ -717,10 +904,22 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               applyWriteFiles(writeBlocks);
             }
 
-            // Check for exec blocks
+            // Auto-apply search/replace blocks
+            const srBlocks = parseFileSearchReplaceBlocks(assistantContent);
+            if (srBlocks.length > 0) {
+              applySearchReplaceFiles(srBlocks);
+            }
+
+            // Check for exec blocks — auto-run or queue for confirmation
             const execBlocks = parseExecBlocks(assistantContent);
             if (execBlocks.length > 0) {
-              setPendingExec(execBlocks);
+              if (autoExecRef.current) {
+                for (const cmd of execBlocks) {
+                  handleExecCommand(cmd.command);
+                }
+              } else {
+                setPendingExec(execBlocks);
+              }
             }
           }
         });
@@ -744,54 +943,10 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       sessionId,
       writeMessage,
       applyWriteFiles,
+      applySearchReplaceFiles,
+      handleExecCommand,
       appErrors,
     ],
-  );
-
-  const handleExecCommand = useCallback(
-    async (command: string) => {
-      try {
-        const result = await exec(
-          {
-            project_id,
-            command: "/bin/bash",
-            args: ["-c", command],
-            timeout: 60,
-            max_output: 100000,
-            bash: false,
-            path: parentDir,
-            err_on_exit: false,
-          },
-          path,
-        );
-
-        const output = [
-          result.stdout ? `**stdout:**\n\`\`\`\n${result.stdout}\n\`\`\`` : "",
-          result.stderr ? `**stderr:**\n\`\`\`\n${result.stderr}\n\`\`\`` : "",
-          result.exit_code != null ? `Exit code: ${result.exit_code}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n\n");
-
-        const now = new Date().toISOString();
-        writeMessage({
-          date: now,
-          sender: "system",
-          content: `Executed: \`${command}\`\n\n${output}`,
-          event: "exec_result",
-        });
-      } catch (err: any) {
-        const now = new Date().toISOString();
-        writeMessage({
-          date: now,
-          sender: "system",
-          content: `Error executing \`${command}\`: ${err.message ?? err}`,
-          event: "exec_result",
-        });
-      }
-      setPendingExec((prev) => prev.filter((e) => e.command !== command));
-    },
-    [project_id, path, writeMessage],
   );
 
   const handleInputChange = useCallback(
@@ -1103,8 +1258,46 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             background: COLORS.YELL_LLL,
           }}
         >
-          <div style={{ marginBottom: 4, fontWeight: 500 }}>
+          <div
+            style={{
+              marginBottom: 4,
+              fontWeight: 500,
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+            }}
+          >
             <Icon name="terminal" /> Commands to execute:
+            <div style={{ flex: 1 }} />
+            <Button
+              size="small"
+              type="primary"
+              onClick={() => {
+                for (const cmd of pendingExec) {
+                  handleExecCommand(cmd.command);
+                }
+              }}
+            >
+              <Icon name="play" /> Run All
+            </Button>
+            <Tooltip title="When enabled, exec commands run automatically without asking">
+              <Button
+                size="small"
+                type={autoExec ? "primary" : "default"}
+                onClick={() => {
+                  const next = !autoExec;
+                  setAutoExec(next);
+                  if (next) {
+                    // Run all currently pending commands immediately
+                    for (const cmd of pendingExec) {
+                      handleExecCommand(cmd.command);
+                    }
+                  }
+                }}
+              >
+                <Icon name="bolt" /> Auto
+              </Button>
+            </Tooltip>
           </div>
           {pendingExec.map((cmd, i) => (
             <div

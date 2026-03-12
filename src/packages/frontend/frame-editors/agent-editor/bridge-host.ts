@@ -48,10 +48,25 @@ export interface BridgeResponse {
   error?: string;
 }
 
+/** Direction of a bridge message relative to CoCalc. */
+export type BridgeDirection = "app→host" | "host→app";
+
+/** A single logged bridge message. */
+export interface BridgeLogEntry {
+  timestamp: number;
+  direction: BridgeDirection;
+  /** The message payload (request object, response result, or push data). */
+  payload: any;
+  /** For host→app responses: duration since the matching request, in ms. */
+  durationMs?: number;
+}
+
 interface BridgeHostOptions {
   project_id: string;
   appDir: string;
   editorPath: string; // the .ai file path — used for exec cwd
+  /** Called after each request/response pair. */
+  onMessage?: (entry: BridgeLogEntry) => void;
 }
 
 /**
@@ -64,7 +79,8 @@ export function createBridgeHost(
   iframeRef: { current: HTMLIFrameElement | null },
   options: BridgeHostOptions,
 ): () => void {
-  const { project_id, appDir: _appDir, editorPath } = options;
+  const { project_id, appDir: _appDir, editorPath, onMessage: onBridgeLog } =
+    options;
 
   // App-scoped KV store (in-memory, ephemeral per session)
   const kvStore = new Map<string, any>();
@@ -169,6 +185,16 @@ export function createBridgeHost(
     if (!req?.id) return;
 
     const targetOrigin = window.location.origin;
+    const startTime = Date.now();
+
+    // Log the incoming request
+    const { id: _reqId, ...reqPayload } = req;
+    onBridgeLog?.({
+      timestamp: startTime,
+      direction: "app→host",
+      payload: reqPayload,
+    });
+
     handleRequest(req)
       .then((result) => {
         const response: BridgeResponse = {
@@ -177,6 +203,12 @@ export function createBridgeHost(
           result,
         };
         iframe.contentWindow?.postMessage(response, targetOrigin);
+        onBridgeLog?.({
+          timestamp: Date.now(),
+          direction: "host→app",
+          payload: result,
+          durationMs: Date.now() - startTime,
+        });
       })
       .catch((err) => {
         const response: BridgeResponse = {
@@ -185,6 +217,12 @@ export function createBridgeHost(
           error: err?.message ?? `${err}`,
         };
         iframe.contentWindow?.postMessage(response, targetOrigin);
+        onBridgeLog?.({
+          timestamp: Date.now(),
+          direction: "host→app",
+          payload: { error: err?.message ?? `${err}` },
+          durationMs: Date.now() - startTime,
+        });
       });
   }
 

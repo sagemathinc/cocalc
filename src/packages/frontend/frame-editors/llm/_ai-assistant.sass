@@ -16,9 +16,13 @@
   &.cc-chat-mode-assistant .ant-segmented-item-selected
     background: colors.$COL_AI_ASSISTANT_BG !important
 
-// App agent writefile blocks — height-limited code at 80% of parent font size
+// App agent writefile blocks — height-limited, scaled relative to parent font
 .cc-agent-writefile-blocks
+  // Prose text (StaticMarkdown output) at 90% of container font
+  font-size: 90%
+
+  // Code blocks (pre) at 90% of the already-reduced prose size
   pre
     max-height: 50vh
     overflow: auto
-    font-size: 80%
+    font-size: 90%

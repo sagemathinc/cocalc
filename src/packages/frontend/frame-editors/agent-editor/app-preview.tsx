@@ -15,11 +15,11 @@ The iframe app can communicate with the CoCalc project via a bridge:
   - The bridge SDK (cocalc-app-bridge.js) provides window.cocalc API
 */
 
-import { Button, Empty, Segmented, Spin, Tooltip } from "antd";
+import { Badge, Button, Empty, List, Modal, Segmented, Spin, Tooltip } from "antd";
 import { join } from "path";
 import { useCallback, useEffect, useRef, useState } from "react";
 
-import { useRedux } from "@cocalc/frontend/app-framework";
+import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -29,7 +29,7 @@ import { path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
 import type { AppError } from "./actions";
-import { createBridgeHost } from "./bridge-host";
+import { createBridgeHost, type BridgeLogEntry } from "./bridge-host";
 
 export function appDir(path: string): string {
   const { head, tail } = path_split(path);
@@ -39,7 +39,7 @@ export function appDir(path: string): string {
 type AppMode = "app" | "server";
 
 export default function AppPreview({ name }: EditorComponentProps) {
-  const { project_id, path, actions } = useFrameContext();
+  const { project_id, path, actions, isVisible } = useFrameContext();
   const [exists, setExists] = useState<boolean | null>(null);
   const [localReload, setLocalReload] = useState(0);
   const [mode, setMode] = useState<AppMode>("app");
@@ -47,6 +47,11 @@ export default function AppPreview({ name }: EditorComponentProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const dir = appDir(path);
   const indexPath = join(dir, "index.html");
+
+  // Bridge message log — last 100 request/response exchanges
+  const messageLogRef = useRef<BridgeLogEntry[]>([]);
+  const [messageCount, setMessageCount] = useState(0);
+  const [showMessages, setShowMessages] = useState(false);
 
   // Watch the resize counter from the store (incremented by actions.reloadAppPreview())
   const storeReload: number = useRedux(name, "resize") ?? 0;
@@ -57,9 +62,51 @@ export default function AppPreview({ name }: EditorComponentProps) {
       project_id,
       appDir: dir,
       editorPath: path,
+      onMessage: (entry) => {
+        const log = messageLogRef.current;
+        log.push(entry);
+        // Keep only last 100
+        if (log.length > 100) {
+          log.splice(0, log.length - 100);
+        }
+        setMessageCount(log.length);
+      },
     });
-    return cleanup;
+    return () => {
+      cleanup();
+      messageLogRef.current = [];
+      setMessageCount(0);
+    };
   }, [project_id, dir, path]);
+
+  // Send show/hide push messages when tab visibility changes
+  const prevVisibleRef = useRef<boolean | null>(null);
+  useEffect(() => {
+    // Skip initial mount — only fire on actual transitions
+    if (prevVisibleRef.current === null) {
+      prevVisibleRef.current = isVisible;
+      return;
+    }
+    if (isVisible === prevVisibleRef.current) return;
+    prevVisibleRef.current = isVisible;
+
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+
+    const msgType = isVisible ? "cocalc-bridge-show" : "cocalc-bridge-hide";
+    iframe.contentWindow.postMessage({ type: msgType }, "*");
+
+    // Log it
+    const entry: BridgeLogEntry = {
+      timestamp: Date.now(),
+      direction: "host→app",
+      payload: { type: msgType },
+    };
+    const log = messageLogRef.current;
+    log.push(entry);
+    if (log.length > 100) log.splice(0, log.length - 100);
+    setMessageCount(log.length);
+  }, [isVisible]);
 
   // Send init data to iframe when it signals readiness
   useEffect(() => {
@@ -194,11 +241,25 @@ export default function AppPreview({ name }: EditorComponentProps) {
         />
         <Button
           size="small"
-          onClick={() => setLocalReload((n) => n + 1)}
+          onClick={() => {
+            messageLogRef.current = [];
+            setMessageCount(0);
+            setLocalReload((n) => n + 1);
+          }}
           icon={<Icon name="refresh" />}
         >
           Reload
         </Button>
+        <Badge count={messageCount} size="small" offset={[-4, 0]}>
+          <Button
+            size="small"
+            onClick={() => setShowMessages(true)}
+            icon={<Icon name="comment" />}
+            disabled={messageCount === 0}
+          >
+            Messages
+          </Button>
+        </Badge>
         {mode === "server" && (
           <Tooltip title="Port number of the server running in your project">
             <input
@@ -244,6 +305,120 @@ export default function AppPreview({ name }: EditorComponentProps) {
           Enter the port number of your running server above.
         </div>
       )}
+      {showMessages && (
+        <BridgeMessagesModal
+          onClose={() => setShowMessages(false)}
+          messages={messageLogRef.current}
+        />
+      )}
     </div>
+  );
+}
+
+const MSG_BASE: React.CSSProperties = {
+  borderRadius: 6,
+  padding: "6px 10px",
+  marginBottom: 4,
+  fontFamily: "monospace",
+  fontSize: 12,
+  whiteSpace: "pre-wrap",
+  wordBreak: "break-all",
+  maxHeight: 200,
+  overflow: "auto",
+};
+
+// App → Host (request from iframe)
+const APP_TO_HOST_STYLE: React.CSSProperties = {
+  ...MSG_BASE,
+  background: "#e8f4fd",
+};
+
+// Host → App (success response)
+const HOST_TO_APP_STYLE: React.CSSProperties = {
+  ...MSG_BASE,
+  background: "#f0f9eb",
+};
+
+// Host → App (error response)
+const HOST_TO_APP_ERR_STYLE: React.CSSProperties = {
+  ...MSG_BASE,
+  background: "#fef0ef",
+};
+
+function BridgeMessagesModal({
+  onClose,
+  messages,
+}: {
+  onClose: () => void;
+  messages: BridgeLogEntry[];
+}) {
+  const listEndRef = useRef<HTMLDivElement>(null);
+  const siteName = useTypedRedux("customize", "site_name") ?? "CoCalc";
+
+  useEffect(() => {
+    // Scroll to bottom after modal opens
+    setTimeout(() => listEndRef.current?.scrollIntoView(), 100);
+  }, []);
+
+  return (
+    <Modal
+      title={`Bridge Messages (${messages.length})`}
+      open
+      onCancel={onClose}
+      footer={
+        <Button type="primary" onClick={onClose}>
+          OK
+        </Button>
+      }
+      width={700}
+      styles={{ body: { maxHeight: "60vh", overflow: "auto" } }}
+    >
+      <List
+        size="small"
+        dataSource={messages}
+        renderItem={(entry, i) => {
+          const { direction, payload, timestamp, durationMs } = entry;
+          const time = new Date(timestamp).toLocaleTimeString();
+          const isAppToHost = direction === "app→host";
+          const isError = !isAppToHost && payload?.error != null;
+          const style = isAppToHost
+            ? APP_TO_HOST_STYLE
+            : isError
+              ? HOST_TO_APP_ERR_STYLE
+              : HOST_TO_APP_STYLE;
+          const label = isAppToHost
+            ? `App → ${siteName}`
+            : `${siteName} → App`;
+          const labelColor = isAppToHost
+            ? "#1677ff"
+            : isError
+              ? "#ff4d4f"
+              : "#52c41a";
+          return (
+            <List.Item
+              style={{ display: "block", padding: "2px 0", border: "none" }}
+            >
+              <div style={style}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    color: COLORS.GRAY_M,
+                    marginBottom: 2,
+                  }}
+                >
+                  #{i + 1} &mdash; {time}
+                  {durationMs != null ? ` (${durationMs}ms)` : ""}
+                </div>
+                <span style={{ fontWeight: "bold", color: labelColor }}>
+                  {label}:
+                </span>{" "}
+                {JSON.stringify(payload, null, 2)}
+              </div>
+            </List.Item>
+          );
+        }}
+      />
+      <div ref={listEndRef} />
+    </Modal>
   );
 }
