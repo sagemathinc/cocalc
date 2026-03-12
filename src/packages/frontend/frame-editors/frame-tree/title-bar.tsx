@@ -19,7 +19,6 @@ import {
   Input,
   InputNumber,
   Popover,
-  Space,
   Tooltip,
 } from "antd";
 import type { MenuProps } from "antd/lib";
@@ -68,7 +67,6 @@ import { COLORS } from "@cocalc/util/theme";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
-import { hasEmbeddedAgent } from "../generic/has-embedded-agent";
 // LanguageModelTitleBarButton is still available for standalone use but the
 // title-bar assistant button now opens the side chat in assistant mode.
 import {
@@ -278,7 +276,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         setShowAI: (val: boolean) => {
           if (val) {
             const projectActions = redux.getProjectActions(props.project_id);
-            projectActions.open_chat({
+            projectActions.toggle_chat({
               path: props.path,
               chat_mode: "assistant",
             });
@@ -629,7 +627,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return;
     }
     const projectActions = redux.getProjectActions(props.project_id);
-    const showAgent = hasEmbeddedAgent(props.path);
 
     const aiButton = (
       <Button
@@ -646,7 +643,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             : undefined),
         }}
         onClick={() => {
-          projectActions.open_chat({
+          projectActions.toggle_chat({
             path: props.path,
             chat_mode: "assistant",
           });
@@ -665,38 +662,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       </Button>
     );
 
-    if (!showAgent) {
-      // No agent for this file type — just the AI button (opens chat in
-      // assistant mode, which is the inline LLM helper).
-      return aiButton;
-    }
-
-    // File supports an embedded agent — show [AI | Chat] compact group.
-    return (
-      <Space.Compact key="assistant-chat-group">
-        {aiButton}
-        <Button
-          size={button_size()}
-          style={button_style()}
-          onClick={() => {
-            projectActions.open_chat({
-              path: props.path,
-            });
-          }}
-        >
-          <Icon name="comment" />
-          {noLabel ? (
-            ""
-          ) : (
-            <VisibleMDLG>
-              <span style={{ marginLeft: "5px" }}>
-                {intl.formatMessage(labels.chat)}
-              </span>
-            </VisibleMDLG>
-          )}
-        </Button>
-      </Space.Compact>
-    );
+    // Only the orange AI button in the title bar — the Chat button
+    // lives in the file-tab-bar chat indicator instead.
+    return aiButton;
   }
 
   function renderSaveButton(noLabel): Rendered {

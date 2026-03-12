@@ -1311,6 +1311,38 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     }
   }
 
+  // Toggle side chat for a specific mode.  If the chat is closed, open it
+  // in the given mode.  If it is already open in that mode, close it.
+  // If it is open in a different mode, switch to the requested mode.
+  toggle_chat({
+    path,
+    chat_mode,
+  }: {
+    path: string;
+    chat_mode?: "chat" | "assistant";
+  }): void {
+    const editorActions = redux.getEditorActions(this.project_id, path) as any;
+    if (editorActions?._get_most_recent_active_frame_id_of_type != null) {
+      const chatFrameId =
+        editorActions._get_most_recent_active_frame_id_of_type("chat");
+      if (chatFrameId != null) {
+        // Chat frame exists — check its current mode.
+        const node = editorActions._get_frame_node?.(chatFrameId);
+        const currentMode: string = node?.get("chat_mode") ?? "chat";
+        if (currentMode === (chat_mode ?? "chat")) {
+          // Same mode → close
+          this.close_chat({ path });
+          return;
+        }
+        // Different mode → switch
+        editorActions.set_frame_tree({ id: chatFrameId, chat_mode });
+        return;
+      }
+    }
+    // Chat not open → open it
+    this.open_chat({ path, chat_mode });
+  }
+
   set_chat_width(opts): void {
     opts = defaults(opts, {
       path: required,

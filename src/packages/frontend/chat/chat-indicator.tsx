@@ -1,23 +1,18 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// TODO: for a frame tree it really only makes sense for this button
-// to always show the chat.  For sagews and old stuff it should hide
-// and show it.  But it's very hard to know from here which doc type
-// this is... so for now it still sort of toggles.  For now things
-// do work properly via a hack in close_chat in project_actions.
-
 import { filename_extension } from "@cocalc/util/misc";
-import { Button, Tooltip } from "antd";
+import { Button, Space, Tooltip } from "antd";
 import { debounce } from "lodash";
 import { useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { HiddenXS } from "@cocalc/frontend/components";
+import { AIAvatar, HiddenXS } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { hasEmbeddedAgent } from "@cocalc/frontend/frame-editors/generic/has-embedded-agent";
 import track from "@cocalc/frontend/user-tracking";
 import { labels } from "../i18n";
 
@@ -59,28 +54,37 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
         path={path}
         style={USERS_VIEWING_STYLE}
       />
-      <ChatButton project_id={project_id} path={path} chatState={chatState} />
+      <ChatButtons
+        project_id={project_id}
+        path={path}
+        chatState={chatState}
+      />
     </div>
   );
 }
 
-function ChatButton({ project_id, path, chatState }) {
+function ChatButtons({ project_id, path, chatState }) {
   const intl = useIntl();
 
-  const toggleChat = debounce(
-    () => {
-      const actions = redux.getProjectActions(project_id);
-      if (chatState) {
-        track("close-chat", { project_id, path, how: "chat-button" });
-        actions.close_chat({ path });
-      } else {
-        track("open-chat", { project_id, path, how: "chat-button" });
-        actions.open_chat({ path });
-      }
-    },
-    1000,
-    { leading: true },
+  const toggleChat = useMemo(
+    () =>
+      debounce(
+        (mode?: "chat" | "assistant") => {
+          const actions = redux.getProjectActions(project_id);
+          track(chatState ? "toggle-chat" : "open-chat", {
+            project_id,
+            path,
+            how: "chat-button",
+            mode,
+          });
+          actions.toggle_chat({ path, chat_mode: mode });
+        },
+        1000,
+        { leading: true },
+      ),
+    [project_id, path, chatState],
   );
+
   const fileUse = useTypedRedux("file_use", "file_use");
   const isNewChat = useMemo(
     () =>
@@ -94,7 +98,11 @@ function ChatButton({ project_id, path, chatState }) {
     return null;
   }
 
-  return (
+  const showAI =
+    hasEmbeddedAgent(path) &&
+    redux.getStore("projects").hasLanguageModelEnabled(project_id);
+
+  const chatButton = (
     <Tooltip
       title={
         <span>
@@ -112,7 +120,7 @@ function ChatButton({ project_id, path, chatState }) {
         type="text"
         danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
-        onClick={toggleChat}
+        onClick={() => toggleChat("chat")}
         style={{ background: chatState ? "white" : undefined }}
       >
         <Icon name="comment" />
@@ -123,5 +131,42 @@ function ChatButton({ project_id, path, chatState }) {
         </HiddenXS>
       </Button>
     </Tooltip>
+  );
+
+  if (!showAI) {
+    return chatButton;
+  }
+
+  return (
+    <Space.Compact>
+      <Tooltip
+        title={
+          <FormattedMessage
+            id="chat.chat-indicator.ai-tooltip"
+            defaultMessage={"AI Assistant"}
+          />
+        }
+        placement={"leftTop"}
+        mouseEnterDelay={0.5}
+      >
+        <Button
+          type="text"
+          onClick={() => toggleChat("assistant")}
+          style={{
+            background: chatState ? "white" : undefined,
+            padding: "4px 6px",
+          }}
+        >
+          <AIAvatar
+            size={16}
+            backgroundColor="#f60"
+            iconColor="white"
+            style={{ borderRadius: 3 }}
+            innerStyle={{ borderRadius: 3 }}
+          />
+        </Button>
+      </Tooltip>
+      {chatButton}
+    </Space.Compact>
   );
 }
