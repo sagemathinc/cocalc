@@ -718,30 +718,21 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           renderedContent = formatSearchReplaceAsDiff(renderedContent);
         }
         return (
-          <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
-            <CollapsibleDiffs>
-              <StaticMarkdown value={renderedContent} />
-            </CollapsibleDiffs>
-          </FileContext.Provider>
+          <CollapsibleDiffs>
+            <StaticMarkdown value={renderedContent} />
+          </CollapsibleDiffs>
         );
       }
-      // system — show_lines: plain syntax-highlighted code, no toolbar
+      // system — show_lines: plain syntax-highlighted code
       if (msg.event === "show_lines") {
         return (
-          <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
-            <CollapsibleDiffs maxHeight={DIFF_MAX_HEIGHT}>
-              <StaticMarkdown value={msg.content} />
-            </CollapsibleDiffs>
-          </FileContext.Provider>
+          <CollapsibleDiffs maxHeight={DIFF_MAX_HEIGHT}>
+            <StaticMarkdown value={msg.content} />
+          </CollapsibleDiffs>
         );
       }
-      // All other system messages (exec_result, error, etc.) — static
-      // markdown with no interactive code toolbar.
-      return (
-        <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
-          <StaticMarkdown value={msg.content} />
-        </FileContext.Provider>
-      );
+      // All other system messages (exec_result, error, etc.)
+      return <StaticMarkdown value={msg.content} />;
     },
     [session.messages],
   );
@@ -769,11 +760,13 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         }
       />
 
-      <AgentMessages
-        session={session}
-        renderMessage={renderMessage}
-        emptyText="Ask the agent to help with your document. It can see the editor content, suggest edits, run shell commands, and trigger builds."
-      />
+      <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+        <AgentMessages
+          session={session}
+          renderMessage={renderMessage}
+          emptyText="Ask the agent to help with your document. It can see the editor content, suggest edits, run shell commands, and trigger builds."
+        />
+      </FileContext.Provider>
 
       {/* Pending edits action bar */}
       {pendingEdits && (
