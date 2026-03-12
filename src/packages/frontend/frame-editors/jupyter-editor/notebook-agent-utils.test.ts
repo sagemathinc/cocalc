@@ -101,6 +101,24 @@ describe("parseToolBlocks", () => {
     expect(blocks).toHaveLength(1);
     expect(blocks[0].args).toEqual({});
   });
+
+  test("parses insert_cells with backticks in cells_markdown JSON string", () => {
+    // The cells_markdown value contains ``` (backtick triples) as part of
+    // the JSON string encoding — these must not close the tool block.
+    const json = JSON.stringify({
+      name: "insert_cells",
+      args: {
+        after_index: 1,
+        cells_markdown:
+          "```\nx = 123\n```\n\n```\ny = 99 + x\n```\n\n```\nprint(x * y)\n```",
+      },
+    });
+    const text = `Sure, I'll create those cells:\n\n\`\`\`tool\n${json}\n\`\`\`\n\nDone!`;
+    const blocks = parseToolBlocks(text);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].name).toBe("insert_cells");
+    expect(blocks[0].args.cells_markdown).toContain("x = 123");
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -119,9 +137,9 @@ describe("buildContextLabel", () => {
   });
 
   test("cell focused, no cursor", () => {
-    expect(
-      buildContextLabel({ ...base, cellIndex: 5, cellType: "code" }),
-    ).toBe("Cell #5 (code)");
+    expect(buildContextLabel({ ...base, cellIndex: 5, cellType: "code" })).toBe(
+      "Cell #5 (code)",
+    );
   });
 
   test("cursor at line", () => {

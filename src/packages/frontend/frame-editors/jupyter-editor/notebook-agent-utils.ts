@@ -59,10 +59,7 @@ export function fenceCell(
 /*  Text truncation                                                    */
 /* ------------------------------------------------------------------ */
 
-export function truncate(
-  s: string,
-  maxLen: number = MAX_OUTPUT_CHARS,
-): string {
+export function truncate(s: string, maxLen: number = MAX_OUTPUT_CHARS): string {
   if (s.length <= maxLen) return s;
   return s.slice(0, maxLen) + `\n... (truncated, ${s.length} chars total)`;
 }
@@ -276,7 +273,10 @@ export interface ToolCall {
 
 export function parseToolBlocks(text: string): ToolCall[] {
   const blocks: ToolCall[] = [];
-  const regex = /```tool\n([\s\S]*?)```/g;
+  // The closing ``` must be on its own line (^ with multiline flag).
+  // This prevents the regex from matching backticks embedded inside
+  // JSON string values (e.g. cells_markdown containing code fences).
+  const regex = /^```tool\n([\s\S]*?)\n```\s*$/gm;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     try {
@@ -442,9 +442,7 @@ async function runSingleTool(
       return (
         `Cell #${toolCall.args.index} (${cellType}):\n` +
         fenceCell(input, cellType, language) +
-        (output
-          ? `\n\nOutput:\n${truncate(output)}`
-          : "\n\n(no output)")
+        (output ? `\n\nOutput:\n${truncate(output)}` : "\n\n(no output)")
       );
     }
 
@@ -463,9 +461,7 @@ async function runSingleTool(
         parts.push(
           `Cell #${i} (${cellType}):\n` +
             fenceCell(truncate(input, 1000), cellType, language) +
-            (output
-              ? `\nOutput: ${truncate(output, 1000)}`
-              : ""),
+            (output ? `\nOutput: ${truncate(output, 1000)}` : ""),
         );
       }
       return parts.join("\n\n") || "(no cells in range)";
@@ -474,7 +470,11 @@ async function runSingleTool(
     case "set_cell": {
       const res = resolveIndex(toolCall.args.index, cellList);
       if ("error" in res) return JSON.stringify(res);
-      jupyterActions.set_cell_input(res.cellId, toolCall.args.content ?? "", true);
+      jupyterActions.set_cell_input(
+        res.cellId,
+        toolCall.args.content ?? "",
+        true,
+      );
       return JSON.stringify({
         status: "updated",
         index: toolCall.args.index,
@@ -490,7 +490,9 @@ async function runSingleTool(
       const currentInput: string = cell.get("input") ?? "";
       const blocks = parseSearchReplaceBlocks(toolCall.args.edits ?? "");
       if (blocks.length === 0) {
-        return JSON.stringify({ error: "No valid search/replace blocks found" });
+        return JSON.stringify({
+          error: "No valid search/replace blocks found",
+        });
       }
       const { result, applied, failed } = applySearchReplace(
         currentInput,
@@ -554,8 +556,7 @@ async function runSingleTool(
           jupyterActions.set_cell_input(newId, content, true);
         }
         // Get updated cell list for index
-        const updatedList: string[] =
-          store.get("cell_list")?.toJS() ?? [];
+        const updatedList: string[] = store.get("cell_list")?.toJS() ?? [];
         const newIndex1 = updatedList.indexOf(newId) + 1;
         inserted.push({ index: newIndex1, id: newId, cell_type });
         prevId = newId;
@@ -567,7 +568,12 @@ async function runSingleTool(
     case "run_cell": {
       const res = resolveIndex(toolCall.args.index, cellList);
       if ("error" in res) return JSON.stringify(res);
-      return await runCell(jupyterActions, res.cellId, toolCall.args.index, cancelRef);
+      return await runCell(
+        jupyterActions,
+        res.cellId,
+        toolCall.args.index,
+        cancelRef,
+      );
     }
 
     default:
@@ -666,7 +672,9 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
     lines.push(
       `You are looking at Cell #${ctx.cellIndex} (${ctx.cellType ?? "code"}):`,
     );
-    lines.push(fenceCell(ctx.cellContent, ctx.cellType ?? "code", ctx.language));
+    lines.push(
+      fenceCell(ctx.cellContent, ctx.cellType ?? "code", ctx.language),
+    );
 
     if (ctx.cursorLine != null) {
       lines.push(`Cursor is at line ${ctx.cursorLine + 1}.`);
@@ -693,7 +701,7 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
   lines.push("## Available Tools");
   lines.push("");
   lines.push(
-    "To interact with the notebook, emit tool blocks in your response. Each tool block starts with \\`\\`\\`tool on its own line, followed by a JSON object with \"name\" and \"args\", then a closing \\`\\`\\`.",
+    'To interact with the notebook, emit tool blocks in your response. Each tool block starts with \\`\\`\\`tool on its own line, followed by a JSON object with "name" and "args", then a closing \\`\\`\\`.',
   );
   lines.push("");
   lines.push("All cell indices are **1-based**. Ranges are **inclusive**.");
@@ -714,9 +722,7 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
   lines.push("");
 
   lines.push("### get_cells");
-  lines.push(
-    "Get a range of cells (both start and end are inclusive).",
-  );
+  lines.push("Get a range of cells (both start and end are inclusive).");
   lines.push("```tool");
   lines.push('{"name": "get_cells", "args": {"start": 1, "end": 5}}');
   lines.push("```");
@@ -801,9 +807,7 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
   // 8. General guidance
   lines.push("## Important");
   lines.push("");
-  lines.push(
-    "- You can include multiple tool blocks in a single response.",
-  );
+  lines.push("- You can include multiple tool blocks in a single response.");
   lines.push(
     "- After tool results are returned, you will have a chance to continue.",
   );
