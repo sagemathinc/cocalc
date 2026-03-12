@@ -136,8 +136,7 @@ export function applySearchReplace(
           // We don't re-indent because the replacement may already
           // include indentation, and blindly prepending the original
           // line's indent would double-indent.
-          result =
-            result.slice(0, lineStart) + replace + result.slice(lineEnd);
+          result = result.slice(0, lineStart) + replace + result.slice(lineEnd);
           applied++;
           found = true;
           break;
@@ -308,9 +307,14 @@ export function fulfillShowBlocks(
   maxLines: number = MAX_VISIBLE_LINES,
   /** Language tag for syntax-highlighted code fences (e.g. "latex"). */
   language: string = "",
+  /** Filename shown in "Lines X–Y of filename" header. */
+  filename: string = "",
 ): string | null {
   if (blocks.length === 0) return null;
   const contentLines = content.split("\n");
+  const ofLabel = filename
+    ? `${filename} (${contentLines.length} lines)`
+    : `${contentLines.length} lines`;
   const parts: string[] = [];
   for (const block of blocks) {
     const start = Math.max(1, block.startLine);
@@ -329,7 +333,7 @@ export function fulfillShowBlocks(
     const open = backtickSequence(slice, language || undefined);
     const close = backtickSequence(slice);
     parts.push(
-      `Lines ${start}\u2013${end} of ${contentLines.length}:\n${open}\n${slice}\n${close}`,
+      `Lines ${start}\u2013${end} of ${ofLabel}:\n${open}\n${slice}\n${close}`,
     );
   }
   if (parts.length === 0) return null;
@@ -397,6 +401,7 @@ export function buildSystemPrompt(
 
   const contentLines = ctx.content.split("\n");
   const totalLines = contentLines.length;
+  const filename = path.split("/").pop() ?? path;
 
   let startLine: number;
   let endLine: number;
@@ -420,14 +425,14 @@ export function buildSystemPrompt(
 
   lines.push("");
   lines.push(
-    `Visible portion of the document (lines ${startLine + 1}\u2013${endLine} of ${totalLines} total):`,
+    `Visible portion of the document (lines ${startLine + 1}\u2013${endLine} of ${filename} (${totalLines} lines)):`,
   );
   lines.push("```");
   lines.push(visibleSlice);
   lines.push("```");
 
   lines.push("");
-  lines.push(`You can see lines ${startLine + 1}\u2013${endLine} of the ${totalLines}-line document above.
+  lines.push(`You can see lines ${startLine + 1}\u2013${endLine} of ${filename} (${totalLines} lines) above.
 If you need to see other parts of the file, request them like this:
 
 <<<SHOW lines N-M

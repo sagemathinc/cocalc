@@ -349,11 +349,8 @@ describe("fulfillShowBlocks", () => {
   });
 
   it("returns numbered lines for a range", () => {
-    const result = fulfillShowBlocks(
-      [{ startLine: 2, endLine: 4 }],
-      content,
-    )!;
-    expect(result).toContain("Lines 2–4 of 10");
+    const result = fulfillShowBlocks([{ startLine: 2, endLine: 4 }], content)!;
+    expect(result).toContain("Lines 2–4 of 10 lines");
     expect(result).toContain("line 2");
     expect(result).toContain("line 4");
     expect(result).not.toContain("line 1");
@@ -379,6 +376,17 @@ describe("fulfillShowBlocks", () => {
     expect(result).toContain("```python");
   });
 
+  it("includes filename in header when provided", () => {
+    const result = fulfillShowBlocks(
+      [{ startLine: 1, endLine: 3 }],
+      content,
+      100,
+      "",
+      "test.tex",
+    )!;
+    expect(result).toContain("Lines 1–3 of test.tex (10 lines)");
+  });
+
   it("skips blocks where startLine exceeds document length", () => {
     const result = fulfillShowBlocks(
       [{ startLine: 500, endLine: 510 }],
@@ -392,7 +400,7 @@ describe("fulfillShowBlocks", () => {
     const result = fulfillShowBlocks(
       [
         { startLine: 500, endLine: 510 }, // out of range — skipped
-        { startLine: 1, endLine: 3 },     // valid
+        { startLine: 1, endLine: 3 }, // valid
       ],
       content,
     )!;

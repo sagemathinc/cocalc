@@ -449,6 +449,7 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
                 getEditorContent(actions),
                 undefined,
                 lang,
+                path.split("/").pop() ?? path,
               );
               if (showResponse) {
                 const showDate = new Date().toISOString();
@@ -486,8 +487,8 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
                 }
               }
 
-            // Session naming is user-triggered via the magic wand button
-            // in the session bar — no automatic LLM calls.
+              // Session naming is user-triggered via the magic wand button
+              // in the session bar — no automatic LLM calls.
             }
           }
         });
@@ -704,7 +705,10 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
         renderedContent = renderedContent.replace(SHOW_BLOCK_REGEX, "").trim();
         // Format edit blocks as diffs
         // Note: baseSnapshot can be "" for empty files — that's valid.
-        if (parseEditBlocks(renderedContent).length > 0 && baseSnapshot != null) {
+        if (
+          parseEditBlocks(renderedContent).length > 0 &&
+          baseSnapshot != null
+        ) {
           renderedContent = formatEditBlocksAsDiff(
             renderedContent,
             baseSnapshot,
