@@ -735,7 +735,13 @@ function CodingAgentCore({ chatSyncdb }: { chatSyncdb?: any } = {}) {
           </FileContext.Provider>
         );
       }
-      return <StaticMarkdown value={msg.content} />;
+      // All other system messages (exec_result, error, etc.) — static
+      // markdown with no interactive code toolbar.
+      return (
+        <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+          <StaticMarkdown value={msg.content} />
+        </FileContext.Provider>
+      );
     },
     [session.messages],
   );
