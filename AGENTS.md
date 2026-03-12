@@ -64,18 +64,27 @@ The root-level `src/workspaces.py` script orchestrates operations across all pac
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
 - **IMPORTANT**: In tests and code comments, use only generic names, email addresses, and company names. Do not include customer or real-world identifiers, except for `Sagemath, Inc.` or when the developer explicitly says otherwise.
 
-#### When Working on Frontend Code
+#### Verification Steps (MUST run before reporting completion or committing)
 
-After making changes to files in `src/packages/frontend`:
+After finishing a batch of code edits, you MUST run these steps automatically — do not wait for the user to ask.
 
-1. **Typecheck**: Run `cd src/packages/frontend && pnpm tsc --noEmit` to check for TypeScript errors
-2. **Build**: Run `cd src/packages/static && pnpm build-dev` to compile the frontend for testing
+**Frontend code** (`src/packages/frontend`):
 
-**DO NOT** run `pnpm build` in `src/packages/frontend` - it won't work as expected for frontend development.
+1. `prettier -w [each edited file]`
+2. `cd src/packages/frontend && pnpm tsc --noEmit` — fix any errors before continuing
+3. `cd src/packages/static && pnpm build-dev` — compile for testing
+4. **DO NOT** run `pnpm build` in `src/packages/frontend` — it won't work for frontend dev.
 
-#### When Working on Other Packages
+**Other packages**:
 
-- After TypeScript changes, run `pnpm build` in the relevant package directory
+1. `prettier -w [each edited file]`
+2. `cd src/packages/[package] && pnpm build` — build the modified package
+3. If the package is a dependency (e.g. `util`), build it before typechecking dependents.
+
+**Special cases**:
+
+- After editing colors in `src/packages/util/theme.ts`: run `cd src/packages/frontend && pnpm update-color-scheme`
+- After updating `package.json` deps: run `python3 src/workspaces.py version-check` then `python3 src/workspaces.py install`
 
 ## Architecture Overview
 
@@ -197,11 +206,10 @@ CoCalc is organized as a monorepo with key packages:
 
 ### Development Workflow
 
-1. **Frontend changes**: After editing `src/packages/frontend`, typecheck with `cd src/packages/frontend && pnpm tsc --noEmit`, then build with `cd src/packages/static && pnpm build-dev`
-2. **Other package changes**: After TypeScript changes, run `pnpm build` in the relevant package directory
-3. Database must be running before starting hub
-4. Hub coordinates all services and should be restarted after changes
-5. Use `pnpm clean && pnpm build-dev` when switching branches or after major changes
+1. Follow the **Verification Steps** in the Development Commands section above after every batch of edits.
+2. Database must be running before starting hub
+3. Hub coordinates all services and should be restarted after changes
+4. Use `pnpm clean && pnpm build-dev` when switching branches or after major changes
 
 # Workflow
 
