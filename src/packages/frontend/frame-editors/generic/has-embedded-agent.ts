@@ -7,6 +7,7 @@
 // editors that don't support set_value or are not code-like.
 // Keep in sync with NO_AGENT_EXTENSIONS in chat.tsx.
 const NO_AGENT_EXTENSIONS = new Set([
+  "app",
   "board",
   "slides",
   "pdf",

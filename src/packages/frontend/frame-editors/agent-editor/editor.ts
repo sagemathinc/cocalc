@@ -24,7 +24,15 @@ const agent: EditorDescription = {
   name: "AI Agent",
   icon: "robot",
   component: AgentPanel,
-  commands: set(["decrease_font_size", "increase_font_size"]),
+  commands: set([
+    "-chatgpt",
+    "decrease_font_size",
+    "increase_font_size",
+    "save",
+    "time_travel",
+    "undo",
+    "redo",
+  ]),
 } as const;
 
 const app_preview: EditorDescription = {
@@ -33,7 +41,13 @@ const app_preview: EditorDescription = {
   name: "App Preview",
   icon: "eye",
   component: AppPreview,
-  commands: set(["decrease_font_size", "increase_font_size", "reload"]),
+  commands: set([
+    "-chatgpt",
+    "decrease_font_size",
+    "increase_font_size",
+    "save",
+    "reload",
+  ]),
 } as const;
 
 const EDITOR_SPEC = {

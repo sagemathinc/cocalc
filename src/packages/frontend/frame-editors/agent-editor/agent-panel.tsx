@@ -48,7 +48,7 @@ import type { AgentSession } from "@cocalc/frontend/frame-editors/llm/agent-base
 import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
-import { uuid } from "@cocalc/util/misc";
+import { path_split, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
 import { appDir } from "./app-preview";
@@ -69,7 +69,8 @@ const TAG = "ai-agent";
 const CONTAINER_STYLE: CSS = {
   display: "flex",
   flexDirection: "column",
-  height: "100%",
+  flex: "1 1 0",
+  minHeight: 0,
   overflow: "hidden",
 } as const;
 
@@ -116,13 +117,16 @@ const ERROR_MSG_STYLE: CSS = {
  */
 function buildSystemPrompt(
   appDirectory: string,
+  workingDirectory: string,
   appErrors?: AppError[],
 ): string {
   let prompt = `You are an AI app-building agent in CoCalc.
 The user describes an application they want. You create it by writing files.
 
+The .app file is in: ${workingDirectory || "."}
 The app files go in the directory: ${appDirectory}/
 The entry point must be: ${appDirectory}/index.html
+Shell commands (exec blocks) run in: ${workingDirectory || "."}
 
 You can create HTML, CSS, JavaScript, and Python files.
 Python files in the app directory serve as backend logic and can be run in the CoCalc project.
@@ -256,9 +260,10 @@ Keep responses concise and focused. Build incrementally — start simple, then e
 To see what files exist next to the .app file, use an exec block:
 
 \`\`\`exec
-ls ${appDirectory}/../
+ls
 \`\`\`
 
+This lists files in ${workingDirectory || "the project root"} (the directory containing the .app file).
 You can also use cocalc.listFiles() from the app or cocalc.exec("ls", [path])
 to list directory contents. When the user asks about data or files, list the
 directory first, then read the relevant files with cocalc.readFile().`;
@@ -341,6 +346,8 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const lastSubmittedRef = useRef("");
 
   const dir = appDir(path);
+  // The directory containing the .app file (for exec cwd and system prompt)
+  const { head: parentDir } = path_split(path);
 
   // SyncDB state — piggybacks on the frame editor's syncdb (the .ai file).
   const [syncdb, setSyncdb] = useState<any>(null);
@@ -355,6 +362,11 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   // App errors from the store
   const appErrors: AppError[] = (useRedux(name, "app_errors") as any) ?? [];
 
+  // Ref to always call the latest loadSessionsAndMessages from the
+  // syncdb change listener (avoids stale closure over old sessionId).
+  const loadRef = useRef(loadSessionsAndMessages);
+  loadRef.current = loadSessionsAndMessages;
+
   // Get the syncdb from the actions (the .ai file's syncdb)
   useEffect(() => {
     const db = (actions as any)._syncstring;
@@ -362,12 +374,12 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
     const handleReady = () => {
       setSyncdb(db);
-      loadSessionsAndMessages(db);
+      loadRef.current(db);
     };
 
     const handleChange = () => {
       if (db.get_state() === "ready") {
-        loadSessionsAndMessages(db);
+        loadRef.current(db);
       }
     };
 
@@ -414,26 +426,23 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       const sessions = Array.from(sessionsSet).sort();
       setAllSessions(sessions);
 
-      const activeSession =
-        sessionId && sessionsSet.has(sessionId)
-          ? sessionId
-          : sessions.length > 0
-            ? sessions[sessions.length - 1]
-            : "";
+      // If sessionId is set (even if it has no messages yet, e.g. after
+      // "New"), keep it — don't fall back to the last session.
+      const activeSession = sessionId
+        ? sessionId
+        : sessions.length > 0
+          ? sessions[sessions.length - 1]
+          : "";
 
       if (activeSession !== sessionId) {
         setSessionId(activeSession);
       }
 
-      if (activeSession) {
-        const msgs = msgsBySession.get(activeSession) ?? [];
-        msgs.sort(
-          (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
-        );
-        setMessages(msgs);
-      } else {
-        setMessages([]);
-      }
+      const msgs = msgsBySession.get(activeSession) ?? [];
+      msgs.sort(
+        (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
+      );
+      setMessages(msgs);
     },
     [sessionId],
   );
@@ -611,7 +620,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       setGenerating(true);
 
       try {
-        const system = buildSystemPrompt(dir, appErrors);
+        const system = buildSystemPrompt(dir, parentDir, appErrors);
 
         // Include all messages in history so the LLM can see exec results
         const history = messages.map((m) => ({
@@ -717,7 +726,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             timeout: 60,
             max_output: 100000,
             bash: false,
-            path: dir,
+            path: parentDir,
             err_on_exit: false,
           },
           path,
