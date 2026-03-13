@@ -75,7 +75,6 @@ export default function EdgeCreate({ position, canvasScale, element }: Props) {
             const newId = actions.createAdjacentElement(
               element.id,
               position,
-              false
             );
             if (newId) {
               actions.createEdge(
