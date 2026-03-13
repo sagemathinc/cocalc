@@ -5,6 +5,8 @@
 
 import type { IntlShape } from "react-intl";
 
+import { unreachable } from "@cocalc/util/misc";
+
 import type { AssignmentStep, CopyStep } from "../types";
 
 export function actionsLegend(intl: IntlShape): string {
@@ -93,6 +95,9 @@ export function columnLabel(intl: IntlShape, key: AssignmentStep): string {
         description:
           "Column title in course workflow table. Use a short verb meaning 'return graded work to students'. Prefer verb/action wording, not a noun.",
       });
+    default:
+      unreachable(key);
+      return "";
   }
 }
 
@@ -321,6 +326,9 @@ export function copyStepMsg(intl: IntlShape, key: CopyStep) {
           description: openOneDescription,
         }),
       };
+    default:
+      unreachable(key);
+      return undefined as never;
   }
 }
 
