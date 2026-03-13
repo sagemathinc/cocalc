@@ -392,6 +392,20 @@ export function NotebookAgent({
       session_id: activeSessionId,
     });
 
+    // Push into local state immediately — SyncDB reloads are skipped
+    // while generating, so this message would otherwise be invisible
+    // in session.messages until generation ends.
+    session.setMessages((prev) => [
+      ...prev,
+      {
+        sender: "user" as const,
+        content: prompt,
+        date: now,
+        event: "message",
+        account_id: accountId,
+      },
+    ]);
+
     lastSubmittedRef.current = prompt;
     inputLockedRef.current = true;
     setInput("");
@@ -457,13 +471,27 @@ export function NotebookAgent({
         if (cancelSignal.current) break;
 
         const toolResultContent = results.join("\n\n");
+        const toolDate = new Date().toISOString();
         session.writeMessage({
-          date: new Date().toISOString(),
+          date: toolDate,
           sender: "system",
           content: toolResultContent,
           msg_event: "tool_result",
           session_id: activeSessionId,
         });
+
+        // Push tool result into local state so it's visible during
+        // streaming and available for display (SyncDB reloads are
+        // skipped while generating).
+        session.setMessages((prev) => [
+          ...prev,
+          {
+            sender: "system" as const,
+            content: toolResultContent,
+            date: toolDate,
+            event: "tool_result",
+          },
+        ]);
 
         history.push({ role: "assistant", content: assistantText });
         history.push({

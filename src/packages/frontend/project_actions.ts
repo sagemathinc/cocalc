@@ -1334,8 +1334,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
           this.close_chat({ path });
           return;
         }
-        // Different mode → switch
+        // Different mode → switch and make the frame visible
         editorActions.set_frame_tree({ id: chatFrameId, chat_mode });
+        editorActions.set_active_id(chatFrameId);
         return;
       }
     }

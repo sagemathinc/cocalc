@@ -69,6 +69,8 @@ import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
 // LanguageModelTitleBarButton is still available for standalone use but the
 // title-bar assistant button now opens the side chat in assistant mode.
+import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
+import { hasEmbeddedAgent } from "../generic/has-embedded-agent";
 import {
   APPLICATION_MENU,
   COMMANDS,
@@ -239,6 +241,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     useState<boolean>(false);
 
   const [showNewAI, setShowNewAI] = useState<boolean>(false);
+  const [showLLMDialog, setShowLLMDialog] = useState<boolean>(false);
 
   const [helpSearch, setHelpSearch] = useState<string>("");
 
@@ -626,6 +629,38 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     ) {
       return;
     }
+
+    // For editors without an embedded agent, fall back to the
+    // LanguageModelTitleBarButton popover which provides AI presets
+    // (fix errors, autocomplete, explain, etc.).
+    if (!hasEmbeddedAgent(props.path)) {
+      return (
+        <LanguageModelTitleBarButton
+          key="assistant"
+          id={props.id}
+          path={props.path}
+          type={props.type}
+          actions={props.editor_actions as any}
+          buttonSize={button_size()}
+          buttonStyle={{
+            ...button_style(),
+            ...(!darkMode
+              ? {
+                  backgroundColor: COLORS.AI_ASSISTANT_BG,
+                  color: COLORS.AI_ASSISTANT_TXT,
+                }
+              : undefined),
+          }}
+          visible={props.tab_is_visible}
+          buttonRef={getTourRef("chatgpt")}
+          project_id={props.project_id}
+          showDialog={showLLMDialog}
+          setShowDialog={setShowLLMDialog}
+          noLabel={noLabel}
+        />
+      );
+    }
+
     const projectActions = redux.getProjectActions(props.project_id);
 
     const aiButton = (

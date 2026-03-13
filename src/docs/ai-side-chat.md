@@ -378,6 +378,15 @@ These are auto-applied (written to the project filesystem immediately).
 The bridge SDK (`cocalc-app-bridge.js`) is also auto-injected into the
 app directory before each write batch.
 
+### Iframe Sandboxing
+
+The app preview iframe is **fully sandboxed** — `allow-same-origin` is
+intentionally omitted to prevent AI-generated code from accessing the
+CoCalc DOM, cookies, or APIs directly. All communication goes through
+the postMessage bridge. See
+[`SECURITY.md`](../packages/frontend/frame-editors/agent-editor/SECURITY.md)
+for the full threat model and design rationale.
+
 ### Bridge SDK (window.cocalc)
 
 Injected into the iframe, provides runtime access to CoCalc services:

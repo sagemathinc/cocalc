@@ -429,6 +429,10 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const autoExecRef = useRef(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const cancelRef = useRef(false);
+  const streamRef = useRef<{
+    removeAllListeners: () => void;
+    on: (event: string, handler: (...args: any[]) => void) => void;
+  } | null>(null);
   autoExecRef.current = autoExec;
   const generatingRef = useRef(false);
   const sessionIdRef = useRef("");
@@ -444,6 +448,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const [syncdb, setSyncdb] = useState<any>(null);
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [sessionId, setSessionId] = useState<string>("");
+  sessionIdRef.current = sessionId;
   const [_allSessions, setAllSessions] = useState<string[]>([]);
 
   // Completed turns (stashed)
@@ -513,7 +518,20 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         });
       });
 
-      const sessions = Array.from(sessionsSet).sort();
+      // Sort sessions by most recent message date (newest last)
+      const sessions = Array.from(sessionsSet).sort((a, b) => {
+        const msgsA = msgsBySession.get(a) ?? [];
+        const msgsB = msgsBySession.get(b) ?? [];
+        const latestA = msgsA.reduce(
+          (max, m) => Math.max(max, new Date(m.date).valueOf() || 0),
+          0,
+        );
+        const latestB = msgsB.reduce(
+          (max, m) => Math.max(max, new Date(m.date).valueOf() || 0),
+          0,
+        );
+        return latestA - latestB;
+      });
       setAllSessions(sessions);
 
       // If sessionId is set (even if it has no messages yet, e.g. after
@@ -680,6 +698,18 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
   const applySearchReplaceFiles = useCallback(
     async (blocks: FileSearchReplace[]) => {
+      // Ensure the bridge SDK exists (same as applyWriteFiles)
+      const bridgePath = join(dir, "cocalc-app-bridge.js");
+      try {
+        await webapp_client.project_client.writeFile({
+          project_id,
+          path: bridgePath,
+          content: getBridgeSDKSource(),
+        });
+      } catch {
+        // non-fatal — the bridge is optional
+      }
+
       // Group blocks by file path
       const byFile = new Map<string, FileSearchReplace[]>();
       for (const block of blocks) {
@@ -815,6 +845,14 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       lastSubmittedRef.current = prompt;
       setError("");
       setPendingExec([]);
+
+      // Detach any still-running stream from a previous submission
+      const prevStream = streamRef.current;
+      if (prevStream) {
+        prevStream.removeAllListeners();
+        prevStream.on("error", () => {});
+        streamRef.current = null;
+      }
       cancelRef.current = false;
 
       let activeSessionId = sessionId;
@@ -860,6 +898,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           project_id,
           tag: TAG,
         });
+        streamRef.current = llmStream;
 
         let assistantContent = "";
         const streamingMsgs = [
@@ -874,9 +913,17 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         ];
 
         llmStream.on("token", (token: string | null) => {
-          if (cancelRef.current) return;
+          if (cancelRef.current) {
+            // Fully detach so no more tokens are processed
+            llmStream.removeAllListeners();
+            llmStream.on("error", () => {});
+            streamRef.current = null;
+            return;
+          }
           if (token != null) {
             assistantContent += token;
+            // Skip UI updates if user switched sessions mid-stream
+            if (sessionIdRef.current !== activeSessionId) return;
             setMessages([
               ...streamingMsgs,
               {
@@ -888,6 +935,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             ]);
           } else {
             setGenerating(false);
+            streamRef.current = null;
 
             const assistantDate = new Date().toISOString();
             writeMessage({
@@ -927,6 +975,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         llmStream.on("error", (err: Error) => {
           setError(err.message ?? `${err}`);
           setGenerating(false);
+          streamRef.current = null;
         });
       } catch (err: any) {
         setError(err.message ?? `${err}`);
@@ -1030,6 +1079,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       if (messages.length > 0) {
         handleDone();
       }
+      setSessionId(turn.id);
       setMessages(turn.messages);
       setTurns((prev) => prev.filter((t) => t.id !== turn.id));
     },

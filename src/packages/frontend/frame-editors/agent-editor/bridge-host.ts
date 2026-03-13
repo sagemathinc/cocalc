@@ -177,14 +177,15 @@ export function createBridgeHost(
     // Verify the message came from our iframe window
     if (event.source !== iframe.contentWindow) return;
 
-    // Reject requests from unexpected origins (defense in depth).
-    // The iframe loads same-origin content, so its origin must match ours.
-    if (event.origin !== window.location.origin) return;
+    // The iframe is sandboxed (no allow-same-origin), so its origin is
+    // opaque ("null").  The source check above is the real security gate;
+    // origin checks are not meaningful for sandboxed iframes.
 
     const req: BridgeRequest = data.request;
     if (!req?.id) return;
 
-    const targetOrigin = window.location.origin;
+    // Use "*" because the sandboxed iframe has an opaque origin.
+    const targetOrigin = "*";
     const startTime = Date.now();
 
     // Log the incoming request
