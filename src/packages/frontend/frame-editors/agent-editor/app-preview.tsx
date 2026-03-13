@@ -36,6 +36,9 @@ export function appDir(path: string): string {
   return join(head, `.${tail}.app`);
 }
 
+/** Maximum number of bridge log entries to keep in memory. */
+const MAX_BRIDGE_LOG = 1000;
+
 type AppMode = "app" | "server";
 
 export default function AppPreview({ name }: EditorComponentProps) {
@@ -48,7 +51,7 @@ export default function AppPreview({ name }: EditorComponentProps) {
   const dir = appDir(path);
   const indexPath = join(dir, "index.html");
 
-  // Bridge message log — last 100 request/response exchanges
+  // Bridge message log — last MAX_BRIDGE_LOG entries
   const messageLogRef = useRef<BridgeLogEntry[]>([]);
   const [messageCount, setMessageCount] = useState(0);
   const [showMessages, setShowMessages] = useState(false);
@@ -65,9 +68,8 @@ export default function AppPreview({ name }: EditorComponentProps) {
       onMessage: (entry) => {
         const log = messageLogRef.current;
         log.push(entry);
-        // Keep only last 100
-        if (log.length > 100) {
-          log.splice(0, log.length - 100);
+        if (log.length > MAX_BRIDGE_LOG) {
+          log.splice(0, log.length - MAX_BRIDGE_LOG);
         }
         setMessageCount(log.length);
       },
@@ -104,7 +106,7 @@ export default function AppPreview({ name }: EditorComponentProps) {
     };
     const log = messageLogRef.current;
     log.push(entry);
-    if (log.length > 100) log.splice(0, log.length - 100);
+    if (log.length > MAX_BRIDGE_LOG) log.splice(0, log.length - MAX_BRIDGE_LOG);
     setMessageCount(log.length);
   }, [isVisible]);
 
@@ -250,7 +252,7 @@ export default function AppPreview({ name }: EditorComponentProps) {
         >
           Reload
         </Button>
-        <Badge count={messageCount} size="small" offset={[-4, 0]}>
+        <Badge count={messageCount} size="small" offset={[-4, 0]} color={COLORS.GRAY_M}>
           <Button
             size="small"
             onClick={() => setShowMessages(true)}
@@ -370,7 +372,7 @@ function BridgeMessagesModal({
           OK
         </Button>
       }
-      width={700}
+      width="85vw"
       styles={{ body: { maxHeight: "60vh", overflow: "auto" } }}
     >
       <List
