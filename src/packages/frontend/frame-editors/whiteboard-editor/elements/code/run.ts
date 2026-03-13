@@ -13,8 +13,13 @@ interface Opts {
   set: (object) => void;
 }
 
-export default async function run(opts: Opts) {
-  const { project_id, path, input, id, set } = opts;
+export default async function run({
+  project_id,
+  path,
+  input,
+  id,
+  set,
+}: Opts): Promise<void> {
   const jupyter_actions = await getJupyterActions({ project_id, path });
   const store = jupyter_actions.store;
   let cell = store.get("cells").get(id);
@@ -24,32 +29,40 @@ export default async function run(opts: Opts) {
     const pos = store.getIn(["cells", last_cell_id])?.get("pos", 0) + 1;
     jupyter_actions.insert_cell_at(pos, false, id);
   }
-  jupyter_actions.clear_outputs([id], false);
-  jupyter_actions.set_cell_input(id, input, false);
-  jupyter_actions.run_code_cell(id);
-  //console.log("starting running ", id);
-  //window.jupyter_actions = jupyter_actions;
-  function onChange() {
-    const cell = store.get("cells").get(id);
-    //console.log("onChange", cell?.toJS());
-    if (cell == null) return;
+  const previousEnd = cell?.get("end");
+  return new Promise<void>((resolve) => {
+    let finished = false;
+    function onChange() {
+      if (finished) return;
+      const cell = store.get("cells").get(id);
+      if (cell == null) return;
 
-    set({
-      output: cell.get("output")?.toJS(),
-      runState: cell.get("state"),
-      execCount: cell.get("exec_count"),
-      kernel: cell.get("kernel"),
-      start: cell.get("start"),
-      end: cell.get("end"),
-    });
-    if (cell.get("state") == "done") {
-      store.removeListener("change", onChange);
-      // Useful for debugging since can then open the ipynb and see.
-      // However, NOT needed normally.  We might even come up with
-      // a way to make everything ephemeral...  On the other hand,
-      // saving properly could be useful for output images in published docs, etc.
-      jupyter_actions.syncdb.save();
+      set({
+        output: cell.get("output")?.toJS(),
+        runState: cell.get("state"),
+        execCount: cell.get("exec_count"),
+        kernel: cell.get("kernel"),
+        start: cell.get("start"),
+        end: cell.get("end"),
+      });
+      const hasExecutionResult =
+        cell.get("exec_count") != null || cell.get("output") != null;
+      if (
+        cell.get("state") == "done" &&
+        cell.get("end") &&
+        cell.get("end") != previousEnd &&
+        hasExecutionResult
+      ) {
+        finished = true;
+        store.removeListener("change", onChange);
+        jupyter_actions.syncdb.save();
+        resolve();
+      }
     }
-  }
-  store.on("change", onChange);
+    store.on("change", onChange);
+    jupyter_actions.clear_outputs([id], false);
+    jupyter_actions.set_cell_input(id, input, false);
+    jupyter_actions.run_code_cell(id);
+    onChange();
+  });
 }

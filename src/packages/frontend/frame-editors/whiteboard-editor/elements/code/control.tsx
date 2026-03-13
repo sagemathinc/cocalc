@@ -17,7 +17,7 @@ interface Props {
 }
 
 export default function CodeControlBar({ element }: Props) {
-  const { actions, project_id, path } = useFrameContext();
+  const { actions, project_id, path, id } = useFrameContext();
   return (
     <div
       style={{
@@ -62,10 +62,21 @@ export default function CodeControlBar({ element }: Props) {
           disabled={element.data?.runState == "busy"}
           size="small"
           onClick={() => {
-            actions.runCodeElement({ id: element.id });
+            void actions.runCodeElement({ id: element.id });
           }}
         >
           <Icon name="play" /> Run
+        </Button>
+      </Tooltip>
+      <Tooltip title="Run the directed code-cell tree rooted at this cell">
+        <Button
+          disabled={element.data?.runState == "busy"}
+          size="small"
+          onClick={() => {
+            void actions.runCodeTree(id, element.id);
+          }}
+        >
+          <Icon name="play" /> Run Tree
         </Button>
       </Tooltip>
       {!element.locked && (

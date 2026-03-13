@@ -31,6 +31,7 @@ import { uuid, field_cmp } from "@cocalc/util/misc";
 import {
   DEFAULT_GAP,
   getPageSpan,
+  getPosition,
   centerRectsAt,
   centerOfRect,
   topOfRect,
@@ -47,8 +48,14 @@ import {
   MAX_FONT_SIZE,
 } from "./tools/defaults";
 import { Position as EdgeCreatePosition } from "./focused-edge-create";
+import { alert_message } from "@cocalc/frontend/alerts";
 import { cloneDeep, debounce, size } from "lodash";
 import runCode from "./elements/code/run";
+import {
+  getCodeTreeOrder,
+  getPreviousCodeTreePredecessor,
+  getNextCodeTreeSuccessor,
+} from "./elements/code/graph";
 import { getName } from "./elements/chat";
 import { clearChat, lastMessageNumber } from "./elements/chat-static";
 import { copyToClipboard } from "./tools/clipboard";
@@ -826,7 +833,7 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
 
   // There may be a lot of options for this...
 
-  runCodeElement({
+  async runCodeElement({
     id,
     str,
   }: {
@@ -834,14 +841,14 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     // str of input-- we allow specifying this instead of taking it from the store,
     // in case it just changed and hasn't been saved to the store yet.
     str?: string;
-  }) {
+  }): Promise<void> {
     const element = this.store.get("elements")?.get(id)?.toJS();
     if (element == null || element.type != "code") {
       // no-op no such element
       console.warn("no cell with id", id);
       return;
     }
-    runCode({
+    await runCode({
       project_id: this.project_id,
       path: this.path,
       input: str ?? element.str ?? "",
@@ -854,6 +861,88 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
           cursors: [{}],
         }),
     });
+  }
+
+  private getCodeElementsById(): Record<string, Element | undefined> {
+    const elementsById: Record<string, Element | undefined> = {};
+    for (const element of this.getElements()) {
+      elementsById[element.id] = element;
+    }
+    return elementsById;
+  }
+
+  selectNextCodeCell(frameId: string, id: string): string | undefined {
+    const nextId = getNextCodeTreeSuccessor(
+      this.getCodeElementsById(),
+      id,
+      this.sortedPageIds()?.toJS(),
+    );
+    if (nextId == null) return;
+    this.setSelection(frameId, nextId);
+    this.revealElementIfCompletelyHidden(nextId, frameId);
+    return nextId;
+  }
+
+  selectPreviousCodeCell(frameId: string, id: string): string | undefined {
+    const previousId = getPreviousCodeTreePredecessor(
+      this.getCodeElementsById(),
+      id,
+      this.sortedPageIds()?.toJS(),
+    );
+    if (previousId == null) return;
+    this.setSelection(frameId, previousId);
+    this.revealElementIfCompletelyHidden(previousId, frameId);
+    return previousId;
+  }
+
+  async runCodeTree(
+    frameId: string,
+    id: string,
+  ): Promise<string[] | undefined> {
+    const tree = getCodeTreeOrder(
+      this.getCodeElementsById(),
+      id,
+      this.sortedPageIds()?.toJS(),
+    );
+    if ("error" in tree) {
+      alert_message({ type: "error", message: tree.error });
+      return;
+    }
+    for (const cellId of tree.order) {
+      this.setSelection(frameId, cellId);
+      this.revealElementIfCompletelyHidden(cellId, frameId);
+      await this.runCodeElement({ id: cellId });
+    }
+    return tree.order;
+  }
+
+  private revealElementIfCompletelyHidden(
+    id: string,
+    frameId: string | undefined = undefined,
+  ): void {
+    const element = this.getElement(id);
+    if (element == null) return;
+    frameId = frameId ?? this.show_focused_frame_of_type(this.mainFrameType);
+    if (frameId == null) return;
+    const node = this._get_frame_node(frameId);
+    const currentPageId = this.numberToPageId(node?.get("page"));
+    if ((element.page ?? this.defaultPageId()) != currentPageId) {
+      this.scrollElementIntoView(id, frameId);
+      return;
+    }
+    const viewport = node?.get("viewport")?.toJS();
+    if (viewport == null) {
+      this.scrollElementIntoView(id, frameId);
+      return;
+    }
+    const rect = getPosition(element);
+    const overlapsX =
+      rect.x < viewport.x + viewport.w && rect.x + rect.w > viewport.x;
+    const overlapsY =
+      rect.y < viewport.y + viewport.h && rect.y + rect.h > viewport.y;
+    if (!(overlapsX && overlapsY)) {
+      this.scrollElementIntoView(id, frameId);
+    }
   }
 
   saveChat({ id, input }: { id: string; input: string }) {

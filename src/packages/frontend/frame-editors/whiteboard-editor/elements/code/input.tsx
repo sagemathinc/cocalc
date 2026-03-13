@@ -110,6 +110,24 @@ export default function Input({
         complete={complete}
         cursors={fromJS(cursors)}
         onKeyDown={(cm, e) => {
+          if (e.key == "ArrowUp") {
+            const cur = cm.getCursor();
+            if (cur.line === cm.firstLine() && cur.ch === 0) {
+              e.preventDefault();
+              frame.actions.selectPreviousCodeCell(frame.id, element.id);
+              return;
+            }
+          }
+          if (e.key == "ArrowDown") {
+            const cur = cm.getCursor();
+            const lastLine = cm.lastLine();
+            const line = cm.getLine(lastLine);
+            if (cur.line === lastLine && cur.ch === (line?.length ?? 0)) {
+              e.preventDefault();
+              frame.actions.selectNextCodeCell(frame.id, element.id);
+              return;
+            }
+          }
           if (
             e.key == "Enter" &&
             (e.altKey || e.metaKey || e.shiftKey || e.ctrlKey)
@@ -123,23 +141,12 @@ export default function Input({
               commit: false,
             });
             // evaluate in all cases
-            frame.actions.runCodeElement({ id: element.id, str });
-            // TODO: handle these cases
+            void frame.actions.runCodeElement({ id: element.id, str });
             if (e.altKey || e.metaKey) {
               // this is "evaluate and make new cell"...?
             } else if (e.shiftKey) {
-              // This is super annoying.
-              /*
-              // this is "evaluate and move to next cell, making one if there isn't one."
-              const id = frame.actions.createAdjacentElement(
-                element.id,
-                "bottom"
-              );
-              if (!id) return;
-              frame.actions.setSelectedTool(frame.id, "select");
-              frame.actions.setSelection(frame.id, id);
-              frame.actions.scrollElementIntoView(id);
-              */
+              // evaluate and move to next cell in the code tree
+              frame.actions.selectNextCodeCell(frame.id, element.id);
             } else if (e.ctrlKey) {
               // this is "evaluate keeping focus", so nothing further to do.
             }

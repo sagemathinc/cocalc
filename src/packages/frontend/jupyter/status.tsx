@@ -79,6 +79,7 @@ interface KernelProps {
   style?: CSS;
   computeServerId?: number;
   is_fullscreen?: boolean;
+  compact?: boolean;
 }
 
 export function Kernel({
@@ -88,6 +89,7 @@ export function Kernel({
   usage,
   computeServerId,
   is_fullscreen,
+  compact,
 }: KernelProps) {
   const intl = useIntl();
   const name = actions.name;
@@ -163,7 +165,7 @@ export function Kernel({
       if (display_name == null) {
         display_name = kernel ?? "No Kernel";
       }
-      const style = { ...KERNEL_NAME_STYLE, maxWidth: "20em" };
+      const style = { ...KERNEL_NAME_STYLE, maxWidth: compact ? "14em" : "20em" };
       return (
         <div
           style={style}
@@ -228,6 +230,7 @@ export function Kernel({
   }
 
   function render_trust() {
+    if (compact) return;
     if (IS_MOBILE) return;
     if (trust) {
       return (
@@ -376,23 +379,39 @@ export function Kernel({
     }
   }
 
+  function kernelStateCompact(): ReactNode {
+    if (kernel === null) return "No kernel";
+    if (backend_state === "running") {
+      switch (kernel_state) {
+        case "busy":
+          return "Busy";
+        case "idle":
+          return "Idle";
+      }
+    } else if (backendIsStarting) {
+      return "Starting";
+    }
+    return null;
+  }
+
   function renderKernelState() {
     if (!backend_state) return <div></div>;
+    const value = compact ? kernelStateCompact() : kernelState();
     return (
       <Tooltip title={kernelState()} placement="bottom">
         <div
           style={{
-            flex: 1,
+            flex: compact ? "0 0 auto" : 1,
             color: COLORS.GRAY_M,
             textAlign: "center",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
-            marginTop: "2.5px",
+            marginTop: compact ? 0 : "2.5px",
             fontSize: IS_MOBILE ? "10pt" : undefined,
           }}
         >
-          {kernelState()}
+          {value}
         </div>
       </Tooltip>
     );
@@ -496,6 +515,7 @@ export function Kernel({
   // or if the memory usage is eating up almost all of the reminining (shared) memory.
 
   function renderUsage() {
+    if (compact) return;
     if (kernel == null) return;
 
     if (computeServerId) {
@@ -699,6 +719,60 @@ export function Kernel({
       {info}
     </div>
   );
+
+  if (compact) {
+    return (
+      <div
+        style={{
+          overflow: "hidden",
+          width: "100%",
+          padding: "4px 6px",
+          backgroundColor: COLORS.GRAY_LLL,
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          borderBottom: "1px solid #ccc",
+          ...style,
+        }}
+      >
+        <div>{renderLogo()}</div>
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          {body}
+          {renderKernelState()}
+        </div>
+        {!read_only && backend_state === "running" && (
+          <Popconfirm
+            title={intl.formatMessage({
+              id: "jupyter.status.halt_idle_tooltip",
+              defaultMessage:
+                "Terminate the kernel process? All variable state will be lost.",
+            })}
+            onConfirm={() => actions.shutdown()}
+            okText={intl.formatMessage(labels.halt)}
+            cancelText={intl.formatMessage(labels.cancel)}
+          >
+            <Button size="small">Halt</Button>
+          </Popconfirm>
+        )}
+        {!read_only && kernel != null && !no_kernel && (
+          <Button
+            size="small"
+            onClick={() => void actions.confirm_restart()}
+          >
+            Restart
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
