@@ -51,6 +51,7 @@ type CourseUnitControlsProps =
 
 export function CourseUnitControls(props: CourseUnitControlsProps) {
   const intl = useIntl();
+  const size = useButtonSize();
 
   const { actions, onOpenUnitPath } = props;
   let renderDue: () => ReactNode = () => null;
@@ -233,7 +234,7 @@ export function CourseUnitControls(props: CourseUnitControlsProps) {
     <Space
       key="controls-stack"
       direction="vertical"
-      size={useButtonSize() === "small" ? "small" : "middle"}
+      size={size === "small" ? "small" : "middle"}
       style={{ width: "100%" }}
     >
       <Row gutter={[8, 4]} align="top" justify="space-between">
