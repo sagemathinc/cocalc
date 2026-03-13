@@ -56,6 +56,7 @@ export function AssignmentHeader({
   const [confirmSyncGrades, setConfirmSyncGrades] = useState<boolean>(false);
 
   const assignmentId = assignment.get("assignment_id") ?? "";
+  const store = actions.get_store();
 
   useEffect(() => {
     setOpenedRunAll(null);
@@ -138,29 +139,27 @@ export function AssignmentHeader({
       ]
     : ["assignment", "collect", "grade", "return_graded"];
 
-  function isStepCompleteOrSkipped(step: AssignmentStep) {
-    if (step === "grade") {
-      return (
-        assignment.get("skip_grading") ||
-        assignmentStatus.not_return_graded === 0
-      );
-    }
-    if (step === "assignment" && assignment.get("skip_assignment")) {
-      return true;
-    }
-    if (step === "collect" && assignment.get("skip_collect")) {
-      return true;
-    }
-    const notDone = assignmentStatus[`not_${step}`];
-    if (notDone == null) return false;
-    return notDone === 0;
-  }
-
+  // For recommendation purposes, a step is "complete" only when it is done
+  // for all non-deleted students, unless that step was explicitly skipped.
   function previousStepsComplete(step: AssignmentStep) {
     for (const s of orderedSteps) {
       if (s === step) break;
-      if (!isStepCompleteOrSkipped(s)) {
-        return false;
+      if (s === "grade") {
+        if (assignment.get("skip_grading")) {
+          continue;
+        }
+        for (const studentId of store.get_student_ids({ deleted: false })) {
+          if (!store.has_grade(assignmentId, studentId)) {
+            return false;
+          }
+        }
+      } else {
+        if (assignment.get(`skip_${s}` as any)) {
+          continue;
+        }
+        if (assignmentStatus[s] !== store.num_students()) {
+          return false;
+        }
       }
     }
     return true;
