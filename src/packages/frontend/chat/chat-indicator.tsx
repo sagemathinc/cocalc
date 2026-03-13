@@ -7,7 +7,7 @@ import { filename_extension } from "@cocalc/util/misc";
 import { Button, Space, Tooltip } from "antd";
 import { COLORS } from "@cocalc/util/theme";
 import { debounce } from "lodash";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -35,6 +35,9 @@ const USERS_VIEWING_STYLE: React.CSSProperties = {
   maxWidth: "120px",
   marginRight: "5px",
 } as const;
+
+// Light tint of assistant color for hover
+const AI_HOVER_BG = "#fde8c0";
 
 interface Props {
   project_id: string;
@@ -73,6 +76,8 @@ export function ChatIndicator({
 
 function ChatButtons({ project_id, path, chatState, chatMode }) {
   const intl = useIntl();
+  const [hoverAI, setHoverAI] = useState(false);
+  const [hoverChat, setHoverChat] = useState(false);
 
   const toggleChat = useMemo(
     () =>
@@ -110,8 +115,11 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
     hasEmbeddedAgent(path) &&
     redux.getStore("projects").hasLanguageModelEnabled(project_id);
 
-  const chatActive = !!chatState && chatMode !== "assistant";
   const aiActive = !!chatState && chatMode === "assistant";
+  const chatActive = !!chatState && chatMode !== "assistant";
+
+  // Common border style for both buttons
+  const borderColor = COLORS.GRAY_L;
 
   const chatButton = (
     <Tooltip
@@ -124,19 +132,22 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
           />
         </span>
       }
-      placement={"leftTop"}
+      placement={"top"}
       mouseEnterDelay={0.5}
     >
       <Button
-        type="text"
         danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
         onClick={() => toggleChat("chat")}
+        onMouseEnter={() => setHoverChat(true)}
+        onMouseLeave={() => setHoverChat(false)}
         style={{
-          background: chatActive ? "white" : undefined,
-          boxShadow: chatActive
-            ? "inset 0 2px 4px rgb(0 0 0 / 12%)"
-            : undefined,
+          background: chatActive
+            ? "white"
+            : hoverChat
+              ? COLORS.GRAY_LLL
+              : "transparent",
+          borderColor,
         }}
       >
         <Icon name="comment" />
@@ -162,28 +173,24 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
             defaultMessage={"AI Assistant"}
           />
         }
-        placement={"leftTop"}
+        placement={"top"}
         mouseEnterDelay={0.5}
       >
         <Button
-          type="text"
           onClick={() => toggleChat("assistant")}
+          onMouseEnter={() => setHoverAI(true)}
+          onMouseLeave={() => setHoverAI(false)}
           style={{
-            background: aiActive ? COLORS.AI_ASSISTANT_BG : undefined,
-            color: aiActive ? COLORS.AI_ASSISTANT_TXT : undefined,
-            boxShadow: aiActive
-              ? "inset 0 2px 4px rgb(0 0 0 / 12%)"
-              : undefined,
-            padding: "4px 6px",
+            background: aiActive
+              ? COLORS.AI_ASSISTANT_BG
+              : hoverAI
+                ? AI_HOVER_BG
+                : "transparent",
+            borderColor,
+            padding: "4px 8px",
           }}
         >
-          <AIAvatar
-            size={16}
-            backgroundColor={COLORS.AI_ASSISTANT_BG}
-            iconColor={COLORS.AI_ASSISTANT_TXT}
-            style={{ borderRadius: 3 }}
-            innerStyle={{ borderRadius: 3 }}
-          />
+          <AIAvatar size={16} />
         </Button>
       </Tooltip>
       {chatButton}

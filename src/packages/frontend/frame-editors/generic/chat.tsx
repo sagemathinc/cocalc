@@ -135,18 +135,18 @@ function Chat({ font_size, desc }: EditorComponentProps) {
             onChange={(v) => setMode(v as ChatMode)}
             options={[
               {
-                value: "chat",
-                label: (
-                  <span>
-                    <Icon name="comment" /> Chat
-                  </span>
-                ),
-              },
-              {
                 value: "assistant",
                 label: (
                   <span>
                     <AIAvatar size={16} /> Assistant
+                  </span>
+                ),
+              },
+              {
+                value: "chat",
+                label: (
+                  <span>
+                    <Icon name="comment" /> Chat
                   </span>
                 ),
               },

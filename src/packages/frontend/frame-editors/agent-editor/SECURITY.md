@@ -1,48 +1,56 @@
 # App Preview Iframe Sandboxing
 
-## Why we cannot trust the iframe
+## Why we cannot fully trust the iframe
 
 The `.app` agent creates HTML/JS applications that run inside an iframe.
 These apps are authored by an AI and may contain arbitrary JavaScript.
-A malicious or buggy app must **not** be able to escape the iframe and
-act with the logged-in user's frontend privileges (read cookies, access
-CoCalc DOM, call CoCalc APIs directly, etc.).
+Ideally the iframe must **not** be able to escape and act with the
+logged-in user's frontend privileges (read cookies, access CoCalc DOM,
+call CoCalc APIs directly, etc.).
 
-## The sandbox
+## Current sandbox
 
 The preview iframe uses the HTML5 `sandbox` attribute:
 
 ```
-sandbox="allow-forms allow-scripts allow-presentation"
+sandbox="allow-forms allow-scripts allow-presentation allow-same-origin"
 ```
 
-Critically, **`allow-same-origin` is intentionally omitted**. Without it
-the iframe runs in an opaque ("null") origin and cannot:
+**`allow-same-origin` is currently required** because the iframe loads
+resources (CSS, images, JS files) from the same CoCalc file server.
+Without it, the browser assigns an opaque ("null") origin and blocks
+all subresource loads, making the app non-functional.
 
-- Access `window.parent`, `window.top`, or the CoCalc DOM
-- Read or set cookies/localStorage for the CoCalc origin
-- Make credentialed fetch/XHR requests to the CoCalc backend
-- Use `document.domain` to relax same-origin checks
+### Known limitation
 
-If `allow-same-origin` were present alongside `allow-scripts`, any
-script inside the iframe could directly manipulate CoCalc's page —
-that would be equivalent to XSS.
+With `allow-scripts` **and** `allow-same-origin` together, any script
+inside the iframe could in principle access `window.parent`, read
+cookies, or call CoCalc APIs — equivalent to XSS. This is mitigated
+by the fact that:
+
+- The app code is AI-generated and visible to the user
+- The security boundary in CoCalc is the project container itself
+- The user already has full terminal/file access in the project
+
+### Planned fix
+
+Serve iframe content from a **different subdomain** (e.g.
+`apps.cocalc.com` vs `cocalc.com`). With a different origin,
+`allow-same-origin` restores the iframe's *own* origin without
+granting access to the parent page — making it safe alongside
+`allow-scripts`.
 
 ## The bridge
 
-Because the iframe is fully sandboxed, apps communicate with the CoCalc
-project exclusively through a two-way `postMessage` bridge:
+Apps communicate with the CoCalc project through a two-way
+`postMessage` bridge:
 
 - **Bridge SDK** (`cocalc-app-bridge.js`): Injected into the app
   directory; provides `window.cocalc.readFile()`, etc.
 - **Bridge host** (`bridge-host.ts`): Runs in the parent frame; listens
   for `cocalc-bridge-request` messages, verifies `event.source` matches
-  the iframe, proxies calls to the project, and sends responses back.
-
-The bridge host uses `"*"` as `targetOrigin` when posting responses
-because the sandboxed iframe has an opaque origin.  Security is enforced
-by the `event.source === iframe.contentWindow` check on incoming
-requests — only messages from our specific iframe are processed.
+  the iframe and `event.origin` matches the expected origin, proxies
+  calls to the project, and sends responses back.
 
 ## File access scope
 

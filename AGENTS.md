@@ -61,6 +61,7 @@ The root-level `src/workspaces.py` script orchestrates operations across all pac
 
 ### Development
 
+- **Language**: All code, code comments, commit messages, PR descriptions, documentation, and UI strings are written in **English (US)**. Maintainers sometimes speak another language in conversation, but the codebase itself is 100% US English.
 - **IMPORTANT**: In tests and code comments, use only generic names, email addresses, and company names. Do not include customer or real-world identifiers, except for `Sagemath, Inc.` or when the developer explicitly says otherwise.
 
 #### Verification Steps (MUST run before reporting completion or committing)
