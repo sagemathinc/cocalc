@@ -233,6 +233,11 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
       />
     );
     warningNode = renderNoContentWarning(openUnitPath);
+    // Intentional: the full assignment workflow (action buttons, student list) is
+    // rendered even when the directory has no files yet.  Assigning an empty folder
+    // still creates the student directory and writes the due-date file, so the
+    // instructor can set up the roster/due-dates first and add content later.
+    // A warning banner (warningNode above) is shown, but the actions are not blocked.
     runAllNode = (
       <AssignmentHeader
         assignment={assignment}
