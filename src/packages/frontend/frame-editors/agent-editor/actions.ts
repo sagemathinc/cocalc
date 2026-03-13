@@ -27,6 +27,7 @@ export interface AppError {
 
 interface AgentEditorState extends CodeEditorState {
   app_errors?: AppError[];
+  app_reload?: number;
 }
 
 export class Actions extends CodeEditorActions<AgentEditorState> {
@@ -48,10 +49,13 @@ export class Actions extends CodeEditorActions<AgentEditorState> {
     };
   }
 
-  // Triggers an app preview refresh. Uses the existing resize counter
-  // as a general-purpose change signal that components can watch.
+  // Triggers an app preview refresh via a dedicated counter, separate
+  // from the editor's resize counter (which fires on splitter drags,
+  // window resizes, and tab switches — none of which should reload the app).
   reloadAppPreview(): void {
-    this.setState({ resize: (this.store.get("resize") ?? 0) + 1 });
+    this.setState({
+      app_reload: ((this.store.get("app_reload") as number) ?? 0) + 1,
+    } as any);
   }
 
   // Report errors from the iframe app preview

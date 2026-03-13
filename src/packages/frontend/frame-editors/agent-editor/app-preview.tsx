@@ -57,8 +57,9 @@ export default function AppPreview({ name }: EditorComponentProps) {
   const [messageCount, setMessageCount] = useState(0);
   const [showMessages, setShowMessages] = useState(false);
 
-  // Watch the resize counter from the store (incremented by actions.reloadAppPreview())
-  const storeReload: number = useRedux(name, "resize") ?? 0;
+  // Watch the dedicated app reload counter (not the editor's resize counter,
+  // which fires on splitter drags and window resizes).
+  const storeReload: number = useRedux(name, "app_reload") ?? 0;
 
   // Set up the bridge host for postMessage communication with the iframe
   useEffect(() => {
@@ -111,27 +112,35 @@ export default function AppPreview({ name }: EditorComponentProps) {
     setMessageCount(log.length);
   }, [isVisible]);
 
-  // Send init data to iframe when it signals readiness
+  // Send init data to iframe when it signals readiness.
+  // Also send proactively on iframe load, because the SDK fires
+  // "cocalc-bridge-ready" synchronously at script execution time —
+  // on fast/cached loads it can arrive before this listener is registered.
+  const sendBridgeInit = useCallback(() => {
+    const iframe = iframeRef.current;
+    if (!iframe?.contentWindow) return;
+    iframe.contentWindow.postMessage(
+      {
+        type: "cocalc-bridge-init",
+        projectId: project_id,
+        basePath: appBasePath,
+      },
+      "*",
+    );
+  }, [project_id]);
+
   useEffect(() => {
     function onBridgeReady(event: MessageEvent) {
       if (event.data?.type !== "cocalc-bridge-ready") return;
       const iframe = iframeRef.current;
       if (!iframe?.contentWindow || event.source !== iframe.contentWindow)
         return;
-
-      iframe.contentWindow.postMessage(
-        {
-          type: "cocalc-bridge-init",
-          projectId: project_id,
-          basePath: appBasePath,
-        },
-        "*",
-      );
+      sendBridgeInit();
     }
 
     window.addEventListener("message", onBridgeReady);
     return () => window.removeEventListener("message", onBridgeReady);
-  }, [project_id]);
+  }, [sendBridgeInit]);
 
   // Listen for error reports from the iframe app
   useEffect(() => {
@@ -304,6 +313,7 @@ export default function AppPreview({ name }: EditorComponentProps) {
           src={appSrc}
           style={{ flex: 1, width: "100%", border: 0 }}
           sandbox="allow-forms allow-scripts allow-presentation allow-same-origin"
+          onLoad={sendBridgeInit}
         />
       ) : serverSrc ? (
         <iframe

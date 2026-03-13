@@ -557,13 +557,15 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       });
       setAllSessions(sessions);
 
-      // If sessionId is set (even if it has no messages yet, e.g. after
-      // "New"), keep it — don't fall back to the last session.
-      const activeSession = sessionId
-        ? sessionId
-        : sessions.length > 0
-          ? sessions[sessions.length - 1]
-          : "";
+      // Keep the current sessionId if it still exists in the data (or was
+      // just created with "New" and has no messages yet).  Fall back to the
+      // most recent session if the current one was deleted.
+      const activeSession =
+        sessionId && (sessionsSet.has(sessionId) || !sessions.length)
+          ? sessionId
+          : sessions.length > 0
+            ? sessions[sessions.length - 1]
+            : "";
 
       if (activeSession !== sessionId) {
         setSessionId(activeSession);
@@ -868,7 +870,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const handleSubmit = useCallback(
     async (submittedValue?: string) => {
       const prompt = (submittedValue ?? input).trim();
-      if (!prompt || generating) return;
+      if (!prompt || generatingRef.current) return;
 
       lastSubmittedRef.current = prompt;
       setError("");
@@ -903,6 +905,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       });
 
       setInput("");
+      generatingRef.current = true;
       setGenerating(true);
 
       try {
@@ -962,6 +965,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               },
             ]);
           } else {
+            generatingRef.current = false;
             setGenerating(false);
             streamRef.current = null;
 
@@ -1002,18 +1006,19 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
         llmStream.on("error", (err: Error) => {
           setError(err.message ?? `${err}`);
+          generatingRef.current = false;
           setGenerating(false);
           streamRef.current = null;
         });
       } catch (err: any) {
         setError(err.message ?? `${err}`);
+        generatingRef.current = false;
         setGenerating(false);
       }
     },
     [
       input,
       messages,
-      generating,
       dir,
       model,
       project_id,
