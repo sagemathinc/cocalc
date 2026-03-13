@@ -45,7 +45,7 @@ export function CopyRunAllAlert({
     setConfirmAll(false);
     setConfirmOverwrite(false);
     setConfirmOverwriteText("");
-  }, [id, status.done, status.not_done, status.total]);
+  }, [id]);
 
   const { done, not_done, total } = status;
   const cautionContent =
