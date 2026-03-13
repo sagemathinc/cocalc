@@ -91,6 +91,9 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
   const unitPath = assignment
     ? assignment.get("path")
     : (unit as HandoutRecord).get("path");
+  const unitDeleted = assignment
+    ? assignment.get("deleted")
+    : (unit as HandoutRecord).get("deleted");
   const initialHasFiles = assignment
     ? (assignment.get("listing")?.size ?? 0) > 0
     : null;
@@ -112,7 +115,7 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
   }, [assignmentId, nbgraderEnabled, peerEnabled]);
 
   async function refreshHasFiles() {
-    if (project_id == null || unitPath == null) return;
+    if (unitDeleted || project_id == null || unitPath == null) return;
     try {
       const { files } = await webapp_client.project_client.directory_listing({
         project_id,
@@ -131,21 +134,22 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
   }, [unitId]);
 
   useEffect(() => {
+    if (unitDeleted) return;
     void refreshHasFiles();
     const onFocus = () => {
       void refreshHasFiles();
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [project_id, unitPath, unitId]);
+  }, [project_id, unitPath, unitId, unitDeleted]);
 
   useEffect(() => {
-    if (hasFiles !== false) return;
+    if (unitDeleted || hasFiles !== false) return;
     const id = window.setInterval(() => {
       void refreshHasFiles();
     }, 3000);
     return () => window.clearInterval(id);
-  }, [hasFiles, project_id, unitPath, unitId]);
+  }, [hasFiles, project_id, unitPath, unitId, unitDeleted]);
 
   useEffect(() => {
     setNoteValue(noteProp);
@@ -175,7 +179,7 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
   function renderNoContentWarning(
     onOpenUnitPath: (e?: MouseEvent<HTMLElement>) => void,
   ): ReactNode {
-    if (hasFiles !== false) return null;
+    if (unitDeleted || hasFiles !== false) return null;
     return (
         <Alert
           type="warning"
