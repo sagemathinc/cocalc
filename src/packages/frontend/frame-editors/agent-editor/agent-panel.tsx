@@ -15,21 +15,13 @@ Features:
 - UV-based Python environment management
 - Sibling file context awareness
 - App error capture and auto-feedback
-- Turn management (done/stash, turn history)
+- Session management via shared AgentSessionBar
 - Auto-apply writeFile blocks
 */
 
 import { join } from "path";
 
-import {
-  Alert,
-  Badge,
-  Button,
-  Collapse,
-  Popconfirm,
-  Spin,
-  Tooltip,
-} from "antd";
+import { Alert, Button, Spin, Tooltip } from "antd";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -45,6 +37,9 @@ import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { AgentInputArea } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-input-area";
+import { AgentSessionBar } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-session-bar";
+import { RenameModal } from "@cocalc/frontend/frame-editors/llm/agent-base/rename-modal";
+import { useAutoNameSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-auto-name-session";
 import type { AgentSession } from "@cocalc/frontend/frame-editors/llm/agent-base/types";
 import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
@@ -408,12 +403,6 @@ function parseFileSearchReplaceBlocks(text: string): FileSearchReplace[] {
   return blocks;
 }
 
-/** A completed turn (stashed) */
-interface Turn {
-  id: string;
-  messages: DisplayMessage[];
-  summary: string; // first user message, truncated
-}
 
 export default function AgentPanel({ name }: EditorComponentProps) {
   const { project_id, path, actions, font_size } = useFrameContext();
@@ -449,11 +438,11 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const [messages, setMessages] = useState<DisplayMessage[]>([]);
   const [sessionId, setSessionId] = useState<string>("");
   sessionIdRef.current = sessionId;
-  const [_allSessions, setAllSessions] = useState<string[]>([]);
-
-  // Completed turns (stashed)
-  const [turns, setTurns] = useState<Turn[]>([]);
-  const [showTurns, setShowTurns] = useState(false);
+  const [allSessions, setAllSessions] = useState<string[]>([]);
+  const [sessionNames, setSessionNames] = useState<Map<string, string>>(
+    new Map(),
+  );
+  const [renameModalOpen, setRenameModalOpen] = useState(false);
 
   // App errors from the store
   const appErrors: AppError[] = (useRedux(name, "app_errors") as any) ?? [];
@@ -499,11 +488,20 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
       const sessionsSet = new Set<string>();
       const msgsBySession = new Map<string, DisplayMessage[]>();
+      const names = new Map<string, string>();
 
       allRecords.forEach((record: any) => {
         const sid = record.get("session_id");
         if (!sid) return;
         sessionsSet.add(sid);
+
+        // Skip session_name records from messages — they use a
+        // sentinel date ("session_name:<sid>") that would corrupt sorting.
+        if (record.get("event") === "session_name") {
+          const name = record.get("content");
+          if (name) names.set(sid, name);
+          return;
+        }
 
         if (!msgsBySession.has(sid)) {
           msgsBySession.set(sid, []);
@@ -517,6 +515,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           account_id: record.get("account_id"),
         });
       });
+      setSessionNames(names);
 
       // Sort sessions by most recent message date (newest last)
       const sessions = Array.from(sessionsSet).sort((a, b) => {
@@ -574,21 +573,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     setError("");
   }, []);
 
-  // Done/stash: move current messages to turn history, start fresh
-  const handleDone = useCallback(() => {
-    if (messages.length === 0) return;
-    const firstUserMsg = messages.find((m) => m.sender === "user");
-    const summary = firstUserMsg
-      ? firstUserMsg.content.slice(0, 80) +
-        (firstUserMsg.content.length > 80 ? "..." : "")
-      : "Turn";
-    setTurns((prev) => [
-      ...prev,
-      { id: sessionId || uuid(), messages: [...messages], summary },
-    ]);
-    handleNewSession();
-  }, [messages, sessionId, handleNewSession]);
-
   const handleClearSession = useCallback(() => {
     if (!syncdb || !sessionId) return;
     const allRecords = syncdb.get();
@@ -630,6 +614,26 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       syncdb.commit();
     },
     [syncdb, sessionId],
+  );
+
+  const writeSessionName = useCallback(
+    (name: string, sid?: string) => {
+      if (!syncdb || syncdb.get_state() !== "ready") return;
+      const targetSid = sid || sessionIdRef.current;
+      if (!targetSid) return;
+
+      const date = `session_name:${targetSid}`;
+      syncdb.set({
+        session_id: targetSid,
+        date,
+        sender: "system",
+        content: name,
+        event: "session_name",
+      });
+      syncdb.commit();
+      setSessionNames((prev) => new Map(prev).set(targetSid, name));
+    },
+    [syncdb],
   );
 
   const applyWriteFiles = useCallback(
@@ -1036,14 +1040,14 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     [model, isCoCalcCom, llm_markup, messages],
   );
 
-  // Build a session-like object for AgentInputArea
+  // Build a session-like object for AgentInputArea and AgentSessionBar
   const session: AgentSession = useMemo(
     () => ({
       syncdb,
       messages,
       sessionId,
-      allSessions: [],
-      sessionNames: new Map(),
+      allSessions,
+      sessionNames,
       generating,
       error,
       setGenerating,
@@ -1052,7 +1056,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       writeMessage: writeMessage as any,
       handleNewSession,
       handleClearSession,
-      writeSessionName: () => {},
+      writeSessionName,
       setSessionId,
       messagesEndRef,
       cancelRef,
@@ -1064,67 +1068,23 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       syncdb,
       messages,
       sessionId,
+      allSessions,
+      sessionNames,
       generating,
       error,
       handleNewSession,
       handleClearSession,
       writeMessage,
+      writeSessionName,
     ],
   );
 
-  // Restore a stashed turn
-  const handleRestoreTurn = useCallback(
-    (turn: Turn) => {
-      // Stash current if non-empty
-      if (messages.length > 0) {
-        handleDone();
-      }
-      setSessionId(turn.id);
-      setMessages(turn.messages);
-      setTurns((prev) => prev.filter((t) => t.id !== turn.id));
-    },
-    [messages, handleDone],
-  );
-
-  const turnItems = useMemo(
-    () =>
-      turns.map((turn) => ({
-        key: turn.id,
-        label: (
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <span style={{ flex: 1, fontSize: "0.85em" }}>{turn.summary}</span>
-            <Button
-              size="small"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleRestoreTurn(turn);
-              }}
-            >
-              Restore
-            </Button>
-          </div>
-        ),
-        children: (
-          <div style={{ maxHeight: 200, overflow: "auto", fontSize: "0.85em" }}>
-            {turn.messages
-              .filter((m) => m.event === "message")
-              .map((m, i) => (
-                <div key={i} style={{ marginBottom: 4 }}>
-                  <strong>{m.sender}:</strong> {m.content.slice(0, 200)}
-                  {m.content.length > 200 ? "..." : ""}
-                </div>
-              ))}
-          </div>
-        ),
-      })),
-    [turns, handleRestoreTurn],
-  );
+  const autoNameSession = useAutoNameSession({
+    session,
+    model,
+    project_id,
+    tag: TAG,
+  });
 
   return (
     <div style={CONTAINER_STYLE}>
@@ -1152,69 +1112,22 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       </div>
 
       {/* Session bar */}
-      <div
-        style={{
-          flex: "0 0 auto",
-          padding: "4px 12px",
-          borderBottom: `1px solid ${COLORS.GRAY_L}`,
-          display: "flex",
-          alignItems: "center",
-          gap: 6,
-          background: COLORS.GRAY_LLL,
-        }}
-      >
-        {turns.length > 0 && (
-          <Tooltip title="Show/hide previous turns">
-            <Badge count={turns.length} size="small">
-              <Button
-                size="small"
-                type={showTurns ? "primary" : "default"}
-                onClick={() => setShowTurns(!showTurns)}
-              >
-                <Icon name="history" />
-              </Button>
-            </Badge>
-          </Tooltip>
-        )}
-        <Tooltip title="Start a new conversation">
-          <Button size="small" onClick={handleNewSession}>
-            <Icon name="plus" /> New
-          </Button>
-        </Tooltip>
-        {sessionId && messages.length > 0 && (
-          <>
-            <Tooltip title="Stash this conversation and start fresh">
-              <Button size="small" onClick={handleDone}>
-                <Icon name="check" /> Done
-              </Button>
-            </Tooltip>
-            <Popconfirm
-              title="Clear all messages in this conversation?"
-              onConfirm={handleClearSession}
-              okText="Clear"
-              cancelText="Cancel"
-            >
-              <Button size="small" danger>
-                <Icon name="trash" />
-              </Button>
-            </Popconfirm>
-          </>
-        )}
-      </div>
+      <AgentSessionBar
+        session={session}
+        onAutoName={autoNameSession}
+        onRename={() => setRenameModalOpen(true)}
+      />
 
-      {/* Turn history */}
-      {showTurns && turns.length > 0 && (
-        <div
-          style={{
-            flex: "0 0 auto",
-            maxHeight: 300,
-            overflow: "auto",
-            borderBottom: `1px solid ${COLORS.GRAY_L}`,
-          }}
-        >
-          <Collapse size="small" items={turnItems} />
-        </div>
-      )}
+      {/* Rename modal */}
+      <RenameModal
+        open={renameModalOpen}
+        currentName={sessionNames.get(sessionId) ?? ""}
+        onSave={(name) => {
+          writeSessionName(name);
+          setRenameModalOpen(false);
+        }}
+        onCancel={() => setRenameModalOpen(false)}
+      />
 
       {/* App error banner */}
       {appErrors.length > 0 && (
