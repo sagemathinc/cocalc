@@ -568,6 +568,18 @@ async function runSingleTool(
     case "run_cell": {
       const res = resolveIndex(toolCall.args.index, cellList);
       if ("error" in res) return JSON.stringify(res);
+      // Only code cells can be executed — markdown/raw cells are no-ops
+      // in JupyterActions.run_cell(), which would cause the polling loop
+      // to wait until the 2-minute timeout.
+      const cellType =
+        jupyterActions.store
+          .getIn(["cells", res.cellId, "cell_type"])
+          ?.toString() ?? "code";
+      if (cellType !== "code") {
+        return JSON.stringify({
+          error: `Cell ${toolCall.args.index} is a ${cellType} cell and cannot be executed. Only code cells can be run.`,
+        });
+      }
       return await runCell(
         jupyterActions,
         res.cellId,

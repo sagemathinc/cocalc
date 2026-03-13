@@ -5,6 +5,7 @@
 
 import { filename_extension } from "@cocalc/util/misc";
 import { Button, Space, Tooltip } from "antd";
+import { COLORS } from "@cocalc/util/theme";
 import { debounce } from "lodash";
 import { useMemo } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -39,9 +40,15 @@ interface Props {
   project_id: string;
   path: string;
   chatState?: ChatState;
+  chatMode?: "chat" | "assistant" | "";
 }
 
-export function ChatIndicator({ project_id, path, chatState }: Props) {
+export function ChatIndicator({
+  project_id,
+  path,
+  chatState,
+  chatMode,
+}: Props) {
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },
@@ -58,12 +65,13 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
         project_id={project_id}
         path={path}
         chatState={chatState}
+        chatMode={chatMode}
       />
     </div>
   );
 }
 
-function ChatButtons({ project_id, path, chatState }) {
+function ChatButtons({ project_id, path, chatState, chatMode }) {
   const intl = useIntl();
 
   const toggleChat = useMemo(
@@ -102,6 +110,9 @@ function ChatButtons({ project_id, path, chatState }) {
     hasEmbeddedAgent(path) &&
     redux.getStore("projects").hasLanguageModelEnabled(project_id);
 
+  const chatActive = !!chatState && chatMode !== "assistant";
+  const aiActive = !!chatState && chatMode === "assistant";
+
   const chatButton = (
     <Tooltip
       title={
@@ -121,7 +132,12 @@ function ChatButtons({ project_id, path, chatState }) {
         danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
         onClick={() => toggleChat("chat")}
-        style={{ background: chatState ? "white" : undefined }}
+        style={{
+          background: chatActive ? "white" : undefined,
+          boxShadow: chatActive
+            ? "inset 0 2px 4px rgb(0 0 0 / 12%)"
+            : undefined,
+        }}
       >
         <Icon name="comment" />
         <HiddenXS>
@@ -153,14 +169,18 @@ function ChatButtons({ project_id, path, chatState }) {
           type="text"
           onClick={() => toggleChat("assistant")}
           style={{
-            background: chatState ? "white" : undefined,
+            background: aiActive ? COLORS.AI_ASSISTANT_BG : undefined,
+            color: aiActive ? COLORS.AI_ASSISTANT_TXT : undefined,
+            boxShadow: aiActive
+              ? "inset 0 2px 4px rgb(0 0 0 / 12%)"
+              : undefined,
             padding: "4px 6px",
           }}
         >
           <AIAvatar
             size={16}
-            backgroundColor="#f60"
-            iconColor="white"
+            backgroundColor={COLORS.AI_ASSISTANT_BG}
+            iconColor={COLORS.AI_ASSISTANT_TXT}
             style={{ borderRadius: 3 }}
             innerStyle={{ borderRadius: 3 }}
           />

@@ -15,6 +15,25 @@ const NO_AGENT_EXTENSIONS = new Set([
   "term",
   "course",
   "time-travel",
+  // Media files — legacy MediaViewer, no frame-tree side chat
+  "png",
+  "jpg",
+  "jpeg",
+  "gif",
+  "bmp",
+  "ico",
+  "webp",
+  "svg",
+  "tiff",
+  "tif",
+  "mp4",
+  "webm",
+  "avi",
+  "mov",
+  "mp3",
+  "wav",
+  "ogg",
+  "flac",
 ]);
 
 /** Returns true when the given file path supports an embedded AI agent. */

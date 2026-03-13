@@ -1245,6 +1245,13 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     local_storage(this.project_id, path, "chatState", chatState);
   }
 
+  // Track which chat mode is active so the file-tab buttons can
+  // highlight the correct one ("chat" vs "assistant").
+  set_chat_mode(path: string, chatMode: "chat" | "assistant" | ""): void {
+    if (this.open_files == null) return;
+    this.open_files.set(path, "chatMode", chatMode);
+  }
+
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
   // When chat_mode is set (e.g. "assistant"), the chat frame will switch to that tab.
   open_chat = ({
@@ -1278,6 +1285,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         editorActions.set_frame_tree({ id: frameId, chat_mode });
       }
       this.set_chat_state(path, "internal");
+      this.set_chat_mode(path, chat_mode ?? "chat");
     } else {
       // First create the chat actions:
       initChat(this.project_id, misc.meta_file(path, "chat"));
@@ -1306,8 +1314,10 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         return;
       }
       this.set_chat_state(path, "");
+      this.set_chat_mode(path, "");
     } else {
       this.set_chat_state(path, "");
+      this.set_chat_mode(path, "");
     }
   }
 
@@ -1337,6 +1347,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         // Different mode → switch and make the frame visible
         editorActions.set_frame_tree({ id: chatFrameId, chat_mode });
         editorActions.set_active_id(chatFrameId);
+        this.set_chat_mode(path, chat_mode ?? "chat");
         return;
       }
     }

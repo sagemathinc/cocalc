@@ -293,7 +293,11 @@ export default function AppPreview({ name }: EditorComponentProps) {
           sandbox="allow-forms allow-scripts allow-presentation"
         />
       ) : serverSrc ? (
-        <iframe src={serverSrc} style={{ flex: 1, width: "100%", border: 0 }} />
+        <iframe
+          key={reload}
+          src={serverSrc}
+          style={{ flex: 1, width: "100%", border: 0 }}
+        />
       ) : (
         <div
           style={{
