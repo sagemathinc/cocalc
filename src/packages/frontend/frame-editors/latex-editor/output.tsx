@@ -43,7 +43,7 @@ import { project_api } from "@cocalc/frontend/frame-editors/generic/client";
 import { editor, labels } from "@cocalc/frontend/i18n";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
 
-import { TITLE_BAR_BORDER } from "../frame-tree/style";
+import { FRAME_TAB_BAR_STYLE, TITLE_BAR_BORDER } from "../frame-tree/style";
 import { Actions } from "./actions";
 import { Build } from "./build";
 import { WORD_COUNT_ICON } from "./constants";
@@ -620,11 +620,7 @@ export function Output(props: OutputProps) {
             display: "flex",
             flexDirection: "column",
           }}
-          tabBarStyle={{
-            margin: 0,
-            padding: "0 8px",
-            borderBottom: TITLE_BAR_BORDER,
-          }}
+          tabBarStyle={FRAME_TAB_BAR_STYLE}
           items={tabItems}
           className="cocalc-latex-output-tabs"
         />

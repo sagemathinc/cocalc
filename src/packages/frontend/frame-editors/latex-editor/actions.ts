@@ -157,6 +157,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   private parsed_output_log?: IProcessedLatexLog;
 
   private _last_sync_time = 0;
+  private _pdf_watcher_init_token = 0;
+  private _project_started_listener?: () => void;
 
   // PDF file watcher - watches directory for PDF file changes
   private pdf_watcher?: PDFWatcher;
@@ -224,10 +226,24 @@ export class Actions extends BaseActions<LatexEditorState> {
         "change",
         debounce(this.ensureNonempty.bind(this), 1500),
       );
-      this._init_pdf_directory_watcher();
+      this._project_started_listener = () => {
+        void this._handle_project_started();
+      };
+      this.redux
+        .getProjectStore(this.project_id)
+        .on("started", this._project_started_listener);
+      void this._init_pdf_directory_watcher();
       this._init_build_coordinator();
     }
     this.word_count = reuseInFlight(this._word_count.bind(this));
+  }
+
+  private async _handle_project_started(): Promise<void> {
+    // The PDF preview may have tried to load while the project was still stopped
+    // or starting. Once the project is actually running, re-arm the watcher and
+    // force a fresh reload so the preview recovers without a full page refresh.
+    await this._init_pdf_directory_watcher();
+    this.update_pdf(server_time().valueOf(), true);
   }
 
   private _init_build_coordinator(): void {
@@ -251,7 +267,8 @@ export class Actions extends BaseActions<LatexEditorState> {
   // Watch the directory containing the PDF file for changes
   private async _init_pdf_directory_watcher(): Promise<void> {
     const pdfPath = pdf_path(this.path);
-    this.pdf_watcher = new PDFWatcher(
+    const token = ++this._pdf_watcher_init_token;
+    const pdf_watcher = new PDFWatcher(
       this.project_id,
       pdfPath,
       // We ignore the PDFs timestamp (mtime) and use last_save_time for consistency with build-triggered updates
@@ -260,7 +277,15 @@ export class Actions extends BaseActions<LatexEditorState> {
       },
       getComputeServerId({ project_id: this.project_id, path: this.path }),
     );
-    await this.pdf_watcher.init();
+    await pdf_watcher.init();
+    // If another watcher init started while we were awaiting, drop this one so
+    // we don't keep multiple directory subscriptions alive for the same editor.
+    if (token !== this._pdf_watcher_init_token) {
+      pdf_watcher.close();
+      return;
+    }
+    this.pdf_watcher?.close();
+    this.pdf_watcher = pdf_watcher;
   }
 
   // similar to jupyter, where an empty document is really
@@ -339,10 +364,10 @@ export class Actions extends BaseActions<LatexEditorState> {
               this.parent_file,
             ) as Actions;
             // we're careful, maybe getEditorActions returns something else ...
-            await parent_actions?.build?.("", false);
+            await parent_actions?.auto_build("");
           } else if (this.parent_file == null && this.is_likely_master()) {
             // also check is_likely_master, b/c there must be a \\document* command.
-            await this.build("", false);
+            await this.auto_build("");
           }
         }
       }),
@@ -803,8 +828,15 @@ export class Actions extends BaseActions<LatexEditorState> {
   }
 
   close(): void {
+    this._pdf_watcher_init_token += 1;
     this._forget_pdf_document();
     this.buildCoordinator?.close();
+    if (this._project_started_listener != null) {
+      this.redux
+        .getProjectStore(this.project_id)
+        .removeListener("started", this._project_started_listener);
+      this._project_started_listener = undefined;
+    }
     if (this.pdf_watcher != null) {
       this.pdf_watcher.close();
       this.pdf_watcher = undefined;
@@ -869,9 +901,11 @@ export class Actions extends BaseActions<LatexEditorState> {
     await this.build();
   }
 
-  // used by generic framework – this is bound to the instance, otherwise "this" is undefined, hence
-  // make sure to use an arrow function!
-  build = async (id?: string, force: boolean = false): Promise<void> => {
+  private async buildInternal(
+    id: string | undefined,
+    force: boolean,
+    useFreshAggregate: boolean,
+  ): Promise<void> {
     this.set_error("");
     this.set_status("");
     if (id) {
@@ -899,12 +933,15 @@ export class Actions extends BaseActions<LatexEditorState> {
     try {
       await this.save_all(false);
       const time =
-        force || wasStopped ? server_time().valueOf() : this.last_save_time();
+        force || wasStopped || useFreshAggregate
+          ? server_time().valueOf()
+          : this.last_save_time();
       // Skip if nothing changed since last build — avoids DKV chatter that
       // causes other clients to flicker their build spinner for a no-op.
       // Must be AFTER save so last_save_time() reflects pending edits.
       if (
         !force &&
+        !useFreshAggregate &&
         this._lastBuiltTime != null &&
         time === this._lastBuiltTime
       ) {
@@ -924,7 +961,17 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.is_building = false;
       this.setState({ building: false });
     }
+  }
+
+  // used by generic framework – this is bound to the instance, otherwise "this" is undefined, hence
+  // make sure to use an arrow function!
+  build = async (id?: string, force: boolean = false): Promise<void> => {
+    await this.buildInternal(id, force, true);
   };
+
+  private async auto_build(id?: string): Promise<void> {
+    await this.buildInternal(id, false, false);
+  }
 
   async clean(): Promise<void> {
     await this.build_action("clean");
@@ -975,6 +1022,7 @@ export class Actions extends BaseActions<LatexEditorState> {
     } finally {
       this.set_status("");
       this.is_building = false;
+      this.setState({ building: false });
       this.is_stopping = false;
     }
   }

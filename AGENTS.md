@@ -6,8 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 
 - This is the source code of CoCalc in a Git repository
 - It is a complex JavaScript/TypeScript SaaS application
-- CoCalc is organized as a monorepository (multi-packages) in the subdirectory "./packages"
-- The packages are managed as a pnpm workspace in "./packages/pnpm-workspace.yaml"
+- CoCalc is organized as a monorepository (multi-packages) in the subdirectory "./src/packages"
+- The packages are managed as a pnpm workspace in "./src/packages/pnpm-workspace.yaml"
 
 ## Code Style
 
@@ -33,43 +33,44 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - `pnpm clean` - Clean all `node_modules` and `dist` directories
 - `pnpm test` - Run full test suite
 - `pnpm depcheck` - Check for dependency issues
-- `python3 ./scripts/check_npm_packages.py` - Check npm package consistency across packages
+- `python3 ./src/scripts/check_npm_packages.py` - Check npm package consistency across packages
 - `prettier -w [filename]` to format the style of a file after editing it
 - After creating a file, run `git add [filename]` to start tracking it
 
 ### Package-Specific Commands
 
-- `cd packages/[package] && pnpm build` - Build and compile a specific package
-  - For packages/next and packages/static, run `cd packages/[package] && pnpm build-dev`
-- `cd packages/[package] && pnpm test` - Run tests for a specific package
-  - You can pass file arguments: `cd packages/[package] && pnpm test -- [test-file]` to run a single test file
+- `cd src/packages/[package] && pnpm build` - Build and compile a specific package
+  - For src/packages/next and src/packages/static, run `cd src/packages/[package] && pnpm build-dev`
+- `cd src/packages/[package] && pnpm test` - Run tests for a specific package
+  - You can pass file arguments: `cd src/packages/[package] && pnpm test -- [test-file]` to run a single test file
 - **IMPORTANT**: When modifying packages like `util` that other packages depend on, you must run `pnpm build` in the modified package before typechecking dependent packages
-- **IMPORTANT**: When modifying colors in `packages/util/theme.ts`, run `cd packages/frontend && pnpm update-color-scheme` to regenerate the SASS color variables in `packages/frontend/_colors.sass`
+- **IMPORTANT**: When modifying colors in `src/packages/util/theme.ts`, run `cd src/packages/frontend && pnpm update-color-scheme` to regenerate the SASS color variables in `src/packages/frontend/_colors.sass`
 
-### Workspace Management (`workspaces.py`)
+### Workspace Management (`src/workspaces.py`)
 
-The root-level `workspaces.py` script orchestrates operations across all packages in the monorepo. Use it instead of running raw pnpm commands when working across the workspace:
+The root-level `src/workspaces.py` script orchestrates operations across all packages in the monorepo. Use it instead of running raw pnpm commands when working across the workspace:
 
-- `python3 workspaces.py install` - Install dependencies for all packages (use after updating package.json files)
-- `python3 workspaces.py build` - Build all packages that have changed
-- `python3 workspaces.py clean` - Delete dist and node_modules folders
-- `python3 workspaces.py version-check` - Check dependency version consistency across all packages
-- `python3 workspaces.py test` - Run tests for all packages
+- `python3 src/workspaces.py install` - Install dependencies for all packages (use after updating package.json files)
+- `python3 src/workspaces.py build` - Build all packages that have changed
+- `python3 src/workspaces.py clean` - Delete dist and node_modules folders
+- `python3 src/workspaces.py version-check` - Check dependency version consistency across all packages
+- `python3 src/workspaces.py test` - Run tests for all packages
 
-**IMPORTANT**: After updating dependencies in any `package.json`, run `python3 workspaces.py version-check` to ensure consistency, then `python3 workspaces.py install` to update the lockfile and install.
+**IMPORTANT**: After updating dependencies in any `package.json`, run `python3 src/workspaces.py version-check` to ensure consistency, then `python3 src/workspaces.py install` to update the lockfile and install.
 
 ### Development
 
 - **IMPORTANT**: Always run `prettier -w [filename]` immediately after editing any .ts, .tsx, .md, or .json file to ensure consistent styling
+- **IMPORTANT**: In tests and code comments, use only generic names, email addresses, and company names. Do not include customer or real-world identifiers, except for `Sagemath, Inc.` or when the developer explicitly says otherwise.
 
 #### When Working on Frontend Code
 
-After making changes to files in `packages/frontend`:
+After making changes to files in `src/packages/frontend`:
 
-1. **Typecheck**: Run `cd packages/frontend && pnpm tsc --noEmit` to check for TypeScript errors
-2. **Build**: Run `cd packages/static && pnpm build-dev` to compile the frontend for testing
+1. **Typecheck**: Run `cd src/packages/frontend && pnpm tsc --noEmit` to check for TypeScript errors
+2. **Build**: Run `cd src/packages/static && pnpm build-dev` to compile the frontend for testing
 
-**DO NOT** run `pnpm build` in `packages/frontend` - it won't work as expected for frontend development.
+**DO NOT** run `pnpm build` in `src/packages/frontend` - it won't work as expected for frontend development.
 
 #### When Working on Other Packages
 
@@ -77,15 +78,15 @@ After making changes to files in `packages/frontend`:
 
 ## Architecture Overview
 
-For detailed architecture documentation, see [`docs/`](docs/README.md):
+For detailed architecture documentation, see [`src/docs/`](src/docs/README.md):
 
-- [System Overview](docs/overview.md) — High-level architecture and data flow
-- [Frontend](docs/frontend.md) — React app, state management, client layer
-- [Conat](docs/conat.md) — Messaging system: DKV, PubSub, request/response
-- [Hub & Server](docs/hub.md) — Central server, API dispatch, database
-- [Next.js](docs/next.md) — SSR pages, REST API routes, conat bridge
-- [External API](docs/api.md) — Python client, HTTP endpoints, call flow
-- [Project Daemon](docs/project.md) — Per-project services and conat integration
+- [System Overview](src/docs/overview.md) — High-level architecture and data flow
+- [Frontend](src/docs/frontend.md) — React app, state management, client layer
+- [Conat](src/docs/conat.md) — Messaging system: DKV, PubSub, request/response
+- [Hub & Server](src/docs/hub.md) — Central server, API dispatch, database
+- [Next.js](src/docs/next.md) — SSR pages, REST API routes, conat bridge
+- [External API](src/docs/api.md) — Python client, HTTP endpoints, call flow
+- [Project Daemon](src/docs/project.md) — Per-project services and conat integration
 
 ### Package Structure
 
@@ -107,7 +108,7 @@ CoCalc is organized as a monorepo with key packages:
 
 #### Frontend Architecture
 
-- **Redux-style State Management**: Uses custom stores and actions pattern (see `packages/frontend/app-framework/actions-and-stores.ts`)
+- **Redux-style State Management**: Uses custom stores and actions pattern (see `src/packages/frontend/app-framework/actions-and-stores.ts`)
 - **TypeScript React Components**: All frontend code is TypeScript with proper typing
 - **Modular Store System**: Each feature has its own store/actions (AccountStore, BillingStore, etc.)
 - **WebSocket Communication**: Real-time communication with backend via WebSocket messages
@@ -126,15 +127,15 @@ CoCalc is organized as a monorepo with key packages:
 
 #### Communication Patterns
 
-- **WebSocket Messages**: Primary communication method (see `packages/comm/websocket/types.ts`)
+- **WebSocket Messages**: Primary communication method (see `src/packages/comm/websocket/types.ts`)
 - **Database Queries**: Structured query system with typed interfaces
 - **Event Emitters**: Inter-service communication within backend
 - **REST-like APIs**: Some HTTP endpoints for specific operations
-- **API Schema**: API endpoints in `packages/next/pages/api/v2/` use Zod schemas in `packages/next/lib/api/schema/` for validation. These schemas must be kept in harmony with the TypeScript types sent from frontend applications using `apiPost` (in `packages/next/lib/api/post.ts`) or `api` (in `packages/frontend/client/api.ts`). When adding new fields to API requests, both the frontend types and the API schema validation must be updated.
+- **API Schema**: API endpoints in `src/packages/next/pages/api/v2/` use Zod schemas in `src/packages/next/lib/api/schema/` for validation. These schemas must be kept in harmony with the TypeScript types sent from frontend applications using `apiPost` (in `src/packages/next/lib/api/post.ts`) or `api` (in `src/packages/frontend/client/api.ts`). When adding new fields to API requests, both the frontend types and the API schema validation must be updated.
 - **Conat Frontend → Hub Communication**: CoCalc uses a custom distributed messaging system called "Conat" for frontend-to-hub communication:
-  1. **Frontend ConatClient** (`packages/frontend/conat/client.ts`): Manages WebSocket connection to hub, handles authentication, reconnection, and provides API interfaces
-  2. **Core Protocol** (`packages/conat/core/client.ts`): NATS-like pub/sub/request/response messaging with automatic chunking, multiple encoding formats (MsgPack, JSON), and delivery confirmation
-  3. **Hub API Structure** (`packages/conat/hub/api/`): Typed interfaces for different services (system, projects, db, purchases, jupyter) that map function calls to conat subjects
+  1. **Frontend ConatClient** (`src/packages/frontend/conat/client.ts`): Manages WebSocket connection to hub, handles authentication, reconnection, and provides API interfaces
+  2. **Core Protocol** (`src/packages/conat/core/client.ts`): NATS-like pub/sub/request/response messaging with automatic chunking, multiple encoding formats (MsgPack, JSON), and delivery confirmation
+  3. **Hub API Structure** (`src/packages/conat/hub/api/`): Typed interfaces for different services (system, projects, db, purchases, jupyter) that map function calls to conat subjects
   4. **Message Flow**: Frontend calls like `hub.projects.setQuotas()` → ConatClient.callHub() → conat request to subject `hub.account.{account_id}.api` → Hub API dispatcher → actual service implementation
   5. **Authentication**: Each conat request includes account_id and is subject to permission checks at the hub level
   6. **Subjects**: Messages are routed using hierarchical subjects like `hub.account.{uuid}.{service}` or `project.{uuid}.{compute_server_id}.{service}`
@@ -143,8 +144,8 @@ CoCalc is organized as a monorepo with key packages:
 
 **API Method Registration Pattern:**
 
-- **Registry**: `packages/conat/hub/api/projects.ts` contains `export const projects = { methodName: authFirstRequireAccount }`
-- **Implementation**: `packages/server/conat/api/projects.ts` contains `export async function methodName() { ... }`
+- **Registry**: `src/packages/conat/hub/api/projects.ts` contains `export const projects = { methodName: authFirstRequireAccount }`
+- **Implementation**: `src/packages/server/conat/api/projects.ts` contains `export async function methodName() { ... }`
 - **Flow**: Python client `@api_method("projects.methodName")` → POST `/api/conat/hub` → `hubBridge()` → conat subject `hub.account.{account_id}.api` → registry lookup → implementation
 
 **Example - projects.createProject:**
@@ -152,8 +153,8 @@ CoCalc is organized as a monorepo with key packages:
 1. **Python**: `@api_method("projects.createProject")` decorator
 2. **HTTP**: `POST /api/conat/hub {"name": "projects.createProject", "args": [...]}`
 3. **Bridge**: `hubBridge()` routes to conat subject
-4. **Registry**: `packages/conat/hub/api/projects.ts: createProject: authFirstRequireAccount`
-5. **Implementation**: `packages/server/conat/api/projects.ts: export { createProject }` → `@cocalc/server/projects/create`
+4. **Registry**: `src/packages/conat/hub/api/projects.ts: createProject: authFirstRequireAccount`
+5. **Implementation**: `src/packages/server/conat/api/projects.ts: export { createProject }` → `@cocalc/server/projects/create`
 
 ### Key Technologies
 
@@ -168,8 +169,8 @@ CoCalc is organized as a monorepo with key packages:
 
 ### Database Schema
 
-- Comprehensive schema in `packages/util/db-schema`
-- Query abstractions in `packages/database/postgres/`
+- Comprehensive schema in `src/packages/util/db-schema`
+- Query abstractions in `src/packages/database/postgres/`
 - Type-safe database operations with TypeScript interfaces
 
 ### Testing
@@ -179,7 +180,7 @@ CoCalc is organized as a monorepo with key packages:
 - **jsdom**: Browser environment simulation for frontend tests
 - Test files use `.test.ts` or `.spec.ts` extensions
 - Each package has its own jest.config.js
-- **Playwright MCP**: For interactive browser testing of the frontend UI, see [`packages/frontend/test/agent-playwright-testing.md`](packages/frontend/test/agent-playwright-testing.md) — covers the dev server setup, build-test loop, UI layout, and testing patterns for the file explorer and flyout panels. Always ask the developer for current dev account credentials.
+- **Playwright MCP**: For interactive browser testing of the frontend UI, see [`src/packages/frontend/test/agent-playwright-testing.md`](src/packages/frontend/test/agent-playwright-testing.md) — covers the dev server setup, build-test loop, UI layout, and testing patterns for the file explorer and flyout panels. Always ask the developer for current dev account credentials.
 
 ### Import Patterns
 
@@ -190,7 +191,7 @@ CoCalc is organized as a monorepo with key packages:
 
 ### Development Workflow
 
-1. **Frontend changes**: After editing `packages/frontend`, typecheck with `cd packages/frontend && pnpm tsc --noEmit`, then build with `cd packages/static && pnpm build-dev`
+1. **Frontend changes**: After editing `src/packages/frontend`, typecheck with `cd src/packages/frontend && pnpm tsc --noEmit`, then build with `cd src/packages/static && pnpm build-dev`
 2. **Other package changes**: After TypeScript changes, run `pnpm build` in the relevant package directory
 3. Database must be running before starting hub
 4. Hub coordinates all services and should be restarted after changes
@@ -206,7 +207,7 @@ CoCalc is organized as a monorepo with key packages:
 - Never modify a file when in the `master` or `main` branch
 - All changes happen through feature branches, which are pushed as pull requests to GitHub
 - When creating a new file, run `git add [filename]` to track the file.
-- Prefix git commits with the package and general area. e.g. 'frontend/latex: ...' if it concerns latex editor changes in the packages/frontend/... code.
+- The first line of a commit message must follow the pattern: `[package]/[region]: [1-line description]`. e.g. `frontend/latex: fix PDF preview sync` or `frontend/frame-editor: add drag-and-drop support`. The package is the subdirectory under `src/packages/` and the region is the feature area within that package.
 - When pushing a new branch to Github, track it upstream. e.g. `git push --set-upstream origin feature-foo` for branch "feature-foo".
 - **Branch naming**: New branches should follow the pattern `[some-key-words]-[issue-number]`. e.g. `fix-invite-email-signup-link-8757` for issue #8757.
 
@@ -242,7 +243,7 @@ Examples:
 
 **For new translation keys:**
 
-1. Add the translation to source code (e.g., `packages/frontend/i18n/common.ts`)
+1. Add the translation to source code (e.g., `src/packages/frontend/i18n/common.ts`)
 2. Run `pnpm i18n:extract` - updates `extracted.json` from source code
 3. Run `pnpm i18n:upload` - sends new strings to SimpleLocalize
 4. New keys are automatically translated to all languages
@@ -254,12 +255,12 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 
 ### Translation File Structure
 
-- `packages/frontend/i18n/README.md` - detailed documentation
-- `packages/frontend/i18n/common.ts` - shared translation definitions (labels, menus, editor, jupyter, etc.)
-- `packages/frontend/i18n/extracted.json` - auto-extracted messages from source code
-- `packages/frontend/i18n/trans/[locale].json` - downloaded translations from SimpleLocalize
-- `packages/frontend/i18n/trans/[locale].compiled.json` - compiled translation files for runtime
-- `packages/frontend/i18n/index.ts` - exports and locale loading logic
+- `src/packages/frontend/i18n/README.md` - detailed documentation
+- `src/packages/frontend/i18n/common.ts` - shared translation definitions (labels, menus, editor, jupyter, etc.)
+- `src/packages/frontend/i18n/extracted.json` - auto-extracted messages from source code
+- `src/packages/frontend/i18n/trans/[locale].json` - downloaded translations from SimpleLocalize
+- `src/packages/frontend/i18n/trans/[locale].compiled.json` - compiled translation files for runtime
+- `src/packages/frontend/i18n/index.ts` - exports and locale loading logic
 
 # Ignore
 
@@ -271,10 +272,10 @@ Same flow as above, but **before 3. i18n:upload**, delete the key. Only new keys
 
 ## Overview
 
-The `python/cocalc-api/` directory contains a uv-based Python client library for the CoCalc API, published as the `cocalc-api` package on PyPI.
+The `src/python/cocalc-api/` directory contains a uv-based Python client library for the CoCalc API, published as the `cocalc-api` package on PyPI.
 
-It also contains a test framework (`python/cocalc-api/tests/README.md`) and an MCP client (`python/cocalc-api/src/cocalc_api/mcp/README.md`).
-For convenience, a `python/cocalc-api/Makefile` exists.
+It also contains a test framework (`src/python/cocalc-api/tests/README.md`) and an MCP client (`src/python/cocalc-api/src/cocalc_api/mcp/README.md`).
+For convenience, a `src/python/cocalc-api/Makefile` exists.
 
 ## Client-Server Architecture Investigation
 
@@ -283,20 +284,20 @@ For convenience, a `python/cocalc-api/Makefile` exists.
 1. **cocalc-api Client** (Python) → HTTP POST requests
 2. **Next.js API Routes** (`/api/conat/{hub,project}`) → Bridge to conat messaging
 3. **ConatClient** (server-side) → NATS-like messaging protocol
-4. **Hub API Implementation** (`packages/conat/hub/api/`) → Actual business logic
+4. **Hub API Implementation** (`src/packages/conat/hub/api/`) → Actual business logic
 
 ### Endpoints Discovered
 
 #### Hub API: `POST /api/conat/hub`
 
-- **Bridge**: `packages/next/pages/api/conat/hub.ts` → `hubBridge()` → conat subject `hub.account.{account_id}.api`
-- **Implementation**: `packages/conat/hub/api/projects.ts`
+- **Bridge**: `src/packages/next/pages/api/conat/hub.ts` → `hubBridge()` → conat subject `hub.account.{account_id}.api`
+- **Implementation**: `src/packages/conat/hub/api/projects.ts`
 - **Available Methods**: `createProject`, `start`, `stop`, `setQuotas`, `addCollaborator`, `removeCollaborator`, etc.
 
 #### Project API: `POST /api/conat/project`
 
-- **Bridge**: `packages/next/pages/api/conat/project.ts` → `projectBridge()` → conat project subjects
-- **Implementation**: `packages/conat/project/api/` (system.ping, system.exec, system.jupyterExecute)
+- **Bridge**: `src/packages/next/pages/api/conat/project.ts` → `projectBridge()` → conat project subjects
+- **Implementation**: `src/packages/conat/project/api/` (system.ping, system.exec, system.jupyterExecute)
 
 # important-instruction-reminders
 

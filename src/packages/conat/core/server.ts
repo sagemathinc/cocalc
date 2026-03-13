@@ -753,6 +753,49 @@ export class ConatServer extends EventEmitter {
     if (this.subscriptions[id] == null) {
       this.subscriptions[id] = new Set<string>();
     }
+    socket.on("disconnecting", async () => {
+      this.log("disconnecting", { id, user });
+      // Always remove from tracked sockets on teardown so auth-failed
+      // connections do not linger in memory if "closed" is not emitted.
+      delete this.sockets[socket.id];
+      delete this.stats[socket.id];
+      if (added) {
+        this.usage.delete(user);
+      }
+      const rooms = Array.from(socket.rooms) as string[];
+      for (const room of rooms) {
+        const subject = getSubjectFromRoom(room);
+        this.unsubscribe({ socket, subject });
+      }
+      delete this.subscriptions[id];
+    });
+
+    if (user?.error) {
+      // Send one explicit auth-failure info packet so clients can surface the
+      // reason, then immediately disconnect to avoid lingering unauthenticated
+      // websocket sessions.
+      try {
+        socket.emit("info", { ...this.info(), user });
+      } catch {
+        // ignore
+      }
+      const forceDisconnect = () => {
+        try {
+          socket.disconnect(true);
+        } catch {
+          // ignore
+        }
+        // Fallback: ensure transport is torn down even if namespace disconnect
+        // does not immediately close the underlying socket.
+        try {
+          socket.conn?.close?.();
+        } catch {
+          // ignore
+        }
+      };
+      setTimeout(forceDisconnect, 25);
+      return;
+    }
 
     this.sendInfo(socket, user);
 
@@ -885,19 +928,6 @@ export class ConatServer extends EventEmitter {
       respond?.(this.clusterAddresses(this.clusterName));
     });
 
-    socket.on("disconnecting", async () => {
-      this.log("disconnecting", { id, user });
-      delete this.stats[socket.id];
-      if (added) {
-        this.usage.delete(user);
-      }
-      const rooms = Array.from(socket.rooms) as string[];
-      for (const room of rooms) {
-        const subject = getSubjectFromRoom(room);
-        this.unsubscribe({ socket, subject });
-      }
-      delete this.subscriptions[id];
-    });
   };
 
   sendInfo = async (socket, user) => {
