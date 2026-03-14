@@ -323,7 +323,7 @@ interface WriteFileBlock {
 
 function parseWriteFileBlocks(text: string): WriteFileBlock[] {
   const blocks: WriteFileBlock[] = [];
-  const regex = /```writefile\s+(\S+)\n([\s\S]*?)```/g;
+  const regex = /```writefile\s+(\S+)\n([\s\S]*?)^```[ \t]*$/gm;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     blocks.push({
@@ -557,15 +557,15 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       });
       setAllSessions(sessions);
 
-      // Keep the current sessionId if it still exists in the data (or was
-      // just created with "New" and has no messages yet).  Fall back to the
-      // most recent session if the current one was deleted.
-      const activeSession =
-        sessionId && (sessionsSet.has(sessionId) || !sessions.length)
-          ? sessionId
-          : sessions.length > 0
-            ? sessions[sessions.length - 1]
-            : "";
+      // Keep the current sessionId if it is set — this covers both sessions
+      // that already exist in the data AND brand-new sessions that have no
+      // messages persisted yet (created via "New").  Only fall back to the
+      // most recent session when sessionId is empty/unset.
+      const activeSession = sessionId
+        ? sessionId
+        : sessions.length > 0
+          ? sessions[sessions.length - 1]
+          : "";
 
       if (activeSession !== sessionId) {
         setSessionId(activeSession);

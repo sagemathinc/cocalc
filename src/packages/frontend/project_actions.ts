@@ -737,7 +737,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
                 this.gotoFragment(path, fragmentId);
               }
               if (this.open_files.get(path, "chatState") == "pending") {
-                this.open_chat({ path });
+                const pendingChatMode = this.open_files.get(path, "chatMode");
+                this.open_chat({
+                  path,
+                  chat_mode: pendingChatMode || undefined,
+                });
               }
             } catch (err) {
               // Error already reported to user by alert_message in file-editors.ts
@@ -1269,6 +1273,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     if (info?.Editor == null) {
       // not opened in the foreground yet.
       this.set_chat_state(path, "pending");
+      if (chat_mode) {
+        this.set_chat_mode(path, chat_mode);
+      }
       return;
     }
     //  not null for modern editors.

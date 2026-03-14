@@ -59,6 +59,9 @@ function Chat({ font_size, desc }: EditorComponentProps) {
 
   const setMode = (newMode: ChatMode) => {
     actions.set_frame_tree({ id: frameId, chat_mode: newMode });
+    // Also update the open_files store so the activity-bar indicator
+    // stays in sync with the Segmented control inside the chat frame.
+    redux.getProjectActions(project_id).set_chat_mode(path0, newMode);
   };
 
   useEffect(() => {

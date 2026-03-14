@@ -15,7 +15,7 @@ The iframe app can communicate with the CoCalc project via a bridge:
   - The bridge SDK (cocalc-app-bridge.js) provides window.cocalc API
 */
 
-import { Badge, Button, Empty, List, Modal, Segmented, Spin, Tooltip } from "antd";
+import { Alert, Badge, Button, Empty, List, Modal, Segmented, Spin, Switch, Tooltip } from "antd";
 import { join } from "path";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -24,6 +24,11 @@ import { Icon } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import {
+  delete_local_storage,
+  get_local_storage,
+  set_local_storage,
+} from "@cocalc/frontend/misc/local-storage";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -40,6 +45,20 @@ export function appDir(path: string): string {
 /** Maximum number of bridge log entries to keep in memory. */
 const MAX_BRIDGE_LOG = 1000;
 
+function trustKey(project_id: string, path: string): string {
+  return `${project_id}:${path}:trust`;
+}
+function isAppTrusted(project_id: string, path: string): boolean {
+  return !!get_local_storage(trustKey(project_id, path));
+}
+function setAppTrusted(project_id: string, path: string, trust: boolean) {
+  if (trust) {
+    set_local_storage(trustKey(project_id, path), "true");
+  } else {
+    delete_local_storage(trustKey(project_id, path));
+  }
+}
+
 type AppMode = "app" | "server";
 
 export default function AppPreview({ name }: EditorComponentProps) {
@@ -48,6 +67,11 @@ export default function AppPreview({ name }: EditorComponentProps) {
   const [localReload, setLocalReload] = useState(0);
   const [mode, setMode] = useState<AppMode>("app");
   const [serverPort, setServerPort] = useState<number>(0);
+  const [trust, setTrust0] = useState<boolean>(isAppTrusted(project_id, path));
+  const setTrust = (v: boolean) => {
+    setAppTrusted(project_id, path, v);
+    setTrust0(v);
+  };
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const dir = appDir(path);
   const indexPath = join(dir, "index.html");
@@ -304,10 +328,43 @@ export default function AppPreview({ name }: EditorComponentProps) {
             />
           </Tooltip>
         )}
+        <div style={{ flex: 1 }} />
+        <Tooltip title="Trust this app to allow JavaScript execution. Untrusted apps are blocked from running.">
+          <Switch
+            checked={trust}
+            onChange={setTrust}
+            checkedChildren="Trusted"
+            unCheckedChildren="Untrusted"
+          />
+        </Tooltip>
       </div>
 
+      {/* Trust warning */}
+      {!trust && exists && (
+        <Alert
+          type="warning"
+          showIcon
+          banner
+          message="This app is not trusted. Enable trust to evaluate it."
+        />
+      )}
+
       {/* Content */}
-      {mode === "app" ? (
+      {mode === "app" && !trust ? (
+        <div
+          style={{
+            flex: 1,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: COLORS.GRAY_M,
+            padding: 20,
+            textAlign: "center",
+          }}
+        >
+          Switch on <b>Trusted</b> in the toolbar above to run this app.
+        </div>
+      ) : mode === "app" ? (
         <iframe
           ref={iframeRef}
           src={appSrc}
