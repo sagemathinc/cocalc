@@ -18,6 +18,7 @@ The iframe app can communicate with the CoCalc project via a bridge:
 import { Alert, Badge, Button, Empty, Modal, Segmented, Spin, Switch, Tooltip } from "antd";
 import { join } from "path";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { FormattedMessage, useIntl } from "react-intl";
 
 import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
@@ -62,6 +63,7 @@ function setAppTrusted(project_id: string, path: string, trust: boolean) {
 type AppMode = "app" | "server";
 
 export default function AppPreview({ name }: EditorComponentProps) {
+  const intl = useIntl();
   const { project_id, path, actions, isVisible } = useFrameContext();
   const [exists, setExists] = useState<boolean | null>(null);
   const [localReload, setLocalReload] = useState(0);
@@ -329,12 +331,24 @@ export default function AppPreview({ name }: EditorComponentProps) {
           </Tooltip>
         )}
         <div style={{ flex: 1 }} />
-        <Tooltip title="Trust this app to allow JavaScript execution. Untrusted apps are blocked from running.">
+        <Tooltip
+          title={intl.formatMessage({
+            id: "frame-editors.agent-editor.app-preview.trust.tooltip",
+            defaultMessage:
+              "Trust this app to allow JavaScript execution. Untrusted apps are blocked from running.",
+          })}
+        >
           <Switch
             checked={trust}
             onChange={setTrust}
-            checkedChildren="Trusted"
-            unCheckedChildren="Untrusted"
+            checkedChildren={intl.formatMessage({
+              id: "frame-editors.agent-editor.app-preview.trust.on",
+              defaultMessage: "Trusted",
+            })}
+            unCheckedChildren={intl.formatMessage({
+              id: "frame-editors.agent-editor.app-preview.trust.off",
+              defaultMessage: "Untrusted",
+            })}
           />
         </Tooltip>
       </div>
@@ -345,7 +359,11 @@ export default function AppPreview({ name }: EditorComponentProps) {
           type="warning"
           showIcon
           banner
-          message="This app is not trusted. Enable trust to evaluate it."
+          message={intl.formatMessage({
+            id: "frame-editors.agent-editor.app-preview.trust.warning",
+            defaultMessage:
+              "This app is not trusted. Enable trust to evaluate it.",
+          })}
         />
       )}
 
@@ -362,7 +380,12 @@ export default function AppPreview({ name }: EditorComponentProps) {
             textAlign: "center",
           }}
         >
-          Switch on <b>Trusted</b> in the toolbar above to run this app.
+          <span>
+            <FormattedMessage
+              id="frame-editors.agent-editor.app-preview.trust.blocked"
+              defaultMessage="Switch on <b>Trusted</b> in the toolbar above to run this app."
+            />
+          </span>
         </div>
       ) : mode === "app" ? (
         <iframe
