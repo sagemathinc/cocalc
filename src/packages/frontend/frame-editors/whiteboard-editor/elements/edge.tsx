@@ -57,9 +57,6 @@ export default function Edge({
           selected ? SELECTED_BORDER_COLOR : "transparent"
         }`,
         background: previewMode ? "#9fc3ff" : undefined,
-        ...(onClick != null
-          ? { padding: "2.5px 10px", marginTop: "-5px", cursor: "pointer" }
-          : { padding: "0 10px" }),
       }}
       onClick={onClick}
       preview={element.data?.previewTo != null}

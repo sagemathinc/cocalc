@@ -159,7 +159,8 @@ export default function Code({
     const measure = () => {
       const measured = divRef.current?.getBoundingClientRect()?.height;
       if (!measured) return;
-      const h = Math.max(MIN_HEIGHT, measured / canvasScale + 5);
+      // +15: accounts for 10px padding (border-box) plus 5px margin
+      const h = Math.max(MIN_HEIGHT, measured / canvasScale + 15);
       if (Math.abs(h - lastH) > 2) {
         lastH = h;
         actions.setElement({ obj: { id: element.id, h }, commit: false });
