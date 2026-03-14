@@ -15,7 +15,7 @@ The iframe app can communicate with the CoCalc project via a bridge:
   - The bridge SDK (cocalc-app-bridge.js) provides window.cocalc API
 */
 
-import { Alert, Badge, Button, Empty, List, Modal, Segmented, Spin, Switch, Tooltip } from "antd";
+import { Alert, Badge, Button, Empty, Modal, Segmented, Spin, Switch, Tooltip } from "antd";
 import { join } from "path";
 import { useCallback, useEffect, useRef, useState } from "react";
 
@@ -401,35 +401,101 @@ export default function AppPreview({ name }: EditorComponentProps) {
   );
 }
 
-const MSG_BASE: React.CSSProperties = {
-  borderRadius: 6,
-  padding: "6px 10px",
-  marginBottom: 4,
-  fontFamily: "monospace",
-  fontSize: 12,
-  whiteSpace: "pre-wrap",
-  wordBreak: "break-all",
-  maxHeight: 200,
-  overflow: "auto",
-};
+/** Single row in the bridge messages table — holds its own expanded state. */
+function BridgeMessageRow({ entry, index }: { entry: BridgeLogEntry; index: number }) {
+  const [expanded, setExpanded] = useState(false);
+  const { direction, payload, timestamp, durationMs } = entry;
+  const time = new Date(timestamp).toLocaleTimeString();
+  const isAppToHost = direction === "app→host";
+  const isError = !isAppToHost && payload?.error != null;
 
-// App → Host (request from iframe)
-const APP_TO_HOST_STYLE: React.CSSProperties = {
-  ...MSG_BASE,
-  background: "#e8f4fd",
-};
+  const arrowColor = isAppToHost
+    ? "#1677ff"
+    : isError
+      ? "#ff4d4f"
+      : "#52c41a";
+  const rowBg = isAppToHost
+    ? "#e8f4fd"
+    : isError
+      ? "#fef0ef"
+      : "#f0f9eb";
 
-// Host → App (success response)
-const HOST_TO_APP_STYLE: React.CSSProperties = {
-  ...MSG_BASE,
-  background: "#f0f9eb",
-};
+  const jsonStr = expanded
+    ? JSON.stringify(payload, null, 2)
+    : JSON.stringify(payload);
 
-// Host → App (error response)
-const HOST_TO_APP_ERR_STYLE: React.CSSProperties = {
-  ...MSG_BASE,
-  background: "#fef0ef",
-};
+  return (
+    <tr style={{ background: rowBg, verticalAlign: "top" }}>
+      {/* # + direction arrow */}
+      <td
+        style={{
+          padding: "4px 6px",
+          whiteSpace: "nowrap",
+          fontVariantNumeric: "tabular-nums",
+          color: COLORS.GRAY_M,
+          fontSize: 12,
+        }}
+      >
+        {index + 1}{" "}
+        <span style={{ color: arrowColor, fontWeight: "bold" }}>
+          {isAppToHost ? "→" : "←"}
+        </span>
+      </td>
+      {/* time + duration */}
+      <td
+        style={{
+          padding: "4px 6px",
+          whiteSpace: "nowrap",
+          fontSize: 11,
+          color: COLORS.GRAY_M,
+        }}
+      >
+        {time}
+        {durationMs != null && (
+          <span style={{ marginLeft: 4 }}>({durationMs}ms)</span>
+        )}
+      </td>
+      {/* JSON body with expand toggle */}
+      <td style={{ padding: "4px 6px", width: "100%" }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "flex-start",
+            gap: 4,
+            fontFamily: "monospace",
+            fontSize: 12,
+            wordBreak: "break-all",
+          }}
+        >
+          <span
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              cursor: "pointer",
+              userSelect: "none",
+              flexShrink: 0,
+              color: COLORS.GRAY_M,
+              lineHeight: "18px",
+            }}
+          >
+            <Icon name={expanded ? "caret-down" : "caret-right"} />
+          </span>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              whiteSpace: expanded ? "pre-wrap" : "nowrap",
+              overflow: expanded ? "auto" : "hidden",
+              textOverflow: expanded ? undefined : "ellipsis",
+              maxHeight: expanded ? 400 : undefined,
+            }}
+          >
+            {jsonStr}
+          </div>
+        </div>
+      </td>
+    </tr>
+  );
+}
 
 function BridgeMessagesModal({
   onClose,
@@ -439,10 +505,8 @@ function BridgeMessagesModal({
   messages: BridgeLogEntry[];
 }) {
   const listEndRef = useRef<HTMLDivElement>(null);
-  const siteName = useTypedRedux("customize", "site_name") ?? "CoCalc";
 
   useEffect(() => {
-    // Scroll to bottom after modal opens
     setTimeout(() => listEndRef.current?.scrollIntoView(), 100);
   }, []);
 
@@ -459,51 +523,26 @@ function BridgeMessagesModal({
       width="85vw"
       styles={{ body: { maxHeight: "60vh", overflow: "auto" } }}
     >
-      <List
-        size="small"
-        dataSource={messages}
-        renderItem={(entry, i) => {
-          const { direction, payload, timestamp, durationMs } = entry;
-          const time = new Date(timestamp).toLocaleTimeString();
-          const isAppToHost = direction === "app→host";
-          const isError = !isAppToHost && payload?.error != null;
-          const style = isAppToHost
-            ? APP_TO_HOST_STYLE
-            : isError
-              ? HOST_TO_APP_ERR_STYLE
-              : HOST_TO_APP_STYLE;
-          const label = isAppToHost
-            ? `App → ${siteName}`
-            : `${siteName} → App`;
-          const labelColor = isAppToHost
-            ? "#1677ff"
-            : isError
-              ? "#ff4d4f"
-              : "#52c41a";
-          return (
-            <List.Item
-              style={{ display: "block", padding: "2px 0", border: "none" }}
-            >
-              <div style={style}>
-                <div
-                  style={{
-                    fontSize: 10,
-                    color: COLORS.GRAY_M,
-                    marginBottom: 2,
-                  }}
-                >
-                  #{i + 1} &mdash; {time}
-                  {durationMs != null ? ` (${durationMs}ms)` : ""}
-                </div>
-                <span style={{ fontWeight: "bold", color: labelColor }}>
-                  {label}:
-                </span>{" "}
-                {JSON.stringify(payload, null, 2)}
-              </div>
-            </List.Item>
-          );
+      <table
+        style={{
+          width: "100%",
+          borderCollapse: "separate",
+          borderSpacing: "0 3px",
         }}
-      />
+      >
+        <thead>
+          <tr style={{ fontSize: 11, color: COLORS.GRAY_M, textAlign: "left" }}>
+            <th style={{ padding: "2px 6px", whiteSpace: "nowrap" }}>#</th>
+            <th style={{ padding: "2px 6px", whiteSpace: "nowrap" }}>Time</th>
+            <th style={{ padding: "2px 6px" }}>Payload</th>
+          </tr>
+        </thead>
+        <tbody>
+          {messages.map((entry, i) => (
+            <BridgeMessageRow key={i} entry={entry} index={i} />
+          ))}
+        </tbody>
+      </table>
       <div ref={listEndRef} />
     </Modal>
   );
