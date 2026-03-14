@@ -7,7 +7,7 @@ import { useIntl } from "react-intl";
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { useMemo } from "react";
 import ScrollableList from "@cocalc/frontend/components/scrollable-list";
-import { trunc_middle } from "@cocalc/util/misc";
+import { search_match, search_split, trunc_middle } from "@cocalc/util/misc";
 import type { UserMap } from "../../todo-types";
 import type { CourseActions } from "../actions";
 import type {
@@ -17,7 +17,6 @@ import type {
   StudentsMap,
 } from "../store";
 import * as util from "../util";
-import { StudentHandoutInfoHeader } from "./handout-info-header";
 import { StudentHandoutInfo } from "./handouts-info-panel";
 
 interface StudentListForHandoutProps {
@@ -27,6 +26,7 @@ interface StudentListForHandoutProps {
   students: StudentsMap;
   handout: HandoutRecord;
   actions: CourseActions;
+  search: string;
 }
 
 export function StudentListForHandout({
@@ -36,6 +36,7 @@ export function StudentListForHandout({
   students,
   handout,
   actions,
+  search,
 }: StudentListForHandoutProps) {
   const intl = useIntl();
   const active_student_sort: SortDescription = useRedux(
@@ -44,18 +45,25 @@ export function StudentListForHandout({
   );
   const student_list = useMemo(() => {
     const v0 = util.parse_students(students, user_map, redux, intl);
+    const store = get_store();
 
-    // Remove deleted students
+    // Remove deleted students or students not matching the search
+    const terms = search_split(search);
     const v1: any[] = [];
     for (const x of v0) {
-      if (!x.deleted) {
-        v1.push(x);
+      if (x.deleted) continue;
+      if (
+        terms.length > 0 &&
+        !search_match(store.get_student_name(x.student_id).toLowerCase(), terms)
+      ) {
+        continue;
       }
+      v1.push(x);
     }
     v1.sort(util.pick_student_sorter(active_student_sort.toJS()));
     const student_list: string[] = v1.map((x) => x.student_id);
     return student_list;
-  }, [students, user_map, active_student_sort]);
+  }, [students, user_map, active_student_sort, search]);
 
   function get_store(): CourseStore {
     const store = redux.getStore(name);
@@ -94,7 +102,6 @@ export function StudentListForHandout({
 
   return (
     <div style={{ height: "70vh", display: "flex", flexDirection: "column" }}>
-      <StudentHandoutInfoHeader key="header" title="Student" />
       {render_students()}
     </div>
   );
