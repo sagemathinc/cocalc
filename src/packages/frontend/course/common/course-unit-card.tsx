@@ -129,7 +129,7 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
 
   useEffect(() => {
     setHasFiles(initialHasFiles);
-  }, [unitId]);
+  }, [unitId, initialHasFiles]);
 
   useEffect(() => {
     if (unitDeleted) return;
