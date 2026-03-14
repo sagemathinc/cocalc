@@ -146,8 +146,43 @@ export default function Code({
     resizeRef.current?.();
   }, [resize]);
 
+  // Re-measure height when losing focus, since the unfocused render has
+  // different dimensions (no ControlBar, InputStatic instead of Input, etc.)
+  // Uses ResizeObserver because Output renders asynchronously (returns null
+  // until getJupyterActions resolves), so a single requestAnimationFrame
+  // would measure before output content appears.
+  useEffect(() => {
+    if (focused || readOnly) return;
+    const elt = divRef.current;
+    if (elt == null) return;
+    let lastH = element.h ?? 0;
+    const measure = () => {
+      const measured = divRef.current?.getBoundingClientRect()?.height;
+      if (!measured) return;
+      const h = Math.max(MIN_HEIGHT, measured / canvasScale + 5);
+      if (Math.abs(h - lastH) > 2) {
+        lastH = h;
+        actions.setElement({ obj: { id: element.id, h }, commit: false });
+      }
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(elt);
+    // Stop observing after content has had time to load, to avoid
+    // permanent overhead for every unfocused cell.
+    const timeout = setTimeout(() => observer.disconnect(), 5000);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
+  }, [focused, element.id, canvasScale]);
+
   return (
-    <div style={{ ...getStyle(element), height: "100%" }}>
+    <div style={{
+      ...getStyle(element),
+      ...(focused
+        ? { height: "100%" }
+        : { minHeight: "100%", height: "auto", overflowY: "visible" }),
+    }}>
       <div ref={divRef}>
         {!hideInput && <InputPrompt element={element} />}
         {renderInput()}

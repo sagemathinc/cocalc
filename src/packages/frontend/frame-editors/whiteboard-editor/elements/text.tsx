@@ -52,13 +52,44 @@ export default function Text(props: Props) {
 // This is less specialized to the whiteboard.  E.g., it is
 // more reusable, for speakern notes.
 export function TextEditor(props: Props) {
-  if (
+  const staticRef = useRef<HTMLDivElement>(null);
+  const { actions } = useFrameContext();
+
+  const isStatic =
     (props.readOnly || !props.focused || props.element.locked) &&
-    props.cursors == null
-  ) {
+    props.cursors == null;
+
+  // Re-measure height when switching to static (unfocused) rendering,
+  // since the rendered markdown can have different dimensions than the editor.
+  useEffect(() => {
+    if (!isStatic || !props.resizable) return;
+    const id = requestAnimationFrame(() => {
+      const elt = staticRef.current;
+      if (!elt) return;
+      const h = Math.max(
+        MIN_HEIGHT,
+        elt.getBoundingClientRect()?.height / props.canvasScale +
+          2 * PADDING +
+          5,
+      );
+      if (Math.abs(h - (props.element.h ?? 0)) > 2) {
+        actions.setElement({
+          obj: { id: props.element.id, h },
+          commit: false,
+        });
+      }
+    });
+    return () => cancelAnimationFrame(id);
+  }, [isStatic, props.element.id, props.canvasScale]);
+
+  if (isStatic) {
     // NOTE: not using static whenever possible (e.g., when not focused) results
     // in massive performance problems when there are many notes.
-    return <TextStatic element={props.element} style={props.style} />;
+    return (
+      <div ref={staticRef}>
+        <TextStatic element={props.element} style={props.style} />
+      </div>
+    );
   }
   return <EditText {...props} />;
 }
