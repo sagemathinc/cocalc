@@ -4,6 +4,7 @@
  */
 
 import { Button, Space } from "antd";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { Icon, Tip } from "@cocalc/frontend/components";
@@ -14,22 +15,29 @@ interface PrivateNotesProps {
   title: string;
   tip: string;
   value: string;
-  editing: boolean;
-  onToggle: () => void;
-  onChange: (value: string) => void;
+  onSave: (value: string) => void;
   placeholder: string;
+  persistId: string;
 }
+
+interface PersistedNoteState {
+  editing: boolean;
+  value: string;
+}
+
+const persistedNotes = new Map<string, PersistedNoteState>();
 
 export function PrivateNotes({
   title,
   tip,
   value,
-  editing,
-  onToggle,
-  onChange,
+  onSave,
   placeholder,
+  persistId,
 }: PrivateNotesProps) {
   const intl = useIntl();
+  const [noteValue, setNoteValue] = useState<string>(value);
+  const [editing, setEditing] = useState<boolean>(false);
   const editLabel = intl.formatMessage({
     id: "course.notes.edit_label",
     defaultMessage: "Notes:",
@@ -38,6 +46,39 @@ export function PrivateNotes({
     id: "course.notes.done_label",
     defaultMessage: "Done",
   });
+
+  useEffect(() => {
+    const persisted = persistedNotes.get(persistId);
+    if (persisted != null) {
+      setNoteValue(persisted.value);
+      setEditing(persisted.editing);
+    } else {
+      setNoteValue(value);
+      setEditing(false);
+    }
+  }, [persistId]);
+
+  useEffect(() => {
+    if (editing) return;
+    const persisted = persistedNotes.get(persistId);
+    if (persisted?.editing) return;
+    setNoteValue(value);
+  }, [editing, persistId, value]);
+
+  useEffect(() => {
+    if (editing || noteValue !== value) {
+      persistedNotes.set(persistId, { editing, value: noteValue });
+    } else {
+      persistedNotes.delete(persistId);
+    }
+  }, [editing, noteValue, persistId, value]);
+
+  function toggle() {
+    if (editing) {
+      onSave(noteValue);
+    }
+    setEditing(!editing);
+  }
 
   return (
     <Space
@@ -52,7 +93,7 @@ export function PrivateNotes({
         <Button
           icon={<Icon name="pencil" />}
           type={editing ? "primary" : "default"}
-          onClick={onToggle}
+          onClick={toggle}
         >
           {editing ? doneLabel : editLabel}
         </Button>
@@ -60,15 +101,15 @@ export function PrivateNotes({
       <div style={{ minWidth: 0, width: "100%" }}>
         {editing ? (
           <MultiMarkdownInput
-            value={value}
-            onChange={onChange}
+            value={noteValue}
+            onChange={setNoteValue}
             placeholder={placeholder}
             height="200px"
             minimal
             enableUpload={false}
           />
         ) : (
-          <StaticMarkdown value={value ?? ""} />
+          <StaticMarkdown value={noteValue ?? ""} />
         )}
       </div>
     </Space>

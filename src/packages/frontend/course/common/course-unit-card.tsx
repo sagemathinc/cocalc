@@ -79,12 +79,10 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
   const unitId = assignment
     ? assignment.get("assignment_id")
     : (unit as HandoutRecord).get("handout_id");
-  const noteProp =
+  const noteValue =
     (assignment
       ? assignment.get("note")
       : (unit as HandoutRecord).get("note")) ?? "";
-  const [noteValue, setNoteValue] = useState<string>(noteProp);
-  const [noteEditing, setNoteEditing] = useState<boolean>(false);
   const assignmentId = assignment ? assignment.get("assignment_id") : "";
   const peerEnabled = assignment?.getIn(["peer_grade", "enabled"]);
   const nbgraderEnabled = assignment?.get("nbgrader");
@@ -151,17 +149,6 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
     return () => window.clearInterval(id);
   }, [hasFiles, project_id, unitPath, unitId, unitDeleted]);
 
-  useEffect(() => {
-    setNoteValue(noteProp);
-    setNoteEditing(false);
-  }, [unitId]);
-
-  useEffect(() => {
-    if (!noteEditing) {
-      setNoteValue(noteProp);
-    }
-  }, [noteProp, noteEditing]);
-
   function getStore(): CourseStore {
     const store = redux.getStore(name);
     if (store == null) throw Error("store must be defined");
@@ -173,7 +160,7 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
   let warningNode: ReactNode = null;
   let runAllNode: ReactNode = null;
   let bodyNode: ReactNode = null;
-  let saveNote: () => void;
+  let saveNote: (value: string) => void;
   const noContent = noContentMessages(intl, unitLabel);
 
   function renderNoContentWarning(
@@ -181,14 +168,14 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
   ): ReactNode {
     if (unitDeleted || hasFiles !== false) return null;
     return (
-        <Alert
-          type="warning"
-          showIcon
-          style={{ margin: "15px auto", maxWidth: "800px" }}
-          message={noContent.message}
-          description={noContent.description((chunks) => (
-            <a onClick={onOpenUnitPath}>{chunks}</a>
-          ))}
+      <Alert
+        type="warning"
+        showIcon
+        style={{ margin: "15px auto", maxWidth: "800px" }}
+        message={noContent.message}
+        description={noContent.description((chunks) => (
+          <a onClick={onOpenUnitPath}>{chunks}</a>
+        ))}
       />
     );
   }
@@ -200,15 +187,9 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
         title={title}
         tip={tip}
         value={noteValue}
-        editing={noteEditing}
-        onToggle={() => {
-          if (noteEditing) {
-            saveNote();
-          }
-          setNoteEditing(!noteEditing);
-        }}
-        onChange={(value: string) => setNoteValue(value)}
+        onSave={saveNote}
         placeholder={placeholder}
+        persistId={unitId}
       />
     );
   }
@@ -263,8 +244,8 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
       />
     );
 
-    saveNote = () =>
-      actions.assignments.set_assignment_note(assignmentId, noteValue);
+    saveNote = (value) =>
+      actions.assignments.set_assignment_note(assignmentId, value);
   } else {
     const handout = unit as HandoutRecord;
     const status =
@@ -307,7 +288,7 @@ export function CourseUnitCard(props: CourseUnitCardProps) {
       />
     );
 
-    saveNote = () => actions.handouts.set_handout_note(unitId, noteValue);
+    saveNote = (value) => actions.handouts.set_handout_note(unitId, value);
   }
 
   return (
