@@ -35,22 +35,24 @@ export default function Arrow({
   const tipLength = arrowSize * 0.7;
   const tipWidth = arrowSize * 0.45;
 
+  // Extract layout-safe styles from caller (e.g. Edge passes selection border,
+  // preview background, zIndex). We use outline instead of border so the
+  // selection indicator doesn't shift the rotation pivot.
+  const outerStyle: CSSProperties = {
+    position: "absolute",
+    left: x0,
+    top: y0,
+    width: `${len}px`,
+    transformOrigin: "0 0",
+    transform: `rotate(${theta}rad)`,
+    zIndex: style?.zIndex as any,
+    cursor: onClick ? "pointer" : undefined,
+    outline: style?.border as any,
+    background: style?.background,
+  };
+
   return (
-    <div
-      onClick={onClick}
-      style={{
-        // Only positioning and rotation on the outer div — no padding,
-        // margin, or border, which would shift the rotation pivot.
-        position: "absolute",
-        left: x0,
-        top: y0,
-        width: `${len}px`,
-        transformOrigin: "0 0",
-        transform: `rotate(${theta}rad)`,
-        zIndex: style?.zIndex as any,
-        cursor: onClick ? "pointer" : undefined,
-      }}
-    >
+    <div onClick={onClick} style={outerStyle}>
       {/* Invisible click hit area (wider than the line) */}
       {onClick && (
         <div
