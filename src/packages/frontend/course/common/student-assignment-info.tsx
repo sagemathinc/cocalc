@@ -349,7 +349,8 @@ export function StudentAssignmentInfo({
     const do_open = () => open(type, info.assignment_id, info.student_id);
     const do_copy = () => copy(type, info.assignment_id, info.student_id);
     const do_stop = () => stop(type, info.assignment_id, info.student_id);
-    const placement = step === "Return" ? "left" : "right";
+    // Keep tooltips above the cell controls so they do not cover adjacent buttons.
+    const placement = "top";
     return (
       <CopyStepStatus
         stepLabel={step}
