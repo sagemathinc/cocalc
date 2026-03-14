@@ -92,7 +92,7 @@ export function CopyRunAllAlert({
     return (
       <Space direction="vertical" key="confirm-all">
         {cautionContent}
-        <Space>
+        <Space wrap>
           <Button
             key="all"
             type="primary"

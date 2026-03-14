@@ -233,7 +233,7 @@ export function AssignmentHeader({
         {confirmAllStudents && (
           <Space direction="vertical">
             <div>{msg.confirmAllPrompt(total)}</div>
-            <Space>
+            <Space wrap>
               <Button
                 danger
                 type="primary"
@@ -271,7 +271,7 @@ export function AssignmentHeader({
         {confirmSyncGrades && (
           <Space direction="vertical">
             <div>{msg.syncPrompt}</div>
-            <Space>
+            <Space wrap>
               <Button
                 danger
                 type="primary"
