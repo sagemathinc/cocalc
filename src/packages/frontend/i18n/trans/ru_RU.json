@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "Экспортировать собранные файлы",
   "course.unit_strings.export.label": "Экспорт",
   "course.unit_strings.file_activity.label": "Файловая активность",
+  "course.unit_strings.file_activity.tip": "Экспортировать JSON-файл, содержащий подробную информацию о том, когда студенты открывали или редактировали файлы в этом {unitLabel, select, assignment {assignment} other {handout}}. JSON-файл открывается в новой вкладке; {accessField} (миллисекунды с начала эпохи UNIX) указывают, когда файлы были открыты, а {editField} указывают, когда они были изменены в веб-редакторе CoCalc.",
   "course.unit_strings.file_activity.title": "Экспорт данных активности файла",
   "course.unit_strings.filter_students.placeholder": "Фильтровать студентов...",
   "course.unit_strings.nbgrader_run_all.all_button": "Все {count, plural, one {# студент} other {# студента}}...",

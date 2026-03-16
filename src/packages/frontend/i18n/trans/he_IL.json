@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "ייצוא קבצים שנאספו",
   "course.unit_strings.export.label": "ייצוא",
   "course.unit_strings.file_activity.label": "פעילות קובץ",
+  "course.unit_strings.file_activity.tip": "ייצא קובץ JSON המכיל מידע מפורט על מתי תלמידים פתחו או ערכו קבצים ב-{unitLabel, select, assignment {assignment} other {handout}}. קובץ ה-JSON נפתח בכרטיסיה חדשה; {accessField} (מילישניות מאז תקופת ה-UNIX) מציין מתי קבצים נפתחו, ו-{editField} מציין מתי שונו בעורך האינטרנט של CoCalc.",
   "course.unit_strings.file_activity.title": "ייצוא נתוני פעילות קובץ",
   "course.unit_strings.filter_students.placeholder": "סינון תלמידים...",
   "course.unit_strings.nbgrader_run_all.all_button": "הכל {count, plural, one {# תלמיד} other {# תלמידים}}...",

@@ -29,7 +29,7 @@ import {
 import { ProjectsStore } from "../projects/store";
 import { UserMap } from "../todo-types";
 import { StudentsMap } from "./store";
-import { AssignmentCopyStep } from "./types";
+import { AssignmentCopyStep, CopyStep } from "./types";
 
 // Pure functions used in the course manager
 export function STEPS(peer: boolean): AssignmentCopyStep[] {
@@ -61,9 +61,11 @@ export function previous_step(
   throw Error(`BUG! previous_step('${step}, ${peer}')`);
 }
 
-export function step_direction(step: AssignmentCopyStep): "to" | "from" {
+export function step_direction(step: CopyStep): "to" | "from" {
   switch (step) {
     case "assignment":
+      return "to";
+    case "distribution":
       return "to";
     case "collect":
       return "from";
@@ -78,10 +80,12 @@ export function step_direction(step: AssignmentCopyStep): "to" | "from" {
   }
 }
 
-export function step_verb(step: AssignmentCopyStep) {
+export function step_verb(step: CopyStep) {
   switch (step) {
     case "assignment":
       return "assign";
+    case "distribution":
+      return "distribute";
     case "collect":
       return "collect";
     case "return_graded":
@@ -95,9 +99,11 @@ export function step_verb(step: AssignmentCopyStep) {
   }
 }
 
-export function step_ready(step: AssignmentCopyStep, n) {
+export function step_ready(step: CopyStep, n) {
   switch (step) {
     case "assignment":
+      return "";
+    case "distribution":
       return "";
     case "collect":
       if (n > 1) {

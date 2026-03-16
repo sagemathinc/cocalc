@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "تصدير الملفات المجمعة",
   "course.unit_strings.export.label": "تصدير",
   "course.unit_strings.file_activity.label": "نشاط الملف",
+  "course.unit_strings.file_activity.tip": "تصدير ملف JSON يحتوي على معلومات مفصلة حول متى قام الطلاب بفتح أو تعديل الملفات في هذا {unitLabel, select, assignment {assignment} other {handout}}. يفتح ملف JSON في علامة تبويب جديدة؛ تشير {accessField} (مللي ثانية منذ عصر UNIX) إلى متى تم فتح الملفات، وتشير {editField} إلى متى تم تغييرها في محرر الويب الخاص بـCoCalc.",
   "course.unit_strings.file_activity.title": "تصدير بيانات نشاط الملف",
   "course.unit_strings.filter_students.placeholder": "تصفية الطلاب...",
   "course.unit_strings.nbgrader_run_all.all_button": "الجميع {count, plural, one {# طالب} other {# طلاب}}...",
