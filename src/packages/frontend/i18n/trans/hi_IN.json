@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "फ़ाइल संकलन निर्यात करें",
   "course.unit_strings.export.label": "निर्यात करें",
   "course.unit_strings.file_activity.label": "फ़ाइल गतिविधि",
+  "course.unit_strings.file_activity.tip": "छात्रों द्वारा इस {unitLabel, select, assignment {assignment} other {handout}} में फाइलें कब खोली गईं या संपादित की गईं, इसके बारे में विस्तृत जानकारी युक्त JSON फाइल निर्यात करें। JSON फाइल एक नए टैब में खुलती है; {accessField} (UNIX युग से मिलीसेकंड) दर्शाता है कि फाइलें कब खोली गईं, और {editField} दर्शाता है कि उन्हें CoCalc के वेब एडिटर में कब बदला गया।",
   "course.unit_strings.file_activity.title": "फ़ाइल गतिविधि डेटा निर्यात करें",
   "course.unit_strings.filter_students.placeholder": "छात्रों को फ़िल्टर करें...",
   "course.unit_strings.nbgrader_run_all.all_button": "सभी {count, plural, one {# छात्र} other {# छात्र}}...",

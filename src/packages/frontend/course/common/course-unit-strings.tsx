@@ -68,18 +68,14 @@ export function fileActivityMessages(
     }),
     tip: intl.formatMessage(
       {
-        id:
-          unitLabel === "assignment"
-            ? "course.unit_strings.file_activity.tip.assignment"
-            : "course.unit_strings.file_activity.tip.handout",
+        id: "course.unit_strings.file_activity.tip",
         defaultMessage:
-          unitLabel === "assignment"
-            ? "Export a JSON file containing detailed information about when students have opened or edited files in this assignment. The JSON file opens in a new tab; {accessField} (milliseconds since the UNIX epoch) indicate when files were opened, and {editField} indicate when they were changed in CoCalc's web editor."
-            : "Export a JSON file containing detailed information about when students have opened or edited files in this handout. The JSON file opens in a new tab; {accessField} (milliseconds since the UNIX epoch) indicate when files were opened, and {editField} indicate when they were changed in CoCalc's web editor.",
+          "Export a JSON file containing detailed information about when students have opened or edited files in this {unitLabel, select, assignment {assignment} other {handout}}. The JSON file opens in a new tab; {accessField} (milliseconds since the UNIX epoch) indicate when files were opened, and {editField} indicate when they were changed in CoCalc's web editor.",
         description:
-          "{accessField} and {editField} are literal JSON field names and should not be translated",
+          "{accessField} and {editField} are literal JSON field names and should not be translated. {unitLabel} is 'assignment' or 'handout'.",
       },
       {
+        unitLabel,
         accessField: "access_times",
         editField: "edit_times",
       },

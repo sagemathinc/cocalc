@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "导出已收集文件",
   "course.unit_strings.export.label": "导出",
   "course.unit_strings.file_activity.label": "文件活动",
+  "course.unit_strings.file_activity.tip": "导出一个JSON文件，其中包含有关学生在此{unitLabel, select, assignment {assignment} other {handout}}中何时打开或编辑文件的详细信息。JSON文件将在新标签页中打开；{accessField}（自UNIX纪元以来的毫秒数）指示文件何时被打开，{editField}指示文件何时在CoCalc的网页编辑器中被更改。",
   "course.unit_strings.file_activity.title": "导出文件活动数据",
   "course.unit_strings.filter_students.placeholder": "筛选学生…",
   "course.unit_strings.nbgrader_run_all.all_button": "所有 {count, plural, one {# 名学生} other {# 名学生}}...",

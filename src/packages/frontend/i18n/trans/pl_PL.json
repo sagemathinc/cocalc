@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "Eksportuj Zebrane Pliki",
   "course.unit_strings.export.label": "Eksportuj",
   "course.unit_strings.file_activity.label": "Aktywność pliku",
+  "course.unit_strings.file_activity.tip": "Eksportuj plik JSON zawierający szczegółowe informacje o tym, kiedy studenci otworzyli lub edytowali pliki w tym {unitLabel, select, assignment {zadaniu} other {materiałach}}. Plik JSON otwiera się w nowej karcie; {accessField} (milisekundy od epoki UNIX) wskazują, kiedy pliki zostały otwarte, a {editField} wskazują, kiedy zostały zmienione w edytorze internetowym CoCalc.",
   "course.unit_strings.file_activity.title": "Eksportuj dane aktywności pliku",
   "course.unit_strings.filter_students.placeholder": "Filtruj studentów...",
   "course.unit_strings.nbgrader_run_all.all_button": "Wszyscy {count, plural, one {# student} other {# studenci}}...",

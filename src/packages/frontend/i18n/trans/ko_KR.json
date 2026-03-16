@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "수집된 파일 내보내기",
   "course.unit_strings.export.label": "내보내기",
   "course.unit_strings.file_activity.label": "파일 활동",
+  "course.unit_strings.file_activity.tip": "학생들이 이 {unitLabel, select, assignment {assignment} other {handout}}에서 파일을 열거나 편집한 시점에 대한 세부 정보를 포함하는 JSON 파일을 내보냅니다. JSON 파일은 새 탭에서 열리며, {accessField} (UNIX epoch 이후 밀리초)는 파일이 열렸던 시간을 나타내고, {editField}는 CoCalc의 웹 편집기에서 파일이 변경된 시간을 나타냅니다.",
   "course.unit_strings.file_activity.title": "파일 활동 데이터 내보내기",
   "course.unit_strings.filter_students.placeholder": "학생 필터...",
   "course.unit_strings.nbgrader_run_all.all_button": "모든 {count, plural, one {# 학생} other {# 학생들}}...",

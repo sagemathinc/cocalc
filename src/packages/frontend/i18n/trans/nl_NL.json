@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "Verzamelde bestanden exporteren",
   "course.unit_strings.export.label": "Exporteer",
   "course.unit_strings.file_activity.label": "Bestandsactiviteit",
+  "course.unit_strings.file_activity.tip": "Exporteer een JSON-bestand met gedetailleerde informatie over wanneer studenten bestanden hebben geopend of bewerkt in deze {unitLabel, select, assignment {assignment} other {handout}}. Het JSON-bestand opent in een nieuw tabblad; {accessField} (milliseconden sinds de UNIX-epoch) geven aan wanneer bestanden werden geopend, en {editField} geven aan wanneer ze werden gewijzigd in CoCalc's webeditor.",
   "course.unit_strings.file_activity.title": "Exporteer Bestandsactiviteitsgegevens",
   "course.unit_strings.filter_students.placeholder": "Filter studenten...",
   "course.unit_strings.nbgrader_run_all.all_button": "Alle {count, plural, one {# student} other {# studenten}}...",

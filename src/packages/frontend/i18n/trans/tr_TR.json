@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "Toplanan Dosyaları Dışa Aktar",
   "course.unit_strings.export.label": "Dışa Aktar",
   "course.unit_strings.file_activity.label": "Dosya Etkinliği",
+  "course.unit_strings.file_activity.tip": "Öğrencilerin dosyaları ne zaman açtıkları veya düzenledikleri hakkında ayrıntılı bilgiler içeren bir JSON dosyasını dışa aktarın. JSON dosyası yeni bir sekmede açılır; {accessField} (UNIX epoch'undan bu yana milisaniye) dosyaların ne zaman açıldığını, {editField} ise CoCalc'ın web düzenleyicisinde ne zaman değiştirildiklerini gösterir.",
   "course.unit_strings.file_activity.title": "Dosya Etkinliği Verilerini Dışa Aktar",
   "course.unit_strings.filter_students.placeholder": "Öğrencileri filtrele...",
   "course.unit_strings.nbgrader_run_all.all_button": "Tüm {count, plural, one {# öğrenci} other {# öğrenci}}...",

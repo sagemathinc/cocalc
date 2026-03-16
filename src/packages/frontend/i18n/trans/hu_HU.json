@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "Fájlok exportálása gyűjtve",
   "course.unit_strings.export.label": "Exportálás",
   "course.unit_strings.file_activity.label": "Fájl tevékenység",
+  "course.unit_strings.file_activity.tip": "Exportáljon egy JSON fájlt, amely részletes információkat tartalmaz arról, hogy a diákok mikor nyitották meg vagy szerkesztették a fájlokat ebben a {unitLabel, select, assignment {feladat} other {kiosztás}}. A JSON fájl egy új lapon nyílik meg; {accessField} (ezredmásodperc az UNIX epoch óta) jelzi, mikor nyitották meg a fájlokat, és {editField} jelzi, mikor módosították azokat a CoCalc webes szerkesztőjében.",
   "course.unit_strings.file_activity.title": "Fájltevékenységi adatok exportálása",
   "course.unit_strings.filter_students.placeholder": "Szűrés diákokra...",
   "course.unit_strings.nbgrader_run_all.all_button": "Összes {count, plural, one {# diák} other {# diák}}...",
