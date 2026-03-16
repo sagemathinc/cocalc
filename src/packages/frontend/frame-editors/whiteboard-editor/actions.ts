@@ -51,6 +51,7 @@ import { Position as EdgeCreatePosition } from "./focused-edge-create";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { cloneDeep, debounce, size } from "lodash";
 import runCode from "./elements/code/run";
+import { getJupyterActions } from "./elements/code/actions";
 import {
   getCodeTreeOrder,
   getPreviousCodeTreePredecessor,
@@ -906,6 +907,22 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
     );
     if ("error" in tree) {
       alert_message({ type: "error", message: tree.error });
+      return;
+    }
+    // Abort early if no kernel is configured. run.ts clears outputs
+    // before run_code_cell notices the missing kernel, so without this
+    // check a single Run Tree click would wipe the whole subtree.
+    const jupyterActions = await getJupyterActions({
+      project_id: this.project_id,
+      path: this.path,
+    });
+    const kernel = jupyterActions.store.get("kernel");
+    if (!kernel) {
+      alert_message({
+        type: "error",
+        message:
+          "No kernel selected. Please select a kernel before running the code tree.",
+      });
       return;
     }
     // Refuse to start if any cell in the tree is already executing.

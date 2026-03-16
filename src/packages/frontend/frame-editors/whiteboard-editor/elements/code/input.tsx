@@ -110,7 +110,16 @@ export default function Input({
         complete={complete}
         cursors={fromJS(cursors)}
         onKeyDown={(cm, e) => {
-          if (e.key == "ArrowUp") {
+          // Only intercept unmodified arrow keys for cross-cell navigation.
+          // Shift/Alt/Ctrl+Arrow should be handled by CodeMirror for
+          // selection extension and modifier-specific cursor movement.
+          if (
+            e.key == "ArrowUp" &&
+            !e.shiftKey &&
+            !e.altKey &&
+            !e.ctrlKey &&
+            !e.metaKey
+          ) {
             const cur = cm.getCursor();
             if (cur.line === cm.firstLine() && cur.ch === 0) {
               e.preventDefault();
@@ -118,7 +127,13 @@ export default function Input({
               return;
             }
           }
-          if (e.key == "ArrowDown") {
+          if (
+            e.key == "ArrowDown" &&
+            !e.shiftKey &&
+            !e.altKey &&
+            !e.ctrlKey &&
+            !e.metaKey
+          ) {
             const cur = cm.getCursor();
             const lastLine = cm.lastLine();
             const line = cm.getLine(lastLine);

@@ -39,14 +39,10 @@ function pageComparator(
   if (a == b) return 0;
   const pageRanks = new Map<string, number>();
   sortedPageIds?.forEach((id, i) => pageRanks.set(id, i));
-  const aRank =
-    a == null
-      ? Number.MAX_SAFE_INTEGER
-      : (pageRanks.get(a) ?? Number.MAX_SAFE_INTEGER);
-  const bRank =
-    b == null
-      ? Number.MAX_SAFE_INTEGER
-      : (pageRanks.get(b) ?? Number.MAX_SAFE_INTEGER);
+  // Elements with page == null belong to the default (first) page,
+  // so use rank 0 instead of MAX to match visible page order.
+  const aRank = a == null ? 0 : (pageRanks.get(a) ?? Number.MAX_SAFE_INTEGER);
+  const bRank = b == null ? 0 : (pageRanks.get(b) ?? Number.MAX_SAFE_INTEGER);
   if (aRank != bRank) return aRank - bRank;
   return String(a ?? "").localeCompare(String(b ?? ""));
 }
