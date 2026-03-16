@@ -148,25 +148,19 @@ export function getCodeTreeOrder(
   const err = visitReachable(rootId);
   if (err != null) return err;
 
-  const reachableParents = new Map<string, Set<string>>();
-  for (const id of reachable) {
-    reachableParents.set(id, new Set());
-  }
-  for (const id of reachable) {
-    for (const childId of getDirectCodeChildren(
-      elementsById,
-      id,
-      sortedPageIds,
-    )) {
-      if (reachable.has(childId)) {
-        reachableParents.get(childId)?.add(id);
-      }
-    }
-  }
+  // Validate tree structure using ALL incoming edges (not just from reachable
+  // nodes). This catches cases like A→C, B→C where running from root B would
+  // otherwise miss that C also depends on A outside the subtree.
+  const allParents = getIncomingCodeParents(elementsById);
 
-  for (const [id, parents] of reachableParents) {
+  for (const id of reachable) {
     if (id == rootId) {
-      if (parents.size != 0) {
+      // Root must not have parents within the reachable set (but external
+      // parents are fine — the user explicitly chose this cell as root).
+      const parentsInTree = [...(allParents.get(id) ?? [])].filter((p) =>
+        reachable.has(p),
+      );
+      if (parentsInTree.length != 0) {
         return {
           error:
             "Run Tree requires the reachable code-cell graph to have the selected cell as its unique root.",
@@ -174,10 +168,17 @@ export function getCodeTreeOrder(
       }
       continue;
     }
+    const parents = allParents.get(id) ?? new Set();
     if (parents.size != 1) {
       return {
         error:
           "Run Tree requires every reachable code cell after the root to have exactly one incoming code edge.",
+      };
+    }
+    if (!reachable.has([...parents][0])) {
+      return {
+        error:
+          "Run Tree requires every reachable code cell to receive its incoming edge from within the tree.",
       };
     }
   }

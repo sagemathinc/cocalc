@@ -3,11 +3,12 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Popover } from "antd";
+import { Button, Modal, Popover } from "antd";
 import { useEffect, useState } from "react";
-import { CSS } from "@cocalc/frontend/app-framework";
+import { CSS, useRedux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { KernelSelector } from "@cocalc/frontend/jupyter/select-kernel";
 import { Kernel } from "@cocalc/frontend/jupyter/status";
 import { COLORS } from "@cocalc/util/theme";
 import { useFrameContext } from "../../hooks";
@@ -64,6 +65,10 @@ interface Props {
 
 function KernelPanel({ actions }: Props) {
   const { project_id, path } = useFrameContext();
+  const showKernelSelector: boolean | undefined = useRedux([
+    actions.name,
+    "show_kernel_selector",
+  ]);
   const style: CSS = {
     ...PANEL_STYLE,
     maxWidth: "calc(100vw - 200px)",
@@ -102,6 +107,19 @@ function KernelPanel({ actions }: Props) {
           </Button>
         </Popover>
       </div>
+      <Modal
+        open={!!showKernelSelector}
+        onCancel={() => actions.hide_select_kernel()}
+        footer={null}
+        width={800}
+        title={
+          <>
+            <Icon name="jupyter" /> Select Kernel
+          </>
+        }
+      >
+        <KernelSelector actions={actions} />
+      </Modal>
     </div>
   );
 }

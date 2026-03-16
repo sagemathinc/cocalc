@@ -63,6 +63,17 @@ export default async function run({
     jupyter_actions.clear_outputs([id], false);
     jupyter_actions.set_cell_input(id, input, false);
     jupyter_actions.run_code_cell(id);
+    // If no kernel is configured, run_code_cell immediately sets the cell
+    // to state "done" with a global error but without setting end, exec_count,
+    // or cell-level output. The onChange handler would never detect completion,
+    // so resolve immediately.
+    const kernel = store.get("kernel");
+    if (!kernel) {
+      finished = true;
+      store.removeListener("change", onChange);
+      resolve();
+      return;
+    }
     onChange();
   });
 }

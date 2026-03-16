@@ -748,6 +748,23 @@ export function Kernel({
           {body}
           {renderKernelState()}
         </div>
+        {!read_only &&
+          backend_state === "running" &&
+          kernel_state === "busy" && (
+            <Tooltip
+              title={intl.formatMessage({
+                id: "jupyter.status.interrupt_tooltip",
+                defaultMessage: "Interrupt the running computation",
+              })}
+            >
+              <Button
+                size="small"
+                onClick={() => actions.signal("SIGINT")}
+              >
+                <Icon name="stop" /> Stop
+              </Button>
+            </Tooltip>
+          )}
         {!read_only && backend_state === "running" && (
           <Popconfirm
             title={intl.formatMessage({
@@ -759,7 +776,9 @@ export function Kernel({
             okText={intl.formatMessage(labels.halt)}
             cancelText={intl.formatMessage(labels.cancel)}
           >
-            <Button size="small">Halt</Button>
+            <Button size="small">
+              <Icon name="PoweroffOutlined" /> Halt
+            </Button>
           </Popconfirm>
         )}
         {!read_only && kernel != null && !no_kernel && (
@@ -767,7 +786,7 @@ export function Kernel({
             size="small"
             onClick={() => void actions.confirm_restart()}
           >
-            Restart
+            <Icon name="redo" /> Restart
           </Button>
         )}
       </div>
