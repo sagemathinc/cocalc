@@ -70,6 +70,7 @@ function codeChildrenSet(
   const children = new Set<string>();
   for (const element of Object.values(elementsById)) {
     if (element?.type != "edge") continue;
+    if (element.hide != null) continue;
     if (element.data?.from != fromId) continue;
     const to = element.data?.to;
     if (to == null) continue;
@@ -99,6 +100,7 @@ function getIncomingCodeParents(
   }
   for (const element of Object.values(elementsById)) {
     if (element?.type != "edge") continue;
+    if (element.hide != null) continue;
     const from = element.data?.from;
     const to = element.data?.to;
     if (from == null || to == null) continue;

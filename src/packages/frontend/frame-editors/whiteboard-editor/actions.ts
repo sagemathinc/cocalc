@@ -908,6 +908,21 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       alert_message({ type: "error", message: tree.error });
       return;
     }
+    // Refuse to start if any cell in the tree is already executing.
+    // run.ts clears outputs and overwrites input before run_code_cell
+    // checks cell state, so running into a busy cell would corrupt its
+    // visible input/output.
+    for (const cellId of tree.order) {
+      const el = this.getElement(cellId);
+      if (el?.data?.runState != null && el.data.runState !== "done") {
+        alert_message({
+          type: "error",
+          message:
+            "Cannot run tree: one or more cells are already executing. Wait for them to finish or interrupt them first.",
+        });
+        return;
+      }
+    }
     for (const cellId of tree.order) {
       this.setSelection(frameId, cellId);
       this.revealElementIfCompletelyHidden(cellId, frameId);
