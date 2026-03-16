@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "Esporta file raccolti",
   "course.unit_strings.export.label": "Esporta",
   "course.unit_strings.file_activity.label": "Attività File",
+  "course.unit_strings.file_activity.tip": "Esporta un file JSON contenente informazioni dettagliate su quando gli studenti hanno aperto o modificato file in questo {unitLabel, select, assignment {assignment} other {handout}}. Il file JSON si apre in una nuova scheda; {accessField} (millisecondi dall'epoca UNIX) indicano quando i file sono stati aperti, e {editField} indicano quando sono stati modificati nell'editor web di CoCalc.",
   "course.unit_strings.file_activity.title": "Esporta Dati Attività File",
   "course.unit_strings.filter_students.placeholder": "Filtra studenti...",
   "course.unit_strings.nbgrader_run_all.all_button": "Tutti {count, plural, one {# studente} other {# studenti}}...",

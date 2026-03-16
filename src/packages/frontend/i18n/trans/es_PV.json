@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "Biltutako Fitxategiak Esportatu",
   "course.unit_strings.export.label": "Esportatu",
   "course.unit_strings.file_activity.label": "Fitxategi Jarduera",
+  "course.unit_strings.file_activity.tip": "JSON fitxategi bat esportatu, zeinak ikasleek fitxategiak noiz ireki edo editatu dituzten xehetasunak jasotzen dituen {unitLabel, select, assignment {assignment} other {handout}} honetan. JSON fitxategia fitxa berri batean irekiko da; {accessField} (UNIX epochatik milisegundotan) fitxategiak noiz ireki diren adierazten dute, eta {editField} fitxategiak CoCalc-en web editorean noiz aldatu diren adierazten dute.",
   "course.unit_strings.file_activity.title": "Fitxategi Jarduera Datuak Esportatu",
   "course.unit_strings.filter_students.placeholder": "Ikasleak iragazi...",
   "course.unit_strings.nbgrader_run_all.all_button": "Denak {count, plural, one {# ikasle} other {# ikasle}}...",

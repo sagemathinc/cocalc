@@ -673,6 +673,7 @@
   "course.unit_strings.export_collected.title": "収集したファイルをエクスポート",
   "course.unit_strings.export.label": "エクスポート",
   "course.unit_strings.file_activity.label": "ファイルアクティビティ",
+  "course.unit_strings.file_activity.tip": "学生がこの{unitLabel, select, assignment {課題} other {配布資料}}内のファイルを開いたり編集したりした詳細情報を含むJSONファイルをエクスポートします。JSONファイルは新しいタブで開きます。{accessField}（UNIXエポックからのミリ秒）はファイルが開かれた時を示し、{editField}はCoCalcのウェブエディターで変更された時を示します。",
   "course.unit_strings.file_activity.title": "ファイル活動データをエクスポート",
   "course.unit_strings.filter_students.placeholder": "学生を絞り込む...",
   "course.unit_strings.nbgrader_run_all.all_button": "すべて {count, plural, one {# 人の学生} other {# 人の学生}}...",
