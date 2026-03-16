@@ -168,14 +168,18 @@ export default function Code({
     };
     const observer = new ResizeObserver(measure);
     observer.observe(elt);
-    // Stop observing after content has had time to load, to avoid
-    // permanent overhead for every unfocused cell.
-    const timeout = setTimeout(() => observer.disconnect(), 5000);
+    // Keep observing while the cell is still running (streaming output).
+    // Once idle, stop after 5s to avoid permanent overhead.
+    const isRunning =
+      element.data?.runState != null && element.data?.runState !== "done";
+    const timeout = isRunning
+      ? undefined
+      : setTimeout(() => observer.disconnect(), 5000);
     return () => {
       observer.disconnect();
-      clearTimeout(timeout);
+      if (timeout != null) clearTimeout(timeout);
     };
-  }, [focused, element.id, canvasScale]);
+  }, [focused, element.id, canvasScale, element.data?.runState]);
 
   return (
     <div style={{

@@ -32,31 +32,46 @@ export default async function run({
   const previousEnd = cell?.get("end");
   return new Promise<void>((resolve) => {
     let finished = false;
+    let seenRunning = false;
     function onChange() {
       if (finished) return;
       const cell = store.get("cells").get(id);
       if (cell == null) return;
 
+      const state = cell.get("state");
+      if (state != null && state !== "done") {
+        seenRunning = true;
+      }
+
       set({
         output: cell.get("output")?.toJS(),
-        runState: cell.get("state"),
+        runState: state,
         execCount: cell.get("exec_count"),
         kernel: cell.get("kernel"),
         start: cell.get("start"),
         end: cell.get("end"),
       });
-      const hasExecutionResult =
-        cell.get("exec_count") != null || cell.get("output") != null;
-      if (
-        cell.get("state") == "done" &&
-        cell.get("end") &&
-        cell.get("end") != previousEnd &&
-        hasExecutionResult
-      ) {
-        finished = true;
-        store.removeListener("change", onChange);
-        jupyter_actions.syncdb.save();
-        resolve();
+      if (state == "done") {
+        const hasExecutionResult =
+          cell.get("exec_count") != null || cell.get("output") != null;
+        if (
+          cell.get("end") &&
+          cell.get("end") != previousEnd &&
+          hasExecutionResult
+        ) {
+          // Normal completion: new end timestamp and execution result.
+          finished = true;
+          store.removeListener("change", onChange);
+          jupyter_actions.syncdb.save();
+          resolve();
+        } else if (seenRunning) {
+          // Forced completion: cell was executing but returned to "done"
+          // without a new end timestamp (e.g., sync_exec_state force-finished
+          // after a kernel crash or backend failure).
+          finished = true;
+          store.removeListener("change", onChange);
+          resolve();
+        }
       }
     }
     store.on("change", onChange);
