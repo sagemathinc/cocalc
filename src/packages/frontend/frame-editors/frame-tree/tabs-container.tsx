@@ -25,7 +25,7 @@ import { FRAME_TAB_BAR_STYLE, buildSwitchToFileItems } from "./style";
 import type { Rendered } from "@cocalc/frontend/app-framework";
 import type { FrameDragData } from "./dnd/frame-dnd-provider";
 import { FrameDndZoneContext } from "./dnd/frame-dnd-provider";
-import { has_id } from "./tree-ops";
+import { has_id, get_some_leaf_id } from "./tree-ops";
 
 /** Context telling child frames they are inside a tab container. */
 export const TabContainerContext = React.createContext<{
@@ -214,9 +214,15 @@ export function TabsContainer({
         actions.set_frame_tree({ id: tabsId, activeTab: idx });
         const child = children?.get(idx);
         if (child) {
-          const childId = child.get("id");
-          if (childId) {
-            actions.set_active_id(childId, true);
+          // set_active_id only accepts leaf IDs, so when the tab child
+          // is a split node we must resolve to a leaf inside it.
+          const childType = child.get("type");
+          const focusId =
+            childType === "node" || childType === "tabs"
+              ? get_some_leaf_id(child)
+              : child.get("id");
+          if (focusId) {
+            actions.set_active_id(focusId, true);
           }
         }
       }
@@ -242,8 +248,19 @@ export function TabsContainer({
         const spec = editor_spec?.[type];
         const rawLabel = spec?.short ?? spec?.name ?? type;
         const childPath: string | undefined = child.get("path");
-        const label = childPath
-          ? path_split(childPath).tail || type
+        // cm (code editor) frames always show their filename — either
+        // their stored path or the main editor's path.  This ensures
+        // the main LaTeX file gets a filename tab, not just "Source".
+        // Non-cm frames (chat, terminal, etc.) only show a filename
+        // when they reference a DIFFERENT file than the main editor.
+        const showPath =
+          type === "cm"
+            ? childPath || actions.path
+            : childPath && childPath !== actions.path
+              ? childPath
+              : undefined;
+        const label = showPath
+          ? path_split(showPath).tail || type
           : type === "node"
             ? "Split"
             : isIntlMessage(rawLabel)
@@ -268,7 +285,7 @@ export function TabsContainer({
         };
       })
       .toArray();
-  }, [children, editor_spec, tabsId, childIds]);
+  }, [children, editor_spec, tabsId, childIds, actions.path]);
 
   // Build the "add tab" dropdown menu: files first, then frame types
   const addTabMenu = useMemo((): MenuProps => {

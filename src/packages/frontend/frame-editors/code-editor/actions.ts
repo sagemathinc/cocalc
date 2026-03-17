@@ -642,6 +642,8 @@ export class Actions<
       frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
       frame_tree = tree_ops.migrateToNary(frame_tree);
       frame_tree = tree_ops.collapse_trivial(frame_tree);
+      frame_tree = tree_ops.flatten_tabs(frame_tree);
+      frame_tree = tree_ops.collapse_trivial(frame_tree);
       try {
         tree_ops.get_some_leaf_id(frame_tree);
       } catch {
@@ -820,6 +822,8 @@ export class Actions<
     frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
     frame_tree = tree_ops.migrateToNary(frame_tree);
     frame_tree = tree_ops.collapse_trivial(frame_tree);
+    frame_tree = tree_ops.flatten_tabs(frame_tree);
+    frame_tree = tree_ops.collapse_trivial(frame_tree);
     return frame_tree;
   }
 
@@ -908,7 +912,9 @@ export class Actions<
     position: tree_ops.DropPosition,
   ): void {
     this._tree_op("move_node", sourceId, targetId, position);
-    // Normalize: collapse single-child nodes left by the move
+    // Normalize: flatten any non-leaf children inside tabs (e.g. when
+    // dragging a split frame onto a tab bar), then collapse leftovers.
+    this._tree_op("flatten_tabs");
     this._tree_op("collapse_trivial");
     // Validate full_id
     const tree = this._get_tree();
@@ -1120,6 +1126,10 @@ export class Actions<
     }
     const before = this._get_leaf_ids();
     this._tree_op("split_leaf", id, direction, type, extra, first);
+    // If the split happened inside a tabs container, flatten the resulting
+    // node back into individual tabs instead of a split-inside-tab.
+    this._tree_op("flatten_tabs");
+    this._tree_op("collapse_trivial");
     const after = this._get_leaf_ids();
     for (const new_id in after) {
       if (!before[new_id]) {
