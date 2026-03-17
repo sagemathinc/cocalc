@@ -34,8 +34,9 @@ export default function CodeControlBar({ element }: Props) {
         background: "white",
         boxShadow: "1px 3px 5px rgb(33 33 33 / 50%)",
         position: "absolute",
-        top: "-28px",
-        right: 0,
+        top: "-26px",
+        left: "100%",
+        transform: "translateX(-60px)",
         zIndex: 10,
         whiteSpace: "nowrap",
         display: "flex",
@@ -48,6 +49,7 @@ export default function CodeControlBar({ element }: Props) {
         <Tooltip title="Interrupt running computation">
           <Button
             size="small"
+            style={{ fontSize: "11px", padding: "0 5px" }}
             onClick={async () => {
               const jupyter_actions = await getJupyterActions({
                 project_id,
@@ -71,6 +73,7 @@ export default function CodeControlBar({ element }: Props) {
         <Button
           disabled={element.data?.runState == "busy"}
           size="small"
+          style={{ fontSize: "11px", padding: "0 5px" }}
           onClick={() => {
             void actions.runCodeElement({ id: element.id });
           }}
@@ -82,6 +85,7 @@ export default function CodeControlBar({ element }: Props) {
         <Button
           disabled={element.data?.runState == "busy"}
           size="small"
+          style={{ fontSize: "11px", padding: "0 5px" }}
           onClick={() => {
             void actions.runCodeTree(id, element.id);
           }}

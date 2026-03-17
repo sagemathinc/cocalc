@@ -166,6 +166,10 @@ export default function Code({
         actions.setElement({ obj: { id: element.id, h }, commit: false });
       }
     };
+    // Measure synchronously on the first frame after unfocus so edge
+    // endpoints (which depend on element.h) update immediately rather
+    // than waiting for the async ResizeObserver callback.
+    requestAnimationFrame(measure);
     if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
     observer.observe(elt);
