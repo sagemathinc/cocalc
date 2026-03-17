@@ -33,6 +33,7 @@ export default async function run({
   return new Promise<void>((resolve) => {
     let finished = false;
     let seenRunning = false;
+    let seenBackendLaunching = false;
     function onChange() {
       if (finished) return;
       const cell = store.get("cells").get(id);
@@ -41,6 +42,15 @@ export default async function run({
       const state = cell.get("state");
       if (state != null && state !== "done") {
         seenRunning = true;
+      }
+
+      const backendState = store.get("backend_state");
+      if (
+        backendState === "spawning" ||
+        backendState === "starting" ||
+        backendState === "running"
+      ) {
+        seenBackendLaunching = true;
       }
 
       set({
@@ -72,11 +82,12 @@ export default async function run({
           store.removeListener("change", onChange);
           resolve();
         }
-      } else if (seenRunning) {
-        // If the cell entered a non-done state (e.g., "start") but the
-        // backend has stopped (quota/startup failure), the cell will never
-        // reach "done". Resolve so runCodeTree doesn't hang.
-        const backendState = store.get("backend_state");
+      } else if (seenRunning && seenBackendLaunching) {
+        // The backend was spawning/starting/running but has now reverted
+        // to init/ready (quota failure, kernel crash during startup, etc.).
+        // The cell is stuck in a non-done state and will never complete.
+        // Only trigger this after seeing the backend actually launch, to
+        // avoid false positives during normal startup from "ready" state.
         if (backendState === "init" || backendState === "ready") {
           finished = true;
           store.removeListener("change", onChange);
