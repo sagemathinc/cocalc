@@ -30,7 +30,6 @@ import InputStatic from "./input-static";
 import Output from "./output";
 import getStyle from "./style";
 
-const EXTRA_HEIGHT = 30;
 const MIN_HEIGHT = 78;
 
 interface Props {
@@ -86,35 +85,57 @@ export default function Code({
     }
     return <InputStatic element={element} mode={mode} />;
   };
+  const outerRef = useRef<HTMLDivElement>(null);
   const divRef = useRef<any>(null);
   const getValueRef = useRef<any>(null);
-  // Save the unfocused height so we can restore it on blur.
-  // The focused resize handler uses commit:false so it doesn't
-  // persist to the syncdb; on blur cleanup we restore the saved
-  // height with commit:true so edges see the correct value.
-  const preFocusHeightRef = useRef<number>(element.h ?? MIN_HEIGHT);
   const resize = useResizeObserver({
     ref: readOnly || !focused ? undefined : divRef,
   });
   const resizeRef = useRef<Function | null>(null);
+
+  function getOuterChromeHeight(): number {
+    const elt = outerRef.current;
+    if (elt == null) return 0;
+    const style = getComputedStyle(elt);
+    const toNumber = (value: string): number => Number.parseFloat(value) || 0;
+    return (
+      toNumber(style.paddingTop) +
+      toNumber(style.paddingBottom) +
+      toNumber(style.borderTopWidth) +
+      toNumber(style.borderBottomWidth)
+    );
+  }
+
+  function measureFocusedHeight(): number | undefined {
+    const elt = divRef.current;
+    if (elt == null) return;
+    return Math.max(
+      MIN_HEIGHT,
+      elt.getBoundingClientRect().height / canvasScale + getOuterChromeHeight(),
+    );
+  }
+
+  function measureUnfocusedHeight(): number | undefined {
+    const elt = outerRef.current;
+    if (elt == null) return;
+    return Math.max(
+      MIN_HEIGHT,
+      elt.getBoundingClientRect().height / canvasScale,
+    );
+  }
+
   useEffect(() => {
     if (readOnly || !focused) {
       resizeRef.current = null;
       return;
     }
-    // Capture the current (unfocused) height before growing it.
-    preFocusHeightRef.current = element.h ?? MIN_HEIGHT;
 
     const shrinkElement = debounce(() => {
       if (actions.in_undo_mode() && element.str == getValueRef.current?.()) {
         return;
       }
-      const elt = divRef.current;
-      if (elt == null) return;
-      const h = Math.max(
-        MIN_HEIGHT,
-        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT,
-      );
+      const h = measureFocusedHeight();
+      if (h == null) return;
       actions.setElement({
         obj: { id: element.id, h },
         commit: false,
@@ -125,12 +146,8 @@ export default function Code({
       if (actions.in_undo_mode() && element.str == getValueRef?.current?.()) {
         return;
       }
-      const elt = divRef.current;
-      if (elt == null) return;
-      const newHeight = Math.max(
-        MIN_HEIGHT,
-        elt.getBoundingClientRect()?.height / canvasScale + EXTRA_HEIGHT,
-      );
+      const newHeight = measureFocusedHeight();
+      if (newHeight == null) return;
       if (newHeight > element.h) {
         shrinkElement.cancel();
         actions.setElement({
@@ -146,12 +163,6 @@ export default function Code({
 
     return () => {
       shrinkElement.cancel();
-      // On blur: immediately restore the pre-focus height so edge
-      // endpoints recalculate with the correct bounding box.
-      actions.setElement({
-        obj: { id: element.id, h: preFocusHeightRef.current },
-        commit: true,
-      });
     };
   }, [element.id, canvasScale, editFocus, readOnly, focused]);
 
@@ -163,14 +174,13 @@ export default function Code({
   // different dimensions (no ControlBar, InputStatic instead of Input, etc.)
   useEffect(() => {
     if (focused || readOnly) return;
-    const elt = divRef.current;
+    const elt = outerRef.current;
     if (elt == null) return;
     if (typeof ResizeObserver === "undefined") return;
     let lastH = element.h ?? 0;
     const measure = () => {
-      const measured = divRef.current?.getBoundingClientRect()?.height;
-      if (!measured) return;
-      const h = Math.max(MIN_HEIGHT, measured / canvasScale + 15);
+      const h = measureUnfocusedHeight();
+      if (h == null) return;
       if (Math.abs(h - lastH) > 2) {
         lastH = h;
         actions.setElement({ obj: { id: element.id, h }, commit: true });
@@ -178,6 +188,7 @@ export default function Code({
     };
     const observer = new ResizeObserver(measure);
     observer.observe(elt);
+    measure();
     const isRunning =
       element.data?.runState != null && element.data?.runState !== "done";
     const timeout = isRunning
@@ -190,12 +201,15 @@ export default function Code({
   }, [focused, element.id, canvasScale, element.data?.runState]);
 
   return (
-    <div style={{
-      ...getStyle(element),
-      ...(focused
-        ? { height: "100%" }
-        : { minHeight: "100%", height: "auto", overflowY: "visible" }),
-    }}>
+    <div
+      ref={outerRef}
+      style={{
+        ...getStyle(element),
+        ...(focused
+          ? { height: "100%" }
+          : { minHeight: "100%", height: "auto", overflowY: "visible" }),
+      }}
+    >
       <div ref={divRef}>
         {!hideInput && <InputPrompt element={element} />}
         {renderInput()}
