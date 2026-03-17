@@ -59,19 +59,47 @@ function compareCodeCells(
   return a.id.localeCompare(b.id);
 }
 
-function codeChildrenSet(
+// Returns the set of visible elements directly reachable via edges from fromId.
+function directEdgeTargets(
   elementsById: ElementsById,
   fromId: string,
 ): Set<string> {
-  const children = new Set<string>();
+  const targets = new Set<string>();
   for (const element of Object.values(elementsById)) {
     if (element?.type != "edge") continue;
     if (element.hide != null) continue;
     if (element.data?.from != fromId) continue;
     const to = element.data?.to;
     if (to == null) continue;
-    if (!isVisibleCodeCell(elementsById[to])) continue;
-    children.add(to);
+    const toElt = elementsById[to];
+    if (toElt == null || toElt.hide != null) continue;
+    targets.add(to);
+  }
+  return targets;
+}
+
+// Returns the set of code cells reachable from fromId, traversing
+// transparently through non-code nodes (e.g., sticky notes).
+// This allows chains like jupyter → sticky → jupyter to work.
+function codeChildrenSet(
+  elementsById: ElementsById,
+  fromId: string,
+): Set<string> {
+  const children = new Set<string>();
+  const visited = new Set<string>();
+  const queue = [fromId];
+  while (queue.length > 0) {
+    const current = queue.pop()!;
+    for (const targetId of directEdgeTargets(elementsById, current)) {
+      if (visited.has(targetId)) continue;
+      visited.add(targetId);
+      if (isVisibleCodeCell(elementsById[targetId])) {
+        children.add(targetId);
+      } else {
+        // Non-code node: traverse through it to find code cells beyond.
+        queue.push(targetId);
+      }
+    }
   }
   return children;
 }
@@ -86,6 +114,8 @@ export function getDirectCodeChildren(
   );
 }
 
+// Build a map from each code cell to the set of code cells that can
+// reach it (possibly through transparent non-code nodes).
 function getIncomingCodeParents(
   elementsById: ElementsById,
 ): Map<string, Set<string>> {
@@ -94,19 +124,13 @@ function getIncomingCodeParents(
     if (!isVisibleCodeCell(element)) continue;
     parents.set(element.id, new Set());
   }
+  // For each code cell, find which code cells it can reach via
+  // codeChildrenSet (which traverses through non-code nodes).
   for (const element of Object.values(elementsById)) {
-    if (element?.type != "edge") continue;
-    if (element.hide != null) continue;
-    const from = element.data?.from;
-    const to = element.data?.to;
-    if (from == null || to == null) continue;
-    if (
-      !isVisibleCodeCell(elementsById[from]) ||
-      !isVisibleCodeCell(elementsById[to])
-    ) {
-      continue;
+    if (!isVisibleCodeCell(element)) continue;
+    for (const childId of codeChildrenSet(elementsById, element.id)) {
+      parents.get(childId)?.add(element.id);
     }
-    parents.get(to)?.add(from);
   }
   return parents;
 }

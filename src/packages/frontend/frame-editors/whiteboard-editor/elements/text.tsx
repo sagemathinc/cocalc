@@ -65,26 +65,40 @@ export function TextEditor(props: Props) {
 
   // Re-measure height when switching to static (unfocused) rendering,
   // since the rendered markdown can have different dimensions than the editor.
+  // Uses ResizeObserver (like code cells) for reliable measurement after
+  // async content settles, with commit:true for fast edge endpoint updates.
   useEffect(() => {
     if (!isStatic || !props.resizable) return;
-    const id = requestAnimationFrame(() => {
-      const elt = staticRef.current;
-      if (!elt) return;
+    const elt = staticRef.current;
+    if (!elt) return;
+    if (typeof ResizeObserver === "undefined") return;
+    let lastH = props.element.h ?? 0;
+    const measure = () => {
+      const el = staticRef.current;
+      if (!el) return;
       const h = Math.max(
         MIN_HEIGHT,
-        elt.getBoundingClientRect()?.height / props.canvasScale +
+        el.getBoundingClientRect()?.height / props.canvasScale +
           2 * PADDING +
           5 +
           heightOffset,
       );
-      if (Math.abs(h - (props.element.h ?? 0)) > 2) {
+      if (Math.abs(h - lastH) > 2) {
+        lastH = h;
         actions.setElement({
           obj: { id: props.element.id, h },
-          commit: false,
+          commit: true,
         });
       }
-    });
-    return () => cancelAnimationFrame(id);
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(elt);
+    measure();
+    const timeout = setTimeout(() => observer.disconnect(), 5000);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
   }, [isStatic, props.element.id, props.canvasScale, heightOffset]);
 
   if (isStatic) {
@@ -170,6 +184,7 @@ function EditText({
 
   // Automatic resizing:
   const divRef = useRef<HTMLDivElement>(null as any);
+  const preEditHeightRef = useRef<number>(element.h ?? MIN_HEIGHT);
   const resize = useResizeObserver({
     // only listen if editable -- otherwise we might create tons of these, which is wasteful
     ref: readOnly || !editFocus ? undefined : divRef,
@@ -180,6 +195,8 @@ function EditText({
       resizeRef.current = null;
       return;
     }
+    // Save the current (unfocused) height before the editor grows it.
+    preEditHeightRef.current = element.h ?? MIN_HEIGHT;
     resizeRef.current = () => {
       // NOTE: we test that element.str == getValueRef.current?.() in order to tell
       // if you were just in undo mode, but then typed something new in the editor, which
@@ -208,6 +225,17 @@ function EditText({
         actions.setElement({
           obj: { id: element.id, h: height },
           commit: false,
+        });
+      }
+    };
+
+    return () => {
+      // On blur: restore the pre-edit height so edge endpoints
+      // recalculate with the correct unfocused bounding box.
+      if (resizable) {
+        actions.setElement({
+          obj: { id: element.id, h: preEditHeightRef.current },
+          commit: true,
         });
       }
     };
