@@ -36,8 +36,10 @@ export default function Text(props: Props) {
             !props.focused || mode == "markdown" ? "hidden" : undefined,
         },
         modeSwitchStyle: {
-          top: "-82px",
-          left: "-18px",
+          position: "absolute",
+          top: "-28px",
+          right: 0,
+          zIndex: 10,
         },
         placeholder: props.element.data?.placeholder ?? PLACEHOLDER,
         noVfill: true,

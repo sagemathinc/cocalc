@@ -294,7 +294,7 @@ export default function Focused({
           style={{
             position: "absolute",
             bottom: `-${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
-            left: `${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
+            left: 0,
             transform: `scale(${1 / canvasScale})`,
             transformOrigin: "top left",
             pointerEvents: "all",

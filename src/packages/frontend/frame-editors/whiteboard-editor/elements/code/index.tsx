@@ -89,7 +89,7 @@ export default function Code({
   const divRef = useRef<any>(null);
   const getValueRef = useRef<any>(null);
   const resize = useResizeObserver({
-    ref: readOnly || !focused ? undefined : divRef, // only listen if necessary!
+    ref: readOnly || !focused ? undefined : divRef,
   });
   const resizeRef = useRef<Function | null>(null);
   useEffect(() => {
@@ -98,7 +98,6 @@ export default function Code({
       return;
     }
     const shrinkElement = debounce(() => {
-      // for why "element.str == getValueRef.current?.()" see comment in ../text.tsx
       if (actions.in_undo_mode() && element.str == getValueRef.current?.()) {
         return;
       }
@@ -148,33 +147,23 @@ export default function Code({
 
   // Re-measure height when losing focus, since the unfocused render has
   // different dimensions (no ControlBar, InputStatic instead of Input, etc.)
-  // Uses ResizeObserver because Output renders asynchronously (returns null
-  // until getJupyterActions resolves), so a single requestAnimationFrame
-  // would measure before output content appears.
   useEffect(() => {
     if (focused || readOnly) return;
     const elt = divRef.current;
     if (elt == null) return;
+    if (typeof ResizeObserver === "undefined") return;
     let lastH = element.h ?? 0;
     const measure = () => {
       const measured = divRef.current?.getBoundingClientRect()?.height;
       if (!measured) return;
-      // +15: accounts for 10px padding (border-box) plus 5px margin
       const h = Math.max(MIN_HEIGHT, measured / canvasScale + 15);
       if (Math.abs(h - lastH) > 2) {
         lastH = h;
-        actions.setElement({ obj: { id: element.id, h }, commit: false });
+        actions.setElement({ obj: { id: element.id, h }, commit: true });
       }
     };
-    // Measure synchronously on the first frame after unfocus so edge
-    // endpoints (which depend on element.h) update immediately rather
-    // than waiting for the async ResizeObserver callback.
-    requestAnimationFrame(measure);
-    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
     observer.observe(elt);
-    // Keep observing while the cell is still running (streaming output).
-    // Once idle, stop after 5s to avoid permanent overhead.
     const isRunning =
       element.data?.runState != null && element.data?.runState !== "done";
     const timeout = isRunning
