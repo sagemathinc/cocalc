@@ -638,12 +638,7 @@ export class Actions<
     if (frame_tree == null) {
       frame_tree = this._default_frame_tree();
     } else {
-      frame_tree = tree_ops.assign_ids(frame_tree);
-      frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
-      frame_tree = tree_ops.migrateToNary(frame_tree);
-      frame_tree = tree_ops.collapse_trivial(frame_tree);
-      frame_tree = tree_ops.flatten_tabs(frame_tree);
-      frame_tree = tree_ops.collapse_trivial(frame_tree);
+      frame_tree = tree_ops.normalize(frame_tree);
       try {
         tree_ops.get_some_leaf_id(frame_tree);
       } catch {
@@ -817,14 +812,7 @@ export class Actions<
 
   // Process a raw frame tree: convert to immutable, assign IDs, ensure uniqueness
   private _process_frame_tree(rawTree: FrameTree): Map<string, any> {
-    let frame_tree = fromJS(rawTree) as Map<string, any>;
-    frame_tree = tree_ops.assign_ids(frame_tree);
-    frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
-    frame_tree = tree_ops.migrateToNary(frame_tree);
-    frame_tree = tree_ops.collapse_trivial(frame_tree);
-    frame_tree = tree_ops.flatten_tabs(frame_tree);
-    frame_tree = tree_ops.collapse_trivial(frame_tree);
-    return frame_tree;
+    return tree_ops.normalize(fromJS(rawTree) as Map<string, any>);
   }
 
   _default_frame_tree(): Map<string, any> {
@@ -3011,6 +2999,7 @@ export class Actions<
       if (node.get("path") == path) return id; // already done;
       // Change it --
       await this.setFrameToCodeEditor({ id, path });
+      this.set_active_id(id);
       return id;
     }
 
@@ -3030,7 +3019,11 @@ export class Actions<
     }
     if (node.get("path") == path) return id; // already done.
 
-    this.setFrameToCodeEditor({ id, path });
+    await this.setFrameToCodeEditor({ id, path });
+    // Re-focus after await: the initial set_active_id (from
+    // show_focused_frame_of_type) may have been overridden by click
+    // event bubbling to the parent frame container.
+    this.set_active_id(id);
     return id;
   }
 

@@ -1155,3 +1155,19 @@ export function flatten_tabs(tree: ImmutableFrameTree): ImmutableFrameTree {
 
   return tree.set("children", List(newChildren)).set("activeTab", newActiveTab);
 }
+
+/**
+ * Run the full normalization pipeline on a frame tree:
+ * assign IDs, deduplicate, migrate binary→N-ary, collapse
+ * single-child nodes, flatten non-leaf tab children, and
+ * collapse again in case flattening left single-child containers.
+ */
+export function normalize(tree: ImmutableFrameTree): ImmutableFrameTree {
+  tree = assign_ids(tree);
+  tree = ensure_ids_are_unique(tree);
+  tree = migrateToNary(tree);
+  tree = collapse_trivial(tree);
+  tree = flatten_tabs(tree);
+  tree = collapse_trivial(tree);
+  return tree;
+}
