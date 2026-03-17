@@ -944,6 +944,15 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       this.setSelection(frameId, cellId);
       this.revealElementIfCompletelyHidden(cellId, frameId);
       await this.runCodeElement({ id: cellId });
+      // Stop on error, matching standard Jupyter "halt on error" behavior.
+      const output = this.getElement(cellId)?.data?.output;
+      if (output != null) {
+        for (const key of Object.keys(output)) {
+          if (output[key]?.traceback != null) {
+            return tree.order;
+          }
+        }
+      }
     }
     return tree.order;
   }
