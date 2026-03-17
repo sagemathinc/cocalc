@@ -65,19 +65,21 @@ export default function Arrow({
           }}
         />
       )}
-      {/* The actual line */}
+      {/* The actual line — shortened by tipLength so it doesn't poke
+          past the arrowhead tip */}
       <div
         style={{
           position: "relative",
           borderTop: `${Math.max(thickness, 1)}px ${preview ? "dashed" : "solid"} ${color}`,
+          marginRight: `${tipLength}px`,
           opacity,
         }}
       >
-        {/* Sharp SVG arrowhead */}
+        {/* Sharp SVG arrowhead positioned at the end of the line */}
         <svg
           style={{
             position: "absolute",
-            right: 0,
+            right: `-${tipLength}px`,
             top: `-${tipWidth / 2}px`,
           }}
           width={tipLength}

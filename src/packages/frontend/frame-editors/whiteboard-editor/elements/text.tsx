@@ -37,7 +37,7 @@ export default function Text(props: Props) {
         },
         modeSwitchStyle: {
           position: "absolute",
-          top: "-28px",
+          top: "-40px",
           right: 0,
           zIndex: 10,
         },

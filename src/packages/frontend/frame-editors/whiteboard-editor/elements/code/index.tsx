@@ -88,6 +88,11 @@ export default function Code({
   };
   const divRef = useRef<any>(null);
   const getValueRef = useRef<any>(null);
+  // Save the unfocused height so we can restore it on blur.
+  // The focused resize handler uses commit:false so it doesn't
+  // persist to the syncdb; on blur cleanup we restore the saved
+  // height with commit:true so edges see the correct value.
+  const preFocusHeightRef = useRef<number>(element.h ?? MIN_HEIGHT);
   const resize = useResizeObserver({
     ref: readOnly || !focused ? undefined : divRef,
   });
@@ -97,6 +102,9 @@ export default function Code({
       resizeRef.current = null;
       return;
     }
+    // Capture the current (unfocused) height before growing it.
+    preFocusHeightRef.current = element.h ?? MIN_HEIGHT;
+
     const shrinkElement = debounce(() => {
       if (actions.in_undo_mode() && element.str == getValueRef.current?.()) {
         return;
@@ -138,8 +146,14 @@ export default function Code({
 
     return () => {
       shrinkElement.cancel();
+      // On blur: immediately restore the pre-focus height so edge
+      // endpoints recalculate with the correct bounding box.
+      actions.setElement({
+        obj: { id: element.id, h: preFocusHeightRef.current },
+        commit: true,
+      });
     };
-  }, [element.id, canvasScale, editFocus, readOnly]);
+  }, [element.id, canvasScale, editFocus, readOnly, focused]);
 
   useEffect(() => {
     resizeRef.current?.();
