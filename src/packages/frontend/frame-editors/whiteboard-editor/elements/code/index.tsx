@@ -166,6 +166,7 @@ export default function Code({
         actions.setElement({ obj: { id: element.id, h }, commit: false });
       }
     };
+    if (typeof ResizeObserver === "undefined") return;
     const observer = new ResizeObserver(measure);
     observer.observe(elt);
     // Keep observing while the cell is still running (streaming output).

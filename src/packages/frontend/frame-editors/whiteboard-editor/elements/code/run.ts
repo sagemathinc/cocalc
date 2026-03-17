@@ -72,6 +72,16 @@ export default async function run({
           store.removeListener("change", onChange);
           resolve();
         }
+      } else if (seenRunning) {
+        // If the cell entered a non-done state (e.g., "start") but the
+        // backend has stopped (quota/startup failure), the cell will never
+        // reach "done". Resolve so runCodeTree doesn't hang.
+        const backendState = store.get("backend_state");
+        if (backendState === "init" || backendState === "ready") {
+          finished = true;
+          store.removeListener("change", onChange);
+          resolve();
+        }
       }
     }
     store.on("change", onChange);
