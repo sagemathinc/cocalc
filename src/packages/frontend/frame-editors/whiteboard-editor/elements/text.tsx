@@ -21,6 +21,7 @@ interface Props {
   markdownProps?: object;
   resizable?: boolean;
   style?: CSSProperties;
+  heightOffset?: number;
 }
 
 export default function Text(props: Props) {
@@ -37,7 +38,7 @@ export default function Text(props: Props) {
         },
         modeSwitchStyle: {
           position: "absolute",
-          top: "-40px",
+          top: "-50px",
           right: 0,
           zIndex: 10,
         },
@@ -56,6 +57,7 @@ export default function Text(props: Props) {
 export function TextEditor(props: Props) {
   const staticRef = useRef<HTMLDivElement>(null);
   const { actions } = useFrameContext();
+  const heightOffset = props.heightOffset ?? 0;
 
   const isStatic =
     (props.readOnly || !props.focused || props.element.locked) &&
@@ -72,7 +74,8 @@ export function TextEditor(props: Props) {
         MIN_HEIGHT,
         elt.getBoundingClientRect()?.height / props.canvasScale +
           2 * PADDING +
-          5,
+          5 +
+          heightOffset,
       );
       if (Math.abs(h - (props.element.h ?? 0)) > 2) {
         actions.setElement({
@@ -82,7 +85,7 @@ export function TextEditor(props: Props) {
       }
     });
     return () => cancelAnimationFrame(id);
-  }, [isStatic, props.element.id, props.canvasScale]);
+  }, [isStatic, props.element.id, props.canvasScale, heightOffset]);
 
   if (isStatic) {
     // NOTE: not using static whenever possible (e.g., when not focused) results
@@ -104,6 +107,7 @@ function EditText({
   readOnly,
   markdownProps,
   resizable,
+  heightOffset = 0,
 }: {
   element: Element;
   canvasScale: number;
@@ -112,6 +116,7 @@ function EditText({
   readOnly?: boolean;
   markdownProps?: object;
   resizable?: boolean;
+  heightOffset?: number;
 }) {
   const { actions } = useFrameContext();
   const [editFocus, setEditFocus] = useEditFocus(false);
@@ -193,15 +198,20 @@ function EditText({
         (elt.getBoundingClientRect()?.height ?? 0) / canvasScale +
           2 * PADDING +
           2 +
-          15,
+          15 +
+          heightOffset,
         MIN_HEIGHT,
       );
-      actions.setElement({
-        obj: { id: element.id, h: height },
-        commit: false,
-      });
+      // Only update if the change is significant to prevent oscillation
+      // from sub-pixel rounding differences.
+      if (Math.abs(height - (element.h ?? 0)) > 2) {
+        actions.setElement({
+          obj: { id: element.id, h: height },
+          commit: false,
+        });
+      }
     };
-  }, [canvasScale, element.id, editFocus, readOnly]);
+  }, [canvasScale, element.id, editFocus, readOnly, heightOffset]);
 
   useEffect(() => {
     resizeRef.current?.();
