@@ -136,10 +136,14 @@ export default function Code({
       }
       const h = measureFocusedHeight();
       if (h == null) return;
-      actions.setElement({
-        obj: { id: element.id, h },
-        commit: false,
-      });
+      // Only update if the change is significant to prevent oscillation
+      // from sub-pixel rounding differences.
+      if (Math.abs(h - (element.h ?? 0)) > 2) {
+        actions.setElement({
+          obj: { id: element.id, h },
+          commit: false,
+        });
+      }
     }, 250);
 
     resizeRef.current = () => {
