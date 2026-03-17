@@ -638,10 +638,7 @@ export class Actions<
     if (frame_tree == null) {
       frame_tree = this._default_frame_tree();
     } else {
-      frame_tree = tree_ops.assign_ids(frame_tree);
-      frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
-      frame_tree = tree_ops.migrateToNary(frame_tree);
-      frame_tree = tree_ops.collapse_trivial(frame_tree);
+      frame_tree = tree_ops.normalize(frame_tree);
       try {
         tree_ops.get_some_leaf_id(frame_tree);
       } catch {
@@ -815,12 +812,7 @@ export class Actions<
 
   // Process a raw frame tree: convert to immutable, assign IDs, ensure uniqueness
   private _process_frame_tree(rawTree: FrameTree): Map<string, any> {
-    let frame_tree = fromJS(rawTree) as Map<string, any>;
-    frame_tree = tree_ops.assign_ids(frame_tree);
-    frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
-    frame_tree = tree_ops.migrateToNary(frame_tree);
-    frame_tree = tree_ops.collapse_trivial(frame_tree);
-    return frame_tree;
+    return tree_ops.normalize(fromJS(rawTree) as Map<string, any>);
   }
 
   _default_frame_tree(): Map<string, any> {
@@ -908,7 +900,9 @@ export class Actions<
     position: tree_ops.DropPosition,
   ): void {
     this._tree_op("move_node", sourceId, targetId, position);
-    // Normalize: collapse single-child nodes left by the move
+    // Normalize: flatten any non-leaf children inside tabs (e.g. when
+    // dragging a split frame onto a tab bar), then collapse leftovers.
+    this._tree_op("flatten_tabs");
     this._tree_op("collapse_trivial");
     // Validate full_id
     const tree = this._get_tree();
@@ -1120,6 +1114,10 @@ export class Actions<
     }
     const before = this._get_leaf_ids();
     this._tree_op("split_leaf", id, direction, type, extra, first);
+    // If the split happened inside a tabs container, flatten the resulting
+    // node back into individual tabs instead of a split-inside-tab.
+    this._tree_op("flatten_tabs");
+    this._tree_op("collapse_trivial");
     const after = this._get_leaf_ids();
     for (const new_id in after) {
       if (!before[new_id]) {
@@ -3001,6 +2999,7 @@ export class Actions<
       if (node.get("path") == path) return id; // already done;
       // Change it --
       await this.setFrameToCodeEditor({ id, path });
+      this.set_active_id(id);
       return id;
     }
 
@@ -3020,7 +3019,11 @@ export class Actions<
     }
     if (node.get("path") == path) return id; // already done.
 
-    this.setFrameToCodeEditor({ id, path });
+    await this.setFrameToCodeEditor({ id, path });
+    // Re-focus after await: the initial set_active_id (from
+    // show_focused_frame_of_type) may have been overridden by click
+    // event bubbling to the parent frame container.
+    this.set_active_id(id);
     return id;
   }
 
