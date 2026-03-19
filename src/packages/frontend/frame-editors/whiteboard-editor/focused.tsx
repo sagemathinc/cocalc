@@ -273,7 +273,7 @@ export default function Focused({
         {RotateControl}
         <div
           style={{
-            zIndex: 1,
+            zIndex: 3,
             position: "absolute",
             width: "100%",
             height: "100%",
@@ -299,7 +299,7 @@ export default function Focused({
             transform: `scale(${1 / canvasScale})`,
             transformOrigin: "top left",
             pointerEvents: "all",
-            zIndex: 1,
+            zIndex: 3,
           }}
         >
           <EditBar
