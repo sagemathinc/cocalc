@@ -107,24 +107,26 @@ export default function Code({
   }
 
   function measureFocusedHeight(): number | undefined {
-    const elt = outerRef.current;
-    if (elt == null) return;
-    // scrollHeight is in CSS pixels (= data units inside scaled canvas)
-    // and includes padding + collapsed child margins. Add border for
-    // box-sizing: border-box so the content area fully contains the scroll.
-    const style = getComputedStyle(elt);
-    const border =
-      (parseFloat(style.borderTopWidth) || 0) +
-      (parseFloat(style.borderBottomWidth) || 0);
-    return Math.max(MIN_HEIGHT, Math.ceil(elt.scrollHeight + border));
+    // Use divRef (inner div, no fixed height) so scrollHeight reflects
+    // actual content — including collapsed child margins like the
+    // InputPrompt's margin-top. outerRef.scrollHeight can't be used
+    // because its fixed height prevents detecting shrink.
+    const inner = divRef.current;
+    if (inner == null) return;
+    return Math.max(
+      MIN_HEIGHT,
+      Math.ceil(inner.scrollHeight + getOuterChromeHeight()),
+    );
   }
 
   function measureUnfocusedHeight(): number | undefined {
-    const elt = outerRef.current;
-    if (elt == null) return;
+    // Use divRef (inner div) since outerRef has minHeight:100% which
+    // prevents detecting shrink when content gets smaller.
+    const inner = divRef.current;
+    if (inner == null) return;
     return Math.max(
       MIN_HEIGHT,
-      elt.getBoundingClientRect().height / canvasScale,
+      Math.ceil(inner.scrollHeight + getOuterChromeHeight()),
     );
   }
 
@@ -182,8 +184,8 @@ export default function Code({
   // different dimensions (no ControlBar, InputStatic instead of Input, etc.)
   useEffect(() => {
     if (focused || readOnly) return;
-    const elt = outerRef.current;
-    if (elt == null) return;
+    const inner = divRef.current;
+    if (inner == null) return;
     if (typeof ResizeObserver === "undefined") return;
     let lastH = element.h ?? 0;
     const measure = () => {
@@ -194,8 +196,10 @@ export default function Code({
         actions.setElement({ obj: { id: element.id, h }, commit: true });
       }
     };
+    // Observe the inner div — outerRef has minHeight:100% so it
+    // won't shrink, but divRef reflects actual content changes.
     const observer = new ResizeObserver(measure);
-    observer.observe(elt);
+    observer.observe(inner);
     measure();
     const isRunning =
       element.data?.runState != null && element.data?.runState !== "done";
