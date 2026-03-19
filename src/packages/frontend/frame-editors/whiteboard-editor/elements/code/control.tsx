@@ -21,9 +21,10 @@ const TOGGLE_LABEL: CSS = {
 interface Props {
   element: Element;
   focused?: boolean;
+  canvasScale?: number;
 }
 
-export default function CodeControlBar({ element }: Props) {
+export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
   const { actions, project_id, path, id } = useFrameContext();
   return (
     <div
@@ -34,21 +35,23 @@ export default function CodeControlBar({ element }: Props) {
         background: "white",
         boxShadow: "1px 3px 5px rgb(33 33 33 / 50%)",
         position: "absolute",
-        top: "-36px",
+        top: `-${36 / canvasScale}px`,
         left: 0,
         zIndex: 10,
         whiteSpace: "nowrap",
         display: "flex",
         alignItems: "center",
         gap: "3px",
-        fontSize: "12px",
+        fontSize: "14px",
+        transform: `scale(${1 / canvasScale})`,
+        transformOrigin: "bottom left",
       }}
     >
       {!element.data?.hideInput && element.data?.runState == "busy" && (
         <Tooltip title="Interrupt running computation">
           <Button
             size="small"
-            style={{ fontSize: "11px", padding: "0 5px" }}
+            style={{ fontSize: "13px", padding: "1px 7px" }}
             onClick={async () => {
               const jupyter_actions = await getJupyterActions({
                 project_id,
@@ -72,7 +75,7 @@ export default function CodeControlBar({ element }: Props) {
         <Button
           disabled={element.data?.runState == "busy"}
           size="small"
-          style={{ fontSize: "11px", padding: "0 5px" }}
+          style={{ fontSize: "13px", padding: "1px 7px" }}
           onClick={() => {
             void actions.runCodeElement({ id: element.id });
           }}
@@ -84,7 +87,7 @@ export default function CodeControlBar({ element }: Props) {
         <Button
           disabled={element.data?.runState == "busy"}
           size="small"
-          style={{ fontSize: "11px", padding: "0 5px" }}
+          style={{ fontSize: "13px", padding: "1px 7px" }}
           onClick={() => {
             void actions.runCodeTree(id, element.id);
           }}

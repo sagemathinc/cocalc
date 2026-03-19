@@ -18,24 +18,34 @@ export default function Note(props: Props) {
 
   // Re-measure height when switching to unfocused rendering.
   // TextEditor unmounts for notes, so we must measure here.
+  // Uses ResizeObserver (like code cells) for reliable measurement
+  // after async content settles.
   useEffect(() => {
     if (!isStatic) return;
     const elt = noteRef.current;
     if (elt == null) return;
+    if (typeof ResizeObserver === "undefined") return;
+    let lastH = element.h ?? 0;
     const measure = () => {
       const el = noteRef.current;
       if (!el) return;
       const h = el.getBoundingClientRect().height / props.canvasScale;
-      if (Math.abs(h - (element.h ?? 0)) > 2) {
+      if (Math.abs(h - lastH) > 2) {
+        lastH = h;
         actions.setElement({
           obj: { id: element.id, h },
           commit: true,
         });
       }
     };
-    // Wait a beat for the static content to render, then measure.
-    const timeout = setTimeout(measure, 100);
-    return () => clearTimeout(timeout);
+    const observer = new ResizeObserver(measure);
+    observer.observe(elt);
+    measure(); // immediate first measurement
+    const timeout = setTimeout(() => observer.disconnect(), 5000);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
   }, [isStatic, element.id, props.canvasScale]);
 
   if (isStatic) {

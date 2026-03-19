@@ -107,12 +107,16 @@ export default function Code({
   }
 
   function measureFocusedHeight(): number | undefined {
-    const elt = divRef.current;
+    const elt = outerRef.current;
     if (elt == null) return;
-    return Math.max(
-      MIN_HEIGHT,
-      elt.getBoundingClientRect().height / canvasScale + getOuterChromeHeight(),
-    );
+    // scrollHeight is in CSS pixels (= data units inside scaled canvas)
+    // and includes padding + collapsed child margins. Add border for
+    // box-sizing: border-box so the content area fully contains the scroll.
+    const style = getComputedStyle(elt);
+    const border =
+      (parseFloat(style.borderTopWidth) || 0) +
+      (parseFloat(style.borderBottomWidth) || 0);
+    return Math.max(MIN_HEIGHT, elt.scrollHeight + border + 10);
   }
 
   function measureUnfocusedHeight(): number | undefined {
@@ -220,7 +224,7 @@ export default function Code({
         {!hideOutput && element.data?.output && (
           <Output element={element} onClick={() => setEditFocus(true)} />
         )}
-        {focused && !readOnly && <ControlBar element={element} />}
+        {focused && !readOnly && <ControlBar element={element} canvasScale={canvasScale} />}
       </div>
     </div>
   );

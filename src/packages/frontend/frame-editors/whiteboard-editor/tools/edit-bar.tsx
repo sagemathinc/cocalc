@@ -59,11 +59,7 @@ export default function EditBar(opts: Props) {
         display: "flex",
         flexDirection: "column",
         height: "42px",
-        ...(elements.length == 1 &&
-        elements[0].type ==
-          "code" /* this is basically a hack for now so tab completion in code cells doesn't get obscured by edit bar */
-          ? { right: "10px" }
-          : undefined),
+        left: 0,
       }}
     >
       <Space.Compact>

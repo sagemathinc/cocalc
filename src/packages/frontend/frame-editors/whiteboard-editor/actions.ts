@@ -940,6 +940,8 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
         return;
       }
     }
+    // Remember starting cell so we can restore focus after the run.
+    const startId = id;
     for (const cellId of tree.order) {
       this.setSelection(frameId, cellId);
       this.revealElementIfCompletelyHidden(cellId, frameId);
@@ -949,11 +951,16 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       if (output != null) {
         for (const key of Object.keys(output)) {
           if (output[key]?.traceback != null) {
+            this.setSelection(frameId, startId);
+            this.revealElementIfCompletelyHidden(startId, frameId);
             return tree.order;
           }
         }
       }
     }
+    // Restore focus to the cell where tree execution was initiated.
+    this.setSelection(frameId, startId);
+    this.revealElementIfCompletelyHidden(startId, frameId);
     return tree.order;
   }
 
