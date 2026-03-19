@@ -116,7 +116,7 @@ export default function Code({
     const border =
       (parseFloat(style.borderTopWidth) || 0) +
       (parseFloat(style.borderBottomWidth) || 0);
-    return Math.max(MIN_HEIGHT, elt.scrollHeight + border + 10);
+    return Math.max(MIN_HEIGHT, Math.ceil(elt.scrollHeight + border));
   }
 
   function measureUnfocusedHeight(): number | undefined {
