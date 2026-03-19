@@ -179,11 +179,14 @@ export function MarkdownInput(props: Props) {
     undefined | { left: number; top: number }
   >(undefined);
   const [mentions_search, set_mentions_search] = useState<string>("");
-  const mentions_cursor_ref = useRef<{
-    cursor: EventHandlerFunction;
-    change: EventHandlerFunction;
-    from: { line: number; ch: number };
-  } | undefined>(undefined);
+  const mentions_cursor_ref = useRef<
+    | {
+        cursor: EventHandlerFunction;
+        change: EventHandlerFunction;
+        from: { line: number; ch: number };
+      }
+    | undefined
+  >(undefined);
 
   const mentionableUsers = useMentionableUsers();
 
@@ -866,8 +869,15 @@ export function MarkdownInput(props: Props) {
 
   const showInstructions = !!value?.trim();
 
+  const bodyHeight =
+    height === "auto"
+      ? "auto"
+      : showInstructions
+        ? "calc(100% - 22px)"
+        : "100%";
+
   let body: React.JSX.Element = (
-    <div style={{ height: showInstructions ? "calc(100% - 22px)" : "100%" }}>
+    <div style={{ height: bodyHeight }}>
       {showInstructions ? render_instructions() : undefined}
       <div
         ref={divRef}
@@ -908,7 +918,7 @@ export function MarkdownInput(props: Props) {
         show_upload={false}
         project_id={project_id}
         event_handlers={event_handlers}
-        style={{ height: "100%", width: "100%" }}
+        style={{ height: height === "auto" ? "auto" : "100%", width: "100%" }}
         dropzone_ref={dropzone_ref}
         close_preview_ref={upload_close_preview_ref}
       >

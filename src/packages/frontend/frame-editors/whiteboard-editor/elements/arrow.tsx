@@ -1,5 +1,4 @@
 import { CSSProperties } from "react";
-import { Icon } from "@cocalc/frontend/components/icon";
 import type { Point } from "../types";
 
 interface Props {
@@ -31,37 +30,68 @@ export default function Arrow({
   const b = y1 - y0;
   const len = Math.sqrt(a * a + b * b);
   const theta = Math.atan(b / a) - (a < 0 ? Math.PI : 0);
+
+  // Sharp arrowhead: length along the arrow direction, width perpendicular
+  const tipLength = arrowSize * 0.7;
+  const tipWidth = arrowSize * 0.45;
+
+  // Extract layout-safe styles from caller (e.g. Edge passes selection border,
+  // preview background, zIndex). We use outline instead of border so the
+  // selection indicator doesn't shift the rotation pivot.
+  const outerStyle: CSSProperties = {
+    position: "absolute",
+    left: x0,
+    top: y0,
+    width: `${len}px`,
+    transformOrigin: "0 0",
+    transform: `rotate(${theta}rad)`,
+    zIndex: style?.zIndex as any,
+    cursor: onClick ? "pointer" : undefined,
+    outline: style?.border as any,
+    background: style?.background,
+  };
+
   return (
-    <div
-      onClick={onClick}
-      style={{
-        position: "absolute",
-        left: x0,
-        top: y0,
-        width: `${len}px`,
-        transformOrigin: "0 0",
-        transform: `rotate(${theta}rad)`,
-        ...style,
-      }}
-    >
+    <div onClick={onClick} style={outerStyle}>
+      {/* Invisible click hit area (wider than the line) */}
+      {onClick && (
+        <div
+          style={{
+            position: "absolute",
+            top: "-10px",
+            left: 0,
+            right: 0,
+            height: "20px",
+          }}
+        />
+      )}
+      {/* The actual line — shortened by tipLength so it doesn't poke
+          past the arrowhead tip */}
       <div
         style={{
           position: "relative",
-          border: `${thickness / 2}px ${preview ? "dashed" : "solid"} ${color}`,
-          borderRadius: `${thickness}px`,
-          color,
+          borderTop: `${Math.max(thickness, 1)}px ${preview ? "dashed" : "solid"} ${color}`,
+          marginRight: `${tipLength}px`,
           opacity,
         }}
       >
-        <Icon
-          name="caret-right"
+        {/* Sharp SVG arrowhead positioned at the end of the line */}
+        <svg
           style={{
             position: "absolute",
-            right: `-${(arrowSize * 3) / 8}px`,
-            top: `-${arrowSize / 2}px`,
-            fontSize: `${arrowSize}px`,
+            right: `-${tipLength}px`,
+            top: `-${tipWidth / 2}px`,
           }}
-        />
+          width={tipLength}
+          height={tipWidth}
+          viewBox={`0 0 ${tipLength} ${tipWidth}`}
+        >
+          <polygon
+            points={`0,0 ${tipLength},${tipWidth / 2} 0,${tipWidth}`}
+            fill={color}
+            opacity={opacity}
+          />
+        </svg>
       </div>
     </div>
   );

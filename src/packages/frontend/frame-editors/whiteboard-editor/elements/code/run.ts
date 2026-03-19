@@ -13,8 +13,13 @@ interface Opts {
   set: (object) => void;
 }
 
-export default async function run(opts: Opts) {
-  const { project_id, path, input, id, set } = opts;
+export default async function run({
+  project_id,
+  path,
+  input,
+  id,
+  set,
+}: Opts): Promise<void> {
   const jupyter_actions = await getJupyterActions({ project_id, path });
   const store = jupyter_actions.store;
   let cell = store.get("cells").get(id);
@@ -24,32 +29,87 @@ export default async function run(opts: Opts) {
     const pos = store.getIn(["cells", last_cell_id])?.get("pos", 0) + 1;
     jupyter_actions.insert_cell_at(pos, false, id);
   }
-  jupyter_actions.clear_outputs([id], false);
-  jupyter_actions.set_cell_input(id, input, false);
-  jupyter_actions.run_code_cell(id);
-  //console.log("starting running ", id);
-  //window.jupyter_actions = jupyter_actions;
-  function onChange() {
-    const cell = store.get("cells").get(id);
-    //console.log("onChange", cell?.toJS());
-    if (cell == null) return;
+  const previousEnd = cell?.get("end");
+  return new Promise<void>((resolve) => {
+    let finished = false;
+    let seenRunning = false;
+    let seenBackendLaunching = false;
+    function onChange() {
+      if (finished) return;
+      const cell = store.get("cells").get(id);
+      if (cell == null) return;
 
-    set({
-      output: cell.get("output")?.toJS(),
-      runState: cell.get("state"),
-      execCount: cell.get("exec_count"),
-      kernel: cell.get("kernel"),
-      start: cell.get("start"),
-      end: cell.get("end"),
-    });
-    if (cell.get("state") == "done") {
-      store.removeListener("change", onChange);
-      // Useful for debugging since can then open the ipynb and see.
-      // However, NOT needed normally.  We might even come up with
-      // a way to make everything ephemeral...  On the other hand,
-      // saving properly could be useful for output images in published docs, etc.
-      jupyter_actions.syncdb.save();
+      const state = cell.get("state");
+      if (state != null && state !== "done") {
+        seenRunning = true;
+      }
+
+      const backendState = store.get("backend_state");
+      if (
+        backendState === "spawning" ||
+        backendState === "starting" ||
+        backendState === "running"
+      ) {
+        seenBackendLaunching = true;
+      }
+
+      set({
+        output: cell.get("output")?.toJS(),
+        runState: state,
+        execCount: cell.get("exec_count"),
+        kernel: cell.get("kernel"),
+        start: cell.get("start"),
+        end: cell.get("end"),
+      });
+      if (state == "done") {
+        const hasExecutionResult =
+          cell.get("exec_count") != null || cell.get("output") != null;
+        if (
+          cell.get("end") &&
+          cell.get("end") != previousEnd &&
+          hasExecutionResult
+        ) {
+          // Normal completion: new end timestamp and execution result.
+          finished = true;
+          store.removeListener("change", onChange);
+          jupyter_actions.syncdb.save();
+          resolve();
+        } else if (seenRunning) {
+          // Forced completion: cell was executing but returned to "done"
+          // without a new end timestamp (e.g., sync_exec_state force-finished
+          // after a kernel crash or backend failure).
+          finished = true;
+          store.removeListener("change", onChange);
+          resolve();
+        }
+      } else if (seenRunning && seenBackendLaunching) {
+        // The backend was spawning/starting/running but has now reverted
+        // to init/ready (quota failure, kernel crash during startup, etc.).
+        // The cell is stuck in a non-done state and will never complete.
+        // Only trigger this after seeing the backend actually launch, to
+        // avoid false positives during normal startup from "ready" state.
+        if (backendState === "init" || backendState === "ready") {
+          finished = true;
+          store.removeListener("change", onChange);
+          resolve();
+        }
+      }
     }
-  }
-  store.on("change", onChange);
+    store.on("change", onChange);
+    jupyter_actions.clear_outputs([id], false);
+    jupyter_actions.set_cell_input(id, input, false);
+    jupyter_actions.run_code_cell(id);
+    // If no kernel is configured, run_code_cell immediately sets the cell
+    // to state "done" with a global error but without setting end, exec_count,
+    // or cell-level output. The onChange handler would never detect completion,
+    // so resolve immediately.
+    const kernel = store.get("kernel");
+    if (!kernel) {
+      finished = true;
+      store.removeListener("change", onChange);
+      resolve();
+      return;
+    }
+    onChange();
+  });
 }
