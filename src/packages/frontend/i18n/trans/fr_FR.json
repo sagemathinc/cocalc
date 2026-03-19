@@ -1128,6 +1128,7 @@
   "labels.always_running": "Toujours en cours d'exécution",
   "labels.appearance": "Apparence",
   "labels.assistant": "Assistant",
+  "labels.authentication": "Authentification",
   "labels.back": "Retour",
   "labels.balance": "Solde",
   "labels.billing": "Facturation",

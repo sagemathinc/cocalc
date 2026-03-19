@@ -67,7 +67,7 @@ def register_projects_search_tool(mcp) -> None:
             account_id = _api_key_scope.get("account_id")
 
             # Get all projects with full details
-            projects = hub.projects.get(
+            projects = hub.projects.list(
                 all=True,
                 fields=[
                     "project_id",

@@ -19,12 +19,12 @@ The api is defined in packages/conat/project/api/
 
 import projectBridge from "@cocalc/server/api/project-bridge";
 import getParams from "lib/api/get-params";
-import { getAccountFromApiKey } from "@cocalc/server/auth/api";
+import { getAccountFromApiKey, hasProjectScope } from "@cocalc/server/auth/api";
 import isCollaborator from "@cocalc/server/projects/is-collaborator";
 
 export default async function handle(req, res) {
   try {
-    const { account_id, project_id: project_id0 } =
+    const { account_id, project_id: project_id0, scope } =
       (await getAccountFromApiKey(req)) ?? {};
     if (!account_id && !project_id0) {
       throw Error("must sign in as project or account");
@@ -46,7 +46,15 @@ export default async function handle(req, res) {
       }
     }
     if (account_id) {
-      // account_id based auth
+      // Enforce OAuth2 project scope (API keys have scope=undefined → unrestricted)
+      if (!hasProjectScope(scope, project_id)) {
+        throw Error(
+          "OAuth2 token does not have project access scope. " +
+            "Required: api:project or api:project:" +
+            project_id,
+        );
+      }
+      // Collaborator check (applies to both API keys and OAuth2 tokens)
       if (!(await isCollaborator({ account_id, project_id }))) {
         throw Error("user must be a collaborator on the project");
       }

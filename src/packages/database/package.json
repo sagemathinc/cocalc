@@ -15,7 +15,8 @@
     "./projects/*": "./dist/projects/*.js",
     "./settings": "./dist/settings/index.js",
     "./settings/*": "./dist/settings/*.js",
-    "./user-query": "./dist/user-query/index.js"
+    "./user-query": "./dist/user-query/index.js",
+    "./user-query-classify": "./dist/user-query-classify.js"
   },
   "dependencies": {
     "@cocalc/backend": "workspace:*",

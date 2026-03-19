@@ -1128,6 +1128,7 @@
   "labels.always_running": "Her Zaman Çalışıyor",
   "labels.appearance": "Görünüm",
   "labels.assistant": "Yardımcı",
+  "labels.authentication": "Kimlik Doğrulama",
   "labels.back": "Geri",
   "labels.balance": "Bakiye",
   "labels.billing": "Faturalama",

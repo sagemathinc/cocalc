@@ -1128,6 +1128,7 @@
   "labels.always_running": "始终运行",
   "labels.appearance": "外观",
   "labels.assistant": "助手",
+  "labels.authentication": "身份验证",
   "labels.back": "返回",
   "labels.balance": "余额",
   "labels.billing": "账单",

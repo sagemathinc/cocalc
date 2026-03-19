@@ -40,6 +40,9 @@ test-verbose:
 ci-create-project:
 	@uv run python3 scripts/ci-create-project.py
 
+ci-test-oauth2:
+	uv run python3 scripts/ci-test-oauth2.py
+
 ci: ci-create-project
 	export COCALC_PROJECT_ID=$$($(MAKE) ci-create-project) && uv run pytest --junitxml=test-results.xml --cov=src --cov-report=term-missing --cov-report=html
 

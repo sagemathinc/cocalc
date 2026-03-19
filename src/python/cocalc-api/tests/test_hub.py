@@ -154,7 +154,7 @@ class TestHubProjects:
 
     def test_list_projects(self, hub):
         """Test listing projects."""
-        projects = hub.projects.get()
+        projects = hub.projects.list()
         assert isinstance(projects, list)
         # Each project should have basic fields
         for project in projects:
@@ -242,7 +242,7 @@ class TestHubProjects:
 
         # Check that project exists in database
         print("4. Checking project exists in database...")
-        projects = hub.projects.get(fields=['project_id', 'title', 'deleted'], project_id=project_id)
+        projects = hub.projects.list(fields=['project_id', 'title', 'deleted'], project_id=project_id)
         assert len(projects) == 1, f"Expected 1 project, found {len(projects)}"
         project = projects[0]
         assert project["project_id"] == project_id
@@ -268,7 +268,7 @@ class TestHubProjects:
 
         # 4. Verify project is marked as deleted in database
         print("8. Verifying project is marked as deleted...")
-        projects = hub.projects.get(fields=['project_id', 'title', 'deleted'], project_id=project_id, all=True)
+        projects = hub.projects.list(fields=['project_id', 'title', 'deleted'], project_id=project_id, all=True)
         assert len(projects) == 1, f"Expected 1 project (still in DB), found {len(projects)}"
         project = projects[0]
         assert project["project_id"] == project_id
@@ -308,7 +308,7 @@ class TestHubProjects:
 
         # 3. Check initial collaborators
         print("\n3. Checking initial collaborators...")
-        projects = hub.projects.get(fields=['project_id', 'users'], project_id=project_id)
+        projects = hub.projects.list(fields=['project_id', 'users'], project_id=project_id)
         assert len(projects) == 1
         initial_users = projects[0].get('users', {})
         print(f"   Initial collaborators: {list(initial_users.keys())}")
@@ -324,7 +324,7 @@ class TestHubProjects:
         print(f"   Add collaborator result: {result}")
 
         # Check collaborators after adding user1
-        projects = hub.projects.get(fields=['project_id', 'users'], project_id=project_id)
+        projects = hub.projects.list(fields=['project_id', 'users'], project_id=project_id)
         users_after_user1 = projects[0].get('users', {})
         print(f"   Collaborators after adding user1: {list(users_after_user1.keys())}")
         print(f"   Number of collaborators: {len(users_after_user1)}")
@@ -337,7 +337,7 @@ class TestHubProjects:
         print(f"   Add collaborator result: {result}")
 
         # Check collaborators after adding user2
-        projects = hub.projects.get(fields=['project_id', 'users'], project_id=project_id)
+        projects = hub.projects.list(fields=['project_id', 'users'], project_id=project_id)
         users_after_user2 = projects[0].get('users', {})
         print(f"   Collaborators after adding user2: {list(users_after_user2.keys())}")
         print(f"   Number of collaborators: {len(users_after_user2)}")
@@ -363,7 +363,7 @@ class TestHubProjects:
         print(f"   Remove collaborator result: {result}")
 
         # Check collaborators after removing user1
-        projects = hub.projects.get(fields=['project_id', 'users'], project_id=project_id)
+        projects = hub.projects.list(fields=['project_id', 'users'], project_id=project_id)
         users_after_removal = projects[0].get('users', {})
         print(f"   Collaborators after removing user1: {list(users_after_removal.keys())}")
         print(f"   Number of collaborators: {len(users_after_removal)}")

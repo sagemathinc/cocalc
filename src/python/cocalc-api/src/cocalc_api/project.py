@@ -2,16 +2,44 @@ import httpx
 from typing import Any, Optional
 from .util import api_method, handle_error
 from .api_types import ExecuteCodeOutput, PingResponse
+from .hub import _OAuthAuth
 
 
 class Project:
 
-    def __init__(self, api_key: str, host: str = "https://cocalc.com", project_id: Optional[str] = None):
+    def __init__(self,
+                 api_key: Optional[str] = None,
+                 host: str = "https://cocalc.com",
+                 project_id: Optional[str] = None,
+                 oauth_token: Optional[str] = None):
         self.project_id = project_id
-        self.api_key = api_key
         self.host = host
         # Use longer timeout for API calls (120 seconds to handle slow kernel startups in CI)
-        self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=120.0)
+        if oauth_token:
+            self.api_key = ""
+            self.client = httpx.Client(
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {oauth_token}"
+                },
+                timeout=120.0,
+            )
+        elif api_key:
+            self.api_key = api_key
+            self.client = httpx.Client(auth=(api_key, ""), headers={"Content-Type": "application/json"}, timeout=120.0)
+        else:
+            from . import auth as _auth
+
+            token = _auth.get_token(host=host)
+            if token:
+                self.api_key = ""
+                self.client = httpx.Client(
+                    auth=_OAuthAuth(host),
+                    headers={"Content-Type": "application/json"},
+                    timeout=120.0,
+                )
+            else:
+                raise ValueError("Either api_key or oauth_token must be provided, or run 'cocalc-api auth login' first.")
 
     def call(self, name: str, arguments: list[Any], timeout: Optional[int] = None) -> Any:
         """
