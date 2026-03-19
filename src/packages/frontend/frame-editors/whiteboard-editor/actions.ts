@@ -946,8 +946,17 @@ export class Actions<T extends State = State> extends BaseActions<T | State> {
       this.setSelection(frameId, cellId);
       this.revealElementIfCompletelyHidden(cellId, frameId);
       await this.runCodeElement({ id: cellId });
-      // Stop on error, matching standard Jupyter "halt on error" behavior.
-      const output = this.getElement(cellId)?.data?.output;
+      // Stop if the cell didn't complete successfully — catches errors,
+      // interrupts (KeyboardInterrupt traceback), and kernel crashes
+      // (runState stuck or missing exec_count).
+      const cellData = this.getElement(cellId)?.data;
+      if (cellData?.runState != null && cellData.runState !== "done") {
+        // Cell didn't finish (interrupt, kernel crash, etc.)
+        this.setSelection(frameId, startId);
+        this.revealElementIfCompletelyHidden(startId, frameId);
+        return tree.order;
+      }
+      const output = cellData?.output;
       if (output != null) {
         for (const key of Object.keys(output)) {
           if (output[key]?.traceback != null) {
