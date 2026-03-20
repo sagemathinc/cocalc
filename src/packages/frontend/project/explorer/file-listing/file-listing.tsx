@@ -46,6 +46,7 @@ import * as misc from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 
+import { useClipboardMode, useClipboardPathSet, useHasClipboard } from "@cocalc/frontend/file-clipboard/hook";
 import { useFolderDrop } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import DirectoryPeek from "./directory-peek";
 import EmptyPlaceholder from "./empty-placeholder";
@@ -225,6 +226,9 @@ export const FileListing: React.FC<Props> = ({
   const starredSet = useMemo(() => new Set(starred), [starred]);
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
+  const clipboardPathSet = useClipboardPathSet(project_id);
+  const hasClipboard = useHasClipboard();
+  const clipboardMode = useClipboardMode();
   // Listing buffering (freeze during selection / deferred updates) is now
   // handled by `useDeferredListing` in the parent Explorer component.
   // The `listing` and `file_map` props are already the committed snapshot.
@@ -343,6 +347,12 @@ export const FileListing: React.FC<Props> = ({
     }));
     return hide_masked_files ? entries.filter((e) => !e.mask) : entries;
   }, [listingForRender, fileMapForRender, hide_masked_files]);
+
+  // Full paths in display order — used for shift-click range selection in clipboard
+  const listingPaths = useMemo(
+    () => dataSource.map((item) => misc.path_to_file(current_path, item.name)),
+    [dataSource, current_path],
+  );
 
   // -- Selection keys (full paths in checked_files → file names for Table) --
   // Use dataSource (not listing) so hidden masked files are excluded from selection.
@@ -979,6 +989,13 @@ export const FileListing: React.FC<Props> = ({
           toggleExpandDir={toggleExpandDir}
           openContextMenu={openContextMenu}
           actions={actions}
+          project_id={project_id}
+          current_path={current_path}
+          hasClipboard={hasClipboard}
+          clipboardMode={clipboardMode}
+          isInClipboard={clipboardPathSet.has(fp)}
+          listingPaths={listingPaths}
+          computeServerId={computeServerId}
         />
       );
     },
@@ -998,6 +1015,11 @@ export const FileListing: React.FC<Props> = ({
       toggleExpandDir,
       openContextMenu,
       actions,
+      hasClipboard,
+      clipboardMode,
+      clipboardPathSet,
+      listingPaths,
+      computeServerId,
       file_search,
       typeFilter,
       create_file,

@@ -10,6 +10,8 @@ import { FormattedMessage, useIntl } from "react-intl";
 
 import { Button as BootstrapButton } from "@cocalc/frontend/antd-bootstrap";
 import { Icon } from "@cocalc/frontend/components";
+import { ClipboardPill } from "@cocalc/frontend/file-clipboard/clipboard-pill";
+import { useFileClipboard } from "@cocalc/frontend/file-clipboard/hook";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { CustomSoftwareInfo } from "@cocalc/frontend/custom-software/info-bar";
 import { ComputeImages } from "@cocalc/frontend/custom-software/init";
@@ -292,11 +294,13 @@ export const ActionBarInfo: React.FC<
   }
 > = (props) => {
   const intl = useIntl();
+  const { mode: clipboardMode } = useFileClipboard();
   if (!props.project_is_running) {
     return null;
   }
   const checked = props.checked_files.size;
   const total = props.listing.length;
+  const hasClipboard = clipboardMode != null;
 
   const helpButton = props.project_id ? (
     <ExplorerHelp project_id={props.project_id} />
@@ -397,79 +401,62 @@ export const ActionBarInfo: React.FC<
     <RefreshButton onClick={props.onRefreshListing} />
   ) : null;
 
-  if (checked === 0) {
-    return (
-      <div
-        style={{
-          ...ROW_INFO_STYLE,
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <span style={{ flex: 1 }}>
-          {total} {intl.formatMessage(labels.item_plural, { total })}
-          {hasFilter && (
-            <>
-              {" "}
-              &mdash; Active {filterBadges.length === 1
-                ? "Filter"
-                : "Filters"}: {filterBadges}
-            </>
-          )}
-          {!hasFilter && (
-            <>
-              {" "}
-              &mdash;{" "}
-              <FormattedMessage
-                id="project.explorer.action-bar.currently_selected.info"
-                defaultMessage={
-                  "Select files via checkbox or drag and drop to move them."
-                }
-              />
-            </>
-          )}
-          {refreshButton && <> &middot; {refreshButton}</>}
-        </span>
-        {switchButton}
-        {helpButton}
-      </div>
-    );
-  } else {
-    return (
-      <div
-        style={{
-          ...ROW_INFO_STYLE,
-          display: "flex",
-          alignItems: "center",
-        }}
-      >
-        <span style={{ flex: 1 }}>
-          {intl.formatMessage(
-            {
-              id: "project.explorer.action-bar.currently_selected.items",
-              defaultMessage: "{checked} of {total} {items} selected",
-            },
-            {
-              checked,
-              total,
-              items: intl.formatMessage(labels.item_plural, { total }),
-            },
-          )}
-          {hasFilter && (
-            <>
-              {" "}
-              &mdash; Active {filterBadges.length === 1
-                ? "Filter"
-                : "Filters"}: {filterBadges}
-            </>
-          )}
-          {refreshButton && <> &middot; {refreshButton}</>}
-        </span>
-        {switchButton}
-        {helpButton}
-      </div>
-    );
-  }
+  // When clipboard is active or files are checked, always show "N of M selected"
+  // to keep the layout stable (no jumping pills).
+  const showSelectionCount = checked > 0 || hasClipboard;
+
+  return (
+    <div
+      style={{
+        ...ROW_INFO_STYLE,
+        display: "flex",
+        alignItems: "center",
+      }}
+    >
+      <span style={{ flex: 1 }}>
+        {showSelectionCount
+          ? intl.formatMessage(
+              {
+                id: "project.explorer.action-bar.currently_selected.items",
+                defaultMessage: "{checked} of {total} {items} selected",
+              },
+              {
+                checked,
+                total,
+                items: intl.formatMessage(labels.item_plural, { total }),
+              },
+            )
+          : `${total} ${intl.formatMessage(labels.item_plural, { total })}`}
+        {hasFilter && (
+          <>
+            {" "}
+            &mdash; Active {filterBadges.length === 1
+              ? "Filter"
+              : "Filters"}: {filterBadges}
+          </>
+        )}
+        {!showSelectionCount && !hasFilter && (
+          <>
+            {" "}
+            &mdash;{" "}
+            <FormattedMessage
+              id="project.explorer.action-bar.currently_selected.info"
+              defaultMessage={
+                "Select files via checkbox or drag and drop to move them."
+              }
+            />
+          </>
+        )}
+        {refreshButton && <> &middot; {refreshButton}</>}
+        <ClipboardPill
+          project_id={props.project_id ?? ""}
+          current_path={props.explorer_browsing_path ?? props.current_path ?? ""}
+        />
+      </span>
+      {switchButton}
+      {helpButton}
+    </div>
+  );
 };
 
 // Ordered by frequency of use — most common first, share last (often the

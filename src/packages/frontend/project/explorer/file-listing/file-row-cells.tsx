@@ -12,6 +12,8 @@ import { Button, Checkbox } from "antd";
 import React from "react";
 
 import { Icon } from "@cocalc/frontend/components";
+import type { ClipboardMode } from "@cocalc/frontend/file-clipboard/actions";
+import { QuickActionButtons } from "@cocalc/frontend/file-clipboard/quick-actions";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { ProjectActions } from "@cocalc/frontend/project_actions";
 import * as misc from "@cocalc/util/misc";
@@ -57,6 +59,13 @@ export interface FileRowCellsProps {
   toggleExpandDir: (name: string, e: React.MouseEvent) => void;
   openContextMenu: (record: FileEntry, x: number, y: number) => void;
   actions: ProjectActions;
+  project_id: string;
+  current_path: string;
+  hasClipboard: boolean;
+  clipboardMode?: ClipboardMode;
+  isInClipboard: boolean;
+  listingPaths: string[];
+  computeServerId?: number;
 }
 
 export const FileRowCells = React.memo(function FileRowCells({
@@ -74,6 +83,13 @@ export const FileRowCells = React.memo(function FileRowCells({
   toggleExpandDir,
   openContextMenu,
   actions,
+  project_id,
+  current_path,
+  hasClipboard,
+  clipboardMode,
+  isInClipboard,
+  listingPaths,
+  computeServerId,
 }: FileRowCellsProps) {
   return (
     <>
@@ -143,7 +159,27 @@ export const FileRowCells = React.memo(function FileRowCells({
           <Icon name="share-square" style={{ color: COLORS.TAB }} />
         ) : null}
       </td>
-      <td style={CELL_STYLE}>{renderFileName(record, dimFileExtensions)}</td>
+      <td style={{ ...CELL_STYLE, position: "relative" }}>
+        {renderFileName(record, dimFileExtensions)}
+        {!disableActions && record.name !== ".." && (
+          <QuickActionButtons
+            project_id={project_id}
+            path={fp}
+            isdir={record.isdir}
+            current_path={current_path}
+            hasClipboard={hasClipboard}
+            isInClipboard={isInClipboard}
+            clipboardMode={clipboardMode}
+            btnSize="middle"
+            listingPaths={listingPaths}
+            className="cc-explorer-hover-icon"
+            compute_server_id={computeServerId}
+            style={{
+              background: isChecked ? COLORS.BLUE_LLL : COLORS.BLUE_LLLL,
+            }}
+          />
+        )}
+      </td>
       {!IS_MOBILE && (
         <td style={{ ...CELL_STYLE, width: COL_W.DATE }}>
           {renderTimestamp(record.mtime)}
