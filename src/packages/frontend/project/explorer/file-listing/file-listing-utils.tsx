@@ -13,6 +13,7 @@ import { COLORS } from "@cocalc/util/theme";
 import type { FileEntry } from "./types";
 
 const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+const TIMESTAMP_STYLE = { color: COLORS.TAB, whiteSpace: "nowrap" } as const;
 
 export function renderFileIcon(
   record: FileEntry,
@@ -118,7 +119,8 @@ export function renderTimestamp(mtime?: number): React.ReactNode {
     return (
       <TimeAgo
         date={new Date(mtime * 1000).toISOString()}
-        style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}
+        style={TIMESTAMP_STYLE}
+        live={false}
       />
     );
   } catch {

@@ -5,7 +5,7 @@
 
 // File listing using react-virtuoso TableVirtuoso for efficient virtual scrolling.
 
-import { Alert, Button, Checkbox, Dropdown, Menu, Spin } from "antd";
+import { Alert, Checkbox, Dropdown, Menu, Spin } from "antd";
 import type { MenuProps } from "antd";
 import type { ColumnFilterItem } from "antd/es/table/interface";
 import { FilterOutlined } from "@ant-design/icons";
@@ -54,14 +54,10 @@ import {
   TypeFilterLabel,
   sortedTypeFilterOptions,
 } from "./utils";
-import {
-  renderFileIcon,
-  renderFileName,
-  renderTimestamp,
-  SortIndicator,
-} from "./file-listing-utils";
+import { SortIndicator } from "./file-listing-utils";
 import { makeContextMenu } from "./file-listing-ctx";
 import { DndRowContext, VIRTUOSO_COMPONENTS } from "./file-listing-row";
+import { FileRowCells } from "./file-row-cells";
 import { COL_W } from "./consts";
 import {
   type DndRowContextType,
@@ -460,6 +456,27 @@ export const FileListing: React.FC<Props> = ({
     ],
   );
 
+  // Ref-based access to frequently-changing values so that row callbacks
+  // can read the latest value without being in their dependency arrays.
+  const checkedFilesRef = useRef(checked_files);
+  checkedFilesRef.current = checked_files;
+  const buildContextMenuRef = useRef(buildContextMenu);
+  buildContextMenuRef.current = buildContextMenu;
+
+  // Stable callback for opening the context menu — does NOT depend on
+  // checked_files so it won't invalidate the memoized row component.
+  const openContextMenu = useCallback(
+    (record: FileEntry, x: number, y: number) => {
+      if (student_project_functionality.disableActions) return;
+      if (record.name === "..") return;
+      const items = buildContextMenuRef.current(record);
+      if (items && items.length > 0) {
+        setContextMenu({ items, x, y });
+      }
+    },
+    [student_project_functionality.disableActions],
+  );
+
   // -- Star toggle --
   const handleToggleStar = useCallback(
     (record: FileEntry, starred: boolean) => {
@@ -616,15 +633,7 @@ export const FileListing: React.FC<Props> = ({
       },
       onContextMenu: (e: React.MouseEvent) => {
         e.preventDefault();
-        if (student_project_functionality.disableActions) return;
-        // The ".." parent-directory row has no valid actions — skip it
-        if (record.name === "..") return;
-        // Don't select the file here — the menu action's
-        // triggerFileAction will do it when the user picks an action.
-        const items = buildContextMenu(record);
-        if (items && items.length > 0) {
-          setContextMenu({ items, x: e.clientX, y: e.clientY });
-        }
+        openContextMenu(record, e.clientX, e.clientY);
       },
       style: {
         cursor: "pointer" as const,
@@ -638,11 +647,10 @@ export const FileListing: React.FC<Props> = ({
     }),
     [
       handleRowClick,
-      buildContextMenu,
+      openContextMenu,
       current_path,
       checked_files,
       actions,
-      student_project_functionality.disableActions,
     ],
   );
 
@@ -947,172 +955,31 @@ export const FileListing: React.FC<Props> = ({
         );
       }
 
-      // -- Regular file/folder row cells --
+      // -- Regular file/folder row cells (memoized component) --
       const record = entry as FileEntry;
       const fp = misc.path_to_file(current_path, record.name);
       const isChecked = checked_files.has(fp);
       const pathForStar = record.isdir ? `${fp}/` : fp;
       const isStarred = starredSet.has(pathForStar);
-      const isExpanded = record.isdir && expandedDirs.includes(record.name);
-
-      const cellStyle: React.CSSProperties = {
-        padding: "6px 8px",
-        borderBottom: "none",
-        background: COLORS.WHITE,
-        whiteSpace: "nowrap",
-        overflow: "hidden",
-        textOverflow: "ellipsis",
-      };
+      const isExpanded = !!record.isdir && expandedDirs.includes(record.name);
 
       return (
-        <>
-          {!student_project_functionality.disableActions && (
-            <td style={{ ...cellStyle, width: COL_W.CHECKBOX }}>
-              <Checkbox
-                checked={isChecked}
-                disabled={record.name === ".."}
-                onClick={(e) => e.stopPropagation()}
-                onChange={(e) =>
-                  handleCheckboxChange(record, e.target.checked, e.nativeEvent)
-                }
-              />
-            </td>
-          )}
-          {!IS_MOBILE && (
-            <td
-              style={{
-                ...cellStyle,
-                width: COL_W.TYPE,
-                cursor: record.isdir ? "pointer" : undefined,
-              }}
-              className={isExpanded ? "cc-explorer-cell-expanded" : undefined}
-              onClick={
-                record.isdir
-                  ? (e) => toggleExpandDir(record.name, e)
-                  : undefined
-              }
-            >
-              {renderFileIcon(record, isExpanded)}
-            </td>
-          )}
-          <td style={{ ...cellStyle, width: COL_W.STAR }}>
-            <Icon
-              name={isStarred ? "star-filled" : "star"}
-              onClick={(e) => {
-                e?.preventDefault();
-                e?.stopPropagation();
-                handleToggleStar(record, !isStarred);
-              }}
-              style={{
-                cursor: "pointer",
-                fontSize: "14pt",
-                color: isStarred ? COLORS.STAR : COLORS.GRAY_L,
-              }}
-            />
-          </td>
-          <td
-            style={{
-              ...cellStyle,
-              width: COL_W.PUBLIC,
-              cursor: record.is_public ? "pointer" : undefined,
-            }}
-            onClick={
-              record.is_public
-                ? (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    actions.set_all_files_unchecked();
-                    actions.set_file_checked(fp, true);
-                    actions.set_file_action("share");
-                  }
-                : undefined
-            }
-          >
-            {record.is_public ? (
-              <Icon name="share-square" style={{ color: COLORS.TAB }} />
-            ) : null}
-          </td>
-          <td style={{ ...cellStyle }}>
-            {renderFileName(record, dimFileExtensions)}
-          </td>
-          {!IS_MOBILE && (
-            <td style={{ ...cellStyle, width: COL_W.DATE }}>
-              {renderTimestamp(record.mtime)}
-            </td>
-          )}
-          {!isNarrow && (
-            <>
-              <td
-                style={{ ...cellStyle, width: COL_W.SIZE, textAlign: "right" }}
-              >
-                {!student_project_functionality.disableActions &&
-                (record.isdir ? record.size != null : true) ? (
-                  <Button
-                    type="text"
-                    size="small"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDownloadClick(e, record);
-                    }}
-                    style={{
-                      color: COLORS.TAB,
-                      whiteSpace: "nowrap",
-                      padding: "0 4px",
-                      height: "auto",
-                    }}
-                  >
-                    <Icon
-                      name="cloud-download"
-                      className="cc-explorer-hover-icon"
-                      style={{ color: COLORS.TAB, marginRight: 4 }}
-                    />
-                    {record.isdir
-                      ? `${record.size} ${misc.plural(record.size, "item")}`
-                      : misc.human_readable_size(record.size)}
-                  </Button>
-                ) : (
-                  <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
-                    {record.isdir
-                      ? record.size != null
-                        ? `${record.size} ${misc.plural(record.size, "item")}`
-                        : null
-                      : misc.human_readable_size(record.size)}
-                  </span>
-                )}
-              </td>
-              <td
-                style={{
-                  ...cellStyle,
-                  width: COL_W.ACTIONS,
-                  textAlign: "center",
-                }}
-              >
-                {record.name !== ".." &&
-                  !student_project_functionality.disableActions && (
-                    <Button
-                      type="text"
-                      size="small"
-                      className="cc-explorer-hover-icon"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        const items = buildContextMenu(record);
-                        if (items && items.length > 0) {
-                          setContextMenu({
-                            items,
-                            x: e.clientX,
-                            y: e.clientY,
-                          });
-                        }
-                      }}
-                      style={{ color: COLORS.TAB }}
-                    >
-                      <Icon name="ellipsis" rotate="90" />
-                    </Button>
-                  )}
-              </td>
-            </>
-          )}
-        </>
+        <FileRowCells
+          record={record}
+          fp={fp}
+          isChecked={isChecked}
+          isStarred={isStarred}
+          isExpanded={isExpanded}
+          isNarrow={isNarrow}
+          dimFileExtensions={dimFileExtensions}
+          disableActions={!!student_project_functionality.disableActions}
+          handleCheckboxChange={handleCheckboxChange}
+          handleToggleStar={handleToggleStar}
+          handleDownloadClick={handleDownloadClick}
+          toggleExpandDir={toggleExpandDir}
+          openContextMenu={openContextMenu}
+          actions={actions}
+        />
       );
     },
     [
@@ -1129,7 +996,7 @@ export const FileListing: React.FC<Props> = ({
       handleToggleStar,
       handleDownloadClick,
       toggleExpandDir,
-      buildContextMenu,
+      openContextMenu,
       actions,
       file_search,
       typeFilter,
@@ -1225,7 +1092,7 @@ export const FileListing: React.FC<Props> = ({
                   ? "\0empty\0"
                   : entry.name
             }
-            overscan={200}
+            overscan={60}
             onScroll={handleVirtuosoScroll}
             {...(restoreSnapshot ? { restoreStateFrom: restoreSnapshot } : {})}
             components={VIRTUOSO_COMPONENTS}
