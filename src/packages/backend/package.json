@@ -65,6 +65,6 @@
   "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/backend",
   "devDependencies": {
     "@types/node": "^18.16.14",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.3"
   }
 }
