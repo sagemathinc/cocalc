@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Tree } from "antd";
+import { Input, Tree } from "antd";
 import type { TreeDataNode, TreeProps } from "antd";
 import React, {
   useCallback,
@@ -385,6 +385,7 @@ export function DirectoryTreePanel({
     getDirectoryTreeExpandedKeys(project_id),
   );
   const [error, setError] = useState<string>("");
+  const [filter, setFilter] = useState("");
   const treeRef = useRef<any>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const [treeHeight, setTreeHeight] = useState(300);
@@ -635,6 +636,41 @@ export function DirectoryTreePanel({
     return buildChildren("");
   }, [childrenByPath, project_id, treeVersion, starredSet, handleToggleStar]);
 
+  // Filter treeData when the search box is active.  Keep nodes whose
+  // folder name matches and retain all ancestor nodes so the tree
+  // structure stays valid.  Auto-expand every surviving parent.
+  const { filteredTreeData, filteredExpandedKeys } = useMemo(() => {
+    const trimmed = filter.trim();
+    if (!trimmed) {
+      return { filteredTreeData: treeData, filteredExpandedKeys: null };
+    }
+    const searchTerms = misc.search_split(trimmed);
+    const autoExpanded: string[] = [];
+
+    function filterNodes(nodes: TreeDataNode[]): TreeDataNode[] {
+      return nodes.flatMap((node) => {
+        const filteredChildren = node.children
+          ? filterNodes(node.children)
+          : [];
+        const path = treeKeyToPath(node.key);
+        const label = misc.path_split(path).tail || path;
+        const selfMatches = misc.search_match(label, searchTerms);
+        if (selfMatches || filteredChildren.length > 0) {
+          if (filteredChildren.length > 0) {
+            autoExpanded.push(String(node.key));
+          }
+          return [{ ...node, children: filteredChildren }];
+        }
+        return [];
+      });
+    }
+
+    return {
+      filteredTreeData: filterNodes(treeData),
+      filteredExpandedKeys: autoExpanded,
+    };
+  }, [treeData, filter]);
+
   // Starred directories: entries ending with "/" are directories
   const starredDirs = starred.filter((p) => p.endsWith("/"));
   const hasStarredDirs = starredDirs.length > 0;
@@ -720,6 +756,27 @@ export function DirectoryTreePanel({
         </div>
       )}
 
+      {/* Filter input */}
+      <Input
+        placeholder="Filter folders..."
+        allowClear
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        style={{
+          flexShrink: 0,
+          margin: "4px 0",
+          width: "calc(100% - 12px)",
+          alignSelf: "center",
+          ...(filter
+            ? {
+                borderColor: COLORS.COCALC_ORANGE,
+                boxShadow: `0 0 3px ${COLORS.COCALC_ORANGE}`,
+              }
+            : {}),
+        }}
+        size="small"
+      />
+
       {/* Main directory tree — shows root children directly, no extra indent */}
       <div
         ref={scrollContainerRef}
@@ -734,8 +791,8 @@ export function DirectoryTreePanel({
           blockNode
           showLine={{ showLeafIcon: false }}
           height={treeHeight}
-          treeData={treeData}
-          expandedKeys={expandedKeys}
+          treeData={filteredTreeData}
+          expandedKeys={filteredExpandedKeys ?? expandedKeys}
           selectedKeys={
             current_path !== "" ? [pathToTreeKey(current_path)] : []
           }
