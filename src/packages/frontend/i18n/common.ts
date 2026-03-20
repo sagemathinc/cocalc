@@ -697,12 +697,6 @@ export const labels = defineMessages({
     defaultMessage: "Halt",
     description: "Short label on a button to halt or stop something",
   },
-  halt_kernel_confirm: {
-    id: "jupyter.status.halt_idle_tooltip",
-    defaultMessage:
-      "Terminate the kernel process? All variable state will be lost.",
-    description: "Terminating the kernel of a Jupyter Notebook",
-  },
   deleted: {
     id: "labels.deleted",
     defaultMessage: "deleted",
@@ -1430,6 +1424,12 @@ export const jupyter = {
     confirm_halt_kernel_halt: {
       id: "jupyter.editor.confirm_halt_kernel.halt",
       defaultMessage: "Halt",
+    },
+    halt_kernel_confirm: {
+      id: "jupyter.editor.halt_kernel_confirm",
+      defaultMessage:
+        "Terminate the kernel process? All variable state will be lost.",
+      description: "Terminating the kernel of a Jupyter Notebook",
     },
     raw_json_editor_title: {
       id: "jupyter.editor.raw_json_editor.title",

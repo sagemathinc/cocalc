@@ -24,7 +24,7 @@ import * as immutable from "immutable";
 import { ReactNode, useEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import ProgressEstimate from "../components/progress-estimate";
-import { labels } from "../i18n";
+import { jupyter as jupyterI18n, labels } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 import { ALERT_COLS } from "./usage";
@@ -323,7 +323,7 @@ export function Kernel({
             </>
           );
         case "idle":
-          const tooltip = intl.formatMessage(labels.halt_kernel_confirm);
+          const tooltip = intl.formatMessage(jupyterI18n.editor.halt_kernel_confirm);
           return (
             <>
               Kernel is idle{" "}
@@ -762,7 +762,7 @@ export function Kernel({
           )}
         {!read_only && backend_state === "running" && (
           <Popconfirm
-            title={intl.formatMessage(labels.halt_kernel_confirm)}
+            title={intl.formatMessage(jupyterI18n.editor.halt_kernel_confirm)}
             onConfirm={() => actions.shutdown()}
             okText={intl.formatMessage(labels.halt)}
             cancelText={intl.formatMessage(labels.cancel)}
