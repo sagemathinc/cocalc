@@ -684,8 +684,9 @@ export function FileTypeSelector({
     );
   }
 
+  // text-align: left because this is also in the explorer → empty component, which is centered
   return (
-    <div>
+    <div style={{ textAlign: "left" }}>
       {renderJupyterNotebook()}
       {renderLinux()}
       {renderMarkdown()}

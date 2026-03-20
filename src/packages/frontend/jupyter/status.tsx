@@ -323,12 +323,7 @@ export function Kernel({
             </>
           );
         case "idle":
-          const tooltip = intl.formatMessage({
-            id: "jupyter.status.halt_idle_tooltip",
-            defaultMessage:
-              "Terminate the kernel process? All variable state will be lost.",
-            description: "Terminating the kernel of a Jupyter Notebook",
-          });
+          const tooltip = intl.formatMessage(labels.halt_kernel_confirm);
           return (
             <>
               Kernel is idle{" "}
@@ -767,11 +762,7 @@ export function Kernel({
           )}
         {!read_only && backend_state === "running" && (
           <Popconfirm
-            title={intl.formatMessage({
-              id: "jupyter.status.halt_idle_tooltip",
-              defaultMessage:
-                "Terminate the kernel process? All variable state will be lost.",
-            })}
+            title={intl.formatMessage(labels.halt_kernel_confirm)}
             onConfirm={() => actions.shutdown()}
             okText={intl.formatMessage(labels.halt)}
             cancelText={intl.formatMessage(labels.cancel)}

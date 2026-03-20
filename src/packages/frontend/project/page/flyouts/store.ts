@@ -172,3 +172,57 @@ export async function migrateStarsOnMove(
     console.warn("migrateStarsOnMove failed:", err);
   }
 }
+
+/**
+ * Remove starred file bookmarks when files are deleted.
+ *
+ * For each deleted path, if it (or its directory form) was starred,
+ * remove it from the bookmarks.
+ *
+ * Called from ProjectActions.delete_files() so all delete paths benefit.
+ */
+export async function removeStarsOnDelete(
+  project_id: string,
+  deletedPaths: string[],
+): Promise<void> {
+  try {
+    const store = redux.getStore("account");
+    const account_id = store.get_account_id();
+    if (!account_id) return;
+
+    const bm = await webapp_client.conat_client.dkv<string[]>({
+      account_id,
+      name: CONAT_BOOKMARKS_KEY,
+    });
+
+    const current: string[] = bm.get(project_id) ?? [];
+    if (current.length === 0) return;
+
+    const starredSet = new Set(current);
+    let changed = false;
+
+    for (const p of deletedPaths) {
+      // Check both file form ("foo.txt") and directory form ("folder/")
+      for (const key of [p, p + "/"]) {
+        if (starredSet.has(key)) {
+          starredSet.delete(key);
+          changed = true;
+        }
+      }
+      // When deleting a directory, also remove any starred files inside it
+      const prefix = p.endsWith("/") ? p : p + "/";
+      for (const key of starredSet) {
+        if (key.startsWith(prefix)) {
+          starredSet.delete(key);
+          changed = true;
+        }
+      }
+    }
+
+    if (changed) {
+      bm.set(project_id, sortBy(Array.from(starredSet)));
+    }
+  } catch (err) {
+    console.warn("removeStarsOnDelete failed:", err);
+  }
+}

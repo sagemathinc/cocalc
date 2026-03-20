@@ -5,7 +5,10 @@
 
 import { webapp_client } from "../webapp-client";
 
-// Delete the files/directories in the given project with the given list of paths.
+// Low-level file deletion — calls the project API directly.
+// WARNING: Do not call this from UI code. Use ProjectActions.delete_files()
+// instead, which adds sandbox checks, project-running validation,
+// activity logging, and audit trail on top of this.
 export async function delete_files(
   project_id: string,
   paths: string[],

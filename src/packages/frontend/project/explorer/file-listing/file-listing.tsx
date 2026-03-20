@@ -46,6 +46,8 @@ import * as misc from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 
+import { useClipboardMode, useClipboardPathSet, useHasClipboard } from "@cocalc/frontend/file-clipboard/hook";
+import { QuickActionButtons } from "@cocalc/frontend/file-clipboard/quick-actions";
 import { useFolderDrop } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import DirectoryPeek from "./directory-peek";
 import EmptyPlaceholder from "./empty-placeholder";
@@ -229,6 +231,9 @@ export const FileListing: React.FC<Props> = ({
   const starredSet = useMemo(() => new Set(starred), [starred]);
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
+  const clipboardPathSet = useClipboardPathSet(project_id);
+  const hasClipboard = useHasClipboard();
+  const clipboardMode = useClipboardMode();
   // Listing buffering (freeze during selection / deferred updates) is now
   // handled by `useDeferredListing` in the parent Explorer component.
   // The `listing` and `file_map` props are already the committed snapshot.
@@ -347,6 +352,12 @@ export const FileListing: React.FC<Props> = ({
     }));
     return hide_masked_files ? entries.filter((e) => !e.mask) : entries;
   }, [listingForRender, fileMapForRender, hide_masked_files]);
+
+  // Full paths in display order — used for shift-click range selection in clipboard
+  const listingPaths = useMemo(
+    () => dataSource.map((item) => misc.path_to_file(current_path, item.name)),
+    [dataSource, current_path],
+  );
 
   // -- Selection keys (full paths in checked_files → file names for Table) --
   // Use dataSource (not listing) so hidden masked files are excluded from selection.
@@ -1032,8 +1043,25 @@ export const FileListing: React.FC<Props> = ({
               <Icon name="share-square" style={{ color: COLORS.TAB }} />
             ) : null}
           </td>
-          <td style={{ ...cellStyle }}>
+          <td style={{ ...cellStyle, position: "relative" }}>
             {renderFileName(record, dimFileExtensions)}
+            {!student_project_functionality.disableActions &&
+              record.name !== ".." && (
+                <QuickActionButtons
+                  project_id={project_id}
+                  path={fp}
+                  isdir={record.isdir}
+                  current_path={current_path}
+                  hasClipboard={hasClipboard}
+                  isInClipboard={clipboardPathSet.has(fp)}
+                  clipboardMode={clipboardMode}
+                  btnSize="middle"
+                  listingPaths={listingPaths}
+                  className="cc-explorer-hover-icon"
+                  compute_server_id={computeServerId}
+                  style={{ background: isChecked ? COLORS.BLUE_LLL : COLORS.BLUE_LLLL }}
+                />
+              )}
           </td>
           {!IS_MOBILE && (
             <td style={{ ...cellStyle, width: COL_W.DATE }}>
