@@ -16,6 +16,8 @@ import {
   CodeEditorState,
 } from "../code-editor/actions";
 
+export type ServerVerb = "start" | "stop" | "restart";
+
 export interface AppError {
   type: string; // "error" | "console.error" | "unhandledrejection"
   message: string;
@@ -25,9 +27,13 @@ export interface AppError {
   timestamp: number;
 }
 
+export type AppMode = "app" | "server";
+
 interface AgentEditorState extends CodeEditorState {
   app_errors?: AppError[];
   app_reload?: number;
+  app_mode?: AppMode;
+  server_port?: number;
 }
 
 export class Actions extends CodeEditorActions<AgentEditorState> {
@@ -69,5 +75,22 @@ export class Actions extends CodeEditorActions<AgentEditorState> {
   // Clear app errors (e.g., after agent acknowledges them)
   clearAppErrors(): void {
     this.setState({ app_errors: [] } as any);
+  }
+
+  // Switch to server mode — show the given port in the app preview iframe
+  setServerMode(port: number): void {
+    this.setState({ app_mode: "server", server_port: port } as any);
+  }
+
+  // Switch back to static app mode
+  stopServer(): void {
+    this.setState({ app_mode: "app", server_port: 0 } as any);
+  }
+
+  // Reload the server iframe (bumps the reload counter while staying in server mode)
+  restartServer(): void {
+    this.setState({
+      app_reload: ((this.store.get("app_reload") as number) ?? 0) + 1,
+    } as any);
   }
 }

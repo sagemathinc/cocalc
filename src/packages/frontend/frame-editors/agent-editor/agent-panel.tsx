@@ -50,6 +50,7 @@ import type { EditorComponentProps } from "../frame-tree/types";
 import { appDir } from "./app-preview";
 import { getBridgeSDKSource } from "./cocalc-app-bridge";
 import type { AppError } from "./actions";
+import type { ServerVerb } from "./actions";
 import { applySearchReplace } from "../llm/coding-agent-utils";
 import LLMSelector from "../llm/llm-selector";
 
@@ -274,15 +275,28 @@ Use this when the app needs specific Python packages.
 
 All methods return Promises (except portURL).
 
-## Server Apps (Dash, Shiny, Flask, etc.)
+## Server Apps (Dash, Shiny, Flask, FastAPI, etc.)
 
-For traditional client/server apps, the agent should:
-1. Write the server code (e.g., a Flask/Dash/Shiny app) to the app directory
+For apps that run a server process, use **server command blocks** to control the App Preview:
+
+\`\`\`server start <port>\`\`\` — switches the preview to server mode, showing the app at that port.
+\`\`\`server stop\`\`\` — switches back to static app mode (index.html).
+\`\`\`server restart\`\`\` — reloads the server preview iframe (same port).
+
+### Typical workflow:
+
+1. Write the server code to the app directory
 2. Start the server via an exec block, binding to a specific port (e.g., 8050)
-3. Tell the user to switch the App Preview to "Server" mode and enter the port
+3. Use a server start block to switch the preview:
 
-The app preview has an App/Server toggle. In Server mode, it proxies to
-\`/{project_id}/port/{port}/\` which is how CoCalc serves running servers.
+\`\`\`server start 8050
+\`\`\`
+
+On code changes: kill and restart the server process via exec,
+then use \`\`\`server restart\`\`\` to reload the preview.
+
+When the user asks for a static HTML app instead, use \`\`\`server stop\`\`\`
+to switch back to index.html mode.
 
 Keep responses concise and focused. Build incrementally — start simple, then enhance.`;
 
@@ -365,6 +379,19 @@ function formatWriteFileBlocks(text: string): string {
       return `**\u2192 ${filePath}**\n\`\`\`${lang}\n${content}\`\`\``;
     },
   );
+  // Transform server command blocks into styled labels
+  result = result.replace(
+    /```server\s+(start|stop|restart)(?:\s+(\d+))?\s*\n?```/g,
+    (_match, verb: string, port?: string) => {
+      const label =
+        verb === "start"
+          ? `\u25B6 Server: start on port ${port ?? "?"}`
+          : verb === "stop"
+            ? `\u25A0 Server: stop`
+            : `\u21BB Server: restart`;
+      return `**${label}**`;
+    },
+  );
   // Transform search/replace blocks into diff display
   result = result.replace(
     /<<<SEARCH\s+(\S+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g,
@@ -395,6 +422,32 @@ function parseExecBlocks(text: string): ExecBlock[] {
   while ((match = regex.exec(text)) !== null) {
     const cmd = match[1].trim();
     if (cmd) blocks.push({ command: cmd });
+  }
+  return blocks;
+}
+
+/**
+ * Parse server command blocks from LLM response.
+ *   ```server start 8050
+ *   ```
+ *   ```server stop
+ *   ```
+ *   ```server restart
+ *   ```
+ */
+interface ServerBlock {
+  verb: ServerVerb;
+  port?: number;
+}
+
+function parseServerBlocks(text: string): ServerBlock[] {
+  const blocks: ServerBlock[] = [];
+  const regex = /```server\s+(start|stop|restart)(?:\s+(\d+))?\s*\n?```/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    const verb = match[1] as ServerVerb;
+    const port = match[2] ? parseInt(match[2]) : undefined;
+    blocks.push({ verb, port });
   }
   return blocks;
 }
@@ -999,6 +1052,23 @@ export default function AgentPanel({ name }: EditorComponentProps) {
                 }
               } else {
                 setPendingExec(execBlocks);
+              }
+            }
+
+            // Auto-apply server command blocks
+            const serverBlocks = parseServerBlocks(assistantContent);
+            for (const sb of serverBlocks) {
+              const a = actions as any;
+              switch (sb.verb) {
+                case "start":
+                  if (sb.port) a.setServerMode(sb.port);
+                  break;
+                case "stop":
+                  a.stopServer();
+                  break;
+                case "restart":
+                  a.restartServer();
+                  break;
               }
             }
           }

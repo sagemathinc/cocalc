@@ -15,12 +15,12 @@ The iframe app can communicate with the CoCalc project via a bridge:
   - The bridge SDK (cocalc-app-bridge.js) provides window.cocalc API
 */
 
-import { Alert, Badge, Button, Empty, Modal, Segmented, Spin, Switch, Tooltip } from "antd";
+import { Alert, Badge, Button, Empty, Modal, Spin, Switch, Tag, Tooltip } from "antd";
 import { join } from "path";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -34,7 +34,7 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
-import type { AppError } from "./actions";
+import type { AppError, AppMode } from "./actions";
 import { createBridgeHost, type BridgeLogEntry } from "./bridge-host";
 import { getBridgeSDKSource } from "./cocalc-app-bridge";
 
@@ -60,16 +60,16 @@ function setAppTrusted(project_id: string, path: string, trust: boolean) {
   }
 }
 
-type AppMode = "app" | "server";
-
 export default function AppPreview({ name }: EditorComponentProps) {
   const intl = useIntl();
   const { project_id, path, actions, isVisible } = useFrameContext();
   const [exists, setExists] = useState<boolean | null>(null);
   const [localReload, setLocalReload] = useState(0);
-  const [mode, setMode] = useState<AppMode>("app");
-  const [serverPort, setServerPort] = useState<number>(0);
   const [trust, setTrust0] = useState<boolean>(isAppTrusted(project_id, path));
+
+  // Mode and port are driven by agent commands via the redux store
+  const mode: AppMode = useRedux(name, "app_mode") ?? "app";
+  const serverPort: number = useRedux(name, "server_port") ?? 0;
   const setTrust = (v: boolean) => {
     setAppTrusted(project_id, path, v);
     setTrust0(v);
@@ -280,15 +280,11 @@ export default function AppPreview({ name }: EditorComponentProps) {
           flexWrap: "wrap",
         }}
       >
-        <Segmented
-          size="small"
-          value={mode}
-          onChange={(v) => setMode(v as AppMode)}
-          options={[
-            { value: "app", label: "App" },
-            { value: "server", label: "Server" },
-          ]}
-        />
+        {mode === "server" && serverPort > 0 && (
+          <Tag color="blue" style={{ margin: 0 }}>
+            <Icon name="server" /> Port {serverPort}
+          </Tag>
+        )}
         <Button
           size="small"
           onClick={() => {
@@ -310,26 +306,6 @@ export default function AppPreview({ name }: EditorComponentProps) {
             Messages
           </Button>
         </Badge>
-        {mode === "server" && (
-          <Tooltip title="Port number of the server running in your project">
-            <input
-              type="number"
-              min={1}
-              max={65535}
-              value={serverPort || ""}
-              onChange={(e) => setServerPort(parseInt(e.target.value) || 0)}
-              placeholder="Port..."
-              style={{
-                width: 80,
-                height: 24,
-                border: `1px solid ${COLORS.GRAY_L}`,
-                borderRadius: 4,
-                padding: "0 6px",
-                fontSize: 12,
-              }}
-            />
-          </Tooltip>
-        )}
         <div style={{ flex: 1 }} />
         <Tooltip
           title={intl.formatMessage({
@@ -367,8 +343,8 @@ export default function AppPreview({ name }: EditorComponentProps) {
         />
       )}
 
-      {/* Content */}
-      {mode === "app" && !trust ? (
+      {/* Content — trust gates both app and server modes */}
+      {!trust ? (
         <div
           style={{
             flex: 1,
@@ -387,6 +363,13 @@ export default function AppPreview({ name }: EditorComponentProps) {
             />
           </span>
         </div>
+      ) : mode === "server" && serverSrc ? (
+        <iframe
+          key={reload}
+          src={serverSrc}
+          style={{ flex: 1, width: "100%", border: 0 }}
+          sandbox="allow-forms allow-scripts allow-presentation allow-same-origin"
+        />
       ) : mode === "app" ? (
         <iframe
           ref={iframeRef}
@@ -395,25 +378,7 @@ export default function AppPreview({ name }: EditorComponentProps) {
           sandbox="allow-forms allow-scripts allow-presentation allow-same-origin"
           onLoad={sendBridgeInit}
         />
-      ) : serverSrc ? (
-        <iframe
-          key={reload}
-          src={serverSrc}
-          style={{ flex: 1, width: "100%", border: 0 }}
-        />
-      ) : (
-        <div
-          style={{
-            flex: 1,
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: COLORS.GRAY_M,
-          }}
-        >
-          Enter the port number of your running server above.
-        </div>
-      )}
+      ) : null}
       {showMessages && (
         <BridgeMessagesModal
           onClose={() => setShowMessages(false)}
