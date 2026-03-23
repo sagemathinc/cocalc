@@ -32,7 +32,7 @@ type Group = (typeof GROUPS)[number];
 export const DISMISS_IMG_1804 = "ubuntu1804";
 export const DISMISS_IMG_2004 = "ubuntu2004-eol";
 export const DISMISS_IMG_2204 = "ubuntu2204-eol";
-// names of old images triggering the upgrade banner to 22.04
+// names of old images triggering the upgrade banner to 24.04
 export const UBUNTU2004_DEPRECATED = "ubuntu2004";
 export const UBUNTU2004_DEV = "ubuntu2004-dev";
 export const UBUNTU2204_DEV = "ubuntu2204-dev";
@@ -73,8 +73,8 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     group: "Main",
   },
   [UBUNTU2204]: {
-    title: "Ubuntu 22.04 (until June 2025)",
-    short: "Ubuntu 22.04 (until June 2025)",
+    title: "Ubuntu 22.04 (End of Life June 2025)",
+    short: "Ubuntu 22.04 (EOL June 2025)",
     descr:
       "Ubuntu 22.04-based software stack, superseded by 24.04 in June 2025",
     group: "Main",
