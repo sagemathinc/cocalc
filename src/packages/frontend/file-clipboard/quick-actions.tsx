@@ -13,6 +13,7 @@ import { useIntl } from "react-intl";
 
 import { redux } from "@cocalc/frontend/app-framework";
 import { Icon, type IconName } from "@cocalc/frontend/components";
+import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { labels } from "@cocalc/frontend/i18n";
 // delete_files used by commented-out direct delete path
 // import { delete_files } from "@cocalc/frontend/project/delete-files";
@@ -91,6 +92,7 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
     style,
   }) => {
     const intl = useIntl();
+    if (IS_MOBILE) return null;
     const { tail: name } = path_split(path);
     const btnStyle = btnSize === "middle" ? BTN_STYLE_MIDDLE : BTN_STYLE_SMALL;
 
