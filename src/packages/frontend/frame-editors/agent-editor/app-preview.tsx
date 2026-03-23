@@ -218,42 +218,46 @@ export default function AppPreview({ name }: EditorComponentProps) {
     checkExists();
   }, [checkExists, reload]);
 
-  if (exists === null) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-        }}
-      >
-        <Spin />
-      </div>
-    );
-  }
+  // In server mode the iframe connects to a running process — no index.html
+  // needed. Only gate on existence for static "app" mode.
+  if (mode === "app") {
+    if (exists === null) {
+      return (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+          }}
+        >
+          <Spin />
+        </div>
+      );
+    }
 
-  if (!exists) {
-    return (
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          height: "100%",
-          padding: 20,
-        }}
-      >
-        <Empty
-          description={
-            <span style={{ color: COLORS.GRAY_M }}>
-              No app yet. Ask the agent to create an application and it will
-              appear here.
-            </span>
-          }
-        />
-      </div>
-    );
+    if (!exists) {
+      return (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100%",
+            padding: 20,
+          }}
+        >
+          <Empty
+            description={
+              <span style={{ color: COLORS.GRAY_M }}>
+                No app yet. Ask the agent to create an application and it will
+                appear here.
+              </span>
+            }
+          />
+        </div>
+      );
+    }
   }
 
   const appSrc = `${raw_url(project_id, indexPath)}?v=${reload}`;

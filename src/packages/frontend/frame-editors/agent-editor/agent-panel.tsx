@@ -505,6 +505,8 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const pendingNewSessionRef = useRef("");
   const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSubmittedRef = useRef("");
+  // Server blocks deferred until exec blocks complete (same LLM turn)
+  const pendingServerBlocksRef = useRef<ServerBlock[]>([]);
 
   const dir = appDir(path);
   // The directory containing the .app file (for exec cwd and system prompt)
@@ -874,6 +876,27 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     [project_id, dir, actions, writeMessage],
   );
 
+  // Apply a list of server command blocks to the actions store
+  const applyServerBlocks = useCallback(
+    (blocks: ServerBlock[]) => {
+      const a = actions as any;
+      for (const sb of blocks) {
+        switch (sb.verb) {
+          case "start":
+            if (sb.port) a.setServerMode(sb.port);
+            break;
+          case "stop":
+            a.stopServer();
+            break;
+          case "restart":
+            a.restartServer();
+            break;
+        }
+      }
+    },
+    [actions],
+  );
+
   const handleExecCommand = useCallback(
     async (command: string) => {
       try {
@@ -915,9 +938,18 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           event: "exec_result",
         });
       }
-      setPendingExec((prev) => prev.filter((e) => e.command !== command));
+      setPendingExec((prev) => {
+        const remaining = prev.filter((e) => e.command !== command);
+        // When the last exec block finishes, flush any deferred server blocks
+        if (remaining.length === 0 && pendingServerBlocksRef.current.length > 0) {
+          const deferred = pendingServerBlocksRef.current;
+          pendingServerBlocksRef.current = [];
+          applyServerBlocks(deferred);
+        }
+        return remaining;
+      });
     },
-    [project_id, path, parentDir, writeMessage],
+    [project_id, path, parentDir, writeMessage, applyServerBlocks],
   );
 
   const handleSubmit = useCallback(
@@ -1031,46 +1063,44 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               session_id: activeSessionId,
             });
 
-            // Auto-apply writefile blocks
+            // Apply all tool blocks from the response. Writefile and
+            // search/replace are awaited in sequence so patches see
+            // files written in the same turn.
             const writeBlocks = parseWriteFileBlocks(assistantContent);
-            if (writeBlocks.length > 0) {
-              applyWriteFiles(writeBlocks);
-            }
-
-            // Auto-apply search/replace blocks
             const srBlocks = parseFileSearchReplaceBlocks(assistantContent);
-            if (srBlocks.length > 0) {
-              applySearchReplaceFiles(srBlocks);
-            }
-
-            // Check for exec blocks — auto-run or queue for confirmation
             const execBlocks = parseExecBlocks(assistantContent);
-            if (execBlocks.length > 0) {
-              if (autoExecRef.current) {
-                for (const cmd of execBlocks) {
-                  handleExecCommand(cmd.command);
-                }
-              } else {
-                setPendingExec(execBlocks);
-              }
-            }
-
-            // Auto-apply server command blocks
             const serverBlocks = parseServerBlocks(assistantContent);
-            for (const sb of serverBlocks) {
-              const a = actions as any;
-              switch (sb.verb) {
-                case "start":
-                  if (sb.port) a.setServerMode(sb.port);
-                  break;
-                case "stop":
-                  a.stopServer();
-                  break;
-                case "restart":
-                  a.restartServer();
-                  break;
+
+            (async () => {
+              // 1. Write files first
+              if (writeBlocks.length > 0) {
+                await applyWriteFiles(writeBlocks);
               }
-            }
+              // 2. Then apply patches (may target just-written files)
+              if (srBlocks.length > 0) {
+                await applySearchReplaceFiles(srBlocks);
+              }
+              // 3. Exec blocks — auto-run or queue for confirmation
+              if (execBlocks.length > 0) {
+                if (autoExecRef.current) {
+                  for (const cmd of execBlocks) {
+                    handleExecCommand(cmd.command);
+                  }
+                } else {
+                  setPendingExec(execBlocks);
+                }
+              }
+              // 4. Server command blocks — if exec blocks are also
+              // present, defer until they complete so the server process
+              // is actually running before the iframe connects.
+              if (serverBlocks.length > 0) {
+                if (execBlocks.length > 0) {
+                  pendingServerBlocksRef.current = serverBlocks;
+                } else {
+                  applyServerBlocks(serverBlocks);
+                }
+              }
+            })();
           }
         });
 
@@ -1097,6 +1127,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       applyWriteFiles,
       applySearchReplaceFiles,
       handleExecCommand,
+      applyServerBlocks,
       appErrors,
     ],
   );
