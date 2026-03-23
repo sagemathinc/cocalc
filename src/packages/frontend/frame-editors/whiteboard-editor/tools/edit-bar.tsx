@@ -2,7 +2,7 @@
 Editing bar for editing one (or more) selected elements.
 */
 
-import { Button, Dropdown, InputNumber, Select, Tooltip } from "antd";
+import { Button, Dropdown, InputNumber, Select, Space, Tooltip } from "antd";
 import { CSSProperties, ReactNode, useMemo, useState } from "react";
 const { Option } = Select;
 
@@ -59,14 +59,10 @@ export default function EditBar(opts: Props) {
         display: "flex",
         flexDirection: "column",
         height: "42px",
-        ...(elements.length == 1 &&
-        elements[0].type ==
-          "code" /* this is basically a hack for now so tab completion in code cells doesn't get obscured by edit bar */
-          ? { right: "10px" }
-          : undefined),
+        left: 0,
       }}
     >
-      <Button.Group>
+      <Space.Compact>
         {!(readOnly || locked || hidden) && (
           <>
             {configParams.has("color") && <ColorButton {...props} />}
@@ -86,7 +82,7 @@ export default function EditBar(opts: Props) {
         {!readOnly && !locked && <HideButton elements={elements} />}
         {!(readOnly || locked || hidden) && <DeleteButton {...props} />}
         <OtherOperations {...props} />
-      </Button.Group>
+      </Space.Compact>
     </div>
   );
 }

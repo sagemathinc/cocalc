@@ -1,3 +1,5 @@
+.superpowers/
+
 *~
 *__pycache__
 *.csr
@@ -166,7 +168,7 @@ src/packages/frontend/i18n/trans/*.compiled.json
 **/project-env.sh
 **/*.bash_history
 
-src/.claude/settings.local.json
+.claude/settings.local.json
 
 # test reports by jest-junit
 junit.xml

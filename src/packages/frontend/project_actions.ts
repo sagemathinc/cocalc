@@ -39,6 +39,8 @@ import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
+import { setExplorerDirectory } from "@cocalc/frontend/project/explorer/directory-tree";
+import { setFlyoutDirectory } from "@cocalc/frontend/project/page/flyouts/state";
 import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import {
   query as client_query,
@@ -76,7 +78,7 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "@cocalc/frontend/project/page/flyouts/state";
-import { migrateStarsOnMove } from "@cocalc/frontend/project/page/flyouts/store";
+import { migrateStarsOnMove, removeStarsOnDelete } from "@cocalc/frontend/project/page/flyouts/store";
 import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
@@ -672,6 +674,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             flyout_browsing_path: fileDir,
             flyout_history_path: fileDir,
           });
+          // Persist so independent mode can pick up the last known path.
+          setExplorerDirectory(this.project_id, fileDir);
+          setFlyoutDirectory(this.project_id, fileDir);
         }
 
         // Reopen the file if relationship has changed
@@ -1447,8 +1452,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             explorer_browsing_path: path,
             explorer_history_path: path,
             new_page_path: path,
-            flyout_new_path: path,
           });
+          // Persist so page reload restores the correct directory.
+          setExplorerDirectory(this.project_id, path);
         }
         const store = this.get_store();
         if (store == undefined) {
@@ -1805,7 +1811,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const listing = store.getIn([
       "directory_listings",
       compute_server_id,
-      store.get("current_path"),
+      store.get("explorer_browsing_path") ?? store.get("current_path"),
     ]);
 
     if (typeof listing === "string") {
@@ -2705,6 +2711,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status: `Deleting ${mesg}...` });
     try {
       await delete_files(this.project_id, opts.paths, opts.compute_server_id);
+      // Remove starred file bookmarks for deleted paths
+      await removeStarsOnDelete(this.project_id, opts.paths);
       this.log({
         event: "file_action",
         action: "deleted",

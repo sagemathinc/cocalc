@@ -108,6 +108,9 @@ export function addEditorMenus({
         `command "${name}" not fully defined -- getCommand returned null`,
       );
     }
+    if (!c.name) {
+      c = { ...c, name };
+    }
     if (!c.label) {
       c = { ...c, label: capitalize(name) };
     }

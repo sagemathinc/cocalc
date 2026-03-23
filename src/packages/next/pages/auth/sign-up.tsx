@@ -20,6 +20,8 @@ import withCustomize from "lib/with-customize";
 export default function SignUpPage({ customize, requiresToken, requireTags }) {
   const { siteName, isCommercial } = customize;
   const router = useRouter();
+  const defaultEmail =
+    typeof router.query.email === "string" ? router.query.email : undefined;
 
   function openRoot() {
     router.push("/");
@@ -49,6 +51,7 @@ export default function SignUpPage({ customize, requiresToken, requireTags }) {
             requiresToken={requiresToken}
             onSuccess={onSuccess}
             requireTags={requireTags}
+            defaultEmail={defaultEmail}
           />
           <Footer />
         </Layout.Content>

@@ -16,11 +16,21 @@ RETURNS:
 import getAccountId from "lib/account/get-account";
 import { isPurchaseAllowed } from "@cocalc/server/purchases/is-purchase-allowed";
 import getParams from "lib/api/get-params";
+import getLogger from "@cocalc/backend/logger";
+
+const logger = getLogger("next-api:purchases:is-purchase-allowed");
 
 export default async function handle(req, res) {
   try {
     res.json(await get(req));
   } catch (err) {
+    const { service, cost } = getParams(req);
+    logger.warn("is-purchase-allowed request failed", {
+      account_id: await getAccountId(req),
+      service,
+      cost,
+      error: `${err.message}`,
+    });
     res.json({ error: `${err.message}` });
     return;
   }

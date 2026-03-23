@@ -23,7 +23,6 @@ import type {
   DragMoveEvent,
   DragOverEvent,
   DragStartEvent,
-  Modifier,
 } from "@dnd-kit/core";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
@@ -32,14 +31,19 @@ import {
   useActions,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
+import {
+  MOUSE_SENSOR_OPTIONS,
+  TOUCH_SENSOR_OPTIONS,
+  DRAG_OVERLAY_MODIFIERS,
+  DragOverlayContent,
+  getEventCoords,
+} from "@cocalc/frontend/components/dnd";
 import {
   is_valid_uuid_string,
   path_split,
   plural,
   uuid,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 // ---------- Types ----------
 
@@ -121,139 +125,54 @@ export function useFolderDrop(id: string, folderPath: string, enabled = true) {
 export function findFolderDropPathAtPoint(x: number, y: number): string | null {
   const elements = document.elementsFromPoint(x, y);
   for (const el of elements) {
+    // Check the element itself
     const folderPath = (el as HTMLElement).getAttribute?.(
       "data-folder-drop-path",
     );
     if (folderPath != null) return folderPath;
+    // Walk up to ancestor (e.g. <td> → <tr> that carries the attribute)
+    const ancestor = (el as HTMLElement).closest?.(
+      "[data-folder-drop-path]",
+    );
+    if (ancestor) {
+      const ancestorPath = ancestor.getAttribute("data-folder-drop-path");
+      if (ancestorPath != null) return ancestorPath;
+    }
   }
   return null;
 }
-
-// ---------- Overlay modifier (snap to pointer with small offset) ----------
-
-/**
- * Position the DragOverlay at the pointer (bottom-right of cursor)
- * instead of at the original element's origin.
- *
- * By default, DragOverlay renders at: elementOrigin + transform.
- * We want it at: pointerPosition + (12, 12).
- * Since pointerPosition = initialPointer + transform, we adjust:
- *   modifiedTransform = transform + (initialPointer - elementOrigin) + offset
- */
-const snapToPointerModifier: Modifier = ({
-  activatorEvent,
-  activeNodeRect,
-  transform,
-}) => {
-  if (!activatorEvent || !activeNodeRect) return transform;
-  // Extract pointer coordinates — works for both MouseEvent and TouchEvent
-  const coords = getEventCoords(activatorEvent);
-  if (!coords) return transform;
-  return {
-    ...transform,
-    x: transform.x + (coords.x - activeNodeRect.left) + 12,
-    y: transform.y + (coords.y - activeNodeRect.top) + 12,
-  };
-};
-
-/** Extract clientX/clientY from mouse, pointer, or touch events. */
-function getEventCoords(event: Event): { x: number; y: number } | null {
-  if ("clientX" in event && typeof (event as any).clientX === "number") {
-    return {
-      x: (event as MouseEvent).clientX,
-      y: (event as MouseEvent).clientY,
-    };
-  }
-  // TouchEvent: read from touches or changedTouches
-  const te = event as TouchEvent;
-  const touch = te.touches?.[0] ?? te.changedTouches?.[0];
-  if (touch) {
-    return { x: touch.clientX, y: touch.clientY };
-  }
-  return null;
-}
-
-/** Pre-allocated array so we don't create a new one every render. */
-const DRAG_OVERLAY_MODIFIERS: Modifier[] = [snapToPointerModifier];
 
 // ---------- Overlay ----------
 
-function FileDragOverlayContent({
-  data,
-  isCopy,
-  overFolder,
-  isInvalid,
-}: {
-  data: FileDragData;
-  isCopy: boolean;
-  overFolder: string | null;
-  isInvalid: boolean;
-}) {
+function FileDragOverlayContent({ data, isCopy, overFolder, isInvalid }) {
   const n = data.paths.length;
-
   if (isInvalid && overFolder != null) {
     const folderName = path_split(overFolder).tail || "Home";
     return (
-      <div
-        style={{
-          padding: "4px 10px",
-          background: `${COLORS.ANTD_RED}e0`,
-          color: COLORS.WHITE,
-          borderRadius: 4,
-          fontSize: "12px",
-          whiteSpace: "nowrap",
-          width: "max-content",
-          pointerEvents: "none",
-        }}
-      >
-        <Icon name="times-circle" style={{ marginRight: 6 }} />
-        Cannot move into {folderName}
-      </div>
+      <DragOverlayContent
+        icon="times-circle"
+        text={`Cannot move into ${folderName}`}
+        variant="invalid"
+      />
     );
   }
-
   const op = isCopy ? "Copy" : "Move";
   if (overFolder != null) {
-    // Hovering over a valid folder drop target
     const target = path_split(overFolder).tail || "Home";
     return (
-      <div
-        style={{
-          padding: "4px 10px",
-          background: `${COLORS.ANTD_LINK_BLUE}e0`,
-          color: COLORS.WHITE,
-          borderRadius: 4,
-          fontSize: "12px",
-          whiteSpace: "nowrap",
-          width: "max-content",
-          pointerEvents: "none",
-        }}
-      >
-        <Icon
-          name={isCopy ? "copy" : "arrow-right"}
-          style={{ marginRight: 6 }}
-        />
-        {op} {n} {plural(n, "file")} &rarr; {target}
-      </div>
+      <DragOverlayContent
+        icon={isCopy ? "copy" : "arrow-right"}
+        text={`${op} ${n} ${plural(n, "file")} → ${target}`}
+        variant="valid"
+      />
     );
   }
-  // Not over any folder — show neutral hint
   return (
-    <div
-      style={{
-        padding: "4px 10px",
-        background: `${COLORS.GRAY_D}d0`,
-        color: COLORS.WHITE,
-        borderRadius: 4,
-        fontSize: "12px",
-        whiteSpace: "nowrap",
-        width: "max-content",
-        pointerEvents: "none",
-      }}
-    >
-      <Icon name={isCopy ? "copy" : "arrows"} style={{ marginRight: 6 }} />
-      {op} {n} {plural(n, "file")} onto a folder
-    </div>
+    <DragOverlayContent
+      icon={isCopy ? "copy" : "arrows"}
+      text={`${op} ${n} ${plural(n, "file")} onto a folder`}
+      variant="neutral"
+    />
   );
 }
 
@@ -316,12 +235,8 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
   const forceCancelledRef = useRef(false);
 
   const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: { distance: 3, delay: 300, tolerance: 5 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 300, tolerance: 5 },
-    }),
+    useSensor(MouseSensor, MOUSE_SENSOR_OPTIONS),
+    useSensor(TouchSensor, TOUCH_SENSOR_OPTIONS),
   );
 
   // Track Shift key globally
@@ -414,29 +329,64 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
   }, [isInvalidTarget]);
 
   // onDragMove fires on every pointer move — use it to detect hovering
-  // over non-folder file rows (which are not droppable targets).
-  // Throttled to avoid excessive DOM queries.
+  // over folder rows via DOM hit-testing (replaces per-row useDroppable
+  // for file listing rows, saving hundreds of hook registrations).
+  // CSS highlight classes are toggled directly on the DOM element to avoid
+  // React re-renders on every pointer move.
   const lastMoveCheck = useRef(0);
+  const highlightedRowRef = useRef<HTMLElement | null>(null);
   const handleDragMove = useCallback((event: DragMoveEvent) => {
-    // Only check when no droppable is active (folders handle themselves)
-    if (event.over != null) return;
     const now = Date.now();
-    if (now - lastMoveCheck.current < 80) return;
+    if (now - lastMoveCheck.current < 60) return;
     lastMoveCheck.current = now;
     const dragData = event.active?.data?.current as FileDragData | undefined;
     if (!dragData?.paths) return;
     const { x, y } = pointerPos.current;
-    const el = document.elementFromPoint(x, y);
-    if (!el) return; // pointer outside viewport — don't change overlay state
-    const row = el.closest?.("[data-row-key], [data-folder-drop-path]");
-    if (row && !row.hasAttribute("data-folder-drop-path")) {
-      // Hovering over a non-folder file row — show neutral hint
-      setOverFolder(null);
-      setIsInvalidTarget(false);
-    } else if (isInvalidTargetRef.current) {
+
+    // DOM hit-test for folder rows (works for file listing rows,
+    // directory tree nodes, breadcrumbs — anything with the attribute)
+    const folderPath = findFolderDropPathAtPoint(x, y);
+    const folderEl =
+      folderPath != null
+        ? ((document.elementFromPoint(x, y) as HTMLElement)?.closest?.(
+            "[data-folder-drop-path]",
+          ) as HTMLElement | null)
+        : null;
+
+    // Update CSS highlight directly on the DOM element
+    if (highlightedRowRef.current !== folderEl) {
+      highlightedRowRef.current?.classList.remove(
+        "cc-explorer-row-drop-target",
+        "cc-explorer-row-drop-invalid",
+      );
+      highlightedRowRef.current = folderEl;
+    }
+
+    if (folderPath != null && folderEl != null) {
+      const isSelf = dragData.paths.some(
+        (p) => p === folderPath || folderPath.startsWith(p + "/"),
+      );
+      const isAlreadyIn =
+        !isSelf &&
+        dragData.paths.every((p) => path_split(p).head === folderPath);
+      if (isSelf) {
+        folderEl.classList.add("cc-explorer-row-drop-invalid");
+        setOverFolder(folderPath);
+        setIsInvalidTarget(true);
+      } else if (isAlreadyIn) {
+        setOverFolder(null);
+        setIsInvalidTarget(false);
+      } else {
+        folderEl.classList.add("cc-explorer-row-drop-target");
+        setOverFolder(folderPath);
+        setIsInvalidTarget(false);
+      }
+    } else if (event.over == null) {
+      // No folder row and no dnd-kit droppable — clear state
       setOverFolder(null);
       setIsInvalidTarget(false);
     }
+    // else: dnd-kit droppable active (e.g. tree node) — let handleDragOver manage
   }, []);
 
   // Restore the pre-drag selection (used on cancel / invalid drop).
@@ -459,6 +409,11 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
     if (!activeData) return;
     const cleanup = () => {
       if (document.hidden) {
+        highlightedRowRef.current?.classList.remove(
+          "cc-explorer-row-drop-target",
+          "cc-explorer-row-drop-invalid",
+        );
+        highlightedRowRef.current = null;
         forceCancelledRef.current = true;
         setActiveData(null);
         setOverFolder(null);
@@ -468,6 +423,11 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
       }
     };
     const blurCleanup = () => {
+      highlightedRowRef.current?.classList.remove(
+        "cc-explorer-row-drop-target",
+        "cc-explorer-row-drop-invalid",
+      );
+      highlightedRowRef.current = null;
       // window blur fires when user Alt+Tabs or clicks outside browser
       forceCancelledRef.current = true;
       setActiveData(null);
@@ -501,6 +461,13 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
 
   const handleDragEnd = useCallback(
     async (event: DragEndEvent) => {
+      // Clean up DOM highlight
+      highlightedRowRef.current?.classList.remove(
+        "cc-explorer-row-drop-target",
+        "cc-explorer-row-drop-invalid",
+      );
+      highlightedRowRef.current = null;
+
       setActiveData(null);
       setOverFolder(null);
       document.body.style.cursor = "";
@@ -525,21 +492,31 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
         return;
       }
 
-      const dropData = event.over?.data?.current as FolderDropData | undefined;
+      // Resolve drop target: check DOM first (covers file listing folder
+      // rows that no longer register as dnd-kit droppables), then fall
+      // back to dnd-kit's collision detection.
+      const pos = pointerPos.current;
+      const domFolderPath = findFolderDropPathAtPoint(pos.x, pos.y);
+      const dndDropData = event.over?.data?.current as
+        | FolderDropData
+        | undefined;
+      const dropPath =
+        domFolderPath ??
+        (dndDropData?.type === "folder-drop" ? dndDropData.path : null);
 
       // Case 1: Valid drop on a folder within the same project
-      if (dropData?.type === "folder-drop") {
+      if (dropPath != null) {
         // Prevent dropping a folder into itself or a descendant
         if (
           dragData.paths.some(
-            (p) => p === dropData.path || dropData.path.startsWith(p + "/"),
+            (p) => p === dropPath || dropPath.startsWith(p + "/"),
           )
         ) {
           restoreSelection();
           return;
         }
         // Prevent no-op move (all files already in the target folder)
-        if (dragData.paths.every((p) => path_split(p).head === dropData.path)) {
+        if (dragData.paths.every((p) => path_split(p).head === dropPath)) {
           restoreSelection();
           return;
         }
@@ -548,17 +525,23 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
           if (shiftKey) {
             await actions.copy_paths({
               src: dragData.paths,
-              dest: dropData.path,
+              dest: dropPath,
             });
           } else {
             await actions.move_files({
               src: dragData.paths,
-              dest: dropData.path,
+              dest: dropPath,
             });
           }
           actions.set_all_files_unchecked();
           preDragCheckedRef.current = null;
-          actions.fetch_directory_listing();
+          // Refresh both source and destination directories so listings
+          // update correctly even when browsing paths differ from current_path.
+          const srcDir = path_split(dragData.paths[0]).head;
+          actions.fetch_directory_listing({ path: srcDir });
+          if (dropPath !== srcDir) {
+            actions.fetch_directory_listing({ path: dropPath });
+          }
         } catch (err) {
           actions.set_activity({
             id: uuid(),
@@ -592,6 +575,11 @@ export function FileDndProvider({ project_id, children }: ProviderProps) {
   // Cancel handler: same cleanup as the start of onDragEnd + restore selection.
   // Fires when the user presses Escape or the sensor cancels mid-drag.
   const handleDragCancel = useCallback(() => {
+    highlightedRowRef.current?.classList.remove(
+      "cc-explorer-row-drop-target",
+      "cc-explorer-row-drop-invalid",
+    );
+    highlightedRowRef.current = null;
     setActiveData(null);
     setOverFolder(null);
     document.body.style.cursor = "";

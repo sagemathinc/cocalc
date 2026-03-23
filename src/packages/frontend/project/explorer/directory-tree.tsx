@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Tree } from "antd";
+import { Input, Tree } from "antd";
 import type { TreeDataNode, TreeProps } from "antd";
 import React, {
   useCallback,
@@ -33,12 +33,56 @@ function isPositiveNumber(value: unknown): value is number {
   return typeof value === "number" && !isNaN(value) && value > 0;
 }
 
-function directoryTreeWidthKey(project_id: string): string {
-  return `${project_id}::explorer-directory-tree-width`;
+// -- Consolidated localStorage state for the explorer panel ---------------
+// One key per project: `${project_id}::explorer` → LSExplorer JSON.
+
+interface LSExplorerTree {
+  visible?: boolean;
+  width?: number;
+  expanded_keys?: string[];
+  scroll_top?: number;
 }
 
+export interface LSExplorer {
+  directory?: string;
+  tree?: LSExplorerTree;
+}
+
+function explorerLsKey(project_id: string): string {
+  return `${project_id}::explorer`;
+}
+
+function getExplorerState(project_id: string): LSExplorer {
+  return LS.get<LSExplorer>(explorerLsKey(project_id)) ?? {};
+}
+
+function updateExplorerTree(
+  project_id: string,
+  update: Partial<LSExplorerTree>,
+): void {
+  const state = getExplorerState(project_id);
+  LS.set(explorerLsKey(project_id), {
+    ...state,
+    tree: { ...state.tree, ...update },
+  });
+}
+
+export function getExplorerDirectory(project_id: string): string {
+  return getExplorerState(project_id).directory ?? "";
+}
+
+export function setExplorerDirectory(
+  project_id: string,
+  path: string,
+): void {
+  const state = getExplorerState(project_id);
+  LS.set(explorerLsKey(project_id), { ...state, directory: path });
+}
+
+// -- Tree getters/setters (same public API, backed by the JSON blob) ------
+
 export function getDirectoryTreeWidth(project_id: string): number {
-  const width = LS.get<number>(directoryTreeWidthKey(project_id));
+  const width = getExplorerState(project_id).tree?.width;
   if (!isPositiveNumber(width)) return DIRECTORY_TREE_DEFAULT_WIDTH_PX;
   return Math.max(
     DIRECTORY_TREE_MIN_WIDTH_PX,
@@ -47,17 +91,13 @@ export function getDirectoryTreeWidth(project_id: string): number {
 }
 
 export function setDirectoryTreeWidth(project_id: string, width: number): void {
-  LS.set(directoryTreeWidthKey(project_id), width);
+  updateExplorerTree(project_id, { width });
 }
 
 const MAX_TREE_EXPANDED = 20;
 
-function directoryTreeExpandedKeysKey(project_id: string): string {
-  return `${project_id}::explorer-directory-tree-expanded-keys`;
-}
-
 function getDirectoryTreeExpandedKeys(project_id: string): string[] {
-  const keys = LS.get<string[]>(directoryTreeExpandedKeysKey(project_id));
+  const keys = getExplorerState(project_id).tree?.expanded_keys;
   if (!Array.isArray(keys)) return [];
   return keys.filter((k) => k !== TREE_HOME_KEY);
 }
@@ -66,26 +106,9 @@ function saveDirectoryTreeExpandedKeys(
   project_id: string,
   keys: string[],
 ): void {
-  LS.set(
-    directoryTreeExpandedKeysKey(project_id),
-    keys.slice(0, MAX_TREE_EXPANDED),
-  );
-}
-
-function directoryTreeScrollTopKey(project_id: string): string {
-  return `${project_id}::explorer-directory-tree-scroll-top`;
-}
-
-function getDirectoryTreeScrollTop(project_id: string): number {
-  const val = LS.get<number>(directoryTreeScrollTopKey(project_id));
-  return typeof val === "number" && val >= 0 ? val : 0;
-}
-
-function saveDirectoryTreeScrollTop(
-  project_id: string,
-  scrollTop: number,
-): void {
-  LS.set(directoryTreeScrollTopKey(project_id), scrollTop);
+  updateExplorerTree(project_id, {
+    expanded_keys: keys.slice(0, MAX_TREE_EXPANDED),
+  });
 }
 
 const TREE_PANEL_STYLE: React.CSSProperties = {
@@ -362,7 +385,10 @@ export function DirectoryTreePanel({
     getDirectoryTreeExpandedKeys(project_id),
   );
   const [error, setError] = useState<string>("");
+  const [filter, setFilter] = useState("");
+  const treeRef = useRef<any>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [treeHeight, setTreeHeight] = useState(300);
   const { starred, setStarredPath } = useStarredFilesManager(project_id);
   const { dropRef: homeDropRef } = useFolderDrop(
     "explorer-folder-home-root",
@@ -516,55 +542,28 @@ export function DirectoryTreePanel({
     saveDirectoryTreeExpandedKeys(project_id, expandedKeys);
   }, [project_id, expandedKeys]);
 
-  // Scroll selected node into view when current_path changes.
-  // We manipulate scrollTop directly on the container rather than using
-  // scrollIntoView, which can scroll wrong ancestor containers (window, etc.).
-  // Two passes: 100ms (after React paint) and 400ms (after expand animations).
+  // Measure available height for the virtual-scrolling Tree.
   useEffect(() => {
-    function scrollSelected() {
-      const container = scrollContainerRef.current;
-      if (!container) return;
-      const selected = container.querySelector(
-        ".ant-tree-node-selected",
-      ) as HTMLElement | null;
-      if (!selected) return;
-      const containerTop = container.getBoundingClientRect().top;
-      const selectedTop = selected.getBoundingClientRect().top;
-      const relativeTop = selectedTop - containerTop + container.scrollTop;
-      // Center the selected node in the visible area
-      const target =
-        relativeTop - container.clientHeight / 2 + selected.offsetHeight / 2;
-      container.scrollTo({ top: target, behavior: "smooth" });
-    }
-    const t = setTimeout(scrollSelected, 200);
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setTreeHeight(Math.floor(entry.contentRect.height));
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // Scroll selected node into view when current_path changes.
+  // Uses the Tree's virtual-scroll `scrollTo` API instead of DOM queries.
+  useEffect(() => {
+    if (current_path === "") return;
+    const t = setTimeout(() => {
+      treeRef.current?.scrollTo({ key: pathToTreeKey(current_path) });
+    }, 200);
     return () => clearTimeout(t);
   }, [current_path]);
-
-  // Restore scroll position after initial data loads on mount / project change
-  useEffect(() => {
-    const savedScrollTop = getDirectoryTreeScrollTop(project_id);
-    if (savedScrollTop <= 0) return;
-    const timer = setTimeout(() => {
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop = savedScrollTop;
-      }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [project_id, compute_server_id]);
-
-  const handleTreeScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const el = e.currentTarget;
-      // Prevent horizontal drift — overflow-x:hidden clips visually but
-      // scrollLeft can still be set programmatically (scrollIntoView,
-      // antd Tree, dnd-kit). Force it back to 0.
-      if (el.scrollLeft !== 0) {
-        el.scrollLeft = 0;
-      }
-      saveDirectoryTreeScrollTop(project_id, el.scrollTop);
-    },
-    [project_id],
-  );
 
   const onExpand: TreeProps["onExpand"] = useCallback(
     (keys) => {
@@ -636,6 +635,41 @@ export function DirectoryTreePanel({
 
     return buildChildren("");
   }, [childrenByPath, project_id, treeVersion, starredSet, handleToggleStar]);
+
+  // Filter treeData when the search box is active.  Keep nodes whose
+  // folder name matches and retain all ancestor nodes so the tree
+  // structure stays valid.  Auto-expand every surviving parent.
+  const { filteredTreeData, filteredExpandedKeys } = useMemo(() => {
+    const trimmed = filter.trim();
+    if (!trimmed) {
+      return { filteredTreeData: treeData, filteredExpandedKeys: null };
+    }
+    const searchTerms = misc.search_split(trimmed);
+    const autoExpanded: string[] = [];
+
+    function filterNodes(nodes: TreeDataNode[]): TreeDataNode[] {
+      return nodes.flatMap((node) => {
+        const filteredChildren = node.children
+          ? filterNodes(node.children)
+          : [];
+        const path = treeKeyToPath(node.key);
+        const label = misc.path_split(path).tail || path;
+        const selfMatches = misc.search_match(label, searchTerms);
+        if (selfMatches || filteredChildren.length > 0) {
+          if (filteredChildren.length > 0) {
+            autoExpanded.push(String(node.key));
+          }
+          return [{ ...node, children: filteredChildren }];
+        }
+        return [];
+      });
+    }
+
+    return {
+      filteredTreeData: filterNodes(treeData),
+      filteredExpandedKeys: autoExpanded,
+    };
+  }, [treeData, filter]);
 
   // Starred directories: entries ending with "/" are directories
   const starredDirs = starred.filter((p) => p.endsWith("/"));
@@ -722,10 +756,30 @@ export function DirectoryTreePanel({
         </div>
       )}
 
+      {/* Filter input */}
+      <Input
+        placeholder="Filter folders..."
+        allowClear
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        style={{
+          flexShrink: 0,
+          margin: "4px 0",
+          width: "calc(100% - 12px)",
+          alignSelf: "center",
+          ...(filter
+            ? {
+                borderColor: COLORS.COCALC_ORANGE,
+                boxShadow: `0 0 3px ${COLORS.COCALC_ORANGE}`,
+              }
+            : {}),
+        }}
+        size="small"
+      />
+
       {/* Main directory tree — shows root children directly, no extra indent */}
       <div
         ref={scrollContainerRef}
-        onScroll={handleTreeScroll}
         style={{
           ...TREE_PANEL_STYLE,
           flex: "1 1 0",
@@ -733,11 +787,12 @@ export function DirectoryTreePanel({
         }}
       >
         <Tree
+          ref={treeRef}
           blockNode
           showLine={{ showLeafIcon: false }}
-          virtual={false}
-          treeData={treeData}
-          expandedKeys={expandedKeys}
+          height={treeHeight}
+          treeData={filteredTreeData}
+          expandedKeys={filteredExpandedKeys ?? expandedKeys}
           selectedKeys={
             current_path !== "" ? [pathToTreeKey(current_path)] : []
           }

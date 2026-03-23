@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Button, Popover } from "antd";
+import { Button, Modal, Popover } from "antd";
 import { useEffect, useState } from "react";
 import { CSS, useRedux } from "@cocalc/frontend/app-framework";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
@@ -47,12 +47,12 @@ export default function KernelPanel0() {
     })();
   }, []);
 
-  if (actions == null) return null;
-  const state = actions.store.get("backend_state");
+  const state = actions?.store?.get("backend_state");
   if (
-    desc.get("selectedTool") == "code" ||
-    (state != null && state != "ready" && state != "init") ||
-    whiteboardActions.selectionContainsCellOfType(frameId, "code")
+    actions != null &&
+    (desc.get("selectedTool") == "code" ||
+      (state != null && state != "ready" && state != "init") ||
+      whiteboardActions.selectionContainsCellOfType(frameId, "code"))
   ) {
     return <KernelPanel actions={actions} />;
   }
@@ -65,7 +65,7 @@ interface Props {
 
 function KernelPanel({ actions }: Props) {
   const { project_id, path } = useFrameContext();
-  const showKernelSelector: undefined | boolean = useRedux([
+  const showKernelSelector: boolean | undefined = useRedux([
     actions.name,
     "show_kernel_selector",
   ]);
@@ -75,17 +75,12 @@ function KernelPanel({ actions }: Props) {
     padding: "3px 5px 1px 5px",
     fontSize: "14px",
     right: 0,
-    ...(showKernelSelector && {
-      bottom: "10px",
-      top: "10px",
-      overflowY: "auto",
-    }),
   };
   return (
     <div style={style}>
-      <div style={{ display: "flex" }}>
+      <div style={{ display: "flex", alignItems: "center" }}>
         <div style={{ flex: 1 }}></div>
-        <Kernel actions={actions} style={KERNEL_STYLE} />
+        <Kernel actions={actions} compact style={KERNEL_STYLE} />
         <Popover
           title={
             <>
@@ -112,7 +107,19 @@ function KernelPanel({ actions }: Props) {
           </Button>
         </Popover>
       </div>
-      {showKernelSelector && <KernelSelector actions={actions} />}
+      <Modal
+        open={!!showKernelSelector}
+        onCancel={() => actions.hide_select_kernel()}
+        footer={null}
+        width={800}
+        title={
+          <>
+            <Icon name="jupyter" /> Select Kernel
+          </>
+        }
+      >
+        <KernelSelector actions={actions} />
+      </Modal>
     </div>
   );
 }

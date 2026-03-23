@@ -145,6 +145,9 @@ function edge(id, frame) {
       frame.actions.createEdge(frame.id, from, id, elt.data);
     }
     frame.actions.clearEdgeCreateStart(frame.id);
+    // Switch back to select tool after completing an edge,
+    // so user isn't stuck in edge creation mode.
+    frame.actions.setSelectedTool(frame.id, "select");
   } else {
     frame.actions.setEdgeCreateStart(frame.id, id);
   }

@@ -228,6 +228,7 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
   return (
     <div
       ref={peekDropRef}
+      data-folder-drop-path={dirPath}
       style={{
         borderLeft: `5px solid ${COLORS.ANTD_LINK_BLUE}`,
         background: COLORS.BLUE_LLLL,
