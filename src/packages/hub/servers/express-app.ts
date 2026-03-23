@@ -18,6 +18,7 @@ import { setup_health_checks as setupHealthChecks } from "../health-checks";
 import { getLogger } from "../logger";
 import initProxy from "../proxy";
 import initAppRedirect from "./app/app-redirect";
+import initOAuth2Provider from "./app/oauth2-provider";
 import initBlobUpload from "./app/blob-upload";
 import initUpload from "./app/upload";
 import initBlobs from "./app/blobs";
@@ -128,6 +129,9 @@ export default async function init(opts: Options): Promise<{
   initCustomize(router, opts.isPersonal);
   initStats(router);
   initAppRedirect(router);
+
+  // OAuth2 Provider — must be before basePath mount so routes register properly
+  await initOAuth2Provider(router);
 
   if (basePath !== "/") {
     app.use(basePath, router);

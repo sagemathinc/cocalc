@@ -309,6 +309,207 @@ authentication checkpoint (cookie validation, API key use, SSO login).
 | `packages/backend/auth/cookie-names.ts`             | Cookie name constants                             |
 | `packages/util/db-schema/api-keys.ts`               | API key schema                                    |
 
+## OAuth2 Provider
+
+CoCalc can act as an **OAuth2 authorization server**, allowing third-party
+applications (e.g., MCP tool providers) to authenticate users via CoCalc.
+
+**Package**: `packages/auth/` — standalone package containing the OAuth2
+provider implementation.
+
+### Architecture
+
+```
+┌──────────────┐        ┌──────────────────────────────────────┐
+│  Third-party │        │  CoCalc Hub                          │
+│  Application │        │                                      │
+│              │ ──1──► │  GET /auth/oauth/authorize           │
+│              │ ◄──2── │   → check session → issue auth code  │
+│              │ ──3──► │  POST /auth/oauth/token               │
+│              │ ◄──4── │   → verify code → issue tokens       │
+│              │ ──5──► │  GET /auth/oauth/userinfo             │
+│              │ ◄──6── │   → verify token → return profile    │
+└──────────────┘        └──────────────────────────────────────┘
+```
+
+### Endpoints
+
+All mounted under the `/auth` prefix on the hub:
+
+| Endpoint                                          | Method | Description                            |
+| ------------------------------------------------- | ------ | -------------------------------------- |
+| `/auth/.well-known/oauth-authorization-server`    | GET    | RFC 8414 server metadata               |
+| `/auth/oauth/authorize`                           | GET    | Authorization (redirect flow)          |
+| `/auth/oauth/token`                               | POST   | Token exchange                         |
+| `/auth/oauth/userinfo`                            | GET    | Identity endpoint (Bearer token)       |
+| `/auth/oauth/revoke`                              | POST   | Token revocation                       |
+
+### Supported Flows
+
+- **Authorization Code** with PKCE (RFC 7636) — recommended for all clients
+- **Refresh Token** — two strategies depending on client mode:
+  - **Native clients**: rotation with atomic single-use (old token is
+    deleted on consume to prevent replay attacks; if the response is lost
+    the client must re-authenticate)
+  - **Web (confidential) clients**: reuse (same refresh token returned; no
+    rotation needed since the client_secret authenticates the caller)
+
+### Token Lifetimes
+
+| Token              | Lifetime   | Notes                                          |
+| ------------------ | ---------- | ---------------------------------------------- |
+| Authorization code | 10 minutes | Single-use                                     |
+| Access token       | 1 hour     | `last_active` tracked (throttled: every 5 min) |
+| Refresh token      | 30 days    | Sliding for native (rotation), reused for web  |
+
+### Expiry Cleanup
+
+All token tables use the field name `expire` (not `expires`) so the built-in
+CoCalc maintenance service (`hub/run/maintenance-expired.js`) automatically
+deletes expired rows. This service runs periodically (default: every 2 hours)
+and scans all tables that have an `expire` timestamp field.
+
+### Scopes
+
+Defined in `packages/auth/lib/types.ts` (`OAUTH2_SCOPES`):
+
+| Scope                | Description                                                                  |
+| -------------------- | ---------------------------------------------------------------------------- |
+| `openid`             | Basic identity (sub claim)                                                   |
+| `profile`            | User name and avatar                                                         |
+| `email`              | Email address                                                                |
+| `api:read`           | Read-only API (list projects, ping, user search, read-only db.userQuery)     |
+| `api:write`          | Write API (create projects, send messages, write db.userQuery, modify settings) |
+| `api:project`        | Access all projects where user is collaborator                               |
+| `api:project:{uuid}` | Access only the specified project (dynamic scope — UUID validated at runtime) |
+
+**Scope enforcement** (in `packages/next/pages/api/conat/`):
+
+- `/api/conat/hub` — requires `api:read` or `api:write`. Write methods need `api:write`.
+  `db.userQuery` is automatically classified as read or write based on query shape
+  (null values = read/SELECT, all non-null = write/UPDATE).
+- `/api/conat/project` — requires `api:project` (all projects) or `api:project:{uuid}` (specific).
+  Collaborator status is always checked regardless of scope.
+- API key auth (no scope) — unrestricted (backwards compatible).
+
+### Database Tables
+
+Defined in `packages/util/db-schema/oauth2.ts`:
+
+- **`oauth2_clients`** — registered client applications
+- **`oauth2_authorization_codes`** — short-lived auth codes (single use)
+- **`oauth2_access_tokens`** — bearer tokens for API access
+- **`oauth2_refresh_tokens`** — long-lived tokens for refreshing access
+
+### Configuration
+
+1. Enable via admin settings: **OAuth2 Provider → Enable OAuth2 Provider**
+2. Set the **Issuer URL** (auto-detected from DNS if empty)
+3. Register clients in the admin panel: **Administration → OAuth2 Provider Clients**
+
+### Key Files
+
+| File                                          | Description                          |
+| --------------------------------------------- | ------------------------------------ |
+| `packages/auth/lib/provider.ts`               | Express router with OAuth2 endpoints |
+| `packages/auth/lib/database.ts`               | Token/code/client DB operations      |
+| `packages/auth/lib/client-manager.ts`         | Client CRUD operations               |
+| `packages/auth/lib/crypto.ts`                 | Hashing, PKCE, token generation      |
+| `packages/auth/lib/types.ts`                  | TypeScript interfaces and constants  |
+| `packages/util/db-schema/oauth2.ts`           | Database table definitions           |
+| `packages/hub/servers/app/oauth2-provider.ts` | Hub integration                      |
+| `packages/next/pages/api/v2/oauth2/`          | Admin API routes for client mgmt     |
+| `packages/frontend/admin/oauth2/`             | Admin UI component                   |
+
+### Admin API (Next.js)
+
+| Endpoint                     | Method | Description         |
+| ---------------------------- | ------ | ------------------- |
+| `/api/v2/oauth2/clients`     | GET    | List all clients    |
+| `/api/v2/oauth2/clients`     | POST   | Register new client |
+| `/api/v2/oauth2/[client_id]` | GET    | Get client details  |
+| `/api/v2/oauth2/[client_id]` | PATCH  | Update client       |
+| `/api/v2/oauth2/[client_id]` | DELETE | Delete client       |
+| `/api/v2/oauth2/[client_id]` | POST   | Regenerate secret   |
+
+## Python API Client (OAuth2)
+
+The Python `cocalc-api` client (`src/python/cocalc-api/`) supports OAuth2
+authentication in addition to traditional API keys.
+
+### CLI Usage
+
+```bash
+# Native mode — opens browser, spawns localhost callback server, uses PKCE
+cocalc-api auth login --host https://cocalc.com --client-id <UUID>
+
+# Confidential mode — prompts for manual code paste
+cocalc-api auth login --host https://cocalc.com --client-id <UUID> --client-secret <SECRET>
+
+# Show current auth status (host, mode, token validity, etc.)
+cocalc-api auth status
+
+# Print access token to stdout (auto-refreshes if expired)
+cocalc-api auth token
+
+# Force a token refresh (reports rotation status, prints new access token)
+cocalc-api auth refresh
+
+# Show authenticated user info (fetches from server if not cached)
+cocalc-api auth whoami
+
+# Revoke and clear stored tokens
+cocalc-api auth logout
+```
+
+### Programmatic Usage
+
+```python
+from cocalc_api import Hub
+
+# 1. Explicit OAuth2 token
+hub = Hub(oauth_token="...", host="https://cocalc.com")
+
+# 2. Auto-detect stored token (from prior `cocalc-api auth login`)
+hub = Hub(host="https://cocalc.com")
+
+# 3. Traditional API key (unchanged)
+hub = Hub(api_key="sk-...")
+```
+
+### Token Storage
+
+| Item          | Location                               | Security                      |
+| ------------- | -------------------------------------- | ----------------------------- |
+| Access token  | `~/.config/cocalc-api/auth.json`       | File permissions (0600)       |
+| User info     | `~/.config/cocalc-api/userinfo.json`   | File permissions (0600)       |
+| Refresh token | System keyring (`keyring` package)     | OS-level credential store     |
+| Refresh token | `auth.json` (fallback if no `keyring`) | File permissions (0600)       |
+
+Install keyring support: `pip install cocalc-api[keyring]`
+
+Platform-aware config directory:
+- Linux: `$XDG_CONFIG_HOME/cocalc-api/` (default: `~/.config/cocalc-api/`)
+- macOS: `~/Library/Application Support/cocalc-api/`
+- Windows: `%APPDATA%/cocalc-api/`
+
+### Key Files
+
+| File                                    | Description                              |
+| --------------------------------------- | ---------------------------------------- |
+| `python/cocalc-api/src/cocalc_api/auth.py` | OAuth2 flow, token storage, PKCE      |
+| `python/cocalc-api/src/cocalc_api/cli.py`  | CLI entry point (`cocalc-api auth`)   |
+| `python/cocalc-api/src/cocalc_api/hub.py`  | Hub client (supports `oauth_token`)   |
+
+### E2E Testing
+
+`scripts/ci-test-oauth2.py` — exercised in CI after the hub is running:
+1. Creates OAuth2 clients directly in Postgres (web + native modes)
+2. Inserts authorization codes (simulating user approval)
+3. Tests token exchange, userinfo, refresh, PKCE, revocation
+4. Exercises CLI commands (status, token, logout)
+5. Verifies `Hub(oauth_token=...)` works for API calls
+
 ## Common Patterns for Agents
 
 ### Checking Authentication in API Routes

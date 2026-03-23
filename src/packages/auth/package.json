@@ -1,0 +1,36 @@
+{
+  "name": "@cocalc/auth",
+  "version": "0.1.0",
+  "description": "CoCalc OAuth2 Provider: enables CoCalc to act as an OAuth2 authorization server",
+  "exports": {
+    "./*": "./dist/*.js"
+  },
+  "scripts": {
+    "preinstall": "npx only-allow pnpm",
+    "clean": "rm -rf node_modules dist",
+    "build": "../node_modules/.bin/tsc --build",
+    "test": "TZ=UTC jest --forceExit --detectOpenHandles --runInBand",
+    "depcheck": "pnpx depcheck"
+  },
+  "author": "SageMath, Inc.",
+  "license": "SEE LICENSE.md",
+  "dependencies": {
+    "@cocalc/backend": "workspace:*",
+    "@cocalc/database": "workspace:*",
+    "@cocalc/util": "workspace:*",
+    "express": "^5.2.1",
+    "lru-cache": "^7.18.3",
+    "uuid": "^8.3.2"
+  },
+  "devDependencies": {
+    "@types/express": "^5.0.6",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^18.16.14",
+    "@types/uuid": "^8.3.4"
+  },
+  "homepage": "https://github.com/sagemathinc/cocalc/tree/master/src/packages/auth",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sagemathinc/cocalc"
+  }
+}

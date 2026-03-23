@@ -29,6 +29,7 @@
       "Bash(git diff:*)",
       "Bash(git grep:*)",
       "Bash(git log:*)",
+      "Bash(git pull:*)",
       "Bash(git push:*)",
       "Bash(git rebase:*)",
       "Bash(git show:*)",
