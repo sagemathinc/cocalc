@@ -169,7 +169,7 @@
     "babel-jest": "^30.2.0",
     "coffeescript": "^2.5.1",
     "cspell": "^8.17.2",
-    "eslint": "^9.39.2",
+    "eslint": "^9.39.4",
     "eslint-plugin-react-hooks": "^7.0.1",
     "react-test-renderer": "^19.1.0",
     "tsd": "^0.22.0",

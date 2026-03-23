@@ -198,7 +198,7 @@ CoCalc is organized as a monorepo with key packages:
 - Never modify a file when in the `master` or `main` branch
 - All changes happen through feature branches, which are pushed as pull requests to GitHub
 - When creating a new file, run `git add [filename]` to track the file.
-- The first line of a commit message must follow the pattern: `[package]/[region]: [1-line description]`. e.g. `frontend/latex: fix PDF preview sync` or `frontend/frame-editor: add drag-and-drop support`. The package is the subdirectory under `src/packages/` and the region is the feature area within that package.
+- **Commit message format** (MANDATORY): The first line of a commit message must follow the pattern: `[package]/[region]: [1-line description]`. The package is the subdirectory under `src/packages/` and the region is the feature area within that package. Examples: `frontend/explorer: fix directory tree performance`, `util/misc: add string search helper`, `database/postgres: optimize query caching`. Do NOT use conventional-commits prefixes like `fix:`, `feat:`, `perf:`, `chore:` — always use the `package/region:` format instead.
 - When pushing a new branch to Github, track it upstream. e.g. `git push --set-upstream origin feature-foo` for branch "feature-foo".
 - **Branch naming**: New branches should follow the pattern `[some-key-words]-[issue-number]`. e.g. `fix-invite-email-signup-link-8757` for issue #8757.
 

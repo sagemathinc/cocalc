@@ -251,6 +251,8 @@ export function normalizeOpenAIModel(model): OpenAIModel {
   // the *-8k variants are artificial – the input is already limited/truncated to 8k
   // convert *-preview and all *-8k to their base model names
   const modelPrefixes = [
+    "gpt-5.4-mini",
+    "gpt-5.4",
     "gpt-5.2",
     "gpt-5-mini",
     "gpt-5",

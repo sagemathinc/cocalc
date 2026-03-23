@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Tree } from "antd";
+import { Input, Tree } from "antd";
 import type { TreeDataNode, TreeProps } from "antd";
 import React, {
   useCallback,
@@ -109,18 +109,6 @@ function saveDirectoryTreeExpandedKeys(
   updateExplorerTree(project_id, {
     expanded_keys: keys.slice(0, MAX_TREE_EXPANDED),
   });
-}
-
-function getDirectoryTreeScrollTop(project_id: string): number {
-  const val = getExplorerState(project_id).tree?.scroll_top;
-  return typeof val === "number" && val >= 0 ? val : 0;
-}
-
-function saveDirectoryTreeScrollTop(
-  project_id: string,
-  scrollTop: number,
-): void {
-  updateExplorerTree(project_id, { scroll_top: scrollTop });
 }
 
 const TREE_PANEL_STYLE: React.CSSProperties = {
@@ -397,7 +385,10 @@ export function DirectoryTreePanel({
     getDirectoryTreeExpandedKeys(project_id),
   );
   const [error, setError] = useState<string>("");
+  const [filter, setFilter] = useState("");
+  const treeRef = useRef<any>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
+  const [treeHeight, setTreeHeight] = useState(300);
   const { starred, setStarredPath } = useStarredFilesManager(project_id);
   const { dropRef: homeDropRef } = useFolderDrop(
     "explorer-folder-home-root",
@@ -551,55 +542,28 @@ export function DirectoryTreePanel({
     saveDirectoryTreeExpandedKeys(project_id, expandedKeys);
   }, [project_id, expandedKeys]);
 
-  // Scroll selected node into view when current_path changes.
-  // We manipulate scrollTop directly on the container rather than using
-  // scrollIntoView, which can scroll wrong ancestor containers (window, etc.).
-  // Two passes: 100ms (after React paint) and 400ms (after expand animations).
+  // Measure available height for the virtual-scrolling Tree.
   useEffect(() => {
-    function scrollSelected() {
-      const container = scrollContainerRef.current;
-      if (!container) return;
-      const selected = container.querySelector(
-        ".ant-tree-node-selected",
-      ) as HTMLElement | null;
-      if (!selected) return;
-      const containerTop = container.getBoundingClientRect().top;
-      const selectedTop = selected.getBoundingClientRect().top;
-      const relativeTop = selectedTop - containerTop + container.scrollTop;
-      // Center the selected node in the visible area
-      const target =
-        relativeTop - container.clientHeight / 2 + selected.offsetHeight / 2;
-      container.scrollTo({ top: target, behavior: "smooth" });
-    }
-    const t = setTimeout(scrollSelected, 200);
+    const container = scrollContainerRef.current;
+    if (!container) return;
+    const observer = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        setTreeHeight(Math.floor(entry.contentRect.height));
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, []);
+
+  // Scroll selected node into view when current_path changes.
+  // Uses the Tree's virtual-scroll `scrollTo` API instead of DOM queries.
+  useEffect(() => {
+    if (current_path === "") return;
+    const t = setTimeout(() => {
+      treeRef.current?.scrollTo({ key: pathToTreeKey(current_path) });
+    }, 200);
     return () => clearTimeout(t);
   }, [current_path]);
-
-  // Restore scroll position after initial data loads on mount / project change
-  useEffect(() => {
-    const savedScrollTop = getDirectoryTreeScrollTop(project_id);
-    if (savedScrollTop <= 0) return;
-    const timer = setTimeout(() => {
-      if (scrollContainerRef.current) {
-        scrollContainerRef.current.scrollTop = savedScrollTop;
-      }
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [project_id, compute_server_id]);
-
-  const handleTreeScroll = useCallback(
-    (e: React.UIEvent<HTMLDivElement>) => {
-      const el = e.currentTarget;
-      // Prevent horizontal drift — overflow-x:hidden clips visually but
-      // scrollLeft can still be set programmatically (scrollIntoView,
-      // antd Tree, dnd-kit). Force it back to 0.
-      if (el.scrollLeft !== 0) {
-        el.scrollLeft = 0;
-      }
-      saveDirectoryTreeScrollTop(project_id, el.scrollTop);
-    },
-    [project_id],
-  );
 
   const onExpand: TreeProps["onExpand"] = useCallback(
     (keys) => {
@@ -671,6 +635,41 @@ export function DirectoryTreePanel({
 
     return buildChildren("");
   }, [childrenByPath, project_id, treeVersion, starredSet, handleToggleStar]);
+
+  // Filter treeData when the search box is active.  Keep nodes whose
+  // folder name matches and retain all ancestor nodes so the tree
+  // structure stays valid.  Auto-expand every surviving parent.
+  const { filteredTreeData, filteredExpandedKeys } = useMemo(() => {
+    const trimmed = filter.trim();
+    if (!trimmed) {
+      return { filteredTreeData: treeData, filteredExpandedKeys: null };
+    }
+    const searchTerms = misc.search_split(trimmed);
+    const autoExpanded: string[] = [];
+
+    function filterNodes(nodes: TreeDataNode[]): TreeDataNode[] {
+      return nodes.flatMap((node) => {
+        const filteredChildren = node.children
+          ? filterNodes(node.children)
+          : [];
+        const path = treeKeyToPath(node.key);
+        const label = misc.path_split(path).tail || path;
+        const selfMatches = misc.search_match(label, searchTerms);
+        if (selfMatches || filteredChildren.length > 0) {
+          if (filteredChildren.length > 0) {
+            autoExpanded.push(String(node.key));
+          }
+          return [{ ...node, children: filteredChildren }];
+        }
+        return [];
+      });
+    }
+
+    return {
+      filteredTreeData: filterNodes(treeData),
+      filteredExpandedKeys: autoExpanded,
+    };
+  }, [treeData, filter]);
 
   // Starred directories: entries ending with "/" are directories
   const starredDirs = starred.filter((p) => p.endsWith("/"));
@@ -757,10 +756,30 @@ export function DirectoryTreePanel({
         </div>
       )}
 
+      {/* Filter input */}
+      <Input
+        placeholder="Filter folders..."
+        allowClear
+        value={filter}
+        onChange={(e) => setFilter(e.target.value)}
+        style={{
+          flexShrink: 0,
+          margin: "4px 0",
+          width: "calc(100% - 12px)",
+          alignSelf: "center",
+          ...(filter
+            ? {
+                borderColor: COLORS.COCALC_ORANGE,
+                boxShadow: `0 0 3px ${COLORS.COCALC_ORANGE}`,
+              }
+            : {}),
+        }}
+        size="small"
+      />
+
       {/* Main directory tree — shows root children directly, no extra indent */}
       <div
         ref={scrollContainerRef}
-        onScroll={handleTreeScroll}
         style={{
           ...TREE_PANEL_STYLE,
           flex: "1 1 0",
@@ -768,11 +787,12 @@ export function DirectoryTreePanel({
         }}
       >
         <Tree
+          ref={treeRef}
           blockNode
           showLine={{ showLeafIcon: false }}
-          virtual={false}
-          treeData={treeData}
-          expandedKeys={expandedKeys}
+          height={treeHeight}
+          treeData={filteredTreeData}
+          expandedKeys={filteredExpandedKeys ?? expandedKeys}
           selectedKeys={
             current_path !== "" ? [pathToTreeKey(current_path)] : []
           }

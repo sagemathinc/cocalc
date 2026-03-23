@@ -24,7 +24,7 @@ import * as immutable from "immutable";
 import { ReactNode, useEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import ProgressEstimate from "../components/progress-estimate";
-import { labels } from "../i18n";
+import { jupyter as jupyterI18n, labels } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 import { ALERT_COLS } from "./usage";
@@ -79,6 +79,7 @@ interface KernelProps {
   style?: CSS;
   computeServerId?: number;
   is_fullscreen?: boolean;
+  compact?: boolean;
 }
 
 export function Kernel({
@@ -88,6 +89,7 @@ export function Kernel({
   usage,
   computeServerId,
   is_fullscreen,
+  compact,
 }: KernelProps) {
   const intl = useIntl();
   const name = actions.name;
@@ -163,7 +165,7 @@ export function Kernel({
       if (display_name == null) {
         display_name = kernel ?? "No Kernel";
       }
-      const style = { ...KERNEL_NAME_STYLE, maxWidth: "20em" };
+      const style = { ...KERNEL_NAME_STYLE, maxWidth: compact ? "14em" : "20em" };
       return (
         <div
           style={style}
@@ -228,6 +230,7 @@ export function Kernel({
   }
 
   function render_trust() {
+    if (compact) return;
     if (IS_MOBILE) return;
     if (trust) {
       return (
@@ -320,12 +323,7 @@ export function Kernel({
             </>
           );
         case "idle":
-          const tooltip = intl.formatMessage({
-            id: "jupyter.status.halt_idle_tooltip",
-            defaultMessage:
-              "Terminate the kernel process? All variable state will be lost.",
-            description: "Terminating the kernel of a Jupyter Notebook",
-          });
+          const tooltip = intl.formatMessage(jupyterI18n.editor.halt_kernel_confirm);
           return (
             <>
               Kernel is idle{" "}
@@ -376,23 +374,39 @@ export function Kernel({
     }
   }
 
+  function kernelStateCompact(): ReactNode {
+    if (kernel === null) return "No kernel";
+    if (backend_state === "running") {
+      switch (kernel_state) {
+        case "busy":
+          return "Busy";
+        case "idle":
+          return "Idle";
+      }
+    } else if (backendIsStarting) {
+      return "Starting";
+    }
+    return null;
+  }
+
   function renderKernelState() {
     if (!backend_state) return <div></div>;
+    const value = compact ? kernelStateCompact() : kernelState();
     return (
       <Tooltip title={kernelState()} placement="bottom">
         <div
           style={{
-            flex: 1,
+            flex: compact ? "0 0 auto" : 1,
             color: COLORS.GRAY_M,
             textAlign: "center",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
-            marginTop: "2.5px",
+            marginTop: compact ? 0 : "2.5px",
             fontSize: IS_MOBILE ? "10pt" : undefined,
           }}
         >
-          {kernelState()}
+          {value}
         </div>
       </Tooltip>
     );
@@ -496,6 +510,7 @@ export function Kernel({
   // or if the memory usage is eating up almost all of the reminining (shared) memory.
 
   function renderUsage() {
+    if (compact) return;
     if (kernel == null) return;
 
     if (computeServerId) {
@@ -699,6 +714,75 @@ export function Kernel({
       {info}
     </div>
   );
+
+  if (compact) {
+    return (
+      <div
+        style={{
+          overflow: "hidden",
+          width: "100%",
+          padding: "4px 6px",
+          backgroundColor: COLORS.GRAY_LLL,
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          borderBottom: "1px solid #ccc",
+          ...style,
+        }}
+      >
+        <div>{renderLogo()}</div>
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          {body}
+          {renderKernelState()}
+        </div>
+        {!read_only &&
+          backend_state === "running" &&
+          kernel_state === "busy" && (
+            <Tooltip
+              title={intl.formatMessage({
+                id: "jupyter.status.interrupt_tooltip",
+                defaultMessage: "Interrupt the running computation",
+              })}
+            >
+              <Button
+                size="small"
+                onClick={() => actions.signal("SIGINT")}
+              >
+                <Icon name="stop" /> Stop
+              </Button>
+            </Tooltip>
+          )}
+        {!read_only && backend_state === "running" && (
+          <Popconfirm
+            title={intl.formatMessage(jupyterI18n.editor.halt_kernel_confirm)}
+            onConfirm={() => actions.shutdown()}
+            okText={intl.formatMessage(labels.halt)}
+            cancelText={intl.formatMessage(labels.cancel)}
+          >
+            <Button size="small">
+              <Icon name="PoweroffOutlined" /> Halt
+            </Button>
+          </Popconfirm>
+        )}
+        {!read_only && kernel != null && !no_kernel && (
+          <Button
+            size="small"
+            onClick={() => void actions.confirm_restart()}
+          >
+            <Icon name="redo" /> Restart
+          </Button>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div

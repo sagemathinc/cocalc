@@ -1063,3 +1063,111 @@ export function collapse_trivial(tree: ImmutableFrameTree): ImmutableFrameTree {
   }
   return tree;
 }
+
+/** Collect all leaf nodes from a subtree in order. */
+function collect_leaves(node: ImmutableFrameTree): ImmutableFrameTree[] {
+  if (is_leaf(node)) return [node];
+  const leaves: ImmutableFrameTree[] = [];
+  const children = node.get("children");
+  if (children) {
+    children.forEach((child: ImmutableFrameTree) => {
+      leaves.push(...collect_leaves(child));
+    });
+    return leaves;
+  }
+  // Legacy binary path
+  for (const x of ["first", "second"]) {
+    if (node.has(x)) {
+      leaves.push(...collect_leaves(node.get(x)));
+    }
+  }
+  return leaves;
+}
+
+/**
+ * Flatten tabs: ensure every child of a type:"tabs" node is a leaf.
+ * If a tab child is a split (type:"node") or nested tabs, its leaf
+ * descendants are promoted to individual tabs.
+ */
+export function flatten_tabs(tree: ImmutableFrameTree): ImmutableFrameTree {
+  if (tree == null) return tree;
+
+  const children = tree.get("children");
+  if (!children) {
+    // Legacy binary — recurse
+    let changed = false;
+    let result = tree;
+    for (const x of ["first", "second"]) {
+      const sub = result.get(x);
+      if (sub) {
+        const flat = flatten_tabs(sub);
+        if (flat !== sub) {
+          result = result.set(x, flat);
+          changed = true;
+        }
+      }
+    }
+    return changed ? result : tree;
+  }
+
+  // First recurse into all children
+  const recursed = children.map((child: ImmutableFrameTree) =>
+    flatten_tabs(child),
+  );
+
+  if (tree.get("type") !== "tabs") {
+    // Non-tabs node: just propagate recursion
+    return recursed !== children ? tree.set("children", recursed) : tree;
+  }
+
+  // This is a tabs node — flatten any non-leaf children
+  let needsFlatten = false;
+  recursed.forEach((child: ImmutableFrameTree) => {
+    if (!is_leaf(child)) needsFlatten = true;
+  });
+  if (!needsFlatten) {
+    return recursed !== children ? tree.set("children", recursed) : tree;
+  }
+
+  const activeTab: number = tree.get("activeTab", 0);
+  const newChildren: ImmutableFrameTree[] = [];
+  let newActiveTab = 0;
+
+  recursed.forEach((child: ImmutableFrameTree, i: number) => {
+    if (is_leaf(child)) {
+      if (i === activeTab) newActiveTab = newChildren.length;
+      newChildren.push(child);
+    } else {
+      // Non-leaf: collect its leaves and insert them as individual tabs.
+      // For nested tabs, honor the inner activeTab so the correct leaf
+      // stays selected after flattening.
+      const leaves = collect_leaves(child);
+      if (i === activeTab) {
+        const innerActive =
+          child.get("type") === "tabs"
+            ? Math.min(child.get("activeTab", 0), leaves.length - 1)
+            : 0;
+        newActiveTab = newChildren.length + innerActive;
+      }
+      newChildren.push(...leaves);
+    }
+  });
+
+  return tree.set("children", List(newChildren)).set("activeTab", newActiveTab);
+}
+
+/**
+ * Run the full normalization pipeline on a frame tree:
+ * assign IDs, deduplicate, migrate binary→N-ary, collapse
+ * single-child nodes, flatten non-leaf tab children, and
+ * collapse again in case flattening left single-child containers.
+ */
+export function normalize(tree: ImmutableFrameTree): ImmutableFrameTree {
+  tree = assign_ids(tree);
+  tree = ensure_ids_are_unique(tree);
+  tree = migrateToNary(tree);
+  tree = collapse_trivial(tree);
+  tree = flatten_tabs(tree);
+  tree = collapse_trivial(tree);
+  return tree;
+}

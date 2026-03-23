@@ -78,7 +78,7 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "@cocalc/frontend/project/page/flyouts/state";
-import { migrateStarsOnMove } from "@cocalc/frontend/project/page/flyouts/store";
+import { migrateStarsOnMove, removeStarsOnDelete } from "@cocalc/frontend/project/page/flyouts/store";
 import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
@@ -2779,6 +2779,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status: `Deleting ${mesg}...` });
     try {
       await delete_files(this.project_id, opts.paths, opts.compute_server_id);
+      // Remove starred file bookmarks for deleted paths
+      await removeStarsOnDelete(this.project_id, opts.paths);
       this.log({
         event: "file_action",
         action: "deleted",

@@ -190,6 +190,70 @@ Components that follow this pattern:
 when calling from a context where the browsing path may differ from
 `current_path`.
 
+## Quick Cut / Copy / Paste (File Clipboard)
+
+Gmail-style hover buttons for cut, copy, paste, and delete appear on each
+file row in both the explorer and flyout. These buttons overlay the filename
+area (CSS `visibility: hidden` / `visible` on hover, with `transition: none`
+to prevent fade artefacts during scroll).
+
+### Global clipboard state
+
+Clipboard state lives on the **page store** (`PageState.file_clipboard`) so
+it persists across projects:
+
+```typescript
+file_clipboard?: {
+  mode: "copy" | "cut";
+  files: Array<{ project_id: string; path: string }>;
+};
+```
+
+Helper functions in `file-clipboard/actions.ts` read/write this via
+`redux.getActions("page").setState()`. Because the store wraps plain objects
+in ImmutableJS Maps, `getClipboard()` calls `.toJS()` when reading back.
+
+### Clipboard pill
+
+When the clipboard is non-empty a pill badge appears in the explorer info
+row (`ActionBarInfo`) and flyout header, showing e.g. "2 files selected for
+copy ✕". Next to it a green "Paste here" button triggers the paste.
+
+### Paste semantics
+
+- **Same project, copy mode** → `ProjectActions.copy_paths()`
+- **Same project, cut mode** → `ProjectActions.move_files()`
+- **Cross-project, copy mode** → `ProjectActions.copy_paths_between_projects()`
+- **Cross-project, cut mode** → copy first, then `delete_files()` on source
+
+Files are grouped by source `project_id`, so a mixed clipboard (files from
+multiple projects) is handled correctly.
+
+After paste: copy mode preserves the clipboard (paste again); cut mode
+clears it.
+
+### Hover paste button
+
+The paste icon also appears in the per-row hover buttons (disabled when
+clipboard is empty). Clicking paste on a **directory row** pastes into that
+directory; on a **file row** it pastes into the current browsing directory.
+
+### Visual highlighting
+
+Files present in the clipboard get the `cc-explorer-row-checked` class
+(explorer) or `selected` style (flyout), giving them the same blue
+highlight as checkbox-selected files.
+
+### Key files
+
+| File                             | Role                                    |
+| -------------------------------- | --------------------------------------- |
+| `file-clipboard/actions.ts`     | addToCopy, addToCut, clear, pasteHere   |
+| `file-clipboard/hook.ts`        | useFileClipboard, useClipboardPathSet   |
+| `file-clipboard/quick-actions.tsx` | QuickActionButtons component          |
+| `file-clipboard/clipboard-pill.tsx` | ClipboardPill status badge           |
+| `app/store.ts`                   | PageState.file_clipboard type           |
+
 ## Drag and Drop
 
 `packages/frontend/project/explorer/dnd/file-dnd-provider.tsx`
@@ -277,6 +341,10 @@ correct directory.
 | `project_actions.ts`                             | `ProjectActions` — file ops, set_current_path, open_directory |
 | `project_store.ts`                               | `ProjectStoreState` — all Redux keys                          |
 | `project-file.ts`                                | `FILE_ACTIONS` registry, `FileAction` type                    |
+| `file-clipboard/actions.ts`                      | Global clipboard helpers (cut/copy/paste/clear)               |
+| `file-clipboard/hook.ts`                         | `useFileClipboard()`, `useClipboardPathSet()` hooks           |
+| `file-clipboard/quick-actions.tsx`               | Hover-visible cut/copy/paste/delete buttons                   |
+| `file-clipboard/clipboard-pill.tsx`              | Clipboard status pill with paste button                       |
 
 ## Common Patterns for Agents
 

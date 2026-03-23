@@ -38,6 +38,7 @@ import { MainConfiguration } from "@cocalc/frontend/project_configuration";
 import { ProjectActions } from "@cocalc/frontend/project_store";
 import { ProjectStatus } from "@cocalc/frontend/todo-types";
 
+import { useFlushListingOnFileAction } from "@cocalc/frontend/file-clipboard/hook";
 import AskNewFilename from "../ask-filename";
 import { useProjectContext } from "../context";
 import { ActionBar, ActionBarInfo } from "./action-bar";
@@ -385,6 +386,9 @@ export function Explorer() {
     }
     prevCheckedSize.current = checked_files?.size ?? 0;
   }, [checked_files?.size, allowNextListingUpdate]);
+
+  // Flush listing after file clipboard actions (paste, delete, clear)
+  useFlushListingOnFileAction(project_id, allowNextListingUpdate);
 
   // Flush when user changes sort, filter, or visibility settings —
   // these are explicit user actions and should update the listing immediately.

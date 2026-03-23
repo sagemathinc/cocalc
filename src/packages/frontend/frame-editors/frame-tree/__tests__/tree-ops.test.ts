@@ -4,6 +4,7 @@ import {
   swap_nodes,
   move_node,
   collapse_trivial,
+  flatten_tabs,
   delete_node,
   split_leaf,
   assign_ids,
@@ -723,5 +724,258 @@ describe("reorder_tab", () => {
     }) as ImmutableFrameTree;
     const result = reorder_tab(tree, "tabs1", "missing", "a");
     expect(result).toBe(tree);
+  });
+});
+
+describe("flatten_tabs", () => {
+  it("is a no-op when all tab children are leaves", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        { id: "a", type: "cm" },
+        { id: "b", type: "terminal" },
+      ],
+      activeTab: 0,
+    }) as ImmutableFrameTree;
+    const result = flatten_tabs(tree);
+    expect(result).toBe(tree);
+  });
+
+  it("flattens a split node inside tabs into individual tabs", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        { id: "a", type: "cm" },
+        {
+          id: "split1",
+          type: "node",
+          direction: "col",
+          children: [
+            { id: "b", type: "cm" },
+            { id: "c", type: "terminal" },
+          ],
+          sizes: [0.5, 0.5],
+        },
+        { id: "d", type: "jupyter" },
+      ],
+      activeTab: 0,
+    }) as ImmutableFrameTree;
+    const result = flatten_tabs(tree);
+    const ids = result
+      .get("children")
+      .map((c: ImmutableFrameTree) => c.get("id"))
+      .toJS();
+    expect(ids).toEqual(["a", "b", "c", "d"]);
+    // All children should be leaves
+    result
+      .get("children")
+      .forEach((c: ImmutableFrameTree) => expect(is_leaf(c)).toBe(true));
+  });
+
+  it("adjusts activeTab when a split before the active tab is flattened", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        {
+          id: "split1",
+          type: "node",
+          direction: "col",
+          children: [
+            { id: "a", type: "cm" },
+            { id: "b", type: "cm" },
+          ],
+          sizes: [0.5, 0.5],
+        },
+        { id: "c", type: "terminal" },
+      ],
+      activeTab: 1, // points to "c"
+    }) as ImmutableFrameTree;
+    const result = flatten_tabs(tree);
+    const ids = result
+      .get("children")
+      .map((c: ImmutableFrameTree) => c.get("id"))
+      .toJS();
+    expect(ids).toEqual(["a", "b", "c"]);
+    // activeTab pointed to "c" (index 1) which moved to index 2
+    expect(result.get("activeTab")).toBe(2);
+  });
+
+  it("preserves activeTab pointing to the first leaf of a flattened split", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        { id: "a", type: "cm" },
+        {
+          id: "split1",
+          type: "node",
+          direction: "row",
+          children: [
+            { id: "b", type: "terminal" },
+            { id: "c", type: "jupyter" },
+          ],
+          sizes: [0.5, 0.5],
+        },
+      ],
+      activeTab: 1, // points to the split
+    }) as ImmutableFrameTree;
+    const result = flatten_tabs(tree);
+    // activeTab should point to "b" (first leaf of the former split)
+    expect(result.get("activeTab")).toBe(1);
+    expect(result.get("children").get(1).get("id")).toBe("b");
+  });
+
+  it("flattens deeply nested splits inside tabs", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        {
+          id: "split1",
+          type: "node",
+          direction: "col",
+          children: [
+            { id: "a", type: "cm" },
+            {
+              id: "split2",
+              type: "node",
+              direction: "row",
+              children: [
+                { id: "b", type: "terminal" },
+                { id: "c", type: "jupyter" },
+              ],
+              sizes: [0.5, 0.5],
+            },
+          ],
+          sizes: [0.5, 0.5],
+        },
+      ],
+      activeTab: 0,
+    }) as ImmutableFrameTree;
+    const result = flatten_tabs(tree);
+    const ids = result
+      .get("children")
+      .map((c: ImmutableFrameTree) => c.get("id"))
+      .toJS();
+    expect(ids).toEqual(["a", "b", "c"]);
+  });
+
+  it("flattens nested tabs inside tabs", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        { id: "a", type: "cm" },
+        {
+          id: "tabs2",
+          type: "tabs",
+          children: [
+            { id: "b", type: "terminal" },
+            { id: "c", type: "jupyter" },
+          ],
+          activeTab: 0,
+        },
+      ],
+      activeTab: 0,
+    }) as ImmutableFrameTree;
+    const result = flatten_tabs(tree);
+    const ids = result
+      .get("children")
+      .map((c: ImmutableFrameTree) => c.get("id"))
+      .toJS();
+    expect(ids).toEqual(["a", "b", "c"]);
+  });
+
+  it("preserves inner activeTab when flattening nested tabs", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        { id: "a", type: "cm" },
+        {
+          id: "tabs2",
+          type: "tabs",
+          children: [
+            { id: "b", type: "terminal" },
+            { id: "c", type: "jupyter" },
+            { id: "d", type: "cm" },
+          ],
+          activeTab: 2, // "d" was active inside the nested tabs
+        },
+      ],
+      activeTab: 1, // the nested tabs container was active
+    }) as ImmutableFrameTree;
+    const result = flatten_tabs(tree);
+    const ids = result
+      .get("children")
+      .map((c: ImmutableFrameTree) => c.get("id"))
+      .toJS();
+    expect(ids).toEqual(["a", "b", "c", "d"]);
+    // activeTab should point to "d" (inner activeTab 2, offset by 1)
+    expect(result.get("activeTab")).toBe(3);
+  });
+
+  it("recurses into non-tabs nodes to flatten tabs deeper in the tree", () => {
+    const tree = fromJS({
+      id: "root",
+      type: "node",
+      direction: "col",
+      children: [
+        { id: "left", type: "cm" },
+        {
+          id: "tabs1",
+          type: "tabs",
+          children: [
+            { id: "a", type: "cm" },
+            {
+              id: "split1",
+              type: "node",
+              direction: "row",
+              children: [
+                { id: "b", type: "terminal" },
+                { id: "c", type: "jupyter" },
+              ],
+              sizes: [0.5, 0.5],
+            },
+          ],
+          activeTab: 0,
+        },
+      ],
+      sizes: [0.5, 0.5],
+    }) as ImmutableFrameTree;
+    const result = flatten_tabs(tree);
+    const tabsNode = result.get("children").get(1);
+    const ids = tabsNode
+      .get("children")
+      .map((c: ImmutableFrameTree) => c.get("id"))
+      .toJS();
+    expect(ids).toEqual(["a", "b", "c"]);
+  });
+
+  it("works with split_leaf: flattening after splitting a tab child", () => {
+    const tree = fromJS({
+      id: "tabs1",
+      type: "tabs",
+      children: [
+        { id: "a", type: "cm" },
+        { id: "b", type: "terminal" },
+      ],
+      activeTab: 0,
+    }) as ImmutableFrameTree;
+    // Split leaf "a" — this creates a node inside the tabs
+    const afterSplit = split_leaf(tree, "a", "col");
+    // The split should have created a node child
+    const splitChild = afterSplit.get("children").get(0);
+    expect(splitChild.get("type")).toBe("node");
+    // Now flatten — the node should be dissolved into individual tabs
+    const result = flatten_tabs(afterSplit);
+    result
+      .get("children")
+      .forEach((c: ImmutableFrameTree) => expect(is_leaf(c)).toBe(true));
+    // Should now have 3 tabs: the original "a", its clone, and "b"
+    expect(result.get("children").size).toBe(3);
   });
 });

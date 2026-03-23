@@ -123,6 +123,10 @@ export type AssignmentCopyStep =
   | "peer_collect"
   | "return_graded";
 
+export type CopyStep = AssignmentCopyStep | "distribution";
+
+export type AssignmentStep = CopyStep | "grade";
+
 export type LastAssignmentCopyType =
   | "last_collect"
   | "last_return_graded"

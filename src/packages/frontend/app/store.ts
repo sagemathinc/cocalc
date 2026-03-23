@@ -54,6 +54,17 @@ export interface PageState {
 
   settingsModal?: string;
   conat?: TypedMap<ConatConnectionStatus>;
+
+  // Global file clipboard for cut/copy/paste across projects
+  file_clipboard?: {
+    mode: "copy" | "cut";
+    files: Array<{ project_id: string; path: string }>;
+  };
+
+  // Bumped after file operations (paste, delete) to signal the deferred
+  // listing gate to flush. Project-scoped: only the affected project's
+  // explorer/flyout will flush.
+  file_action_signal?: { project_id: string; seq: number };
 }
 
 export class PageStore extends Store<PageState> {}
