@@ -242,7 +242,7 @@ const Editor: React.FC<EditorProps> = (props: EditorProps) => {
     <div
       className={"smc-vfill"}
       id={editor_id(project_id, path)}
-      style={{ height: "100%" }}
+      style={{ height: "100%", overflow: "clip" }}
     >
       <EditorComponent
         name={redux_name}
@@ -339,7 +339,12 @@ const EditorContent: React.FC<EditorContentProps> = ({
     content = (
       <div
         className="smc-vfill"
-        style={{ position: "absolute", height: "100%", width: "100%" }}
+        style={{
+          position: "absolute",
+          height: "100%",
+          width: "100%",
+          overflow: "clip",
+        }}
       >
         {editor}
       </div>

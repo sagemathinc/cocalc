@@ -111,7 +111,7 @@ import type { TimeTravelActions } from "../time-travel-editor/actions";
 import { CodeEditor, CodeEditorManager } from "./code-editor-manager";
 import { DEFAULT_TERM_ENV } from "./const";
 import * as cm_doc_cache from "./doc";
-import { SHELLS } from "./editor";
+import { RUN_COMMANDS, SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
 
@@ -213,6 +213,9 @@ export class Actions<
   // We store these actions here so that we can remove the actions
   // and store for time travel when this editor is closed.
   public timeTravelActions?: TimeTravelActions;
+
+  // Optional build action – overridden in editors that compile (e.g., LaTeX).
+  build?(id?: string, force?: boolean): Promise<void>;
 
   // multifile support. this will be set to the path of the parent file (master)
   protected parent_file: string | undefined = undefined;
@@ -2768,6 +2771,44 @@ export class Actions<
     await delay(1);
     if (this.isClosed()) return;
     this.set_active_id(shell_id);
+  }
+
+  // Run the current file in a terminal using the appropriate
+  // interpreter/compiler based on the file extension.
+  public async run_code(id: string): Promise<void> {
+    const ext = filename_extension(this.path);
+    const template = RUN_COMMANDS[ext];
+    if (!template) return;
+
+    // Save the file before running.
+    await this.save(true);
+    if (this.isClosed()) return;
+
+    // Build the run command from the template.
+    // Shell-escape the filename to handle spaces and metacharacters safely.
+    const { tail: file } = path_split(this.path);
+    const name = file.replace(/\.[^.]+$/, "");
+    const shellEscape = (s: string) => "'" + s.replace(/'/g, "'\\''") + "'";
+    const cmd = template
+      .replace(/\{file\}/g, shellEscape(file))
+      .replace(/\{name\}/g, shellEscape(name));
+
+    // Find or create a plain terminal frame.
+    let terminalId = this._get_most_recent_terminal_id();
+    if (terminalId == null) {
+      terminalId = this.split_frame("col", id, "terminal");
+      if (terminalId == null) return;
+    }
+
+    this.unset_frame_full();
+    await delay(1);
+    if (this.isClosed()) return;
+    this.set_active_id(terminalId);
+
+    // Clear the current line and send the run command.
+    const terminal = this.terminals.get(terminalId);
+    if (terminal == null) return;
+    terminal.conn_write(`\x05\x15${cmd}\n`);
   }
 
   public clear_terminal_command(id: string): void {

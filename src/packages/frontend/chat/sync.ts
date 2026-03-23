@@ -59,6 +59,12 @@ export function handleSyncDBChange({ syncdb, store, changes }) {
         return;
       }
 
+      case "coding-agent":
+      case "notebook-agent":
+        // Agent messages are handled by their own components
+        // embedded in the side chat — nothing to do here.
+        return;
+
       default:
         console.warn("unknown chat event: ", obj.event);
     }

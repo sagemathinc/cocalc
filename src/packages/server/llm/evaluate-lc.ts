@@ -470,14 +470,20 @@ export async function evaluateWithLangChain(
 
   // Create prompt template
   // For o1 models, omit the system message entirely since they don't support system roles
+  // Escape curly braces in the system prompt so LangChain doesn't interpret
+  // them as template variables (e.g., LaTeX \begin{document}).
+  const escapedSystem = (system ?? "").replace(/\{/g, "{{").replace(/\}/g, "}}");
   const isO1 = isO1Model(canonicalModel);
   const prompt = isO1
     ? ChatPromptTemplate.fromMessages([
         new MessagesPlaceholder(historyMessagesKey),
-        ["human", system ? `${system}\n\n{input}` : "{input}"],
+        [
+          "human",
+          escapedSystem ? `${escapedSystem}\n\n{input}` : "{input}",
+        ],
       ])
     : ChatPromptTemplate.fromMessages([
-        [systemRole, system ?? ""],
+        [systemRole, escapedSystem],
         new MessagesPlaceholder(historyMessagesKey),
         ["human", "{input}"],
       ]);

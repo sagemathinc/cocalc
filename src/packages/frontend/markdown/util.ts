@@ -1,6 +1,7 @@
-// find the longest sequence of backticks that can be used as a code fence in
-// Markdown syntax.
-export function backtickSequence(str: string): string {
+// Find the shortest backtick fence that safely wraps `str` in Markdown.
+// If `language` is given, it is appended to the opening fence (e.g. "```py").
+// The closing fence is always plain backticks.
+export function backtickSequence(str: string, language?: string): string {
   let longestSequence = "";
   let currentSequence = "";
   let lastChar: string | null = null;
@@ -24,5 +25,7 @@ export function backtickSequence(str: string): string {
     longestSequence = currentSequence;
   }
 
-  return longestSequence.length < 3 ? "```" : longestSequence + "`";
+  const fence =
+    longestSequence.length < 3 ? "```" : longestSequence + "`";
+  return language ? `${fence}${language}` : fence;
 }

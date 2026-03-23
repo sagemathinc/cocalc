@@ -82,7 +82,7 @@ export const FrameLeafContainer: React.FC<Props> = ({
         onTouchStart={onTouchStart}
         onPointerMove={onPointerMove}
       >
-        <div ref={titleBarRef}>{titlebar}</div>
+        <div ref={titleBarRef} style={{ flex: "0 0 auto" }}>{titlebar}</div>
         {leaf}
         <DropZoneOverlay
           isOver={isOver}

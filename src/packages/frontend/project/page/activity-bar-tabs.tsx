@@ -397,12 +397,14 @@ function ChatIndicatorTab({ activeTab, project_id }): React.JSX.Element | null {
     return null;
   }
   const chatState = openFileInfo.getIn([path, "chatState"]) as any;
+  const chatMode = openFileInfo.getIn([path, "chatMode"]) as any;
   return (
     <div style={INDICATOR_STYLE}>
       <ChatIndicator
         project_id={project_id}
         path={path}
         chatState={chatState}
+        chatMode={chatMode}
       />
     </div>
   );

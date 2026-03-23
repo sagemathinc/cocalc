@@ -210,7 +210,7 @@ export const FrameTreeLeaf: React.FC<Props> = React.memo(
       <div
         id={`frame-${desc.get("id")}`}
         className="smc-vfill"
-        style={{ background: "white", zIndex: 1 }}
+        style={{ background: "white", zIndex: 1, overflow: "clip" }}
       >
         {render_error()}
         {render_leaf()}

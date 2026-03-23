@@ -748,6 +748,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         return { x: pos.ch, y: pos.line };
       },
       getSelection: () => cm.current.getSelection(),
+      getSelectionRange: () => {
+        const sel = cm.current.getSelection();
+        if (!sel) return undefined;
+        const from = cm.current.getCursor("from");
+        const to = cm.current.getCursor("to");
+        return { fromLine: from.line, toLine: to.line };
+      },
     };
     if (registerEditor != null) {
       registerEditor(editor);
