@@ -169,8 +169,8 @@ export interface EditorDescription {
   customizeCommands?: { [commandName: string]: Partial<Command> };
 
   // which commands will also appear in the button bar (if available)
-  // If a command is in a submenu, use '->' to link them together, i.e.,
-  // 'format-font -> bold' means the item named "bold" in the submenu
+  // If a command is in a submenu, use '/' to link them together, i.e.,
+  // 'format-font/bold' means the item named "bold" in the submenu
   // named 'format-font'.
   buttons?: { [commandName: string]: boolean };
 

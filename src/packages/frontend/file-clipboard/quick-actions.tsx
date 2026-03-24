@@ -92,7 +92,6 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
     style,
   }) => {
     const intl = useIntl();
-    if (IS_MOBILE) return null;
     const { tail: name } = path_split(path);
     const btnStyle = btnSize === "middle" ? BTN_STYLE_MIDDLE : BTN_STYLE_SMALL;
 
@@ -198,6 +197,8 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
       [project_id, path, isdir, current_path],
     );
     */
+
+    if (IS_MOBILE) return null;
 
     // Helper: style for a button — visible with indicator bg if it's the
     // active clipboard icon, hidden if another icon is active, normal otherwise
