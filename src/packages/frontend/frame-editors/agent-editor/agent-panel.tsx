@@ -275,9 +275,20 @@ Use this when the app needs specific Python packages.
 
 All methods return Promises (except portURL).
 
+## Choosing App Mode
+
+**Use static mode** (the default) when everything can run in the browser —
+pure HTML/CSS/JS apps, or apps that use \`cocalc.exec()\` / \`cocalc.python()\`
+for computation. No server process needed.
+
+**Use server mode** when the app requires a persistent HTTP server —
+frameworks like Flask, FastAPI, Dash, Shiny, Streamlit, Gradio, or any
+app that needs WebSockets or server-side state. In server mode the preview
+connects to a port in the project container via CoCalc's proxy.
+
 ## Server Apps (Dash, Shiny, Flask, FastAPI, etc.)
 
-For apps that run a server process, use **server command blocks** to control the App Preview:
+Use **server command blocks** to control the App Preview:
 
 \`\`\`server start <port>\`\`\` — switches the preview to server mode, showing the app at that port.
 \`\`\`server stop\`\`\` — switches back to static app mode (index.html).
@@ -286,33 +297,69 @@ For apps that run a server process, use **server command blocks** to control the
 ### Typical workflow:
 
 1. Write the server code to the app directory
-2. Start the server via an exec block, binding to a specific port (e.g., 8050)
+2. Start the server via an exec block, binding to \`0.0.0.0\` on a specific port (e.g., 8050)
 3. Use a server start block to switch the preview:
 
 \`\`\`server start 8050
 \`\`\`
 
-On code changes: kill and restart the server process via exec,
-then use \`\`\`server restart\`\`\` to reload the preview.
+### Killing and restarting a server
+
+The server command blocks only control the preview iframe — they do NOT
+start or stop OS processes. You must manage the server process yourself.
+
+To kill a running server before restarting:
+- \`fuser -k 8050/tcp\` — kill whatever is listening on port 8050
+- \`pkill -f app.py\` — kill by script name
+
+Always kill the old process before starting a new one to avoid
+"Address already in use" errors. A typical code-change cycle:
+
+\`\`\`exec
+fuser -k 8050/tcp 2>/dev/null; cd \${dir} && python app.py &
+\`\`\`
+
+\`\`\`server restart
+\`\`\`
+
+### Server logging and debugging
+
+Always redirect server output to a log file so you can diagnose startup errors:
+
+\`\`\`exec
+cd \${dir} && python app.py > app.log 2>&1 &
+\`\`\`
+
+Then check for errors:
+
+\`\`\`exec
+tail -50 \${dir}/app.log
+\`\`\`
+
+If the server fails to start, read the log before retrying.
 
 When the user asks for a static HTML app instead, use \`\`\`server stop\`\`\`
 to switch back to index.html mode.
 
 Keep responses concise and focused. Build incrementally — start simple, then enhance.`;
 
-  // Tell the agent how to discover project files on demand
-  prompt += `\n\n## Discovering Project Files
+  // Tell the agent how to discover project files and set up environments
+  prompt += `\n\n## Project Files and Environment Setup
 
-To see what files exist next to the .app file, use an exec block:
+Exec blocks run in ${workingDirectory || "the project root"} (the directory containing the .app file).
+The app directory is \`${appDirectory}\`.
 
-\`\`\`exec
-ls
-\`\`\`
+Use exec blocks freely for file management and environment setup:
+- \`ls ${appDirectory}\` — list app files
+- \`ls\` — list files in the working directory
+- \`cat ${appDirectory}/filename\` — read a file
+- \`git init\`, \`git add\`, etc. — version control
+- \`uv init && uv add flask\` — set up a Python environment with uv
+- \`pip install package\` — install Python packages
+- \`npm install package\` — install Node packages
 
-This lists files in ${workingDirectory || "the project root"} (the directory containing the .app file).
-You can also use cocalc.listFiles() from the app or cocalc.exec("ls", [path])
-to list directory contents. When the user asks about data or files, list the
-directory first, then read the relevant files with cocalc.readFile().`;
+When the user asks about data or files, list the directory first, then
+read the relevant files.`;
 
   // Add app errors context
   if (appErrors && appErrors.length > 0) {
@@ -337,7 +384,7 @@ interface WriteFileBlock {
 
 function parseWriteFileBlocks(text: string): WriteFileBlock[] {
   const blocks: WriteFileBlock[] = [];
-  const regex = /```writefile\s+(\S+)\n([\s\S]*?)^```[ \t]*$/gm;
+  const regex = /```writefile\s+(.+)\n([\s\S]*?)^```[ \t]*$/gm;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     blocks.push({
@@ -370,9 +417,9 @@ const EXT_TO_LANG: Record<string, string> = {
  * syntax highlighting instead of a plain "writefile" block.
  */
 function formatWriteFileBlocks(text: string): string {
-  // Transform writefile blocks
+  // Transform writefile blocks (closing fence must be on its own line)
   let result = text.replace(
-    /```writefile\s+(\S+)\n([\s\S]*?)```/g,
+    /```writefile\s+(.+)\n([\s\S]*?)^```[ \t]*$/gm,
     (_match, filePath: string, content: string) => {
       const ext = filePath.split(".").pop() ?? "";
       const lang = EXT_TO_LANG[ext] ?? ext;
@@ -394,7 +441,7 @@ function formatWriteFileBlocks(text: string): string {
   );
   // Transform search/replace blocks into diff display
   result = result.replace(
-    /<<<SEARCH\s+(\S+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g,
+    /<<<SEARCH\s+(.+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g,
     (_match, filePath: string, search: string, replace: string) => {
       const searchLines = search.replace(/\n$/, "").split("\n");
       const replaceLines = replace.replace(/\n$/, "").split("\n");
@@ -411,7 +458,10 @@ function formatWriteFileBlocks(text: string): string {
 /**
  * Parse exec blocks from LLM response.
  */
+let nextExecId = 0;
+
 interface ExecBlock {
+  id: number;
   command: string;
 }
 
@@ -421,7 +471,7 @@ function parseExecBlocks(text: string): ExecBlock[] {
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     const cmd = match[1].trim();
-    if (cmd) blocks.push({ command: cmd });
+    if (cmd) blocks.push({ id: nextExecId++, command: cmd });
   }
   return blocks;
 }
@@ -468,7 +518,7 @@ interface FileSearchReplace {
 
 function parseFileSearchReplaceBlocks(text: string): FileSearchReplace[] {
   const blocks: FileSearchReplace[] = [];
-  const regex = /<<<SEARCH\s+(\S+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g;
+  const regex = /<<<SEARCH\s+(.+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     blocks.push({
@@ -883,7 +933,17 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       for (const sb of blocks) {
         switch (sb.verb) {
           case "start":
-            if (sb.port) a.setServerMode(sb.port);
+            if (sb.port) {
+              a.setServerMode(sb.port);
+            } else {
+              writeMessage({
+                date: new Date().toISOString(),
+                sender: "system",
+                content:
+                  "server start block missing port number — no action taken. Use: ```server start <port>```",
+                event: "exec_result",
+              });
+            }
             break;
           case "stop":
             a.stopServer();
@@ -894,11 +954,11 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         }
       }
     },
-    [actions],
+    [actions, writeMessage],
   );
 
   const handleExecCommand = useCallback(
-    async (command: string) => {
+    async (blockId: number, command: string) => {
       try {
         const result = await exec(
           {
@@ -939,7 +999,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         });
       }
       setPendingExec((prev) => {
-        const remaining = prev.filter((e) => e.command !== command);
+        const remaining = prev.filter((e) => e.id !== blockId);
         // When the last exec block finishes, flush any deferred server blocks
         if (remaining.length === 0 && pendingServerBlocksRef.current.length > 0) {
           const deferred = pendingServerBlocksRef.current;
@@ -960,6 +1020,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       lastSubmittedRef.current = prompt;
       setError("");
       setPendingExec([]);
+      pendingServerBlocksRef.current = [];
 
       // Detach any still-running stream from a previous submission
       const prevStream = streamRef.current;
@@ -1080,14 +1141,16 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               if (srBlocks.length > 0) {
                 await applySearchReplaceFiles(srBlocks);
               }
-              // 3. Exec blocks — auto-run or queue for confirmation
+              // 3. Exec blocks — auto-run or queue for confirmation.
+              // Always seed pendingExec so the dequeue logic in
+              // handleExecCommand can track completion and flush
+              // deferred server blocks at the right time.
               if (execBlocks.length > 0) {
+                setPendingExec(execBlocks);
                 if (autoExecRef.current) {
                   for (const cmd of execBlocks) {
-                    handleExecCommand(cmd.command);
+                    handleExecCommand(cmd.id, cmd.command);
                   }
-                } else {
-                  setPendingExec(execBlocks);
                 }
               }
               // 4. Server command blocks — if exec blocks are also
@@ -1367,7 +1430,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               type="primary"
               onClick={() => {
                 for (const cmd of pendingExec) {
-                  handleExecCommand(cmd.command);
+                  handleExecCommand(cmd.id, cmd.command);
                 }
               }}
             >
@@ -1383,7 +1446,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
                   if (next) {
                     // Run all currently pending commands immediately
                     for (const cmd of pendingExec) {
-                      handleExecCommand(cmd.command);
+                      handleExecCommand(cmd.id, cmd.command);
                     }
                   }
                 }}
@@ -1392,9 +1455,9 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               </Button>
             </Tooltip>
           </div>
-          {pendingExec.map((cmd, i) => (
+          {pendingExec.map((cmd) => (
             <div
-              key={i}
+              key={cmd.id}
               style={{
                 display: "flex",
                 alignItems: "center",
@@ -1416,7 +1479,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               <Button
                 size="small"
                 type="primary"
-                onClick={() => handleExecCommand(cmd.command)}
+                onClick={() => handleExecCommand(cmd.id, cmd.command)}
               >
                 <Icon name="play" /> Run
               </Button>
@@ -1424,7 +1487,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
                 size="small"
                 onClick={() =>
                   setPendingExec((prev) =>
-                    prev.filter((e) => e.command !== cmd.command),
+                    prev.filter((e) => e.id !== cmd.id),
                   )
                 }
               >

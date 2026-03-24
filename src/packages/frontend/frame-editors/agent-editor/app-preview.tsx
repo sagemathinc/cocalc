@@ -20,7 +20,7 @@ import { join } from "path";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 
-import { useRedux } from "@cocalc/frontend/app-framework";
+import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -87,8 +87,11 @@ export default function AppPreview({ name }: EditorComponentProps) {
   // which fires on splitter drags and window resizes).
   const storeReload: number = useRedux(name, "app_reload") ?? 0;
 
-  // Set up the bridge host for postMessage communication with the iframe
+  // Set up the bridge host for postMessage communication with the iframe.
+  // Only active in static "app" mode — server mode apps do not include
+  // the bridge SDK and should not have bridge access.
   useEffect(() => {
+    if (mode !== "app") return;
     const cleanup = createBridgeHost(iframeRef, {
       project_id,
       appDir: dir,
@@ -107,7 +110,7 @@ export default function AppPreview({ name }: EditorComponentProps) {
       messageLogRef.current = [];
       setMessageCount(0);
     };
-  }, [project_id, dir, path]);
+  }, [project_id, dir, path, mode]);
 
   // Send show/hide push messages when tab visibility changes
   const prevVisibleRef = useRef<boolean | null>(null);
@@ -215,8 +218,10 @@ export default function AppPreview({ name }: EditorComponentProps) {
   const reload = localReload + storeReload;
 
   useEffect(() => {
-    checkExists();
-  }, [checkExists, reload]);
+    if (mode === "app") {
+      checkExists();
+    }
+  }, [checkExists, reload, mode]);
 
   // In server mode the iframe connects to a running process — no index.html
   // needed. Only gate on existence for static "app" mode.
@@ -310,6 +315,23 @@ export default function AppPreview({ name }: EditorComponentProps) {
             Messages
           </Button>
         </Badge>
+        <Tooltip
+          title={intl.formatMessage({
+            id: "frame-editors.agent-editor.app-preview.source.tooltip",
+            defaultMessage:
+              "Open the app source directory to inspect files before trusting.",
+          })}
+        >
+          <Button
+            size="small"
+            onClick={() => {
+              redux.getProjectActions(project_id)?.open_directory(dir);
+            }}
+            icon={<Icon name="external-link" />}
+          >
+            Source
+          </Button>
+        </Tooltip>
         <div style={{ flex: 1 }} />
         <Tooltip
           title={intl.formatMessage({
@@ -333,8 +355,8 @@ export default function AppPreview({ name }: EditorComponentProps) {
         </Tooltip>
       </div>
 
-      {/* Trust warning */}
-      {!trust && exists && (
+      {/* Trust warning — in server mode, show regardless of index.html existence */}
+      {!trust && (mode === "server" || exists) && (
         <Alert
           type="warning"
           showIcon
