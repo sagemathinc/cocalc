@@ -266,10 +266,11 @@ export default function AppPreview({ name }: EditorComponentProps) {
   }
 
   const appSrc = `${raw_url(project_id, indexPath)}?v=${reload}`;
-  // appBasePath is "/" or "/subpath" — join without double slashes
+  // Use /server/ (not /port/) so the hub proxy strips the prefix and
+  // the server app receives requests at "/" instead of the full proxy path.
   const serverSrc =
     serverPort > 0
-      ? `${appBasePath === "/" ? "" : appBasePath}/${project_id}/port/${serverPort}/`
+      ? `${appBasePath === "/" ? "" : appBasePath}/${project_id}/server/${serverPort}/`
       : "";
 
   return (
