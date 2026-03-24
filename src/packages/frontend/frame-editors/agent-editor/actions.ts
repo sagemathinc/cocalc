@@ -36,13 +36,38 @@ interface AgentEditorState extends CodeEditorState {
   server_port?: number;
 }
 
+// Sentinel keys for the server state record in the syncdb
+const SERVER_STATE_SESSION_ID = "__server_state__";
+const SERVER_STATE_DATE = "__server_state__";
+
 export class Actions extends CodeEditorActions<AgentEditorState> {
   protected doctype: string = "syncdb";
   protected primary_keys = ["session_id", "date"];
   protected string_cols = ["content"];
 
   _init2(): void {
-    // nothing extra needed — the agent panel reads directly from the syncdb
+    // Restore persisted server state from syncdb once it's ready.
+    // Note: for doctype="syncdb", the base class assigns to _syncstring, not _syncdb.
+    const syncdb = this._syncstring as any;
+    if (!syncdb) return;
+    const restore = () => {
+      const record = syncdb.get_one({
+        session_id: SERVER_STATE_SESSION_ID,
+        date: SERVER_STATE_DATE,
+      });
+      if (record) {
+        const mode = record.get("content") as string;
+        const port = record.get("server_port") as number;
+        if (mode === "server" && port > 0) {
+          this.setState({ app_mode: "server", server_port: port } as any);
+        }
+      }
+    };
+    if (syncdb.get_state() === "ready") {
+      restore();
+    } else {
+      syncdb.once("ready", restore);
+    }
   }
 
   _raw_default_frame_tree(): FrameTree {
@@ -77,14 +102,30 @@ export class Actions extends CodeEditorActions<AgentEditorState> {
     this.setState({ app_errors: [] } as any);
   }
 
-  // Switch to server mode — show the given port in the app preview iframe
+  // Switch to server mode — show the given port in the app preview iframe.
+  // Persisted to syncdb so other clients and page reloads see the same state.
   setServerMode(port: number): void {
     this.setState({ app_mode: "server", server_port: port } as any);
+    this._persistServerState("server", port);
   }
 
   // Switch back to static app mode
   stopServer(): void {
     this.setState({ app_mode: "app", server_port: 0 } as any);
+    this._persistServerState("app", 0);
+  }
+
+  private _persistServerState(mode: AppMode, port: number): void {
+    const syncdb = this._syncstring as any;
+    if (!syncdb || syncdb.get_state() !== "ready") return;
+    syncdb.set({
+      session_id: SERVER_STATE_SESSION_ID,
+      date: SERVER_STATE_DATE,
+      event: "server_state",
+      content: mode,
+      server_port: port,
+    });
+    syncdb.commit();
   }
 
   // Reload the server iframe (bumps the reload counter while staying in server mode)

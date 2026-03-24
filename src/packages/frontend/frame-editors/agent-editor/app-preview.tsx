@@ -266,8 +266,11 @@ export default function AppPreview({ name }: EditorComponentProps) {
   }
 
   const appSrc = `${raw_url(project_id, indexPath)}?v=${reload}`;
+  // appBasePath is "/" or "/subpath" — join without double slashes
   const serverSrc =
-    serverPort > 0 ? `${appBasePath}/${project_id}/port/${serverPort}/` : "";
+    serverPort > 0
+      ? `${appBasePath === "/" ? "" : appBasePath}/${project_id}/port/${serverPort}/`
+      : "";
 
   return (
     <div

@@ -296,9 +296,10 @@ Use **server command blocks** to control the App Preview:
 
 ### Typical workflow:
 
-1. Write the server code to the app directory
-2. Start the server via an exec block, binding to \`0.0.0.0\` on a specific port (e.g., 8050)
-3. Use a server start block to switch the preview:
+1. **Install dependencies first** via exec (e.g., \`pip install flask\` or \`uv add flask\`)
+2. Write the server code to the app directory
+3. Start the server via an exec block, binding to \`0.0.0.0\` on a specific port (e.g., 8050)
+4. Use a server start block to switch the preview:
 
 \`\`\`server start 8050
 \`\`\`
