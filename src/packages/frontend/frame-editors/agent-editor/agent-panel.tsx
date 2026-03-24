@@ -288,6 +288,10 @@ connects to a port in the project container via CoCalc's proxy.
 
 ## Server Apps (Dash, Shiny, Flask, FastAPI, etc.)
 
+**IMPORTANT**: The app preview loads through a reverse proxy. All fetch/AJAX
+calls in the server app MUST use **relative URLs** (e.g., \`fetch("update")\`
+not \`fetch("/update")\`). Absolute paths bypass the proxy and will fail.
+
 Use **server command blocks** to control the App Preview:
 
 \`\`\`server start <port>\`\`\` — switches the preview to server mode, showing the app at that port.

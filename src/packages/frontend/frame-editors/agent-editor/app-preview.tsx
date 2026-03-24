@@ -8,7 +8,7 @@ App preview panel for the .app agent editor.
 
 Displays the application that the agent creates in an iframe.
 The app files live in a hidden directory derived from the .app filename,
-e.g.  foo.app  →  .foo.app.app/   which contains index.html, Python files, etc.
+e.g.  foo.app  →  .foo.app.files/   which contains index.html, Python files, etc.
 
 The iframe app can communicate with the CoCalc project via a bridge:
   - The bridge host (parent side) listens for postMessage requests
@@ -40,7 +40,7 @@ import { getBridgeSDKSource } from "./cocalc-app-bridge";
 
 export function appDir(path: string): string {
   const { head, tail } = path_split(path);
-  return join(head, `.${tail}.app`);
+  return join(head, `.${tail}.files`);
 }
 
 /** Maximum number of bridge log entries to keep in memory. */
