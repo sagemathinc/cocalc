@@ -141,7 +141,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
 
     const oldname = software_envs[compute_image].title;
     const name2004 = software_envs[UBUNTU2004_DEPRECATED].title;
-    const name2204 = software_envs[UBUNTU2204].title;
+    const name2204 = software_envs[UBUNTU2204].short ?? software_envs[UBUNTU2204].title;
     const name2404 = software_envs[default_compute_image].title;
 
     const KEEP_IMAGE = only2204
@@ -180,10 +180,10 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
         return (
           <>
             <Button
-              onClick={() => set_image(DISMISS_IMG_2004)}
+              onClick={() => set_image(DISMISS_IMG_2204)}
               bsStyle={"default"}
             >
-              {name2004}
+              {name2204}
             </Button>
             <Button
               onClick={() => set_image(default_compute_image)}
@@ -242,7 +242,7 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
       } else if (only2004) {
         return (
           <>
-            <A href={DOC_UBUNTU_2004}>{name2004}</A>,{" "}
+            <A href={DOC_UBUNTU_2204}>{name2204}</A>,{" "}
             <strong>
               <A href={DOC_UBUNTU_2404}>{name2404}</A>
             </strong>
