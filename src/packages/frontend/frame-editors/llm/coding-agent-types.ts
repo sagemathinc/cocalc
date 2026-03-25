@@ -29,6 +29,7 @@ export interface ShowBlock {
 }
 
 export interface ExecBlock {
+  id: number;
   command: string;
 }
 

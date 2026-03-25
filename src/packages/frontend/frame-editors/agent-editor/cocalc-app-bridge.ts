@@ -428,16 +428,27 @@ const BRIDGE_SDK_SOURCE = `
     },
 
     /**
-     * Open a URL via the CoCalc port proxy.
-     * Useful for apps that start a server on a specific port.
+     * Get a URL via the CoCalc port proxy (transparent, preserves path).
      * @param {number} port - The port number
      * @returns {string} The proxied URL path
      */
     portURL: function(port) {
-      // The parent will inject projectId on init
       var pid = window.cocalc._projectId || "";
       var base = window.cocalc._basePath || "";
       return base + "/" + pid + "/port/" + port + "/";
+    },
+
+    /**
+     * Get a URL via the CoCalc server proxy (rewrites path to /).
+     * Use this for Flask/Dash/FastAPI/etc. servers that expect
+     * requests at their root path.
+     * @param {number} port - The port number
+     * @returns {string} The proxied URL path
+     */
+    serverURL: function(port) {
+      var pid = window.cocalc._projectId || "";
+      var base = window.cocalc._basePath || "";
+      return base + "/" + pid + "/server/" + port + "/";
     },
 
     /**

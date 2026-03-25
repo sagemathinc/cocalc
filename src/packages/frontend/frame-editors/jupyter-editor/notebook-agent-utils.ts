@@ -24,7 +24,6 @@ import {
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import type { JupyterEditorActions } from "./actions";
-import { server_time } from "@cocalc/util/misc";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -617,10 +616,11 @@ export async function runCell(
   cellIndex: number,
   cancelRef?: { current: boolean },
 ): Promise<string> {
-  // Use server_time() instead of Date.now() because cell start/end
-  // timestamps come from the server clock.  A forward-skewed local
-  // clock would make `end >= invokedAt` never true.
-  const invokedAt = server_time().valueOf();
+  // Cell end timestamps are set by the project process (server clock).
+  // Allow a tolerance margin so a forward-skewed browser clock doesn't
+  // make `end >= invokedAt` permanently false.
+  const CLOCK_SKEW_TOLERANCE_MS = 5000;
+  const invokedAt = Date.now() - CLOCK_SKEW_TOLERANCE_MS;
   jupyterActions.run_cell(cellId, true);
 
   const store = jupyterActions.store;

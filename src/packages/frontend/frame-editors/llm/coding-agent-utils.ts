@@ -346,6 +346,8 @@ export function fulfillShowBlocks(
 /*  Command block parsing                                              */
 /* ------------------------------------------------------------------ */
 
+let nextExecBlockId = 0;
+
 export function parseExecBlocks(text: string): ExecBlock[] {
   const blocks: ExecBlock[] = [];
   // Backreference (\1) ensures inner fences don't terminate the block early.
@@ -353,7 +355,7 @@ export function parseExecBlocks(text: string): ExecBlock[] {
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     const cmd = match[2].trim();
-    if (cmd) blocks.push({ command: cmd });
+    if (cmd) blocks.push({ id: nextExecBlockId++, command: cmd });
   }
   return blocks;
 }
@@ -399,7 +401,8 @@ export function buildSystemPrompt(
     lines.push(`Cursor: line ${ctx.cursorLine + 1}.`);
   }
   if (ctx.selection) {
-    lines.push(`Selected text:\n\`\`\`\n${ctx.selection}\n\`\`\``);
+    const selFence = backtickSequence(ctx.selection);
+    lines.push(`Selected text:\n${selFence}\n${ctx.selection}\n${selFence}`);
   }
 
   const contentLines = ctx.content.split("\n");

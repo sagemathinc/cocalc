@@ -154,6 +154,8 @@ function CodingAgentCore({
   // SHOW auto-continuation timer — cleared on unmount/cancel/session switch
   // to prevent stale callbacks firing into the wrong session.
   const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Track in-flight exec block IDs to prevent double-dispatch
+  const executingExecIdsRef = useRef<Set<number>>(new Set());
   const prevSessionIdRef = useRef(session.sessionId);
   if (prevSessionIdRef.current !== session.sessionId) {
     prevSessionIdRef.current = session.sessionId;
@@ -664,7 +666,10 @@ function CodingAgentCore({
 
   // ---- Exec command ----
   const handleExecCommand = useCallback(
-    async (command: string) => {
+    async (blockId: number, command: string) => {
+      // Prevent double-dispatch: skip if this block is already executing
+      if (executingExecIdsRef.current.has(blockId)) return;
+      executingExecIdsRef.current.add(blockId);
       // Capture session ID before the async gap — if the user switches
       // sessions while the command runs, the result still lands in the
       // session that triggered it.
@@ -709,7 +714,8 @@ function CodingAgentCore({
           session_id: execSessionId,
         });
       }
-      setPendingExec((prev) => prev.filter((e) => e.command !== command));
+      executingExecIdsRef.current.delete(blockId);
+      setPendingExec((prev) => prev.filter((e) => e.id !== blockId));
     },
     [project_id, path, session.writeMessage],
   );
@@ -899,7 +905,7 @@ function CodingAgentCore({
               <Button
                 size="small"
                 type="primary"
-                onClick={() => handleExecCommand(cmd.command)}
+                onClick={() => handleExecCommand(cmd.id, cmd.command)}
               >
                 <Icon name="play" /> Run
               </Button>
@@ -907,7 +913,7 @@ function CodingAgentCore({
                 size="small"
                 onClick={() =>
                   setPendingExec((prev) =>
-                    prev.filter((e) => e.command !== cmd.command),
+                    prev.filter((e) => e.id !== cmd.id),
                   )
                 }
               >

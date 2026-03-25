@@ -28,6 +28,7 @@ import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageMod
 import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { CSS } from "@cocalc/frontend/app-framework";
 import { LLMCostEstimationChat } from "@cocalc/frontend/chat/llm-cost-estimation";
+import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import type { CostEstimate } from "@cocalc/frontend/chat/types";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
@@ -431,7 +432,11 @@ function formatWriteFileBlocks(text: string): string {
     (_match, _fence: string, filePath: string, content: string) => {
       const ext = filePath.split(".").pop() ?? "";
       const lang = EXT_TO_LANG[ext] ?? ext;
-      return `**\u2192 ${filePath}**\n\`\`\`${lang}\n${content}\`\`\``;
+      // Use a safe fence so nested backticks in the content don't
+      // close the display block early (e.g. markdown with code fences).
+      const closeFence = backtickSequence(content);
+      const openFence = lang ? `${closeFence}${lang}` : closeFence;
+      return `**\u2192 ${filePath}**\n${openFence}\n${content}${closeFence}`;
     },
   );
   // Transform server command blocks into styled labels (anchored to line start)
@@ -998,6 +1003,9 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       // Prevent double-dispatch: skip if this block is already executing
       if (executingExecIdsRef.current.has(blockId)) return;
       executingExecIdsRef.current.add(blockId);
+      // Capture the session ID before the async gap so the result lands
+      // in the originating session even if the user switches sessions.
+      const execSessionId = sessionIdRef.current;
       try {
         const result = await exec(
           {
@@ -1027,6 +1035,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           sender: "system",
           content: `Executed: \`${command}\`\n\n${output}`,
           event: "exec_result",
+          session_id: execSessionId,
         });
       } catch (err: any) {
         const now = new Date().toISOString();

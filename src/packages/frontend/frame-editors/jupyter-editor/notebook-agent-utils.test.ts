@@ -244,4 +244,14 @@ describe("resolveIndex", () => {
     const res = resolveIndex(-1, cellList);
     expect("error" in res).toBe(true);
   });
+
+  test("NaN index is rejected", () => {
+    const res = resolveIndex(NaN, cellList);
+    expect("error" in res).toBe(true);
+  });
+
+  test("undefined index is rejected", () => {
+    const res = resolveIndex(undefined as any, cellList);
+    expect("error" in res).toBe(true);
+  });
 });
