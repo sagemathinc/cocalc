@@ -60,6 +60,8 @@ export class Actions extends CodeEditorActions<AgentEditorState> {
         const port = record.get("server_port") as number;
         if (mode === "server" && port > 0) {
           this.setState({ app_mode: "server", server_port: port } as any);
+        } else {
+          this.setState({ app_mode: "app", server_port: 0 } as any);
         }
       }
     };
@@ -68,6 +70,12 @@ export class Actions extends CodeEditorActions<AgentEditorState> {
     } else {
       syncdb.once("ready", restore);
     }
+    // Subscribe to changes so other clients/tabs see server mode updates
+    syncdb.on("change", () => {
+      if (syncdb.get_state() === "ready") {
+        restore();
+      }
+    });
   }
 
   _raw_default_frame_tree(): FrameTree {

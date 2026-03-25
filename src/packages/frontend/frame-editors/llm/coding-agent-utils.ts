@@ -177,11 +177,13 @@ export function formatSearchReplaceAsDiff(text: string): string {
  * Skips ```exec blocks — those are shell commands, not file content.
  */
 export function extractCodeBlock(text: string): string | undefined {
-  const regex = /```(\w*)\n([\s\S]*?)```/g;
+  // Backreference (\1) ensures inner fences don't terminate the block early,
+  // e.g. when the LLM wraps markdown/code containing triple backticks.
+  const regex = /^(`{3,})(\w*)\n([\s\S]*?)^\1[ \t]*$/gm;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
-    if (match[1] === "exec") continue;
-    return match[2];
+    if (match[2] === "exec") continue;
+    return match[3];
   }
   return undefined;
 }
@@ -346,10 +348,11 @@ export function fulfillShowBlocks(
 
 export function parseExecBlocks(text: string): ExecBlock[] {
   const blocks: ExecBlock[] = [];
-  const regex = /```exec\n([\s\S]*?)```/g;
+  // Backreference (\1) ensures inner fences don't terminate the block early.
+  const regex = /^(`{3,})exec\n([\s\S]*?)^\1[ \t]*$/gm;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
-    const cmd = match[1].trim();
+    const cmd = match[2].trim();
     if (cmd) blocks.push({ command: cmd });
   }
   return blocks;

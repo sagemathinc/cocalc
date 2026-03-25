@@ -312,6 +312,36 @@ console.log("hi")
 \`\`\``;
     expect(extractCodeBlock(text)).toBe('print("hello")\n');
   });
+
+  it("handles nested fences using 4+ backticks", () => {
+    const text = `Here is the file:
+\`\`\`\`markdown
+# README
+
+\`\`\`python
+print("example")
+\`\`\`
+
+More text.
+\`\`\`\``;
+    const result = extractCodeBlock(text);
+    expect(result).toContain('```python');
+    expect(result).toContain('print("example")');
+    expect(result).toContain("More text.");
+  });
+
+  it("does not truncate at inner triple fences", () => {
+    const text = `\`\`\`\`html
+<pre><code>
+\`\`\`
+some code
+\`\`\`
+</code></pre>
+\`\`\`\``;
+    const result = extractCodeBlock(text);
+    expect(result).toContain("some code");
+    expect(result).toContain("</code></pre>");
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -430,6 +460,15 @@ describe("parseExecBlocks", () => {
   it("skips empty exec blocks", () => {
     const text = "```exec\n\n```";
     expect(parseExecBlocks(text)).toHaveLength(0);
+  });
+
+  it("handles exec blocks wrapped with 4+ backticks", () => {
+    const text = `\`\`\`\`exec
+echo "hello \`\`\` world"
+\`\`\`\``;
+    const blocks = parseExecBlocks(text);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0].command).toContain('echo "hello ``` world"');
   });
 });
 

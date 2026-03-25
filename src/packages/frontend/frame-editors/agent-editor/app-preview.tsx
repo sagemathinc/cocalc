@@ -161,6 +161,8 @@ export default function AppPreview({ name }: EditorComponentProps) {
   useEffect(() => {
     function onBridgeReady(event: MessageEvent) {
       if (event.data?.type !== "cocalc-bridge-ready") return;
+      // Reject messages from foreign origins (e.g. if iframe navigated away)
+      if (event.origin !== window.location.origin) return;
       const iframe = iframeRef.current;
       if (!iframe?.contentWindow || event.source !== iframe.contentWindow)
         return;
@@ -175,6 +177,9 @@ export default function AppPreview({ name }: EditorComponentProps) {
   useEffect(() => {
     function onBridgeErrors(event: MessageEvent) {
       if (event.data?.type !== "cocalc-bridge-errors") return;
+      // Reject messages from foreign origins — prevents prompt injection
+      // if the iframe navigates to an external page that sends crafted errors.
+      if (event.origin !== window.location.origin) return;
       const iframe = iframeRef.current;
       if (!iframe?.contentWindow || event.source !== iframe.contentWindow)
         return;

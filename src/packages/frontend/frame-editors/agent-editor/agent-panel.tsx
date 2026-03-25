@@ -389,12 +389,15 @@ interface WriteFileBlock {
 
 function parseWriteFileBlocks(text: string): WriteFileBlock[] {
   const blocks: WriteFileBlock[] = [];
-  const regex = /```writefile\s+(.+)\n([\s\S]*?)^```[ \t]*$/gm;
+  // Use backreference so that inner ``` fences (e.g. in markdown files)
+  // don't terminate the block early.  The LLM can use 4+ backticks to
+  // wrap content that itself contains triple backticks.
+  const regex = /^(`{3,})writefile\s+(.+)\n([\s\S]*?)^\1[ \t]*$/gm;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     blocks.push({
-      path: match[1],
-      content: match[2],
+      path: match[2],
+      content: match[3],
     });
   }
   return blocks;
@@ -422,18 +425,18 @@ const EXT_TO_LANG: Record<string, string> = {
  * syntax highlighting instead of a plain "writefile" block.
  */
 function formatWriteFileBlocks(text: string): string {
-  // Transform writefile blocks (closing fence must be on its own line)
+  // Transform writefile blocks (backreference ensures nested fences don't close early)
   let result = text.replace(
-    /```writefile\s+(.+)\n([\s\S]*?)^```[ \t]*$/gm,
-    (_match, filePath: string, content: string) => {
+    /^(`{3,})writefile\s+(.+)\n([\s\S]*?)^\1[ \t]*$/gm,
+    (_match, _fence: string, filePath: string, content: string) => {
       const ext = filePath.split(".").pop() ?? "";
       const lang = EXT_TO_LANG[ext] ?? ext;
       return `**\u2192 ${filePath}**\n\`\`\`${lang}\n${content}\`\`\``;
     },
   );
-  // Transform server command blocks into styled labels
+  // Transform server command blocks into styled labels (anchored to line start)
   result = result.replace(
-    /```server\s+(start|stop|restart)(?:\s+(\d+))?\s*\n?```/g,
+    /^```server\s+(start|stop|restart)(?:\s+(\d+))?\s*\n?```/gm,
     (_match, verb: string, port?: string) => {
       const label =
         verb === "start"
@@ -472,10 +475,10 @@ interface ExecBlock {
 
 function parseExecBlocks(text: string): ExecBlock[] {
   const blocks: ExecBlock[] = [];
-  const regex = /```exec\n([\s\S]*?)```/g;
+  const regex = /^(`{3,})exec\n([\s\S]*?)^\1[ \t]*$/gm;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
-    const cmd = match[1].trim();
+    const cmd = match[2].trim();
     if (cmd) blocks.push({ id: nextExecId++, command: cmd });
   }
   return blocks;
@@ -497,7 +500,9 @@ interface ServerBlock {
 
 function parseServerBlocks(text: string): ServerBlock[] {
   const blocks: ServerBlock[] = [];
-  const regex = /```server\s+(start|stop|restart)(?:\s+(\d+))?\s*\n?```/g;
+  // Anchored to line start (^) so inline mentions like "use ```server stop```"
+  // in explanatory text don't accidentally trigger a mode switch.
+  const regex = /^```server\s+(start|stop|restart)(?:\s+(\d+))?\s*\n?```/gm;
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     const verb = match[1] as ServerVerb;
@@ -562,10 +567,26 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const lastSubmittedRef = useRef("");
   // Server blocks deferred until exec blocks complete (same LLM turn)
   const pendingServerBlocksRef = useRef<ServerBlock[]>([]);
+  // Track in-flight exec block IDs to prevent double-dispatch
+  const executingExecIdsRef = useRef<Set<number>>(new Set());
 
   const dir = appDir(path);
   // The directory containing the .app file (for exec cwd and system prompt)
   const { head: parentDir } = path_split(path);
+
+  // Cleanup streams and timers on unmount to prevent memory leaks
+  useEffect(() => {
+    return () => {
+      if (estimateTimeoutRef.current) {
+        clearTimeout(estimateTimeoutRef.current);
+        estimateTimeoutRef.current = null;
+      }
+      if (streamRef.current) {
+        streamRef.current.removeAllListeners();
+        streamRef.current = null;
+      }
+    };
+  }, []);
 
   // SyncDB state — piggybacks on the frame editor's syncdb (the .ai file).
   const [syncdb, setSyncdb] = useState<any>(null);
@@ -627,15 +648,22 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       allRecords.forEach((record: any) => {
         const sid = record.get("session_id");
         if (!sid) return;
-        sessionsSet.add(sid);
 
+        const event = record.get("event");
         // Skip session_name records from messages — they use a
         // sentinel date ("session_name:<sid>") that would corrupt sorting.
-        if (record.get("event") === "session_name") {
+        if (event === "session_name") {
           const name = record.get("content");
           if (name) names.set(sid, name);
           return;
         }
+        // Skip the persisted server-state sentinel record — it is
+        // not a conversation message and should not appear as a session.
+        if (event === "server_state") {
+          return;
+        }
+
+        sessionsSet.add(sid);
 
         if (!msgsBySession.has(sid)) {
           msgsBySession.set(sid, []);
@@ -737,7 +765,10 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       session_id?: string;
     }) => {
       if (!syncdb || syncdb.get_state() !== "ready") return;
-      const sid = msg.session_id || sessionId || uuid();
+      // Use the ref (not the state closure) so that system messages
+      // written after setSessionId() but before re-render still land
+      // in the correct session.
+      const sid = msg.session_id || sessionIdRef.current || uuid();
 
       syncdb.set({
         session_id: sid,
@@ -749,7 +780,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       });
       syncdb.commit();
     },
-    [syncdb, sessionId],
+    [syncdb],
   );
 
   const writeSessionName = useCallback(
@@ -964,6 +995,9 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
   const handleExecCommand = useCallback(
     async (blockId: number, command: string) => {
+      // Prevent double-dispatch: skip if this block is already executing
+      if (executingExecIdsRef.current.has(blockId)) return;
+      executingExecIdsRef.current.add(blockId);
       try {
         const result = await exec(
           {
@@ -1003,6 +1037,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           event: "exec_result",
         });
       }
+      executingExecIdsRef.current.delete(blockId);
       setPendingExec((prev) => {
         const remaining = prev.filter((e) => e.id !== blockId);
         // When the last exec block finishes, flush any deferred server blocks
@@ -1024,8 +1059,15 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
       lastSubmittedRef.current = prompt;
       setError("");
-      setPendingExec([]);
-      pendingServerBlocksRef.current = [];
+      // Only clear pending exec/server state if no exec is still in flight
+      // from the previous turn.  Otherwise deferred server blocks would be
+      // dropped and never applied.
+      setPendingExec((prev) => {
+        if (prev.length === 0) {
+          pendingServerBlocksRef.current = [];
+        }
+        return [];
+      });
 
       // Detach any still-running stream from a previous submission
       const prevStream = streamRef.current;
