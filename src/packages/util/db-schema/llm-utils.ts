@@ -1534,13 +1534,13 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     prompt_tokens: usd1Mtokens(0.75),
     completion_tokens: usd1Mtokens(4.5),
     max_tokens: 8192,
-    free: false,
+    free: true,
   },
   "gpt-5.4-mini": {
     prompt_tokens: usd1Mtokens(0.75),
     completion_tokens: usd1Mtokens(4.5),
     max_tokens: 128000,
-    free: false,
+    free: true,
   },
   // xAI (https://x.ai/)
   "grok-4-1-fast-non-reasoning-16k": {
