@@ -238,6 +238,8 @@ export function NotebookAgent({
   // don't fire on unmounted state.
   useEffect(() => {
     return () => {
+      // Abort any surviving runCell polling loop from a previous submit.
+      if (prevAbortRef.current) prevAbortRef.current.current = true;
       llmResolveRef.current?.("");
       llmResolveRef.current = null;
       const stream = llmStreamRef.current;
@@ -446,7 +448,14 @@ export function NotebookAgent({
         loops--;
 
         const assistantText = await runLlmTurn(currentPrompt, history, system);
-        if (cancelSignal.current) break;
+        if (cancelSignal.current) {
+          // Remove the unpersisted draft message (date === "") so it
+          // doesn't pollute the display or get fed back as LLM history.
+          session.setMessages((prev) =>
+            prev.filter((m) => !(m.sender === "assistant" && m.date === "")),
+          );
+          break;
+        }
 
         const assistantDate = new Date().toISOString();
         session.writeMessage({

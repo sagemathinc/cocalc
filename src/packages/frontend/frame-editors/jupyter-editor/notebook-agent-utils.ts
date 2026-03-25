@@ -24,6 +24,7 @@ import {
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import type { JupyterEditorActions } from "./actions";
+import { server_time } from "@cocalc/util/misc";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -305,6 +306,9 @@ export function resolveIndex(
   index1: number,
   cellList: string[],
 ): { idx: number; cellId: string } | { error: string } {
+  if (typeof index1 !== "number" || isNaN(index1)) {
+    return { error: `Invalid index: ${index1} (expected a number)` };
+  }
   const idx = index1 - 1;
   if (idx < 0 || idx >= cellList.length) {
     return {
@@ -613,11 +617,14 @@ export async function runCell(
   cellIndex: number,
   cancelRef?: { current: boolean },
 ): Promise<string> {
-  const invokedAt = Date.now();
+  // Use server_time() instead of Date.now() because cell start/end
+  // timestamps come from the server clock.  A forward-skewed local
+  // clock would make `end >= invokedAt` never true.
+  const invokedAt = server_time().valueOf();
   jupyterActions.run_cell(cellId, true);
 
   const store = jupyterActions.store;
-  const deadline = invokedAt + CELL_RUN_TIMEOUT_MS;
+  const deadline = Date.now() + CELL_RUN_TIMEOUT_MS;
 
   const timedOut = await new Promise<boolean>((resolve) => {
     const check = () => {

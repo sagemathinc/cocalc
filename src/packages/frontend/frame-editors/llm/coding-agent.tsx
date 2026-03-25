@@ -507,14 +507,15 @@ function CodingAgentCore({
                   // Track the timer so it can be cancelled on
                   // unmount, Stop, or session switch.
                   const sessionAtShow = activeSessionId;
+                  // Embed the show content directly in the continuation
+                  // prompt so the LLM gets the lines without waiting for
+                  // SyncDB to round-trip (which is throttled to 300ms).
+                  const continuationPrompt = `${showResponse}\n\nContinue with your task.`;
                   showTimerRef.current = setTimeout(() => {
                     showTimerRef.current = null;
-                    // Guard: only auto-continue if still in the same session.
                     if (session.sessionIdRef.current !== sessionAtShow) return;
-                    handleSubmitRef.current(
-                      "Here are the lines you requested. Continue with your task.",
-                    );
-                  }, 100);
+                    handleSubmitRef.current(continuationPrompt);
+                  }, 50);
                 }
               } else {
                 // No SHOW blocks — check for command blocks only.

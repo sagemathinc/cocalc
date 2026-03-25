@@ -27,6 +27,11 @@ import { hidden_meta_file, uuid } from "@cocalc/util/misc";
 import type { AgentSession, DisplayMessage, WriteMessageParams } from "./types";
 import { agentSenderId, SYNCDB_CHANGE_THROTTLE } from "./types";
 
+// Monotonic counter appended to ISO timestamps in standalone mode to
+// guarantee unique primary keys when multiple writes happen within the
+// same millisecond (e.g. assistant reply + show_lines back-to-back).
+let writeSeq = 0;
+
 /* ------------------------------------------------------------------ */
 /*  Hook options                                                       */
 /* ------------------------------------------------------------------ */
@@ -309,9 +314,12 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
           base_snapshot: msg.base_snapshot,
         });
       } else {
+        // Append a monotonic sequence number to the date to avoid
+        // primary key collisions when two writes land in the same ms.
+        const uniqueDate = `${msg.date}:${writeSeq++}`;
         syncdb.set({
           session_id: sid,
-          date: msg.date,
+          date: uniqueDate,
           sender: msg.sender,
           content: msg.content,
           account_id: msg.account_id,

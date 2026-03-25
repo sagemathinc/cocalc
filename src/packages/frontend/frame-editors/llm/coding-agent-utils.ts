@@ -430,9 +430,12 @@ export function buildSystemPrompt(
   lines.push(
     `Visible portion of the document (lines ${startLine + 1}\u2013${endLine} of ${filename} (${totalLines} lines)):`,
   );
-  lines.push("```");
+  // Use a dynamic fence so backticks inside the visible content (e.g.
+  // fenced code blocks in .md files) don't close the wrapper early.
+  const fence = backtickSequence(visibleSlice);
+  lines.push(fence);
   lines.push(visibleSlice);
-  lines.push("```");
+  lines.push(fence);
 
   lines.push("");
   lines.push(`You can see lines ${startLine + 1}\u2013${endLine} of ${filename} (${totalLines} lines) above.

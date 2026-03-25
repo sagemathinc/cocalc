@@ -34,6 +34,21 @@ const NO_AGENT_EXTENSIONS = new Set([
   "wav",
   "ogg",
   "flac",
+  // Archive files — archive editor, no set_value / CodeMirror
+  "zip",
+  "tar",
+  "tgz",
+  "gz",
+  "bz2",
+  "bzip2",
+  "xz",
+  "lzip",
+  "tbz2",
+  "z",
+  "lz",
+  "lzma",
+  "7z",
+  "rar",
 ]);
 
 /** Returns true when the given file path supports an embedded AI agent. */
