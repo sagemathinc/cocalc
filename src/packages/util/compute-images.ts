@@ -78,6 +78,7 @@ const COMPUTE_IMAGES: { [key: string]: ComputeImageProd } = {
     descr:
       "Ubuntu 22.04-based software stack, superseded by 24.04 in June 2025",
     group: "Main",
+    hidden: true, // any project that is set to "ubuntu2204" will be shown a banner → either update to ubuntu2404 or keep ubuntu2204-eol
   },
   [DISMISS_IMG_2204]: {
     order: 1,
