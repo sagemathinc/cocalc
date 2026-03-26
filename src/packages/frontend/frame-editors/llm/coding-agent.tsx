@@ -15,7 +15,7 @@ management.  This file contains only coding-agent-specific logic:
 - <<<SHOW block auto-fulfillment
 */
 
-import { Button, Tooltip } from "antd";
+import { Button, Switch, Tooltip } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -156,6 +156,23 @@ function CodingAgentCore({
   const showTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   // Track in-flight exec block IDs to prevent double-dispatch
   const executingExecIdsRef = useRef<Set<number>>(new Set());
+  // Auto-accept edits — persisted in local_view_state so it survives reloads
+  const [autoAccept, setAutoAcceptState] = useState<boolean>(() => {
+    try {
+      return !!actions.store
+        ?.get("local_view_state")
+        ?.get("coding_agent_auto_accept");
+    } catch {
+      return false;
+    }
+  });
+  const setAutoAccept = useCallback(
+    (v: boolean) => {
+      setAutoAcceptState(v);
+      actions.set_local_view_state?.({ coding_agent_auto_accept: v } as any);
+    },
+    [actions],
+  );
   const prevSessionIdRef = useRef(session.sessionId);
   if (prevSessionIdRef.current !== session.sessionId) {
     prevSessionIdRef.current = session.sessionId;
@@ -172,6 +189,14 @@ function CodingAgentCore({
       showTimerRef.current = null;
     }
   }
+
+  // Auto-accept: when enabled, apply edits as soon as they arrive
+  const handleApplyEditsRef = useRef<() => void>(() => {});
+  useEffect(() => {
+    if (autoAccept && pendingEdits) {
+      handleApplyEditsRef.current();
+    }
+  }, [autoAccept, pendingEdits]);
 
   // Ref to always call the latest handleSubmit so auto-continuation
   // (e.g. <<<SHOW fulfillment) avoids stale closures.
@@ -653,6 +678,8 @@ function CodingAgentCore({
     try {
       actions.set_value(newContent);
       setEditsApplied(true);
+      // Trigger a save so "build on save" kicks in automatically
+      setTimeout(() => actions.save?.(true), 500);
     } catch (err) {
       session.writeMessage({
         date: new Date().toISOString(),
@@ -663,6 +690,7 @@ function CodingAgentCore({
     }
     setPendingEdits(undefined);
   }, [pendingEdits, actions, session.writeMessage]);
+  handleApplyEditsRef.current = handleApplyEdits;
 
   // ---- Exec command ----
   const handleExecCommand = useCallback(
@@ -824,8 +852,8 @@ function CodingAgentCore({
         />
       </FileContext.Provider>
 
-      {/* Pending edits action bar */}
-      {pendingEdits && (
+      {/* Edits action bar — always visible so Auto toggle is accessible */}
+      {(pendingEdits || autoAccept) && (
         <div
           style={{
             flex: "0 0 auto",
@@ -838,33 +866,41 @@ function CodingAgentCore({
             flexWrap: "wrap",
           }}
         >
-          <Icon name="check" />
-          <span>
-            {pendingEdits.type === "edit_blocks"
-              ? `${pendingEdits.blocks.length} edit(s) suggested.`
-              : pendingEdits.type === "search_replace"
-                ? `${pendingEdits.blocks.length} search/replace edit(s) suggested.`
-                : "Full replacement suggested."}
-          </span>
-          <Button size="small" type="primary" onClick={handleApplyEdits}>
-            Apply to Editor
-          </Button>
-          <Button size="small" onClick={() => setPendingEdits(undefined)}>
-            Dismiss
-          </Button>
-          {hasBuild && (
-            <Tooltip title="Apply changes and trigger a build">
-              <Button
-                size="small"
-                onClick={() => {
-                  handleApplyEdits();
-                  setTimeout(() => handleBuild(), 500);
-                }}
-              >
-                <Icon name="play" /> Apply & Build
+          {pendingEdits && !autoAccept && (
+            <>
+              <Icon name="check" />
+              <span>
+                {pendingEdits.type === "edit_blocks"
+                  ? `${pendingEdits.blocks.length} edit(s) suggested.`
+                  : pendingEdits.type === "search_replace"
+                    ? `${pendingEdits.blocks.length} search/replace edit(s) suggested.`
+                    : "Full replacement suggested."}
+              </span>
+              <Button size="small" type="primary" onClick={handleApplyEdits}>
+                Apply to Editor
               </Button>
-            </Tooltip>
+              <Button size="small" onClick={() => setPendingEdits(undefined)}>
+                Dismiss
+              </Button>
+            </>
           )}
+          <Tooltip title="Automatically apply all future edits without asking">
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                marginLeft: autoAccept && !pendingEdits ? 0 : 4,
+              }}
+            >
+              <Switch
+                size="small"
+                checked={autoAccept}
+                onChange={setAutoAccept}
+              />
+              <span style={{ fontSize: "0.85em" }}>Auto-apply edits</span>
+            </span>
+          </Tooltip>
         </div>
       )}
 

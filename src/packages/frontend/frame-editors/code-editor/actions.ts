@@ -379,6 +379,7 @@ export class Actions<
         (this._syncdb === undefined || this._syncdb_init)
       ) {
         this.setState({ is_loaded: true });
+        this.restoreChatIndicator();
       }
 
       this._syncstring.on(
@@ -484,6 +485,7 @@ export class Actions<
         (this._syncstring === undefined || this._syncstring_init)
       ) {
         this.setState({ is_loaded: true });
+        this.restoreChatIndicator();
       }
     });
 
@@ -1040,6 +1042,21 @@ export class Actions<
 
   closeChat() {
     this.redux.getProjectActions(this.project_id).set_chat_state(this.path, "");
+    this.redux.getProjectActions(this.project_id).set_chat_mode(this.path, "");
+  }
+
+  // Restore chatState/chatMode in the project open_files store by inspecting
+  // the current frame tree.  Called after the frame tree is loaded from
+  // localStorage so the chat indicator buttons highlight correctly on refresh.
+  restoreChatIndicator() {
+    const chatFrameId = this._get_most_recent_active_frame_id_of_type("chat");
+    const projectActions = this.redux.getProjectActions(this.project_id);
+    if (chatFrameId != null) {
+      const node = this._get_frame_node(chatFrameId);
+      const chatMode = node?.get("chat_mode") ?? "chat";
+      projectActions.set_chat_state(this.path, "internal");
+      projectActions.set_chat_mode(this.path, chatMode);
+    }
   }
 
   // Delete the frame with given id.
