@@ -21,7 +21,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { LLMCostEstimationChat } from "@cocalc/frontend/chat/llm-cost-estimation";
-import type { CostEstimate } from "@cocalc/frontend/chat/types";
 import { Icon } from "@cocalc/frontend/components";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
@@ -29,9 +28,7 @@ import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { EditorComponentProps } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
-import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { three_way_merge } from "@cocalc/util/dmp";
 import { filename_extension, path_split, trunc, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -46,6 +43,7 @@ import {
   RenameModal,
   useAgentSession,
   useAutoNameSession,
+  useCostEstimate,
 } from "./agent-base";
 import type { DisplayMessage } from "./agent-base";
 import { RUN_COMMANDS } from "../code-editor/editor";
@@ -135,10 +133,17 @@ function CodingAgentCore({
     path,
   });
 
+  // ---- Cost estimation ----
+  const { costEstimate, updateEstimate, clearEstimate } = useCostEstimate({
+    model,
+    isCoCalcCom,
+    llm_markup,
+    messages: session.messages,
+  });
+
   // ---- Coding-agent-specific state ----
   const [input, setInput] = useState("");
   const [inputKey, setInputKey] = useState(0);
-  const [costEstimate, setCostEstimate] = useState<CostEstimate>(null);
   const [pendingEdits, setPendingEdits] = useState<
     | { type: "edit_blocks"; blocks: EditBlock[]; base: string }
     | { type: "search_replace"; blocks: SearchReplace[]; base: string }
@@ -219,9 +224,7 @@ function CodingAgentCore({
   // don't fire on unmounted component state.
   useEffect(() => {
     return () => {
-      if (estimateTimeoutRef.current) {
-        clearTimeout(estimateTimeoutRef.current);
-      }
+      clearEstimate();
       if (showTimerRef.current) {
         clearTimeout(showTimerRef.current);
       }
@@ -283,48 +286,13 @@ function CodingAgentCore({
     setEditorContextLabel(label);
   }, [actions, path]);
 
-  // ---- Cost estimation ----
-  const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const handleInputChange = useCallback(
     (value: string) => {
       if (inputLockedRef.current) return;
       setInput(value);
-      if (!value.trim()) {
-        if (estimateTimeoutRef.current) {
-          clearTimeout(estimateTimeoutRef.current);
-        }
-        setCostEstimate(null);
-        return;
-      }
-      if (estimateTimeoutRef.current) {
-        clearTimeout(estimateTimeoutRef.current);
-      }
-      estimateTimeoutRef.current = setTimeout(async () => {
-        if (!model) {
-          setCostEstimate(null);
-          return;
-        }
-        if (isFreeModel(model, isCoCalcCom)) {
-          setCostEstimate({ min: 0, max: 0 });
-          return;
-        }
-        try {
-          const { numTokensEstimate } =
-            await import("@cocalc/frontend/misc/llm");
-          const currentMessages = session.messages.filter(
-            (m) => m.event === "message",
-          );
-          const historyText = currentMessages.map((m) => m.content).join("\n");
-          const tokens = numTokensEstimate([historyText, value].join("\n"));
-          const est = calcMinMaxEstimation(tokens, model, llm_markup);
-          setCostEstimate(est);
-        } catch {
-          // Unknown model or cost lookup failure — skip estimation
-          setCostEstimate(null);
-        }
-      }, 500);
+      updateEstimate(value);
     },
-    [model, isCoCalcCom, llm_markup, session.messages],
+    [updateEstimate],
   );
 
   const autoNameSession = useAutoNameSession({

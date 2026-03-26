@@ -29,7 +29,6 @@ import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { CSS } from "@cocalc/frontend/app-framework";
 import { LLMCostEstimationChat } from "@cocalc/frontend/chat/llm-cost-estimation";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
-import type { CostEstimate } from "@cocalc/frontend/chat/types";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
@@ -42,9 +41,8 @@ import { AgentSessionBar } from "@cocalc/frontend/frame-editors/llm/agent-base/a
 import { RenameModal } from "@cocalc/frontend/frame-editors/llm/agent-base/rename-modal";
 import { useAutoNameSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-auto-name-session";
 import { useAgentSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-agent-session";
-import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import { useCostEstimate } from "@cocalc/frontend/frame-editors/llm/agent-base/use-cost-estimate";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
 import { path_split, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
@@ -546,7 +544,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
   const [input, setInput] = useState("");
-  const [costEstimate, setCostEstimate] = useState<CostEstimate>(null);
   const [pendingExec, setPendingExec] = useState<ExecBlock[]>([]);
   const [autoExec, setAutoExec] = useState(false);
   const autoExecRef = useRef(false);
@@ -555,7 +552,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     on: (event: string, handler: (...args: any[]) => void) => void;
   } | null>(null);
   autoExecRef.current = autoExec;
-  const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSubmittedRef = useRef("");
   // Server blocks deferred until exec blocks complete (same LLM turn)
   const pendingServerBlocksRef = useRef<ServerBlock[]>([]);
@@ -565,20 +561,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const dir = appDir(path);
   // The directory containing the .app file (for exec cwd and system prompt)
   const { head: parentDir } = path_split(path);
-
-  // Cleanup streams and timers on unmount to prevent memory leaks
-  useEffect(() => {
-    return () => {
-      if (estimateTimeoutRef.current) {
-        clearTimeout(estimateTimeoutRef.current);
-        estimateTimeoutRef.current = null;
-      }
-      if (streamRef.current) {
-        streamRef.current.removeAllListeners();
-        streamRef.current = null;
-      }
-    };
-  }, []);
 
   // Session management via the shared hook — piggybacks on the frame
   // editor's own syncdb (the .ai file).
@@ -609,6 +591,25 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     generatingRef,
     sessionIdRef,
   } = session;
+
+  // ---- Cost estimation ----
+  const { costEstimate, updateEstimate, clearEstimate } = useCostEstimate({
+    model,
+    isCoCalcCom,
+    llm_markup,
+    messages,
+  });
+
+  // Cleanup streams and cost-estimate timer on unmount
+  useEffect(() => {
+    return () => {
+      clearEstimate();
+      if (streamRef.current) {
+        streamRef.current.removeAllListeners();
+        streamRef.current = null;
+      }
+    };
+  }, []);
 
   // Wrap hook's handleNewSession/handleClearSession to also clear
   // AgentPanel-specific state (pending exec blocks).
@@ -1073,39 +1074,9 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const handleInputChange = useCallback(
     (value: string) => {
       setInput(value);
-      if (!value.trim()) {
-        if (estimateTimeoutRef.current) {
-          clearTimeout(estimateTimeoutRef.current);
-        }
-        setCostEstimate(null);
-        return;
-      }
-      if (estimateTimeoutRef.current) {
-        clearTimeout(estimateTimeoutRef.current);
-      }
-      estimateTimeoutRef.current = setTimeout(async () => {
-        if (!model) {
-          setCostEstimate(null);
-          return;
-        }
-        if (isFreeModel(model, isCoCalcCom)) {
-          setCostEstimate({ min: 0, max: 0 });
-          return;
-        }
-        try {
-          const { numTokensEstimate } =
-            await import("@cocalc/frontend/misc/llm");
-          const currentMessages = messages.filter((m) => m.event === "message");
-          const historyText = currentMessages.map((m) => m.content).join("\n");
-          const tokens = numTokensEstimate([historyText, value].join("\n"));
-          const est = calcMinMaxEstimation(tokens, model, llm_markup);
-          setCostEstimate(est);
-        } catch {
-          setCostEstimate(null);
-        }
-      }, 500);
+      updateEstimate(value);
     },
-    [model, isCoCalcCom, llm_markup, messages],
+    [updateEstimate],
   );
 
   // Wrap the hook's session with our local handleNewSession/handleClearSession

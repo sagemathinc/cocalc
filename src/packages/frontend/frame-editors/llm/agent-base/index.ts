@@ -26,3 +26,4 @@ export { RenameModal } from "./rename-modal";
 export { useAgentSession } from "./use-agent-session";
 export type { UseAgentSessionOptions } from "./use-agent-session";
 export { useAutoNameSession } from "./use-auto-name-session";
+export { useCostEstimate } from "./use-cost-estimate";
