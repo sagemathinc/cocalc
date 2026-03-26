@@ -166,11 +166,13 @@ function CodingAgentCore({
   // Auto-accept edits — persisted in local_view_state so it survives reloads
   const [autoAccept, setAutoAcceptState] = useState<boolean>(() => {
     try {
-      return !!actions.store
+      const stored = actions.store
         ?.get("local_view_state")
         ?.get("coding_agent_auto_accept");
+      // Default to true if never explicitly set
+      return stored == null ? true : !!stored;
     } catch {
-      return false;
+      return true;
     }
   });
   const setAutoAccept = useCallback(

@@ -573,6 +573,7 @@ export async function runToolBatch(
     if (cancelRef?.current) break;
 
     let affectedCellId: string | undefined;
+    const affectedCellIds: string[] = [];
     try {
       const result = await runSingleTool(
         tc,
@@ -583,21 +584,21 @@ export async function runToolBatch(
       );
       results.push(`**${tc.name}**: ${result}`);
 
-      // Extract the affected cell ID directly from the tool result.
-      // Each mutating tool returns JSON with an `id` field (or `cells`
-      // array for insert_cells).  This is more reliable than
-      // re-resolving indices, which can shift after insertions.
+      // Extract the affected cell ID(s) directly from the tool result.
       if (MUTATING_TOOLS.has(tc.name)) {
         try {
           const parsed = JSON.parse(result);
           if (parsed.id) {
             affectedCellId = parsed.id;
+            affectedCellIds.push(parsed.id);
           } else if (parsed.cells?.length > 0) {
-            // insert_cells — scroll to the last inserted cell
-            affectedCellId = parsed.cells[parsed.cells.length - 1].id;
+            for (const c of parsed.cells) {
+              if (c.id) affectedCellIds.push(c.id);
+            }
+            affectedCellId = affectedCellIds[affectedCellIds.length - 1];
           }
         } catch {
-          // Non-JSON result — skip scroll
+          // Non-JSON result — skip
         }
       }
     } catch (err: any) {
@@ -615,27 +616,18 @@ export async function runToolBatch(
     }
 
     // Auto-run: after insert/set/edit (not run_cell itself), queue
-    // affected code cells for execution so the user doesn't have to
-    // ask the LLM to run them separately.
-    if (autoRun && tc.name !== "run_cell" && MUTATING_TOOLS.has(tc.name)) {
-      try {
-        const parsed = JSON.parse(result);
-        const cellIds: string[] = [];
-        if (parsed.id) {
-          cellIds.push(parsed.id);
-        } else if (parsed.cells) {
-          for (const c of parsed.cells) {
-            if (c.id) cellIds.push(c.id);
-          }
+    // affected code cells for execution.
+    if (
+      autoRun &&
+      tc.name !== "run_cell" &&
+      MUTATING_TOOLS.has(tc.name) &&
+      affectedCellIds.length > 0
+    ) {
+      for (const cid of affectedCellIds) {
+        const cellType = store.getIn(["cells", cid, "cell_type"]) ?? "code";
+        if (cellType === "code") {
+          jupyterActions.run_cell(cid);
         }
-        for (const cid of cellIds) {
-          const cellType = store.getIn(["cells", cid, "cell_type"]) ?? "code";
-          if (cellType === "code") {
-            jupyterActions.run_cell(cid);
-          }
-        }
-      } catch {
-        // Non-JSON result — skip auto-run
       }
     }
   }

@@ -240,7 +240,7 @@ export function NotebookAgent({
   // cancelRef has been reset to false by the new invocation.
   const prevAbortRef = useRef<{ current: boolean } | null>(null);
   // Auto-run: automatically execute modified/inserted code cells
-  const [autoRun, setAutoRun] = useState(false);
+  const [autoRun, setAutoRun] = useState(true);
   const autoRunRef = useRef(false);
   autoRunRef.current = autoRun;
 
