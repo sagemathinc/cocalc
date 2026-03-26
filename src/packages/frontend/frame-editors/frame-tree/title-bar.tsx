@@ -70,7 +70,7 @@ import { is_safari } from "../generic/browser";
 // LanguageModelTitleBarButton is still available for standalone use but the
 // title-bar assistant button now opens the side chat in assistant mode.
 import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
-import { hasEmbeddedAgent } from "../generic/has-embedded-agent";
+import { getAgentSpec } from "../generic/agent-registry";
 import {
   APPLICATION_MENU,
   COMMANDS,
@@ -633,7 +633,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     // For editors without an embedded agent, fall back to the
     // LanguageModelTitleBarButton popover which provides AI presets
     // (fix errors, autocomplete, explain, etc.).
-    if (!hasEmbeddedAgent(props.path)) {
+    if (!getAgentSpec(props.path).hasAgent) {
       return (
         <LanguageModelTitleBarButton
           key="assistant"

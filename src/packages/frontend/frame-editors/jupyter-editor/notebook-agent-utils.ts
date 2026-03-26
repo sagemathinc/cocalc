@@ -318,7 +318,208 @@ export function resolveIndex(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Tool dispatcher                                                    */
+/*  Tool dispatcher — shared helpers                                   */
+/* ------------------------------------------------------------------ */
+
+interface ToolHandlerContext {
+  args: Record<string, any>;
+  cellList: string[];
+  jupyterActions: JupyterActions;
+  language: string;
+  cancelRef?: { current: boolean };
+}
+
+function jsonResult(data: Record<string, any>): string {
+  return JSON.stringify(data);
+}
+
+function readCellSummary(
+  cell: any,
+  index: number,
+  language: string,
+  maxInput: number = MAX_OUTPUT_CHARS,
+  maxOutput: number = MAX_OUTPUT_CHARS,
+): string {
+  const cellType = cell.get("cell_type") ?? "code";
+  const input = cell.get("input") ?? "";
+  const output = getCellOutput(cell);
+  return (
+    `Cell #${index} (${cellType}):\n` +
+    fenceCell(truncate(input, maxInput), cellType, language) +
+    (output ? `\nOutput: ${truncate(output, maxOutput)}` : "")
+  );
+}
+
+function resolveCell(
+  store: any,
+  cellList: string[],
+  index: number,
+): { cellId: string; cell: any } | string {
+  const res = resolveIndex(index, cellList);
+  if ("error" in res) return jsonResult(res);
+  const cell = store.getIn(["cells", res.cellId]) as any;
+  if (!cell) return jsonResult({ error: "Cell not found" });
+  return { cellId: res.cellId, cell };
+}
+
+/* ------------------------------------------------------------------ */
+/*  Tool dispatcher — per-tool handlers                                */
+/* ------------------------------------------------------------------ */
+
+type ToolHandler = (ctx: ToolHandlerContext) => Promise<string>;
+
+const toolHandlers: Record<string, ToolHandler> = {
+  cell_count: async ({ cellList }) => {
+    return jsonResult({ cell_count: cellList.length });
+  },
+
+  get_cell: async ({ args, cellList, jupyterActions, language }) => {
+    const store = jupyterActions.store;
+    const res = resolveIndex(args.index, cellList);
+    if ("error" in res) return jsonResult(res);
+    const cell = store.getIn(["cells", res.cellId]) as any;
+    if (!cell) return jsonResult({ error: "Cell not found" });
+    const cellType = cell.get("cell_type") ?? "code";
+    const input = cell.get("input") ?? "";
+    const output = getCellOutput(cell);
+    return (
+      `Cell #${args.index} (${cellType}):\n` +
+      fenceCell(input, cellType, language) +
+      (output ? `\n\nOutput:\n${truncate(output)}` : "\n\n(no output)")
+    );
+  },
+
+  get_cells: async ({ args, cellList, jupyterActions, language }) => {
+    const store = jupyterActions.store;
+    const start = args.start ?? 1;
+    const end = args.end ?? cellList.length;
+    const parts: string[] = [];
+    for (let i = start; i <= end && i <= cellList.length; i++) {
+      const res = resolveIndex(i, cellList);
+      if ("error" in res) continue;
+      const cell = store.getIn(["cells", res.cellId]) as any;
+      if (!cell) continue;
+      parts.push(readCellSummary(cell, i, language, 1000, 1000));
+    }
+    return parts.join("\n\n") || "(no cells in range)";
+  },
+
+  set_cell: async ({ args, cellList, jupyterActions }) => {
+    const resolved = resolveCell(jupyterActions.store, cellList, args.index);
+    if (typeof resolved === "string") return resolved;
+    jupyterActions.set_cell_input(
+      resolved.cellId,
+      args.content ?? "",
+      true,
+    );
+    return jsonResult({
+      status: "updated",
+      index: args.index,
+      id: resolved.cellId,
+    });
+  },
+
+  edit_cell: async ({ args, cellList, jupyterActions }) => {
+    const resolved = resolveCell(jupyterActions.store, cellList, args.index);
+    if (typeof resolved === "string") return resolved;
+    const currentInput: string = resolved.cell.get("input") ?? "";
+    const blocks = parseSearchReplaceBlocks(args.edits ?? "");
+    if (blocks.length === 0) {
+      return jsonResult({ error: "No valid search/replace blocks found" });
+    }
+    const { result, applied, failed } = applySearchReplace(
+      currentInput,
+      blocks,
+    );
+    if (applied > 0) {
+      jupyterActions.set_cell_input(resolved.cellId, result, true);
+    }
+    return jsonResult({
+      status: applied > 0 ? "updated" : "no_changes",
+      applied,
+      failed,
+      index: args.index,
+      id: resolved.cellId,
+    });
+  },
+
+  insert_cells: async ({ args, cellList, jupyterActions }) => {
+    const store = jupyterActions.store;
+    const afterIndex1: number = args.after_index ?? 0;
+    const cellsMarkdown: string = args.cells_markdown ?? "";
+    const parsed = splitCells(cellsMarkdown);
+    if (parsed.length === 0) {
+      return jsonResult({ error: "No cells parsed from input" });
+    }
+
+    const inserted: { index: number; id: string; cell_type: string }[] = [];
+    let prevId: string | undefined;
+
+    if (afterIndex1 === 0) {
+      // Insert before the first cell.  We set prevId to undefined here
+      // and handle the first insertion specially below using
+      // insert_cell_adjacent(cellList[0], -1) to avoid a pos=0
+      // collision with the existing first cell.
+      prevId = undefined;
+    } else {
+      const res = resolveIndex(afterIndex1, cellList);
+      if ("error" in res) return jsonResult(res);
+      prevId = res.cellId;
+    }
+
+    for (const { cell_type, source } of parsed) {
+      let newId: string;
+      if (prevId == null) {
+        // First insertion at the beginning: use insert_cell_adjacent
+        // with delta=-1 to get a position before the first cell.
+        // insert_cell_at(0) would create a pos=0 collision with the
+        // existing first cell, producing undefined ordering.
+        if (cellList.length > 0) {
+          newId = jupyterActions.insert_cell_adjacent(cellList[0], -1, true);
+        } else {
+          newId = jupyterActions.insert_cell_at(0, true);
+        }
+      } else {
+        newId = jupyterActions.insert_cell_adjacent(prevId, 1, true);
+      }
+      if (cell_type !== "code") {
+        jupyterActions.set_cell_type(newId, cell_type);
+      }
+      const content = source.join("");
+      if (content) {
+        jupyterActions.set_cell_input(newId, content, true);
+      }
+      // Get updated cell list for index
+      const updatedList: string[] = store.get("cell_list")?.toJS() ?? [];
+      const newIndex1 = updatedList.indexOf(newId) + 1;
+      inserted.push({ index: newIndex1, id: newId, cell_type });
+      prevId = newId;
+    }
+
+    return jsonResult({ status: "inserted", cells: inserted });
+  },
+
+  run_cell: async ({ args, cellList, jupyterActions, cancelRef }) => {
+    const res = resolveIndex(args.index, cellList);
+    if ("error" in res) return jsonResult(res);
+    // Only code cells can be executed — markdown/raw cells are no-ops
+    // in JupyterActions.run_cell(), which would cause the polling loop
+    // to wait until the 2-minute timeout.
+    const cellType =
+      jupyterActions.store
+        .getIn(["cells", res.cellId, "cell_type"])
+        ?.toString() ?? "code";
+    if (cellType !== "code") {
+      return jsonResult({
+        error: `Cell ${args.index} is a ${cellType} cell and cannot be executed. Only code cells can be run.`,
+      });
+    }
+    return await runCell(jupyterActions, res.cellId, args.index, cancelRef);
+  },
+};
+
+/* ------------------------------------------------------------------ */
+/*  Tool dispatcher — batch runner                                     */
 /* ------------------------------------------------------------------ */
 
 const MUTATING_TOOLS = new Set([
@@ -328,10 +529,6 @@ const MUTATING_TOOLS = new Set([
   "run_cell",
 ]);
 
-/**
- * Scroll the notebook to show a specific cell by setting it as the
- * current cell in the most recent notebook frame.
- */
 function scrollToCell(
   editorActions: JupyterEditorActions | undefined,
   cellId: string,
@@ -427,173 +624,17 @@ async function runSingleTool(
   language: string,
   cancelRef?: { current: boolean },
 ): Promise<string> {
-  const store = jupyterActions.store;
-
-  switch (toolCall.name) {
-    case "cell_count": {
-      return JSON.stringify({ cell_count: cellList.length });
-    }
-
-    case "get_cell": {
-      const res = resolveIndex(toolCall.args.index, cellList);
-      if ("error" in res) return JSON.stringify(res);
-      const cell = store.getIn(["cells", res.cellId]) as any;
-      if (!cell) return JSON.stringify({ error: "Cell not found" });
-      const cellType = cell.get("cell_type") ?? "code";
-      const input = cell.get("input") ?? "";
-      const output = getCellOutput(cell);
-      return (
-        `Cell #${toolCall.args.index} (${cellType}):\n` +
-        fenceCell(input, cellType, language) +
-        (output ? `\n\nOutput:\n${truncate(output)}` : "\n\n(no output)")
-      );
-    }
-
-    case "get_cells": {
-      const start = toolCall.args.start ?? 1;
-      const end = toolCall.args.end ?? cellList.length;
-      const parts: string[] = [];
-      for (let i = start; i <= end && i <= cellList.length; i++) {
-        const res = resolveIndex(i, cellList);
-        if ("error" in res) continue;
-        const cell = store.getIn(["cells", res.cellId]) as any;
-        if (!cell) continue;
-        const cellType = cell.get("cell_type") ?? "code";
-        const input = cell.get("input") ?? "";
-        const output = getCellOutput(cell);
-        parts.push(
-          `Cell #${i} (${cellType}):\n` +
-            fenceCell(truncate(input, 1000), cellType, language) +
-            (output ? `\nOutput: ${truncate(output, 1000)}` : ""),
-        );
-      }
-      return parts.join("\n\n") || "(no cells in range)";
-    }
-
-    case "set_cell": {
-      const res = resolveIndex(toolCall.args.index, cellList);
-      if ("error" in res) return JSON.stringify(res);
-      jupyterActions.set_cell_input(
-        res.cellId,
-        toolCall.args.content ?? "",
-        true,
-      );
-      return JSON.stringify({
-        status: "updated",
-        index: toolCall.args.index,
-        id: res.cellId,
-      });
-    }
-
-    case "edit_cell": {
-      const res = resolveIndex(toolCall.args.index, cellList);
-      if ("error" in res) return JSON.stringify(res);
-      const cell = store.getIn(["cells", res.cellId]) as any;
-      if (!cell) return JSON.stringify({ error: "Cell not found" });
-      const currentInput: string = cell.get("input") ?? "";
-      const blocks = parseSearchReplaceBlocks(toolCall.args.edits ?? "");
-      if (blocks.length === 0) {
-        return JSON.stringify({
-          error: "No valid search/replace blocks found",
-        });
-      }
-      const { result, applied, failed } = applySearchReplace(
-        currentInput,
-        blocks,
-      );
-      if (applied > 0) {
-        jupyterActions.set_cell_input(res.cellId, result, true);
-      }
-      return JSON.stringify({
-        status: applied > 0 ? "updated" : "no_changes",
-        applied,
-        failed,
-        index: toolCall.args.index,
-        id: res.cellId,
-      });
-    }
-
-    case "insert_cells": {
-      const afterIndex1: number = toolCall.args.after_index ?? 0;
-      const cellsMarkdown: string = toolCall.args.cells_markdown ?? "";
-      const parsed = splitCells(cellsMarkdown);
-      if (parsed.length === 0) {
-        return JSON.stringify({ error: "No cells parsed from input" });
-      }
-
-      const inserted: { index: number; id: string; cell_type: string }[] = [];
-      let prevId: string | undefined;
-
-      if (afterIndex1 === 0) {
-        // Insert before the first cell.  We set prevId to undefined here
-        // and handle the first insertion specially below using
-        // insert_cell_adjacent(cellList[0], -1) to avoid a pos=0
-        // collision with the existing first cell.
-        prevId = undefined;
-      } else {
-        const res = resolveIndex(afterIndex1, cellList);
-        if ("error" in res) return JSON.stringify(res);
-        prevId = res.cellId;
-      }
-
-      for (const { cell_type, source } of parsed) {
-        let newId: string;
-        if (prevId == null) {
-          // First insertion at the beginning: use insert_cell_adjacent
-          // with delta=-1 to get a position before the first cell.
-          // insert_cell_at(0) would create a pos=0 collision with the
-          // existing first cell, producing undefined ordering.
-          if (cellList.length > 0) {
-            newId = jupyterActions.insert_cell_adjacent(cellList[0], -1, true);
-          } else {
-            newId = jupyterActions.insert_cell_at(0, true);
-          }
-        } else {
-          newId = jupyterActions.insert_cell_adjacent(prevId, 1, true);
-        }
-        if (cell_type !== "code") {
-          jupyterActions.set_cell_type(newId, cell_type);
-        }
-        const content = source.join("");
-        if (content) {
-          jupyterActions.set_cell_input(newId, content, true);
-        }
-        // Get updated cell list for index
-        const updatedList: string[] = store.get("cell_list")?.toJS() ?? [];
-        const newIndex1 = updatedList.indexOf(newId) + 1;
-        inserted.push({ index: newIndex1, id: newId, cell_type });
-        prevId = newId;
-      }
-
-      return JSON.stringify({ status: "inserted", cells: inserted });
-    }
-
-    case "run_cell": {
-      const res = resolveIndex(toolCall.args.index, cellList);
-      if ("error" in res) return JSON.stringify(res);
-      // Only code cells can be executed — markdown/raw cells are no-ops
-      // in JupyterActions.run_cell(), which would cause the polling loop
-      // to wait until the 2-minute timeout.
-      const cellType =
-        jupyterActions.store
-          .getIn(["cells", res.cellId, "cell_type"])
-          ?.toString() ?? "code";
-      if (cellType !== "code") {
-        return JSON.stringify({
-          error: `Cell ${toolCall.args.index} is a ${cellType} cell and cannot be executed. Only code cells can be run.`,
-        });
-      }
-      return await runCell(
-        jupyterActions,
-        res.cellId,
-        toolCall.args.index,
-        cancelRef,
-      );
-    }
-
-    default:
-      return JSON.stringify({ error: `Unknown tool: ${toolCall.name}` });
+  const handler = toolHandlers[toolCall.name];
+  if (!handler) {
+    return jsonResult({ error: `Unknown tool: ${toolCall.name}` });
   }
+  return handler({
+    args: toolCall.args,
+    cellList,
+    jupyterActions,
+    language,
+    cancelRef,
+  });
 }
 
 /* ------------------------------------------------------------------ */
@@ -656,7 +697,7 @@ export async function runCell(
 
   const cell = store.getIn(["cells", cellId]) as any;
   const output = cell ? getCellOutput(cell) : "";
-  return JSON.stringify({
+  return jsonResult({
     status: timedOut ? "timeout" : "completed",
     index: cellIndex,
     id: cellId,

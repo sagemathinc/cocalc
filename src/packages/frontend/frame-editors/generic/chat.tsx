@@ -4,8 +4,7 @@
  */
 
 import { Segmented, Spin } from "antd";
-import type { ComponentType } from "react";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 
 import { redux } from "@cocalc/frontend/app-framework";
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
@@ -15,26 +14,12 @@ import { Icon } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { chatroom } from "@cocalc/frontend/frame-editors/chat-editor/editor";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
-import { NotebookAgent } from "@cocalc/frontend/frame-editors/jupyter-editor/notebook-agent";
-import { CodingAgentEmbedded } from "@cocalc/frontend/frame-editors/llm/coding-agent";
 import { labels } from "@cocalc/frontend/i18n";
 import { hidden_meta_file } from "@cocalc/util/misc";
 import { EditorComponentProps, EditorDescription } from "../frame-tree/types";
 
 export { hasEmbeddedAgent } from "./has-embedded-agent";
-import { hasEmbeddedAgent } from "./has-embedded-agent";
-
-// Agent lookup — maps file path to the right embedded agent component.
-// Both agents share the same { chatSyncdb } interface.  To add a new
-// agent type, add an entry here and create the component.
-// Returns null for file types that don't support the coding agent.
-function getEmbeddedAgent(
-  path: string,
-): ComponentType<{ chatSyncdb: any; fontSize?: number }> | null {
-  if (!hasEmbeddedAgent(path)) return null;
-  if (path.endsWith(".ipynb")) return NotebookAgent;
-  return CodingAgentEmbedded;
-}
+import { getAgentSpec } from "./agent-registry";
 
 export function chatFile(path: string): string {
   return hidden_meta_file(path, "sage-chat");
@@ -45,7 +30,8 @@ type ChatMode = "chat" | "assistant";
 function Chat({ font_size, desc }: EditorComponentProps) {
   const { project_id, path: path0, actions, id: frameId } = useFrameContext();
   const path = chatFile(path0);
-  const EmbeddedAgent = getEmbeddedAgent(path0);
+  const agentSpec = getAgentSpec(path0);
+  const EmbeddedAgent = agentSpec.hasAgent ? agentSpec.component : null;
   const [sideChatActions, setSideChatActions] = useState<ChatActions | null>(
     null,
   );
@@ -185,10 +171,12 @@ function Chat({ font_size, desc }: EditorComponentProps) {
         ) : (
           <div style={{ position: "absolute", inset: 0, overflow: "hidden" }}>
             {EmbeddedAgent && (
-              <EmbeddedAgent
-                chatSyncdb={sideChatActions.syncdb}
-                fontSize={font_size}
-              />
+              <Suspense fallback={<Spin />}>
+                <EmbeddedAgent
+                  chatSyncdb={sideChatActions.syncdb}
+                  fontSize={font_size}
+                />
+              </Suspense>
             )}
           </div>
         )}
