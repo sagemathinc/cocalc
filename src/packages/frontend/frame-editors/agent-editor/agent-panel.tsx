@@ -21,25 +21,33 @@ Features:
 
 import { join } from "path";
 
-import { Alert, Button, Spin } from "antd";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Button } from "antd";
+import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import type { CSS } from "@cocalc/frontend/app-framework";
 import { LLMCostEstimationChat } from "@cocalc/frontend/chat/llm-cost-estimation";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
-import { Icon, Paragraph } from "@cocalc/frontend/components";
-import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { Icon } from "@cocalc/frontend/components";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
+import { AgentHeader } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-header";
 import { AgentInputArea } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-input-area";
+import { AgentMessages } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-messages";
 import { AgentSessionBar } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-session-bar";
 import { PendingExecBar } from "@cocalc/frontend/frame-editors/llm/agent-base/pending-exec-bar";
 import { RenameModal } from "@cocalc/frontend/frame-editors/llm/agent-base/rename-modal";
+import {
+  ASSISTANT_MSG_STYLE,
+  ERROR_MSG_STYLE,
+  SYSTEM_MSG_STYLE,
+  USER_MSG_STYLE,
+} from "@cocalc/frontend/frame-editors/llm/agent-base/types";
+import type { DisplayMessage } from "@cocalc/frontend/frame-editors/llm/agent-base/types";
 import { useAutoNameSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-auto-name-session";
 import { useAgentSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-agent-session";
 import { useCostEstimate } from "@cocalc/frontend/frame-editors/llm/agent-base/use-cost-estimate";
@@ -60,9 +68,6 @@ import {
 } from "../llm/coding-agent-utils";
 import type { FileSearchReplace } from "../llm/coding-agent-utils";
 import type { ExecBlock } from "../llm/coding-agent-types";
-import LLMSelector from "../llm/llm-selector";
-
-import type { DisplayMessage } from "@cocalc/frontend/frame-editors/llm/agent-base/types";
 
 const TAG = "ai-agent";
 
@@ -72,43 +77,6 @@ const CONTAINER_STYLE: CSS = {
   flex: "1 1 0",
   minHeight: 0,
   overflow: "hidden",
-} as const;
-
-const MESSAGES_STYLE: CSS = {
-  flex: "1 1 auto",
-  minHeight: 0,
-  overflowY: "auto",
-  padding: "8px 12px",
-} as const;
-
-const USER_MSG_STYLE: CSS = {
-  background: COLORS.GRAY_LLL,
-  borderRadius: 8,
-  padding: "8px 12px",
-  marginBottom: 8,
-  whiteSpace: "pre-wrap",
-} as const;
-
-const ASSISTANT_MSG_STYLE: CSS = {
-  marginBottom: 8,
-  padding: "8px 12px",
-} as const;
-
-const SYSTEM_MSG_STYLE: CSS = {
-  marginBottom: 8,
-  padding: "8px 12px",
-  background: COLORS.BS_GREEN_LL,
-  borderRadius: 8,
-  fontSize: "0.9em",
-} as const;
-
-const ERROR_MSG_STYLE: CSS = {
-  marginBottom: 8,
-  padding: "8px 12px",
-  background: COLORS.ANTD_BG_RED_L,
-  border: `1px solid ${COLORS.ANTD_BG_RED_M}`,
-  borderRadius: 8,
-  fontSize: "0.9em",
 } as const;
 
 /**
@@ -486,6 +454,36 @@ function parseServerBlocks(text: string): ServerBlock[] {
   return blocks;
 }
 
+/**
+ * Custom message style for the app agent.  The app agent detects errors
+ * by checking the message content (unlike the coding agent which uses
+ * msg.event === "error"), so we preserve that content-based heuristic.
+ */
+function appMessageStyle(msg: DisplayMessage): CSS {
+  if (msg.sender === "user") return USER_MSG_STYLE;
+  if (msg.sender === "system") {
+    if (msg.content.includes("Error")) return ERROR_MSG_STYLE;
+    return SYSTEM_MSG_STYLE;
+  }
+  return ASSISTANT_MSG_STYLE;
+}
+
+/**
+ * Render the content of a single message.  User messages are shown as
+ * plain text; assistant and system messages go through StaticMarkdown
+ * with writefile-block formatting.
+ */
+function renderAppMessage(msg: DisplayMessage): ReactNode {
+  if (msg.sender === "user") {
+    return msg.content;
+  }
+  return (
+    <div className="cc-agent-writefile-blocks">
+      <StaticMarkdown value={formatWriteFileBlocks(msg.content)} />
+    </div>
+  );
+}
+
 export default function AgentPanel({ name }: EditorComponentProps) {
   const { project_id, path, actions, font_size } = useFrameContext();
   const [model, setModel] = useLanguageModelSetting(project_id);
@@ -521,12 +519,9 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     validateSessionExists: false,
   });
   const {
-    syncdb,
     messages,
     sessionId,
-    allSessions,
     sessionNames,
-    generating,
     error,
     setGenerating,
     setError,
@@ -534,7 +529,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     writeMessage,
     writeSessionName,
     setSessionId,
-    messagesEndRef,
     cancelRef,
     generatingRef,
     sessionIdRef,
@@ -1031,27 +1025,12 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   return (
     <div style={CONTAINER_STYLE}>
       {/* Header */}
-      <div
-        style={{
-          flex: "0 0 auto",
-          padding: "6px 12px",
-          borderBottom: `1px solid ${COLORS.GRAY_L}`,
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          flexWrap: "wrap",
-        }}
-      >
-        <AIAvatar size={20} />
-        <span style={{ fontWeight: 500 }}>App Agent</span>
-        <div style={{ flex: 1 }} />
-        <LLMSelector
-          model={model}
-          setModel={setModel}
-          project_id={project_id}
-          size="small"
-        />
-      </div>
+      <AgentHeader
+        title="App Agent"
+        model={model}
+        setModel={setModel}
+        project_id={project_id}
+      />
 
       {/* Session bar */}
       <AgentSessionBar
@@ -1102,55 +1081,13 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       {/* Messages — disable the code toolbar and render writefile blocks
            with proper language syntax highlighting */}
       <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
-        <div
-          style={{
-            ...MESSAGES_STYLE,
-            fontSize: `${font_size}px`,
-          }}
-        >
-          {messages.length === 0 && (
-            <Paragraph
-              style={{
-                color: COLORS.GRAY_M,
-                textAlign: "center",
-                marginTop: 20,
-              }}
-            >
-              Describe the application you want to build. The agent will create
-              files and the result will appear in the App preview on the right.
-            </Paragraph>
-          )}
-          {messages.map((msg, i) => (
-            <div
-              key={`${msg.date}-${i}`}
-              style={
-                msg.sender === "user"
-                  ? USER_MSG_STYLE
-                  : msg.sender === "system"
-                    ? msg.content.includes("Error")
-                      ? ERROR_MSG_STYLE
-                      : SYSTEM_MSG_STYLE
-                    : ASSISTANT_MSG_STYLE
-              }
-            >
-              {msg.sender === "user" ? (
-                msg.content
-              ) : (
-                <div className="cc-agent-writefile-blocks">
-                  <StaticMarkdown
-                    value={formatWriteFileBlocks(msg.content)}
-                  />
-                </div>
-              )}
-            </div>
-          ))}
-          {generating && (
-            <div style={{ textAlign: "center", padding: 8 }}>
-              <Spin size="small" />
-            </div>
-          )}
-          <div ref={messagesEndRef} />
-        </div>
+        <AgentMessages
+          session={session}
+          renderMessage={renderAppMessage}
+          messageStyle={appMessageStyle}
+          fontSize={font_size}
+          emptyText="Describe the application you want to build. The agent will create files and the result will appear in the App preview on the right."
+        />
       </FileContext.Provider>
 
       {/* Pending exec commands */}
