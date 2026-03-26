@@ -403,8 +403,6 @@ export function fulfillShowBlocks(
 /*  Command block parsing & result formatting                          */
 /* ------------------------------------------------------------------ */
 
-let nextExecBlockId = 0;
-
 export function parseExecBlocks(text: string): ExecBlock[] {
   const blocks: ExecBlock[] = [];
   // Backreference (\1) ensures inner fences don't terminate the block early.
@@ -412,7 +410,9 @@ export function parseExecBlocks(text: string): ExecBlock[] {
   let match: RegExpExecArray | null;
   while ((match = regex.exec(text)) !== null) {
     const cmd = match[2].trim();
-    if (cmd) blocks.push({ id: nextExecBlockId++, command: cmd });
+    // Use the match offset as a stable ID — deterministic across re-parses
+    // of the same text, and unique within a single parse call.
+    if (cmd) blocks.push({ id: match.index, command: cmd });
   }
   return blocks;
 }

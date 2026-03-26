@@ -178,7 +178,7 @@ function CodingAgentCore({
   const setAutoAccept = useCallback(
     (v: boolean) => {
       setAutoAcceptState(v);
-      actions.set_local_view_state?.({ coding_agent_auto_accept: v } as any);
+      actions.set_local_view_state?.({ coding_agent_auto_accept: v });
     },
     [actions],
   );

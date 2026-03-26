@@ -23,6 +23,26 @@ export function getBridgeSDKSource(): string {
   return BRIDGE_SDK_SOURCE;
 }
 
+/**
+ * Write the bridge SDK file to the app directory.  Non-fatal —
+ * the bridge is optional, so errors are silently swallowed.
+ */
+export async function ensureBridgeSDK(
+  project_id: string,
+  bridgePath: string,
+): Promise<void> {
+  try {
+    const { webapp_client } = await import("@cocalc/frontend/webapp-client");
+    await webapp_client.project_client.writeFile({
+      project_id,
+      path: bridgePath,
+      content: BRIDGE_SDK_SOURCE,
+    });
+  } catch {
+    // non-fatal — the bridge is optional
+  }
+}
+
 // The SDK is kept as a string constant so it can be injected into
 // the iframe's HTML. It's plain ES2020 JS (no TS, no imports).
 const BRIDGE_SDK_SOURCE = `

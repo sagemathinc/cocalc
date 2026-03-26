@@ -58,9 +58,9 @@ import { path_split, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
 import { appDir } from "./app-preview";
-import { getBridgeSDKSource } from "./cocalc-app-bridge";
-import type { AppError } from "./actions";
-import type { ServerVerb } from "./actions";
+import { ensureBridgeSDK } from "./cocalc-app-bridge";
+import type { AppError, ServerVerb } from "./actions";
+import { Actions as AgentEditorActions } from "./actions";
 import {
   applySearchReplace,
   formatExecResult,
@@ -487,7 +487,8 @@ function renderAppMessage(msg: DisplayMessage): ReactNode {
 }
 
 export default function AgentPanel({ name }: EditorComponentProps) {
-  const { project_id, path, actions, font_size } = useFrameContext();
+  const { project_id, path, actions: rawActions, font_size } = useFrameContext();
+  const actions = rawActions as unknown as AgentEditorActions;
   const [model, setModel] = useLanguageModelSetting(project_id);
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
@@ -510,7 +511,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   // Session management via the shared hook — piggybacks on the frame
   // editor's own syncdb (the .ai file).
   const session = useAgentSession({
-    existingSyncdb: (actions as any)?._syncstring,
+    existingSyncdb: actions?._syncstring,
     eventName: TAG,
     project_id,
     skipEvents: ["server_state"],
@@ -579,20 +580,10 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
   const applyWriteFiles = useCallback(
     async (blocks: WriteFileBlock[], toolSessionId?: string) => {
-      // Auto-write the bridge SDK to the app directory so apps can use it
-      const bridgePath = join(dir, "cocalc-app-bridge.js");
-      try {
-        await webapp_client.project_client.writeFile({
-          project_id,
-          path: bridgePath,
-          content: getBridgeSDKSource(),
-        });
-      } catch {
-        // non-fatal — the bridge is optional
-      }
+      await ensureBridgeSDK(project_id, join(dir, "cocalc-app-bridge.js"));
 
       // Clear app errors before applying new files
-      (actions as any).clearAppErrors?.();
+      actions.clearAppErrors?.();
 
       for (const block of blocks) {
         // block.path comes from the LLM and already includes the app
@@ -629,7 +620,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         }
       }
       // Trigger app preview reload
-      (actions as any).reloadAppPreview?.();
+      actions.reloadAppPreview?.();
 
       const now = new Date().toISOString();
       const fileList = blocks.map((b) => `\`${b.path}\``).join(", ");
@@ -646,17 +637,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
   const applySearchReplaceFiles = useCallback(
     async (blocks: FileSearchReplace[], toolSessionId?: string) => {
-      // Ensure the bridge SDK exists (same as applyWriteFiles)
-      const bridgePath = join(dir, "cocalc-app-bridge.js");
-      try {
-        await webapp_client.project_client.writeFile({
-          project_id,
-          path: bridgePath,
-          content: getBridgeSDKSource(),
-        });
-      } catch {
-        // non-fatal — the bridge is optional
-      }
+      await ensureBridgeSDK(project_id, join(dir, "cocalc-app-bridge.js"));
 
       // Group blocks by file path
       const byFile = new Map<string, FileSearchReplace[]>();
@@ -720,7 +701,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       }
 
       if (patchedFiles.length > 0) {
-        (actions as any).reloadAppPreview?.();
+        actions.reloadAppPreview?.();
         const now = new Date().toISOString();
         writeMessage({
           date: now,
@@ -746,12 +727,11 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   // Apply a list of server command blocks to the actions store
   const applyServerBlocks = useCallback(
     (blocks: ServerBlock[], toolSessionId?: string) => {
-      const a = actions as any;
       for (const sb of blocks) {
         switch (sb.verb) {
           case "start":
             if (sb.port) {
-              a.setServerMode(sb.port);
+              actions.setServerMode(sb.port);
             } else {
               writeMessage({
                 date: new Date().toISOString(),
@@ -764,10 +744,10 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             }
             break;
           case "stop":
-            a.stopServer();
+            actions.stopServer();
             break;
           case "restart":
-            a.restartServer();
+            actions.restartServer();
             break;
         }
       }
@@ -1085,7 +1065,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           </span>
           <Button
             size="small"
-            onClick={() => (actions as any).clearAppErrors?.()}
+            onClick={() => actions.clearAppErrors?.()}
           >
             Dismiss
           </Button>

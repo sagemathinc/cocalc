@@ -132,6 +132,8 @@ interface LocalViewParams {
   editor_state?: unknown;
   version?: number;
   font_size?: number;
+  // Allow agent-specific keys (e.g. coding_agent_auto_accept)
+  [key: string]: unknown;
 }
 
 type LocalViewState = TypedMap<LocalViewParams>;
@@ -669,7 +671,7 @@ export class Actions<
     this.reset_frame_tree();
   }
 
-  set_local_view_state(obj: LocalViewParams): void {
+  set_local_view_state(obj: Partial<LocalViewParams>): void {
     if (this._state === "closed") {
       return;
     }

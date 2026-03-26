@@ -28,7 +28,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
-import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
+
 
 import {
   AgentError,
@@ -223,7 +223,7 @@ export function NotebookAgent({
   fontSize?: number;
 }) {
   const { project_id, actions } = useFrameContext();
-  const jupyterActions: JupyterActions = (actions as any).jupyter_actions;
+  const jupyterActions = (actions as unknown as JupyterEditorActions).jupyter_actions;
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState("");
   const [inputKey, setInputKey] = useState(0);
@@ -239,7 +239,9 @@ export function NotebookAgent({
   // runCell polling loop (in a setTimeout) stops even though
   // cancelRef has been reset to false by the new invocation.
   const prevAbortRef = useRef<{ current: boolean } | null>(null);
-  // Auto-run: automatically execute modified/inserted code cells
+  // Auto-run: automatically execute modified/inserted code cells.
+  // Default on — the toggle is visible right next to the Send button
+  // so the user can easily disable it.
   const [autoRun, setAutoRun] = useState(true);
   const autoRunRef = useRef(false);
   autoRunRef.current = autoRun;
@@ -550,8 +552,12 @@ export function NotebookAgent({
         content = content.replace(/^```tool\n[\s\S]*?\n```\s*$/gm, "").trim();
         // Some LLMs echo the tool call JSON or code with literal \n escapes
         // in their prose. Convert escaped newlines to real ones so
-        // StaticMarkdown can render them properly.
-        content = content.replace(/\\n/g, "\n");
+        // StaticMarkdown can render them properly — but only outside
+        // backtick-delimited code (where \n may be intentional).
+        content = content.replace(
+          /(```[\s\S]*?```|`[^`]*`)|\\n/g,
+          (_match, codeBlock) => (codeBlock ? codeBlock : "\n"),
+        );
       }
       // Tool results: show a compact summary of what happened.
       if (msg.event === "tool_result") {

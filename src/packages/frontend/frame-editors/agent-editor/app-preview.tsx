@@ -36,7 +36,7 @@ import { COLORS } from "@cocalc/util/theme";
 import type { EditorComponentProps } from "../frame-tree/types";
 import type { AppError, AppMode } from "./actions";
 import { createBridgeHost, type BridgeLogEntry } from "./bridge-host";
-import { getBridgeSDKSource } from "./cocalc-app-bridge";
+import { ensureBridgeSDK } from "./cocalc-app-bridge";
 
 export function appDir(path: string): string {
   const { head, tail } = path_split(path);
@@ -205,15 +205,7 @@ export default function AppPreview({ name }: EditorComponentProps) {
       // Write bridge SDK BEFORE showing the iframe — otherwise the
       // iframe loads index.html and tries to <script src="cocalc-app-bridge.js">
       // before the file exists on disk.
-      try {
-        await webapp_client.project_client.writeFile({
-          project_id,
-          path: join(dir, "cocalc-app-bridge.js"),
-          content: getBridgeSDKSource(),
-        });
-      } catch {
-        // non-fatal
-      }
+      await ensureBridgeSDK(project_id, join(dir, "cocalc-app-bridge.js"));
       setExists(true);
     } catch {
       setExists(false);
