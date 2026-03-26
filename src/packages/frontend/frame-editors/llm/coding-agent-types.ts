@@ -17,6 +17,10 @@ export interface SearchReplace {
   replace: string;
 }
 
+export interface FileSearchReplace extends SearchReplace {
+  path: string;
+}
+
 export interface EditBlock {
   startLine: number; // 1-based inclusive
   endLine: number; // 1-based inclusive

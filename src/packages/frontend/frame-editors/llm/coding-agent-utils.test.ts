@@ -7,11 +7,14 @@ import {
   applyEditBlocks,
   applySearchReplace,
   extractCodeBlock,
+  formatDiffBlock,
   formatEditBlocksAsDiff,
+  formatFileSearchReplaceAsDiff,
   formatSearchReplaceAsDiff,
   fulfillShowBlocks,
   parseEditBlocks,
   parseExecBlocks,
+  parseFileSearchReplaceBlocks,
   parseSearchReplaceBlocks,
   parseShowBlocks,
   truncateMiddle,
@@ -237,6 +240,137 @@ new
     const result = formatSearchReplaceAsDiff(text);
     expect(result).toMatch(/^Before/);
     expect(result).toMatch(/After$/);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  parseFileSearchReplaceBlocks                                       */
+/* ------------------------------------------------------------------ */
+
+describe("parseFileSearchReplaceBlocks", () => {
+  it("parses a single block with file path", () => {
+    const text = `Some text
+<<<SEARCH src/app.tsx
+old code
+>>>REPLACE
+new code
+<<<END
+More text`;
+    const blocks = parseFileSearchReplaceBlocks(text);
+    expect(blocks).toHaveLength(1);
+    expect(blocks[0]).toEqual({
+      path: "src/app.tsx",
+      search: "old code",
+      replace: "new code",
+    });
+  });
+
+  it("parses multiple blocks with different paths", () => {
+    const text = `<<<SEARCH src/a.ts
+a
+>>>REPLACE
+b
+<<<END
+<<<SEARCH src/b.ts
+c
+>>>REPLACE
+d
+<<<END`;
+    const blocks = parseFileSearchReplaceBlocks(text);
+    expect(blocks).toHaveLength(2);
+    expect(blocks[0].path).toBe("src/a.ts");
+    expect(blocks[1].path).toBe("src/b.ts");
+  });
+
+  it("handles multi-line search/replace with path", () => {
+    const text = `<<<SEARCH components/header.tsx
+line1
+line2
+>>>REPLACE
+line3
+line4
+line5
+<<<END`;
+    const [block] = parseFileSearchReplaceBlocks(text);
+    expect(block.path).toBe("components/header.tsx");
+    expect(block.search).toBe("line1\nline2");
+    expect(block.replace).toBe("line3\nline4\nline5");
+  });
+
+  it("returns empty array when no blocks", () => {
+    expect(parseFileSearchReplaceBlocks("just plain text")).toEqual([]);
+  });
+
+  it("does NOT match blocks without a path (single-file format)", () => {
+    const text = `<<<SEARCH
+old code
+>>>REPLACE
+new code
+<<<END`;
+    // The regex requires \s+(.+) after SEARCH, so a bare newline won't match
+    expect(parseFileSearchReplaceBlocks(text)).toEqual([]);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  formatDiffBlock                                                    */
+/* ------------------------------------------------------------------ */
+
+describe("formatDiffBlock", () => {
+  it("formats a diff block without file path", () => {
+    const result = formatDiffBlock("old\n", "new\n");
+    expect(result).toBe("```diff\n- old\n+ new\n```");
+  });
+
+  it("formats a diff block with file path", () => {
+    const result = formatDiffBlock("old\n", "new\n", "src/app.tsx");
+    expect(result).toBe("**\u270E src/app.tsx**\n```diff\n- old\n+ new\n```");
+  });
+
+  it("handles multi-line content", () => {
+    const result = formatDiffBlock("a\nb\n", "c\nd\ne\n");
+    expect(result).toContain("- a");
+    expect(result).toContain("- b");
+    expect(result).toContain("+ c");
+    expect(result).toContain("+ d");
+    expect(result).toContain("+ e");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  formatFileSearchReplaceAsDiff                                      */
+/* ------------------------------------------------------------------ */
+
+describe("formatFileSearchReplaceAsDiff", () => {
+  it("converts file search/replace to diff format with path header", () => {
+    const text = `<<<SEARCH src/app.tsx
+old
+>>>REPLACE
+new
+<<<END`;
+    const result = formatFileSearchReplaceAsDiff(text);
+    expect(result).toContain("**\u270E src/app.tsx**");
+    expect(result).toContain("```diff");
+    expect(result).toContain("- old");
+    expect(result).toContain("+ new");
+  });
+
+  it("preserves surrounding text", () => {
+    const text = `Before\n<<<SEARCH src/a.ts\na\n>>>REPLACE\nb\n<<<END\nAfter`;
+    const result = formatFileSearchReplaceAsDiff(text);
+    expect(result).toMatch(/^Before/);
+    expect(result).toMatch(/After$/);
+  });
+
+  it("does not match blocks without a path", () => {
+    const text = `<<<SEARCH
+old
+>>>REPLACE
+new
+<<<END`;
+    // No path means no match for the file-aware regex
+    const result = formatFileSearchReplaceAsDiff(text);
+    expect(result).toBe(text); // unchanged
   });
 });
 

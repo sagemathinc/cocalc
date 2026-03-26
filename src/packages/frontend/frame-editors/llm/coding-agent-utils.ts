@@ -19,9 +19,11 @@ import { filename_extension } from "@cocalc/util/misc";
 import type {
   EditBlock,
   ExecBlock,
+  FileSearchReplace,
   SearchReplace,
   ShowBlock,
 } from "./coding-agent-types";
+export type { FileSearchReplace };
 import { MAX_VISIBLE_LINES } from "./coding-agent-types";
 
 /* ------------------------------------------------------------------ */
@@ -104,6 +106,31 @@ export function parseSearchReplaceBlocks(text: string): SearchReplace[] {
 }
 
 /**
+ * Parse search/replace blocks that include a file path.
+ * Format:
+ * <<<SEARCH path/to/file
+ * old code
+ * >>>REPLACE
+ * new code
+ * <<<END
+ */
+export function parseFileSearchReplaceBlocks(
+  text: string,
+): FileSearchReplace[] {
+  const blocks: FileSearchReplace[] = [];
+  const regex = /<<<SEARCH[ \t]+(.+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(text)) !== null) {
+    blocks.push({
+      path: match[1],
+      search: match[2].replace(/\n$/, ""),
+      replace: match[3].replace(/\n$/, ""),
+    });
+  }
+  return blocks;
+}
+
+/**
  * Apply search/replace blocks to a base snapshot (the clean document
  * the agent last saw).  Returns the modified text.
  */
@@ -154,20 +181,50 @@ export function applySearchReplace(
 }
 
 /**
- * Transform <<<SEARCH/>>>REPLACE/<<<END blocks in the assistant message
- * into ```diff fenced code blocks for proper rendering.
+ * Format a single search/replace pair as a ```diff fenced code block.
+ * When `filePath` is provided, a **✎ path** header is prepended.
+ */
+export function formatDiffBlock(
+  searchPart: string,
+  replacePart: string,
+  filePath?: string,
+): string {
+  const searchLines = searchPart.replace(/\n$/, "").split("\n");
+  const replaceLines = replacePart.replace(/\n$/, "").split("\n");
+  const diffLines = [
+    ...searchLines.map((l) => `- ${l}`),
+    ...replaceLines.map((l) => `+ ${l}`),
+  ];
+  const diffBlock = "```diff\n" + diffLines.join("\n") + "\n```";
+  if (filePath) {
+    return `**\u270E ${filePath}**\n${diffBlock}`;
+  }
+  return diffBlock;
+}
+
+/**
+ * Transform <<<SEARCH/>>>REPLACE/<<<END blocks (no file path) in the
+ * assistant message into ```diff fenced code blocks for proper rendering.
  */
 export function formatSearchReplaceAsDiff(text: string): string {
   return text.replace(
     /<<<SEARCH\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g,
     (_match, searchPart: string, replacePart: string) => {
-      const searchLines = searchPart.replace(/\n$/, "").split("\n");
-      const replaceLines = replacePart.replace(/\n$/, "").split("\n");
-      const diffLines = [
-        ...searchLines.map((l) => `- ${l}`),
-        ...replaceLines.map((l) => `+ ${l}`),
-      ];
-      return "```diff\n" + diffLines.join("\n") + "\n```";
+      return formatDiffBlock(searchPart, replacePart);
+    },
+  );
+}
+
+/**
+ * Transform <<<SEARCH path/>>>REPLACE/<<<END blocks (with file path) in
+ * the assistant message into ```diff fenced code blocks with a **✎ path**
+ * header for proper rendering.
+ */
+export function formatFileSearchReplaceAsDiff(text: string): string {
+  return text.replace(
+    /<<<SEARCH[ \t]+(.+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g,
+    (_match, filePath: string, searchPart: string, replacePart: string) => {
+      return formatDiffBlock(searchPart, replacePart, filePath);
     },
   );
 }

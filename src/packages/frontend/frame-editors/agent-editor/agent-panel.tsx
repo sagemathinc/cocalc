@@ -50,7 +50,12 @@ import { appDir } from "./app-preview";
 import { getBridgeSDKSource } from "./cocalc-app-bridge";
 import type { AppError } from "./actions";
 import type { ServerVerb } from "./actions";
-import { applySearchReplace } from "../llm/coding-agent-utils";
+import {
+  applySearchReplace,
+  formatFileSearchReplaceAsDiff,
+  parseFileSearchReplaceBlocks,
+} from "../llm/coding-agent-utils";
+import type { FileSearchReplace } from "../llm/coding-agent-utils";
 import LLMSelector from "../llm/llm-selector";
 
 import type { DisplayMessage } from "@cocalc/frontend/frame-editors/llm/agent-base/types";
@@ -445,18 +450,7 @@ function formatWriteFileBlocks(text: string): string {
     },
   );
   // Transform search/replace blocks into diff display
-  result = result.replace(
-    /<<<SEARCH\s+(.+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g,
-    (_match, filePath: string, search: string, replace: string) => {
-      const searchLines = search.replace(/\n$/, "").split("\n");
-      const replaceLines = replace.replace(/\n$/, "").split("\n");
-      const diffLines = [
-        ...searchLines.map((l) => `- ${l}`),
-        ...replaceLines.map((l) => `+ ${l}`),
-      ];
-      return `**\u270E ${filePath}**\n\`\`\`diff\n${diffLines.join("\n")}\n\`\`\``;
-    },
-  );
+  result = formatFileSearchReplaceAsDiff(result);
   return result;
 }
 
@@ -508,35 +502,6 @@ function parseServerBlocks(text: string): ServerBlock[] {
   }
   return blocks;
 }
-
-/**
- * Parse search/replace blocks with file path:
- *   <<<SEARCH path/to/file
- *   old content
- *   >>>REPLACE
- *   new content
- *   <<<END
- */
-interface FileSearchReplace {
-  path: string;
-  search: string;
-  replace: string;
-}
-
-function parseFileSearchReplaceBlocks(text: string): FileSearchReplace[] {
-  const blocks: FileSearchReplace[] = [];
-  const regex = /<<<SEARCH\s+(.+)\n([\s\S]*?)>>>REPLACE\n([\s\S]*?)<<<END/g;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(text)) !== null) {
-    blocks.push({
-      path: match[1],
-      search: match[2].replace(/\n$/, ""),
-      replace: match[3].replace(/\n$/, ""),
-    });
-  }
-  return blocks;
-}
-
 
 export default function AgentPanel({ name }: EditorComponentProps) {
   const { project_id, path, actions, font_size } = useFrameContext();
