@@ -570,7 +570,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const appErrors: AppError[] = (useRedux(name, "app_errors") as any) ?? [];
 
   const applyWriteFiles = useCallback(
-    async (blocks: WriteFileBlock[]) => {
+    async (blocks: WriteFileBlock[], toolSessionId?: string) => {
       // Auto-write the bridge SDK to the app directory so apps can use it
       const bridgePath = join(dir, "cocalc-app-bridge.js");
       try {
@@ -599,6 +599,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             sender: "system",
             content: `Blocked write to \`${block.path}\`: path escapes app directory.`,
             msg_event: "exec_result",
+            session_id: toolSessionId,
           });
           continue;
         }
@@ -615,6 +616,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             sender: "system",
             content: `Error writing \`${resolvedPath}\`: ${err.message ?? err}`,
             msg_event: "exec_result",
+            session_id: toolSessionId,
           });
         }
       }
@@ -628,13 +630,14 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         sender: "system",
         content: `Wrote ${blocks.length} file(s): ${fileList}`,
         msg_event: "exec_result",
+        session_id: toolSessionId,
       });
     },
     [project_id, actions, writeMessage],
   );
 
   const applySearchReplaceFiles = useCallback(
-    async (blocks: FileSearchReplace[]) => {
+    async (blocks: FileSearchReplace[], toolSessionId?: string) => {
       // Ensure the bridge SDK exists (same as applyWriteFiles)
       const bridgePath = join(dir, "cocalc-app-bridge.js");
       try {
@@ -658,6 +661,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             sender: "system",
             content: `Blocked patch to \`${block.path}\`: path escapes app directory.`,
             msg_event: "exec_result",
+            session_id: toolSessionId,
           });
           continue;
         }
@@ -702,6 +706,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             sender: "system",
             content: `Error patching \`${filePath}\`: ${err.message ?? err}`,
             msg_event: "exec_result",
+            session_id: toolSessionId,
           });
         }
       }
@@ -714,6 +719,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           sender: "system",
           content: `Patched ${patchedFiles.length} file(s) (${totalApplied} applied, ${totalFailed} failed): ${patchedFiles.map((f) => `\`${f}\``).join(", ")}`,
           msg_event: "exec_result",
+          session_id: toolSessionId,
         });
       } else if (totalFailed > 0) {
         const now = new Date().toISOString();
@@ -722,6 +728,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           sender: "system",
           content: `Search/replace failed: ${totalFailed} block(s) did not match.`,
           msg_event: "exec_result",
+          session_id: toolSessionId,
         });
       }
     },
@@ -760,13 +767,13 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   );
 
   const handleExecCommand = useCallback(
-    async (blockId: number, command: string) => {
+    async (blockId: number, command: string, toolSessionId?: string) => {
       // Prevent double-dispatch: skip if this block is already executing
       if (executingExecIdsRef.current.has(blockId)) return;
       executingExecIdsRef.current.add(blockId);
-      // Capture the session ID before the async gap so the result lands
-      // in the originating session even if the user switches sessions.
-      const execSessionId = sessionIdRef.current;
+      // Use the provided session ID (from onComplete), or capture the
+      // current one before the async gap.
+      const execSessionId = toolSessionId ?? sessionIdRef.current;
       try {
         const result = await exec(
           {
@@ -926,20 +933,24 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             const execBlocks = parseExecBlocks(assistantContent);
             const serverBlocks = parseServerBlocks(assistantContent);
 
+            // Pin session ID for async tool ops so status messages
+            // land in the correct turn even if the user switches.
+            const toolSessionId = activeSessionId;
+
             // 1. Write files first
             if (writeBlocks.length > 0) {
-              await applyWriteFiles(writeBlocks);
+              await applyWriteFiles(writeBlocks, toolSessionId);
             }
             // 2. Then apply patches (may target just-written files)
             if (srBlocks.length > 0) {
-              await applySearchReplaceFiles(srBlocks);
+              await applySearchReplaceFiles(srBlocks, toolSessionId);
             }
             // 3. Exec blocks — auto-run or queue for confirmation.
             if (execBlocks.length > 0) {
               setPendingExec(execBlocks);
               if (autoExecRef.current) {
                 for (const cmd of execBlocks) {
-                  handleExecCommand(cmd.id, cmd.command);
+                  handleExecCommand(cmd.id, cmd.command, toolSessionId);
                 }
               }
             }
@@ -1109,6 +1120,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         onSubmit={() => handleSubmit()}
         onCancel={() => {
           setInput(lastSubmittedRef.current);
+          streamRef.current = null;
         }}
         sendDisabled={!input.trim()}
         showDone
