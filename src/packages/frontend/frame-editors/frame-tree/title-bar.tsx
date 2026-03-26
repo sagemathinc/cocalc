@@ -685,9 +685,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         }}
       >
         <AIAvatar size={16} iconColor={COLORS.AI_ASSISTANT_TXT} />
-        {noLabel ? (
-          ""
-        ) : (
+        {noLabel ? null : (
           <VisibleMDLG>
             <span style={{ marginLeft: "5px" }}>
               {intl.formatMessage(labels.assistant)}
