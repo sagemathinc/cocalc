@@ -17,6 +17,7 @@ management.  This file contains notebook-agent-specific logic:
 - Confirm-to-run cell execution (run_cell)
 */
 
+import { Switch, Tooltip } from "antd";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -190,8 +191,11 @@ function summarizeToolEntry(raw: string): React.ReactElement | string {
  * Convert raw tool-result content into readable summary elements.
  */
 function formatToolResultForDisplay(content: string): React.ReactElement {
+  // Split on tool-result boundaries (**tool_name**: ...) rather than
+  // bare \n\n, since multi-line results (e.g. get_cells) contain \n\n
+  // within a single entry and naive splitting fragments them.
   const entries = content
-    .split("\n\n")
+    .split(/\n\n(?=\*{0,2}\w+\*{0,2}\s*(?:\([^)]*\))?\s*:)/)
     .map((s) => s.trim())
     .filter(Boolean);
   const parts = entries.map(summarizeToolEntry);
@@ -235,6 +239,10 @@ export function NotebookAgent({
   // runCell polling loop (in a setTimeout) stops even though
   // cancelRef has been reset to false by the new invocation.
   const prevAbortRef = useRef<{ current: boolean } | null>(null);
+  // Auto-run: automatically execute modified/inserted code cells
+  const [autoRun, setAutoRun] = useState(false);
+  const autoRunRef = useRef(false);
+  autoRunRef.current = autoRun;
 
   // ---- Cleanup on unmount ----
   // Settle any pending LLM promise, then detach the stream so callbacks
@@ -470,6 +478,7 @@ export function NotebookAgent({
           ctx.language,
           actions as JupyterEditorActions,
           cancelSignal,
+          autoRunRef.current,
         );
         if (cancelSignal.current) break;
 
@@ -613,6 +622,39 @@ export function NotebookAgent({
           {editorContextLabel}
         </div>
       )}
+
+      {/* Auto-run toggle */}
+      <div
+        style={{
+          flex: "0 0 auto",
+          padding: "6px 12px",
+          borderTop: `1px solid ${COLORS.GRAY_L}`,
+          background: COLORS.GRAY_LLL,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "flex-end",
+          gap: 8,
+        }}
+      >
+        <Tooltip title="Automatically run modified/inserted code cells">
+          <label
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              cursor: "pointer",
+              fontSize: "0.85em",
+            }}
+          >
+            <Switch
+              size="small"
+              checked={autoRun}
+              onChange={setAutoRun}
+            />
+            Auto-run
+          </label>
+        </Tooltip>
+      </div>
 
       <AgentInputArea
         session={session}

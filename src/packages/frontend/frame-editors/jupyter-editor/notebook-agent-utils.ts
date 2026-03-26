@@ -613,6 +613,31 @@ export async function runToolBatch(
     if (affectedCellId) {
       scrollToCell(editorActions, affectedCellId);
     }
+
+    // Auto-run: after insert/set/edit (not run_cell itself), queue
+    // affected code cells for execution so the user doesn't have to
+    // ask the LLM to run them separately.
+    if (autoRun && tc.name !== "run_cell" && MUTATING_TOOLS.has(tc.name)) {
+      try {
+        const parsed = JSON.parse(result);
+        const cellIds: string[] = [];
+        if (parsed.id) {
+          cellIds.push(parsed.id);
+        } else if (parsed.cells) {
+          for (const c of parsed.cells) {
+            if (c.id) cellIds.push(c.id);
+          }
+        }
+        for (const cid of cellIds) {
+          const cellType = store.getIn(["cells", cid, "cell_type"]) ?? "code";
+          if (cellType === "code") {
+            jupyterActions.run_cell(cid);
+          }
+        }
+      } catch {
+        // Non-JSON result — skip auto-run
+      }
+    }
   }
 
   return results;
