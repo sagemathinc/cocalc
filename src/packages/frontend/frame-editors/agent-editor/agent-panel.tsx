@@ -564,6 +564,14 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     setPendingExec([]);
   }, [session.handleClearSession]);
 
+  // Clear stale pending state when the user switches sessions
+  const prevSessionIdRef = useRef(sessionId);
+  if (prevSessionIdRef.current !== sessionId) {
+    prevSessionIdRef.current = sessionId;
+    if (pendingExec.length > 0) setPendingExec([]);
+    pendingServerBlocksRef.current = [];
+  }
+
   const [renameModalOpen, setRenameModalOpen] = useState(false);
 
   // App errors from the store
@@ -737,7 +745,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
   // Apply a list of server command blocks to the actions store
   const applyServerBlocks = useCallback(
-    (blocks: ServerBlock[]) => {
+    (blocks: ServerBlock[], toolSessionId?: string) => {
       const a = actions as any;
       for (const sb of blocks) {
         switch (sb.verb) {
@@ -751,6 +759,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
                 content:
                   "server start block missing port number — no action taken. Use: ```server start <port>```",
                 msg_event: "exec_result",
+                session_id: toolSessionId,
               });
             }
             break;
@@ -802,6 +811,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           sender: "system",
           content: `Error running \`${command}\`: ${err.message ?? err}`,
           msg_event: "exec_result",
+          session_id: execSessionId,
         });
       }
       executingExecIdsRef.current.delete(blockId);
@@ -811,7 +821,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         if (remaining.length === 0 && pendingServerBlocksRef.current.length > 0) {
           const deferred = pendingServerBlocksRef.current;
           pendingServerBlocksRef.current = [];
-          applyServerBlocks(deferred);
+          applyServerBlocks(deferred, execSessionId);
         }
         return remaining;
       });
@@ -916,6 +926,12 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           async onComplete(assistantContent) {
             streamRef.current = null;
 
+            // If the user switched sessions while streaming, persist the
+            // message to the original turn but skip local UI side-effects
+            // (exec/server blocks) which would surface in the wrong turn.
+            const sessionSwitched =
+              sessionIdRef.current !== activeSessionId;
+
             const assistantDate = new Date().toISOString();
             writeMessage({
               date: assistantDate,
@@ -945,21 +961,25 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             if (srBlocks.length > 0) {
               await applySearchReplaceFiles(srBlocks, toolSessionId);
             }
-            // 3. Exec blocks — auto-run or queue for confirmation.
-            if (execBlocks.length > 0) {
-              setPendingExec(execBlocks);
-              if (autoExecRef.current) {
-                for (const cmd of execBlocks) {
-                  handleExecCommand(cmd.id, cmd.command, toolSessionId);
+            // 3-4: Exec and server blocks affect local UI state —
+            // skip if the user already switched to a different turn.
+            if (!sessionSwitched) {
+              // 3. Exec blocks — auto-run or queue for confirmation.
+              if (execBlocks.length > 0) {
+                setPendingExec(execBlocks);
+                if (autoExecRef.current) {
+                  for (const cmd of execBlocks) {
+                    handleExecCommand(cmd.id, cmd.command, toolSessionId);
+                  }
                 }
               }
-            }
-            // 4. Server command blocks — defer if exec blocks pending
-            if (serverBlocks.length > 0) {
-              if (execBlocks.length > 0) {
-                pendingServerBlocksRef.current = serverBlocks;
-              } else {
-                applyServerBlocks(serverBlocks);
+              // 4. Server command blocks — defer if exec blocks pending
+              if (serverBlocks.length > 0) {
+                if (execBlocks.length > 0) {
+                  pendingServerBlocksRef.current = serverBlocks;
+                } else {
+                  applyServerBlocks(serverBlocks, toolSessionId);
+                }
               }
             }
 
@@ -1120,7 +1140,13 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         onSubmit={() => handleSubmit()}
         onCancel={() => {
           setInput(lastSubmittedRef.current);
-          streamRef.current = null;
+          // Detach listeners from the live stream so late tokens/errors
+          // don't fire into unmounted or stale state.
+          if (streamRef.current) {
+            streamRef.current.removeAllListeners();
+            streamRef.current.on("error", () => {});
+            streamRef.current = null;
+          }
         }}
         sendDisabled={!input.trim()}
         showDone
