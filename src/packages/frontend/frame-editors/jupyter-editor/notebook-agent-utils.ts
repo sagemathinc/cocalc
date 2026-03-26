@@ -561,6 +561,7 @@ export async function runToolBatch(
   language: string,
   editorActions?: JupyterEditorActions,
   cancelRef?: { current: boolean },
+  autoRun?: boolean,
 ): Promise<string[]> {
   const store = jupyterActions.store;
   let cellList: string[] = store.get("cell_list")?.toJS() ?? [];

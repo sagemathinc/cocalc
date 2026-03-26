@@ -537,7 +537,12 @@ export function NotebookAgent({
       // machine-readable tool invocations, not meant for the user.
       let content = msg.content;
       if (msg.sender === "assistant") {
-        content = content.replace(/```tool\n[\s\S]*?```/g, "").trim();
+        // Strip tool invocation blocks (machine-readable JSON)
+        content = content.replace(/^```tool\n[\s\S]*?\n```\s*$/gm, "").trim();
+        // Some LLMs echo the tool call JSON or code with literal \n escapes
+        // in their prose. Convert escaped newlines to real ones so
+        // StaticMarkdown can render them properly.
+        content = content.replace(/\\n/g, "\n");
       }
       // Tool results: show a compact summary of what happened.
       if (msg.event === "tool_result") {
