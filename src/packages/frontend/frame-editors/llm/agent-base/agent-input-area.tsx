@@ -9,6 +9,7 @@ Shared input area for agent panels: wraps a custom input component
 */
 
 import { Button, Tooltip } from "antd";
+import { useEffect, useRef } from "react";
 
 import { Icon } from "@cocalc/frontend/components";
 
@@ -44,6 +45,28 @@ export function AgentInputArea({
   onCancel,
 }: AgentInputAreaProps) {
   const { generating, handleNewSession, messages } = session;
+  const containerRef = useRef<HTMLDivElement>(null);
+  const prevGeneratingRef = useRef(generating);
+  // Track whether the user actively navigated away from the input
+  // (clicked into the editor, etc.) during generation.  If so, don't
+  // steal focus back when the turn finishes.
+  const userBlurredRef = useRef(false);
+
+  // Refocus the input when generation ends — but only if the user
+  // didn't actively click elsewhere during the turn.
+  useEffect(() => {
+    if (prevGeneratingRef.current && !generating && !userBlurredRef.current) {
+      const el = containerRef.current?.querySelector(
+        "textarea, [contenteditable]",
+      ) as HTMLElement | null;
+      el?.focus();
+    }
+    if (generating) {
+      // Reset the blur flag at the start of each generation cycle
+      userBlurredRef.current = false;
+    }
+    prevGeneratingRef.current = generating;
+  }, [generating]);
 
   const handleCancel = () => {
     session.cancelRef.current = true;
@@ -56,7 +79,13 @@ export function AgentInputArea({
   );
 
   return (
-    <div style={{ ...INPUT_AREA_STYLE, display: "flex" }}>
+    <div
+      ref={containerRef}
+      style={{ ...INPUT_AREA_STYLE, display: "flex" }}
+      onBlur={() => {
+        if (generating) userBlurredRef.current = true;
+      }}
+    >
       <div
         style={{
           flex: 1,
