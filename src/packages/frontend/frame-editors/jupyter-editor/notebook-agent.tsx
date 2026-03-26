@@ -25,7 +25,6 @@ import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { FileContext } from "@cocalc/frontend/lib/file-context";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
@@ -40,11 +39,15 @@ import {
   CONTAINER_STYLE,
   ERROR_MSG_STYLE,
   RenameModal,
+  runStreamingTurn,
   SYSTEM_MSG_STYLE,
   useAgentSession,
   useAutoNameSession,
 } from "@cocalc/frontend/frame-editors/llm/agent-base";
-import type { DisplayMessage } from "@cocalc/frontend/frame-editors/llm/agent-base";
+import type {
+  DisplayMessage,
+  StreamHandle,
+} from "@cocalc/frontend/frame-editors/llm/agent-base";
 
 import {
   TAG,
@@ -221,7 +224,7 @@ export function NotebookAgent({
   const [input, setInput] = useState("");
   const [inputKey, setInputKey] = useState(0);
   const inputLockedRef = useRef(false);
-  const llmStreamRef = useRef<any>(null);
+  const llmStreamRef = useRef<StreamHandle | null>(null);
   const lastSubmittedRef = useRef("");
   // Stored resolve function for the pending runLlmTurn Promise.
   // Cancel/unmount calls this so the Promise settles and handleSubmit
@@ -292,26 +295,16 @@ export function NotebookAgent({
       system: string,
     ): Promise<string> => {
       return new Promise<string>((resolve, reject) => {
-        let assistantContent = "";
         llmResolveRef.current = resolve;
-        const stream = webapp_client.openai_client.queryStream({
+        const stream = runStreamingTurn({
           input: prompt,
           system,
           history,
           model,
           project_id,
           tag: TAG,
-        });
-        llmStreamRef.current = stream;
-
-        stream.on("token", (token: string | null) => {
-          if (session.cancelRef.current) {
-            llmResolveRef.current = null;
-            resolve(assistantContent);
-            return;
-          }
-          if (token != null) {
-            assistantContent += token;
+          cancelRef: session.cancelRef,
+          onToken(accumulated, _token) {
             session.setMessages((prev) => {
               const updated = [...prev];
               const lastMsg = updated[updated.length - 1];
@@ -321,30 +314,31 @@ export function NotebookAgent({
                 // prev) and can cause skipped re-renders.
                 updated[updated.length - 1] = {
                   ...lastMsg,
-                  content: assistantContent,
+                  content: accumulated,
                 };
               } else {
                 updated.push({
                   sender: "assistant",
-                  content: assistantContent,
+                  content: accumulated,
                   date: "",
                   event: "message",
                 });
               }
               return updated;
             });
-          } else {
+          },
+          onComplete(fullContent) {
             llmResolveRef.current = null;
             llmStreamRef.current = null;
-            resolve(assistantContent);
-          }
+            resolve(fullContent);
+          },
+          onError(err) {
+            llmResolveRef.current = null;
+            llmStreamRef.current = null;
+            reject(err);
+          },
         });
-
-        stream.on("error", (err: Error) => {
-          llmResolveRef.current = null;
-          llmStreamRef.current = null;
-          reject(err);
-        });
+        llmStreamRef.current = stream;
       });
     },
     [model, project_id, session.cancelRef, session.setMessages],

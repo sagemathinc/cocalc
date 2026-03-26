@@ -29,3 +29,5 @@ export { useAgentSession } from "./use-agent-session";
 export type { UseAgentSessionOptions } from "./use-agent-session";
 export { useAutoNameSession } from "./use-auto-name-session";
 export { useCostEstimate } from "./use-cost-estimate";
+export { runStreamingTurn } from "./run-streaming-turn";
+export type { StreamingTurnConfig, StreamHandle } from "./run-streaming-turn";

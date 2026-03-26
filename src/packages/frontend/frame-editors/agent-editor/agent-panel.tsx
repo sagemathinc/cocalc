@@ -51,6 +51,8 @@ import type { DisplayMessage } from "@cocalc/frontend/frame-editors/llm/agent-ba
 import { useAutoNameSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-auto-name-session";
 import { useAgentSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-agent-session";
 import { useCostEstimate } from "@cocalc/frontend/frame-editors/llm/agent-base/use-cost-estimate";
+import { runStreamingTurn } from "@cocalc/frontend/frame-editors/llm/agent-base/run-streaming-turn";
+import type { StreamHandle } from "@cocalc/frontend/frame-editors/llm/agent-base/run-streaming-turn";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { path_split, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -493,10 +495,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const [pendingExec, setPendingExec] = useState<ExecBlock[]>([]);
   const [autoExec, setAutoExec] = useState(false);
   const autoExecRef = useRef(false);
-  const streamRef = useRef<{
-    removeAllListeners: () => void;
-    on: (event: string, handler: (...args: any[]) => void) => void;
-  } | null>(null);
+  const streamRef = useRef<StreamHandle | null>(null);
   autoExecRef.current = autoExec;
   const lastSubmittedRef = useRef("");
   // Server blocks deferred until exec blocks complete (same LLM turn)
@@ -875,17 +874,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             m.event === "exec_result" ? `[System: ${m.content}]` : m.content,
         }));
 
-        const llmStream = webapp_client.openai_client.queryStream({
-          input: prompt,
-          system,
-          history,
-          model,
-          project_id,
-          tag: TAG,
-        });
-        streamRef.current = llmStream;
-
-        let assistantContent = "";
         const streamingMsgs = [
           ...messages,
           {
@@ -897,28 +885,28 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           },
         ];
 
-        llmStream.on("token", (token: string | null) => {
-          if (cancelRef.current) {
-            // Fully detach so no more tokens are processed
-            llmStream.removeAllListeners();
-            llmStream.on("error", () => {});
-            streamRef.current = null;
-            return;
-          }
-          if (token != null) {
-            assistantContent += token;
-            // Skip UI updates if user switched sessions mid-stream
-            if (sessionIdRef.current !== activeSessionId) return;
+        const stream = runStreamingTurn({
+          input: prompt,
+          system,
+          history,
+          model,
+          project_id,
+          tag: TAG,
+          cancelRef,
+          sessionIdRef,
+          activeSessionId,
+          onToken(accumulated, _token) {
             setMessages([
               ...streamingMsgs,
               {
                 sender: "assistant",
-                content: assistantContent,
+                content: accumulated,
                 date: "",
                 event: "message",
               },
             ]);
-          } else {
+          },
+          onComplete(assistantContent) {
             generatingRef.current = false;
             setGenerating(false);
             streamRef.current = null;
@@ -972,15 +960,15 @@ export default function AgentPanel({ name }: EditorComponentProps) {
                 }
               }
             })();
-          }
+          },
+          onError(err) {
+            setError(err.message ?? `${err}`);
+            generatingRef.current = false;
+            setGenerating(false);
+            streamRef.current = null;
+          },
         });
-
-        llmStream.on("error", (err: Error) => {
-          setError(err.message ?? `${err}`);
-          generatingRef.current = false;
-          setGenerating(false);
-          streamRef.current = null;
-        });
+        streamRef.current = stream;
       } catch (err: any) {
         setError(err.message ?? `${err}`);
         generatingRef.current = false;

@@ -28,7 +28,6 @@ import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import type { EditorComponentProps } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
-import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { three_way_merge } from "@cocalc/util/dmp";
 import { filename_extension, path_split, trunc, uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
@@ -42,11 +41,12 @@ import {
   CONTAINER_STYLE,
   PendingExecBar,
   RenameModal,
+  runStreamingTurn,
   useAgentSession,
   useAutoNameSession,
   useCostEstimate,
 } from "./agent-base";
-import type { DisplayMessage } from "./agent-base";
+import type { DisplayMessage, StreamHandle } from "./agent-base";
 import { RUN_COMMANDS } from "../code-editor/editor";
 import { CollapsibleDiffs } from "./coding-agent-components";
 import type { EditBlock, ExecBlock, SearchReplace } from "./coding-agent-types";
@@ -216,10 +216,7 @@ function CodingAgentCore({
   const inputLockedRef = useRef(false);
 
   // Active LLM stream ref — allows cancel to stop processing tokens.
-  const streamRef = useRef<{
-    removeAllListeners: () => void;
-    on: (event: string, handler: (...args: any[]) => void) => void;
-  } | null>(null);
+  const streamRef = useRef<StreamHandle | null>(null);
 
   // ---- Cleanup on unmount ----
   // Clear pending timers and detach any active stream so callbacks
@@ -372,17 +369,6 @@ function CodingAgentCore({
           content: truncateMiddle(m.content),
         }));
 
-        const llmStream = webapp_client.openai_client.queryStream({
-          input: prompt,
-          system,
-          history,
-          model,
-          project_id,
-          tag: TAG,
-        });
-        streamRef.current = llmStream;
-
-        let assistantContent = "";
         // Build the streaming array once: history + user msg + mutable
         // assistant placeholder.  On each token we mutate the placeholder's
         // content and create a shallow copy of the array (O(1) per element)
@@ -405,26 +391,23 @@ function CodingAgentCore({
           assistantMsg,
         ];
 
-        llmStream.on("token", (token: string | null) => {
-          if (session.cancelRef.current) {
-            // Stop processing and detach listeners so no more tokens
-            // are handled.  Keep a no-op error handler for safety.
-            llmStream.removeAllListeners();
-            llmStream.on("error", () => {});
-            streamRef.current = null;
-            return;
-          }
-          if (token != null) {
-            assistantContent += token;
-            assistantMsg.content = assistantContent;
-            // Don't update messages if the user switched sessions mid-stream —
-            // the streaming array belongs to the old session and would overwrite
-            // the newly selected session's messages on every token.
-            if (session.sessionIdRef.current !== activeSessionId) return;
+        const stream = runStreamingTurn({
+          input: prompt,
+          system,
+          history,
+          model,
+          project_id,
+          tag: TAG,
+          cancelRef: session.cancelRef,
+          sessionIdRef: session.sessionIdRef,
+          activeSessionId,
+          onToken(accumulated, _token) {
+            assistantMsg.content = accumulated;
             // Shallow copy triggers React re-render without reallocating
             // every element — the array structure is already built.
             session.setMessages([...streamingMsgs]);
-          } else {
+          },
+          onComplete(assistantContent) {
             // Stream ended — always persist the message, but only
             // apply UI state (generating, pendingEdits) if the user
             // hasn't switched to a different session mid-stream.
@@ -525,21 +508,21 @@ function CodingAgentCore({
               // Session naming is user-triggered via the magic wand button
               // in the session bar — no automatic LLM calls.
             }
-          }
+          },
+          onError(err) {
+            session.writeMessage({
+              date: new Date().toISOString(),
+              sender: "system",
+              content: `Error: ${err.message ?? err}`,
+              msg_event: "error",
+              session_id: activeSessionId,
+            });
+            streamRef.current = null;
+            inputLockedRef.current = false;
+            session.setGenerating(false);
+          },
         });
-
-        llmStream.on("error", (err: Error) => {
-          session.writeMessage({
-            date: new Date().toISOString(),
-            sender: "system",
-            content: `Error: ${err.message ?? err}`,
-            msg_event: "error",
-            session_id: activeSessionId,
-          });
-          streamRef.current = null;
-          inputLockedRef.current = false;
-          session.setGenerating(false);
-        });
+        streamRef.current = stream;
       } catch (err: any) {
         session.writeMessage({
           date: new Date().toISOString(),
