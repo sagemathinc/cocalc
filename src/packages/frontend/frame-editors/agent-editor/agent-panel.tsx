@@ -21,7 +21,7 @@ Features:
 
 import { join } from "path";
 
-import { Alert, Button, Spin, Tooltip } from "antd";
+import { Alert, Button, Spin } from "antd";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
@@ -38,6 +38,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { AgentInputArea } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-input-area";
 import { AgentSessionBar } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-session-bar";
+import { PendingExecBar } from "@cocalc/frontend/frame-editors/llm/agent-base/pending-exec-bar";
 import { RenameModal } from "@cocalc/frontend/frame-editors/llm/agent-base/rename-modal";
 import { useAutoNameSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-auto-name-session";
 import { useAgentSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-agent-session";
@@ -52,10 +53,13 @@ import type { AppError } from "./actions";
 import type { ServerVerb } from "./actions";
 import {
   applySearchReplace,
+  formatExecResult,
   formatFileSearchReplaceAsDiff,
+  parseExecBlocks,
   parseFileSearchReplaceBlocks,
 } from "../llm/coding-agent-utils";
 import type { FileSearchReplace } from "../llm/coding-agent-utils";
+import type { ExecBlock } from "../llm/coding-agent-types";
 import LLMSelector from "../llm/llm-selector";
 
 import type { DisplayMessage } from "@cocalc/frontend/frame-editors/llm/agent-base/types";
@@ -455,27 +459,6 @@ function formatWriteFileBlocks(text: string): string {
 }
 
 /**
- * Parse exec blocks from LLM response.
- */
-let nextExecId = 0;
-
-interface ExecBlock {
-  id: number;
-  command: string;
-}
-
-function parseExecBlocks(text: string): ExecBlock[] {
-  const blocks: ExecBlock[] = [];
-  const regex = /^(`{3,})exec\n([\s\S]*?)^\1[ \t]*$/gm;
-  let match: RegExpExecArray | null;
-  while ((match = regex.exec(text)) !== null) {
-    const cmd = match[2].trim();
-    if (cmd) blocks.push({ id: nextExecId++, command: cmd });
-  }
-  return blocks;
-}
-
-/**
  * Parse server command blocks from LLM response.
  *   ```server start 8050
  *   ```
@@ -806,28 +789,18 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           path,
         );
 
-        const output = [
-          result.stdout ? `**stdout:**\n\`\`\`\n${result.stdout}\n\`\`\`` : "",
-          result.stderr ? `**stderr:**\n\`\`\`\n${result.stderr}\n\`\`\`` : "",
-          result.exit_code != null ? `Exit code: ${result.exit_code}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n\n");
-
-        const now = new Date().toISOString();
         writeMessage({
-          date: now,
+          date: new Date().toISOString(),
           sender: "system",
-          content: `Executed: \`${command}\`\n\n${output}`,
+          content: formatExecResult(result, command),
           msg_event: "exec_result",
           session_id: execSessionId,
         });
       } catch (err: any) {
-        const now = new Date().toISOString();
         writeMessage({
-          date: now,
+          date: new Date().toISOString(),
           sender: "system",
-          content: `Error executing \`${command}\`: ${err.message ?? err}`,
+          content: `Error running \`${command}\`: ${err.message ?? err}`,
           msg_event: "exec_result",
         });
       }
@@ -1181,98 +1154,23 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       </FileContext.Provider>
 
       {/* Pending exec commands */}
-      {pendingExec.length > 0 && (
-        <div
-          style={{
-            flex: "0 0 auto",
-            padding: "6px 12px",
-            borderTop: `1px solid ${COLORS.GRAY_L}`,
-            background: COLORS.YELL_LLL,
-          }}
-        >
-          <div
-            style={{
-              marginBottom: 4,
-              fontWeight: 500,
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-            }}
-          >
-            <Icon name="terminal" /> Commands to execute:
-            <div style={{ flex: 1 }} />
-            <Button
-              size="small"
-              type="primary"
-              onClick={() => {
-                for (const cmd of pendingExec) {
-                  handleExecCommand(cmd.id, cmd.command);
-                }
-              }}
-            >
-              <Icon name="play" /> Run All
-            </Button>
-            <Tooltip title="When enabled, exec commands run automatically without asking">
-              <Button
-                size="small"
-                type={autoExec ? "primary" : "default"}
-                onClick={() => {
-                  const next = !autoExec;
-                  setAutoExec(next);
-                  if (next) {
-                    // Run all currently pending commands immediately
-                    for (const cmd of pendingExec) {
-                      handleExecCommand(cmd.id, cmd.command);
-                    }
-                  }
-                }}
-              >
-                <Icon name="bolt" /> Auto
-              </Button>
-            </Tooltip>
-          </div>
-          {pendingExec.map((cmd) => (
-            <div
-              key={cmd.id}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 4,
-              }}
-            >
-              <code
-                style={{
-                  flex: 1,
-                  fontSize: "0.85em",
-                  background: COLORS.GRAY_LLL,
-                  padding: "2px 6px",
-                  borderRadius: 4,
-                }}
-              >
-                {cmd.command}
-              </code>
-              <Button
-                size="small"
-                type="primary"
-                onClick={() => handleExecCommand(cmd.id, cmd.command)}
-              >
-                <Icon name="play" /> Run
-              </Button>
-              <Button
-                size="small"
-                onClick={() =>
-                  setPendingExec((prev) =>
-                    prev.filter((e) => e.id !== cmd.id),
-                  )
-                }
-              >
-                Dismiss
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
+      <PendingExecBar
+        pendingExec={pendingExec}
+        onRun={handleExecCommand}
+        onDismiss={(blockId) =>
+          setPendingExec((prev) => prev.filter((e) => e.id !== blockId))
+        }
+        onDismissAll={() => setPendingExec([])}
+        onRunAll={() => {
+          for (const cmd of pendingExec) {
+            handleExecCommand(cmd.id, cmd.command);
+          }
+        }}
+        autoExec={autoExec}
+        onAutoExecChange={(next) => {
+          setAutoExec(next);
+        }}
+      />
 
       {/* Error display */}
       {error && (

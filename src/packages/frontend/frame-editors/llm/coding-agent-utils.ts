@@ -400,7 +400,7 @@ export function fulfillShowBlocks(
 }
 
 /* ------------------------------------------------------------------ */
-/*  Command block parsing                                              */
+/*  Command block parsing & result formatting                          */
 /* ------------------------------------------------------------------ */
 
 let nextExecBlockId = 0;
@@ -415,6 +415,25 @@ export function parseExecBlocks(text: string): ExecBlock[] {
     if (cmd) blocks.push({ id: nextExecBlockId++, command: cmd });
   }
   return blocks;
+}
+
+/**
+ * Format the result of a shell command execution into the standard
+ * markdown content used for exec_result messages in all agent variants.
+ */
+export function formatExecResult(
+  result: { stdout?: string; stderr?: string; exit_code?: number },
+  command: string,
+): string {
+  const output = [
+    result.stdout ? `**stdout:**\n\`\`\`\n${result.stdout}\n\`\`\`` : "",
+    result.stderr ? `**stderr:**\n\`\`\`\n${result.stderr}\n\`\`\`` : "",
+    result.exit_code != null ? `Exit code: ${result.exit_code}` : "",
+  ]
+    .filter(Boolean)
+    .join("\n\n");
+
+  return `Ran: \`${command}\`\n\n${output}`;
 }
 
 /* ------------------------------------------------------------------ */

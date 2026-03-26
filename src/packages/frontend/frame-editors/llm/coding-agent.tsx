@@ -40,6 +40,7 @@ import {
   AgentMessages,
   AgentSessionBar,
   CONTAINER_STYLE,
+  PendingExecBar,
   RenameModal,
   useAgentSession,
   useAutoNameSession,
@@ -56,6 +57,7 @@ import {
   buildSystemPrompt,
   extractCodeBlock,
   formatEditBlocksAsDiff,
+  formatExecResult,
   formatSearchReplaceAsDiff,
   fulfillShowBlocks,
   getEditorContent,
@@ -686,18 +688,10 @@ function CodingAgentCore({
           path,
         );
 
-        const output = [
-          result.stdout ? `**stdout:**\n\`\`\`\n${result.stdout}\n\`\`\`` : "",
-          result.stderr ? `**stderr:**\n\`\`\`\n${result.stderr}\n\`\`\`` : "",
-          result.exit_code != null ? `Exit code: ${result.exit_code}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n\n");
-
         session.writeMessage({
           date: new Date().toISOString(),
           sender: "system",
-          content: `Ran: \`${command}\`\n\n${output}`,
+          content: formatExecResult(result, command),
           msg_event: "exec_result",
           session_id: execSessionId,
         });
@@ -876,60 +870,14 @@ function CodingAgentCore({
       )}
 
       {/* Pending exec commands */}
-      {pendingExec.length > 0 && (
-        <div
-          style={{
-            flex: "0 0 auto",
-            padding: "6px 12px",
-            borderTop: `1px solid ${COLORS.GRAY_L}`,
-            background: COLORS.YELL_LLL,
-          }}
-        >
-          <div style={{ marginBottom: 4, fontWeight: 500 }}>
-            <Icon name="terminal" /> Commands to run:
-          </div>
-          {pendingExec.map((cmd, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-                marginBottom: 4,
-              }}
-            >
-              <code
-                style={{
-                  flex: 1,
-                  fontSize: "0.85em",
-                  background: COLORS.GRAY_LLL,
-                  padding: "2px 6px",
-                  borderRadius: 4,
-                }}
-              >
-                {cmd.command}
-              </code>
-              <Button
-                size="small"
-                type="primary"
-                onClick={() => handleExecCommand(cmd.id, cmd.command)}
-              >
-                <Icon name="play" /> Run
-              </Button>
-              <Button
-                size="small"
-                onClick={() =>
-                  setPendingExec((prev) =>
-                    prev.filter((e) => e.id !== cmd.id),
-                  )
-                }
-              >
-                Dismiss
-              </Button>
-            </div>
-          ))}
-        </div>
-      )}
+      <PendingExecBar
+        pendingExec={pendingExec}
+        onRun={handleExecCommand}
+        onDismiss={(blockId) =>
+          setPendingExec((prev) => prev.filter((e) => e.id !== blockId))
+        }
+        onDismissAll={() => setPendingExec([])}
+      />
 
       {/* Editor context indicator — shows cursor/selection so the user
            knows what the LLM will "see" from the editor */}

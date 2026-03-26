@@ -22,6 +22,8 @@ export {
   SYSTEM_MSG_STYLE,
   USER_MSG_STYLE,
 } from "./types";
+export { PendingExecBar } from "./pending-exec-bar";
+export type { PendingExecBarProps } from "./pending-exec-bar";
 export { RenameModal } from "./rename-modal";
 export { useAgentSession } from "./use-agent-session";
 export type { UseAgentSessionOptions } from "./use-agent-session";
