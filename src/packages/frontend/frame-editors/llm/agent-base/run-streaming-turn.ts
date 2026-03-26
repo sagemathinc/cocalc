@@ -21,7 +21,7 @@ export interface StreamingTurnConfig {
   // LLM call parameters
   input: string;
   system: string;
-  history: { role: "user" | "assistant"; content: string }[];
+  history: { role: "user" | "assistant" | "system"; content: string }[];
   model: string;
   project_id: string;
   tag: string;
@@ -38,7 +38,7 @@ export interface StreamingTurnConfig {
    *  and the individual token that was just received. */
   onToken: (accumulatedContent: string, token: string) => void;
   /** Called when the stream ends (token === null). */
-  onComplete: (fullContent: string) => void;
+  onComplete: (fullContent: string) => void | Promise<void>;
   /** Called when the stream emits an error. */
   onError: (err: Error) => void;
 }

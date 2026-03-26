@@ -906,9 +906,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               },
             ]);
           },
-          onComplete(assistantContent) {
-            generatingRef.current = false;
-            setGenerating(false);
+          async onComplete(assistantContent) {
             streamRef.current = null;
 
             const assistantDate = new Date().toISOString();
@@ -928,38 +926,35 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             const execBlocks = parseExecBlocks(assistantContent);
             const serverBlocks = parseServerBlocks(assistantContent);
 
-            (async () => {
-              // 1. Write files first
-              if (writeBlocks.length > 0) {
-                await applyWriteFiles(writeBlocks);
+            // 1. Write files first
+            if (writeBlocks.length > 0) {
+              await applyWriteFiles(writeBlocks);
+            }
+            // 2. Then apply patches (may target just-written files)
+            if (srBlocks.length > 0) {
+              await applySearchReplaceFiles(srBlocks);
+            }
+            // 3. Exec blocks — auto-run or queue for confirmation.
+            if (execBlocks.length > 0) {
+              setPendingExec(execBlocks);
+              if (autoExecRef.current) {
+                for (const cmd of execBlocks) {
+                  handleExecCommand(cmd.id, cmd.command);
+                }
               }
-              // 2. Then apply patches (may target just-written files)
-              if (srBlocks.length > 0) {
-                await applySearchReplaceFiles(srBlocks);
-              }
-              // 3. Exec blocks — auto-run or queue for confirmation.
-              // Always seed pendingExec so the dequeue logic in
-              // handleExecCommand can track completion and flush
-              // deferred server blocks at the right time.
+            }
+            // 4. Server command blocks — defer if exec blocks pending
+            if (serverBlocks.length > 0) {
               if (execBlocks.length > 0) {
-                setPendingExec(execBlocks);
-                if (autoExecRef.current) {
-                  for (const cmd of execBlocks) {
-                    handleExecCommand(cmd.id, cmd.command);
-                  }
-                }
+                pendingServerBlocksRef.current = serverBlocks;
+              } else {
+                applyServerBlocks(serverBlocks);
               }
-              // 4. Server command blocks — if exec blocks are also
-              // present, defer until they complete so the server process
-              // is actually running before the iframe connects.
-              if (serverBlocks.length > 0) {
-                if (execBlocks.length > 0) {
-                  pendingServerBlocksRef.current = serverBlocks;
-                } else {
-                  applyServerBlocks(serverBlocks);
-                }
-              }
-            })();
+            }
+
+            // Only re-enable input after all tool operations complete
+            generatingRef.current = false;
+            setGenerating(false);
           },
           onError(err) {
             setError(err.message ?? `${err}`);
