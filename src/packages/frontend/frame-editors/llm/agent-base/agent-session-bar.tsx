@@ -107,8 +107,7 @@ export function AgentSessionBar({
             }}
           >
             {currentSessionLabel}
-          </span>{" "}
-          ({allSessions.length})
+          </span>
         </Button>
       </Dropdown>
 

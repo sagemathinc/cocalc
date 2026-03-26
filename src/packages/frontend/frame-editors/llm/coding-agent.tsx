@@ -852,8 +852,8 @@ function CodingAgentCore({
         />
       </FileContext.Provider>
 
-      {/* Edits action bar — always visible so Auto toggle is accessible */}
-      {(pendingEdits || autoAccept) && (
+      {/* Edits action bar */}
+      {session.sessionId && (
         <div
           style={{
             flex: "0 0 auto",
@@ -862,35 +862,38 @@ function CodingAgentCore({
             background: COLORS.GRAY_LLL,
             display: "flex",
             alignItems: "center",
+            justifyContent: "flex-end",
             gap: 8,
             flexWrap: "wrap",
           }}
         >
-          {pendingEdits && !autoAccept && (
+          {!autoAccept && (
             <>
-              <Icon name="check" />
-              <span>
-                {pendingEdits.type === "edit_blocks"
-                  ? `${pendingEdits.blocks.length} edit(s) suggested.`
-                  : pendingEdits.type === "search_replace"
-                    ? `${pendingEdits.blocks.length} search/replace edit(s) suggested.`
-                    : "Full replacement suggested."}
-              </span>
-              <Button size="small" type="primary" onClick={handleApplyEdits}>
+              <Button
+                size="small"
+                type="primary"
+                disabled={!pendingEdits}
+                onClick={handleApplyEdits}
+              >
                 Apply to Editor
               </Button>
-              <Button size="small" onClick={() => setPendingEdits(undefined)}>
+              <Button
+                size="small"
+                disabled={!pendingEdits}
+                onClick={() => setPendingEdits(undefined)}
+              >
                 Dismiss
               </Button>
             </>
           )}
           <Tooltip title="Automatically apply all future edits without asking">
-            <span
+            <label
               style={{
                 display: "inline-flex",
                 alignItems: "center",
                 gap: 4,
-                marginLeft: autoAccept && !pendingEdits ? 0 : 4,
+                cursor: "pointer",
+                fontSize: "0.85em",
               }}
             >
               <Switch
@@ -898,8 +901,8 @@ function CodingAgentCore({
                 checked={autoAccept}
                 onChange={setAutoAccept}
               />
-              <span style={{ fontSize: "0.85em" }}>Auto-apply edits</span>
-            </span>
+              Auto
+            </label>
           </Tooltip>
         </div>
       )}
