@@ -41,6 +41,13 @@ export interface UseAgentSessionOptions {
   /** The chat SyncDB when running embedded in the side chat. */
   chatSyncdb?: any;
   /**
+   * An already-existing SyncDB instance to use directly (e.g. the
+   * frame editor's own _syncstring).  Records are NOT filtered by
+   * eventName — all records are included.  Unlike `chatSyncdb`, no
+   * chat-schema mapping (sender_id, msg_event) is applied.
+   */
+  existingSyncdb?: any;
+  /**
    * The event name that identifies this agent's records in the chat
    * syncdb, e.g. "coding-agent" or "notebook-agent".
    */
@@ -52,6 +59,24 @@ export interface UseAgentSessionOptions {
    * notebook agent is always embedded.
    */
   path?: string;
+  /**
+   * Skip records whose event field matches any of these values.
+   * Useful to filter out non-message sentinel records (e.g. "server_state").
+   */
+  skipEvents?: string[];
+  /**
+   * How to sort sessions in the session bar.
+   * - "earliest" (default): sort by each session's earliest message date
+   * - "latest": sort by each session's latest (most recent) message date
+   */
+  sessionSort?: "earliest" | "latest";
+  /**
+   * Whether to validate that the current sessionId exists in the
+   * loaded sessions before keeping it.  Defaults to true.
+   * Set to false to always respect the current sessionId, even if
+   * it has no persisted messages yet (e.g. brand-new sessions).
+   */
+  validateSessionExists?: boolean;
 }
 
 /* ------------------------------------------------------------------ */
@@ -61,12 +86,17 @@ export interface UseAgentSessionOptions {
 export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
   const {
     chatSyncdb,
+    existingSyncdb,
     eventName,
     project_id,
     path,
+    skipEvents,
+    sessionSort = "earliest",
+    validateSessionExists = true,
   } = options;
 
   const usesChatSchema = chatSyncdb != null;
+  const usesExistingSyncdb = existingSyncdb != null;
 
   // ---- Core state ----
   const [syncdb, setSyncdb] = useState<any>(chatSyncdb ?? null);
@@ -113,18 +143,20 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
       const names = new Map<string, string>();
 
       allRecords.forEach((record: any) => {
-        if (usesChatSchema) {
+        // In embedded chat mode, filter by eventName so other agents'
+        // records are excluded.  Skip this filter for existingSyncdb
+        // mode (all records belong to this agent).
+        if (usesChatSchema && !usesExistingSyncdb) {
           if (record.get("event") !== eventName) return;
         }
 
         const sid = record.get("session_id");
         if (!sid) return;
-        sessionsSet.add(sid);
 
         // Always skip session_name records from the message list —
         // their non-ISO date field ("session_name:{sid}") would produce
         // NaN in the date sort and corrupt message ordering.
-        const eventField = usesChatSchema
+        const eventField = (usesChatSchema && !usesExistingSyncdb)
           ? record.get("msg_event")
           : record.get("event");
         if (eventField === "session_name") {
@@ -132,6 +164,13 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
           if (name) names.set(sid, name);
           return;
         }
+
+        // Skip records whose event matches any entry in skipEvents
+        if (skipEvents && skipEvents.includes(eventField)) {
+          return;
+        }
+
+        sessionsSet.add(sid);
 
         if (!msgsBySession.has(sid)) {
           msgsBySession.set(sid, []);
@@ -141,7 +180,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
           sender: record.get("sender") ?? "user",
           content: record.get("content") ?? "",
           date: record.get("date") ?? "",
-          event: usesChatSchema
+          event: (usesChatSchema && !usesExistingSyncdb)
             ? (record.get("msg_event") ?? "message")
             : (record.get("event") ?? "message"),
           account_id: record.get("account_id"),
@@ -161,21 +200,51 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
         sessionsSet.add(pendingId);
       }
 
-      // Sort sessions chronologically by earliest message date.
-      const sessions = Array.from(sessionsSet).sort((a, b) => {
-        const aDate = msgsBySession.get(a)?.[0]?.date ?? "\uffff";
-        const bDate = msgsBySession.get(b)?.[0]?.date ?? "\uffff";
-        return aDate.localeCompare(bDate);
-      });
+      // Sort sessions chronologically.
+      let sessions: string[];
+      if (sessionSort === "latest") {
+        // Sort by most recent message date (newest last)
+        sessions = Array.from(sessionsSet).sort((a, b) => {
+          const msgsA = msgsBySession.get(a) ?? [];
+          const msgsB = msgsBySession.get(b) ?? [];
+          const latestA = msgsA.reduce(
+            (max, m) => Math.max(max, new Date(m.date).valueOf() || 0),
+            0,
+          );
+          const latestB = msgsB.reduce(
+            (max, m) => Math.max(max, new Date(m.date).valueOf() || 0),
+            0,
+          );
+          return latestA - latestB;
+        });
+      } else {
+        // Default: sort by earliest message date
+        sessions = Array.from(sessionsSet).sort((a, b) => {
+          const aDate = msgsBySession.get(a)?.[0]?.date ?? "\uffff";
+          const bDate = msgsBySession.get(b)?.[0]?.date ?? "\uffff";
+          return aDate.localeCompare(bDate);
+        });
+      }
       setAllSessions(sessions);
 
-      // Pick active session
-      const activeSession =
-        currentSessionId && sessionsSet.has(currentSessionId)
+      // Pick active session.  When validateSessionExists is false, always
+      // respect the current sessionId (covers brand-new sessions with no
+      // persisted messages yet).
+      let activeSession: string;
+      if (validateSessionExists) {
+        activeSession =
+          currentSessionId && sessionsSet.has(currentSessionId)
+            ? currentSessionId
+            : sessions.length > 0
+              ? sessions[sessions.length - 1]
+              : "";
+      } else {
+        activeSession = currentSessionId
           ? currentSessionId
           : sessions.length > 0
             ? sessions[sessions.length - 1]
             : "";
+      }
 
       if (activeSession !== currentSessionId) {
         setSessionId(activeSession);
@@ -191,15 +260,46 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
         setMessages([]);
       }
     },
-    [usesChatSchema, eventName],
+    [usesChatSchema, usesExistingSyncdb, eventName, skipEvents, sessionSort, validateSessionExists],
   );
 
   // Keep the ref in sync so change handlers always call the latest version.
   loadRef.current = loadSessionsAndMessages;
 
+  // ---- SyncDB initialization: existingSyncdb mode ----
+  // Uses a pre-existing SyncDB directly (e.g. the frame editor's _syncstring).
+  // No hidden file creation, no chat schema filtering.
+  useEffect(() => {
+    if (!usesExistingSyncdb || !existingSyncdb) return;
+
+    const handleChange = () => {
+      if (existingSyncdb.get_state() === "ready" && !generatingRef.current) {
+        loadRef.current(existingSyncdb);
+      }
+    };
+
+    const handleReady = () => {
+      setSyncdb(existingSyncdb);
+      loadRef.current(existingSyncdb);
+    };
+
+    existingSyncdb.on("change", handleChange);
+
+    if (existingSyncdb.get_state() === "ready") {
+      handleReady();
+    } else {
+      existingSyncdb.once("ready", handleReady);
+    }
+
+    return () => {
+      existingSyncdb.removeListener("change", handleChange);
+      existingSyncdb.removeListener("ready", handleReady);
+    };
+  }, [existingSyncdb]);
+
   // ---- SyncDB initialization: standalone mode ----
   useEffect(() => {
-    if (usesChatSchema || !path) return;
+    if (usesChatSchema || usesExistingSyncdb || !path) return;
 
     const syncdbPath = hidden_meta_file(path, eventName);
     redux.getProjectActions(project_id)?.setNotDeleted(syncdbPath);
@@ -248,6 +348,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
 
   // ---- SyncDB initialization: embedded mode ----
   useEffect(() => {
+    if (usesExistingSyncdb) return;
     if (!usesChatSchema || !chatSyncdb) return;
 
     const handleChange = () => {
@@ -299,7 +400,19 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
       if (!syncdb || syncdb.get_state() !== "ready") return;
       const sid = msg.session_id || sessionIdRef.current || uuid();
 
-      if (usesChatSchema) {
+      if (usesExistingSyncdb) {
+        // existingSyncdb mode: write directly without date collision
+        // avoidance or chat-schema mapping.
+        syncdb.set({
+          session_id: sid,
+          date: msg.date,
+          sender: msg.sender,
+          content: msg.content,
+          account_id: msg.account_id,
+          event: msg.msg_event,
+          base_snapshot: msg.base_snapshot,
+        });
+      } else if (usesChatSchema) {
         syncdb.set({
           date: msg.date,
           sender_id:
@@ -315,9 +428,9 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
           base_snapshot: msg.base_snapshot,
         });
       } else {
-        // Ensure unique dates: if two writes land in the same ms,
-        // bump the timestamp by 1ms so the primary key is unique
-        // and the date remains a valid, sortable ISO string.
+        // Standalone mode: ensure unique dates — if two writes land in
+        // the same ms, bump the timestamp by 1ms so the primary key is
+        // unique and the date remains a valid, sortable ISO string.
         let dateStr = msg.date;
         if (dateStr <= lastStandaloneDate) {
           const bumped = new Date(new Date(lastStandaloneDate).valueOf() + 1);
@@ -336,7 +449,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
       }
       syncdb.commit();
     },
-    [syncdb, eventName, usesChatSchema],
+    [syncdb, eventName, usesChatSchema, usesExistingSyncdb],
   );
 
   // ---- handleNewSession ----
@@ -357,7 +470,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
     const allRecords = syncdb.get();
     if (allRecords != null) {
       allRecords.forEach((record: any) => {
-        if (usesChatSchema) {
+        if (usesChatSchema && !usesExistingSyncdb) {
           if (
             record.get("event") === eventName &&
             record.get("session_id") === sid
@@ -391,7 +504,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
     }
     setMessages([]);
     setError("");
-  }, [syncdb, eventName, usesChatSchema, allSessions]);
+  }, [syncdb, eventName, usesChatSchema, usesExistingSyncdb, allSessions]);
 
   // ---- writeSessionName ----
   const writeSessionName = useCallback(
@@ -401,7 +514,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
       if (!targetSid) return;
 
       const date = `session_name:${targetSid}`;
-      if (usesChatSchema) {
+      if (usesChatSchema && !usesExistingSyncdb) {
         syncdb.set({
           date,
           sender_id: agentSenderId(eventName, "system"),
@@ -423,7 +536,7 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
       syncdb.commit();
       setSessionNames((prev) => new Map(prev).set(targetSid, name));
     },
-    [syncdb, eventName, usesChatSchema],
+    [syncdb, eventName, usesChatSchema, usesExistingSyncdb],
   );
 
   return {

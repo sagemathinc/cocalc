@@ -22,7 +22,7 @@ Features:
 import { join } from "path";
 
 import { Alert, Button, Spin, Tooltip } from "antd";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -41,7 +41,7 @@ import { AgentInputArea } from "@cocalc/frontend/frame-editors/llm/agent-base/ag
 import { AgentSessionBar } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-session-bar";
 import { RenameModal } from "@cocalc/frontend/frame-editors/llm/agent-base/rename-modal";
 import { useAutoNameSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-auto-name-session";
-import type { AgentSession } from "@cocalc/frontend/frame-editors/llm/agent-base/types";
+import { useAgentSession } from "@cocalc/frontend/frame-editors/llm/agent-base/use-agent-session";
 import { calcMinMaxEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { isFreeModel } from "@cocalc/util/db-schema/llm-utils";
@@ -55,13 +55,7 @@ import type { ServerVerb } from "./actions";
 import { applySearchReplace } from "../llm/coding-agent-utils";
 import LLMSelector from "../llm/llm-selector";
 
-interface DisplayMessage {
-  sender: "user" | "assistant" | "system";
-  content: string;
-  date: string;
-  event: string;
-  account_id?: string;
-}
+import type { DisplayMessage } from "@cocalc/frontend/frame-editors/llm/agent-base/types";
 
 const TAG = "ai-agent";
 
@@ -552,22 +546,15 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
   const [input, setInput] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [error, setError] = useState<string>("");
   const [costEstimate, setCostEstimate] = useState<CostEstimate>(null);
   const [pendingExec, setPendingExec] = useState<ExecBlock[]>([]);
   const [autoExec, setAutoExec] = useState(false);
   const autoExecRef = useRef(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const cancelRef = useRef(false);
   const streamRef = useRef<{
     removeAllListeners: () => void;
     on: (event: string, handler: (...args: any[]) => void) => void;
   } | null>(null);
   autoExecRef.current = autoExec;
-  const generatingRef = useRef(false);
-  const sessionIdRef = useRef("");
-  const pendingNewSessionRef = useRef("");
   const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const lastSubmittedRef = useRef("");
   // Server blocks deferred until exec blocks complete (same LLM turn)
@@ -593,220 +580,52 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     };
   }, []);
 
-  // SyncDB state — piggybacks on the frame editor's syncdb (the .ai file).
-  const [syncdb, setSyncdb] = useState<any>(null);
-  const [messages, setMessages] = useState<DisplayMessage[]>([]);
-  const [sessionId, setSessionId] = useState<string>("");
-  sessionIdRef.current = sessionId;
-  const [allSessions, setAllSessions] = useState<string[]>([]);
-  const [sessionNames, setSessionNames] = useState<Map<string, string>>(
-    new Map(),
-  );
+  // Session management via the shared hook — piggybacks on the frame
+  // editor's own syncdb (the .ai file).
+  const session = useAgentSession({
+    existingSyncdb: (actions as any)?._syncstring,
+    eventName: TAG,
+    project_id,
+    skipEvents: ["server_state"],
+    sessionSort: "latest",
+    validateSessionExists: false,
+  });
+  const {
+    syncdb,
+    messages,
+    sessionId,
+    allSessions,
+    sessionNames,
+    generating,
+    error,
+    setGenerating,
+    setError,
+    setMessages,
+    writeMessage,
+    writeSessionName,
+    setSessionId,
+    messagesEndRef,
+    cancelRef,
+    generatingRef,
+    sessionIdRef,
+  } = session;
+
+  // Wrap hook's handleNewSession/handleClearSession to also clear
+  // AgentPanel-specific state (pending exec blocks).
+  const handleNewSession = useCallback(() => {
+    session.handleNewSession();
+    setPendingExec([]);
+  }, [session.handleNewSession]);
+
+  const handleClearSession = useCallback(() => {
+    session.handleClearSession();
+    setPendingExec([]);
+  }, [session.handleClearSession]);
+
   const [renameModalOpen, setRenameModalOpen] = useState(false);
 
   // App errors from the store
   const appErrors: AppError[] = (useRedux(name, "app_errors") as any) ?? [];
-
-  // Ref to always call the latest loadSessionsAndMessages from the
-  // syncdb change listener (avoids stale closure over old sessionId).
-  const loadRef = useRef<((db: any) => void) | null>(null);
-
-  // Get the syncdb from the actions (the .ai file's syncdb)
-  useEffect(() => {
-    const db = (actions as any)._syncstring;
-    if (db == null) return;
-
-    const handleReady = () => {
-      setSyncdb(db);
-      loadRef.current?.(db);
-    };
-
-    const handleChange = () => {
-      if (db.get_state() === "ready") {
-        loadRef.current?.(db);
-      }
-    };
-
-    if (db.get_state() === "ready") {
-      handleReady();
-    } else {
-      db.once("ready", handleReady);
-    }
-    db.on("change", handleChange);
-
-    return () => {
-      db.removeListener("change", handleChange);
-    };
-  }, [actions]);
-
-  const loadSessionsAndMessages = useCallback(
-    (db: any) => {
-      if (db?.get_state() !== "ready") return;
-
-      const allRecords = db.get();
-      if (allRecords == null) return;
-
-      const sessionsSet = new Set<string>();
-      const msgsBySession = new Map<string, DisplayMessage[]>();
-      const names = new Map<string, string>();
-
-      allRecords.forEach((record: any) => {
-        const sid = record.get("session_id");
-        if (!sid) return;
-
-        const event = record.get("event");
-        // Skip session_name records from messages — they use a
-        // sentinel date ("session_name:<sid>") that would corrupt sorting.
-        if (event === "session_name") {
-          const name = record.get("content");
-          if (name) names.set(sid, name);
-          return;
-        }
-        // Skip the persisted server-state sentinel record — it is
-        // not a conversation message and should not appear as a session.
-        if (event === "server_state") {
-          return;
-        }
-
-        sessionsSet.add(sid);
-
-        if (!msgsBySession.has(sid)) {
-          msgsBySession.set(sid, []);
-        }
-
-        msgsBySession.get(sid)!.push({
-          sender: record.get("sender") ?? "user",
-          content: record.get("content") ?? "",
-          date: record.get("date") ?? "",
-          event: record.get("event") ?? "message",
-          account_id: record.get("account_id"),
-        });
-      });
-      setSessionNames(names);
-
-      // Sort sessions by most recent message date (newest last)
-      const sessions = Array.from(sessionsSet).sort((a, b) => {
-        const msgsA = msgsBySession.get(a) ?? [];
-        const msgsB = msgsBySession.get(b) ?? [];
-        const latestA = msgsA.reduce(
-          (max, m) => Math.max(max, new Date(m.date).valueOf() || 0),
-          0,
-        );
-        const latestB = msgsB.reduce(
-          (max, m) => Math.max(max, new Date(m.date).valueOf() || 0),
-          0,
-        );
-        return latestA - latestB;
-      });
-      setAllSessions(sessions);
-
-      // Keep the current sessionId if it is set — this covers both sessions
-      // that already exist in the data AND brand-new sessions that have no
-      // messages persisted yet (created via "New").  Only fall back to the
-      // most recent session when sessionId is empty/unset.
-      const activeSession = sessionId
-        ? sessionId
-        : sessions.length > 0
-          ? sessions[sessions.length - 1]
-          : "";
-
-      if (activeSession !== sessionId) {
-        setSessionId(activeSession);
-      }
-
-      const msgs = msgsBySession.get(activeSession) ?? [];
-      msgs.sort(
-        (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
-      );
-      setMessages(msgs);
-    },
-    [sessionId],
-  );
-  loadRef.current = loadSessionsAndMessages;
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  useEffect(() => {
-    if (syncdb?.get_state() === "ready") {
-      loadSessionsAndMessages(syncdb);
-    }
-  }, [sessionId, syncdb]);
-
-  const handleNewSession = useCallback(() => {
-    const newId = uuid();
-    setSessionId(newId);
-    setMessages([]);
-    setPendingExec([]);
-    setError("");
-  }, []);
-
-  const handleClearSession = useCallback(() => {
-    if (!syncdb || !sessionId) return;
-    const allRecords = syncdb.get();
-    if (allRecords != null) {
-      allRecords.forEach((record: any) => {
-        if (record.get("session_id") === sessionId) {
-          syncdb.delete({
-            session_id: sessionId,
-            date: record.get("date"),
-          });
-        }
-      });
-      syncdb.commit();
-    }
-    setMessages([]);
-    setPendingExec([]);
-  }, [syncdb, sessionId]);
-
-  const writeMessage = useCallback(
-    (msg: {
-      date: string;
-      sender: "user" | "assistant" | "system";
-      content: string;
-      account_id?: string;
-      event: string;
-      session_id?: string;
-    }) => {
-      if (!syncdb || syncdb.get_state() !== "ready") return;
-      // Use the ref (not the state closure) so that system messages
-      // written after setSessionId() but before re-render still land
-      // in the correct session.
-      const sid = msg.session_id || sessionIdRef.current || uuid();
-
-      syncdb.set({
-        session_id: sid,
-        date: msg.date,
-        sender: msg.sender,
-        content: msg.content,
-        account_id: msg.account_id,
-        event: msg.event,
-      });
-      syncdb.commit();
-    },
-    [syncdb],
-  );
-
-  const writeSessionName = useCallback(
-    (name: string, sid?: string) => {
-      if (!syncdb || syncdb.get_state() !== "ready") return;
-      const targetSid = sid || sessionIdRef.current;
-      if (!targetSid) return;
-
-      const date = `session_name:${targetSid}`;
-      syncdb.set({
-        session_id: targetSid,
-        date,
-        sender: "system",
-        content: name,
-        event: "session_name",
-      });
-      syncdb.commit();
-      setSessionNames((prev) => new Map(prev).set(targetSid, name));
-    },
-    [syncdb],
-  );
 
   const applyWriteFiles = useCallback(
     async (blocks: WriteFileBlock[]) => {
@@ -837,7 +656,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             date: now,
             sender: "system",
             content: `Blocked write to \`${block.path}\`: path escapes app directory.`,
-            event: "exec_result",
+            msg_event: "exec_result",
           });
           continue;
         }
@@ -853,7 +672,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             date: now,
             sender: "system",
             content: `Error writing \`${resolvedPath}\`: ${err.message ?? err}`,
-            event: "exec_result",
+            msg_event: "exec_result",
           });
         }
       }
@@ -866,7 +685,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         date: now,
         sender: "system",
         content: `Wrote ${blocks.length} file(s): ${fileList}`,
-        event: "exec_result",
+        msg_event: "exec_result",
       });
     },
     [project_id, actions, writeMessage],
@@ -896,7 +715,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             date: now,
             sender: "system",
             content: `Blocked patch to \`${block.path}\`: path escapes app directory.`,
-            event: "exec_result",
+            msg_event: "exec_result",
           });
           continue;
         }
@@ -940,7 +759,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             date: now,
             sender: "system",
             content: `Error patching \`${filePath}\`: ${err.message ?? err}`,
-            event: "exec_result",
+            msg_event: "exec_result",
           });
         }
       }
@@ -952,7 +771,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           date: now,
           sender: "system",
           content: `Patched ${patchedFiles.length} file(s) (${totalApplied} applied, ${totalFailed} failed): ${patchedFiles.map((f) => `\`${f}\``).join(", ")}`,
-          event: "exec_result",
+          msg_event: "exec_result",
         });
       } else if (totalFailed > 0) {
         const now = new Date().toISOString();
@@ -960,7 +779,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           date: now,
           sender: "system",
           content: `Search/replace failed: ${totalFailed} block(s) did not match.`,
-          event: "exec_result",
+          msg_event: "exec_result",
         });
       }
     },
@@ -982,7 +801,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
                 sender: "system",
                 content:
                   "server start block missing port number — no action taken. Use: ```server start <port>```",
-                event: "exec_result",
+                msg_event: "exec_result",
               });
             }
             break;
@@ -1034,7 +853,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           date: now,
           sender: "system",
           content: `Executed: \`${command}\`\n\n${output}`,
-          event: "exec_result",
+          msg_event: "exec_result",
           session_id: execSessionId,
         });
       } catch (err: any) {
@@ -1043,7 +862,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           date: now,
           sender: "system",
           content: `Error executing \`${command}\`: ${err.message ?? err}`,
-          event: "exec_result",
+          msg_event: "exec_result",
         });
       }
       executingExecIdsRef.current.delete(blockId);
@@ -1102,7 +921,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         sender: "user",
         content: prompt,
         account_id: accountId,
-        event: "message",
+        msg_event: "message",
         session_id: activeSessionId,
       });
 
@@ -1176,7 +995,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
               date: assistantDate,
               sender: "assistant",
               content: assistantContent,
-              event: "message",
+              msg_event: "message",
               session_id: activeSessionId,
             });
 
@@ -1289,44 +1108,9 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     [model, isCoCalcCom, llm_markup, messages],
   );
 
-  // Build a session-like object for AgentInputArea and AgentSessionBar
-  const session: AgentSession = useMemo(
-    () => ({
-      syncdb,
-      messages,
-      sessionId,
-      allSessions,
-      sessionNames,
-      generating,
-      error,
-      setGenerating,
-      setError,
-      setMessages,
-      writeMessage: writeMessage as any,
-      handleNewSession,
-      handleClearSession,
-      writeSessionName,
-      setSessionId,
-      messagesEndRef,
-      cancelRef,
-      generatingRef,
-      sessionIdRef,
-      pendingNewSessionRef,
-    }),
-    [
-      syncdb,
-      messages,
-      sessionId,
-      allSessions,
-      sessionNames,
-      generating,
-      error,
-      handleNewSession,
-      handleClearSession,
-      writeMessage,
-      writeSessionName,
-    ],
-  );
+  // Wrap the hook's session with our local handleNewSession/handleClearSession
+  // that also clear pending exec blocks.
+  const wrappedSession = { ...session, handleNewSession, handleClearSession };
 
   const autoNameSession = useAutoNameSession({
     session,
@@ -1362,7 +1146,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
       {/* Session bar */}
       <AgentSessionBar
-        session={session}
+        session={wrappedSession}
         onAutoName={autoNameSession}
         onRename={() => setRenameModalOpen(true)}
       />
@@ -1567,7 +1351,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
       {/* Input area */}
       <AgentInputArea
-        session={session}
+        session={wrappedSession}
         onSubmit={() => handleSubmit()}
         onCancel={() => {
           setInput(lastSubmittedRef.current);
