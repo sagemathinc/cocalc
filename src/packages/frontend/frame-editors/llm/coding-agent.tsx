@@ -138,6 +138,7 @@ function CodingAgentCore({
   const projectReadOnly =
     projectsStore.hasLanguageModelEnabled(project_id, "help-me-fix-hint") &&
     !projectsStore.hasFullLanguageModelEnabled(project_id);
+  const llmTag = projectReadOnly ? "explain" : TAG;
 
   // ---- Shared session management ----
   const session = useAgentSession({
@@ -294,7 +295,7 @@ function CodingAgentCore({
     session,
     model,
     project_id,
-    tag: TAG,
+    tag: llmTag,
   });
   const processedAssistantSeedRef = useRef("");
 
@@ -448,7 +449,7 @@ function CodingAgentCore({
           history,
           model,
           project_id,
-          tag: TAG,
+          tag: llmTag,
           cancelRef: session.cancelRef,
           sessionIdRef: session.sessionIdRef,
           activeSessionId,
@@ -593,6 +594,7 @@ function CodingAgentCore({
       buildHistoryForLlm,
       path,
       model,
+      llmTag,
       project_id,
       projectReadOnly,
       readOnlySessionId,

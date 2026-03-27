@@ -3,7 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Segmented, Spin } from "antd";
+import { Alert, Button, Segmented, Spin } from "antd";
 import { Suspense, useEffect, useState } from "react";
 
 import { redux } from "@cocalc/frontend/app-framework";
@@ -32,6 +32,9 @@ function Chat({ font_size, desc }: EditorComponentProps) {
   const path = chatFile(path0);
   const agentSpec = getAgentSpec(path0);
   const EmbeddedAgent = agentSpec.hasAgent ? agentSpec.component : null;
+  const aiEnabled = redux
+    .getStore("projects")
+    .hasLanguageModelEnabled(project_id);
   const [sideChatActions, setSideChatActions] = useState<ChatActions | null>(
     null,
   );
@@ -109,13 +112,16 @@ function Chat({ font_size, desc }: EditorComponentProps) {
     return null;
   }
 
-  // If no agent is available for this file type, force chat-only mode.
-  const effectiveMode = EmbeddedAgent == null ? "chat" : mode;
+  // If no agent is available for this file type, or AI is disabled for
+  // this project, force chat-only mode.
+  const effectiveMode = EmbeddedAgent == null || !aiEnabled ? "chat" : mode;
+  const showAssistantDisabled =
+    mode === "assistant" && EmbeddedAgent != null && !aiEnabled;
 
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       {/* Tab selector — only show when an agent is available */}
-      {EmbeddedAgent != null && (
+      {EmbeddedAgent != null && aiEnabled && (
         <div
           className={`cc-chat-mode-toggle${effectiveMode === "assistant" ? " cc-chat-mode-assistant" : ""}`}
         >
@@ -149,7 +155,20 @@ function Chat({ font_size, desc }: EditorComponentProps) {
            a definite height for the embedded agent, avoiding flex-height
            resolution issues that prevent overflowY from working. */}
       <div style={{ flex: 1, position: "relative" }}>
-        {effectiveMode === "chat" ? (
+        {showAssistantDisabled ? (
+          <div style={{ padding: 12 }}>
+            <Alert
+              type="warning"
+              showIcon
+              message="AI assistant is disabled for this project."
+              description={
+                <Button type="link" onClick={() => setMode("chat")}>
+                  Switch to Chat
+                </Button>
+              }
+            />
+          </div>
+        ) : effectiveMode === "chat" ? (
           <SideChat
             actions={sideChatActions}
             project_id={project_id}

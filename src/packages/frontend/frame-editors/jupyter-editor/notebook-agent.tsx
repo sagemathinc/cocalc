@@ -236,6 +236,7 @@ export function NotebookAgent({
   const projectReadOnly =
     projectsStore.hasLanguageModelEnabled(project_id, "help-me-fix-hint") &&
     !projectsStore.hasFullLanguageModelEnabled(project_id);
+  const llmTag = projectReadOnly ? "explain" : TAG;
   const jupyterActions = (actions as unknown as JupyterEditorActions)
     .jupyter_actions;
   const [model, setModel] = useLanguageModelSetting(project_id);
@@ -302,7 +303,7 @@ export function NotebookAgent({
     session,
     model,
     project_id,
-    tag: TAG,
+    tag: llmTag,
   });
 
   // ---- Context capture (called on input focus) ----
@@ -331,7 +332,7 @@ export function NotebookAgent({
           history,
           model,
           project_id,
-          tag: TAG,
+          tag: llmTag,
           cancelRef: session.cancelRef,
           onToken(accumulated, _token) {
             session.setMessages((prev) => {
@@ -370,7 +371,7 @@ export function NotebookAgent({
         llmStreamRef.current = stream;
       });
     },
-    [model, project_id, session.cancelRef, session.setMessages],
+    [llmTag, model, project_id, session.cancelRef, session.setMessages],
   );
 
   // ---- Submit handler with tool-calling loop ----
