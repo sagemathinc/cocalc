@@ -22,7 +22,13 @@ Features:
 import { join } from "path";
 
 import { Alert, Button } from "antd";
-import { type ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import {
+  type ReactNode,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { redux, useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -67,9 +73,16 @@ import {
   formatFileSearchReplaceAsDiff,
   parseExecBlocks,
   parseFileSearchReplaceBlocks,
+  truncateMiddle,
 } from "../llm/coding-agent-utils";
 import type { FileSearchReplace } from "../llm/coding-agent-utils";
 import type { ExecBlock } from "../llm/coding-agent-types";
+import {
+  buildBoundedHistory,
+  estimateConversationTokens,
+  getAgentInputTokenBudget,
+  type AgentHistoryMessage,
+} from "../llm/history-budget";
 
 const TAG = "ai-agent";
 
@@ -80,6 +93,26 @@ const CONTAINER_STYLE: CSS = {
   minHeight: 0,
   overflow: "hidden",
 } as const;
+
+const MAX_APP_HISTORY_MESSAGES = 24;
+const MAX_APP_HISTORY_CONTENT_CHARS = 1600;
+const MAX_APP_ERROR_COUNT = 3;
+const MAX_APP_ERROR_CHARS = 400;
+
+function compactHistoryContent(content: string): string {
+  return truncateMiddle(content, MAX_APP_HISTORY_CONTENT_CHARS);
+}
+
+function compactAppError(appError: AppError): string {
+  const source = appError.source
+    ? ` (${appError.source}:${appError.line})`
+    : "";
+  const body = truncateMiddle(
+    `${appError.message}${source}`,
+    MAX_APP_ERROR_CHARS,
+  );
+  return `[${appError.type}] ${body}`;
+}
 
 /**
  * Build a system prompt for the app-building agent.
@@ -340,12 +373,12 @@ read the relevant files.`;
 
   // Add app errors context
   if (appErrors && appErrors.length > 0) {
-    const recentErrors = appErrors.slice(-5);
+    const recentErrors = appErrors.slice(-MAX_APP_ERROR_COUNT);
     prompt += `\n\n## Recent App Errors
 
 The app preview has reported the following JavaScript errors. Fix them:
 
-${recentErrors.map((e) => `- [${e.type}] ${e.message}${e.source ? ` (${e.source}:${e.line})` : ""}`).join("\n")}`;
+${recentErrors.map((e) => `- ${compactAppError(e)}`).join("\n")}`;
   }
 
   return prompt;
@@ -487,7 +520,12 @@ function renderAppMessage(msg: DisplayMessage): ReactNode {
 }
 
 export default function AgentPanel({ name }: EditorComponentProps) {
-  const { project_id, path, actions: rawActions, font_size } = useFrameContext();
+  const {
+    project_id,
+    path,
+    actions: rawActions,
+    font_size,
+  } = useFrameContext();
   const actions = rawActions as unknown as AgentEditorActions;
   const [model, setModel] = useLanguageModelSetting(project_id);
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
@@ -534,14 +572,6 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     sessionIdRef,
   } = session;
 
-  // ---- Cost estimation ----
-  const { costEstimate, updateEstimate, clearEstimate } = useCostEstimate({
-    model,
-    isCoCalcCom,
-    llm_markup,
-    messages,
-  });
-
   // Cleanup streams and cost-estimate timer on unmount
   useEffect(() => {
     return () => {
@@ -577,6 +607,48 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
   // App errors from the store
   const appErrors: AppError[] = (useRedux(name, "app_errors") as any) ?? [];
+
+  const buildHistoryForLlm = useCallback(
+    (prompt: string, system: string): AgentHistoryMessage[] => {
+      const preparedHistory = messages.slice(-MAX_APP_HISTORY_MESSAGES).map(
+        (m): AgentHistoryMessage => ({
+          role:
+            m.sender === "assistant"
+              ? ("assistant" as const)
+              : ("user" as const),
+          content:
+            m.event === "exec_result"
+              ? `[System: ${compactHistoryContent(m.content)}]`
+              : compactHistoryContent(m.content),
+        }),
+      );
+      return buildBoundedHistory({
+        system,
+        input: prompt,
+        history: preparedHistory,
+        maxInputTokens: getAgentInputTokenBudget(model),
+      }).history;
+    },
+    [messages, model],
+  );
+
+  const estimateTokens = useCallback(
+    (prompt: string) => {
+      const system = buildSystemPrompt(dir, parentDir, appErrors);
+      const history = buildHistoryForLlm(prompt, system);
+      return estimateConversationTokens({ system, input: prompt, history });
+    },
+    [appErrors, buildHistoryForLlm, dir, parentDir],
+  );
+
+  // ---- Cost estimation ----
+  const { costEstimate, updateEstimate, clearEstimate } = useCostEstimate({
+    model,
+    isCoCalcCom,
+    llm_markup,
+    messages,
+    estimateTokens,
+  });
 
   const applyWriteFiles = useCallback(
     async (blocks: WriteFileBlock[], toolSessionId?: string) => {
@@ -798,7 +870,10 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       setPendingExec((prev) => {
         const remaining = prev.filter((e) => e.id !== blockId);
         // When the last exec block finishes, flush any deferred server blocks
-        if (remaining.length === 0 && pendingServerBlocksRef.current.length > 0) {
+        if (
+          remaining.length === 0 &&
+          pendingServerBlocksRef.current.length > 0
+        ) {
           const deferred = pendingServerBlocksRef.current;
           pendingServerBlocksRef.current = [];
           applyServerBlocks(deferred, execSessionId);
@@ -860,16 +935,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
       try {
         const system = buildSystemPrompt(dir, parentDir, appErrors);
-
-        // Include all messages in history so the LLM can see exec results
-        const history = messages.map((m) => ({
-          role:
-            m.sender === "assistant"
-              ? ("assistant" as const)
-              : ("user" as const),
-          content:
-            m.event === "exec_result" ? `[System: ${m.content}]` : m.content,
-        }));
+        const history = buildHistoryForLlm(prompt, system);
 
         const streamingMsgs = [
           ...messages,
@@ -909,8 +975,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             // If the user switched sessions while streaming, persist the
             // message to the original turn but skip local UI side-effects
             // (exec/server blocks) which would surface in the wrong turn.
-            const sessionSwitched =
-              sessionIdRef.current !== activeSessionId;
+            const sessionSwitched = sessionIdRef.current !== activeSessionId;
 
             const assistantDate = new Date().toISOString();
             writeMessage({
@@ -994,6 +1059,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       handleExecCommand,
       applyServerBlocks,
       appErrors,
+      buildHistoryForLlm,
     ],
   );
 
@@ -1063,10 +1129,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             {appErrors.length} app error(s) — included in next prompt for
             auto-fix
           </span>
-          <Button
-            size="small"
-            onClick={() => actions.clearAppErrors?.()}
-          >
+          <Button size="small" onClick={() => actions.clearAppErrors?.()}>
             Dismiss
           </Button>
         </div>

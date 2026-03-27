@@ -4,7 +4,11 @@
  */
 
 import {
+  buildSystemPrompt,
+  compactAssistantMessageForHistory,
+  compactToolResultForHistory,
   fenceCell,
+  getCellContextWindow,
   truncate,
   parseToolBlocks,
   buildContextLabel,
@@ -59,6 +63,41 @@ describe("truncate", () => {
   test("exact length unchanged", () => {
     const exact = "x".repeat(100);
     expect(truncate(exact, 100)).toBe(exact);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  getCellContextWindow                                              */
+/* ------------------------------------------------------------------ */
+
+describe("getCellContextWindow", () => {
+  test("returns a line window around the cursor for large cells", () => {
+    const content = Array.from({ length: 100 }, (_, i) => `line ${i + 1}`).join(
+      "\n",
+    );
+    const window = getCellContextWindow(content, {
+      cursorLine: 49,
+      radiusLines: 10,
+      maxChars: 400,
+    });
+    expect(window.truncated).toBe(true);
+    expect(window.startLine).toBeLessThanOrEqual(50);
+    expect(window.endLine).toBeGreaterThanOrEqual(50);
+    expect(window.content).toContain("line 50");
+  });
+
+  test("keeps the selected lines in view", () => {
+    const content = Array.from({ length: 80 }, (_, i) => `row ${i + 1}`).join(
+      "\n",
+    );
+    const window = getCellContextWindow(content, {
+      selectionRange: { fromLine: 39, toLine: 41 },
+      radiusLines: 5,
+      maxChars: 200,
+    });
+    expect(window.content).toContain("row 40");
+    expect(window.content).toContain("row 41");
+    expect(window.content).toContain("row 42");
   });
 });
 
@@ -253,5 +292,80 @@ describe("resolveIndex", () => {
   test("undefined index is rejected", () => {
     const res = resolveIndex(undefined as any, cellList);
     expect("error" in res).toBe(true);
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  buildSystemPrompt                                                 */
+/* ------------------------------------------------------------------ */
+
+describe("buildSystemPrompt", () => {
+  test("uses a context window for oversized focused-cell content", () => {
+    const prompt = buildSystemPrompt({
+      totalCells: 3,
+      kernelName: "Python 3",
+      language: "python",
+      cellIndex: 2,
+      cellType: "code",
+      cursorLine: 29,
+      cellContent: Array.from(
+        { length: 80 },
+        (_, i) => `print("line ${i + 1}")`,
+      ).join("\n"),
+    });
+    expect(prompt).toContain("Showing lines");
+    expect(prompt).toContain('print("line 30")');
+  });
+
+  test("truncates oversized selection text", () => {
+    const selection = "y".repeat(800);
+    const prompt = buildSystemPrompt({
+      totalCells: 3,
+      kernelName: "Python 3",
+      language: "python",
+      cellIndex: 1,
+      cellType: "code",
+      cellContent: "print('ok')",
+      selection,
+      selectionRange: { fromLine: 0, toLine: 0 },
+    });
+    expect(prompt).toContain("truncated");
+    expect(prompt).toContain("800 chars total");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  history compaction                                                */
+/* ------------------------------------------------------------------ */
+
+describe("compactAssistantMessageForHistory", () => {
+  test("strips tool JSON and keeps a short tool summary", () => {
+    const text =
+      'I will inspect the notebook.\n\n```tool\n{"name":"get_cell","args":{"index":1}}\n```\n```tool\n{"name":"run_cell","args":{"index":1}}\n```';
+    expect(compactAssistantMessageForHistory(text)).toBe(
+      "I will inspect the notebook.\n\n[Used tools: get_cell, run_cell]",
+    );
+  });
+
+  test("falls back to tool summary when the message is only tool blocks", () => {
+    const text =
+      '```tool\n{"name":"get_cells","args":{"start":1,"end":5}}\n```';
+    expect(compactAssistantMessageForHistory(text)).toBe(
+      "[Used tools: get_cells]",
+    );
+  });
+
+  test("truncates oversized prose before putting it in history", () => {
+    const result = compactAssistantMessageForHistory("x".repeat(5000));
+    expect(result).toContain("truncated");
+    expect(result).toContain("5000 chars total");
+  });
+});
+
+describe("compactToolResultForHistory", () => {
+  test("truncates oversized tool results before reuse in prompts", () => {
+    const result = compactToolResultForHistory("y".repeat(7000));
+    expect(result).toContain("truncated");
+    expect(result).toContain("7000 chars total");
   });
 });

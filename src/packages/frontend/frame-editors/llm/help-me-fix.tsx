@@ -13,13 +13,17 @@ import type { BaseButtonProps } from "antd/lib/button/button";
 import { CSSProperties } from "react";
 import { Space } from "antd";
 
+import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { AIAvatar } from "@cocalc/frontend/components";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
+import { hasEmbeddedAgent } from "@cocalc/frontend/frame-editors/generic/has-embedded-agent";
 import type { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import type { ProjectsStore } from "@cocalc/frontend/projects/store";
 
 import HelpMeFixButton from "./help-me-fix-button";
+import { openAssistantWithSeed } from "./assistant-seed";
 import { showHelpMeFixDialog } from "./help-me-fix-dialog";
+import { createMessage } from "./help-me-fix-utils";
 
 // Re-export getHelp for backward compatibility
 export { getHelp } from "./help-me-fix-utils";
@@ -33,6 +37,7 @@ interface Props {
   tag?: string;
   language?: string;
   extraFileInfo?: string;
+  extraContext?: string | (() => string);
   style?: CSSProperties;
   outerStyle?: CSSProperties;
   size?: BaseButtonProps["size"];
@@ -57,6 +62,7 @@ export default function HelpMeFix({
   tag,
   language,
   extraFileInfo,
+  extraContext,
   style,
   outerStyle,
   size,
@@ -66,6 +72,7 @@ export default function HelpMeFix({
   notebookFrameActions,
 }: Props) {
   const { redux, project_id, path } = useFrameContext();
+  const [model] = useLanguageModelSetting(project_id);
   const projectsStore: ProjectsStore = redux.getStore("projects");
   const canGetHint = projectsStore.hasLanguageModelEnabled(
     project_id,
@@ -81,18 +88,67 @@ export default function HelpMeFix({
   }
 
   function handleClick(mode: "hint" | "solution") {
+    const resolvedError = get(error);
+    const resolvedLine = get(line);
+    const resolvedInput = get(input);
+    const resolvedExtraContext = get(extraContext);
+
+    if (hasEmbeddedAgent(path)) {
+      const prompt = createMessage({
+        error: resolvedError,
+        line: resolvedLine,
+        input: resolvedInput,
+        task,
+        language,
+        extraFileInfo,
+        extraContext: resolvedExtraContext,
+        model,
+        prioritize,
+        open: false,
+        full: false,
+        isHint: mode === "hint",
+      });
+      void openAssistantWithSeed({
+        redux,
+        project_id,
+        path,
+        prompt,
+      }).catch(() =>
+        showHelpMeFixDialog({
+          mode,
+          project_id,
+          path,
+          error: resolvedError,
+          line: resolvedLine,
+          lineNumber,
+          input: resolvedInput,
+          task,
+          tag,
+          language,
+          extraFileInfo,
+          extraContext: resolvedExtraContext,
+          prioritize,
+          onReplace,
+          cellId,
+          notebookFrameActions,
+        }),
+      );
+      return;
+    }
+
     showHelpMeFixDialog({
       mode,
       project_id,
       path,
-      error: get(error),
-      line: get(line),
+      error: resolvedError,
+      line: resolvedLine,
       lineNumber,
-      input: get(input),
+      input: resolvedInput,
       task,
       tag,
       language,
       extraFileInfo,
+      extraContext: resolvedExtraContext,
       prioritize,
       onReplace,
       cellId,

@@ -159,6 +159,7 @@ const Item: React.FC<ItemProps> = React.memo(
           }}
           language={"latex"}
           extraFileInfo={actions.languageModelExtraFileInfo()}
+          extraContext={() => actions.getHelpMeFixBuildContext()}
           tag={"latex-error-frame"}
           prioritize="end"
         />

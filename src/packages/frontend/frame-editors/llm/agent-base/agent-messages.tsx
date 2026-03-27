@@ -13,6 +13,7 @@ agent).
 
 import { Spin } from "antd";
 
+import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { Paragraph } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -65,6 +66,12 @@ export function AgentMessages({
   fontSize,
 }: AgentMessagesProps) {
   const { messages, generating, messagesEndRef } = session;
+  useRedux(["users", "user_map"]);
+
+  function getAuthorName(accountId?: string): string | undefined {
+    if (!accountId) return;
+    return redux.getStore("users")?.get_name(accountId)?.trim() || undefined;
+  }
 
   return (
     <div
@@ -89,8 +96,21 @@ export function AgentMessages({
       {messages.map((msg, i) => {
         const content = renderMessage(msg, i);
         if (content == null) return null;
+        const authorName =
+          msg.sender === "user" ? getAuthorName(msg.account_id) : undefined;
         return (
           <div key={`${msg.date}-${i}`} style={messageStyle(msg)}>
+            {authorName && (
+              <div
+                style={{
+                  color: COLORS.GRAY_M,
+                  fontSize: "0.8em",
+                  marginBottom: 4,
+                }}
+              >
+                {authorName}
+              </div>
+            )}
             {content}
           </div>
         );

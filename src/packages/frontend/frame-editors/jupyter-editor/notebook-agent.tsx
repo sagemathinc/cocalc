@@ -29,7 +29,6 @@ import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { uuid } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
-
 import {
   AgentError,
   AgentHeader,
@@ -49,12 +48,20 @@ import type {
   DisplayMessage,
   StreamHandle,
 } from "@cocalc/frontend/frame-editors/llm/agent-base";
+import { normalizeAssistantSeed } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
+import {
+  buildBoundedHistory,
+  getAgentInputTokenBudget,
+  type AgentHistoryMessage,
+} from "@cocalc/frontend/frame-editors/llm/history-budget";
 
 import {
   TAG,
   MAX_TOOL_LOOPS,
   buildContextLabel,
   buildSystemPrompt,
+  compactAssistantMessageForHistory,
+  compactToolResultForHistory,
   getNotebookContext,
   parseToolBlocks,
   runToolBatch,
@@ -222,14 +229,19 @@ export function NotebookAgent({
   chatSyncdb: any;
   fontSize?: number;
 }) {
-  const { project_id, actions } = useFrameContext();
-  const jupyterActions = (actions as unknown as JupyterEditorActions).jupyter_actions;
+  const { project_id, actions, desc, id: frameId } = useFrameContext();
+  const jupyterActions = (actions as unknown as JupyterEditorActions)
+    .jupyter_actions;
   const [model, setModel] = useLanguageModelSetting(project_id);
   const [input, setInput] = useState("");
   const [inputKey, setInputKey] = useState(0);
   const inputLockedRef = useRef(false);
   const llmStreamRef = useRef<StreamHandle | null>(null);
   const lastSubmittedRef = useRef("");
+  const handleSubmitRef = useRef<(directInput?: string) => Promise<void>>(
+    async () => {},
+  );
+  const processedAssistantSeedRef = useRef("");
   // Stored resolve function for the pending runLlmTurn Promise.
   // Cancel/unmount calls this so the Promise settles and handleSubmit
   // reaches its finally block instead of hanging forever.
@@ -355,223 +367,260 @@ export function NotebookAgent({
   );
 
   // ---- Submit handler with tool-calling loop ----
-  const handleSubmit = useCallback(async (directInput?: string) => {
-    const prompt = (directInput ?? input).trim();
-    // Use the ref (not React state) to avoid the batching window where
-    // `session.generating` is still false even though we've started.
-    if (!prompt || session.generatingRef.current) return;
+  const handleSubmit = useCallback(
+    async (directInput?: string) => {
+      const prompt = (directInput ?? input).trim();
+      // Use the ref (not React state) to avoid the batching window where
+      // `session.generating` is still false even though we've started.
+      if (!prompt || session.generatingRef.current) return;
 
-    session.setError("");
-    // Abort any previous invocation's surviving polling loops before
-    // resetting cancelRef — prevents the old runCell setTimeout from
-    // seeing cancelRef=false and continuing to run.
-    if (prevAbortRef.current) prevAbortRef.current.current = true;
-    const abortRef = { current: false };
-    prevAbortRef.current = abortRef;
-    session.cancelRef.current = false;
+      session.setError("");
+      // Abort any previous invocation's surviving polling loops before
+      // resetting cancelRef — prevents the old runCell setTimeout from
+      // seeing cancelRef=false and continuing to run.
+      if (prevAbortRef.current) prevAbortRef.current.current = true;
+      const abortRef = { current: false };
+      prevAbortRef.current = abortRef;
+      session.cancelRef.current = false;
 
-    // Composite cancel signal — fires on user cancel OR new invocation.
-    // Passed to runToolBatch/runCell instead of the raw cancelRef so
-    // that stale polling loops from a previous submit are killed.
-    const cancelSignal = {
-      get current() {
-        return session.cancelRef.current || abortRef.current;
-      },
-    };
+      // Composite cancel signal — fires on user cancel OR new invocation.
+      // Passed to runToolBatch/runCell instead of the raw cancelRef so
+      // that stale polling loops from a previous submit are killed.
+      const cancelSignal = {
+        get current() {
+          return session.cancelRef.current || abortRef.current;
+        },
+      };
 
-    let activeSessionId = session.sessionId;
-    if (!activeSessionId) {
-      activeSessionId = uuid();
-      session.setSessionId(activeSessionId);
-    }
-
-    const now = new Date().toISOString();
-    const accountId =
-      redux.getStore("account")?.get_account_id?.() ?? "unknown";
-
-    session.writeMessage({
-      date: now,
-      sender: "user",
-      content: prompt,
-      account_id: accountId,
-      msg_event: "message",
-      session_id: activeSessionId,
-    });
-
-    // Push into local state immediately — SyncDB reloads are skipped
-    // while generating, so this message would otherwise be invisible
-    // in session.messages until generation ends.
-    session.setMessages((prev) => [
-      ...prev,
-      {
-        sender: "user" as const,
-        content: prompt,
-        date: now,
-        event: "message",
-        account_id: accountId,
-      },
-    ]);
-
-    lastSubmittedRef.current = prompt;
-    inputLockedRef.current = true;
-    setInput("");
-    setInputKey((k) => k + 1);
-    session.setGenerating(true);
-
-    try {
-      // Build context-aware system prompt
-      const ctx =
-        notebookContextRef.current ??
-        getNotebookContext(actions as JupyterEditorActions);
-      const system = buildSystemPrompt(ctx);
-
-      // Build history from conversation messages and tool results.
-      const HISTORY_EVENTS = new Set(["message", "tool_result"]);
-      const msgWithTime = session.messages
-        .filter((m) => HISTORY_EVENTS.has(m.event))
-        .map((m) => ({
-          role:
-            m.sender === "assistant"
-              ? ("assistant" as const)
-              : ("user" as const),
-          content:
-            m.event === "tool_result"
-              ? `[Tool Result]\n${m.content}`
-              : m.content,
-          date: m.date,
-        }));
-      msgWithTime.sort(
-        (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
-      );
-      let history = msgWithTime.map(({ role, content }) => ({ role, content }));
-
-      let currentPrompt = prompt;
-      let loops = MAX_TOOL_LOOPS;
-
-      while (loops > 0) {
-        loops--;
-
-        const assistantText = await runLlmTurn(currentPrompt, history, system);
-        if (cancelSignal.current) {
-          // Remove the unpersisted draft message (date === "") so it
-          // doesn't pollute the display or get fed back as LLM history.
-          session.setMessages((prev) =>
-            prev.filter((m) => !(m.sender === "assistant" && m.date === "")),
-          );
-          break;
-        }
-
-        const assistantDate = new Date().toISOString();
-        session.writeMessage({
-          date: assistantDate,
-          sender: "assistant",
-          content: assistantText,
-          msg_event: "message",
-          session_id: activeSessionId,
-        });
-
-        const toolCalls = parseToolBlocks(assistantText);
-        if (toolCalls.length === 0) break;
-
-        // Run batch with live index refresh + scroll to affected cells
-        const results = await runToolBatch(
-          toolCalls,
-          jupyterActions,
-          ctx.language,
-          actions as JupyterEditorActions,
-          cancelSignal,
-          autoRunRef.current,
-        );
-        if (cancelSignal.current) break;
-
-        const toolResultContent = results.join("\n\n");
-        const toolDate = new Date().toISOString();
-        session.writeMessage({
-          date: toolDate,
-          sender: "system",
-          content: toolResultContent,
-          msg_event: "tool_result",
-          session_id: activeSessionId,
-        });
-
-        // Push tool result into local state so it's visible during
-        // streaming and available for display (SyncDB reloads are
-        // skipped while generating).
-        session.setMessages((prev) => [
-          ...prev,
-          {
-            sender: "system" as const,
-            content: toolResultContent,
-            date: toolDate,
-            event: "tool_result",
-          },
-        ]);
-
-        history.push({ role: "assistant", content: assistantText });
-        history.push({
-          role: "user",
-          content: `[Tool Result]\n${toolResultContent}`,
-        });
-
-        currentPrompt = `Here are the tool results:\n\n${toolResultContent}\n\nContinue based on these results. If you need more information, use more tools. Otherwise, provide your answer.`;
+      let activeSessionId = session.sessionId;
+      if (!activeSessionId) {
+        activeSessionId = uuid();
+        session.setSessionId(activeSessionId);
       }
-    } catch (err: any) {
-      session.setError(err.message ?? `${err}`);
-    } finally {
-      inputLockedRef.current = false;
-      session.setGenerating(false);
-      llmStreamRef.current = null;
+
+      const now = new Date().toISOString();
+      const accountId =
+        redux.getStore("account")?.get_account_id?.() ?? "unknown";
+
+      session.writeMessage({
+        date: now,
+        sender: "user",
+        content: prompt,
+        account_id: accountId,
+        msg_event: "message",
+        session_id: activeSessionId,
+      });
+
+      // Push into local state immediately — SyncDB reloads are skipped
+      // while generating, so this message would otherwise be invisible
+      // in session.messages until generation ends.
+      session.setMessages((prev) => [
+        ...prev,
+        {
+          sender: "user" as const,
+          content: prompt,
+          date: now,
+          event: "message",
+          account_id: accountId,
+        },
+      ]);
+
+      lastSubmittedRef.current = prompt;
+      inputLockedRef.current = true;
+      setInput("");
+      setInputKey((k) => k + 1);
+      session.setGenerating(true);
+
+      try {
+        // Build context-aware system prompt
+        const ctx =
+          notebookContextRef.current ??
+          getNotebookContext(actions as JupyterEditorActions);
+        const system = buildSystemPrompt(ctx);
+
+        // Build history from conversation messages and tool results.
+        const HISTORY_EVENTS = new Set(["message", "tool_result"]);
+        const msgWithTime = session.messages
+          .filter((m) => HISTORY_EVENTS.has(m.event))
+          .map((m) => ({
+            role:
+              m.sender === "assistant"
+                ? ("assistant" as const)
+                : ("user" as const),
+            content:
+              m.event === "tool_result"
+                ? `[Tool Result]\n${compactToolResultForHistory(m.content)}`
+                : m.sender === "assistant"
+                  ? compactAssistantMessageForHistory(m.content)
+                  : m.content,
+            date: m.date,
+          }));
+        msgWithTime.sort(
+          (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
+        );
+        let history: AgentHistoryMessage[] = msgWithTime.map(
+          ({ role, content }) => ({
+            role,
+            content,
+          }),
+        );
+
+        let currentPrompt = prompt;
+        let loops = MAX_TOOL_LOOPS;
+
+        while (loops > 0) {
+          loops--;
+
+          const boundedHistory = buildBoundedHistory({
+            system,
+            input: currentPrompt,
+            history,
+            maxInputTokens: getAgentInputTokenBudget(model),
+          }).history;
+
+          const assistantText = await runLlmTurn(
+            currentPrompt,
+            boundedHistory,
+            system,
+          );
+          if (cancelSignal.current) {
+            // Remove the unpersisted draft message (date === "") so it
+            // doesn't pollute the display or get fed back as LLM history.
+            session.setMessages((prev) =>
+              prev.filter((m) => !(m.sender === "assistant" && m.date === "")),
+            );
+            break;
+          }
+
+          const assistantDate = new Date().toISOString();
+          session.writeMessage({
+            date: assistantDate,
+            sender: "assistant",
+            content: assistantText,
+            msg_event: "message",
+            session_id: activeSessionId,
+          });
+
+          const toolCalls = parseToolBlocks(assistantText);
+          if (toolCalls.length === 0) break;
+
+          // Run batch with live index refresh + scroll to affected cells
+          const results = await runToolBatch(
+            toolCalls,
+            jupyterActions,
+            ctx.language,
+            actions as JupyterEditorActions,
+            cancelSignal,
+            autoRunRef.current,
+          );
+          if (cancelSignal.current) break;
+
+          const toolResultContent = compactToolResultForHistory(
+            results.join("\n\n"),
+          );
+          const toolDate = new Date().toISOString();
+          session.writeMessage({
+            date: toolDate,
+            sender: "system",
+            content: toolResultContent,
+            msg_event: "tool_result",
+            session_id: activeSessionId,
+          });
+
+          // Push tool result into local state so it's visible during
+          // streaming and available for display (SyncDB reloads are
+          // skipped while generating).
+          session.setMessages((prev) => [
+            ...prev,
+            {
+              sender: "system" as const,
+              content: toolResultContent,
+              date: toolDate,
+              event: "tool_result",
+            },
+          ]);
+
+          history.push({
+            role: "assistant",
+            content: compactAssistantMessageForHistory(assistantText),
+          });
+          history.push({
+            role: "user",
+            content: `[Tool Result]\n${toolResultContent}`,
+          });
+
+          currentPrompt = `Here are the tool results:\n\n${toolResultContent}\n\nContinue based on these results. If you need more information, use more tools. Otherwise, provide your answer.`;
+        }
+      } catch (err: any) {
+        session.setError(err.message ?? `${err}`);
+      } finally {
+        inputLockedRef.current = false;
+        session.setGenerating(false);
+        llmStreamRef.current = null;
+      }
+    },
+    [
+      input,
+      actions,
+      session.messages,
+      session.sessionId,
+      session.writeMessage,
+      session.setGenerating,
+      session.setError,
+      session.setSessionId,
+      session.cancelRef,
+      model,
+      project_id,
+      runLlmTurn,
+      jupyterActions,
+    ],
+  );
+  handleSubmitRef.current = handleSubmit;
+
+  useEffect(() => {
+    const seed = normalizeAssistantSeed(desc.get("assistant_seed"));
+    if (!seed || processedAssistantSeedRef.current === seed.id) return;
+    processedAssistantSeedRef.current = seed.id;
+    actions.set_frame_tree({ id: frameId, assistant_seed: undefined });
+    if (seed.forceNewTurn !== false) {
+      session.handleNewSession();
     }
-  }, [
-    input,
-    actions,
-    session.messages,
-    session.sessionId,
-    session.writeMessage,
-    session.setGenerating,
-    session.setError,
-    session.setSessionId,
-    session.cancelRef,
-    model,
-    project_id,
-    runLlmTurn,
-    jupyterActions,
-  ]);
+    setTimeout(() => {
+      void handleSubmitRef.current(seed.prompt);
+    }, 0);
+  }, [actions, desc, frameId, session.handleNewSession]);
 
   // ---- Message renderer ----
-  const renderMessage = useCallback(
-    (msg: DisplayMessage, _i: number) => {
-      if (msg.sender === "user") {
-        return msg.content;
-      }
-      // Strip ```tool JSON blocks from assistant messages — they are
-      // machine-readable tool invocations, not meant for the user.
-      let content = msg.content;
-      if (msg.sender === "assistant") {
-        // Strip tool invocation blocks (machine-readable JSON)
-        content = content.replace(/^```tool\n[\s\S]*?\n```\s*$/gm, "").trim();
-        // Some LLMs echo the tool call JSON or code with literal \n escapes
-        // in their prose. Convert escaped newlines to real ones so
-        // StaticMarkdown can render them properly — but only outside
-        // backtick-delimited code (where \n may be intentional).
-        content = content.replace(
-          /(```[\s\S]*?```|`[^`]*`)|\\n/g,
-          (_match, codeBlock) => (codeBlock ? codeBlock : "\n"),
-        );
-      }
-      // Tool results: show a compact summary of what happened.
-      if (msg.event === "tool_result") {
-        return formatToolResultForDisplay(content);
-      }
-      if (!content) return null;
-      return (
-        <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
-          <StaticMarkdown value={content} />
-        </FileContext.Provider>
+  const renderMessage = useCallback((msg: DisplayMessage, _i: number) => {
+    if (msg.sender === "user") {
+      return msg.content;
+    }
+    // Strip ```tool JSON blocks from assistant messages — they are
+    // machine-readable tool invocations, not meant for the user.
+    let content = msg.content;
+    if (msg.sender === "assistant") {
+      // Strip tool invocation blocks (machine-readable JSON)
+      content = content.replace(/^```tool\n[\s\S]*?\n```\s*$/gm, "").trim();
+      // Some LLMs echo the tool call JSON or code with literal \n escapes
+      // in their prose. Convert escaped newlines to real ones so
+      // StaticMarkdown can render them properly — but only outside
+      // backtick-delimited code (where \n may be intentional).
+      content = content.replace(
+        /(```[\s\S]*?```|`[^`]*`)|\\n/g,
+        (_match, codeBlock) => (codeBlock ? codeBlock : "\n"),
       );
-    },
-    [],
-  );
+    }
+    // Tool results: show a compact summary of what happened.
+    if (msg.event === "tool_result") {
+      return formatToolResultForDisplay(content);
+    }
+    if (!content) return null;
+    return (
+      <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+        <StaticMarkdown value={content} />
+      </FileContext.Provider>
+    );
+  }, []);
 
   // ---- Custom message styling ----
   const messageStyle = useCallback((msg: DisplayMessage) => {
@@ -608,10 +657,7 @@ export function NotebookAgent({
         emptyText="Ask questions about your notebook, request changes, or ask the agent to run cells. (Shift+Enter to send)"
       />
 
-      <AgentError
-        error={session.error}
-        onClose={() => session.setError("")}
-      />
+      <AgentError error={session.error} onClose={() => session.setError("")} />
 
       {/* Context indicator */}
       {editorContextLabel && (
@@ -652,11 +698,7 @@ export function NotebookAgent({
               fontSize: "0.85em",
             }}
           >
-            <Switch
-              size="small"
-              checked={autoRun}
-              onChange={setAutoRun}
-            />
+            <Switch size="small" checked={autoRun} onChange={setAutoRun} />
             Auto-run
           </label>
         </Tooltip>

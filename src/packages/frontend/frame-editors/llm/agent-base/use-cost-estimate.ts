@@ -25,6 +25,9 @@ interface UseCostEstimateParams {
   isCoCalcCom: boolean;
   llm_markup: number;
   messages: DisplayMessage[];
+  /** Optional exact token estimator aligned with the caller's
+   *  actual system prompt + compacted/bounded history logic. */
+  estimateTokens?: (inputText: string) => number | null;
 }
 
 /**
@@ -42,6 +45,7 @@ export function useCostEstimate({
   isCoCalcCom,
   llm_markup,
   messages,
+  estimateTokens,
 }: UseCostEstimateParams) {
   const [costEstimate, setCostEstimate] = useState<CostEstimate>(null);
   const estimateTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -73,16 +77,22 @@ export function useCostEstimate({
           return;
         }
         try {
-          const { numTokensEstimate } = await import(
-            "@cocalc/frontend/misc/llm"
-          );
+          if (estimateTokens != null) {
+            const tokens = estimateTokens(inputText);
+            if (tokens == null) {
+              setCostEstimate(null);
+              return;
+            }
+            setCostEstimate(calcMinMaxEstimation(tokens, model, llm_markup));
+            return;
+          }
+          const { numTokensEstimate } =
+            await import("@cocalc/frontend/misc/llm");
           const historyText = messages
             .filter((m) => m.event === "message")
             .map((m) => m.content)
             .join("\n");
-          const tokens = numTokensEstimate(
-            [historyText, inputText].join("\n"),
-          );
+          const tokens = numTokensEstimate([historyText, inputText].join("\n"));
           setCostEstimate(calcMinMaxEstimation(tokens, model, llm_markup));
         } catch {
           // Unknown model or cost lookup failure — skip estimation
@@ -90,7 +100,7 @@ export function useCostEstimate({
         }
       }, ESTIMATE_DEBOUNCE_MS);
     },
-    [model, isCoCalcCom, llm_markup, messages],
+    [model, isCoCalcCom, llm_markup, messages, estimateTokens],
   );
 
   return { costEstimate, updateEstimate, clearEstimate, estimateTimeoutRef };

@@ -6,12 +6,11 @@
 import { filename_extension } from "@cocalc/util/misc";
 import { Button, Space, Tooltip } from "antd";
 import { COLORS } from "@cocalc/util/theme";
-import { debounce } from "lodash";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { AIAvatar, HiddenXS } from "@cocalc/frontend/components";
+import { AIAvatar } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { hasEmbeddedAgent } from "@cocalc/frontend/frame-editors/generic/has-embedded-agent";
 import track from "@cocalc/frontend/user-tracking";
@@ -78,23 +77,30 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
   const intl = useIntl();
   const [hoverAI, setHoverAI] = useState(false);
   const [hoverChat, setHoverChat] = useState(false);
+  const lastToggleRef = useRef<{
+    mode?: "chat" | "assistant";
+    at: number;
+  }>({ at: 0 });
 
-  const toggleChat = useMemo(
-    () =>
-      debounce(
-        (mode?: "chat" | "assistant") => {
-          const actions = redux.getProjectActions(project_id);
-          track(chatState ? "toggle-chat" : "open-chat", {
-            project_id,
-            path,
-            how: "chat-button",
-            mode,
-          });
-          actions.toggle_chat({ path, chat_mode: mode });
-        },
-        1000,
-        { leading: true },
-      ),
+  const toggleChat = useCallback(
+    (mode?: "chat" | "assistant") => {
+      const now = Date.now();
+      if (
+        lastToggleRef.current.mode === mode &&
+        now - lastToggleRef.current.at < 350
+      ) {
+        return;
+      }
+      lastToggleRef.current = { mode, at: now };
+      const actions = redux.getProjectActions(project_id);
+      track(chatState ? "toggle-chat" : "open-chat", {
+        project_id,
+        path,
+        how: "chat-button",
+        mode,
+      });
+      actions.toggle_chat({ path, chat_mode: mode });
+    },
     [project_id, path, chatState],
   );
 
@@ -151,11 +157,9 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
         }}
       >
         <Icon name="comment" />
-        <HiddenXS>
-          <span style={{ marginLeft: "5px" }}>
-            {intl.formatMessage(labels.chat)}
-          </span>
-        </HiddenXS>
+        <span style={{ marginLeft: "5px" }}>
+          {intl.formatMessage(labels.chat)}
+        </span>
       </Button>
     </Tooltip>
   );
@@ -191,6 +195,7 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
           }}
         >
           <AIAvatar size={16} />
+          <span style={{ marginLeft: "5px" }}>AI</span>
         </Button>
       </Tooltip>
       {chatButton}

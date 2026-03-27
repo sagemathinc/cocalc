@@ -35,6 +35,16 @@ export const CELL_RUN_POLL_MS = 500;
 export const CELL_RUN_TIMEOUT_MS = 120_000;
 export const MAX_TOOL_LOOPS = 10;
 export const LARGE_CELL_THRESHOLD = 1000;
+export const CONTEXT_WINDOW_RADIUS_LINES = 10;
+export const MAX_CONTEXT_CELL_CHARS = 1800;
+export const MAX_CONTEXT_SELECTION_CHARS = 500;
+export const MAX_GET_CELLS_PER_CALL = 4;
+export const MAX_GET_CELL_INPUT_CHARS = 1800;
+export const MAX_GET_CELL_OUTPUT_CHARS = 600;
+export const MAX_GET_CELLS_INPUT_CHARS = 500;
+export const MAX_GET_CELLS_OUTPUT_CHARS = 250;
+export const MAX_ASSISTANT_HISTORY_CHARS = 1600;
+export const MAX_TOOL_RESULT_HISTORY_CHARS = 2400;
 
 /* ------------------------------------------------------------------ */
 /*  Cell content fencing                                               */
@@ -62,6 +72,80 @@ export function fenceCell(
 export function truncate(s: string, maxLen: number = MAX_OUTPUT_CHARS): string {
   if (s.length <= maxLen) return s;
   return s.slice(0, maxLen) + `\n... (truncated, ${s.length} chars total)`;
+}
+
+export interface CellContextWindow {
+  content: string;
+  startLine: number; // 1-based
+  endLine: number; // 1-based
+  totalLines: number;
+  truncated: boolean;
+}
+
+export function getCellContextWindow(
+  content: string,
+  {
+    cursorLine,
+    selectionRange,
+    radiusLines = CONTEXT_WINDOW_RADIUS_LINES,
+    maxChars = MAX_CONTEXT_CELL_CHARS,
+  }: {
+    cursorLine?: number;
+    selectionRange?: { fromLine: number; toLine: number };
+    radiusLines?: number;
+    maxChars?: number;
+  } = {},
+): CellContextWindow {
+  const lines = content.split("\n");
+  const totalLines = lines.length;
+  const anchorStart = Math.max(
+    0,
+    Math.min(selectionRange?.fromLine ?? cursorLine ?? 0, totalLines - 1),
+  );
+  const anchorEnd = Math.max(
+    anchorStart,
+    Math.min(
+      selectionRange?.toLine ?? cursorLine ?? anchorStart,
+      totalLines - 1,
+    ),
+  );
+
+  let start = Math.max(0, anchorStart - radiusLines);
+  let end = Math.min(totalLines - 1, anchorEnd + radiusLines);
+
+  const currentWindow = () => lines.slice(start, end + 1).join("\n");
+
+  while (
+    (start < anchorStart || end > anchorEnd) &&
+    currentWindow().length > maxChars
+  ) {
+    const before = anchorStart - start;
+    const after = end - anchorEnd;
+    if (after >= before && end > anchorEnd) {
+      end--;
+    } else if (start < anchorStart) {
+      start++;
+    } else if (end > anchorEnd) {
+      end--;
+    } else {
+      break;
+    }
+  }
+
+  let excerpt = currentWindow();
+  let truncated = start > 0 || end < totalLines - 1;
+  if (excerpt.length > maxChars) {
+    excerpt = truncate(excerpt, maxChars);
+    truncated = true;
+  }
+
+  return {
+    content: excerpt,
+    startLine: start + 1,
+    endLine: end + 1,
+    totalLines,
+    truncated,
+  };
 }
 
 /* ------------------------------------------------------------------ */
@@ -291,6 +375,29 @@ export function parseToolBlocks(text: string): ToolCall[] {
   return blocks;
 }
 
+export function compactAssistantMessageForHistory(text: string): string {
+  const toolCalls = parseToolBlocks(text);
+  const prose = text
+    .replace(/^```tool\n[\s\S]*?\n```\s*$/gm, "")
+    .replace(/\n{3,}/g, "\n\n")
+    .trim();
+  const toolSummary =
+    toolCalls.length > 0
+      ? `[Used tools: ${toolCalls.map(({ name }) => name).join(", ")}]`
+      : "";
+
+  if (!prose) {
+    return toolSummary || truncate(text, MAX_ASSISTANT_HISTORY_CHARS);
+  }
+
+  const compactProse = truncate(prose, MAX_ASSISTANT_HISTORY_CHARS);
+  return toolSummary ? `${compactProse}\n\n${toolSummary}` : compactProse;
+}
+
+export function compactToolResultForHistory(text: string): string {
+  return truncate(text, MAX_TOOL_RESULT_HISTORY_CHARS);
+}
+
 /* ------------------------------------------------------------------ */
 /*  Index resolution                                                   */
 /* ------------------------------------------------------------------ */
@@ -343,9 +450,13 @@ function readCellSummary(
   const cellType = cell.get("cell_type") ?? "code";
   const input = cell.get("input") ?? "";
   const output = getCellOutput(cell);
+  const window = getCellContextWindow(input, { maxChars: maxInput });
   return (
     `Cell #${index} (${cellType}):\n` +
-    fenceCell(truncate(input, maxInput), cellType, language) +
+    (window.truncated
+      ? `Input excerpt (lines ${window.startLine}-${window.endLine} of ${window.totalLines}):\n`
+      : "") +
+    fenceCell(window.content, cellType, language) +
     (output ? `\nOutput: ${truncate(output, maxOutput)}` : "")
   );
 }
@@ -382,36 +493,64 @@ const toolHandlers: Record<string, ToolHandler> = {
     const cellType = cell.get("cell_type") ?? "code";
     const input = cell.get("input") ?? "";
     const output = getCellOutput(cell);
+    const aroundLine =
+      typeof args.around_line === "number" ? Math.max(1, args.around_line) : 1;
+    const window = getCellContextWindow(input, {
+      cursorLine: aroundLine - 1,
+      maxChars: MAX_GET_CELL_INPUT_CHARS,
+    });
     return (
       `Cell #${args.index} (${cellType}):\n` +
-      fenceCell(input, cellType, language) +
-      (output ? `\n\nOutput:\n${truncate(output)}` : "\n\n(no output)")
+      (window.truncated
+        ? `Input excerpt (lines ${window.startLine}-${window.endLine} of ${window.totalLines}, centered near line ${aroundLine}):\n`
+        : "") +
+      fenceCell(window.content, cellType, language) +
+      (output
+        ? `\n\nOutput:\n${truncate(output, MAX_GET_CELL_OUTPUT_CHARS)}`
+        : "\n\n(no output)")
     );
   },
 
   get_cells: async ({ args, cellList, jupyterActions, language }) => {
     const store = jupyterActions.store;
     const start = args.start ?? 1;
-    const end = args.end ?? cellList.length;
+    const requestedEnd = args.end ?? cellList.length;
+    const end = Math.min(
+      requestedEnd,
+      start + MAX_GET_CELLS_PER_CALL - 1,
+      cellList.length,
+    );
     const parts: string[] = [];
     for (let i = start; i <= end && i <= cellList.length; i++) {
       const res = resolveIndex(i, cellList);
       if ("error" in res) continue;
       const cell = store.getIn(["cells", res.cellId]) as any;
       if (!cell) continue;
-      parts.push(readCellSummary(cell, i, language, 1000, 1000));
+      parts.push(
+        readCellSummary(
+          cell,
+          i,
+          language,
+          MAX_GET_CELLS_INPUT_CHARS,
+          MAX_GET_CELLS_OUTPUT_CHARS,
+        ),
+      );
     }
-    return parts.join("\n\n") || "(no cells in range)";
+    if (parts.length === 0) return "(no cells in range)";
+    if (requestedEnd > end) {
+      return truncate(
+        `Requested cells #${start}-${requestedEnd} were truncated to ` +
+          `#${start}-#${end} to keep context small.\n\n${parts.join("\n\n")}`,
+        MAX_TOOL_RESULT_HISTORY_CHARS,
+      );
+    }
+    return truncate(parts.join("\n\n"), MAX_TOOL_RESULT_HISTORY_CHARS);
   },
 
   set_cell: async ({ args, cellList, jupyterActions }) => {
     const resolved = resolveCell(jupyterActions.store, cellList, args.index);
     if (typeof resolved === "string") return resolved;
-    jupyterActions.set_cell_input(
-      resolved.cellId,
-      args.content ?? "",
-      true,
-    );
+    jupyterActions.set_cell_input(resolved.cellId, args.content ?? "", true);
     return jsonResult({
       status: "updated",
       index: args.index,
@@ -745,25 +884,41 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
 
   // 4. Focused cell context
   if (ctx.cellIndex != null && ctx.cellContent != null) {
+    const contextWindow = getCellContextWindow(ctx.cellContent, {
+      cursorLine: ctx.cursorLine,
+      selectionRange: ctx.selectionRange,
+      maxChars: MAX_CONTEXT_CELL_CHARS,
+    });
     lines.push(`## Current Context`);
     lines.push("");
     lines.push(
       `You are looking at Cell #${ctx.cellIndex} (${ctx.cellType ?? "code"}):`,
     );
+    if (contextWindow.truncated) {
+      lines.push(
+        `Showing lines ${contextWindow.startLine}-${contextWindow.endLine} of ${contextWindow.totalLines} to keep the prompt small.`,
+      );
+    }
     lines.push(
-      fenceCell(ctx.cellContent, ctx.cellType ?? "code", ctx.language),
+      fenceCell(contextWindow.content, ctx.cellType ?? "code", ctx.language),
     );
 
     if (ctx.cursorLine != null) {
       lines.push(`Cursor is at line ${ctx.cursorLine + 1}.`);
     }
     if (ctx.selection && ctx.selectionRange) {
+      const truncatedSelection = truncate(
+        ctx.selection,
+        MAX_CONTEXT_SELECTION_CHARS,
+      );
       const { fromLine, toLine } = ctx.selectionRange;
       if (fromLine === toLine) {
-        lines.push(`Selected text (line ${fromLine + 1}): "${ctx.selection}"`);
+        lines.push(
+          `Selected text (line ${fromLine + 1}): "${truncatedSelection}"`,
+        );
       } else {
         lines.push(
-          `Selected text (lines ${fromLine + 1}\u2013${toLine + 1}):\n${ctx.selection}`,
+          `Selected text (lines ${fromLine + 1}\u2013${toLine + 1}):\n${truncatedSelection}`,
         );
       }
     }
@@ -794,8 +949,11 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
 
   lines.push("### get_cell");
   lines.push("Get a single cell's input and output.");
+  lines.push(
+    "Large cells are returned as a small context window, optionally centered near `around_line`.",
+  );
   lines.push("```tool");
-  lines.push('{"name": "get_cell", "args": {"index": 1}}');
+  lines.push('{"name": "get_cell", "args": {"index": 1, "around_line": 25}}');
   lines.push("```");
   lines.push("");
 

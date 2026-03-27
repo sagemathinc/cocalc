@@ -7,7 +7,6 @@ import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
 
 import { CUTOFF } from "./consts";
-import { showHelpMeFixDialog } from "./help-me-fix-dialog";
 import { modelToMention } from "./llm-selector";
 import shortenError from "./shorten-error";
 
@@ -21,6 +20,7 @@ export interface GetHelpOptions {
   line?: string;
   language?: string;
   extraFileInfo?: string;
+  extraContext?: string;
   redux: any;
   prioritize?: "start" | "start-end" | "end";
   model: string;
@@ -35,6 +35,7 @@ export interface CreateMessageOpts {
   task?: string;
   language?: string;
   extraFileInfo?: string;
+  extraContext?: string;
   prioritize?: "start" | "start-end" | "end";
   model: string;
   open: boolean;
@@ -53,9 +54,11 @@ export async function getHelp({
   task,
   language,
   extraFileInfo,
+  extraContext,
   prioritize,
   isHint = false,
 }: GetHelpOptions) {
+  const { showHelpMeFixDialog } = await import("./help-me-fix-dialog");
   await showHelpMeFixDialog({
     mode: isHint ? "hint" : "solution",
     project_id,
@@ -67,6 +70,7 @@ export async function getHelp({
     tag,
     language,
     extraFileInfo,
+    extraContext,
     prioritize,
   });
 }
@@ -79,6 +83,7 @@ export function createMessage({
   model,
   task,
   extraFileInfo,
+  extraContext,
   prioritize,
   open,
   full,
@@ -117,6 +122,11 @@ export function createMessage({
     message.push(`For the following line:`);
     const delimL = backtickSequence(line);
     message.push(`${delimL}${language}\n${line}\n${delimL}`);
+  }
+
+  if (extraContext?.trim()) {
+    message.push(`Additional context:`);
+    message.push(extraContext.trim());
   }
 
   // We put the input last, since it could be huge and get truncated.

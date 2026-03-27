@@ -6,12 +6,14 @@
 import {
   applyEditBlocks,
   applySearchReplace,
+  buildSystemPrompt,
   extractCodeBlock,
   formatDiffBlock,
   formatEditBlocksAsDiff,
   formatFileSearchReplaceAsDiff,
   formatSearchReplaceAsDiff,
   fulfillShowBlocks,
+  getDocumentContextWindow,
   parseEditBlocks,
   parseExecBlocks,
   parseFileSearchReplaceBlocks,
@@ -459,7 +461,7 @@ print("example")
 More text.
 \`\`\`\``;
     const result = extractCodeBlock(text);
-    expect(result).toContain('```python');
+    expect(result).toContain("```python");
     expect(result).toContain('print("example")');
     expect(result).toContain("More text.");
   });
@@ -475,6 +477,41 @@ some code
     const result = extractCodeBlock(text);
     expect(result).toContain("some code");
     expect(result).toContain("</code></pre>");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  getDocumentContextWindow                                           */
+/* ------------------------------------------------------------------ */
+
+describe("getDocumentContextWindow", () => {
+  it("returns a bounded window around the cursor", () => {
+    const content = Array.from({ length: 100 }, (_, i) => `line ${i + 1}`).join(
+      "\n",
+    );
+    const window = getDocumentContextWindow(content, {
+      cursorLine: 49,
+      radiusLines: 10,
+      maxChars: 400,
+    });
+    expect(window.truncated).toBe(true);
+    expect(window.startLine).toBeLessThanOrEqual(50);
+    expect(window.endLine).toBeGreaterThanOrEqual(50);
+    expect(window.content).toContain("line 50");
+  });
+
+  it("keeps a selection in view", () => {
+    const content = Array.from({ length: 80 }, (_, i) => `row ${i + 1}`).join(
+      "\n",
+    );
+    const window = getDocumentContextWindow(content, {
+      selectionRange: { fromLine: 39, toLine: 41 },
+      radiusLines: 5,
+      maxChars: 200,
+    });
+    expect(window.content).toContain("row 40");
+    expect(window.content).toContain("row 41");
+    expect(window.content).toContain("row 42");
   });
 });
 
@@ -572,6 +609,19 @@ describe("fulfillShowBlocks", () => {
     expect(result).toContain("line 3");
     expect(result).not.toContain("500");
   });
+
+  it("truncates oversized show responses to stay within budget", () => {
+    const longContent = Array.from(
+      { length: 20 },
+      (_, i) => `${i + 1}: ${"x".repeat(300)}`,
+    ).join("\n");
+    const result = fulfillShowBlocks(
+      [{ startLine: 1, endLine: 20 }],
+      longContent,
+      100,
+    )!;
+    expect(result).toContain("(truncated)");
+  });
 });
 
 /* ------------------------------------------------------------------ */
@@ -636,5 +686,41 @@ describe("truncateMiddle", () => {
     expect(result.startsWith("ab")).toBe(true);
     expect(result.endsWith("ij")).toBe(true);
     expect(result).toContain("6 characters omitted");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  buildSystemPrompt                                                  */
+/* ------------------------------------------------------------------ */
+
+describe("buildSystemPrompt", () => {
+  it("uses a context window for oversized documents", () => {
+    const prompt = buildSystemPrompt(
+      "notes.md",
+      {
+        content: Array.from(
+          { length: 80 },
+          (_, i) => `paragraph ${i + 1} ${"x".repeat(40)}`,
+        ).join("\n"),
+        visibleRange: { firstLine: 28, lastLine: 40 },
+        cursorLine: 32,
+      },
+      false,
+    );
+    expect(prompt).toContain("Context window of the document");
+    expect(prompt).toContain("paragraph 33");
+  });
+
+  it("truncates oversized selected text", () => {
+    const prompt = buildSystemPrompt(
+      "script.py",
+      {
+        content: "print('ok')",
+        cursorLine: 0,
+        selection: "x".repeat(2000),
+      },
+      false,
+    );
+    expect(prompt).toContain("characters omitted");
   });
 });

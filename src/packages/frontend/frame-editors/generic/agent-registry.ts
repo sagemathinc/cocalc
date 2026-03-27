@@ -17,70 +17,51 @@
 
 import { lazy, type ComponentType } from "react";
 
-// File extensions where the coding agent is NOT useful — non-text
-// editors that don't support set_value or are not code-like.
-const NO_AGENT_EXTENSIONS = new Set([
-  "app",
-  "board",
-  "slides",
-  "pdf",
-  "x11",
-  "term",
-  "course",
-  "time-travel",
-  // Media files — legacy MediaViewer, no frame-tree side chat
-  "png",
-  "jpg",
-  "jpeg",
-  "gif",
-  "bmp",
-  "ico",
-  "webp",
-  "svg",
-  "tiff",
-  "tif",
-  "mp4",
-  "webm",
-  "avi",
-  "mov",
-  "mp3",
-  "wav",
-  "ogg",
-  "flac",
-  // Archive files — archive editor, no set_value / CodeMirror
-  "zip",
-  "tar",
-  "tgz",
-  "gz",
-  "bz2",
-  "bzip2",
-  "xz",
-  "lzip",
-  "tbz2",
-  "z",
-  "lz",
-  "lzma",
-  "7z",
-  "rar",
-]);
+import {
+  file_associations,
+  type FileSpec,
+} from "@cocalc/frontend/file-associations";
+import { filename_extension, path_split } from "@cocalc/util/misc";
+
+function getFileAssociation(path: string): FileSpec | undefined {
+  const ext = filename_extension(path).toLowerCase();
+  if (ext) {
+    return file_associations[ext];
+  }
+  return file_associations[`noext-${path_split(path).tail.toLowerCase()}`];
+}
+
+export function hasCodingAgent(path: string): boolean {
+  const association = getFileAssociation(path);
+  if (association == null) return false;
+  if (association.editor === "codemirror" || association.editor === "latex") {
+    return true;
+  }
+  // Some text/code editors (html, markdown, qmd, rmd, rst, etc.) are
+  // registered elsewhere and don't set `editor` here, but they do have
+  // a CodeMirror mode in file_associations.
+  return (
+    association.editor == null &&
+    typeof association.opts?.mode === "string" &&
+    association.opts.mode.length > 0
+  );
+}
 
 export type AgentComponent = ComponentType<{
   chatSyncdb: any;
   fontSize?: number;
 }>;
 
-const LazyNotebookAgent = lazy(
-  () =>
-    import(
-      "@cocalc/frontend/frame-editors/jupyter-editor/notebook-agent"
-    ).then((m) => ({ default: m.NotebookAgent })),
+const LazyNotebookAgent = lazy(() =>
+  import("@cocalc/frontend/frame-editors/jupyter-editor/notebook-agent").then(
+    (m) => ({ default: m.NotebookAgent }),
+  ),
 ) as unknown as AgentComponent;
 
-const LazyCodingAgent = lazy(
-  () =>
-    import("@cocalc/frontend/frame-editors/llm/coding-agent").then((m) => ({
-      default: m.CodingAgentEmbedded,
-    })),
+const LazyCodingAgent = lazy(() =>
+  import("@cocalc/frontend/frame-editors/llm/coding-agent").then((m) => ({
+    default: m.CodingAgentEmbedded,
+  })),
 ) as unknown as AgentComponent;
 
 export interface AgentSpec {
@@ -93,11 +74,10 @@ export interface NoAgentSpec {
 }
 
 export function getAgentSpec(path: string): AgentSpec | NoAgentSpec {
-  if (path.endsWith(".ipynb")) {
+  if (filename_extension(path).toLowerCase() === "ipynb") {
     return { hasAgent: true, component: LazyNotebookAgent };
   }
-  const ext = path.split(".").pop() ?? "";
-  if (NO_AGENT_EXTENSIONS.has(ext)) {
+  if (!hasCodingAgent(path)) {
     return { hasAgent: false };
   }
   return { hasAgent: true, component: LazyCodingAgent };

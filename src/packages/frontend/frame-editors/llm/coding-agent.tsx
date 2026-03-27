@@ -51,6 +51,7 @@ import { RUN_COMMANDS } from "../code-editor/editor";
 import { CollapsibleDiffs } from "./coding-agent-components";
 import type { EditBlock, ExecBlock, SearchReplace } from "./coding-agent-types";
 import { DIFF_MAX_HEIGHT, TAG } from "./coding-agent-types";
+import { normalizeAssistantSeed } from "./assistant-seed";
 import {
   applyEditBlocks,
   applySearchReplace,
@@ -69,6 +70,12 @@ import {
   SHOW_BLOCK_REGEX,
   truncateMiddle,
 } from "./coding-agent-utils";
+import {
+  buildBoundedHistory,
+  estimateConversationTokens,
+  getAgentInputTokenBudget,
+  type AgentHistoryMessage,
+} from "./history-budget";
 
 /* ------------------------------------------------------------------ */
 /*  Main component — standalone frame wrapper                          */
@@ -118,6 +125,7 @@ function CodingAgentCore({
     project_id,
     path,
     actions,
+    desc,
     id: frameId,
     font_size: frameContextFontSize,
   } = useFrameContext();
@@ -133,14 +141,6 @@ function CodingAgentCore({
     eventName: "coding-agent",
     project_id,
     path,
-  });
-
-  // ---- Cost estimation ----
-  const { costEstimate, updateEstimate, clearEstimate } = useCostEstimate({
-    model,
-    isCoCalcCom,
-    llm_markup,
-    messages: session.messages,
   });
 
   // ---- Coding-agent-specific state ----
@@ -287,6 +287,58 @@ function CodingAgentCore({
     setEditorContextLabel(label);
   }, [actions, path]);
 
+  const autoNameSession = useAutoNameSession({
+    session,
+    model,
+    project_id,
+    tag: TAG,
+  });
+  const processedAssistantSeedRef = useRef("");
+
+  const buildHistoryForLlm = useCallback(
+    (prompt: string, system: string): AgentHistoryMessage[] => {
+      const historyEvents = new Set(["message", "exec_result", "show_lines"]);
+      const preparedHistory = session.messages
+        .filter((m) => historyEvents.has(m.event))
+        .map(
+          (m): AgentHistoryMessage => ({
+            role:
+              m.sender === "assistant"
+                ? ("assistant" as const)
+                : ("user" as const),
+            content: truncateMiddle(m.content),
+          }),
+        );
+      return buildBoundedHistory({
+        system,
+        input: prompt,
+        history: preparedHistory,
+        maxInputTokens: getAgentInputTokenBudget(model),
+      }).history;
+    },
+    [model, session.messages],
+  );
+
+  const estimateTokens = useCallback(
+    (prompt: string) => {
+      const ctx = editorContextRef.current ?? getEditorContext(actions);
+      const hasBuild = typeof actions.build === "function";
+      const system = buildSystemPrompt(path, ctx, hasBuild);
+      const history = buildHistoryForLlm(prompt, system);
+      return estimateConversationTokens({ system, input: prompt, history });
+    },
+    [actions, buildHistoryForLlm, path],
+  );
+
+  // ---- Cost estimation ----
+  const { costEstimate, updateEstimate, clearEstimate } = useCostEstimate({
+    model,
+    isCoCalcCom,
+    llm_markup,
+    messages: session.messages,
+    estimateTokens,
+  });
+
   const handleInputChange = useCallback(
     (value: string) => {
       if (inputLockedRef.current) return;
@@ -295,13 +347,6 @@ function CodingAgentCore({
     },
     [updateEstimate],
   );
-
-  const autoNameSession = useAutoNameSession({
-    session,
-    model,
-    project_id,
-    tag: TAG,
-  });
 
   // ---- Submit handler ----
   const handleSubmit = useCallback(
@@ -351,25 +396,7 @@ function CodingAgentCore({
       try {
         const hasBuild = typeof actions.build === "function";
         const system = buildSystemPrompt(path, ctx, hasBuild);
-
-        // Include conversation messages plus exec results and show_lines
-        // responses — the LLM needs to see command output and requested
-        // document lines to reason about them.  Error events are excluded
-        // (internal UI state, not part of the logical conversation).
-        const HISTORY_EVENTS = new Set([
-          "message",
-          "exec_result",
-          "show_lines",
-        ]);
-        const currentMessages = session.messages.filter((m) =>
-          HISTORY_EVENTS.has(m.event),
-        );
-        const history = currentMessages.map((m) => ({
-          role: (m.sender === "assistant" ? "assistant" : "user") as
-            | "user"
-            | "assistant",
-          content: truncateMiddle(m.content),
-        }));
+        const history = buildHistoryForLlm(prompt, system);
 
         // Build the streaming array once: history + user msg + mutable
         // assistant placeholder.  On each token we mutate the placeholder's
@@ -539,12 +566,13 @@ function CodingAgentCore({
     },
     [
       input,
-      session.messages,
       session.sessionId,
       actions,
+      buildHistoryForLlm,
       path,
       model,
       project_id,
+      session.messages,
       session.writeMessage,
       session.setGenerating,
       session.setMessages,
@@ -552,6 +580,19 @@ function CodingAgentCore({
     ],
   );
   handleSubmitRef.current = handleSubmit;
+
+  useEffect(() => {
+    const seed = normalizeAssistantSeed(desc.get("assistant_seed"));
+    if (!seed || processedAssistantSeedRef.current === seed.id) return;
+    processedAssistantSeedRef.current = seed.id;
+    actions.set_frame_tree({ id: frameId, assistant_seed: undefined });
+    if (seed.forceNewTurn !== false) {
+      session.handleNewSession();
+    }
+    setTimeout(() => {
+      void handleSubmitRef.current(seed.prompt);
+    }, 0);
+  }, [actions, desc, frameId, session.handleNewSession]);
 
   // ---- Apply edits ----
   const handleApplyEdits = useCallback(() => {
@@ -921,10 +962,7 @@ function CodingAgentCore({
           ) : undefined
         }
       >
-        <div
-          ref={inputWrapperRef}
-          onFocus={updateEditorContext}
-        >
+        <div ref={inputWrapperRef} onFocus={updateEditorContext}>
           <MarkdownInput
             key={inputKey}
             value={input}
