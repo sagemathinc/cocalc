@@ -39,12 +39,15 @@ export function CollapsibleDiffs({
   children,
   maxHeight,
   color,
+  fontSize,
 }: {
   children: React.ReactNode;
   /** Fixed pixel cap. When omitted, 75 % of the scroll container. */
   maxHeight?: number;
   /** Optional text color for the rendered `<pre>` and its descendants. */
   color?: string;
+  /** Optional font size for rendered `<pre>` blocks. */
+  fontSize?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -64,7 +67,7 @@ export function CollapsibleDiffs({
 
     const pres = el.querySelectorAll("pre");
     pres.forEach((pre) => {
-      pre.style.fontSize = "0.82em";
+      pre.style.fontSize = fontSize ?? "0.82em";
       pre.style.maxHeight = resolvedMax;
       pre.style.overflow = "auto";
       pre.style.position = "relative";
@@ -75,7 +78,7 @@ export function CollapsibleDiffs({
         });
       }
     });
-  }, [children, maxHeight, color]);
+  }, [children, maxHeight, color, fontSize]);
 
   return <div ref={containerRef}>{children}</div>;
 }

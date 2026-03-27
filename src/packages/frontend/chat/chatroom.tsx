@@ -1067,7 +1067,7 @@ export function ChatPanel({
         placement="right"
         width={THREAD_SIDEBAR_WIDTH + 40}
         title="Chats"
-        destroyOnClose
+        destroyOnHidden
       >
         {renderSidebarContent()}
       </Drawer>
@@ -1124,7 +1124,7 @@ export function ChatPanel({
         onCancel={closeRenameModal}
         onOk={handleRenameSave}
         okText="Save"
-        destroyOnClose
+        destroyOnHidden
       >
         <Input
           placeholder="Chat name"

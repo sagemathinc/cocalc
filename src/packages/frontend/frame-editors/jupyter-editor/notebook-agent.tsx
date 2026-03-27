@@ -21,7 +21,8 @@ import { Switch, Tooltip } from "antd";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
-import { redux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { LLMCostEstimationChat } from "@cocalc/frontend/chat/llm-cost-estimation";
 import MarkdownInput from "@cocalc/frontend/editors/markdown-input/multimode";
 import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
@@ -44,6 +45,7 @@ import {
   SYSTEM_MSG_STYLE,
   useAgentSession,
   useAutoNameSession,
+  useCostEstimate,
 } from "@cocalc/frontend/frame-editors/llm/agent-base";
 import type {
   DisplayMessage,
@@ -52,6 +54,7 @@ import type {
 import { normalizeAssistantSeed } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import {
   buildBoundedHistory,
+  estimateConversationTokens,
   getAgentInputTokenBudget,
   type AgentHistoryMessage,
 } from "@cocalc/frontend/frame-editors/llm/history-budget";
@@ -60,6 +63,7 @@ import {
   TAG,
   MAX_TOOL_LOOPS,
   READ_ONLY_TOOL_NAMES,
+  buildPostToolPrompt,
   buildContextLabel,
   buildSystemPrompt,
   compactAssistantMessageForHistory,
@@ -70,6 +74,8 @@ import {
 } from "./notebook-agent-utils";
 import type { NotebookContext } from "./notebook-agent-utils";
 import type { JupyterEditorActions } from "./actions";
+import { CollapsibleDiffs } from "../llm/coding-agent-components";
+import { DIFF_MAX_HEIGHT } from "../llm/coding-agent-types";
 
 /* ------------------------------------------------------------------ */
 /*  Tool result display                                                */
@@ -112,43 +118,86 @@ function extractJson(s: string): any | undefined {
 /**
  * Summarize a JSON tool result into a readable phrase.
  */
-function summarizeJson(tool: string, data: any): string {
+function summarizeJson(tool: string, data: any): string | React.ReactElement {
+  let summary: string;
   switch (tool) {
     case "cell_count":
-      return `${data.cell_count} cells`;
+      summary = `${data.cell_count} cells`;
+      break;
     case "get_cell":
     case "get_cells":
-      return "fetched cell data";
+      summary = "fetched cell data";
+      break;
     case "set_cell":
-      return data.status === "updated"
-        ? `set cell #${data.index}`
-        : `set_cell: ${data.error ?? data.status}`;
+      summary =
+        data.status === "updated"
+          ? `set cell #${data.index}`
+          : `set_cell: ${data.error ?? data.status}`;
+      break;
     case "edit_cell":
-      if (data.status === "updated")
-        return `edited cell #${data.index} (${data.applied} applied)`;
-      if (data.status === "no_changes")
-        return `edit_cell #${data.index}: no match`;
-      return `edit_cell: ${data.error ?? data.status}`;
+      if (data.status === "updated") {
+        summary = `edited cell #${data.index} (${data.applied} applied)`;
+        break;
+      }
+      if (data.status === "no_changes") {
+        summary = `edit_cell #${data.index}: no match`;
+        break;
+      }
+      summary = `edit_cell: ${data.error ?? data.status}`;
+      break;
     case "insert_cells":
-      if (data.status === "inserted")
-        return `inserted ${data.cells?.length ?? 0} cell(s)`;
-      return `insert_cells: ${data.error ?? data.status}`;
+      if (data.status === "inserted") {
+        summary = `inserted ${data.cells?.length ?? 0} cell(s)`;
+        break;
+      }
+      summary = `insert_cells: ${data.error ?? data.status}`;
+      break;
     case "run_cell": {
       if (data.status === "completed") {
         const out = data.output?.trim();
-        if (!out) return `ran cell #${data.index}`;
+        if (!out) {
+          summary = `ran cell #${data.index}`;
+          break;
+        }
         const short = out.length > 60 ? out.slice(0, 60) + "..." : out;
-        return `ran cell #${data.index} \u2192 ${short}`;
+        summary = `ran cell #${data.index} \u2192 ${short}`;
+        break;
       }
-      if (data.status === "timeout")
-        return `ran cell #${data.index} (timed out)`;
-      if (data.status === "pending_confirmation")
-        return `cell #${data.index ?? "?"} queued`;
-      return `run_cell: ${data.error ?? data.status}`;
+      if (data.status === "timeout") {
+        summary = `ran cell #${data.index} (timed out)`;
+        break;
+      }
+      if (data.status === "pending_confirmation") {
+        summary = `cell #${data.index ?? "?"} queued`;
+        break;
+      }
+      summary = `run_cell: ${data.error ?? data.status}`;
+      break;
     }
     default:
-      return `${tool}: ${data.error ?? data.status ?? "done"}`;
+      summary = `${tool}: ${data.error ?? data.status ?? "done"}`;
+      break;
   }
+
+  if (
+    typeof data.diff_preview === "string" &&
+    data.diff_preview.trim() !== ""
+  ) {
+    return (
+      <div>
+        <div>{summary}</div>
+        <div style={{ marginTop: 4, fontSize: "1.25em" }}>
+          <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+            <CollapsibleDiffs maxHeight={DIFF_MAX_HEIGHT} fontSize="0.82em">
+              <StaticMarkdown value={data.diff_preview} />
+            </CollapsibleDiffs>
+          </FileContext.Provider>
+        </div>
+      </div>
+    );
+  }
+
+  return summary;
 }
 
 /**
@@ -182,6 +231,16 @@ function summarizeToolEntry(raw: string): React.ReactElement | string {
 
   const tool = match[1];
   const rest = match[2].trim();
+
+  if (tool === "get_cell" || tool === "get_cells") {
+    return (
+      <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+        <CollapsibleDiffs maxHeight={DIFF_MAX_HEIGHT} fontSize="0.82em">
+          <StaticMarkdown value={rest} />
+        </CollapsibleDiffs>
+      </FileContext.Provider>
+    );
+  }
 
   // Try JSON parse for structured summaries
   const data = extractJson(rest);
@@ -233,6 +292,8 @@ export function NotebookAgent({
 }) {
   const { project_id, actions, desc, id: frameId } = useFrameContext();
   const projectsStore = redux.getStore("projects");
+  const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
+  const llm_markup = useTypedRedux("customize", "llm_markup");
   const projectReadOnly =
     projectsStore.hasLanguageModelEnabled(project_id, "help-me-fix-hint") &&
     !projectsStore.hasFullLanguageModelEnabled(project_id);
@@ -270,6 +331,7 @@ export function NotebookAgent({
   // don't fire on unmounted state.
   useEffect(() => {
     return () => {
+      clearEstimate();
       // Abort any surviving runCell polling loop from a previous submit.
       if (prevAbortRef.current) prevAbortRef.current.current = true;
       llmResolveRef.current?.("");
@@ -305,6 +367,75 @@ export function NotebookAgent({
     project_id,
     tag: llmTag,
   });
+
+  const buildHistoryForLlm = useCallback(
+    (prompt: string, system: string): AgentHistoryMessage[] => {
+      const historyEvents = new Set(["message", "tool_result"]);
+      const msgWithTime = session.messages
+        .filter((m) => historyEvents.has(m.event))
+        .map((m) => ({
+          role:
+            m.sender === "assistant"
+              ? ("assistant" as const)
+              : ("user" as const),
+          content:
+            m.event === "tool_result"
+              ? `[Tool Result]\n${compactToolResultForHistory(m.content)}`
+              : m.sender === "assistant"
+                ? compactAssistantMessageForHistory(m.content)
+                : m.content,
+          date: m.date,
+        }));
+      msgWithTime.sort(
+        (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
+      );
+      return buildBoundedHistory({
+        system,
+        input: prompt,
+        history: msgWithTime.map(({ role, content }) => ({ role, content })),
+        maxInputTokens: getAgentInputTokenBudget(model),
+      }).history;
+    },
+    [model, session.messages],
+  );
+
+  const estimateTokens = useCallback(
+    (prompt: string) => {
+      const ctx =
+        notebookContextRef.current ??
+        getNotebookContext(actions as JupyterEditorActions);
+      const readOnly =
+        projectReadOnly ||
+        (session.sessionId != null && readOnlySessionId === session.sessionId);
+      const system = buildSystemPrompt(ctx, { readOnly });
+      const history = buildHistoryForLlm(prompt, system);
+      return estimateConversationTokens({ system, input: prompt, history });
+    },
+    [
+      actions,
+      buildHistoryForLlm,
+      projectReadOnly,
+      readOnlySessionId,
+      session.sessionId,
+    ],
+  );
+
+  const { costEstimate, updateEstimate, clearEstimate } = useCostEstimate({
+    model,
+    isCoCalcCom,
+    llm_markup,
+    messages: session.messages,
+    estimateTokens,
+  });
+
+  const handleInputChange = useCallback(
+    (value: string) => {
+      if (inputLockedRef.current) return;
+      setInput(value);
+      updateEstimate(value);
+    },
+    [updateEstimate],
+  );
 
   // ---- Context capture (called on input focus) ----
   const updateContext = useCallback(() => {
@@ -453,32 +584,7 @@ export function NotebookAgent({
           getNotebookContext(actions as JupyterEditorActions);
         const system = buildSystemPrompt(ctx, { readOnly });
 
-        // Build history from conversation messages and tool results.
-        const HISTORY_EVENTS = new Set(["message", "tool_result"]);
-        const msgWithTime = session.messages
-          .filter((m) => HISTORY_EVENTS.has(m.event))
-          .map((m) => ({
-            role:
-              m.sender === "assistant"
-                ? ("assistant" as const)
-                : ("user" as const),
-            content:
-              m.event === "tool_result"
-                ? `[Tool Result]\n${compactToolResultForHistory(m.content)}`
-                : m.sender === "assistant"
-                  ? compactAssistantMessageForHistory(m.content)
-                  : m.content,
-            date: m.date,
-          }));
-        msgWithTime.sort(
-          (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
-        );
-        let history: AgentHistoryMessage[] = msgWithTime.map(
-          ({ role, content }) => ({
-            role,
-            content,
-          }),
-        );
+        let history: AgentHistoryMessage[] = buildHistoryForLlm(prompt, system);
 
         let currentPrompt = prompt;
         let loops = MAX_TOOL_LOOPS;
@@ -532,14 +638,14 @@ export function NotebookAgent({
           );
           if (cancelSignal.current) break;
 
-          const toolResultContent = compactToolResultForHistory(
-            results.join("\n\n"),
-          );
+          const rawToolResultContent = results.join("\n\n");
+          const toolResultContent =
+            compactToolResultForHistory(rawToolResultContent);
           const toolDate = new Date().toISOString();
           session.writeMessage({
             date: toolDate,
             sender: "system",
-            content: toolResultContent,
+            content: rawToolResultContent,
             msg_event: "tool_result",
             session_id: activeSessionId,
           });
@@ -551,7 +657,7 @@ export function NotebookAgent({
             ...prev,
             {
               sender: "system" as const,
-              content: toolResultContent,
+              content: rawToolResultContent,
               date: toolDate,
               event: "tool_result",
             },
@@ -566,7 +672,7 @@ export function NotebookAgent({
             content: `[Tool Result]\n${toolResultContent}`,
           });
 
-          currentPrompt = `Here are the tool results:\n\n${toolResultContent}\n\nContinue based on these results. If you need more information, use more tools. Otherwise, provide your answer.`;
+          currentPrompt = buildPostToolPrompt(toolCalls, toolResultContent);
         }
       } catch (err: any) {
         session.setError(err.message ?? `${err}`);
@@ -754,6 +860,20 @@ export function NotebookAgent({
         }}
         sendDisabled={!input.trim()}
         showDone
+        aboveButtons={
+          costEstimate ? (
+            <LLMCostEstimationChat
+              costEstimate={costEstimate}
+              compact
+              style={{
+                flex: 0,
+                fontSize: "85%",
+                textAlign: "center",
+                margin: "0 0 4px 0",
+              }}
+            />
+          ) : undefined
+        }
         belowInput={<AgentRollbackHint onOpenTimeTravel={openTimeTravel} />}
       >
         <div
@@ -767,9 +887,7 @@ export function NotebookAgent({
           <MarkdownInput
             key={inputKey}
             value={input}
-            onChange={(v) => {
-              if (!inputLockedRef.current) setInput(v);
-            }}
+            onChange={handleInputChange}
             onShiftEnter={(value) => {
               handleSubmit(value);
             }}

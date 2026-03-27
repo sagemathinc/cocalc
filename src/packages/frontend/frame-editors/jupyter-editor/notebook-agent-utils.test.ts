@@ -4,6 +4,7 @@
  */
 
 import {
+  buildPostToolPrompt,
   buildSystemPrompt,
   compactAssistantMessageForHistory,
   compactToolResultForHistory,
@@ -345,6 +346,15 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain(
       "do not ask for clarification when the user already gave a specific, unambiguous request to add a new cell.",
     );
+    expect(prompt).toContain(
+      "`set_cell` replaces the entire cell input with exactly the content you provide.",
+    );
+    expect(prompt).toContain(
+      "`run_cell` executes the cell's current contents, including any changes you just made with `set_cell` or `edit_cell`.",
+    );
+    expect(prompt).toContain(
+      "Do not call `get_cell` only to verify or reinterpret a successful change.",
+    );
   });
 
   test("read-only hint mode only exposes read tools", () => {
@@ -399,5 +409,33 @@ describe("compactToolResultForHistory", () => {
     const result = compactToolResultForHistory("y".repeat(7000));
     expect(result).toContain("truncated");
     expect(result).toContain("7000 chars total");
+  });
+});
+
+describe("buildPostToolPrompt", () => {
+  test("prefers summarizing after a successful write batch", () => {
+    const prompt = buildPostToolPrompt(
+      [
+        { name: "set_cell", args: { index: 1 } },
+        { name: "run_cell", args: { index: 1 } },
+      ],
+      [
+        '**set_cell**: {"status":"updated","index":1,"id":"abc"}',
+        '**run_cell**: {"status":"completed","index":1,"output":"201"}',
+      ].join("\n\n"),
+    );
+    expect(prompt).toContain(
+      "The requested notebook changes were applied successfully.",
+    );
+    expect(prompt).toContain("Do not call get_cell/get_cells merely to verify");
+    expect(prompt).toContain("Do not revert the user's requested edit.");
+  });
+
+  test("keeps the generic continue prompt when no successful write happened", () => {
+    const prompt = buildPostToolPrompt(
+      [{ name: "get_cell", args: { index: 1 } }],
+      '**get_cell**: Cell #1 (code):\n```python\nprint("ok")\n```',
+    );
+    expect(prompt).toContain("Continue based on these results.");
   });
 });

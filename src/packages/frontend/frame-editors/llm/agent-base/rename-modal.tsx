@@ -46,7 +46,7 @@ export function RenameModal({
       onOk={handleOk}
       onCancel={onCancel}
       okText="Save"
-      destroyOnClose
+      destroyOnHidden
       afterOpenChange={(visible) => {
         if (visible) {
           inputRef.current?.focus();

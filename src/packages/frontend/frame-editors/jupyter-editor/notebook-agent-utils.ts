@@ -18,8 +18,10 @@ Pure utility functions for the notebook agent:
 
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import {
-  parseSearchReplaceBlocks,
   applySearchReplace,
+  formatDiffBlock,
+  formatSearchReplaceAsDiff,
+  parseSearchReplaceBlocks,
 } from "@cocalc/frontend/frame-editors/llm/coding-agent-utils";
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
@@ -45,6 +47,7 @@ export const MAX_GET_CELLS_INPUT_CHARS = 500;
 export const MAX_GET_CELLS_OUTPUT_CHARS = 250;
 export const MAX_ASSISTANT_HISTORY_CHARS = 1600;
 export const MAX_TOOL_RESULT_HISTORY_CHARS = 2400;
+export const MAX_TOOL_DIFF_PREVIEW_CHARS = 1600;
 export const READ_ONLY_TOOL_NAMES = new Set([
   "cell_count",
   "get_cell",
@@ -360,6 +363,65 @@ export interface ToolCall {
   args: Record<string, any>;
 }
 
+export function buildPostToolPrompt(
+  toolCalls: ToolCall[],
+  toolResultContent: string,
+): string {
+  const successfulWrite = hasSuccessfulWriteBatch(toolCalls, toolResultContent);
+  if (successfulWrite) {
+    return (
+      `Here are the tool results:\n\n${toolResultContent}\n\n` +
+      "The requested notebook changes were applied successfully. " +
+      "Treat the current cell contents and outputs as updated. " +
+      "Do not call get_cell/get_cells merely to verify, reinterpret, or undo the change. " +
+      "Do not revert the user's requested edit. " +
+      "Briefly summarize what changed and stop unless a tool result shows an error or timeout."
+    );
+  }
+  return `Here are the tool results:\n\n${toolResultContent}\n\nContinue based on these results. If you need more information, use more tools. Otherwise, provide your answer.`;
+}
+
+function hasSuccessfulWriteBatch(
+  toolCalls: ToolCall[],
+  toolResultContent: string,
+): boolean {
+  const entries = toolResultContent
+    .split(/\n\n(?=\*{0,2}\w+\*{0,2}\s*(?:\([^)]*\))?\s*:)/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const writeTools = new Set(["set_cell", "edit_cell", "insert_cells"]);
+  let sawSuccessfulWrite = false;
+  for (let i = 0; i < Math.min(toolCalls.length, entries.length); i++) {
+    const toolName = toolCalls[i].name;
+    if (!writeTools.has(toolName)) continue;
+    const data = extractToolResultJson(entries[i]);
+    if (!data || data.error) return false;
+    if (
+      (toolName === "set_cell" || toolName === "edit_cell") &&
+      data.status === "updated"
+    ) {
+      sawSuccessfulWrite = true;
+      continue;
+    }
+    if (toolName === "insert_cells" && data.status === "inserted") {
+      sawSuccessfulWrite = true;
+      continue;
+    }
+    return false;
+  }
+  return sawSuccessfulWrite;
+}
+
+function extractToolResultJson(entry: string): any | undefined {
+  const idx = entry.indexOf("{");
+  if (idx < 0) return undefined;
+  try {
+    return JSON.parse(entry.slice(idx));
+  } catch {
+    return undefined;
+  }
+}
+
 export function parseToolBlocks(text: string): ToolCall[] {
   const blocks: ToolCall[] = [];
   // The closing ``` must be on its own line (^ with multiline flag).
@@ -555,11 +617,17 @@ const toolHandlers: Record<string, ToolHandler> = {
   set_cell: async ({ args, cellList, jupyterActions }) => {
     const resolved = resolveCell(jupyterActions.store, cellList, args.index);
     if (typeof resolved === "string") return resolved;
-    jupyterActions.set_cell_input(resolved.cellId, args.content ?? "", true);
+    const previousInput: string = resolved.cell.get("input") ?? "";
+    const nextInput = args.content ?? "";
+    jupyterActions.set_cell_input(resolved.cellId, nextInput, true);
     return jsonResult({
       status: "updated",
       index: args.index,
       id: resolved.cellId,
+      diff_preview: truncate(
+        formatDiffBlock(previousInput, nextInput),
+        MAX_TOOL_DIFF_PREVIEW_CHARS,
+      ),
     });
   },
 
@@ -584,6 +652,13 @@ const toolHandlers: Record<string, ToolHandler> = {
       failed,
       index: args.index,
       id: resolved.cellId,
+      diff_preview:
+        applied > 0
+          ? truncate(
+              formatSearchReplaceAsDiff(args.edits ?? ""),
+              MAX_TOOL_DIFF_PREVIEW_CHARS,
+            )
+          : undefined,
     });
   },
 
@@ -1034,6 +1109,9 @@ export function buildSystemPrompt(
       "- For cells under ~1000 characters, use `set_cell` with the full replacement content.",
     );
     lines.push(
+      "- `set_cell` replaces the entire cell input with exactly the content you provide.",
+    );
+    lines.push(
       "- For larger cells (~1000+ characters), use `edit_cell` with `<<<SEARCH`/`>>>REPLACE`/`<<<END` blocks.",
     );
     lines.push(
@@ -1051,10 +1129,16 @@ export function buildSystemPrompt(
       "- To run a cell, use `run_cell`. It executes immediately and returns the output.",
     );
     lines.push(
+      "- `run_cell` executes the cell's current contents, including any changes you just made with `set_cell` or `edit_cell`.",
+    );
+    lines.push(
       "- After inserting code cells, run them in order so the user sees the results. You can include multiple `run_cell` blocks in the same response.",
     );
     lines.push(
       "- After insert_cells, subsequent tool calls in the same response will see updated cell indices.",
+    );
+    lines.push(
+      "- After a successful edit that satisfies the request, usually stop and summarize. Do not call `get_cell` only to verify or reinterpret a successful change.",
     );
     lines.push("");
   }
