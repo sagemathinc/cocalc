@@ -21,7 +21,7 @@ export interface PendingExecBarProps {
   pendingExec: ExecBlock[];
   onRun: (blockId: number, command: string) => void;
   onDismiss: (blockId: number) => void;
-  onDismissAll: () => void;
+  onDismissAll?: () => void;
   /** When provided, a "Run All" button is shown in the header. */
   onRunAll?: () => void;
   /** Current state of the auto-exec toggle. */

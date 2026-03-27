@@ -10,6 +10,7 @@ import {
   extractCodeBlock,
   formatDiffBlock,
   formatEditBlocksAsDiff,
+  formatExecResult,
   formatFileSearchReplaceAsDiff,
   formatSearchReplaceAsDiff,
   fulfillShowBlocks,
@@ -109,6 +110,37 @@ describe("applySearchReplace", () => {
     ]);
     expect(applied).toBe(1);
     expect(result).toContain("hi");
+  });
+
+  it("falls back to trimmed match for multi-line blocks", () => {
+    const { result, applied, failed } = applySearchReplace(
+      "  const x = 1;\n  const y = 2;\nreturn x + y;\n",
+      [
+        {
+          search: "const x = 1;\nconst y = 2;",
+          replace: "const sum = 3;",
+        },
+      ],
+    );
+    expect(applied).toBe(1);
+    expect(failed).toBe(0);
+    expect(result).toContain("const sum = 3;");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  formatExecResult                                                   */
+/* ------------------------------------------------------------------ */
+
+describe("formatExecResult", () => {
+  it("uses safe fences when stdout contains backticks", () => {
+    const rendered = formatExecResult(
+      { stdout: "before\n```js\nalert(1)\n```\nafter", exit_code: 1 },
+      "demo",
+    );
+    expect(rendered).toContain("**stdout:**");
+    expect(rendered).toContain("````");
+    expect(rendered).toContain("Exit code: 1");
   });
 });
 

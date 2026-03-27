@@ -103,7 +103,9 @@ export function runStreamingTurn(config: StreamingTurnConfig): StreamHandle {
       onToken(content, token);
     } else {
       // Stream ended — notify the caller.
-      onComplete(content);
+      void Promise.resolve(onComplete(content)).catch((err) => {
+        onError(err instanceof Error ? err : new Error(String(err)));
+      });
     }
   });
 

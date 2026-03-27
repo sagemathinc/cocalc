@@ -15,7 +15,17 @@ The iframe app can communicate with the CoCalc project via a bridge:
   - The bridge SDK (cocalc-app-bridge.js) provides window.cocalc API
 */
 
-import { Alert, Badge, Button, Empty, Modal, Spin, Switch, Tag, Tooltip } from "antd";
+import {
+  Alert,
+  Badge,
+  Button,
+  Empty,
+  Modal,
+  Spin,
+  Switch,
+  Tag,
+  Tooltip,
+} from "antd";
 import { join } from "path";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
@@ -125,9 +135,10 @@ export default function AppPreview({ name }: EditorComponentProps) {
 
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
+    const targetOrigin = window.location.origin;
 
     const msgType = isVisible ? "cocalc-bridge-show" : "cocalc-bridge-hide";
-    iframe.contentWindow.postMessage({ type: msgType }, "*");
+    iframe.contentWindow.postMessage({ type: msgType }, targetOrigin);
 
     // Log it
     const entry: BridgeLogEntry = {
@@ -148,13 +159,14 @@ export default function AppPreview({ name }: EditorComponentProps) {
   const sendBridgeInit = useCallback(() => {
     const iframe = iframeRef.current;
     if (!iframe?.contentWindow) return;
+    const targetOrigin = window.location.origin;
     iframe.contentWindow.postMessage(
       {
         type: "cocalc-bridge-init",
         projectId: project_id,
         basePath: appBasePath,
       },
-      "*",
+      targetOrigin,
     );
   }, [project_id]);
 
@@ -306,7 +318,12 @@ export default function AppPreview({ name }: EditorComponentProps) {
         >
           Reload
         </Button>
-        <Badge count={messageCount} size="small" offset={[-4, 0]} color={COLORS.GRAY_M}>
+        <Badge
+          count={messageCount}
+          size="small"
+          offset={[-4, 0]}
+          color={COLORS.GRAY_M}
+        >
           <Button
             size="small"
             onClick={() => setShowMessages(true)}
@@ -417,23 +434,21 @@ export default function AppPreview({ name }: EditorComponentProps) {
 }
 
 /** Single row in the bridge messages table — holds its own expanded state. */
-function BridgeMessageRow({ entry, index }: { entry: BridgeLogEntry; index: number }) {
+function BridgeMessageRow({
+  entry,
+  index,
+}: {
+  entry: BridgeLogEntry;
+  index: number;
+}) {
   const [expanded, setExpanded] = useState(false);
   const { direction, payload, timestamp, durationMs } = entry;
   const time = new Date(timestamp).toLocaleTimeString();
   const isAppToHost = direction === "app→host";
   const isError = !isAppToHost && payload?.error != null;
 
-  const arrowColor = isAppToHost
-    ? "#1677ff"
-    : isError
-      ? "#ff4d4f"
-      : "#52c41a";
-  const rowBg = isAppToHost
-    ? "#e8f4fd"
-    : isError
-      ? "#fef0ef"
-      : "#f0f9eb";
+  const arrowColor = isAppToHost ? "#1677ff" : isError ? "#ff4d4f" : "#52c41a";
+  const rowBg = isAppToHost ? "#e8f4fd" : isError ? "#fef0ef" : "#f0f9eb";
 
   const jsonStr = expanded
     ? JSON.stringify(payload, null, 2)

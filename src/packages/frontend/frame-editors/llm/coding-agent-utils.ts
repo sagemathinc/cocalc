@@ -261,14 +261,25 @@ export function applySearchReplace(
     const idx = result.indexOf(search);
     if (idx === -1) {
       // Try trimmed match as fallback (LLM sometimes adds/removes whitespace)
-      const trimmedSearch = search.trim();
+      const trimmedSearchLines = search
+        .trim()
+        .split("\n")
+        .map((line) => line.trim());
       const lines = result.split("\n");
       let found = false;
-      for (let i = 0; i < lines.length; i++) {
-        if (lines[i].trim() === trimmedSearch) {
+      const searchLineCount = trimmedSearchLines.length;
+      for (let i = 0; i <= lines.length - searchLineCount; i++) {
+        const candidateLines = lines
+          .slice(i, i + searchLineCount)
+          .map((line) => line.trim());
+        if (
+          candidateLines.length === searchLineCount &&
+          candidateLines.every((line, idx) => line === trimmedSearchLines[idx])
+        ) {
           const lineStart =
             lines.slice(0, i).join("\n").length + (i > 0 ? 1 : 0);
-          const lineEnd = lineStart + lines[i].length;
+          const matchedText = lines.slice(i, i + searchLineCount).join("\n");
+          const lineEnd = lineStart + matchedText.length;
           // Best-effort replacement: use the replacement text as-is.
           // We don't re-indent because the replacement may already
           // include indentation, and blindly prepending the original
@@ -550,9 +561,15 @@ export function formatExecResult(
   result: { stdout?: string; stderr?: string; exit_code?: number },
   command: string,
 ): string {
+  const stdoutFence = backtickSequence(result.stdout ?? "");
+  const stderrFence = backtickSequence(result.stderr ?? "");
   const output = [
-    result.stdout ? `**stdout:**\n\`\`\`\n${result.stdout}\n\`\`\`` : "",
-    result.stderr ? `**stderr:**\n\`\`\`\n${result.stderr}\n\`\`\`` : "",
+    result.stdout
+      ? `**stdout:**\n${stdoutFence}\n${result.stdout}\n${backtickSequence(result.stdout ?? "")}`
+      : "",
+    result.stderr
+      ? `**stderr:**\n${stderrFence}\n${result.stderr}\n${backtickSequence(result.stderr ?? "")}`
+      : "",
     result.exit_code != null ? `Exit code: ${result.exit_code}` : "",
   ]
     .filter(Boolean)

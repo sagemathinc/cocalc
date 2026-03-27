@@ -19,7 +19,7 @@ Features:
 - Auto-apply writeFile blocks
 */
 
-import { join } from "path";
+import { join, relative, resolve } from "path";
 
 import { Alert, Button } from "antd";
 import {
@@ -98,6 +98,7 @@ const MAX_APP_HISTORY_MESSAGES = 24;
 const MAX_APP_HISTORY_CONTENT_CHARS = 1600;
 const MAX_APP_ERROR_COUNT = 3;
 const MAX_APP_ERROR_CHARS = 400;
+const APP_PROJECT_ROOT = "/__cocalc_project__";
 
 function compactHistoryContent(content: string): string {
   return truncateMiddle(content, MAX_APP_HISTORY_CONTENT_CHARS);
@@ -112,6 +113,19 @@ function compactAppError(appError: AppError): string {
     MAX_APP_ERROR_CHARS,
   );
   return `[${appError.type}] ${body}`;
+}
+
+function resolveAppFilePath(
+  appDirectory: string,
+  rawPath: string,
+): string | undefined {
+  const resolvedAppDir = resolve(APP_PROJECT_ROOT, appDirectory);
+  const resolvedPath = resolve(APP_PROJECT_ROOT, rawPath);
+  const rel = relative(resolvedAppDir, resolvedPath);
+  if (rel !== "" && (rel === ".." || rel.startsWith("../"))) {
+    return undefined;
+  }
+  return relative(APP_PROJECT_ROOT, resolvedPath);
 }
 
 /**
@@ -656,14 +670,11 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
       // Clear app errors before applying new files
       actions.clearAppErrors?.();
+      const writtenPaths: string[] = [];
 
       for (const block of blocks) {
-        // block.path comes from the LLM and already includes the app
-        // directory prefix (the system prompt tells it to use
-        // `${appDirectory}/filename`).  Normalize to resolve any ".."
-        // segments, then reject paths that escape the app directory.
-        const resolvedPath = join(block.path);
-        if (!resolvedPath.startsWith(dir + "/") && resolvedPath !== dir) {
+        const resolvedPath = resolveAppFilePath(dir, block.path);
+        if (resolvedPath == null) {
           const now = new Date().toISOString();
           writeMessage({
             date: now,
@@ -680,6 +691,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
             path: resolvedPath,
             content: block.content,
           });
+          writtenPaths.push(resolvedPath);
         } catch (err: any) {
           const now = new Date().toISOString();
           writeMessage({
@@ -691,15 +703,19 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           });
         }
       }
-      // Trigger app preview reload
-      actions.reloadAppPreview?.();
+      if (writtenPaths.length > 0) {
+        // Trigger app preview reload
+        actions.reloadAppPreview?.();
+      }
 
       const now = new Date().toISOString();
-      const fileList = blocks.map((b) => `\`${b.path}\``).join(", ");
       writeMessage({
         date: now,
         sender: "system",
-        content: `Wrote ${blocks.length} file(s): ${fileList}`,
+        content:
+          writtenPaths.length > 0
+            ? `Wrote ${writtenPaths.length} file(s): ${writtenPaths.map((path) => `\`${path}\``).join(", ")}`
+            : "No files were written.",
         msg_event: "exec_result",
         session_id: toolSessionId,
       });
@@ -714,8 +730,8 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       // Group blocks by file path
       const byFile = new Map<string, FileSearchReplace[]>();
       for (const block of blocks) {
-        const resolvedPath = join(block.path);
-        if (!resolvedPath.startsWith(dir + "/") && resolvedPath !== dir) {
+        const resolvedPath = resolveAppFilePath(dir, block.path);
+        if (resolvedPath == null) {
           const now = new Date().toISOString();
           writeMessage({
             date: now,

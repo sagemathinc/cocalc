@@ -183,21 +183,22 @@ function CodingAgentCore({
     [actions],
   );
   const prevSessionIdRef = useRef(session.sessionId);
-  if (prevSessionIdRef.current !== session.sessionId) {
+  useEffect(() => {
+    if (prevSessionIdRef.current === session.sessionId) return;
     prevSessionIdRef.current = session.sessionId;
-    if (editsApplied) setEditsApplied(false);
+    setEditsApplied(false);
     // Clear stale pending state from the previous session — otherwise
     // the "Apply to Editor" and "Commands to run" bars stay visible
     // and would act on the wrong session's context.
-    if (pendingEdits) setPendingEdits(undefined);
-    if (pendingExec.length > 0) setPendingExec([]);
+    setPendingEdits(undefined);
+    setPendingExec([]);
     // Cancel any pending SHOW auto-continuation — it belongs to the
     // previous session and must not fire into the new one.
     if (showTimerRef.current) {
       clearTimeout(showTimerRef.current);
       showTimerRef.current = null;
     }
-  }
+  }, [session.sessionId]);
 
   // Auto-accept: when enabled, apply edits as soon as they arrive
   const handleApplyEditsRef = useRef<() => void>(() => {});

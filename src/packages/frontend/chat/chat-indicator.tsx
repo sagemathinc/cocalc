@@ -26,8 +26,8 @@ const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "15pt",
   paddingTop: "2px",
   cursor: "pointer",
-  background: "#e8e8e8",
-  borderTop: "2px solid lightgrey",
+  background: COLORS.GRAY_L0,
+  borderTop: `2px solid ${COLORS.GRAY_L}`,
 } as const;
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
@@ -36,7 +36,7 @@ const USERS_VIEWING_STYLE: React.CSSProperties = {
 } as const;
 
 // Light tint of assistant color for hover
-const AI_HOVER_BG = "#fde8c0";
+const AI_HOVER_BG = COLORS.YELL_LLL;
 
 interface Props {
   project_id: string;

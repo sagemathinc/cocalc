@@ -12,6 +12,7 @@ import { Button, Tooltip } from "antd";
 import { useEffect, useRef } from "react";
 
 import { Icon } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 
 import type { AgentSession } from "./types";
 import { INPUT_AREA_STYLE } from "./types";
@@ -82,17 +83,20 @@ export function AgentInputArea({
     <div
       ref={containerRef}
       style={{ ...INPUT_AREA_STYLE, display: "flex" }}
-      onBlur={() => {
-        if (generating) userBlurredRef.current = true;
+      onBlur={(e) => {
+        if (
+          generating &&
+          !e.currentTarget.contains((e.relatedTarget as Node | null) ?? null)
+        ) {
+          userBlurredRef.current = true;
+        }
       }}
     >
       <div
         style={{
           flex: 1,
           minWidth: 0,
-          ...(generating
-            ? { pointerEvents: "none", opacity: 0.5 }
-            : undefined),
+          ...(generating ? { pointerEvents: "none", opacity: 0.5 } : undefined),
         }}
       >
         {children}
@@ -141,8 +145,8 @@ export function AgentInputArea({
                   height: "36px",
                   ...(doneHighlight
                     ? {
-                        background: "#52c41a",
-                        borderColor: "#52c41a",
+                        background: COLORS.BS_GREEN,
+                        borderColor: COLORS.BS_GREEN,
                       }
                     : {}),
                 }}
