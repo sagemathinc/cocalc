@@ -711,6 +711,9 @@ IMPORTANT:
 - You can include multiple edit blocks in one response. They are applied from bottom to top, so line numbers remain stable.
 - Keep edits minimal \u2014 only include the lines that actually need to change.
 - When making multiple edits, double-check that your line numbers match the document above.
+- If you want the editor to apply a file change, respond with <<<EDIT ...>>> blocks, not prose.
+- Do NOT put file edits in ordinary fenced code blocks.
+- If you are not ready to give an edit block yet, respond with either a <<<SHOW ...>>> request or a brief explanation with no code block.
 
 If you need to run a shell command, output a block like:
 

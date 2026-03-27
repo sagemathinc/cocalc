@@ -755,4 +755,19 @@ describe("buildSystemPrompt", () => {
     );
     expect(prompt).toContain("characters omitted");
   });
+
+  it("explicitly forbids prose and ordinary code blocks for edits", () => {
+    const prompt = buildSystemPrompt(
+      "script.py",
+      {
+        content: "print('ok')",
+        cursorLine: 0,
+      },
+      false,
+    );
+    expect(prompt).toContain("respond with <<<EDIT ...>>> blocks, not prose");
+    expect(prompt).toContain(
+      "Do NOT put file edits in ordinary fenced code blocks.",
+    );
+  });
 });

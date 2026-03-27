@@ -34,6 +34,7 @@ import {
   AgentHeader,
   AgentInputArea,
   AgentMessages,
+  AgentRollbackHint,
   AgentSessionBar,
   ASSISTANT_MSG_STYLE,
   CONTAINER_STYLE,
@@ -593,7 +594,11 @@ export function NotebookAgent({
   // ---- Message renderer ----
   const renderMessage = useCallback((msg: DisplayMessage, _i: number) => {
     if (msg.sender === "user") {
-      return msg.content;
+      return (
+        <FileContext.Provider value={{ disableMarkdownCodebar: true }}>
+          <StaticMarkdown value={msg.content} />
+        </FileContext.Provider>
+      );
     }
     // Strip ```tool JSON blocks from assistant messages — they are
     // machine-readable tool invocations, not meant for the user.
@@ -632,6 +637,10 @@ export function NotebookAgent({
     }
     return ASSISTANT_MSG_STYLE;
   }, []);
+
+  const openTimeTravel = useCallback(() => {
+    actions.time_travel?.({ frame: true });
+  }, [actions]);
 
   // ---- Render ----
   return (
@@ -725,6 +734,7 @@ export function NotebookAgent({
         }}
         sendDisabled={!input.trim()}
         showDone
+        belowInput={<AgentRollbackHint onOpenTimeTravel={openTimeTravel} />}
       >
         <div
           onFocus={updateContext}

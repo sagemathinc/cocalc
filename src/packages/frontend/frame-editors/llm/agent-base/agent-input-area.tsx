@@ -31,8 +31,40 @@ interface AgentInputAreaProps {
   doneHighlight?: boolean;
   /** Optional content above the buttons (e.g. cost estimation). */
   aboveButtons?: React.ReactNode;
+  /** Optional content shown below the input area. */
+  belowInput?: React.ReactNode;
   /** Called when the user clicks Stop — e.g. to restore the input. */
   onCancel?: () => void;
+}
+
+export function AgentRollbackHint({
+  onOpenTimeTravel,
+}: {
+  onOpenTimeTravel: () => void;
+}) {
+  return (
+    <div
+      style={{
+        fontSize: "0.8em",
+        color: COLORS.GRAY_M,
+      }}
+    >
+      AI can make mistakes. Use{" "}
+      <Button
+        type="text"
+        size="small"
+        onClick={onOpenTimeTravel}
+        style={{
+          paddingInline: 0,
+          height: "auto",
+          color: COLORS.GRAY_M,
+        }}
+      >
+        TimeTravel
+      </Button>{" "}
+      to undo changes.
+    </div>
+  );
 }
 
 export function AgentInputArea({
@@ -43,6 +75,7 @@ export function AgentInputArea({
   showDone = false,
   doneHighlight = false,
   aboveButtons,
+  belowInput,
   onCancel,
 }: AgentInputAreaProps) {
   const { generating, handleNewSession, messages } = session;
@@ -100,6 +133,7 @@ export function AgentInputArea({
         }}
       >
         {children}
+        {belowInput != null && <div style={{ marginTop: 6 }}>{belowInput}</div>}
       </div>
       <div
         style={{

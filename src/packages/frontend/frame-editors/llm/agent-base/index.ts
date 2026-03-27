@@ -7,7 +7,7 @@
 export { AgentError } from "./agent-error";
 export { AgentErrorBoundary } from "./agent-error-boundary";
 export { AgentHeader } from "./agent-header";
-export { AgentInputArea } from "./agent-input-area";
+export { AgentInputArea, AgentRollbackHint } from "./agent-input-area";
 export { AgentMessages } from "./agent-messages";
 export { AgentSessionBar } from "./agent-session-bar";
 export type { AgentSession, DisplayMessage, WriteMessageParams } from "./types";

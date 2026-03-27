@@ -37,6 +37,7 @@ import {
   AgentHeader,
   AgentInputArea,
   AgentMessages,
+  AgentRollbackHint,
   AgentSessionBar,
   CONTAINER_STYLE,
   PendingExecBar,
@@ -56,7 +57,6 @@ import {
   applyEditBlocks,
   applySearchReplace,
   buildSystemPrompt,
-  extractCodeBlock,
   formatEditBlocksAsDiff,
   formatExecResult,
   formatSearchReplaceAsDiff,
@@ -149,7 +149,6 @@ function CodingAgentCore({
   const [pendingEdits, setPendingEdits] = useState<
     | { type: "edit_blocks"; blocks: EditBlock[]; base: string }
     | { type: "search_replace"; blocks: SearchReplace[]; base: string }
-    | { type: "full_replace"; code: string; base: string }
     | undefined
   >();
   const [pendingExec, setPendingExec] = useState<ExecBlock[]>([]);
@@ -249,17 +248,15 @@ function CodingAgentCore({
     null,
   );
   const [editorContextLabel, setEditorContextLabel] = useState("");
+  const panelRef = useRef<HTMLDivElement>(null);
   const inputWrapperRef = useRef<HTMLDivElement>(null);
 
-  // Clear context label when focus moves anywhere outside the input area.
-  // This catches cross-frame focus changes (e.g., clicking CodeMirror)
-  // that don't fire React's onBlur on the wrapper div.
+  // Clear context label only when focus leaves the whole agent panel.
+  // Clicking buttons inside the panel (e.g. Run/Apply) should not cause
+  // the indicator to disappear and reflow the layout under the pointer.
   useEffect(() => {
     const handleFocusIn = (e: FocusEvent) => {
-      if (
-        inputWrapperRef.current &&
-        !inputWrapperRef.current.contains(e.target as Node)
-      ) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
         setEditorContextLabel("");
       }
     };
@@ -476,16 +473,11 @@ function CodingAgentCore({
                     blocks: srBlocks,
                     base: baseSnapshot,
                   });
-                } else {
-                  const code = extractCodeBlock(assistantContent);
-                  if (code) {
-                    setPendingEdits({
-                      type: "full_replace",
-                      code,
-                      base: baseSnapshot,
-                    });
-                  }
                 }
+                // Deliberately do not treat ordinary fenced code blocks
+                // as whole-file replacements. Explanatory assistant replies
+                // often include small snippets, and auto-applying them as a
+                // full document replacement is destructive.
               }
 
               // Check for <<<SHOW blocks
@@ -665,11 +657,7 @@ function CodingAgentCore({
         remote: modified,
       });
     } else {
-      newContent = three_way_merge({
-        base: pendingEdits.base,
-        local: currentContent,
-        remote: pendingEdits.code,
-      });
+      return;
     }
 
     try {
@@ -695,6 +683,10 @@ function CodingAgentCore({
       // Prevent double-dispatch: skip if this block is already executing
       if (executingExecIdsRef.current.has(blockId)) return;
       executingExecIdsRef.current.add(blockId);
+      // Remove the pending command immediately so the first click gives
+      // visible feedback instead of leaving a stale "Run" row in place
+      // until the async exec call finishes.
+      setPendingExec((prev) => prev.filter((e) => e.id !== blockId));
       // Capture session ID before the async gap — if the user switches
       // sessions while the command runs, the result still lands in the
       // session that triggered it.
@@ -732,7 +724,6 @@ function CodingAgentCore({
         });
       }
       executingExecIdsRef.current.delete(blockId);
-      setPendingExec((prev) => prev.filter((e) => e.id !== blockId));
     },
     [project_id, path, session.writeMessage],
   );
@@ -744,6 +735,10 @@ function CodingAgentCore({
   const handleRunCode = useCallback(() => {
     actions.run_code?.(frameId);
   }, [actions, frameId]);
+
+  const openTimeTravel = useCallback(() => {
+    actions.time_travel?.({ frame: true });
+  }, [actions]);
 
   const hasBuild = typeof actions.build === "function";
   const hasRunCode = RUN_COMMANDS[filename_extension(path)] != null;
@@ -804,7 +799,7 @@ function CodingAgentCore({
 
   // ---- Render ----
   return (
-    <div style={CONTAINER_STYLE}>
+    <div ref={panelRef} style={CONTAINER_STYLE}>
       <AgentHeader
         title="Coding Agent"
         model={model}
@@ -962,6 +957,7 @@ function CodingAgentCore({
             />
           ) : undefined
         }
+        belowInput={<AgentRollbackHint onOpenTimeTravel={openTimeTravel} />}
       >
         <div ref={inputWrapperRef} onFocus={updateEditorContext}>
           <MarkdownInput
