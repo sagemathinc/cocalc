@@ -10,6 +10,8 @@ Extracted to keep the main CodingAgentCore component focused.
 
 import { useEffect, useRef } from "react";
 
+import { COLORS } from "@cocalc/util/theme";
+
 /**
  * Find the closest ancestor with `overflowY` set to "auto" or "scroll".
  * Returns `null` when nothing scrollable is found before `<body>`.
@@ -36,10 +38,13 @@ function findScrollParent(el: HTMLElement): HTMLElement | null {
 export function CollapsibleDiffs({
   children,
   maxHeight,
+  color,
 }: {
   children: React.ReactNode;
   /** Fixed pixel cap. When omitted, 75 % of the scroll container. */
   maxHeight?: number;
+  /** Optional text color for the rendered `<pre>` and its descendants. */
+  color?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -63,8 +68,16 @@ export function CollapsibleDiffs({
       pre.style.maxHeight = resolvedMax;
       pre.style.overflow = "auto";
       pre.style.position = "relative";
+      if (color != null) {
+        pre.style.color = color;
+        pre.querySelectorAll<HTMLElement>("*").forEach((child) => {
+          child.style.color = color;
+        });
+      }
     });
-  }, [children, maxHeight]);
+  }, [children, maxHeight, color]);
 
   return <div ref={containerRef}>{children}</div>;
 }
+
+export const COMPACT_CONTEXT_COLOR = COLORS.GRAY_M;

@@ -42,6 +42,7 @@ export interface CreateMessageOpts {
   full: boolean;
   isHint?: boolean;
   cellContext?: string;
+  embeddedAgent?: boolean;
 }
 
 export async function getHelp({
@@ -89,6 +90,7 @@ export function createMessage({
   full,
   isHint = false,
   cellContext,
+  embeddedAgent = false,
 }: CreateMessageOpts): string {
   const message: string[] = [];
   const prefix = full ? modelToMention(model) + " " : "";
@@ -160,9 +162,11 @@ export function createMessage({
 
   if (full) message.push("</details>");
 
-  message.push(
-    "Only show the relevant code snippet and maybe an explanation that fixes the issue. Do not repeat the entire file or document.",
-  );
+  if (!embeddedAgent) {
+    message.push(
+      "Only show the relevant code snippet and maybe an explanation that fixes the issue. Do not repeat the entire file or document.",
+    );
+  }
 
   return message.join("\n\n");
 }

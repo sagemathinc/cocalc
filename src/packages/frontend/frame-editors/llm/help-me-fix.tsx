@@ -19,6 +19,7 @@ import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame
 import { hasEmbeddedAgent } from "@cocalc/frontend/frame-editors/generic/has-embedded-agent";
 import type { NotebookFrameActions } from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/actions";
 import type { ProjectsStore } from "@cocalc/frontend/projects/store";
+import { filename_extension } from "@cocalc/util/misc";
 
 import HelpMeFixButton from "./help-me-fix-button";
 import { openAssistantWithSeed } from "./assistant-seed";
@@ -94,10 +95,11 @@ export default function HelpMeFix({
     const resolvedExtraContext = get(extraContext);
 
     if (hasEmbeddedAgent(path)) {
+      const keepInput = filename_extension(path).toLowerCase() === "ipynb";
       const prompt = createMessage({
         error: resolvedError,
         line: resolvedLine,
-        input: resolvedInput,
+        input: keepInput ? resolvedInput : undefined,
         task,
         language,
         extraFileInfo,
@@ -107,6 +109,7 @@ export default function HelpMeFix({
         open: false,
         full: false,
         isHint: mode === "hint",
+        embeddedAgent: true,
       });
       void openAssistantWithSeed({
         redux,

@@ -56,4 +56,23 @@ describe("help-me-fix assistant routing helpers", () => {
       mode: "hint",
     });
   });
+
+  test("embedded agent prompts omit the full document and modal-era footer", () => {
+    const message = createMessage({
+      error: "Undefined control sequence",
+      line: "\\badcommand",
+      task: "ran latex",
+      language: "latex",
+      extraFileInfo: "LaTeX",
+      model: "gpt-5.4-mini",
+      open: false,
+      full: false,
+      embeddedAgent: true,
+    });
+
+    expect(message).not.toContain("My LaTeX contains:");
+    expect(message).not.toContain(
+      "Only show the relevant code snippet and maybe an explanation",
+    );
+  });
 });

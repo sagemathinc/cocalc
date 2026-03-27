@@ -49,7 +49,10 @@ import {
 } from "./agent-base";
 import type { DisplayMessage, StreamHandle } from "./agent-base";
 import { RUN_COMMANDS } from "../code-editor/editor";
-import { CollapsibleDiffs } from "./coding-agent-components";
+import {
+  CollapsibleDiffs,
+  COMPACT_CONTEXT_COLOR,
+} from "./coding-agent-components";
 import type { EditBlock, ExecBlock, SearchReplace } from "./coding-agent-types";
 import { DIFF_MAX_HEIGHT, TAG } from "./coding-agent-types";
 import { normalizeAssistantSeed } from "./assistant-seed";
@@ -782,7 +785,14 @@ function CodingAgentCore({
   const renderMessage = useCallback(
     (msg: DisplayMessage, i: number) => {
       if (msg.sender === "user") {
-        return <StaticMarkdown value={msg.content} />;
+        return (
+          <CollapsibleDiffs
+            maxHeight={DIFF_MAX_HEIGHT}
+            color={COMPACT_CONTEXT_COLOR}
+          >
+            <StaticMarkdown value={msg.content} />
+          </CollapsibleDiffs>
+        );
       }
       if (msg.sender === "assistant") {
         let renderedContent = msg.content;
@@ -827,7 +837,14 @@ function CodingAgentCore({
         );
       }
       // All other system messages (exec_result, error, etc.)
-      return <StaticMarkdown value={msg.content} />;
+      return (
+        <CollapsibleDiffs
+          maxHeight={DIFF_MAX_HEIGHT}
+          color={COMPACT_CONTEXT_COLOR}
+        >
+          <StaticMarkdown value={msg.content} />
+        </CollapsibleDiffs>
+      );
     },
     [session.messages],
   );
