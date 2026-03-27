@@ -10,6 +10,7 @@ export interface AssistantSeed {
   id: string;
   prompt: string;
   forceNewTurn?: boolean;
+  mode?: "hint";
 }
 
 export function normalizeAssistantSeed(raw: any): AssistantSeed | undefined {
@@ -21,6 +22,7 @@ export function normalizeAssistantSeed(raw: any): AssistantSeed | undefined {
     prompt: value.prompt,
     forceNewTurn:
       typeof value.forceNewTurn === "boolean" ? value.forceNewTurn : undefined,
+    mode: value.mode === "hint" ? "hint" : undefined,
   };
 }
 
@@ -29,11 +31,13 @@ export async function openAssistantWithSeed({
   project_id,
   path,
   prompt,
+  mode,
 }: {
   redux: any;
   project_id: string;
   path: string;
   prompt: string;
+  mode?: "hint";
 }): Promise<void> {
   await getChatActions(redux, project_id, path, 10, 0.7, "assistant");
   const editorActions = redux.getEditorActions(project_id, path) as any;
@@ -49,6 +53,7 @@ export async function openAssistantWithSeed({
       id: uuid(),
       prompt,
       forceNewTurn: true,
+      mode,
     },
   });
   editorActions.set_active_id?.(chatFrameId);

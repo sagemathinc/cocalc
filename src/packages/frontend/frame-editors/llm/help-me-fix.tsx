@@ -113,6 +113,7 @@ export default function HelpMeFix({
         project_id,
         path,
         prompt,
+        mode: mode === "hint" ? "hint" : undefined,
       }).catch(() =>
         showHelpMeFixDialog({
           mode,

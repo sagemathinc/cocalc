@@ -140,5 +140,5 @@ export const ERROR_MSG_STYLE: CSS = {
 export const INPUT_AREA_STYLE: CSS = {
   flex: "0 0 auto",
   borderTop: `1px solid ${COLORS.GRAY_L}`,
-  padding: "8px 12px",
+  padding: "4px 6px",
 } as const;

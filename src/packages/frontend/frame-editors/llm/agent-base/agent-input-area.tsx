@@ -47,6 +47,7 @@ export function AgentRollbackHint({
       style={{
         fontSize: "0.8em",
         color: COLORS.GRAY_M,
+        textAlign: "center",
       }}
     >
       AI can make mistakes. Use{" "}
@@ -57,6 +58,9 @@ export function AgentRollbackHint({
         style={{
           paddingInline: 0,
           height: "auto",
+          minWidth: 0,
+          fontSize: "inherit",
+          lineHeight: "inherit",
           color: COLORS.GRAY_M,
         }}
       >
@@ -115,7 +119,11 @@ export function AgentInputArea({
   return (
     <div
       ref={containerRef}
-      style={{ ...INPUT_AREA_STYLE, display: "flex" }}
+      style={{
+        ...INPUT_AREA_STYLE,
+        display: "flex",
+        flexDirection: "column",
+      }}
       onBlur={(e) => {
         if (
           generating &&
@@ -127,70 +135,79 @@ export function AgentInputArea({
     >
       <div
         style={{
-          flex: 1,
-          minWidth: 0,
-          ...(generating ? { pointerEvents: "none", opacity: 0.5 } : undefined),
-        }}
-      >
-        {children}
-        {belowInput != null && <div style={{ marginTop: 6 }}>{belowInput}</div>}
-      </div>
-      <div
-        style={{
           display: "flex",
-          flexDirection: "column",
-          marginLeft: 4,
+          alignItems: "stretch",
         }}
       >
-        <div style={{ flex: 1 }} />
-        {aboveButtons}
-        {generating ? (
-          <Button onClick={handleCancel} style={{ height: "36px" }}>
-            <Icon name="stop" /> Stop
-          </Button>
-        ) : (
-          <Tooltip title="Send message (shift+enter)">
-            <Button
-              type="primary"
-              onClick={onSubmit}
-              disabled={sendDisabled}
-              style={{ height: "36px" }}
-              icon={<Icon name="paper-plane" />}
-            >
-              Send
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            ...(generating
+              ? { pointerEvents: "none", opacity: 0.5 }
+              : undefined),
+          }}
+        >
+          {children}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            marginLeft: 4,
+          }}
+        >
+          <div style={{ flex: 1 }} />
+          {aboveButtons}
+          {generating ? (
+            <Button onClick={handleCancel} style={{ height: "36px" }}>
+              <Icon name="stop" /> Stop
             </Button>
-          </Tooltip>
-        )}
-        {showDone && (
-          <>
-            <div style={{ height: "4px" }} />
-            <Tooltip
-              title={
-                doneHighlight
-                  ? "Edits applied — close this turn to save tokens"
-                  : "Close this turn and start a new one"
-              }
-            >
+          ) : (
+            <Tooltip title="Send message (shift+enter)">
               <Button
-                onClick={handleNewSession}
-                disabled={!hasAssistantResponse}
-                type={doneHighlight ? "primary" : "default"}
-                style={{
-                  height: "36px",
-                  ...(doneHighlight
-                    ? {
-                        background: COLORS.BS_GREEN,
-                        borderColor: COLORS.BS_GREEN,
-                      }
-                    : {}),
-                }}
+                type="primary"
+                onClick={onSubmit}
+                disabled={sendDisabled}
+                style={{ height: "36px" }}
+                icon={<Icon name="paper-plane" />}
               >
-                <Icon name="check" /> Done
+                Send
               </Button>
             </Tooltip>
-          </>
-        )}
+          )}
+          {showDone && (
+            <>
+              <div style={{ height: "4px" }} />
+              <Tooltip
+                title={
+                  doneHighlight
+                    ? "Edits applied — close this turn to save tokens"
+                    : "Close this turn and start a new one"
+                }
+              >
+                <Button
+                  onClick={handleNewSession}
+                  disabled={!hasAssistantResponse}
+                  type={doneHighlight ? "primary" : "default"}
+                  style={{
+                    height: "36px",
+                    ...(doneHighlight
+                      ? {
+                          background: COLORS.BS_GREEN,
+                          borderColor: COLORS.BS_GREEN,
+                        }
+                      : {}),
+                  }}
+                >
+                  <Icon name="check" /> Done
+                </Button>
+              </Tooltip>
+            </>
+          )}
+        </div>
       </div>
+      {belowInput != null && <div style={{ marginTop: 3 }}>{belowInput}</div>}
     </div>
   );
 }

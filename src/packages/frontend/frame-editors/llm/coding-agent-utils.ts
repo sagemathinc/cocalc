@@ -586,8 +586,10 @@ export function buildSystemPrompt(
   path: string,
   ctx: ReturnType<typeof getEditorContext>,
   _hasBuild: boolean,
+  opts?: { readOnly?: boolean },
 ): string {
   const ext = filename_extension(path).toLowerCase();
+  const readOnly = opts?.readOnly === true;
   const lines: string[] = [
     `You are a coding assistant embedded in a CoCalc editor.`,
     `The user is editing "${path}".`,
@@ -676,6 +678,21 @@ export function buildSystemPrompt(
     );
     lines.push("");
   }
+  if (readOnly) {
+    lines.push(`This is a hint request.
+You can see lines ${contextWindow.startLine}\u2013${contextWindow.endLine} of ${filename} (${contextWindow.totalLines} lines) above.
+If you need to see other parts of the file, request them like this:
+
+<<<SHOW lines N-M
+<<<END
+
+The user's editor will then provide those lines in the next message.
+You may request up to ${MAX_VISIBLE_LINES} lines at a time.
+
+Give a concise, instructional hint that helps the user fix the problem themselves.`);
+    return lines.join("\n");
+  }
+
   lines.push(`You can see lines ${contextWindow.startLine}\u2013${contextWindow.endLine} of ${filename} (${contextWindow.totalLines} lines) above.
 If you need to see other parts of the file, request them like this:
 

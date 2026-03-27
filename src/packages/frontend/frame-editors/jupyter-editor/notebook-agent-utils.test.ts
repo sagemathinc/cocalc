@@ -332,6 +332,38 @@ describe("buildSystemPrompt", () => {
     expect(prompt).toContain("truncated");
     expect(prompt).toContain("800 chars total");
   });
+
+  test("explicitly tells the model how to append a new cell at the bottom", () => {
+    const prompt = buildSystemPrompt({
+      totalCells: 3,
+      kernelName: "Python 3",
+      language: "python",
+    });
+    expect(prompt).toContain(
+      "To append at the bottom or end of the notebook, use `after_index` equal to the current total number of cells.",
+    );
+    expect(prompt).toContain(
+      "do not ask for clarification when the user already gave a specific, unambiguous request to add a new cell.",
+    );
+  });
+
+  test("read-only hint mode only exposes read tools", () => {
+    const prompt = buildSystemPrompt(
+      {
+        totalCells: 3,
+        kernelName: "Python 3",
+        language: "python",
+      },
+      { readOnly: true },
+    );
+    expect(prompt).toContain("### get_cell");
+    expect(prompt).toContain("### get_cells");
+    expect(prompt).not.toContain("### set_cell");
+    expect(prompt).not.toContain("### edit_cell");
+    expect(prompt).not.toContain("### insert_cells");
+    expect(prompt).not.toContain("### run_cell");
+    expect(prompt).toContain("This is a hint request.");
+  });
 });
 
 /* ------------------------------------------------------------------ */

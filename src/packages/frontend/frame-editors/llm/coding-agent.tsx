@@ -153,6 +153,7 @@ function CodingAgentCore({
   >();
   const [pendingExec, setPendingExec] = useState<ExecBlock[]>([]);
   const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [readOnlySessionId, setReadOnlySessionId] = useState<string>();
   // Tracks whether edits have been applied in this turn — highlights the
   // Done button to encourage the user to close the turn and save tokens.
   // Reset when the session (turn) changes (e.g. user clicks Done).
@@ -209,9 +210,9 @@ function CodingAgentCore({
 
   // Ref to always call the latest handleSubmit so auto-continuation
   // (e.g. <<<SHOW fulfillment) avoids stale closures.
-  const handleSubmitRef = useRef<(directInput?: string) => Promise<void>>(
-    async () => {},
-  );
+  const handleSubmitRef = useRef<
+    (directInput?: string, opts?: { readOnly?: boolean }) => Promise<void>
+  >(async () => {});
 
   // Stores the last submitted prompt so Stop can restore it.
   const lastSubmittedRef = useRef("");
@@ -348,7 +349,7 @@ function CodingAgentCore({
 
   // ---- Submit handler ----
   const handleSubmit = useCallback(
-    async (directInput?: string) => {
+    async (directInput?: string, opts?: { readOnly?: boolean }) => {
       const prompt = (directInput ?? input).trim();
       // Use the ref (not React state) to avoid the batching window where
       // `session.generating` is still false even though we've started.
@@ -363,6 +364,11 @@ function CodingAgentCore({
       if (!activeSessionId) {
         activeSessionId = uuid();
         session.setSessionId(activeSessionId);
+      }
+      const readOnly =
+        opts?.readOnly === true || readOnlySessionId === activeSessionId;
+      if (opts?.readOnly === true && readOnlySessionId !== activeSessionId) {
+        setReadOnlySessionId(activeSessionId);
       }
 
       // Use the context snapshot from when the input was focused —
@@ -393,7 +399,7 @@ function CodingAgentCore({
 
       try {
         const hasBuild = typeof actions.build === "function";
-        const system = buildSystemPrompt(path, ctx, hasBuild);
+        const system = buildSystemPrompt(path, ctx, hasBuild, { readOnly });
         const history = buildHistoryForLlm(prompt, system);
 
         // Build the streaming array once: history + user msg + mutable
@@ -457,27 +463,28 @@ function CodingAgentCore({
             // Only apply UI state if the session hasn't changed
             // mid-stream (e.g. user clicked "New Turn" while streaming).
             if (!sessionChanged) {
-              // Check for edit blocks
-              const editBlocks = parseEditBlocks(assistantContent);
-              if (editBlocks.length > 0) {
-                setPendingEdits({
-                  type: "edit_blocks",
-                  blocks: editBlocks,
-                  base: baseSnapshot,
-                });
-              } else {
-                const srBlocks = parseSearchReplaceBlocks(assistantContent);
-                if (srBlocks.length > 0) {
+              if (!readOnly) {
+                const editBlocks = parseEditBlocks(assistantContent);
+                if (editBlocks.length > 0) {
                   setPendingEdits({
-                    type: "search_replace",
-                    blocks: srBlocks,
+                    type: "edit_blocks",
+                    blocks: editBlocks,
                     base: baseSnapshot,
                   });
+                } else {
+                  const srBlocks = parseSearchReplaceBlocks(assistantContent);
+                  if (srBlocks.length > 0) {
+                    setPendingEdits({
+                      type: "search_replace",
+                      blocks: srBlocks,
+                      base: baseSnapshot,
+                    });
+                  }
+                  // Deliberately do not treat ordinary fenced code blocks
+                  // as whole-file replacements. Explanatory assistant replies
+                  // often include small snippets, and auto-applying them as a
+                  // full document replacement is destructive.
                 }
-                // Deliberately do not treat ordinary fenced code blocks
-                // as whole-file replacements. Explanatory assistant replies
-                // often include small snippets, and auto-applying them as a
-                // full document replacement is destructive.
               }
 
               // Check for <<<SHOW blocks
@@ -502,7 +509,9 @@ function CodingAgentCore({
                 // Check for command blocks BEFORE scheduling auto-
                 // continuation — if exec blocks exist, the user needs
                 // to run them first, so we don't auto-continue.
-                const execBlocks = parseExecBlocks(assistantContent);
+                const execBlocks = readOnly
+                  ? []
+                  : parseExecBlocks(assistantContent);
                 if (execBlocks.length > 0) {
                   setPendingExec(execBlocks);
                 } else {
@@ -521,7 +530,9 @@ function CodingAgentCore({
                 }
               } else {
                 // No SHOW blocks — check for command blocks only.
-                const execBlocks = parseExecBlocks(assistantContent);
+                const execBlocks = readOnly
+                  ? []
+                  : parseExecBlocks(assistantContent);
                 if (execBlocks.length > 0) {
                   setPendingExec(execBlocks);
                 }
@@ -565,6 +576,7 @@ function CodingAgentCore({
       path,
       model,
       project_id,
+      readOnlySessionId,
       session.messages,
       session.writeMessage,
       session.setGenerating,
@@ -583,7 +595,9 @@ function CodingAgentCore({
       session.handleNewSession();
     }
     setTimeout(() => {
-      void handleSubmitRef.current(seed.prompt);
+      void handleSubmitRef.current(seed.prompt, {
+        readOnly: seed.mode === "hint",
+      });
     }, 0);
   }, [actions, desc, frameId, session.handleNewSession]);
 

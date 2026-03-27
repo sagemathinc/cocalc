@@ -59,6 +59,7 @@ import {
 import {
   TAG,
   MAX_TOOL_LOOPS,
+  READ_ONLY_TOOL_NAMES,
   buildContextLabel,
   buildSystemPrompt,
   compactAssistantMessageForHistory,
@@ -239,9 +240,9 @@ export function NotebookAgent({
   const inputLockedRef = useRef(false);
   const llmStreamRef = useRef<StreamHandle | null>(null);
   const lastSubmittedRef = useRef("");
-  const handleSubmitRef = useRef<(directInput?: string) => Promise<void>>(
-    async () => {},
-  );
+  const handleSubmitRef = useRef<
+    (directInput?: string, opts?: { readOnly?: boolean }) => Promise<void>
+  >(async () => {});
   const processedAssistantSeedRef = useRef("");
   // Stored resolve function for the pending runLlmTurn Promise.
   // Cancel/unmount calls this so the Promise settles and handleSubmit
@@ -284,6 +285,7 @@ export function NotebookAgent({
   const [editorContextLabel, setEditorContextLabel] = useState("");
 
   const [renameModalOpen, setRenameModalOpen] = useState(false);
+  const [readOnlySessionId, setReadOnlySessionId] = useState<string>();
 
   // ---- Shared session management ----
   const session = useAgentSession({
@@ -369,7 +371,7 @@ export function NotebookAgent({
 
   // ---- Submit handler with tool-calling loop ----
   const handleSubmit = useCallback(
-    async (directInput?: string) => {
+    async (directInput?: string, opts?: { readOnly?: boolean }) => {
       const prompt = (directInput ?? input).trim();
       // Use the ref (not React state) to avoid the batching window where
       // `session.generating` is still false even though we've started.
@@ -397,6 +399,11 @@ export function NotebookAgent({
       if (!activeSessionId) {
         activeSessionId = uuid();
         session.setSessionId(activeSessionId);
+      }
+      const readOnly =
+        opts?.readOnly === true || readOnlySessionId === activeSessionId;
+      if (opts?.readOnly === true && readOnlySessionId !== activeSessionId) {
+        setReadOnlySessionId(activeSessionId);
       }
 
       const now = new Date().toISOString();
@@ -437,7 +444,7 @@ export function NotebookAgent({
         const ctx =
           notebookContextRef.current ??
           getNotebookContext(actions as JupyterEditorActions);
-        const system = buildSystemPrompt(ctx);
+        const system = buildSystemPrompt(ctx, { readOnly });
 
         // Build history from conversation messages and tool results.
         const HISTORY_EVENTS = new Set(["message", "tool_result"]);
@@ -502,7 +509,9 @@ export function NotebookAgent({
             session_id: activeSessionId,
           });
 
-          const toolCalls = parseToolBlocks(assistantText);
+          const toolCalls = parseToolBlocks(assistantText).filter(
+            ({ name }) => !readOnly || READ_ONLY_TOOL_NAMES.has(name),
+          );
           if (toolCalls.length === 0) break;
 
           // Run batch with live index refresh + scroll to affected cells
@@ -572,6 +581,7 @@ export function NotebookAgent({
       session.cancelRef,
       model,
       project_id,
+      readOnlySessionId,
       runLlmTurn,
       jupyterActions,
     ],
@@ -587,7 +597,9 @@ export function NotebookAgent({
       session.handleNewSession();
     }
     setTimeout(() => {
-      void handleSubmitRef.current(seed.prompt);
+      void handleSubmitRef.current(seed.prompt, {
+        readOnly: seed.mode === "hint",
+      });
     }, 0);
   }, [actions, desc, frameId, session.handleNewSession]);
 

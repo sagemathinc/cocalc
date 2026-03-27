@@ -770,4 +770,20 @@ describe("buildSystemPrompt", () => {
       "Do NOT put file edits in ordinary fenced code blocks.",
     );
   });
+
+  it("supports a read-only hint mode with no edit or exec instructions", () => {
+    const prompt = buildSystemPrompt(
+      "script.py",
+      {
+        content: "print('ok')",
+        cursorLine: 0,
+      },
+      false,
+      { readOnly: true },
+    );
+    expect(prompt).toContain("This is a hint request.");
+    expect(prompt).not.toContain("When you want to edit the file");
+    expect(prompt).not.toContain("```exec");
+    expect(prompt).toContain("<<<SHOW lines N-M");
+  });
 });

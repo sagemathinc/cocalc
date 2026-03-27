@@ -45,6 +45,11 @@ export const MAX_GET_CELLS_INPUT_CHARS = 500;
 export const MAX_GET_CELLS_OUTPUT_CHARS = 250;
 export const MAX_ASSISTANT_HISTORY_CHARS = 1600;
 export const MAX_TOOL_RESULT_HISTORY_CHARS = 2400;
+export const READ_ONLY_TOOL_NAMES = new Set([
+  "cell_count",
+  "get_cell",
+  "get_cells",
+]);
 
 /* ------------------------------------------------------------------ */
 /*  Cell content fencing                                               */
@@ -866,7 +871,11 @@ export async function runCell(
 /*  System prompt builder                                              */
 /* ------------------------------------------------------------------ */
 
-export function buildSystemPrompt(ctx: NotebookContext): string {
+export function buildSystemPrompt(
+  ctx: NotebookContext,
+  opts?: { readOnly?: boolean },
+): string {
+  const readOnly = opts?.readOnly === true;
   const lines: string[] = [];
 
   // 1. Role
@@ -964,81 +973,91 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
   lines.push("```");
   lines.push("");
 
-  lines.push("### set_cell");
-  lines.push(
-    "Replace the full contents of a cell. Use for cells under ~1000 characters.",
-  );
-  lines.push("```tool");
-  lines.push(
-    '{"name": "set_cell", "args": {"index": 1, "content": "new code here"}}',
-  );
-  lines.push("```");
-  lines.push("");
+  if (!readOnly) {
+    lines.push("### set_cell");
+    lines.push(
+      "Replace the full contents of a cell. Use for cells under ~1000 characters.",
+    );
+    lines.push("```tool");
+    lines.push(
+      '{"name": "set_cell", "args": {"index": 1, "content": "new code here"}}',
+    );
+    lines.push("```");
+    lines.push("");
 
-  lines.push("### edit_cell");
-  lines.push(
-    "Apply search/replace patches to a cell. Use for cells of ~1000+ characters.",
-  );
-  lines.push(
-    "The `edits` string contains one or more `<<<SEARCH` / `>>>REPLACE` / `<<<END` blocks:",
-  );
-  lines.push("```tool");
-  lines.push(
-    '{"name": "edit_cell", "args": {"index": 3, "edits": "<<<SEARCH\\nold code\\n>>>REPLACE\\nnew code\\n<<<END"}}',
-  );
-  lines.push("```");
-  lines.push("");
+    lines.push("### edit_cell");
+    lines.push(
+      "Apply search/replace patches to a cell. Use for cells of ~1000+ characters.",
+    );
+    lines.push(
+      "The `edits` string contains one or more `<<<SEARCH` / `>>>REPLACE` / `<<<END` blocks:",
+    );
+    lines.push("```tool");
+    lines.push(
+      '{"name": "edit_cell", "args": {"index": 3, "edits": "<<<SEARCH\\nold code\\n>>>REPLACE\\nnew code\\n<<<END"}}',
+    );
+    lines.push("```");
+    lines.push("");
 
-  lines.push("### insert_cells");
-  lines.push(
-    "Insert one or more cells after the given index. Use `after_index: 0` to insert at the beginning.",
-  );
-  lines.push(
-    "The `cells_markdown` string alternates fenced code blocks (for code cells) and plain text (for markdown cells):",
-  );
-  lines.push("```tool");
-  lines.push(
-    '{"name": "insert_cells", "args": {"after_index": 2, "cells_markdown": "```\\nprint(\'hello\')\\n```\\nThis is a markdown cell.\\n```\\nx = 42\\n```"}}',
-  );
-  lines.push("```");
-  lines.push("");
+    lines.push("### insert_cells");
+    lines.push(
+      "Insert one or more cells after the given index. Use `after_index: 0` to insert at the beginning.",
+    );
+    lines.push(
+      "To append at the bottom or end of the notebook, use `after_index` equal to the current total number of cells.",
+    );
+    lines.push(
+      "The `cells_markdown` string alternates fenced code blocks (for code cells) and plain text (for markdown cells):",
+    );
+    lines.push("```tool");
+    lines.push(
+      '{"name": "insert_cells", "args": {"after_index": 2, "cells_markdown": "```\\nprint(\'hello\')\\n```\\nThis is a markdown cell.\\n```\\nx = 42\\n```"}}',
+    );
+    lines.push("```");
+    lines.push("");
 
-  lines.push("### run_cell");
-  lines.push(
-    "Run a cell and return its output. The cell is executed immediately.",
-  );
-  lines.push("```tool");
-  lines.push('{"name": "run_cell", "args": {"index": 4}}');
-  lines.push("```");
-  lines.push("");
+    lines.push("### run_cell");
+    lines.push(
+      "Run a cell and return its output. The cell is executed immediately.",
+    );
+    lines.push("```tool");
+    lines.push('{"name": "run_cell", "args": {"index": 4}}');
+    lines.push("```");
+    lines.push("");
+  }
 
-  // 6. Edit rules
-  lines.push("## Editing Rules");
-  lines.push("");
-  lines.push(
-    "- For cells under ~1000 characters, use `set_cell` with the full replacement content.",
-  );
-  lines.push(
-    "- For larger cells (~1000+ characters), use `edit_cell` with `<<<SEARCH`/`>>>REPLACE`/`<<<END` blocks.",
-  );
-  lines.push(
-    "- To insert multiple consecutive cells (code and/or markdown), use `insert_cells` with alternating fenced code/markdown blocks.",
-  );
-  lines.push("");
+  if (!readOnly) {
+    // 6. Edit rules
+    lines.push("## Editing Rules");
+    lines.push("");
+    lines.push(
+      "- For cells under ~1000 characters, use `set_cell` with the full replacement content.",
+    );
+    lines.push(
+      "- For larger cells (~1000+ characters), use `edit_cell` with `<<<SEARCH`/`>>>REPLACE`/`<<<END` blocks.",
+    );
+    lines.push(
+      "- To insert multiple consecutive cells (code and/or markdown), use `insert_cells` with alternating fenced code/markdown blocks.",
+    );
+    lines.push(
+      "- If the user asks to add, insert, append, or create a new cell at the top, bottom, beginning, or end, use `insert_cells` directly when the location is unambiguous.",
+    );
+    lines.push("");
 
-  // 7. Run rules
-  lines.push("## Running Rules");
-  lines.push("");
-  lines.push(
-    "- To run a cell, use `run_cell`. It executes immediately and returns the output.",
-  );
-  lines.push(
-    "- After inserting code cells, run them in order so the user sees the results. You can include multiple `run_cell` blocks in the same response.",
-  );
-  lines.push(
-    "- After insert_cells, subsequent tool calls in the same response will see updated cell indices.",
-  );
-  lines.push("");
+    // 7. Run rules
+    lines.push("## Running Rules");
+    lines.push("");
+    lines.push(
+      "- To run a cell, use `run_cell`. It executes immediately and returns the output.",
+    );
+    lines.push(
+      "- After inserting code cells, run them in order so the user sees the results. You can include multiple `run_cell` blocks in the same response.",
+    );
+    lines.push(
+      "- After insert_cells, subsequent tool calls in the same response will see updated cell indices.",
+    );
+    lines.push("");
+  }
 
   // 8. General guidance
   lines.push("## Important");
@@ -1047,7 +1066,16 @@ export function buildSystemPrompt(ctx: NotebookContext): string {
   lines.push(
     "- After tool results are returned, you will have a chance to continue.",
   );
-  lines.push("- Always inspect cells before modifying them.");
+  if (readOnly) {
+    lines.push("- This is a hint request.");
+    lines.push(
+      "- Use the available read tools to inspect the notebook, then give a concise instructional hint.",
+    );
+  } else {
+    lines.push(
+      "- Inspect existing cells before modifying or relying on them, but do not ask for clarification when the user already gave a specific, unambiguous request to add a new cell.",
+    );
+  }
   lines.push("- Keep explanations concise.");
 
   return lines.join("\n");

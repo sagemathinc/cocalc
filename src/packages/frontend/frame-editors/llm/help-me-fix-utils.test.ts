@@ -37,6 +37,7 @@ describe("help-me-fix assistant routing helpers", () => {
       id: "abc",
       prompt: "Help me fix this",
       forceNewTurn: undefined,
+      mode: undefined,
     });
 
     expect(
@@ -45,12 +46,14 @@ describe("help-me-fix assistant routing helpers", () => {
           id: "def",
           prompt: "Seeded prompt",
           forceNewTurn: true,
+          mode: "hint",
         }),
       }),
     ).toEqual({
       id: "def",
       prompt: "Seeded prompt",
       forceNewTurn: true,
+      mode: "hint",
     });
   });
 });
