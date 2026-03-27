@@ -32,6 +32,31 @@ import { agentSenderId, SYNCDB_CHANGE_THROTTLE } from "./types";
 // so the (session_id, date) primary key stays unique AND the date
 // remains a valid ISO string that sorts correctly on reload.
 let lastStandaloneDate = "";
+const MAX_STORED_AGENT_SESSIONS = 100;
+
+interface SessionOrderInfo {
+  sessionId: string;
+  earliestDate: string;
+}
+
+export function getSessionsToPrune(
+  sessions: SessionOrderInfo[],
+  {
+    maxSessions = MAX_STORED_AGENT_SESSIONS,
+    protectedSessionIds = new Set<string>(),
+  }: {
+    maxSessions?: number;
+    protectedSessionIds?: Set<string>;
+  } = {},
+): string[] {
+  if (sessions.length <= maxSessions) return [];
+
+  const prunable = sessions.filter(
+    ({ sessionId }) => !protectedSessionIds.has(sessionId),
+  );
+  const pruneCount = Math.min(prunable.length, sessions.length - maxSessions);
+  return prunable.slice(0, pruneCount).map(({ sessionId }) => sessionId);
+}
 
 /* ------------------------------------------------------------------ */
 /*  Hook options                                                       */
@@ -156,9 +181,10 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
         // Always skip session_name records from the message list —
         // their non-ISO date field ("session_name:{sid}") would produce
         // NaN in the date sort and corrupt message ordering.
-        const eventField = (usesChatSchema && !usesExistingSyncdb)
-          ? record.get("msg_event")
-          : record.get("event");
+        const eventField =
+          usesChatSchema && !usesExistingSyncdb
+            ? record.get("msg_event")
+            : record.get("event");
         if (eventField === "session_name") {
           const name = record.get("content");
           if (name) names.set(sid, name);
@@ -180,9 +206,10 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
           sender: record.get("sender") ?? "user",
           content: record.get("content") ?? "",
           date: record.get("date") ?? "",
-          event: (usesChatSchema && !usesExistingSyncdb)
-            ? (record.get("msg_event") ?? "message")
-            : (record.get("event") ?? "message"),
+          event:
+            usesChatSchema && !usesExistingSyncdb
+              ? (record.get("msg_event") ?? "message")
+              : (record.get("event") ?? "message"),
           account_id: record.get("account_id"),
           base_snapshot: record.get("base_snapshot"),
         };
@@ -190,6 +217,47 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
       });
 
       setSessionNames(names);
+
+      const sessionInfos = Array.from(sessionsSet)
+        .map((sid) => ({
+          sessionId: sid,
+          earliestDate: (msgsBySession.get(sid) ?? []).reduce(
+            (min, msg) => (msg.date < min ? msg.date : min),
+            "\uffff",
+          ),
+        }))
+        .sort((a, b) => a.earliestDate.localeCompare(b.earliestDate));
+      const sessionsToPrune = getSessionsToPrune(sessionInfos, {
+        protectedSessionIds: new Set(
+          [currentSessionId, pendingNewSessionRef.current].filter(Boolean),
+        ),
+      });
+      if (sessionsToPrune.length > 0) {
+        const pruneSet = new Set(sessionsToPrune);
+        allRecords.forEach((record: any) => {
+          const sid = record.get("session_id");
+          if (!sid || !pruneSet.has(sid)) return;
+          if (usesChatSchema && !usesExistingSyncdb) {
+            if (record.get("event") !== eventName) return;
+            db.delete({
+              date: record.get("date"),
+              sender_id: record.get("sender_id"),
+              event: eventName,
+            });
+          } else {
+            db.delete({
+              session_id: sid,
+              date: record.get("date"),
+            });
+          }
+        });
+        db.commit();
+        sessionsToPrune.forEach((sid) => {
+          sessionsSet.delete(sid);
+          msgsBySession.delete(sid);
+          names.delete(sid);
+        });
+      }
 
       // Keep pending new sessions visible
       const pendingId = pendingNewSessionRef.current;
@@ -260,7 +328,14 @@ export function useAgentSession(options: UseAgentSessionOptions): AgentSession {
         setMessages([]);
       }
     },
-    [usesChatSchema, usesExistingSyncdb, eventName, skipEvents, sessionSort, validateSessionExists],
+    [
+      usesChatSchema,
+      usesExistingSyncdb,
+      eventName,
+      skipEvents,
+      sessionSort,
+      validateSessionExists,
+    ],
   );
 
   // Keep the ref in sync so change handlers always call the latest version.
