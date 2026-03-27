@@ -232,6 +232,10 @@ export function NotebookAgent({
   fontSize?: number;
 }) {
   const { project_id, actions, desc, id: frameId } = useFrameContext();
+  const projectsStore = redux.getStore("projects");
+  const projectReadOnly =
+    projectsStore.hasLanguageModelEnabled(project_id, "help-me-fix-hint") &&
+    !projectsStore.hasFullLanguageModelEnabled(project_id);
   const jupyterActions = (actions as unknown as JupyterEditorActions)
     .jupyter_actions;
   const [model, setModel] = useLanguageModelSetting(project_id);
@@ -401,7 +405,9 @@ export function NotebookAgent({
         session.setSessionId(activeSessionId);
       }
       const readOnly =
-        opts?.readOnly === true || readOnlySessionId === activeSessionId;
+        projectReadOnly ||
+        opts?.readOnly === true ||
+        readOnlySessionId === activeSessionId;
       if (opts?.readOnly === true && readOnlySessionId !== activeSessionId) {
         setReadOnlySessionId(activeSessionId);
       }
@@ -581,6 +587,7 @@ export function NotebookAgent({
       session.cancelRef,
       model,
       project_id,
+      projectReadOnly,
       readOnlySessionId,
       runLlmTurn,
       jupyterActions,

@@ -73,6 +73,9 @@ function setAppTrusted(project_id: string, path: string, trust: boolean) {
 export default function AppPreview({ name }: EditorComponentProps) {
   const intl = useIntl();
   const { project_id, path, actions, isVisible } = useFrameContext();
+  const fullAIEnabled = redux
+    .getStore("projects")
+    .hasFullLanguageModelEnabled(project_id);
   const [exists, setExists] = useState<boolean | null>(null);
   const [localReload, setLocalReload] = useState(0);
   const [trust, setTrust0] = useState<boolean>(isAppTrusted(project_id, path));
@@ -231,6 +234,26 @@ export default function AppPreview({ name }: EditorComponentProps) {
       checkExists();
     }
   }, [checkExists, reload, mode]);
+
+  if (!fullAIEnabled) {
+    return (
+      <div
+        style={{
+          height: "100%",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <Alert
+          type="warning"
+          showIcon
+          message="AI app-building is disabled for this project."
+          description="This preview is unavailable because .app files require full AI access."
+          style={{ margin: 12 }}
+        />
+      </div>
+    );
+  }
 
   // In server mode the iframe connects to a running process — no index.html
   // needed. Only gate on existence for static "app" mode.

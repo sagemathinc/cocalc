@@ -134,6 +134,10 @@ function CodingAgentCore({
   const [model, setModel] = useLanguageModelSetting(project_id);
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
+  const projectsStore = redux.getStore("projects");
+  const projectReadOnly =
+    projectsStore.hasLanguageModelEnabled(project_id, "help-me-fix-hint") &&
+    !projectsStore.hasFullLanguageModelEnabled(project_id);
 
   // ---- Shared session management ----
   const session = useAgentSession({
@@ -322,11 +326,23 @@ function CodingAgentCore({
     (prompt: string) => {
       const ctx = editorContextRef.current ?? getEditorContext(actions);
       const hasBuild = typeof actions.build === "function";
-      const system = buildSystemPrompt(path, ctx, hasBuild);
+      const readOnly =
+        projectReadOnly ||
+        (session.sessionId != null && readOnlySessionId === session.sessionId);
+      const system = buildSystemPrompt(path, ctx, hasBuild, {
+        readOnly,
+      });
       const history = buildHistoryForLlm(prompt, system);
       return estimateConversationTokens({ system, input: prompt, history });
     },
-    [actions, buildHistoryForLlm, path],
+    [
+      actions,
+      buildHistoryForLlm,
+      path,
+      projectReadOnly,
+      readOnlySessionId,
+      session.sessionId,
+    ],
   );
 
   // ---- Cost estimation ----
@@ -366,7 +382,9 @@ function CodingAgentCore({
         session.setSessionId(activeSessionId);
       }
       const readOnly =
-        opts?.readOnly === true || readOnlySessionId === activeSessionId;
+        projectReadOnly ||
+        opts?.readOnly === true ||
+        readOnlySessionId === activeSessionId;
       if (opts?.readOnly === true && readOnlySessionId !== activeSessionId) {
         setReadOnlySessionId(activeSessionId);
       }
@@ -576,6 +594,7 @@ function CodingAgentCore({
       path,
       model,
       project_id,
+      projectReadOnly,
       readOnlySessionId,
       session.messages,
       session.writeMessage,

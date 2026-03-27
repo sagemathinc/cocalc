@@ -542,6 +542,9 @@ export default function AgentPanel({ name }: EditorComponentProps) {
   } = useFrameContext();
   const actions = rawActions as unknown as AgentEditorActions;
   const [model, setModel] = useLanguageModelSetting(project_id);
+  const fullAIEnabled = redux
+    .getStore("projects")
+    .hasFullLanguageModelEnabled(project_id);
   const isCoCalcCom = useTypedRedux("customize", "is_cocalc_com");
   const llm_markup = useTypedRedux("customize", "llm_markup");
   const [input, setInput] = useState("");
@@ -1097,6 +1100,20 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     project_id,
     tag: TAG,
   });
+
+  if (!fullAIEnabled) {
+    return (
+      <div style={CONTAINER_STYLE}>
+        <Alert
+          type="warning"
+          showIcon
+          message="AI app-building is disabled for this project."
+          description="This editor requires full AI access and is not available when AI is disabled or limited to hints."
+          style={{ margin: 12 }}
+        />
+      </div>
+    );
+  }
 
   return (
     <div style={CONTAINER_STYLE}>
