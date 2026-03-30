@@ -366,7 +366,13 @@ If the server fails to start, read the log before retrying.
 When the user asks for a static HTML app instead, use \`\`\`server stop\`\`\`
 to switch back to index.html mode.
 
-Keep responses concise and focused. Build incrementally — start simple, then enhance.`;
+Keep responses concise and focused. Build incrementally — start simple, then enhance.
+
+**CRITICAL**: After editing server-mode app files, you MUST restart the server process for changes to take effect. The user's browser will keep showing the old version until you do. Always include a restart cycle in the same response as the edit:
+1. Kill the old process: \`fuser -k <port>/tcp 2>/dev/null\`
+2. Start it again: \`cd \${dir} && python app.py > app.log 2>&1 &\`
+3. Reload the preview: \`\`\`server restart\`\`\`
+Do NOT tell the user to restart — do it yourself.`;
 
   // Tell the agent how to discover project files and set up environments
   prompt += `\n\n## Project Files and Environment Setup
