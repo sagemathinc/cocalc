@@ -3,8 +3,9 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { Divider, Space, Tabs, TabsProps } from "antd";
+import { Collapse, CollapseProps, Space } from "antd";
 
+import { useEffect, useState } from "@cocalc/frontend/app-framework";
 import { Icon, Paragraph, Title } from "@cocalc/frontend/components";
 import {
   ComputeServers,
@@ -13,17 +14,26 @@ import {
 } from "@cocalc/frontend/compute";
 import CloudFilesystems from "@cocalc/frontend/compute/cloud-filesystem/cloud-filesystems";
 import { ServerLink } from "@cocalc/frontend/project/named-server-panel";
-import { FIX_BORDER } from "@cocalc/frontend/project/page/common";
 import { SagewsControl } from "@cocalc/frontend/project/settings/sagews-control";
 import { NAMED_SERVER_NAMES } from "@cocalc/util/types/servers";
 import { FLYOUT_PADDING } from "./consts";
-import {
-  getServerTab,
-  setServerTab,
-  TabName,
-} from "@cocalc/frontend/compute/tab";
+import { getFlyoutServers, storeFlyoutState } from "./state";
 
 export function ServersFlyout({ project_id, wrap }) {
+  const [expandedPanels, setExpandedPanels] = useState<string[]>([]);
+
+  useEffect(() => {
+    const state = getFlyoutServers(project_id);
+    setExpandedPanels(state);
+  }, []);
+
+  function setExpandedPanelsHandler(keys: string[]) {
+    setExpandedPanels(keys);
+    storeFlyoutState(project_id, "servers", {
+      servers: keys,
+    });
+  }
+
   const servers = NAMED_SERVER_NAMES.map((name) => (
     <ServerLink
       key={name}
@@ -33,12 +43,41 @@ export function ServersFlyout({ project_id, wrap }) {
     />
   )).filter((s) => s != null);
 
-  function renderEmbeddedServers() {
-    return (
-      <div style={{ padding: FLYOUT_PADDING }}>
-        <Title level={5}>
-          <Icon name="server" /> Notebook and Code Editing Servers
-        </Title>
+  const items: CollapseProps["items"] = [];
+
+  if (computeServersEnabled()) {
+    items.push({
+      key: "compute-servers",
+      label: (
+        <>
+          <Icon name="server" /> Compute Servers
+        </>
+      ),
+      children: <ComputeServers project_id={project_id} mode="flyout" />,
+    });
+  }
+
+  if (cloudFilesystemsEnabled()) {
+    items.push({
+      key: "cloud-filesystems",
+      label: (
+        <>
+          <Icon name="disk-round" /> Cloud Filesystems
+        </>
+      ),
+      children: <CloudFilesystems project_id={project_id} />,
+    });
+  }
+
+  items.push({
+    key: "notebooks",
+    label: (
+      <>
+        <Icon name="jupyter" /> Notebook and Code Editing Servers
+      </>
+    ),
+    children: (
+      <div>
         <Paragraph>
           When launched, these servers run inside this project. They should open
           up in a new browser tab, and get access all files in this project.
@@ -52,81 +91,35 @@ export function ServersFlyout({ project_id, wrap }) {
           )}
         </Space>
       </div>
-    );
-  }
+    ),
+  });
 
-  function renderSageServerControl() {
-    return (
-      <div
-        style={{
-          padding: "20px 5px 5px 5px",
-          marginTop: "20px",
-          borderTop: FIX_BORDER,
-        }}
-      >
-        <Title level={5}>
-          <Icon name="sagemath" /> Sage Worksheet Server
-        </Title>
-        <SagewsControl key="worksheet" project_id={project_id} mode="flyout" />
-      </div>
-    );
-  }
-
-  function renderComputeServers() {
-    return (
-      <>
-        <div style={{ padding: FLYOUT_PADDING }}>
-          <Title level={5}>Compute Servers</Title>
-          <ComputeServers project_id={project_id} />
-        </div>
-        <Divider />
-      </>
-    );
-  }
-
-  const items: TabsProps["items"] = [];
-  if (computeServersEnabled()) {
-    items.push({
-      key: "compute-servers",
-      label: (
-        <>
-          <Icon name="server" /> Compute
-        </>
-      ),
-      children: renderComputeServers(),
-    });
-  }
-  if (cloudFilesystemsEnabled()) {
-    items.push({
-      key: "cloud-filesystems",
-      label: (
-        <>
-          <Icon name="disk-round" /> Filesystems
-        </>
-      ),
-      children: <CloudFilesystems project_id={project_id} />,
-    });
-  }
   items.push({
-    key: "notebooks",
+    key: "sage",
     label: (
       <>
-        <Icon name="jupyter" /> Notebooks
+        <Icon name="sagemath" /> Sage Worksheet Server
       </>
     ),
     children: (
-      <>
-        {renderEmbeddedServers()}
-        {renderSageServerControl()}
-      </>
+      <SagewsControl key="worksheet" project_id={project_id} mode="flyout" />
     ),
   });
 
   return wrap(
-    <Tabs
-      items={items}
-      defaultActiveKey={getServerTab(project_id)}
-      onChange={(tab) => setServerTab(project_id, tab as TabName)}
-    />,
+    <Space direction="vertical" style={{ padding: "0", width: "100%" }}>
+      <div style={{ padding: FLYOUT_PADDING }}>
+        <Title level={5}>
+          <Icon name="server" /> Servers
+        </Title>
+      </div>
+      <Collapse
+        style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}
+        activeKey={expandedPanels}
+        onChange={(keys) => setExpandedPanelsHandler(keys as string[])}
+        destroyOnHidden={true}
+        items={items}
+      />
+    </Space>,
   );
 }

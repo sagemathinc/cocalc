@@ -47,6 +47,7 @@ interface Props {
   controls?: Controls;
   modalOnly?: boolean;
   close?: () => void;
+  mode?: "flyout" | "page";
 }
 export const currentlyEditing = {
   id: 0,
@@ -59,7 +60,9 @@ export default function ComputeServer({
   controls,
   modalOnly,
   close,
+  mode,
 }: Props) {
+  const isFlyout = mode === "flyout";
   const {
     id,
     project_specific_id,
@@ -353,6 +356,108 @@ export default function ComputeServer({
 
   if (modalOnly) {
     return body;
+  }
+
+  if (isFlyout) {
+    return (
+      <div
+        style={{
+          opacity: deleted ? 0.5 : undefined,
+          width: "100%",
+          borderLeft: `4px solid ${color ?? "#aaa"}`,
+          borderBottom: "1px solid #f0f0f0",
+          padding: "8px",
+          ...style,
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            marginBottom: "4px",
+          }}
+        >
+          <Icon
+            name={cloud == "onprem" ? "global" : "server"}
+            style={{ fontSize: "16px", color: color ?? "#666" }}
+          />
+          <div
+            style={{
+              flex: 1,
+              fontWeight: "bold",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+            }}
+          >
+            <Title title={title} editable={false} />
+          </div>
+          {id != null && (
+            <State
+              data={data}
+              state={state}
+              state_changed={state_changed}
+              editable={editable}
+              id={id}
+              account_id={account_id}
+              configuration={configuration}
+              cost_per_hour={cost_per_hour}
+              purchase_id={purchase_id}
+            />
+          )}
+          {id != null && (
+            <Menu id={id} project_id={project_id} />
+          )}
+        </div>
+        <div style={{ color: "#666", fontSize: "12px" }}>
+          <Description
+            account_id={account_id}
+            cloud={cloud}
+            configuration={configuration}
+            data={data}
+            state={state}
+            short
+          />
+          {state == "running" && id && (
+            <RunningProgress server={{ ...server, id }} />
+          )}
+          {id != null && (
+            <CurrentCost state={state} cost_per_hour={cost_per_hour} />
+          )}
+        </div>
+        <BackendError error={backendError} id={id} project_id={project_id} />
+        {(state == "running" ||
+          state == "stopping" ||
+          state == "starting") && (
+          <DetailedState
+            id={id}
+            project_id={project_id}
+            detailed_state={detailed_state}
+            color={color}
+            configuration={configuration}
+          />
+        )}
+        <ShowError
+          error={error}
+          setError={setError}
+          style={{ margin: "5px 0", width: "100%" }}
+        />
+        {actions && actions.length > 0 && (
+          <div
+            style={{
+              display: "flex",
+              gap: "4px",
+              marginTop: "4px",
+              flexWrap: "wrap",
+            }}
+          >
+            {actions}
+          </div>
+        )}
+        {body}
+      </div>
+    );
   }
 
   return (

@@ -64,6 +64,7 @@ export type LSFlyout = {
   active?: FlyoutActiveMode; // check using isFlyoutActiveMode
   files?: FilesMode;
   settings?: string[]; // expanded panels
+  servers?: string[]; // expanded server panels
   starred?: FlyoutActiveStarred;
   showStarred?: boolean;
   activeTabSort?: FlyoutActiveTabSort;
@@ -89,6 +90,7 @@ export function storeFlyoutState(
     deduplicate?: boolean;
     scroll?: number;
     settings?: string[]; // expanded panels
+    servers?: string[]; // expanded server panels
     starred?: FlyoutActiveStarred;
     showStarred?: boolean;
     width?: number | null;
@@ -146,6 +148,11 @@ export function storeFlyoutState(
   if (flyout === "settings" && Array.isArray(state.settings)) {
     const keys = [...new Set(state.settings)].sort();
     current.settings = keys;
+  }
+
+  if (flyout === "servers" && Array.isArray(state.servers)) {
+    const keys = [...new Set(state.servers)].sort();
+    current.servers = keys;
   }
 
   if (flyout === "active") {
@@ -209,6 +216,10 @@ export function getFlyoutFiles(project_id: string): FilesMode {
 
 export function getFlyoutSettings(project_id: string): string[] {
   return LS.get<LSFlyout>(lsKey(project_id))?.settings ?? [];
+}
+
+export function getFlyoutServers(project_id: string): string[] {
+  return LS.get<LSFlyout>(lsKey(project_id))?.servers ?? [];
 }
 
 export function getFlyoutActiveMode(project_id: string): FlyoutActiveMode {

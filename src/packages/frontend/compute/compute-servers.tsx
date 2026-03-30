@@ -38,15 +38,23 @@ export function Docs({ style }: { style? }) {
   );
 }
 
-export default function ComputeServers({ project_id }: { project_id: string }) {
+export default function ComputeServers({
+  project_id,
+  mode,
+}: {
+  project_id: string;
+  mode?: "flyout" | "page";
+}) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
   const [help, setHelp] = useState<boolean>(false);
   const supported = availableClouds().length > 0;
 
+  const isFlyout = mode === "flyout";
+
   return (
-    <div style={{ paddingRight: "15px" }}>
-      {supported && (
+    <div style={{ paddingRight: isFlyout ? 0 : "15px" }}>
+      {supported && !isFlyout && (
         <>
           <Switch
             checkedChildren={"Help"}
@@ -140,6 +148,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
           computeServers={computeServers}
           project_id={project_id}
           account_id={account_id}
+          mode={mode}
         />
       ) : (
         <b>No Compute Server Clouds are currently enabled.</b>
@@ -156,7 +165,14 @@ function ComputeServerTable({
   computeServers: computeServers0,
   project_id,
   account_id,
+  mode,
+}: {
+  computeServers: any;
+  project_id: string;
+  account_id: string;
+  mode?: "flyout" | "page";
 }) {
+  const isFlyout = mode === "flyout";
   const [computeServers, setComputeServers] = useState<any>(computeServers0);
   useEffect(() => {
     setComputeServers(computeServers0);
@@ -257,7 +273,7 @@ function ComputeServerTable({
 
     return (
       <div style={{ display: "flex" }}>
-        {sortBy == "custom" && (
+        {sortBy == "custom" && !isFlyout && (
           <div
             style={{
               fontSize: "20px",
@@ -273,10 +289,14 @@ function ComputeServerTable({
         )}
         <ComputeServer
           server={server}
-          style={{ marginBottom: "10px" }}
+          style={{
+            marginBottom: isFlyout ? "5px" : "10px",
+            minWidth: isFlyout ? 0 : undefined,
+          }}
           key={`${id}`}
           editable={account_id == server.account_id}
           controls={{ setShowDeleted }}
+          mode={mode as "flyout" | "page" | undefined}
         />
       </div>
     );
@@ -288,6 +308,52 @@ function ComputeServerTable({
       <SortableItem key={`${id}`} id={id}>
         {renderItem(id)}
       </SortableItem>,
+    );
+  }
+
+  if (isFlyout) {
+    return (
+      <div>
+        <div style={{ margin: "5px 0", textAlign: "center" }} key="create">
+          <CreateComputeServer
+            project_id={project_id}
+            onCreate={() => setSearch("")}
+          />
+        </div>
+        {computeServers.size > 1 && (
+          <Search
+            allowClear
+            size="small"
+            placeholder={`Filter ${computeServers.size} ${plural(
+              computeServers.size,
+              "server",
+            )}...`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: "100%", marginBottom: "5px" }}
+          />
+        )}
+        {numDeleted > 0 && (
+          <Checkbox
+            style={{ marginBottom: "5px" }}
+            checked={showDeleted}
+            onChange={() => setShowDeleted(!showDeleted)}
+          >
+            Deleted ({numDeleted})
+          </Checkbox>
+        )}
+        {numSkipped > 0 && (
+          <Alert
+            showIcon
+            style={{ marginBottom: "5px" }}
+            type="warning"
+            message={`${numSkipped} hidden by filter`}
+          />
+        )}
+        <div style={{ width: "100%" }}>
+          {ids.map((id) => renderItem(id))}
+        </div>
+      </div>
     );
   }
 
@@ -395,17 +461,12 @@ function ComputeServerTable({
               let position;
               if (newIndex == ids.length - 1) {
                 const last = computeServers.get(ids[ids.length - 1]);
-                // putting it at the bottom, so subtract 1 from very bottom position
                 position = (last.get("position") ?? last.get("id")) - 1;
               } else {
-                // putting it above what was at position newIndex.
                 if (newIndex == 0) {
-                  // very top
                   const first = computeServers.get(ids[0]);
-                  // putting it at the bottom, so subtract 1 from very bottom position
                   position = (first.get("position") ?? first.get("id")) + 1;
                 } else {
-                  // not at the very top: between two
                   let x, y;
                   if (newIndex > oldIndex) {
                     x = computeServers.get(ids[newIndex]);
@@ -414,12 +475,8 @@ function ComputeServerTable({
                     x = computeServers.get(ids[newIndex - 1]);
                     y = computeServers.get(ids[newIndex]);
                   }
-
                   const x0 = x.get("position") ?? x.get("id");
                   const y0 = y.get("position") ?? y.get("id");
-                  // TODO: yes, positions could get too close and this doesn't work, and then
-                  // we have to globally reset them all.  This is done for jupyter etc.
-                  // not implemented here *yet*.
                   position = (x0 + y0) / 2;
                 }
               }
