@@ -1146,7 +1146,12 @@ export function buildSystemPrompt(
   // 8. General guidance
   lines.push("## Important");
   lines.push("");
-  lines.push("- You can include multiple tool blocks in a single response.");
+  lines.push(
+    "- You can include multiple tool blocks in a single response when they are all writes (e.g. set_cell + run_cell).",
+  );
+  lines.push(
+    "- **NEVER guess or predict tool results.** If you need to read cells (get_cell, get_cells) to decide what to do, emit ONLY the read tool call and STOP. Do not write any interpretation of the results or any follow-up tool calls in the same response. Wait for the actual tool result, then continue in your next response.",
+  );
   lines.push(
     "- After tool results are returned, you will have a chance to continue.",
   );
