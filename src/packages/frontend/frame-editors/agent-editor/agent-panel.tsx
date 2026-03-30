@@ -137,14 +137,38 @@ function buildSystemPrompt(
   appDirectory: string,
   workingDirectory: string,
   appErrors?: AppError[],
+  serverInfo?: { mode: string; port: number },
 ): string {
+  const isServerMode = serverInfo?.mode === "server" && serverInfo.port > 0;
   let prompt = `You are an AI app-building agent in CoCalc.
 The user describes an application they want. You create it by writing files.
 
 The .app file is in: ${workingDirectory || "."}
 The app files go in the directory: ${appDirectory}/
-The entry point must be: ${appDirectory}/index.html
 Shell commands (exec blocks) run in: ${workingDirectory || "."}
+
+## Current App Mode
+
+${
+  isServerMode
+    ? `**The app is currently in SERVER mode on port ${serverInfo!.port}.**
+The preview iframe shows the running server process, NOT index.html.
+If the HTML is embedded in the server code (e.g. a Python string variable
+passed to \`render_template_string()\`), you must edit the SERVER FILE
+(e.g. app.py), not index.html.
+After editing server files, you MUST kill and restart the server process
+for changes to appear in the preview.
+
+To switch to static mode: \`\`\`server stop\`\`\``
+    : `**The app is currently in STATIC mode.**
+The preview shows \`${appDirectory}/index.html\` directly.
+Edit index.html (and any CSS/JS files) to change the app — changes
+appear after a preview reload.
+The entry point must be: ${appDirectory}/index.html
+
+To switch to server mode: start a server process via exec, then
+use \`\`\`server start <port>\`\`\` to point the preview at it.`
+}
 
 ## What You Can Build
 
@@ -550,6 +574,8 @@ export default function AgentPanel({ name }: EditorComponentProps) {
     font_size,
   } = useFrameContext();
   const actions = rawActions as unknown as AgentEditorActions;
+  const appMode: string = useRedux(name, "app_mode") ?? "app";
+  const serverPort: number = useRedux(name, "server_port") ?? 0;
   const [model, setModel] = useLanguageModelSetting(project_id);
   const fullAIEnabled = redux
     .getStore("projects")
@@ -660,7 +686,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
 
   const estimateTokens = useCallback(
     (prompt: string) => {
-      const system = buildSystemPrompt(dir, parentDir, appErrors);
+      const system = buildSystemPrompt(dir, parentDir, appErrors, { mode: appMode, port: serverPort });
       const history = buildHistoryForLlm(prompt, system);
       return estimateConversationTokens({ system, input: prompt, history });
     },
@@ -962,7 +988,7 @@ export default function AgentPanel({ name }: EditorComponentProps) {
       setGenerating(true);
 
       try {
-        const system = buildSystemPrompt(dir, parentDir, appErrors);
+        const system = buildSystemPrompt(dir, parentDir, appErrors, { mode: appMode, port: serverPort });
         const history = buildHistoryForLlm(prompt, system);
 
         const streamingMsgs = [
