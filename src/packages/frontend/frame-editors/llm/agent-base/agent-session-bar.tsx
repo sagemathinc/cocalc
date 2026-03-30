@@ -14,7 +14,9 @@ Layout:
 import { Button, Dropdown, Popconfirm, Space, Tooltip } from "antd";
 import { useMemo } from "react";
 
+import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
+import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { COLORS } from "@cocalc/util/theme";
 
 import type { AgentSession } from "./types";
@@ -35,6 +37,11 @@ export function AgentSessionBar({
   onRename,
   extraButtons,
 }: AgentSessionBarProps) {
+  const { project_id } = useFrameContext();
+  const isStudentProject = redux
+    .getStore("projects")
+    .is_student_project(project_id);
+
   const {
     sessionId,
     allSessions,
@@ -134,7 +141,7 @@ export function AgentSessionBar({
         </Space.Compact>
       )}
 
-      {hasSession && hasMessages && (
+      {hasSession && hasMessages && !isStudentProject && (
         <Popconfirm
           title="Clear all messages in this turn?"
           onConfirm={handleClearSession}
