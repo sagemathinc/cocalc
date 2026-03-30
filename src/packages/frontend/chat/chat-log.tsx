@@ -11,7 +11,7 @@ Render all the messages in the chat.
 
 import { Alert, Button, Divider } from "antd";
 import { Set as immutableSet } from "immutable";
-import { debounce } from "lodash";
+import { throttle } from "lodash";
 import {
   type CSSProperties,
   MutableRefObject,
@@ -634,15 +634,16 @@ export function MessageList({
     }
   }, [selectedThread, lastReadDate, firstUnreadIndex]);
 
-  // Debounced scroll tracking: update lastread timestamp as user scrolls.
+  // Throttled scroll tracking: update lastread timestamp as user scrolls.
+  // 100ms throttle so the unread badge counts down responsively while scrolling.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debouncedUpdateLastRead = useCallback(
-    debounce(
+  const throttledUpdateLastRead = useCallback(
+    throttle(
       (threadKey: string, dateMs: number) => {
         actions?.updateLastRead?.(threadKey, dateMs);
       },
-      1000,
-      { leading: false, trailing: true },
+      100,
+      { leading: true, trailing: true },
     ),
     [actions],
   );
@@ -659,12 +660,12 @@ export function MessageList({
         if (visibleDateStr) {
           const visibleDateMs = parseFloat(visibleDateStr);
           if (Number.isFinite(visibleDateMs)) {
-            debouncedUpdateLastRead(selectedThread, visibleDateMs);
+            throttledUpdateLastRead(selectedThread, visibleDateMs);
           }
         }
       }
     },
-    [selectedThread, actions, sortedDates, debouncedUpdateLastRead],
+    [selectedThread, actions, sortedDates, throttledUpdateLastRead],
   );
 
   return (
