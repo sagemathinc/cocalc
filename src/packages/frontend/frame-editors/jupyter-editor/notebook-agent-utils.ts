@@ -17,6 +17,7 @@ Pure utility functions for the notebook agent:
 */
 
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
+import type { AgentHistoryMessage } from "@cocalc/frontend/frame-editors/llm/history-budget";
 import {
   applySearchReplace,
   formatDiffBlock,
@@ -1197,6 +1198,53 @@ export function buildSystemPrompt(
     );
   }
   lines.push("- Keep explanations concise.");
+  lines.push(
+    "- ALWAYS use tool blocks to make changes. NEVER paste code in a fenced code block and expect the user to copy it. If you want to change a cell, use `set_cell` or `edit_cell`. If you want to run a cell, use `run_cell`.",
+  );
 
   return lines.join("\n");
 }
+
+/**
+ * Few-shot examples prepended to the conversation history.
+ * These prime weaker models to use tool blocks instead of pasting
+ * code in prose. Invisible to the user — they appear as earlier
+ * messages in the LLM's context window.
+ */
+export function getFewShotExamples(readOnly?: boolean): AgentHistoryMessage[] {
+  if (readOnly) {
+    return [
+      {
+        role: "user",
+        content: "What does cell #2 do?",
+      },
+      {
+        role: "assistant",
+        content:
+          '```tool\n{"name": "get_cell", "args": {"index": 2}}\n```\nLet me read that cell first.',
+      },
+    ];
+  }
+  return [
+    {
+      role: "user",
+      content: "Fix the typo in cell #3",
+    },
+    {
+      role: "assistant",
+      content:
+        '```tool\n{"name": "get_cell", "args": {"index": 3}}\n```\nLet me read that cell first.',
+    },
+    {
+      role: "user",
+      content:
+        '[Tool Result]\n**get_cell**: Cell #3 (code):\n```python\nprnt("hello")\n```',
+    },
+    {
+      role: "assistant",
+      content:
+        '```tool\n{"name": "set_cell", "args": {"index": 3, "content": "print(\\"hello\\")"}}\n```\nFixed the typo: `prnt` → `print`.',
+    },
+  ];
+}
+

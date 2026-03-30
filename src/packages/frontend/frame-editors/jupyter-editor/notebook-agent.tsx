@@ -68,6 +68,7 @@ import {
   buildSystemPrompt,
   compactAssistantMessageForHistory,
   compactToolResultForHistory,
+  getFewShotExamples,
   getNotebookContext,
   parseToolBlocks,
   runToolBatch,
@@ -389,14 +390,18 @@ export function NotebookAgent({
       msgWithTime.sort(
         (a, b) => new Date(a.date).valueOf() - new Date(b.date).valueOf(),
       );
+      const fewShot = getFewShotExamples(projectReadOnly);
       return buildBoundedHistory({
         system,
         input: prompt,
-        history: msgWithTime.map(({ role, content }) => ({ role, content })),
+        history: [
+          ...fewShot,
+          ...msgWithTime.map(({ role, content }) => ({ role, content })),
+        ],
         maxInputTokens: getAgentInputTokenBudget(model),
       }).history;
     },
-    [model, session.messages],
+    [model, projectReadOnly, session.messages],
   );
 
   const estimateTokens = useCallback(
