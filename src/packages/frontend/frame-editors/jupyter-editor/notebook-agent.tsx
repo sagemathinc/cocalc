@@ -712,6 +712,12 @@ export function NotebookAgent({
     if (!seed || processedAssistantSeedRef.current === seed.id) return;
     processedAssistantSeedRef.current = seed.id;
     actions.set_frame_tree({ id: frameId, assistant_seed: undefined });
+    if (seed.prefill) {
+      // Pre-fill mode: just set the input text without submitting.
+      setInput(seed.prompt);
+      setInputKey((k) => k + 1);
+      return;
+    }
     if (seed.forceNewTurn !== false) {
       session.handleNewSession();
     }
@@ -784,8 +790,8 @@ export function NotebookAgent({
         helpContent={
           <ul style={{ paddingLeft: 16, margin: 0 }}>
             <li>
-              Ask the agent to edit, insert, or explain cells. It is aware of the
-              currently selected cell and its context.
+              Ask the agent to edit, insert, or explain cells. It is aware of
+              the currently selected cell and its context.
             </li>
             <li>
               The agent can <b>read</b>, <b>edit</b>, <b>insert</b>, and{" "}

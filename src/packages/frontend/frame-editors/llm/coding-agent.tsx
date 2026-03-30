@@ -328,7 +328,13 @@ function CodingAgentCore({
         maxInputTokens: getAgentInputTokenBudget(model),
       }).history;
     },
-    [model, projectReadOnly, readOnlySessionId, session.sessionId, session.messages],
+    [
+      model,
+      projectReadOnly,
+      readOnlySessionId,
+      session.sessionId,
+      session.messages,
+    ],
   );
 
   const estimateTokens = useCallback(
@@ -620,6 +626,11 @@ function CodingAgentCore({
     if (!seed || processedAssistantSeedRef.current === seed.id) return;
     processedAssistantSeedRef.current = seed.id;
     actions.set_frame_tree({ id: frameId, assistant_seed: undefined });
+    if (seed.prefill) {
+      setInput(seed.prompt);
+      setInputKey((k) => k + 1);
+      return;
+    }
     if (seed.forceNewTurn !== false) {
       session.handleNewSession();
     }
