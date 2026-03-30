@@ -1123,6 +1123,21 @@ export default function AgentPanel({ name }: EditorComponentProps) {
         model={model}
         setModel={setModel}
         project_id={project_id}
+        helpContent={
+          <ul style={{ paddingLeft: 16, margin: 0 }}>
+            <li>
+              Describe the web application you want and the agent builds it by
+              writing HTML, CSS, and JavaScript files.
+            </li>
+            <li>
+              The app preview on the right updates live as files are written.
+            </li>
+            <li>
+              You can iterate — ask for changes, add features, or fix issues in
+              follow-up messages.
+            </li>
+          </ul>
+        }
       />
 
       {/* Session bar */}

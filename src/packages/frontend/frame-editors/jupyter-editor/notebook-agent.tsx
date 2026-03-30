@@ -776,6 +776,26 @@ export function NotebookAgent({
         model={model}
         setModel={setModel}
         project_id={project_id}
+        helpContent={
+          <ul style={{ paddingLeft: 16, margin: 0 }}>
+            <li>
+              Ask the agent to edit, insert, or explain cells. It is aware of the
+              currently selected cell and its context.
+            </li>
+            <li>
+              The agent can <b>read</b>, <b>edit</b>, <b>insert</b>, and{" "}
+              <b>run</b> cells on your behalf.
+            </li>
+            <li>
+              Click into a cell first to give the agent context about what you
+              are working on.
+            </li>
+            <li>
+              Use <b>Done</b> to close a turn and start fresh — this saves
+              tokens.
+            </li>
+          </ul>
+        }
       />
 
       <AgentSessionBar

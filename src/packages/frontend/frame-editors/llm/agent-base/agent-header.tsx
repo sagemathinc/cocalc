@@ -4,10 +4,12 @@
  */
 
 /*
-Shared header bar for agent panels: AI avatar, title, and model selector.
+Shared header bar for agent panels: AI avatar, title, model selector,
+and optional help popover.
 */
 
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
+import { HelpIcon } from "@cocalc/frontend/components";
 import LLMSelector from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { COLORS } from "@cocalc/util/theme";
 
@@ -16,6 +18,8 @@ interface AgentHeaderProps {
   model: string;
   setModel: (model: string) => void;
   project_id: string;
+  /** Optional help content shown as a ? icon next to the title. */
+  helpContent?: React.ReactNode;
 }
 
 export function AgentHeader({
@@ -23,6 +27,7 @@ export function AgentHeader({
   model,
   setModel,
   project_id,
+  helpContent,
 }: AgentHeaderProps) {
   return (
     <div
@@ -38,6 +43,11 @@ export function AgentHeader({
     >
       <AIAvatar size={20} />
       <span style={{ fontWeight: 500 }}>{title}</span>
+      {helpContent != null && (
+        <HelpIcon title={title} maxWidth="350px">
+          {helpContent}
+        </HelpIcon>
+      )}
       <div style={{ flex: 1 }} />
       <LLMSelector
         model={model}

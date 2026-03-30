@@ -857,6 +857,26 @@ function CodingAgentCore({
         model={model}
         setModel={setModel}
         project_id={project_id}
+        helpContent={
+          <ul style={{ paddingLeft: 16, margin: 0 }}>
+            <li>
+              Ask the agent to edit, refactor, or explain your code. It sees the
+              file content around your cursor.
+            </li>
+            <li>
+              <b>Select text</b> to point the agent to the exact lines you want
+              it to work on — the selection is included as context.
+            </li>
+            <li>
+              The agent proposes edits as diffs you can accept or reject before
+              they are applied.
+            </li>
+            <li>
+              Use <b>Done</b> to close a turn and start fresh — this saves
+              tokens.
+            </li>
+          </ul>
+        }
       />
 
       <AgentSessionBar
