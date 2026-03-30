@@ -439,6 +439,22 @@ export function parseToolBlocks(text: string): ToolCall[] {
       // Skip malformed tool blocks
     }
   }
+  // Some models omit the closing ``` at the end of the response.
+  // Try to recover unclosed tool blocks at the tail.
+  if (blocks.length === 0) {
+    const unclosed = /^```tool\n([\s\S]+?)$/gm;
+    let m: RegExpExecArray | null;
+    while ((m = unclosed.exec(text)) !== null) {
+      try {
+        const parsed = JSON.parse(m[1].trim());
+        if (parsed.name) {
+          blocks.push({ name: parsed.name, args: parsed.args ?? {} });
+        }
+      } catch {
+        // Skip
+      }
+    }
+  }
   return blocks;
 }
 
