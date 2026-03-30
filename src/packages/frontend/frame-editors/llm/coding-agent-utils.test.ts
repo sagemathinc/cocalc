@@ -21,6 +21,7 @@ import {
   parseSearchReplaceBlocks,
   parseShowBlocks,
   truncateMiddle,
+  getCodingAgentFewShotExamples,
 } from "./coding-agent-utils";
 
 /* ------------------------------------------------------------------ */
@@ -785,5 +786,75 @@ describe("buildSystemPrompt", () => {
     expect(prompt).not.toContain("When you want to edit the file");
     expect(prompt).not.toContain("```exec");
     expect(prompt).toContain("<<<SHOW lines N-M");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  getCodingAgentFewShotExamples                                      */
+/* ------------------------------------------------------------------ */
+
+describe("getCodingAgentFewShotExamples", () => {
+  it("read-write examples contain EDIT, SEARCH/REPLACE, and exec blocks", () => {
+    const examples = getCodingAgentFewShotExamples(false);
+    const assistantText = examples
+      .filter((m) => m.role === "assistant")
+      .map((m) => m.content)
+      .join("\n");
+    expect(assistantText).toContain("<<<EDIT");
+    expect(assistantText).toContain("<<<SEARCH");
+    expect(assistantText).toContain(">>>REPLACE");
+    expect(assistantText).toContain("<<<END");
+    expect(assistantText).toContain("```exec");
+  });
+
+  it("read-only examples contain only SHOW blocks, no edits", () => {
+    const examples = getCodingAgentFewShotExamples(true);
+    const assistantText = examples
+      .filter((m) => m.role === "assistant")
+      .map((m) => m.content)
+      .join("\n");
+    expect(assistantText).toContain("<<<SHOW");
+    expect(assistantText).not.toContain("<<<EDIT");
+    expect(assistantText).not.toContain("<<<SEARCH");
+    expect(assistantText).not.toContain("```exec");
+  });
+
+  it("ends with a separator message", () => {
+    const rw = getCodingAgentFewShotExamples(false);
+    const ro = getCodingAgentFewShotExamples(true);
+    expect(rw[rw.length - 1].content).toContain("format example");
+    expect(ro[ro.length - 1].content).toContain("format example");
+  });
+
+  it("SEARCH/REPLACE blocks in examples parse correctly", () => {
+    const examples = getCodingAgentFewShotExamples(false);
+    const srExample = examples.find(
+      (m) => m.role === "assistant" && m.content.includes("<<<SEARCH"),
+    );
+    expect(srExample).toBeDefined();
+    const blocks = parseSearchReplaceBlocks(srExample!.content);
+    expect(blocks.length).toBeGreaterThan(0);
+    expect(blocks[0].search).toBeTruthy();
+    expect(blocks[0].replace).toBeDefined();
+  });
+
+  it("EDIT blocks in examples parse correctly", () => {
+    const examples = getCodingAgentFewShotExamples(false);
+    const editExample = examples.find(
+      (m) => m.role === "assistant" && m.content.includes("<<<EDIT"),
+    );
+    expect(editExample).toBeDefined();
+    const blocks = parseEditBlocks(editExample!.content);
+    expect(blocks.length).toBeGreaterThan(0);
+  });
+
+  it("exec blocks in examples parse correctly", () => {
+    const examples = getCodingAgentFewShotExamples(false);
+    const execExample = examples.find(
+      (m) => m.role === "assistant" && m.content.includes("```exec"),
+    );
+    expect(execExample).toBeDefined();
+    const blocks = parseExecBlocks(execExample!.content);
+    expect(blocks.length).toBeGreaterThan(0);
   });
 });

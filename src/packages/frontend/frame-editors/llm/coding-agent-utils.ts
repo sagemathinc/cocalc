@@ -593,6 +593,7 @@ export function buildSystemPrompt(
   const lines: string[] = [
     `You are a coding assistant embedded in a CoCalc editor.`,
     `The user is editing "${path}".`,
+    `Note: the first few messages in the conversation are format examples showing how to use edit blocks. Ignore their file contents — they do not describe this file.`,
   ];
 
   if (ext === "tex" || ext === "rnw" || ext === "rtex") {
@@ -768,4 +769,71 @@ export function truncateMiddle(
   const tail = text.slice(-keep);
   const omitted = text.length - 2 * keep;
   return `${head}\n\n[… ${omitted} characters omitted …]\n\n${tail}`;
+}
+
+type FewShotMessage = { role: "user" | "assistant"; content: string };
+
+/**
+ * Few-shot examples prepended to the coding agent's conversation history.
+ * These prime weaker models to use <<<EDIT and <<<SEARCH/>>>REPLACE
+ * blocks instead of pasting code in prose.
+ */
+export function getCodingAgentFewShotExamples(
+  readOnly?: boolean,
+): FewShotMessage[] {
+  if (readOnly) {
+    return [
+      {
+        role: "user",
+        content: "What does the main function do?",
+      },
+      {
+        role: "assistant",
+        content:
+          "<<<SHOW lines 1-30\n<<<END\n\nLet me look at the code first.",
+      },
+      {
+        role: "user",
+        content:
+          "[The above was a format example. Now a new file begins.]",
+      },
+    ];
+  }
+  return [
+    // Example 1: <<<EDIT block
+    {
+      role: "user",
+      content: "Change the print statement on line 5 to use f-string",
+    },
+    {
+      role: "assistant",
+      content:
+        '<<<EDIT lines 5-5\nprint(f"Result: {value}")\n<<<END\n\nUpdated line 5 to use an f-string.',
+    },
+    // Example 2: <<<SEARCH/>>>REPLACE
+    {
+      role: "user",
+      content: "Rename the variable 'tmp' to 'result' everywhere",
+    },
+    {
+      role: "assistant",
+      content:
+        "<<<SEARCH\ntmp = compute()\n>>>REPLACE\nresult = compute()\n<<<END\n\n<<<SEARCH\nreturn tmp\n>>>REPLACE\nreturn result\n<<<END\n\nRenamed `tmp` to `result` in both locations.",
+    },
+    // Example 3: exec block
+    {
+      role: "user",
+      content: "Run the tests",
+    },
+    {
+      role: "assistant",
+      content:
+        "```exec\npython -m pytest test_main.py -v\n```",
+    },
+    // Separator
+    {
+      role: "user",
+      content: "[The above were format examples. Now a new file begins.]",
+    },
+  ];
 }

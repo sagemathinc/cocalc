@@ -72,6 +72,7 @@ import {
   parseShowBlocks,
   SHOW_BLOCK_REGEX,
   truncateMiddle,
+  getCodingAgentFewShotExamples,
 } from "./coding-agent-utils";
 import {
   buildBoundedHistory,
@@ -316,14 +317,18 @@ function CodingAgentCore({
             content: truncateMiddle(m.content),
           }),
         );
+      const readOnly =
+        projectReadOnly ||
+        (session.sessionId != null && readOnlySessionId === session.sessionId);
+      const fewShot = getCodingAgentFewShotExamples(readOnly);
       return buildBoundedHistory({
         system,
         input: prompt,
-        history: preparedHistory,
+        history: [...fewShot, ...preparedHistory],
         maxInputTokens: getAgentInputTokenBudget(model),
       }).history;
     },
-    [model, session.messages],
+    [model, projectReadOnly, readOnlySessionId, session.sessionId, session.messages],
   );
 
   const estimateTokens = useCallback(
