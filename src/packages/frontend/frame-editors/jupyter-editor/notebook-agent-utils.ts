@@ -1155,9 +1155,24 @@ export function buildSystemPrompt(
     lines.push(
       "- Use the available read tools to inspect the notebook, then give a concise instructional hint.",
     );
+    lines.push(
+      "- When the error is a NameError or ImportError, check cells above the failing cell — the missing name is likely defined there but hasn't been executed yet.",
+    );
   } else {
     lines.push(
       "- Inspect existing cells before modifying or relying on them, but do not ask for clarification when the user already gave a specific, unambiguous request to add a new cell.",
+    );
+    lines.push(
+      "- When the user references a cell by number (e.g. 'the function in cell #6'), always use `get_cell` first to see its contents before acting.",
+    );
+    lines.push(
+      "- Jupyter cells share kernel state: a function or variable defined in one cell is available in others **only if that cell has been run**. When you insert or edit a cell that depends on definitions from another cell, `run_cell` the defining cell first, then the new cell.",
+    );
+    lines.push(
+      "- For NameError or ImportError: check cells above the failing cell for the missing definition and `run_cell` those cells instead of duplicating the definition inline.",
+    );
+    lines.push(
+      "- When fixing a dependency chain, run all affected cells in sequence in one response — do not stop to ask permission between cells. For example, if cell #6 defines a function and cell #7 uses it, emit both `run_cell` calls in the same reply.",
     );
   }
   lines.push("- Keep explanations concise.");

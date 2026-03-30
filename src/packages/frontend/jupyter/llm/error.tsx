@@ -8,12 +8,13 @@ Use an LLM to explain an error message and help the user fix it.
 When id and actions are available, provides Replace / Replace + Run buttons.
 */
 
-import { CSSProperties, useCallback } from "react";
+import { CSSProperties, useCallback, useMemo } from "react";
 
 import type { JupyterActions } from "@cocalc/jupyter/redux/actions";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
+import { trunc } from "@cocalc/util/misc";
 
 interface Props {
   style?: CSSProperties;
@@ -47,6 +48,38 @@ export default function LLMError({
     [id, actions],
   );
 
+  // Build context from neighboring cells so the agent understands
+  // what functions/variables are defined nearby.
+  const neighborContext = useMemo(() => {
+    if (!id || !actions) return undefined;
+    const store = actions.store;
+    if (!store) return undefined;
+    const cellList = store.get("cell_list");
+    if (!cellList) return undefined;
+    const ids = cellList.toJS() as string[];
+    const idx = ids.indexOf(id);
+    if (idx < 0) return undefined;
+
+    const MAX_NEIGHBOR_CHARS = 1200;
+    const parts: string[] = [];
+    // Show up to 3 cells above for context
+    const start = Math.max(0, idx - 3);
+    for (let i = start; i < idx; i++) {
+      const cellId = ids[i];
+      const cell = store.getIn(["cells", cellId]) as any;
+      if (!cell) continue;
+      const cellInput = (cell.get("input") ?? "") as string;
+      if (!cellInput.trim()) continue;
+      const cellType = (cell.get("cell_type") ?? "code") as string;
+      parts.push(
+        `Cell #${i + 1} (${cellType}):\n\`\`\`\n${trunc(cellInput, MAX_NEIGHBOR_CHARS)}\n\`\`\``,
+      );
+    }
+    return parts.length > 0
+      ? `Cells above the failing cell:\n\n${parts.join("\n\n")}`
+      : undefined;
+  }, [id, actions]);
+
   if (frameActions == null) return null;
 
   return (
@@ -58,6 +91,7 @@ export default function LLMError({
       tag="jupyter-notebook-cell-eval"
       extraFileInfo={frameActions.languageModelExtraFileInfo()}
       language={frameActions.languageModelGetLanguage()}
+      extraContext={neighborContext}
       onReplace={hasReplaceSupport ? onReplace : undefined}
       cellId={id}
       notebookFrameActions={nbFrameActionsRef.current}
