@@ -616,6 +616,71 @@ export class ChatActions extends Actions<ChatState> {
     return true;
   };
 
+  // Update the last-read timestamp for a thread. The value is the ms-since-epoch
+  // of the last message the user has seen (i.e. the bottom-most visible message).
+  updateLastRead = (
+    threadKey: string,
+    dateMs: number,
+    commit = true,
+  ): boolean => {
+    if (this.syncdb == null) {
+      return false;
+    }
+    const account_id = this.redux.getStore("account").get_account_id();
+    if (!account_id || !Number.isFinite(dateMs)) {
+      return false;
+    }
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) {
+      return false;
+    }
+    const currentValue = entry.doc[`lastread-${account_id}`];
+    if (typeof currentValue === "number" && currentValue >= dateMs) {
+      // don't go backwards
+      return false;
+    }
+    entry.doc[`lastread-${account_id}`] = dateMs;
+    // also update the count-based read field for backward compatibility
+    const messages = this.store?.get("messages");
+    if (messages) {
+      let count = 0;
+      for (const [, msg] of messages) {
+        if (msg == null) continue;
+        const replyTo = msg.get("reply_to");
+        const rootKey = replyTo
+          ? `${new Date(replyTo).valueOf()}`
+          : `${msg.get("date")?.valueOf()}`;
+        if (rootKey === toMsString(threadKey)) {
+          const msgDate = msg.get("date")?.valueOf();
+          if (msgDate != null && msgDate <= dateMs) {
+            count++;
+          }
+        }
+      }
+      entry.doc[`read-${account_id}`] = count;
+    }
+    this.syncdb.set(entry.doc);
+    if (commit) {
+      this.syncdb.commit();
+    }
+    return true;
+  };
+
+  // Get the last-read timestamp for a thread for the current user.
+  getLastRead = (threadKey: string): number | undefined => {
+    const account_id = this.redux.getStore("account").get_account_id();
+    if (!account_id) return undefined;
+    const entry = this.getThreadRootDoc(threadKey);
+    if (entry == null) return undefined;
+    const val = entry.message.get(`lastread-${account_id}`);
+    if (typeof val === "number" && val > 0) return val;
+    if (typeof val === "string") {
+      const n = parseInt(val, 10);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    return undefined;
+  };
+
   private getThreadRootDoc = (
     threadKey: string,
   ): { doc: any; message: ChatMessageTyped } | null => {

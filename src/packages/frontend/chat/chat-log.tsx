@@ -9,9 +9,17 @@ Render all the messages in the chat.
 
 // cSpell:ignore: timespan
 
-import { Alert, Button } from "antd";
+import { Alert, Button, Divider } from "antd";
 import { Set as immutableSet } from "immutable";
-import { MutableRefObject, useEffect, useMemo, useRef } from "react";
+import { debounce } from "lodash";
+import {
+  type CSSProperties,
+  MutableRefObject,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+} from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
 import { chatBotName, isChatBot } from "@cocalc/frontend/account/chatbot";
@@ -26,6 +34,7 @@ import {
   parse_hashtags,
   plural,
 } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import type { ChatActions } from "./actions";
 import Composing from "./composing";
 import { filterMessages } from "./filter-messages";
@@ -62,6 +71,8 @@ interface Props {
   scrollToDate?: null | undefined | string;
   selectedDate?: string;
   costEstimate?;
+  // ms-epoch of the last message the current user has read in this thread
+  lastReadDate?: number;
 }
 
 export function ChatLog({
@@ -81,6 +92,7 @@ export function ChatLog({
   scrollToDate,
   selectedDate,
   costEstimate,
+  lastReadDate,
 }: Props) {
   const storeMessages = useRedux(
     ["messages"],
@@ -278,6 +290,8 @@ export function ChatLog({
           selectedDate,
           numChildren,
           singleThreadView,
+          lastReadDate,
+          selectedThread,
         }}
       />
       <Composing
@@ -503,6 +517,14 @@ function NotShowing({
   );
 }
 
+const NEW_MESSAGES_DIVIDER_STYLE: CSSProperties = {
+  margin: "8px 15px",
+  borderColor: COLORS.ANTD_RED_WARN,
+  color: COLORS.ANTD_RED_WARN,
+  fontSize: "12px",
+  fontWeight: 500,
+};
+
 export function MessageList({
   messages,
   account_id,
@@ -520,6 +542,8 @@ export function MessageList({
   selectedDate,
   numChildren,
   singleThreadView,
+  lastReadDate,
+  selectedThread,
 }: {
   messages: ChatMessages;
   account_id: string;
@@ -531,18 +555,117 @@ export function MessageList({
   path?: string;
   fontSize?: number;
   selectedHashtags?;
-  actions?;
+  actions?: ChatActions;
   costEstimate?: CostEstimate;
   manualScrollRef?;
   selectedDate?: string;
   numChildren?: NumChildren;
   singleThreadView?: boolean;
+  lastReadDate?: number;
+  selectedThread?: string;
 }) {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
+
+  // Find the index of the first unread message (message after lastReadDate).
+  // Used for both initial scroll and the "new messages" divider.
+  const firstUnreadIndex = useMemo(() => {
+    if (lastReadDate == null || sortedDates.length === 0) return -1;
+    for (let i = 0; i < sortedDates.length; i++) {
+      const dateMs = parseFloat(sortedDates[i]);
+      if (dateMs > lastReadDate) return i;
+    }
+    return -1; // all messages are read
+  }, [lastReadDate, sortedDates]);
+
+  // Track the lastReadDate at the time the thread was opened so the divider
+  // stays stable (doesn't disappear as the user scrolls and updates lastread).
+  const initialLastReadRef = useRef<number | undefined>(undefined);
+  const prevThreadRef = useRef<string | undefined>(undefined);
+  if (selectedThread !== prevThreadRef.current) {
+    // thread changed – capture the current lastread as the stable divider position
+    initialLastReadRef.current = lastReadDate;
+    prevThreadRef.current = selectedThread;
+  }
+
+  const stableFirstUnreadIndex = useMemo(() => {
+    const stableLastRead = initialLastReadRef.current;
+    if (stableLastRead == null || sortedDates.length === 0) return -1;
+    for (let i = 0; i < sortedDates.length; i++) {
+      const dateMs = parseFloat(sortedDates[i]);
+      if (dateMs > stableLastRead) return i;
+    }
+    return -1;
+  }, [sortedDates]);
+
+  // Initial scroll: when a thread with a lastread position opens, scroll to
+  // the last-read message centered in the viewport (not to the bottom).
+  const initialScrollDoneRef = useRef<string | undefined>(undefined);
+  const initialIndex = useMemo(() => {
+    if (lastReadDate == null) {
+      // no lastread → start at bottom (newest messages)
+      return Math.max(sortedDates.length - 1, 0);
+    }
+    if (firstUnreadIndex > 0) {
+      // scroll so the last-read message is visible (one before first unread)
+      return firstUnreadIndex - 1;
+    }
+    // all read → start at bottom
+    return Math.max(sortedDates.length - 1, 0);
+  }, [sortedDates.length, lastReadDate, firstUnreadIndex]);
+
   const virtuosoScroll = useVirtuosoScrollHook({
     cacheId: `${project_id}${path}`,
-    initialState: { index: Math.max(sortedDates.length - 1, 0), offset: 0 }, // starts scrolled to the newest message.
+    initialState: { index: initialIndex, offset: 0 },
   });
+
+  // When thread changes, scroll to the last-read position
+  useEffect(() => {
+    const threadId = selectedThread ?? "__none__";
+    if (initialScrollDoneRef.current === threadId) return;
+    initialScrollDoneRef.current = threadId;
+    if (lastReadDate != null && firstUnreadIndex > 0) {
+      // Scroll to the first unread message, aligned to start so the divider is visible
+      setTimeout(() => {
+        virtuosoRef?.current?.scrollToIndex({
+          index: Math.max(firstUnreadIndex - 1, 0),
+          align: "center",
+        });
+      }, 50);
+    }
+  }, [selectedThread, lastReadDate, firstUnreadIndex]);
+
+  // Debounced scroll tracking: update lastread timestamp as user scrolls.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const debouncedUpdateLastRead = useCallback(
+    debounce(
+      (threadKey: string, dateMs: number) => {
+        actions?.updateLastRead?.(threadKey, dateMs);
+      },
+      1000,
+      { leading: false, trailing: true },
+    ),
+    [actions],
+  );
+
+  const handleRangeChanged = useCallback(
+    ({ endIndex }: { startIndex: number; endIndex: number }) => {
+      if (manualScrollRef) {
+        manualScrollRef.current = endIndex < sortedDates.length - 1;
+      }
+      // Update lastread based on the last visible message
+      if (selectedThread && actions?.updateLastRead && sortedDates.length > 0) {
+        const visibleDateStr =
+          sortedDates[Math.min(endIndex, sortedDates.length - 1)];
+        if (visibleDateStr) {
+          const visibleDateMs = parseFloat(visibleDateStr);
+          if (Number.isFinite(visibleDateMs)) {
+            debouncedUpdateLastRead(selectedThread, visibleDateMs);
+          }
+        }
+      }
+    },
+    [selectedThread, actions, sortedDates, debouncedUpdateLastRead],
+  );
 
   return (
     <Virtuoso
@@ -583,6 +706,10 @@ export function MessageList({
         const is_thread_body = is_thread && message.get("reply_to") != null;
         const h = virtuosoHeightsRef.current?.[index];
 
+        // Show a "New messages" divider before the first unread message
+        const showNewMessagesDivider =
+          stableFirstUnreadIndex >= 0 && index === stableFirstUnreadIndex;
+
         return (
           <div
             style={{
@@ -590,6 +717,9 @@ export function MessageList({
               paddingTop: index == 0 ? "20px" : undefined,
             }}
           >
+            {showNewMessagesDivider && (
+              <Divider style={NEW_MESSAGES_DIVIDER_STYLE}>New messages</Divider>
+            )}
             <DivTempHeight height={h ? `${h}px` : undefined}>
               <Message
                 messages={messages}
@@ -637,14 +767,7 @@ export function MessageList({
           </div>
         );
       }}
-      rangeChanged={
-        manualScrollRef
-          ? ({ endIndex }) => {
-              // manually scrolling if NOT at the bottom.
-              manualScrollRef.current = endIndex < sortedDates.length - 1;
-            }
-          : undefined
-      }
+      rangeChanged={handleRangeChanged}
       {...virtuosoScroll}
     />
   );

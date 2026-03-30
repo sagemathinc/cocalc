@@ -14,6 +14,10 @@ export interface ThreadListItem {
   label: string;
   newestTime: number;
   messageCount: number;
+  // number of messages after the lastread timestamp for the given account
+  unreadCount: number;
+  // the lastread timestamp (ms epoch) for the given account, if set
+  lastReadTimestamp: number | undefined;
   rootMessage?: ChatMessageTyped;
 }
 
@@ -30,7 +34,10 @@ export interface ThreadSection<T extends ThreadListItem = ThreadListItem> {
   threads: T[];
 }
 
-export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
+export function useThreadList(
+  messages?: ChatMessages,
+  account_id?: string,
+): ThreadListItem[] {
   return React.useMemo(() => {
     if (messages == null || messages.size === 0) {
       return [];
@@ -42,6 +49,7 @@ export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
         key: string;
         newestTime: number;
         messageCount: number;
+        messageDates: number[];
         rootMessage?: ChatMessageTyped;
       }
     >();
@@ -58,13 +66,17 @@ export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
           key: rootKey,
           newestTime: 0,
           messageCount: 0,
+          messageDates: [],
         };
         threads.set(rootKey, thread);
       }
       thread.messageCount += 1;
       const dateValue = message.get("date")?.valueOf();
-      if (dateValue != null && dateValue > thread.newestTime) {
-        thread.newestTime = dateValue;
+      if (dateValue != null) {
+        thread.messageDates.push(dateValue);
+        if (dateValue > thread.newestTime) {
+          thread.newestTime = dateValue;
+        }
       }
       if (!replyTo) {
         thread.rootMessage = message;
@@ -79,18 +91,51 @@ export function useThreadList(messages?: ChatMessages): ThreadListItem[] {
           entry.rootMessage = maybeRoot;
         }
       }
+      // compute unread count based on lastread timestamp
+      let lastReadTimestamp: number | undefined;
+      let unreadCount = 0;
+      if (account_id && entry.rootMessage) {
+        const val = entry.rootMessage.get(`lastread-${account_id}`);
+        if (typeof val === "number" && val > 0) {
+          lastReadTimestamp = val;
+        } else if (typeof val === "string") {
+          const n = parseInt(val, 10);
+          if (Number.isFinite(n) && n > 0) {
+            lastReadTimestamp = n;
+          }
+        }
+        if (lastReadTimestamp != null) {
+          unreadCount = entry.messageDates.filter(
+            (d) => d > lastReadTimestamp!,
+          ).length;
+        } else {
+          // no lastread set — fall back to count-based for backward compat
+          const readField = entry.rootMessage.get(`read-${account_id}`);
+          const readValue =
+            typeof readField === "number"
+              ? readField
+              : typeof readField === "string"
+                ? parseInt(readField, 10)
+                : 0;
+          const readCount =
+            Number.isFinite(readValue) && readValue > 0 ? readValue : 0;
+          unreadCount = Math.max(entry.messageCount - readCount, 0);
+        }
+      }
       items.push({
         key: entry.key,
         label: deriveThreadLabel(entry.rootMessage, entry.key),
         newestTime: entry.newestTime,
         messageCount: entry.messageCount,
+        unreadCount,
+        lastReadTimestamp,
         rootMessage: entry.rootMessage,
       });
     }
 
     items.sort((a, b) => b.newestTime - a.newestTime);
     return items;
-  }, [messages]);
+  }, [messages, account_id]);
 }
 
 export function deriveThreadLabel(
@@ -146,10 +191,9 @@ function recencyKeyForDelta(delta: number): RecencyKey {
   return "older";
 }
 
-export function groupThreadsByRecency<T extends ThreadListItem & { isPinned?: boolean }>(
-  threads: T[],
-  options: GroupOptions = {},
-): ThreadSection<T>[] {
+export function groupThreadsByRecency<
+  T extends ThreadListItem & { isPinned?: boolean },
+>(threads: T[], options: GroupOptions = {}): ThreadSection<T>[] {
   if (!threads || threads.length === 0) {
     return [];
   }
