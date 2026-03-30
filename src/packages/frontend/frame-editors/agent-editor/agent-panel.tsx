@@ -42,6 +42,7 @@ import { FileContext } from "@cocalc/frontend/lib/file-context";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import { exec } from "@cocalc/frontend/frame-editors/generic/client";
 import { AgentHeader } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-header";
+import { CollapsibleDiffs } from "@cocalc/frontend/frame-editors/llm/coding-agent-components";
 import { AgentInputArea } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-input-area";
 import { AgentMessages } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-messages";
 import { AgentSessionBar } from "@cocalc/frontend/frame-editors/llm/agent-base/agent-session-bar";
@@ -527,9 +528,11 @@ function renderAppMessage(msg: DisplayMessage): ReactNode {
     return msg.content;
   }
   return (
-    <div className="cc-agent-writefile-blocks">
-      <StaticMarkdown value={formatWriteFileBlocks(msg.content)} />
-    </div>
+    <CollapsibleDiffs maxHeight={300}>
+      <div className="cc-agent-writefile-blocks">
+        <StaticMarkdown value={formatWriteFileBlocks(msg.content)} />
+      </div>
+    </CollapsibleDiffs>
   );
 }
 
