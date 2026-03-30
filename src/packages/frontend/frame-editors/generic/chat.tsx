@@ -31,7 +31,11 @@ function Chat({ font_size, desc }: EditorComponentProps) {
   const { project_id, path: path0, actions, id: frameId } = useFrameContext();
   const path = chatFile(path0);
   const agentSpec = getAgentSpec(path0);
-  const EmbeddedAgent = agentSpec.hasAgent ? agentSpec.component : null;
+  const oldAssistantMode = redux
+    .getStore("account")
+    .getIn(["other_settings", "old_assistant_mode"]);
+  const EmbeddedAgent =
+    agentSpec.hasAgent && !oldAssistantMode ? agentSpec.component : null;
   const aiEnabled = redux
     .getStore("projects")
     .hasLanguageModelEnabled(project_id);

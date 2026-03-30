@@ -630,10 +630,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return;
     }
 
-    // For editors without an embedded agent, fall back to the
-    // LanguageModelTitleBarButton popover which provides AI presets
-    // (fix errors, autocomplete, explain, etc.).
-    if (!getAgentSpec(props.path).hasAgent) {
+    // For editors without an embedded agent — or when the user prefers
+    // the old assistant mode — fall back to the LanguageModelTitleBarButton
+    // popover which provides AI presets (fix errors, autocomplete, explain, etc.).
+    const oldAssistantMode = redux
+      .getStore("account")
+      .getIn(["other_settings", "old_assistant_mode"]);
+    if (!getAgentSpec(props.path).hasAgent || oldAssistantMode) {
       return (
         <LanguageModelTitleBarButton
           key="assistant"

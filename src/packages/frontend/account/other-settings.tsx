@@ -370,6 +370,22 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
     );
   }
 
+  function render_old_assistant_mode(): Rendered {
+    return (
+      <Switch
+        checked={!!props.other_settings.get("old_assistant_mode")}
+        onChange={(e) => {
+          on_change("old_assistant_mode", e.target.checked);
+        }}
+      >
+        <FormattedMessage
+          id="account.other-settings.llm.old_assistant_mode"
+          defaultMessage={`<strong>Old assistant chat mode</strong> — use the classic side chat with @-mentions instead of the embedded AI agent panel`}
+        />
+      </Switch>
+    );
+  }
+
   function render_language_model(): Rendered {
     return (
       <LabeledRow
@@ -431,6 +447,7 @@ export function OtherSettings(props: Readonly<Props>): React.JSX.Element {
         }
       >
         {render_disable_all_llm()}
+        {render_old_assistant_mode()}
         {render_language_model()}
         {render_llm_reply_language()}
         {render_custom_llm()}

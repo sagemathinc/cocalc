@@ -94,7 +94,10 @@ export default function HelpMeFix({
     const resolvedInput = get(input);
     const resolvedExtraContext = get(extraContext);
 
-    if (hasEmbeddedAgent(path)) {
+    const oldAssistantMode = redux
+      .getStore("account")
+      .getIn(["other_settings", "old_assistant_mode"]);
+    if (hasEmbeddedAgent(path) && !oldAssistantMode) {
       const keepInput = filename_extension(path).toLowerCase() === "ipynb";
       const prompt = createMessage({
         error: resolvedError,
