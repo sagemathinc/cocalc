@@ -322,7 +322,7 @@ export function NotebookAgent({
   // Auto-run: automatically execute modified/inserted code cells.
   // Default on — the toggle is visible right next to the Send button
   // so the user can easily disable it.
-  const [autoRun, setAutoRun] = useState(true);
+  const [autoRun, setAutoRun] = useState(false);
   const autoRunRef = useRef(false);
   autoRunRef.current = autoRun;
 

@@ -177,10 +177,10 @@ function CodingAgentCore({
       const stored = actions.store
         ?.get("local_view_state")
         ?.get("coding_agent_auto_accept");
-      // Default to true if never explicitly set
-      return stored == null ? true : !!stored;
+      // Default to false if never explicitly set
+      return stored == null ? false : !!stored;
     } catch {
-      return true;
+      return false;
     }
   });
   const setAutoAccept = useCallback(
