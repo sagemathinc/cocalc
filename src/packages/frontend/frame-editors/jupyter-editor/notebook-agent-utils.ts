@@ -374,12 +374,17 @@ export function buildPostToolPrompt(
       `Here are the tool results:\n\n${toolResultContent}\n\n` +
       "The requested notebook changes were applied successfully. " +
       "Treat the current cell contents and outputs as updated. " +
-      "Do not call get_cell/get_cells merely to verify, reinterpret, or undo the change. " +
-      "Do not revert the user's requested edit. " +
+      "Do NOT call get_cell/get_cells merely to verify, reinterpret, or undo the change that was just applied. " +
+      "Do NOT revert or undo the edit — the user requested this change. " +
+      "If the cell is read back and the diff is visible, that is the CORRECT state — do not 'fix' or 'restore' the old version. " +
       "Briefly summarize what changed and stop unless a tool result shows an error or timeout."
     );
   }
-  return `Here are the tool results:\n\n${toolResultContent}\n\nContinue based on these results. If you need more information, use more tools. Otherwise, provide your answer.`;
+  return (
+    `Here are the tool results:\n\n${toolResultContent}\n\n` +
+    "Continue based on these results. If you need more information, use more tools. Otherwise, provide your answer. " +
+    "IMPORTANT: Do not undo or revert changes that were just applied — the user requested them."
+  );
 }
 
 function hasSuccessfulWriteBatch(
@@ -1203,6 +1208,9 @@ export function buildSystemPrompt(
   lines.push("- Keep explanations concise.");
   lines.push(
     "- ALWAYS use tool blocks to make changes. NEVER paste code in a fenced code block and expect the user to copy it. If you want to change a cell, use `set_cell` or `edit_cell`. If you want to run a cell, use `run_cell`.",
+  );
+  lines.push(
+    "- NEVER undo or revert an edit that was just applied. If a cell is read back and shows the change, that is the correct state — do not 'restore' the previous version.",
   );
 
   return lines.join("\n");

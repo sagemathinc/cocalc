@@ -428,8 +428,8 @@ describe("buildPostToolPrompt", () => {
     expect(prompt).toContain(
       "The requested notebook changes were applied successfully.",
     );
-    expect(prompt).toContain("Do not call get_cell/get_cells merely to verify");
-    expect(prompt).toContain("Do not revert the user's requested edit.");
+    expect(prompt).toContain("Do NOT call get_cell/get_cells merely to verify");
+    expect(prompt).toContain("Do NOT revert or undo the edit");
   });
 
   test("keeps the generic continue prompt when no successful write happened", () => {
