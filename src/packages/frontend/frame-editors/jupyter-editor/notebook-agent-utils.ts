@@ -972,6 +972,9 @@ export function buildSystemPrompt(
 
   // 1. Role
   lines.push("You are an AI assistant for a Jupyter notebook.");
+  lines.push(
+    "Note: the first few messages in the conversation are format examples showing how to use tools. Ignore their cell numbers and contents — they do not describe this notebook.",
+  );
   lines.push("");
 
   // 2. Kernel info
@@ -1223,9 +1226,14 @@ export function getFewShotExamples(readOnly?: boolean): AgentHistoryMessage[] {
         content:
           '```tool\n{"name": "get_cell", "args": {"index": 2}}\n```\nLet me read that cell first.',
       },
+      {
+        role: "user",
+        content: "[The above was a format example. Now a new notebook begins.]",
+      },
     ];
   }
   return [
+    // Example 1: set_cell for a small cell
     {
       role: "user",
       content: "Fix the typo in cell #3",
@@ -1233,7 +1241,7 @@ export function getFewShotExamples(readOnly?: boolean): AgentHistoryMessage[] {
     {
       role: "assistant",
       content:
-        '```tool\n{"name": "get_cell", "args": {"index": 3}}\n```\nLet me read that cell first.',
+        '```tool\n{"name": "get_cell", "args": {"index": 3}}\n```',
     },
     {
       role: "user",
@@ -1243,7 +1251,52 @@ export function getFewShotExamples(readOnly?: boolean): AgentHistoryMessage[] {
     {
       role: "assistant",
       content:
-        '```tool\n{"name": "set_cell", "args": {"index": 3, "content": "print(\\"hello\\")"}}\n```\nFixed the typo: `prnt` → `print`.',
+        '```tool\n{"name": "set_cell", "args": {"index": 3, "content": "print(\\"hello\\")"}}\n```\nFixed: `prnt` → `print`.',
+    },
+    // Example 2: edit_cell for a larger cell
+    {
+      role: "user",
+      content: "Change the label in cell #5 from 'x' to 'time'",
+    },
+    {
+      role: "assistant",
+      content:
+        '```tool\n{"name": "get_cell", "args": {"index": 5}}\n```',
+    },
+    {
+      role: "user",
+      content:
+        "[Tool Result]\n**get_cell**: Cell #5 (code):\n```python\nimport matplotlib.pyplot as plt\nx = range(10)\ny = [i**2 for i in x]\nplt.plot(x, y)\nplt.xlabel('x')\nplt.ylabel('y')\nplt.title('Quadratic')\nplt.show()\n```",
+    },
+    {
+      role: "assistant",
+      content:
+        '```tool\n{"name": "edit_cell", "args": {"index": 5, "edits": "<<<SEARCH\\nplt.xlabel(\'x\')\\n>>>REPLACE\\nplt.xlabel(\'time\')\\n<<<END"}}\n```\nChanged the x-axis label.',
+    },
+    // Example 3: run_cell and react to output
+    {
+      role: "user",
+      content: "Run cell #3 and check if it works",
+    },
+    {
+      role: "assistant",
+      content:
+        '```tool\n{"name": "run_cell", "args": {"index": 3}}\n```',
+    },
+    {
+      role: "user",
+      content:
+        '[Tool Result]\n**run_cell**: {"status":"completed","index":3,"id":"abc123","output":"NameError: name \'x\' is not defined"}',
+    },
+    {
+      role: "assistant",
+      content:
+        "Cell #3 has a `NameError` — `x` is not defined. The variable is likely defined in an earlier cell that hasn't been run yet.\n```tool\n{\"name\": \"run_cell\", \"args\": {\"index\": 1}}\n```\n```tool\n{\"name\": \"run_cell\", \"args\": {\"index\": 3}}\n```",
+    },
+    // Separator: clear few-shot context before real conversation
+    {
+      role: "user",
+      content: "[The above were format examples. Now a new notebook begins.]",
     },
   ];
 }

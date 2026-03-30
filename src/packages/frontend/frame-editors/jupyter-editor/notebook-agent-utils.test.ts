@@ -14,6 +14,7 @@ import {
   parseToolBlocks,
   buildContextLabel,
   resolveIndex,
+  getFewShotExamples,
 } from "./notebook-agent-utils";
 
 /* ------------------------------------------------------------------ */
@@ -437,5 +438,63 @@ describe("buildPostToolPrompt", () => {
       '**get_cell**: Cell #1 (code):\n```python\nprint("ok")\n```',
     );
     expect(prompt).toContain("Continue based on these results.");
+  });
+});
+
+/* ------------------------------------------------------------------ */
+/*  getFewShotExamples                                                 */
+/* ------------------------------------------------------------------ */
+
+describe("getFewShotExamples", () => {
+  test("read-only examples have valid tool blocks that parse correctly", () => {
+    const examples = getFewShotExamples(true);
+    const assistantMsgs = examples.filter((m) => m.role === "assistant");
+    expect(assistantMsgs.length).toBeGreaterThan(0);
+    for (const msg of assistantMsgs) {
+      const parsed = parseToolBlocks(msg.content);
+      expect(parsed.length).toBeGreaterThan(0);
+      for (const tc of parsed) {
+        expect(typeof tc.name).toBe("string");
+        expect(tc.name.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test("read-write examples have valid tool blocks that parse correctly", () => {
+    const examples = getFewShotExamples(false);
+    const assistantMsgs = examples.filter((m) => m.role === "assistant");
+    expect(assistantMsgs.length).toBeGreaterThan(0);
+    for (const msg of assistantMsgs) {
+      const parsed = parseToolBlocks(msg.content);
+      expect(parsed.length).toBeGreaterThan(0);
+      for (const tc of parsed) {
+        expect(typeof tc.name).toBe("string");
+        expect(tc.name.length).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  test("read-write example includes an edit_cell with valid search/replace edits", () => {
+    const examples = getFewShotExamples(false);
+    const editCalls = examples
+      .filter((m) => m.role === "assistant")
+      .flatMap((m) => parseToolBlocks(m.content))
+      .filter((tc) => tc.name === "edit_cell");
+    expect(editCalls.length).toBeGreaterThan(0);
+    for (const tc of editCalls) {
+      expect(tc.args.edits).toContain("<<<SEARCH");
+      expect(tc.args.edits).toContain(">>>REPLACE");
+      expect(tc.args.edits).toContain("<<<END");
+    }
+  });
+
+  test("read-only examples only use read tools", () => {
+    const examples = getFewShotExamples(true);
+    const allTools = examples
+      .filter((m) => m.role === "assistant")
+      .flatMap((m) => parseToolBlocks(m.content));
+    for (const tc of allTools) {
+      expect(["get_cell", "get_cells", "cell_count"]).toContain(tc.name);
+    }
   });
 });
