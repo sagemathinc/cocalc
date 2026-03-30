@@ -740,6 +740,23 @@ export function service2model_core(
 // NOTE: do not use this – instead use server_settings.default_llm
 export const DEFAULT_MODEL: LanguageModel = "gemini-3-flash-preview-16k";
 
+/**
+ * Return a single free model suitable for lightweight tasks (e.g. auto-generating
+ * short titles).  Picks the first free model from the standard vendor priority.
+ * Falls back to DEFAULT_MODEL if nothing else is found.
+ */
+export function getOneFreeModel(): LanguageModel {
+  for (const v of DEFAULT_LLM_PRIORITY) {
+    const models = USER_SELECTABLE_LLMS_BY_VENDOR[v];
+    if (!models) continue;
+    for (const m of models) {
+      const cost = LLM_COST[m];
+      if (cost?.free) return m;
+    }
+  }
+  return DEFAULT_MODEL;
+}
+
 interface LLMVendor {
   name: LLMServiceName;
   url: string;

@@ -100,6 +100,23 @@ const SYNCTEX_SOURCE_EXTS = [
   ...KNITR_EXTS,
 ] as const;
 
+type HelpMeFixBuildStage = Exclude<BuildSpecName, "build" | "bibtex" | "clean">;
+
+const HELP_ME_FIX_BUILD_STAGES = [
+  "latex",
+  "knitr",
+  "sagetex",
+  "pythontex",
+] as const satisfies readonly HelpMeFixBuildStage[];
+const MAX_HELP_ME_FIX_STDOUT_CHARS = 1200;
+const MAX_HELP_ME_FIX_STDERR_CHARS = 1200;
+
+function tailChars(value: string, maxChars: number): string {
+  if (!value) return "";
+  if (value.length <= maxChars) return value;
+  return `...\n${value.slice(-maxChars)}`;
+}
+
 interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
   sync: string;
@@ -2108,6 +2125,37 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   languageModelExtraFileInfo() {
     return "LaTeX";
+  }
+
+  getHelpMeFixBuildContext(): string {
+    const buildLogs: BuildLogs | undefined = this.store.get("build_logs");
+    if (!buildLogs) return "";
+
+    const parts: string[] = [];
+    for (const stage of HELP_ME_FIX_BUILD_STAGES) {
+      const entry = buildLogs.get(stage)?.toJS() as BuildLog | undefined;
+      if (!entry) continue;
+      const errorCount =
+        ((buildLogs.getIn([stage, "parse", "errors"]) as any)?.size ?? 0) > 0;
+      const stdout = tailChars(
+        entry.stdout ?? "",
+        MAX_HELP_ME_FIX_STDOUT_CHARS,
+      );
+      const stderr = tailChars(
+        entry.stderr ?? "",
+        MAX_HELP_ME_FIX_STDERR_CHARS,
+      );
+      if (!errorCount && !stdout && !stderr) continue;
+      parts.push(`Build stage: ${stage}`);
+      if (stdout) {
+        parts.push(`Recent stdout tail:\n\`\`\`text\n${stdout}\n\`\`\``);
+      }
+      if (stderr) {
+        parts.push(`Recent stderr tail:\n\`\`\`text\n${stderr}\n\`\`\``);
+      }
+    }
+
+    return parts.join("\n\n");
   }
 
   chatgptCodeDescription(): string {

@@ -1,23 +1,18 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-// TODO: for a frame tree it really only makes sense for this button
-// to always show the chat.  For sagews and old stuff it should hide
-// and show it.  But it's very hard to know from here which doc type
-// this is... so for now it still sort of toggles.  For now things
-// do work properly via a hack in close_chat in project_actions.
-
 import { filename_extension } from "@cocalc/util/misc";
-import { Button, Tooltip } from "antd";
-import { debounce } from "lodash";
-import { useMemo } from "react";
+import { Button, Space, Tooltip } from "antd";
+import { COLORS } from "@cocalc/util/theme";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { HiddenXS } from "@cocalc/frontend/components";
+import { AIAvatar } from "@cocalc/frontend/components";
 import { Icon } from "@cocalc/frontend/components/icon";
+import { hasEmbeddedAgent } from "@cocalc/frontend/frame-editors/generic/has-embedded-agent";
 import track from "@cocalc/frontend/user-tracking";
 import { labels } from "../i18n";
 
@@ -31,8 +26,8 @@ const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "15pt",
   paddingTop: "2px",
   cursor: "pointer",
-  background: "#e8e8e8",
-  borderTop: "2px solid lightgrey",
+  background: COLORS.GRAY_L0,
+  borderTop: `2px solid ${COLORS.GRAY_L}`,
 } as const;
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
@@ -40,13 +35,22 @@ const USERS_VIEWING_STYLE: React.CSSProperties = {
   marginRight: "5px",
 } as const;
 
+// Light tint of assistant color for hover
+const AI_HOVER_BG = COLORS.YELL_LLL;
+
 interface Props {
   project_id: string;
   path: string;
   chatState?: ChatState;
+  chatMode?: "chat" | "assistant" | "";
 }
 
-export function ChatIndicator({ project_id, path, chatState }: Props) {
+export function ChatIndicator({
+  project_id,
+  path,
+  chatState,
+  chatMode,
+}: Props) {
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },
@@ -59,28 +63,47 @@ export function ChatIndicator({ project_id, path, chatState }: Props) {
         path={path}
         style={USERS_VIEWING_STYLE}
       />
-      <ChatButton project_id={project_id} path={path} chatState={chatState} />
+      <ChatButtons
+        project_id={project_id}
+        path={path}
+        chatState={chatState}
+        chatMode={chatMode}
+      />
     </div>
   );
 }
 
-function ChatButton({ project_id, path, chatState }) {
+function ChatButtons({ project_id, path, chatState, chatMode }) {
   const intl = useIntl();
+  const [hoverAI, setHoverAI] = useState(false);
+  const [hoverChat, setHoverChat] = useState(false);
+  const lastToggleRef = useRef<{
+    mode?: "chat" | "assistant";
+    at: number;
+  }>({ at: 0 });
 
-  const toggleChat = debounce(
-    () => {
-      const actions = redux.getProjectActions(project_id);
-      if (chatState) {
-        track("close-chat", { project_id, path, how: "chat-button" });
-        actions.close_chat({ path });
-      } else {
-        track("open-chat", { project_id, path, how: "chat-button" });
-        actions.open_chat({ path });
+  const toggleChat = useCallback(
+    (mode?: "chat" | "assistant") => {
+      const now = Date.now();
+      if (
+        lastToggleRef.current.mode === mode &&
+        now - lastToggleRef.current.at < 350
+      ) {
+        return;
       }
+      lastToggleRef.current = { mode, at: now };
+      const actions = redux.getProjectActions(project_id);
+      track(chatState ? "toggle-chat" : "open-chat", {
+        project_id,
+        path,
+        how: "chat-button",
+        mode,
+      });
+      actions.toggle_chat({ path, chat_mode: mode });
     },
-    1000,
-    { leading: true },
+    [project_id, path, chatState],
   );
+
   const fileUse = useTypedRedux("file_use", "file_use");
   const isNewChat = useMemo(
     () =>
@@ -94,7 +117,17 @@ function ChatButton({ project_id, path, chatState }) {
     return null;
   }
 
-  return (
+  const showAI =
+    hasEmbeddedAgent(path) &&
+    redux.getStore("projects").hasLanguageModelEnabled(project_id);
+
+  const aiActive = !!chatState && chatMode === "assistant";
+  const chatActive = !!chatState && chatMode !== "assistant";
+
+  // Common border style for both buttons
+  const borderColor = COLORS.GRAY_L;
+
+  const chatButton = (
     <Tooltip
       title={
         <span>
@@ -105,23 +138,67 @@ function ChatButton({ project_id, path, chatState }) {
           />
         </span>
       }
-      placement={"leftTop"}
+      placement={"top"}
       mouseEnterDelay={0.5}
     >
       <Button
-        type="text"
         danger={isNewChat}
         className={isNewChat ? "smc-chat-notification" : undefined}
-        onClick={toggleChat}
-        style={{ background: chatState ? "white" : undefined }}
+        onClick={() => toggleChat("chat")}
+        onMouseEnter={() => setHoverChat(true)}
+        onMouseLeave={() => setHoverChat(false)}
+        style={{
+          background: chatActive
+            ? "white"
+            : hoverChat
+              ? COLORS.GRAY_LLL
+              : "transparent",
+          borderColor,
+        }}
       >
         <Icon name="comment" />
-        <HiddenXS>
-          <span style={{ marginLeft: "5px" }}>
-            {intl.formatMessage(labels.chat)}
-          </span>
-        </HiddenXS>
+        <span style={{ marginLeft: "5px" }}>
+          {intl.formatMessage(labels.chat)}
+        </span>
       </Button>
     </Tooltip>
+  );
+
+  if (!showAI) {
+    return chatButton;
+  }
+
+  return (
+    <Space.Compact>
+      <Tooltip
+        title={
+          <FormattedMessage
+            id="chat.chat-indicator.ai-tooltip"
+            defaultMessage={"AI Assistant"}
+          />
+        }
+        placement={"top"}
+        mouseEnterDelay={0.5}
+      >
+        <Button
+          onClick={() => toggleChat("assistant")}
+          onMouseEnter={() => setHoverAI(true)}
+          onMouseLeave={() => setHoverAI(false)}
+          style={{
+            background: aiActive
+              ? COLORS.AI_ASSISTANT_BG
+              : hoverAI
+                ? AI_HOVER_BG
+                : "transparent",
+            borderColor,
+            padding: "4px 8px",
+          }}
+        >
+          <AIAvatar size={16} />
+          <span style={{ marginLeft: "5px" }}>AI</span>
+        </Button>
+      </Tooltip>
+      {chatButton}
+    </Space.Compact>
   );
 }

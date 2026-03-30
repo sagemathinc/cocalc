@@ -88,9 +88,12 @@ export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 // Each editor gets its own unique type. This is useful to check which editor it is.
 // e.g. #7787 was caused by merely checking on the name, which had changed.
 type EditorType =
+  | "agent"
+  | "app_preview"
   | "chat"
   | "chatroom"
   | "cm-lean"
+  | "coding-agent"
   | "cm"
   | "course-assignments"
   | "course-actions"
