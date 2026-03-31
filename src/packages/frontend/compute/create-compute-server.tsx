@@ -59,7 +59,7 @@ export default function CreateComputeServer({
   compact,
 }: {
   project_id: string;
-  onCreate?: () => void;
+  onCreate: () => void;
   compact?: boolean;
 }) {
   const account_id = useTypedRedux("account", "account_id");
