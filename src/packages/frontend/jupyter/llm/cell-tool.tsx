@@ -1310,6 +1310,25 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
       }),
     );
 
+    // Include the cell's own input so the agent sees the code to work with.
+    const cell = actions.store.get("cells")?.get(id);
+    if (cell) {
+      const cellInput = cell.get("input") ?? "";
+      if (cellInput.trim()) {
+        const hasContext = showContext && (() => {
+          const ctx = getContextContent();
+          return !!(ctx.before || ctx.after);
+        })();
+        if (hasContext) {
+          chunks.push("Current cell content:");
+        }
+        const delimI = backtickSequence(cellInput);
+        chunks.push(
+          `${delimI}${isMarkdownCell ? "markdown" : language}\n${cellInput}\n${delimI}`,
+        );
+      }
+    }
+
     // Include surrounding-cell context when selected by the user.
     if (showContext) {
       const ctx = getContextContent();
@@ -1329,19 +1348,16 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     // Cap at ~16 000 chars (~4 000 tokens) so the prompt stays within
     // budget — the notebook agent applies its own token bounding on
     // top of this.
-    if (includeOutput) {
-      const cell = actions.store.get("cells")?.get(id);
-      if (cell) {
-        const MAX_OUTPUT_CHARS = 16_000;
-        const full = cellOutputToText(cell);
-        if (full.trim()) {
-          const output =
-            full.length > MAX_OUTPUT_CHARS
-              ? full.slice(0, MAX_OUTPUT_CHARS) + "\n...(truncated)"
-              : full;
-          const delim = backtickSequence(output);
-          chunks.push(`Cell output:\n${delim}text\n${output}\n${delim}`);
-        }
+    if (includeOutput && cell) {
+      const MAX_OUTPUT_CHARS = 16_000;
+      const full = cellOutputToText(cell);
+      if (full.trim()) {
+        const output =
+          full.length > MAX_OUTPUT_CHARS
+            ? full.slice(0, MAX_OUTPUT_CHARS) + "\n...(truncated)"
+            : full;
+        const delim = backtickSequence(output);
+        chunks.push(`Cell output:\n${delim}text\n${output}\n${delim}`);
       }
     }
 
