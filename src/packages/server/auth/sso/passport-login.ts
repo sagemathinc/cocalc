@@ -27,7 +27,7 @@ import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
 
 import { set_email_address_verified } from "@cocalc/database/postgres/account/queries";
-import { getPassportCache } from "@cocalc/database/postgres/passport-store";
+import { getPassportCache } from "@cocalc/database/postgres/auth/passport-store";
 
 import type {
   PostgreSQL,

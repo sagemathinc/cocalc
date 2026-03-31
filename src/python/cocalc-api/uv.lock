@@ -6,6 +6,10 @@ resolution-markers = [
     "python_full_version < '3.11'",
 ]
 
+[options]
+exclude-newer = "2026-03-28T14:50:36.730140609Z"
+exclude-newer-span = "P3D"
+
 [[package]]
 name = "annotated-types"
 version = "0.7.0"
