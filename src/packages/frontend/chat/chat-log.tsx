@@ -604,9 +604,8 @@ export function MessageList({
   // Suppress lastread updates during programmatic scrolling (initial position,
   // scrollToIndex) so we don't mark messages as read before the user scrolls.
   const suppressLastReadRef = useRef(false);
-  // When all messages fit in the viewport, no scroll events fire after
-  // suppression ends. These refs let us replay the last visible range.
-  const replayLastRangeRef = useRef(false);
+  // Track the last visible endIndex so we can replay it after suppression
+  // ends (for threads where all messages fit in the viewport).
   const lastEndIndexRef = useRef(-1);
   // Compute the initial scroll index once per thread (stable across
   // re-renders as sortedDates grows during async loading). Reset when
@@ -656,6 +655,28 @@ export function MessageList({
     // has scrolled. This applies to both threads with lastread timestamps
     // and legacy threads that only have the old read-* counter.
     suppressLastReadRef.current = true;
+
+    // After suppression ends, update lastread for whatever is currently
+    // visible. This handles threads where all messages fit in the viewport
+    // and no further scroll events will fire.
+    const replayVisibleRange = () => {
+      if (
+        selectedThread &&
+        actions?.updateLastRead &&
+        lastEndIndexRef.current >= 0 &&
+        sortedDates.length > 0
+      ) {
+        const visibleDateStr =
+          sortedDates[Math.min(lastEndIndexRef.current, sortedDates.length - 1)];
+        if (visibleDateStr) {
+          const visibleDateMs = parseFloat(visibleDateStr);
+          if (Number.isFinite(visibleDateMs)) {
+            actions.updateLastRead(selectedThread, visibleDateMs);
+          }
+        }
+      }
+    };
+
     if (lastReadDate != null && firstUnreadIndex > 0) {
       // Scroll to the first unread message, aligned to center so the divider is visible
       setTimeout(() => {
@@ -663,18 +684,19 @@ export function MessageList({
           index: Math.max(firstUnreadIndex - 1, 0),
           align: "center",
         });
-        // Re-enable lastread tracking after the scroll settles
+        // Re-enable lastread tracking after the scroll settles.
+        // Use a longer delay so the "New messages" divider stays visible
+        // briefly before being cleared by the lastread update.
         setTimeout(() => {
           suppressLastReadRef.current = false;
-        }, 150);
+          replayVisibleRange();
+        }, 1500);
       }, 50);
     } else {
-      // All read or legacy thread — re-enable after initial render settles,
-      // then replay the last visible range in case all messages fit in the
-      // viewport and no further scroll events will fire.
+      // All read or legacy thread — re-enable after initial render settles
       setTimeout(() => {
         suppressLastReadRef.current = false;
-        replayLastRangeRef.current = true;
+        replayVisibleRange();
       }, 200);
     }
   }, [selectedThread, lastReadDate, firstUnreadIndex, sortedDates.length]);
@@ -725,22 +747,6 @@ export function MessageList({
     [selectedThread, actions, sortedDates, throttledUpdateLastRead],
   );
 
-  // After suppression ends, if all messages fit in the viewport (no scroll
-  // possible), replay the last rangeChanged to update lastread.
-  useEffect(() => {
-    if (!replayLastRangeRef.current) return;
-    replayLastRangeRef.current = false;
-    if (
-      selectedThread &&
-      actions?.updateLastRead &&
-      lastEndIndexRef.current >= 0
-    ) {
-      handleRangeChanged({
-        startIndex: 0,
-        endIndex: lastEndIndexRef.current,
-      });
-    }
-  });
 
   return (
     <Virtuoso
