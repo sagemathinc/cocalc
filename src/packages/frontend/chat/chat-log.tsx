@@ -604,6 +604,10 @@ export function MessageList({
   // Suppress lastread updates during programmatic scrolling (initial position,
   // scrollToIndex) so we don't mark messages as read before the user scrolls.
   const suppressLastReadRef = useRef(false);
+  // When all messages fit in the viewport, no scroll events fire after
+  // suppression ends. These refs let us replay the last visible range.
+  const replayLastRangeRef = useRef(false);
+  const lastEndIndexRef = useRef(-1);
   // Compute the initial scroll index once per thread (stable across
   // re-renders as sortedDates grows during async loading). Reset when
   // selectedThread changes so each thread gets its own initial position.
@@ -665,9 +669,12 @@ export function MessageList({
         }, 150);
       }, 50);
     } else {
-      // All read or legacy thread — re-enable after initial render settles
+      // All read or legacy thread — re-enable after initial render settles,
+      // then replay the last visible range in case all messages fit in the
+      // viewport and no further scroll events will fire.
       setTimeout(() => {
         suppressLastReadRef.current = false;
+        replayLastRangeRef.current = true;
       }, 200);
     }
   }, [selectedThread, lastReadDate, firstUnreadIndex, sortedDates.length]);
@@ -693,6 +700,7 @@ export function MessageList({
 
   const handleRangeChanged = useCallback(
     ({ endIndex }: { startIndex: number; endIndex: number }) => {
+      lastEndIndexRef.current = endIndex;
       if (manualScrollRef) {
         manualScrollRef.current = endIndex < sortedDates.length - 1;
       }
@@ -716,6 +724,23 @@ export function MessageList({
     },
     [selectedThread, actions, sortedDates, throttledUpdateLastRead],
   );
+
+  // After suppression ends, if all messages fit in the viewport (no scroll
+  // possible), replay the last rangeChanged to update lastread.
+  useEffect(() => {
+    if (!replayLastRangeRef.current) return;
+    replayLastRangeRef.current = false;
+    if (
+      selectedThread &&
+      actions?.updateLastRead &&
+      lastEndIndexRef.current >= 0
+    ) {
+      handleRangeChanged({
+        startIndex: 0,
+        endIndex: lastEndIndexRef.current,
+      });
+    }
+  });
 
   return (
     <Virtuoso
