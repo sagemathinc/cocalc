@@ -121,6 +121,8 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { extendToIncludeEdges } from "./actions";
 
 import Cursors from "./cursors";
+import SnapGuides from "./snap-guides";
+import type { SnapLine } from "./snap";
 
 // TODO: could penDPIFactor change if you move a window from one monitor to another
 const penDPIFactor = window.devicePixelRatio;
@@ -177,6 +179,9 @@ export default function Canvas({
   }
   const RenderElt =
     readOnly || !isBoard ? RenderReadOnlyElement : RenderElement;
+
+  const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
+  const snapEnabled = frame.desc.get("snapToAlignment") !== false; // default on
 
   const backgroundDivRef = useRef<any>(null);
 
@@ -711,6 +716,8 @@ export default function Canvas({
           transforms={transformsRef.current}
           readOnly={readOnly}
           cursors={cursors?.[id]}
+          setSnapLines={setSnapLines}
+          snapEnabled={snapEnabled}
         >
           {elt}
         </Focused>
@@ -803,6 +810,8 @@ export default function Canvas({
         transforms={transformsRef.current}
         readOnly={readOnly}
         multi={multi}
+        setSnapLines={setSnapLines}
+        snapEnabled={snapEnabled}
       >
         {!isAllEdges && (
           <RenderElt element={element} canvasScale={canvasScale} focused />
@@ -1584,6 +1593,13 @@ export default function Canvas({
             />
           )}
           {renderedElements}
+          {snapLines.length > 0 && (
+            <SnapGuides
+              lines={snapLines}
+              transforms={transformsRef.current}
+              canvasScale={canvasScale}
+            />
+          )}
         </div>
       </div>
     </div>

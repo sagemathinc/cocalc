@@ -4,7 +4,7 @@ Floating panel from which you can select a tool.
 
 */
 
-import { Button, Tooltip, Typography } from "antd";
+import { Button, Divider, Tooltip, Typography } from "antd";
 import { ReactNode, useEffect } from "react";
 
 import { CSS } from "@cocalc/frontend/app-framework";
@@ -68,9 +68,10 @@ export default function Panel({
       if (TOOLS[tool].hideFromToolbar) continue;
       if (readOnly && !TOOLS[tool].readOnly) continue;
       v.push(
-        <ToolButton key={tool} tool={tool} isSelected={tool == selectedTool} />
+        <ToolButton key={tool} tool={tool} isSelected={tool == selectedTool} />,
       );
     }
+    v.push(<SnapToggleButton key="snap-toggle" />);
   }
   return (
     <div
@@ -121,6 +122,41 @@ function ToolButton({ tool, isSelected }) {
         />
       </Button>
     </Tooltip>
+  );
+}
+
+function SnapToggleButton() {
+  const { actions, id, desc } = useFrameContext();
+  const snapEnabled = desc.get("snapToAlignment") !== false;
+  return (
+    <>
+      <Divider style={{ margin: "2px 4px", minWidth: "auto", width: "auto" }} />
+      <Tooltip
+        placement="right"
+        title={
+          snapEnabled
+            ? "Snap to alignment enabled (hold Shift to move freely)"
+            : "Snap to alignment disabled"
+        }
+      >
+        <Button
+          type="text"
+          onClick={() => {
+            actions.set_frame_tree({
+              id,
+              snapToAlignment: !snapEnabled,
+            });
+          }}
+          style={
+            snapEnabled
+              ? { color: "#fff", background: SELECTED }
+              : { opacity: 0.5 }
+          }
+        >
+          <Icon name="vertical-align-middle" style={{ fontSize: "16px" }} />
+        </Button>
+      </Tooltip>
+    </>
   );
 }
 
