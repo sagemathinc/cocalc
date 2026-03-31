@@ -672,6 +672,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             fontSize: `${font_size}px`,
             paddingLeft: "5px",
             flex: 1,
+            minHeight: 0,
             overflowY: "auto",
             overflowX: "hidden",
           }}
