@@ -90,6 +90,7 @@ const NB_USER_MSG_STYLE: CSS = {
   padding: "8px 12px",
   marginBottom: 8,
   whiteSpace: "pre-wrap",
+  fontSize: "0.85em",
 };
 
 /** Tool result activity lines: faint and compact — clearly secondary. */
@@ -412,7 +413,7 @@ export function NotebookAgent({
       const readOnly =
         projectReadOnly ||
         (session.sessionId != null && readOnlySessionId === session.sessionId);
-      const system = buildSystemPrompt(ctx, { readOnly });
+      const system = buildSystemPrompt(ctx, { readOnly, autoRun: autoRunRef.current });
       const history = buildHistoryForLlm(prompt, system);
       return estimateConversationTokens({ system, input: prompt, history });
     },
@@ -587,7 +588,7 @@ export function NotebookAgent({
         const ctx =
           notebookContextRef.current ??
           getNotebookContext(actions as JupyterEditorActions);
-        const system = buildSystemPrompt(ctx, { readOnly });
+        const system = buildSystemPrompt(ctx, { readOnly, autoRun: autoRunRef.current });
 
         let history: AgentHistoryMessage[] = buildHistoryForLlm(prompt, system);
 
@@ -718,6 +719,13 @@ export function NotebookAgent({
       session.handleNewSession();
       setInput(seed.prompt);
       setInputKey((k) => k + 1);
+      // Move cursor to end of the prefilled text after the editor remounts.
+      setTimeout(() => {
+        const sel = window.getSelection();
+        if (sel && sel.focusNode) {
+          sel.collapseToEnd();
+        }
+      }, 100);
       return;
     }
     if (seed.forceNewTurn !== false) {
@@ -920,6 +928,8 @@ export function NotebookAgent({
           <MarkdownInput
             key={inputKey}
             value={input}
+            autoFocus
+            defaultMode="editor"
             onChange={handleInputChange}
             onShiftEnter={(value) => {
               handleSubmit(value);

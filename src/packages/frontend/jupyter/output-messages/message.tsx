@@ -97,7 +97,8 @@ function shouldMemoize(prev, next) {
   return (
     next.output.equals(prev.output) &&
     next.scrolled === prev.scrolled &&
-    next.trust === prev.trust
+    next.trust === prev.trust &&
+    (next.llmTools != null) === (prev.llmTools != null)
   );
 }
 
@@ -125,13 +126,23 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
     // very unlikely to be what you want.
     let hasIframes: boolean = false;
     let hasError: boolean = false;
+    let hasStderr: boolean = false;
+    let hasStdout: boolean = false;
     let traceback: string = "";
+    let stderrText: string = "";
     for (const n of numericallyOrderedKeys(obj)) {
       const mesg = obj[n];
       if (mesg != null) {
         if (mesg.get("traceback")) {
           hasError = true;
           traceback += mesg.get("traceback").join("\n") + "\n";
+        }
+        if (mesg.get("name") === "stderr" && mesg.get("text")) {
+          hasStderr = true;
+          stderrText += mesg.get("text");
+        }
+        if (mesg.get("name") === "stdout" && mesg.get("text")) {
+          hasStdout = true;
         }
         if (scrolled && !hasIframes && mesg.getIn(["data", "iframe"])) {
           hasIframes = true;
@@ -151,16 +162,21 @@ export const CellOutputMessages: React.FC<CellOutputMessagesProps> = React.memo(
         );
       }
     }
-    const help =
-      hasError && id && actions && llmTools ? (
-        <llmTools.toolComponents.LLMError
-          style={{ margin: "5px 0" }}
-          input={actions.store.getIn(["cells", id, "input"]) ?? ""}
-          traceback={Anser.ansiToText(traceback.trim())}
-          id={id}
-          actions={actions}
-        />
-      ) : undefined;
+    // Show help-me-fix for tracebacks, or when there's stderr but no stdout
+    // (stderr-only likely indicates a problem worth fixing).
+    const showHelp =
+      (hasError || (hasStderr && !hasStdout)) && id && actions && llmTools;
+    const help = showHelp ? (
+      <llmTools.toolComponents.LLMError
+        style={{ margin: "5px 0" }}
+        input={actions.store.getIn(["cells", id, "input"]) ?? ""}
+        traceback={Anser.ansiToText(
+          (traceback || stderrText).trim(),
+        )}
+        id={id}
+        actions={actions}
+      />
+    ) : undefined;
 
     return (
       <div

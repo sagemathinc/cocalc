@@ -970,9 +970,10 @@ export async function runCell(
 
 export function buildSystemPrompt(
   ctx: NotebookContext,
-  opts?: { readOnly?: boolean },
+  opts?: { readOnly?: boolean; autoRun?: boolean },
 ): string {
   const readOnly = opts?.readOnly === true;
+  const autoRun = opts?.autoRun === true;
   const lines: string[] = [];
 
   // 1. Role
@@ -1156,9 +1157,15 @@ export function buildSystemPrompt(
     lines.push(
       "- `run_cell` executes the cell's current contents, including any changes you just made with `set_cell` or `edit_cell`.",
     );
-    lines.push(
-      "- After inserting code cells, run them in order so the user sees the results. You can include multiple `run_cell` blocks in the same response.",
-    );
+    if (autoRun) {
+      lines.push(
+        "- After inserting code cells, run them in order so the user sees the results. You can include multiple `run_cell` blocks in the same response.",
+      );
+    } else {
+      lines.push(
+        "- Do NOT automatically run cells after inserting or editing them. Only use `run_cell` when the user explicitly asks you to run or execute something.",
+      );
+    }
     lines.push(
       "- After insert_cells, subsequent tool calls in the same response will see updated cell indices.",
     );
