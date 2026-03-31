@@ -634,8 +634,14 @@ export class ChatActions extends Actions<ChatState> {
     if (entry == null) {
       return false;
     }
-    const currentValue = entry.doc[`lastread-${account_id}`];
-    if (typeof currentValue === "number" && currentValue >= dateMs) {
+    const rawValue = entry.doc[`lastread-${account_id}`];
+    const currentValue =
+      typeof rawValue === "number"
+        ? rawValue
+        : typeof rawValue === "string"
+          ? parseInt(rawValue, 10)
+          : NaN;
+    if (Number.isFinite(currentValue) && currentValue >= dateMs) {
       // don't go backwards
       return false;
     }

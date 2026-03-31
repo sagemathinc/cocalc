@@ -1,7 +1,8 @@
 import { React } from "../app-framework";
+import { CHAT_SECONDARY_TEXT } from "./chat-colors";
 
 const STYLE: React.CSSProperties = {
-  color: "#888",
+  color: CHAT_SECONDARY_TEXT,
   marginBottom: "1px",
   marginLeft: "10px",
   right: 0,

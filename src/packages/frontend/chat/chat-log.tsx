@@ -299,6 +299,7 @@ export function ChatLog({
         path={path}
         accountId={account_id}
         userMap={user_map}
+        selectedThread={selectedThread}
       />
     </>
   );
@@ -600,39 +601,61 @@ export function MessageList({
   // Initial scroll: when a thread with a lastread position opens, scroll to
   // the last-read message centered in the viewport (not to the bottom).
   const initialScrollDoneRef = useRef<string | undefined>(undefined);
-  const initialIndex = useMemo(() => {
+  // Suppress lastread updates during programmatic scrolling (initial position,
+  // scrollToIndex) so we don't mark messages as read before the user scrolls.
+  const suppressLastReadRef = useRef(false);
+  // Compute the initial scroll index only once per mount (stable across
+  // re-renders as sortedDates grows during async loading). The key={cacheId}
+  // on Virtuoso ensures a fresh mount on thread switch.
+  const initialIndexRef = useRef<number | null>(null);
+  if (initialIndexRef.current == null && sortedDates.length > 0) {
     if (lastReadDate == null) {
-      // no lastread → start at bottom (newest messages)
-      return Math.max(sortedDates.length - 1, 0);
+      initialIndexRef.current = Math.max(sortedDates.length - 1, 0);
+    } else if (firstUnreadIndex > 0) {
+      initialIndexRef.current = firstUnreadIndex - 1;
+    } else {
+      initialIndexRef.current = Math.max(sortedDates.length - 1, 0);
     }
-    if (firstUnreadIndex > 0) {
-      // scroll so the last-read message is visible (one before first unread)
-      return firstUnreadIndex - 1;
-    }
-    // all read → start at bottom
-    return Math.max(sortedDates.length - 1, 0);
-  }, [sortedDates.length, lastReadDate, firstUnreadIndex]);
+  }
+  const initialIndex = initialIndexRef.current ?? Math.max(sortedDates.length - 1, 0);
 
+  // Include selectedThread in the cache key so switching threads doesn't
+  // restore a stale scroll position from a different thread.
+  const cacheId = selectedThread
+    ? `${project_id}${path}:${selectedThread}`
+    : `${project_id}${path}`;
   const virtuosoScroll = useVirtuosoScrollHook({
-    cacheId: `${project_id}${path}`,
+    cacheId,
     initialState: { index: initialIndex, offset: 0 },
   });
 
-  // When thread changes, scroll to the last-read position
+  // When a thread with unread messages opens, scroll to the first unread
+  // message. For "all read" threads, Virtuoso's initialTopMostItemIndex
+  // (from the cache or initialState) handles positioning — no override needed.
+  // Note: the Virtuoso component uses key={cacheId} so it remounts on thread
+  // switch, which means initialTopMostItemIndex is respected each time.
   useEffect(() => {
     const threadId = selectedThread ?? "__none__";
     if (initialScrollDoneRef.current === threadId) return;
+    // Don't mark as done until messages have loaded (handles page refresh)
+    if (sortedDates.length === 0) return;
     initialScrollDoneRef.current = threadId;
     if (lastReadDate != null && firstUnreadIndex > 0) {
-      // Scroll to the first unread message, aligned to start so the divider is visible
+      // Suppress lastread updates while the programmatic scroll settles
+      suppressLastReadRef.current = true;
+      // Scroll to the first unread message, aligned to center so the divider is visible
       setTimeout(() => {
         virtuosoRef?.current?.scrollToIndex({
           index: Math.max(firstUnreadIndex - 1, 0),
           align: "center",
         });
+        // Re-enable lastread tracking after the scroll settles
+        setTimeout(() => {
+          suppressLastReadRef.current = false;
+        }, 150);
       }, 50);
     }
-  }, [selectedThread, lastReadDate, firstUnreadIndex]);
+  }, [selectedThread, lastReadDate, firstUnreadIndex, sortedDates.length]);
 
   // Throttled scroll tracking: update lastread timestamp as user scrolls.
   // 100ms throttle so the unread badge counts down responsively while scrolling.
@@ -648,13 +671,24 @@ export function MessageList({
     [actions],
   );
 
+  // Cancel any pending throttled call on unmount to avoid fire-after-unmount.
+  useEffect(() => {
+    return () => throttledUpdateLastRead.cancel();
+  }, [throttledUpdateLastRead]);
+
   const handleRangeChanged = useCallback(
     ({ endIndex }: { startIndex: number; endIndex: number }) => {
       if (manualScrollRef) {
         manualScrollRef.current = endIndex < sortedDates.length - 1;
       }
-      // Update lastread based on the last visible message
-      if (selectedThread && actions?.updateLastRead && sortedDates.length > 0) {
+      // Update lastread based on the last visible message, but only for
+      // user-driven scrolling (not initial programmatic positioning).
+      if (
+        selectedThread &&
+        actions?.updateLastRead &&
+        sortedDates.length > 0 &&
+        !suppressLastReadRef.current
+      ) {
         const visibleDateStr =
           sortedDates[Math.min(endIndex, sortedDates.length - 1)];
         if (visibleDateStr) {
@@ -670,6 +704,7 @@ export function MessageList({
 
   return (
     <Virtuoso
+      key={cacheId}
       ref={virtuosoRef}
       totalCount={sortedDates.length + 1}
       itemSize={(el) => {
@@ -707,9 +742,15 @@ export function MessageList({
         const is_thread_body = is_thread && message.get("reply_to") != null;
         const h = virtuosoHeightsRef.current?.[index];
 
-        // Show a "New messages" divider before the first unread message
+        // Show a "New messages" divider before the first unread message.
+        // Keep it visible until the user has scrolled to the bottom (read all
+        // messages), so it doesn't vanish the instant they scroll past it.
         const showNewMessagesDivider =
-          stableFirstUnreadIndex >= 0 && index === stableFirstUnreadIndex;
+          stableFirstUnreadIndex >= 0 &&
+          index === stableFirstUnreadIndex &&
+          (lastReadDate == null ||
+            lastReadDate <
+              parseFloat(sortedDates[sortedDates.length - 1]));
 
         return (
           <div

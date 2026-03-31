@@ -2,8 +2,21 @@ import { useRedux } from "@cocalc/frontend/app-framework";
 import { getUserName } from "./chat-log";
 import ProgressEstimate from "@cocalc/frontend/components/progress-estimate";
 import { Avatar } from "@cocalc/frontend/account/avatar/avatar";
+import { CHAT_COMPOSING_TEXT } from "./chat-colors";
 
-export default function Composing({ projectId, path, accountId, userMap }) {
+export default function Composing({
+  projectId,
+  path,
+  accountId,
+  userMap,
+  selectedThread,
+}: {
+  projectId: string;
+  path: string;
+  accountId: string;
+  userMap;
+  selectedThread?: string;
+}) {
   const drafts = useRedux(["drafts"], projectId, path);
 
   if (!drafts || drafts.size == 0) {
@@ -18,9 +31,23 @@ export default function Composing({ projectId, path, accountId, userMap }) {
       continue;
     }
     const record = drafts.get(senderId);
-    if (record.get("date") != 0) {
-      // editing an already sent message, rather than composing a new one.
-      // This is indicated elsewhere (at that message).
+    const draftDate = record.get("date");
+    if (draftDate != 0 && draftDate != null) {
+      // Positive date = editing an already sent message, indicated elsewhere.
+      // Negative date = composing a reply in a specific thread.
+      if (draftDate > 0) continue;
+      // For thread replies (date < 0), check if this belongs to the current thread
+      const draftThreadKey = `${Math.abs(draftDate)}`;
+      if (selectedThread && draftThreadKey !== selectedThread) {
+        // composing in a different thread — skip
+        continue;
+      }
+      if (!selectedThread) {
+        // we're in the main view, not a specific thread — skip thread replies
+        continue;
+      }
+    } else if (draftDate === 0 && selectedThread) {
+      // new top-level message, but we're viewing a specific thread — skip
       continue;
     }
     if (record.get("active") < cutoff || !record.get("input")?.trim()) {
@@ -29,7 +56,7 @@ export default function Composing({ projectId, path, accountId, userMap }) {
     v.push(
       <div
         key={senderId}
-        style={{ margin: "5px", color: "#666", textAlign: "center" }}
+        style={{ margin: "5px", color: CHAT_COMPOSING_TEXT, textAlign: "center" }}
       >
         <Avatar size={20} account_id={senderId} />
         <span style={{ marginLeft: "15px" }}>
