@@ -46,10 +46,12 @@ export default function Composing({
         // we're in the main view, not a specific thread — skip thread replies
         continue;
       }
+    } else if (draftDate === 0 && selectedThread) {
+      // In thread view, hide top-level drafts (date=0). The main composer
+      // uses date=0 for all messages, so we can't tell which thread they're
+      // for. Hiding is better than showing false cross-thread indicators.
+      continue;
     }
-    // Note: date=0 drafts are shown in all views (including thread view)
-    // because the composer uses date=0 for thread replies too — the
-    // reply_to is only set at send time, not during drafting.
     if (record.get("active") < cutoff || !record.get("input")?.trim()) {
       continue;
     }
