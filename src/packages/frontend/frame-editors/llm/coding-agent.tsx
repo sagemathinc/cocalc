@@ -627,6 +627,9 @@ function CodingAgentCore({
     processedAssistantSeedRef.current = seed.id;
     actions.set_frame_tree({ id: frameId, assistant_seed: undefined });
     if (seed.prefill) {
+      // Start a fresh session so the prefilled prompt doesn't inherit
+      // unrelated prior conversation context.
+      session.handleNewSession();
       setInput(seed.prompt);
       setInputKey((k) => k + 1);
       return;

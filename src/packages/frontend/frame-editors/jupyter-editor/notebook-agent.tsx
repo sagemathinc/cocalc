@@ -713,7 +713,9 @@ export function NotebookAgent({
     processedAssistantSeedRef.current = seed.id;
     actions.set_frame_tree({ id: frameId, assistant_seed: undefined });
     if (seed.prefill) {
-      // Pre-fill mode: just set the input text without submitting.
+      // Pre-fill mode: start a fresh session and set the input text
+      // without submitting, so the user can review/edit before sending.
+      session.handleNewSession();
       setInput(seed.prompt);
       setInputKey((k) => k + 1);
       return;

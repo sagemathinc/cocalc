@@ -1326,11 +1326,19 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     }
 
     // Include cell output when the user toggled "Include output".
+    // Cap at ~16 000 chars (~4 000 tokens) so the prompt stays within
+    // budget — the notebook agent applies its own token bounding on
+    // top of this.
     if (includeOutput) {
       const cell = actions.store.get("cells")?.get(id);
       if (cell) {
-        const output = cellOutputToText(cell);
-        if (output.trim()) {
+        const MAX_OUTPUT_CHARS = 16_000;
+        const full = cellOutputToText(cell);
+        if (full.trim()) {
+          const output =
+            full.length > MAX_OUTPUT_CHARS
+              ? full.slice(0, MAX_OUTPUT_CHARS) + "\n...(truncated)"
+              : full;
           const delim = backtickSequence(output);
           chunks.push(`Cell output:\n${delim}text\n${output}\n${delim}`);
         }
