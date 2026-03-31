@@ -90,6 +90,7 @@ const NB_USER_MSG_STYLE: CSS = {
   padding: "8px 12px",
   marginBottom: 8,
   whiteSpace: "pre-wrap",
+  fontSize: "0.85em",
 };
 
 /** Tool result activity lines: faint and compact — clearly secondary. */
@@ -412,7 +413,7 @@ export function NotebookAgent({
       const readOnly =
         projectReadOnly ||
         (session.sessionId != null && readOnlySessionId === session.sessionId);
-      const system = buildSystemPrompt(ctx, { readOnly });
+      const system = buildSystemPrompt(ctx, { readOnly, autoRun: autoRunRef.current });
       const history = buildHistoryForLlm(prompt, system);
       return estimateConversationTokens({ system, input: prompt, history });
     },
@@ -587,7 +588,7 @@ export function NotebookAgent({
         const ctx =
           notebookContextRef.current ??
           getNotebookContext(actions as JupyterEditorActions);
-        const system = buildSystemPrompt(ctx, { readOnly });
+        const system = buildSystemPrompt(ctx, { readOnly, autoRun: autoRunRef.current });
 
         let history: AgentHistoryMessage[] = buildHistoryForLlm(prompt, system);
 
@@ -712,6 +713,26 @@ export function NotebookAgent({
     if (!seed || processedAssistantSeedRef.current === seed.id) return;
     processedAssistantSeedRef.current = seed.id;
     actions.set_frame_tree({ id: frameId, assistant_seed: undefined });
+    // Switch model if the seed specifies one (e.g. from cell-tool dialog).
+    if (seed.model) {
+      setModel(seed.model as any);
+    }
+    if (seed.prefill) {
+      // Pre-fill mode: start a fresh session and set the input text
+      // without submitting, so the user can review/edit before sending.
+      session.handleNewSession();
+      setInput(seed.prompt);
+      setInputKey((k) => k + 1);
+      updateEstimate(seed.prompt);
+      // Move cursor to end of the prefilled text after the editor remounts.
+      setTimeout(() => {
+        const sel = window.getSelection();
+        if (sel && sel.focusNode) {
+          sel.collapseToEnd();
+        }
+      }, 100);
+      return;
+    }
     if (seed.forceNewTurn !== false) {
       session.handleNewSession();
     }
@@ -784,8 +805,8 @@ export function NotebookAgent({
         helpContent={
           <ul style={{ paddingLeft: 16, margin: 0 }}>
             <li>
-              Ask the agent to edit, insert, or explain cells. It is aware of the
-              currently selected cell and its context.
+              Ask the agent to edit, insert, or explain cells. It is aware of
+              the currently selected cell and its context.
             </li>
             <li>
               The agent can <b>read</b>, <b>edit</b>, <b>insert</b>, and{" "}
@@ -912,6 +933,8 @@ export function NotebookAgent({
           <MarkdownInput
             key={inputKey}
             value={input}
+            autoFocus
+            defaultMode="editor"
             onChange={handleInputChange}
             onShiftEnter={(value) => {
               handleSubmit(value);
