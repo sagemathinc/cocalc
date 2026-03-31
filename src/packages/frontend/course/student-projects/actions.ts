@@ -42,6 +42,7 @@ export class StudentProjectsActions {
   // Create and configure a single student project.
   create_student_project = async (
     student_id: string,
+    configure: boolean = true,
   ): Promise<string | undefined> => {
     const { store, student } = this.course_actions.resolve({
       student_id,
@@ -85,16 +86,22 @@ export class StudentProjectsActions {
     } finally {
       this.course_actions.clear_activity(id);
     }
-    this.course_actions.set({
-      create_project: null,
-      project_id,
-      table: "students",
-      student_id,
-    });
-    await this.configure_project({
-      student_id,
-      student_project_id: project_id,
-    });
+    this.course_actions.set(
+      {
+        create_project: null,
+        project_id,
+        table: "students",
+        student_id,
+      },
+      true,
+      true, // emit change immediately so project_id is visible in the store
+    );
+    if (configure) {
+      await this.configure_project({
+        student_id,
+        student_project_id: project_id,
+      });
+    }
     return project_id;
   };
 

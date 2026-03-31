@@ -85,13 +85,13 @@ export function StudentProjectUpgrades({
   async function add_site_license_id(license_id: string) {
     course_actions.configuration.add_site_license_id(license_id);
     await delay(100);
-    course_actions.configuration.configure_all_projects();
+    await course_actions.configuration.configure_all_projects();
   }
 
   async function remove_site_license_id(license_id: string) {
     course_actions.configuration.remove_site_license_id(license_id);
     await delay(100);
-    course_actions.configuration.configure_all_projects();
+    await course_actions.configuration.configure_all_projects();
   }
 
   function render_site_license_text() {
@@ -182,11 +182,11 @@ export function StudentProjectUpgrades({
         <Radio.Group
           disabled={disabled}
           style={{ marginLeft: "15px", marginTop: "15px" }}
-          onChange={(e) => {
+          onChange={async (e) => {
             course_actions.configuration.set_site_license_strategy(
               e.target.value,
             );
-            course_actions.configuration.configure_all_projects(true);
+            await course_actions.configuration.configure_all_projects(true);
           }}
           value={site_license_strategy ?? "serial"}
         >
@@ -216,8 +216,8 @@ export function StudentProjectUpgrades({
           values={{
             Button: (c) => (
               <Button
-                onClick={() =>
-                  course_actions.configuration.configure_all_projects(true)
+                onClick={async () =>
+                  await course_actions.configuration.configure_all_projects(true)
                 }
                 size="small"
               >
