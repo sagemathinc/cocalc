@@ -5,10 +5,10 @@
 
 import { ACTIVITY_BAR_OPTIONS } from "./activity-bar-consts";
 
-// If not set, default is full pages
+// If not set, default is flyout panels
 // https://github.com/sagemathinc/cocalc/issues/8475
 function getDefaultActivityBarOption(): keyof typeof ACTIVITY_BAR_OPTIONS {
-  return "full";
+  return "flyout";
 }
 
 export function getValidActivityBarOption(

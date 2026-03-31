@@ -26,11 +26,40 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - **CSS/Styling**: Prefer SASS files over inline React `<style>` tags or style objects for reusable styles. The SASS entry point is `src/packages/frontend/index.sass`, which `@use`s partial files (e.g. `@use 'frame-editors/llm/_ai-assistant' as ai-assistant`). Color variables from `_colors.sass` are available as `colors.$COL_...`. Use CSS class names (e.g. `className="cc-my-component"`) in components instead of inline style objects when the styles are non-trivial or conditional.
 - **Backend Logging**: Use `getLogger` from `@cocalc/project/logger` for logging in backend code. Do NOT use `console.log`. Example: `const L = getLogger("module:name").debug;`
 
+## Dev Setup (Quick Start)
+
+All commands below assume you are in the `src/` directory (i.e., `cd src` first).
+
+1. **Install all dependencies**: `python3 workspaces.py install`
+2. **Build everything for development**: `pnpm build-dev`
+   - This runs install, builds every package in dependency order, compiles i18n, and bundles the frontend with rspack.
+3. **Typecheck frontend** (after making changes): `cd packages/frontend && npx tsc --noEmit`
+   - This requires step 2 to have completed at least once so that dependency packages (e.g., `@cocalc/util`) have their `dist/` output.
+
+If you only changed frontend code and dependencies are already built, you can skip the full `pnpm build-dev` and just run:
+
+```
+cd packages/frontend && npx tsc --noEmit
+```
+
+If you changed a dependency package like `util`, rebuild it first:
+
+```
+cd packages/util && pnpm build
+cd ../frontend && npx tsc --noEmit
+```
+
+**Key files:**
+
+- `src/workspaces.py` — monorepo orchestration script (install, build, clean, test)
+- `src/packages/pnpm-workspace.yaml` — pnpm workspace definition
+- `src/packages/frontend/tsconfig.json` — frontend TypeScript config
+
 ## Development Commands
 
 ### Essential Commands
 
-- `pnpm build-dev` - Build all packages for development
+- `pnpm build-dev` - Build all packages for development (run from `src/`)
 - `pnpm clean` - Clean all `node_modules` and `dist` directories
 - `pnpm test` - Run full test suite
 - `pnpm depcheck` - Check for dependency issues
@@ -49,15 +78,15 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 
 ### Workspace Management (`src/workspaces.py`)
 
-The root-level `src/workspaces.py` script orchestrates operations across all packages in the monorepo. Use it instead of running raw pnpm commands when working across the workspace:
+The `src/workspaces.py` script orchestrates operations across all packages in the monorepo. **Run it from the `src/` directory** (or use `python3 src/workspaces.py` from the repo root). Use it instead of running raw pnpm commands when working across the workspace:
 
-- `python3 src/workspaces.py install` - Install dependencies for all packages (use after updating package.json files)
-- `python3 src/workspaces.py build` - Build all packages that have changed
-- `python3 src/workspaces.py clean` - Delete dist and node_modules folders
-- `python3 src/workspaces.py version-check` - Check dependency version consistency across all packages
-- `python3 src/workspaces.py test` - Run tests for all packages
+- `python3 workspaces.py install` - Install dependencies for all packages (use after updating package.json files)
+- `python3 workspaces.py build` - Build all packages that have changed
+- `python3 workspaces.py clean` - Delete dist and node_modules folders
+- `python3 workspaces.py version-check` - Check dependency version consistency across all packages
+- `python3 workspaces.py test` - Run tests for all packages
 
-**IMPORTANT**: After updating dependencies in any `package.json`, run `python3 src/workspaces.py version-check` to ensure consistency, then `python3 src/workspaces.py install` to update the lockfile and install.
+**IMPORTANT**: After updating dependencies in any `package.json`, run `python3 workspaces.py version-check` to ensure consistency, then `python3 workspaces.py install` to update the lockfile and install.
 
 ### Development
 
