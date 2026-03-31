@@ -89,12 +89,12 @@ export function InsertCell({
       fa.set_cur_id(id);
     }
     const posLabel = position === "above" ? "above" : "below";
-    void openAssistantWithPrefill({
+    openAssistantWithPrefill({
       redux,
       project_id,
       path,
       prompt: `Insert a cell ${posLabel}, that does: `,
-    });
+    }).catch((err) => console.warn("openAssistantWithPrefill failed:", err));
   }
 
   function handleButtonClick(e, type: TinyButtonType) {

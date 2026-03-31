@@ -1288,25 +1288,56 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
   }
 
   function buildAgentPrompt(): string {
-    if (mode == null) return "";
-    const kernel_info = actions?.store.get("kernel_info");
+    if (mode == null || actions == null) return "";
+    const kernel_info = actions.store.get("kernel_info");
     const language = kernel_info?.get("language") ?? "python";
     const kernel_display = kernel_info?.get("display_name") ?? "Python 3";
 
-    const taskPrompt = getAction(mode).prompt({
-      language,
-      kernel_display,
-      extra,
-      target:
-        mode === "translate_text"
-          ? getLanguageName(targetTextLanguage)
-          : targetLanguage === OTHER_LANG
-            ? otherLanguage
-            : targetLanguage,
-      stepByStep,
-    });
+    const chunks: string[] = [];
 
-    return taskPrompt;
+    chunks.push(
+      getAction(mode).prompt({
+        language,
+        kernel_display,
+        extra,
+        target:
+          mode === "translate_text"
+            ? getLanguageName(targetTextLanguage)
+            : targetLanguage === OTHER_LANG
+              ? otherLanguage
+              : targetLanguage,
+        stepByStep,
+      }),
+    );
+
+    // Include surrounding-cell context when selected by the user.
+    if (showContext) {
+      const ctx = getContextContent();
+      if (ctx.before) {
+        chunks.push(
+          `Context — cells BEFORE current cell:\n<before>\n${ctx.before}\n</before>`,
+        );
+      }
+      if (ctx.after) {
+        chunks.push(
+          `Context — cells AFTER current cell:\n<after>\n${ctx.after}\n</after>`,
+        );
+      }
+    }
+
+    // Include cell output when the user toggled "Include output".
+    if (includeOutput) {
+      const cell = actions.store.get("cells")?.get(id);
+      if (cell) {
+        const output = cellOutputToText(cell);
+        if (output.trim()) {
+          const delim = backtickSequence(output);
+          chunks.push(`Cell output:\n${delim}text\n${output}\n${delim}`);
+        }
+      }
+    }
+
+    return chunks.join("\n\n");
   }
 
   async function onConfirm() {
@@ -1326,7 +1357,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
         // Focus this cell so the agent picks it up as context.
         frameActions.current?.set_cur_id(id);
         const prompt = buildAgentPrompt();
-        void openAssistantWithSeed({ redux, project_id, path, prompt });
+        await openAssistantWithSeed({ redux, project_id, path, prompt });
       } else {
         await getExplanation(false);
       }
