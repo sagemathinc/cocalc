@@ -5,6 +5,8 @@ packages:
   # weird build system, and it totally messes up stuff.
   - "!**/cdn/dist/**"
   - "!compute"
+minimumReleaseAge: 4320 # 3 days
+
 onlyBuiltDependencies:
   - better-sqlite3
   - websocket-sftp
