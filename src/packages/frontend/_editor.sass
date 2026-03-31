@@ -695,6 +695,22 @@ h6
   border-radius: 3px
   padding: 0 2px
 
+// Style <details> inside chat messages to match the message bubble color
+.smc-message-from-viewer details
+  background: rgba(255,255,255,0.15) !important
+  border: 1px solid rgba(255,255,255,0.3) !important
+  border-radius: 4px
+  padding: 4px 8px
+  color: #fff
+  &, summary, p, span, div, li, code, pre
+    color: #fff !important
+
+.smc-message-from-other details
+  background: #ececec !important
+  border: 1px solid #e0e0e0 !important
+  border-radius: 4px
+  padding: 4px 8px
+
 .smc-chat-message
   overflow-x: auto
   overflow-y: hidden

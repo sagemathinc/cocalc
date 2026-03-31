@@ -135,7 +135,6 @@ export type ThreadMeta = ThreadListItem & {
   displayLabel: string;
   hasCustomName: boolean;
   readCount: number;
-  unreadCount: number;
   isAI: boolean;
   isPinned: boolean;
 };
@@ -235,7 +234,7 @@ export function ChatPanel({
   const showThreadFilters = !isCompact && isAllThreadsSelected;
 
   const llmCacheRef = useRef<Map<string, boolean>>(new Map());
-  const rawThreads = useThreadList(messages);
+  const rawThreads = useThreadList(messages, account_id);
   const threads = useMemo<ThreadMeta[]>(() => {
     return rawThreads.map((thread) => {
       const rootMessage = thread.rootMessage;
@@ -250,19 +249,6 @@ export function ChatPanel({
         pinValue === "true" ||
         pinValue === 1 ||
         pinValue === "1";
-      const readField =
-        account_id && rootMessage
-          ? rootMessage.get(`read-${account_id}`)
-          : null;
-      const readValue =
-        typeof readField === "number"
-          ? readField
-          : typeof readField === "string"
-            ? parseInt(readField, 10)
-            : 0;
-      const readCount =
-        Number.isFinite(readValue) && readValue > 0 ? readValue : 0;
-      const unreadCount = Math.max(thread.messageCount - readCount, 0);
       let isAI = llmCacheRef.current.get(thread.key);
       if (isAI == null) {
         if (actions?.isLanguageModelThread) {
@@ -279,8 +265,7 @@ export function ChatPanel({
         ...thread,
         displayLabel,
         hasCustomName,
-        readCount,
-        unreadCount,
+        readCount: thread.messageCount - thread.unreadCount,
         isAI: !!isAI,
         isPinned,
       };
@@ -362,19 +347,9 @@ export function ChatPanel({
 
   const mark_as_read = () => markChatAsReadIfUnseen(project_id, path);
 
-  useEffect(() => {
-    if (!singleThreadView || !selectedThreadKey) {
-      return;
-    }
-    const thread = threads.find((t) => t.key === selectedThreadKey);
-    if (!thread) {
-      return;
-    }
-    if (thread.unreadCount <= 0) {
-      return;
-    }
-    actions.markThreadRead?.(thread.key, thread.messageCount);
-  }, [singleThreadView, selectedThreadKey, threads, actions]);
+  // Removed: we no longer mark the whole thread as read when entering.
+  // Instead, scroll tracking (debounced) in ChatLog will progressively
+  // update the lastread timestamp as the user scrolls through messages.
 
   const handleToggleAllChats = (checked: boolean) => {
     if (checked) {
@@ -577,7 +552,7 @@ export function ChatPanel({
         }}
       />
     );
-    if (!actions?.markThreadRead) {
+    if (!actions?.updateLastRead) {
       return badge;
     }
     return (
@@ -641,16 +616,16 @@ export function ChatPanel({
   );
 
   const handleMarkSectionRead = (section: ThreadSectionWithUnread): void => {
-    if (!actions?.markThreadRead) return;
-    const v: { key: string; messageCount: number }[] = [];
+    if (!actions?.updateLastRead) return;
+    const v: { key: string; newestTime: number }[] = [];
     for (const thread of section.threads) {
       if (thread.unreadCount > 0) {
-        v.push({ key: thread.key, messageCount: thread.messageCount });
+        v.push({ key: thread.key, newestTime: thread.newestTime });
       }
     }
     for (let i = 0; i < v.length; i++) {
-      const { key, messageCount } = v[i];
-      actions.markThreadRead(key, messageCount, i == v.length - 1);
+      const { key, newestTime } = v[i];
+      actions.updateLastRead(key, newestTime, i == v.length - 1);
     }
   };
 
@@ -893,6 +868,12 @@ export function ChatPanel({
             scrollToDate={scrollToDate}
             selectedDate={fragmentId}
             costEstimate={costEstimate}
+            lastReadDate={
+              singleThreadView && selectedThreadKey
+                ? threads.find((t) => t.key === selectedThreadKey)
+                    ?.lastReadTimestamp
+                : undefined
+            }
           />
           {showPreview && input.length > 0 && (
             <Row style={{ position: "absolute", bottom: "0px", width: "100%" }}>
@@ -1067,7 +1048,7 @@ export function ChatPanel({
         placement="right"
         width={THREAD_SIDEBAR_WIDTH + 40}
         title="Chats"
-        destroyOnClose
+        destroyOnHidden
       >
         {renderSidebarContent()}
       </Drawer>
@@ -1124,7 +1105,7 @@ export function ChatPanel({
         onCancel={closeRenameModal}
         onOk={handleRenameSave}
         okText="Save"
-        destroyOnClose
+        destroyOnHidden
       >
         <Input
           placeholder="Chat name"

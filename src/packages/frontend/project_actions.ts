@@ -78,7 +78,7 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "@cocalc/frontend/project/page/flyouts/state";
-import { migrateStarsOnMove } from "@cocalc/frontend/project/page/flyouts/store";
+import { migrateStarsOnMove, removeStarsOnDelete } from "@cocalc/frontend/project/page/flyouts/store";
 import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
@@ -737,7 +737,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
                 this.gotoFragment(path, fragmentId);
               }
               if (this.open_files.get(path, "chatState") == "pending") {
-                this.open_chat({ path });
+                const pendingChatMode = this.open_files.get(path, "chatMode");
+                this.open_chat({
+                  path,
+                  chat_mode: pendingChatMode || undefined,
+                });
               }
             } catch (err) {
               // Error already reported to user by alert_message in file-editors.ts
@@ -1245,22 +1249,50 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     local_storage(this.project_id, path, "chatState", chatState);
   }
 
+  // Track which chat mode is active so the file-tab buttons can
+  // highlight the correct one ("chat" vs "assistant").
+  set_chat_mode(path: string, chatMode: "chat" | "assistant" | ""): void {
+    if (this.open_files == null) return;
+    this.open_files.set(path, "chatMode", chatMode);
+  }
+
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat = ({ path, width = 0.7 }: { path: string; width?: number }) => {
+  // When chat_mode is set (e.g. "assistant"), the chat frame will switch to that tab.
+  open_chat = ({
+    path,
+    width = 0.7,
+    chat_mode,
+  }: {
+    path: string;
+    width?: number;
+    chat_mode?: "chat" | "assistant";
+  }) => {
     const info = this.get_store()
       ?.get("open_files")
       .getIn([path, "component"]) as any;
     if (info?.Editor == null) {
       // not opened in the foreground yet.
       this.set_chat_state(path, "pending");
+      if (chat_mode) {
+        this.set_chat_mode(path, chat_mode);
+      }
       return;
     }
     //  not null for modern editors.
     const editorActions = redux.getEditorActions(this.project_id, path);
     if (editorActions?.["show_focused_frame_of_type"] != null) {
       // @ts-ignore -- todo will go away when everything is a frame editor
-      editorActions.show_focused_frame_of_type("chat", "col", false, width);
+      const frameId = editorActions.show_focused_frame_of_type(
+        "chat",
+        "col",
+        false,
+        width,
+      );
+      if (chat_mode && frameId) {
+        editorActions.set_frame_tree({ id: frameId, chat_mode });
+      }
       this.set_chat_state(path, "internal");
+      this.set_chat_mode(path, chat_mode ?? "chat");
     } else {
       // First create the chat actions:
       initChat(this.project_id, misc.meta_file(path, "chat"));
@@ -1289,9 +1321,45 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         return;
       }
       this.set_chat_state(path, "");
+      this.set_chat_mode(path, "");
     } else {
       this.set_chat_state(path, "");
+      this.set_chat_mode(path, "");
     }
+  }
+
+  // Toggle side chat for a specific mode.  If the chat is closed, open it
+  // in the given mode.  If it is already open in that mode, close it.
+  // If it is open in a different mode, switch to the requested mode.
+  toggle_chat({
+    path,
+    chat_mode,
+  }: {
+    path: string;
+    chat_mode?: "chat" | "assistant";
+  }): void {
+    const editorActions = redux.getEditorActions(this.project_id, path) as any;
+    if (editorActions?._get_most_recent_active_frame_id_of_type != null) {
+      const chatFrameId =
+        editorActions._get_most_recent_active_frame_id_of_type("chat");
+      if (chatFrameId != null) {
+        // Chat frame exists — check its current mode.
+        const node = editorActions._get_frame_node?.(chatFrameId);
+        const currentMode: string = node?.get("chat_mode") ?? "chat";
+        if (currentMode === (chat_mode ?? "chat")) {
+          // Same mode → close
+          this.close_chat({ path });
+          return;
+        }
+        // Different mode → switch and make the frame visible
+        editorActions.set_frame_tree({ id: chatFrameId, chat_mode });
+        editorActions.set_active_id(chatFrameId);
+        this.set_chat_mode(path, chat_mode ?? "chat");
+        return;
+      }
+    }
+    // Chat not open → open it
+    this.open_chat({ path, chat_mode });
   }
 
   set_chat_width(opts): void {
@@ -2711,6 +2779,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status: `Deleting ${mesg}...` });
     try {
       await delete_files(this.project_id, opts.paths, opts.compute_server_id);
+      // Remove starred file bookmarks for deleted paths
+      await removeStarsOnDelete(this.project_id, opts.paths);
       this.log({
         event: "file_action",
         action: "deleted",

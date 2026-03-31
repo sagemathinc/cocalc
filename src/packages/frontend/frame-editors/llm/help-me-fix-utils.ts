@@ -7,7 +7,6 @@ import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { trunc, trunc_left, trunc_middle } from "@cocalc/util/misc";
 
 import { CUTOFF } from "./consts";
-import { showHelpMeFixDialog } from "./help-me-fix-dialog";
 import { modelToMention } from "./llm-selector";
 import shortenError from "./shorten-error";
 
@@ -21,6 +20,7 @@ export interface GetHelpOptions {
   line?: string;
   language?: string;
   extraFileInfo?: string;
+  extraContext?: string;
   redux: any;
   prioritize?: "start" | "start-end" | "end";
   model: string;
@@ -35,12 +35,14 @@ export interface CreateMessageOpts {
   task?: string;
   language?: string;
   extraFileInfo?: string;
+  extraContext?: string;
   prioritize?: "start" | "start-end" | "end";
   model: string;
   open: boolean;
   full: boolean;
   isHint?: boolean;
   cellContext?: string;
+  embeddedAgent?: boolean;
 }
 
 export async function getHelp({
@@ -53,9 +55,11 @@ export async function getHelp({
   task,
   language,
   extraFileInfo,
+  extraContext,
   prioritize,
   isHint = false,
 }: GetHelpOptions) {
+  const { showHelpMeFixDialog } = await import("./help-me-fix-dialog");
   await showHelpMeFixDialog({
     mode: isHint ? "hint" : "solution",
     project_id,
@@ -67,6 +71,7 @@ export async function getHelp({
     tag,
     language,
     extraFileInfo,
+    extraContext,
     prioritize,
   });
 }
@@ -79,11 +84,13 @@ export function createMessage({
   model,
   task,
   extraFileInfo,
+  extraContext,
   prioritize,
   open,
   full,
   isHint = false,
   cellContext,
+  embeddedAgent = false,
 }: CreateMessageOpts): string {
   const message: string[] = [];
   const prefix = full ? modelToMention(model) + " " : "";
@@ -119,6 +126,11 @@ export function createMessage({
     message.push(`${delimL}${language}\n${line}\n${delimL}`);
   }
 
+  if (extraContext?.trim()) {
+    message.push(`Additional context:`);
+    message.push(extraContext.trim());
+  }
+
   // We put the input last, since it could be huge and get truncated.
   // It's much more important to show the error, obviously.
   if (input) {
@@ -150,9 +162,11 @@ export function createMessage({
 
   if (full) message.push("</details>");
 
-  message.push(
-    "Only show the relevant code snippet and maybe an explanation that fixes the issue. Do not repeat the entire file or document.",
-  );
+  if (!embeddedAgent) {
+    message.push(
+      "Only show the relevant code snippet and maybe an explanation that fixes the issue. Do not repeat the entire file or document.",
+    );
+  }
 
   return message.join("\n\n");
 }

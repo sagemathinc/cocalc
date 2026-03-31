@@ -395,6 +395,43 @@ export const labels = defineMessages({
   copy: { id: "labels.copy", defaultMessage: "Copy" },
   undo: { id: "labels.undo", defaultMessage: "Undo" },
   paste: { id: "labels.paste", defaultMessage: "Paste" },
+  paste_here: { id: "labels.paste_here", defaultMessage: "Paste here" },
+  clipboard_paste_to_copy: {
+    id: "labels.clipboard_paste_to_copy",
+    defaultMessage:
+      "Copy {count, plural, one {# file} other {# files}} here",
+    description:
+      "Clipboard pill button: paste N files that were queued via copy",
+  },
+  clipboard_paste_to_cut: {
+    id: "labels.clipboard_paste_to_cut",
+    defaultMessage:
+      "Move {count, plural, one {# file} other {# files}} here",
+    description:
+      "Clipboard pill button: paste N files that were queued via cut (move)",
+  },
+  clipboard_clear: {
+    id: "labels.clipboard_clear",
+    defaultMessage: "Clear clipboard",
+    description: "Tooltip on button to clear the file clipboard",
+  },
+  clipboard_tip: {
+    id: "labels.clipboard_tip",
+    defaultMessage:
+      "Click to paste into the current directory.{br}{br}<b>Copy</b> and <b>Cut</b> both clear the clipboard after pasting.{br}Hold <b>Shift</b> while clicking to keep the clipboard for pasting into multiple directories.{br}{br}Works across projects. Click <b>✕</b> to clear.",
+    description:
+      "Tooltip explaining file clipboard paste behavior, shown on hover over the paste pill/banner",
+  },
+  delete_confirm_title: {
+    id: "labels.delete_confirm_title",
+    defaultMessage: "Delete {name}?",
+    description: "Title of inline delete confirmation dialog",
+  },
+  delete_confirm_description: {
+    id: "labels.delete_confirm_description",
+    defaultMessage: "This will move {name} to the trash.",
+    description: "Body text of inline delete confirmation dialog",
+  },
   redo: { id: "labels.redo", defaultMessage: "Redo" },
   reload_title: {
     id: "labels.reload_title",
@@ -1387,6 +1424,12 @@ export const jupyter = {
     confirm_halt_kernel_halt: {
       id: "jupyter.editor.confirm_halt_kernel.halt",
       defaultMessage: "Halt",
+    },
+    halt_kernel_confirm: {
+      id: "jupyter.editor.halt_kernel_confirm",
+      defaultMessage:
+        "Terminate the kernel process? All variable state will be lost.",
+      description: "Terminating the kernel of a Jupyter Notebook",
     },
     raw_json_editor_title: {
       id: "jupyter.editor.raw_json_editor.title",

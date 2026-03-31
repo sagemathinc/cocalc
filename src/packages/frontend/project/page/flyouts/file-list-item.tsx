@@ -7,6 +7,7 @@ import { Button, Dropdown, MenuProps, Tooltip } from "antd";
 import immutable from "immutable";
 import { useIntl } from "react-intl";
 
+import { QuickActionButtons } from "@cocalc/frontend/file-clipboard/quick-actions";
 import {
   useFileDrag,
   useFolderDrop,
@@ -150,6 +151,11 @@ interface FileListItemProps {
   tooltip?: React.JSX.Element | string;
   noPublish?: boolean; // for layout only – indicate that there is never a publish indicator button
   dimFileExtensions?: boolean;
+  hasClipboard?: boolean;
+  isInClipboard?: boolean;
+  clipboardMode?: "copy" | "cut";
+  listingPaths?: string[];
+  compute_server_id?: number;
 }
 
 export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
@@ -178,6 +184,11 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     style,
     tooltip,
     dimFileExtensions = false,
+    hasClipboard = false,
+    isInClipboard = false,
+    clipboardMode,
+    listingPaths,
+    compute_server_id,
   } = props;
   const isActive = mode === "active";
   // only in files mode, we show the publish icon
@@ -273,13 +284,17 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function renderPublishedIcon(): React.JSX.Element | undefined {
-    if (!showPublish || !item.is_public) return undefined;
+    if (!showPublish) return undefined;
+    // Always render the button to reserve space; invisible when not public
     return (
-      <Tooltip title="File is published" placement="right">
+      <Tooltip title={item.is_public ? "File is published" : ""} placement="right">
         <Button
           size="small"
           type="text"
-          style={BTN_STYLE}
+          style={{
+            ...BTN_STYLE,
+            visibility: item.is_public ? "visible" : "hidden",
+          }}
           icon={<Icon name="share-square" />}
           onClick={(e) => {
             e.stopPropagation();
@@ -409,8 +424,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     if (currentExtra == null) return;
     // calculate extra margin to align the columns. if there is no "onClose", no margin
     const closeMargin = onClose != null ? (item.isopen ? 0 : 18) : 0;
-    const publishMargin = showPublish ? (item.is_public ? 0 : 20) : 0;
-    const marginRight = type === 1 ? publishMargin + closeMargin : undefined;
+    const marginRight = type === 1 ? closeMargin : undefined;
     const widthPx = FLYOUT_DEFAULT_WIDTH_PX * 0.33;
     // if the 2nd extra shows up, fix the width to align the columns
     const width = type === 1 && extra2 != null ? `${widthPx}px` : undefined;
@@ -461,7 +475,23 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         onMouseLeave={handleMouseLeave}
       >
         {renderBodyLeft()} {renderStarred()} {renderName()} {renderExtra(2)}{" "}
-        {renderExtra(1)} {renderPublishedIcon()}
+        {renderExtra(1)}
+        {mode === "files" && !actionsDisabled && item.name !== ".." && (
+          <QuickActionButtons
+            project_id={project_id}
+            path={fullPath}
+            isdir={item.isdir}
+            current_path={current_path}
+            hasClipboard={hasClipboard}
+            isInClipboard={isInClipboard}
+            clipboardMode={clipboardMode}
+            compute_server_id={compute_server_id}
+            layout="inline"
+            listingPaths={listingPaths}
+            className="cc-flyout-quick-actions"
+          />
+        )}
+        {renderPublishedIcon()}
         {renderCloseItem(item)}
       </div>
     );

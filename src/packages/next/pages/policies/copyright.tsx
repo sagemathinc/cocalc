@@ -23,15 +23,15 @@ export default function Copyright({ customize }) {
               maxWidth: MAX_WIDTH,
               margin: "15px auto",
               padding: "15px",
-              backgroundColor: "white",
+              fontSize: "12pt"
             }}
           >
-            <div style={{ textAlign: "center", color: "#444" }}>
-              <h1 style={{ fontSize: "28pt" }}>CoCalc - Copyright Policy</h1>
-              <h2>Last Updated: April 2, 2015</h2>
+            <div style={{ textAlign: "center" }}>
+              <h1>CoCalc - Copyright Policy</h1>
+              <p>Last Updated: March 27, 2026</p>
             </div>
-            <div style={{ fontSize: "12pt" }}>
-              <h1>Notification of Copyright Infringement</h1>
+            <div>
+              <h2>Notification of Copyright Infringement</h2>
               <p>
                 SageMath, Inc. ("SageMath") respects the intellectual property
                 rights of others and expects its users to do the same.{" "}
@@ -45,8 +45,8 @@ export default function Copyright({ customize }) {
                 In accordance with the Digital Millennium Copyright Act of 1998,
                 the text of which may be found on the U.S. Copyright Office
                 website at{" "}
-                <A href="http://www.copyright.gov/legislation/dmca.pdf">
-                  http://www.copyright.gov/legislation/dmca.pdf
+                <A href="https://www.copyright.gov/legislation/dmca.pdf">
+                  https://www.copyright.gov/legislation/dmca.pdf
                 </A>
                 , SageMath will respond expeditiously to claims of copyright
                 infringement committed using the SageMath website(s) (the
@@ -64,7 +64,7 @@ export default function Copyright({ customize }) {
                 discretion, it deems appropriate, including removal of the
                 challenged material from the Sites.{" "}
               </p>
-              <h1>DMCA Notice of Alleged Infringement ("Notice")</h1>
+              <h2>DMCA Notice of Alleged Infringement ("Notice")</h2>
               <p></p>
               <ol>
                 <li>
@@ -109,10 +109,64 @@ export default function Copyright({ customize }) {
                   signature.{" "}
                 </li>
               </ol>
-              <p></p>Deliver this Notice, with all items completed, to SageMath,
-              Inc.'s Designated Copyright Agent via email to{" "}
-              <A href="mailto:copyright@sagemath.com">copyright@sagemath.com</A>
-              .
+              <p>
+                Deliver this Notice, with all items completed, to SageMath,
+                Inc.'s Designated Copyright Agent:
+                <br />
+                CEO
+                <br />
+                SageMath, Inc.
+                <br />
+                17725 SE 123RD PL
+                <br />
+                Renton, WA 98059
+                <br />
+                Phone: (509) 818-0964
+                <br />
+                Email:{" "}
+                <A href="mailto:copyright@sagemath.com">
+                  copyright@sagemath.com
+                </A>
+              </p>
+              <h2>DMCA Counter Notice</h2>
+              <p>
+                If you believe that material you posted on or through the Sites
+                was removed or disabled by mistake or misidentification, you may
+                send a counter notice to SageMath's Designated Copyright Agent
+                that includes:
+              </p>
+              <ol>
+                <li>
+                  Your full legal name and your electronic or physical
+                  signature.
+                </li>
+                <li>
+                  Identification of the material that has been removed or to
+                  which access has been disabled and the location at which the
+                  material appeared before it was removed or disabled.
+                </li>
+                <li>
+                  A statement under penalty of perjury that you have a good
+                  faith belief that the material was removed or disabled as a
+                  result of mistake or misidentification.
+                </li>
+                <li>
+                  Your mailing address, telephone number, and email address.
+                </li>
+                <li>
+                  A statement that you consent to the jurisdiction of the
+                  Federal District Court for the judicial district in which your
+                  address is located, or if your address is outside the United
+                  States, for any judicial district in which SageMath may be
+                  found, and that you will accept service of process from the
+                  person who provided the original Notice or that person's
+                  agent.
+                </li>
+              </ol>
+              <p>
+                Deliver this counter notice to SageMath, Inc.'s Designated
+                Copyright Agent using the contact information above.
+              </p>
             </div>
           </div>
           <Footer />

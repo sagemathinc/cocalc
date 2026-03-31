@@ -24,6 +24,7 @@
 @use 'profile'
 @use 'jupyter/jupyter' as jupyter-jupyter
 @use 'frame-editors/_style' as frame-editors-style
+@use 'frame-editors/llm/_ai-assistant' as ai-assistant
 @use 'notifications/_style' as notifications-style
 @use 'account-button'
 @use 'account/_account' as account-account
@@ -100,10 +101,13 @@
   &.cc-explorer-table-mobile .cc-explorer-hover-icon
     visibility: visible
   // Checked (selected via checkbox): matches flyout selected style
-  .cc-explorer-row-checked > td
+  // The hover variant must come after the hover rule to override the faint hover blue
+  .cc-explorer-row-checked > td,
+  .cc-explorer-row-checked:hover > td
     background-color: colors.$COL_BLUE_LLL !important
   // Keyboard-selected row: blue background (matching flyout selection)
-  .cc-explorer-row-selected > td
+  .cc-explorer-row-selected > td,
+  .cc-explorer-row-selected:hover > td
     background-color: colors.$COL_BLUE_LLL !important
   // DnD drop target: folder row being hovered during drag
   // Must override both default bg and hover bg, hence doubled specificity
@@ -550,6 +554,15 @@ span.cc-project-fixedtab-drag:hover
 
 div.cc-project-flyout-file-item:hover
   background-color: colors.$COL_BLUE_LLLL
+
+// Flyout quick action buttons (cut/copy/delete): hidden by default, visible on hover
+// No transitions — they cause a "trailing" effect during scroll.
+div.cc-project-flyout-file-item
+  .cc-flyout-quick-actions
+    visibility: hidden
+    transition: none !important
+  &:hover .cc-flyout-quick-actions
+    visibility: visible
 
 // Flyout type filter: orange highlight when a filter is active
 .cc-flyout-type-filter-active .ant-select-selector

@@ -53,7 +53,15 @@ function genericDefaults(conf) {
   return { ...conf, excludeFromSync: [DEFAULT_FAST_LOCAL] };
 }
 
-export default function CreateComputeServer({ project_id, onCreate }) {
+export default function CreateComputeServer({
+  project_id,
+  onCreate,
+  compact,
+}: {
+  project_id: string;
+  onCreate: () => void;
+  compact?: boolean;
+}) {
   const account_id = useTypedRedux("account", "account_id");
   const create_compute_server = useRedux(["create_compute_server"], project_id);
   const create_compute_server_template_id = useRedux(
@@ -231,39 +239,56 @@ export default function CreateComputeServer({ project_id, onCreate }) {
     </div>,
   ];
 
-  return (
-    <div style={{ marginTop: "15px" }}>
-      <Button
-        size="large"
-        disabled={creating || editing}
-        onClick={() => {
-          resetConfig();
-          setEditing(true);
-        }}
+  const createButton = compact ? (
+    <Button
+      size="small"
+      type="primary"
+      disabled={creating || editing}
+      onClick={() => {
+        resetConfig();
+        setEditing(true);
+      }}
+    >
+      <Icon name="plus" />
+      Create{creating ? <Spin size="small" /> : "..."}
+    </Button>
+  ) : (
+    <Button
+      size="large"
+      disabled={creating || editing}
+      onClick={() => {
+        resetConfig();
+        setEditing(true);
+      }}
+      style={{
+        marginRight: "5px",
+        width: "80%",
+        height: "auto",
+        whiteSpace: "normal",
+        padding: "10px",
+        ...(creating
+          ? {
+              borderColor: "rgb(22, 119, 255)",
+              backgroundColor: "rgb(230, 244, 255)",
+            }
+          : undefined),
+      }}
+    >
+      <Icon
+        name="server"
         style={{
-          marginRight: "5px",
-          width: "80%",
-          height: "auto",
-          whiteSpace: "normal",
-          padding: "10px",
-          ...(creating
-            ? {
-                borderColor: "rgb(22, 119, 255)",
-                backgroundColor: "rgb(230, 244, 255)",
-              }
-            : undefined),
+          color: "rgb(66, 139, 202)",
+          fontSize: "200%",
         }}
-      >
-        <Icon
-          name="server"
-          style={{
-            color: "rgb(66, 139, 202)",
-            fontSize: "200%",
-          }}
-        />
-        <br />
-        Create Compute Server... {creating ? <Spin /> : null}
-      </Button>
+      />
+      <br />
+      Create Compute Server... {creating ? <Spin /> : null}
+    </Button>
+  );
+
+  return (
+    <div style={{ marginTop: compact ? 0 : "15px" }}>
+      {createButton}
       <Modal
         width={"900px"}
         onCancel={() => {

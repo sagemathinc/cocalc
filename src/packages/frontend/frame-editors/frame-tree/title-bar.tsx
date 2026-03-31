@@ -13,7 +13,14 @@ FrameTitleBar - title bar in a frame, in the frame tree
 import { useDraggable } from "@dnd-kit/core";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
+import {
+  Button,
+  Dropdown,
+  Input,
+  InputNumber,
+  Popover,
+  Tooltip,
+} from "antd";
 import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
@@ -57,9 +64,13 @@ import {
   trunc_middle,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
+// LanguageModelTitleBarButton is still available for standalone use but the
+// title-bar assistant button now opens the side chat in assistant mode.
 import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
+import { getAgentSpec } from "../generic/agent-registry";
 import {
   APPLICATION_MENU,
   COMMANDS,
@@ -83,7 +94,7 @@ export interface FrameActions extends Actions {
   zoom_page_height?: (id: string) => void;
   sync?: (id: string, editor_actions: EditorActions) => void;
   show_table_of_contents?: (id: string) => void;
-  build?: (id: string, boolean) => void;
+  build?: (id?: string, force?: boolean) => Promise<void>;
   force_build?: (id: string) => void;
   clean?: (id: string) => void;
   word_count?: (time: number, force: boolean) => void;
@@ -229,11 +240,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   const [close_and_halt_confirm, set_close_and_halt_confirm] =
     useState<boolean>(false);
 
-  const [showAIDialogs, setShowAIDialogs] = useState<{
-    main: boolean;
-    popover: boolean;
-  }>({ main: false, popover: false });
   const [showNewAI, setShowNewAI] = useState<boolean>(false);
+  const [showLLMDialog, setShowLLMDialog] = useState<boolean>(false);
 
   const [helpSearch, setHelpSearch] = useState<string>("");
 
@@ -268,8 +276,15 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       new ManageCommands({
         props,
         studentProjectFunctionality: student_project_functionality,
-        setShowAI: (val: boolean) =>
-          setShowAIDialogs((prev) => ({ ...prev, main: val })),
+        setShowAI: (val: boolean) => {
+          if (val) {
+            const projectActions = redux.getProjectActions(props.project_id);
+            projectActions.toggle_chat({
+              path: props.path,
+              chat_mode: "assistant",
+            });
+          }
+        },
         setShowNewAI,
         helpSearch,
         setHelpSearch,
@@ -282,7 +297,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       student_project_functionality,
       helpSearch,
       setHelpSearch,
-      setShowAIDialogs,
       setShowNewAI,
       read_only,
       editorSettings,
@@ -608,28 +622,56 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
-  function renderAssistant(noLabel, where: "main" | "popover"): Rendered {
+  function renderAssistant(noLabel, _where: "main" | "popover"): Rendered {
     if (
       !manageCommands.isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
     ) {
       return;
     }
-    return (
-      <LanguageModelTitleBarButton
-        path={props.path}
-        type={props.type}
-        showDialog={showAIDialogs[where]}
-        setShowDialog={(value: boolean) => {
-          setShowAIDialogs((prev) => ({ ...prev, [where]: value }));
-        }}
-        project_id={props.project_id}
-        buttonRef={getTourRef("chatgpt")}
-        key={`ai-button-${where}`}
-        id={props.id}
-        actions={props.actions}
-        buttonSize={button_size()}
-        buttonStyle={{
+
+    // For editors without an embedded agent — or when the user prefers
+    // the old assistant mode — fall back to the LanguageModelTitleBarButton
+    // popover which provides AI presets (fix errors, autocomplete, explain, etc.).
+    const oldAssistantMode = redux
+      .getStore("account")
+      .getIn(["other_settings", "old_assistant_mode"]);
+    if (!getAgentSpec(props.path).hasAgent || oldAssistantMode) {
+      return (
+        <LanguageModelTitleBarButton
+          key="assistant"
+          id={props.id}
+          path={props.path}
+          type={props.type}
+          actions={props.editor_actions as any}
+          buttonSize={button_size()}
+          buttonStyle={{
+            ...button_style(),
+            ...(!darkMode
+              ? {
+                  backgroundColor: COLORS.AI_ASSISTANT_BG,
+                  color: COLORS.AI_ASSISTANT_TXT,
+                }
+              : undefined),
+          }}
+          visible={props.tab_is_visible}
+          buttonRef={getTourRef("chatgpt")}
+          project_id={props.project_id}
+          showDialog={showLLMDialog}
+          setShowDialog={setShowLLMDialog}
+          noLabel={noLabel}
+        />
+      );
+    }
+
+    const projectActions = redux.getProjectActions(props.project_id);
+
+    const aiButton = (
+      <Button
+        key="assistant"
+        ref={getTourRef("chatgpt")}
+        size={button_size()}
+        style={{
           ...button_style(),
           ...(!darkMode
             ? {
@@ -638,10 +680,27 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               }
             : undefined),
         }}
-        visible={props.tab_is_visible && props.is_visible}
-        noLabel={noLabel}
-      />
+        onClick={() => {
+          projectActions.toggle_chat({
+            path: props.path,
+            chat_mode: "assistant",
+          });
+        }}
+      >
+        <AIAvatar size={16} iconColor={COLORS.AI_ASSISTANT_TXT} />
+        {noLabel ? null : (
+          <VisibleMDLG>
+            <span style={{ marginLeft: "5px" }}>
+              {intl.formatMessage(labels.assistant)}
+            </span>
+          </VisibleMDLG>
+        )}
+      </Button>
     );
+
+    // Only the orange AI button in the title bar — the Chat button
+    // lives in the file-tab-bar chat indicator instead.
+    return aiButton;
   }
 
   function renderSaveButton(noLabel): Rendered {

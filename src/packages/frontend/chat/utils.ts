@@ -6,6 +6,13 @@
 import { throttle } from "lodash";
 import { redux } from "@cocalc/frontend/app-framework";
 import { original_path } from "@cocalc/util/misc";
+import {
+  VIEWER_BG,
+  VIEWER_COLOR,
+  OTHER_BG,
+  OTHER_COLOR,
+  OTHER_SECONDARY,
+} from "./chat-colors";
 import type {
   ChatMessageTyped,
   MentionList,
@@ -98,15 +105,15 @@ export function message_colors(
 } {
   if (sender_is_viewer(account_id, message)) {
     return {
-      background: "#46b1f6",
-      color: "#fff",
+      background: VIEWER_BG,
+      color: VIEWER_COLOR,
       message_class: "smc-message-from-viewer",
     };
   } else {
     return {
-      background: "#f8f8f8",
-      color: "#000",
-      lighten: { color: "#888" },
+      background: OTHER_BG,
+      color: OTHER_COLOR,
+      lighten: { color: OTHER_SECONDARY },
       message_class: "smc-message-from-other",
     };
   }

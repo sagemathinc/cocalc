@@ -291,6 +291,29 @@ export class ManageCommands {
     }
   };
 
+  // Resolve a possibly compound key like "format-font/bold" into the
+  // child command object.  For simple keys (no "/"), returns null so
+  // callers fall back to normal lookup via getCommandInfo.
+  resolveCompoundCommand = (
+    compoundKey: string,
+  ): Partial<Command> | null => {
+    const i = compoundKey.indexOf("/");
+    if (i === -1) {
+      return null;
+    }
+    const parentName = compoundKey.slice(0, i);
+    const childName = compoundKey.slice(i + 1);
+    const parentCmd = COMMANDS[parentName];
+    if (parentCmd == null) {
+      return null;
+    }
+    const children = this.getCommandChildren(parentCmd);
+    if (children == null) {
+      return null;
+    }
+    return children.find((c) => c.name === childName) ?? null;
+  };
+
   private getCommandIcon = (cmd: Partial<Command>) => {
     const rotate = cmd.iconRotate;
     let icon = cmd.icon;
@@ -364,9 +387,9 @@ export class ManageCommands {
     }
     let icon;
     if (!name || !this.editorSettings.get("extra_button_bar")) {
-      // do not show toggleable icon if no command name (so not top level)
-      // or the button bar is completely disabled (i.e. user doesn't
-      // want it at all).
+      // do not show toggleable icon if no command name (unnamed submenu
+      // children can't be pinned) or the button bar is completely
+      // disabled (i.e. user doesn't want it at all).
       icon = (
         <div style={{ width, marginRight: "10px", display: "inline-block" }}>
           {this.getCommandIcon(cmd)}
@@ -421,6 +444,17 @@ export class ManageCommands {
   };
 
   button = (name: string) => {
+    // Handle compound keys like "format-font/bold" for pinned submenu items
+    const childCmd = this.resolveCompoundCommand(name);
+    if (childCmd != null) {
+      return this.commandToMenuItem({
+        name,
+        cmd: childCmd,
+        key: name,
+        noChildren: true,
+        button: true,
+      });
+    }
     const cmd = this.getCommandInfo(name);
     if (cmd == null) {
       return null;
@@ -514,6 +548,10 @@ export class ManageCommands {
       ? undefined
       : this.getCommandChildren(cmd)?.map((x, i) =>
           this.commandToMenuItem({
+            // If the child has a name and this is a top-level command (name is set),
+            // construct a compound key "parent/child" so the pin toggle works for
+            // submenu items.
+            name: x.name && name ? `${name}/${x.name}` : "",
             cmd: x,
             key: `${key}-${i}-${x.stayOpenOnClick ? STAY_OPEN_ON_CLICK : ""}`,
             noChildren,
@@ -682,9 +720,34 @@ export class ManageCommands {
     //       return [];
     //     }
 
-    // TODO: sort w.
+    // Sort buttons by their position in the menu hierarchy.
+    // For compound keys like "format-font/bold", use the parent command's
+    // position plus a fractional offset based on the child's index within
+    // the submenu, so siblings preserve their menu order.
     const positions = this.getAllCommandPositions();
-    w.sort((a, b) => cmp(positions[a] ?? 0, positions[b] ?? 0));
+    const getPosition = (key: string): number => {
+      if (positions[key] != null) return positions[key];
+      const slashIdx = key.indexOf("/");
+      if (slashIdx !== -1) {
+        const parentName = key.slice(0, slashIdx);
+        const childName = key.slice(slashIdx + 1);
+        const base = positions[parentName] ?? 0;
+        const parentCmd = COMMANDS[parentName];
+        if (parentCmd != null) {
+          const children = this.getCommandChildren(parentCmd);
+          if (children != null) {
+            const idx = children.findIndex((c) => c.name === childName);
+            if (idx !== -1) {
+              // fractional offset keeps children after parent, in menu order
+              return base + (idx + 1) / (children.length + 1);
+            }
+          }
+        }
+        return base;
+      }
+      return 0;
+    };
+    w.sort((a, b) => cmp(getPosition(a), getPosition(b)));
     return w;
   };
 

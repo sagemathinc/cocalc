@@ -100,6 +100,23 @@ const SYNCTEX_SOURCE_EXTS = [
   ...KNITR_EXTS,
 ] as const;
 
+type HelpMeFixBuildStage = Exclude<BuildSpecName, "build" | "bibtex" | "clean">;
+
+const HELP_ME_FIX_BUILD_STAGES = [
+  "latex",
+  "knitr",
+  "sagetex",
+  "pythontex",
+] as const satisfies readonly HelpMeFixBuildStage[];
+const MAX_HELP_ME_FIX_STDOUT_CHARS = 1200;
+const MAX_HELP_ME_FIX_STDERR_CHARS = 1200;
+
+function tailChars(value: string, maxChars: number): string {
+  if (!value) return "";
+  if (value.length <= maxChars) return value;
+  return `...\n${value.slice(-maxChars)}`;
+}
+
 interface LatexEditorState extends CodeEditorState {
   build_logs: BuildLogs;
   sync: string;
@@ -214,7 +231,13 @@ export class Actions extends BaseActions<LatexEditorState> {
       this.init_latexmk();
       // This breaks browser spellcheck.
       // this._init_spellcheck();
-      this.init_config();
+      // init_config is async — it must complete (setting build_command)
+      // before the BuildCoordinator is created, otherwise a late-join
+      // attempt may fire with an empty build_command and silently bail.
+      this.init_config().then(() => {
+        if (this._state === "closed") return;
+        this._init_build_coordinator();
+      });
       if (!this.knitr) {
         this.output_directory = this.output_directory_path();
       }
@@ -233,7 +256,6 @@ export class Actions extends BaseActions<LatexEditorState> {
         .getProjectStore(this.project_id)
         .on("started", this._project_started_listener);
       void this._init_pdf_directory_watcher();
-      this._init_build_coordinator();
     }
     this.word_count = reuseInFlight(this._word_count.bind(this));
   }
@@ -256,8 +278,14 @@ export class Actions extends BaseActions<LatexEditorState> {
       setBuilding: (v) => {
         this.is_building = v;
         this.setState({ building: v });
-        if (!v && !this._buildWasStopped) {
-          this._lastBuiltTime = this.last_save_time();
+        if (!v) {
+          // When build finishes, clean up any stale running entries in build_logs.
+          // This is especially important for joinBuild paths where the exec stream
+          // may error without properly finalizing the build_logs entry.
+          this.cleanupStaleBuildLogs();
+          if (!this._buildWasStopped) {
+            this._lastBuiltTime = this.last_save_time();
+          }
         }
       },
       setError: (err) => this.set_error(err),
@@ -1088,6 +1116,10 @@ export class Actions extends BaseActions<LatexEditorState> {
       // and finally, wait for word count to finish -- to make clear the whole operation is done
       await run_word_count;
     }
+
+    // Safety net: clean up any build_logs entries stuck in "running" status.
+    // This catches edge cases where a sub-step errored without finalizing its entry.
+    this.cleanupStaleBuildLogs();
   }
 
   private async run_knitr(time: number, force: boolean): Promise<void> {
@@ -1109,6 +1141,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     } catch (err) {
       this.set_error(err);
       this.setState({ knitr_error: true });
+      // Mark as errored so the spinner stops, but keep partial output visible
+      this.markBuildLogError("knitr");
       return;
     } finally {
       this.set_status("");
@@ -1212,6 +1246,9 @@ export class Actions extends BaseActions<LatexEditorState> {
     } catch (err) {
       //console.info("LaTeX Editor/actions/run_latex error=", err);
       this.set_error(err);
+      // Mark the build_logs entry as errored so the build tab spinner stops,
+      // but preserve any partial output for the user to diagnose the failure.
+      this.markBuildLogError("latex");
       return;
     } finally {
       // In all cases, we want the status info to clear
@@ -1453,6 +1490,8 @@ export class Actions extends BaseActions<LatexEditorState> {
       await this.run_latex(time + 1, force);
     } catch (err) {
       this.set_error(err);
+      // Mark as errored so the spinner stops, but keep partial output visible
+      this.markBuildLogError("sagetex");
       this.update_pdf(time, force);
     } finally {
       this._last_sagetex_hash = hash;
@@ -1494,6 +1533,8 @@ export class Actions extends BaseActions<LatexEditorState> {
     } catch (err) {
       this.set_error(err);
       // this.setState({ pythontex_error: true });
+      // Mark as errored so the spinner stops, but keep partial output visible
+      this.markBuildLogError("pythontex");
       this.update_pdf(time, force);
       return;
     } finally {
@@ -1797,6 +1838,37 @@ export class Actions extends BaseActions<LatexEditorState> {
     (this as any)._save_local_view_state();
   }
 
+  // Mark a build_logs entry as "error" while preserving any partial output
+  // (stdout/stderr) so the user can still see what happened before the failure.
+  private markBuildLogError(stage: BuildSpecName): void {
+    const build_logs: BuildLogs | undefined = this.store.get("build_logs");
+    if (!build_logs) return;
+    const entry = build_logs.get(stage);
+    if (!entry) return;
+    const js: BuildLog = entry.toJS();
+    if (js.type === "async" && js.status === "running") {
+      js.status = "error";
+      this.set_build_logs({ [stage]: js });
+    }
+  }
+
+  // Safety net: after a build completes, clean up any build_logs entries
+  // that are still stuck in "running" status.  This can happen when an exec
+  // stream errors out after the "job" event set status to "running" but
+  // before the "done" event could finalize it.
+  // Preserves partial output so the user can diagnose the failure.
+  private cleanupStaleBuildLogs(): void {
+    const build_logs: BuildLogs | undefined = this.store.get("build_logs");
+    if (!build_logs) return;
+    build_logs.forEach((entry, key) => {
+      const js: BuildLog = entry?.toJS();
+      if (js?.type === "async" && js?.status === "running") {
+        js.status = "error";
+        this.set_build_logs({ [key]: js });
+      }
+    });
+  }
+
   private set_build_logs(obj: { [K in keyof IBuildSpecs]?: BuildLog }): void {
     let build_logs: BuildLogs = this.store.get("build_logs") ?? Map();
     let k: BuildSpecName;
@@ -2053,6 +2125,37 @@ export class Actions extends BaseActions<LatexEditorState> {
 
   languageModelExtraFileInfo() {
     return "LaTeX";
+  }
+
+  getHelpMeFixBuildContext(): string {
+    const buildLogs: BuildLogs | undefined = this.store.get("build_logs");
+    if (!buildLogs) return "";
+
+    const parts: string[] = [];
+    for (const stage of HELP_ME_FIX_BUILD_STAGES) {
+      const entry = buildLogs.get(stage)?.toJS() as BuildLog | undefined;
+      if (!entry) continue;
+      const errorCount =
+        ((buildLogs.getIn([stage, "parse", "errors"]) as any)?.size ?? 0) > 0;
+      const stdout = tailChars(
+        entry.stdout ?? "",
+        MAX_HELP_ME_FIX_STDOUT_CHARS,
+      );
+      const stderr = tailChars(
+        entry.stderr ?? "",
+        MAX_HELP_ME_FIX_STDERR_CHARS,
+      );
+      if (!errorCount && !stdout && !stderr) continue;
+      parts.push(`Build stage: ${stage}`);
+      if (stdout) {
+        parts.push(`Recent stdout tail:\n\`\`\`text\n${stdout}\n\`\`\``);
+      }
+      if (stderr) {
+        parts.push(`Recent stderr tail:\n\`\`\`text\n${stderr}\n\`\`\``);
+      }
+    }
+
+    return parts.join("\n\n");
   }
 
   chatgptCodeDescription(): string {

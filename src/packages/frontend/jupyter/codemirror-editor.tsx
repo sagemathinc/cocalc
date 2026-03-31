@@ -20,8 +20,9 @@ import {
   useState,
 } from "react";
 
-import { React, usePrevious, useRef } from "@cocalc/frontend/app-framework";
+import { React, redux, usePrevious, useRef } from "@cocalc/frontend/app-framework";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { openAssistantWithPrefill } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import { COLORS } from "@cocalc/util/theme";
 import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 import { Complete, Actions as CompleteActions } from "./complete";
@@ -748,6 +749,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         return { x: pos.ch, y: pos.line };
       },
       getSelection: () => cm.current.getSelection(),
+      getSelectionRange: () => {
+        const sel = cm.current.getSelection();
+        if (!sel) return undefined;
+        const from = cm.current.getCursor("from");
+        const to = cm.current.getCursor("to");
+        return { fromLine: from.line, toLine: to.line };
+      },
     };
     if (registerEditor != null) {
       registerEditor(editor);
@@ -829,7 +837,25 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
               fontSize: "inherit",
             }}
             onClick={() => {
-              setShowAICellGen("replace");
+              const oldAssistantMode = !!redux
+                .getStore("account")
+                .getIn(["other_settings", "old_assistant_mode"]);
+              if (!oldAssistantMode && actions) {
+                const frameActions0 = frameActions.current;
+                if (frameActions0) {
+                  frameActions0.set_cur_id(id);
+                }
+                openAssistantWithPrefill({
+                  redux,
+                  project_id: (actions as any).project_id,
+                  path: (actions as any).path,
+                  prompt: "Generate code in this cell that does: ",
+                }).catch((err) =>
+                  console.warn("openAssistantWithPrefill failed:", err),
+                );
+              } else {
+                setShowAICellGen("replace");
+              }
             }}
           >
             generate using AI...

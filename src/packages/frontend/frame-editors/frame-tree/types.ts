@@ -88,9 +88,12 @@ export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 // Each editor gets its own unique type. This is useful to check which editor it is.
 // e.g. #7787 was caused by merely checking on the name, which had changed.
 type EditorType =
+  | "agent"
+  | "app_preview"
   | "chat"
   | "chatroom"
   | "cm-lean"
+  | "coding-agent"
   | "cm"
   | "course-assignments"
   | "course-actions"
@@ -166,8 +169,8 @@ export interface EditorDescription {
   customizeCommands?: { [commandName: string]: Partial<Command> };
 
   // which commands will also appear in the button bar (if available)
-  // If a command is in a submenu, use '->' to link them together, i.e.,
-  // 'format-font -> bold' means the item named "bold" in the submenu
+  // If a command is in a submenu, use '/' to link them together, i.e.,
+  // 'format-font/bold' means the item named "bold" in the submenu
   // named 'format-font'.
   buttons?: { [commandName: string]: boolean };
 

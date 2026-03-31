@@ -181,6 +181,22 @@ export async function runJob(opts: RunJobOpts): Promise<ExecOutput> {
       resolve(result);
     });
 
+    // Stream reconciliation: if the stream ends (e.g., connection drop),
+    // finalize the job info so build_logs reflect the actual output.
+    // The promise is resolved/rejected by "done"/"error" events above;
+    // this just ensures the UI shows the final output snapshot.
+    stream.on("end", (output: ExecOutput) => {
+      if (current_job_info && output) {
+        const final_job_info: ExecuteCodeOutputAsync = {
+          ...current_job_info,
+          stdout: (output.stdout || "").toString(),
+          stderr: (output.stderr || "").toString(),
+          exit_code: output.exit_code,
+        };
+        set_job_info(final_job_info);
+      }
+    });
+
     stream.on("error", (err) => {
       reject(new Error(`Unable to run the compilation. ${err}`));
     });

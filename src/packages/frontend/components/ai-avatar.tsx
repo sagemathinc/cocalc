@@ -32,7 +32,6 @@ export default function AIAvatar({
         height: size,
         display: "inline-block",
         position: "relative",
-        top: "2px",
         ...style,
       }}
     >
