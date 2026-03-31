@@ -8,7 +8,14 @@ things to fix that later.
 */
 
 import { Tooltip } from "antd";
-import { ReactNode, useCallback, useMemo, useRef, useState } from "react";
+import {
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import Draggable from "react-draggable";
 import { getAngle, getPosition, MAX_ELEMENTS } from "./math";
 import { Icon } from "@cocalc/frontend/components/icon";
@@ -96,6 +103,13 @@ export default function Focused({
   const nodeRef = useRef<any>({});
   const snapRef = useRef<{ dx: number; dy: number }>({ dx: 0, dy: 0 });
   const shiftKeyRef = useRef<boolean>(false);
+
+  // Clear snap lines if this component unmounts mid-drag
+  useEffect(() => {
+    return () => {
+      setSnapLines?.([]);
+    };
+  }, [setSnapLines]);
 
   const computeSnapForDrag = useCallback(
     (data: { x: number; y: number }) => {
