@@ -15,7 +15,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, trunc_middle } from "@cocalc/util/misc";
 import { LLMModelName } from "../components/llm-name";
-import { VIEWER_COLOR, VIEWER_SECONDARY } from "./chat-colors";
+import { VIEWER_COLOR } from "./chat-colors";
 
 export function HistoryTitle() {
   return (

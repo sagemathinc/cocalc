@@ -604,20 +604,27 @@ export function MessageList({
   // Suppress lastread updates during programmatic scrolling (initial position,
   // scrollToIndex) so we don't mark messages as read before the user scrolls.
   const suppressLastReadRef = useRef(false);
-  // Compute the initial scroll index only once per mount (stable across
-  // re-renders as sortedDates grows during async loading). The key={cacheId}
-  // on Virtuoso ensures a fresh mount on thread switch.
-  const initialIndexRef = useRef<number | null>(null);
-  if (initialIndexRef.current == null && sortedDates.length > 0) {
+  // Compute the initial scroll index once per thread (stable across
+  // re-renders as sortedDates grows during async loading). Reset when
+  // selectedThread changes so each thread gets its own initial position.
+  const initialIndexRef = useRef<{ thread: string | undefined; index: number | null }>({
+    thread: undefined,
+    index: null,
+  });
+  if (initialIndexRef.current.thread !== selectedThread) {
+    // Thread changed — reset so we recompute for the new thread
+    initialIndexRef.current = { thread: selectedThread, index: null };
+  }
+  if (initialIndexRef.current.index == null && sortedDates.length > 0) {
     if (lastReadDate == null) {
-      initialIndexRef.current = Math.max(sortedDates.length - 1, 0);
+      initialIndexRef.current.index = Math.max(sortedDates.length - 1, 0);
     } else if (firstUnreadIndex > 0) {
-      initialIndexRef.current = firstUnreadIndex - 1;
+      initialIndexRef.current.index = firstUnreadIndex - 1;
     } else {
-      initialIndexRef.current = Math.max(sortedDates.length - 1, 0);
+      initialIndexRef.current.index = Math.max(sortedDates.length - 1, 0);
     }
   }
-  const initialIndex = initialIndexRef.current ?? Math.max(sortedDates.length - 1, 0);
+  const initialIndex = initialIndexRef.current.index ?? Math.max(sortedDates.length - 1, 0);
 
   // Include selectedThread in the cache key so switching threads doesn't
   // restore a stale scroll position from a different thread.
@@ -640,9 +647,12 @@ export function MessageList({
     // Don't mark as done until messages have loaded (handles page refresh)
     if (sortedDates.length === 0) return;
     initialScrollDoneRef.current = threadId;
+    // Always suppress lastread updates during initial positioning to prevent
+    // the first rangeChanged from marking messages as read before the user
+    // has scrolled. This applies to both threads with lastread timestamps
+    // and legacy threads that only have the old read-* counter.
+    suppressLastReadRef.current = true;
     if (lastReadDate != null && firstUnreadIndex > 0) {
-      // Suppress lastread updates while the programmatic scroll settles
-      suppressLastReadRef.current = true;
       // Scroll to the first unread message, aligned to center so the divider is visible
       setTimeout(() => {
         virtuosoRef?.current?.scrollToIndex({
@@ -654,6 +664,11 @@ export function MessageList({
           suppressLastReadRef.current = false;
         }, 150);
       }, 50);
+    } else {
+      // All read or legacy thread — re-enable after initial render settles
+      setTimeout(() => {
+        suppressLastReadRef.current = false;
+      }, 200);
     }
   }, [selectedThread, lastReadDate, firstUnreadIndex, sortedDates.length]);
 
