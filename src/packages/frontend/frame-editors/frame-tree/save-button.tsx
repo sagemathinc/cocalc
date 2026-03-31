@@ -14,6 +14,7 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
+import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   has_unsaved_changes?: boolean;
@@ -83,7 +84,7 @@ export function SaveButton({
       style={{
         ...(type == "default"
           ? undefined
-          : { background: "#5cb85c", color: "#333" }),
+          : { background: COLORS.BS_GREEN, color: COLORS.GRAY_D }),
         opacity: disabled ? 0.65 : undefined,
         whiteSpace: "nowrap",
         ...style,

@@ -63,14 +63,14 @@ export function calcStyle(isNarrow: boolean): PageStyle {
 
   const topBarStyle = {
     height: `${height}px`,
-    background: "#fafafa",
+    background: COLORS.GRAY_LLLL,
   } as const;
 
   const fileUseStyle = {
-    background: "white",
+    background: COLORS.WHITE,
     border: `2px solid ${COLORS.GRAY_DDD}`,
     borderRadius: "5px",
-    boxShadow: "0 0 15px #aaa",
+    boxShadow: `0 0 15px ${COLORS.GRAY_L}`,
     fontSize: "10pt",
     height: "90%",
     margin: 0,

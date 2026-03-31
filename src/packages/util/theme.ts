@@ -53,6 +53,26 @@ export const SENDGRID_TEMPLATE_ID = "0375d02c-945f-4415-a611-7dc3411e2a78";
 export const SENDGRID_ASM_INVITES = 699;
 export const SENDGRID_ASM_NEWSLETTER = 698;
 
+// Re-export the dynamic theme system so consumers can import from here
+export {
+  type BaseColors,
+  COLOR_THEMES,
+  type ColorTheme,
+  type ColorThemeId,
+  DARK_TO_LIGHT_MAP,
+  deriveTheme,
+  getColorTheme,
+  LIGHT_TO_DARK_MAP,
+  luminance,
+  mixColors,
+  type NativeDarkMode,
+  OTHER_SETTINGS_COLOR_THEME,
+  OTHER_SETTINGS_CUSTOM_THEME_COLORS,
+  OTHER_SETTINGS_NATIVE_DARK_MODE,
+  resolveUserTheme,
+  THEME_DEFAULT,
+} from "./theme-colors";
+
 // This is the applications color scheme
 const MAIN_COLORS = {
   BLUE_DDD: "#0E2B59",
@@ -78,6 +98,7 @@ const MAIN_COLORS = {
   GRAY_L0: "#e0e0e0",
   GRAY_LL: "#eeeeee",
   GRAY_LLL: "#f5f5f5",
+  GRAY_LLLL: "#fafafa",
   WHITE: "#ffffff",
   // bootstrap 3 colors
   BS_GREEN_BGRND: "rgb(92,184,92)",

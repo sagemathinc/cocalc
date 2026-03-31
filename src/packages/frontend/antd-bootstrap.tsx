@@ -103,14 +103,14 @@ function parse_bsStyle(props: {
       };
     } else if (props.bsStyle === "success") {
       style = {
-        backgroundColor: "#5cb85c",
-        borderColor: "#4cae4c",
+        backgroundColor: COLORS.BS_GREEN,
+        borderColor: COLORS.BS_GREEN_D,
         color: "#ffffff",
       };
     } else if (props.bsStyle == "info") {
       style = {
-        backgroundColor: "rgb(91, 192, 222)",
-        borderColor: "rgb(70, 184, 218)",
+        backgroundColor: COLORS.FG_BLUE,
+        borderColor: COLORS.FG_BLUE,
         color: "#ffffff",
       };
     }
@@ -161,7 +161,7 @@ export const Button = (props: {
     size = "small";
   }
   if (props.active) {
-    style.backgroundColor = "#d4d4d4";
+    style.backgroundColor = COLORS.GRAY_DDD;
     style.boxShadow = "inset 0 3px 5px rgb(0 0 0 / 13%)";
   }
   const btn = (

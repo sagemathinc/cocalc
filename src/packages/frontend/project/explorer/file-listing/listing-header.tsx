@@ -18,8 +18,8 @@ interface Props {
 const row_style: React.CSSProperties = {
   cursor: "pointer",
   color: COLORS.GRAY_M,
-  backgroundColor: "#fafafa",
-  border: "1px solid #eee",
+  backgroundColor: COLORS.GRAY_LLLL,
+  border: `1px solid ${COLORS.GRAY_LL}`,
   borderRadius: "4px",
 } as const;
 

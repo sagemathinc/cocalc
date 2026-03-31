@@ -1,4 +1,6 @@
-export const SELECTED_BORDER_COLOR = "#40a9ff";
+import { COLORS } from "@cocalc/util/theme";
+
+export const SELECTED_BORDER_COLOR = COLORS.BLUE_L;
 export const SELECTED_BORDER_WIDTH = 3; // WORRY/TODAY: changing this would break size of icon elements...?
 export const SELECTED_BORDER_TYPE = "dashed";
 
@@ -7,5 +9,5 @@ export const SELECTED_BORDER_TYPE = "dashed";
 // the resizing isn't technically at the actual boundary anymore.
 export const SELECTED_PADDING = 0;
 
-export const EDIT_BORDER_COLOR = "#66bb6a";
+export const EDIT_BORDER_COLOR = COLORS.ANTD_GREEN;
 export const EDIT_BORDER_TYPE = "solid";

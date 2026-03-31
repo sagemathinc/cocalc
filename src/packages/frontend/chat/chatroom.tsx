@@ -101,8 +101,8 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
 const THREAD_SIDEBAR_WIDTH = 260;
 
 const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
-  background: "#fafafa",
-  borderRight: "1px solid #eee",
+  background: COLORS.GRAY_LLLL,
+  borderRight: `1px solid ${COLORS.GRAY_LL}`,
   padding: "15px 0",
   display: "flex",
   flexDirection: "column",
@@ -111,7 +111,7 @@ const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
   padding: "0 20px 15px",
-  color: "#666",
+  color: COLORS.GRAY_M,
 } as const;
 
 const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {

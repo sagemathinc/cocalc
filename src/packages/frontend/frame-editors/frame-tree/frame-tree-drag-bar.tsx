@@ -26,11 +26,11 @@ const COLS_DRAG_BAR: CSS = {
   padding: `${DRAG_OFFSET}px`,
   background: COLORS.GRAY_LL,
   cursor: "ew-resize",
-  border: "1px solid #ddd",
+  border: `1px solid ${COLORS.GRAY_DDD}`,
 } as const;
 
 const DRAG_HOVER: CSS = {
-  background: "#428bca",
+  background: COLORS.FG_BLUE,
   opacity: 0.8,
   zIndex: 100, // so it's on top of editors and other controls
 } as const;

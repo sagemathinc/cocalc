@@ -25,6 +25,7 @@ import {
 } from "@cocalc/util/consts/ui";
 import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
 import { COLORS } from "@cocalc/util/theme";
+import { ColorThemeSelector } from "./color-theme-selector";
 import {
   DARK_MODE_KEYS,
   DARK_MODE_MINS,
@@ -349,6 +350,7 @@ export function AccountPreferencesAppearance() {
 
   return (
     <>
+      <ColorThemeSelector />
       {renderUserInterfacePanel()}
       <OtherSettings
         other_settings={other_settings}

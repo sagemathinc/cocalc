@@ -18,6 +18,7 @@ import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { createRoot } from "react-dom/client";
 import { AppContext, useAppContextProvider } from "./context";
 import { Localize, useLocalizationCtx } from "./localize";
+import { ThemeContext, useResolvedColorTheme } from "./theme-context";
 
 // App uses the context provided by Redux (for the locale, etc.) and Localize.
 function App({ children }) {
@@ -79,10 +80,14 @@ function App({ children }) {
     },
   };
 
+  const colorTheme = useResolvedColorTheme();
+
   return (
-    <AppContext.Provider value={{ ...appState, ...timeAgo }}>
-      {children}
-    </AppContext.Provider>
+    <ThemeContext.Provider value={colorTheme}>
+      <AppContext.Provider value={{ ...appState, ...timeAgo }}>
+        {children}
+      </AppContext.Provider>
+    </ThemeContext.Provider>
   );
 }
 

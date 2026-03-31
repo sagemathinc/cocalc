@@ -11,6 +11,8 @@ because then they will be compatible with all mentions already used with chat an
 */
 
 import React from "react";
+
+import { COLORS } from "@cocalc/util/theme";
 import { SlateElement, register, RenderElementProps } from "../register";
 
 export interface Mention extends SlateElement {
@@ -22,7 +24,7 @@ export interface Mention extends SlateElement {
 }
 
 const STYLE = {
-  color: "#0958d9",
+  color: COLORS.ANTD_LINK_BLUE_DARK,
   background: "white",
   borderRadius: "3px",
   padding: "3px",

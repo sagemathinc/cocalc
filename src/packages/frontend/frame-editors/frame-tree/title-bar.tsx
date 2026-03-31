@@ -13,14 +13,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 import { useDraggable } from "@dnd-kit/core";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-import {
-  Button,
-  Dropdown,
-  Input,
-  InputNumber,
-  Popover,
-  Tooltip,
-} from "antd";
+import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
 import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
 import { useMemo, useRef } from "react";
@@ -934,7 +927,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             ? {
                 cursor: "grabbing",
                 background: COLORS.BLUE_D,
-                color: "#fff",
+                color: COLORS.WHITE,
                 borderRight: `1px solid ${COLORS.BLUE_D}`,
               }
             : undefined
@@ -1045,7 +1038,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               fontSize: "14pt",
               padding: "0 5px",
               height: props.is_only || props.is_full ? "34px" : "30px",
-              background: showMainButtonsPopover ? "#eee" : undefined,
+              background: showMainButtonsPopover ? COLORS.GRAY_LL : undefined,
             }}
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >
@@ -1320,7 +1313,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         <div
           style={{
             borderBottom: popup ? undefined : "1px solid #ccc",
-            background: "#fafafa",
+            background: COLORS.GRAY_LLLL,
             opacity: is_active ? undefined : 0.3,
           }}
         >

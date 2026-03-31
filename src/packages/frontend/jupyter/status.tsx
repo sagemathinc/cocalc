@@ -165,7 +165,10 @@ export function Kernel({
       if (display_name == null) {
         display_name = kernel ?? "No Kernel";
       }
-      const style = { ...KERNEL_NAME_STYLE, maxWidth: compact ? "14em" : "20em" };
+      const style = {
+        ...KERNEL_NAME_STYLE,
+        maxWidth: compact ? "14em" : "20em",
+      };
       return (
         <div
           style={style}
@@ -211,7 +214,7 @@ export function Kernel({
         switch (kernel_state) {
           case "busy":
             name = "circle";
-            color = "#5cb85c";
+            color = COLORS.BS_GREEN;
             break;
           case "idle":
             name = "cocalc-ring";
@@ -323,7 +326,9 @@ export function Kernel({
             </>
           );
         case "idle":
-          const tooltip = intl.formatMessage(jupyterI18n.editor.halt_kernel_confirm);
+          const tooltip = intl.formatMessage(
+            jupyterI18n.editor.halt_kernel_confirm,
+          );
           return (
             <>
               Kernel is idle{" "}
@@ -752,10 +757,7 @@ export function Kernel({
                 defaultMessage: "Interrupt the running computation",
               })}
             >
-              <Button
-                size="small"
-                onClick={() => actions.signal("SIGINT")}
-              >
+              <Button size="small" onClick={() => actions.signal("SIGINT")}>
                 <Icon name="stop" /> Stop
               </Button>
             </Tooltip>
@@ -773,10 +775,7 @@ export function Kernel({
           </Popconfirm>
         )}
         {!read_only && kernel != null && !no_kernel && (
-          <Button
-            size="small"
-            onClick={() => void actions.confirm_restart()}
-          >
+          <Button size="small" onClick={() => void actions.confirm_restart()}>
             <Icon name="redo" /> Restart
           </Button>
         )}
