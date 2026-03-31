@@ -37,6 +37,8 @@ export interface EditorFunctions {
   refresh?: () => void;
   get_cursor_xy?: () => { x: number; y: number };
   getSelection?: () => string;
+  /** Return 0-based line range of the current selection, if any. */
+  getSelectionRange?: () => { fromLine: number; toLine: number } | undefined;
   focus?: () => void;
 }
 
@@ -730,6 +732,26 @@ export class NotebookFrameActions {
   // used for chatgpt
   getCellSelection(id: string): string {
     return this.input_editors[id]?.["getSelection"]?.() ?? "";
+  }
+
+  /** Get cursor position for a specific cell (or the focused cell). */
+  getCursorPosition(
+    id?: string,
+  ): { line: number; ch: number } | undefined {
+    const cellId = id ?? this.store.get("cur_id");
+    if (!cellId) return undefined;
+    return this.input_editors[cellId]?.get_cursor?.();
+  }
+
+  /** Get the 0-based line range of the current selection in a cell.
+   *  Returns undefined if no selection or if the editor doesn't support it
+   *  (e.g., markdown/Slate cells). */
+  getSelectionRange(
+    id?: string,
+  ): { fromLine: number; toLine: number } | undefined {
+    const cellId = id ?? this.store.get("cur_id");
+    if (!cellId) return undefined;
+    return this.input_editors[cellId]?.getSelectionRange?.();
   }
 
   private call_input_editor_method(id: string, name: string, ...args): void {

@@ -273,7 +273,7 @@ export default function Focused({
         {RotateControl}
         <div
           style={{
-            zIndex: MAX_ELEMENTS + 2,
+            zIndex: 3,
             position: "absolute",
             width: "100%",
             height: "100%",
@@ -294,11 +294,12 @@ export default function Focused({
           style={{
             position: "absolute",
             bottom: `-${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
-            left: `${OFFSET / SELECTED_BORDER_WIDTH / canvasScale}px`,
+            left: 0,
+            width: `${pos.w}px`,
             transform: `scale(${1 / canvasScale})`,
             transformOrigin: "top left",
             pointerEvents: "all",
-            zIndex: 1,
+            zIndex: 3,
           }}
         >
           <EditBar
@@ -327,6 +328,7 @@ export default function Focused({
           style={{
             cursor: locked ? undefined : "grab",
             position: "relative",
+            zIndex: 2,
             ...(rotating
               ? {
                   border: `${SELECTED_BORDER_WIDTH / canvasScale}px ${

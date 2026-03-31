@@ -9,6 +9,7 @@ import { Element } from "../../types";
 
 export default function getStyle(element: Element): CSSProperties {
   return {
+    boxSizing: "border-box",
     height: "100%",
     overflowY: "auto",
     fontSize: element.data?.fontSize,

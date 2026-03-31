@@ -66,11 +66,16 @@ export class ProjectClient {
   // writeFile -- easily write **arbitrarily large text or binary files**
   // to a project from a readable stream or a string!
   writeFile = async (
-    opts: WriteFileOptions & { content?: string },
+    opts:
+      | WriteFileOptions
+      | (Omit<WriteFileOptions, "stream"> & { content: string }),
   ): Promise<{ bytes: number; chunks: number }> => {
-    if (opts.content != null) {
-      // @ts-ignore -- typescript doesn't like this at all, but it works fine.
-      opts.stream = new Blob([opts.content], { type: "text/plain" }).stream();
+    if ("content" in opts) {
+      return await writeFile({
+        ...opts,
+        stream: new Blob([opts.content], { type: "text/plain" })
+          .stream() as any,
+      });
     }
     return await writeFile(opts);
   };

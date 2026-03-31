@@ -101,6 +101,7 @@ function Component({
                   }}
                   language={"latex"}
                   extraFileInfo={actions.languageModelExtraFileInfo()}
+                  extraContext={() => actions.getHelpMeFixBuildContext()}
                   tag={"latex-error-popover"}
                   prioritize="start-end"
                 />

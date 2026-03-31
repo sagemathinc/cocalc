@@ -20,6 +20,7 @@ import { cmp_array } from "@cocalc/util/misc";
 
 import { CourseActions } from "../actions";
 import { AddItems, FoldersToolbar } from "../common/folders-tool-bar";
+import type { UserMap } from "../../todo-types";
 import {
   AssignmentRecord,
   IsGradingMap,
@@ -39,7 +40,7 @@ interface Props {
   actions: CourseActions;
   assignments: Map<string, AssignmentRecord>;
   students: Map<string, StudentRecord>;
-  user_map: object;
+  user_map: UserMap;
   frameActions;
 }
 

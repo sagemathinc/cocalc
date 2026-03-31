@@ -25,7 +25,10 @@ import * as _ from "lodash";
 import { REMEMBER_ME_COOKIE_NAME } from "@cocalc/backend/auth/cookie-names";
 import base_path from "@cocalc/backend/base-path";
 import getLogger from "@cocalc/backend/logger";
+
 import { set_email_address_verified } from "@cocalc/database/postgres/account/queries";
+import { getPassportCache } from "@cocalc/database/postgres/passport-store";
+
 import type {
   PostgreSQL,
   UpdateAccountInfoAndPassportOpts,
@@ -39,6 +42,7 @@ import accountCreationActions from "@cocalc/server/accounts/account-creation-act
 import getEmailAddress from "@cocalc/server/accounts/get-email-address";
 import isBanned from "@cocalc/server/accounts/is-banned";
 import clientSideRedirect from "@cocalc/server/auth/client-side-redirect";
+import { getAccountIdFromRememberMe } from "@cocalc/server/auth/get-account";
 import generateHash from "@cocalc/server/auth/hash";
 import setSignInCookies from "@cocalc/server/auth/set-sign-in-cookies";
 import { sanitizeID } from "@cocalc/server/auth/sso/sanitize-id";
@@ -51,9 +55,19 @@ import {
 import { is_valid_email_address } from "@cocalc/util/misc";
 import { ssoNormalizeExclusiveDomains } from "@cocalc/util/sso-normalize-domains";
 import { HELP_EMAIL } from "@cocalc/util/theme";
-import { SSO_API_KEY_COOKIE_NAME } from "./consts";
+import {
+  SSO_API_KEY_COOKIE_NAME,
+  SSO_LINK_ACCOUNT_CACHE_NAME,
+  SSO_LINK_ACCOUNT_COOKIE_NAME,
+  SSO_LINK_ACCOUNT_MAX_AGE_MS,
+} from "./consts";
 
 const logger = getLogger("server:auth:sso:passport-login");
+
+interface LinkAccountState {
+  account_id: string;
+  remember_me_hash: string;
+}
 
 export class PassportLogin {
   private readonly passports: { [k: string]: PassportStrategyDB } = {};
@@ -137,6 +151,9 @@ export class PassportLogin {
     try {
       // do we have a valid remember me cookie for a given account_id already?
       await this.checkRememberMeCookie(locals);
+      // Cross-site SSO callbacks can lose the remember_me cookie, so preserve an
+      // explicit "link this strategy to my current account" intent separately.
+      await this.checkLinkAccountCookie(locals);
       // do we already have a passport?
       await this.checkPassportExists(this.opts, locals);
       // there might be accounts already with that email address
@@ -219,6 +236,52 @@ export class PassportLogin {
         return;
       }
     }
+  }
+
+  private async checkLinkAccountCookie(
+    locals: PassportLoginLocals,
+  ): Promise<void> {
+    if (locals.has_valid_remember_me || locals.account_id != null) {
+      return;
+    }
+
+    const linkAccountId = locals.cookies.get(SSO_LINK_ACCOUNT_COOKIE_NAME);
+    if (linkAccountId == null) {
+      return;
+    }
+
+    // The browser cookie is just an opaque pointer. The actual account context
+    // is stored server-side with a short expiry in passport_store.
+    const cache = getPassportCache(
+      SSO_LINK_ACCOUNT_CACHE_NAME,
+      SSO_LINK_ACCOUNT_MAX_AGE_MS,
+    );
+    const cached = await cache.getAsync(linkAccountId);
+    await cache.removeAsync(linkAccountId);
+    locals.cookies.set(SSO_LINK_ACCOUNT_COOKIE_NAME);
+
+    if (cached == null) {
+      return;
+    }
+
+    let state: LinkAccountState;
+    try {
+      state = JSON.parse(cached);
+    } catch {
+      return;
+    }
+
+    // Revalidate the original remember_me session before treating this callback
+    // as an authenticated "link SSO to my current account" flow.
+    const account_id = await getAccountIdFromRememberMe(state.remember_me_hash);
+    if (account_id == null || account_id !== state.account_id) {
+      return;
+    }
+
+    // From this point on, the shared PassportLogin flow can handle the SSO
+    // callback exactly like a still-signed-in linking request.
+    locals.account_id = state.account_id;
+    locals.has_valid_remember_me = true;
   }
 
   // this adds a passport to an existing account

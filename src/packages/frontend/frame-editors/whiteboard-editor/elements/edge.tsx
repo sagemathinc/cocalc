@@ -4,7 +4,12 @@ Render an edge from one node to another.
 
 import type { Element, ElementsMap, Point, Rect } from "../types";
 import Arrow from "./arrow";
-import { closestMidpoint, getPosition, Transforms } from "../math";
+import {
+  closestMidpoint,
+  getEdgeEndpoints,
+  getPosition,
+  Transforms,
+} from "../math";
 import { SELECTED_BORDER_COLOR, SELECTED_BORDER_WIDTH } from "./style";
 
 interface Props {
@@ -52,9 +57,6 @@ export default function Edge({
           selected ? SELECTED_BORDER_COLOR : "transparent"
         }`,
         background: previewMode ? "#9fc3ff" : undefined,
-        ...(onClick != null
-          ? { padding: "2.5px 10px", marginTop: "-5px", cursor: "pointer" }
-          : { padding: "0 10px" }),
       }}
       onClick={onClick}
       preview={element.data?.previewTo != null}
@@ -81,21 +83,20 @@ function getEndpoints(
     return null;
   }
 
-  // We use a heuristic about where to draw the edge.
-  // Basically, we want it to go between the middles of
-  // the closest edges.   TODO: Sometimes a longer path that avoids
-  // overlapping exists... or maybe curve the line?
+  // Determine connection points using center-to-center ray analysis
+  // to pick natural sides (bottom→top for vertical, right→left for horizontal).
   const from = toWindowRectNoScale(transforms, fromElt);
   if (zIndex == null) {
     zIndex = transforms.zMap[element.z ?? 0] ?? 0;
   }
 
+  let start: Point;
   let end: Point;
-  let to: Rect;
   if (element.data?.previewTo != null) {
     const { x, y } = element.data?.previewTo;
     end = transforms.dataToWindowNoScale(x, y, zIndex);
-    to = { ...end, w: 1, h: 1 };
+    const to: Rect = { ...end, w: 1, h: 1 };
+    start = closestMidpoint(from, to);
   } else {
     const { to: toId } = element.data ?? {};
     if (toId == null) return null; // invalid data
@@ -103,10 +104,9 @@ function getEndpoints(
     if (toElt == null || toElt.hide != null) {
       return null;
     }
-    to = toWindowRectNoScale(transforms, toElt);
-    end = closestMidpoint(to, from);
+    const to = toWindowRectNoScale(transforms, toElt);
+    ({ start, end } = getEdgeEndpoints(from, to));
   }
-  const start = closestMidpoint(from, to);
 
   return { start, end, zIndex };
 }

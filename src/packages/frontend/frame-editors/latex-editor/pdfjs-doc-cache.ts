@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -21,10 +21,17 @@ const MAX_PAGES = 1000;
 
 import LRU from "lru-cache";
 import "pdfjs-dist/webpack.mjs";
+import { getDocument as pdfjs_getDocument } from "pdfjs-dist";
+import type {
+  PDFDocumentLoadingTask,
+  PDFDocumentProxy,
+} from "pdfjs-dist/webpack.mjs";
 
 import { versions } from "@cocalc/cdn";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
+import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
+import { getComputeServerId } from "@cocalc/frontend/frame-editors/generic/client";
+import { pdf_path } from "./util";
 
 /* IMPORTANT:
  - We do NOT install pdfjs-dist into the @cocalc/frontend module at all though we import it here!!
@@ -36,11 +43,6 @@ import { reuseInFlight } from "@cocalc/util/reuse-in-flight";
    them, which causes trouble, so we explicitly use a babel plugin just to deal
    with this package.  That's all in packages/static.
 */
-import { getDocument as pdfjs_getDocument } from "pdfjs-dist";
-import type { PDFDocumentProxy } from "pdfjs-dist/webpack.mjs";
-import { raw_url } from "@cocalc/frontend/frame-editors/frame-tree/util";
-import { pdf_path } from "./util";
-import { getComputeServerId } from "@cocalc/frontend/frame-editors/generic/client";
 
 const options = {
   maxSize: MAX_PAGES,
@@ -63,22 +65,57 @@ export function url_to_pdf(
 }
 
 const doc_cache = new LRU(options);
+// Track pending pdf.js loads separately from the resolved document cache so a
+// timed-out/stuck load can be explicitly destroyed and not reused forever.
+const inflight: Record<
+  string,
+  {
+    loadingTask: PDFDocumentLoadingTask;
+    promise: Promise<PDFDocumentProxy>;
+  }
+> = {};
 
-export const getDocument = reuseInFlight(async function (url: string) {
+export async function getDocument(url: string): Promise<PDFDocumentProxy> {
   let doc: PDFDocumentProxy | undefined = doc_cache.get(url);
   if (doc === undefined) {
+    const existing = inflight[url];
+    if (existing != null) {
+      return await existing.promise;
+    }
+
     const resDir = `pdfjs-dist-${versions["pdfjs-dist"]}`;
-    doc = (await pdfjs_getDocument({
+    const loadingTask = pdfjs_getDocument({
       url,
       cMapUrl: `${appBasePath}/cdn/${resDir}/cmaps/`,
       cMapPacked: true,
       disableStream: true,
       disableAutoFetch: true,
-    }).promise) as unknown as PDFDocumentProxy;
-    doc_cache.set(url, doc);
+    }) as unknown as PDFDocumentLoadingTask;
+    const entry = {
+      loadingTask,
+      promise: undefined as unknown as Promise<PDFDocumentProxy>,
+    };
+    entry.promise = loadingTask.promise.then(
+      (loaded) => {
+        const resolved = loaded as unknown as PDFDocumentProxy;
+        if (inflight[url] === entry) {
+          delete inflight[url];
+          doc_cache.set(url, resolved);
+        }
+        return resolved;
+      },
+      (err) => {
+        if (inflight[url] === entry) {
+          delete inflight[url];
+        }
+        throw err;
+      },
+    );
+    inflight[url] = entry;
+    doc = await entry.promise;
   }
   return doc;
-});
+}
 
 /*
 Call this to remove this given pdf from the cache.
@@ -87,4 +124,11 @@ never ever want to see the old pdf.
 */
 export function forgetDocument(url: string): void {
   doc_cache.delete(url);
+  const entry = inflight[url];
+  if (entry != null) {
+    delete inflight[url];
+    // Dropping the inflight entry is enough to let the next caller start a
+    // fresh load. We intentionally do not destroy the shared pdf.js loading
+    // task here, since other viewers may still be awaiting the same URL.
+  }
 }

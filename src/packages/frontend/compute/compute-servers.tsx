@@ -13,6 +13,7 @@ import {
   Radio,
   Switch,
   Tooltip,
+  Typography,
 } from "antd";
 import { useEffect, useState } from "react";
 const { Search } = Input;
@@ -23,7 +24,7 @@ import {
   DragHandle,
 } from "@cocalc/frontend/components/sortable-list";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { Icon } from "@cocalc/frontend/components";
+import { HelpIcon, Icon } from "@cocalc/frontend/components";
 import { STATE_TO_NUMBER } from "@cocalc/util/db-schema/compute-servers";
 import {
   get_local_storage,
@@ -38,15 +39,102 @@ export function Docs({ style }: { style? }) {
   );
 }
 
-export default function ComputeServers({ project_id }: { project_id: string }) {
+const COMPUTE_SERVERS_INTRO =
+  "Compute servers provide affordable GPUs, high-end VMs, root access, " +
+  "Docker and Kubernetes on CoCalc. They are virtual machines where you " +
+  "and your collaborators can run Jupyter notebooks, terminals and web " +
+  "servers collaboratively, with full access to your project.";
+
+export function ComputeServersHelpContent() {
+  return (
+    <div style={{ fontSize: "12pt" }}>
+      <A href="https://doc.cocalc.com/compute_server.html">Compute Servers</A>{" "}
+      provide <strong>affordable GPUs</strong>,{" "}
+      <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
+      <strong>Docker</strong> and <strong>Kubernetes</strong> on CoCalc. Compute
+      servers are virtual machines where you and your collaborators can run
+      Jupyter notebooks, terminals and web servers collaboratively, with full
+      access to your project.
+      <ul>
+        <li>
+          <Icon name="ubuntu" /> Full root and internet access on an Ubuntu Linux
+          server,
+        </li>
+        <li>
+          <Icon name="server" /> Dedicated GPUs, hundreds of very fast vCPUs, and
+          thousands of GB of RAM
+        </li>
+        <li>
+          {" "}
+          <Icon name="dns" /> Public ip address and (optional) domain name
+        </li>
+        <li>
+          {" "}
+          <Icon name="sync" /> Files sync'd with the project
+        </li>
+      </ul>
+      <h3>Getting Started</h3>
+      <ul>
+        <li>Create a compute server below and start it.</li>
+        <li>
+          Once your compute server is running, select it in the upper left of any
+          terminal or Jupyter notebook in this project.{" "}
+        </li>
+        <li>
+          Compute servers stay running independently of your project, so if you
+          need to restart your project for any reason, that doesn't impact
+          running notebooks and terminals on your compute servers.
+        </li>
+        <li>
+          A compute server belongs to the user who created it, and they will be
+          billed by the second for usage. Select "Allow Collaborator Control" to
+          allow project collaborators to start and stop a compute server. Project
+          collaborators can always connect to running compute servers.
+        </li>
+        <li>
+          You can ssh to user@ at the ip address of your compute server using
+          any{" "}
+          <A href="https://doc.cocalc.com/project-settings.html#ssh-keys">
+            project
+          </A>{" "}
+          or{" "}
+          <A href="https://doc.cocalc.com/account/ssh.html">
+            account public ssh keys
+          </A>{" "}
+          that has access to this project (wait about 30 seconds after you add
+          keys). If you start a web service on any port P on your compute server,
+          type <code>ssh -L P:localhost:P user@ip_address</code>
+          on your laptop, and you can connect to that web service on localhost on
+          your laptop. Also ports 80 and 443 are always publicly visible (so no
+          port forwarding is required). If you connect to root@ip_address, you
+          are root on the underlying virtual machine outside of any Docker
+          container; if you connect to user@ip_address, you are the user inside
+          the main compute container, with full access to your chosen image --
+          this is the same as opening a terminal and selecting the compute
+          server.
+        </li>
+      </ul>
+    </div>
+  );
+}
+
+export default function ComputeServers({
+  project_id,
+  mode,
+}: {
+  project_id: string;
+  mode?: "flyout" | "page";
+}) {
   const computeServers = useTypedRedux({ project_id }, "compute_servers");
   const account_id = useTypedRedux("account", "account_id");
   const [help, setHelp] = useState<boolean>(false);
   const supported = availableClouds().length > 0;
 
+  const isFlyout = mode === "flyout";
+
   return (
-    <div style={{ paddingRight: "15px" }}>
-      {supported && (
+    <div style={{ paddingRight: isFlyout ? 0 : "15px" }}>
+      {supported && !isFlyout && (
         <>
           <Switch
             checkedChildren={"Help"}
@@ -56,82 +144,10 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
             onChange={setHelp}
           />
           {help && (
-            <div style={{ fontSize: "12pt" }}>
-              <A href="https://doc.cocalc.com/compute_server.html">
-                Compute Servers
-              </A>{" "}
-              provide <strong>affordable GPUs</strong>,{" "}
-              <strong>high end VM's</strong>, <strong>root access</strong>,{" "}
-              <strong>Docker</strong> and <strong>Kubernetes</strong> on CoCalc.
-              Compute servers are virtual machines where you and your
-              collaborators can run Jupyter notebooks, terminals and web servers
-              collaboratively, with full access to your project.
-              <ul>
-                <li>
-                  <Icon name="ubuntu" /> Full root and internet access on an
-                  Ubuntu Linux server,
-                </li>
-                <li>
-                  <Icon name="server" /> Dedicated GPUs, hundreds of very fast
-                  vCPUs, and thousands of GB of RAM
-                </li>
-                <li>
-                  {" "}
-                  <Icon name="dns" /> Public ip address and (optional) domain
-                  name
-                </li>
-                <li>
-                  {" "}
-                  <Icon name="sync" /> Files sync'd with the project
-                </li>
-              </ul>
-              <h3>Getting Started</h3>
-              <ul>
-                <li>Create a compute server below and start it.</li>
-                <li>
-                  Once your compute server is running, select it in the upper
-                  left of any terminal or Jupyter notebook in this project.{" "}
-                </li>
-                <li>
-                  Compute servers stay running independently of your project, so
-                  if you need to restart your project for any reason, that
-                  doesn't impact running notebooks and terminals on your compute
-                  servers.
-                </li>
-                <li>
-                  A compute server belongs to the user who created it, and they
-                  will be billed by the second for usage. Select "Allow
-                  Collaborator Control" to allow project collaborators to start
-                  and stop a compute server. Project collaborators can always
-                  connect to running compute servers.
-                </li>
-                <li>
-                  You can ssh to user@ at the ip address of your compute server
-                  using any{" "}
-                  <A href="https://doc.cocalc.com/project-settings.html#ssh-keys">
-                    project
-                  </A>{" "}
-                  or{" "}
-                  <A href="https://doc.cocalc.com/account/ssh.html">
-                    account public ssh keys
-                  </A>{" "}
-                  that has access to this project (wait about 30 seconds after
-                  you add keys). If you start a web service on any port P on
-                  your compute server, type{" "}
-                  <code>ssh -L P:localhost:P user@ip_address</code>
-                  on your laptop, and you can connect to that web service on
-                  localhost on your laptop. Also ports 80 and 443 are always
-                  publicly visible (so no port forwarding is required). If you
-                  connect to root@ip_address, you are root on the underlying
-                  virtual machine outside of any Docker container; if you
-                  connect to user@ip_address, you are the user inside the main
-                  compute container, with full access to your chosen image --
-                  this is the same as opening a terminal and selecting the
-                  compute server.
-                </li>
-              </ul>
+            <>
+              <ComputeServersHelpContent />
               <h3>Click this Button ↓</h3>
-            </div>
+            </>
           )}
         </>
       )}
@@ -140,6 +156,7 @@ export default function ComputeServers({ project_id }: { project_id: string }) {
           computeServers={computeServers}
           project_id={project_id}
           account_id={account_id}
+          mode={mode}
         />
       ) : (
         <b>No Compute Server Clouds are currently enabled.</b>
@@ -156,7 +173,14 @@ function ComputeServerTable({
   computeServers: computeServers0,
   project_id,
   account_id,
+  mode,
+}: {
+  computeServers: any;
+  project_id: string;
+  account_id: string;
+  mode?: "flyout" | "page";
 }) {
+  const isFlyout = mode === "flyout";
   const [computeServers, setComputeServers] = useState<any>(computeServers0);
   useEffect(() => {
     setComputeServers(computeServers0);
@@ -257,7 +281,7 @@ function ComputeServerTable({
 
     return (
       <div style={{ display: "flex" }}>
-        {sortBy == "custom" && (
+        {sortBy == "custom" && !isFlyout && (
           <div
             style={{
               fontSize: "20px",
@@ -273,10 +297,14 @@ function ComputeServerTable({
         )}
         <ComputeServer
           server={server}
-          style={{ marginBottom: "10px" }}
+          style={{
+            marginBottom: isFlyout ? 0 : "10px",
+            minWidth: isFlyout ? 0 : undefined,
+          }}
           key={`${id}`}
           editable={account_id == server.account_id}
           controls={{ setShowDeleted }}
+          mode={mode as "flyout" | "page" | undefined}
         />
       </div>
     );
@@ -288,6 +316,72 @@ function ComputeServerTable({
       <SortableItem key={`${id}`} id={id}>
         {renderItem(id)}
       </SortableItem>,
+    );
+  }
+
+  if (isFlyout) {
+    return (
+      <div>
+        <Typography.Paragraph
+          type="secondary"
+          ellipsis={{ expandable: true, rows: 1, symbol: "more" }}
+          style={{ margin: "8px 8px 4px" }}
+        >
+          {COMPUTE_SERVERS_INTRO}
+        </Typography.Paragraph>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            margin: "4px 8px 10px",
+          }}
+          key="create"
+        >
+          <CreateComputeServer
+            project_id={project_id}
+            onCreate={() => setSearch("")}
+            compact
+          />
+          <Docs />
+          <HelpIcon title="Compute Servers" maxWidth="550px" extra="Help">
+            <ComputeServersHelpContent />
+          </HelpIcon>
+        </div>
+        {computeServers.size > 1 && (
+          <Search
+            allowClear
+            size="small"
+            placeholder={`Filter ${computeServers.size} ${plural(
+              computeServers.size,
+              "server",
+            )}...`}
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ width: "100%", marginBottom: "5px", padding: "0 8px" }}
+          />
+        )}
+        {numDeleted > 0 && (
+          <Checkbox
+            style={{ marginBottom: "5px", padding: "0 8px" }}
+            checked={showDeleted}
+            onChange={() => setShowDeleted(!showDeleted)}
+          >
+            Deleted ({numDeleted})
+          </Checkbox>
+        )}
+        {numSkipped > 0 && (
+          <Alert
+            showIcon
+            style={{ marginBottom: "5px", margin: "0 8px 5px 8px" }}
+            type="warning"
+            message={`${numSkipped} hidden by filter`}
+          />
+        )}
+        <div>
+          {ids.map((id) => renderItem(id))}
+        </div>
+      </div>
     );
   }
 
@@ -395,17 +489,12 @@ function ComputeServerTable({
               let position;
               if (newIndex == ids.length - 1) {
                 const last = computeServers.get(ids[ids.length - 1]);
-                // putting it at the bottom, so subtract 1 from very bottom position
                 position = (last.get("position") ?? last.get("id")) - 1;
               } else {
-                // putting it above what was at position newIndex.
                 if (newIndex == 0) {
-                  // very top
                   const first = computeServers.get(ids[0]);
-                  // putting it at the bottom, so subtract 1 from very bottom position
                   position = (first.get("position") ?? first.get("id")) + 1;
                 } else {
-                  // not at the very top: between two
                   let x, y;
                   if (newIndex > oldIndex) {
                     x = computeServers.get(ids[newIndex]);
@@ -414,12 +503,8 @@ function ComputeServerTable({
                     x = computeServers.get(ids[newIndex - 1]);
                     y = computeServers.get(ids[newIndex]);
                   }
-
                   const x0 = x.get("position") ?? x.get("id");
                   const y0 = y.get("position") ?? y.get("id");
-                  // TODO: yes, positions could get too close and this doesn't work, and then
-                  // we have to globally reset them all.  This is done for jupyter etc.
-                  // not implemented here *yet*.
                   position = (x0 + y0) / 2;
                 }
               }

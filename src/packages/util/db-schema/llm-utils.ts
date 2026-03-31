@@ -140,6 +140,8 @@ export const MODELS_OPENAI = [
   "gpt-5.4",
   "gpt-5-mini-8k", // context limited
   "gpt-5-mini",
+  "gpt-5.4-mini-8k", // context limited
+  "gpt-5.4-mini",
 ] as const;
 
 export type OpenAIModel = (typeof MODELS_OPENAI)[number];
@@ -362,7 +364,8 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
       m === "o4-mini-8k" ||
       m === "gpt-5.2-8k" ||
       m === "gpt-5.4-8k" ||
-      m === "gpt-5-mini-8k",
+      m === "gpt-5-mini-8k" ||
+      m === "gpt-5.4-mini-8k",
   ),
   google: [
     "gemini-3.1-pro-preview-8k",
@@ -737,6 +740,23 @@ export function service2model_core(
 // NOTE: do not use this – instead use server_settings.default_llm
 export const DEFAULT_MODEL: LanguageModel = "gemini-3-flash-preview-16k";
 
+/**
+ * Return a single free model suitable for lightweight tasks (e.g. auto-generating
+ * short titles).  Picks the first free model from the standard vendor priority.
+ * Falls back to DEFAULT_MODEL if nothing else is found.
+ */
+export function getOneFreeModel(): LanguageModel {
+  for (const v of DEFAULT_LLM_PRIORITY) {
+    const models = USER_SELECTABLE_LLMS_BY_VENDOR[v];
+    if (!models) continue;
+    for (const m of models) {
+      const cost = LLM_COST[m];
+      if (cost?.free) return m;
+    }
+  }
+  return DEFAULT_MODEL;
+}
+
 interface LLMVendor {
   name: LLMServiceName;
   url: string;
@@ -916,6 +936,8 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-5.4": "GPT-5.4 128k",
   "gpt-5-mini-8k": "GPT-5 Mini",
   "gpt-5-mini": "GPT-5 Mini 128k",
+  "gpt-5.4-mini-8k": "GPT-5.4 Mini",
+  "gpt-5.4-mini": "GPT-5.4 Mini 128k",
   "gemini-3-flash-preview-16k": "Gemini 3 Flash",
   "grok-4-1-fast-non-reasoning-16k": "Grok 4.1 Fast",
   "grok-4-1-fast-reasoning-16k": "Grok 4.1 Fast Reasoning",
@@ -1043,6 +1065,10 @@ export const LLM_DESCR: LLM2String = {
   "gpt-5-mini-8k":
     "Fast and cost-efficient version of GPT-5 (8k token context)",
   "gpt-5-mini": "Fast and cost-efficient version of GPT-5 (128k token context)",
+  "gpt-5.4-mini-8k":
+    "Powerful and cost-efficient mini model for coding and agents (8k token context)",
+  "gpt-5.4-mini":
+    "Powerful and cost-efficient mini model for coding and agents (128k token context)",
   "gemini-3-flash-preview-16k":
     "Google's Gemini 3 Flash model (16k token context)",
   "grok-4-1-fast-non-reasoning-16k":
@@ -1518,6 +1544,18 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gpt-5-mini": {
     prompt_tokens: usd1Mtokens(0.25),
     completion_tokens: usd1Mtokens(2),
+    max_tokens: 128000,
+    free: true,
+  },
+  "gpt-5.4-mini-8k": {
+    prompt_tokens: usd1Mtokens(0.75),
+    completion_tokens: usd1Mtokens(4.5),
+    max_tokens: 8192,
+    free: true,
+  },
+  "gpt-5.4-mini": {
+    prompt_tokens: usd1Mtokens(0.75),
+    completion_tokens: usd1Mtokens(4.5),
     max_tokens: 128000,
     free: true,
   },

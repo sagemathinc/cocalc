@@ -5,10 +5,7 @@
 
 import React from "react";
 
-import {
-  useFileDrag,
-  useFolderDrop,
-} from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
+import { useFileDrag } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import * as misc from "@cocalc/util/misc";
 
 import {
@@ -95,7 +92,7 @@ function VirtualTableRow(props: React.HTMLAttributes<HTMLTableRowElement>) {
   return <VirtualDraggableRow {...props} ctx={ctx} record={entry} />;
 }
 
-/** Row for the ".." parent directory — drop target only */
+/** Row for the ".." parent directory — drop target via DOM hit-testing */
 function VirtualDropOnlyRow({
   ctx,
   rowProps,
@@ -105,25 +102,21 @@ function VirtualDropOnlyRow({
   rowProps: ReturnType<DndRowContextType["onRow"]>;
 }) {
   const parentPath = ctx.currentPath.split("/").slice(0, -1).join("/");
-  const { dropRef, isOver } = useFolderDrop(
-    `explorer-folder-${parentPath}`,
-    parentPath,
-  );
   return (
     <tr
       {...props}
-      ref={dropRef}
       onClick={rowProps.onClick}
       onMouseDown={rowProps.onMouseDown}
       onContextMenu={rowProps.onContextMenu}
       style={{ ...props.style, ...rowProps.style }}
       data-folder-drop-path={parentPath}
-      className={`${props.className ?? ""}${isOver ? " cc-explorer-row-drop-target" : ""}`}
+      className={props.className ?? ""}
     />
   );
 }
 
-/** Regular file/folder row — draggable; folders are also droppable */
+/** Regular file/folder row — draggable; folder drop highlighting is handled
+ *  by the DndProvider via DOM hit-testing on data-folder-drop-path. */
 function VirtualDraggableRow({
   ctx,
   record,
@@ -142,31 +135,6 @@ function VirtualDraggableRow({
     ctx.projectId,
   );
 
-  // Always call the hook (Rules of Hooks), but disable for non-folders
-  const { dropRef, isOver, isInvalidDrop } = useFolderDrop(
-    isFolder ? `explorer-folder-${fullPath}` : `noop-${fullPath}`,
-    fullPath,
-    isFolder,
-  );
-
-  // Merge drag ref + drop ref
-  const mergedRef = React.useCallback(
-    (node: HTMLTableRowElement | null) => {
-      dragRef(node);
-      if (isFolder) dropRef(node);
-    },
-    [dragRef, dropRef, isFolder],
-  );
-
-  const extraClass =
-    isFolder && isOver
-      ? " cc-explorer-row-drop-target"
-      : isFolder && isInvalidDrop
-        ? " cc-explorer-row-drop-invalid"
-        : isDragging
-          ? " cc-explorer-row-checked"
-          : "";
-
   const rowProps = ctx.onRow(record);
   const cls = ctx.rowClassName(record);
   const onDragMouseDown = (dragListeners as any)?.onMouseDown as
@@ -179,7 +147,7 @@ function VirtualDraggableRow({
       {...props}
       {...dragListeners}
       {...dragAttributes}
-      ref={mergedRef}
+      ref={dragRef}
       onClick={rowProps.onClick}
       onMouseDown={(e) => {
         // Suppress drag initiation when modifier keys are held (user is
@@ -193,7 +161,7 @@ function VirtualDraggableRow({
       onContextMenu={rowProps.onContextMenu}
       style={{ ...props.style, ...rowProps.style }}
       {...(isFolder ? { "data-folder-drop-path": fullPath } : {})}
-      className={`ant-table-row ${cls} ${props.className ?? ""}${extraClass}`}
+      className={`ant-table-row ${cls} ${props.className ?? ""}${isDragging ? " cc-explorer-row-checked" : ""}`}
     />
   );
 }

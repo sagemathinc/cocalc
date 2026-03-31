@@ -33,6 +33,30 @@ export const SHELLS = {
   rb: "ruby",
 } as const;
 
+// Maps file extensions to run commands.
+// {file} = basename (e.g. "hello.c"), {name} = basename without extension (e.g. "hello").
+export const RUN_COMMANDS: { [ext: string]: string } = {
+  py: "python3 {file}",
+  sage: "sage {file}",
+  js: "node {file}",
+  ts: "npx ts-node {file}",
+  c: "gcc {file} -o ./{name} && ./{name}",
+  cpp: "g++ {file} -o ./{name} && ./{name}",
+  cc: "g++ {file} -o ./{name} && ./{name}",
+  java: "javac {file} && java {name}",
+  go: "go run {file}",
+  rs: "rustc {file} -o ./{name} && ./{name}",
+  rb: "ruby {file}",
+  jl: "julia {file}",
+  r: "Rscript {file}",
+  R: "Rscript {file}",
+  sh: "bash {file}",
+  bash: "bash {file}",
+  pl: "perl {file}",
+  lua: "lua {file}",
+  m: "octave {file}",
+};
+
 export const cm: EditorDescription = {
   type: "cm",
   short: "Code",
@@ -54,6 +78,7 @@ export const cm: EditorDescription = {
     "copy",
     "undo",
     "redo",
+    "run_code",
     "terminal",
     "format",
     "auto_indent",

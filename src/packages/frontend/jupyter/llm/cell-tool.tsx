@@ -23,13 +23,14 @@ import { defineMessage, FormattedMessage, useIntl } from "react-intl";
 import { Entries } from "type-fest";
 import { trunc } from "@cocalc/util/misc";
 import { LanguageSelector } from "@cocalc/frontend/account/i18n-selector";
-import { useAsyncEffect } from "@cocalc/frontend/app-framework";
+import { redux, useAsyncEffect } from "@cocalc/frontend/app-framework";
 import getChatActions from "@cocalc/frontend/chat/get-actions";
 import { A, Paragraph, RawPrompt, Text } from "@cocalc/frontend/components";
 import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Icon, IconName } from "@cocalc/frontend/components/icon";
 import { useFrameContext } from "@cocalc/frontend/frame-editors/frame-tree/frame-context";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { openAssistantWithSeed } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import { LLMHistorySelector } from "@cocalc/frontend/frame-editors/llm/llm-history-selector";
 import { LLMQueryDropdownButton } from "@cocalc/frontend/frame-editors/llm/llm-query-dropdown";
 import LLMSelector, {
@@ -1286,7 +1287,89 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
     );
   }
 
+  function buildAgentPrompt(): string {
+    if (mode == null || actions == null) return "";
+    const kernel_info = actions.store.get("kernel_info");
+    const language = kernel_info?.get("language") ?? "python";
+    const kernel_display = kernel_info?.get("display_name") ?? "Python 3";
+
+    const chunks: string[] = [];
+
+    chunks.push(
+      getAction(mode).prompt({
+        language,
+        kernel_display,
+        extra,
+        target:
+          mode === "translate_text"
+            ? getLanguageName(targetTextLanguage)
+            : targetLanguage === OTHER_LANG
+              ? otherLanguage
+              : targetLanguage,
+        stepByStep,
+      }),
+    );
+
+    // Compute 1-based cell number for context.
+    const cellList = actions.store.get("cell_list");
+    const cellIds = cellList?.toJS() as string[] | undefined;
+    const cellIndex = cellIds ? cellIds.indexOf(id) : -1;
+    const cellLabel =
+      cellIndex >= 0 ? `Cell #${cellIndex + 1}` : "Current cell";
+
+    // Include the cell's own input so the agent sees the code to work with.
+    const cell = actions.store.get("cells")?.get(id);
+    if (cell) {
+      const cellInput = cell.get("input") ?? "";
+      if (cellInput.trim()) {
+        chunks.push(`${cellLabel} content:`);
+        const delimI = backtickSequence(cellInput);
+        chunks.push(
+          `${delimI}${isMarkdownCell ? "markdown" : language}\n${cellInput}\n${delimI}`,
+        );
+      }
+    }
+
+    // Include surrounding-cell context when selected by the user.
+    if (showContext) {
+      const ctx = getContextContent();
+      if (ctx.before) {
+        chunks.push(
+          `Context — cells BEFORE current cell:\n<before>\n${ctx.before}\n</before>`,
+        );
+      }
+      if (ctx.after) {
+        chunks.push(
+          `Context — cells AFTER current cell:\n<after>\n${ctx.after}\n</after>`,
+        );
+      }
+    }
+
+    // Include cell output when the user toggled "Include output".
+    // Cap at ~16 000 chars (~4 000 tokens) so the prompt stays within
+    // budget — the notebook agent applies its own token bounding on
+    // top of this.
+    if (includeOutput && cell) {
+      const MAX_OUTPUT_CHARS = 16_000;
+      const full = cellOutputToText(cell);
+      if (full.trim()) {
+        const output =
+          full.length > MAX_OUTPUT_CHARS
+            ? full.slice(0, MAX_OUTPUT_CHARS) + "\n...(truncated)"
+            : full;
+        const delim = backtickSequence(output);
+        chunks.push(`Cell output:\n${delim}text\n${output}\n${delim}`);
+      }
+    }
+
+    return chunks.join("\n\n");
+  }
+
   async function onConfirm() {
+    const oldAssistantMode = !!redux
+      .getStore("account")
+      .getIn(["other_settings", "old_assistant_mode"]);
+
     setIsQuerying(true);
     try {
       // Add prompt to history based on mode
@@ -1294,7 +1377,22 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
         addPrompt(extra);
       }
 
-      await getExplanation(false);
+      if (!oldAssistantMode) {
+        // Send to the notebook agent instead of the old side chat.
+        // Focus this cell so the agent picks it up as context.
+        frameActions.current?.set_cur_id(id);
+        const prompt = buildAgentPrompt();
+        await openAssistantWithSeed({
+          redux,
+          project_id,
+          path,
+          prompt,
+          model: llmTools?.model,
+        });
+      } else {
+        await getExplanation(false);
+      }
+
       track(TRACKING_KEY, {
         action: "submitted",
         mode,
