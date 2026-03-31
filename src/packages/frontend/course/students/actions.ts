@@ -59,18 +59,19 @@ export class StudentsActions {
     }
     this.course_actions.syncdb.commit();
     const f: (student_id: string) => Promise<void> = async (student_id) => {
-      let store = this.get_store();
+      const store = this.get_store();
       await callback2(store.wait, {
         until: (store: CourseStore) => store.get_student(student_id),
         timeout: 60,
       });
-      this.course_actions.student_projects.create_student_project(student_id);
-      store = this.get_store();
-      await callback2(store.wait, {
-        until: (store: CourseStore) =>
-          store.getIn(["students", student_id, "project_id"]),
-        timeout: 60,
-      });
+      // Skip per-project configure here for performance — the finally block's
+      // configure_all_projects handles it in one pass. If the course is closed
+      // mid-run, unconfigured projects will be configured on next course open
+      // or when the instructor clicks "Reconfigure all projects".
+      await this.course_actions.student_projects.create_student_project(
+        student_id,
+        false,
+      );
     };
 
     const id = this.course_actions.set_activity({
@@ -87,8 +88,9 @@ export class StudentsActions {
     } finally {
       if (this.course_actions.is_closed()) return;
       this.course_actions.set_activity({ id });
-      // after adding students, always run configure all projects,
-      // to ensure everything is set properly
+      // After adding students, configure all student projects.
+      // Uses student_projects directly (not configuration.configure_all_projects)
+      // to avoid unnecessary shared-project/nbgrader reconfiguration overhead.
       await this.course_actions.student_projects.configure_all_projects();
     }
   }

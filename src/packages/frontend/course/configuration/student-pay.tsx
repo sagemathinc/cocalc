@@ -163,7 +163,7 @@ export default function StudentPay({ actions, settings }) {
       )}
       <Checkbox
         checked={!!settings?.get("student_pay")}
-        onChange={(e) => {
+        onChange={async (e) => {
           actions.configuration.set_pay_choice("student", e.target.checked);
           if (e.target.checked) {
             setShowStudentPay(true);
@@ -172,7 +172,7 @@ export default function StudentPay({ actions, settings }) {
               info,
               cost,
             });
-            actions.configuration.configure_all_projects();
+            await actions.configuration.configure_all_projects();
           }
         }}
       >

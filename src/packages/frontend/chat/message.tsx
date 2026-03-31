@@ -47,6 +47,14 @@ import {
   newest_content,
   sender_is_viewer,
 } from "./utils";
+import {
+  VIEWER_COLOR,
+  VIEWER_DARKER_BG,
+  OTHER_BG,
+  CHAT_BUTTON_TEXT,
+  CHAT_SECONDARY_TEXT,
+  CHAT_SELECTED_BORDER,
+} from "./chat-colors";
 
 const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
@@ -422,7 +430,7 @@ export default function Message({
               <Button
                 disabled={replying}
                 style={{
-                  color: is_viewers_message ? "white" : "#555",
+                  color: is_viewers_message ? VIEWER_COLOR : CHAT_BUTTON_TEXT,
                 }}
                 type="text"
                 size="small"
@@ -437,7 +445,7 @@ export default function Message({
             <Button
               style={{
                 marginLeft: "5px",
-                color: is_viewers_message ? "white" : "#555",
+                color: is_viewers_message ? VIEWER_COLOR : CHAT_BUTTON_TEXT,
               }}
               type="text"
               size="small"
@@ -486,7 +494,7 @@ export default function Message({
           size="small"
           noText={true}
           style={{
-            color: is_viewers_message ? "white" : "#888",
+            color: is_viewers_message ? VIEWER_COLOR : CHAT_SECONDARY_TEXT,
             fontSize: "12px",
             marginTop: "-4px",
           }}
@@ -513,7 +521,7 @@ export default function Message({
           size="small"
           type={"text"}
           style={{
-            color: is_viewers_message ? "white" : "#888",
+            color: is_viewers_message ? VIEWER_COLOR : CHAT_SECONDARY_TEXT,
             fontSize: "12px",
             marginTop: "-4px",
           }}
@@ -556,7 +564,7 @@ export default function Message({
       >
         <Button
           style={{
-            color: !feedback && is_viewers_message ? "white" : "#888",
+            color: !feedback && is_viewers_message ? VIEWER_COLOR : CHAT_SECONDARY_TEXT,
             fontSize: "12px",
             marginTop: "-4px",
             ...(feedback ? {} : { position: "relative", top: "-5px" }),
@@ -645,7 +653,7 @@ export default function Message({
       ...(mode === "sidechat"
         ? { marginLeft: "5px", marginRight: "5px" }
         : undefined),
-      ...(selected ? { border: "3px solid #66bb6a" } : undefined),
+      ...(selected ? { border: `3px solid ${CHAT_SELECTED_BORDER}` } : undefined),
     } as const;
 
     return (
@@ -690,9 +698,30 @@ export default function Message({
   function renderHistory() {
     if (!show_history) return;
     return (
-      <div>
+      <div
+        style={
+          is_viewers_message
+            ? {
+                background: VIEWER_DARKER_BG,
+                color: VIEWER_COLOR,
+                borderRadius: "0 0 5px 5px",
+                padding: "4px 9px",
+                marginTop: "-2px",
+              }
+            : {
+                background: OTHER_BG,
+                borderRadius: "0 0 5px 5px",
+                padding: "4px 9px",
+                marginTop: "-2px",
+              }
+        }
+      >
         <HistoryTitle />
-        <History history={message.get("history")} user_map={user_map} />
+        <History
+          history={message.get("history")}
+          user_map={user_map}
+          isViewerMessage={is_viewers_message}
+        />
         <HistoryFooter />
       </div>
     );

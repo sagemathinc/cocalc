@@ -195,8 +195,8 @@ export function Student({
     });
   }
 
-  function create_project() {
-    actions.student_projects.create_student_project(student_id);
+  async function create_project() {
+    await actions.student_projects.create_student_project(student_id);
   }
 
   function render_last_active() {
