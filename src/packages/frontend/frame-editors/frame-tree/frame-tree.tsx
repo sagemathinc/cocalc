@@ -441,9 +441,14 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       const data = {
         pos,
         first: frame_tree.get("first"),
-        style_first: { display: "flex", flex: pos },
+        style_first: { display: "flex", flex: pos, minHeight: 0, minWidth: 0 },
         second: frame_tree.get("second"),
-        style_second: { display: "flex", flex: 1 - pos },
+        style_second: {
+          display: "flex",
+          flex: 1 - pos,
+          minHeight: 0,
+          minWidth: 0,
+        },
         outer_style: undefined as any,
       };
 
@@ -457,7 +462,13 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
         };
       } else {
         // Prevent scrollIntoView from propagating scroll to this container.
-        data.outer_style = { overflow: "clip" };
+        // Safari requires explicit flex properties on column containers.
+        data.outer_style = {
+          display: "flex",
+          flexDirection: "column",
+          flex: 1,
+          overflow: "clip",
+        };
       }
       return data;
     }
@@ -544,7 +555,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           <div
             key={child.get("id")}
             className="smc-vfill"
-            style={{ display: "flex", flex }}
+            style={{ display: "flex", flex, minHeight: 0, minWidth: 0 }}
           >
             {render_one(child)}
           </div>,
@@ -558,7 +569,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
             flex: 1,
             overflow: "hidden",
           }
-        : {};
+        : { display: "flex", flexDirection: "column", flex: 1, overflow: "hidden" };
 
       return (
         <div

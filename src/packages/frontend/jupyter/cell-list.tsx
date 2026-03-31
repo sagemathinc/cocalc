@@ -583,6 +583,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             style={{
               fontSize: `${font_size}px`,
               flex: 1,
+              minHeight: 0,
               overflowX: "hidden",
             }}
             totalCount={cell_list.size + EXTRA_BOTTOM_CELLS}
