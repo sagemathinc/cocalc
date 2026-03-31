@@ -713,12 +713,17 @@ export function NotebookAgent({
     if (!seed || processedAssistantSeedRef.current === seed.id) return;
     processedAssistantSeedRef.current = seed.id;
     actions.set_frame_tree({ id: frameId, assistant_seed: undefined });
+    // Switch model if the seed specifies one (e.g. from cell-tool dialog).
+    if (seed.model) {
+      setModel(seed.model as any);
+    }
     if (seed.prefill) {
       // Pre-fill mode: start a fresh session and set the input text
       // without submitting, so the user can review/edit before sending.
       session.handleNewSession();
       setInput(seed.prompt);
       setInputKey((k) => k + 1);
+      updateEstimate(seed.prompt);
       // Move cursor to end of the prefilled text after the editor remounts.
       setTimeout(() => {
         const sel = window.getSelection();

@@ -13,6 +13,8 @@ export interface AssistantSeed {
   mode?: "hint";
   /** When true, pre-fill the input without auto-submitting. */
   prefill?: boolean;
+  /** If set, switch the agent to this model before processing. */
+  model?: string;
 }
 
 export function normalizeAssistantSeed(raw: any): AssistantSeed | undefined {
@@ -26,6 +28,7 @@ export function normalizeAssistantSeed(raw: any): AssistantSeed | undefined {
       typeof value.forceNewTurn === "boolean" ? value.forceNewTurn : undefined,
     mode: value.mode === "hint" ? "hint" : undefined,
     prefill: value.prefill === true ? true : undefined,
+    model: typeof value.model === "string" ? value.model : undefined,
   };
 }
 
@@ -35,12 +38,14 @@ export async function openAssistantWithSeed({
   path,
   prompt,
   mode,
+  model,
 }: {
   redux: any;
   project_id: string;
   path: string;
   prompt: string;
   mode?: "hint";
+  model?: string;
 }): Promise<void> {
   await getChatActions(redux, project_id, path, 10, 0.7, "assistant");
   const editorActions = redux.getEditorActions(project_id, path) as any;
@@ -57,6 +62,7 @@ export async function openAssistantWithSeed({
       prompt,
       forceNewTurn: true,
       mode,
+      model,
     },
   });
   editorActions.set_active_id?.(chatFrameId);

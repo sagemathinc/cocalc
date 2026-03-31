@@ -1382,7 +1382,13 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
         // Focus this cell so the agent picks it up as context.
         frameActions.current?.set_cur_id(id);
         const prompt = buildAgentPrompt();
-        await openAssistantWithSeed({ redux, project_id, path, prompt });
+        await openAssistantWithSeed({
+          redux,
+          project_id,
+          path,
+          prompt,
+          model: llmTools?.model,
+        });
       } else {
         await getExplanation(false);
       }
