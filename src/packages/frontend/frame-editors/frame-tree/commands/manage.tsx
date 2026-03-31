@@ -747,8 +747,43 @@ export class ManageCommands {
       }
       return 0;
     };
-    w.sort((a, b) => cmp(getPosition(a), getPosition(b)));
+    // If there's a custom order, use it; otherwise sort by menu position.
+    const customOrder = this.getToolbarOrder();
+    if (customOrder != null && customOrder.length > 0) {
+      const orderMap = new Map<string, number>();
+      for (let i = 0; i < customOrder.length; i++) {
+        orderMap.set(customOrder[i], i);
+      }
+      w.sort((a, b) => {
+        const ai = orderMap.get(a);
+        const bi = orderMap.get(b);
+        if (ai != null && bi != null) return ai - bi;
+        if (ai != null) return -1;
+        if (bi != null) return 1;
+        return cmp(getPosition(a), getPosition(b));
+      });
+    } else {
+      w.sort((a, b) => cmp(getPosition(a), getPosition(b)));
+    }
     return w;
+  };
+
+  getToolbarOrder = (): string[] | null => {
+    const order = this.editorSettings.getIn([
+      "toolbar_order",
+      this.editorType(),
+    ]);
+    if (order != null) {
+      return order.toJS();
+    }
+    return null;
+  };
+
+  setToolbarOrder = (order: string[]) => {
+    const type = this.editorType();
+    set_account_table({
+      editor_settings: { toolbar_order: { [type]: order } },
+    });
   };
 
   // used for sorting

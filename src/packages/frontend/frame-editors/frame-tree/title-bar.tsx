@@ -11,6 +11,10 @@ FrameTitleBar - title bar in a frame, in the frame tree
 // cSpell:ignore rescan subframe
 
 import { useDraggable } from "@dnd-kit/core";
+import {
+  SortableButtonBar,
+  SortableButtonItem,
+} from "./sortable-button-bar";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -1296,6 +1300,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
+  function handleToolbarReorder(newOrder: string[]) {
+    manageCommands.setToolbarOrder(newOrder);
+  }
+
   function renderButtonBar(popup = false) {
     if (!is_active) {
       return null;
@@ -1304,16 +1312,42 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return null;
     }
     const w = manageCommands.getToolbarButtons();
-    const v: React.JSX.Element[] = [];
+    // Build a map of name → rendered element so we know which names actually render
+    const rendered = new Map<string, React.JSX.Element>();
     for (const name of w) {
       const b = renderButtonBarButton(name);
       if (b != null) {
-        v.push(b);
+        rendered.set(name, b);
       }
     }
-    if (v.length == 0) {
+    if (rendered.size === 0) {
       return null;
     }
+    const sortableIds = [...rendered.keys()];
+    const v = sortableIds.map((name) => (
+      <SortableButtonItem key={`sortable-${name}`} id={name}>
+        {rendered.get(name)}
+      </SortableButtonItem>
+    ));
+
+    const renderOverlayItem = (id: string) => {
+      const el = rendered.get(id);
+      if (!el) return null;
+      return (
+        <div
+          style={{
+            background: "#e8e8e8",
+            borderRadius: 4,
+            padding: "0 2px",
+            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
+            opacity: 0.9,
+          }}
+        >
+          {el}
+        </div>
+      );
+    };
+
     // if labels are shown, we render two rows – otherwise symbols are next to the menu and frame controls
     if (showSymbolBarLabels) {
       return wrapButtonBarContextMenu(
@@ -1324,12 +1358,24 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             opacity: is_active ? undefined : 0.3,
           }}
         >
-          <div style={{ marginBottom: "-1px", marginTop: "1px" }}>{v}</div>
+          <SortableButtonBar
+            items={sortableIds}
+            onReorder={handleToolbarReorder}
+            renderOverlayItem={renderOverlayItem}
+          >
+            <div style={{ marginBottom: "-1px", marginTop: "1px" }}>{v}</div>
+          </SortableButtonBar>
         </div>,
       );
     } else {
       return wrapButtonBarContextMenu(
-        <div style={{ marginTop: "3px" }}>{v}</div>,
+        <SortableButtonBar
+          items={sortableIds}
+          onReorder={handleToolbarReorder}
+          renderOverlayItem={renderOverlayItem}
+        >
+          <div style={{ marginTop: "3px" }}>{v}</div>
+        </SortableButtonBar>,
       );
     }
   }
