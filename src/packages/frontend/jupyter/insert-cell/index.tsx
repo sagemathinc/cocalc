@@ -89,11 +89,17 @@ export function InsertCell({
       fa.set_cur_id(id);
     }
     const posLabel = position === "above" ? "above" : "below";
+    // Compute 1-based cell number for context.
+    const cellList = actions.store.get("cell_list");
+    const cellIds = cellList?.toJS() as string[] | undefined;
+    const cellIndex = cellIds ? cellIds.indexOf(id) : -1;
+    const cellRef =
+      cellIndex >= 0 ? `cell #${cellIndex + 1}` : "the current cell";
     openAssistantWithPrefill({
       redux,
       project_id,
       path,
-      prompt: `Insert a cell ${posLabel}, that does: `,
+      prompt: `Insert a new cell ${posLabel} ${cellRef}, that does: `,
     }).catch((err) => console.warn("openAssistantWithPrefill failed:", err));
   }
 

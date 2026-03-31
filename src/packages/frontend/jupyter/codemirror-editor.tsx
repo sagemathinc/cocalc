@@ -845,11 +845,24 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
                 if (frameActions0) {
                   frameActions0.set_cur_id(id);
                 }
+                // Compute 1-based cell number for context.
+                const store = (actions as any).store;
+                const cellList = store?.get("cell_list");
+                const cellIds = cellList?.toJS() as
+                  | string[]
+                  | undefined;
+                const cellIndex = cellIds
+                  ? cellIds.indexOf(id)
+                  : -1;
+                const cellLabel =
+                  cellIndex >= 0
+                    ? `cell #${cellIndex + 1}`
+                    : "this cell";
                 openAssistantWithPrefill({
                   redux,
                   project_id: (actions as any).project_id,
                   path: (actions as any).path,
-                  prompt: "Generate code in this cell that does: ",
+                  prompt: `Generate code in ${cellLabel} that does: `,
                 }).catch((err) =>
                   console.warn("openAssistantWithPrefill failed:", err),
                 );
