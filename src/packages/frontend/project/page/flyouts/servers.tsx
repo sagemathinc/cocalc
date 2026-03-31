@@ -6,7 +6,7 @@
 import { Collapse, CollapseProps, Space } from "antd";
 
 import { useEffect, useState } from "@cocalc/frontend/app-framework";
-import { Icon, Paragraph, Title } from "@cocalc/frontend/components";
+import { Icon, Paragraph } from "@cocalc/frontend/components";
 import {
   ComputeServers,
   computeServersEnabled,
@@ -45,30 +45,6 @@ export function ServersFlyout({ project_id, wrap }) {
 
   const items: CollapseProps["items"] = [];
 
-  if (computeServersEnabled()) {
-    items.push({
-      key: "compute-servers",
-      label: (
-        <>
-          <Icon name="server" /> Compute Servers
-        </>
-      ),
-      children: <ComputeServers project_id={project_id} mode="flyout" />,
-    });
-  }
-
-  if (cloudFilesystemsEnabled()) {
-    items.push({
-      key: "cloud-filesystems",
-      label: (
-        <>
-          <Icon name="disk-round" /> Cloud Filesystems
-        </>
-      ),
-      children: <CloudFilesystems project_id={project_id} />,
-    });
-  }
-
   items.push({
     key: "notebooks",
     label: (
@@ -94,6 +70,19 @@ export function ServersFlyout({ project_id, wrap }) {
     ),
   });
 
+  if (computeServersEnabled()) {
+    items.push({
+      key: "compute-servers",
+      label: (
+        <>
+          <Icon name="server" /> Compute Servers
+        </>
+      ),
+      children: <ComputeServers project_id={project_id} mode="flyout" />,
+      styles: { body: { padding: 0 } },
+    });
+  }
+
   items.push({
     key: "sage",
     label: (
@@ -106,13 +95,28 @@ export function ServersFlyout({ project_id, wrap }) {
     ),
   });
 
+  if (cloudFilesystemsEnabled()) {
+    items.push({
+      key: "cloud-filesystems",
+      label: (
+        <>
+          <Icon name="disk-round" /> Cloud Filesystems
+        </>
+      ),
+      children: <CloudFilesystems project_id={project_id} />,
+    });
+  }
+
   return wrap(
     <Space direction="vertical" style={{ padding: "0", width: "100%" }}>
-      <div style={{ padding: FLYOUT_PADDING }}>
-        <Title level={5}>
-          <Icon name="server" /> Servers
-        </Title>
-      </div>
+      <Paragraph
+        type="secondary"
+        ellipsis={{ expandable: true, rows: 1, symbol: "more" }}
+        style={{ padding: FLYOUT_PADDING, marginBottom: 0 }}
+      >
+        Manage compute servers, cloud filesystems, and other server resources
+        associated with this project.
+      </Paragraph>
       <Collapse
         style={{ borderRadius: 0, borderLeft: "none", borderRight: "none" }}
         activeKey={expandedPanels}

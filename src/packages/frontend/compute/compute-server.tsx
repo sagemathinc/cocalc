@@ -365,97 +365,132 @@ export default function ComputeServer({
           opacity: deleted ? 0.5 : undefined,
           width: "100%",
           borderLeft: `4px solid ${color ?? "#aaa"}`,
+          borderRight: `4px solid ${color ?? "#aaa"}`,
           borderBottom: "1px solid #f0f0f0",
-          padding: "8px",
+          padding: "6px 8px",
+          display: "flex",
+          gap: "8px",
           ...style,
         }}
       >
+        {/* Left column: icon, id, log, cost */}
         <div
           style={{
             display: "flex",
+            flexDirection: "column",
             alignItems: "center",
-            gap: "8px",
-            marginBottom: "4px",
+            minWidth: "48px",
+            fontSize: "11px",
+            color: "#888",
           }}
         >
           <Icon
             name={cloud == "onprem" ? "global" : "server"}
-            style={{ fontSize: "16px", color: color ?? "#666" }}
+            style={{ fontSize: "20px", color: color ?? "#666" }}
           />
-          <div
-            style={{
-              flex: 1,
-              fontWeight: "bold",
-              overflow: "hidden",
-              textOverflow: "ellipsis",
-              whiteSpace: "nowrap",
-            }}
-          >
-            <Title title={title} editable={false} />
-          </div>
+          {id != null && <div>Id: {project_specific_id}</div>}
           {id != null && (
-            <State
-              data={data}
-              state={state}
-              state_changed={state_changed}
-              editable={editable}
+            <ComputeServerLog
               id={id}
-              account_id={account_id}
-              configuration={configuration}
-              cost_per_hour={cost_per_hour}
-              purchase_id={purchase_id}
+              style={{ fontSize: "11px", padding: "0 2px" }}
             />
-          )}
-          {id != null && (
-            <Menu id={id} project_id={project_id} />
-          )}
-        </div>
-        <div style={{ color: "#666", fontSize: "12px" }}>
-          <Description
-            account_id={account_id}
-            cloud={cloud}
-            configuration={configuration}
-            data={data}
-            state={state}
-            short
-          />
-          {state == "running" && id && (
-            <RunningProgress server={{ ...server, id }} />
           )}
           {id != null && (
             <CurrentCost state={state} cost_per_hour={cost_per_hour} />
           )}
+          {server?.id != null && <SpendLimitStatus server={server} />}
         </div>
-        <BackendError error={backendError} id={id} project_id={project_id} />
-        {(state == "running" ||
-          state == "stopping" ||
-          state == "starting") && (
-          <DetailedState
-            id={id}
-            project_id={project_id}
-            detailed_state={detailed_state}
-            color={color}
-            configuration={configuration}
-          />
-        )}
-        <ShowError
-          error={error}
-          setError={setError}
-          style={{ margin: "5px 0", width: "100%" }}
-        />
-        {actions && actions.length > 0 && (
+        {/* Right column: title, state, description, actions */}
+        <div style={{ flex: 1, minWidth: 0 }}>
           <div
             style={{
               display: "flex",
-              gap: "4px",
-              marginTop: "4px",
-              flexWrap: "wrap",
+              alignItems: "center",
+              gap: "6px",
+              marginBottom: "2px",
             }}
           >
-            {actions}
+            <div
+              style={{
+                flex: 1,
+                fontWeight: "bold",
+                overflow: "hidden",
+                textOverflow: "ellipsis",
+                whiteSpace: "nowrap",
+              }}
+            >
+              <Title title={title} editable={false} />
+            </div>
+            {id != null && (
+              <State
+                data={data}
+                state={state}
+                state_changed={state_changed}
+                editable={editable}
+                id={id}
+                account_id={account_id}
+                configuration={configuration}
+                cost_per_hour={cost_per_hour}
+                purchase_id={purchase_id}
+              />
+            )}
+            {id != null && (
+              <Menu
+                id={id}
+                project_id={project_id}
+                size="small"
+                fontSize="14px"
+              />
+            )}
           </div>
-        )}
-        {body}
+          <div style={{ color: "#666", fontSize: "12px" }}>
+            <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <DisplayImage configuration={configuration} />
+              <Cloud cloud={cloud} state={state} editable={false} id={id} />
+            </div>
+            <Description
+              account_id={account_id}
+              cloud={cloud}
+              configuration={configuration}
+              data={data}
+              state={state}
+              short
+            />
+            {state == "running" && id && (
+              <RunningProgress server={{ ...server, id }} />
+            )}
+          </div>
+          <BackendError error={backendError} id={id} project_id={project_id} />
+          {(state == "running" ||
+            state == "stopping" ||
+            state == "starting") && (
+            <DetailedState
+              id={id}
+              project_id={project_id}
+              detailed_state={detailed_state}
+              color={color}
+              configuration={configuration}
+            />
+          )}
+          <ShowError
+            error={error}
+            setError={setError}
+            style={{ margin: "5px 0", width: "100%" }}
+          />
+          {actions && actions.length > 0 && (
+            <div
+              style={{
+                display: "flex",
+                gap: "4px",
+                marginTop: "4px",
+                flexWrap: "wrap",
+              }}
+            >
+              {actions}
+            </div>
+          )}
+          {body}
+        </div>
       </div>
     );
   }
