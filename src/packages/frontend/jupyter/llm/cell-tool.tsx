@@ -1310,18 +1310,19 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
       }),
     );
 
+    // Compute 1-based cell number for context.
+    const cellList = actions.store.get("cell_list");
+    const cellIds = cellList?.toJS() as string[] | undefined;
+    const cellIndex = cellIds ? cellIds.indexOf(id) : -1;
+    const cellLabel =
+      cellIndex >= 0 ? `Cell #${cellIndex + 1}` : "Current cell";
+
     // Include the cell's own input so the agent sees the code to work with.
     const cell = actions.store.get("cells")?.get(id);
     if (cell) {
       const cellInput = cell.get("input") ?? "";
       if (cellInput.trim()) {
-        const hasContext = showContext && (() => {
-          const ctx = getContextContent();
-          return !!(ctx.before || ctx.after);
-        })();
-        if (hasContext) {
-          chunks.push("Current cell content:");
-        }
+        chunks.push(`${cellLabel} content:`);
         const delimI = backtickSequence(cellInput);
         chunks.push(
           `${delimI}${isMarkdownCell ? "markdown" : language}\n${cellInput}\n${delimI}`,
