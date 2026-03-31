@@ -607,6 +607,8 @@ export function MessageList({
   // Track the last visible endIndex so we can replay it after suppression
   // ends (for threads where all messages fit in the viewport).
   const lastEndIndexRef = useRef(-1);
+  // Store timer IDs so we can cancel them on thread switch / unmount.
+  const timersRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   // Compute the initial scroll index once per thread (stable across
   // re-renders as sortedDates grows during async loading). Reset when
   // selectedThread changes so each thread gets its own initial position.
@@ -650,6 +652,11 @@ export function MessageList({
     // Don't mark as done until messages have loaded (handles page refresh)
     if (sortedDates.length === 0) return;
     initialScrollDoneRef.current = threadId;
+
+    // Cancel any pending timers from a previous thread
+    for (const t of timersRef.current) clearTimeout(t);
+    timersRef.current = [];
+
     // Always suppress lastread updates during initial positioning to prevent
     // the first rangeChanged from marking messages as read before the user
     // has scrolled. This applies to both threads with lastread timestamps
@@ -679,26 +686,38 @@ export function MessageList({
 
     if (lastReadDate != null && firstUnreadIndex > 0) {
       // Scroll to the first unread message, aligned to center so the divider is visible
-      setTimeout(() => {
-        virtuosoRef?.current?.scrollToIndex({
-          index: Math.max(firstUnreadIndex - 1, 0),
-          align: "center",
-        });
-        // Re-enable lastread tracking after the scroll settles.
-        // Use a longer delay so the "New messages" divider stays visible
-        // briefly before being cleared by the lastread update.
+      timersRef.current.push(
+        setTimeout(() => {
+          virtuosoRef?.current?.scrollToIndex({
+            index: Math.max(firstUnreadIndex - 1, 0),
+            align: "center",
+          });
+          // Re-enable lastread tracking after the scroll settles.
+          // Use a longer delay so the "New messages" divider stays visible
+          // briefly before being cleared by the lastread update.
+          timersRef.current.push(
+            setTimeout(() => {
+              suppressLastReadRef.current = false;
+              replayVisibleRange();
+            }, 1500),
+          );
+        }, 50),
+      );
+    } else {
+      // All read or legacy thread — re-enable after initial render settles
+      timersRef.current.push(
         setTimeout(() => {
           suppressLastReadRef.current = false;
           replayVisibleRange();
-        }, 1500);
-      }, 50);
-    } else {
-      // All read or legacy thread — re-enable after initial render settles
-      setTimeout(() => {
-        suppressLastReadRef.current = false;
-        replayVisibleRange();
-      }, 200);
+        }, 200),
+      );
     }
+
+    // Cleanup: cancel timers on thread switch or unmount
+    return () => {
+      for (const t of timersRef.current) clearTimeout(t);
+      timersRef.current = [];
+    };
   }, [selectedThread, lastReadDate, firstUnreadIndex, sortedDates.length]);
 
   // Throttled scroll tracking: update lastread timestamp as user scrolls.
