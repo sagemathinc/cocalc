@@ -1080,25 +1080,14 @@ export class ChatActions extends Actions<ChatState> {
     });
 
     // The sender_id might change if we explicitly set the LLM model.
+    // Update in place rather than delete+recreate to avoid a syncdb race
+    // where the delete propagates to other clients but the re-create doesn't.
     if (tag === "regenerate" && llm != null) {
-      if (!this.store) return;
-      const messages = this.store.get("messages");
-      if (!messages) return;
       if (message.sender_id !== sender_id) {
-        // if that happens, create a new message with the existing history and the new sender_id
-        const cur = this.syncdb.get_one({ event: "chat", date });
-        if (cur == null) return;
-        const reply_to = getReplyToRoot({
-          message: cur.toJS() as any as ChatMessage,
-          messages,
-        });
-        this.syncdb.delete({ event: "chat", date });
         this.syncdb.set({
           date,
-          history: cur?.get("history") ?? [],
           event: "chat",
           sender_id,
-          reply_to,
         });
       }
     }
