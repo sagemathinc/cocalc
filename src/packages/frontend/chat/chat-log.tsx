@@ -704,11 +704,16 @@ export function MessageList({
         }, 50),
       );
     } else {
-      // All read or legacy thread — re-enable after initial render settles
+      // All read or legacy thread — re-enable after initial render settles.
+      // Only replay for threads that already have a lastread timestamp.
+      // For legacy threads (no lastread-*), don't auto-mark as read —
+      // let the user's first scroll create the initial lastread entry.
       timersRef.current.push(
         setTimeout(() => {
           suppressLastReadRef.current = false;
-          replayVisibleRange();
+          if (lastReadDate != null) {
+            replayVisibleRange();
+          }
         }, 200),
       );
     }
