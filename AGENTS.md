@@ -115,6 +115,20 @@ After finishing a batch of code edits, you MUST run these steps automatically â€
 - After editing colors in `src/packages/util/theme.ts`: run `cd src/packages/frontend && pnpm update-color-scheme`
 - After updating `package.json` deps: run `python3 src/workspaces.py version-check` then `python3 src/workspaces.py install`
 
+#### Modernizing Legacy Callback Code
+
+When working with legacy callback-based code (using `async.series`, `defaults()`, nested callbacks), follow the comprehensive modernization guide:
+
+**See [`.claude/skills/modernize-code/SKILL.md`](.claude/skills/modernize-code/SKILL.md)** for the complete step-by-step process to convert callback-based code to modern async/await TypeScript.
+
+This guide covers:
+
+- Converting `async.series`/`async.parallel` to native async/await
+- Replacing `defaults()` with TypeScript destructuring
+- Proper error handling with try/catch
+- Maintaining backwards compatibility
+- Updating callers to use direct async/await
+
 ## Architecture Overview
 
 For detailed architecture documentation, see [`src/docs/`](src/docs/README.md):
