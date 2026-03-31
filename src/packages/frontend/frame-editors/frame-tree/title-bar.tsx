@@ -1330,24 +1330,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       </SortableButtonItem>
     ));
 
-    const renderOverlayItem = (id: string) => {
-      const el = rendered.get(id);
-      if (!el) return null;
-      return (
-        <div
-          style={{
-            background: "#e8e8e8",
-            borderRadius: 4,
-            padding: "0 2px",
-            boxShadow: "0 2px 8px rgba(0,0,0,0.15)",
-            opacity: 0.9,
-          }}
-        >
-          {el}
-        </div>
-      );
-    };
-
     // if labels are shown, we render two rows – otherwise symbols are next to the menu and frame controls
     if (showSymbolBarLabels) {
       return wrapButtonBarContextMenu(
@@ -1361,9 +1343,18 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           <SortableButtonBar
             items={sortableIds}
             onReorder={handleToolbarReorder}
-            renderOverlayItem={renderOverlayItem}
           >
-            <div style={{ marginBottom: "-1px", marginTop: "1px" }}>{v}</div>
+            <div
+              style={{
+                marginBottom: "-1px",
+                marginTop: "1px",
+                display: "flex",
+                flexWrap: "wrap",
+                position: "relative",
+              }}
+            >
+              {v}
+            </div>
           </SortableButtonBar>
         </div>,
       );
@@ -1372,9 +1363,17 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         <SortableButtonBar
           items={sortableIds}
           onReorder={handleToolbarReorder}
-          renderOverlayItem={renderOverlayItem}
         >
-          <div style={{ marginTop: "3px" }}>{v}</div>
+          <div
+            style={{
+              marginTop: "3px",
+              display: "flex",
+              flexWrap: "nowrap",
+              position: "relative",
+            }}
+          >
+            {v}
+          </div>
         </SortableButtonBar>,
       );
     }

@@ -9,27 +9,33 @@
  * ManageCommands.setToolbarOrder().
  *
  * Uses @dnd-kit with horizontalListSortingStrategy, restricted to the
- * horizontal axis, and uses the same sensor activation parameters as the
- * frame editor drag handles (MOUSE_SENSOR_OPTIONS / TOUCH_SENSOR_OPTIONS).
+ * horizontal axis AND to the parent element (so the dragged button
+ * visually stays inside the bar). Uses the same sensor activation
+ * parameters as the frame editor drag handles.
+ *
+ * No DragOverlay is used — the actual button moves in place while
+ * siblings animate aside, giving clear visual feedback.
  */
 
-import { CSSProperties, ReactNode, useCallback, useState } from "react";
+import { CSSProperties, ReactNode, useCallback } from "react";
 import {
   DndContext,
-  DragOverlay,
   MouseSensor,
   TouchSensor,
   useSensor,
   useSensors,
 } from "@dnd-kit/core";
-import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
+import type { DragEndEvent } from "@dnd-kit/core";
 import {
   SortableContext,
   useSortable,
   horizontalListSortingStrategy,
   arrayMove,
 } from "@dnd-kit/sortable";
-import { restrictToHorizontalAxis } from "@dnd-kit/modifiers";
+import {
+  restrictToHorizontalAxis,
+  restrictToParentElement,
+} from "@dnd-kit/modifiers";
 
 import {
   MOUSE_SENSOR_OPTIONS,
@@ -40,29 +46,20 @@ interface SortableButtonBarProps {
   items: string[];
   children: ReactNode;
   onReorder: (newOrder: string[]) => void;
-  renderOverlayItem?: (id: string) => ReactNode;
 }
 
 export function SortableButtonBar({
   items,
   children,
   onReorder,
-  renderOverlayItem,
 }: SortableButtonBarProps) {
-  const [activeId, setActiveId] = useState<string | null>(null);
-
   const sensors = useSensors(
     useSensor(MouseSensor, MOUSE_SENSOR_OPTIONS),
     useSensor(TouchSensor, TOUCH_SENSOR_OPTIONS),
   );
 
-  const handleDragStart = useCallback((event: DragStartEvent) => {
-    setActiveId(`${event.active.id}`);
-  }, []);
-
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
-      setActiveId(null);
       const { active, over } = event;
       if (over == null || active.id === over.id) return;
       const oldIndex = items.indexOf(`${active.id}`);
@@ -74,27 +71,15 @@ export function SortableButtonBar({
     [items, onReorder],
   );
 
-  const handleDragCancel = useCallback(() => {
-    setActiveId(null);
-  }, []);
-
   return (
     <DndContext
       sensors={sensors}
-      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onDragCancel={handleDragCancel}
-      modifiers={[restrictToHorizontalAxis]}
+      modifiers={[restrictToHorizontalAxis, restrictToParentElement]}
     >
-      <SortableContext
-        items={items}
-        strategy={horizontalListSortingStrategy}
-      >
+      <SortableContext items={items} strategy={horizontalListSortingStrategy}>
         {children}
       </SortableContext>
-      <DragOverlay>
-        {activeId != null && renderOverlayItem?.(activeId)}
-      </DragOverlay>
     </DndContext>
   );
 }
@@ -110,14 +95,10 @@ export function SortableButtonItem({
   children,
   style,
 }: SortableButtonItemProps) {
-  const {
-    attributes,
-    listeners,
-    setNodeRef,
-    transform,
-    transition,
-    isDragging,
-  } = useSortable({ id });
+  const { attributes, listeners, setNodeRef, transform, transition, active } =
+    useSortable({ id });
+
+  const isActive = active?.id === id;
 
   return (
     <div
@@ -128,8 +109,14 @@ export function SortableButtonItem({
           ? `translate3d(${transform.x}px, 0, 0)`
           : undefined,
         transition,
-        opacity: isDragging ? 0.35 : undefined,
-        cursor: isDragging ? "grabbing" : undefined,
+        // The dragged item gets a highlight; others stay normal
+        zIndex: isActive ? 10 : undefined,
+        background: isActive ? "#e0e7ff" : undefined,
+        borderRadius: isActive ? 4 : undefined,
+        boxShadow: isActive
+          ? "0 1px 4px rgba(0,0,0,0.18)"
+          : undefined,
+        cursor: isActive ? "grabbing" : undefined,
         ...style,
       }}
       {...attributes}
