@@ -99,22 +99,20 @@ export function SortableButtonItem({
     useSortable({ id });
 
   const isActive = active?.id === id;
+  const isDragging = active != null;
 
   return (
     <div
       ref={setNodeRef}
+      className={isDragging ? "cc-toolbar-dragging" : undefined}
       style={{
         display: "inline-block",
         transform: transform
           ? `translate3d(${transform.x}px, ${isActive ? -3 : 0}px, 0)`
           : undefined,
         transition,
-        // The dragged item gets a highlight; others stay normal
         zIndex: isActive ? 10 : undefined,
-        background: isActive ? "transparent" : undefined,
-        borderRadius: isActive ? 4 : undefined,
-        boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.18)" : undefined,
-        cursor: isActive ? "grabbing" : "grab",
+        opacity: isActive ? 0.85 : undefined,
         ...style,
       }}
       {...attributes}

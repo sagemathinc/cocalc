@@ -9,6 +9,8 @@ import useAsyncEffect from "use-async-effect";
 import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
+import { filename_extension } from "@cocalc/util/misc";
+
 const DKV_NAME = "frame-editor-settings";
 
 interface FrameEditorSettingsChange<T> {
@@ -27,7 +29,13 @@ interface FrameEditorSettingsDKV {
   close?(): void;
 }
 
-export function getFrameEditorSettingsName(type: string): string {
+export function getFrameEditorSettingsName(type: string, path?: string): string {
+  if (path) {
+    const ext = filename_extension(path);
+    if (ext) {
+      return `${type}-${ext.toLowerCase()}`;
+    }
+  }
   return type;
 }
 

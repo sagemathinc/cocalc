@@ -264,8 +264,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   const editorSettings = useRedux(["account", "editor_settings"]);
   const frameEditorName = useMemo(
-    () => getFrameEditorSettingsName(props.type),
-    [props.type],
+    () => getFrameEditorSettingsName(props.type, props.path),
+    [props.type, props.path],
   );
   const { toolbarButtons, setToolbarButtons } =
     useFrameEditorToolbarButtons(frameEditorName);
@@ -1373,7 +1373,18 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function handleToolbarReorder(newOrder: string[]) {
-    manageCommands.setToolbarOrder(newOrder);
+    const current = manageCommands.getToolbarButtons();
+    const next: string[] = [];
+    const reorderedSet = new Set(newOrder);
+    let newOrderIdx = 0;
+    for (const name of current) {
+      if (reorderedSet.has(name)) {
+        next.push(newOrder[newOrderIdx++]);
+      } else {
+        next.push(name);
+      }
+    }
+    manageCommands.setToolbarOrder(next);
   }
 
   function renderButtonBar(popup = false) {
