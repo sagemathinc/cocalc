@@ -238,6 +238,17 @@ export function useAntdStyleProvider() {
       Button: {
         ...primaryColor,
       },
+      ...(colorTheme.isDark
+        ? {
+            Menu: {
+              itemBorderRadius: 4,
+              darkItemBg: colorTheme.bgBase,
+              darkItemColor: colorTheme.textPrimary,
+              darkItemSelectedBg: colorTheme.bgSelected,
+              darkItemSelectedColor: colorTheme.textPrimary,
+            },
+          }
+        : {}),
     },
   };
 

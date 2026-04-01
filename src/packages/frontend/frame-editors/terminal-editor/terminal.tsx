@@ -18,7 +18,7 @@ import {
 import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Terminal } from "./connected-terminal";
-import { background_color } from "./themes";
+import { background_color, setTheme } from "./themes";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import useResizeObserver from "use-resize-observer";
 import useComputeServerId from "@cocalc/frontend/compute/file-hook";
@@ -216,11 +216,17 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  // useColorTheme() forces re-render when dark mode toggles, so the
-  // container background updates along with the xterm theme inside.
-  const _colorTheme = useColorTheme();
-  void _colorTheme; // trigger re-render dependency
-  const backgroundColor = background_color(props.terminal?.get("color_scheme"));
+  // When the color theme changes (e.g. dark mode toggled), re-apply the
+  // terminal color scheme so both the xterm canvas and the container div update.
+  const colorTheme = useColorTheme();
+  const colorScheme = props.terminal?.get("color_scheme") ?? "cocalc";
+  useEffect(() => {
+    const xterm = terminalRef.current?.getTerminal?.();
+    if (xterm) {
+      setTheme(xterm, colorScheme);
+    }
+  }, [colorTheme.isDark, colorScheme]);
+  const backgroundColor = background_color(colorScheme);
   /* 4px padding is consistent with CodeMirror */
 
   return (

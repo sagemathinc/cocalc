@@ -203,6 +203,9 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
 
   isClosed = () => (this.state ?? "closed") === "closed";
 
+  /** Expose the underlying xterm.js Terminal for direct theme updates. */
+  getTerminal = () => this.terminal;
+
   private get_xtermjs_options = (): any => {
     const rendererType = this.rendererType;
     const settings = this.account_store.get("terminal");
