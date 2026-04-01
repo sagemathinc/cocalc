@@ -5,11 +5,11 @@
 
 /**
  * Resolve the "cocalc" terminal color scheme to its concrete variant
- * based on the current native dark mode state.
+ * based on the current dark mode state.
  *
- * We read the color theme from the Redux account store to determine
- * whether we're in dark mode.  This is a synchronous lookup because
- * terminal theme resolution needs to happen immediately.
+ * We read dark mode settings from the Redux account store.
+ * This is a synchronous lookup because terminal theme resolution
+ * needs to happen immediately.
  */
 
 import { redux } from "@cocalc/frontend/app-framework";
@@ -39,9 +39,11 @@ function isCurrentlyDark(): boolean {
     }
   }
 
-  // Check if the selected theme is itself a dark theme
+  // nativeDark === "off" — but the user might have chosen a theme that's
+  // inherently dark (shouldn't happen with the new system, but be safe)
   const themeId = String(other.get(OTHER_SETTINGS_COLOR_THEME) ?? "default");
-  return getColorTheme(themeId).isDark ?? false;
+  const theme = getColorTheme(themeId);
+  return theme.isDark ?? false;
 }
 
 export function resolveTerminalColorScheme(scheme: string): string {

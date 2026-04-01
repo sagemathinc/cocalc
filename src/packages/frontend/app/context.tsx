@@ -16,12 +16,11 @@ import {
   type BaseColors,
   COLORS,
   type ColorTheme,
-  LIGHT_TO_DARK_MAP,
   type NativeDarkMode,
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
-  getColorTheme,
+  deriveDarkTheme,
   resolveUserTheme,
 } from "@cocalc/util/theme";
 import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";
@@ -135,18 +134,16 @@ function useResolvedColorThemeForAntd(): ColorTheme {
         // ignore
       }
     }
-    const baseTheme = resolveUserTheme(themeId, customBase);
+    const lightTheme = resolveUserTheme(themeId, customBase);
 
     const wantDark =
       nativeDarkMode === "on" ||
       (nativeDarkMode === "system" && systemPrefersDark);
 
-    if (wantDark && !baseTheme.isDark) {
-      const effectiveId = themeId ?? "default";
-      const darkId = LIGHT_TO_DARK_MAP[effectiveId] ?? "dark";
-      return getColorTheme(darkId);
+    if (wantDark) {
+      return deriveDarkTheme(lightTheme);
     }
-    return baseTheme;
+    return lightTheme;
   }, [themeId, customColorsJson, nativeDarkMode, systemPrefersDark]);
 }
 

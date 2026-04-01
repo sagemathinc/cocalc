@@ -6,14 +6,13 @@
 /*
  * Dynamic color theme system for CoCalc.
  *
- * Provides:
- *   - A ColorTheme type with semantic color slots
- *   - Multiple preset themes (default, ocean, sunset, forest, etc.)
- *   - A derivation utility that generates a full theme from a few base colors
- *   - A resolver that merges a user's custom overrides on top of a preset
+ * Architecture:
+ *   - Only LIGHT theme presets exist (CoCalc, Ocean, Sunset, etc.)
+ *   - Dark variants are AUTO-DERIVED from any light theme via deriveDarkTheme()
+ *   - A 3-state dark mode toggle (off / system / always) controls derivation
+ *   - Terminal and editor schemes auto-resolve based on the active theme's isDark
  *
- * The "default" preset mirrors the classic COLORS from theme.ts so that
- * existing consumers stay unchanged.
+ * The "default" preset uses CoCalc branding colors (blue + orange).
  */
 
 // ---------------------------------------------------------------------------
@@ -44,7 +43,11 @@ function rgbToHex(r: number, g: number, b: number): string {
 export function mixColors(a: string, b: string, t: number): string {
   const [r1, g1, b1] = hexToRgb(a);
   const [r2, g2, b2] = hexToRgb(b);
-  return rgbToHex(r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t);
+  return rgbToHex(
+    r1 + (r2 - r1) * t,
+    g1 + (g2 - g1) * t,
+    b1 + (b2 - b1) * t,
+  );
 }
 
 /** Lighten a hex color toward white by amount 0–1. */
@@ -55,6 +58,12 @@ export function lighten(hex: string, amount: number): string {
 /** Darken a hex color toward black by amount 0–1. */
 export function darken(hex: string, amount: number): string {
   return mixColors(hex, "#000000", amount);
+}
+
+/** Compute perceived luminance of a hex color (0 = black, 1 = white). */
+export function luminance(hex: string): number {
+  const [r, g, b] = hexToRgb(hex);
+  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
 }
 
 // ---------------------------------------------------------------------------
@@ -69,12 +78,12 @@ export interface ColorTheme {
   isDark?: boolean;
 
   // ── Brand / primary ──────────────────────────────────────────────────
-  primary: string; // main accent (buttons, links, active elements)
-  primaryDark: string; // darker shade
-  primaryLight: string; // lighter tint
-  primaryLightest: string; // very light tint (backgrounds)
+  primary: string;
+  primaryDark: string;
+  primaryLight: string;
+  primaryLightest: string;
 
-  secondary: string; // secondary accent (highlights, badges)
+  secondary: string;
   secondaryLight: string;
 
   // ── Antd token overrides ─────────────────────────────────────────────
@@ -85,16 +94,16 @@ export interface ColorTheme {
   colorInfo: string;
 
   // ── Surfaces ─────────────────────────────────────────────────────────
-  bgBase: string; // page background
-  bgElevated: string; // cards, modals
-  bgHover: string; // hover states
-  bgSelected: string; // selected/active items
+  bgBase: string;
+  bgElevated: string;
+  bgHover: string;
+  bgSelected: string;
 
   // ── Text ─────────────────────────────────────────────────────────────
-  textPrimary: string; // main body text
-  textSecondary: string; // secondary / muted text
-  textTertiary: string; // placeholders, disabled
-  textOnPrimary: string; // text on primary-colored backgrounds
+  textPrimary: string;
+  textSecondary: string;
+  textTertiary: string;
+  textOnPrimary: string;
 
   // ── Borders ──────────────────────────────────────────────────────────
   border: string;
@@ -130,7 +139,7 @@ export interface ColorTheme {
 }
 
 // ---------------------------------------------------------------------------
-// Derive a full ColorTheme from a handful of base colors
+// BaseColors — the minimal set needed to derive a full theme
 // ---------------------------------------------------------------------------
 
 export interface BaseColors {
@@ -139,18 +148,11 @@ export interface BaseColors {
   accent?: string; // optional highlight color (falls back to secondary)
   bg?: string; // page background (default white)
   text?: string; // main text color (default near-black)
-  isDark?: boolean; // explicitly mark as dark (auto-detected from bg if omitted)
 }
 
-/**
- * Generate a complete ColorTheme from a minimal set of base colors.
- * Missing slots are derived via lighten/darken/mix.
- */
-/** Compute perceived luminance of a hex color (0 = black, 1 = white). */
-export function luminance(hex: string): number {
-  const [r, g, b] = hexToRgb(hex);
-  return (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-}
+// ---------------------------------------------------------------------------
+// Derive a full LIGHT ColorTheme from base colors
+// ---------------------------------------------------------------------------
 
 export function deriveTheme(name: string, base: BaseColors): ColorTheme {
   const {
@@ -161,11 +163,9 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     text = "#303030",
   } = base;
 
-  const isDark = base.isDark ?? luminance(bg) < 0.45;
-
   return {
     name,
-    isDark,
+    isDark: false,
 
     primary,
     primaryDark: darken(primary, 0.3),
@@ -220,12 +220,87 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
 }
 
 // ---------------------------------------------------------------------------
-// Preset themes
+// Derive a DARK variant from any light ColorTheme
 // ---------------------------------------------------------------------------
 
-/** Classic CoCalc look (matches the original hardcoded COLORS). */
+/**
+ * Automatically transform a light theme into its dark counterpart.
+ * Preserves the brand colors (primary, secondary) but adjusts surfaces,
+ * text, and borders for dark backgrounds.
+ */
+export function deriveDarkTheme(light: ColorTheme): ColorTheme {
+  const darkBg = "#1a1a2e";
+  const darkBgElevated = "#222240";
+  const darkText = "#e0e0e0";
+
+  // Lighten the primary for better visibility on dark backgrounds
+  const primary = lighten(light.primary, 0.2);
+  const accent = lighten(light.secondary, 0.15);
+
+  return {
+    name: `${light.name} (Dark)`,
+    isDark: true,
+
+    primary,
+    primaryDark: light.primary, // the original is the "dark" shade now
+    primaryLight: lighten(primary, 0.3),
+    primaryLightest: darken(primary, 0.6),
+
+    secondary: accent,
+    secondaryLight: darken(accent, 0.3),
+
+    colorLink: lighten(light.colorLink, 0.3),
+    colorSuccess: "#73d13d",
+    colorWarning: "#ffc53d",
+    colorError: "#ff4d4f",
+    colorInfo: primary,
+
+    bgBase: darkBg,
+    bgElevated: darkBgElevated,
+    bgHover: lighten(darkBg, 0.08),
+    bgSelected: darken(primary, 0.7),
+
+    textPrimary: darkText,
+    textSecondary: darken(darkText, 0.2),
+    textTertiary: darken(darkText, 0.4),
+    textOnPrimary: "#ffffff",
+
+    border: lighten(darkBg, 0.2),
+    borderLight: lighten(darkBg, 0.12),
+
+    topBarBg: lighten(darkBg, 0.06),
+    topBarHover: lighten(darkBg, 0.1),
+    topBarText: darken(darkText, 0.3),
+    topBarTextActive: darkText,
+
+    sidebarActive: primary,
+    sidebarOpened: darken(primary, 0.2),
+
+    landingBarBg: darken(primary, 0.2),
+    landingTopBg: darken(primary, 0.5),
+
+    chatViewerBg: darken(primary, 0.3),
+    chatViewerText: "#ffffff",
+    chatOtherBg: darkBgElevated,
+    chatOtherText: darkText,
+
+    star: "#FFD700",
+    run: "#52c41a",
+    aiBg: darken(accent, 0.4),
+    aiText: darkText,
+    aiFont: accent,
+    signInBg: darken(accent, 0.2),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Preset themes (light only — dark variants are auto-derived)
+// ---------------------------------------------------------------------------
+
+/** Classic CoCalc look — uses the brand colors (blue + orange). */
 export const THEME_DEFAULT: ColorTheme = {
   name: "CoCalc",
+  isDark: false,
 
   primary: "#4474c0",
   primaryDark: "#2A5AA6",
@@ -343,51 +418,10 @@ export const THEME_MIDNIGHT: ColorTheme = deriveTheme("Midnight", {
 });
 
 // ---------------------------------------------------------------------------
-// Dark themes
-// ---------------------------------------------------------------------------
-
-export const THEME_DARK: ColorTheme = deriveTheme("Dark", {
-  primary: "#4c8bf5",
-  secondary: "#fcc861",
-  accent: "#e0a030",
-  bg: "#1a1a2e",
-  text: "#e0e0e0",
-  isDark: true,
-});
-
-export const THEME_DARK_OCEAN: ColorTheme = deriveTheme("Dark Ocean", {
-  primary: "#38bdf8",
-  secondary: "#22d3ee",
-  accent: "#67e8f9",
-  bg: "#0f172a",
-  text: "#cbd5e1",
-  isDark: true,
-});
-
-export const THEME_DARK_FOREST: ColorTheme = deriveTheme("Dark Forest", {
-  primary: "#4ade80",
-  secondary: "#86efac",
-  accent: "#6ee7b7",
-  bg: "#0c1a14",
-  text: "#d1e7dd",
-  isDark: true,
-});
-
-export const THEME_DARK_ROSE: ColorTheme = deriveTheme("Dark Rose", {
-  primary: "#fb7185",
-  secondary: "#fda4af",
-  accent: "#f9a8d4",
-  bg: "#1a0a12",
-  text: "#f0d0dc",
-  isDark: true,
-});
-
-// ---------------------------------------------------------------------------
-// Registry
+// Registry — light themes only; dark variants are derived on the fly
 // ---------------------------------------------------------------------------
 
 export const COLOR_THEMES: Record<string, ColorTheme> = {
-  // Light themes
   default: THEME_DEFAULT,
   ocean: THEME_OCEAN,
   sunset: THEME_SUNSET,
@@ -397,11 +431,6 @@ export const COLOR_THEMES: Record<string, ColorTheme> = {
   rose: THEME_ROSE,
   amber: THEME_AMBER,
   midnight: THEME_MIDNIGHT,
-  // Dark themes (native, not Dark Reader)
-  dark: THEME_DARK,
-  "dark-ocean": THEME_DARK_OCEAN,
-  "dark-forest": THEME_DARK_FOREST,
-  "dark-rose": THEME_DARK_ROSE,
 } as const;
 
 export type ColorThemeId = keyof typeof COLOR_THEMES;
@@ -439,40 +468,9 @@ export const OTHER_SETTINGS_CUSTOM_THEME_COLORS = "custom_theme_colors";
  * Dark-mode preference for the native theme system.
  * Values: "off" | "on" | "system"
  *   - "off"    → use the selected light theme as-is
- *   - "on"     → always use the dark variant
+ *   - "on"     → always use the dark variant (auto-derived from the light theme)
  *   - "system" → follow prefers-color-scheme media query
- *
- * This is separate from the legacy Dark Reader toggle (dark_mode in other_settings).
  */
 export const OTHER_SETTINGS_NATIVE_DARK_MODE = "native_dark_mode";
 
 export type NativeDarkMode = "off" | "on" | "system";
-
-/**
- * For every light theme we map to a corresponding dark theme.
- * If a theme is already dark, it maps to itself.
- */
-export const LIGHT_TO_DARK_MAP: Record<string, string> = {
-  default: "dark",
-  ocean: "dark-ocean",
-  sunset: "dark-rose",
-  forest: "dark-forest",
-  lavender: "dark",
-  slate: "dark",
-  rose: "dark-rose",
-  amber: "dark",
-  midnight: "dark-ocean",
-  // dark themes map to themselves
-  dark: "dark",
-  "dark-ocean": "dark-ocean",
-  "dark-forest": "dark-forest",
-  "dark-rose": "dark-rose",
-};
-
-/** Reverse map: dark → preferred light equivalent */
-export const DARK_TO_LIGHT_MAP: Record<string, string> = {
-  dark: "default",
-  "dark-ocean": "ocean",
-  "dark-forest": "forest",
-  "dark-rose": "rose",
-};

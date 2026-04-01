@@ -6,14 +6,14 @@
 /*
  * ThemeContext – provides the active ColorTheme to the entire React tree.
  *
- * Reads the user's chosen preset (or custom base colors) from the Redux
- * account store and resolves them into a full ColorTheme object.  Components
- * anywhere in the app can call `useColorTheme()` to access the current
- * semantic colors without importing COLORS directly.
+ * Architecture:
+ *   - Only light theme presets exist in COLOR_THEMES
+ *   - When dark mode is active, deriveDarkTheme() transforms the light theme
+ *   - Terminal / editor "cocalc" auto scheme resolves via theme.isDark
  *
- * Also handles native dark mode:
- *   - "off"    → use selected theme as-is
- *   - "on"     → always swap to the dark variant
+ * Dark mode:
+ *   - "off"    → use selected light theme as-is
+ *   - "on"     → auto-derive dark variant
  *   - "system" → follow prefers-color-scheme, dynamically
  */
 
@@ -24,11 +24,10 @@ import {
   type BaseColors,
   type ColorTheme,
   type NativeDarkMode,
-  LIGHT_TO_DARK_MAP,
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
-  getColorTheme,
+  deriveDarkTheme,
   resolveUserTheme,
   THEME_DEFAULT,
 } from "@cocalc/util/theme";
@@ -89,21 +88,18 @@ export function useResolvedColorTheme(): ColorTheme {
       }
     }
 
-    // Resolve the base theme first
-    const baseTheme = resolveUserTheme(themeId, customBase);
+    // Resolve the light theme first
+    const lightTheme = resolveUserTheme(themeId, customBase);
 
-    // Determine if we should switch to a dark variant
+    // Determine if we should derive a dark variant
     const wantDark =
       nativeDarkMode === "on" ||
       (nativeDarkMode === "system" && systemPrefersDark);
 
-    if (wantDark && !baseTheme.isDark) {
-      // Swap to the dark counterpart
-      const effectiveId = themeId ?? "default";
-      const darkId = LIGHT_TO_DARK_MAP[effectiveId] ?? "dark";
-      return getColorTheme(darkId);
+    if (wantDark) {
+      return deriveDarkTheme(lightTheme);
     }
 
-    return baseTheme;
+    return lightTheme;
   }, [themeId, customColorsJson, nativeDarkMode, systemPrefersDark]);
 }

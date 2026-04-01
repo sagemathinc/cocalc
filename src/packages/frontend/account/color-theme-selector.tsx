@@ -6,11 +6,10 @@
 /**
  * Color theme selector for the appearance settings panel.
  *
- * Lets users:
- *   1. Pick from preset themes (with live swatches)
- *   2. Toggle a "custom" mode where they choose base colors and the
- *      full theme is derived automatically
- *   3. Always shows a reset button
+ * Architecture:
+ *   - Only light theme presets exist; dark variants are auto-derived
+ *   - Dark mode toggle (off / system / always) controls derivation
+ *   - Custom base-color editor for power users
  */
 
 import {
@@ -39,6 +38,7 @@ import {
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
+  deriveDarkTheme,
   deriveTheme,
   getColorTheme,
 } from "@cocalc/util/theme";
@@ -87,7 +87,7 @@ const MESSAGES = defineMessages({
   },
   nativeDarkLabel: {
     id: "account.appearance.color_theme.native_dark",
-    defaultMessage: "Native Dark Mode",
+    defaultMessage: "Dark Mode",
   },
   nativeDarkOff: {
     id: "account.appearance.color_theme.native_dark.off",
@@ -104,15 +104,11 @@ const MESSAGES = defineMessages({
   nativeDarkDescription: {
     id: "account.appearance.color_theme.native_dark.description",
     defaultMessage:
-      "Switches the UI color theme natively. 'System' follows your OS light/dark preference automatically. This also switches the editor and terminal to a matching CoCalc style. The Dark Reader option below is a separate legacy overlay.",
+      "Automatically derives a dark variant from the selected theme. 'System' follows your OS light/dark preference. Editor and terminal themes switch automatically.",
   },
-  lightThemes: {
-    id: "account.appearance.color_theme.light_themes",
-    defaultMessage: "Light Themes",
-  },
-  darkThemes: {
-    id: "account.appearance.color_theme.dark_themes",
-    defaultMessage: "Dark Themes",
+  themes: {
+    id: "account.appearance.color_theme.themes",
+    defaultMessage: "Themes",
   },
 });
 
@@ -149,9 +145,9 @@ function ThemeSwatch({
         <div
           key={i}
           style={{
-            width: 14,
-            height: 14,
-            borderRadius: 3,
+            width: 12,
+            height: 12,
+            borderRadius: 2,
             background: c,
             border: "1px solid rgba(0,0,0,0.08)",
           }}
@@ -181,13 +177,15 @@ function ThemeCard({
       style={{
         border: active ? `2px solid ${theme.primary}` : "2px solid transparent",
         cursor: "pointer",
-        minWidth: 100,
+        minWidth: 90,
       }}
       styles={{
-        body: { padding: "8px 10px" },
+        body: { padding: "6px 8px" },
       }}
     >
-      <div style={{ fontWeight: active ? 600 : 400, marginBottom: 4 }}>
+      <div
+        style={{ fontWeight: active ? 600 : 400, marginBottom: 3, fontSize: 12 }}
+      >
         {theme.name}
       </div>
       <ThemeSwatch theme={theme} />
@@ -205,7 +203,7 @@ function ThemePreview({ theme }: { theme: ColorTheme }) {
         gap: 0,
         borderRadius: 6,
         overflow: "hidden",
-        height: 28,
+        height: 24,
         border: "1px solid rgba(0,0,0,0.1)",
         marginTop: 8,
       }}
@@ -220,8 +218,7 @@ function ThemePreview({ theme }: { theme: ColorTheme }) {
         { bg: theme.colorWarning, label: "Warn" },
         { bg: theme.colorError, label: "Err" },
         { bg: theme.topBarBg, label: "Nav" },
-        { bg: theme.chatViewerBg, label: "Chat" },
-        { bg: theme.aiBg, label: "AI" },
+        { bg: theme.bgBase, label: "BG" },
       ].map(({ bg, label }, i) => (
         <div
           key={i}
@@ -329,16 +326,28 @@ export function ColorThemeSelector() {
     return DEFAULT_CUSTOM;
   }, [customColorsJson]);
 
+  // Resolve the effective theme (including dark mode derivation)
   const activeTheme = useMemo(() => {
+    let lightTheme: ColorTheme;
     if (customColorsJson) {
       try {
-        return deriveTheme("Custom", JSON.parse(customColorsJson));
+        lightTheme = deriveTheme("Custom", JSON.parse(customColorsJson));
       } catch {
-        // ignore
+        lightTheme = getColorTheme(currentThemeId);
       }
+    } else {
+      lightTheme = getColorTheme(currentThemeId);
     }
-    return getColorTheme(currentThemeId);
-  }, [currentThemeId, customColorsJson]);
+
+    // Show the dark preview when dark mode is on
+    const wantDark =
+      nativeDarkMode === "on" ||
+      (nativeDarkMode === "system" &&
+        typeof window !== "undefined" &&
+        window.matchMedia?.("(prefers-color-scheme: dark)").matches);
+
+    return wantDark ? deriveDarkTheme(lightTheme) : lightTheme;
+  }, [currentThemeId, customColorsJson, nativeDarkMode]);
 
   const handleSelectPreset = useCallback((id: string) => {
     onChangeSetting(OTHER_SETTINGS_COLOR_THEME, id);
@@ -362,9 +371,7 @@ export function ColorThemeSelector() {
     !customColorsJson &&
     nativeDarkMode === "off";
 
-  // Split themes into light and dark groups
-  const lightThemes = Object.entries(COLOR_THEMES).filter(([, t]) => !t.isDark);
-  const darkThemes = Object.entries(COLOR_THEMES).filter(([, t]) => t.isDark);
+  const themes = Object.entries(COLOR_THEMES);
 
   return (
     <Panel
@@ -391,7 +398,7 @@ export function ColorThemeSelector() {
         </div>
       }
     >
-      {/* Native dark mode — 3-state slider */}
+      {/* Dark mode — 3-state toggle */}
       <div style={{ marginBottom: 12 }}>
         <div
           style={{
@@ -431,31 +438,9 @@ export function ColorThemeSelector() {
 
       <Divider style={{ margin: "8px 0" }} />
 
-      {/* Light themes */}
-      <div style={{ fontWeight: 500, marginBottom: 6 }}>
-        {intl.formatMessage(MESSAGES.lightThemes)}
-      </div>
-      <Row gutter={[8, 8]}>
-        {lightThemes.map(([id, theme]) => (
-          <Col key={id} xs={8} sm={6} md={4}>
-            <ThemeCard
-              id={id}
-              theme={theme}
-              active={!customColorsJson && currentThemeId === id}
-              onClick={() => handleSelectPreset(id)}
-            />
-          </Col>
-        ))}
-      </Row>
-
-      <Divider style={{ margin: "10px 0 8px" }} />
-
-      {/* Dark themes */}
-      <div style={{ fontWeight: 500, marginBottom: 6 }}>
-        {intl.formatMessage(MESSAGES.darkThemes)}
-      </div>
-      <Row gutter={[8, 8]}>
-        {darkThemes.map(([id, theme]) => (
+      {/* Theme presets */}
+      <Row gutter={[6, 6]}>
+        {themes.map(([id, theme]) => (
           <Col key={id} xs={8} sm={6} md={4}>
             <ThemeCard
               id={id}

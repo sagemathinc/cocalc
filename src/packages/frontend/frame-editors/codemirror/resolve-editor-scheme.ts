@@ -5,7 +5,7 @@
 
 /**
  * Resolve the "cocalc" editor color scheme to the concrete light or dark
- * variant, based on the native dark-mode state from the account store.
+ * variant, based on the current dark mode state from the account store.
  */
 
 import { redux } from "@cocalc/frontend/app-framework";
@@ -25,18 +25,18 @@ function isCurrentlyDark(): boolean {
     other.get(OTHER_SETTINGS_NATIVE_DARK_MODE) ?? "off",
   );
 
-  if (nativeDark === "off") {
-    // Even if native dark is off, the user might have picked a dark theme directly
-    const themeId = String(other.get(OTHER_SETTINGS_COLOR_THEME) ?? "default");
-    return getColorTheme(themeId).isDark ?? false;
-  }
   if (nativeDark === "on") return true;
 
-  // "system"
-  if (typeof window !== "undefined") {
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+  if (nativeDark === "system") {
+    if (typeof window !== "undefined") {
+      return (
+        window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
+      );
+    }
   }
-  return false;
+
+  const themeId = String(other.get(OTHER_SETTINGS_COLOR_THEME) ?? "default");
+  return getColorTheme(themeId).isDark ?? false;
 }
 
 export function resolveEditorColorScheme(scheme: string): string {
