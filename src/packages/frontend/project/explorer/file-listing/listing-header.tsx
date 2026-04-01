@@ -6,7 +6,6 @@
 import React from "react";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, Gap, VisibleMDLG } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 import { Col, Row } from "antd";
 
 // TODO: Flatten active_file_sort for easy PureComponent use
@@ -47,7 +46,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
             return sort_by(column_name);
           }}
           style={{
-            color: COLORS.BLUE_DD,
+            color: "var(--cocalc-primary, #2A5AA6)",
             fontWeight: "bold",
             whiteSpace: "nowrap",
           }}
@@ -80,7 +79,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
           "starred",
           <Icon
             name="star-filled"
-            style={{ color: COLORS.BLUE_DD, fontSize: "12pt" }}
+            style={{ color: "var(--cocalc-primary, #2A5AA6)", fontSize: "12pt" }}
           />,
           "0px",
         )}

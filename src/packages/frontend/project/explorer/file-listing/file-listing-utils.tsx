@@ -12,14 +12,19 @@ import { COLORS } from "@cocalc/util/theme";
 
 import type { FileEntry } from "./types";
 
-const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
-const TIMESTAMP_STYLE = { color: COLORS.TAB, whiteSpace: "nowrap" } as const;
+const DIMMED_STYLE = { color: "var(--cocalc-text-tertiary, #959595)" } as const;
+const TIMESTAMP_STYLE = {
+  color: "var(--cocalc-text-secondary, #333333)",
+  whiteSpace: "nowrap",
+} as const;
 
 export function renderFileIcon(
   record: FileEntry,
   isExpanded?: boolean,
 ): React.ReactNode {
-  const color = record.mask ? COLORS.GRAY_M : COLORS.FILE_ICON;
+  const color = record.mask
+    ? "var(--cocalc-text-tertiary, #5f5f5f)"
+    : "var(--cocalc-primary, rgb(66, 139, 202))";
   if (record.isdir) {
     return (
       <span style={{ color, verticalAlign: "sub", whiteSpace: "nowrap" }}>
@@ -75,7 +80,9 @@ export function renderFileName(
     overflow: "hidden",
     textOverflow: "ellipsis",
     verticalAlign: "middle",
-    color: record.mask ? COLORS.GRAY_M : COLORS.TAB,
+    color: record.mask
+      ? "var(--cocalc-text-tertiary, #5f5f5f)"
+      : "var(--cocalc-text-primary, #333333)",
   };
 
   const extStyle = dimExtensions ? DIMMED_STYLE : undefined;
@@ -125,7 +132,12 @@ export function renderTimestamp(mtime?: number): React.ReactNode {
     );
   } catch {
     return (
-      <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
+      <span
+        style={{
+          color: "var(--cocalc-text-secondary, #333333)",
+          whiteSpace: "nowrap",
+        }}
+      >
         Invalid Date
       </span>
     );
