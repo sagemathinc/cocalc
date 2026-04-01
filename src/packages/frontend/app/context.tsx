@@ -255,6 +255,21 @@ export function useAntdStyleProvider() {
               colorTextQuaternary: colorTheme.border,
               colorTextTertiary: colorTheme.textTertiary,
             },
+            Table: {
+              headerBg: colorTheme.topBarBg,
+              headerColor: colorTheme.textPrimary,
+              headerSortActiveBg: colorTheme.bgHover,
+              headerSortHoverBg: colorTheme.bgHover,
+              rowHoverBg: colorTheme.bgHover,
+              borderColor: colorTheme.borderLight,
+            },
+            Tabs: {
+              cardBg: colorTheme.topBarBg,
+              itemColor: colorTheme.textSecondary,
+              itemActiveColor: colorTheme.textPrimary,
+              itemSelectedColor: colorTheme.textPrimary,
+              inkBarColor: colorTheme.primary,
+            },
           }
         : {}),
     },

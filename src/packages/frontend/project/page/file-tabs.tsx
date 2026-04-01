@@ -259,7 +259,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
               style={{
                 paddingInline: "10px",
                 ...(recentFilesMenuOpen
-                  ? { backgroundColor: COLORS.GRAY_LL }
+                  ? { backgroundColor: "var(--cocalc-bg-hover, #eeeeee)" }
                   : {}),
               }}
             />
@@ -282,8 +282,8 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
             renderTabBar={renderTabBar}
             tabBarStyle={{
               minHeight: "36px",
-              background: "#e8e8e8",
-              borderTop: "2px solid lightgrey",
+              background: "var(--cocalc-top-bar-bg, #e8e8e8)",
+              borderTop: "2px solid var(--cocalc-border-light, lightgrey)",
             }}
             onEdit={onEdit}
             style={{ width: "100%" }}
