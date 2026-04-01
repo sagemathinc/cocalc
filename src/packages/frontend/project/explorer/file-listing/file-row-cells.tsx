@@ -198,7 +198,7 @@ export const FileRowCells = React.memo(function FileRowCells({
                   handleDownloadClick(e, record);
                 }}
                 style={{
-                  color: COLORS.TAB,
+                  color: "var(--cocalc-text-secondary, #333333)",
                   whiteSpace: "nowrap",
                   padding: "0 4px",
                   height: "auto",
@@ -207,14 +207,14 @@ export const FileRowCells = React.memo(function FileRowCells({
                 <Icon
                   name="cloud-download"
                   className="cc-explorer-hover-icon"
-                  style={{ color: COLORS.TAB, marginRight: 4 }}
+                  style={{ color: "var(--cocalc-text-secondary, #333333)", marginRight: 4 }}
                 />
                 {record.isdir
                   ? `${record.size} ${misc.plural(record.size, "item")}`
                   : misc.human_readable_size(record.size)}
               </Button>
             ) : (
-              <span style={{ color: COLORS.TAB, whiteSpace: "nowrap" }}>
+              <span style={{ color: "var(--cocalc-text-secondary, #333333)", whiteSpace: "nowrap" }}>
                 {record.isdir
                   ? record.size != null
                     ? `${record.size} ${misc.plural(record.size, "item")}`

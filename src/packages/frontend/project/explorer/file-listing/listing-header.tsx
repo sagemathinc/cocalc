@@ -17,7 +17,7 @@ interface Props {
 const row_style: React.CSSProperties = {
   cursor: "pointer",
   color: "var(--cocalc-text-secondary, #5f5f5f)",
-  backgroundColor: "var(--cocalc-bg-hover, #fafafa)",
+  backgroundColor: "var(--cocalc-top-bar-bg, #fafafa)",
   border: "1px solid var(--cocalc-border-light, #eeeeee)",
   borderRadius: "4px",
 } as const;

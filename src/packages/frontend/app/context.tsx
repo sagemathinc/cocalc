@@ -247,6 +247,10 @@ export function useAntdStyleProvider() {
               darkItemSelectedBg: colorTheme.bgSelected,
               darkItemSelectedColor: colorTheme.textPrimary,
             },
+            Checkbox: {
+              colorBorder: colorTheme.border,
+              colorBgContainer: colorTheme.bgElevated,
+            },
           }
         : {}),
     },
