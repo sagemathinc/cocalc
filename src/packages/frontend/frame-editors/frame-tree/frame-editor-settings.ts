@@ -80,6 +80,15 @@ function migrateLegacyToolbarButtons(
   storageKey: string,
   legacyEditorType: string | undefined,
 ): string[] | null {
+  // Check if migration already ran for this key (prevents re-importing
+  // after a user resets their toolbar).
+  const migratedKey = `${storageKey}-migrated`;
+  if (conatDkv.get(migratedKey)) {
+    return null;
+  }
+  // Mark migration as done regardless of outcome.
+  conatDkv.set(migratedKey, true);
+
   if (legacyEditorType == null) {
     return null;
   }
