@@ -11,7 +11,8 @@ import track from "@cocalc/frontend/user-tracking";
 import { TOP_BAR_ELEMENT_CLASS } from "./top-nav-consts";
 
 // Use CSS variable so it responds to dark mode; falls back to white for light mode.
-const ACTIVE_BG_COLOR = "var(--cocalc-bg-elevated, white)";
+const ACTIVE_BG_COLOR =
+  "var(--cocalc-top-bar-active, var(--cocalc-bg-elevated, white))";
 
 interface Props {
   //close?: boolean;

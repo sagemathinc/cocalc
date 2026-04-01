@@ -456,11 +456,14 @@ export function FileTab(props: Readonly<Props>) {
 
     const color =
       flyout === active_flyout
-        ? COLORS.PROJECT.FIXED_LEFT_ACTIVE
+        ? `var(--cocalc-top-bar-text-active, ${COLORS.PROJECT.FIXED_LEFT_ACTIVE})`
         : active_flyout == null
-          ? COLORS.GRAY_L
-          : COLORS.GRAY_L0;
-    const bg = flyout === active_flyout ? COLORS.GRAY_L0 : undefined;
+          ? `var(--cocalc-text-secondary, ${COLORS.GRAY_L})`
+          : `var(--cocalc-text-secondary, ${COLORS.GRAY_L0})`;
+    const bg =
+      flyout === active_flyout
+        ? `var(--cocalc-top-bar-hover, ${COLORS.GRAY_L0})`
+        : undefined;
 
     return (
       <div

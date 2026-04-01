@@ -40,7 +40,7 @@ const INDICATOR_STYLE: React.CSSProperties = {
   paddingLeft: "5px",
 } as const;
 
-export const FIXED_TABS_BG_COLOR = "rgba(0, 0, 0, 0.02)";
+export const FIXED_TABS_BG_COLOR = `var(--cocalc-top-bar-bg, rgba(0, 0, 0, 0.02))`;
 
 interface PTProps {
   project_id: string;
@@ -187,7 +187,9 @@ export function VerticalFixedTabs({
     }
     const color =
       activeTab == name
-        ? { color: COLORS.PROJECT.FIXED_LEFT_ACTIVE }
+        ? {
+            color: `var(--cocalc-top-bar-text-active, ${COLORS.PROJECT.FIXED_LEFT_ACTIVE})`,
+          }
         : undefined;
 
     const isActive = (actBar === "flyout" ? active_flyout : activeTab) === name;
@@ -196,11 +198,15 @@ export function VerticalFixedTabs({
       ...color,
       margin: "0",
       borderLeft: `4px solid ${
-        isActive ? COLORS.PROJECT.FIXED_LEFT_ACTIVE : "transparent"
+        isActive
+          ? `var(--cocalc-primary, ${COLORS.PROJECT.FIXED_LEFT_ACTIVE})`
+          : "transparent"
       }`,
       // highlight active flyout in flyout-only mode more -- see https://github.com/sagemathinc/cocalc/issues/6855
       ...(isActive && actBar === "flyout"
-        ? { backgroundColor: COLORS.BLUE_LLLL }
+        ? {
+            backgroundColor: `var(--cocalc-top-bar-hover, ${COLORS.BLUE_LLLL})`,
+          }
         : undefined),
     };
 
@@ -375,7 +381,11 @@ function LayoutSelector({ actBar }) {
           icon={<Icon name="layout" />}
           block
           style={{
-            ...(open ? { backgroundColor: COLORS.GRAY_LL } : {}),
+            ...(open
+              ? {
+                  backgroundColor: `var(--cocalc-top-bar-hover, ${COLORS.GRAY_LL})`,
+                }
+              : {}),
           }}
           type="text"
         />

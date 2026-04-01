@@ -5,7 +5,7 @@
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
-import { CSSProperties, useMemo } from "react";
+import { cloneElement, CSSProperties, useMemo } from "react";
 
 import {
   CSS,
@@ -306,23 +306,27 @@ export function ProjectsNav(props: ProjectsNavProps) {
           const isActive = project_id === activeTopTab;
 
           const wrapperStyle: CSS = {
-            border: isActive
-              ? `2px solid ${"#d3d3d3"}`
-              : `2px solid  ${"transparent"}`,
-            borderRadius: "8px",
+            borderRadius: "8px 8px 0 0",
           };
 
-          // Kept for reference, this allows to tweak the node props directly
-          // const styledNode = cloneElement(node, {
-          //   style: {
-          //     ...node.props.style,
-          //     backgroundColor: wrapperStyle.backgroundColor,
-          //   },
-          // });
+          const nodeStyle: CSSProperties = {
+            ...(node.props.style ?? {}),
+            backgroundColor: isActive
+              ? `var(--cocalc-top-bar-active, ${COLORS.TOP_BAR.HOVER})`
+              : `var(--cocalc-top-bar-bg, ${COLORS.TOP_BAR.BG})`,
+            borderColor: isActive
+              ? `var(--cocalc-border-light, ${COLORS.GRAY_LL})`
+              : "transparent",
+            borderRadius: "8px 8px 0 0",
+            color: isActive
+              ? `var(--cocalc-top-bar-text-active, ${COLORS.TOP_BAR.TEXT_ACTIVE})`
+              : `var(--cocalc-top-bar-text, ${COLORS.TOP_BAR.TEXT})`,
+          };
+          const styledNode = cloneElement(node, { style: nodeStyle });
 
           return (
             <SortableTab key={node.key} id={node.key} style={wrapperStyle}>
-              {node}
+              {styledNode}
             </SortableTab>
           );
         }}

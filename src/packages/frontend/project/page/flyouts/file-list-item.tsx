@@ -41,26 +41,28 @@ import {
 import { COLORS } from "@cocalc/util/theme";
 import { FLYOUT_DEFAULT_WIDTH_PX, FLYOUT_PADDING } from "./consts";
 
-const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+const DIMMED_STYLE = {
+  color: `var(--cocalc-text-tertiary, ${COLORS.FILE_DIMMED})`,
+} as const;
 
 const FILE_ITEM_SELECTED_STYLE: CSS = {
-  backgroundColor: COLORS.BLUE_LLL, // bit darker than .cc-project-flyout-file-item:hover
+  backgroundColor: `var(--cocalc-bg-hover, ${COLORS.BLUE_LLL})`,
 } as const;
 
 const FILE_ITEM_OPENED_STYLE: CSS = {
   fontWeight: "bold",
-  backgroundColor: COLORS.GRAY_LL,
-  color: COLORS.PROJECT.FIXED_LEFT_ACTIVE,
+  backgroundColor: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LL})`,
+  color: `var(--cocalc-top-bar-text-active, ${COLORS.PROJECT.FIXED_LEFT_ACTIVE})`,
 } as const;
 
 const FILE_ITEM_ACTIVE_STYLE: CSS = {
   ...FILE_ITEM_OPENED_STYLE,
-  color: COLORS.PROJECT.FIXED_LEFT_OPENED,
+  color: `var(--cocalc-primary, ${COLORS.PROJECT.FIXED_LEFT_OPENED})`,
 } as const;
 
 const FILE_ITEM_ACTIVE_STYLE_2: CSS = {
   ...FILE_ITEM_ACTIVE_STYLE,
-  backgroundColor: COLORS.GRAY_L0,
+  backgroundColor: `var(--cocalc-top-bar-hover, ${COLORS.GRAY_L0})`,
 } as const;
 
 const FILE_ITEM_STYLE: CSS = {
@@ -87,7 +89,7 @@ const FILE_ITEM_LINE_STYLE: CSS = {
   textOverflow: "ellipsis",
   padding: 0,
   margin: 0,
-  color: COLORS.GRAY_D,
+  color: `var(--cocalc-text-primary, ${COLORS.GRAY_D})`,
 } as const;
 
 const ICON_STYLE: CSS = {
@@ -287,7 +289,10 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     if (!showPublish) return undefined;
     // Always render the button to reserve space; invisible when not public
     return (
-      <Tooltip title={item.is_public ? "File is published" : ""} placement="right">
+      <Tooltip
+        title={item.is_public ? "File is published" : ""}
+        placement="right"
+      >
         <Button
           size="small"
           type="text"
@@ -319,7 +324,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         ? { fontWeight: "bold" }
         : item.isdir
           ? undefined
-          : { color: COLORS.FILE_EXT }
+          : { color: `var(--cocalc-text-secondary, ${COLORS.FILE_EXT})` }
       : undefined;
 
     return (
@@ -437,7 +442,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         style={{
           flex: "0 1 auto",
           display: "inline-block",
-          color: COLORS.GRAY_M,
+          color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
           paddingLeft: FLYOUT_PADDING,
           paddingRight: FLYOUT_PADDING,
           marginRight,
@@ -489,6 +494,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
             layout="inline"
             listingPaths={listingPaths}
             className="cc-flyout-quick-actions"
+            style={{ background: quickActionBackground }}
           />
         )}
         {renderPublishedIcon()}
@@ -676,10 +682,17 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
 
   const DROP_HIGHLIGHT: React.CSSProperties = isOver
     ? {
-        backgroundColor: COLORS.BLUE_LLL,
-        outline: `2px solid ${COLORS.BLUE_L}`,
+        backgroundColor: `var(--cocalc-bg-hover, ${COLORS.BLUE_LLL})`,
+        outline: `2px solid var(--cocalc-primary, ${COLORS.BLUE_L})`,
       }
     : {};
+
+  const quickActionBackground =
+    DROP_HIGHLIGHT.backgroundColor ??
+    (selected
+      ? FILE_ITEM_SELECTED_STYLE.backgroundColor
+      : (activeStyle.backgroundColor ??
+        `var(--cocalc-bg-hover, ${COLORS.BLUE_LLLL})`));
 
   // Lazy context menu: only build items when the dropdown opens.
   const [contextMenuItems, setContextMenuItems] =

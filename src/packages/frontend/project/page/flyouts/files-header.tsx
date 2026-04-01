@@ -414,7 +414,14 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
     return (
       <Radio.Button
         value={name}
-        style={{ background: isActive ? COLORS.ANTD_BG_BLUE_L : undefined }}
+        style={
+          isActive
+            ? {
+                background: `var(--cocalc-top-bar-hover, ${COLORS.ANTD_BG_BLUE_L})`,
+                color: `var(--cocalc-top-bar-text-active, ${COLORS.ANTD_LINK_BLUE})`,
+              }
+            : undefined
+        }
         onClick={() => props.onSortColumn(name)}
       >
         {display}
@@ -549,8 +556,8 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
             display: "block",
             width: "fit-content",
             marginLeft: "auto",
-            color: COLORS.GRAY_M,
-            background: COLORS.WHITE,
+            color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
+            background: `var(--cocalc-bg-elevated, ${COLORS.WHITE})`,
             padding: "0 5px",
             zIndex: 1,
           }}
@@ -642,9 +649,9 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
                           label: (
                             <span
                               style={{
-                                color: COLORS.GRAY,
+                                color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
                                 display: "block",
-                                borderBottom: `1px solid ${COLORS.GRAY_L0}`,
+                                borderBottom: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L0})`,
                                 paddingBottom: 4,
                                 marginBottom: 2,
                               }}

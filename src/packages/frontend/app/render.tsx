@@ -18,7 +18,7 @@ import {
 } from "@cocalc/frontend/i18n";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { setDarkModeState } from "@cocalc/frontend/account/dark-mode";
-import type { ColorTheme } from "@cocalc/util/theme";
+import { mixColors, type ColorTheme } from "@cocalc/util/theme";
 import { createRoot } from "react-dom/client";
 import { AppContext, useAppContextProvider } from "./context";
 import { Localize, useLocalizationCtx } from "./localize";
@@ -104,14 +104,17 @@ function App({ children }) {
 /** Write a ColorTheme's key fields as --cocalc-* CSS custom properties on document.body. */
 function applyThemeCSSVars(t: ColorTheme): void {
   const s = document.body.style;
+  const topBarActive = mixColors(t.topBarBg, t.bgElevated, 0.55);
   s.setProperty("--cocalc-bg-base", t.bgBase);
   s.setProperty("--cocalc-bg-elevated", t.bgElevated);
   s.setProperty("--cocalc-bg-hover", t.bgHover);
   s.setProperty("--cocalc-text-primary", t.textPrimary);
   s.setProperty("--cocalc-text-secondary", t.textSecondary);
+  s.setProperty("--cocalc-text-tertiary", t.textTertiary);
   s.setProperty("--cocalc-border", t.border);
   s.setProperty("--cocalc-border-light", t.borderLight);
   s.setProperty("--cocalc-top-bar-bg", t.topBarBg);
+  s.setProperty("--cocalc-top-bar-active", topBarActive);
   s.setProperty("--cocalc-top-bar-hover", t.topBarHover);
   s.setProperty("--cocalc-top-bar-text", t.topBarText);
   s.setProperty("--cocalc-top-bar-text-active", t.topBarTextActive);

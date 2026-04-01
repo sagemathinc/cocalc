@@ -15,7 +15,7 @@ import { SCHEMA } from "@cocalc/util/db-schema";
 import { keys } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
-export const FIX_BORDER = `1px solid ${COLORS.GRAY_L0}`;
+export const FIX_BORDER = `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L0})`;
 
 export const FIX_BORDERS: React.CSSProperties = {
   borderTop: FIX_BORDER,
@@ -29,7 +29,7 @@ export function useProject(project_id) {
 
   const group = useMemo(
     () => redux.getStore("projects").get_my_group(project_id),
-    [project_id]
+    [project_id],
   );
 
   useAsyncEffect(async () => {
@@ -44,7 +44,7 @@ export function useProject(project_id) {
       }
       const table = webapp_client.sync_client.sync_table(
         { projects_admin: query },
-        []
+        [],
       );
       table.on("change", () => {
         setProject(table.get(project_id));
@@ -57,7 +57,7 @@ export function useProject(project_id) {
     }
   }, [group, project_id, project_map]);
 
-  const compute_image = project_map?.get(project_id)?.get("compute_image")
+  const compute_image = project_map?.get(project_id)?.get("compute_image");
 
-  return { project, group , compute_image};
+  return { project, group, compute_image };
 }

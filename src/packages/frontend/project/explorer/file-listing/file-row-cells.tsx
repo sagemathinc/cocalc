@@ -44,6 +44,8 @@ export interface FileRowCellsProps {
   record: FileEntry;
   fp: string;
   isChecked: boolean;
+  isSelected: boolean;
+  isOpen: boolean;
   isStarred: boolean;
   isExpanded: boolean;
   isNarrow: boolean;
@@ -72,6 +74,8 @@ export const FileRowCells = React.memo(function FileRowCells({
   record,
   fp,
   isChecked,
+  isSelected,
+  isOpen,
   isStarred,
   isExpanded,
   isNarrow,
@@ -91,6 +95,11 @@ export const FileRowCells = React.memo(function FileRowCells({
   listingPaths,
   computeServerId,
 }: FileRowCellsProps) {
+  const quickActionBackground =
+    isChecked || isSelected
+      ? `var(--cocalc-bg-hover, ${COLORS.BLUE_LLL})`
+      : `var(--cocalc-bg-hover, ${isOpen ? COLORS.GRAY_LLL : COLORS.BLUE_LLLL})`;
+
   return (
     <>
       {!disableActions && (
@@ -114,9 +123,7 @@ export const FileRowCells = React.memo(function FileRowCells({
           }}
           className={isExpanded ? "cc-explorer-cell-expanded" : undefined}
           onClick={
-            record.isdir
-              ? (e) => toggleExpandDir(record.name, e)
-              : undefined
+            record.isdir ? (e) => toggleExpandDir(record.name, e) : undefined
           }
         >
           {renderFileIcon(record, isExpanded)}
@@ -175,7 +182,7 @@ export const FileRowCells = React.memo(function FileRowCells({
             className="cc-explorer-hover-icon"
             compute_server_id={computeServerId}
             style={{
-              background: isChecked ? COLORS.BLUE_LLL : COLORS.BLUE_LLLL,
+              background: quickActionBackground,
             }}
           />
         )}
@@ -188,8 +195,7 @@ export const FileRowCells = React.memo(function FileRowCells({
       {!isNarrow && (
         <>
           <td style={{ ...CELL_STYLE, width: COL_W.SIZE, textAlign: "right" }}>
-            {!disableActions &&
-            (record.isdir ? record.size != null : true) ? (
+            {!disableActions && (record.isdir ? record.size != null : true) ? (
               <Button
                 type="text"
                 size="small"
@@ -207,14 +213,22 @@ export const FileRowCells = React.memo(function FileRowCells({
                 <Icon
                   name="cloud-download"
                   className="cc-explorer-hover-icon"
-                  style={{ color: "var(--cocalc-text-secondary, #333333)", marginRight: 4 }}
+                  style={{
+                    color: "var(--cocalc-text-secondary, #333333)",
+                    marginRight: 4,
+                  }}
                 />
                 {record.isdir
                   ? `${record.size} ${misc.plural(record.size, "item")}`
                   : misc.human_readable_size(record.size)}
               </Button>
             ) : (
-              <span style={{ color: "var(--cocalc-text-secondary, #333333)", whiteSpace: "nowrap" }}>
+              <span
+                style={{
+                  color: "var(--cocalc-text-secondary, #333333)",
+                  whiteSpace: "nowrap",
+                }}
+              >
                 {record.isdir
                   ? record.size != null
                     ? `${record.size} ${misc.plural(record.size, "item")}`

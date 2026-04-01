@@ -31,7 +31,6 @@ import {
   type OpenedFile,
 } from "@cocalc/frontend/projects/util";
 import { EDITOR_PREFIX, path_to_tab } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { file_tab_labels } from "../file-tab-labels";
 import { FileTab, FIXED_PROJECT_TABS } from "./file-tab";
 

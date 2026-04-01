@@ -546,23 +546,23 @@ details summary
     display: block
 
 div.cc-project-fixedtab:hover
-  background-color: colors.$COL_BLUE_LLLL
+  background-color: var(--cocalc-top-bar-hover, colors.$COL_BLUE_LLLL)
   cursor: pointer
 
 span.cc-project-fixedtab-close
   flex: 0
   float: right
   font-size: 12px  // same as Antd closable tabs
-  color: colors.$COL_GRAY
+  color: var(--cocalc-text-secondary, colors.$COL_GRAY)
   &:hover
-    background-color: colors.$COL_GRAY_L0
+    background-color: var(--cocalc-top-bar-hover, colors.$COL_GRAY_L0)
 
 span.cc-project-fixedtab-drag:hover
-  background-color: colors.$COL_GRAY_L0
+  background-color: var(--cocalc-top-bar-hover, colors.$COL_GRAY_L0)
   cursor: move
 
 div.cc-project-flyout-file-item:hover
-  background-color: colors.$COL_BLUE_LLLL
+  background-color: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL)
 
 // Flyout quick action buttons (cut/copy/delete): hidden by default, visible on hover
 // No transitions — they cause a "trailing" effect during scroll.

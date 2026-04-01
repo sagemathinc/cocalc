@@ -34,7 +34,6 @@ import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
 import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { Kernels as KernelsType } from "@cocalc/jupyter/util/misc";
 import { syncdbPath } from "@cocalc/util/jupyter/names";
-import { COLORS } from "@cocalc/util/theme";
 import { JupyterEditorActions } from "../frame-editors/jupyter-editor/actions";
 import { About } from "./about";
 import type { JupyterActions } from "./browser-actions";
@@ -269,7 +268,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           fontSize: "24pt",
           textAlign: "center",
           marginTop: "15px",
-          color: COLORS.GRAY,
+          color: "var(--cocalc-text-secondary, #808080)",
+          background: "var(--cocalc-top-bar-bg, white)",
         }}
       />
     );
@@ -289,7 +289,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
             fontSize: "24pt",
             textAlign: "center",
             marginTop: "15px",
-            color: "#888",
+            color: "var(--cocalc-text-secondary, #888)",
+            background: "var(--cocalc-top-bar-bg, white)",
           }}
         />
       );

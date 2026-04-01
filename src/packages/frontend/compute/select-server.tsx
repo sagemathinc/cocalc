@@ -6,14 +6,25 @@ import type { CSSProperties, ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Select, Spin, Tooltip } from "antd";
 import { useTypedRedux, redux } from "@cocalc/frontend/app-framework";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { cmp } from "@cocalc/util/misc";
 import { Icon, isIconName, VisibleMDLG } from "@cocalc/frontend/components";
 import { STATE_INFO } from "@cocalc/util/db-schema/compute-servers";
 import { capitalize } from "@cocalc/util/misc";
+import type { ColorTheme } from "@cocalc/util/theme";
+import { COLORS, mixColors } from "@cocalc/util/theme";
 import { DisplayImage } from "./select-image";
 import { avatar_fontcolor } from "@cocalc/frontend/account/avatar/font-color";
 
-export const PROJECT_COLOR = "#f4f5c4";
+export const PROJECT_COLOR = COLORS.GRAY_LLL;
+
+export function getHomeBaseColor(colorTheme: ColorTheme): string {
+  return mixColors(colorTheme.bgElevated, colorTheme.primaryLightest, 0.35);
+}
+
+export function getHomeBaseTextColor(colorTheme: ColorTheme): string {
+  return colorTheme.textPrimary;
+}
 
 interface Option {
   position?: number;
@@ -47,6 +58,7 @@ export default function SelectServer({
   fullLabel,
   title,
 }: Props) {
+  const colorTheme = useColorTheme();
   const account_id = useTypedRedux("account", "account_id");
   const [value, setValue1] = useState<number | null | undefined>(
     value0 == 0 ? null : value0,
@@ -84,6 +96,8 @@ export default function SelectServer({
     { project_id },
     "compute_servers",
   )?.toJS();
+  const homeBaseColor = getHomeBaseColor(colorTheme);
+  const homeBaseTextColor = getHomeBaseTextColor(colorTheme);
 
   const options = useMemo(() => {
     if (computeServers == null) return [];
@@ -176,8 +190,8 @@ export default function SelectServer({
               >
                 <div
                   style={{
-                    background: PROJECT_COLOR,
-                    color: avatar_fontcolor(PROJECT_COLOR),
+                    background: homeBaseColor,
+                    color: homeBaseTextColor,
                     padding: "0 5px",
                     borderRadius: "3px",
                   }}
@@ -257,13 +271,25 @@ export default function SelectServer({
     });
 
     return v;
-  }, [computeServers]);
+  }, [
+    computeServers,
+    value,
+    open,
+    noLabel,
+    account_id,
+    homeBaseColor,
+    homeBaseTextColor,
+    project_id,
+  ]);
 
   if (computeServers == null) {
     return <Spin delay={1000} />;
   }
 
-  const background = computeServers[value ?? ""]?.color ?? PROJECT_COLOR;
+  const background = computeServers[value ?? ""]?.color ?? homeBaseColor;
+  const foreground = computeServers[value ?? ""]?.color
+    ? avatar_fontcolor(background)
+    : homeBaseTextColor;
 
   return (
     <Tooltip
@@ -281,7 +307,7 @@ export default function SelectServer({
         size={size}
         variant={"borderless"}
         placeholder={
-          <span style={{ color: avatar_fontcolor(background) }}>
+          <span style={{ color: foreground }}>
             <Icon name="server" style={{ fontSize: "13pt" }} />{" "}
             {!noLabel || open ? <VisibleMDLG>Server</VisibleMDLG> : undefined}
           </span>
@@ -303,7 +329,7 @@ export default function SelectServer({
         style={{
           width: open ? "300px" : undefined,
           background,
-          color: avatar_fontcolor(background),
+          color: foreground,
           ...style,
         }}
         options={options}

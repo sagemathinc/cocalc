@@ -35,9 +35,6 @@ const USERS_VIEWING_STYLE: React.CSSProperties = {
   marginRight: "5px",
 } as const;
 
-// Light tint of assistant color for hover
-const AI_HOVER_BG = COLORS.YELL_LLL;
-
 interface Props {
   project_id: string;
   path: string;
@@ -54,6 +51,8 @@ export function ChatIndicator({
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex" },
+    background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_L0})`,
+    borderTop: `2px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   };
 
   return (
@@ -124,8 +123,11 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
   const aiActive = !!chatState && chatMode === "assistant";
   const chatActive = !!chatState && chatMode !== "assistant";
 
-  // Common border style for both buttons
-  const borderColor = COLORS.GRAY_L;
+  const borderColor = `var(--cocalc-border-light, ${COLORS.GRAY_L})`;
+  const buttonHoverBg = `var(--cocalc-top-bar-hover, ${COLORS.GRAY_LLL})`;
+  const buttonActiveBg = `var(--cocalc-top-bar-active, white)`;
+  const buttonText = `var(--cocalc-top-bar-text, ${COLORS.GRAY})`;
+  const buttonTextActive = `var(--cocalc-top-bar-text, ${COLORS.GRAY})`;
 
   const chatButton = (
     <Tooltip
@@ -149,11 +151,12 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
         onMouseLeave={() => setHoverChat(false)}
         style={{
           background: chatActive
-            ? "white"
+            ? buttonActiveBg
             : hoverChat
-              ? COLORS.GRAY_LLL
+              ? buttonHoverBg
               : "transparent",
           borderColor,
+          color: chatActive ? buttonTextActive : buttonText,
         }}
       >
         <Icon name="comment" />
@@ -186,15 +189,16 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
           onMouseLeave={() => setHoverAI(false)}
           style={{
             background: aiActive
-              ? COLORS.AI_ASSISTANT_BG
+              ? buttonActiveBg
               : hoverAI
-                ? AI_HOVER_BG
+                ? buttonHoverBg
                 : "transparent",
             borderColor,
+            color: aiActive ? buttonTextActive : buttonText,
             padding: "4px 8px",
           }}
         >
-          <AIAvatar size={16} />
+          <AIAvatar size={16} iconColor="currentColor" />
           <span style={{ marginLeft: "5px" }}>AI</span>
         </Button>
       </Tooltip>

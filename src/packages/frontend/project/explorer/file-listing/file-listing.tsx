@@ -46,7 +46,11 @@ import * as misc from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
 import { COLORS } from "@cocalc/util/theme";
 
-import { useClipboardMode, useClipboardPathSet, useHasClipboard } from "@cocalc/frontend/file-clipboard/hook";
+import {
+  useClipboardMode,
+  useClipboardPathSet,
+  useHasClipboard,
+} from "@cocalc/frontend/file-clipboard/hook";
 import { useFolderDrop } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 import DirectoryPeek from "./directory-peek";
 import EmptyPlaceholder from "./empty-placeholder";
@@ -655,25 +659,20 @@ export const FileListing: React.FC<Props> = ({
         ),
       },
     }),
-    [
-      handleRowClick,
-      openContextMenu,
-      current_path,
-      checked_files,
-      actions,
-    ],
+    [handleRowClick, openContextMenu, current_path, checked_files, actions],
   );
 
   const rowClassName = useCallback(
     (record: FileEntry) => {
       const fp = misc.path_to_file(current_path, record.name);
-      const isSelected =
+      const isSelected = !!(
         search_focused &&
         selected_file_index != null &&
         selected_file_index >= 0 &&
         selected_file_index < dataSource.length &&
         dataSource[selected_file_index]?.name === record.name &&
-        !isTerminalMode(file_search);
+        !isTerminalMode(file_search)
+      );
       const isChecked = checked_files.has(fp);
       const isOpen = openFilesSet.has(fp);
       return [
@@ -794,8 +793,9 @@ export const FileListing: React.FC<Props> = ({
       textAlign: "left",
       position: "sticky",
       top: 0,
-      background: COLORS.GRAY_LL,
-      borderBottom: `1px solid ${COLORS.GRAY_L0}`,
+      color: `var(--cocalc-text-primary, ${COLORS.GRAY_D})`,
+      background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LL})`,
+      borderBottom: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L0})`,
       fontWeight: 600,
       fontSize: undefined,
       zIndex: 1,
@@ -929,7 +929,10 @@ export const FileListing: React.FC<Props> = ({
         return (
           <td
             colSpan={numCols}
-            style={{ padding: 0, background: COLORS.WHITE }}
+            style={{
+              padding: 0,
+              background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+            }}
           >
             <DirectoryPeek
               project_id={project_id}
@@ -950,7 +953,10 @@ export const FileListing: React.FC<Props> = ({
         return (
           <td
             colSpan={numCols}
-            style={{ padding: 0, background: COLORS.WHITE }}
+            style={{
+              padding: 0,
+              background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+            }}
           >
             <EmptyPlaceholder
               project_id={project_id}
@@ -969,6 +975,15 @@ export const FileListing: React.FC<Props> = ({
       const record = entry as FileEntry;
       const fp = misc.path_to_file(current_path, record.name);
       const isChecked = checked_files.has(fp);
+      const isSelected = Boolean(
+        search_focused &&
+        selected_file_index != null &&
+        selected_file_index >= 0 &&
+        selected_file_index < dataSource.length &&
+        dataSource[selected_file_index]?.name === record.name &&
+        !isTerminalMode(file_search),
+      );
+      const isOpen = openFilesSet.has(fp);
       const pathForStar = record.isdir ? `${fp}/` : fp;
       const isStarred = starredSet.has(pathForStar);
       const isExpanded = !!record.isdir && expandedDirs.includes(record.name);
@@ -978,6 +993,8 @@ export const FileListing: React.FC<Props> = ({
           record={record}
           fp={fp}
           isChecked={isChecked}
+          isSelected={isSelected}
+          isOpen={isOpen}
           isStarred={isStarred}
           isExpanded={isExpanded}
           isNarrow={isNarrow}

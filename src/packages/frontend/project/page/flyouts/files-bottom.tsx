@@ -419,7 +419,7 @@ export function FilesBottom({
   }
 
   const style: CSS = {
-    background: COLORS.GRAY_LL,
+    background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LL})`,
     borderRadius: 0,
     border: "none",
   } as const;

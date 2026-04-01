@@ -157,7 +157,10 @@ export function SortIndicator({
   return (
     <Icon
       name={sortDescending ? "caret-down" : "caret-up"}
-      style={{ color: COLORS.ANTD_LINK_BLUE, marginLeft: 4 }}
+      style={{
+        color: `var(--cocalc-primary, ${COLORS.ANTD_LINK_BLUE})`,
+        marginLeft: 4,
+      }}
     />
   );
 }

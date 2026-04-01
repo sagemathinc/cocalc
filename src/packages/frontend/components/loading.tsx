@@ -30,8 +30,8 @@ const LOADING_THEMES: { [keys: string]: CSSProperties } = {
     fontSize: "24pt",
     textAlign: "center",
     marginTop: "15px",
-    color: "#888",
-    background: "white",
+    color: "var(--cocalc-text-secondary, #888)",
+    background: "var(--cocalc-top-bar-bg, white)",
   },
 } as const;
 

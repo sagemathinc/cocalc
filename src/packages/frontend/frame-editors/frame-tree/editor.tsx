@@ -46,7 +46,8 @@ const LOADING_STYLE: CSS = {
   fontSize: "40px",
   textAlign: "center",
   padding: "15px",
-  color: "#999",
+  color: "var(--cocalc-text-secondary, #999)",
+  background: "var(--cocalc-top-bar-bg, #f8f8f8)",
 } as const;
 
 const DEFAULT_FILE_COMMANDS: { [commandName: string]: true } = (() => {
@@ -182,7 +183,10 @@ const FrameTreeEditor: React.FC<FrameTreeEditorProps> = React.memo(
               active_id={local.get("active_id")}
               full_id={local.get("full_id")}
               font_size={local.get("font_size")}
-              is_only={frame_tree.get("type") !== "node" && frame_tree.get("type") !== "tabs"}
+              is_only={
+                frame_tree.get("type") !== "node" &&
+                frame_tree.get("type") !== "tabs"
+              }
               cursors={cursors}
               read_only={read_only}
               is_public={is_public}

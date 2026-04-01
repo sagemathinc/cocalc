@@ -144,7 +144,7 @@ function Chat({ font_size, desc }: EditorComponentProps) {
                 value: "assistant",
                 label: (
                   <span>
-                    <AIAvatar size={16} /> Assistant
+                    <AIAvatar size={16} iconColor="currentColor" /> Assistant
                   </span>
                 ),
               },
