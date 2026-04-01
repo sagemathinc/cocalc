@@ -205,18 +205,16 @@ export function useAntdStyleProvider() {
   const algorithmConfig =
     algorithms.length > 0 ? { algorithm: algorithms } : undefined;
 
-  // Dark theme surface tokens
-  const darkTokens = colorTheme.isDark
-    ? {
-        colorBgBase: colorTheme.bgBase,
-        colorBgContainer: colorTheme.bgElevated,
-        colorText: colorTheme.textPrimary,
-        colorTextSecondary: colorTheme.textSecondary,
-        colorTextTertiary: colorTheme.textTertiary,
-        colorBorder: colorTheme.border,
-        colorBorderSecondary: colorTheme.borderLight,
-      }
-    : undefined;
+  // Theme surface tokens — always derived from the theme
+  const surfaceTokens = {
+    colorBgBase: colorTheme.bgBase,
+    colorBgContainer: colorTheme.bgElevated,
+    colorText: colorTheme.textPrimary,
+    colorTextSecondary: colorTheme.textSecondary,
+    colorTextTertiary: colorTheme.textTertiary,
+    colorBorder: colorTheme.border,
+    colorBorderSecondary: colorTheme.borderLight,
+  };
 
   const antdTheme: ThemeConfig = {
     ...algorithmConfig,
@@ -231,12 +229,26 @@ export function useAntdStyleProvider() {
       ...primaryColor,
       ...borderStyle,
       ...animationStyle,
-      ...darkTokens,
+      ...surfaceTokens,
       ...accessibilityTextColor,
     },
     components: {
       Button: {
         ...primaryColor,
+      },
+      Card: {
+        headerBg: colorTheme.topBarBg,
+      },
+      Collapse: {
+        headerBg: colorTheme.topBarBg,
+      },
+      Table: {
+        headerBg: colorTheme.topBarBg,
+        headerColor: colorTheme.textPrimary,
+        headerSortActiveBg: colorTheme.bgHover,
+        headerSortHoverBg: colorTheme.bgHover,
+        rowHoverBg: colorTheme.bgHover,
+        borderColor: colorTheme.borderLight,
       },
       ...(colorTheme.isDark
         ? {
@@ -254,14 +266,6 @@ export function useAntdStyleProvider() {
             Switch: {
               colorTextQuaternary: colorTheme.border,
               colorTextTertiary: colorTheme.textTertiary,
-            },
-            Table: {
-              headerBg: colorTheme.topBarBg,
-              headerColor: colorTheme.textPrimary,
-              headerSortActiveBg: colorTheme.bgHover,
-              headerSortHoverBg: colorTheme.bgHover,
-              rowHoverBg: colorTheme.bgHover,
-              borderColor: colorTheme.borderLight,
             },
             Tabs: {
               cardBg: colorTheme.topBarBg,

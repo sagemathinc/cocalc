@@ -20,7 +20,7 @@
 // ---------------------------------------------------------------------------
 
 /** Parse a hex color (#rgb or #rrggbb) to [r, g, b] in 0–255. */
-function hexToRgb(hex: string): [number, number, number] {
+export function hexToRgb(hex: string): [number, number, number] {
   let h = hex.replace("#", "");
   if (h.length === 3) {
     h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
@@ -43,11 +43,7 @@ function rgbToHex(r: number, g: number, b: number): string {
 export function mixColors(a: string, b: string, t: number): string {
   const [r1, g1, b1] = hexToRgb(a);
   const [r2, g2, b2] = hexToRgb(b);
-  return rgbToHex(
-    r1 + (r2 - r1) * t,
-    g1 + (g2 - g1) * t,
-    b1 + (b2 - b1) * t,
-  );
+  return rgbToHex(r1 + (r2 - r1) * t, g1 + (g2 - g1) * t, b1 + (b2 - b1) * t);
 }
 
 /** Lighten a hex color toward white by amount 0–1. */
@@ -159,9 +155,12 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     primary,
     secondary,
     accent = secondary,
-    bg = "#ffffff",
+    bg = mixColors("#ffffff", primary, 0.02), // Subtly tint background with primary
     text = "#303030",
   } = base;
+
+  const bgBase = bg;
+  const bgElevated = mixColors(bgBase, primary, 0.015); // Slightly more tint for elevated surfaces
 
   return {
     name,
@@ -181,9 +180,9 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     colorError: "#f5222d",
     colorInfo: primary,
 
-    bgBase: bg,
-    bgElevated: lighten(bg, 0.02),
-    bgHover: darken(bg, 0.04),
+    bgBase,
+    bgElevated,
+    bgHover: darken(bgBase, 0.04),
     bgSelected: lighten(primary, 0.9),
 
     textPrimary: text,
@@ -194,8 +193,8 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     border: lighten(text, 0.7),
     borderLight: lighten(text, 0.82),
 
-    topBarBg: darken(bg, 0.07),
-    topBarHover: darken(bg, 0.04),
+    topBarBg: darken(bgBase, 0.07),
+    topBarHover: darken(bgBase, 0.04),
     topBarText: lighten(text, 0.35),
     topBarTextActive: text,
 
@@ -207,7 +206,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
 
     chatViewerBg: lighten(primary, 0.35),
     chatViewerText: "#ffffff",
-    chatOtherBg: darken(bg, 0.03),
+    chatOtherBg: darken(bgBase, 0.03),
     chatOtherText: text,
 
     star: "#FFD700",
@@ -229,8 +228,9 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
  * text, and borders for dark backgrounds.
  */
 export function deriveDarkTheme(light: ColorTheme): ColorTheme {
-  const darkBg = "#1a1a2e";
-  const darkBgElevated = "#222240";
+  // Derive dark background from primary color (approx 8-10% primary mixed with near-black)
+  const darkBg = mixColors("#050510", light.primary, 0.08);
+  const darkBgElevated = lighten(darkBg, 0.05);
   const darkText = "#e0e0e0";
 
   // Lighten the primary for better visibility on dark backgrounds
@@ -316,9 +316,9 @@ export const THEME_DEFAULT: ColorTheme = {
   colorError: "#f5222d",
   colorInfo: "#4474c0",
 
-  bgBase: "#ffffff",
-  bgElevated: "#ffffff",
-  bgHover: "#f5f5f5",
+  bgBase: "#f9fbff", // Subtly tinted blue-white
+  bgElevated: "#f6f9ff", // Slightly more tinted for surfaces
+  bgHover: "#f0f5ff",
   bgSelected: "#e6f4ff",
 
   textPrimary: "#303030",

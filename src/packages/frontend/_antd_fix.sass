@@ -14,14 +14,14 @@
 // it to something else.  We want this to be consistent with our nextjs
 // landing pages.
 a
-  color: colors.$COL_ANTD_LINK_BLUE
+  color: var(--cocalc-link, colors.$COL_ANTD_LINK_BLUE)
 
 html
   overflow: hidden
 
 .ant-popover-content
   .ant-popover-arrow
-    border-color: colors.$COL_GRAY_L !important
+    border-color: var(--cocalc-border, colors.$COL_GRAY_L) !important
     z-index: -1 !important
 
 .ant-popover-inner-content>.cocalc-account-button-dropdown-links

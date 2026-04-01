@@ -18,7 +18,7 @@ import {
 } from "@cocalc/frontend/i18n";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { setDarkModeState } from "@cocalc/frontend/account/dark-mode";
-import { mixColors, type ColorTheme } from "@cocalc/util/theme";
+import { hexToRgb, mixColors, type ColorTheme } from "@cocalc/util/theme";
 import { createRoot } from "react-dom/client";
 import { AppContext, useAppContextProvider } from "./context";
 import { Localize, useLocalizationCtx } from "./localize";
@@ -105,12 +105,25 @@ function App({ children }) {
 function applyThemeCSSVars(t: ColorTheme): void {
   const s = document.body.style;
   const topBarActive = mixColors(t.topBarBg, t.bgElevated, 0.55);
+
+  const setRgb = (name: string, hex: string) => {
+    try {
+      const [r, g, b] = hexToRgb(hex);
+      s.setProperty(`${name}-rgb`, `${r}, ${g}, ${b}`);
+    } catch {
+      // ignore
+    }
+  };
+
   s.setProperty("--cocalc-bg-base", t.bgBase);
+  setRgb("--cocalc-bg-base", t.bgBase);
   s.setProperty("--cocalc-bg-elevated", t.bgElevated);
   s.setProperty("--cocalc-bg-hover", t.bgHover);
+  s.setProperty("--cocalc-bg-selected", t.bgSelected);
   s.setProperty("--cocalc-text-primary", t.textPrimary);
   s.setProperty("--cocalc-text-secondary", t.textSecondary);
   s.setProperty("--cocalc-text-tertiary", t.textTertiary);
+  s.setProperty("--cocalc-text-on-primary", t.textOnPrimary);
   s.setProperty("--cocalc-border", t.border);
   s.setProperty("--cocalc-border-light", t.borderLight);
   s.setProperty("--cocalc-top-bar-bg", t.topBarBg);
@@ -119,6 +132,23 @@ function applyThemeCSSVars(t: ColorTheme): void {
   s.setProperty("--cocalc-top-bar-text", t.topBarText);
   s.setProperty("--cocalc-top-bar-text-active", t.topBarTextActive);
   s.setProperty("--cocalc-primary", t.primary);
+  setRgb("--cocalc-primary", t.primary);
+  s.setProperty("--cocalc-primary-dark", t.primaryDark);
+  s.setProperty("--cocalc-primary-light", t.primaryLight);
+  s.setProperty("--cocalc-primary-lightest", t.primaryLightest);
+  s.setProperty("--cocalc-secondary", t.secondary);
+  s.setProperty("--cocalc-secondary-light", t.secondaryLight);
+  s.setProperty("--cocalc-success", t.colorSuccess);
+  setRgb("--cocalc-success", t.colorSuccess);
+  s.setProperty("--cocalc-warning", t.colorWarning);
+  setRgb("--cocalc-warning", t.colorWarning);
+  s.setProperty("--cocalc-error", t.colorError);
+  setRgb("--cocalc-error", t.colorError);
+  s.setProperty("--cocalc-info", t.colorInfo);
+  s.setProperty("--cocalc-link", t.colorLink);
+  s.setProperty("--cocalc-run", t.run);
+  setRgb("--cocalc-run", t.run);
+  s.setProperty("--cocalc-star", t.star);
   s.setProperty("--cocalc-is-dark", t.isDark ? "1" : "0");
   // Also set body background so the page chrome matches the theme
   s.backgroundColor = t.bgBase;

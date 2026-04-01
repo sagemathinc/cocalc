@@ -263,6 +263,7 @@ export const PathNavigator: React.FC<Props> = React.memo(
       const homeStyle: CSS = {
         fontSize: style?.fontSize,
         fontWeight: "bold",
+        color: "currentColor",
       } as const;
 
       const homeDisplay =

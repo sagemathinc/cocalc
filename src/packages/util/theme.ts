@@ -62,6 +62,7 @@ export {
   deriveDarkTheme,
   deriveTheme,
   getColorTheme,
+  hexToRgb,
   luminance,
   mixColors,
   type NativeDarkMode,
