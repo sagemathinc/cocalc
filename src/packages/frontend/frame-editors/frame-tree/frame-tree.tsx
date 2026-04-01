@@ -458,7 +458,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           display: "flex",
           flexDirection: "row",
           flex: 1,
-          overflow: "hidden",
+          overflow: "clip",
         };
       } else {
         // Prevent scrollIntoView from propagating scroll to this container.
@@ -467,7 +467,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
           display: "flex",
           flexDirection: "column",
           flex: 1,
-          overflow: "hidden",
+          overflow: "clip",
         };
       }
       return data;
@@ -618,7 +618,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     }
 
     return (
-      <div className={"smc-vfill"} style={{ overflow: "hidden" }} ref={elementRef}>
+      <div className={"smc-vfill"} style={{ overflow: "clip" }} ref={elementRef}>
         {render_root()}
       </div>
     );
