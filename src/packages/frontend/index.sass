@@ -77,18 +77,18 @@
     width: 100%
   // Remove all default row backgrounds (including zebra stripes)
   .ant-table-row > td
-    background: colors.$COL_WHITE !important
-    border-bottom: 1px solid colors.$COL_GRAY_LLL !important
+    background: var(--cocalc-bg-base, colors.$COL_WHITE) !important
+    border-bottom: 1px solid var(--cocalc-border-light, colors.$COL_GRAY_LLL) !important
     transition: none !important
   // Open files: faint gray background so the user can spot them
   .cc-explorer-row-open > td
-    background-color: colors.$COL_GRAY_LLL !important
+    background-color: var(--cocalc-bg-hover, colors.$COL_GRAY_LLL) !important
   // Type cell with expanded directory peek: blue background
   .ant-table-row > td.cc-explorer-cell-expanded
-    background-color: colors.$COL_BLUE_LLLL !important
+    background-color: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL) !important
   // Hover: faint blue (kept subtle so DnD drop-target highlight stands out)
   .ant-table-row:hover > td
-    background-color: colors.$COL_BLUE_LLLL !important
+    background-color: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL) !important
     transition: none !important
   // Hover-only icons: download in size column, context menu at row end
   // No transitions — they cause a "trailing" effect during scroll.
@@ -184,6 +184,11 @@ body
   padding-top: 0
   width      : 100vw
   overflow-x : hidden
+
+// Scrollbar styling — responds to dark mode via CSS custom properties
+*
+  scrollbar-color: var(--cocalc-border, #c0c0c0) var(--cocalc-bg-base, transparent)
+  scrollbar-width: thin
 
 div#smc-react-container,
 div#cocalc-webapp-container

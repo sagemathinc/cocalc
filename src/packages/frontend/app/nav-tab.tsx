@@ -8,10 +8,10 @@ import { Tooltip } from "antd";
 import { CSS, React, useActions } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
 import track from "@cocalc/frontend/user-tracking";
-import { COLORS } from "@cocalc/util/theme";
 import { TOP_BAR_ELEMENT_CLASS } from "./top-nav-consts";
 
-const ACTIVE_BG_COLOR = COLORS.TOP_BAR.ACTIVE;
+// Use CSS variable so it responds to dark mode; falls back to white for light mode.
+const ACTIVE_BG_COLOR = "var(--cocalc-bg-elevated, white)";
 
 interface Props {
   //close?: boolean;
