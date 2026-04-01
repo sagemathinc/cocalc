@@ -106,17 +106,15 @@ export function SortableButtonItem({
       style={{
         display: "inline-block",
         transform: transform
-          ? `translate3d(${transform.x}px, 0, 0)`
+          ? `translate3d(${transform.x}px, ${isActive ? -3 : 0}px, 0)`
           : undefined,
         transition,
         // The dragged item gets a highlight; others stay normal
         zIndex: isActive ? 10 : undefined,
-        background: isActive ? "#e0e7ff" : undefined,
+        background: isActive ? "transparent" : undefined,
         borderRadius: isActive ? 4 : undefined,
-        boxShadow: isActive
-          ? "0 1px 4px rgba(0,0,0,0.18)"
-          : undefined,
-        cursor: isActive ? "grabbing" : undefined,
+        boxShadow: isActive ? "0 1px 4px rgba(0,0,0,0.18)" : undefined,
+        cursor: isActive ? "grabbing" : "grab",
         ...style,
       }}
       {...attributes}

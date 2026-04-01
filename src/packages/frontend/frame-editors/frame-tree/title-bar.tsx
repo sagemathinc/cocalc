@@ -11,10 +11,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 // cSpell:ignore rescan subframe
 
 import { useDraggable } from "@dnd-kit/core";
-import {
-  SortableButtonBar,
-  SortableButtonItem,
-} from "./sortable-button-bar";
+import { SortableButtonBar, SortableButtonItem } from "./sortable-button-bar";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -24,6 +21,7 @@ import {
   InputNumber,
   Popover,
   Tooltip,
+  Typography,
 } from "antd";
 import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
@@ -83,6 +81,10 @@ import {
   MENUS,
   SEARCH_COMMANDS,
 } from "./commands";
+import {
+  getFrameEditorSettingsName,
+  useFrameEditorToolbarButtons,
+} from "./frame-editor-settings";
 import { SaveButton } from "./save-button";
 import TitleBarTour from "./title-bar-tour";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
@@ -261,6 +263,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   const editorSettings = useRedux(["account", "editor_settings"]);
+  const frameEditorName = useMemo(
+    () => getFrameEditorSettingsName(props.type),
+    [props.type],
+  );
+  const { toolbarButtons, setToolbarButtons } =
+    useFrameEditorToolbarButtons(frameEditorName);
   // REDUX:
   // state that is associated with the file being edited, not the
   // frame tree/tab in which this sits.  Note some more should
@@ -294,6 +302,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         setHelpSearch,
         readOnly: read_only,
         editorSettings,
+        frameEditorName,
+        toolbarButtons,
+        setToolbarButtons,
         intl,
       }),
     [
@@ -304,6 +315,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       setShowNewAI,
       read_only,
       editorSettings,
+      frameEditorName,
+      toolbarButtons,
+      setToolbarButtons,
       intl,
       is_building,
     ],
@@ -1263,26 +1277,37 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function wrapButtonBarContextMenu(bar: React.JSX.Element) {
-    const showSymbolLabel = (
-      <>
-        <Tooltip
-          title={intl.formatMessage({
-            id: "frame_editors.frame_tree.title_bar.symbols.label.explanation",
-            defaultMessage:
-              "If labels are shown, the symbol bar is placed in its own row beneath the menu – otherwise it is smaller and next to the menu.",
-          })}
-        >
-          <Icon name="signature-outlined" />{" "}
-          {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
-            show: showSymbolBarLabels,
-          })}
-        </Tooltip>
-      </>
+    return (
+      <Dropdown
+        trigger={["contextMenu"]}
+        menu={{ items: getButtonBarContextMenuItems() }}
+        overlayStyle={{ maxWidth: "400px" }}
+      >
+        {bar}
+      </Dropdown>
     );
+  }
+
+  function getButtonBarContextMenuItems(name?: string): MenuProps["items"] {
     const items: MenuProps["items"] = [
       {
         key: "toggle-labels",
-        label: showSymbolLabel,
+        label: (
+          <Tooltip
+            title={intl.formatMessage({
+              id: "frame_editors.frame_tree.title_bar.symbols.label.explanation",
+              defaultMessage:
+                "If labels are shown, the symbol bar is placed in its own row beneath the menu – otherwise it is smaller and next to the menu.",
+            })}
+          >
+            <span>
+              <Icon name="signature-outlined" />{" "}
+              {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
+                show: showSymbolBarLabels,
+              })}
+            </span>
+          </Tooltip>
+        ),
         onClick: () => {
           redux
             .getActions("account")
@@ -1290,13 +1315,59 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         },
       },
     ];
+
+    if (name != null) {
+      items.push({
+        key: `remove-${name}`,
+        label: (
+          <span>
+            <Icon name="times" />{" "}
+            {intl.formatMessage({
+              id: "frame-editors.frame-tree.title-bar.context.remove-toolbar-icon",
+              defaultMessage: "Remove from toolbar",
+            })}
+          </span>
+        ),
+        onClick: () => {
+          manageCommands.removeToolbarButton(name);
+        },
+      });
+    }
+
+    items.push(
+      { type: "divider" },
+      {
+        key: `pin-hint${name != null ? `-${name}` : ""}`,
+        disabled: true,
+        label: (
+          <Typography.Text type="secondary" style={{ fontSize: "11px" }}>
+            {intl.formatMessage({
+              id: "frame-editors.frame-tree.title-bar.context.pin-hint",
+              defaultMessage: "Click an icon in a menu to pin it.",
+            })}
+          </Typography.Text>
+        ),
+      },
+    );
+
+    return items;
+  }
+
+  function wrapButtonBarItemContextMenu(
+    name: string,
+    button: React.JSX.Element,
+  ): React.JSX.Element {
     return (
       <Dropdown
         trigger={["contextMenu"]}
-        menu={{ items }}
-        overlayStyle={{ maxWidth: "400px" }}
+        menu={{ items: getButtonBarContextMenuItems(name) }}
       >
-        {bar}
+        <span
+          style={{ display: "inline-block" }}
+          onContextMenu={(e) => e.stopPropagation()}
+        >
+          {button}
+        </span>
       </Dropdown>
     );
   }
@@ -1327,7 +1398,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const sortableIds = [...rendered.keys()];
     const v = sortableIds.map((name) => (
       <SortableButtonItem key={`sortable-${name}`} id={name}>
-        {rendered.get(name)}
+        {wrapButtonBarItemContextMenu(name, rendered.get(name)!)}
       </SortableButtonItem>
     ));
 
@@ -1361,10 +1432,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       );
     } else {
       return wrapButtonBarContextMenu(
-        <SortableButtonBar
-          items={sortableIds}
-          onReorder={handleToolbarReorder}
-        >
+        <SortableButtonBar items={sortableIds} onReorder={handleToolbarReorder}>
           <div
             style={{
               marginTop: "3px",

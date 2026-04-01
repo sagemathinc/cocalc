@@ -7,14 +7,13 @@ import { Button, Tooltip } from "antd";
 import { ReactNode } from "react";
 import { IntlShape } from "react-intl";
 
-import { set_account_table } from "@cocalc/frontend/account/util";
 import { redux } from "@cocalc/frontend/app-framework";
 import type { MenuItem } from "@cocalc/frontend/components/dropdown-menu";
 import { STAY_OPEN_ON_CLICK } from "@cocalc/frontend/components/dropdown-menu";
 import { Icon, IconName, isIconName } from "@cocalc/frontend/components/icon";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { IntlMessage, isIntlMessage } from "@cocalc/frontend/i18n";
-import { cmp, filename_extension, trunc_middle } from "@cocalc/util/misc";
+import { cmp, trunc_middle } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { EditorDescription } from "../types";
 import { COMMANDS } from "./commands";
@@ -37,6 +36,9 @@ export class ManageCommands {
   readonly setHelpSearch;
   readonly readOnly: boolean;
   readonly editorSettings;
+  readonly frameEditorName: string;
+  readonly toolbarButtons: string[] | null;
+  readonly setToolbarButtons: (value: string[] | null) => void;
   readonly intl: IntlShape;
   readonly formatMessageValues: Parameters<typeof this.intl.formatMessage>[1];
 
@@ -51,6 +53,9 @@ export class ManageCommands {
     setHelpSearch,
     readOnly,
     editorSettings,
+    frameEditorName,
+    toolbarButtons,
+    setToolbarButtons,
     intl,
   }) {
     this.props = props;
@@ -61,6 +66,9 @@ export class ManageCommands {
     this.setHelpSearch = setHelpSearch;
     this.readOnly = readOnly;
     this.editorSettings = editorSettings;
+    this.frameEditorName = frameEditorName;
+    this.toolbarButtons = toolbarButtons;
+    this.setToolbarButtons = setToolbarButtons;
     this.intl = intl;
     this.formatMessageValues = { br: <br /> };
     //window.x = { manage: this };
@@ -294,9 +302,7 @@ export class ManageCommands {
   // Resolve a possibly compound key like "format-font/bold" into the
   // child command object.  For simple keys (no "/"), returns null so
   // callers fall back to normal lookup via getCommandInfo.
-  resolveCompoundCommand = (
-    compoundKey: string,
-  ): Partial<Command> | null => {
+  resolveCompoundCommand = (compoundKey: string): Partial<Command> | null => {
     const i = compoundKey.indexOf("/");
     if (i === -1) {
       return null;
@@ -629,158 +635,108 @@ export class ManageCommands {
     };
   };
 
-  // editorType = string that identifies this editor frame type for this type of file.
-  // This *should* be a little more subtle than just using the filename extension.
-  //
-  private editorType = () => {
-    return `${filename_extension(this.props.path)}-${this.props.type}`;
+  private getDefaultToolbarButtons = (): string[] => {
+    const buttons = this.props.spec.buttons;
+    if (buttons == null) {
+      return [];
+    }
+    const v: string[] = [];
+    for (const name in buttons) {
+      if (buttons[name]) {
+        v.push(name);
+      }
+    }
+    return this.sortToolbarButtons(v);
   };
 
-  private isOnButtonBar = (name) => {
-    return (
-      this.editorSettings.getIn(["buttons", this.editorType(), name]) ??
-      this.props.spec.buttons?.[name]
+  private getToolbarButtonPosition = (
+    key: string,
+    positions = this.getAllCommandPositions(),
+  ): number => {
+    if (positions[key] != null) return positions[key];
+    const slashIdx = key.indexOf("/");
+    if (slashIdx !== -1) {
+      const parentName = key.slice(0, slashIdx);
+      const childName = key.slice(slashIdx + 1);
+      const base = positions[parentName] ?? 0;
+      const parentCmd = COMMANDS[parentName];
+      if (parentCmd != null) {
+        const children = this.getCommandChildren(parentCmd);
+        if (children != null) {
+          const idx = children.findIndex((c) => c.name === childName);
+          if (idx !== -1) {
+            return base + (idx + 1) / (children.length + 1);
+          }
+        }
+      }
+      return base;
+    }
+    return 0;
+  };
+
+  private sortToolbarButtons = (buttons: string[]): string[] => {
+    const positions = this.getAllCommandPositions();
+    return [...buttons].sort((a, b) =>
+      cmp(
+        this.getToolbarButtonPosition(a, positions),
+        this.getToolbarButtonPosition(b, positions),
+      ),
     );
   };
 
-  private toggleButton = (name) => {
-    const buttons = this.editorSettings.get("buttons")?.toJS() ?? {};
-    const type = this.editorType();
-    if (buttons[type] == null) {
-      buttons[type] = {};
+  private getCustomToolbarButtons = (): string[] | null => {
+    return this.toolbarButtons;
+  };
+
+  private isOnButtonBar = (name) => {
+    const customButtons = this.getCustomToolbarButtons();
+    if (customButtons != null) {
+      return customButtons.includes(name);
     }
-    buttons[type][name] = !this.isOnButtonBar(name);
-    set_account_table({ editor_settings: { buttons } });
+    return this.props.spec.buttons?.[name] ?? false;
+  };
+
+  private toggleButton = (name) => {
+    const current = this.getToolbarButtons();
+    if (current.includes(name)) {
+      this.setToolbarButtons(current.filter((item) => item !== name));
+    } else {
+      this.setToolbarButtons(current.concat([name]));
+    }
+  };
+
+  removeToolbarButton = (name: string) => {
+    const current = this.getToolbarButtons();
+    if (!current.includes(name)) {
+      return;
+    }
+    this.setToolbarButtons(current.filter((item) => item !== name));
   };
 
   removeAllToolbarButtons = () => {
-    const type = this.editorType();
-    set_account_table({
-      editor_settings: { buttons: { [type]: null } },
-    });
-    const buttons = this.props.spec.buttons;
-    if (buttons == null) {
-      return;
-    }
-    const x: { [name: string]: false } = {};
-    for (const name in buttons) {
-      x[name] = false;
-    }
-    set_account_table({
-      editor_settings: { buttons: { [type]: x } },
-    });
+    this.setToolbarButtons([]);
   };
 
   resetToolbar = () => {
-    const type = this.editorType();
-    set_account_table({
-      editor_settings: {
-        buttons: { [type]: null },
-        button_order: { [type]: null },
-      },
-    });
+    this.setToolbarButtons(null);
   };
 
   // returns the names in order of the button toolbar buttons
   // that should be visible
   getToolbarButtons = (): string[] => {
-    const w: string[] = [];
-    const customButtons = this.editorSettings.getIn([
-      "buttons",
-      this.editorType(),
-    ]);
-    let custom;
+    const customButtons = this.getCustomToolbarButtons();
     if (customButtons != null) {
-      custom = customButtons.toJS();
-      for (const name in custom) {
-        if (custom[name]) {
-          w.push(name);
-        }
-      }
-    } else {
-      custom = {};
+      return customButtons;
     }
-    const s = new Set(w);
-    if (this.props.spec.buttons != null) {
-      for (const name in this.props.spec.buttons) {
-        if (
-          !s.has(name) &&
-          custom[name] == null &&
-          this.props.spec.buttons[name]
-        ) {
-          w.push(name);
-        }
-      }
-    }
-
-    // Sort by custom order if available, otherwise by menu position.
-    // Custom order is stored as a JSON string in button_order[editorType]
-    // so it survives Immutable.js round-trips (arrays get converted to
-    // Maps with numeric keys, which corrupts the data).
-    const positions = this.getAllCommandPositions();
-    const getPosition = (key: string): number => {
-      if (positions[key] != null) return positions[key];
-      const slashIdx = key.indexOf("/");
-      if (slashIdx !== -1) {
-        const parentName = key.slice(0, slashIdx);
-        const childName = key.slice(slashIdx + 1);
-        const base = positions[parentName] ?? 0;
-        const parentCmd = COMMANDS[parentName];
-        if (parentCmd != null) {
-          const children = this.getCommandChildren(parentCmd);
-          if (children != null) {
-            const idx = children.findIndex((c) => c.name === childName);
-            if (idx !== -1) {
-              return base + (idx + 1) / (children.length + 1);
-            }
-          }
-        }
-        return base;
-      }
-      return 0;
-    };
-    const customOrder = this.getToolbarOrder();
-    if (customOrder != null && customOrder.length > 0) {
-      const orderMap = new Map<string, number>();
-      for (let i = 0; i < customOrder.length; i++) {
-        orderMap.set(customOrder[i], i);
-      }
-      w.sort((a, b) => {
-        const ai = orderMap.get(a);
-        const bi = orderMap.get(b);
-        if (ai != null && bi != null) return ai - bi;
-        if (ai != null) return -1;
-        if (bi != null) return 1;
-        return cmp(getPosition(a), getPosition(b));
-      });
-    } else {
-      w.sort((a, b) => cmp(getPosition(a), getPosition(b)));
-    }
-    return w;
+    return this.getDefaultToolbarButtons();
   };
 
-  // Stored as a JSON string to avoid Immutable.js converting arrays
-  // to Maps with numeric keys on round-trip through the sync layer.
   getToolbarOrder = (): string[] | null => {
-    const raw = this.editorSettings.getIn([
-      "button_order",
-      this.editorType(),
-    ]);
-    if (typeof raw === "string") {
-      try {
-        return JSON.parse(raw);
-      } catch {
-        return null;
-      }
-    }
-    return null;
+    return this.getCustomToolbarButtons();
   };
 
   setToolbarOrder = (order: string[]) => {
-    const type = this.editorType();
-    set_account_table({
-      editor_settings: { button_order: { [type]: JSON.stringify(order) } },
-    });
+    this.setToolbarButtons(order);
   };
 
   // used for sorting
