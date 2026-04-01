@@ -673,9 +673,11 @@ export class ManageCommands {
 
   resetToolbar = () => {
     const type = this.editorType();
-    // it is a deep merge:
     set_account_table({
-      editor_settings: { buttons: { [type]: null } },
+      editor_settings: {
+        buttons: { [type]: null },
+        button_order: { [type]: null },
+      },
     });
   };
 
@@ -698,13 +700,8 @@ export class ManageCommands {
     } else {
       custom = {};
     }
-    //     if (custom["toggle_button_bar"] == null) {
-    //       // special case -- include this unless it is explicitly added or removed
-    //       w.push("toggle_button_bar");
-    //     }
     const s = new Set(w);
     if (this.props.spec.buttons != null) {
-      // add in buttons that are the default for this specific editor.
       for (const name in this.props.spec.buttons) {
         if (
           !s.has(name) &&
@@ -715,15 +712,11 @@ export class ManageCommands {
         }
       }
     }
-    //     if (w.length == 1 && w[0] == "toggle_button_bar") {
-    //       // special case -- don't *ONLY* show this toggle button.
-    //       return [];
-    //     }
 
-    // Sort buttons by their position in the menu hierarchy.
-    // For compound keys like "format-font/bold", use the parent command's
-    // position plus a fractional offset based on the child's index within
-    // the submenu, so siblings preserve their menu order.
+    // Sort by custom order if available, otherwise by menu position.
+    // Custom order is stored as a JSON string in button_order[editorType]
+    // so it survives Immutable.js round-trips (arrays get converted to
+    // Maps with numeric keys, which corrupts the data).
     const positions = this.getAllCommandPositions();
     const getPosition = (key: string): number => {
       if (positions[key] != null) return positions[key];
@@ -738,7 +731,6 @@ export class ManageCommands {
           if (children != null) {
             const idx = children.findIndex((c) => c.name === childName);
             if (idx !== -1) {
-              // fractional offset keeps children after parent, in menu order
               return base + (idx + 1) / (children.length + 1);
             }
           }
@@ -747,7 +739,6 @@ export class ManageCommands {
       }
       return 0;
     };
-    // If there's a custom order, use it; otherwise sort by menu position.
     const customOrder = this.getToolbarOrder();
     if (customOrder != null && customOrder.length > 0) {
       const orderMap = new Map<string, number>();
@@ -768,13 +759,19 @@ export class ManageCommands {
     return w;
   };
 
+  // Stored as a JSON string to avoid Immutable.js converting arrays
+  // to Maps with numeric keys on round-trip through the sync layer.
   getToolbarOrder = (): string[] | null => {
-    const order = this.editorSettings.getIn([
-      "toolbar_order",
+    const raw = this.editorSettings.getIn([
+      "button_order",
       this.editorType(),
     ]);
-    if (order != null) {
-      return order.toJS();
+    if (typeof raw === "string") {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
+      }
     }
     return null;
   };
@@ -782,7 +779,7 @@ export class ManageCommands {
   setToolbarOrder = (order: string[]) => {
     const type = this.editorType();
     set_account_table({
-      editor_settings: { toolbar_order: { [type]: order } },
+      editor_settings: { button_order: { [type]: JSON.stringify(order) } },
     });
   };
 
