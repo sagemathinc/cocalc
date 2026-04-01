@@ -225,7 +225,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
 
 /** Classic CoCalc look (matches the original hardcoded COLORS). */
 export const THEME_DEFAULT: ColorTheme = {
-  name: "Default",
+  name: "CoCalc",
 
   primary: "#4474c0",
   primaryDark: "#2A5AA6",

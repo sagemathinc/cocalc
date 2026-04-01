@@ -181,7 +181,7 @@ function ThemeCard({
       style={{
         border: active ? `2px solid ${theme.primary}` : "2px solid transparent",
         cursor: "pointer",
-        minWidth: 130,
+        minWidth: 100,
       }}
       styles={{
         body: { padding: "8px 10px" },
@@ -437,7 +437,7 @@ export function ColorThemeSelector() {
       </div>
       <Row gutter={[8, 8]}>
         {lightThemes.map(([id, theme]) => (
-          <Col key={id} xs={12} sm={8} md={6}>
+          <Col key={id} xs={8} sm={6} md={4}>
             <ThemeCard
               id={id}
               theme={theme}
@@ -456,7 +456,7 @@ export function ColorThemeSelector() {
       </div>
       <Row gutter={[8, 8]}>
         {darkThemes.map(([id, theme]) => (
-          <Col key={id} xs={12} sm={8} md={6}>
+          <Col key={id} xs={8} sm={6} md={4}>
             <ThemeCard
               id={id}
               theme={theme}

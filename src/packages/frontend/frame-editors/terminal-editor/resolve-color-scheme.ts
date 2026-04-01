@@ -29,15 +29,17 @@ function isCurrentlyDark(): boolean {
     other.get(OTHER_SETTINGS_NATIVE_DARK_MODE) ?? "off",
   );
 
-  if (nativeDark === "off") return false;
   if (nativeDark === "on") return true;
 
-  // "system" — check OS preference
-  if (typeof window !== "undefined") {
-    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+  if (nativeDark === "system") {
+    if (typeof window !== "undefined") {
+      return (
+        window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false
+      );
+    }
   }
 
-  // Also check if the selected theme is itself dark
+  // Check if the selected theme is itself a dark theme
   const themeId = String(other.get(OTHER_SETTINGS_COLOR_THEME) ?? "default");
   return getColorTheme(themeId).isDark ?? false;
 }

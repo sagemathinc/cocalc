@@ -41,6 +41,10 @@ import { ConatTerminal } from "./conat-terminal";
 import { ConnectedTerminalInterface } from "./connected-terminal-interface";
 import { open_init_file } from "./init-file";
 import { setTheme } from "./themes";
+import {
+  OTHER_SETTINGS_COLOR_THEME,
+  OTHER_SETTINGS_NATIVE_DARK_MODE,
+} from "@cocalc/util/theme";
 
 declare const $: any;
 
@@ -67,6 +71,7 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private account_store: any;
   private project_actions: ProjectActions;
   private terminal_settings: Map<string, any>;
+  private lastDarkModeKey: string = "";
   private project_id: string;
   private path: string;
   private termPath: string;
@@ -257,15 +262,27 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
   private update_settings = (): void => {
     this.assert_not_closed();
     const settings = this.account_store.get("terminal");
-    if (settings == null || this.terminal_settings.equals(settings)) {
-      // no changes or not yet loaded
-      return;
+    if (settings == null) return;
+
+    // Track dark-mode-relevant other_settings so the "cocalc" virtual
+    // scheme re-resolves when the user switches themes or dark mode.
+    const other = this.account_store.get("other_settings");
+    const darkModeKey = `${other?.get(OTHER_SETTINGS_COLOR_THEME) ?? ""}:${other?.get(OTHER_SETTINGS_NATIVE_DARK_MODE) ?? ""}`;
+    const darkModeChanged = darkModeKey !== this.lastDarkModeKey;
+    if (darkModeChanged) {
+      this.lastDarkModeKey = darkModeKey;
     }
 
+    const settingsChanged = !this.terminal_settings.equals(settings);
+
     if (
+      settingsChanged &&
       settings.get("color_scheme") !==
-      this.terminal_settings.get("color_scheme")
+        this.terminal_settings.get("color_scheme")
     ) {
+      setTheme(this.terminal, settings.get("color_scheme"));
+    } else if (darkModeChanged) {
+      // Re-resolve the "cocalc" virtual scheme with updated dark mode state
       setTheme(this.terminal, settings.get("color_scheme"));
     }
 
@@ -274,13 +291,16 @@ export class Terminal<T extends CodeEditorState = CodeEditorState> {
     // Also, will need to impact other things, like
     // history...  So NOT straightforward.
     if (
+      settingsChanged &&
       settings.get("scrollback", SCROLLBACK) !==
-      this.terminal_settings.get("scrollback", SCROLLBACK)
+        this.terminal_settings.get("scrollback", SCROLLBACK)
     ) {
       this.terminal.options.scrollback = settings.get("scrollback", SCROLLBACK);
     }
 
-    this.terminal_settings = settings;
+    if (settingsChanged) {
+      this.terminal_settings = settings;
+    }
   };
 
   connect = async () => {

@@ -480,8 +480,10 @@ export function Alert(props: AlertProps) {
   );
 }
 
+// No hardcoded header colors — let Ant Design's theme system handle them
+// so dark mode works automatically via ConfigProvider.
 const PANEL_DEFAULT_STYLES: { header: CSS } = {
-  header: { color: COLORS.GRAY_DD, backgroundColor: COLORS.GRAY_LLL },
+  header: {},
 } as const;
 
 export function Panel(props: {
