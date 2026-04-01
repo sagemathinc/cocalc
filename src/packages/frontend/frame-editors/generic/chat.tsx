@@ -123,7 +123,14 @@ function Chat({ font_size, desc }: EditorComponentProps) {
     mode === "assistant" && EmbeddedAgent != null && !aiEnabled;
 
   return (
-    <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
+    <div
+      style={{
+        height: "100%",
+        display: "flex",
+        flexDirection: "column",
+        minHeight: 0,
+      }}
+    >
       {/* Tab selector — only show when an agent is available */}
       {EmbeddedAgent != null && aiEnabled && (
         <div
@@ -158,7 +165,7 @@ function Chat({ font_size, desc }: EditorComponentProps) {
       {/* Content area — position:relative + absolute child guarantees
            a definite height for the embedded agent, avoiding flex-height
            resolution issues that prevent overflowY from working. */}
-      <div style={{ flex: 1, position: "relative" }}>
+      <div style={{ flex: 1, position: "relative", minHeight: 0 }}>
         {showAssistantDisabled ? (
           <div style={{ padding: 12 }}>
             <Alert

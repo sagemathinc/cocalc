@@ -133,7 +133,7 @@
     "react-plotly.js": "^2.6.0",
     "react-redux": "^9.2.0",
     "react-timeago": "^8.2.0",
-    "react-virtuoso": "^4.9.0",
+    "react-virtuoso": "^4.18.3",
     "sanitize-html": "^2.17.0",
     "slate": "^0.103.0",
     "superb": "^3.0.0",
