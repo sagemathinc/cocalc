@@ -13,7 +13,7 @@ Computes snap targets from:
 Returns adjusted positions and guide lines to render.
 */
 
-import { Element, Point, Rect } from "./types";
+import { Element, Rect } from "./types";
 import { getPosition } from "./math";
 
 // Distance threshold in data coordinates within which snapping activates

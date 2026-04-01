@@ -130,6 +130,11 @@ export default function Code({
     );
   }
 
+  // Store current element.h in a ref so the resize callback always
+  // compares against the latest value (avoids stale closure).
+  const elementHRef = useRef<number>(element.h ?? 0);
+  elementHRef.current = element.h ?? 0;
+
   useEffect(() => {
     if (readOnly || !focused) {
       resizeRef.current = null;
@@ -144,7 +149,7 @@ export default function Code({
       if (h == null) return;
       // Only update if the change is significant to prevent oscillation
       // from sub-pixel rounding differences.
-      if (Math.abs(h - (element.h ?? 0)) > 2) {
+      if (Math.abs(h - elementHRef.current) > 2) {
         actions.setElement({
           obj: { id: element.id, h },
           commit: false,
@@ -158,21 +163,26 @@ export default function Code({
       }
       const newHeight = measureFocusedHeight();
       if (newHeight == null) return;
-      if (newHeight > element.h) {
+      if (newHeight > elementHRef.current) {
         shrinkElement.cancel();
         actions.setElement({
           obj: { id: element.id, h: newHeight },
           commit: false,
         });
-      } else if (newHeight < element.h) {
+      } else if (newHeight < elementHRef.current) {
         shrinkElement();
       }
     };
 
     resizeRef.current?.();
 
+    // Deferred re-measurement: CodeMirror and other focused children
+    // may not have fully laid out in the first frame.
+    const raf = requestAnimationFrame(() => resizeRef.current?.());
+
     return () => {
       shrinkElement.cancel();
+      cancelAnimationFrame(raf);
     };
   }, [element.id, canvasScale, editFocus, readOnly, focused]);
 
@@ -217,9 +227,9 @@ export default function Code({
       ref={outerRef}
       style={{
         ...getStyle(element),
-        ...(focused
-          ? { height: "100%" }
-          : { minHeight: "100%", height: "auto", overflowY: "visible" }),
+        minHeight: "100%",
+        height: "auto",
+        overflowY: "visible",
       }}
     >
       <div ref={divRef}>

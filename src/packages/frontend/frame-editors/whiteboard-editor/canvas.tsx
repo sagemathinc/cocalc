@@ -742,6 +742,9 @@ export default function Canvas({
             frame={frame}
             canvasScale={canvasScale}
             readOnly={readOnly}
+            allElements={elements}
+            setSnapLines={setSnapLines}
+            snapEnabled={snapEnabled}
             onDrag={() => {
               // dragging element cancels any selection in progress.
               mousePath.current = null;

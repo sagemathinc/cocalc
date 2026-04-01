@@ -14,7 +14,6 @@ import { getJupyterActions } from "./actions";
 
 const TOGGLE_LABEL: CSS = {
   cursor: "pointer",
-  fontSize: "11px",
   userSelect: "none",
 } as const;
 
@@ -29,19 +28,19 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
   return (
     <div
       style={{
-        padding: "1px 4px",
+        padding: "2px 6px",
         border: "1px solid #ccc",
         borderRadius: "3px",
         background: "white",
         boxShadow: "1px 3px 5px rgb(33 33 33 / 50%)",
         position: "absolute",
-        top: `-${36 / canvasScale}px`,
+        top: `-${42 / canvasScale}px`,
         left: 0,
         zIndex: 10,
         whiteSpace: "nowrap",
         display: "flex",
         alignItems: "center",
-        gap: "3px",
+        gap: "5px",
         fontSize: "14px",
         transform: `scale(${1 / canvasScale})`,
         transformOrigin: "bottom left",
@@ -50,8 +49,7 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
       {!element.data?.hideInput && element.data?.runState == "busy" && (
         <Tooltip title="Interrupt running computation">
           <Button
-            size="small"
-            style={{ fontSize: "13px", padding: "1px 7px" }}
+            size="middle"
             onClick={async () => {
               const jupyter_actions = await getJupyterActions({
                 project_id,
@@ -74,8 +72,7 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
       <Tooltip title="Evaluate code (Shift+Enter)">
         <Button
           disabled={element.data?.runState == "busy"}
-          size="small"
-          style={{ fontSize: "13px", padding: "1px 7px" }}
+          size="middle"
           onClick={() => {
             void actions.runCodeElement({ id: element.id });
           }}
@@ -86,8 +83,7 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
       <Tooltip title="Run the directed code-cell tree rooted at this cell">
         <Button
           disabled={element.data?.runState == "busy"}
-          size="small"
-          style={{ fontSize: "13px", padding: "1px 7px" }}
+          size="middle"
           onClick={() => {
             void actions.runCodeTree(id, element.id);
           }}
