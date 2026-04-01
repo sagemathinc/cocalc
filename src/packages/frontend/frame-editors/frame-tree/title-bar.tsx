@@ -108,14 +108,9 @@ interface EditorActions extends Actions {
 
 const MAX_SEARCH_RESULTS = 10;
 
-const COL_BAR_BACKGROUND = "#f8f8f8";
-const COL_BAR_BACKGROUND_DARK = COL_BAR_BACKGROUND;
-//const COL_BAR_BACKGROUND_DARK = "#ddd";
-const COL_BAR_BORDER = "rgb(204,204,204)";
-
 const title_bar_style: CSS = {
-  background: COL_BAR_BACKGROUND_DARK,
-  border: `1px solid ${COL_BAR_BORDER}`,
+  background: "var(--cocalc-top-bar-bg, #f8f8f8)",
+  border: "1px solid var(--cocalc-border-light, rgb(204,204,204))",
   padding: "1px",
   flexDirection: "row",
   flexWrap: "nowrap",
@@ -1038,7 +1033,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               fontSize: "14pt",
               padding: "0 5px",
               height: props.is_only || props.is_full ? "34px" : "30px",
-              background: showMainButtonsPopover ? COLORS.GRAY_LL : undefined,
+              background: showMainButtonsPopover ? "var(--cocalc-bg-hover, #eeeeee)" : undefined,
             }}
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >
@@ -1065,7 +1060,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const is_active = props.active_id === props.id;
     const style = is_active
       ? Object.assign({}, CONNECTION_STATUS_STYLE, {
-          background: COL_BAR_BACKGROUND,
+          background: "var(--cocalc-top-bar-bg, #f8f8f8)",
         })
       : CONNECTION_STATUS_STYLE;
 
@@ -1175,7 +1170,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           position: "absolute",
           width: "100%",
           zIndex: 100,
-          background: "white",
+          background: "var(--cocalc-bg-elevated, white)",
           boxShadow: "rgba(0, 0, 0, 0.25) 0px 6px 24px",
         }}
       >
@@ -1312,8 +1307,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return wrapButtonBarContextMenu(
         <div
           style={{
-            borderBottom: popup ? undefined : "1px solid #ccc",
-            background: COLORS.GRAY_LLLL,
+            borderBottom: popup ? undefined : "1px solid var(--cocalc-border-light, #ccc)",
+            background: "var(--cocalc-bg-hover, #fafafa)",
             opacity: is_active ? undefined : 0.3,
           }}
         >
@@ -1444,7 +1439,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   let style;
   style = copy(title_bar_style);
-  style.background = is_active ? COL_BAR_BACKGROUND : COL_BAR_BACKGROUND_DARK;
+  style.background = is_active ? "var(--cocalc-bg-elevated, #f8f8f8)" : "var(--cocalc-top-bar-bg, #f8f8f8)";
   if (!props.is_only && !props.is_full) {
     style.maxHeight = "34px";
   } else {
