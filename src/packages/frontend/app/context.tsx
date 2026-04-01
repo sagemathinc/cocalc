@@ -251,6 +251,10 @@ export function useAntdStyleProvider() {
               colorBorder: colorTheme.border,
               colorBgContainer: colorTheme.bgElevated,
             },
+            Switch: {
+              colorTextQuaternary: colorTheme.border,
+              colorTextTertiary: colorTheme.textTertiary,
+            },
           }
         : {}),
     },
