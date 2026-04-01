@@ -267,8 +267,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     () => getFrameEditorSettingsName(props.type, props.path),
     [props.type, props.path],
   );
+  // Legacy key format was "ext-type" (e.g. "md-cm"), used for one-time migration
+  const legacyEditorType = useMemo(() => {
+    const ext = props.path ? filename_extension(props.path) : "";
+    return ext ? `${ext}-${props.type}` : props.type;
+  }, [props.type, props.path]);
   const { toolbarButtons, setToolbarButtons } =
-    useFrameEditorToolbarButtons(frameEditorName);
+    useFrameEditorToolbarButtons(frameEditorName, legacyEditorType);
   // REDUX:
   // state that is associated with the file being edited, not the
   // frame tree/tab in which this sits.  Note some more should

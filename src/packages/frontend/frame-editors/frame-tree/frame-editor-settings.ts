@@ -71,8 +71,54 @@ interface UseFrameEditorToolbarButtons {
   setToolbarButtons: (value: string[] | null) => void;
 }
 
+// Migrate legacy toolbar customizations from account.editor_settings.buttons
+// (an Immutable Map of {name: boolean} keyed by "ext-type") into the new
+// DKV-backed array format. Runs once: if DKV already has data we skip it;
+// on any error we write defaults so we never look at the legacy store again.
+function migrateLegacyToolbarButtons(
+  conatDkv: FrameEditorSettingsDKV,
+  storageKey: string,
+  legacyEditorType: string | undefined,
+): string[] | null {
+  if (legacyEditorType == null) {
+    return null;
+  }
+  try {
+    const editorSettings = redux
+      .getStore("account")
+      ?.getIn(["editor_settings"]) as any;
+    if (editorSettings == null) {
+      return null;
+    }
+    const legacyButtons = editorSettings
+      ?.get("buttons")
+      ?.get(legacyEditorType);
+    if (legacyButtons == null) {
+      return null;
+    }
+    const obj =
+      typeof legacyButtons.toJS === "function"
+        ? legacyButtons.toJS()
+        : legacyButtons;
+    const migrated: string[] = [];
+    for (const name in obj) {
+      if (obj[name]) {
+        migrated.push(name);
+      }
+    }
+    if (migrated.length === 0) {
+      return null;
+    }
+    conatDkv.set(storageKey, migrated);
+    return migrated;
+  } catch {
+    return null;
+  }
+}
+
 export function useFrameEditorToolbarButtons(
   editorName: string,
+  legacyEditorType?: string,
 ): UseFrameEditorToolbarButtons {
   const storageKey = getFrameEditorSettingsKey("icons", editorName);
   const dkvRef = useRef<FrameEditorSettingsDKV | null>(null);
@@ -147,7 +193,15 @@ export function useFrameEditorToolbarButtons(
         if (dirtyRef.current) {
           persist(toolbarButtonsRef.current);
         } else {
-          const saved = sanitizeToolbarButtons(conatDkv.get(storageKey));
+          let saved = sanitizeToolbarButtons(conatDkv.get(storageKey));
+          if (saved == null) {
+            // No DKV data yet — try migrating from legacy account store.
+            saved = migrateLegacyToolbarButtons(
+              conatDkv,
+              storageKey,
+              legacyEditorType,
+            );
+          }
           toolbarButtonsRef.current = saved;
           setToolbarButtonsState(saved);
         }
