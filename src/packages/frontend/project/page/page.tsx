@@ -377,7 +377,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           flex: 1,
           display: "flex",
           flexDirection: "column",
-          overflowX: "auto",
+          overflow: "hidden",
         }}
       >
         {START_BANNER && <StartButton />}

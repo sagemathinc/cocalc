@@ -94,7 +94,8 @@ const CHAT_LAYOUT_STYLE: React.CSSProperties = {
 const CHAT_LOG_STYLE: React.CSSProperties = {
   padding: "0",
   background: "white",
-  flex: "1 0 auto",
+  flex: 1,
+  minHeight: 0,
   position: "relative",
 } as const;
 

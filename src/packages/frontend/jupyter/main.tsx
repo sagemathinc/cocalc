@@ -453,6 +453,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           display: "flex",
           flexDirection: "column",
           height: "100%",
+          minHeight: 0,
           overflowY: "hidden",
         }}
       >

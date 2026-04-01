@@ -583,6 +583,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             style={{
               fontSize: `${font_size}px`,
               flex: 1,
+              minHeight: 0,
               overflowX: "hidden",
             }}
             totalCount={cell_list.size + EXTRA_BOTTOM_CELLS}
@@ -666,11 +667,12 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
         <div
           key="cells"
-          className="smc-vfill"
+          className="smc-vfill cocalc-force-scrollbar"
           style={{
             fontSize: `${font_size}px`,
             paddingLeft: "5px",
             flex: 1,
+            minHeight: 0,
             overflowY: "auto",
             overflowX: "hidden",
           }}

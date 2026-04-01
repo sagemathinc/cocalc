@@ -405,8 +405,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       <div
         key="control-buttons-group"
         style={{
-          overflow: "hidden",
-          display: "inline-block",
+          flex: "0 0 auto",
+          display: "flex",
+          alignItems: "center",
         }}
         ref={getTourRef("control")}
       >
@@ -414,7 +415,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           style={{
             padding: "3.5px 0 0 0",
             height: button_height(),
-            float: "right",
           }}
           key={"control-buttons"}
         >
@@ -984,6 +984,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           flexFlow: "row nowrap",
           display: "flex",
           flex: 1,
+          minWidth: 0,
           whiteSpace: "nowrap",
           overflow: "hidden",
         }}
