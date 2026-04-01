@@ -645,8 +645,8 @@ importers:
         specifier: ^8.2.0
         version: 8.3.0(react@19.1.1)
       react-virtuoso:
-        specifier: ^4.9.0
-        version: 4.14.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
+        specifier: ^4.18.3
+        version: 4.18.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       sanitize-html:
         specifier: ^2.17.0
         version: 2.17.0
@@ -10567,8 +10567,8 @@ packages:
     peerDependencies:
       react: ^16.0.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  react-virtuoso@4.14.0:
-    resolution: {integrity: sha512-fR+eiCvirSNIRvvCD7ueJPRsacGQvUbjkwgWzBZXVq+yWypoH7mRUvWJzGHIdoRaCZCT+6mMMMwIG2S1BW3uwA==}
+  react-virtuoso@4.18.3:
+    resolution: {integrity: sha512-fLz/peHAx4Eu0DLHurFEEI7Y6n5CqEoxBh04rgJM9yMuOJah2a9zWg/MUOmZLcp7zuWYorXq5+5bf3IRgkNvWg==}
     peerDependencies:
       react: '>=16 || >=17 || >= 18 || >= 19'
       react-dom: '>=16 || >=17 || >= 18 || >=19'
@@ -22984,7 +22984,7 @@ snapshots:
     dependencies:
       react: 19.1.1
 
-  react-virtuoso@4.14.0(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
+  react-virtuoso@4.18.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
