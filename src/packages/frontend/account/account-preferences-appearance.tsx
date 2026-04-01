@@ -172,7 +172,11 @@ export function AccountPreferencesAppearance() {
         size="small"
         header={
           <>
-            <Icon unicode={DARK_MODE_ICON} /> Dark Mode
+            <Icon unicode={DARK_MODE_ICON} />{" "}
+            <FormattedMessage
+              id="account.appearance.dark_reader.title"
+              defaultMessage="Dark Reader (Legacy Overlay)"
+            />
           </>
         }
         styles={{
@@ -187,6 +191,18 @@ export function AccountPreferencesAppearance() {
         }}
       >
         <div>
+          <div
+            style={{
+              fontSize: 12,
+              color: COLORS.GRAY_L,
+              marginBottom: 8,
+            }}
+          >
+            <FormattedMessage
+              id="account.appearance.dark_reader.explanation"
+              defaultMessage="This applies a browser-level dark filter on top of the page using Dark Reader. It works independently of the native dark mode in the Color Theme panel above. You can use either or both, but native dark mode generally looks better."
+            />
+          </div>
           <Switch
             checked={checked}
             onChange={(e) => on_change("dark_mode", e.target.checked)}

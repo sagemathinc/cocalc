@@ -51,12 +51,25 @@ export function TerminalSettings() {
         </>
       }
     >
+      <div
+        style={{
+          fontSize: 12,
+          color: "#888",
+          marginBottom: 8,
+        }}
+      >
+        {intl.formatMessage({
+          id: "account.terminal-settings.explanation",
+          defaultMessage:
+            "The 'CoCalc (auto light/dark)' option automatically switches between CoCalc Light and CoCalc Dark to match your color theme and dark mode setting.",
+        })}
+      </div>
       <LabeledRow label={label}>
         <Button
-          disabled={color_scheme === "default"}
+          disabled={color_scheme === "cocalc"}
           style={{ float: "right" }}
           onClick={() => {
-            set_account_table({ terminal: { color_scheme: "default" } });
+            set_account_table({ terminal: { color_scheme: "cocalc" } });
           }}
         >
           {intl.formatMessage(labels.reset)}

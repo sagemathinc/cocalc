@@ -1,4 +1,5 @@
 import { replace_all } from "@cocalc/util/misc";
+import { resolveTerminalColorScheme } from "./resolve-color-scheme";
 
 export const COLOR_THEMES = {
   "solarized-dark": {
@@ -257,15 +258,20 @@ export const COLOR_THEMES = {
 } as const;
 
 // Use theme_desc for UI to select a theme.
+// "cocalc" is a virtual entry that auto-switches between cocalc-light/dark.
 
-export const theme_desc = {};
+export const theme_desc: Record<string, string> = {
+  cocalc: "CoCalc (auto light/dark)",
+};
 for (const name in COLOR_THEMES) {
   theme_desc[name] = COLOR_THEMES[name].comment;
 }
 
 // This is a cheap hardcoded example for use in configuration/settings.
 // It shows a terminal prompt, cat command, file output, and final prompt.
-export function example(theme: string): string {
+export function example(theme_raw: string): string {
+  // Resolve "cocalc" to the concrete variant
+  const theme = resolveTerminalColorScheme(theme_raw);
   let html = `<div style="background-color: #ffffff; color: #000000; font-family: monospace, monospace; line-height: 120%; width: 100%; border:1px solid grey;padding:5px">
 <div><span style="color:#4e9a06;">user@cocalc</span>:<span style="color:#3465a4;">~/project</span>$ cat prime_test.py</div>
 <div><span style="color:#c4a000;">def</span>&nbsp;<span style="color:#06989a;">is_prime_lucas_lehmer</span>(p):</div>

@@ -8,19 +8,22 @@ Our predefined terminal color themes.
 */
 
 import { ITheme, Terminal } from "@xterm/xterm";
+
 import { COLOR_THEMES } from "./theme-data";
+import { resolveTerminalColorScheme } from "./resolve-color-scheme";
 
 export function background_color(theme_name: string): string {
-  const t = COLOR_THEMES[theme_name];
+  const resolved = resolveTerminalColorScheme(theme_name);
+  const t = COLOR_THEMES[resolved];
   if (t == null) {
-    // should never happen
     return "white";
   }
   return t.colors[17];
 }
 
 export function setTheme(terminal: Terminal, theme_name: string): void {
-  let t = COLOR_THEMES[theme_name];
+  const resolved = resolveTerminalColorScheme(theme_name);
+  let t = COLOR_THEMES[resolved];
   if (t == null) {
     t = COLOR_THEMES["default"];
     if (t == null) {

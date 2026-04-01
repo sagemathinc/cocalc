@@ -637,7 +637,7 @@ Table({
             indent_unit: 4,
             tab_size: 4,
             bindings: "standard",
-            theme: "default",
+            theme: "cocalc",
             undo_depth: 300,
             jupyter_classic: false,
             jupyter_window: false,
@@ -687,7 +687,7 @@ Table({
           last_name: "",
           terminal: {
             font_size: DEFAULT_FONT_SIZE,
-            color_scheme: "default",
+            color_scheme: "cocalc",
             font: "monospace",
           },
           autosave: 45,
@@ -848,6 +848,7 @@ export const EDITOR_BINDINGS = {
 };
 
 export const EDITOR_COLOR_SCHEMES: { [name: string]: string } = {
+  cocalc: "CoCalc (auto light/dark)",
   default: "Default",
   "3024-day": "3024 day",
   "3024-night": "3024 night",

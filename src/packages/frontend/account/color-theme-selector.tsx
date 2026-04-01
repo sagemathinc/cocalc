@@ -19,8 +19,8 @@ import {
   Card,
   Col,
   Divider,
-  Radio,
   Row,
+  Segmented,
   Tag,
 } from "antd";
 import { CSSProperties, useCallback, useMemo, useState } from "react";
@@ -30,6 +30,7 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { Panel } from "@cocalc/frontend/antd-bootstrap";
+import { COLORS } from "@cocalc/util/theme";
 import {
   type BaseColors,
   COLOR_THEMES,
@@ -103,7 +104,7 @@ const MESSAGES = defineMessages({
   nativeDarkDescription: {
     id: "account.appearance.color_theme.native_dark.description",
     defaultMessage:
-      "Native dark mode switches the color theme itself (not Dark Reader). 'System' follows your OS setting automatically.",
+      "Switches the UI color theme natively. 'System' follows your OS light/dark preference automatically. This also switches the editor and terminal to a matching CoCalc style. The Dark Reader option below is a separate legacy overlay.",
   },
   lightThemes: {
     id: "account.appearance.color_theme.light_themes",
@@ -390,38 +391,40 @@ export function ColorThemeSelector() {
         </div>
       }
     >
-      {/* Native dark mode preference */}
+      {/* Native dark mode — 3-state slider */}
       <div style={{ marginBottom: 12 }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: 10,
-            marginBottom: 4,
+            gap: 12,
+            marginBottom: 6,
           }}
         >
           <strong>{intl.formatMessage(MESSAGES.nativeDarkLabel)}</strong>
-          <Radio.Group
+          <Segmented
             size="small"
-            optionType="button"
-            buttonStyle="solid"
             value={nativeDarkMode}
-            onChange={(e) =>
-              onChangeSetting(OTHER_SETTINGS_NATIVE_DARK_MODE, e.target.value)
+            onChange={(val) =>
+              onChangeSetting(OTHER_SETTINGS_NATIVE_DARK_MODE, val)
             }
-          >
-            <Radio.Button value="off">
-              {intl.formatMessage(MESSAGES.nativeDarkOff)}
-            </Radio.Button>
-            <Radio.Button value="on">
-              {intl.formatMessage(MESSAGES.nativeDarkOn)}
-            </Radio.Button>
-            <Radio.Button value="system">
-              {intl.formatMessage(MESSAGES.nativeDarkSystem)}
-            </Radio.Button>
-          </Radio.Group>
+            options={[
+              {
+                label: intl.formatMessage(MESSAGES.nativeDarkOff),
+                value: "off",
+              },
+              {
+                label: intl.formatMessage(MESSAGES.nativeDarkSystem),
+                value: "system",
+              },
+              {
+                label: intl.formatMessage(MESSAGES.nativeDarkOn),
+                value: "on",
+              },
+            ]}
+          />
         </div>
-        <div style={{ fontSize: 12, color: "#888" }}>
+        <div style={{ fontSize: 12, color: COLORS.GRAY }}>
           {intl.formatMessage(MESSAGES.nativeDarkDescription)}
         </div>
       </div>
@@ -481,7 +484,7 @@ export function ColorThemeSelector() {
 
       {showCustom && (
         <Card size="small" style={{ marginTop: 8 }}>
-          <div style={{ marginBottom: 8, color: "#666", fontSize: 12 }}>
+          <div style={{ marginBottom: 8, color: COLORS.GRAY_M, fontSize: 12 }}>
             <FormattedMessage {...MESSAGES.customDescription} />
           </div>
           <CustomColorEditor value={customBase} onChange={handleCustomChange} />
