@@ -3,6 +3,8 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import { useEffect } from "react";
+
 import {
   redux,
   Redux,
@@ -15,6 +17,7 @@ import {
   OTHER_SETTINGS_LOCALE_KEY,
 } from "@cocalc/frontend/i18n";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import type { ColorTheme } from "@cocalc/util/theme";
 import { createRoot } from "react-dom/client";
 import { AppContext, useAppContextProvider } from "./context";
 import { Localize, useLocalizationCtx } from "./localize";
@@ -82,6 +85,12 @@ function App({ children }) {
 
   const colorTheme = useResolvedColorTheme();
 
+  // Sync the resolved theme to CSS custom properties on <body> so that
+  // SASS / plain CSS can also respond to theme changes (e.g. top bar, borders).
+  useEffect(() => {
+    applyThemeCSSVars(colorTheme);
+  }, [colorTheme]);
+
   return (
     <ThemeContext.Provider value={colorTheme}>
       <AppContext.Provider value={{ ...appState, ...timeAgo }}>
@@ -89,6 +98,27 @@ function App({ children }) {
       </AppContext.Provider>
     </ThemeContext.Provider>
   );
+}
+
+/** Write a ColorTheme's key fields as --cocalc-* CSS custom properties on document.body. */
+function applyThemeCSSVars(t: ColorTheme): void {
+  const s = document.body.style;
+  s.setProperty("--cocalc-bg-base", t.bgBase);
+  s.setProperty("--cocalc-bg-elevated", t.bgElevated);
+  s.setProperty("--cocalc-bg-hover", t.bgHover);
+  s.setProperty("--cocalc-text-primary", t.textPrimary);
+  s.setProperty("--cocalc-text-secondary", t.textSecondary);
+  s.setProperty("--cocalc-border", t.border);
+  s.setProperty("--cocalc-border-light", t.borderLight);
+  s.setProperty("--cocalc-top-bar-bg", t.topBarBg);
+  s.setProperty("--cocalc-top-bar-hover", t.topBarHover);
+  s.setProperty("--cocalc-top-bar-text", t.topBarText);
+  s.setProperty("--cocalc-top-bar-text-active", t.topBarTextActive);
+  s.setProperty("--cocalc-primary", t.primary);
+  s.setProperty("--cocalc-is-dark", t.isDark ? "1" : "0");
+  // Also set body background so the page chrome matches the theme
+  s.backgroundColor = t.bgBase;
+  s.color = t.textPrimary;
 }
 
 function Root({ Page }) {

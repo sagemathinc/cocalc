@@ -63,12 +63,12 @@ export function calcStyle(isNarrow: boolean): PageStyle {
 
   const topBarStyle = {
     height: `${height}px`,
-    background: COLORS.GRAY_LLLL,
+    background: "var(--cocalc-top-bar-bg, #fafafa)",
   } as const;
 
   const fileUseStyle = {
-    background: COLORS.WHITE,
-    border: `2px solid ${COLORS.GRAY_DDD}`,
+    background: "var(--cocalc-bg-elevated, #ffffff)",
+    border: `2px solid var(--cocalc-border-light, ${COLORS.GRAY_DDD})`,
     borderRadius: "5px",
     boxShadow: `0 0 15px ${COLORS.GRAY_L}`,
     fontSize: "10pt",
