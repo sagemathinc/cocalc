@@ -15,6 +15,7 @@ import {
   useIsMountedRef,
   useRef,
 } from "@cocalc/frontend/app-framework";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
 import { Terminal } from "./connected-terminal";
 import { background_color } from "./themes";
@@ -215,6 +216,10 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
+  // useColorTheme() forces re-render when dark mode toggles, so the
+  // container background updates along with the xterm theme inside.
+  const _colorTheme = useColorTheme();
+  void _colorTheme; // trigger re-render dependency
   const backgroundColor = background_color(props.terminal?.get("color_scheme"));
   /* 4px padding is consistent with CodeMirror */
 

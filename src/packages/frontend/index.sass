@@ -190,6 +190,10 @@ body
   scrollbar-color: var(--cocalc-border, #c0c0c0) var(--cocalc-bg-base, transparent)
   scrollbar-width: thin
 
+// Override Bootstrap's hardcoded hr border color for dark mode
+hr
+  border-top-color: var(--cocalc-border-light, #eee)
+
 div#smc-react-container,
 div#cocalc-webapp-container
   overflow   : hidden
