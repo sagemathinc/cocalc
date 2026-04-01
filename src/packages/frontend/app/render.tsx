@@ -17,6 +17,7 @@ import {
   OTHER_SETTINGS_LOCALE_KEY,
 } from "@cocalc/frontend/i18n";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
+import { setDarkModeState } from "@cocalc/frontend/account/dark-mode";
 import type { ColorTheme } from "@cocalc/util/theme";
 import { createRoot } from "react-dom/client";
 import { AppContext, useAppContextProvider } from "./context";
@@ -119,6 +120,8 @@ function applyThemeCSSVars(t: ColorTheme): void {
   // Also set body background so the page chrome matches the theme
   s.backgroundColor = t.bgBase;
   s.color = t.textPrimary;
+  // Keep the dark mode state tracker in sync
+  setDarkModeState(!!t.isDark);
 }
 
 function Root({ Page }) {

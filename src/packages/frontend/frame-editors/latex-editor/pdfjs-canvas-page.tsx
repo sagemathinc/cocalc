@@ -11,9 +11,7 @@ import type { PDFPageProxy, PDFPageViewport } from "pdfjs-dist/webpack.mjs";
 import { useCallback, useEffect, useRef } from "react";
 import { useDebouncedCallback } from "use-debounce";
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useColorTheme } from "@cocalc/frontend/app/theme-context";
-import { get_dark_mode_config } from "@cocalc/frontend/account/dark-mode";
 import AnnotationLayer, { SyncHighlight } from "./pdfjs-annotation";
 import TextLayer from "./pdfjs-text";
 
@@ -37,16 +35,11 @@ export default function CanvasPage({
   const lastScaleRef = useRef<number>(scale);
   const lastRenderScaleRef = useRef<number>(scale);
 
-  // Get dark mode state and settings — support both legacy DarkReader toggle
-  // and the new native color theme system.
-  const other_settings = useTypedRedux("account", "other_settings");
+  // Dark mode: invert PDF colors when the active theme is dark
   const colorTheme = useColorTheme();
-  const legacyDarkMode = other_settings?.get("dark_mode") ?? false;
-  const isDarkMode = legacyDarkMode || (colorTheme.isDark ?? false);
+  const isDarkMode = colorTheme.isDark ?? false;
   const darkModeConfig = isDarkMode
-    ? legacyDarkMode
-      ? get_dark_mode_config(other_settings?.toJS())
-      : { brightness: 80, contrast: 90, sepia: 0 }
+    ? { brightness: 80, contrast: 90 }
     : null;
 
   const viewport: PDFPageViewport = page.getViewport({
