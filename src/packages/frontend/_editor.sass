@@ -664,10 +664,13 @@ h6
   overflow       : hidden
   min-height     : 0
 
-/* Force visible scrollbars on macOS Safari/WebKit where overlay scrollbars
- * can become invisible, especially inside virtualized lists (react-virtuoso).
- * Virtuoso sets data-virtuoso-scroller="true" on its scroll container. */
-[data-virtuoso-scroller="true"]
+/* Force visible scrollbars on macOS where overlay scrollbars can become
+ * invisible, especially inside virtualized lists or tall scroll containers. */
+[data-virtuoso-scroller="true"],
+.cocalc-force-scrollbar
+  scrollbar-width : thin
+  scrollbar-color : rgba(0, 0, 0, 0.3) transparent
+  scrollbar-gutter: stable
   &::-webkit-scrollbar
     -webkit-appearance : none
     width              : 8px
@@ -678,7 +681,7 @@ h6
     &:hover
       background-color : rgba(0, 0, 0, 0.5)
   &::-webkit-scrollbar-track
-    background-color   : rgba(0, 0, 0, 0.05)
+    background-color   : transparent
     border-radius      : 4px
 
 .smc-btn-group-nobreak

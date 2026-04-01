@@ -667,7 +667,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
         <div
           key="cells"
-          className="smc-vfill"
+          className="smc-vfill cocalc-force-scrollbar"
           style={{
             fontSize: `${font_size}px`,
             paddingLeft: "5px",
