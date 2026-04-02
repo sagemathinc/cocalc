@@ -7,6 +7,8 @@ Update npm/pnpm dependencies in the CoCalc monorepo — security patches from De
 - Never run raw `pnpm install` in `src/packages/`. Always use `python3 workspaces.py install` from `src/`.
 - The lockfile is at `src/packages/pnpm-lock.yaml`.
 - Overrides live in `src/packages/package.json` under `pnpm.overrides`.
+- **minimumReleaseAge**: pnpm is configured with a minimum release age (currently 3 days, see `src/packages/pnpm-workspace.yaml`). This is a supply-chain safety guard — do NOT bypass it casually. See "Handling minimumReleaseAge failures" below for the full policy.
+- **Clean up exclusions**: At the start of every dependency update session, remove all entries from `minimumReleaseAgeExclude` in `pnpm-workspace.yaml`. Previous exclusions were only needed because those packages were too fresh at the time — by now they should be past the age threshold. The goal is to keep this list empty.
 
 ## Quick Reference
 
@@ -84,6 +86,38 @@ cd src && python3 workspaces.py version-check && python3 workspaces.py install
 grep '<package>@<old-version>' src/packages/pnpm-lock.yaml   # should return nothing
 ```
 
+If install fails with `ERR_PNPM_NO_MATURE_MATCHING_VERSION`, see "Handling minimumReleaseAge failures" below — do not blindly add an exclusion.
+
+## Handling minimumReleaseAge failures
+
+The 3-day minimum release age exists to protect against compromised or typo-squatted packages disguised as security updates. Exceptions require all of the following:
+
+### Prerequisites — ALL must be met
+
+1. **Prominent package only.** The package must be widely used and well-known (lodash, axios, express, etc.). Obscure or single-maintainer packages do not qualify — wait the full 3 days.
+2. **At least 24 hours old.** Never bypass the age gate for a version published less than 1 day ago, regardless of the package.
+3. **Manual inspection of the release.** Before adding an exclusion, look at the actual release:
+   - `npm view <package> homepage` to find the repository
+   - Check the GitHub release / tag / CHANGELOG for the target version
+   - If the changelog is thin or absent, look at the commits between the previous version and the target version directly (`https://github.com/<org>/<repo>/compare/v<old>...v<new>`)
+   - Verify the release content matches the claimed security fix — it should be a small, focused patch, not a large refactor or feature dump
+
+### How to apply the exclusion
+
+Only after all prerequisites are satisfied:
+
+```yaml
+# in src/packages/pnpm-workspace.yaml
+minimumReleaseAgeExclude:
+  - <package-name>
+```
+
+Then re-run `python3 workspaces.py install`. After a successful install, verify the lockfile resolves the patched version.
+
+### If prerequisites are NOT met
+
+Skip the package for this session. Note it in the PR description or commit message as deferred. It will be picked up automatically next time `/npm-dependency-updates` is run, once the version has matured past the age threshold.
+
 ## Workflow 2: Updating a Specific Package
 
 ```bash
@@ -142,6 +176,7 @@ grep '<package>' src/packages/package.json
 - Overly broad override selectors (no range) that pin future versions too
 - Not verifying the old version is gone from the lockfile
 - Not checking if an override for that package already exists
+- Leaving stale entries in `minimumReleaseAgeExclude` from previous sessions
 
 ## PR Conventions
 
