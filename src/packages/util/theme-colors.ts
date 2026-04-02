@@ -230,7 +230,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
 export function deriveDarkTheme(light: ColorTheme): ColorTheme {
   // Derive dark background from primary color (approx 8-10% primary mixed with near-black)
   const darkBg = mixColors("#050510", light.primary, 0.08);
-  const darkBgElevated = lighten(darkBg, 0.05);
+  const darkBgElevated = lighten(darkBg, 0.08);
   const darkText = "#e0e0e0";
 
   // Lighten the primary for better visibility on dark backgrounds

@@ -51,7 +51,7 @@ const FILE_ITEM_SELECTED_STYLE: CSS = {
 
 const FILE_ITEM_OPENED_STYLE: CSS = {
   fontWeight: "bold",
-  backgroundColor: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LL})`,
+  backgroundColor: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
   color: `var(--cocalc-top-bar-text-active, ${COLORS.PROJECT.FIXED_LEFT_ACTIVE})`,
 } as const;
 
@@ -62,7 +62,7 @@ const FILE_ITEM_ACTIVE_STYLE: CSS = {
 
 const FILE_ITEM_ACTIVE_STYLE_2: CSS = {
   ...FILE_ITEM_ACTIVE_STYLE,
-  backgroundColor: `var(--cocalc-top-bar-hover, ${COLORS.GRAY_L0})`,
+  backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_L0})`,
 } as const;
 
 const FILE_ITEM_STYLE: CSS = {
