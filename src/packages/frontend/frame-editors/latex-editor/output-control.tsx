@@ -21,8 +21,8 @@ import { ZoomControls } from "./output-control-zoom";
 
 const CONTROL_STYLE = {
   padding: "5px 10px",
-  borderBottom: `1px solid ${COLORS.GRAY_L}`,
-  background: COLORS.GRAY_LL,
+  borderBottom: "1px solid var(--cocalc-border-light, #c0c0c0)",
+  background: "var(--cocalc-top-bar-bg, #eeeeee)",
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",

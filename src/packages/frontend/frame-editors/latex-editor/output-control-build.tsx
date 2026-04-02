@@ -16,7 +16,8 @@ import { useIntl } from "react-intl";
 
 import { set_account_table } from "@cocalc/frontend/account/util";
 import { Button as BSButton } from "@cocalc/frontend/antd-bootstrap";
-import { useRedux, useTypedRedux } from "@cocalc/frontend/app-framework";
+import { useRedux } from "@cocalc/frontend/app-framework";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { Icon } from "@cocalc/frontend/components";
 import { COMMANDS } from "@cocalc/frontend/frame-editors/frame-tree/commands";
 import {
@@ -49,9 +50,8 @@ export function BuildControls({
   const buildOnSave =
     useRedux(["account", "editor_settings", "build_on_save"]) ?? false;
 
-  // Check if global dark mode is enabled
-  const other_settings = useTypedRedux("account", "other_settings");
-  const isDarkMode = other_settings?.get("dark_mode") ?? false;
+  // Check if dark mode is active (native color theme system)
+  const { isDark: isDarkMode } = useColorTheme();
 
   // Track building state to disable buttons during builds
   const is_building: boolean = useRedux(actions.name, "building") ?? false;

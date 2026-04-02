@@ -19,7 +19,7 @@ export const OUTPUT_HEADER_STYLE = {
   alignItems: "center",
   padding: "10px",
   borderBottom: TITLE_BAR_BORDER,
-  backgroundColor: "white",
+  backgroundColor: "var(--cocalc-bg-elevated, white)",
   flexShrink: 0,
 } as const;
 
