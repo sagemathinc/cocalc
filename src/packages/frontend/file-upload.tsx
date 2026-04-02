@@ -34,7 +34,7 @@ const CLOSE_BUTTON_STYLE = {
   right: "15px",
   top: "5px",
   zIndex: 1, // so it floats above text/markdown buttons
-  background: "white",
+  background: "var(--cocalc-bg-base, white)",
   cursor: "pointer",
 } as const;
 

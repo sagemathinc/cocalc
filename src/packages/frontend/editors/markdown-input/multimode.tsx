@@ -324,8 +324,8 @@ export default function MultiMarkdownInput({
           ? undefined
           : {
               overflow: "hidden",
-              background: "white",
-              color: "black",
+              background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+              color: `var(--cocalc-text-primary, ${COLORS.GRAY_DD})`,
               ...(focused ? FOCUSED_STYLE : BLURED_STYLE),
             }),
       }}
@@ -347,8 +347,8 @@ export default function MultiMarkdownInput({
         {!fixedMode && (
           <div
             style={{
-              background: "white",
-              color: COLORS.GRAY_M,
+              background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+              color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
               ...(mode == "editor" || hideHelp
                 ? {
                     float: "right",

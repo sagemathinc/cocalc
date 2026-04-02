@@ -999,9 +999,9 @@ function CodingAgentCore({
           style={{
             flex: "0 0 auto",
             padding: "3px 12px",
-            background: COLORS.YELL_LLL,
+            background: `var(--cocalc-bg-hover, ${COLORS.YELL_LLL})`,
             fontSize: "0.85em",
-            color: COLORS.GRAY_M,
+            color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
             borderTop: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
           }}
         >

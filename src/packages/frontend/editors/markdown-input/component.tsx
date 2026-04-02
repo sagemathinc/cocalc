@@ -656,7 +656,7 @@ export function MarkdownInput(props: Props) {
           color: "#767676",
           fontSize: "12px",
           padding: "2.5px 15px",
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           ...instructionsStyle,
         }}
       >
@@ -681,7 +681,7 @@ export function MarkdownInput(props: Props) {
           color: "#767676",
           fontSize: "12px",
           padding: "3px 15px",
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           ...instructionsStyle,
         }}
       >
