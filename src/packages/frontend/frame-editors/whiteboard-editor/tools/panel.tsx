@@ -153,7 +153,7 @@ function SnapToggleButton() {
               : { opacity: 0.5 }
           }
         >
-          <Icon name="vertical-align-middle" style={{ fontSize: "16px" }} />
+          <Icon name="aim" style={{ fontSize: "16px" }} />
         </Button>
       </Tooltip>
     </>
