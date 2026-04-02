@@ -80,30 +80,31 @@ Example: `format-commands.tsx` registers format commands with submenu children
 
 ```typescript
 interface Command {
-  group: Group;             // which menu group this belongs to
-  pos?: number;             // sort position within group (default: 1e6)
+  group: Group; // which menu group this belongs to
+  pos?: number; // sort position within group (default: 1e6)
   icon?: IconName | ReactNode | ((opts: ManageCommands) => ReactNode);
   iconRotate?: IconRotation;
-  label?: CommandText;      // text shown in menus
-  button?: CommandText;     // text shown on toolbar button (if different from label)
-  title?: CommandText;      // tooltip text
-  onClick?: OnClick;        // handler; falls back to actions[commandName](frameId)
+  label?: CommandText; // text shown in menus
+  button?: CommandText; // text shown on toolbar button (if different from label)
+  title?: CommandText; // tooltip text
+  onClick?: OnClick; // handler; falls back to actions[commandName](frameId)
   children?: Command[] | ((opts: ManageCommands) => Command[]); // submenu items
-  keyboard?: ReactNode;     // shortcut display (desktop only)
-  isVisible?: string | ((opts) => boolean);  // visibility predicate
-  disabled?: (opts) => boolean;              // grayed-out predicate
-  alwaysShow?: boolean;     // override all visibility checks
+  keyboard?: ReactNode; // shortcut display (desktop only)
+  isVisible?: string | ((opts) => boolean); // visibility predicate
+  disabled?: (opts) => boolean; // grayed-out predicate
+  alwaysShow?: boolean; // override all visibility checks
   neverVisibleOnMobile?: boolean;
   stayOpenOnClick?: boolean; // keep dropdown open after click
   popconfirm?: PopconfirmOpts | ((opts) => PopconfirmOpts);
   disable?: keyof StudentProjectFunctionality; // educational restrictions
-  search?: string;          // extra search terms for command search
+  search?: string; // extra search terms for command search
 }
 ```
 
 ### Icon types
 
 Icons can be one of three forms:
+
 - **String** (`IconName`): e.g. `"bold"`, `"undo"`, `"colors"` — renders via `<Icon name={...} />`
 - **ReactNode**: e.g. `<span style={{fontSize: 18}}>A</span>` — custom rendering
 - **Function**: `(opts: ManageCommands) => ReactNode` — dynamic icon based on state
@@ -119,6 +120,7 @@ isVisible(name, cmd?): boolean
 ```
 
 Checks (in order):
+
 1. Explicitly hidden by spec (`spec.commands["-commandName"]`) → false
 2. `alwaysShow` → true
 3. `neverVisibleOnMobile` + mobile → false
@@ -141,51 +143,49 @@ menu style (icon + full label + keyboard shortcut).
 ```typescript
 // Check if command is pinned to the toolbar
 isOnButtonBar(name): boolean
-  → editorSettings.getIn(["buttons", editorType(), name])
+  → toolbarButtons?.includes(name)
   ?? spec.buttons?.[name]  // fallback to editor default
 
-// Toggle pin state — persisted to account settings
+// Toggle pin state — persisted to per-user Conat DKV
 toggleButton(name): void
-  → set_account_table({ editor_settings: { buttons: { [editorType]: { [name]: bool } } } })
+  → setToolbarButtons(nextOrderedArray)
 
 // Get ordered list of pinned button names
 getToolbarButtons(): string[]
-  → merges user-customized buttons + spec default buttons
-  → sorted by command position (menu order)
+  → toolbarButtons ?? spec default buttons sorted by command position
 ```
 
-**Editor type key**: `"${filename_extension}-${frame_type}"` (e.g. `"md-slate"`,
-`"ipynb-jupyter"`, `"tex-cm"`). This means pinning is per file-extension and
-per frame-type.
+**Editor key**: the frame editor name (e.g. `cm`, `jupyter`, `slate`).
+The per-user DKV key for toolbar icons is `icons-${editorName}`.
 
 ### Storage
 
-Pin state is stored in the user's account table:
-```
-account.editor_settings.buttons = {
-  "md-slate": { "format-bold": true, "format-header": true, ... },
-  "tex-cm":   { "build": true, "sync": true, ... },
-  ...
-}
+Pin state and ordering are stored together in the user's per-account Conat DKV
+named `frame-editor-settings`:
+
+```text
+icons-cm       -> ["undo", "redo", "format-font/bold"]
+icons-jupyter  -> ["insert-cell", "run-cell", "interrupt-kernel"]
 ```
 
-- `true` = explicitly pinned
-- `false` = explicitly unpinned (overrides editor default)
-- `undefined` = falls back to editor spec default
+- missing key = fall back to editor spec defaults
+- empty array = explicitly show no toolbar buttons for that editor
+- array order = visible toolbar order
+- array membership = pinned state
 
 ### Toolbar management commands
 
-- **Remove All**: `removeAllToolbarButtons()` — sets all spec defaults to `false`
-- **Reset**: `resetToolbar()` — clears all user customizations, restoring spec defaults
+- **Remove All**: `removeAllToolbarButtons()` — stores an empty array for that editor
+- **Reset**: `resetToolbar()` — deletes the DKV key, restoring editor defaults
 
 ## Title Bar Rendering (`title-bar.tsx`)
 
 ### Menu rendering
 
 ```typescript
-getMenuItems(name)   // builds MenuItem[] from groups for a named menu
-renderMenu(name)     // wraps getMenuItems in a DropdownMenu component
-renderMenus()        // iterates all MENUS, renders dropdowns sorted by pos
+getMenuItems(name); // builds MenuItem[] from groups for a named menu
+renderMenu(name); // wraps getMenuItems in a DropdownMenu component
+renderMenus(); // iterates all MENUS, renders dropdowns sorted by pos
 ```
 
 Items within groups are sorted by `pos`. Groups are separated by dividers.
@@ -199,6 +199,7 @@ renderButtonBar(popup?)
 ```
 
 Each toolbar button:
+
 - If the command has `children` → renders as a `DropdownMenu` (click opens submenu)
 - Otherwise → renders as a simple `Button` with icon + tooltip
 
@@ -208,10 +209,12 @@ Users can toggle labels below icons via right-click context menu on the symbol b
 Stored in `account.other_settings.show_symbol_bar_labels`.
 
 When labels are shown:
+
 - Symbol bar moves to its own row below the menu bar
 - Each button shows a small label (11px) below the icon, truncated to 50px
 
 When labels are hidden:
+
 - Symbol bar is inline with the menu bar (more compact)
 
 ### Pin toggle UI in menus
@@ -241,8 +244,8 @@ const slate: EditorDescription = {
     "format-text": true,
     "format-font": true,
     "format-color": true,
-    "sync": true,
-    "show_table_of_contents": true,
+    sync: true,
+    show_table_of_contents: true,
   },
 };
 ```
@@ -265,11 +268,11 @@ Editor spec (editor.ts)
   → EditorDescription.customizeCommands  # overrides per editor
 
 User interaction
-  → click icon in menu → toggleButton(name) → account.editor_settings.buttons
+  → click icon in menu → toggleButton(name) → frame-editor-settings DKV
   → right-click toolbar → toggle labels → account.other_settings.show_symbol_bar_labels
 
 Rendering
-  → ManageCommands.isVisible()        # filter commands
-  → ManageCommands.getToolbarButtons() # merge defaults + user prefs
+  → ManageCommands.isVisible()         # filter commands
+  → ManageCommands.getToolbarButtons() # DKV array or editor defaults
   → title-bar.tsx renders menus + symbol bar
 ```

@@ -295,7 +295,7 @@ For architecture and development details, see [`src/python/cocalc-api/`](src/pyt
 # important-instruction-reminders
 
 - Do what has been asked; nothing more, nothing less.
-- ALWAYS prefer editing an existing file to creating a new one.
+- Prefer editing an existing file to creating a new one, unless a new file is the cleaner long-term fit or the feature is expected to grow.
 - NEVER proactively create documentation files (\*.md) or README files. Only create documentation files if explicitly requested by the User.
 - ALWAYS ask questions if something is unclear. Only proceed to the implementation step if you have no questions left.
 - When modifying a file with a copyright banner at the top, make sure to fix/add the current year to indicate the copyright year.
