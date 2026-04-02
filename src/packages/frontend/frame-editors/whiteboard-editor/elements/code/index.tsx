@@ -92,20 +92,35 @@ export default function Code({
   const elementHRef = useRef<number>(element.h ?? 0);
   elementHRef.current = element.h ?? 0;
 
+  function getOuterChrome(): { border: number; padding: number } {
+    const outer = outerRef.current;
+    if (outer == null) return { border: 0, padding: 0 };
+    const style = getComputedStyle(outer);
+    const toNum = (v: string) => Number.parseFloat(v) || 0;
+    return {
+      border: toNum(style.borderTopWidth) + toNum(style.borderBottomWidth),
+      padding: toNum(style.paddingTop) + toNum(style.paddingBottom),
+    };
+  }
+
+  // Measure using outerRef.scrollHeight (accurate, blocks margin collapse).
+  // When focused, outerRef has height:100% so scrollHeight can't drop
+  // below element.h — measureHeightInner provides a fallback for shrink.
   function measureHeight(): number | undefined {
     const outer = outerRef.current;
     if (outer == null) return;
-    // Use outerRef.scrollHeight instead of divRef.scrollHeight because
-    // divRef has no padding/border/overflow, so its first child's top
-    // margin collapses through it and is excluded from scrollHeight.
-    // outerRef has padding which blocks margin collapse, so its
-    // scrollHeight correctly includes all content.  scrollHeight
-    // includes padding but not border, so we add border separately.
-    const style = getComputedStyle(outer);
-    const toNum = (v: string) => Number.parseFloat(v) || 0;
-    const border =
-      toNum(style.borderTopWidth) + toNum(style.borderBottomWidth);
+    const { border } = getOuterChrome();
     return Math.max(MIN_HEIGHT, Math.ceil(outer.scrollHeight + border));
+  }
+
+  // Fallback measurement via divRef for detecting shrink in focused mode.
+  // May slightly underestimate due to margin collapse, but correctly
+  // detects "content got smaller than element.h".
+  function measureHeightInner(): number | undefined {
+    const inner = divRef.current;
+    if (inner == null) return;
+    const { border, padding } = getOuterChrome();
+    return Math.max(MIN_HEIGHT, Math.ceil(inner.scrollHeight + padding + border));
   }
 
   // Single unified height-sync effect for both focused and unfocused modes.
@@ -119,15 +134,14 @@ export default function Code({
     if (outer == null || inner == null) return;
     if (typeof ResizeObserver === "undefined") return;
 
-    const commit = !focused; // commit on blur, don't commit while editing
-
     const shrink = debounce(() => {
       if (actions.in_undo_mode() && element.str == getValueRef.current?.()) {
         return;
       }
-      const h = measureHeight();
+      // Use inner measurement for shrink (outerRef can't shrink in focused mode).
+      const h = focused ? measureHeightInner() : measureHeight();
       if (h != null && Math.abs(h - elementHRef.current) > 2) {
-        actions.setElement({ obj: { id: element.id, h }, commit });
+        actions.setElement({ obj: { id: element.id, h }, commit: !focused });
       }
     }, 250);
 
@@ -139,11 +153,19 @@ export default function Code({
       if (h == null) return;
       if (h > elementHRef.current) {
         // Grow immediately so bounding box matches content.
+        // Commit when unfocused so collaborators see the change.
         shrink.cancel();
-        actions.setElement({ obj: { id: element.id, h }, commit: false });
+        actions.setElement({ obj: { id: element.id, h }, commit: !focused });
       } else if (h < elementHRef.current - 2) {
         // Shrink with a delay to avoid oscillation.
         shrink();
+      } else if (focused) {
+        // In focused mode, outerRef.scrollHeight can't shrink below
+        // element.h (height:100%).  Check inner measurement as fallback.
+        const hInner = measureHeightInner();
+        if (hInner != null && hInner < elementHRef.current - 2) {
+          shrink();
+        }
       }
     };
 

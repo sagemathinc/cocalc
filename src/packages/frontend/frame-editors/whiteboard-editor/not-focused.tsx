@@ -62,7 +62,7 @@ export default function NotFocused({
       snapRef.current = { dx: result.dx, dy: result.dy };
       setSnapLines?.(result.lines);
     },
-    [element, allElements, snapEnabled, setSnapLines],
+    [element, allElements, snapEnabled, setSnapLines, canvasScale],
   );
 
   // Right after dragging, we ignore the onClick so the object doesn't get selected:

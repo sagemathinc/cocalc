@@ -140,7 +140,7 @@ export default function Focused({
       snapRef.current = { dx: result.dx, dy: result.dy };
       setSnapLines?.(result.lines);
     },
-    [element, selectedElements, allElements, snapEnabled, setSnapLines],
+    [element, selectedElements, allElements, snapEnabled, setSnapLines, canvasScale],
   );
 
   // Make it so the selected element can handle it's own mouse wheel events.
