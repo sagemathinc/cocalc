@@ -49,9 +49,10 @@ const Z_INDEX = 1;
 // resize and scroll events.
 const POSITION_WHEN_MOUNTED_INTERVAL_MS = 10000;
 
-// Scroll actively this many frames after each update, due to throttling of onscroll
-// and other events. This is to eliminate lag.
-const SCROLL_COUNT = 60;
+// Scroll actively this many frames after each update. A short burst keeps
+// trusted HTML outputs visually attached to their cells while avoiding a
+// long per-output animation loop on every scroll event.
+const SCROLL_COUNT = 8;
 
 const cache = new TTL<string, any>({
   ttl: IDLE_TIMEOUT_S * 1000,
@@ -118,6 +119,8 @@ export function EnabledStableUnsafeHtml({
   const divRef = useRef<any>(null);
   const cellOutputDivRef = useRef<any>(null);
   const intervalRef = useRef<any>(null);
+  const animationFrameRef = useRef<number | undefined>(undefined);
+  const pendingFramesRef = useRef<number>(0);
   const { isVisible, project_id, path, id } = useFrameContext();
   const htmlRef = useRef<string>(html);
   const globalKeyRef = useRef<string>(
@@ -275,6 +278,25 @@ export function EnabledStableUnsafeHtml({
     elt.hide();
   };
 
+  const runPositionBurst = useCallback(() => {
+    animationFrameRef.current = undefined;
+    position();
+    pendingFramesRef.current -= 1;
+    if (pendingFramesRef.current > 0) {
+      animationFrameRef.current = requestAnimationFrame(runPositionBurst);
+    }
+  }, [position]);
+
+  const schedulePositionBurst = useCallback(
+    (frames = SCROLL_COUNT) => {
+      pendingFramesRef.current = Math.max(pendingFramesRef.current, frames);
+      if (animationFrameRef.current == null) {
+        animationFrameRef.current = requestAnimationFrame(runPositionBurst);
+      }
+    },
+    [runPositionBurst],
+  );
+
   useEffect(() => {
     if (isVisible) {
       show();
@@ -299,23 +321,9 @@ export function EnabledStableUnsafeHtml({
       POSITION_WHEN_MOUNTED_INTERVAL_MS,
     );
     if (stableHtmlContext.scrollOrResize != null) {
-      let count = 0;
-      stableHtmlContext.scrollOrResize[globalKeyRef.current] = async () => {
-        if (count > 0) {
-          return;
-        }
-        // We run position a lot whenever there is a scroll
-        // in order to make it so the iframe doesn't appear
-        // to just get "dragged along" nearly as much, as
-        // onScroll is throttled.
-        count = SCROLL_COUNT;
-        while (count > 0) {
-          position();
-          await new Promise(requestAnimationFrame);
-          count -= 1;
-        }
-        // throw in an update when we're done.
+      stableHtmlContext.scrollOrResize[globalKeyRef.current] = () => {
         position();
+        schedulePositionBurst();
       };
     }
     position();
@@ -323,11 +331,14 @@ export function EnabledStableUnsafeHtml({
 
     return () => {
       delete stableHtmlContext.scrollOrResize?.[globalKeyRef.current];
+      if (animationFrameRef.current != null) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
       }
     };
-  }, []);
+  }, [position, schedulePositionBurst, stableHtmlContext.scrollOrResize]);
 
   useEffect(() => {
     // This is "old fashioned jquery"... but I tried passing this info
