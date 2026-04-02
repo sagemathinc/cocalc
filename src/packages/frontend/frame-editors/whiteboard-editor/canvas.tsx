@@ -93,7 +93,6 @@ import {
   fontSizeToZoom,
   getPageSpan,
   getPosition,
-  fitRectToRect,
   getOverlappingElements,
   getTransforms,
   Transforms,
