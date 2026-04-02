@@ -1215,7 +1215,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
     const { disabled, label, key, children, onClick } = item;
     const style: CSS = {
-      color: "#333",
+      color: "var(--cocalc-text-primary, #333)",
       padding: showSymbolBarLabels ? "0" : "7.5px 0 0 0",
       height: showSymbolBarLabels ? "36px" : undefined,
     } as const;
