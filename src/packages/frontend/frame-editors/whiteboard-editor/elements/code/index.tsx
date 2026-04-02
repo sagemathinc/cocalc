@@ -15,7 +15,6 @@
 import { debounce } from "lodash";
 import { useEffect, useRef, useState } from "react";
 import { useAsyncEffect } from "use-async-effect";
-import useResizeObserver from "use-resize-observer";
 
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { codemirrorMode } from "@cocalc/frontend/file-extensions";
@@ -88,148 +87,103 @@ export default function Code({
   const outerRef = useRef<HTMLDivElement>(null);
   const divRef = useRef<any>(null);
   const getValueRef = useRef<any>(null);
-  const resize = useResizeObserver({
-    ref: readOnly || !focused ? undefined : divRef,
-  });
-  const resizeRef = useRef<Function | null>(null);
 
-  function getOuterChromeHeight(): number {
-    const elt = outerRef.current;
-    if (elt == null) return 0;
-    const style = getComputedStyle(elt);
-    const toNumber = (value: string): number => Number.parseFloat(value) || 0;
-    return (
-      toNumber(style.paddingTop) +
-      toNumber(style.paddingBottom) +
-      toNumber(style.borderTopWidth) +
-      toNumber(style.borderBottomWidth)
-    );
-  }
-
-  function measureFocusedHeight(): number | undefined {
-    // Use divRef (inner div, no fixed height) so scrollHeight reflects
-    // actual content — including collapsed child margins like the
-    // InputPrompt's margin-top. outerRef.scrollHeight can't be used
-    // because its fixed height prevents detecting shrink.
-    const inner = divRef.current;
-    if (inner == null) return;
-    return Math.max(
-      MIN_HEIGHT,
-      Math.ceil(inner.scrollHeight + getOuterChromeHeight()),
-    );
-  }
-
-  function measureUnfocusedHeight(): number | undefined {
-    // Use divRef (inner div) since outerRef has minHeight:100% which
-    // prevents detecting shrink when content gets smaller.
-    const inner = divRef.current;
-    if (inner == null) return;
-    return Math.max(
-      MIN_HEIGHT,
-      Math.ceil(inner.scrollHeight + getOuterChromeHeight()),
-    );
-  }
-
-  // Store current element.h in a ref so the resize callback always
-  // compares against the latest value (avoids stale closure).
+  // Track element.h in a ref so callbacks always see the latest value.
   const elementHRef = useRef<number>(element.h ?? 0);
   elementHRef.current = element.h ?? 0;
 
-  useEffect(() => {
-    if (readOnly || !focused) {
-      resizeRef.current = null;
-      return;
-    }
+  function measureHeight(): number | undefined {
+    const outer = outerRef.current;
+    if (outer == null) return;
+    // Use outerRef.scrollHeight instead of divRef.scrollHeight because
+    // divRef has no padding/border/overflow, so its first child's top
+    // margin collapses through it and is excluded from scrollHeight.
+    // outerRef has padding which blocks margin collapse, so its
+    // scrollHeight correctly includes all content.  scrollHeight
+    // includes padding but not border, so we add border separately.
+    const style = getComputedStyle(outer);
+    const toNum = (v: string) => Number.parseFloat(v) || 0;
+    const border =
+      toNum(style.borderTopWidth) + toNum(style.borderBottomWidth);
+    return Math.max(MIN_HEIGHT, Math.ceil(outer.scrollHeight + border));
+  }
 
-    const shrinkElement = debounce(() => {
+  // Single unified height-sync effect for both focused and unfocused modes.
+  // Observes both outerRef (for scrollHeight measurement) and divRef (to
+  // catch internal content changes that may not resize outerRef when it has
+  // a fixed height in focused mode).
+  useEffect(() => {
+    if (readOnly) return;
+    const outer = outerRef.current;
+    const inner = divRef.current;
+    if (outer == null || inner == null) return;
+    if (typeof ResizeObserver === "undefined") return;
+
+    const commit = !focused; // commit on blur, don't commit while editing
+
+    const shrink = debounce(() => {
       if (actions.in_undo_mode() && element.str == getValueRef.current?.()) {
         return;
       }
-      const h = measureFocusedHeight();
-      if (h == null) return;
-      // Only update if the change is significant to prevent oscillation
-      // from sub-pixel rounding differences.
-      if (Math.abs(h - elementHRef.current) > 2) {
-        actions.setElement({
-          obj: { id: element.id, h },
-          commit: false,
-        });
+      const h = measureHeight();
+      if (h != null && Math.abs(h - elementHRef.current) > 2) {
+        actions.setElement({ obj: { id: element.id, h }, commit });
       }
     }, 250);
 
-    resizeRef.current = () => {
+    const sync = () => {
       if (actions.in_undo_mode() && element.str == getValueRef?.current?.()) {
         return;
       }
-      const newHeight = measureFocusedHeight();
-      if (newHeight == null) return;
-      if (newHeight > elementHRef.current) {
-        shrinkElement.cancel();
-        actions.setElement({
-          obj: { id: element.id, h: newHeight },
-          commit: false,
-        });
-      } else if (newHeight < elementHRef.current) {
-        shrinkElement();
-      }
-    };
-
-    resizeRef.current?.();
-
-    // Deferred re-measurement: CodeMirror and other focused children
-    // may not have fully laid out in the first frame.
-    const raf = requestAnimationFrame(() => resizeRef.current?.());
-
-    return () => {
-      shrinkElement.cancel();
-      cancelAnimationFrame(raf);
-    };
-  }, [element.id, canvasScale, editFocus, readOnly, focused]);
-
-  useEffect(() => {
-    resizeRef.current?.();
-  }, [resize]);
-
-  // Re-measure height when losing focus, since the unfocused render has
-  // different dimensions (no ControlBar, InputStatic instead of Input, etc.)
-  useEffect(() => {
-    if (focused || readOnly) return;
-    const inner = divRef.current;
-    if (inner == null) return;
-    if (typeof ResizeObserver === "undefined") return;
-    let lastH = element.h ?? 0;
-    const measure = () => {
-      const h = measureUnfocusedHeight();
+      const h = measureHeight();
       if (h == null) return;
-      if (Math.abs(h - lastH) > 2) {
-        lastH = h;
-        actions.setElement({ obj: { id: element.id, h }, commit: true });
+      if (h > elementHRef.current) {
+        // Grow immediately so bounding box matches content.
+        shrink.cancel();
+        actions.setElement({ obj: { id: element.id, h }, commit: false });
+      } else if (h < elementHRef.current - 2) {
+        // Shrink with a delay to avoid oscillation.
+        shrink();
       }
     };
-    // Observe the inner div — outerRef has minHeight:100% so it
-    // won't shrink, but divRef reflects actual content changes.
-    const observer = new ResizeObserver(measure);
+
+    const observer = new ResizeObserver(sync);
+    observer.observe(outer);
     observer.observe(inner);
-    measure();
-    const isRunning =
-      element.data?.runState != null && element.data?.runState !== "done";
-    const timeout = isRunning
-      ? undefined
-      : setTimeout(() => observer.disconnect(), 5000);
+
+    // Immediate measurement.
+    sync();
+    // Deferred: catch children that lay out after the first frame
+    // (e.g. CodeMirror editor, output rendering).
+    const raf = requestAnimationFrame(sync);
+
+    // For unfocused cells, disconnect after 5s unless a computation is
+    // running (output may still be streaming in).
+    let timeout: ReturnType<typeof setTimeout> | undefined;
+    if (!focused) {
+      const isRunning =
+        element.data?.runState != null && element.data?.runState !== "done";
+      if (!isRunning) {
+        timeout = setTimeout(() => observer.disconnect(), 5000);
+      }
+    }
+
     return () => {
       observer.disconnect();
+      shrink.cancel();
+      cancelAnimationFrame(raf);
       if (timeout != null) clearTimeout(timeout);
     };
-  }, [focused, element.id, canvasScale, element.data?.runState]);
+  }, [focused, element.id, canvasScale, editFocus, readOnly, element.data?.runState]);
 
   return (
     <div
       ref={outerRef}
       style={{
         ...getStyle(element),
-        minHeight: "100%",
-        height: "auto",
-        overflowY: "visible",
+        ...(focused
+          ? { height: "100%", overflowY: "hidden" }
+          : { minHeight: "100%", height: "auto", overflowY: "visible" }),
       }}
     >
       <div ref={divRef}>

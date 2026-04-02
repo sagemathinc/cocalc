@@ -308,7 +308,6 @@ export default function Focused({
       z={MAX_ELEMENTS + 1}
       w={pos.w}
       h={pos.h}
-      minHeight
       style={
         selectedElements.length == 1 &&
         ["pen", "frame", "edge"].includes(selectedElements[0].type)
@@ -415,14 +414,14 @@ export default function Focused({
                   marginTop: `${offset.y}px`,
                 }),
             width: isChanging ? `${pos.w + offset.w}px` : "100%",
-            minHeight: isChanging ? `${pos.h + offset.h}px` : "100%",
+            height: isChanging ? `${pos.h + offset.h}px` : "100%",
           }}
         >
           {moveHandle}
           <div
             style={{
               width: `${element.w}px`,
-              minHeight: `${element.h}px`,
+              height: `${element.h}px`,
               ...(scale_x != 1 || scale_y != 1
                 ? {
                     transform: `scale(${scale_x},${scale_y})`,
@@ -442,7 +441,7 @@ export default function Focused({
                     }
                   : undefined),
                 width: "100%",
-                minHeight: "100%",
+                height: "100%",
               }}
             >
               {children}

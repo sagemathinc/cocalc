@@ -34,7 +34,7 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
         background: "white",
         boxShadow: "1px 3px 5px rgb(33 33 33 / 50%)",
         position: "absolute",
-        top: `-${42 / canvasScale}px`,
+        bottom: `calc(100% + ${10 / canvasScale}px)`,
         left: 0,
         zIndex: 10,
         whiteSpace: "nowrap",
