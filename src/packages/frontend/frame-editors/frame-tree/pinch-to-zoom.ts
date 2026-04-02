@@ -10,11 +10,10 @@ size for the visible canvas, instead of zooming the whole page itself.
 
 */
 
-import { MutableRefObject, useMemo, useRef } from "react";
+import { MutableRefObject, useEffect, useMemo, useRef } from "react";
 import { useFrameContext } from "./frame-context";
-import { usePinch, useWheel } from "@use-gesture/react";
+import { usePinch } from "@use-gesture/react";
 import { throttle } from "lodash";
-import { IS_MACOS } from "@cocalc/frontend/feature";
 
 export const ZOOM100 = 14;
 export function fontSizeToZoom(size?: number): number {
@@ -46,7 +45,7 @@ export interface Data {
   first?: boolean;
 }
 
-const pinchMax = 1000;
+const pinchMax = 100;
 
 export default function usePinchToZoom({
   target,
@@ -54,7 +53,7 @@ export default function usePinchToZoom({
   max = 100,
   onZoom,
   throttleMs = 50,
-  smooth = 5,
+  smooth: _smooth = 5,
   disabled,
   getFontSize,
 }: {
@@ -87,44 +86,70 @@ export default function usePinchToZoom({
     };
   }, [id]);
 
-  useWheel(
-    (state) => {
-      if (state.event.ctrlKey) {
-        if (state.first) {
-          isZoomingRef.current = true;
-        } else if (state.last) {
-          isZoomingRef.current = false;
-        }
-        // prevent the entire window scrolling on windows or with a mouse.
-        state.event.preventDefault();
-        // offset[1] goes from 0 (top bound) to (max-min)*smooth (bottom).
-        // Map that to fontSize from max down to min.
-        const fontSize = max - state.offset[1] / smooth;
-        save(Math.min(max, Math.max(min, fontSize)), state.first);
-      }
-    },
-    {
-      enabled: !IS_MACOS, // the wheel (even with a mouse wheel) conflicts with pinch on MacOS; on windows get only wheel and no pinch.
-      target,
-      eventOptions: { passive: false, capture: true },
-      bounds: { top: 0, bottom: (max - min) * smooth },
-      from: () => {
-        // Initialize from current font size so scrolling starts at the
-        // right position instead of jumping from offset=0.
-        if (getFontSize != null) {
-          const fontSize = getFontSize();
-          // fontSize = max - offset[1] / smooth  =>  offset[1] = (max - fontSize) * smooth
-          return [0, (max - fontSize) * smooth];
-        }
-        return [0, 0];
-      },
-      disabled,
-    },
-  );
-
   const lastOffsetRef = useRef<number>(100);
 
   const isZoomingRef = useRef<boolean>(false);
+
+  // Keep refs for values that change on re-render so gesture
+  // callbacks always see the latest without stale closures.
+  const getFontSizeRef = useRef(getFontSize);
+  getFontSizeRef.current = getFontSize;
+  const saveRef = useRef(save);
+  saveRef.current = save;
+
+  // Ctrl+wheel zoom: native listener with stopImmediatePropagation to
+  // prevent @use-gesture's usePinch from also handling these events
+  // (Chrome translates ctrl+wheel into pinch gesture events).
+  // Uses multiplicative (log) scaling for even zoom feel.
+  const wheelFontSizeRef = useRef<number>(0);
+  useEffect(() => {
+    if (disabled) return;
+    const el = target.current;
+    if (el == null) return;
+
+    let zoomEndTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return;
+      e.preventDefault();
+      // Stop this event from reaching @use-gesture's pinch handler.
+      e.stopImmediatePropagation();
+
+      if (!isZoomingRef.current) {
+        wheelFontSizeRef.current =
+          getFontSizeRef.current?.() ?? (max + min) / 2;
+      }
+      // Multiplicative scaling: each tick changes zoom by ~5-8%.
+      // Cap the exponent to prevent fast-scroll jumps.
+      const MAX_STEP = 0.16;
+      const rawExp = -e.deltaY / 750;
+      const clampedExp = Math.max(-MAX_STEP, Math.min(MAX_STEP, rawExp));
+      const newSize = Math.min(
+        max,
+        Math.max(min, wheelFontSizeRef.current * Math.pow(2, clampedExp)),
+      );
+      wheelFontSizeRef.current = newSize;
+      const first = !isZoomingRef.current;
+      isZoomingRef.current = true;
+      saveRef.current(newSize, first);
+
+      clearTimeout(zoomEndTimer);
+      zoomEndTimer = setTimeout(() => {
+        isZoomingRef.current = false;
+      }, 200);
+    };
+
+    // Use capture + earliest possible registration to fire before
+    // @use-gesture's listeners.
+    el.addEventListener("wheel", onWheel, { passive: false, capture: true });
+    return () => {
+      el.removeEventListener("wheel", onWheel, { capture: true });
+      clearTimeout(zoomEndTimer);
+    };
+  }, [disabled, min, max]);
+
+  // usePinch: handles touch pinch gestures only (ctrl+wheel is blocked
+  // by the native listener above via stopImmediatePropagation).
   usePinch(
     (state) => {
       const { first, offset } = state;
@@ -135,25 +160,17 @@ export default function usePinchToZoom({
       }
       lastOffsetRef.current = offset[0];
       const s = (offset[0] - 1) / pinchMax;
-      save(min + s * (max - min), first);
+      saveRef.current(min + s * (max - min), first);
     },
     {
       target,
       scaleBounds: { min: 1, max: pinchMax + 1 },
       axis: "lock",
       from: () => {
-        if (getFontSize != null) {
-          const fontSize = getFontSize();
-          // need that      fontSize = min + s*(max-min), where s =(offset[0] - 1)/pinchMax
-          // Solve for offset[0] and return that.
-          //  s = (fontSize - min) / (max - min) = (offset[0] - 1) / pinchMax, so
-          //  offset[0] = pinchMax * s + 1.
-          const s = (fontSize - min) / (max - min);
-          return [pinchMax * s + 1, 0];
-        }
-        // TODO: this needs to return current font size / scale but in terms of our scale bounds param.
-        // This is the zoom level that we start with whenever we start pinching.
-        return [lastOffsetRef.current, 0];
+        const fontSize =
+          getFontSizeRef.current?.() ?? (max + min) / 2;
+        const s = (fontSize - min) / (max - min);
+        return [pinchMax * s + 1, 0];
       },
       disabled,
     },

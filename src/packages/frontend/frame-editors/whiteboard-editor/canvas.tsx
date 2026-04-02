@@ -529,29 +529,32 @@ export default function Canvas({
   useLayoutEffect(() => {
     if (isNavigator || !frame.desc.get("fitToScreen") || !isBoard) return;
     try {
-      const viewport = getViewportData();
-      if (viewport == null) return;
+      // Use screen-pixel viewport (not data-coordinate viewport) so the
+      // computed zoom is independent of the current scale.  Previous code
+      // used getViewportData() which divides by the current scale, causing
+      // fitToScreen to oscillate when called repeatedly.
+      const screenViewport = getViewportWindow();
+      if (screenViewport == null) return;
       if (elements.length == 0) {
-        // Special case -- the screen is blank; don't want to just
-        // maximal zoom in on the center!
         setCenterPositionData({ x: 0, y: 0 });
-        lastViewport.current = viewport;
         frame.actions.set_font_size(frame.id, zoomToFontSize(1));
         return;
       }
-      lastViewport.current = viewport;
       let rect;
       if (mainFrameType == "slides" || presentation) {
         rect = rectSpan(elements.filter((elt) => elt.z == -Infinity));
       } else {
         rect = rectSpan(elements);
       }
-      const factor = presentation ? 1 : 0.95; // 0.95 for extra room too.
+      const factor = presentation ? 1 : 0.95;
+      // rect is in data coords, screenViewport is in pixels.
+      // scale = pixels / data-units → the canvasScale to fit content.
+      const fitScale = Math.min(
+        screenViewport.w / rect.w,
+        screenViewport.h / rect.h,
+      );
       const s =
-        Math.min(
-          2 / factor,
-          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale),
-        ) * factor;
+        Math.min(2 / factor, Math.max(MIN_ZOOM, fitScale)) * factor;
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
       const centerIt = () => {
