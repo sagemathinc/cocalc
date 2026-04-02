@@ -61,7 +61,8 @@
       "path-to-regexp@<0.1.13": "0.1.13",
       "path-to-regexp@>=8.0.0 <8.4.0": "8.4.0",
       "brace-expansion@>=4.0.0 <5.0.5": "5.0.5",
-      "yaml@>=2.0.0 <2.8.3": "2.8.3"
+      "yaml@>=2.0.0 <2.8.3": "2.8.3",
+      "dayjs": "1.11.13"
     },
     "onlyBuiltDependencies": [
       "websocket-sftp",
