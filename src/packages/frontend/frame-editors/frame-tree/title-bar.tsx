@@ -25,7 +25,7 @@ import {
 } from "antd";
 import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
-import { useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 
 import {
@@ -134,6 +134,7 @@ const title_bar_style: CSS = {
   flexWrap: "nowrap",
   flex: "0 0 auto",
   display: "flex",
+  overflow: "hidden",
 } as const;
 
 // This is characters
@@ -369,6 +370,65 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     return true;
   }, [tours, props.type]);
 
+  // --- Responsive title bar: track width and detect overflow ---
+  const titleBarRef = useRef<HTMLDivElement | null>(null);
+  const mainButtonsRef = useRef<HTMLDivElement | null>(null);
+  const [barWidth, setBarWidth] = useState<number>(Infinity);
+  const [mainButtonsOverflow, setMainButtonsOverflow] =
+    useState<boolean>(false);
+  const frameControlsRef = useRef<HTMLDivElement | null>(null);
+  const [frameControlsWidth, setFrameControlsWidth] = useState<number>(0);
+  const [actionButtonsClipped, setActionButtonsClipped] =
+    useState<boolean>(false);
+  const actionButtonsSentinelRef = useRef<HTMLSpanElement | null>(null);
+  const symbolBarRef = useRef<HTMLDivElement | null>(null);
+  const [symbolBarOverflow, setSymbolBarOverflow] = useState<boolean>(false);
+
+  // Width thresholds (px) for progressively hiding frame control buttons.
+  // When bar is narrower than HIDE_SPLIT, split buttons disappear.
+  // When narrower than HIDE_FULL, fullscreen button also disappears.
+  const HIDE_SPLIT_THRESHOLD = 400;
+  const HIDE_FULL_THRESHOLD = 200;
+
+  const hideSplit = barWidth < HIDE_SPLIT_THRESHOLD;
+  const hideFull = barWidth < HIDE_FULL_THRESHOLD;
+
+  const checkOverflow = useCallback(() => {
+    const el = mainButtonsRef.current;
+    if (el) {
+      setMainButtonsOverflow(el.scrollWidth > el.clientWidth + 2);
+      const sentinel = actionButtonsSentinelRef.current;
+      if (sentinel) {
+        const containerRect = el.getBoundingClientRect();
+        const sentinelRect = sentinel.getBoundingClientRect();
+        setActionButtonsClipped(sentinelRect.right > containerRect.right);
+      }
+    }
+    // Track frame controls width so we can reserve space via padding
+    setFrameControlsWidth(frameControlsRef.current?.offsetWidth ?? 0);
+    // Check if the symbol bar (pinned icons) is clipped
+    const sb = symbolBarRef.current;
+    setSymbolBarOverflow(
+      sb != null ? sb.scrollWidth > sb.clientWidth + 2 : false,
+    );
+  }, []);
+
+  useEffect(() => {
+    const el = titleBarRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      setBarWidth(el.clientWidth);
+      checkOverflow();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [checkOverflow]);
+
+  // Re-check overflow whenever buttons or active state change
+  useEffect(() => {
+    checkOverflow();
+  });
+
   // comes from actions's store:
   const switch_to_files: List<string> = useRedux([
     props.actions.name,
@@ -420,15 +480,24 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderFrameControls(): Rendered {
+    const tourRef = getTourRef("control");
     return (
       <div
         key="control-buttons-group"
         style={{
-          flex: "0 0 auto",
+          position: "absolute",
+          right: 0,
+          top: 0,
+          bottom: 0,
           display: "flex",
           alignItems: "center",
+          background: "inherit",
+          zIndex: 1,
         }}
-        ref={getTourRef("control")}
+        ref={(node) => {
+          frameControlsRef.current = node;
+          if (tourRef) tourRef.current = node;
+        }}
       >
         <ButtonGroup
           style={{
@@ -438,9 +507,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           key={"control-buttons"}
         >
           <span style={is_active ? undefined : { opacity: 0.3 }}>
-            {!props.is_full ? render_split_row() : undefined}
-            {!props.is_full ? render_split_col() : undefined}
-            {!props.is_only ? render_full() : undefined}
+            {!props.is_full && !hideSplit ? render_split_row() : undefined}
+            {!props.is_full && !hideSplit ? render_split_col() : undefined}
+            {!props.is_only && !hideFull ? render_full() : undefined}
             {render_x()}
           </span>
         </ButtonGroup>
@@ -879,6 +948,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     style?: CSS,
     noRefs?,
     where: "main" | "popover" = "main",
+    skipSaveGroup?: boolean,
   ): Rendered {
     if (!is_active) {
       return (
@@ -909,7 +979,19 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       }
 
       const v: (React.JSX.Element | undefined | null)[] = [];
-      v.push(renderSaveTimetravelGroup(where));
+      if (!skipSaveGroup) {
+        v.push(renderSaveTimetravelGroup(where));
+      }
+      // Invisible sentinel after action buttons to detect when they're clipped
+      if (where === "main") {
+        v.push(
+          <span
+            key="action-sentinel"
+            ref={actionButtonsSentinelRef}
+            style={{ width: 0, height: 0, overflow: "hidden" }}
+          />,
+        );
+      }
       if (props.title != null) {
         v.push(renderTitle());
       }
@@ -999,6 +1081,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     // and *ALSO* have buttons that vanish when there are many of them.
     return (
       <div
+        ref={mainButtonsRef}
         style={{
           flexFlow: "row nowrap",
           display: "flex",
@@ -1013,8 +1096,33 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
+  // Render frame control buttons that were hidden due to narrow width,
+  // for inclusion in the overflow popover.
+  function renderHiddenFrameControls(): Rendered {
+    const hidden: Rendered[] = [];
+    if (hideSplit && !props.is_full) {
+      hidden.push(render_split_row());
+      hidden.push(render_split_col());
+    }
+    if (hideFull && !props.is_only) {
+      hidden.push(render_full());
+    }
+    if (hidden.length === 0) return undefined;
+    return (
+      <ButtonGroup
+        style={{ padding: "3.5px 0 0 0", height: button_height() }}
+        key="hidden-frame-controls"
+      >
+        {hidden}
+      </ButtonGroup>
+    );
+  }
+
+  const hasOverflow =
+    mainButtonsOverflow || symbolBarOverflow || hideSplit || hideFull;
+
   function allButtonsPopover() {
-    if (!is_active) {
+    if (!is_active || !hasOverflow) {
       return null;
     }
     return (
@@ -1032,20 +1140,25 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
                 maxWidth: "100vw",
               }}
             >
-              <div
-                style={{
-                  marginLeft: "3px",
-                  marginRight: "3px",
-                }}
-              >
-                {renderButtons(
-                  { maxHeight: "50vh", display: "block" },
-                  true,
-                  "popover",
-                )}
-              </div>
+              {(mainButtonsOverflow || symbolBarOverflow) && (
+                <div
+                  style={{
+                    marginLeft: "3px",
+                    marginRight: "3px",
+                  }}
+                >
+                  {mainButtonsOverflow &&
+                    renderButtons(
+                      { maxHeight: "50vh", display: "block" },
+                      true,
+                      "popover",
+                      !actionButtonsClipped,
+                    )}
+                  {renderButtonBar(true)}
+                </div>
+              )}
               <div>
-                {renderFrameControls()}
+                {renderHiddenFrameControls()}
                 <Button
                   style={{ float: "right" }}
                   onClick={() => setShowMainButtonsPopover(false)}
@@ -1053,7 +1166,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
                   {intl.formatMessage(labels.close)}
                 </Button>
               </div>
-              {renderButtonBar(true)}
             </div>
           );
         }}
@@ -1590,6 +1702,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   // position relative, so we can absolute position the
   // frame controls to the right
   style.position = "relative";
+  // Reserve space for the absolutely-positioned frame controls so flex
+  // children don't extend underneath them.
+  style.paddingRight = `${frameControlsWidth}px`;
 
   if (is_safari()) {
     // ugly hack....
@@ -1606,6 +1721,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     <>
       <div style={{ opacity: !is_active ? 0.6 : undefined }}>
         <div
+          ref={titleBarRef}
           style={style}
           id={`titlebar-${props.id}`}
           className={"cc-frame-tree-title-bar"}
@@ -1614,7 +1730,18 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           {renderMainMenusAndButtons()}
           {is_active && renderConnectionStatus()}
           {is_active && allButtonsPopover()}
-          {!showSymbolBarLabels ? renderButtonBar() : undefined}
+          {!showSymbolBarLabels && (
+            <div
+              ref={symbolBarRef}
+              style={{
+                flex: "0 10 auto",
+                overflow: "hidden",
+                minWidth: 0,
+              }}
+            >
+              {renderButtonBar()}
+            </div>
+          )}
           {renderFrameControls()}
         </div>
         {showSymbolBarLabels ? renderButtonBar() : undefined}
