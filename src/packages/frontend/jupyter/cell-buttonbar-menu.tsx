@@ -62,10 +62,8 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
     copy(text);
   }
 
-  if (actions == null) return null;
-
   const items = useMemo<MenuProps["items"]>(() => {
-    if (!open) {
+    if (actions == null || !open) {
       return [];
     }
 
@@ -349,6 +347,8 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
       };
     });
   }, [actions, cell, frameActions, id, intl, open]);
+
+  if (actions == null) return null;
 
   return (
     <Dropdown
