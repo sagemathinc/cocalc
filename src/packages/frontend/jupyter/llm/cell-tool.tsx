@@ -46,6 +46,7 @@ import {
 } from "@cocalc/frontend/i18n";
 import { backtickSequence } from "@cocalc/frontend/markdown/util";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { LLMEvent } from "@cocalc/frontend/project/history/types";
 import track from "@cocalc/frontend/user-tracking";
@@ -452,6 +453,7 @@ const ACTIONS_MD: { [mode in MarkdownMode]: LLMTool } = {
 
 export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
   const { actions: project_actions, onCoCalcCom } = useProjectContext();
+  const { isDark } = useColorTheme();
   const intl = useIntl();
   const { project_id, path } = useFrameContext();
   const frameActions = useNotebookFrameActions();
@@ -993,7 +995,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
                     key={a}
                     style={{ cursor: "pointer" }}
                     onClick={() => setExtraImprove(a)}
-                    color={getRandomColor(a)}
+                    color={getRandomColor(a, { isDark })}
                   >
                     {a}
                   </Tag>
@@ -1030,7 +1032,7 @@ export function LLMCellTool({ actions, id, style, llmTools, cellType }: Props) {
                   key={label}
                   style={{ cursor: "pointer" }}
                   onClick={() => setExtraModify(value)}
-                  color={getRandomColor(value)}
+                  color={getRandomColor(value, { isDark })}
                 >
                   <Tooltip placement={"bottom"} title={value}>
                     {label}

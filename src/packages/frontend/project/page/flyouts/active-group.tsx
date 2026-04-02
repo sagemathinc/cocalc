@@ -7,10 +7,8 @@
 
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, IconName } from "@cocalc/frontend/components";
-import {
-  UNKNOWN_FILE_TYPE_ICON,
-  file_options,
-} from "@cocalc/frontend/editor-tmp";
+import { UNKNOWN_FILE_TYPE_ICON, file_options } from "@cocalc/frontend/editor-tmp";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { useProjectContext } from "@cocalc/frontend/project/context";
 import { handleFileEntryClick } from "@cocalc/frontend/project/history/utils";
 import track from "@cocalc/frontend/user-tracking";
@@ -41,6 +39,7 @@ export function Group({
   isLast = false,
   dimFileExtensions,
 }: GroupProps): React.JSX.Element {
+  const { isDark } = useColorTheme();
   const { project_id } = useProjectContext();
   const actions = useActions({ project_id });
   const openFiles = useTypedRedux({ project_id }, "open_files_order");
@@ -54,7 +53,7 @@ export function Group({
   ];
   const displayed = group === "" ? "Home" : parts.join("/");
 
-  const col = deterministicColor(group);
+  const col = deterministicColor(group, !!isDark);
 
   const style: CSS = {
     ...GROUP_STYLE,

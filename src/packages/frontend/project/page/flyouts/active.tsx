@@ -20,6 +20,7 @@ import {
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
 import { useAppContext } from "@cocalc/frontend/app/context";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { Icon, Paragraph } from "@cocalc/frontend/components";
 import { file_options } from "@cocalc/frontend/editor-tmp";
 import { useProjectContext } from "@cocalc/frontend/project/context";
@@ -117,6 +118,7 @@ interface Props {
 export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
   const { wrap, flyoutWidth } = props;
   const { formatIntl } = useAppContext();
+  const theme = useColorTheme();
   const { project_id, flipTabs, manageStarredFiles } = useProjectContext();
   const flipTab = flipTabs[0];
   const flipTabPrevious = usePrevious(flipTab);
@@ -265,8 +267,8 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
     const style =
       group != null
         ? {
-            ...randomBorder(group, "left"),
-            ...(isLast ? randomBorder(group, "bottom") : {}),
+            ...randomBorder(group, "left", !!theme.isDark),
+            ...(isLast ? randomBorder(group, "bottom", !!theme.isDark) : {}),
           }
         : undefined;
 

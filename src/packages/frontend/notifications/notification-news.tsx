@@ -21,7 +21,8 @@ import {
   TimeAgo,
   Title,
 } from "@cocalc/frontend/components";
-import { BASE_URL, open_new_tab } from "@cocalc/frontend/misc";
+import { open_new_tab } from "@cocalc/frontend/misc";
+import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { cmp_Date, getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 import { CHANNELS_ICONS, NewsItemWebapp } from "@cocalc/util/types/news";
@@ -35,6 +36,7 @@ interface NewsPanelProps {
 
 export function NewsPanel(props: NewsPanelProps) {
   const { news, filter } = props;
+  const { isDark } = useColorTheme();
   const intl = useIntl();
   const news_actions = useActions("news");
   const account_other = useTypedRedux("account", "other_settings");
@@ -97,7 +99,7 @@ export function NewsPanel(props: NewsPanelProps) {
         {tags.sort().map((tag) => (
           <Tag
             key={tag}
-            color={getRandomColor(tag)}
+            color={getRandomColor(tag, { isDark })}
             onClick={(e) => {
               e.stopPropagation();
               e.preventDefault();

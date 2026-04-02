@@ -18,6 +18,7 @@ import {
   example,
   theme_desc,
 } from "@cocalc/frontend/frame-editors/terminal-editor/theme-data";
+import { useColorTheme } from "../app/theme-context";
 import { labels } from "@cocalc/frontend/i18n";
 import { set_account_table } from "./util";
 
@@ -29,6 +30,7 @@ declare global {
 
 export function TerminalSettings() {
   const intl = useIntl();
+  const theme = useColorTheme();
 
   const terminal = useTypedRedux("account", "terminal");
   const color_scheme = terminal?.get("color_scheme") || "default";
@@ -84,13 +86,19 @@ export function TerminalSettings() {
           showSearch={true}
         />
       </LabeledRow>
-      <TerminalPreview color_scheme={color_scheme} />
+      <TerminalPreview color_scheme={color_scheme} isDark={!!theme.isDark} />
     </Panel>
   );
 }
 
-function TerminalPreview({ color_scheme }: { color_scheme: string }) {
-  const html = example(color_scheme || "default");
+function TerminalPreview({
+  color_scheme,
+  isDark,
+}: {
+  color_scheme: string;
+  isDark: boolean;
+}) {
+  const html = example(color_scheme || "default", isDark);
   return (
     <div
       style={{

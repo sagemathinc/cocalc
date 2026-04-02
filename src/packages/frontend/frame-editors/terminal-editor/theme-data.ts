@@ -268,11 +268,16 @@ for (const name in COLOR_THEMES) {
 
 // This is a cheap hardcoded example for use in configuration/settings.
 // It shows a terminal prompt, cat command, file output, and final prompt.
-export function example(theme_raw: string): string {
+export function example(theme_raw: string, isDark: boolean = false): string {
   // Resolve "cocalc" virtual theme to a concrete variant for the static example.
   // We avoid importing resolve-color-scheme here because it depends on Redux/app-framework
   // which pulls in darkreader (ESM-only) and breaks Next.js SSR builds.
-  const theme = theme_raw === "cocalc" ? "cocalc-light" : theme_raw;
+  const theme =
+    theme_raw === "cocalc"
+      ? isDark
+        ? "cocalc-dark"
+        : "cocalc-light"
+      : theme_raw;
   let html = `<div style="background-color: #ffffff; color: #000000; font-family: monospace, monospace; line-height: 120%; width: 100%; border:1px solid grey;padding:5px">
 <div><span style="color:#4e9a06;">user@cocalc</span>:<span style="color:#3465a4;">~/project</span>$ cat prime_test.py</div>
 <div><span style="color:#c4a000;">def</span>&nbsp;<span style="color:#06989a;">is_prime_lucas_lehmer</span>(p):</div>

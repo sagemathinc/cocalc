@@ -44,14 +44,18 @@ export const GROUP_STYLE: CSS = {
   marginTop: "5px",
 } as const;
 
-export function deterministicColor(group: string) {
+export function deterministicColor(group: string, isDark: boolean) {
   return group === ""
-    ? COLORS.GRAY_L
-    : getRandomColor(group, { diff: 30, min: 185, max: 245 });
+    ? "var(--cocalc-border)"
+    : getRandomColor(group, { diff: 30, isDark });
 }
 
-export function randomBorder(group: string, side: "left" | "bottom"): CSS {
-  const col = deterministicColor(group);
+export function randomBorder(
+  group: string,
+  side: "left" | "bottom",
+  isDark: boolean,
+): CSS {
+  const col = deterministicColor(group, isDark);
   return fileItemBorder(col, side);
 }
 
