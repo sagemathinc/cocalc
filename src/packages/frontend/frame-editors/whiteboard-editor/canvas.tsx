@@ -93,7 +93,6 @@ import {
   fontSizeToZoom,
   getPageSpan,
   getPosition,
-  fitRectToRect,
   getOverlappingElements,
   getTransforms,
   Transforms,
@@ -121,6 +120,8 @@ import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";
 import { extendToIncludeEdges } from "./actions";
 
 import Cursors from "./cursors";
+import SnapGuides from "./snap-guides";
+import type { SnapLine } from "./snap";
 
 // TODO: could penDPIFactor change if you move a window from one monitor to another
 const penDPIFactor = window.devicePixelRatio;
@@ -177,6 +178,9 @@ export default function Canvas({
   }
   const RenderElt =
     readOnly || !isBoard ? RenderReadOnlyElement : RenderElement;
+
+  const [snapLines, setSnapLines] = useState<SnapLine[]>([]);
+  const snapEnabled = frame.desc.get("snapToAlignment") !== false; // default on
 
   const backgroundDivRef = useRef<any>(null);
 
@@ -524,29 +528,32 @@ export default function Canvas({
   useLayoutEffect(() => {
     if (isNavigator || !frame.desc.get("fitToScreen") || !isBoard) return;
     try {
-      const viewport = getViewportData();
-      if (viewport == null) return;
+      // Use screen-pixel viewport (not data-coordinate viewport) so the
+      // computed zoom is independent of the current scale.  Previous code
+      // used getViewportData() which divides by the current scale, causing
+      // fitToScreen to oscillate when called repeatedly.
+      const screenViewport = getViewportWindow();
+      if (screenViewport == null) return;
       if (elements.length == 0) {
-        // Special case -- the screen is blank; don't want to just
-        // maximal zoom in on the center!
         setCenterPositionData({ x: 0, y: 0 });
-        lastViewport.current = viewport;
         frame.actions.set_font_size(frame.id, zoomToFontSize(1));
         return;
       }
-      lastViewport.current = viewport;
       let rect;
       if (mainFrameType == "slides" || presentation) {
         rect = rectSpan(elements.filter((elt) => elt.z == -Infinity));
       } else {
         rect = rectSpan(elements);
       }
-      const factor = presentation ? 1 : 0.95; // 0.95 for extra room too.
+      const factor = presentation ? 1 : 0.95;
+      // rect is in data coords, screenViewport is in pixels.
+      // scale = pixels / data-units → the canvasScale to fit content.
+      const fitScale = Math.min(
+        screenViewport.w / rect.w,
+        screenViewport.h / rect.h,
+      );
       const s =
-        Math.min(
-          2 / factor,
-          Math.max(MIN_ZOOM, fitRectToRect(rect, viewport).scale * canvasScale),
-        ) * factor;
+        Math.min(2 / factor, Math.max(MIN_ZOOM, fitScale)) * factor;
       scale.set(s);
       frame.actions.set_font_size(frame.id, zoomToFontSize(s));
       const centerIt = () => {
@@ -711,6 +718,8 @@ export default function Canvas({
           transforms={transformsRef.current}
           readOnly={readOnly}
           cursors={cursors?.[id]}
+          setSnapLines={setSnapLines}
+          snapEnabled={snapEnabled}
         >
           {elt}
         </Focused>
@@ -735,6 +744,9 @@ export default function Canvas({
             frame={frame}
             canvasScale={canvasScale}
             readOnly={readOnly}
+            allElements={elements}
+            setSnapLines={setSnapLines}
+            snapEnabled={snapEnabled}
             onDrag={() => {
               // dragging element cancels any selection in progress.
               mousePath.current = null;
@@ -803,6 +815,8 @@ export default function Canvas({
         transforms={transformsRef.current}
         readOnly={readOnly}
         multi={multi}
+        setSnapLines={setSnapLines}
+        snapEnabled={snapEnabled}
       >
         {!isAllEdges && (
           <RenderElt element={element} canvasScale={canvasScale} focused />
@@ -1584,6 +1598,13 @@ export default function Canvas({
             />
           )}
           {renderedElements}
+          {snapLines.length > 0 && (
+            <SnapGuides
+              lines={snapLines}
+              transforms={transformsRef.current}
+              canvasScale={canvasScale}
+            />
+          )}
         </div>
       </div>
     </div>
