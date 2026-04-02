@@ -24,6 +24,7 @@ import {
 import { AvailableFeatures } from "@cocalc/frontend/project_configuration";
 import { FILE_ACTIONS } from "@cocalc/frontend/project-file";
 import { is_different } from "@cocalc/util/misc";
+import { COLORS } from "@cocalc/util/theme";
 import { chat } from "../generic/chat";
 import { FrameDndProvider } from "./dnd/frame-dnd-provider";
 import FormatError from "./format-error";
@@ -46,8 +47,8 @@ const LOADING_STYLE: CSS = {
   fontSize: "40px",
   textAlign: "center",
   padding: "15px",
-  color: "var(--cocalc-text-secondary, #999)",
-  background: "var(--cocalc-top-bar-bg, #f8f8f8)",
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
+  background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
 } as const;
 
 const DEFAULT_FILE_COMMANDS: { [commandName: string]: true } = (() => {

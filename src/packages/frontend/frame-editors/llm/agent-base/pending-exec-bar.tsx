@@ -46,7 +46,7 @@ export function PendingExecBar({
       style={{
         flex: "0 0 auto",
         padding: "6px 12px",
-        borderTop: `1px solid ${COLORS.GRAY_L}`,
+        borderTop: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
         background: COLORS.YELL_LLL,
       }}
     >
@@ -99,7 +99,7 @@ export function PendingExecBar({
             style={{
               flex: 1,
               fontSize: "0.85em",
-              background: COLORS.GRAY_LLL,
+              background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
               padding: "2px 6px",
               borderRadius: 4,
             }}

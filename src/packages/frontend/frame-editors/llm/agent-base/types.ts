@@ -108,7 +108,7 @@ export const MESSAGES_STYLE: CSS = {
 } as const;
 
 export const USER_MSG_STYLE: CSS = {
-  background: COLORS.GRAY_LLL,
+  background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
   padding: "8px 12px",
   marginBottom: 8,
   whiteSpace: "pre-wrap",
@@ -139,6 +139,6 @@ export const ERROR_MSG_STYLE: CSS = {
 
 export const INPUT_AREA_STYLE: CSS = {
   flex: "0 0 auto",
-  borderTop: `1px solid ${COLORS.GRAY_L}`,
+  borderTop: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
   padding: "4px 6px",
 } as const;

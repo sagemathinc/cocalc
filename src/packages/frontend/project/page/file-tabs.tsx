@@ -25,6 +25,7 @@ import {
   useSortable,
 } from "@cocalc/frontend/components/sortable-tabs";
 import { file_options } from "@cocalc/frontend/editor-tmp";
+import { COLORS } from "@cocalc/util/theme";
 import { labels as i18nLabels } from "@cocalc/frontend/i18n";
 import {
   useRecentFiles,
@@ -258,7 +259,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
               style={{
                 paddingInline: "10px",
                 ...(recentFilesMenuOpen
-                  ? { backgroundColor: "var(--cocalc-bg-hover, #eeeeee)" }
+                  ? { backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})` }
                   : {}),
               }}
             />
@@ -281,8 +282,8 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
             renderTabBar={renderTabBar}
             tabBarStyle={{
               minHeight: "36px",
-              background: "var(--cocalc-top-bar-bg, #e8e8e8)",
-              borderTop: "2px solid var(--cocalc-border-light, lightgrey)",
+              background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_L0})`,
+              borderTop: `2px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
             }}
             onEdit={onEdit}
             style={{ width: "100%" }}

@@ -163,7 +163,7 @@ export const FileRowCells = React.memo(function FileRowCells({
         }
       >
         {record.is_public ? (
-          <Icon name="share-square" style={{ color: "var(--cocalc-text-secondary, #333333)" }} />
+          <Icon name="share-square" style={{ color: `var(--cocalc-text-secondary, ${COLORS.TAB})` }} />
         ) : null}
       </td>
       <td style={{ ...CELL_STYLE, position: "relative" }}>
@@ -204,7 +204,7 @@ export const FileRowCells = React.memo(function FileRowCells({
                   handleDownloadClick(e, record);
                 }}
                 style={{
-                  color: "var(--cocalc-text-secondary, #333333)",
+                  color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
                   whiteSpace: "nowrap",
                   padding: "0 4px",
                   height: "auto",
@@ -214,7 +214,7 @@ export const FileRowCells = React.memo(function FileRowCells({
                   name="cloud-download"
                   className="cc-explorer-hover-icon"
                   style={{
-                    color: "var(--cocalc-text-secondary, #333333)",
+                    color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
                     marginRight: 4,
                   }}
                 />
@@ -225,7 +225,7 @@ export const FileRowCells = React.memo(function FileRowCells({
             ) : (
               <span
                 style={{
-                  color: "var(--cocalc-text-secondary, #333333)",
+                  color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
                   whiteSpace: "nowrap",
                 }}
               >
@@ -253,7 +253,7 @@ export const FileRowCells = React.memo(function FileRowCells({
                   e.stopPropagation();
                   openContextMenu(record, e.clientX, e.clientY);
                 }}
-                style={{ color: "var(--cocalc-text-secondary, #333333)" }}
+                style={{ color: `var(--cocalc-text-secondary, ${COLORS.TAB})` }}
               >
                 <Icon name="ellipsis" rotate="90" />
               </Button>

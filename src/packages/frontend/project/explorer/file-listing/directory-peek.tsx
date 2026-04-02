@@ -231,7 +231,7 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
       data-folder-drop-path={dirPath}
       style={{
         borderLeft: `5px solid var(--cocalc-primary, ${COLORS.ANTD_LINK_BLUE})`,
-        background: "var(--cocalc-bg-hover, #e6f4ff)",
+        background: `var(--cocalc-bg-hover, ${COLORS.BLUE_LLLL})`,
         padding: "8px 8px 8px 12px",
         position: "relative",
         // When virtualized, VirtuosoGrid handles its own scrolling.

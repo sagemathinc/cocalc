@@ -28,6 +28,7 @@ import "./output-messages/mime-types/init-frontend";
 // React components that implement parts of the Jupyter notebook.
 import { useLanguageModelSetting } from "@cocalc/frontend/account/useLanguageModelSetting";
 import { ErrorDisplay, Icon, Text } from "@cocalc/frontend/components";
+import { COLORS } from "@cocalc/util/theme";
 import { A } from "@cocalc/frontend/components/A";
 import { Loading } from "@cocalc/frontend/components/loading";
 import { ComputeServerDocStatus } from "@cocalc/frontend/compute/doc-status";
@@ -268,8 +269,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           fontSize: "24pt",
           textAlign: "center",
           marginTop: "15px",
-          color: "var(--cocalc-text-secondary, #808080)",
-          background: "var(--cocalc-top-bar-bg, white)",
+          color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
+          background: `var(--cocalc-top-bar-bg, ${COLORS.WHITE})`,
         }}
       />
     );
@@ -289,8 +290,8 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
             fontSize: "24pt",
             textAlign: "center",
             marginTop: "15px",
-            color: "var(--cocalc-text-secondary, #888)",
-            background: "var(--cocalc-top-bar-bg, white)",
+            color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
+            background: `var(--cocalc-top-bar-bg, ${COLORS.WHITE})`,
           }}
         />
       );

@@ -12,9 +12,9 @@ import { COLORS } from "@cocalc/util/theme";
 
 import type { FileEntry } from "./types";
 
-const DIMMED_STYLE = { color: "var(--cocalc-text-tertiary, #959595)" } as const;
+const DIMMED_STYLE = { color: `var(--cocalc-text-tertiary, ${COLORS.FILE_DIMMED})` } as const;
 const TIMESTAMP_STYLE = {
-  color: "var(--cocalc-text-secondary, #333333)",
+  color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
   whiteSpace: "nowrap",
 } as const;
 
@@ -23,8 +23,8 @@ export function renderFileIcon(
   isExpanded?: boolean,
 ): React.ReactNode {
   const color = record.mask
-    ? "var(--cocalc-text-tertiary, #5f5f5f)"
-    : "var(--cocalc-primary, rgb(66, 139, 202))";
+    ? `var(--cocalc-text-tertiary, ${COLORS.GRAY_M})`
+    : `var(--cocalc-primary, ${COLORS.FILE_ICON})`;
   if (record.isdir) {
     return (
       <span style={{ color, verticalAlign: "sub", whiteSpace: "nowrap" }}>
@@ -81,8 +81,8 @@ export function renderFileName(
     textOverflow: "ellipsis",
     verticalAlign: "middle",
     color: record.mask
-      ? "var(--cocalc-text-tertiary, #5f5f5f)"
-      : "var(--cocalc-text-primary, #333333)",
+      ? `var(--cocalc-text-tertiary, ${COLORS.GRAY_M})`
+      : `var(--cocalc-text-primary, ${COLORS.TAB})`,
   };
 
   const extStyle = dimExtensions ? DIMMED_STYLE : undefined;
@@ -134,7 +134,7 @@ export function renderTimestamp(mtime?: number): React.ReactNode {
     return (
       <span
         style={{
-          color: "var(--cocalc-text-secondary, #333333)",
+          color: `var(--cocalc-text-secondary, ${COLORS.TAB})`,
           whiteSpace: "nowrap",
         }}
       >

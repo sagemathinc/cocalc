@@ -933,8 +933,8 @@ function CodingAgentCore({
           style={{
             flex: "0 0 auto",
             padding: "6px 12px",
-            borderTop: `1px solid ${COLORS.GRAY_L}`,
-            background: COLORS.GRAY_LLL,
+            borderTop: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
+            background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",
@@ -1002,7 +1002,7 @@ function CodingAgentCore({
             background: COLORS.YELL_LLL,
             fontSize: "0.85em",
             color: COLORS.GRAY_M,
-            borderTop: `1px solid ${COLORS.GRAY_L}`,
+            borderTop: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
           }}
         >
           {editorContextLabel}

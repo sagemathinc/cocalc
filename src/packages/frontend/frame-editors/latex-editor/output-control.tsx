@@ -16,11 +16,12 @@ import { BuildControls } from "./output-control-build";
 import { PageNavigationControls } from "./output-control-pages";
 import { SyncControls } from "./output-control-sync";
 import { ZoomControls } from "./output-control-zoom";
+import { COLORS } from "@cocalc/util/theme";
 
 const CONTROL_STYLE = {
   padding: "5px 10px",
-  borderBottom: "1px solid var(--cocalc-border-light, #c0c0c0)",
-  background: "var(--cocalc-top-bar-bg, #eeeeee)",
+  borderBottom: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
+  background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LL})`,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",

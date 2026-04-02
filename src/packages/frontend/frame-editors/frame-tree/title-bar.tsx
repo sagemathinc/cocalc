@@ -109,8 +109,8 @@ interface EditorActions extends Actions {
 const MAX_SEARCH_RESULTS = 10;
 
 const title_bar_style: CSS = {
-  background: "var(--cocalc-top-bar-bg, #f8f8f8)",
-  border: "1px solid var(--cocalc-border-light, rgb(204,204,204))",
+  background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
+  border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   padding: "1px",
   flexDirection: "row",
   flexWrap: "nowrap",
@@ -635,8 +635,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           buttonSize={button_size()}
           buttonStyle={{
             ...button_style(),
-            backgroundColor: "var(--cocalc-ai-bg, #f6bf61)",
-            color: "var(--cocalc-ai-text, #303030)",
+            backgroundColor: `var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG})`,
+            color: `var(--cocalc-ai-text, ${COLORS.AI_ASSISTANT_TXT})`,
           }}
           visible={props.tab_is_visible}
           buttonRef={getTourRef("chatgpt")}
@@ -657,8 +657,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         size={button_size()}
         style={{
           ...button_style(),
-          backgroundColor: "var(--cocalc-ai-bg, #f6bf61)",
-          color: "var(--cocalc-ai-text, #303030)",
+          backgroundColor: `var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG})`,
+          color: `var(--cocalc-ai-text, ${COLORS.AI_ASSISTANT_TXT})`,
         }}
         onClick={() => {
           projectActions.toggle_chat({
@@ -1026,7 +1026,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               fontSize: "14pt",
               padding: "0 5px",
               height: props.is_only || props.is_full ? "34px" : "30px",
-              background: showMainButtonsPopover ? "var(--cocalc-bg-hover, #eeeeee)" : undefined,
+              background: showMainButtonsPopover ? `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})` : undefined,
             }}
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >
@@ -1053,7 +1053,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const is_active = props.active_id === props.id;
     const style = is_active
       ? Object.assign({}, CONNECTION_STATUS_STYLE, {
-          background: "var(--cocalc-top-bar-bg, #f8f8f8)",
+          background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
         })
       : CONNECTION_STATUS_STYLE;
 
@@ -1163,7 +1163,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           position: "absolute",
           width: "100%",
           zIndex: 100,
-          background: "var(--cocalc-bg-elevated, white)",
+          background: `var(--cocalc-bg-elevated, ${COLORS.WHITE})`,
           boxShadow: "rgba(0, 0, 0, 0.25) 0px 6px 24px",
         }}
       >
@@ -1207,7 +1207,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
     const { disabled, label, key, children, onClick } = item;
     const style: CSS = {
-      color: "var(--cocalc-text-primary, #333)",
+      color: `var(--cocalc-text-primary, ${COLORS.TAB})`,
       padding: showSymbolBarLabels ? "0" : "7.5px 0 0 0",
       height: showSymbolBarLabels ? "36px" : undefined,
     } as const;
@@ -1300,8 +1300,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return wrapButtonBarContextMenu(
         <div
           style={{
-            borderBottom: popup ? undefined : "1px solid var(--cocalc-border-light, #ccc)",
-            background: "var(--cocalc-bg-hover, #fafafa)",
+            borderBottom: popup ? undefined : `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
+            background: `var(--cocalc-bg-hover, ${COLORS.GRAY_LLLL})`,
             opacity: is_active ? undefined : 0.3,
           }}
         >
@@ -1432,7 +1432,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   let style;
   style = copy(title_bar_style);
-  style.background = is_active ? "var(--cocalc-bg-elevated, #f8f8f8)" : "var(--cocalc-top-bar-bg, #f8f8f8)";
+  style.background = is_active ? `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLL})` : `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`;
   if (!props.is_only && !props.is_full) {
     style.maxHeight = "34px";
   } else {

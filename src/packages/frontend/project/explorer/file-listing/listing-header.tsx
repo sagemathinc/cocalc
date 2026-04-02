@@ -7,6 +7,7 @@ import React from "react";
 import { TypedMap } from "@cocalc/frontend/app-framework";
 import { Icon, Gap, VisibleMDLG } from "@cocalc/frontend/components";
 import { Col, Row } from "antd";
+import { COLORS } from "@cocalc/util/theme";
 
 // TODO: Flatten active_file_sort for easy PureComponent use
 interface Props {
@@ -16,9 +17,9 @@ interface Props {
 
 const row_style: React.CSSProperties = {
   cursor: "pointer",
-  color: "var(--cocalc-text-secondary, #5f5f5f)",
-  backgroundColor: "var(--cocalc-top-bar-bg, #fafafa)",
-  border: "1px solid var(--cocalc-border-light, #eeeeee)",
+  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
+  backgroundColor: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLLL})`,
+  border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_LL})`,
   borderRadius: "4px",
 } as const;
 
@@ -46,7 +47,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
             return sort_by(column_name);
           }}
           style={{
-            color: "var(--cocalc-primary, #2A5AA6)",
+            color: `var(--cocalc-primary, ${COLORS.BLUE_DD})`,
             fontWeight: "bold",
             whiteSpace: "nowrap",
           }}
@@ -79,7 +80,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
           "starred",
           <Icon
             name="star-filled"
-            style={{ color: "var(--cocalc-primary, #2A5AA6)", fontSize: "12pt" }}
+            style={{ color: `var(--cocalc-primary, ${COLORS.BLUE_DD})`, fontSize: "12pt" }}
           />,
           "0px",
         )}

@@ -16,6 +16,7 @@ import { DARK_GREY_BORDER } from "../../util";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { Icon } from "@cocalc/frontend/components/icon";
 import { isEqual } from "lodash";
+import { COLORS } from "@cocalc/util/theme";
 import Mermaid from "./mermaid";
 
 export interface CodeBlock extends SlateElement {
@@ -123,7 +124,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
                 borderBottom: "1px solid #ccc",
                 padding: "3px",
                 display: "flex",
-                background: "var(--cocalc-bg-hover, #f8f8f8)",
+                background: `var(--cocalc-bg-hover, ${COLORS.GRAY_LLL})`,
               }}
             >
               <div style={{ flex: 1 }}></div>
@@ -176,7 +177,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
         }
         value={newValue ?? element.value}
         style={{
-          background: "var(--cocalc-bg-base, white)",
+          background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
           padding: "10px 15px 10px 20px",
           borderLeft: `10px solid ${DARK_GREY_BORDER}`,
           borderRadius: 0,
@@ -191,7 +192,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
             <div
               style={{
                 borderTop: "1px dashed #ccc",
-                background: "var(--cocalc-bg-base, white)",
+                background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
                 padding: "5px 0 5px 30px",
               }}
             >
