@@ -163,7 +163,7 @@ export const FileRowCells = React.memo(function FileRowCells({
         }
       >
         {record.is_public ? (
-          <Icon name="share-square" style={{ color: COLORS.TAB }} />
+          <Icon name="share-square" style={{ color: "var(--cocalc-text-secondary, #333333)" }} />
         ) : null}
       </td>
       <td style={{ ...CELL_STYLE, position: "relative" }}>
@@ -253,7 +253,7 @@ export const FileRowCells = React.memo(function FileRowCells({
                   e.stopPropagation();
                   openContextMenu(record, e.clientX, e.clientY);
                 }}
-                style={{ color: COLORS.TAB }}
+                style={{ color: "var(--cocalc-text-secondary, #333333)" }}
               >
                 <Icon name="ellipsis" rotate="90" />
               </Button>
