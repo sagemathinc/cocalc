@@ -97,7 +97,10 @@ export default function usePinchToZoom({
         }
         // prevent the entire window scrolling on windows or with a mouse.
         state.event.preventDefault();
-        save(max - state.offset[1] / smooth, state.first);
+        // offset[1] goes from 0 (top bound) to (max-min)*smooth (bottom).
+        // Map that to fontSize from max down to min.
+        const fontSize = max - state.offset[1] / smooth;
+        save(Math.min(max, Math.max(min, fontSize)), state.first);
       }
     },
     {
@@ -105,6 +108,16 @@ export default function usePinchToZoom({
       target,
       eventOptions: { passive: false, capture: true },
       bounds: { top: 0, bottom: (max - min) * smooth },
+      from: () => {
+        // Initialize from current font size so scrolling starts at the
+        // right position instead of jumping from offset=0.
+        if (getFontSize != null) {
+          const fontSize = getFontSize();
+          // fontSize = max - offset[1] / smooth  =>  offset[1] = (max - fontSize) * smooth
+          return [0, (max - fontSize) * smooth];
+        }
+        return [0, 0];
+      },
       disabled,
     },
   );

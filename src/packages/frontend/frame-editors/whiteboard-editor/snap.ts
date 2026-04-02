@@ -15,6 +15,7 @@ Returns adjusted positions and guide lines to render.
 
 import { Element, Rect } from "./types";
 import { getPosition } from "./math";
+import { GRID_MAJOR, GRID_MINOR } from "./elements/grid";
 
 // Distance threshold in data coordinates within which snapping activates
 const SNAP_THRESHOLD = 8;
@@ -48,12 +49,22 @@ export function computeSnap({
   movingRect,
   otherElements,
   pageRect,
+  canvasScale,
 }: {
   movingRect: Rect;
   otherElements: Element[];
   pageRect?: Rect; // the slide/page boundary, if any
+  canvasScale?: number; // current zoom level; used for grid snapping
 }): SnapResult {
   const targets = collectSnapTargets(otherElements, pageRect);
+
+  // Add grid snap targets around the moving element's neighborhood.
+  // Major grid lines (100px) always; minor (20px) only when zoomed in past 200%.
+  const gridStep =
+    canvasScale != null && canvasScale >= 2 ? GRID_MINOR : GRID_MAJOR;
+  if (canvasScale != null) {
+    addGridTargets(targets, movingRect, gridStep);
+  }
 
   // Edges and center of the moving element
   const movingLeft = movingRect.x;
@@ -210,6 +221,26 @@ function collectSnapTargets(
   }
 
   return targets;
+}
+
+// Add grid line targets near the moving element so we don't generate
+// thousands of targets across the infinite canvas.
+function addGridTargets(
+  targets: SnapTarget[],
+  movingRect: Rect,
+  step: number,
+): void {
+  const margin = step * 2; // look a couple of grid cells in each direction
+  const xStart = Math.floor((movingRect.x - margin) / step) * step;
+  const xEnd = Math.ceil((movingRect.x + movingRect.w + margin) / step) * step;
+  const yStart = Math.floor((movingRect.y - margin) / step) * step;
+  const yEnd = Math.ceil((movingRect.y + movingRect.h + margin) / step) * step;
+  for (let x = xStart; x <= xEnd; x += step) {
+    targets.push({ orientation: "vertical", position: x });
+  }
+  for (let y = yStart; y <= yEnd; y += step) {
+    targets.push({ orientation: "horizontal", position: y });
+  }
 }
 
 function getVerticalLineExtent(

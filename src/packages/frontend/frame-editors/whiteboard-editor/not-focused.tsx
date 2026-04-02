@@ -58,7 +58,7 @@ export default function NotFocused({
         (e) => e.id !== element.id && e.type !== "selection",
       );
       const pageRect = getPageRect(allElements);
-      const result = computeSnap({ movingRect, otherElements, pageRect });
+      const result = computeSnap({ movingRect, otherElements, pageRect, canvasScale });
       snapRef.current = { dx: result.dx, dy: result.dy };
       setSnapLines?.(result.lines);
     },
