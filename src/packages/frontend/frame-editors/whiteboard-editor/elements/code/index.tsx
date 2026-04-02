@@ -156,16 +156,12 @@ export default function Code({
         // Commit when unfocused so collaborators see the change.
         shrink.cancel();
         actions.setElement({ obj: { id: element.id, h }, commit: !focused });
-      } else if (h < elementHRef.current - 2) {
+      } else if (!focused && h < elementHRef.current - 2) {
         // Shrink with a delay to avoid oscillation.
+        // Only shrink when unfocused — in focused mode, outerRef has
+        // height:100% so scrollHeight can't drop, and using the inner
+        // measurement causes oscillation. Shrink happens on blur.
         shrink();
-      } else if (focused) {
-        // In focused mode, outerRef.scrollHeight can't shrink below
-        // element.h (height:100%).  Check inner measurement as fallback.
-        const hInner = measureHeightInner();
-        if (hInner != null && hInner < elementHRef.current - 2) {
-          shrink();
-        }
       }
     };
 
