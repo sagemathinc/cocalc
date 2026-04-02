@@ -93,15 +93,19 @@ export default function DateRange(props: Props) {
         }
         onChange={(value) => {
           const now = dayjs();
+          // Convert via .toDate() to avoid type mismatch between
+          // antd's dayjs version and ours.
+          const v0 = value?.[0] ? dayjs(value[0].toDate()) : null;
+          const v1 = value?.[1] ? dayjs(value[1].toDate()) : null;
           // Ensure start is the later of now or the start of the selected day
-          const start = value?.[0]
-            ? dayjs(value[0] as any).isBefore(now)
+          const start = v0
+            ? v0.isBefore(now)
               ? now.toDate()
-              : dayjs(value[0] as any).startOf("day").toDate()
+              : v0.startOf("day").toDate()
             : undefined;
           // Set end of day, but only modify if there's a value
-          const end = value?.[1]
-            ? dayjs(value[1] as any).endOf("day").subtract(1, "minute").toDate()
+          const end = v1
+            ? v1.endOf("day").subtract(1, "minute").toDate()
             : undefined;
           const x: [Date0, Date0] = [start, end];
           setDateRange(x);
