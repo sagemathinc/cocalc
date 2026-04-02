@@ -324,9 +324,10 @@ export const CellInput: React.FC<CellInputProps> = React.memo(
           onFocus={() => {
             const actions = frameActions.current;
             if (actions != null) {
-              actions.unselect_all_cells();
-              actions.set_cur_id(props.id);
-              actions.set_mode("edit");
+              actions.activate_cell(props.id, {
+                mode: "edit",
+                clearSelection: true,
+              });
             }
           }}
           registerEditor={(editor) => {

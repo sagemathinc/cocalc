@@ -172,9 +172,10 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
       frameActions.current?.select_cell_range(id);
       return;
     }
-    frameActions.current?.set_mode("escape");
-    frameActions.current?.set_cur_id(id);
-    frameActions.current?.unselect_all_cells();
+    frameActions.current?.activate_cell(id, {
+      mode: "escape",
+      clearSelection: true,
+    });
   }
 
   function double_click(event: any): void {
@@ -187,11 +188,10 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
     if (props.cell.get("cell_type") !== "markdown") {
       return;
     }
-    frameActions.current?.unselect_all_cells();
-    const id = props.cell.get("id");
-    frameActions.current?.set_md_cell_editing(id);
-    frameActions.current?.set_cur_id(id);
-    frameActions.current?.set_mode("edit");
+    frameActions.current?.activate_cell(props.cell.get("id"), {
+      mode: "edit",
+      clearSelection: true,
+    });
     event.stopPropagation();
   }
 

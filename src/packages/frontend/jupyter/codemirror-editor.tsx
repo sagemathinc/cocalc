@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -20,7 +20,12 @@ import {
   useState,
 } from "react";
 
-import { React, redux, usePrevious, useRef } from "@cocalc/frontend/app-framework";
+import {
+  React,
+  redux,
+  usePrevious,
+  useRef,
+} from "@cocalc/frontend/app-framework";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { openAssistantWithPrefill } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import { COLORS } from "@cocalc/util/theme";
@@ -312,9 +317,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     if (cm.current == null || actions == null) {
       return;
     }
-    frameActions.current?.unselect_all_cells();
-    frameActions.current?.set_cur_id(id);
-    frameActions.current?.set_mode("edit");
+    frameActions.current?.activate_cell(id, {
+      mode: "edit",
+      clearSelection: true,
+    });
     if (vim_mode.current) {
       $(cm.current.getWrapperElement()).css({ paddingBottom: "1.5em" });
     }
@@ -848,16 +854,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
                 // Compute 1-based cell number for context.
                 const store = (actions as any).store;
                 const cellList = store?.get("cell_list");
-                const cellIds = cellList?.toJS() as
-                  | string[]
-                  | undefined;
-                const cellIndex = cellIds
-                  ? cellIds.indexOf(id)
-                  : -1;
+                const cellIds = cellList?.toJS() as string[] | undefined;
+                const cellIndex = cellIds ? cellIds.indexOf(id) : -1;
                 const cellLabel =
-                  cellIndex >= 0
-                    ? `cell #${cellIndex + 1}`
-                    : "this cell";
+                  cellIndex >= 0 ? `cell #${cellIndex + 1}` : "this cell";
                 openAssistantWithPrefill({
                   redux,
                   project_id: (actions as any).project_id,
