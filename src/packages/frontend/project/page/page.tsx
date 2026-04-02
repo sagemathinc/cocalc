@@ -455,7 +455,7 @@ function FlyoutDragbar({
         width: "5px",
         height: "100%",
         cursor: "col-resize",
-        ...(active ? { zIndex: 1000, backgroundColor: COLORS.GRAY } : {}),
+        ...(active ? { zIndex: 1000, backgroundColor: `var(--cocalc-drag-bar-hover, ${COLORS.GRAY})` } : {}),
       }}
       {...listeners}
       {...attributes}

@@ -125,6 +125,10 @@ export interface ColorTheme {
   chatOtherBg: string;
   chatOtherText: string;
 
+  // ── Drag bars ────────────────────────────────────────────────────────
+  dragBar: string;
+  dragBarHover: string;
+
   // ── Misc semantic ────────────────────────────────────────────────────
   star: string;
   run: string;
@@ -209,6 +213,9 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     chatOtherBg: darken(bgBase, 0.03),
     chatOtherText: text,
 
+    dragBar: darken(bg, 0.1),
+    dragBarHover: primary,
+
     star: "#FFD700",
     run: "#389e0d",
     aiBg: lighten(accent, 0.3),
@@ -284,6 +291,9 @@ export function deriveDarkTheme(light: ColorTheme): ColorTheme {
     chatOtherBg: darkBgElevated,
     chatOtherText: darkText,
 
+    dragBar: lighten(darkBg, 0.15),
+    dragBarHover: primary,
+
     star: "#FFD700",
     run: "#52c41a",
     aiBg: darken(accent, 0.4),
@@ -344,6 +354,9 @@ export const THEME_DEFAULT: ColorTheme = {
   chatViewerText: "#ffffff",
   chatOtherBg: "#f8f8f8",
   chatOtherText: "#000000",
+
+  dragBar: "#e0e0e0",
+  dragBarHover: "#4474c0",
 
   star: "#FFD700",
   run: "#389e0d",

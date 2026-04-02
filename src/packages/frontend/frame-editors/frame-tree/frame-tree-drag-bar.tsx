@@ -24,13 +24,13 @@ const DRAG_OFFSET = feature.IS_TOUCH ? 5 : 3; // 3 is consistent with width/heig
 
 const COLS_DRAG_BAR: CSS = {
   padding: `${DRAG_OFFSET}px`,
-  background: COLORS.GRAY_LL,
+  background: `var(--cocalc-drag-bar, ${COLORS.GRAY_LL})`,
   cursor: "ew-resize",
-  border: `1px solid ${COLORS.GRAY_DDD}`,
+  border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_DDD})`,
 } as const;
 
 const DRAG_HOVER: CSS = {
-  background: COLORS.FG_BLUE,
+  background: `var(--cocalc-drag-bar-hover, ${COLORS.FG_BLUE})`,
   opacity: 0.8,
   zIndex: 100, // so it's on top of editors and other controls
 } as const;

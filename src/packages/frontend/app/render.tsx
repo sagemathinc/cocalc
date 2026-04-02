@@ -149,6 +149,8 @@ function applyThemeCSSVars(t: ColorTheme): void {
   s.setProperty("--cocalc-run", t.run);
   setRgb("--cocalc-run", t.run);
   s.setProperty("--cocalc-star", t.star);
+  s.setProperty("--cocalc-drag-bar", t.dragBar);
+  s.setProperty("--cocalc-drag-bar-hover", t.dragBarHover);
   s.setProperty("--cocalc-ai-bg", t.aiBg);
   s.setProperty("--cocalc-ai-text", t.aiText);
   s.setProperty("--cocalc-ai-font", t.aiFont);

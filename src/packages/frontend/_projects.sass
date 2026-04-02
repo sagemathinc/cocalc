@@ -134,8 +134,10 @@ li.cc-project-home-recent-files
   &:hover
     background-color: colors.$COL_GRAY_LLL
 
+div.cc-project-flyout-dragbar
+  background-color: var(--cocalc-drag-bar, transparent)
 div.cc-project-flyout-dragbar:hover
-  background-color: colors.$COL_GRAY_L
+  background-color: var(--cocalc-drag-bar-hover, colors.$COL_GRAY_L)
 
 .cc-project-log-history-entry:hover
   cursor: pointer
