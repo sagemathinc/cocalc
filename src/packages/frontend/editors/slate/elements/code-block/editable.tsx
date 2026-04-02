@@ -89,7 +89,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
                     borderBottom: "1px solid #ccc",
                     padding: "3px",
                     display: "flex",
-                    background: "#f8f8f8",
+                    background: "var(--cocalc-bg-hover, #f8f8f8)",
                   }}
                 >
                   <div style={{ flex: 1 }}></div>
@@ -158,7 +158,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
                     }}
                     style={{
                       borderTop: "1px dashed #ccc",
-                      background: "white",
+                      background: "var(--cocalc-bg-base, white)",
                       padding: "5px 0 5px 30px",
                     }}
                   >

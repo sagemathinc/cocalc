@@ -11,8 +11,6 @@ Orchestrates build, page navigation, sync, and zoom controls
 import { useEffect, useRef, useState } from "react";
 
 import { useRedux } from "@cocalc/frontend/app-framework";
-import { COLORS } from "@cocalc/util/theme";
-
 import { Actions } from "./actions";
 import { BuildControls } from "./output-control-build";
 import { PageNavigationControls } from "./output-control-pages";

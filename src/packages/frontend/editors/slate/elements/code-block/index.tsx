@@ -123,7 +123,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
                 borderBottom: "1px solid #ccc",
                 padding: "3px",
                 display: "flex",
-                background: "#f8f8f8",
+                background: "var(--cocalc-bg-hover, #f8f8f8)",
               }}
             >
               <div style={{ flex: 1 }}></div>
@@ -176,7 +176,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
         }
         value={newValue ?? element.value}
         style={{
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           padding: "10px 15px 10px 20px",
           borderLeft: `10px solid ${DARK_GREY_BORDER}`,
           borderRadius: 0,
@@ -191,7 +191,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
             <div
               style={{
                 borderTop: "1px dashed #ccc",
-                background: "white",
+                background: "var(--cocalc-bg-base, white)",
                 padding: "5px 0 5px 30px",
               }}
             >

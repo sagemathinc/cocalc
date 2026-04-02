@@ -40,7 +40,7 @@ export default function SideChat({
         display: "flex",
         flexDirection: "column",
         minHeight: 0,
-        backgroundColor: "#efefef",
+        backgroundColor: "var(--cocalc-bg-base, #efefef)",
         ...style,
       }}
     >

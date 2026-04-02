@@ -69,7 +69,7 @@ const FILTER_RECENT_NONE = {
 } as const;
 
 const PREVIEW_STYLE: React.CSSProperties = {
-  background: "#f5f5f5",
+  background: "var(--cocalc-bg-hover, #f5f5f5)",
   fontSize: "14px",
   borderRadius: "10px 10px 10px 10px",
   boxShadow: "#666 3px 3px 3px",
@@ -88,12 +88,12 @@ const GRID_STYLE: React.CSSProperties = {
 
 const CHAT_LAYOUT_STYLE: React.CSSProperties = {
   height: "100%",
-  background: "white",
+  background: "var(--cocalc-bg-base, white)",
 } as const;
 
 const CHAT_LOG_STYLE: React.CSSProperties = {
   padding: "0",
-  background: "white",
+  background: "var(--cocalc-bg-base, white)",
   flex: 1,
   minHeight: 0,
   position: "relative",
@@ -102,8 +102,8 @@ const CHAT_LOG_STYLE: React.CSSProperties = {
 const THREAD_SIDEBAR_WIDTH = 260;
 
 const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
-  background: COLORS.GRAY_LLLL,
-  borderRight: `1px solid ${COLORS.GRAY_LL}`,
+  background: "var(--cocalc-bg-elevated, #fafafa)",
+  borderRight: "1px solid var(--cocalc-border-light, #eeeeee)",
   padding: "15px 0",
   display: "flex",
   flexDirection: "column",
@@ -506,7 +506,7 @@ export function ChatPanel({
               size="small"
               overflowCount={99}
               style={{
-                backgroundColor: COLORS.GRAY_L0,
+                backgroundColor: "var(--cocalc-bg-hover, #e0e0e0)",
                 color: COLORS.GRAY_D,
               }}
             />
@@ -548,7 +548,7 @@ export function ChatPanel({
         count={count}
         size="small"
         style={{
-          backgroundColor: COLORS.GRAY_L0,
+          backgroundColor: "var(--cocalc-bg-hover, #e0e0e0)",
           color: COLORS.GRAY_D,
         }}
       />
@@ -1035,14 +1035,14 @@ export function ChatPanel({
   const renderDefaultLayout = () => (
     <Layout style={CHAT_LAYOUT_STYLE}>
       {renderThreadSidebar()}
-      <Layout.Content className="smc-vfill" style={{ background: "white" }}>
+      <Layout.Content className="smc-vfill" style={{ background: "var(--cocalc-bg-base, white)" }}>
         {renderChatContent()}
       </Layout.Content>
     </Layout>
   );
 
   const renderCompactLayout = () => (
-    <div className="smc-vfill" style={{ background: "white" }}>
+    <div className="smc-vfill" style={{ background: "var(--cocalc-bg-base, white)" }}>
       <Drawer
         open={sidebarVisible}
         onClose={() => setSidebarVisible(false)}
@@ -1070,7 +1070,7 @@ export function ChatPanel({
             count={totalUnread}
             overflowCount={99}
             style={{
-              backgroundColor: COLORS.GRAY_L0,
+              backgroundColor: "var(--cocalc-bg-hover, #e0e0e0)",
               color: COLORS.GRAY_D,
             }}
           />

@@ -635,12 +635,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
           buttonSize={button_size()}
           buttonStyle={{
             ...button_style(),
-            ...(!darkMode
-              ? {
-                  backgroundColor: COLORS.AI_ASSISTANT_BG,
-                  color: COLORS.AI_ASSISTANT_TXT,
-                }
-              : undefined),
+            backgroundColor: "var(--cocalc-ai-bg, #f6bf61)",
+            color: "var(--cocalc-ai-text, #303030)",
           }}
           visible={props.tab_is_visible}
           buttonRef={getTourRef("chatgpt")}
@@ -661,12 +657,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         size={button_size()}
         style={{
           ...button_style(),
-          ...(!darkMode
-            ? {
-                backgroundColor: COLORS.AI_ASSISTANT_BG,
-                color: COLORS.AI_ASSISTANT_TXT,
-              }
-            : undefined),
+          backgroundColor: "var(--cocalc-ai-bg, #f6bf61)",
+          color: "var(--cocalc-ai-text, #303030)",
         }}
         onClick={() => {
           projectActions.toggle_chat({

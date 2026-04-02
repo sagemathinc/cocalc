@@ -149,6 +149,11 @@ function applyThemeCSSVars(t: ColorTheme): void {
   s.setProperty("--cocalc-run", t.run);
   setRgb("--cocalc-run", t.run);
   s.setProperty("--cocalc-star", t.star);
+  s.setProperty("--cocalc-ai-bg", t.aiBg);
+  s.setProperty("--cocalc-ai-text", t.aiText);
+  s.setProperty("--cocalc-ai-font", t.aiFont);
+  s.setProperty("--cocalc-chat-viewer-bg", t.chatViewerBg);
+  s.setProperty("--cocalc-chat-other-bg", t.chatOtherBg);
   s.setProperty("--cocalc-is-dark", t.isDark ? "1" : "0");
   // Also set body background so the page chrome matches the theme
   s.backgroundColor = t.bgBase;

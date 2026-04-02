@@ -267,6 +267,11 @@ export function useAntdStyleProvider() {
               colorTextQuaternary: colorTheme.border,
               colorTextTertiary: colorTheme.textTertiary,
             },
+            Input: {
+              colorBgContainer: colorTheme.bgElevated,
+              colorBorder: colorTheme.border,
+              colorText: colorTheme.textPrimary,
+            },
             Tabs: {
               cardBg: colorTheme.topBarBg,
               itemColor: colorTheme.textSecondary,

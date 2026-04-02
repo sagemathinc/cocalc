@@ -21,7 +21,7 @@ import {
   TimeAgo,
   Title,
 } from "@cocalc/frontend/components";
-import { open_new_tab } from "@cocalc/frontend/misc";
+import { BASE_URL, open_new_tab } from "@cocalc/frontend/misc";
 import { useColorTheme } from "@cocalc/frontend/app/theme-context";
 import { cmp_Date, getRandomColor } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
