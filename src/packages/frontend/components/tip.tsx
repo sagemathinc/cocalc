@@ -21,7 +21,11 @@ type Size = "xsmall" | "small" | "medium" | "large";
 type Trigger = "hover" | "focus" | "click" | "contextMenu";
 
 interface Props {
-  title?: string | React.JSX.Element | React.JSX.Element[] | (() => React.JSX.Element); // not checked for update
+  title?:
+    | string
+    | React.JSX.Element
+    | React.JSX.Element[]
+    | (() => React.JSX.Element); // not checked for update
   placement?: TooltipPlacement;
   tip?: string | React.JSX.Element | React.JSX.Element[]; // not checked for update
   size?: Size; // IMPORTANT: this is currently ignored -- see https://github.com/sagemathinc/cocalc/pull/4155
@@ -111,7 +115,7 @@ export const Tip: React.FC<Props> = React.memo((props: Props) => {
 
     if (tip) {
       return (
-        <Popover title={render_title()} content={render_tip()} {...props}>
+        <Popover title={render_title} content={render_tip} {...props}>
           {render_wrapped()}
         </Popover>
       );

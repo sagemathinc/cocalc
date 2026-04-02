@@ -9,7 +9,7 @@ Tabs for the open files in a project.
 
 import type { MenuProps, TabsProps } from "antd";
 import { Button, Dropdown, Tabs } from "antd";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import {
@@ -84,19 +84,16 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     { project_id },
     "directory_listings",
   );
-  const recentFiles = useRecentFiles(project_log, 30, "", directory_listings);
+  const recentFiles = useRecentFiles(
+    project_log,
+    recentFilesMenuOpen ? 30 : 0,
+    "",
+    directory_listings,
+  );
 
-  if (openFiles == null) {
-    return null;
-  }
-
-  // Ensure project log is loaded for the recent files context menu
-  if (project_log == null) {
-    redux.getProjectStore(project_id).init_table("project_log");
-  }
   const paths: string[] = [];
   const keys: string[] = [];
-  openFiles.map((path) => {
+  openFiles?.map((path) => {
     if (path == null) {
       // see https://github.com/sagemathinc/cocalc/issues/3450
       // **This should never fail** so be loud if it does.
@@ -108,7 +105,12 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     paths.push(path);
     keys.push(pathToKey(path));
   });
-  const openPathSet = new Set(paths);
+  const openPathSet = useMemo(() => new Set(paths), [openFiles]);
+
+  useEffect(() => {
+    if (!recentFilesMenuOpen || project_log != null) return;
+    redux.getProjectStore(project_id).init_table("project_log");
+  }, [recentFilesMenuOpen, project_log, project_id]);
 
   const labels = file_tab_labels(paths);
   const items: TabsProps["items"] = [];
@@ -234,7 +236,14 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     };
   }
 
-  const recentFilesMenu = getRecentFilesMenu();
+  const recentFilesMenu = useMemo(
+    () => getRecentFilesMenu(),
+    [recentFiles, intl, actions, openPathSet],
+  );
+
+  if (openFiles == null) {
+    return null;
+  }
 
   function renderExtra() {
     return {

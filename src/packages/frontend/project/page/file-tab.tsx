@@ -758,7 +758,7 @@ export function FileTab(props: Readonly<Props>) {
         }
         return tooltip({ project_id });
       }}
-      content={renderPopoverContent()}
+      content={renderPopoverContent}
       mouseEnterDelay={1}
       placement={props.placement ?? "bottom"}
     >
