@@ -143,9 +143,12 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const cm_is_focused = useRef<boolean>(false);
   const vim_mode = useRef<boolean>(false);
   const cm_ref = React.createRef<HTMLTextAreaElement>();
-  const [cmValue, setCmValue] = useState<string>(value);
+  const [isEmpty, setIsEmpty] = useState<boolean>(value.length === 0);
   const handleChange = useCallback(() => {
-    setCmValue(cm.current?.getValue());
+    setIsEmpty((prev) => {
+      const next = (cm.current?.getValue() ?? "") === "";
+      return prev === next ? prev : next;
+    });
   }, []);
   const key = useRef<string | null>(null);
   const prev_options = usePrevious(options);
@@ -208,6 +211,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }, [value]);
 
   useEffect(() => {
+    setIsEmpty(value.length === 0);
+  }, [value]);
+
+  useEffect(() => {
     // can't do anything if there is no codemirror editor
     if (cm.current == null) return;
 
@@ -236,7 +243,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   );
 
   useEffect(() => {
-    if (!is_current || cmValue) {
+    if (!is_current || !isEmpty) {
       return;
     }
     if (options.get("lineNumbers")) {
@@ -244,7 +251,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       // codemirror renders to see what we got.
       // That said, this only matters when the only line
       // number is "1" (since there can be at most 1 line in order for
-      // cmValue=''), so this number is always 30 in practice.
+      // the cell is empty, so this number is always 30 in practice.
       setPlaceHolderOffset(30);
       setTimeout(() => {
         setPlaceHolderOffset(
@@ -254,7 +261,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     } else {
       setPlaceHolderOffset(0);
     }
-  }, [is_current, cmValue, options]);
+  }, [is_current, isEmpty, options]);
 
   // This is an attempt to make code editing somewhat work at non 100% scale
   // for the whiteboard.  It's only used there, and is a miracle it partly
@@ -814,7 +821,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function renderPlaceholder() {
-    if (!is_current || cmValue || !setShowAICellGen) {
+    if (!is_current || !isEmpty || !setShowAICellGen) {
       return;
     }
     return (
