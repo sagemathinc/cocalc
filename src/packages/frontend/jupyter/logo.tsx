@@ -9,7 +9,7 @@ The kernel's logo display
 
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import { filename_extension, getRandomColor } from "@cocalc/util/misc";
-import { useColorTheme } from "@cocalc/frontend/app/theme-context";
+import { inDarkMode } from "@cocalc/frontend/account/dark-mode";
 import { CSSProperties, useEffect, useState } from "react";
 import { Spin } from "antd";
 import useClientContext from "@cocalc/frontend/client/context";
@@ -29,7 +29,7 @@ export default function Logo({
   style,
   project_id,
 }: Props) {
-  const { isDark } = useColorTheme();
+  const isDark = inDarkMode();
   const { client } = useClientContext();
   const fileContext = useFileContext();
   if (project_id == null) {
