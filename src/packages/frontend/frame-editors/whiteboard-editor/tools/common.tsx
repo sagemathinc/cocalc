@@ -12,7 +12,7 @@ export function ResetButton({ onClick }) {
         <Button
           type="text"
           style={{
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             margin: "auto",
             padding: 0,
             fontSize: "12px",

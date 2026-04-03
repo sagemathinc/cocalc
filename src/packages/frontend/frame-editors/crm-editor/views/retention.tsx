@@ -114,7 +114,7 @@ function Header({ size, period, startTimes, all }) {
       <td
         style={{
           padding: "5px 15px",
-          border: "1px solid #eee",
+          border: "1px solid var(--cocalc-border-light, #eee)",
           minWidth: "250px",
         }}
       >
@@ -125,7 +125,7 @@ function Header({ size, period, startTimes, all }) {
         >
           {all ? "Active Users" : "Active Users in Cohort"}
         </b>
-        <div style={{ color: "#888" }}>{size} users</div>
+        <div style={{ color: "var(--cocalc-text-tertiary, #888)" }}>{size} users</div>
       </td>
       {startTimes.map((t) => (
         <Tooltip
@@ -144,8 +144,8 @@ function Header({ size, period, startTimes, all }) {
         >
           <td
             style={{
-              background: "#fafafa",
-              border: "1px solid #eee",
+              background: "var(--cocalc-bg-elevated, #fafafa)",
+              border: "1px solid var(--cocalc-border-light, #eee)",
               padding: "0 5px",
               textAlign: "center",
             }}
@@ -200,7 +200,7 @@ function Row({ start, stop, size, active, period, all }) {
     <>
       <td
         style={{
-          border: "1px solid #eee",
+          border: "1px solid var(--cocalc-border-light, #eee)",
           padding: "5px 15px",
           height: "30px",
           minWidth: "250px",
@@ -222,7 +222,7 @@ function Row({ start, stop, size, active, period, all }) {
             >
               <b>{dayjs(start).format("ddd MMM D, YYYY")}</b>
               <br />
-              <div style={{ color: "#888" }}>{size} users</div>
+              <div style={{ color: "var(--cocalc-text-tertiary, #888)" }}>{size} users</div>
             </Tooltip>
           </>
         )}
@@ -249,7 +249,7 @@ function Active({ n, size, tip, all }) {
     >
       <td
         style={{
-          border: "1px solid #eee",
+          border: "1px solid var(--cocalc-border-light, #eee)",
           padding: "0 5px",
           height: "30px",
           minWidth: "75px",

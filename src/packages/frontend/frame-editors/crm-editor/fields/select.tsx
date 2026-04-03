@@ -21,7 +21,7 @@ function PriorityDisplay({ value, color, n, len }) {
         showInfo={false}
         percent={(100 * (n + 1)) / len}
       />
-      <div style={{ color: "#666" }}>{capitalize(value)}</div>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>{capitalize(value)}</div>
     </Space>
   );
 }

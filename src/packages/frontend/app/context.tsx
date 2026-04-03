@@ -205,7 +205,7 @@ export function useAntdStyleProvider() {
         itemSelectedBg: "#e6e6e6",
         itemColor: "#000000",
         itemHoverColor: "#000000",
-        itemHoverBg: "#f0f0f0",
+        itemHoverBg: "var(--cocalc-bg-hover, #f0f0f0)",
       }
     : undefined;
 

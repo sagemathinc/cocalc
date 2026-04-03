@@ -67,7 +67,7 @@ const cache = new TTL<string, any>({
 // make it really standout:
 const PADDING = 5;
 const STYLE = {
-  border: "1px solid #ccc",
+  border: "1px solid var(--cocalc-border, #ccc)",
   borderRadius: "5px",
   padding: `${PADDING}px`,
 } as const;

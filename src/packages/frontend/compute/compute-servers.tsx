@@ -285,7 +285,7 @@ function ComputeServerTable({
           <div
             style={{
               fontSize: "20px",
-              color: "#888",
+              color: "var(--cocalc-text-tertiary, #888)",
               display: "flex",
               justifyContent: "center",
               flexDirection: "column",

@@ -73,7 +73,7 @@ export default function QuotaRow({
       }
       key={params_data.display}
       style={{
-        borderBottom: "1px solid #eee",
+        borderBottom: "1px solid var(--cocalc-border-light, #eee)",
         paddingBottom: "8px",
       }}
     >

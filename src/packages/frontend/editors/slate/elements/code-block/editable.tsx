@@ -87,7 +87,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
               addonBefore={
                 <div
                   style={{
-                    borderBottom: "1px solid #ccc",
+                    borderBottom: "1px solid var(--cocalc-border, #ccc)",
                     padding: "3px",
                     display: "flex",
                     background: `var(--cocalc-bg-hover, ${COLORS.GRAY_LLL})`,
@@ -106,7 +106,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
                       }}
                       style={{
                         flex: 1,
-                        color: "#666",
+                        color: "var(--cocalc-text-secondary, #666)",
                         minWidth: "100px",
                         maxWidth: "300px",
                         margin: "0 5px",
@@ -158,7 +158,7 @@ function Element({ attributes, children, element }: RenderElementProps) {
                       }, 0);
                     }}
                     style={{
-                      borderTop: "1px dashed #ccc",
+                      borderTop: "1px dashed var(--cocalc-border, #ccc)",
                       background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
                       padding: "5px 0 5px 30px",
                     }}

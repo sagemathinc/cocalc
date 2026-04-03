@@ -168,7 +168,7 @@ function State({
           <div
             style={{
               flex: 1,
-              color: expired ? "#aaa" : undefined,
+              color: expired ? "var(--cocalc-text-tertiary, #aaa)" : undefined,
             }}
           >
             {name != "compute" && name != "filesystem-sync" && (

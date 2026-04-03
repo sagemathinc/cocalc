@@ -81,14 +81,14 @@ export const RawEditor: React.FC<Props> = ({
 
   const style: React.CSSProperties = {
     fontSize: `${font_size}px`,
-    backgroundColor: "#eee",
+    backgroundColor: "var(--cocalc-bg-hover, #eee)",
     height: "100%",
     overflowY: "auto",
     overflowX: "hidden",
   };
 
   const viewer_style: React.CSSProperties = {
-    backgroundColor: "#fff",
+    backgroundColor: "var(--cocalc-bg-base, #fff)",
     boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
     height: "100%",
   };

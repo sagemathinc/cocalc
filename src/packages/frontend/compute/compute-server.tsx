@@ -213,7 +213,7 @@ export default function ComputeServer({
           style={{ marginTop: "-2.5px", marginLeft: "10px" }}
         />
       </div>
-      <div style={{ color: "#888", marginTop: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-tertiary, #888)", marginTop: "5px" }}>
         Change the title and color at any time.
       </div>
       <Divider>
@@ -364,9 +364,9 @@ export default function ComputeServer({
         style={{
           opacity: deleted ? 0.5 : undefined,
           width: "100%",
-          borderLeft: `4px solid ${color ?? "#aaa"}`,
-          borderRight: `4px solid ${color ?? "#aaa"}`,
-          borderBottom: "1px solid #f0f0f0",
+          borderLeft: `4px solid ${color ?? "var(--cocalc-text-tertiary, #aaa)"}`,
+          borderRight: `4px solid ${color ?? "var(--cocalc-text-tertiary, #aaa)"}`,
+          borderBottom: "1px solid var(--cocalc-border-light, #f0f0f0)",
           padding: "6px 8px",
           display: "flex",
           gap: "8px",
@@ -381,12 +381,12 @@ export default function ComputeServer({
             alignItems: "center",
             minWidth: "48px",
             fontSize: "11px",
-            color: "#888",
+            color: "var(--cocalc-text-tertiary, #888)",
           }}
         >
           <Icon
             name={cloud == "onprem" ? "global" : "server"}
-            style={{ fontSize: "20px", color: color ?? "#666" }}
+            style={{ fontSize: "20px", color: color ?? "var(--cocalc-text-secondary, #666)" }}
           />
           {id != null && <div>Id: {project_specific_id}</div>}
           {id != null && (
@@ -443,7 +443,7 @@ export default function ComputeServer({
               />
             )}
           </div>
-          <div style={{ color: "#666", fontSize: "12px" }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #666)", fontSize: "12px" }}>
             <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
               <DisplayImage configuration={configuration} />
               <Cloud cloud={cloud} state={state} editable={false} id={id} />
@@ -501,9 +501,9 @@ export default function ComputeServer({
         opacity: deleted ? 0.5 : undefined,
         width: "100%",
         minWidth: "500px",
-        border: `0.5px solid ${color ?? "#f0f0f0"}`,
-        borderRight: `10px solid ${color ?? "#aaa"}`,
-        borderLeft: `10px solid ${color ?? "#aaa"}`,
+        border: `0.5px solid ${color ?? "var(--cocalc-border-light, #f0f0f0)"}`,
+        borderRight: `10px solid ${color ?? "var(--cocalc-text-tertiary, #aaa)"}`,
+        borderLeft: `10px solid ${color ?? "var(--cocalc-text-tertiary, #aaa)"}`,
         ...style,
       }}
       actions={actions}
@@ -513,10 +513,10 @@ export default function ComputeServer({
           <div style={{ width: "64px", marginBottom: "-20px" }}>
             <Icon
               name={cloud == "onprem" ? "global" : "server"}
-              style={{ fontSize: "30px", color: color ?? "#666" }}
+              style={{ fontSize: "30px", color: color ?? "var(--cocalc-text-secondary, #666)" }}
             />
             {id != null && (
-              <div style={{ color: "#888" }}>Id: {project_specific_id}</div>
+              <div style={{ color: "var(--cocalc-text-tertiary, #888)" }}>Id: {project_specific_id}</div>
             )}
             <div style={{ display: "flex", marginLeft: "-20px" }}>
               {id != null && <ComputeServerLog id={id} />}
@@ -539,7 +539,7 @@ export default function ComputeServer({
                     style={{
                       display: "flex",
                       marginLeft: "-10px",
-                      color: "#666",
+                      color: "var(--cocalc-text-secondary, #666)",
                     }}
                   >
                     <IdleTimeoutMessage
@@ -554,7 +554,7 @@ export default function ComputeServer({
                     style={{
                       display: "flex",
                       marginLeft: "-15px",
-                      color: "#666",
+                      color: "var(--cocalc-text-secondary, #666)",
                     }}
                   >
                     <ShutdownTimeMessage
@@ -590,7 +590,7 @@ export default function ComputeServer({
                 display: "flex",
                 width: "100%",
                 justifyContent: "space-between",
-                color: "#666",
+                color: "var(--cocalc-text-secondary, #666)",
                 borderBottom: `1px solid ${color}`,
                 padding: "0 10px 5px 0",
               }}
@@ -664,7 +664,7 @@ export default function ComputeServer({
           )
         }
         description={
-          <div style={{ color: "#666" }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
             <BackendError
               error={backendError}
               id={id}

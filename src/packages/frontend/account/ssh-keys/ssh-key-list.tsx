@@ -174,7 +174,7 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
         </span>
       );
     } else {
-      return <span style={{ color: "#333" }}>Never used</span>;
+      return <span style={{ color: "var(--cocalc-text-primary, #333)" }}>Never used</span>;
     }
   }
 
@@ -192,14 +192,14 @@ function OneSSHKey({ ssh_key, project_id, mode = "project" }: OneSSHKeyProps) {
 
   const key_style: React.CSSProperties = {
     fontSize: isFlyout ? "42px" : "72px",
-    color: ssh_key.get("last_use_date") ? "#1e7e34" : "#888",
+    color: ssh_key.get("last_use_date") ? "#1e7e34" : "var(--cocalc-text-tertiary, #888)",
   };
 
   return (
     <div
       style={{
         display: "flex",
-        borderBottom: "1px solid #ccc",
+        borderBottom: "1px solid var(--cocalc-border, #ccc)",
         padding: "15px",
       }}
     >

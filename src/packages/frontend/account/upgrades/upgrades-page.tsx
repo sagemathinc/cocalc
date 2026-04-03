@@ -62,7 +62,7 @@ class UpgradesPage extends Component<reduxProps> {
         <h3>
           Thank you for supporting <SiteName />
         </h3>
-        <div style={{ color: "#666" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
           <p>
             You have some now deprecated "quota upgrades". They are listed
             below, along with how you have applied them to projects. You can
@@ -90,7 +90,7 @@ class UpgradesPage extends Component<reduxProps> {
     }
     const percent_used = Math.round((u / n) * 100);
     return (
-      <Row key={param} style={darker ? { backgroundColor: "#eee" } : undefined}>
+      <Row key={param} style={darker ? { backgroundColor: "var(--cocalc-bg-hover, #eee)" } : undefined}>
         <Col sm={2}>{info.display}</Col>
         <Col sm={3}>
           <Row>
@@ -113,7 +113,7 @@ class UpgradesPage extends Component<reduxProps> {
             </span>
           ) : undefined}
         </Col>
-        <Col sm={5} style={{ color: "#666" }}>
+        <Col sm={5} style={{ color: "var(--cocalc-text-secondary, #666)" }}>
           {info.desc}
         </Col>
       </Row>

@@ -70,7 +70,7 @@ export const ShareIndicator: React.FC<Props> = React.memo(
     return (
       <div style={SHARE_INDICATOR_STYLE}>
         <Button
-          style={{ color: "#333" }}
+          style={{ color: "var(--cocalc-text-primary, #333)" }}
           onClick={() => {
             redux.getProjectActions(project_id).show_file_action_panel({
               path,

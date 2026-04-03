@@ -53,7 +53,7 @@ export default function SelectableIndex({
       style={{
         minWidth: "30px",
         padding: "5px",
-        background: mouse.isOver ? "#eee" : undefined,
+        background: mouse.isOver ? "var(--cocalc-bg-hover, #eee)" : undefined,
       }}
     >
       {body}

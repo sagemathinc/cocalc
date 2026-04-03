@@ -36,7 +36,7 @@ export const JSONView: React.FC<JSONViewProps> = ({
         fontSize: `${font_size}px`,
         paddingLeft: "20px",
         padding: "20px",
-        backgroundColor: "#eee",
+        backgroundColor: "var(--cocalc-bg-hover, #eee)",
         height: "100%",
         overflowY: "auto",
         overflowX: "hidden",
@@ -44,7 +44,7 @@ export const JSONView: React.FC<JSONViewProps> = ({
     >
       <div
         style={{
-          backgroundColor: "#fff",
+          backgroundColor: "var(--cocalc-bg-base, #fff)",
           padding: "15px",
           boxShadow: "0px 0px 12px 1px rgba(87, 87, 87, 0.2)",
           position: "relative",
@@ -52,13 +52,13 @@ export const JSONView: React.FC<JSONViewProps> = ({
       >
         <div
           style={{
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             fontSize: "12pt",
             padding: "5px",
             float: "right",
             background: "white",
-            borderBottom: "1px solid lightgrey",
-            borderLeft: "1px solid lightgrey",
+            borderBottom: "1px solid var(--cocalc-border-light, lightgray)",
+            borderLeft: "1px solid var(--cocalc-border-light, lightgray)",
           }}
         >
           Read-only view of notebook's underlying object structure.

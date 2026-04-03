@@ -105,7 +105,7 @@ export function TerminalCommandPanel({ name }: Props) {
       return (
         <div
           style={{
-            color: "#888",
+            color: "var(--cocalc-text-tertiary, #888)",
             padding: "5px",
             fontSize: "16px",
             fontWeight: "bold",

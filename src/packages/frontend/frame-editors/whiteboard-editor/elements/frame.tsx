@@ -17,7 +17,7 @@ export default function Frame({ element, focused, canvasScale }: Props) {
           element.data?.color ?? "#252937"
         }`,
         borderRadius: "3px",
-        boxShadow: "1px 3px 5px #ccc",
+        boxShadow: "1px 3px 5px var(--cocalc-border, #ccc)",
         background: "rgba(200, 200, 200, 0.3)",
       }}
     ></div>

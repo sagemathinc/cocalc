@@ -72,7 +72,7 @@ const PREVIEW_STYLE: React.CSSProperties = {
   background: `var(--cocalc-bg-hover, ${COLORS.GRAY_LLL})`,
   fontSize: "14px",
   borderRadius: "10px 10px 10px 10px",
-  boxShadow: "#666 3px 3px 3px",
+  boxShadow: "var(--cocalc-text-secondary, #666) 3px 3px 3px",
   paddingBottom: "20px",
   maxHeight: "40vh",
   overflowY: "auto",
@@ -497,7 +497,7 @@ export function ChatPanel({
           }
         >
           <Tooltip title={iconTooltip}>
-            <Icon name={isAI ? "robot" : "users"} style={{ color: "#888" }} />
+            <Icon name={isAI ? "robot" : "users"} style={{ color: "var(--cocalc-text-tertiary, #888)" }} />
           </Tooltip>
           <div style={THREAD_ITEM_LABEL_STYLE}>{plainLabel}</div>
           {unreadCount > 0 && !isHovered && (
@@ -686,7 +686,7 @@ export function ChatPanel({
         )}
       </div>
       {threadSections.length === 0 ? (
-        <div style={{ color: "#999", fontSize: "12px", padding: "0 20px" }}>
+        <div style={{ color: "var(--cocalc-text-tertiary, #999)", fontSize: "12px", padding: "0 20px" }}>
           No chats yet.
         </div>
       ) : (
@@ -911,7 +911,7 @@ export function ChatPanel({
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            color: "#888",
+            color: "var(--cocalc-text-tertiary, #888)",
             fontSize: "14px",
           }}
         >

@@ -41,7 +41,7 @@ export const MediaViewer: React.FC<Props> = ({ project_id, path }) => {
           flex: 1,
           marginTop: "1px",
           padding: "1px",
-          borderTop: "1px solid lightgray",
+          borderTop: "1px solid var(--cocalc-border-light, lightgray)",
           textAlign: "center",
           background: "black",
         }}

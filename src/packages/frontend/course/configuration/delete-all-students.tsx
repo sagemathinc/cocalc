@@ -25,7 +25,7 @@ export function DeleteAllStudents({ actions }) {
         </Button>
       </Popconfirm>
       <hr />
-      <span style={{ color: "#666" }}>
+      <span style={{ color: "var(--cocalc-text-secondary, #666)" }}>
         Student projects will not be deleted. If you make a mistake, students
         can still be undeleted from the Student tab or using TimeTravel.
       </span>

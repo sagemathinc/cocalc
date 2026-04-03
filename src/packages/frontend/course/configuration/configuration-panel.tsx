@@ -277,7 +277,7 @@ export function EmailInvitation({ actions, redux, project_id, name }) {
     >
       <div
         style={{
-          border: "1px solid lightgrey",
+          border: "1px solid var(--cocalc-border-light, lightgray)",
           padding: "10px",
           borderRadius: "5px",
         }}

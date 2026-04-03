@@ -332,7 +332,7 @@ export function AccountSettings(props: Readonly<Props>) {
       <Row
         style={{
           marginTop: "15px",
-          borderTop: "1px solid #ccc",
+          borderTop: "1px solid var(--cocalc-border, #ccc)",
           paddingTop: "15px",
         }}
       >
@@ -557,7 +557,7 @@ export function AccountSettings(props: Readonly<Props>) {
     }
     const style: React.CSSProperties = { padding: "10px 20px" };
     if (terms_checkbox) {
-      style.border = "2px solid #ccc";
+      style.border = "2px solid var(--cocalc-border, #ccc)";
     } else {
       style.border = "2px solid red";
     }

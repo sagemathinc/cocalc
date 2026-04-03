@@ -34,7 +34,7 @@ export function getChatStyle(element: Element): CSSProperties {
     height: `${element.h - 60}px`,
     display: "flex",
     flexDirection: "column",
-    border: `3px solid ${element.data?.color ?? "#ccc"}`,
+    border: `3px solid ${element.data?.color ?? "var(--cocalc-border, #ccc)"}`,
     borderRadius: "5px",
     boxShadow: "1px 5px 7px rgb(33 33 33 / 70%)",
   };
@@ -110,7 +110,7 @@ export function clearChat(element: Element): void {
 }
 
 export const messageStyle = {
-  border: "1px solid #ccc",
+  border: "1px solid var(--cocalc-border, #ccc)",
   borderRadius: "5px",
   margin: "5px 0",
   padding: "5px 15px",

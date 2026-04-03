@@ -15,8 +15,8 @@ interface Props {
 }
 
 const STYLE = {
-  borderBottom: "1px solid lightgrey",
-  borderRight: "1px solid lightgrey",
+  borderBottom: "1px solid var(--cocalc-border-light, lightgray)",
+  borderRight: "1px solid var(--cocalc-border-light, lightgray)",
   padding: "0 5px",
   borderTopLeftRadius: "5px",
   borderTopRightRadius: "5px",

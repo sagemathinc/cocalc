@@ -147,7 +147,7 @@ export function ConfigurePeerGrading({ assignment, actions }: Props) {
             style={{
               background: "white",
               padding: "10px",
-              border: "1px solid #ccc",
+              border: "1px solid var(--cocalc-border, #ccc)",
               borderRadius: "3px",
             }}
           >

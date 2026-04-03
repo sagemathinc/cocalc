@@ -23,7 +23,7 @@ const TRUNCATE_LENGTH = 50;
 const file_use_style: CSS = {
   cursor: "pointer",
   width: "100%",
-  color: "#666",
+  color: "var(--cocalc-text-secondary, #666)",
 };
 
 interface Props {
@@ -102,7 +102,7 @@ export class FileUseInfo extends Component<Props, {}> {
         >
           {name}
         </span>
-        <span style={{ color: !this.props.mask ? "#999" : undefined }}>
+        <span style={{ color: !this.props.mask ? "var(--cocalc-text-tertiary, #999)" : undefined }}>
           {ext === "" ? "" : `.${ext}`}
         </span>
       </span>

@@ -74,7 +74,7 @@ export default function Subscription({ subscription_id, style }: Props) {
           <br />
           Status: <SubscriptionStatus status={subscription.status} />
           <br />
-          <div style={{ color: "#666" }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
             Current Period: <TimeAgo date={subscription.current_period_start} />{" "}
             to <TimeAgo date={subscription.current_period_end} />
             <br />

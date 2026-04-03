@@ -34,7 +34,7 @@ function getPlotData(display, timestamps, active) {
         y: active,
         type: "scatter",
         mode: "lines",
-        marker: { color: "lightgrey" },
+        marker: { color: "var(--cocalc-text-muted, lightgray)" },
         name: "Active Users",
       },
       {

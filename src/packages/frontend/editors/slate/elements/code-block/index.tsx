@@ -121,7 +121,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
           !disableMarkdownCodebar && (
             <div
               style={{
-                borderBottom: "1px solid #ccc",
+                borderBottom: `1px solid var(--cocalc-border-light, #ccc)`,
                 padding: "3px",
                 display: "flex",
                 background: `var(--cocalc-bg-hover, ${COLORS.GRAY_LLL})`,
@@ -145,7 +145,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
                     style={
                       editing && newValue != element.value
                         ? { background: "#5cb85c", color: "white" }
-                        : { color: "#666" }
+                        : { color: "var(--cocalc-text-secondary, #666)" }
                     }
                     onClick={() => {
                       if (editing) {
@@ -191,7 +191,7 @@ export const StaticElement: React.FC<RenderElementProps> = ({
           disableMarkdownCodebar || output == null ? null : (
             <div
               style={{
-                borderTop: "1px dashed #ccc",
+                borderTop: `1px dashed var(--cocalc-border-light, #ccc)`,
                 background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
                 padding: "5px 0 5px 30px",
               }}

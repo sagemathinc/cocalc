@@ -731,7 +731,7 @@ export function Kernel({
           display: "flex",
           alignItems: "center",
           gap: "6px",
-          borderBottom: "1px solid #ccc",
+          borderBottom: "1px solid var(--cocalc-border, #ccc)",
           ...style,
         }}
       >
@@ -791,7 +791,7 @@ export function Kernel({
         padding: "5px",
         backgroundColor: COLORS.GRAY_LLL,
         display: "flex",
-        borderBottom: "1px solid #ccc",
+        borderBottom: "1px solid var(--cocalc-border, #ccc)",
         ...style,
       }}
     >

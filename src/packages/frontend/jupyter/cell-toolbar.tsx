@@ -23,8 +23,8 @@ import { PROMPT_MIN_WIDTH } from "./prompt/base";
 const STYLE: CSS = {
   marginLeft: PROMPT_MIN_WIDTH,
   display: "flex",
-  background: "#eee",
-  border: "1px solid rgb(247, 247, 247)",
+  background: "var(--cocalc-bg-hover, #eee)",
+  border: "1px solid var(--cocalc-border-light, rgb(247, 247, 247))",
 } as const;
 
 export interface CellToolbarProps {

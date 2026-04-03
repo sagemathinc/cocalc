@@ -22,7 +22,7 @@ register({
           style={{
             whiteSpace: "normal",
             borderRight: reveal ? "1px solid #333" : undefined,
-            color: reveal ? "lightgrey" : undefined,
+            color: reveal ? "var(--cocalc-text-muted, lightgray)" : undefined,
           }}
           contentEditable={false}
         >
@@ -59,7 +59,7 @@ register({
           style={{
             whiteSpace: "pre",
             borderRight: reveal ? "1px solid #333" : undefined,
-            color: reveal ? "lightgrey" : undefined,
+            color: reveal ? "var(--cocalc-text-muted, lightgray)" : undefined,
           }}
           contentEditable={false}
         >

@@ -15,9 +15,9 @@ export default function Frame({ element, focused, canvasScale }: Props) {
         height: "100%",
         border: `${
           ((element.data?.radius ?? 0.5) * 2) / canvasScale
-        }px solid #eee`,
+        }px solid var(--cocalc-border-light, #eee)`,
         borderRadius: "3px",
-        boxShadow: "1px 3px 5px #ccc",
+        boxShadow: "1px 3px 5px var(--cocalc-border, #ccc)",
         background: "white",
       }}
     ></div>

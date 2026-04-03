@@ -33,9 +33,9 @@ const EXTRA_INFO_STYLE = {
   background: "white",
   width: "100%",
   color: "rgb(102,102,102)",
-  borderLeft: "1px solid lightgrey",
-  borderBottom: "1px solid lightgrey",
-  boxShadow: "-3px 5px 2px lightgrey",
+  borderLeft: "1px solid var(--cocalc-border-light, lightgray)",
+  borderBottom: "1px solid var(--cocalc-border-light, lightgray)",
+  boxShadow: "-3px 5px 2px var(--cocalc-border-light, lightgray)",
 } as React.CSSProperties;
 
 interface Options {

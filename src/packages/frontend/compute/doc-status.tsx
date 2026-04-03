@@ -95,7 +95,7 @@ export function ComputeServerDocStatus({
         display: "flex",
         borderBottom:
           !standalone && requestedServer != null && !showDetails
-            ? "1px solid #ccc"
+            ? "1px solid var(--cocalc-border, #ccc)"
             : undefined,
         ...(standalone
           ? { border: "1px solid #ddd", borderRadius: "5px" }
@@ -160,7 +160,7 @@ export function ComputeServerDocStatus({
             height: "24px",
             cursor: "pointer",
             padding: "2px 5px",
-            background: requestedServer?.get("color") ?? "#fff",
+            background: requestedServer?.get("color") ?? "var(--cocalc-bg-base, #fff)",
             color: avatar_fontcolor(requestedServer?.get("color") ?? "#fff"),
             width: "100%",
             overflow: "hidden",
@@ -229,7 +229,7 @@ export function ComputeServerDocStatus({
       <div
         className="smc-vfill"
         style={{
-          border: `1px solid #ccc`,
+          border: `1px solid var(--cocalc-border, #ccc)`,
           borderRadius: "5px",
           margin: "15px",
           padding: "5px",

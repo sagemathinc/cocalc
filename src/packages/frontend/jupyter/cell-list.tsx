@@ -389,7 +389,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <div
         style={{
           fontSize: "32pt",
-          color: "#888",
+          color: "var(--cocalc-text-tertiary, #888)",
           textAlign: "center",
           marginTop: "15px",
         }}
@@ -689,7 +689,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           <div
             style={{
               background: "white",
-              boxShadow: "8px 8px 4px 4px #ccc",
+              boxShadow: "8px 8px 4px 4px var(--cocalc-border, #ccc)",
               fontSize: `${font_size}px`,
             }}
           >

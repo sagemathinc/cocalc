@@ -78,7 +78,7 @@ export function FilenameSearch({ style }: Props) {
             background: "white",
             padding: "15px",
             border: "1px solid #ddd",
-            boxShadow: "0 0 15px #aaa",
+            boxShadow: "0 0 15px var(--cocalc-text-tertiary, #aaa)",
             overflow: "scroll",
             maxHeight: "70vh",
             left: "10px",

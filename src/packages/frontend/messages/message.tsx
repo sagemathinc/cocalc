@@ -239,7 +239,7 @@ function MessageInList({
           <Tooltip title={<>{message.id}</>}>
             <div
               style={{
-                color: "#999",
+                color: "var(--cocalc-text-tertiary, #999)",
                 position: "absolute",
                 right: 0,
                 fontSize: "11px",
@@ -257,7 +257,7 @@ function MessageInList({
             height: "1.5em",
             textOverflow: "ellipsis",
             whiteSpace: "nowrap",
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             fontSize,
           }}
         >
@@ -478,7 +478,7 @@ function MessageFull({
         {SHOW_ID && (
           <div
             style={{
-              color: "#999",
+              color: "var(--cocalc-text-tertiary, #999)",
               fontSize: "12px",
               position: "absolute",
               right: 0,

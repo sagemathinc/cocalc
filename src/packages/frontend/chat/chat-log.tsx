@@ -510,7 +510,7 @@ function NotShowing({
               actions.clearAllFilters();
             }}
           >
-            <Icon name="close-circle-filled" style={{ color: "#888" }} /> Clear
+            <Icon name="close-circle-filled" style={{ color: "var(--cocalc-text-tertiary, #888)" }} /> Clear
           </Button>
         </div>
       }

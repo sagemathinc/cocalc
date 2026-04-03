@@ -97,7 +97,7 @@ export default function Input({
         style={{
           border: isFocused
             ? `1px solid ${SELECTED_BORDER_COLOR}`
-            : "1px solid rgb(207, 207, 207)",
+            : "1px solid var(--cocalc-border, rgb(207, 207, 207))",
           borderRadius: "2px",
         }}
         is_focused={isFocused}

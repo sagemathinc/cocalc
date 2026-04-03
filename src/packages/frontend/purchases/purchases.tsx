@@ -1196,7 +1196,7 @@ function Amount({ record }) {
         <span
           style={{
             ...getAmountStyle(amount),
-            ...(record.pending ? { color: "#999" } : undefined),
+            ...(record.pending ? { color: "var(--cocalc-text-tertiary, #999)" } : undefined),
           }}
         >
           {currency(amount, 2)}
@@ -1328,7 +1328,7 @@ function Period({ record }) {
   if (record.period_start) {
     const hours = periodLengthInHours(record);
     const x = (
-      <div style={{ borderTop: "1px solid #ccc" }}>{round1(hours)} hours</div>
+      <div style={{ borderTop: "1px solid var(--cocalc-border, #ccc)" }}>{round1(hours)} hours</div>
     );
     if (!record.period_end) {
       return (

@@ -181,9 +181,9 @@ export default function CreateCloudFilesystem({
         <Card
           style={{
             margin: "15px 0",
-            border: `0.5px solid ${configuration?.color ?? "#f0f0f0"}`,
-            borderRight: `10px solid ${configuration?.color ?? "#aaa"}`,
-            borderLeft: `10px solid ${configuration?.color ?? "#aaa"}`,
+            border: `0.5px solid ${configuration?.color ?? "var(--cocalc-border-light, #f0f0f0)"}`,
+            borderRight: `10px solid ${configuration?.color ?? "var(--cocalc-text-tertiary, #aaa)"}`,
+            borderLeft: `10px solid ${configuration?.color ?? "var(--cocalc-text-tertiary, #aaa)"}`,
             ...(creating ? { opacity: 0.4 } : undefined),
           }}
         >
@@ -401,7 +401,7 @@ function Mountpoint({ configuration, setConfiguration, mountpoints }) {
 function Compression({ configuration, setConfiguration }) {
   return (
     <div style={{ marginTop: "10px" }}>
-      <b style={{ fontSize: "13pt", color: "#666" }}>
+      <b style={{ fontSize: "13pt", color: "var(--cocalc-text-secondary, #666)" }}>
         <A href="https://juicefs.com/docs/community/internals/#data-compression">
           {EXTERNAL}
           Compression
@@ -443,7 +443,7 @@ function Compression({ configuration, setConfiguration }) {
 function BlockSize({ configuration, setConfiguration }) {
   return (
     <div style={{ marginTop: "10px" }}>
-      <b style={{ fontSize: "13pt", color: "#666" }}>Block Size</b>
+      <b style={{ fontSize: "13pt", color: "var(--cocalc-text-secondary, #666)" }}>Block Size</b>
       {NO_CHANGE}
       The block size, which is between {MIN_BLOCK_SIZE} MB and {MAX_BLOCK_SIZE}{" "}
       MB, is an upper bound on the size of the objects that are stored in the
@@ -685,7 +685,7 @@ function generateMountpoint(mountpoints, base): string {
 }
 
 export const NO_CHANGE = (
-  <div style={{ color: "#666" }}>
+  <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
     <b>Cannot be changed later.</b>
     <br />
   </div>

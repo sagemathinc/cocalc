@@ -11,7 +11,7 @@ import { CSS, React } from "../../app-framework";
 import { Icon } from "../../components";
 import { TaskActions } from "./actions";
 
-const STYLE: CSS = { fontSize: "17pt", color: "#888", float: "right" } as const;
+const STYLE: CSS = { fontSize: "17pt", color: "var(--cocalc-text-tertiary, #888)", float: "right" } as const;
 
 interface Props {
   actions?: TaskActions;

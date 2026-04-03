@@ -29,7 +29,7 @@ export function Version({ date, number, user }: Props) {
           style={{
             fontWeight: "bold",
             fontSize: "12pt",
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             whiteSpace: "nowrap",
           }}
         >

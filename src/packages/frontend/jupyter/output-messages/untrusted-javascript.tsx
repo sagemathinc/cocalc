@@ -13,6 +13,6 @@ interface UntrustedJavascriptProps {
 
 export const UntrustedJavascript: React.FC<UntrustedJavascriptProps> = () => {
   return (
-    <span style={{ color: "#888" }}>(not running untrusted Javascript)</span>
+    <span style={{ color: "var(--cocalc-text-tertiary, #888)" }}>(not running untrusted Javascript)</span>
   );
 };

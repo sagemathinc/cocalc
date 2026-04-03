@@ -65,7 +65,7 @@ render({ type: "icon", editable: true }, ({ field, obj, spec }) => {
         {name ? (
           <Icon style={{ fontSize: "24pt" }} name={name as IconName} />
         ) : (
-          <span style={{ color: "#999", cursor: "pointer" }}>Icon...</span>
+          <span style={{ color: "var(--cocalc-text-tertiary, #999)", cursor: "pointer" }}>Icon...</span>
         )}
       </Popover>
       {error}

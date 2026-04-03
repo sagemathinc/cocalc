@@ -130,7 +130,7 @@ function Header({
         }}
       >
         {icon && (
-          <Icon name={icon} style={{ marginLeft: "10px", color: "#666" }} />
+          <Icon name={icon} style={{ marginLeft: "10px", color: "var(--cocalc-text-secondary, #666)" }} />
         )}
       </span>
       <a

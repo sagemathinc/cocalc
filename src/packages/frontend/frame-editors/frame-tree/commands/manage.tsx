@@ -615,7 +615,7 @@ export class ManageCommands {
           <div
             style={{
               flex: 1,
-              color: "#999",
+              color: "var(--cocalc-text-tertiary, #999)",
               textAlign: "right",
               marginLeft: "50px",
             }}

@@ -60,7 +60,7 @@ export default function AuthToken({
   }
 
   return (
-    <div style={{ color: "#666" }}>
+    <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
       <div style={{ marginTop: "15px", display: "flex" }}>
         <div style={{ margin: "auto 30px auto 0" }}>
           <b>Auth Token:</b>

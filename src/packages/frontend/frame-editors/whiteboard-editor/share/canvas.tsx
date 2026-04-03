@@ -56,7 +56,7 @@ export default function Canvas({ elements, mainFrameType }: Props) {
     >
       <div
         style={{
-          border: "1px solid #aaa",
+          border: "1px solid var(--cocalc-text-tertiary, #aaa)",
           boxShadow: "1px 3px 5px",
           display: "inline-block",
         }}
@@ -106,7 +106,7 @@ export default function Canvas({ elements, mainFrameType }: Props) {
         style={{
           height: "80vh",
           overflow: "auto",
-          border: "1px solid #ccc",
+          border: "1px solid var(--cocalc-border, #ccc)",
           borderRadius: "5px",
           boxShadow: "1px 3px 5px",
           position: "relative",

@@ -234,7 +234,7 @@ export class Projects extends Component<Props, State> {
     let project: Project;
     let i = 0;
     for (project of this.state.projects) {
-      const style = i % 2 ? { backgroundColor: "#f8f8f8" } : undefined;
+      const style = i % 2 ? { backgroundColor: "var(--cocalc-bg-elevated, #f8f8f8)" } : undefined;
       i += 1;
 
       v.push(this.render_project(project, style));
@@ -271,7 +271,7 @@ export class Projects extends Component<Props, State> {
 
   render_header(): Rendered {
     return (
-      <Row key="header" style={{ fontWeight: "bold", color: "#666" }}>
+      <Row key="header" style={{ fontWeight: "bold", color: "var(--cocalc-text-secondary, #666)" }}>
         <Col md={4}>Title</Col>
         <Col md={4}>Description</Col>
         <Col md={4}>Active</Col>
@@ -288,7 +288,7 @@ export class Projects extends Component<Props, State> {
       </span>
     );
     const title = (
-      <div style={{ fontWeight: "bold", color: "#666", width: "100%" }}>
+      <div style={{ fontWeight: "bold", color: "var(--cocalc-text-secondary, #666)", width: "100%" }}>
         {content}
       </div>
     );

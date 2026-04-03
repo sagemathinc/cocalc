@@ -139,7 +139,7 @@ function Conversation({ element, focused }: Props) {
               }px` /* use exact computation for width so when there is a very wide single line with no spaces, still keeps right size.  This is a little ugly, but works fine since we know the dimensions of the element. */,
               ...(mode == "editor"
                 ? {
-                    border: "1px solid #ccc",
+                    border: "1px solid var(--cocalc-border, #ccc)",
 
                     paddingLeft: "5px",
                   }
@@ -169,7 +169,7 @@ function Conversation({ element, focused }: Props) {
               bottom: "-36px",
               left: "126px",
               position: "absolute",
-              boxShadow: "1px 3px 5px #ccc",
+              boxShadow: "1px 3px 5px var(--cocalc-border, #ccc)",
               margin: "5px",
               minWidth: "500px",
               background: "white",
@@ -181,7 +181,7 @@ function Conversation({ element, focused }: Props) {
               bottom: "-30px",
               left: 0,
               width: "130px",
-              boxShadow: "1px 3px 5px #ccc",
+              boxShadow: "1px 3px 5px var(--cocalc-border, #ccc)",
             }}
             onModeChange={setMode}
             cmOptions={{

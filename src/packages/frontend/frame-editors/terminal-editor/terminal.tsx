@@ -43,7 +43,7 @@ interface Props {
 const COMMAND_STYLE = {
   borderBottom: "1px solid grey",
   paddingLeft: "5px",
-  background: "rgb(248, 248, 248)",
+  background: "var(--cocalc-bg-hover, rgb(248, 248, 248))",
   height: "20px",
   overflow: "hidden",
 } as CSS;

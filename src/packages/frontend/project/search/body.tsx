@@ -522,7 +522,7 @@ function ProjectSearchOutputHeader({ project_id }: { project_id: string }) {
 const DESC_STYLE: React.CSSProperties = {
   color: COLORS.GRAY_M,
   marginBottom: "5px",
-  border: "1px solid #eee",
+  border: "1px solid var(--cocalc-border-light, #eee)",
   borderRadius: "5px",
   maxHeight: "300px",
   padding: "15px",

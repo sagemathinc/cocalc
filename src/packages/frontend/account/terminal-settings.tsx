@@ -62,7 +62,7 @@ export function TerminalSettings() {
       <div
         style={{
           fontSize: 12,
-          color: "#888",
+          color: "var(--cocalc-text-tertiary, #888)",
           marginBottom: 8,
         }}
       >
@@ -105,7 +105,7 @@ function TerminalPreview({
     <div
       style={{
         marginTop: "10px",
-        border: "1px solid #ccc",
+        border: "1px solid var(--cocalc-border, #ccc)",
         borderRadius: "4px",
         overflow: "hidden",
       }}

@@ -29,7 +29,7 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
     <div
       style={{
         padding: "2px 6px",
-        border: "1px solid #ccc",
+        border: "1px solid var(--cocalc-border, #ccc)",
         borderRadius: "3px",
         background: "white",
         boxShadow: "1px 3px 5px rgb(33 33 33 / 50%)",

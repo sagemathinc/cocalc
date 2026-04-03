@@ -43,8 +43,8 @@ export default function Like({
   const btn = (
     <Button
       style={{
-        color: byMe ? "#555" : "#999",
-        background: byMe ? "#fff" : undefined,
+        color: byMe ? "#555" : "var(--cocalc-text-tertiary, #999)",
+        background: byMe ? "var(--cocalc-bg-base, #fff)" : undefined,
         fontSize: "16px",
         padding: "5px",
         marginLeft: "5px",

@@ -20,7 +20,7 @@ export const KioskModeBanner: React.FC = () => {
           margin: "auto",
           textAlign: "center",
           fontSize: "36px",
-          color: "#888",
+          color: "var(--cocalc-text-tertiary, #888)",
         }}
       >
         <SiteName />

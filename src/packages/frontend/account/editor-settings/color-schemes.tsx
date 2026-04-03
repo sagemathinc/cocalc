@@ -51,7 +51,7 @@ export function EditorSettingsColorScheme(props: Props): React.JSX.Element {
       <div
         style={{
           fontSize: 12,
-          color: "#888",
+          color: "var(--cocalc-text-tertiary, #888)",
           marginBottom: 8,
         }}
       >

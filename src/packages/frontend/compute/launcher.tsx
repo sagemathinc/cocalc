@@ -44,7 +44,7 @@ export default function Launcher({
         onClick={() => setAppName("explorer")}
         type="text"
         size="small"
-        style={{ color: "#666" }}
+        style={{ color: "var(--cocalc-text-secondary, #666)" }}
       >
         <Icon name="folder-open" /> Explorer
       </Button>*/}
@@ -55,7 +55,7 @@ export default function Launcher({
             onClick={() => setAppName("jupyterlab")}
             type="text"
             size="small"
-            style={{ color: "#666" }}
+            style={{ color: "var(--cocalc-text-secondary, #666)" }}
           >
             <Icon
               name={apps["jupyterlab"].icon}
@@ -71,7 +71,7 @@ export default function Launcher({
             onClick={() => setAppName("vscode")}
             type="text"
             size="small"
-            style={{ color: "#666" }}
+            style={{ color: "var(--cocalc-text-secondary, #666)" }}
           >
             <Icon name={apps["vscode"].icon} style={{ marginRight: "-5px" }} />
             VS Code
@@ -84,7 +84,7 @@ export default function Launcher({
             onClick={() => setAppName("xpra")}
             type="text"
             size="small"
-            style={{ color: "#666" }}
+            style={{ color: "var(--cocalc-text-secondary, #666)" }}
           >
             <Icon name={apps["xpra"].icon} style={{ marginRight: "-5px" }} />
             Desktop

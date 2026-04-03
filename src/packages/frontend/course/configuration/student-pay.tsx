@@ -249,7 +249,7 @@ export default function StudentPay({ actions, settings }) {
               />
             )}
             <hr />
-            <div style={{ color: "#666" }}>
+            <div style={{ color: "var(--cocalc-text-secondary, #666)" }}>
               <StudentPayDesc
                 settings={settings}
                 when={when}

@@ -461,7 +461,7 @@ const SiteDescription0 = rclass<{ style?: React.CSSProperties }>(
       const style =
         this.props.style != undefined
           ? this.props.style
-          : { color: "#666", fontSize: "16px" };
+          : { color: "var(--cocalc-text-secondary, #666)", fontSize: "16px" };
       if (this.props.site_description != undefined) {
         return <span style={style}>{this.props.site_description}</span>;
       } else {

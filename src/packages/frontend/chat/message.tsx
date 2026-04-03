@@ -60,7 +60,7 @@ const BLANK_COLUMN = (xs) => <Col key={"blankcolumn"} xs={xs}></Col>;
 
 const MARKDOWN_STYLE = undefined;
 
-const BORDER = "2px solid #ccc";
+const BORDER = "2px solid var(--cocalc-border, #ccc)";
 
 const SHOW_EDIT_BUTTON_MS = 15000;
 

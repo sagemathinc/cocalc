@@ -720,7 +720,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
 
     const css: CSSProperties = { height: "auto" };
     if (options0.theme == null) {
-      css.backgroundColor = "#fff";
+      css.backgroundColor = "var(--cocalc-bg-base, #fff)";
     }
     $(cm.current.getWrapperElement()).css(css);
 

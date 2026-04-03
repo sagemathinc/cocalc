@@ -43,7 +43,7 @@ function color(state: WebsocketState | undefined): string {
     case "destroyed":
       return "rgb(255, 0, 0)";
     case "online":
-      return "#666";
+      return "var(--cocalc-text-secondary, #666)";
     case "offline": // trying to connect.
       return "rgb(255, 165, 0)";
     default:

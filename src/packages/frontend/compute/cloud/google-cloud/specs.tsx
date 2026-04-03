@@ -74,7 +74,7 @@ export function RamAndCpu({
     );
   }
   return (
-    <div style={{ color: "#666", ...style }}>
+    <div style={{ color: "var(--cocalc-text-secondary, #666)", ...style }}>
       <b>{plural(vcpu, "vCPU")}: </b>
       <div
         style={{ width: "65px", textAlign: "left", display: "inline-block" }}

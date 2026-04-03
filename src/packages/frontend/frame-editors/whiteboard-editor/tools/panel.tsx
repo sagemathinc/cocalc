@@ -52,8 +52,8 @@ export default function Panel({
         type="text"
         size="small"
         style={{
-          color: "#888",
-          background: minimizedTools ? undefined : "#eee",
+          color: "var(--cocalc-text-tertiary, #888)",
+          background: minimizedTools ? undefined : "var(--cocalc-bg-hover, #eee)",
         }}
         onClick={() => {
           setMinimizedTools?.(!minimizedTools);

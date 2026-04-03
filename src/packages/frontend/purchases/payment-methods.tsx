@@ -267,7 +267,7 @@ export function PaymentMethod({
         <Flex>
           {title}
           <div style={{ flex: 1 }} />
-          <div style={{ color: "#666", fontSize: "13pt" }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #666)", fontSize: "13pt" }}>
             Expires {paymentMethod.card.exp_month} /{" "}
             {paymentMethod.card.exp_year}
           </div>

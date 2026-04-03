@@ -393,7 +393,7 @@ export default function RunButton({
                   borderTop: "1px dashed #ddd",
                   marginTop: "5px",
                   paddingTop: "5px",
-                  color: "#666",
+                  color: "var(--cocalc-text-secondary, #666)",
                 }}
               >
                 <div style={{ marginBottom: "5px" }}>
@@ -438,7 +438,7 @@ export default function RunButton({
             style={{
               ...style,
               ...(project_id != null && showPopover
-                ? { background: "#ccc" }
+                ? { background: "var(--cocalc-bg-hover, #ccc)" }
                 : undefined),
               display: "flex",
             }}
@@ -459,7 +459,7 @@ export default function RunButton({
                   style={{
                     marginTop: "4px",
                     fontSize: "16px",
-                    color: "#666",
+                    color: "var(--cocalc-text-secondary, #666)",
                   }}
                 />
               )}
@@ -475,7 +475,7 @@ export default function RunButton({
               {kernelName ? (
                 kernelDisplayName(kernelName, project_id)
               ) : (
-                <span style={{ color: "#999" }}>Kernel...</span>
+                <span style={{ color: "var(--cocalc-text-tertiary, #999)" }}>Kernel...</span>
               )}
             </div>
           </Button>

@@ -67,11 +67,11 @@ export const LinkEdit: React.FC<Props> = ({ linkURL, editor }) => {
           textOverflow: "ellipsis",
           padding: "0 5px",
           margin: "0 5px",
-          borderLeft: "1px solid lightgray",
-          borderRight: "1px solid lightgray",
+          borderLeft: "1px solid var(--cocalc-border-light, lightgray)",
+          borderRight: "1px solid var(--cocalc-border-light, lightgray)",
           maxWidth: "50ex",
           opacity: !linkURL ? "0.5" : undefined,
-          color: "#666",
+          color: "var(--cocalc-text-secondary, #666)",
         }}
       >
         {icon} {linkURL ? linkURL : "Link target..."}

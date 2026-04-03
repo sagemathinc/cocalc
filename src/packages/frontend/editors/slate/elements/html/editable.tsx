@@ -63,7 +63,7 @@ const Element = ({ attributes, children, element }) => {
       <span {...attributes}>
         {renderEditMode()}
         <code
-          style={{ color: is_comment ? "#a50" : "#aaa", border }}
+          style={{ color: is_comment ? "#a50" : "var(--cocalc-text-tertiary, #aaa)", border }}
           onClick={() => {
             setEditMode(true);
           }}

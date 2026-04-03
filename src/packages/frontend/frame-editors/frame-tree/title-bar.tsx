@@ -151,7 +151,7 @@ function connection_status_color(status: ConnectionStatus): string {
     case "connecting":
       return "rgb(255, 165, 0)";
     case "connected":
-      return "#666";
+      return "var(--cocalc-text-secondary, #666)";
     default:
       return "rgb(255, 165, 0)";
   }
@@ -647,7 +647,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         key={"time-travel-button"}
         style={{
           ...button_style(),
-          ...(!darkMode ? { color: "#333", background: "#5bc0de" } : undefined),
+          ...(!darkMode ? { color: "var(--cocalc-text-primary, #333)", background: "#5bc0de" } : undefined),
         }}
         size={button_size()}
         onClick={(event) => {
@@ -1293,7 +1293,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       <div
         style={{
           padding: "5px",
-          borderBottom: "1px solid lightgrey",
+          borderBottom: "1px solid var(--cocalc-border-light, lightgray)",
           position: "absolute",
           width: "100%",
           zIndex: 100,

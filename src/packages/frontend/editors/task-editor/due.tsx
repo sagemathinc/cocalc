@@ -16,7 +16,7 @@ import { TaskActions } from "./actions";
 const STYLE: CSS = {
   zIndex: 1,
   position: "absolute",
-  border: "1px solid lightgrey",
+  border: "1px solid var(--cocalc-border-light, lightgray)",
   background: "white",
   borderRadius: "4px",
   margin: "-20px 0 0 -150px", // we use a negative margin to adjust absolute position of calendar popover (hackish)
@@ -79,7 +79,7 @@ export const DueDate: React.FC<Props> = React.memo(
         return;
       }
       return (
-        <span style={{ color: "#888" }}>
+        <span style={{ color: "var(--cocalc-text-tertiary, #888)" }}>
           <Gap />
           <Icon
             name="times"

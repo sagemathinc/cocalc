@@ -943,7 +943,7 @@ export function PDFJS({
     return (
       <div
         style={{
-          backgroundColor: "white",
+          backgroundColor: "var(--cocalc-bg-base, white)",
           margin: "15px",
           overflowY: "auto",
         }}
@@ -969,7 +969,7 @@ export function PDFJS({
         width: "100%",
         cursor,
         textAlign: "center",
-        backgroundColor: !loaded ? "white" : BG_COL,
+        backgroundColor: !loaded ? "var(--cocalc-bg-base, white)" : BG_COL,
         // Disable browser's native touch behaviors to allow our pinch-to-zoom to work
         touchAction: "none",
         WebkitTouchCallout: "none",

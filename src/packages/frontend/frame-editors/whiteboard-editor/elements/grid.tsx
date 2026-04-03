@@ -3,7 +3,7 @@ The background grid.
 */
 
 
-const BIG_COLOR = "#f0f0f0";
+const BIG_COLOR = "var(--cocalc-border-light, #f0f0f0)";
 const SMALL_COLOR = "#f9f9f9";
 
 // Grid spacing in data coordinates — shared with snap.ts for grid snapping

@@ -152,7 +152,7 @@ export const SiteLicenses: React.FC<{}> = () => {
             marginLeft: "5px",
             width: "40ex",
             padding: "5px",
-            border: "1px solid lightgrey",
+            border: "1px solid var(--cocalc-border-light, lightgray)",
             borderRadius: "3px",
           }}
           value={search ?? ""}

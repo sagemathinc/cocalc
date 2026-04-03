@@ -87,7 +87,7 @@ const UPLOAD_OPTIONS = {
 };
 
 const DROPSTYLE = {
-  border: "2px solid #ccc",
+  border: "2px solid var(--cocalc-border, #ccc)",
   boxShadow: "4px 4px 2px #bbb",
   borderRadius: "5px",
   padding: 0,
@@ -103,7 +103,7 @@ function Header({ close_preview }: { close_preview?: Function }) {
       placement="bottom"
       tip="Drag and drop files from your computer into the box below to upload them into your project."
     >
-      <h4 style={{ color: "#666", marginLeft: "10px" }}>
+      <h4 style={{ color: "var(--cocalc-text-secondary, #666)", marginLeft: "10px" }}>
         Drag and drop files from your computer
         {close_preview && (
           <Button
@@ -167,7 +167,7 @@ export function FileUpload({
         style={{
           height: "200px",
           width: "100%",
-          background: "#eee",
+          background: "var(--cocalc-bg-hover, #eee)",
           fontSize: "18pt",
           display: "flex",
           justifyContent: "center",

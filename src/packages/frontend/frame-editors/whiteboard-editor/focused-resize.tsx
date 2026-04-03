@@ -16,7 +16,7 @@ import { SELECTED_PADDING, SELECTED_BORDER_WIDTH } from "./elements/style";
 const BORDER = SELECTED_PADDING + SELECTED_BORDER_WIDTH;
 
 const baseHandleSize = 20;
-const handleColor = "#888";
+const handleColor = "var(--cocalc-text-tertiary, #888)";
 const handleSize = `${baseHandleSize}px`;
 const handleOffset = -baseHandleSize / 2;
 

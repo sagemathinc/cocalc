@@ -35,7 +35,7 @@ export default function Proxy({
 
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <div>
           <b>
             <Switch
@@ -187,7 +187,7 @@ function ProxyConfig({
       <div
         style={{
           display: "inline-block",
-          color: "#666",
+          color: "var(--cocalc-text-secondary, #666)",
           marginLeft: "30px",
         }}
       >
@@ -463,9 +463,9 @@ export function LauncherButton({
       {url && (
         <div
           style={{
-            color: "#666",
+            color: "var(--cocalc-text-secondary, #666)",
             maxWidth: "500px",
-            border: "1px solid #ccc",
+            border: "1px solid var(--cocalc-border, #ccc)",
             padding: "15px",
             borderRadius: "5px",
             margin: "10px 0",

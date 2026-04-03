@@ -42,7 +42,7 @@ type EventHandlerFunction = (cm: CodeMirror.Editor) => void;
 import "@cocalc/frontend/codemirror/init";
 
 export const BLURED_STYLE: CSSProperties = {
-  border: "1px solid rgb(204,204,204)", // focused will be rgb(112, 178, 230);
+  border: "1px solid var(--cocalc-border, rgb(204,204,204))", // focused will be rgb(112, 178, 230);
   borderRadius: "5px",
 } as const;
 

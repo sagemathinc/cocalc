@@ -269,7 +269,7 @@ export function X11({
     return (
       <div
         style={{
-          borderBottom: "1px solid lightgrey",
+          borderBottom: "1px solid var(--cocalc-border-light, lightgray)",
           background: TAB_BAR_GREY,
           display: "inline-flex",
         }}

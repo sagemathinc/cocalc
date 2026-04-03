@@ -92,7 +92,7 @@ function AlternateTop({
   const fontSize = "20px";
   return (
     <div style={{ margin: "5px 0 10px -8px" }}>
-      <div style={{ textAlign: "center", color: "#666", fontSize: "14px" }}>
+      <div style={{ textAlign: "center", color: "var(--cocalc-text-secondary, #666)", fontSize: "14px" }}>
         Pen
       </div>
       <Tooltip title="Pen (customize below)">
@@ -158,7 +158,7 @@ export function BrushPreview({
         height: `${(maxRadius + 1) * 2}px`,
         borderRadius: `${maxRadius + 1}px`,
         background: "white",
-        border: `3px solid ${color ?? "#ccc"}`,
+        border: `3px solid ${color ?? "var(--cocalc-border, #ccc)"}`,
         paddingLeft: `${maxRadius + 1 - radius - 3}px`,
         paddingTop: `${maxRadius + 1 - radius - 3}px`,
       }}

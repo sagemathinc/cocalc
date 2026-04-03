@@ -284,7 +284,7 @@ export default function AddStudents({
           <select
             style={{
               width: "100%",
-              border: "1px solid lightgray",
+              border: "1px solid var(--cocalc-border-light, lightgray)",
               padding: "4px 11px",
             }}
             multiple

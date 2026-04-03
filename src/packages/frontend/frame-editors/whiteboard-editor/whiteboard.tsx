@@ -87,7 +87,7 @@ export default function Whiteboard({ presentation }: Props) {
           fontSize: "40px",
           textAlign: "center",
           padding: "15px",
-          color: "#999",
+          color: "var(--cocalc-text-tertiary, #999)",
         }}
       >
         <Loading />
@@ -133,7 +133,7 @@ export default function Whiteboard({ presentation }: Props) {
       className="smc-vfill"
       style={{
         position: "relative",
-        ...(presentation ? { background: "#666" } : undefined),
+        ...(presentation ? { background: "var(--cocalc-text-secondary, #666)" } : undefined),
       }}
       ref={whiteboardDivRef}
     >

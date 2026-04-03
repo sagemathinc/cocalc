@@ -42,7 +42,7 @@ export default function StatementsPage() {
         <Icon name="calendar" style={{ marginRight: "8px" }} /> Monthly and
         Daily Statements
       </h3>
-      <div style={{ color: "#666", maxWidth: "800px", margin: "auto" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", maxWidth: "800px", margin: "auto" }}>
         You can make purchases and add credit to your account. Once per month
         all transactions from the previous month are included in a statement.
         Also, each day the transaction from the previous day are combined into a

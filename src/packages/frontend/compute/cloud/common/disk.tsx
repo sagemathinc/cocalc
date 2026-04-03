@@ -81,7 +81,7 @@ export default function Disk(props: Props) {
 
   return (
     <div>
-      <div style={{ color: "#666", marginBottom: "5px" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", marginBottom: "5px" }}>
         <Switch
           size="small"
           checkedChildren={"Help"}
@@ -101,7 +101,7 @@ export default function Disk(props: Props) {
           type="info"
           message={"Persistent Disk Storage"}
           description={
-            <div style={{ color: "#666", margin: "10px 0" }}>
+            <div style={{ color: "var(--cocalc-text-secondary, #666)", margin: "10px 0" }}>
               <p>
                 You are charged for storage as long as the server is provisioned
                 (even if it is off).{" "}
@@ -187,7 +187,7 @@ export default function Disk(props: Props) {
             </Button>
           )}
       </Space>
-      <div style={{ color: "#666", margin: "10px 0" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #666)", margin: "10px 0" }}>
         Set the size between{" "}
         {state == "deprovisioned" ? (
           <Button
@@ -341,7 +341,7 @@ export default function Disk(props: Props) {
           </Space>
 
           {newDiskType == "pd-standard" && (
-            <div style={{ marginTop: "10px", color: "#666" }}>
+            <div style={{ marginTop: "10px", color: "var(--cocalc-text-secondary, #666)" }}>
               <b>WARNING:</b> Small standard disks are slow. Expect an extra
               10s-30s of startup time and slower application start. Balanced
               disks are much faster.

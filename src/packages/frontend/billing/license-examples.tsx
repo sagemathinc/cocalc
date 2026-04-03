@@ -44,7 +44,7 @@ export const LicenseExamples: React.FC<Props> = ({
       value == Number.POSITIVE_INFINITY ? <span>&#8734;</span> : value;
     return (
       <div key={value_str} style={{ marginBottom: "5px", marginLeft: "10px" }}>
-        <span style={{ fontWeight: "bold", color: "#444" }}>
+        <span style={{ fontWeight: "bold", color: "var(--cocalc-text-primary, #444)" }}>
           {value_str} {unit}
         </span>
         <Gap />

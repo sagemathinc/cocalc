@@ -303,7 +303,7 @@ export default function MultiMarkdownInput({
                 onClick={() => setEditBarPopover(false)}
                 name="times"
                 style={{
-                  color: COLORS.GRAY_M,
+                  color: `var(--cocalc-text-secondary, ${COLORS.GRAY_M})`,
                   marginTop: "5px",
                 }}
               />
@@ -368,8 +368,8 @@ export default function MultiMarkdownInput({
                         value: "menu",
                         style: {
                           backgroundColor: editBarPopover
-                            ? COLORS.GRAY_L
-                            : "white",
+                            ? "var(--cocalc-bg-hover, " + COLORS.GRAY_L + ")"
+                            : "var(--cocalc-bg-base, white)",
                           paddingLeft: 10,
                           paddingRight: 10,
                         },

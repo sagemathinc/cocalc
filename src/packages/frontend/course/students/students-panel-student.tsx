@@ -656,7 +656,7 @@ export function Student({
           </h6>
         </Col>
         <Col md={4}>
-          <h6 style={{ color: "#666", overflow: "hidden" }}>
+          <h6 style={{ color: "var(--cocalc-text-secondary, #666)", overflow: "hidden" }}>
             {render_student_email()}
           </h6>
         </Col>

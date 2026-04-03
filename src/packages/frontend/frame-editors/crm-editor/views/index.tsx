@@ -223,7 +223,7 @@ export default function Views({ table, style }: Props) {
         <div
           style={{
             display: "flex",
-            borderRight: "6px solid #eee",
+            borderRight: "6px solid var(--cocalc-border-light, #eee)",
             maxWidth: "90%",
           }}
         >

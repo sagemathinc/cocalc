@@ -380,7 +380,7 @@ export function Overview({
                 zIndex: 1011,
                 cursor: "nwse-resize",
                 background: "white",
-                color: "#888",
+                color: "var(--cocalc-text-tertiary, #888)",
                 visibility:
                   resize == null || resize.x || resize.y ? "hidden" : undefined,
               }}

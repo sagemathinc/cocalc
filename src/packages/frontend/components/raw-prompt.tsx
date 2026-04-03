@@ -5,7 +5,7 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { COLORS } from "@cocalc/util/theme";
 
 const STYLE = {
-  border: "1px solid lightgrey",
+  border: "1px solid var(--cocalc-border-light, lightgray)",
   borderRadius: "5px",
   margin: "5px 0",
   padding: "10px",

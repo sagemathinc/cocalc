@@ -229,7 +229,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
             style={{
               margin: "5px",
               right: 0,
-              background: "white",
+              background: "var(--cocalc-bg-base, white)",
               paddingLeft: "5px",
             }}
           >

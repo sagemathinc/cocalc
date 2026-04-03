@@ -91,7 +91,7 @@ export const WindowTab: React.FC<Props> = React.memo((props: Props) => {
         whiteSpace: "nowrap",
         cursor: "pointer",
         margin: "5px 0 5px 5px",
-        borderRight: "1px solid #aaa",
+        borderRight: "1px solid var(--cocalc-text-tertiary, #aaa)",
         background: is_current ? TAB_BAR_BLUE : TAB_BAR_GREY,
         color: is_current ? TAB_BAR_GREY : TAB_BAR_BLUE,
       }}

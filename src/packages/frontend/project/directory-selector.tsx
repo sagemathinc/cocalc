@@ -556,7 +556,7 @@ function CreateDirectory({
   };
 
   return (
-    <div style={{ color: "#666" }} key={"...-create-dir"}>
+    <div style={{ color: "var(--cocalc-text-secondary, #666)" }} key={"...-create-dir"}>
       <Modal
         title={
           <>

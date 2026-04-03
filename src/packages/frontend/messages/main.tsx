@@ -374,8 +374,8 @@ function ShowAllThreads({
         style={{
           margin: "5px 15px",
           paddingRight: "20px",
-          background: focused ? "#eee" : index % 2 ? "#f2f6fc" : "white",
-          border: focused ? `1px solid #ccc` : `1px solid transparent`,
+          background: focused ? "var(--cocalc-bg-hover, #eee)" : index % 2 ? "#f2f6fc" : "white",
+          border: focused ? `1px solid var(--cocalc-border, #ccc)` : `1px solid transparent`,
           borderRadius: "5px",
         }}
       >
@@ -462,7 +462,7 @@ function ShowAllThreads({
       </Flex>
       <div
         className="smc-vfill"
-        style={{ border: "1px solid #ccc", borderRadius: "3px" }}
+        style={{ border: "1px solid var(--cocalc-border, #ccc)", borderRadius: "3px" }}
       >
         {filteredMessages != null && (
           <ScrollableList

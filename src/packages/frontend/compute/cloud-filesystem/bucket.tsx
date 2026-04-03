@@ -232,7 +232,7 @@ export function BucketLocation({ configuration, setConfiguration }) {
 
   return (
     <div style={{ marginTop: "10px" }}>
-      <b style={{ fontSize: "13pt", color: "#666" }}>
+      <b style={{ fontSize: "13pt", color: "var(--cocalc-text-secondary, #666)" }}>
         <A href="https://cloud.google.com/storage/docs/locations">
           {EXTERNAL} Location
         </A>
