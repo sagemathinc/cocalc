@@ -204,6 +204,7 @@ export default function Canvas({
     min: MIN_FONT_SIZE,
     max: MAX_FONT_SIZE,
     throttleMs: 100,
+    wheelSpeed: 2,
     getFontSize: () => font_size ?? DEFAULT_FONT_SIZE,
     onZoom: ({ fontSize, first }) => {
       lastPinchRef.current = Date.now();
