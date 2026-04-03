@@ -23,8 +23,10 @@ import {
   ACCESSIBILITY_ICON,
   DARK_MODE_ICON,
 } from "@cocalc/util/consts/ui";
-import { DARK_MODE_DEFAULTS } from "@cocalc/util/db-schema/accounts";
-import { DEFAULT_EDITOR_THEME } from "@cocalc/util/db-schema/accounts";
+import {
+  DARK_MODE_DEFAULTS,
+  DEFAULT_EDITOR_THEME,
+} from "@cocalc/util/db-schema/accounts";
 import { COLORS } from "@cocalc/util/theme";
 import {
   DARK_MODE_KEYS,

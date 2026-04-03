@@ -9,7 +9,7 @@ Tabs for the open files in a project.
 
 import type { MenuProps, TabsProps } from "antd";
 import { Button, Dropdown, Tabs } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import {
@@ -105,7 +105,12 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     paths.push(path);
     keys.push(pathToKey(path));
   });
-  const openPathSet = useMemo(() => new Set(paths), [openFiles]);
+  const openPathSet = useMemo(
+    () => new Set(paths),
+    // paths is derived from openFiles in this render
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [openFiles],
+  );
 
   useEffect(() => {
     if (!recentFilesMenuOpen || project_log != null) return;
@@ -175,7 +180,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
     }
   }
 
-  function getRecentFilesMenu(): MenuProps {
+  const getRecentFilesMenu = useCallback((): MenuProps => {
     const closedRecentFiles = recentFiles.filter(
       (entry: OpenedFile) => !openPathSet.has(entry.filename),
     );
@@ -234,11 +239,11 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
       ],
       style: { maxHeight: "min(500px, 50vh)", overflowY: "auto" },
     };
-  }
+  }, [recentFiles, intl, actions, openPathSet]);
 
   const recentFilesMenu = useMemo(
     () => getRecentFilesMenu(),
-    [recentFiles, intl, actions, openPathSet],
+    [getRecentFilesMenu],
   );
 
   if (openFiles == null) {

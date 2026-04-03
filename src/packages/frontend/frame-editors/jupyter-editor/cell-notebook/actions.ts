@@ -524,10 +524,10 @@ export class NotebookFrameActions {
     }
 
     this.enable_key_handler();
+    this.setState(nextState);
     if (mode === "edit") {
       this.input_editors[id]?.focus?.();
     }
-    this.setState(nextState);
 
     if (
       id != prev_id &&

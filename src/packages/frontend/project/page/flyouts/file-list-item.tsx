@@ -477,6 +477,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         onMouseDown={(e) => {
           onMouseDown?.(e, item.name);
         }}
+        onMouseEnter={handleMouseEnter}
         // additional mouseLeave to prevent stale hover state icon
         onMouseLeave={handleMouseLeave}
       >
