@@ -17,7 +17,7 @@ const STYLE: CSS = {
   zIndex: 1,
   position: "absolute",
   border: "1px solid var(--cocalc-border-light, lightgray)",
-  background: "white",
+  background: "var(--cocalc-bg-base, white)",
   borderRadius: "4px",
   margin: "-20px 0 0 -150px", // we use a negative margin to adjust absolute position of calendar popover (hackish)
   boxShadow: "0 6px 12px rgba(0,0,0,.175)",

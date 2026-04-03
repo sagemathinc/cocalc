@@ -184,7 +184,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
     function render_debug_info(conf): Rendered {
       if (conf != null && DEBUG) {
         return (
-          <pre style={{ fontSize: "9px", color: "black" }}>
+          <pre style={{ fontSize: "9px", color: "var(--cocalc-text-primary, black)" }}>
             {JSON.stringify(conf, undefined, 2)}
           </pre>
         );

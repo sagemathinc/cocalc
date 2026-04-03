@@ -56,7 +56,7 @@ export default function Task({
   const style = {
     margin: "2px 5px",
     paddingTop: "5px",
-    background: "white",
+    background: "var(--cocalc-bg-base, white)",
     borderRadius: "8px",
   } as CSSProperties;
   if (editing_desc) {

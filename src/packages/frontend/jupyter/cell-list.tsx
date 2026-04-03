@@ -688,7 +688,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           /* This is what is displayed when dragging the given cell. */
           <div
             style={{
-              background: "white",
+              background: "var(--cocalc-bg-base, white)",
               boxShadow: "8px 8px 4px 4px var(--cocalc-border, #ccc)",
               fontSize: `${font_size}px`,
             }}

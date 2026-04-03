@@ -32,7 +32,7 @@ export function RefreshButton({ onClick }: Props) {
         size="small"
         style={{
           background: COLORS.YELL_LLL,
-          color: "black",
+          color: "var(--cocalc-text-primary, black)",
           borderRadius: 4,
           whiteSpace: "nowrap",
           marginLeft: 6,

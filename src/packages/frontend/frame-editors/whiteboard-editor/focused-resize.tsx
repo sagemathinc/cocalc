@@ -57,7 +57,7 @@ export default function DragHandle({
     pointerEvents: "all", // because we sometimes turn off pointer events for containing div
     cursor: dragHandleCursors[`${top}-${left}`],
     position: "absolute",
-    background: "white",
+    background: "var(--cocalc-bg-base, white)",
     color: handleColor,
     fontSize: handleSize,
     zIndex: MAX_ELEMENTS + 15,

@@ -379,7 +379,7 @@ export function Overview({
                 top: 0,
                 zIndex: 1011,
                 cursor: "nwse-resize",
-                background: "white",
+                background: "var(--cocalc-bg-base, white)",
                 color: "var(--cocalc-text-tertiary, #888)",
                 visibility:
                   resize == null || resize.x || resize.y ? "hidden" : undefined,

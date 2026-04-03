@@ -227,7 +227,7 @@ export const Page: React.FC = () => {
         style={{
           backgroundColor: COLORS.TOP_BAR.SIGN_IN_BG,
           fontSize: "16pt",
-          color: "black",
+          color: "var(--cocalc-text-primary, black)",
           padding: "5px 15px",
         }}
       >

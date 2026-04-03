@@ -51,7 +51,7 @@ export const FullscreenButton: React.FC<Props> = React.memo((props: Props) => {
     cursor: "pointer",
     ...(fullscreen
       ? {
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           opacity: 0.7,
           border: "1px solid grey",
         }

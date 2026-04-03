@@ -223,7 +223,7 @@ export function ComputeServerDocStatus({
   return (
     <div
       className="smc-vfill"
-      style={{ flex: 3, minHeight: "300px", background: "white" }}
+      style={{ flex: 3, minHeight: "300px", background: "var(--cocalc-bg-base, white)" }}
     >
       <div>{topBar(progress)}</div>
       <div

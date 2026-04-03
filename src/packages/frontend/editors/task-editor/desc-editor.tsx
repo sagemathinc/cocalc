@@ -103,7 +103,7 @@ export default function DescriptionEditor({
           float: "right",
           border: "1px solid var(--cocalc-border, #ccc)",
           padding: "15px",
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
           marginBottom: "15px",
           boxShadow: "3px 3px 3px var(--cocalc-border, #ccc)",
         }}

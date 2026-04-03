@@ -157,7 +157,7 @@ export function BrushPreview({
         width: `${(maxRadius + 1) * 2}px`,
         height: `${(maxRadius + 1) * 2}px`,
         borderRadius: `${maxRadius + 1}px`,
-        background: "white",
+        background: "var(--cocalc-bg-base, white)",
         border: `3px solid ${color ?? "var(--cocalc-border, #ccc)"}`,
         paddingLeft: `${maxRadius + 1 - radius - 3}px`,
         paddingTop: `${maxRadius + 1 - radius - 3}px`,

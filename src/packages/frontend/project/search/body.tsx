@@ -42,7 +42,7 @@ import { COLORS } from "@cocalc/util/theme";
 import SelectComputeServerForFileExplorer from "@cocalc/frontend/compute/select-server-for-explorer";
 
 const RESULTS_WELL_STYLE: React.CSSProperties = {
-  backgroundColor: "white",
+  backgroundColor: "var(--cocalc-bg-base, white)",
 } as const;
 
 export const ProjectSearchBody: React.FC<{

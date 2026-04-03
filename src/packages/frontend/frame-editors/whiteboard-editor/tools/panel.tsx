@@ -21,7 +21,7 @@ export const PANEL_STYLE: CSS = {
   boxShadow: "0 0 5px grey",
   borderRadius: "3px",
   margin: "10px",
-  background: "white",
+  background: "var(--cocalc-bg-base, white)",
 } as const;
 
 interface Props {

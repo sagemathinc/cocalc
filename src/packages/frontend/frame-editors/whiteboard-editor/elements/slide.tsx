@@ -18,7 +18,7 @@ export default function Frame({ element, focused, canvasScale }: Props) {
         }px solid var(--cocalc-border-light, #eee)`,
         borderRadius: "3px",
         boxShadow: "1px 3px 5px var(--cocalc-border, #ccc)",
-        background: "white",
+        background: "var(--cocalc-bg-base, white)",
       }}
     ></div>
   );

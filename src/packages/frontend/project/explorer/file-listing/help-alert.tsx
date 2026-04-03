@@ -77,7 +77,7 @@ export function HelpAlert({
     message = (
       <>
         <Text keyboard>
-          <span style={{ color: "black" }}>Shift+Return</span>
+          <span style={{ color: "var(--cocalc-text-primary, black)" }}>Shift+Return</span>
         </Text>{" "}
         creates{" "}
         <strong>{actual_new_filename.slice(lastFolderIndex + 1)}</strong> in
@@ -89,7 +89,7 @@ export function HelpAlert({
     message = (
       <>
         <Text keyboard>
-          <span style={{ color: "black" }}>Shift+Return</span>
+          <span style={{ color: "var(--cocalc-text-primary, black)" }}>Shift+Return</span>
         </Text>{" "}
         creates <strong>{actual_new_filename}</strong>
       </>

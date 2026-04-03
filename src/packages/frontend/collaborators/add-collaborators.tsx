@@ -495,7 +495,7 @@ export const AddCollaborators: React.FC<Props> = ({
           <div
             style={{
               padding: "20px 0",
-              backgroundColor: "white",
+              backgroundColor: "var(--cocalc-bg-base, white)",
               marginBottom: "15px",
             }}
           >
@@ -629,7 +629,7 @@ export const AddCollaborators: React.FC<Props> = ({
               border: "1px solid var(--cocalc-border-light, lightgray)",
               padding: "10px",
               borderRadius: "5px",
-              backgroundColor: "white",
+              backgroundColor: "var(--cocalc-bg-base, white)",
               margin: "10px 0",
             }}
           >

@@ -138,7 +138,7 @@ export const Description: React.FC<Props> = React.memo(
             position: "absolute",
             right: "25px",
             bottom: "-10px",
-            background: "white",
+            background: "var(--cocalc-bg-base, white)",
             zIndex: 1,
           }}
         >

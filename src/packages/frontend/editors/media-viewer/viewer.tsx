@@ -74,7 +74,7 @@ const RenderMedia: React.FC<{ path: string; url: string }> = ({
   switch (get_mode(path)) {
     case "image":
       return (
-        <img src={url} style={{ maxWidth: "100%", background: "white" }} />
+        <img src={url} style={{ maxWidth: "100%", background: "var(--cocalc-bg-base, white)" }} />
       );
     case "video":
       return (

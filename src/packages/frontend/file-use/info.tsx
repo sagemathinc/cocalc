@@ -112,7 +112,7 @@ export class FileUseInfo extends Component<Props, {}> {
   render_project(): Rendered {
     return (
       <ProjectTitle
-        style={{ background: "white", padding: "0px 5px", borderRadius: "3px" }}
+        style={{ background: "var(--cocalc-bg-base, white)", padding: "0px 5px", borderRadius: "3px" }}
         key="project"
         project_id={this.props.info.get("project_id")}
       />

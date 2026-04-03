@@ -470,7 +470,7 @@ export function StarredProjectsBar() {
                   >
                     <Button
                       icon={<Icon name="ellipsis" />}
-                      style={{ backgroundColor: "white", marginLeft: "auto" }}
+                      style={{ backgroundColor: "var(--cocalc-bg-base, white)", marginLeft: "auto" }}
                     >
                       +{overflowProjects.length}
                     </Button>

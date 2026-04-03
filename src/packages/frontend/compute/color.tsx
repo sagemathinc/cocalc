@@ -87,7 +87,7 @@ export default function Color({
             style={{
               position: "absolute",
               zIndex: 100,
-              background: "white",
+              background: "var(--cocalc-bg-base, white)",
               border: "1px solid var(--cocalc-text-tertiary, #aaa)",
               boxShadow: "4px 4px 2px var(--cocalc-text-tertiary, #aaa)",
             }}

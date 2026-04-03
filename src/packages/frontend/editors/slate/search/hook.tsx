@@ -30,7 +30,7 @@ const EXTRA_INFO_STYLE = {
   opacity: 0.95,
   marginTop: "2px",
   zIndex: 1,
-  background: "white",
+  background: "var(--cocalc-bg-base, white)",
   width: "100%",
   color: "rgb(102,102,102)",
   borderLeft: "1px solid var(--cocalc-border-light, lightgray)",

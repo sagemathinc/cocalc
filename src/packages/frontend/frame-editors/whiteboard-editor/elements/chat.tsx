@@ -32,7 +32,7 @@ export default function ChatDynamic({ element, focused }: Props) {
     <>
       <Icon
         name={"comment"}
-        style={getStyle(element, { fontSize: 24, background: "white" })}
+        style={getStyle(element, { fontSize: 24, background: "var(--cocalc-bg-base, white)" })}
       />
       <Conversation element={element} focused={focused} />
     </>
@@ -97,7 +97,7 @@ function Conversation({ element, focused }: Props) {
         style={{
           flex: 1,
           overflowY: "auto",
-          background: "white",
+          background: "var(--cocalc-bg-base, white)",
         }}
       />
       <Composing element={element} focused={focused} />
@@ -172,7 +172,7 @@ function Conversation({ element, focused }: Props) {
               boxShadow: "1px 3px 5px var(--cocalc-border, #ccc)",
               margin: "5px",
               minWidth: "500px",
-              background: "white",
+              background: "var(--cocalc-bg-base, white)",
               fontFamily: "sans-serif",
               paddingRight: 0, // undoing a temporary hack
             }}

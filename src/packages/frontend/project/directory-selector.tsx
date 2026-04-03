@@ -210,7 +210,7 @@ export default function DirectorySelector({
       }
       style={{
         width: "20em",
-        backgroundColor: "white",
+        backgroundColor: "var(--cocalc-bg-base, white)",
         ...style,
       }}
       styles={{

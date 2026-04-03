@@ -154,7 +154,7 @@ function ColorButton(props: ButtonProps) {
           color={color}
           onChange={setColor}
           style={{
-            background: "white",
+            background: "var(--cocalc-bg-base, white)",
             padding: "10px",
             border: "1px solid grey",
             boxShadow: "0 0 5px grey",

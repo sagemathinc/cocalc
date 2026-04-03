@@ -301,7 +301,7 @@ export function PaymentMethod({
           <IconLetter
             style={{
               background: "#00d66f",
-              color: "black",
+              color: "var(--cocalc-text-primary, black)",
               fontWeight: "bold",
             }}
           >

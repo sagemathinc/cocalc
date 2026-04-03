@@ -56,7 +56,7 @@ export const JSONView: React.FC<JSONViewProps> = ({
             fontSize: "12pt",
             padding: "5px",
             float: "right",
-            background: "white",
+            background: "var(--cocalc-bg-base, white)",
             borderBottom: "1px solid var(--cocalc-border-light, lightgray)",
             borderLeft: "1px solid var(--cocalc-border-light, lightgray)",
           }}

@@ -133,7 +133,7 @@ export default function Overview() {
             navMap={"page"}
             style={{
               pointerEvents: "none",
-              background: "white",
+              background: "var(--cocalc-bg-base, white)",
               border: "1px solid var(--cocalc-border, #ccc)",
               borderRadius: "5px",
             }}

@@ -25,7 +25,7 @@ export default function CellInput({ input, flags }: Props) {
     <CodeMirrorStatic
       value={input ?? ""}
       options={OPTIONS}
-      style={{ background: "white", padding: "10px" }}
+      style={{ background: "var(--cocalc-bg-base, white)", padding: "10px" }}
     />
   );
 }

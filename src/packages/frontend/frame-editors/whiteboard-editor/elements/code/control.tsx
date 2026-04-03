@@ -31,7 +31,7 @@ export default function CodeControlBar({ element, canvasScale = 1 }: Props) {
         padding: "2px 6px",
         border: "1px solid var(--cocalc-border, #ccc)",
         borderRadius: "3px",
-        background: "white",
+        background: "var(--cocalc-bg-base, white)",
         boxShadow: "1px 3px 5px rgb(33 33 33 / 50%)",
         position: "absolute",
         bottom: `calc(100% + ${10 / canvasScale}px)`,

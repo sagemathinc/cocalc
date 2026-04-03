@@ -110,7 +110,7 @@ export default function RetentionView({ retention, setRetention }: Props) {
 
 function Header({ size, period, startTimes, all }) {
   return (
-    <tr style={{ background: "white" }}>
+    <tr style={{ background: "var(--cocalc-bg-base, white)" }}>
       <td
         style={{
           padding: "5px 15px",
