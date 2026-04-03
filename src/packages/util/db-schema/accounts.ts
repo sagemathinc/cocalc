@@ -874,7 +874,7 @@ export const EDITOR_BINDINGS = {
 };
 
 export const EDITOR_COLOR_SCHEMES = {
-  "cocalc-auto": "CoCalc Auto (adapts to UI theme)",
+  "cocalc-auto": "Auto (adapts automatically)",
   cocalc: "CoCalc (auto light/dark)",
   default: "Default",
   "3024-day": "3024 day",

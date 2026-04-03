@@ -273,7 +273,7 @@ void _check;
 // "cocalc" is a virtual entry that auto-switches between cocalc-light/dark.
 
 export const theme_desc: Record<string, string> = {
-  "cocalc-auto": "CoCalc Auto (adapts to UI theme)",
+  "cocalc-auto": "Auto (adapts automatically)",
   ["cocalc" satisfies TerminalThemeId]: "CoCalc (auto light/dark)",
 };
 for (const name in COLOR_THEMES) {

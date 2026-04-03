@@ -239,15 +239,16 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     dragBar: darken(bg, 0.1),
     dragBarHover: primary,
 
-    // Syntax highlighting — derived from theme colors for light backgrounds
-    syntaxKeyword: darken(primary, 0.15),
-    syntaxString: darken(secondary, 0.2),
-    syntaxComment: lighten(text, 0.45),
-    syntaxNumber: darken(accent, 0.2),
-    syntaxFunction: darken(primary, 0.05),
-    syntaxVariable: text,
-    syntaxType: mixColors(primary, secondary, 0.5),
-    syntaxOperator: lighten(text, 0.2),
+    // Syntax highlighting — derived from theme colors for light backgrounds.
+    // Darkened more than UI colors for strong text contrast on light bg.
+    syntaxKeyword: darken(primary, 0.35),
+    syntaxString: darken(secondary, 0.4),
+    syntaxComment: lighten(text, 0.4),
+    syntaxNumber: darken(accent, 0.4),
+    syntaxFunction: darken(primary, 0.2),
+    syntaxVariable: darken(text, 0.1),
+    syntaxType: darken(mixColors(primary, secondary, 0.5), 0.25),
+    syntaxOperator: lighten(text, 0.15),
 
     star: "#FFD700",
     run: "#389e0d",
@@ -327,15 +328,15 @@ export function deriveDarkTheme(light: ColorTheme): ColorTheme {
     dragBar: lighten(darkBg, 0.15),
     dragBarHover: primary,
 
-    // Syntax highlighting — lightened for dark backgrounds
-    syntaxKeyword: lighten(light.syntaxKeyword, 0.35),
-    syntaxString: lighten(light.syntaxString, 0.3),
-    syntaxComment: darken(darkText, 0.35),
-    syntaxNumber: lighten(light.syntaxNumber, 0.3),
-    syntaxFunction: lighten(light.syntaxFunction, 0.3),
+    // Syntax highlighting — lightened significantly for dark backgrounds
+    syntaxKeyword: lighten(light.syntaxKeyword, 0.45),
+    syntaxString: lighten(light.syntaxString, 0.4),
+    syntaxComment: darken(darkText, 0.3),
+    syntaxNumber: lighten(light.syntaxNumber, 0.4),
+    syntaxFunction: lighten(light.syntaxFunction, 0.4),
     syntaxVariable: darkText,
-    syntaxType: lighten(light.syntaxType, 0.35),
-    syntaxOperator: darken(darkText, 0.15),
+    syntaxType: lighten(light.syntaxType, 0.45),
+    syntaxOperator: darken(darkText, 0.1),
 
     star: "#FFD700",
     run: "#52c41a",
