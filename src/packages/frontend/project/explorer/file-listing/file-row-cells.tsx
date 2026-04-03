@@ -91,10 +91,22 @@ export const FileRowCells = React.memo(function FileRowCells({
   listingPaths,
   computeServerId,
 }: FileRowCellsProps) {
+  const [quickActionsMounted, setQuickActionsMounted] = React.useState(
+    isChecked || isInClipboard,
+  );
+  const ensureQuickActionsMounted = React.useCallback(() => {
+    setQuickActionsMounted(true);
+  }, []);
+  const showQuickActions =
+    quickActionsMounted || isChecked || isInClipboard || IS_MOBILE;
+
   return (
     <>
       {!disableActions && (
-        <td style={{ ...CELL_STYLE, width: COL_W.CHECKBOX }}>
+        <td
+          style={{ ...CELL_STYLE, width: COL_W.CHECKBOX }}
+          onMouseEnter={ensureQuickActionsMounted}
+        >
           <Checkbox
             checked={isChecked}
             disabled={record.name === ".."}
@@ -113,16 +125,18 @@ export const FileRowCells = React.memo(function FileRowCells({
             cursor: record.isdir ? "pointer" : undefined,
           }}
           className={isExpanded ? "cc-explorer-cell-expanded" : undefined}
+          onMouseEnter={ensureQuickActionsMounted}
           onClick={
-            record.isdir
-              ? (e) => toggleExpandDir(record.name, e)
-              : undefined
+            record.isdir ? (e) => toggleExpandDir(record.name, e) : undefined
           }
         >
           {renderFileIcon(record, isExpanded)}
         </td>
       )}
-      <td style={{ ...CELL_STYLE, width: COL_W.STAR }}>
+      <td
+        style={{ ...CELL_STYLE, width: COL_W.STAR }}
+        onMouseEnter={ensureQuickActionsMounted}
+      >
         <Icon
           name={isStarred ? "star-filled" : "star"}
           onClick={(e) => {
@@ -143,6 +157,7 @@ export const FileRowCells = React.memo(function FileRowCells({
           width: COL_W.PUBLIC,
           cursor: record.is_public ? "pointer" : undefined,
         }}
+        onMouseEnter={ensureQuickActionsMounted}
         onClick={
           record.is_public
             ? (e) => {
@@ -159,9 +174,12 @@ export const FileRowCells = React.memo(function FileRowCells({
           <Icon name="share-square" style={{ color: COLORS.TAB }} />
         ) : null}
       </td>
-      <td style={{ ...CELL_STYLE, position: "relative" }}>
+      <td
+        style={{ ...CELL_STYLE, position: "relative" }}
+        onMouseEnter={ensureQuickActionsMounted}
+      >
         {renderFileName(record, dimFileExtensions)}
-        {!disableActions && record.name !== ".." && (
+        {!disableActions && record.name !== ".." && showQuickActions && (
           <QuickActionButtons
             project_id={project_id}
             path={fp}
@@ -181,15 +199,20 @@ export const FileRowCells = React.memo(function FileRowCells({
         )}
       </td>
       {!IS_MOBILE && (
-        <td style={{ ...CELL_STYLE, width: COL_W.DATE }}>
+        <td
+          style={{ ...CELL_STYLE, width: COL_W.DATE }}
+          onMouseEnter={ensureQuickActionsMounted}
+        >
           {renderTimestamp(record.mtime)}
         </td>
       )}
       {!isNarrow && (
         <>
-          <td style={{ ...CELL_STYLE, width: COL_W.SIZE, textAlign: "right" }}>
-            {!disableActions &&
-            (record.isdir ? record.size != null : true) ? (
+          <td
+            style={{ ...CELL_STYLE, width: COL_W.SIZE, textAlign: "right" }}
+            onMouseEnter={ensureQuickActionsMounted}
+          >
+            {!disableActions && (record.isdir ? record.size != null : true) ? (
               <Button
                 type="text"
                 size="small"
@@ -229,6 +252,7 @@ export const FileRowCells = React.memo(function FileRowCells({
               width: COL_W.ACTIONS,
               textAlign: "center",
             }}
+            onMouseEnter={ensureQuickActionsMounted}
           >
             {record.name !== ".." && !disableActions && (
               <Button

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -15,7 +15,7 @@
  */
 
 import { Table } from "antd";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useIntl } from "react-intl";
 
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -119,19 +119,25 @@ export function ProjectsTable({
     });
   }, [visible_projects, project_map, isProjectBookmarked]);
 
-  const handleToggleStar = (project_id: string, e: React.MouseEvent) => {
-    e.stopPropagation();
-    const isStarred = isProjectBookmarked(project_id);
-    setProjectBookmarked(project_id, !isStarred);
-  };
+  const handleToggleStar = useCallback(
+    (project_id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      const isStarred = isProjectBookmarked(project_id);
+      setProjectBookmarked(project_id, !isStarred);
+    },
+    [isProjectBookmarked, setProjectBookmarked],
+  );
 
-  const renderActionsMenu = (record: ProjectTableRecord) => {
+  const renderActionsMenu = useCallback((record: ProjectTableRecord) => {
     return <ProjectActionsMenu record={record} />;
-  };
+  }, []);
 
-  const handleToggleExpand = (record: ProjectTableRecord) => {
-    actions.toggle_expanded_project(record.project_id);
-  };
+  const handleToggleExpand = useCallback(
+    (record: ProjectTableRecord) => {
+      actions.toggle_expanded_project(record.project_id);
+    },
+    [actions],
+  );
 
   // Compute all unique collaborators and their information for filtering
   const collaboratorFilters = useMemo(() => {
@@ -190,16 +196,30 @@ export function ProjectsTable({
   // Convert expanded_project_id to array format for Ant Design Table
   const expandedRowKeys = expanded_project_id ? [expanded_project_id] : [];
 
-  const columns = getProjectTableColumns(
-    handleToggleStar,
-    renderActionsMenu,
-    sortState,
-    handleToggleExpand,
-    expandedRowKeys,
-    collaboratorFilters,
-    narrow,
-    filteredCollaborators,
-    intl,
+  const columns = useMemo(
+    () =>
+      getProjectTableColumns(
+        handleToggleStar,
+        renderActionsMenu,
+        sortState,
+        handleToggleExpand,
+        expandedRowKeys,
+        collaboratorFilters,
+        narrow,
+        filteredCollaborators,
+        intl,
+      ),
+    [
+      handleToggleStar,
+      renderActionsMenu,
+      sortState,
+      handleToggleExpand,
+      expandedRowKeys,
+      collaboratorFilters,
+      narrow,
+      filteredCollaborators,
+      intl,
+    ],
   );
 
   function handleRowClick(record: ProjectTableRecord, e?: React.MouseEvent) {

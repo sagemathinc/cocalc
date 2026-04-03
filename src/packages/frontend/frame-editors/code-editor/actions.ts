@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -296,7 +296,11 @@ export class Actions<
         // disk yet, which happens with compute servers for a second.
         return;
       }
-      this.setState({ value: this._syncstring.to_str() });
+      const value = this._syncstring.to_str();
+      if (this.store?.get("value") === value) {
+        return;
+      }
+      this.setState({ value });
     });
   }
 

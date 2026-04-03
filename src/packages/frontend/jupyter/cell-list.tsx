@@ -24,7 +24,6 @@ import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
 import { Loading } from "@cocalc/frontend/components";
 import {
-  DragHandle,
   SortableItem,
   SortableList,
 } from "@cocalc/frontend/components/sortable-list";
@@ -431,18 +430,6 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     if (index == null) {
       index = cell_list.indexOf(id) ?? 0;
     }
-    const dragHandle = actions?.store.is_cell_editable(id) ? (
-      <DragHandle
-        id={id}
-        style={{
-          position: "relative",
-          left: 0,
-          top: 0,
-          color: "#aaa",
-        }}
-      />
-    ) : undefined;
-
     return (
       <div key={id}>
         <Cell
@@ -472,7 +459,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           computeServerId={computeServerId}
           isFirst={isFirst}
           isLast={isLast}
-          dragHandle={dragHandle}
+          showDragHandle={!!actions?.store.is_cell_editable(id)}
           read_only={read_only}
           isDragging={isDragging}
         />
@@ -558,6 +545,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
 
   const cellListResize = useResizeObserver({ ref: cellListDivRef });
+  const viewportIncrease = 2 * Math.max(1000, cellListResize.height ?? 0);
   useEffect(() => {
     for (const key in scrollOrResize) {
       scrollOrResize[key]();
@@ -580,6 +568,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             ref={virtuosoRef}
             onClick={actions != null && complete != null ? on_click : undefined}
             topItemCount={0}
+            increaseViewportBy={viewportIncrease}
             style={{
               fontSize: `${font_size}px`,
               flex: 1,
