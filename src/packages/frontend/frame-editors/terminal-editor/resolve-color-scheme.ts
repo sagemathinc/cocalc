@@ -16,6 +16,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import {
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
+  OTHER_SETTINGS_RANDOM_THEME_SEED,
   getColorTheme,
 } from "@cocalc/util/theme";
 
@@ -42,7 +43,8 @@ function isCurrentlyDark(): boolean {
   // nativeDark === "off" — but the user might have chosen a theme that's
   // inherently dark (shouldn't happen with the new system, but be safe)
   const themeId = String(other.get(OTHER_SETTINGS_COLOR_THEME) ?? "default");
-  const theme = getColorTheme(themeId);
+  const randomSeed = Number(other.get(OTHER_SETTINGS_RANDOM_THEME_SEED) ?? 0);
+  const theme = getColorTheme(themeId, randomSeed);
   return theme.isDark ?? false;
 }
 

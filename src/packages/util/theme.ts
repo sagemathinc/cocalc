@@ -61,7 +61,9 @@ export {
   type ColorThemeId,
   deriveDarkTheme,
   deriveTheme,
+  generateRandomizedBaseColors,
   getColorTheme,
+  getRandomizedTheme,
   hexToRgb,
   luminance,
   mixColors,
@@ -69,8 +71,10 @@ export {
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
+  OTHER_SETTINGS_RANDOM_THEME_SEED,
   resolveUserTheme,
   THEME_DEFAULT,
+  THEME_RANDOMIZED_ID,
 } from "./theme-colors";
 
 // This is the applications color scheme

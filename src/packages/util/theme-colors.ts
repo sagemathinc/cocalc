@@ -15,6 +15,8 @@
  * The "default" preset uses CoCalc branding colors (blue + orange).
  */
 
+import sha1 from "sha1";
+
 // ---------------------------------------------------------------------------
 // Color math helpers (no external deps)
 // ---------------------------------------------------------------------------
@@ -154,6 +156,11 @@ export interface BaseColors {
 // Derive a full LIGHT ColorTheme from base colors
 // ---------------------------------------------------------------------------
 
+/** Return white or near-black depending on which has better contrast. */
+function contrastText(bgHex: string): string {
+  return luminance(bgHex) > 0.55 ? "#222222" : "#ffffff";
+}
+
 export function deriveTheme(name: string, base: BaseColors): ColorTheme {
   const {
     primary,
@@ -165,6 +172,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
 
   const bgBase = bg;
   const bgElevated = mixColors(bgBase, primary, 0.015); // Slightly more tint for elevated surfaces
+  const chatViewerBg = lighten(primary, 0.35);
 
   return {
     name,
@@ -175,8 +183,8 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     primaryLight: lighten(primary, 0.4),
     primaryLightest: lighten(primary, 0.85),
 
-    secondary: accent,
-    secondaryLight: lighten(accent, 0.6),
+    secondary,
+    secondaryLight: lighten(secondary, 0.6),
 
     colorLink: darken(primary, 0.15),
     colorSuccess: "#52c41a",
@@ -192,7 +200,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     textPrimary: text,
     textSecondary: lighten(text, 0.35),
     textTertiary: lighten(text, 0.55),
-    textOnPrimary: "#ffffff",
+    textOnPrimary: contrastText(primary),
 
     border: lighten(text, 0.7),
     borderLight: lighten(text, 0.82),
@@ -208,8 +216,8 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     landingBarBg: primary,
     landingTopBg: lighten(primary, 0.75),
 
-    chatViewerBg: lighten(primary, 0.35),
-    chatViewerText: "#ffffff",
+    chatViewerBg,
+    chatViewerText: contrastText(chatViewerBg),
     chatOtherBg: darken(bgBase, 0.03),
     chatOtherText: text,
 
@@ -300,6 +308,94 @@ export function deriveDarkTheme(light: ColorTheme): ColorTheme {
     aiText: darkText,
     aiFont: accent,
     signInBg: darken(accent, 0.2),
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Randomized daily theme — deterministic colors that change every day
+// ---------------------------------------------------------------------------
+
+/**
+ * Hash a string to extract an integer, then map it to a value in [min, max].
+ * Channel index (0=R, 1=G, 2=B) picks different bits from the hash.
+ */
+function hashToChannel(
+  seed: string,
+  channel: number,
+  min: number,
+  max: number,
+): number {
+  const hash = sha1(seed)
+    .split("")
+    .reduce((a, b) => ((a << 6) - a + b.charCodeAt(0)) | 0, 0);
+  const raw = ((hash >> (channel * 8)) & 0xff) % (max - min);
+  return raw + min;
+}
+
+function hashToHex(seed: string, min: number, max: number): string {
+  const r = hashToChannel(seed, 0, min, max);
+  const g = hashToChannel(seed, 1, min, max);
+  const b = hashToChannel(seed, 2, min, max);
+  return rgbToHex(r, g, b);
+}
+
+/**
+ * Compute the minimum pairwise "distance" between a set of hex colors.
+ * Uses sum of absolute channel differences (Manhattan distance in RGB).
+ */
+function colorDiversity(colors: string[]): number {
+  let minDist = Infinity;
+  for (let i = 0; i < colors.length; i++) {
+    for (let j = i + 1; j < colors.length; j++) {
+      const [r1, g1, b1] = hexToRgb(colors[i]);
+      const [r2, g2, b2] = hexToRgb(colors[j]);
+      const dist = Math.abs(r1 - r2) + Math.abs(g1 - g2) + Math.abs(b1 - b2);
+      minDist = Math.min(minDist, dist);
+    }
+  }
+  return minDist;
+}
+
+/**
+ * Generate BaseColors for the "Randomized" theme from a numeric seed.
+ * The seed is persisted in user account settings and incremented on each click.
+ *
+ * - primary:   vibrant, saturated (R,G,B each in 40–200, with high channel diff)
+ * - secondary: vibrant, distinct from primary
+ * - accent:    lighter variant, distinct from both
+ * - bg:        very light grayish (245–255 per channel)
+ * - text:      dark grayish (30–60 per channel)
+ *
+ * A diversity sub-seed (0, 1, 2, …) is incremented until pairwise distance
+ * between primary, secondary, and accent exceeds a threshold.
+ */
+export function generateRandomizedBaseColors(seed: number = 0): BaseColors {
+  const MIN_DIVERSITY = 180; // minimum Manhattan RGB distance between any two chromatic colors
+
+  for (let divSeed = 0; divSeed <= 100; divSeed++) {
+    const s = `cocalc-random-theme-${seed}-${divSeed}`;
+    // Primary: medium-saturated, not too bright, not too dark
+    const primary = hashToHex(`${s}-primary`, 40, 200);
+    // Secondary: same range, different hash input
+    const secondary = hashToHex(`${s}-secondary`, 40, 200);
+    // Accent: lighter range
+    const accent = hashToHex(`${s}-accent`, 100, 220);
+
+    if (colorDiversity([primary, secondary, accent]) >= MIN_DIVERSITY) {
+      // bg: very light, slight random tint
+      const bg = hashToHex(`${s}-bg`, 245, 255);
+      // text: dark but with subtle color tint (wider range lets channels diverge)
+      const text = hashToHex(`${s}-text`, 15, 75);
+      return { primary, secondary, accent, bg, text };
+    }
+  }
+  // Fallback (should never happen with these ranges)
+  return {
+    primary: "#4474c0",
+    secondary: "#fcc861",
+    accent: "#fcc861",
+    bg: "#f9fbff",
+    text: "#303030",
   };
 }
 
@@ -446,10 +542,27 @@ export const COLOR_THEMES: Record<string, ColorTheme> = {
   midnight: THEME_MIDNIGHT,
 } as const;
 
+/** ID for the randomized daily theme (not in COLOR_THEMES since it's dynamic) */
+export const THEME_RANDOMIZED_ID = "randomized";
+
+/** Generate the randomized theme on the fly from a persisted seed. */
+export function getRandomizedTheme(seed: number = 0): ColorTheme {
+  return deriveTheme("Randomized", generateRandomizedBaseColors(seed));
+}
+
+/** The setting key for the randomized theme seed (number, stored in other_settings) */
+export const OTHER_SETTINGS_RANDOM_THEME_SEED = "random_theme_seed";
+
 export type ColorThemeId = keyof typeof COLOR_THEMES;
 
 /** Safely resolve a theme id, falling back to "default". */
-export function getColorTheme(id?: string | null): ColorTheme {
+export function getColorTheme(
+  id?: string | null,
+  randomSeed?: number,
+): ColorTheme {
+  if (id === THEME_RANDOMIZED_ID) {
+    return getRandomizedTheme(randomSeed ?? 0);
+  }
   if (id && id in COLOR_THEMES) {
     return COLOR_THEMES[id];
   }
@@ -462,13 +575,14 @@ export function getColorTheme(id?: string | null): ColorTheme {
  * otherwise just return the preset.
  */
 export function resolveUserTheme(
-  presetId?: string | null,
-  customBase?: BaseColors | null,
+  presetId: string | null | undefined,
+  customBase: BaseColors | null | undefined,
+  randomSeed: number,
 ): ColorTheme {
   if (customBase) {
     return deriveTheme("Custom", customBase);
   }
-  return getColorTheme(presetId);
+  return getColorTheme(presetId, randomSeed);
 }
 
 /** The setting key stored in other_settings for the color theme id */

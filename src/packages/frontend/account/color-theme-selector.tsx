@@ -16,9 +16,7 @@ import {
   ColorPicker as AntdColorPicker,
   Button,
   Card,
-  Col,
   Divider,
-  Row,
   Segmented,
   Tag,
 } from "antd";
@@ -38,9 +36,12 @@ import {
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
+  OTHER_SETTINGS_RANDOM_THEME_SEED,
+  THEME_RANDOMIZED_ID,
   deriveDarkTheme,
   deriveTheme,
   getColorTheme,
+  getRandomizedTheme,
 } from "@cocalc/util/theme";
 
 const MESSAGES = defineMessages({
@@ -136,8 +137,8 @@ function ThemeSwatch({
     >
       {[
         theme.primary,
-        theme.primaryDark,
         theme.secondary,
+        theme.textPrimary,
         theme.colorSuccess,
         theme.colorWarning,
         theme.colorError,
@@ -177,7 +178,6 @@ function ThemeCard({
       style={{
         border: active ? `2px solid ${theme.primary}` : "2px solid transparent",
         cursor: "pointer",
-        minWidth: 90,
       }}
       styles={{
         body: { padding: "6px 8px" },
@@ -203,22 +203,26 @@ function ThemePreview({ theme }: { theme: ColorTheme }) {
         gap: 0,
         borderRadius: 6,
         overflow: "hidden",
-        height: 24,
+        height: 32,
         border: "1px solid rgba(0,0,0,0.1)",
         marginTop: 8,
       }}
     >
       {[
-        { bg: theme.primary, label: "Pri" },
-        { bg: theme.primaryDark, label: "Dark" },
-        { bg: theme.primaryLight, label: "Light" },
-        { bg: theme.secondary, label: "Sec" },
+        { bg: theme.primary, label: "Primary" },
+        { bg: theme.primaryDark, label: "Pri Dark" },
+        { bg: theme.secondary, label: "Secondary" },
+        { bg: theme.signInBg, label: "Accent" },
+        { bg: theme.aiBg, label: "AI" },
         { bg: theme.colorLink, label: "Link" },
         { bg: theme.colorSuccess, label: "OK" },
         { bg: theme.colorWarning, label: "Warn" },
-        { bg: theme.colorError, label: "Err" },
+        { bg: theme.colorError, label: "Error" },
         { bg: theme.topBarBg, label: "Nav" },
+        { bg: theme.sidebarActive, label: "Sidebar" },
         { bg: theme.bgBase, label: "BG" },
+        { bg: theme.border, label: "Border" },
+        { bg: theme.textPrimary, label: "Text" },
       ].map(({ bg, label }, i) => (
         <div
           key={i}
@@ -229,7 +233,7 @@ function ThemePreview({ theme }: { theme: ColorTheme }) {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            fontSize: 9,
+            fontSize: 11,
             color: luma(bg) > 0.55 ? "#333" : "#fff",
             fontWeight: 500,
           }}
@@ -295,6 +299,126 @@ function CustomColorEditor({
   );
 }
 
+// ── Randomized theme card with animated rainbow border ───────────────
+
+const RAINBOW_KEYFRAMES = `
+@keyframes cocalc-rainbow-border {
+  0%   { border-color: #ff6b6b; box-shadow: 0 0 8px #ff6b6b44; }
+  16%  { border-color: #ffa500; box-shadow: 0 0 8px #ffa50044; }
+  33%  { border-color: #ffd700; box-shadow: 0 0 8px #ffd70044; }
+  50%  { border-color: #51cf66; box-shadow: 0 0 8px #51cf6644; }
+  66%  { border-color: #339af0; box-shadow: 0 0 8px #339af044; }
+  83%  { border-color: #9775fa; box-shadow: 0 0 8px #9775fa44; }
+  100% { border-color: #ff6b6b; box-shadow: 0 0 8px #ff6b6b44; }
+}
+`;
+
+function RandomizedThemeCard({
+  active,
+  seed,
+  onClick,
+  onChangeSeed,
+}: {
+  active: boolean;
+  seed: number;
+  onClick: () => void;
+  onChangeSeed: (seed: number) => void;
+}) {
+  const theme = useMemo(() => getRandomizedTheme(seed), [seed]);
+
+  return (
+    <>
+      <style>{RAINBOW_KEYFRAMES}</style>
+      <div style={{ display: "flex", gap: 0 }}>
+        <Card
+          size="small"
+          hoverable
+          onClick={onClick}
+          style={{
+            border: active
+              ? `2px solid ${theme.primary}`
+              : "2px solid transparent",
+            cursor: "pointer",
+            flex: 1,
+            borderTopRightRadius: active ? 0 : undefined,
+            borderBottomRightRadius: active ? 0 : undefined,
+            animation: active
+              ? "cocalc-rainbow-border 4s linear infinite"
+              : undefined,
+          }}
+          styles={{
+            body: { padding: "6px 8px" },
+          }}
+        >
+          <div
+            style={{
+              fontWeight: active ? 600 : 400,
+              marginBottom: 3,
+              fontSize: 12,
+              background:
+                "linear-gradient(90deg, #ff6b6b, #ffa500, #ffd700, #51cf66, #339af0, #9775fa)",
+              WebkitBackgroundClip: "text",
+              WebkitTextFillColor: "transparent",
+              backgroundClip: "text",
+            }}
+          >
+            Randomized
+          </div>
+          <ThemeSwatch theme={theme} />
+        </Card>
+        {active && (
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "stretch",
+            }}
+          >
+            <Button
+              size="small"
+              style={{
+                flex: 1,
+                borderTopLeftRadius: 0,
+                borderBottomLeftRadius: 0,
+                borderBottomRightRadius: 0,
+                borderLeft: 0,
+                fontSize: 11,
+                padding: "0 6px",
+                minWidth: 24,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChangeSeed(seed + 1);
+              }}
+            >
+              +
+            </Button>
+            <Button
+              size="small"
+              style={{
+                flex: 1,
+                borderTopLeftRadius: 0,
+                borderBottomLeftRadius: 0,
+                borderTopRightRadius: 0,
+                borderLeft: 0,
+                fontSize: 11,
+                padding: "0 6px",
+                minWidth: 24,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
+                onChangeSeed(Math.max(0, seed - 1));
+              }}
+            >
+              -
+            </Button>
+          </div>
+        )}
+      </div>
+    </>
+  );
+}
+
 // ── Main selector component ───────────────────────────────────────────
 
 export function ColorThemeSelector() {
@@ -312,6 +436,9 @@ export function ColorThemeSelector() {
   const nativeDarkMode = String(
     other_settings?.get(OTHER_SETTINGS_NATIVE_DARK_MODE) ?? "off",
   ) as NativeDarkMode;
+  const randomSeed = Number(
+    other_settings?.get(OTHER_SETTINGS_RANDOM_THEME_SEED) ?? 0,
+  );
 
   const [showCustom, setShowCustom] = useState(!!customColorsJson);
 
@@ -333,10 +460,10 @@ export function ColorThemeSelector() {
       try {
         lightTheme = deriveTheme("Custom", JSON.parse(customColorsJson));
       } catch {
-        lightTheme = getColorTheme(currentThemeId);
+        lightTheme = getColorTheme(currentThemeId, randomSeed);
       }
     } else {
-      lightTheme = getColorTheme(currentThemeId);
+      lightTheme = getColorTheme(currentThemeId, randomSeed);
     }
 
     // Show the dark preview when dark mode is on
@@ -347,7 +474,7 @@ export function ColorThemeSelector() {
         window.matchMedia?.("(prefers-color-scheme: dark)").matches);
 
     return wantDark ? deriveDarkTheme(lightTheme) : lightTheme;
-  }, [currentThemeId, customColorsJson, nativeDarkMode]);
+  }, [currentThemeId, customColorsJson, nativeDarkMode, randomSeed]);
 
   const handleSelectPreset = useCallback((id: string) => {
     onChangeSetting(OTHER_SETTINGS_COLOR_THEME, id);
@@ -439,18 +566,25 @@ export function ColorThemeSelector() {
       <Divider style={{ margin: "8px 0" }} />
 
       {/* Theme presets */}
-      <Row gutter={[6, 6]}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
         {themes.map(([id, theme]) => (
-          <Col key={id} xs={8} sm={6} md={4}>
-            <ThemeCard
-              id={id}
-              theme={theme}
-              active={!customColorsJson && currentThemeId === id}
-              onClick={() => handleSelectPreset(id)}
-            />
-          </Col>
+          <ThemeCard
+            key={id}
+            id={id}
+            theme={theme}
+            active={!customColorsJson && currentThemeId === id}
+            onClick={() => handleSelectPreset(id)}
+          />
         ))}
-      </Row>
+        <RandomizedThemeCard
+          active={!customColorsJson && currentThemeId === THEME_RANDOMIZED_ID}
+          seed={randomSeed}
+          onClick={() => handleSelectPreset(THEME_RANDOMIZED_ID)}
+          onChangeSeed={(s) =>
+            onChangeSetting(OTHER_SETTINGS_RANDOM_THEME_SEED, s)
+          }
+        />
+      </div>
 
       {/* Live preview bar */}
       <ThemePreview theme={activeTheme} />

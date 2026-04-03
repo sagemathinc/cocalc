@@ -27,6 +27,7 @@ import {
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
+  OTHER_SETTINGS_RANDOM_THEME_SEED,
   deriveDarkTheme,
   resolveUserTheme,
   THEME_DEFAULT,
@@ -78,6 +79,9 @@ export function useResolvedColorTheme(): ColorTheme {
     OTHER_SETTINGS_NATIVE_DARK_MODE,
   ) ?? "off") as NativeDarkMode;
 
+  const randomSeed = (other_settings?.get(OTHER_SETTINGS_RANDOM_THEME_SEED) ??
+    0) as number;
+
   return useMemo(() => {
     let customBase: BaseColors | null = null;
     if (customColorsJson) {
@@ -89,7 +93,7 @@ export function useResolvedColorTheme(): ColorTheme {
     }
 
     // Resolve the light theme first
-    const lightTheme = resolveUserTheme(themeId, customBase);
+    const lightTheme = resolveUserTheme(themeId, customBase, randomSeed);
 
     // Determine if we should derive a dark variant
     const wantDark =
@@ -101,5 +105,5 @@ export function useResolvedColorTheme(): ColorTheme {
     }
 
     return lightTheme;
-  }, [themeId, customColorsJson, nativeDarkMode, systemPrefersDark]);
+  }, [themeId, customColorsJson, nativeDarkMode, systemPrefersDark, randomSeed]);
 }

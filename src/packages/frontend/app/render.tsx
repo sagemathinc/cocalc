@@ -18,6 +18,7 @@ import {
 } from "@cocalc/frontend/i18n";
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { setDarkModeState } from "@cocalc/frontend/account/dark-mode";
+import { A11Y } from "@cocalc/util/consts/ui";
 import { hexToRgb, mixColors, type ColorTheme } from "@cocalc/util/theme";
 import { createRoot } from "react-dom/client";
 import { AppContext, useAppContextProvider } from "./context";
@@ -86,11 +87,20 @@ function App({ children }) {
 
   const colorTheme = useResolvedColorTheme();
 
+  // Check accessibility mode
+  let accessibilityEnabled = false;
+  try {
+    const a11yStr = other_settings?.get(A11Y);
+    if (a11yStr) accessibilityEnabled = JSON.parse(a11yStr).enabled ?? false;
+  } catch {
+    // ignore
+  }
+
   // Sync the resolved theme to CSS custom properties on <body> so that
   // SASS / plain CSS can also respond to theme changes (e.g. top bar, borders).
   useEffect(() => {
-    applyThemeCSSVars(colorTheme);
-  }, [colorTheme]);
+    applyThemeCSSVars(colorTheme, accessibilityEnabled);
+  }, [colorTheme, accessibilityEnabled]);
 
   return (
     <ThemeContext.Provider value={colorTheme}>
@@ -101,8 +111,9 @@ function App({ children }) {
   );
 }
 
-/** Write a ColorTheme's key fields as --cocalc-* CSS custom properties on document.body. */
-function applyThemeCSSVars(t: ColorTheme): void {
+/** Write a ColorTheme's key fields as --cocalc-* CSS custom properties on document.body.
+ *  When accessibility mode is on, override text/border variables for maximum contrast. */
+function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   const s = document.body.style;
   const topBarActive = mixColors(t.topBarBg, t.bgElevated, 0.55);
 
@@ -115,22 +126,31 @@ function applyThemeCSSVars(t: ColorTheme): void {
     }
   };
 
+  // Accessibility high-contrast overrides for text and borders
+  const textPrimary = a11y ? "#000000" : t.textPrimary;
+  const textSecondary = a11y ? "#000000" : t.textSecondary;
+  const textTertiary = a11y ? "#333333" : t.textTertiary;
+  const border = a11y ? "#888888" : t.border;
+  const borderLight = a11y ? "#aaaaaa" : t.borderLight;
+  const topBarText = a11y ? "#000000" : t.topBarText;
+  const topBarTextActive = a11y ? "#000000" : t.topBarTextActive;
+
   s.setProperty("--cocalc-bg-base", t.bgBase);
   setRgb("--cocalc-bg-base", t.bgBase);
   s.setProperty("--cocalc-bg-elevated", t.bgElevated);
   s.setProperty("--cocalc-bg-hover", t.bgHover);
   s.setProperty("--cocalc-bg-selected", t.bgSelected);
-  s.setProperty("--cocalc-text-primary", t.textPrimary);
-  s.setProperty("--cocalc-text-secondary", t.textSecondary);
-  s.setProperty("--cocalc-text-tertiary", t.textTertiary);
+  s.setProperty("--cocalc-text-primary", textPrimary);
+  s.setProperty("--cocalc-text-secondary", textSecondary);
+  s.setProperty("--cocalc-text-tertiary", textTertiary);
   s.setProperty("--cocalc-text-on-primary", t.textOnPrimary);
-  s.setProperty("--cocalc-border", t.border);
-  s.setProperty("--cocalc-border-light", t.borderLight);
+  s.setProperty("--cocalc-border", border);
+  s.setProperty("--cocalc-border-light", borderLight);
   s.setProperty("--cocalc-top-bar-bg", t.topBarBg);
   s.setProperty("--cocalc-top-bar-active", topBarActive);
   s.setProperty("--cocalc-top-bar-hover", t.topBarHover);
-  s.setProperty("--cocalc-top-bar-text", t.topBarText);
-  s.setProperty("--cocalc-top-bar-text-active", t.topBarTextActive);
+  s.setProperty("--cocalc-top-bar-text", topBarText);
+  s.setProperty("--cocalc-top-bar-text-active", topBarTextActive);
   s.setProperty("--cocalc-primary", t.primary);
   setRgb("--cocalc-primary", t.primary);
   s.setProperty("--cocalc-primary-dark", t.primaryDark);
@@ -159,7 +179,7 @@ function applyThemeCSSVars(t: ColorTheme): void {
   s.setProperty("--cocalc-is-dark", t.isDark ? "1" : "0");
   // Also set body background so the page chrome matches the theme
   s.backgroundColor = t.bgBase;
-  s.color = t.textPrimary;
+  s.color = textPrimary;
   // Keep the dark mode state tracker in sync
   setDarkModeState(!!t.isDark);
 }

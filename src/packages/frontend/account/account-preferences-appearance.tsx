@@ -20,7 +20,6 @@ import {
 import { ColorThemeSelector } from "./color-theme-selector";
 import { EditorSettingsColorScheme } from "./editor-settings/color-schemes";
 import { I18NSelector, I18N_MESSAGE, I18N_TITLE } from "./i18n-selector";
-import { OtherSettings } from "./other-settings";
 import { TerminalSettings } from "./terminal-settings";
 
 // Icon constant for account preferences section
@@ -80,8 +79,6 @@ export function AccountPreferencesAppearance() {
   const other_settings = useTypedRedux("account", "other_settings");
   const editor_settings = useTypedRedux("account", "editor_settings");
   const font_size = useTypedRedux("account", "font_size");
-  const stripe_customer = useTypedRedux("account", "stripe_customer");
-  const kucalc = useTypedRedux("customize", "kucalc");
 
   function on_change(name: string, value: any): void {
     redux.getActions("account").set_other_settings(name, value);
@@ -110,46 +107,10 @@ export function AccountPreferencesAppearance() {
     );
   }
 
-  function getAccessibilitySettings(): { enabled: boolean } {
-    const settingsStr = other_settings.get(A11Y);
-    if (!settingsStr) {
-      return { enabled: false };
-    }
-    try {
-      return JSON.parse(settingsStr);
-    } catch {
-      return { enabled: false };
-    }
-  }
-
-  function setAccessibilitySettings(settings: { enabled: boolean }): void {
-    on_change(A11Y, JSON.stringify(settings));
-  }
-
-  function renderAccessibilityPanel(): ReactElement {
-    const settings = getAccessibilitySettings();
-    return (
-      <Panel
-        size="small"
-        header={
-          <>
-            <Icon unicode={ACCESSIBILITY_ICON} />{" "}
-            {intl.formatMessage(ACCESSIBILITY_MESSAGES.title)}
-          </>
-        }
-      >
-        <Switch
-          checked={settings.enabled}
-          onChange={(e) =>
-            setAccessibilitySettings({ ...settings, enabled: e.target.checked })
-          }
-        >
-          <FormattedMessage {...ACCESSIBILITY_MESSAGES.enabled} />
-        </Switch>
-      </Panel>
-    );
-  }
-
+  // This standalone Dark Mode panel duplicates the toggle inside ColorThemeSelector
+  // on purpose: users who previously relied on a dedicated dark-mode section should
+  // still find it here so they are not disoriented. Both controls write the same
+  // setting (OTHER_SETTINGS_NATIVE_DARK_MODE), so they always stay in sync.
   function renderDarkModePanel(): ReactElement {
     const nativeDarkMode = String(
       other_settings?.get(OTHER_SETTINGS_NATIVE_DARK_MODE) ?? "off",
@@ -196,6 +157,46 @@ export function AccountPreferencesAppearance() {
         <div style={{ fontSize: 12, color: COLORS.GRAY }}>
           {intl.formatMessage(DARK_MODE_MESSAGES.description)}
         </div>
+      </Panel>
+    );
+  }
+
+  function getAccessibilitySettings(): { enabled: boolean } {
+    const settingsStr = other_settings.get(A11Y);
+    if (!settingsStr) {
+      return { enabled: false };
+    }
+    try {
+      return JSON.parse(settingsStr);
+    } catch {
+      return { enabled: false };
+    }
+  }
+
+  function setAccessibilitySettings(settings: { enabled: boolean }): void {
+    on_change(A11Y, JSON.stringify(settings));
+  }
+
+  function renderAccessibilityPanel(): ReactElement {
+    const settings = getAccessibilitySettings();
+    return (
+      <Panel
+        size="small"
+        header={
+          <>
+            <Icon unicode={ACCESSIBILITY_ICON} />{" "}
+            {intl.formatMessage(ACCESSIBILITY_MESSAGES.title)}
+          </>
+        }
+      >
+        <Switch
+          checked={settings.enabled}
+          onChange={(e) =>
+            setAccessibilitySettings({ ...settings, enabled: e.target.checked })
+          }
+        >
+          <FormattedMessage {...ACCESSIBILITY_MESSAGES.enabled} />
+        </Switch>
       </Panel>
     );
   }
@@ -278,6 +279,33 @@ export function AccountPreferencesAppearance() {
             defaultMessage={`<strong>Hide Account Balance</strong> in navigation bar`}
           />
         </Switch>
+        <Switch
+          checked={other_settings.get("antd_rounded", true)}
+          onChange={(e) => on_change("antd_rounded", e.target.checked)}
+        >
+          <FormattedMessage
+            id="account.other-settings.theme.antd.rounded"
+            defaultMessage={`<b>Rounded Design</b>: use rounded corners for buttons, etc.`}
+          />
+        </Switch>
+        <Switch
+          checked={other_settings.get("antd_animate", true)}
+          onChange={(e) => on_change("antd_animate", e.target.checked)}
+        >
+          <FormattedMessage
+            id="account.other-settings.theme.antd.animations"
+            defaultMessage={`<b>Animations</b>: briefly animate some aspects, e.g. buttons`}
+          />
+        </Switch>
+        <Switch
+          checked={other_settings.get("antd_compact", false)}
+          onChange={(e) => on_change("antd_compact", e.target.checked)}
+        >
+          <FormattedMessage
+            id="account.other-settings.theme.antd.compact"
+            defaultMessage={`<b>Compact Design</b>: use a more compact design`}
+          />
+        </Switch>
         {render_katex()}
       </Panel>
     );
@@ -287,16 +315,8 @@ export function AccountPreferencesAppearance() {
     <>
       <ColorThemeSelector />
       {renderUserInterfacePanel()}
-      <OtherSettings
-        other_settings={other_settings}
-        is_stripe_customer={
-          !!stripe_customer?.getIn(["subscriptions", "total_count"])
-        }
-        kucalc={kucalc}
-        mode="appearance"
-      />
-      {renderDarkModePanel()}
       {renderAccessibilityPanel()}
+      {renderDarkModePanel()}
       <EditorSettingsColorScheme
         size="small"
         theme={editor_settings?.get("theme") ?? "default"}

@@ -20,7 +20,9 @@ import {
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
+  OTHER_SETTINGS_RANDOM_THEME_SEED,
   deriveDarkTheme,
+  luminance,
   resolveUserTheme,
 } from "@cocalc/util/theme";
 import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";
@@ -124,6 +126,8 @@ function useResolvedColorThemeForAntd(): ColorTheme {
   const nativeDarkMode = (other_settings?.get(
     OTHER_SETTINGS_NATIVE_DARK_MODE,
   ) ?? "off") as NativeDarkMode;
+  const randomSeed = (other_settings?.get(OTHER_SETTINGS_RANDOM_THEME_SEED) ??
+    0) as number;
 
   return useMemo(() => {
     let customBase: BaseColors | null = null;
@@ -134,7 +138,7 @@ function useResolvedColorThemeForAntd(): ColorTheme {
         // ignore
       }
     }
-    const lightTheme = resolveUserTheme(themeId, customBase);
+    const lightTheme = resolveUserTheme(themeId, customBase, randomSeed);
 
     const wantDark =
       nativeDarkMode === "on" ||
@@ -144,14 +148,13 @@ function useResolvedColorThemeForAntd(): ColorTheme {
       return deriveDarkTheme(lightTheme);
     }
     return lightTheme;
-  }, [themeId, customColorsJson, nativeDarkMode, systemPrefersDark]);
+  }, [themeId, customColorsJson, nativeDarkMode, systemPrefersDark, randomSeed]);
 }
 
 export function useAntdStyleProvider() {
   const other_settings = useTypedRedux("account", "other_settings");
   const rounded = other_settings?.get("antd_rounded", true);
   const animate = other_settings?.get("antd_animate", true);
-  const branded = other_settings?.get("antd_brandcolors", false);
   const compact = other_settings?.get("antd_compact", false);
 
   const colorTheme = useResolvedColorThemeForAntd();
@@ -174,23 +177,35 @@ export function useAntdStyleProvider() {
 
   const animationStyle = animate ? undefined : { motion: false };
 
-  // Use theme-derived primary color; fall back to antd default when not branded
+  // Always use the theme's primary color for antd components
   const themeId = other_settings?.get(OTHER_SETTINGS_COLOR_THEME) as
     | string
     | undefined;
   const isCustomTheme = themeId != null && themeId !== "default";
-  const primaryColor =
-    isCustomTheme || branded
-      ? { colorPrimary: colorTheme.primary }
-      : { colorPrimary: COLORS.ANTD_LINK_BLUE };
+  const primaryColor = isCustomTheme
+    ? { colorPrimary: colorTheme.primary }
+    : { colorPrimary: COLORS.ANTD_LINK_BLUE };
 
   // Accessibility: Set all text to pure black for maximum contrast
-  const accessibilityTextColor = accessibilityEnabled
+  // Accessibility: enforce high contrast everywhere
+  const a11yTokens = accessibilityEnabled
     ? {
         colorText: "#000000",
         colorTextSecondary: "#000000",
         colorTextTertiary: "#000000",
         colorTextQuaternary: "#000000",
+        colorBorder: "#888888",
+        colorBorderSecondary: "#aaaaaa",
+      }
+    : undefined;
+
+  const a11yMenuTokens = accessibilityEnabled
+    ? {
+        itemSelectedColor: "#000000",
+        itemSelectedBg: "#e6e6e6",
+        itemColor: "#000000",
+        itemHoverColor: "#000000",
+        itemHoverBg: "#f0f0f0",
       }
     : undefined;
 
@@ -230,7 +245,7 @@ export function useAntdStyleProvider() {
       ...borderStyle,
       ...animationStyle,
       ...surfaceTokens,
-      ...accessibilityTextColor,
+      ...a11yTokens,
     },
     components: {
       Button: {
@@ -250,15 +265,23 @@ export function useAntdStyleProvider() {
         rowHoverBg: colorTheme.bgHover,
         borderColor: colorTheme.borderLight,
       },
-      ...(colorTheme.isDark
-        ? {
-            Menu: {
-              itemBorderRadius: 4,
+      Menu: {
+        itemBorderRadius: 4,
+        // Ensure selected menu items have readable text when primary is dark
+        itemSelectedColor: colorTheme.primary,
+        itemSelectedBg: colorTheme.primaryLightest,
+        ...(colorTheme.isDark
+          ? {
               darkItemBg: colorTheme.bgBase,
               darkItemColor: colorTheme.textPrimary,
               darkItemSelectedBg: colorTheme.bgSelected,
               darkItemSelectedColor: colorTheme.textPrimary,
-            },
+            }
+          : {}),
+        ...a11yMenuTokens,
+      },
+      ...(colorTheme.isDark
+        ? {
             Checkbox: {
               colorBorder: colorTheme.border,
               colorBgContainer: colorTheme.bgElevated,

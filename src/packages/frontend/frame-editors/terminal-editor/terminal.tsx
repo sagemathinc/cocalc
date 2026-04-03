@@ -207,15 +207,6 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     );
   }
 
-  if (student_project_functionality.disableTerminals) {
-    return (
-      <b style={{ margin: "auto", fontSize: "14pt", padding: "15px" }}>
-        Terminals are currently disabled in this project. Please contact your
-        instructor if you have questions.
-      </b>
-    );
-  }
-
   // When the color theme changes (e.g. dark mode toggled), re-apply the
   // terminal color scheme so both the xterm canvas and the container div update.
   const colorTheme = useColorTheme();
@@ -227,6 +218,15 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     }
   }, [colorTheme.isDark, colorScheme]);
   const backgroundColor = background_color(colorScheme);
+
+  if (student_project_functionality.disableTerminals) {
+    return (
+      <b style={{ margin: "auto", fontSize: "14pt", padding: "15px" }}>
+        Terminals are currently disabled in this project. Please contact your
+        instructor if you have questions.
+      </b>
+    );
+  }
   /* 4px padding is consistent with CodeMirror */
 
   return (

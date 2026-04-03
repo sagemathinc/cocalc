@@ -12,6 +12,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import {
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
+  OTHER_SETTINGS_RANDOM_THEME_SEED,
   getColorTheme,
 } from "@cocalc/util/theme";
 
@@ -36,7 +37,8 @@ function isCurrentlyDark(): boolean {
   }
 
   const themeId = String(other.get(OTHER_SETTINGS_COLOR_THEME) ?? "default");
-  return getColorTheme(themeId).isDark ?? false;
+  const randomSeed = Number(other.get(OTHER_SETTINGS_RANDOM_THEME_SEED) ?? 0);
+  return getColorTheme(themeId, randomSeed).isDark ?? false;
 }
 
 export function resolveEditorColorScheme(scheme: string): string {
