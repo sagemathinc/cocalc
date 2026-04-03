@@ -1,6 +1,5 @@
 /*
-
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -14,7 +13,15 @@ import { useDraggable } from "@dnd-kit/core";
 import { SortableButtonBar, SortableButtonItem } from "./sortable-button-bar";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-import { Button, Dropdown, Input, InputNumber, Popover, Tooltip, Typography } from "antd";
+import {
+  Button,
+  Dropdown,
+  Input,
+  InputNumber,
+  Popover,
+  Tooltip,
+  Typography,
+} from "antd";
 import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
 import { useCallback, useEffect, useMemo, useRef } from "react";
@@ -260,8 +267,10 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     const ext = props.path ? filename_extension(props.path) : "";
     return ext ? `${ext}-${props.type}` : props.type;
   }, [props.type, props.path]);
-  const { toolbarButtons, setToolbarButtons } =
-    useFrameEditorToolbarButtons(frameEditorName, legacyEditorType);
+  const { toolbarButtons, setToolbarButtons } = useFrameEditorToolbarButtons(
+    frameEditorName,
+    legacyEditorType,
+  );
   // REDUX:
   // state that is associated with the file being edited, not the
   // frame tree/tab in which this sits.  Note some more should
@@ -647,7 +656,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         key={"time-travel-button"}
         style={{
           ...button_style(),
-          ...(!darkMode ? { color: "var(--cocalc-text-primary, #333)", background: "#5bc0de" } : undefined),
+          ...(!darkMode
+            ? {
+                color: "var(--cocalc-text-primary, #333)",
+                background: "#5bc0de",
+              }
+            : undefined),
         }}
         size={button_size()}
         onClick={(event) => {
@@ -1160,7 +1174,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               fontSize: "14pt",
               padding: "0 5px",
               height: props.is_only || props.is_full ? "34px" : "30px",
-              background: showMainButtonsPopover ? `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})` : undefined,
+              background: showMainButtonsPopover
+                ? `var(--cocalc-bg-hover, ${COLORS.GRAY_LL})`
+                : undefined,
             }}
             onClick={() => setShowMainButtonsPopover(!showMainButtonsPopover)}
           >
@@ -1514,7 +1530,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return wrapButtonBarContextMenu(
         <div
           style={{
-            borderBottom: popup ? undefined : `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
+            borderBottom: popup
+              ? undefined
+              : `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
             background: `var(--cocalc-bg-hover, ${COLORS.GRAY_LLLL})`,
             opacity: is_active ? undefined : 0.3,
           }}
@@ -1672,7 +1690,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   let style;
   style = copy(title_bar_style);
-  style.background = is_active ? `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLL})` : `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`;
+  style.background = is_active
+    ? `var(--cocalc-top-bar-active, ${COLORS.GRAY_LLL})`
+    : `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`;
   if (!props.is_only && !props.is_full) {
     style.maxHeight = "34px";
   } else {

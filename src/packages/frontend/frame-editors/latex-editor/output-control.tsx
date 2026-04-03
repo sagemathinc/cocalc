@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -21,7 +21,7 @@ import { COLORS } from "@cocalc/util/theme";
 const CONTROL_STYLE = {
   padding: "5px 10px",
   borderBottom: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
-  background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LL})`,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",

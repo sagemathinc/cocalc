@@ -149,7 +149,10 @@ export type TerminalThemeId =
   | "solarized-light"
   | "raven-dark"
   | "raven-light"
-  | "low-contrast";
+  | "low-contrast"
+  | "mono"
+  | "tango"
+  | "infred";
 
 export const DEFAULT_EDITOR_THEME: EditorThemeId = "cocalc-auto";
 export const DEFAULT_TERMINAL_COLOR_SCHEME: TerminalThemeId = "cocalc-auto";

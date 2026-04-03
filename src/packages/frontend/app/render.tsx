@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -115,7 +115,11 @@ function App({ children }) {
  *  When accessibility mode is on, override text/border variables for maximum contrast. */
 function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   const s = document.body.style;
-  const topBarActive = mixColors(t.topBarBg, t.bgElevated, 0.55);
+  const topBarActive = mixColors(
+    t.topBarBg,
+    t.bgElevated,
+    t.isDark ? 0.55 : 0.85,
+  );
 
   const setRgb = (name: string, hex: string) => {
     try {

@@ -9,6 +9,7 @@ export const FRAME_TAB_BAR_STYLE: CSSProperties = {
   margin: 0,
   padding: "0 8px",
   borderBottom: TITLE_BAR_BORDER,
+  background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
 } as const;
 
 /**

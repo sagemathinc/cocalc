@@ -369,7 +369,7 @@ export default function MultiMarkdownInput({
                         style: {
                           backgroundColor: editBarPopover
                             ? "var(--cocalc-bg-hover, " + COLORS.GRAY_L + ")"
-                            : "var(--cocalc-bg-base, white)",
+                            : "var(--cocalc-bg-base, " + COLORS.WHITE + ")",
                           paddingLeft: 10,
                           paddingRight: 10,
                         },
@@ -476,12 +476,18 @@ export default function MultiMarkdownInput({
             style={
               minimal
                 ? { background: undefined, backgroundColor: undefined }
-                : undefined
+                : {
+                    background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+                    backgroundColor: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+                  }
             }
             pageStyle={
               minimal
                 ? { background: undefined, padding: 0 }
-                : { padding: "5px 15px" }
+                : {
+                    padding: "5px 15px",
+                    background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
+                  }
             }
             minimal={minimal}
             height={height}

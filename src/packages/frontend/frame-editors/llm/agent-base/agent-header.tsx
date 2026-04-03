@@ -35,6 +35,7 @@ export function AgentHeader({
         flex: "0 0 auto",
         padding: "6px 12px",
         borderBottom: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
+        background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
         display: "flex",
         alignItems: "center",
         gap: 8,

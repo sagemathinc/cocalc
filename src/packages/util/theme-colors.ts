@@ -26,7 +26,11 @@ export function hexToRgb(color: string): [number, number, number] {
   // Handle rgb(r, g, b) format (as emitted by antd ColorPicker)
   const rgbMatch = color.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
   if (rgbMatch) {
-    return [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])];
+    return [
+      parseInt(rgbMatch[1]),
+      parseInt(rgbMatch[2]),
+      parseInt(rgbMatch[3]),
+    ];
   }
   let h = color.replace("#", "");
   if (h.length === 3) {
@@ -186,7 +190,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
   } = base;
 
   const bgBase = bg;
-  const bgElevated = mixColors(bgBase, primary, 0.015);
+  const bgElevated = mixColors(bgBase, primary, 0.08);
   const chatViewerBg = lighten(primary, 0.35);
 
   return {
@@ -209,7 +213,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
 
     bgBase,
     bgElevated,
-    bgHover: darken(bgBase, 0.04),
+    bgHover: darken(bgBase, 0.06),
     bgSelected: lighten(primary, 0.9),
 
     textPrimary: text,
@@ -220,8 +224,8 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     border: lighten(text, 0.7),
     borderLight: lighten(text, 0.82),
 
-    topBarBg: mixColors(darken(bgBase, 0.07), primary, 0.1),
-    topBarHover: mixColors(darken(bgBase, 0.04), primary, 0.05),
+    topBarBg: mixColors(darken(bgBase, 0.12), primary, 0.18),
+    topBarHover: mixColors(darken(bgBase, 0.16), primary, 0.24),
     topBarText: lighten(text, 0.35),
     topBarTextActive: text,
 
@@ -559,15 +563,69 @@ export const PRESET_BASE_COLORS: Record<string, BaseColors> = {
     bg: "#f9fbff",
     text: "#303030",
   },
-  ocean: { primary: "#0077b6", secondary: "#00b4d8", accent: "#90e0ef", bg: "#fafcff", text: "#1a2b3c" },
-  sunset: { primary: "#c2452d", secondary: "#e8913a", accent: "#f0a050", bg: "#fffaf6", text: "#3a2018" },
-  forest: { primary: "#2d6a4f", secondary: "#95d5b2", accent: "#74c69d", bg: "#f7fcf9", text: "#1b3526" },
-  lavender: { primary: "#7b2d8e", secondary: "#c084fc", accent: "#d4a5ff", bg: "#fcf9ff", text: "#2d1b3a" },
-  slate: { primary: "#475569", secondary: "#94a3b8", accent: "#64748b", bg: "#f8fafc", text: "#1e293b" },
-  rose: { primary: "#be185d", secondary: "#fb7185", accent: "#fda4af", bg: "#fff5f7", text: "#3b1020" },
-  amber: { primary: "#b45309", secondary: "#f59e0b", accent: "#fbbf24", bg: "#fffbf0", text: "#3b2506" },
-  midnight: { primary: "#3b82f6", secondary: "#818cf8", accent: "#a5b4fc", bg: "#f0f4ff", text: "#1e1b4b" },
-  grayscale: { primary: "#555555", secondary: "#888888", accent: "#999999", bg: "#f5f5f5", text: "#222222" },
+  ocean: {
+    primary: "#0077b6",
+    secondary: "#00b4d8",
+    accent: "#90e0ef",
+    bg: "#fafcff",
+    text: "#1a2b3c",
+  },
+  sunset: {
+    primary: "#c2452d",
+    secondary: "#e8913a",
+    accent: "#f0a050",
+    bg: "#fffaf6",
+    text: "#3a2018",
+  },
+  forest: {
+    primary: "#2d6a4f",
+    secondary: "#95d5b2",
+    accent: "#74c69d",
+    bg: "#f7fcf9",
+    text: "#1b3526",
+  },
+  lavender: {
+    primary: "#7b2d8e",
+    secondary: "#c084fc",
+    accent: "#d4a5ff",
+    bg: "#fcf9ff",
+    text: "#2d1b3a",
+  },
+  slate: {
+    primary: "#475569",
+    secondary: "#94a3b8",
+    accent: "#64748b",
+    bg: "#f8fafc",
+    text: "#1e293b",
+  },
+  rose: {
+    primary: "#be185d",
+    secondary: "#fb7185",
+    accent: "#fda4af",
+    bg: "#fff5f7",
+    text: "#3b1020",
+  },
+  amber: {
+    primary: "#b45309",
+    secondary: "#f59e0b",
+    accent: "#fbbf24",
+    bg: "#fffbf0",
+    text: "#3b2506",
+  },
+  midnight: {
+    primary: "#3b82f6",
+    secondary: "#818cf8",
+    accent: "#a5b4fc",
+    bg: "#f0f4ff",
+    text: "#1e1b4b",
+  },
+  grayscale: {
+    primary: "#555555",
+    secondary: "#888888",
+    accent: "#999999",
+    bg: "#f5f5f5",
+    text: "#222222",
+  },
 };
 
 /** ID for the randomized daily theme (not in COLOR_THEMES since it's dynamic) */

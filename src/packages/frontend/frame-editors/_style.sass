@@ -1,7 +1,9 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
+
+@use '../colors'
 
 // make buttons and button-groups wrap with a larger vertical space (not 0 px)
 .cc-frame-tree-title-bar-buttons
@@ -36,6 +38,30 @@
 // This ensures the new output panel tabs (Build, Errors, Stats) take full height
 // and their content (like build logs, error lists) fills the available space
 .cocalc-latex-output-tabs
+  .ant-tabs-nav
+    margin: 0 !important
+    padding: 0 8px
+    background: var(--cocalc-bg-elevated, colors.$COL_GRAY_LLLL)
+    border-bottom: 1px solid var(--cocalc-border-light, colors.$COL_GRAY_LL)
+
+    &::before
+      border-bottom: none !important
+
+  .ant-tabs-tab
+    margin: 0 !important
+    padding: 6px 10px !important
+    border-radius: 0 !important
+    background: transparent
+
+    .ant-tabs-tab-btn
+      color: var(--cocalc-top-bar-text, colors.$COL_TOP_BAR_TEXT)
+
+  .ant-tabs-tab-active
+    background: var(--cocalc-top-bar-active, colors.$COL_TOP_BAR_ACTIVE)
+
+    .ant-tabs-tab-btn
+      color: var(--cocalc-top-bar-text-active, colors.$COL_TOP_BAR_TEXT_ACTIVE) !important
+
   // Make the entire tabs container take full height and use flex layout
   // This is needed because the output panel should fill the available editor space
   height: 100%

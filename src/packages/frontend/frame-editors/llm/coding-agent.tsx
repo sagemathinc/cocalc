@@ -934,7 +934,7 @@ function CodingAgentCore({
             flex: "0 0 auto",
             padding: "6px 12px",
             borderTop: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
-            background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
+            background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
             display: "flex",
             alignItems: "center",
             justifyContent: "flex-end",

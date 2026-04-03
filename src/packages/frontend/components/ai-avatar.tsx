@@ -39,7 +39,7 @@ export default function AIAvatar({
         style={{
           position: "absolute",
           backgroundColor,
-          color: "white",
+          color: iconColor,
           height: size,
           ...innerStyle,
         }}

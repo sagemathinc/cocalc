@@ -128,6 +128,8 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
   const buttonActiveBg = `var(--cocalc-top-bar-active, white)`;
   const buttonText = `var(--cocalc-top-bar-text, ${COLORS.GRAY})`;
   const buttonTextActive = `var(--cocalc-top-bar-text, ${COLORS.GRAY})`;
+  const aiButtonActiveBg = `var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG})`;
+  const aiButtonActiveText = `var(--cocalc-ai-text, ${COLORS.AI_ASSISTANT_TXT})`;
 
   const chatButton = (
     <Tooltip
@@ -189,12 +191,12 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
           onMouseLeave={() => setHoverAI(false)}
           style={{
             background: aiActive
-              ? buttonActiveBg
+              ? aiButtonActiveBg
               : hoverAI
                 ? buttonHoverBg
                 : "transparent",
             borderColor,
-            color: aiActive ? buttonTextActive : buttonText,
+            color: aiActive ? aiButtonActiveText : buttonText,
             padding: "4px 8px",
           }}
         >

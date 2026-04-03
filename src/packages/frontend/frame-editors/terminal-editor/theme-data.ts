@@ -5,7 +5,12 @@ import {
 } from "@cocalc/util/db-schema/accounts";
 
 export const DEFAULT_THEME_NAME = DEFAULT_TERMINAL_COLOR_SCHEME;
+const DEFAULT_CONCRETE_THEME_NAME = "cocalc-light";
 const PREVIEW_BASE_THEME_NAME = "default";
+type ConcreteTerminalThemeId = Exclude<
+  TerminalThemeId,
+  "cocalc-auto" | "cocalc"
+>;
 
 export const COLOR_THEMES = {
   "solarized-dark": {
@@ -261,13 +266,10 @@ export const COLOR_THEMES = {
       "#faf0e6",
     ],
   },
-} as const;
-
-// Compile-time check: every COLOR_THEMES key must be a valid TerminalThemeId.
-// If this line errors, a theme was added to COLOR_THEMES but not to TerminalThemeId in accounts.ts.
-type _CheckKeys = keyof typeof COLOR_THEMES extends TerminalThemeId ? true : never;
-const _check: _CheckKeys = true;
-void _check;
+} as const satisfies Record<
+  ConcreteTerminalThemeId,
+  { comment: string; colors: readonly string[] }
+>;
 
 // Use theme_desc for UI to select a theme.
 // "cocalc" is a virtual entry that auto-switches between cocalc-light/dark.
@@ -284,7 +286,7 @@ export function getThemeName(theme?: string): keyof typeof COLOR_THEMES {
   if (theme != null && COLOR_THEMES[theme] != null) {
     return theme as keyof typeof COLOR_THEMES;
   }
-  return DEFAULT_THEME_NAME;
+  return DEFAULT_CONCRETE_THEME_NAME;
 }
 
 // This is a cheap hardcoded example for use in configuration/settings.

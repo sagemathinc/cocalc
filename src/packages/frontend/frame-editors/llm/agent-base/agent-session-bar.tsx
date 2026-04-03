@@ -85,7 +85,7 @@ export function AgentSessionBar({
         display: "flex",
         alignItems: "center",
         gap: 6,
-        background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
+        background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
       }}
     >
       <Button size="small" onClick={handleNewSession}>

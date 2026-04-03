@@ -38,6 +38,14 @@
   .ant-segmented-item-selected
     color: var(--cocalc-top-bar-text-active, colors.$COL_TOP_BAR_TEXT_ACTIVE)
 
+  &.cc-chat-mode-assistant
+    .ant-segmented-thumb,
+    .ant-segmented-item-selected
+      background: var(--cocalc-ai-bg, colors.$COL_AI_ASSISTANT_BG) !important
+
+    .ant-segmented-item-selected
+      color: var(--cocalc-ai-text, colors.$COL_AI_ASSISTANT_TXT)
+
   .ant-segmented-item-label
     min-height: 32px
     padding: 6px 12px
