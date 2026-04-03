@@ -83,6 +83,11 @@ import { List, Map, fromJS, Set as iSet } from "immutable";
 import { debounce } from "lodash";
 import { set_account_table } from "../../account/util";
 import { default_opts } from "../codemirror/cm-options";
+import {
+  hasCustomLayout,
+  loadCustomLayout,
+  saveCustomLayout,
+} from "../frame-tree/frame-editor-settings";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
 import {
@@ -167,6 +172,7 @@ export interface CodeEditorState {
   visible: boolean;
   switch_to_files: string[];
   pdf_dark_mode_disabled?: { [id: string]: boolean };
+  has_custom_layout: boolean;
 }
 
 export class Actions<
@@ -644,7 +650,15 @@ export class Actions<
     let frame_tree = local_view_state.get("frame_tree");
     if (frame_tree == null) {
       frame_tree = this._default_frame_tree();
+      if (!this.is_public) {
+        // No saved local view — try to apply custom layout asynchronously.
+        this._apply_custom_layout_if_available();
+      }
     } else {
+      if (!this.is_public) {
+        // Still check whether a custom layout exists (for the menu).
+        this._check_custom_layout_exists();
+      }
       frame_tree = tree_ops.normalize(frame_tree);
       try {
         tree_ops.get_some_leaf_id(frame_tree);
@@ -888,6 +902,49 @@ export class Actions<
   // Replace the entire frame tree with a custom tree structure
   replace_frame_tree(customTree: FrameTree): void {
     this._apply_frame_tree(this._process_frame_tree(customTree));
+  }
+
+  // Save the current frame layout as the user's custom layout for this file type.
+  async save_custom_layout(): Promise<void> {
+    const frameTree = this.store
+      .get("local_view_state")
+      ?.get("frame_tree")
+      ?.toJS();
+    if (frameTree == null) return;
+    await saveCustomLayout(this.path, frameTree);
+    this.setState({ has_custom_layout: true } as any);
+  }
+
+  // Load the user's saved custom layout for this file type.
+  async load_custom_layout(): Promise<void> {
+    const layout = await loadCustomLayout(this.path);
+    if (layout == null) return;
+    this.replace_frame_tree(layout);
+  }
+
+  // Eagerly check if a custom layout exists, so the menu can show the
+  // "Load Custom" entry as enabled.
+  private async _check_custom_layout_exists(): Promise<void> {
+    try {
+      const has = await hasCustomLayout(this.path);
+      this.setState({ has_custom_layout: has } as any);
+    } catch {
+      // ignore
+    }
+  }
+
+  // Called on first open when no local view state exists — applies
+  // the user's custom layout if one was saved for this file type.
+  private async _apply_custom_layout_if_available(): Promise<void> {
+    try {
+      const layout = await loadCustomLayout(this.path);
+      this.setState({ has_custom_layout: layout != null } as any);
+      if (layout != null) {
+        this.replace_frame_tree(layout);
+      }
+    } catch {
+      // silently ignore — fall back to default layout
+    }
   }
 
   set_frame_tree_leafs(obj): void {

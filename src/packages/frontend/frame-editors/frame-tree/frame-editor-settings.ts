@@ -10,6 +10,7 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 
 import { filename_extension } from "@cocalc/util/misc";
+import type { FrameTree } from "./types";
 
 const DKV_NAME = "frame-editor-settings";
 
@@ -123,6 +124,117 @@ function migrateLegacyToolbarButtons(
   } catch {
     return null;
   }
+}
+
+// Runtime type guard: validates that an unknown value from the DKV
+// is a well-formed FrameTree (leaf, binary node, n-ary node, or tabs node).
+function isFrameTree(x: unknown): x is FrameTree {
+  if (x == null || typeof x !== "object") return false;
+  const t = x as Record<string, unknown>;
+  if (typeof t.type !== "string") return false;
+
+  if (t.type === "node") {
+    // binary node
+    if (t.first != null && t.second != null) {
+      return isFrameTree(t.first) && isFrameTree(t.second);
+    }
+    // n-ary node
+    if (Array.isArray(t.children)) {
+      return t.children.every(isFrameTree);
+    }
+    return false;
+  }
+
+  if (t.type === "tabs") {
+    return Array.isArray(t.children) && t.children.every(isFrameTree);
+  }
+
+  // leaf: just needs a type string (already checked above)
+  return true;
+}
+
+// Keep only the structural layout fields from a frame tree,
+// discarding transient fields like id, active_id, font_size, etc.
+const LAYOUT_FIELDS = [
+  "type",
+  "direction",
+  "pos",
+  "sizes",
+  "activeTab",
+  "first",
+  "second",
+  "children",
+] as const;
+
+function stripFrameTreeIds(tree: any): any {
+  if (tree == null) return tree;
+  const result: any = {};
+  for (const key of LAYOUT_FIELDS) {
+    if (!(key in tree)) continue;
+    const val = tree[key];
+    if (key === "children" && Array.isArray(val)) {
+      result.children = val.map(stripFrameTreeIds);
+    } else if (key === "first" && val != null && typeof val === "object") {
+      result.first = stripFrameTreeIds(val);
+    } else if (key === "second" && val != null && typeof val === "object") {
+      result.second = stripFrameTreeIds(val);
+    } else {
+      result[key] = val;
+    }
+  }
+  return result;
+}
+
+// Save the current frame layout to the DKV for the given file extension.
+export async function saveCustomLayout(
+  path: string,
+  frameTreeJS: object,
+): Promise<void> {
+  const account = redux.getStore("account");
+  const ready = await account.waitUntilReady();
+  if (!ready) return;
+
+  const editorName = getFrameEditorSettingsName("layout", path);
+  const storageKey = getFrameEditorSettingsKey("custom", editorName);
+  const conatDkv = (await webapp_client.conat_client.dkv({
+    account_id: account.get_account_id(),
+    name: DKV_NAME,
+  })) as unknown as FrameEditorSettingsDKV;
+
+  const cleaned = stripFrameTreeIds(frameTreeJS);
+  conatDkv.set(storageKey, cleaned);
+  conatDkv.close?.();
+}
+
+// Load a previously saved custom layout for the given file extension.
+// Returns null if none has been saved.
+export async function loadCustomLayout(
+  path: string,
+): Promise<FrameTree | null> {
+  const account = redux.getStore("account");
+  const ready = await account.waitUntilReady();
+  if (!ready) return null;
+
+  const editorName = getFrameEditorSettingsName("layout", path);
+  const storageKey = getFrameEditorSettingsKey("custom", editorName);
+  const conatDkv = (await webapp_client.conat_client.dkv({
+    account_id: account.get_account_id(),
+    name: DKV_NAME,
+  })) as unknown as FrameEditorSettingsDKV;
+
+  const layout = conatDkv.get(storageKey);
+  conatDkv.close?.();
+
+  if (isFrameTree(layout)) {
+    return layout;
+  }
+  return null;
+}
+
+// Check whether a custom layout exists for the given file extension.
+export async function hasCustomLayout(path: string): Promise<boolean> {
+  const layout = await loadCustomLayout(path);
+  return layout != null;
 }
 
 export function useFrameEditorToolbarButtons(

@@ -270,7 +270,7 @@ Common commands: `save`, `undo`, `redo`, `find`, `replace`, `goto_line`,
 `packages/frontend/frame-editors/code-editor/actions.ts` provides the base
 `Actions` class for frame editors. Key responsibilities:
 
-- Frame tree management (split, close, focus, resize)
+- Frame tree management (split, close, focus, resize, save/load custom layouts)
 - SyncDoc/SyncString lifecycle
 - Save/load coordination
 - Undo/redo
