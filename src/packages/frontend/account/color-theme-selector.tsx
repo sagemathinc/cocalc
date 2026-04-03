@@ -381,22 +381,27 @@ function RandomizedThemeCard({
   return (
     <>
       <style>{RAINBOW_KEYFRAMES}</style>
-      <div style={{ display: "flex", gap: 0 }}>
+      <div
+        style={{
+          display: "flex",
+          gap: 0,
+          borderRadius: 8,
+          border: active ? "2px solid transparent" : undefined,
+          animation: active
+            ? "cocalc-rainbow-border 4s linear infinite"
+            : undefined,
+        }}
+      >
         <Card
           size="small"
           hoverable
           onClick={onClick}
           style={{
-            border: active
-              ? `2px solid ${theme.primary}`
-              : "2px solid transparent",
+            border: active ? "none" : "2px solid transparent",
             cursor: "pointer",
             flex: 1,
             borderTopRightRadius: active ? 0 : undefined,
             borderBottomRightRadius: active ? 0 : undefined,
-            animation: active
-              ? "cocalc-rainbow-border 4s linear infinite"
-              : undefined,
           }}
           styles={{
             body: { padding: "6px 8px" },
