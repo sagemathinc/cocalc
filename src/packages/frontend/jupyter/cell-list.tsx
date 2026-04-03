@@ -545,6 +545,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const virtuosoHeightsRef = useRef<{ [index: number]: number }>({});
 
   const cellListResize = useResizeObserver({ ref: cellListDivRef });
+  const viewportIncrease = 2 * Math.max(1000, cellListResize.height ?? 0);
   useEffect(() => {
     for (const key in scrollOrResize) {
       scrollOrResize[key]();
@@ -567,6 +568,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
             ref={virtuosoRef}
             onClick={actions != null && complete != null ? on_click : undefined}
             topItemCount={0}
+            increaseViewportBy={viewportIncrease}
             style={{
               fontSize: `${font_size}px`,
               flex: 1,

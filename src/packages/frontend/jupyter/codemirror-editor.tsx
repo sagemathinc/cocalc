@@ -154,6 +154,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const prev_options = usePrevious(options);
   const frameActions = useNotebookFrameActions();
   const ignoreNextValue = useRef<boolean>(false);
+  const skipInitialRefreshOnScrollOrFont = useRef<boolean>(true);
 
   useEffect(() => {
     if (frameActions.current?.frame_id != null) {
@@ -175,6 +176,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }, []);
 
   useEffect(() => {
+    if (refresh == null) {
+      return;
+    }
     cm.current?.refresh();
   }, [refresh]);
 
@@ -189,6 +193,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }, [options, value]);
 
   useEffect(() => {
+    if (skipInitialRefreshOnScrollOrFont.current) {
+      skipInitialRefreshOnScrollOrFont.current = false;
+      return;
+    }
     cm_refresh();
   }, [font_size, is_scrolling]);
 
