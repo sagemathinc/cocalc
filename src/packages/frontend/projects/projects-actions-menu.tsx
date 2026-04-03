@@ -16,7 +16,7 @@
 import type { ProjectTableRecord } from "./projects-table-columns";
 
 import { Dropdown, MenuProps, Modal } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
 import {
@@ -95,13 +95,11 @@ function HydratedProjectActionsMenu({
     { project_id: record.project_id },
     "directory_listings",
   );
-  // Initialize project_log when menu opens if not already loaded
-  function handleOpenChange(newOpen: boolean) {
-    setOpen(newOpen);
-    if (newOpen && project_log == null) {
-      redux.getProjectStore(record.project_id).init_table("project_log");
-    }
-  }
+
+  useEffect(() => {
+    if (!open || project_log != null) return;
+    redux.getProjectStore(record.project_id).init_table("project_log");
+  }, [open, project_log, record.project_id]);
 
   // Check if user is owner of this project
   const isOwner =
@@ -339,7 +337,7 @@ function HydratedProjectActionsMenu({
         menu={{ items: menuItems, onClick: handleMenuClick }}
         trigger={["click"]}
         open={open}
-        onOpenChange={handleOpenChange}
+        onOpenChange={setOpen}
       >
         <span style={{ fontSize: "18px", padding: "4px 8px" }}>
           <Icon name="ellipsis" rotate="90" />
