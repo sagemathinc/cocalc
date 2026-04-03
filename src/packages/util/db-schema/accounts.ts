@@ -132,6 +132,9 @@ export const DARK_MODE_DEFAULTS = {
   sepia: 0,
 } as const;
 
+export const DEFAULT_EDITOR_THEME = "cocalc-light";
+export const DEFAULT_TERMINAL_COLOR_SCHEME = "cocalc-light";
+
 // throw error if not valid
 export function ensureAutoBalanceValid(obj) {
   if (obj == null) {
@@ -637,7 +640,7 @@ Table({
             indent_unit: 4,
             tab_size: 4,
             bindings: "standard",
-            theme: "cocalc",
+            theme: DEFAULT_EDITOR_THEME,
             undo_depth: 300,
             jupyter_classic: false,
             jupyter_window: false,
@@ -691,7 +694,7 @@ Table({
           last_name: "",
           terminal: {
             font_size: DEFAULT_FONT_SIZE,
-            color_scheme: "cocalc",
+            color_scheme: DEFAULT_TERMINAL_COLOR_SCHEME,
             font: "monospace",
           },
           autosave: 45,

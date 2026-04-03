@@ -1,4 +1,8 @@
 import { replace_all } from "@cocalc/util/misc";
+import { DEFAULT_TERMINAL_COLOR_SCHEME } from "@cocalc/util/db-schema/accounts";
+
+export const DEFAULT_THEME_NAME = DEFAULT_TERMINAL_COLOR_SCHEME;
+const PREVIEW_BASE_THEME_NAME = "default";
 
 export const COLOR_THEMES = {
   "solarized-dark": {
@@ -266,6 +270,13 @@ for (const name in COLOR_THEMES) {
   theme_desc[name] = COLOR_THEMES[name].comment;
 }
 
+export function getThemeName(theme?: string): keyof typeof COLOR_THEMES {
+  if (theme != null && COLOR_THEMES[theme] != null) {
+    return theme as keyof typeof COLOR_THEMES;
+  }
+  return DEFAULT_THEME_NAME;
+}
+
 // This is a cheap hardcoded example for use in configuration/settings.
 // It shows a terminal prompt, cat command, file output, and final prompt.
 export function example(theme_raw: string, isDark: boolean = false): string {
@@ -295,9 +306,8 @@ export function example(theme_raw: string, isDark: boolean = false): string {
 </div>`;
   // The above snippet was created by using xterm.js with the default theme.
   // To get an example for our theme, we substitute the colors.
-  const a = COLOR_THEMES.default.colors;
-  const b = COLOR_THEMES[theme]?.colors;
-  if (!b) throw Error(`unknown theme ${theme}`);
+  const a = COLOR_THEMES[PREVIEW_BASE_THEME_NAME].colors;
+  const b = COLOR_THEMES[getThemeName(theme)].colors;
   for (let i = 0; i < a.length; i++) {
     html = replace_all(html, a[i], b[i]);
   }

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -8,7 +8,10 @@ Compute the codemirror options for file with given name,
 using the given editor settings.
 */
 
-import { EDITOR_COLOR_SCHEMES } from "@cocalc/util/db-schema/accounts";
+import {
+  DEFAULT_EDITOR_THEME,
+  EDITOR_COLOR_SCHEMES,
+} from "@cocalc/util/db-schema/accounts";
 import { resolveEditorColorScheme } from "./resolve-editor-scheme";
 import { path_split } from "@cocalc/util/misc";
 import * as CodeMirror from "codemirror";
@@ -51,9 +54,9 @@ export function cm_options(
   // if we do not know the theme, fallback to default
   if (!theme || EDITOR_COLOR_SCHEMES[theme] == null) {
     console.warn(
-      `codemirror theme '${theme}' not known -- fallback to 'Default'`,
+      `codemirror theme '${theme}' not known -- fallback to '${DEFAULT_EDITOR_THEME}'`,
     );
-    theme = "default";
+    theme = DEFAULT_EDITOR_THEME;
   }
 
   const opts = defaults(default_opts(filename), {
@@ -361,7 +364,7 @@ export function cm_options(
   } else {
     // options.theme MUST be set to something because this code is in CodeMirror
     //    cm.options.theme.replace...
-    options.theme = "default";
+    options.theme = DEFAULT_EDITOR_THEME;
   }
 
   if (options.spellcheck) {

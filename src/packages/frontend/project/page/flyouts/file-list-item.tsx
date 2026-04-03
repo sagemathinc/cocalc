@@ -203,6 +203,8 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   const actions = useActions({ project_id });
   const student_project_functionality =
     useStudentProjectFunctionality(project_id);
+  const [quickActionsMounted, setQuickActionsMounted] =
+    useState<boolean>(isInClipboard);
 
   const selectable = onChecked != null;
   const itemRef = useRef<HTMLDivElement>(null);
@@ -355,6 +357,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
   }
 
   function handleMouseEnter(): void {
+    setQuickActionsMounted(true);
     if (!selectable || index == null) return;
     setShowCheckboxIndex?.(index);
   }
@@ -476,27 +479,31 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
         onMouseDown={(e) => {
           onMouseDown?.(e, item.name);
         }}
+        onMouseEnter={handleMouseEnter}
         // additional mouseLeave to prevent stale hover state icon
         onMouseLeave={handleMouseLeave}
       >
         {renderBodyLeft()} {renderStarred()} {renderName()} {renderExtra(2)}{" "}
         {renderExtra(1)}
-        {mode === "files" && !actionsDisabled && item.name !== ".." && (
-          <QuickActionButtons
-            project_id={project_id}
-            path={fullPath}
-            isdir={item.isdir}
-            current_path={current_path}
-            hasClipboard={hasClipboard}
-            isInClipboard={isInClipboard}
-            clipboardMode={clipboardMode}
-            compute_server_id={compute_server_id}
-            layout="inline"
-            listingPaths={listingPaths}
-            className="cc-flyout-quick-actions"
-            style={{ background: quickActionBackground }}
-          />
-        )}
+        {mode === "files" &&
+          !actionsDisabled &&
+          item.name !== ".." &&
+          (quickActionsMounted || isInClipboard) && (
+            <QuickActionButtons
+              project_id={project_id}
+              path={fullPath}
+              isdir={item.isdir}
+              current_path={current_path}
+              hasClipboard={hasClipboard}
+              isInClipboard={isInClipboard}
+              clipboardMode={clipboardMode}
+              compute_server_id={compute_server_id}
+              layout="inline"
+              listingPaths={listingPaths}
+              className="cc-flyout-quick-actions"
+              style={{ background: quickActionBackground }}
+            />
+          )}
         {renderPublishedIcon()}
         {renderCloseItem(item)}
       </div>

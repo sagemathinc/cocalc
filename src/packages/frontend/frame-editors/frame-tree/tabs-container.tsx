@@ -8,7 +8,7 @@
 // alive); inactive tabs are hidden with display:none so that state like
 // CodeMirror scroll positions is preserved across tab switches.
 
-import React, { useCallback, useContext, useMemo } from "react";
+import React, { useCallback, useContext, useMemo, useState } from "react";
 import { useDraggable, useDroppable, useDndContext } from "@dnd-kit/core";
 import { ConfigProvider, Dropdown, Tabs } from "antd";
 import type { MenuProps } from "antd";
@@ -184,6 +184,7 @@ export function TabsContainer({
   editor_spec,
   active_id,
 }: Props) {
+  const [addTabMenuOpen, setAddTabMenuOpen] = useState(false);
   const children = frame_tree.get("children");
   const storedActiveTab = frame_tree.get("activeTab", 0);
   const tabsId = frame_tree.get("id") as string;
@@ -289,6 +290,10 @@ export function TabsContainer({
 
   // Build the "add tab" dropdown menu: files first, then frame types
   const addTabMenu = useMemo((): MenuProps => {
+    if (!addTabMenuOpen) {
+      return { items: [] };
+    }
+
     const menuItems: MenuProps["items"] = [];
 
     // Switchable files first (e.g. LaTeX included files)
@@ -320,7 +325,7 @@ export function TabsContainer({
     }
 
     return { items: menuItems };
-  }, [editor_spec, switchToFiles, tabsId, actions]);
+  }, [addTabMenuOpen, editor_spec, switchToFiles, tabsId, actions]);
 
   // Tab bar drop target: frames dragged onto the tab bar get added as tabs
   const { setNodeRef: setTabBarDropRef, isOver: isTabBarOver } = useDroppable({
@@ -402,7 +407,11 @@ export function TabsContainer({
               tabBarStyle={FRAME_TAB_BAR_STYLE}
               tabBarExtraContent={{
                 right: (
-                  <Dropdown menu={addTabMenu} trigger={["click"]}>
+                  <Dropdown
+                    menu={addTabMenu}
+                    trigger={["click"]}
+                    onOpenChange={setAddTabMenuOpen}
+                  >
                     <Icon
                       name="down-circle-o"
                       style={{

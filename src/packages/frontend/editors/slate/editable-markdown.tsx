@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -842,6 +842,7 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
   // way for checking if the state of the editor has changed.  Instead
   // check editor.children itself explicitly.
   const onChange = (newEditorValue) => {
+    const syncCausedUpdate = editor.syncCausedUpdate === true;
     if (dirtyRef != null) {
       // but see comment above
       dirtyRef.current = true;
@@ -881,6 +882,12 @@ export const EditableMarkdown: React.FC<Props> = React.memo((props: Props) => {
 
     setEditorValue(newEditorValue);
     setChange(change + 1);
+
+    if (syncCausedUpdate) {
+      // Remote sync patches still need the editor tree and change context to
+      // update, but they do not need local typing helpers or save scheduling.
+      return;
+    }
 
     // Update mentions state whenever editor actually changes.
     // This may pop up the mentions selector.

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -701,7 +701,7 @@ export default function LanguageModelTitleBarButton({
       placement={
         "right" /* Otherwise this thing gets stuck on the left side of the screen, which is very disconcerting*/
       }
-      title={renderTitle()}
+      title={renderTitle}
       open={visible && showDialog}
       content={renderContent}
       trigger={["click"]}

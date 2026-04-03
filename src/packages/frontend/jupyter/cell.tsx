@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -59,7 +59,7 @@ interface Props {
   is_visible?: boolean;
   isFirst?: boolean;
   isLast?: boolean;
-  dragHandle?: React.JSX.Element;
+  showDragHandle?: boolean;
   read_only?: boolean;
   isDragging?: boolean;
 }
@@ -89,7 +89,7 @@ function areEqual(props: Props, nextProps: Props): boolean {
     (nextProps.llmTools?.model ?? "") !== (props.llmTools?.model ?? "") ||
     (nextProps.complete !== props.complete && // only worry about complete when editing this cell
       (nextProps.is_current || props.is_current)) ||
-    nextProps.dragHandle !== props.dragHandle ||
+    nextProps.showDragHandle !== props.showDragHandle ||
     nextProps.read_only !== props.read_only ||
     nextProps.isDragging !== props.isDragging
   );
@@ -137,7 +137,7 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         llmTools={props.llmTools}
         computeServerId={props.computeServerId}
         setShowAICellGen={setShowAICellGen}
-        dragHandle={props.dragHandle}
+        showDragHandle={props.showDragHandle}
       />
     );
   }
@@ -172,9 +172,10 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
       frameActions.current?.select_cell_range(id);
       return;
     }
-    frameActions.current?.set_mode("escape");
-    frameActions.current?.set_cur_id(id);
-    frameActions.current?.unselect_all_cells();
+    frameActions.current?.activate_cell(id, {
+      mode: "escape",
+      clearSelection: true,
+    });
   }
 
   function double_click(event: any): void {
@@ -187,11 +188,10 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
     if (props.cell.get("cell_type") !== "markdown") {
       return;
     }
-    frameActions.current?.unselect_all_cells();
-    const id = props.cell.get("id");
-    frameActions.current?.set_md_cell_editing(id);
-    frameActions.current?.set_cur_id(id);
-    frameActions.current?.set_mode("edit");
+    frameActions.current?.activate_cell(props.cell.get("id"), {
+      mode: "edit",
+      clearSelection: true,
+    });
     event.stopPropagation();
   }
 

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -118,7 +118,7 @@ export function StudentAssignmentInfoHeader({
               <Popover
                 trigger="click"
                 placement="top"
-                content={render_info_content(key)}
+                content={() => render_info_content(key)}
               >
                 <Button
                   type="link"

@@ -1,11 +1,11 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
 import type { TabsProps } from "antd";
 import { Avatar, Popover, Tabs, Tooltip } from "antd";
-import { cloneElement, CSSProperties, useMemo } from "react";
+import { cloneElement, CSSProperties, useEffect, useMemo } from "react";
 
 import {
   CSS,
@@ -74,15 +74,13 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   const any_alerts = useProjectStatusAlerts(project_id);
 
   const title = project?.get("title") ?? public_project_titles?.get(project_id);
-  if (title == null) {
-    if (active_top_tab == project_id) {
-      set_window_title("Loading");
-    }
-    return <Loading key={project_id} />;
-  }
+  useEffect(() => {
+    if (active_top_tab !== project_id) return;
+    set_window_title(title ?? "Loading");
+  }, [active_top_tab, project_id, title]);
 
-  if (active_top_tab == project_id) {
-    set_window_title(title);
+  if (title == null) {
+    return <Loading key={project_id} />;
   }
 
   const project_state = project?.getIn(["state", "state"]);
@@ -233,10 +231,10 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   return (
     <Popover
       zIndex={10000}
-      title={
+      title={() => (
         <StaticMarkdown style={{ display: "inline-block" }} value={title} />
-      }
-      content={renderContent()}
+      )}
+      content={renderContent}
       placement="bottom"
       open={active != null ? false : undefined}
       mouseEnterDelay={0.9}

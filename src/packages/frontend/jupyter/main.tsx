@@ -9,7 +9,7 @@ Top-level react component, which ties everything together
 
 import { Button, Tooltip } from "antd";
 import * as immutable from "immutable";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 
 import {
   CSS,
@@ -206,13 +206,16 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     .getStore("projects")
     .hasLanguageModelEnabled(project_id);
   // This only checks if we can use the LLM tools at all – detailed checks like "for this project in a course" are by component
-  const llmTools: LLMTools | undefined = llmEnabled
-    ? {
-        model,
-        setModel,
-        toolComponents,
-      }
-    : undefined;
+  const llmTools = useMemo<LLMTools | undefined>(() => {
+    if (!llmEnabled) {
+      return undefined;
+    }
+    return {
+      model,
+      setModel,
+      toolComponents,
+    };
+  }, [llmEnabled, model, setModel]);
 
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
@@ -239,6 +242,11 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     "editor_settings",
     "jupyter_classic",
   ]);
+  const kernelspecData = useMemo(() => kernelspec?.toJS(), [kernelspec]);
+  const jupyterContext = useMemo(
+    () => ({ kernelspec: kernelspecData, trust }),
+    [kernelspecData, trust],
+  );
 
   function render_error() {
     if (error) {
@@ -449,7 +457,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <JupyterContext.Provider value={{ kernelspec: kernelspec?.toJS(), trust }}>
+    <JupyterContext.Provider value={jupyterContext}>
       <div
         style={{
           display: "flex",
