@@ -140,6 +140,7 @@ export type EditorThemeId = keyof typeof EDITOR_COLOR_SCHEMES;
 
 /** Valid terminal color scheme IDs — "cocalc" is the auto light/dark virtual entry. */
 export type TerminalThemeId =
+  | "cocalc-auto"
   | "cocalc"
   | "cocalc-light"
   | "cocalc-dark"
@@ -150,8 +151,8 @@ export type TerminalThemeId =
   | "raven-light"
   | "low-contrast";
 
-export const DEFAULT_EDITOR_THEME: EditorThemeId = "cocalc";
-export const DEFAULT_TERMINAL_COLOR_SCHEME: TerminalThemeId = "cocalc";
+export const DEFAULT_EDITOR_THEME: EditorThemeId = "cocalc-auto";
+export const DEFAULT_TERMINAL_COLOR_SCHEME: TerminalThemeId = "cocalc-auto";
 
 // throw error if not valid
 export function ensureAutoBalanceValid(obj) {
@@ -873,6 +874,7 @@ export const EDITOR_BINDINGS = {
 };
 
 export const EDITOR_COLOR_SCHEMES = {
+  "cocalc-auto": "CoCalc Auto (adapts to UI theme)",
   cocalc: "CoCalc (auto light/dark)",
   default: "Default",
   "3024-day": "3024 day",

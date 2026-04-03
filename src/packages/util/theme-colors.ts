@@ -136,6 +136,16 @@ export interface ColorTheme {
   dragBar: string;
   dragBarHover: string;
 
+  // ── Syntax highlighting (for auto editor/terminal themes) ────────────
+  syntaxKeyword: string; // control flow, statements (if, for, def, class)
+  syntaxString: string; // string literals
+  syntaxComment: string; // comments
+  syntaxNumber: string; // numeric literals, constants
+  syntaxFunction: string; // function/method names
+  syntaxVariable: string; // variables, default code text
+  syntaxType: string; // types, classes, tags
+  syntaxOperator: string; // operators, punctuation
+
   // ── Misc semantic ────────────────────────────────────────────────────
   star: string;
   run: string;
@@ -229,6 +239,16 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     dragBar: darken(bg, 0.1),
     dragBarHover: primary,
 
+    // Syntax highlighting — derived from theme colors for light backgrounds
+    syntaxKeyword: darken(primary, 0.15),
+    syntaxString: darken(secondary, 0.2),
+    syntaxComment: lighten(text, 0.45),
+    syntaxNumber: darken(accent, 0.2),
+    syntaxFunction: darken(primary, 0.05),
+    syntaxVariable: text,
+    syntaxType: mixColors(primary, secondary, 0.5),
+    syntaxOperator: lighten(text, 0.2),
+
     star: "#FFD700",
     run: "#389e0d",
     aiBg: lighten(accent, 0.3),
@@ -306,6 +326,16 @@ export function deriveDarkTheme(light: ColorTheme): ColorTheme {
 
     dragBar: lighten(darkBg, 0.15),
     dragBarHover: primary,
+
+    // Syntax highlighting — lightened for dark backgrounds
+    syntaxKeyword: lighten(light.syntaxKeyword, 0.35),
+    syntaxString: lighten(light.syntaxString, 0.3),
+    syntaxComment: darken(darkText, 0.35),
+    syntaxNumber: lighten(light.syntaxNumber, 0.3),
+    syntaxFunction: lighten(light.syntaxFunction, 0.3),
+    syntaxVariable: darkText,
+    syntaxType: lighten(light.syntaxType, 0.35),
+    syntaxOperator: darken(darkText, 0.15),
 
     star: "#FFD700",
     run: "#52c41a",
