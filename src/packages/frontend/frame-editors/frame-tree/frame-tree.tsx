@@ -385,7 +385,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
       try {
         editor_actions = get_editor_actions(desc);
         if (editor_actions == null) {
-          return <Loading />;
+          return <Loading theme="medium" />;
         }
         spec = editor_spec[type];
         component = spec != null ? spec.component : undefined;
@@ -583,7 +583,7 @@ export const FrameTree: React.FC<FrameTreeProps> = React.memo(
     }
 
     if (value == null) {
-      return <Loading />;
+      return <Loading theme="medium" />;
     }
     if (reload === undefined) {
       return <span>no props.reload</span>;

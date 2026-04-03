@@ -35,7 +35,9 @@ export function TerminalSettings() {
   const theme = useColorTheme();
 
   const terminal = useTypedRedux("account", "terminal");
-  const color_scheme = getThemeName(terminal?.get("color_scheme"));
+  const raw_scheme = terminal?.get("color_scheme") ?? DEFAULT_TERMINAL_COLOR_SCHEME;
+  // Keep "cocalc" (auto light/dark) as-is for the selector; only resolve unknown values
+  const color_scheme = raw_scheme in theme_desc ? raw_scheme : getThemeName(raw_scheme);
 
   if (terminal == null) {
     return <Loading />;
