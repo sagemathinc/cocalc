@@ -259,6 +259,39 @@ These appear on the toolbar by default until the user explicitly unpins them.
 - **Markdown/Slate**: AI formula, sync, header, text, font, color, ToC
 - **Code**: (minimal — typically just undo/redo from generic commands)
 
+## Custom Layout Save/Load
+
+Users can save and restore their preferred frame layout per file type via two
+commands in the app menu (`frame_types` group):
+
+- **Save Layout** (`save_custom_layout`) — strips transient fields (IDs, font
+  sizes, etc.) from the current frame tree and persists the structural layout
+  to the user's Conat DKV.
+- **Load Custom Layout** (`load_custom_layout`) — reads the saved layout back
+  from the DKV and replaces the current frame tree.
+
+Both commands have `alwaysShow: true` so they appear for every editor type.
+
+### Storage
+
+Layouts are stored in the same `frame-editor-settings` DKV used for toolbar
+button persistence. The key format is `custom-layout-{ext}` where `{ext}` is
+the file extension (e.g. `py`, `ipynb`, `tex`). This means a saved layout
+applies to all files of the same type.
+
+### Implementation
+
+```
+frame-editor-settings.ts   saveCustomLayout(), loadCustomLayout(), isFrameTree()
+code-editor/actions.ts     save_custom_layout(), load_custom_layout() action methods
+commands/generic-commands.tsx   command definitions (group: "frame_types")
+```
+
+`stripFrameTreeIds()` uses a whitelist of structural fields (`type`,
+`direction`, `pos`, `sizes`, `activeTab`, `first`, `second`, `children`) to
+keep only the layout structure. `isFrameTree()` is a runtime type guard that
+validates DKV data before applying it, preventing crashes from corrupted data.
+
 ## Data Flow Summary
 
 ```
