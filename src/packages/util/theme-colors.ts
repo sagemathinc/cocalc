@@ -21,9 +21,14 @@ import sha1 from "sha1";
 // Color math helpers (no external deps)
 // ---------------------------------------------------------------------------
 
-/** Parse a hex color (#rgb or #rrggbb) to [r, g, b] in 0–255. */
-export function hexToRgb(hex: string): [number, number, number] {
-  let h = hex.replace("#", "");
+/** Parse a color string (#rgb, #rrggbb, or rgb(r,g,b)) to [r, g, b] in 0–255. */
+export function hexToRgb(color: string): [number, number, number] {
+  // Handle rgb(r, g, b) format (as emitted by antd ColorPicker)
+  const rgbMatch = color.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+  if (rgbMatch) {
+    return [parseInt(rgbMatch[1]), parseInt(rgbMatch[2]), parseInt(rgbMatch[3])];
+  }
+  let h = color.replace("#", "");
   if (h.length === 3) {
     h = h[0] + h[0] + h[1] + h[1] + h[2] + h[2];
   }
@@ -171,7 +176,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
   } = base;
 
   const bgBase = bg;
-  const bgElevated = mixColors(bgBase, primary, 0.015); // Slightly more tint for elevated surfaces
+  const bgElevated = mixColors(bgBase, primary, 0.015);
   const chatViewerBg = lighten(primary, 0.35);
 
   return {

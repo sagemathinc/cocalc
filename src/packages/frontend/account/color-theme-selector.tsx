@@ -20,7 +20,7 @@ import {
   Segmented,
   Tag,
 } from "antd";
-import { CSSProperties, useCallback, useMemo } from "react";
+import { CSSProperties, useCallback, useMemo, useState } from "react";
 import { FormattedMessage, defineMessages, useIntl } from "react-intl";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -54,7 +54,7 @@ const MESSAGES = defineMessages({
   },
   customTitle: {
     id: "account.appearance.color_theme.custom.title",
-    defaultMessage: "Custom Colors",
+    defaultMessage: "Custom",
   },
   customDescription: {
     id: "account.appearance.color_theme.custom.description",
@@ -250,11 +250,20 @@ function ThemePreview({ theme }: { theme: ColorTheme }) {
   );
 }
 
-function luma(hex: string): number {
-  const h = hex.replace("#", "");
-  const r = parseInt(h.substring(0, 2), 16) / 255;
-  const g = parseInt(h.substring(2, 4), 16) / 255;
-  const b = parseInt(h.substring(4, 6), 16) / 255;
+/** Parse luminance from hex (#rrggbb) or rgb(r, g, b) strings. */
+function luma(color: string): number {
+  let r: number, g: number, b: number;
+  const rgbMatch = color.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/);
+  if (rgbMatch) {
+    r = parseInt(rgbMatch[1]) / 255;
+    g = parseInt(rgbMatch[2]) / 255;
+    b = parseInt(rgbMatch[3]) / 255;
+  } else {
+    const h = color.replace("#", "");
+    r = parseInt(h.substring(0, 2), 16) / 255;
+    g = parseInt(h.substring(2, 4), 16) / 255;
+    b = parseInt(h.substring(4, 6), 16) / 255;
+  }
   return 0.299 * r + 0.587 * g + 0.114 * b;
 }
 
@@ -276,6 +285,7 @@ function CustomColorEditor({
   onChange: (v: BaseColors) => void;
 }) {
   const intl = useIntl();
+  const [warning, setWarning] = useState<string | null>(null);
 
   const fields: {
     key: "primary" | "secondary" | "accent" | "bg" | "text";
@@ -288,19 +298,56 @@ function CustomColorEditor({
     { key: "text", label: intl.formatMessage(MESSAGES.textLabel) },
   ];
 
+  const handleChange = useCallback(
+    (key: string, hex: string) => {
+      if (key === "bg" && luma(hex) < 0.6) {
+        setWarning(
+          "Background must be a light color. Use the Dark Mode toggle above for dark themes.",
+        );
+        return;
+      }
+      if (key === "text" && luma(hex) > 0.5) {
+        setWarning(
+          "Text must be a dark color to ensure readability.",
+        );
+        return;
+      }
+      setWarning(null);
+      onChange({ ...value, [key]: hex });
+    },
+    [value, onChange],
+  );
+
   return (
-    <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
-      {fields.map(({ key, label }) => (
-        <div key={key} style={{ textAlign: "center" }}>
-          <div style={{ fontSize: 12, marginBottom: 4 }}>{label}</div>
-          <AntdColorPicker
-            value={value[key] ?? (DEFAULT_CUSTOM[key] as string)}
-            onChange={(_, hex) => onChange({ ...value, [key]: hex as string })}
-            size="small"
-          />
+    <>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 12 }}>
+        {fields.map(({ key, label }) => (
+          <div key={key} style={{ textAlign: "center" }}>
+            <div style={{ fontSize: 12, marginBottom: 4 }}>{label}</div>
+            <AntdColorPicker
+              value={value[key] ?? (DEFAULT_CUSTOM[key] as string)}
+              onChange={(_, hex) => handleChange(key, hex as string)}
+              size="small"
+            />
+          </div>
+        ))}
+      </div>
+      {warning && (
+        <div
+          style={{
+            marginTop: 8,
+            padding: "4px 8px",
+            fontSize: 12,
+            color: "#d46b08",
+            background: "#fff7e6",
+            border: "1px solid #ffd591",
+            borderRadius: 4,
+          }}
+        >
+          {warning}
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 
