@@ -542,8 +542,30 @@ export const COLOR_THEMES: Record<string, ColorTheme> = {
   midnight: THEME_MIDNIGHT,
 } as const;
 
+/** Base colors for each preset — used to seed the custom editor. */
+export const PRESET_BASE_COLORS: Record<string, BaseColors> = {
+  default: {
+    primary: "#4474c0",
+    secondary: "#fcc861",
+    accent: "#fcc861",
+    bg: "#f9fbff",
+    text: "#303030",
+  },
+  ocean: { primary: "#0077b6", secondary: "#00b4d8", accent: "#90e0ef", bg: "#fafcff", text: "#1a2b3c" },
+  sunset: { primary: "#c2452d", secondary: "#e8913a", accent: "#f0a050", bg: "#fffaf6", text: "#3a2018" },
+  forest: { primary: "#2d6a4f", secondary: "#95d5b2", accent: "#74c69d", bg: "#f7fcf9", text: "#1b3526" },
+  lavender: { primary: "#7b2d8e", secondary: "#c084fc", accent: "#d4a5ff", bg: "#fcf9ff", text: "#2d1b3a" },
+  slate: { primary: "#475569", secondary: "#94a3b8", accent: "#64748b", bg: "#f8fafc", text: "#1e293b" },
+  rose: { primary: "#be185d", secondary: "#fb7185", accent: "#fda4af", bg: "#fff5f7", text: "#3b1020" },
+  amber: { primary: "#b45309", secondary: "#f59e0b", accent: "#fbbf24", bg: "#fffbf0", text: "#3b2506" },
+  midnight: { primary: "#3b82f6", secondary: "#818cf8", accent: "#a5b4fc", bg: "#f0f4ff", text: "#1e1b4b" },
+};
+
 /** ID for the randomized daily theme (not in COLOR_THEMES since it's dynamic) */
 export const THEME_RANDOMIZED_ID = "randomized";
+
+/** ID for the user's custom theme (base colors stored separately in other_settings) */
+export const THEME_CUSTOM_ID = "custom";
 
 /** Generate the randomized theme on the fly from a persisted seed. */
 export function getRandomizedTheme(seed: number = 0): ColorTheme {
@@ -579,7 +601,7 @@ export function resolveUserTheme(
   customBase: BaseColors | null | undefined,
   randomSeed: number,
 ): ColorTheme {
-  if (customBase) {
+  if (presetId === THEME_CUSTOM_ID && customBase) {
     return deriveTheme("Custom", customBase);
   }
   return getColorTheme(presetId, randomSeed);

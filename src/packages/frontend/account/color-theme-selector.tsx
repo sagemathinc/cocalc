@@ -20,7 +20,7 @@ import {
   Segmented,
   Tag,
 } from "antd";
-import { CSSProperties, useCallback, useMemo, useState } from "react";
+import { CSSProperties, useCallback, useMemo } from "react";
 import { FormattedMessage, defineMessages, useIntl } from "react-intl";
 
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
@@ -37,9 +37,12 @@ import {
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
   OTHER_SETTINGS_RANDOM_THEME_SEED,
+  PRESET_BASE_COLORS,
+  THEME_CUSTOM_ID,
   THEME_RANDOMIZED_ID,
   deriveDarkTheme,
   deriveTheme,
+  generateRandomizedBaseColors,
   getColorTheme,
   getRandomizedTheme,
 } from "@cocalc/util/theme";
@@ -164,11 +167,13 @@ function ThemeCard({
   theme,
   active,
   onClick,
+  label,
 }: {
   id: string;
   theme: ColorTheme;
   active: boolean;
   onClick: () => void;
+  label?: string;
 }) {
   return (
     <Card
@@ -186,7 +191,7 @@ function ThemeCard({
       <div
         style={{ fontWeight: active ? 600 : 400, marginBottom: 3, fontSize: 12 }}
       >
-        {theme.name}
+        {label ?? theme.name}
       </div>
       <ThemeSwatch theme={theme} />
     </Card>
@@ -440,7 +445,7 @@ export function ColorThemeSelector() {
     other_settings?.get(OTHER_SETTINGS_RANDOM_THEME_SEED) ?? 0,
   );
 
-  const [showCustom, setShowCustom] = useState(!!customColorsJson);
+  const isCustom = currentThemeId === THEME_CUSTOM_ID;
 
   const customBase: BaseColors = useMemo(() => {
     if (customColorsJson) {
@@ -456,11 +461,11 @@ export function ColorThemeSelector() {
   // Resolve the effective theme (including dark mode derivation)
   const activeTheme = useMemo(() => {
     let lightTheme: ColorTheme;
-    if (customColorsJson) {
+    if (isCustom && customColorsJson) {
       try {
         lightTheme = deriveTheme("Custom", JSON.parse(customColorsJson));
       } catch {
-        lightTheme = getColorTheme(currentThemeId, randomSeed);
+        lightTheme = getColorTheme("default");
       }
     } else {
       lightTheme = getColorTheme(currentThemeId, randomSeed);
@@ -474,13 +479,27 @@ export function ColorThemeSelector() {
         window.matchMedia?.("(prefers-color-scheme: dark)").matches);
 
     return wantDark ? deriveDarkTheme(lightTheme) : lightTheme;
-  }, [currentThemeId, customColorsJson, nativeDarkMode, randomSeed]);
+  }, [currentThemeId, isCustom, customColorsJson, nativeDarkMode, randomSeed]);
 
   const handleSelectPreset = useCallback((id: string) => {
     onChangeSetting(OTHER_SETTINGS_COLOR_THEME, id);
-    onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, "");
-    setShowCustom(false);
   }, []);
+
+  /** Switch to Custom. Only seed initial colors if no custom colors exist yet. */
+  const handleSelectCustom = useCallback(() => {
+    onChangeSetting(OTHER_SETTINGS_COLOR_THEME, THEME_CUSTOM_ID);
+    if (!customColorsJson) {
+      // First time: seed from the previously active theme
+      let base: BaseColors;
+      if (currentThemeId === THEME_RANDOMIZED_ID) {
+        base = generateRandomizedBaseColors(randomSeed);
+      } else {
+        base =
+          PRESET_BASE_COLORS[currentThemeId] ?? PRESET_BASE_COLORS["default"];
+      }
+      onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, JSON.stringify(base));
+    }
+  }, [currentThemeId, randomSeed, customColorsJson]);
 
   const handleCustomChange = useCallback((base: BaseColors) => {
     onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, JSON.stringify(base));
@@ -490,7 +509,7 @@ export function ColorThemeSelector() {
     onChangeSetting(OTHER_SETTINGS_COLOR_THEME, "default");
     onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, "");
     onChangeSetting(OTHER_SETTINGS_NATIVE_DARK_MODE, "off");
-    setShowCustom(false);
+    onChangeSetting(OTHER_SETTINGS_RANDOM_THEME_SEED, 0);
   }, []);
 
   const isDefault =
@@ -572,42 +591,37 @@ export function ColorThemeSelector() {
             key={id}
             id={id}
             theme={theme}
-            active={!customColorsJson && currentThemeId === id}
+            active={!isCustom && currentThemeId === id}
             onClick={() => handleSelectPreset(id)}
           />
         ))}
         <RandomizedThemeCard
-          active={!customColorsJson && currentThemeId === THEME_RANDOMIZED_ID}
+          active={!isCustom && currentThemeId === THEME_RANDOMIZED_ID}
           seed={randomSeed}
           onClick={() => handleSelectPreset(THEME_RANDOMIZED_ID)}
           onChangeSeed={(s) =>
             onChangeSetting(OTHER_SETTINGS_RANDOM_THEME_SEED, s)
           }
         />
+        <ThemeCard
+          id="custom"
+          theme={isCustom ? activeTheme : getColorTheme("default")}
+          active={isCustom}
+          onClick={handleSelectCustom}
+          label={intl.formatMessage(MESSAGES.customTitle)}
+        />
       </div>
 
       {/* Live preview bar */}
       <ThemePreview theme={activeTheme} />
 
-      {/* Custom color editor toggle */}
-      <div style={{ marginTop: 12 }}>
-        <Button
-          size="small"
-          type={showCustom ? "primary" : "default"}
-          onClick={() => setShowCustom(!showCustom)}
-          icon={<Icon name="colors" />}
-        >
-          {intl.formatMessage(MESSAGES.customizeButton)}
-        </Button>
-      </div>
-
-      {showCustom && (
+      {/* Custom base-color pickers — shown only when Custom theme is active */}
+      {isCustom && (
         <Card size="small" style={{ marginTop: 8 }}>
           <div style={{ marginBottom: 8, color: COLORS.GRAY_M, fontSize: 12 }}>
             <FormattedMessage {...MESSAGES.customDescription} />
           </div>
           <CustomColorEditor value={customBase} onChange={handleCustomChange} />
-          {customColorsJson && <ThemePreview theme={activeTheme} />}
         </Card>
       )}
     </Panel>
