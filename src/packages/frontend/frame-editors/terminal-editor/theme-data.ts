@@ -97,7 +97,7 @@ export const COLOR_THEMES = {
       "#88e8e8", // color14: very bright cyan
       "#e0e0e0", // color15: light gray (GRAY_L0)
       "#c0d4f0", // foreground: light blue-gray (main text)
-      "#434343", // background: GRAY_D from theme.ts
+      "#1e2130", // background: matches dark theme bgElevated
     ],
   },
   "low-contrast": {
@@ -298,7 +298,7 @@ export function example(theme_raw: string, isDark: boolean = false): string {
         ? "cocalc-dark"
         : "cocalc-light"
       : theme_raw;
-  let html = `<div style="background-color: #ffffff; color: #000000; font-family: monospace, monospace; line-height: 120%; width: 100%; border:1px solid grey;padding:5px">
+  let html = `<div style="background-color: #ffffff; color: #000000; font-family: monospace, monospace; line-height: 120%; width: 100%; border:none;padding:5px">
 <div><span style="color:#4e9a06;">user@cocalc</span>:<span style="color:#3465a4;">~/project</span>$ cat prime_test.py</div>
 <div><span style="color:#c4a000;">def</span>&nbsp;<span style="color:#06989a;">is_prime_lucas_lehmer</span>(p):</div>
 <div>&nbsp;&nbsp;&nbsp;&nbsp;<span style="color:#cc0000;">"""</span></div>

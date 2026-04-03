@@ -14,7 +14,7 @@ export default function AIAvatar({
   size,
   innerStyle,
   backgroundColor = "transparent",
-  iconColor = "#353535",
+  iconColor = "var(--cocalc-text-primary, #353535)",
   style,
 }: Props) {
   const pathStyle: CSS = {
