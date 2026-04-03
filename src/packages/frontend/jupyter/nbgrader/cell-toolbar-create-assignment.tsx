@@ -239,7 +239,7 @@ export const CreateAssignmentToolbar: React.FC<Props> = ({ actions, cell }) => {
     background = "var(--cocalc-bg-hover, #eee)";
   } else {
     color = "#fff";
-    background = "#337ab7";
+    background = "var(--cocalc-link, #337ab7)";
   }
   return (
     <div style={{ width: "100%", background, color, padding: "3px" }}>

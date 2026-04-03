@@ -20,7 +20,7 @@ const STYLE = {
   padding: "0 5px",
   borderTopLeftRadius: "5px",
   borderTopRightRadius: "5px",
-  color: "#337ab7",
+  color: "var(--cocalc-link, #337ab7)",
   cursor: "pointer",
   width: "100%",
   fontSize: "10pt",
@@ -28,7 +28,7 @@ const STYLE = {
 
 const CURRENT_STYLE = {
   ...STYLE,
-  ...{ background: "#337ab7", color: "white" },
+  ...{ background: "var(--cocalc-link, #337ab7)", color: "white" },
 } as CSS;
 
 export const Path: React.FC<Props> = React.memo(

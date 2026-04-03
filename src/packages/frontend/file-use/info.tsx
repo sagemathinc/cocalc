@@ -151,7 +151,7 @@ export class FileUseInfo extends Component<Props, {}> {
         : "#fefefe";
     }
     if (this.props.cursor) {
-      misc.merge(style, { background: "#08c", color: "white" });
+      misc.merge(style, { background: "var(--cocalc-link, #08c)", color: "white" });
     }
     return (
       <Grid style={style} onClick={(e) => this.open(e)}>

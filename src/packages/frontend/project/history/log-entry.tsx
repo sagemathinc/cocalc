@@ -73,7 +73,7 @@ type CollaboratorInviteOrRemoveEvent = Extract<
 const { User } = require("@cocalc/frontend/users");
 
 const selected_item: CSS = {
-  backgroundColor: "#08c",
+  backgroundColor: "var(--cocalc-link, #08c)",
   color: "white",
 } as const;
 

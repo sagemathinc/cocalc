@@ -72,7 +72,7 @@ export default function CellTiming({
           <Icon
             name="hand"
             style={{
-              color: "#ff4d4f",
+              color: "var(--cocalc-error, #ff4d4f)",
               marginRight: "5px",
             }}
           />{" "}

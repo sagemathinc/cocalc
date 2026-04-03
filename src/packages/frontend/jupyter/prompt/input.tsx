@@ -39,7 +39,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
         tip = `Sending to be evaluated using ${kernel}.`;
         break;
       case "run":
-        n = <Icon name="hand" style={{ color: "#ff4d4f" }} />;
+        n = <Icon name="hand" style={{ color: "var(--cocalc-error, #ff4d4f)" }} />;
         tip = `Waiting for another cell to finish running. Will evaluate using ${kernel}.`;
         break;
       case "busy":

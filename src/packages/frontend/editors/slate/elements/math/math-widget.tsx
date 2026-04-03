@@ -50,7 +50,7 @@ export const SlateMath: React.FC<Props> = React.memo(
           style={
             editMode
               ? {
-                  color: "#337ab7",
+                  color: "var(--cocalc-link, #337ab7)",
                   border: "1px solid #337ab7",
                   borderRadius: "8px",
                   ...(isInline
