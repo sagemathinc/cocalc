@@ -56,6 +56,7 @@ export default function usePinchToZoom({
   smooth: _smooth = 5,
   disabled,
   getFontSize,
+  wheelSpeed = 1,
 }: {
   target: MutableRefObject<any>; // reference to element that we want pinch zoom.
   min?: number;
@@ -65,6 +66,7 @@ export default function usePinchToZoom({
   smooth?: number;
   disabled?: boolean;
   getFontSize?: () => number; // function that gets current font size for application; useful so that zoom starts at out right value, in case changed externally
+  wheelSpeed?: number; // multiplier for ctrl+wheel zoom speed (default 1)
 }) {
   const { actions, id } = useFrameContext();
 
@@ -119,10 +121,10 @@ export default function usePinchToZoom({
         wheelFontSizeRef.current =
           getFontSizeRef.current?.() ?? (max + min) / 2;
       }
-      // Multiplicative scaling: each tick changes zoom by ~5-8%.
+      // Multiplicative scaling: each tick changes zoom by a percentage.
       // Cap the exponent to prevent fast-scroll jumps.
-      const MAX_STEP = 0.16;
-      const rawExp = -e.deltaY / 750;
+      const MAX_STEP = 0.16 * wheelSpeed;
+      const rawExp = (-e.deltaY / 750) * wheelSpeed;
       const clampedExp = Math.max(-MAX_STEP, Math.min(MAX_STEP, rawExp));
       const newSize = Math.min(
         max,
@@ -146,7 +148,7 @@ export default function usePinchToZoom({
       el.removeEventListener("wheel", onWheel, { capture: true });
       clearTimeout(zoomEndTimer);
     };
-  }, [disabled, min, max]);
+  }, [disabled, min, max, wheelSpeed]);
 
   // usePinch: handles touch pinch gestures only (ctrl+wheel is blocked
   // by the native listener above via stopImmediatePropagation).
