@@ -22,7 +22,6 @@ import {
   OTHER_SETTINGS_NATIVE_DARK_MODE,
   OTHER_SETTINGS_RANDOM_THEME_SEED,
   deriveDarkTheme,
-  luminance,
   resolveUserTheme,
 } from "@cocalc/util/theme";
 import { NARROW_THRESHOLD_PX, PageStyle } from "./top-nav-consts";
