@@ -26,7 +26,7 @@ import { FormattedMessage, defineMessages, useIntl } from "react-intl";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { Panel } from "@cocalc/frontend/antd-bootstrap";
+import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
 import { COLORS } from "@cocalc/util/theme";
 import {
   type BaseColors,
@@ -50,7 +50,7 @@ import {
 const MESSAGES = defineMessages({
   title: {
     id: "account.appearance.color_theme.title",
-    defaultMessage: "Color Theme",
+    defaultMessage: "UI Theme",
   },
   customTitle: {
     id: "account.appearance.color_theme.custom.title",
@@ -671,6 +671,37 @@ export function ColorThemeSelector() {
           <CustomColorEditor value={customBase} onChange={handleCustomChange} />
         </Card>
       )}
+
+      <Divider style={{ margin: "8px 0" }} />
+
+      {/* UI style switches */}
+      <Switch
+        checked={other_settings?.get("antd_rounded", true)}
+        onChange={(e) => onChangeSetting("antd_rounded", e.target.checked)}
+      >
+        <FormattedMessage
+          id="account.other-settings.theme.antd.rounded"
+          defaultMessage={`<b>Rounded Design</b>: use rounded corners for buttons, etc.`}
+        />
+      </Switch>
+      <Switch
+        checked={other_settings?.get("antd_animate", true)}
+        onChange={(e) => onChangeSetting("antd_animate", e.target.checked)}
+      >
+        <FormattedMessage
+          id="account.other-settings.theme.antd.animations"
+          defaultMessage={`<b>Animations</b>: briefly animate some aspects, e.g. buttons`}
+        />
+      </Switch>
+      <Switch
+        checked={other_settings?.get("antd_compact", false)}
+        onChange={(e) => onChangeSetting("antd_compact", e.target.checked)}
+      >
+        <FormattedMessage
+          id="account.other-settings.theme.antd.compact"
+          defaultMessage={`<b>Compact Design</b>: use a more compact design`}
+        />
+      </Switch>
     </Panel>
   );
 }

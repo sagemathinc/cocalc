@@ -279,33 +279,6 @@ export function AccountPreferencesAppearance() {
             defaultMessage={`<strong>Hide Account Balance</strong> in navigation bar`}
           />
         </Switch>
-        <Switch
-          checked={other_settings.get("antd_rounded", true)}
-          onChange={(e) => on_change("antd_rounded", e.target.checked)}
-        >
-          <FormattedMessage
-            id="account.other-settings.theme.antd.rounded"
-            defaultMessage={`<b>Rounded Design</b>: use rounded corners for buttons, etc.`}
-          />
-        </Switch>
-        <Switch
-          checked={other_settings.get("antd_animate", true)}
-          onChange={(e) => on_change("antd_animate", e.target.checked)}
-        >
-          <FormattedMessage
-            id="account.other-settings.theme.antd.animations"
-            defaultMessage={`<b>Animations</b>: briefly animate some aspects, e.g. buttons`}
-          />
-        </Switch>
-        <Switch
-          checked={other_settings.get("antd_compact", false)}
-          onChange={(e) => on_change("antd_compact", e.target.checked)}
-        >
-          <FormattedMessage
-            id="account.other-settings.theme.antd.compact"
-            defaultMessage={`<b>Compact Design</b>: use a more compact design`}
-          />
-        </Switch>
         {render_katex()}
       </Panel>
     );
@@ -313,8 +286,8 @@ export function AccountPreferencesAppearance() {
 
   return (
     <>
-      <ColorThemeSelector />
       {renderUserInterfacePanel()}
+      <ColorThemeSelector />
       {renderAccessibilityPanel()}
       {renderDarkModePanel()}
       <EditorSettingsColorScheme

@@ -210,8 +210,8 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     border: lighten(text, 0.7),
     borderLight: lighten(text, 0.82),
 
-    topBarBg: darken(bgBase, 0.07),
-    topBarHover: darken(bgBase, 0.04),
+    topBarBg: mixColors(darken(bgBase, 0.07), primary, 0.1),
+    topBarHover: mixColors(darken(bgBase, 0.04), primary, 0.05),
     topBarText: lighten(text, 0.35),
     topBarTextActive: text,
 
@@ -409,63 +409,13 @@ export function generateRandomizedBaseColors(seed: number = 0): BaseColors {
 // ---------------------------------------------------------------------------
 
 /** Classic CoCalc look — uses the brand colors (blue + orange). */
-export const THEME_DEFAULT: ColorTheme = {
-  name: "CoCalc",
-  isDark: false,
-
+export const THEME_DEFAULT: ColorTheme = deriveTheme("CoCalc", {
   primary: "#4474c0",
-  primaryDark: "#2A5AA6",
-  primaryLight: "#80afff",
-  primaryLightest: "#e6f4ff",
-
   secondary: "#fcc861",
-  secondaryLight: "#fddc7f",
-
-  colorLink: "#1677ff",
-  colorSuccess: "#52c41a",
-  colorWarning: "#faad14",
-  colorError: "#f5222d",
-  colorInfo: "#4474c0",
-
-  bgBase: "#f9fbff", // Subtly tinted blue-white
-  bgElevated: "#f6f9ff", // Slightly more tinted for surfaces
-  bgHover: "#f0f5ff",
-  bgSelected: "#e6f4ff",
-
-  textPrimary: "#303030",
-  textSecondary: "#5f5f5f",
-  textTertiary: "#808080",
-  textOnPrimary: "#ffffff",
-
-  border: "#c0c0c0",
-  borderLight: "#eeeeee",
-
-  topBarBg: "#eeeeee",
-  topBarHover: "#f5f5f5",
-  topBarText: "#808080",
-  topBarTextActive: "#434343",
-
-  sidebarActive: "#1677ff",
-  sidebarOpened: "#003eb3",
-
-  landingBarBg: "#4474c0",
-  landingTopBg: "#c7d9f5",
-
-  chatViewerBg: "#46b1f6",
-  chatViewerText: "#ffffff",
-  chatOtherBg: "#f8f8f8",
-  chatOtherText: "#000000",
-
-  dragBar: "#e0e0e0",
-  dragBarHover: "#4474c0",
-
-  star: "#FFD700",
-  run: "#389e0d",
-  aiBg: "#f6bf61",
-  aiText: "#303030",
-  aiFont: "#f0a11d",
-  signInBg: "#fbb635",
-};
+  accent: "#fbb635",
+  bg: "#f9fbff",
+  text: "#303030",
+});
 
 export const THEME_OCEAN: ColorTheme = deriveTheme("Ocean", {
   primary: "#0077b6",
@@ -531,6 +481,27 @@ export const THEME_MIDNIGHT: ColorTheme = deriveTheme("Midnight", {
   text: "#1e1b4b",
 });
 
+export const THEME_GRAYSCALE: ColorTheme = {
+  ...deriveTheme("Grayscale", {
+    primary: "#555555",
+    secondary: "#888888",
+    accent: "#999999",
+    bg: "#f5f5f5",
+    text: "#222222",
+  }),
+  // Override all chromatic slots with gray equivalents
+  colorSuccess: "#6b6b6b",
+  colorWarning: "#8a8a8a",
+  colorError: "#4a4a4a",
+  colorInfo: "#555555",
+  colorLink: "#444444",
+  star: "#999999",
+  run: "#555555",
+  aiBg: "#e0e0e0",
+  aiFont: "#555555",
+  signInBg: "#777777",
+};
+
 // ---------------------------------------------------------------------------
 // Registry — light themes only; dark variants are derived on the fly
 // ---------------------------------------------------------------------------
@@ -545,6 +516,7 @@ export const COLOR_THEMES: Record<string, ColorTheme> = {
   rose: THEME_ROSE,
   amber: THEME_AMBER,
   midnight: THEME_MIDNIGHT,
+  grayscale: THEME_GRAYSCALE,
 } as const;
 
 /** Base colors for each preset — used to seed the custom editor. */
@@ -564,6 +536,7 @@ export const PRESET_BASE_COLORS: Record<string, BaseColors> = {
   rose: { primary: "#be185d", secondary: "#fb7185", accent: "#fda4af", bg: "#fff5f7", text: "#3b1020" },
   amber: { primary: "#b45309", secondary: "#f59e0b", accent: "#fbbf24", bg: "#fffbf0", text: "#3b2506" },
   midnight: { primary: "#3b82f6", secondary: "#818cf8", accent: "#a5b4fc", bg: "#f0f4ff", text: "#1e1b4b" },
+  grayscale: { primary: "#555555", secondary: "#888888", accent: "#999999", bg: "#f5f5f5", text: "#222222" },
 };
 
 /** ID for the randomized daily theme (not in COLOR_THEMES since it's dynamic) */
