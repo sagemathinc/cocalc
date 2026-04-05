@@ -10,9 +10,14 @@ import type {
   CheckoutSessionSecret,
   CheckoutSessionOptions,
 } from "@cocalc/util/stripe/types";
+import { STUDENT_PAY } from "@cocalc/util/db-schema/purchases";
 import { isEqual } from "lodash";
 import { decimalToStripe, decimalAdd } from "@cocalc/util/stripe/calc";
 import { url } from "@cocalc/server/messages/send";
+import {
+  studentPayAssertNotPaying,
+  studentPaySetCheckoutSession,
+} from "@cocalc/server/purchases/student-pay";
 
 const logger = getLogger("purchases:stripe:get-checkout-session");
 const LINE_ITEMS_METADATA_KEY = "line_items_json";
@@ -45,6 +50,12 @@ export default async function getCheckoutSession({
     throw Error("purpose must be set");
   }
   assertValidUserMetadata(metadata);
+  if (purpose == STUDENT_PAY) {
+    if (!project_id) {
+      throw Error("project_id must be set for student-pay checkout");
+    }
+    await studentPayAssertNotPaying({ project_id });
+  }
 
   let total = 0;
   for (const { amount } of lineItems) {
@@ -125,6 +136,12 @@ export default async function getCheckoutSession({
           session_id: session.id,
           session_created: session.created,
         });
+        if (purpose == STUDENT_PAY) {
+          await studentPaySetCheckoutSession({
+            project_id: project_id!,
+            checkoutSessionId: session.id,
+          });
+        }
         // Reuse the existing open session when the checkout inputs still match.
         return { clientSecret: session.client_secret };
       }
@@ -203,6 +220,12 @@ export default async function getCheckoutSession({
     project_id,
     session_id: session.id,
   });
+  if (purpose == STUDENT_PAY) {
+    await studentPaySetCheckoutSession({
+      project_id: project_id!,
+      checkoutSessionId: session.id,
+    });
+  }
 
   return { clientSecret: session.client_secret };
 }

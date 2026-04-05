@@ -294,14 +294,38 @@ export async function studentPaySetPaymentIntent({
   );
 }
 
-// call this if trying to create a new student payment attempt for a course project
-export async function studentPayAssertNotPaying({ project_id }) {
-  if (!isValidUUID(project_id)) {
-    throw Error(`project_id=${project_id} is not a valid UUID`);
-  }
+export async function studentPaySetCheckoutSession({
+  project_id,
+  checkoutSessionId,
+}: {
+  project_id: string;
+  checkoutSessionId: string;
+}) {
+  logger.debug("studentPaySetCheckoutSession", {
+    project_id,
+    checkoutSessionId,
+  });
+  const pool = getPool();
+  await pool.query(
+    `UPDATE projects SET course = jsonb_set(course, '{checkout_session_id}', $2::jsonb) WHERE project_id = $1`,
+    [project_id, JSON.stringify(checkoutSessionId)],
+  );
+}
+
+async function getOutstandingStudentPayment(project_id: string): Promise<
+  | {
+      type: "payment_intent";
+      id: string;
+    }
+  | {
+      type: "checkout_session";
+      id: string;
+    }
+  | undefined
+> {
   const pool = getPool();
   const { rows } = await pool.query(
-    "SELECT course#>>'{payment_intent_id}' as payment_intent_id FROM projects WHERE project_id=$1",
+    "SELECT course#>>'{payment_intent_id}' as payment_intent_id, course#>>'{checkout_session_id}' as checkout_session_id FROM projects WHERE project_id=$1",
     [project_id],
   );
   const payment_intent_id = rows[0]?.payment_intent_id;
@@ -313,9 +337,36 @@ export async function studentPayAssertNotPaying({ project_id }) {
       intent.status != "succeeded" &&
       intent.metadata["deleted"] != "true"
     ) {
+      return { type: "payment_intent", id: payment_intent_id };
+    }
+  }
+
+  const checkout_session_id = rows[0]?.checkout_session_id;
+  if (checkout_session_id) {
+    const stripe = await getConn();
+    const session =
+      await stripe.checkout.sessions.retrieve(checkout_session_id);
+    if (session.status == "open" || session.payment_status == "paid") {
+      return { type: "checkout_session", id: checkout_session_id };
+    }
+  }
+  return undefined;
+}
+
+// call this if trying to create a new student payment attempt for a course project
+export async function studentPayAssertNotPaying({ project_id }) {
+  if (!isValidUUID(project_id)) {
+    throw Error(`project_id=${project_id} is not a valid UUID`);
+  }
+  const outstanding = await getOutstandingStudentPayment(project_id);
+  if (outstanding) {
+    if (outstanding.type == "payment_intent") {
       throw Error(
-        `There is an outstanding payment for this course right now (payment intent id ${payment_intent_id}).  [Pay that invoice or cancel it](${await url("settings/payments")}).`,
+        `There is an outstanding payment for this course right now (payment intent id ${outstanding.id}).  [Pay that invoice or cancel it](${await url("settings/payments")}).`,
       );
     }
+    throw Error(
+      `There is already an in-progress payment for this course right now (checkout session id ${outstanding.id}).  Please try again later or contact support if this does not resolve itself.`,
+    );
   }
 }

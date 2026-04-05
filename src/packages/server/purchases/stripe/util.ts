@@ -1,7 +1,7 @@
 import getLogger from "@cocalc/backend/logger";
 import { currency, round2 } from "@cocalc/util/misc";
 import getConn from "@cocalc/server/stripe/connection";
-import getPool from "@cocalc/database/pool";
+import getPool, { getTransactionClient } from "@cocalc/database/pool";
 import stripeName from "@cocalc/util/stripe/name";
 import { setStripeCustomerId } from "@cocalc/database/postgres/stripe";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
@@ -15,35 +15,52 @@ const MINIMUM_STRIPE_TRANSACTION = 0.5; // Stripe requires transactions to be at
 
 const logger = getLogger("purchases:stripe:util");
 
-async function createStripeCustomer(account_id: string): Promise<string> {
-  logger.debug("createStripeCustomer", account_id);
-  const db = getPool();
-  const { rows } = await db.query(
-    "SELECT email_address, first_name, last_name FROM accounts WHERE account_id=$1",
-    [account_id],
-  );
-  if (rows.length == 0) {
-    throw Error(`no account ${account_id}`);
-  }
-  const email = rows[0].email_address;
-  const description = stripeName(rows[0].first_name, rows[0].last_name);
-  const stripe = await getConn();
-  const { id } = await stripe.customers.create({
-    description,
-    name: description,
-    email,
-    metadata: {
+async function getOrCreateStripeCustomer(account_id: string): Promise<string> {
+  logger.debug("getOrCreateStripeCustomer", account_id);
+  const client = await getTransactionClient();
+  try {
+    const { rows } = await client.query(
+      "SELECT email_address, first_name, last_name, stripe_customer_id FROM accounts WHERE account_id=$1 FOR UPDATE",
+      [account_id],
+    );
+    if (rows.length == 0) {
+      throw Error(`no account ${account_id}`);
+    }
+    const existingCustomerId = rows[0].stripe_customer_id;
+    if (existingCustomerId) {
+      await client.query("COMMIT");
+      logger.debug("getOrCreateStripeCustomer", "reusing existing", {
+        account_id,
+        stripe_customer_id: existingCustomerId,
+      });
+      return existingCustomerId;
+    }
+    const email = rows[0].email_address;
+    const description = stripeName(rows[0].first_name, rows[0].last_name);
+    const stripe = await getConn();
+    const { id } = await stripe.customers.create({
+      description,
+      name: description,
+      email,
+      metadata: {
+        account_id,
+      },
+    });
+    logger.debug("getOrCreateStripeCustomer", "created ", {
+      id,
+      description,
+      email,
       account_id,
-    },
-  });
-  logger.debug("createStripeCustomer", "created ", {
-    id,
-    description,
-    email,
-    account_id,
-  });
-  await setStripeCustomerId(account_id, id);
-  return id;
+    });
+    await setStripeCustomerId(account_id, id, client);
+    await client.query("COMMIT");
+    return id;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally {
+    client.release();
+  }
 }
 
 export async function getStripeCustomerId({
@@ -68,7 +85,7 @@ export async function getStripeCustomerId({
     return stripe_customer_id;
   }
   if (create) {
-    return await createStripeCustomer(account_id);
+    return await getOrCreateStripeCustomer(account_id);
   } else {
     return undefined;
   }
