@@ -216,7 +216,7 @@ export const TerminalFrame: React.FC<Props> = React.memo((props: Props) => {
     if (xterm) {
       setTheme(xterm, colorScheme);
     }
-  }, [colorTheme.isDark, colorScheme]);
+  }, [colorTheme, colorScheme]);
   const backgroundColor = background_color(colorScheme);
 
   if (student_project_functionality.disableTerminals) {

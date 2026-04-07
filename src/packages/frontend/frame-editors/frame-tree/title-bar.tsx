@@ -341,7 +341,13 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   const is_public: boolean = useRedux([props.editor_actions.name, "is_public"]);
   const otherSettings = useRedux(["account", "other_settings"]);
   //  const hideButtonTooltips = otherSettings.get("hide_button_tooltips");
-  const darkMode = otherSettings.get("dark_mode");
+  // Use the native dark mode setting (not the legacy dark_mode flag)
+  const nativeDark = String(otherSettings.get("native_dark_mode") ?? "off");
+  const darkMode =
+    nativeDark === "on" ||
+    (nativeDark === "system" &&
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-color-scheme: dark)").matches);
   const showSymbolBarLabels = otherSettings.get(
     "show_symbol_bar_labels",
     false,

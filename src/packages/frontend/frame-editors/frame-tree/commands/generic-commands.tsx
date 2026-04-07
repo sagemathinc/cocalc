@@ -315,9 +315,18 @@ addCommands({
     isVisible: () => {
       const other_settings = redux
         .getStore("account")
-        .get("other_settings")
-        ?.toJS();
-      return other_settings?.dark_mode ?? false;
+        .get("other_settings");
+      const nativeDark = String(
+        other_settings?.get("native_dark_mode") ?? "off",
+      );
+      if (nativeDark === "on") return true;
+      if (nativeDark === "system") {
+        return (
+          typeof window !== "undefined" &&
+          window.matchMedia?.("(prefers-color-scheme: dark)").matches
+        );
+      }
+      return false;
     },
     onClick: ({ props }) => {
       props.actions.toggle_pdf_dark_mode?.(props.id);

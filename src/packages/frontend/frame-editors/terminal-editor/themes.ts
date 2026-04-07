@@ -66,11 +66,19 @@ function getAutoTheme(): ITheme {
 
 const TERMINAL_AUTO_ID = "cocalc-auto";
 
+/** Resolve the "cocalc" virtual theme to its concrete light/dark variant. */
+function resolveCocalcTheme(): string {
+  const isDark = cssVar("--cocalc-is-dark", "0") === "1";
+  return isDark ? "cocalc-dark" : "cocalc-light";
+}
+
 export function background_color(theme_name: string): string {
   if (theme_name === TERMINAL_AUTO_ID) {
     return cssVar("--cocalc-bg-base", "#ffffff");
   }
-  const t = COLOR_THEMES[getThemeName(theme_name)];
+  // "cocalc" = auto light/dark — resolve based on current dark mode state
+  const resolved = theme_name === "cocalc" ? resolveCocalcTheme() : theme_name;
+  const t = COLOR_THEMES[getThemeName(resolved)];
   return t.colors[17];
 }
 
@@ -79,7 +87,8 @@ export function setTheme(terminal: Terminal, theme_name: string): void {
     terminal.options.theme = getAutoTheme();
     return;
   }
-  const t = COLOR_THEMES[getThemeName(theme_name)];
+  const resolved = theme_name === "cocalc" ? resolveCocalcTheme() : theme_name;
+  const t = COLOR_THEMES[getThemeName(resolved)];
   const colors = t.colors;
   if (colors == null) {
     return;
