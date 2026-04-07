@@ -6,7 +6,6 @@
 # This is a collection of utility classes for printing documents.
 # They encapsulate the conversion logic, such that they can be used in editors.
 
-_               = require('underscore')
 async           = require('async')
 misc            = require('@cocalc/util/misc')
 {webapp_client} = require('./webapp-client')
@@ -125,7 +124,7 @@ class SagewsPrinter extends Printer
         if not @_html_tmpl?
             # recycle our mathjax config from last.coffee
             {MathJaxConfig} = require('@cocalc/util/mathjax-config')
-            MathJaxConfig = _.clone(MathJaxConfig)
+            MathJaxConfig = Object.assign({}, MathJaxConfig)
             MathJaxConfig.skipStartupTypeset = false
             MathJaxConfig.showProcessingMessages = true
             MathJaxConfig.CommonHTML ?= {}
@@ -398,7 +397,7 @@ class SagewsPrinter extends Printer
             if ext == 'svg'
                 ext = 'svg+xml'
             else if ext in ['png', 'jpeg']
-                _
+                null
             else
                 console.warn("printing sagews2html image file extension of '#{img.src}' not supported")
                 continue
@@ -420,11 +419,11 @@ class SagewsPrinter extends Printer
         @_title      = null # for saving the detected title
         @_output_ids = {} # identifies text marker elements, to avoid printing show-plots them more than once!
         cm           = @editor.codemirror
-        progress     ?= _.noop
+        progress     ?= (->)
 
         # canonical modes in a sagews
-        {sagews_decorator_modes} = require('./editor')
-        canonical_modes = _.object(sagews_decorator_modes)
+        {sagews_decorator_modes} = require('./codemirror/custom-modes')
+        canonical_modes = Object.fromEntries(sagews_decorator_modes)
 
         # cell input lines are collected first and processed once lines with markers appear (i.e. output)
         # the assumption is, that default_mode extends to all the consecutive cells until the next mode or default_mode
@@ -443,7 +442,7 @@ class SagewsPrinter extends Printer
                     input_lines_default_mode = canonical_mode(line[i..].split(/\s+/)[1])
                 else
                     mode = line.split(" ")[0][1..] # worst case, this is an empty string
-                    if _.has(canonical_modes, mode)
+                    if Object.prototype.hasOwnProperty.call(canonical_modes, mode)
                         input_lines_mode = canonical_mode(mode)
 
         process_line = (line) ->
@@ -483,7 +482,7 @@ class SagewsPrinter extends Printer
                     mark = marks[0] # assumption it's always length 1
                     switch x[0]     # first char is the marker
                         when MARKERS.cell
-                            _
+                            null
                         when MARKERS.output
                             # assume, all cells are evaluated and hence mark.rendered contains the html
                             output_msgs = []
@@ -624,4 +623,4 @@ exports.Printer = (editor, output_file, opts) ->
 
 # returns true, if we know how to print it
 exports.can_print = (ext) ->
-    return _.has(printers, ext)
+    return Object.prototype.hasOwnProperty.call(printers, ext)
