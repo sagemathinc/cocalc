@@ -98,6 +98,7 @@ const TAB_MENU_LABELS = {
 };
 
 export type FixedTab =
+  | "home"
   | "active"
   | "files"
   | "new"
@@ -117,7 +118,7 @@ type FixedTabs = {
   [name in FixedTab]: {
     label: string | ReactNode | IntlMessage;
     icon: IconName;
-    flyout: (props: {
+    flyout?: (props: {
       project_id: string;
       wrap: (content: React.JSX.Element, style?: CSS) => React.JSX.Element;
       flyoutWidth: number;
@@ -125,6 +126,7 @@ type FixedTabs = {
     flyoutTitle?: string | ReactNode | IntlMessage;
     noAnonymous?: boolean;
     noFullPage?: boolean; // if true, then this tab can't be opened in a full page
+    noFlyout?: boolean; // if true, clicking opens full page instead of flyout
   };
 };
 
@@ -132,6 +134,16 @@ type FixedTabs = {
 // Disabling them.  If anyone complaints or likes them, I can make them an option.
 
 export const FIXED_PROJECT_TABS: FixedTabs = {
+  home: {
+    label: defineMessage({
+      id: "project.page.file-tab.home",
+      defaultMessage: "Home",
+    }),
+    icon: "home",
+    noAnonymous: false,
+    noFlyout: true,
+    noFullPage: true,
+  },
   active: {
     label: labels.tabs,
     flyoutTitle: "File Tabs",
@@ -319,7 +331,10 @@ export function FileTab(props: Readonly<Props>) {
         });
       }
     } else if (name != null) {
-      if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
+      if (flyout != null && FIXED_PROJECT_TABS[flyout].noFlyout) {
+        // this tab has no flyout — always open as full page
+        setActiveTab(name);
+      } else if (flyout != null && FIXED_PROJECT_TABS[flyout].noFullPage) {
         // this tab can't be opened in a full page
         actions?.toggleFlyout(flyout);
       } else if (flyout != null && actBar !== "both") {
