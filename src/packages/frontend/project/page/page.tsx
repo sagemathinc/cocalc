@@ -300,7 +300,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
     // this was part of the container-content div, which makes little sense for e.g. the banner bars
     return (
-      <div style={{ display: "flex", height: "36px" }}>
+      <div style={{ display: "flex", height: "36px", background: "var(--cocalc-top-bar-bg, #eee)" }}>
         <HomePageButton
           project_id={project_id}
           active={active_project_tab == "home"}
