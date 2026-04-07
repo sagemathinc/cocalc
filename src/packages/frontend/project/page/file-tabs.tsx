@@ -284,7 +284,11 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
   }
 
   return (
-    <Dropdown trigger={["contextMenu"]} menu={recentFilesMenu}>
+    <Dropdown
+      trigger={["contextMenu"]}
+      menu={recentFilesMenu}
+      onOpenChange={setRecentFilesMenuOpen}
+    >
       <div style={{ width: "100%" }}>
         <SortableTabs
           items={keys}

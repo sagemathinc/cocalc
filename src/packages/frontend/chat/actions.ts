@@ -279,6 +279,10 @@ export class ChatActions extends Actions<ChatState> {
     });
     track("send_chat", { project_id, path });
 
+    // Mark the sender's own message as read so they don't see an unread
+    // badge for a thread they just wrote in.
+    this.updateLastRead(selectedThreadKey, time_stamp.valueOf(), false);
+
     this.save_to_disk();
     (async () => {
       await this.processLLM({
