@@ -14,7 +14,6 @@ import { ACTIVITY_BAR_LABELS } from "@cocalc/frontend/project/page/activity-bar-
 import { A11Y } from "@cocalc/util/consts/ui";
 import {
   type BaseColors,
-  COLORS,
   type ColorTheme,
   deriveAccessibilityTheme,
   type NativeDarkMode,
@@ -186,10 +185,6 @@ export function useAntdStyleProvider() {
 
   const animationStyle = animate ? undefined : { motion: false };
 
-  // Always use the theme's primary color for antd components
-  const themeId = other_settings?.get(OTHER_SETTINGS_COLOR_THEME) as
-    | string
-    | undefined;
   const primaryColor = { colorPrimary: effectiveColorTheme.primary };
 
   const a11yTokens = accessibilityEnabled
@@ -263,7 +258,6 @@ export function useAntdStyleProvider() {
         ...primaryColor,
       },
       Segmented: {
-        itemBg: "transparent",
         trackBg: "transparent",
         trackPadding: 0,
         itemSelectedBg: effectiveColorTheme.primaryLight,
@@ -271,7 +265,6 @@ export function useAntdStyleProvider() {
       Card: {
         headerBg: effectiveColorTheme.topBarBg,
         colorBgContainer: effectiveColorTheme.bgElevated,
-        bodyBg: effectiveColorTheme.bgElevated,
       },
       Collapse: {
         headerBg: effectiveColorTheme.bgElevated,
