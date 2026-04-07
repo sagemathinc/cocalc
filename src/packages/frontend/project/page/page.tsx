@@ -55,10 +55,9 @@ import {
   getFlyoutWidth,
   storeFlyoutState,
 } from "./flyouts/state";
-import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
 import { TopTabBar } from "./top-tabbar";
-import ProjectTabs, {
+import {
   FIXED_TABS_BG_COLOR,
   VerticalFixedTabs,
 } from "./activity-bar-tabs";
@@ -299,14 +298,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function renderTopRow() {
-    if (fullscreen && fullscreen !== "project") return;
-    // This is intentionally empty now — TopTabBar handles the file tabs
-    // and the centralized action buttons (save, chat, share, close).
-    // The HomePageButton is part of the vertical sidebar, and the
-    // flyout header is rendered inside the flyout section (not the top row).
-    return null;
-  }
 
   function renderActivityBarButtons() {
     if (fullscreen && fullscreen !== "project") return;
