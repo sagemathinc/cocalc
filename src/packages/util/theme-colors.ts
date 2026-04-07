@@ -185,7 +185,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     primary,
     secondary,
     accent = secondary,
-    bg = mixColors("#ffffff", primary, 0.05), // 5% primary tint for page background
+    bg = mixColors("#ffffff", primary, 0.02), // subtle primary tint for page background
     text = "#303030",
   } = base;
 
