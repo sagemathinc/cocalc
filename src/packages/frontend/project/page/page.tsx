@@ -267,9 +267,24 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     if (!flyout) return;
     if (fullscreen && fullscreen !== "project") return;
 
+    // Flyout is a single column: header on top, body fills remaining height.
+    // The dragbar sits to the right as a full-height resizer.
     return (
       <div style={{ display: "flex", flexDirection: "row" }}>
-        <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            overflow: "hidden",
+          }}
+        >
+          <FlyoutHeader
+            flyoutWidth={flyoutWidth}
+            flyout={flyout}
+            narrowerPX={narrowerPX}
+          />
+          <FlyoutBody flyout={flyout} flyoutWidth={flyoutWidth} />
+        </div>
         <DndContext
           onDragStart={() => setOldFlyoutWidth(flyoutWidth)}
           onDragEnd={(e) => updateDrag(e)}
@@ -284,33 +299,13 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
     );
   }
 
-  function renderFlyoutHeader() {
-    if (!flyout) return;
-    return (
-      <FlyoutHeader
-        flyoutWidth={flyoutWidth}
-        flyout={flyout}
-        narrowerPX={narrowerPX}
-      />
-    );
-  }
-
   function renderTopRow() {
     if (fullscreen && fullscreen !== "project") return;
-
-    return (
-      <div style={{ display: "flex", height: "36px", background: "var(--cocalc-top-bar-bg, #eee)" }}>
-        <HomePageButton
-          project_id={project_id}
-          active={active_project_tab == "home"}
-          width={homePageButtonWidth}
-        />
-        {renderFlyoutHeader()}
-        <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
-          <StartButton minimal style={{ margin: "2px 4px 0px 4px" }} />
-        </div>
-      </div>
-    );
+    // This is intentionally empty now — TopTabBar handles the file tabs
+    // and the centralized action buttons (save, chat, share, close).
+    // The HomePageButton is part of the vertical sidebar, and the
+    // flyout header is rendered inside the flyout section (not the top row).
+    return null;
   }
 
   function renderActivityBarButtons() {
@@ -402,13 +397,21 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <SoftwareEnvUpgrade project_id={project_id} />
         <ProjectWarningBanner />
         <FileDndProvider project_id={project_id}>
-          {renderTopRow()}
-          <TopTabBar />
           {is_deleted && <DeletedProjectWarning />}
           <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
             {renderActivityBarButtons()}
             {renderFlyout()}
-            {renderMainContent()}
+            <div
+              style={{
+                flex: "1 1 auto",
+                display: "flex",
+                flexDirection: "column",
+                overflow: "hidden",
+              }}
+            >
+              <TopTabBar />
+              {renderMainContent()}
+            </div>
           </div>
         </FileDndProvider>
       </div>
