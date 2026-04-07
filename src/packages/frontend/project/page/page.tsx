@@ -57,6 +57,7 @@ import {
 } from "./flyouts/state";
 import HomePageButton from "./home-page/button";
 import { SoftwareEnvUpgrade } from "./software-env-upgrade";
+import { TopTabBar } from "./top-tabbar";
 import ProjectTabs, {
   FIXED_TABS_BG_COLOR,
   VerticalFixedTabs,
@@ -405,6 +406,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         <ProjectWarningBanner />
         <FileDndProvider project_id={project_id}>
           {renderTopRow()}
+          <TopTabBar />
           {is_deleted && <DeletedProjectWarning />}
           <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
             {renderActivityBarButtons()}
