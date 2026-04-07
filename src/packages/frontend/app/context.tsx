@@ -33,6 +33,13 @@ export function useAppContextProvider(): AppState {
   const intl = useIntl();
   const other_settings = useTypedRedux("account", "other_settings");
   const showActBarLabels = other_settings.get(ACTIVITY_BAR_LABELS) ?? true;
+  const systemPrefersDark = useSystemDarkPreference();
+  const nativeDarkMode = String(
+    other_settings?.get(OTHER_SETTINGS_NATIVE_DARK_MODE) ?? "off",
+  );
+  const isDark =
+    nativeDarkMode === "on" ||
+    (nativeDarkMode === "system" && systemPrefersDark);
 
   const [pageWidthPx, setPageWidthPx] = useState<number>(window.innerWidth);
 
@@ -86,6 +93,7 @@ export function useAppContextProvider(): AppState {
     pageWidthPx,
     pageStyle,
     showActBarLabels,
+    isDark,
   };
 }
 

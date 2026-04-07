@@ -30,6 +30,7 @@ export interface AppState {
   timeAgoAbsolute?: boolean;
   setTimeAgoAbsolute?: (boolean) => void;
   showActBarLabels?: boolean; // whether to show labels on the vertical fixed bar
+  isDark: boolean; // whether the effective color theme is dark
 }
 
 export const DEFAULT_CONTEXT = {
@@ -44,6 +45,7 @@ export const DEFAULT_CONTEXT = {
     return label;
   },
   showActBarLabels: ACTIVITY_BAR_LABELS_DEFAULT,
+  isDark: false,
 };
 
 export const AppContext = createContext<AppState>(DEFAULT_CONTEXT);
