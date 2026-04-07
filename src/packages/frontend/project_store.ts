@@ -95,6 +95,7 @@ export interface ProjectStoreState {
   flyout_log_deduplicate: FlyoutLogDeduplicate;
   flyout_log_filter: immutable.List<FlyoutLogFilter>;
   flyout_active_mode: FlyoutActiveMode;
+  flyout_active: boolean; // whether the active files flyout panel is shown as a separate panel
 
   // Project Files
   activity: any; // immutable,

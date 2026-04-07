@@ -28,6 +28,51 @@ dl.cc-project-settings-features
       font-size: 125%
       margin-right: 10px
 
+// Top-right actions area next to file tabs (save, chat, share, close)
+$toprightborder: 1px solid var(--cocalc-border-light, #c0c0c0)
+
+.cc-project-tabs-top-right
+  background: transparent
+  display: flex
+  flex: 0 1 auto
+  flex-direction: row
+  border-bottom: $toprightborder
+
+.cc-project-tabs-top-right-actions
+  display: inline-flex
+  justify-content: space-between
+  gap: 5px
+  z-index: 2
+  flex: 1 0 auto
+  flex-direction: row
+  align-items: baseline
+  background-color: var(--cocalc-bg-elevated, #c0c0c0L)
+  color: var(--cocalc-text-primary, white)
+  border-top: $toprightborder
+  padding-top: 2px
+  padding-bottom: 1px
+  position: relative
+  top: 1px
+
+.cc-project-tabs-top-right-slant
+  z-index: 1
+  display: flex
+  flex: 1 0 auto
+  flex-direction: row
+  content: ""
+  width: 20px
+  position: relative
+  top: 1px
+  left: 12px
+  background-color: var(--cocalc-bg-elevated, #c0c0c0L)
+  -webkit-transform: skewX(-10deg)
+  -moz-transform: skewX(-10deg)
+  -ms-transform: skewX(-10deg)
+  transform: skewX(-10deg)
+  border-top: $toprightborder
+  border-left: $toprightborder
+  border-radius: 5px 0 0 0
+
 .cc-project-info-cgroup-table-flyout
   div.ant-descriptions-view
     border-left: 0 !important
