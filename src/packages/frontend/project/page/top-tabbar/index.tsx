@@ -10,6 +10,7 @@ Top tabs to switch editor + right hand side in a project.
 import { useRef, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { useMeasureDimensions } from "@cocalc/frontend/hooks";
 import { useProjectContext } from "@cocalc/frontend/project/context";
+import { StartButton } from "@cocalc/frontend/project/start-button";
 import FileTabs from "../file-tabs";
 import { TopTabBarActionsContainer } from "./component";
 
@@ -32,6 +33,7 @@ export function TopTabBar() {
         display: "flex",
       }}
     >
+      <StartButton minimal style={{ margin: "2px 4px 0px 4px" }} />
       <div
         style={{
           display: "flex",
