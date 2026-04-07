@@ -190,10 +190,7 @@ export function useAntdStyleProvider() {
   const themeId = other_settings?.get(OTHER_SETTINGS_COLOR_THEME) as
     | string
     | undefined;
-  const isCustomTheme = themeId != null && themeId !== "default";
-  const primaryColor = isCustomTheme
-    ? { colorPrimary: effectiveColorTheme.primary }
-    : { colorPrimary: COLORS.ANTD_LINK_BLUE };
+  const primaryColor = { colorPrimary: effectiveColorTheme.primary };
 
   const a11yTokens = accessibilityEnabled
     ? {
@@ -241,7 +238,7 @@ export function useAntdStyleProvider() {
     colorTextSecondary: effectiveColorTheme.textSecondary,
     colorTextTertiary: effectiveColorTheme.textTertiary,
     colorBorder: effectiveColorTheme.border,
-    colorBorderSecondary: effectiveColorTheme.borderLight,
+    colorBorderSecondary: effectiveColorTheme.bgHover,
   };
 
   const antdTheme: ThemeConfig = {
@@ -258,6 +255,7 @@ export function useAntdStyleProvider() {
       ...borderStyle,
       ...animationStyle,
       ...surfaceTokens,
+      colorFillAlter: effectiveColorTheme.bgElevated,
       ...a11yTokens,
     },
     components: {
@@ -276,7 +274,13 @@ export function useAntdStyleProvider() {
         bodyBg: effectiveColorTheme.bgElevated,
       },
       Collapse: {
-        headerBg: effectiveColorTheme.topBarBg,
+        headerBg: effectiveColorTheme.bgElevated,
+        contentBg: effectiveColorTheme.bgBase,
+        colorFillAlter: effectiveColorTheme.bgElevated,
+      },
+      List: {
+        colorBorder: effectiveColorTheme.bgHover,
+        colorSplit: effectiveColorTheme.bgHover,
       },
       Table: {
         headerBg: effectiveColorTheme.topBarBg,

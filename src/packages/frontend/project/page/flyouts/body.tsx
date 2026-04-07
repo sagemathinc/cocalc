@@ -87,7 +87,7 @@ export function FlyoutBody({ flyout, flyoutWidth }: FlyoutBodyProps) {
     borderRight: FIX_BORDER,
     width: flyoutWidth,
     height: "100%",
-    backgroundColor: FIXED_TABS_BG_COLOR,
+    backgroundColor: "var(--cocalc-bg-base, white)",
     overflowY: "hidden",
     overflowX: "hidden",
   };

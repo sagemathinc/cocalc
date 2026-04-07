@@ -78,7 +78,7 @@
   flex: 1 0 auto
   > div,
   > nav
-    background-color: var(--cocalc-bg-hover, colors.$COL_GRAY_LLL)
+    background-color: var(--cocalc-bg-elevated, colors.$COL_GRAY_LLL)
     border-radius: 3px
 
 // The !important below are because we are directly overriding
@@ -143,13 +143,22 @@ div.cc-project-flyout-dragbar:hover
   cursor: pointer
   background-color: colors.$COL_GRAY_LLL
 
-.cc-project-flyout-files-panel,
-.cc-project-flyout-settings-panel
+.cc-project-flyout-files-panel
   .ant-collapse-header
-    background-color: var(--cocalc-top-bar-bg, colors.$COL_GRAY_LL)
+    background-color: var(--cocalc-bg-elevated, colors.$COL_GRAY_LL)
     color: var(--cocalc-text-primary, colors.$COL_GRAY_D)
   .ant-collapse-content
-    background-color: var(--cocalc-bg-elevated, colors.$COL_GRAY_LLLL)
+    background-color: var(--cocalc-bg-base, colors.$COL_GRAY_LLLL)
+    border-top-color: var(--cocalc-border-light, colors.$COL_GRAY_L0) !important
+  .ant-collapse-content-box
+    padding: 0 !important
+
+.cc-project-flyout-settings-panel
+  .ant-collapse-header
+    background-color: var(--cocalc-bg-elevated, colors.$COL_GRAY_LL)
+    color: var(--cocalc-text-primary, colors.$COL_GRAY_D)
+  .ant-collapse-content
+    background-color: var(--cocalc-bg-base, colors.$COL_GRAY_LLLL)
     border-top-color: var(--cocalc-border-light, colors.$COL_GRAY_L0) !important
   .ant-collapse-content-box
     padding: 0 !important

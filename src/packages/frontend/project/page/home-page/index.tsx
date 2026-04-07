@@ -17,7 +17,7 @@ const BTN_PROPS = {
   block: true,
   width: "50%",
   size: "large",
-  style: { backgroundColor: COLORS.GRAY_LLL },
+  style: { backgroundColor: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLL})` },
   overflow: "hidden",
 } as const;
 
