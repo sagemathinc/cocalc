@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { ReactNode } from "react";
 import { useRedux } from "@cocalc/frontend/app-framework";
 import { SaveButton } from "@cocalc/frontend/frame-editors/frame-tree/save-button";
 import { EditorActions } from "./types";
@@ -17,7 +18,7 @@ export function TopBarSaveButton({
   name,
   actions,
   compact = false,
-}: TopBarSaveButtonProps): JSX.Element | null {
+}: TopBarSaveButtonProps): ReactNode {
   const read_only: boolean = useRedux([name, "read_only"]);
   const has_unsaved_changes: boolean = useRedux([name, "has_unsaved_changes"]);
   const has_uncommitted_changes: boolean = useRedux([
@@ -49,7 +50,7 @@ export function TopBarSaveButton({
       is_public={is_public}
       is_saving={is_saving}
       no_labels={compact}
-      size={24}
+      size="small"
       style={{}}
       onClick={() => {
         if (isCodeEditorActions) {

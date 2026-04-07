@@ -324,6 +324,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
       flyout_log_mode: FLYOUT_LOG_DEFAULT_MODE,
       flyout_log_deduplicate: FLYOUT_LOG_DEFAULT_DEDUP,
       flyout_active_mode: FLYOUT_ACTIVE_DEFAULT_MODE,
+      flyout_active: false,
       flyout_log_filter: immutable.List(FLYOUT_LOG_FILTER_DEFAULT),
 
       // Project Files

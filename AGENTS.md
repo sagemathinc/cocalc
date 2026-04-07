@@ -18,6 +18,7 @@ This file provides guidance to Claude Code (claude.ai/code) and also Gemini CLI 
 - Add suitable types when you write code
 - Follow DRY principles!
 - TypeScript: prefer `var1 ?? var2` for fallbacks. only use `var1 || var2` in explicit or-chains or when necessary.
+- TypeScript: strictly avoid `as any` type casts. Fix the underlying types instead. Use `unknown` with proper type guards when needed.
 - Variable name styles are `camelCase` for local and `FOO_BAR` for global variables. React Components and Classes are `FooBar`. If you edit older code not following these guidelines, adjust this rule to fit the file's style.
 - Some older code is JavaScript or CoffeeScript, which will be translated to TypeScript
 - Use ES modules (import/export) syntax, not CommonJS (require)

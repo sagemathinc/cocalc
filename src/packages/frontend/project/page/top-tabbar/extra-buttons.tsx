@@ -3,19 +3,22 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { ReactNode } from "react";
 import type { MenuProps } from "antd";
 import { Button as AntdButton, Dropdown } from "antd";
 
 import { TypedMap, useMemo, useRedux } from "@cocalc/frontend/app-framework";
-import { Icon } from "@cocalc/frontend/components";
-import { file_actions } from "@cocalc/frontend/project_store";
-import { useStudentProjectFunctionality } from "@cocalc/frontend/course";
-import { useProjectContext } from "../../context";
-import { capitalize } from "@cocalc/util/misc";
-import { EditorActions, TopBarAction, TopBarActions } from "./types";
+import { Icon, type IconName } from "@cocalc/frontend/components";
+import { TopBarAction, TopBarActions } from "./types";
+
+function renderIcon(icon: IconName | ReactNode | undefined): ReactNode {
+  if (icon == null) return null;
+  if (typeof icon === "string") return <Icon name={icon as IconName} />;
+  return icon; // already a ReactNode
+}
 
 interface ExtraButtonsProps {
-  editorActions: EditorActions;
+  editorActions: unknown;
   topBarActions: TopBarActions | null;
   name: string;
   compact: boolean;
@@ -24,21 +27,14 @@ interface ExtraButtonsProps {
 
 export function ExtraButtons(
   props: Readonly<ExtraButtonsProps>,
-): JSX.Element | null {
-  const { topBarActions, name, compact, path } = props;
+): ReactNode {
+  const { topBarActions, name, compact } = props;
   const local_view_state: TypedMap<{ active_id?: string; full_id?: string }> =
     useRedux(name, "local_view_state");
-  const { project_id, actions } = useProjectContext();
-  const student_project_functionality =
-    useStudentProjectFunctionality(project_id);
-  const fullscreen: undefined | "default" | "kiosk" = useRedux(
-    "page",
-    "fullscreen",
-  );
 
   function renderItem(conf: TopBarAction, index: number) {
     if (conf.type === "divider") {
-      return { key: `${index}`, type: "divider" };
+      return { key: `${index}`, type: "divider" as const };
     }
     const { getAction, label, icon, tooltip: hoverText } = conf;
     const action = conf.action ?? getAction?.(local_view_state);
@@ -50,40 +46,19 @@ export function ExtraButtons(
       title: hoverText,
       label: (
         <>
-          <Icon name={icon} /> {label}
+          {renderIcon(icon)} {label}
         </>
       ),
     };
   }
 
-  function appendFileActions(items: TopBarAction[]) {
-    if (fullscreen === "kiosk") return;
-    if (student_project_functionality.disableActions) return;
-    if (items.length > 0) {
-      items.push({ type: "divider" });
-    }
-    for (const key in file_actions) {
-      const { name, icon, hideFlyout = false } = file_actions[key];
-      if (hideFlyout) continue;
-      if (name === "share") continue;
-      items.push({
-        type: "entry",
-        label: `${capitalize(name)}`,
-        icon,
-        action: () => {
-          actions?.show_file_action_panel({ path, action: key });
-        },
-      });
-    }
-  }
-
   const [top, items]: [TopBarAction | null, NonNullable<MenuProps["items"]>] =
     useMemo(() => {
-      if (topBarActions == null) {
+      if (topBarActions == null || topBarActions.length === 0) {
         return [null, []];
       }
 
-      const sorted = topBarActions.sort((a, b) => {
+      const sorted = [...topBarActions].sort((a, b) => {
         if (a.type === "divider" || b.type === "divider") return 0;
         return (
           (b.priority ?? 0) - (a.priority ?? 0) ||
@@ -91,8 +66,7 @@ export function ExtraButtons(
         );
       });
       const top = sorted[0];
-      const remainder = sorted.slice(1) ?? [];
-      appendFileActions(remainder);
+      const remainder = sorted.slice(1);
       return [top, remainder.map(renderItem)];
     }, [local_view_state, topBarActions, name, compact]);
 
@@ -102,7 +76,7 @@ export function ExtraButtons(
   if (items.length === 0) {
     return (
       <AntdButton
-        icon={<Icon name={top.icon} />}
+        icon={renderIcon(top.icon)}
         onClick={top.action ?? top.getAction?.(local_view_state)}
       >
         {compact ? null : top.label}
@@ -116,7 +90,7 @@ export function ExtraButtons(
         menu={{ items }}
         onClick={top.action ?? top.getAction?.(local_view_state)}
       >
-        <Icon name={top.icon} />
+        {renderIcon(top.icon)}
         {compact ? null : ` ${top.label}`}
       </Dropdown.Button>
     );

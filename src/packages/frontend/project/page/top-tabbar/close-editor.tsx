@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { ReactNode } from "react";
 import { Button as AntdButton, Tooltip } from "antd";
 
 import { useActions, useIsMountedRef } from "@cocalc/frontend/app-framework";
@@ -18,7 +19,7 @@ interface CloseEditorProps {
 export function CloseEditor({
   activeTab,
   project_id,
-}: CloseEditorProps): JSX.Element | null {
+}: CloseEditorProps): ReactNode {
   const isMounted = useIsMountedRef();
   const actions = useActions({ project_id });
 

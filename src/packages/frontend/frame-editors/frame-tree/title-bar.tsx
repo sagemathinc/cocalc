@@ -340,7 +340,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       topActions.push({
         type: "entry",
         label: typeof cmd.label === "string" ? cmd.label : name,
-        icon: cmd.icon,
+        icon: typeof cmd.icon === "function" ? undefined : cmd.icon,
         action: () => {
           if (cmd.onClick != null) {
             cmd.onClick({ props, id: props.id } as any);

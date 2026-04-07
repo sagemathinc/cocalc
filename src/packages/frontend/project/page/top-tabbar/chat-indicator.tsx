@@ -3,6 +3,7 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
+import type { ReactNode } from "react";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import { tab_to_path } from "@cocalc/util/misc";
@@ -16,7 +17,7 @@ interface Props {
 export function ChatIndicatorTab({
   activeTab,
   project_id,
-}: Props): JSX.Element | null {
+}: Props): ReactNode {
   if (!activeTab?.startsWith("editor-")) {
     return null;
   }

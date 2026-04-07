@@ -174,6 +174,7 @@ export interface CodeEditorState {
   switch_to_files: string[];
   pdf_dark_mode_disabled?: { [id: string]: boolean };
   has_custom_layout: boolean;
+  topBarActionsVersion: number; // bumped when top-bar actions change (for re-render)
 }
 
 export class Actions<
@@ -207,7 +208,7 @@ export class Actions<
     this._topBarActions = actions;
     // Bump a version counter so the top-tabbar knows to re-read
     const cur = this.store?.get("topBarActionsVersion") ?? 0;
-    this.setState({ topBarActionsVersion: cur + 1 } as any);
+    this.setState({ topBarActionsVersion: cur + 1 });
   }
 
   /**

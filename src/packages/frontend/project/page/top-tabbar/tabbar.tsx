@@ -26,7 +26,7 @@ import { CloseEditor } from "./close-editor";
 import { ExtraButtons } from "./extra-buttons";
 import { TopBarSaveButton } from "./save-indicator";
 import { ShareIndicatorTab } from "./share-indicator";
-import { EditorActions, TopBarActions } from "./types";
+import { EditorActions, TopBarActions, TopBarCapableActions } from "./types";
 
 let lastWidth: number = 200;
 
@@ -88,7 +88,8 @@ export function TopTabBarActions(
       if (!isMounted.current) return;
       if (actionsNext != null) {
         setActions(actionsNext);
-        setTopBarActions(actionsNext.getTopBarActions?.());
+        const capable = actionsNext as unknown as TopBarCapableActions;
+        setTopBarActions(capable.getTopBarActions?.() ?? null);
         return;
       }
     }
@@ -101,7 +102,8 @@ export function TopTabBarActions(
   const topBarActionsVersion = useRedux([name, "topBarActionsVersion"]);
   useEffect(() => {
     if (actions != null) {
-      setTopBarActions(actions.getTopBarActions?.() ?? null);
+      const capable = actions as unknown as TopBarCapableActions;
+      setTopBarActions(capable.getTopBarActions?.() ?? null);
     }
   }, [topBarActionsVersion, actions]);
 

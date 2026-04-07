@@ -4,7 +4,8 @@
  */
 
 import { TypedMap } from "@cocalc/frontend/app-framework";
-import { IconName } from "@cocalc/frontend/components";
+import type { IconName } from "@cocalc/frontend/components";
+import type { ReactNode } from "react";
 
 export type TopBarAction =
   | {
@@ -12,7 +13,7 @@ export type TopBarAction =
       label: string;
       tooltip?: string;
       priority?: number; // default 0
-      icon?: IconName;
+      icon?: IconName | ReactNode;
       action?: (any) => any; // captures a static action
       getAction?: (
         local_view_state?: TypedMap<{ active_id?: string; full_id?: string }>,
@@ -28,6 +29,13 @@ import type { ArchiveActions } from "@cocalc/frontend/editors/archive/actions";
 import type { Actions as CodeEditorActions } from "@cocalc/frontend/frame-editors/code-editor/actions";
 import type { JupyterEditorActions } from "@cocalc/frontend/frame-editors/jupyter-editor/actions";
 import type { TimeTravelActions } from "@cocalc/frontend/frame-editors/time-travel-editor/actions";
+
+/** Methods that the top-tabbar may call on any editor actions instance. */
+export interface TopBarCapableActions {
+  getTopBarActions?(): TopBarActions | null;
+  setTopBarActions?(actions: TopBarActions | null): void;
+  name: string;
+}
 
 // All possible Actions of files.
 export type EditorActions =
