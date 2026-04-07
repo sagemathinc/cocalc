@@ -14,6 +14,7 @@ import {
   useIsMountedRef,
   useMemo,
   usePrevious,
+  useRedux,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -95,6 +96,14 @@ export function TopTabBarActions(
 
   const name = redux_name(project_id, path);
   const prevName = usePrevious(name);
+
+  // Re-read topBarActions when the frame editor bumps its version counter
+  const topBarActionsVersion = useRedux([name, "topBarActionsVersion"]);
+  useEffect(() => {
+    if (actions != null) {
+      setTopBarActions(actions.getTopBarActions?.() ?? null);
+    }
+  }, [topBarActionsVersion, actions]);
 
   if (loading || name !== prevName) {
     return (

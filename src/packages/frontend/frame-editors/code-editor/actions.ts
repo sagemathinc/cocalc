@@ -22,6 +22,7 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
+import type { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   Actions as BaseActions,
@@ -192,6 +193,29 @@ export class Actions<
   private videoChat: VideoChat;
 
   protected doctype: string = "syncstring";
+
+  // Top bar actions: closures registered by the active frame's title bar.
+  // Not in Redux because they contain closures. A version counter in the
+  // store signals the top-tabbar to re-read.
+  private _topBarActions: TopBarActions | null = null;
+
+  /**
+   * Called by the frame title bar when it mounts or when the active frame changes.
+   * Registers the toolbar button actions for the top-tabbar to consume.
+   */
+  public setTopBarActions(actions: TopBarActions | null): void {
+    this._topBarActions = actions;
+    // Bump a version counter so the top-tabbar knows to re-read
+    const cur = this.store?.get("topBarActionsVersion") ?? 0;
+    this.setState({ topBarActionsVersion: cur + 1 } as any);
+  }
+
+  /**
+   * Read the current top bar actions. Called by the top-tabbar component.
+   */
+  public getTopBarActions(): TopBarActions | null {
+    return this._topBarActions;
+  }
 
   ////////
   // these are for doctype "syncdb":
