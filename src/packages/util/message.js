@@ -99,7 +99,17 @@ generated and returned in the response.\
 const misc = require("./misc");
 const { defaults } = misc;
 const { required } = defaults;
-const _ = require("underscore");
+
+// Map over an object's own enumerable values, returning a new object with the same keys.
+// Replacement for underscore's _.mapObject.
+function mapValues(obj, fn) {
+  const result = {};
+  for (const key of Object.keys(obj)) {
+    result[key] = fn(obj[key], key, obj);
+  }
+  return result;
+}
+exports._mapValues = mapValues;
 
 function message(obj) {
   exports[obj.event] = function (opts, strict) {
@@ -135,10 +145,10 @@ function message2(obj) {
   }
 
   // reassembling a version 1 message from a version 2 message
-  const mesg_v1 = _.mapObject(obj.fields, (val) => val.init);
+  const mesg_v1 = mapValues(obj.fields, (val) => val.init);
   mesg_v1.event = obj.event;
   // extracting description for the documentation
-  const fdesc = _.mapObject(obj.fields, mk_desc);
+  const fdesc = mapValues(obj.fields, mk_desc);
   exports.documentation.events[obj.event] = {
     description: obj.desc != null ? obj.desc : "",
     fields: fdesc,

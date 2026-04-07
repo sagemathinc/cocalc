@@ -665,9 +665,6 @@ importers:
       tokenx:
         specifier: ^1.2.1
         version: 1.2.1
-      underscore:
-        specifier: ^1.13.8
-        version: 1.13.8
       universal-cookie:
         specifier: ^4.0.4
         version: 4.0.4
@@ -864,9 +861,6 @@ importers:
       uglify-js:
         specifier: ^3.14.1
         version: 3.19.3
-      underscore:
-        specifier: ^1.13.8
-        version: 1.13.8
       uuid:
         specifier: ^8.3.2
         version: 8.3.2
@@ -1890,9 +1884,6 @@ importers:
       sha1:
         specifier: ^1.1.1
         version: 1.1.1
-      underscore:
-        specifier: ^1.13.8
-        version: 1.13.8
       utility-types:
         specifier: ^3.10.0
         version: 3.11.0
