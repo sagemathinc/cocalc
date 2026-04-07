@@ -298,8 +298,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
   function renderTopRow() {
     if (fullscreen && fullscreen !== "project") return;
 
-    // CSS note: the paddingTop is here to not make the tabs touch the top row (looks funny)
-    // this was part of the container-content div, which makes little sense for e.g. the banner bars
     return (
       <div style={{ display: "flex", height: "36px", background: "var(--cocalc-top-bar-bg, #eee)" }}>
         <HomePageButton
@@ -310,7 +308,6 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
         {renderFlyoutHeader()}
         <div style={{ flex: 1, overflow: "hidden", display: "flex" }}>
           <StartButton minimal style={{ margin: "2px 4px 0px 4px" }} />
-          <ProjectTabs project_id={project_id} />
         </div>
       </div>
     );
