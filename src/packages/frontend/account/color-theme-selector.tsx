@@ -226,6 +226,7 @@ function ThemePreview({ theme }: { theme: ColorTheme }) {
         { bg: theme.topBarBg, label: "Nav" },
         { bg: theme.sidebarActive, label: "Sidebar" },
         { bg: theme.bgBase, label: "BG" },
+        { bg: theme.bgElevated, label: "Surface" },
         { bg: theme.border, label: "Border" },
         { bg: theme.textPrimary, label: "Text" },
       ].map(({ bg, label }, i) => (

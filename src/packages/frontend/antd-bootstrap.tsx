@@ -505,7 +505,10 @@ export function Panel(props: {
   onClick?;
   size?: "small";
 }) {
-  const style: CSS = { ...{ marginBottom: "20px" }, ...props.style };
+  const style: CSS = {
+    marginBottom: "20px",
+    ...props.style,
+  };
 
   const styles = {
     ...PANEL_DEFAULT_STYLES,

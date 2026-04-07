@@ -185,12 +185,12 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     primary,
     secondary,
     accent = secondary,
-    bg = mixColors("#ffffff", primary, 0.02), // Subtly tint background with primary
+    bg = mixColors("#ffffff", primary, 0.05), // 5% primary tint for page background
     text = "#303030",
   } = base;
 
   const bgBase = bg;
-  const bgElevated = mixColors(bgBase, primary, 0.08);
+  const bgElevated = mixColors("#ffffff", primary, 0.06);
   const chatViewerBg = lighten(primary, 0.35);
 
   return {
@@ -260,6 +260,63 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     aiText: text,
     aiFont: darken(accent, 0.15),
     signInBg: accent,
+  };
+}
+
+/**
+ * Increase contrast of a resolved theme for accessibility mode.
+ */
+export function deriveAccessibilityTheme(theme: ColorTheme): ColorTheme {
+  const isDark = !!theme.isDark;
+  const bgBase = isDark ? "#000000" : "#ffffff";
+  const bgElevated = isDark
+    ? mixColors(bgBase, theme.primary, 0.22)
+    : mixColors(bgBase, theme.primary, 0.1);
+  const bgHover = isDark
+    ? mixColors("#161616", theme.primary, 0.34)
+    : mixColors("#efefef", theme.primary, 0.18);
+  const bgSelected = isDark
+    ? mixColors(bgBase, theme.primary, 0.52)
+    : mixColors(bgBase, theme.primary, 0.32);
+  const topBarBg = isDark
+    ? mixColors("#101010", theme.primary, 0.3)
+    : mixColors("#e4e4e4", theme.primary, 0.34);
+  const topBarHover = isDark
+    ? mixColors("#181818", theme.primary, 0.42)
+    : mixColors("#d4d4d4", theme.primary, 0.46);
+  const textPrimary = isDark ? "#ffffff" : "#000000";
+  const textSecondary = isDark ? "#f0f0f0" : "#111111";
+  const textTertiary = isDark ? "#d0d0d0" : "#333333";
+  const border = mixColors("#707070", theme.primary, 0.16);
+  const borderLight = mixColors("#8c8c8c", theme.primary, 0.16);
+  const chatViewerBg = isDark
+    ? darken(theme.primary, 0.45)
+    : lighten(theme.primary, 0.18);
+
+  return {
+    ...theme,
+    bgBase,
+    bgElevated,
+    bgHover,
+    bgSelected,
+    textPrimary,
+    textSecondary,
+    textTertiary,
+    border,
+    borderLight,
+    topBarBg,
+    topBarHover,
+    topBarText: textPrimary,
+    topBarTextActive: textPrimary,
+    chatViewerBg,
+    chatViewerText: contrastText(chatViewerBg),
+    chatOtherBg: mixColors(bgBase, theme.primary, isDark ? 0.2 : 0.09),
+    chatOtherText: textPrimary,
+    dragBar: mixColors(isDark ? "#2a2a2a" : "#b8b8b8", theme.primary, 0.2),
+    syntaxComment: isDark ? "#bdbdbd" : darken(theme.syntaxComment, 0.25),
+    syntaxOperator: isDark ? "#d8d8d8" : darken(theme.syntaxOperator, 0.35),
+    syntaxVariable: isDark ? "#ffffff" : "#1a1a1a",
+    aiText: textPrimary,
   };
 }
 
@@ -448,7 +505,6 @@ export const THEME_DEFAULT: ColorTheme = deriveTheme("CoCalc", {
   primary: "#4474c0",
   secondary: "#fcc861",
   accent: "#fbb635",
-  bg: "#f9fbff",
   text: "#303030",
 });
 

@@ -76,17 +76,18 @@
   table
     width: 100%
   // Remove all default row backgrounds (including zebra stripes)
+  // Hierarchy: normal (base/tinted) > open (elevated/lighter) > hover > selected
   .ant-table-row > td
     background: var(--cocalc-bg-base, colors.$COL_WHITE) !important
-    border-bottom: 1px solid var(--cocalc-border-light, colors.$COL_GRAY_LLL) !important
+    border-bottom: 1px solid var(--cocalc-bg-hover, colors.$COL_GRAY_LLL) !important
     transition: none !important
-  // Open files: faint gray background so the user can spot them
+  // Open files: lighter/elevated so they stand out as "active"
   .cc-explorer-row-open > td
-    background-color: var(--cocalc-bg-hover, colors.$COL_GRAY_LLL) !important
-  // Type cell with expanded directory peek: blue background
+    background-color: var(--cocalc-bg-elevated, colors.$COL_GRAY_LLL) !important
+  // Type cell with expanded directory peek
   .ant-table-row > td.cc-explorer-cell-expanded
     background-color: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL) !important
-  // Hover: faint blue (kept subtle so DnD drop-target highlight stands out)
+  // Hover: slightly stronger tint
   .ant-table-row:hover > td
     background-color: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL) !important
     transition: none !important
@@ -560,6 +561,10 @@ span.cc-project-fixedtab-close
 span.cc-project-fixedtab-drag:hover
   background-color: var(--cocalc-top-bar-hover, colors.$COL_GRAY_L0)
   cursor: move
+
+div.cc-project-flyout-file-item
+  background-color: var(--cocalc-bg-base, colors.$COL_WHITE)
+  border-bottom: 1px solid var(--cocalc-bg-hover, colors.$COL_GRAY_LLL)
 
 div.cc-project-flyout-file-item:hover
   background-color: var(--cocalc-bg-hover, colors.$COL_BLUE_LLLL)

@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -727,11 +727,11 @@ export function Kernel({
           overflow: "hidden",
           width: "100%",
           padding: "4px 6px",
-          backgroundColor: COLORS.GRAY_LLL,
+          background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
           display: "flex",
           alignItems: "center",
           gap: "6px",
-          borderBottom: "1px solid var(--cocalc-border, #ccc)",
+          borderBottom: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
           ...style,
         }}
       >
@@ -789,9 +789,9 @@ export function Kernel({
         overflow: "hidden",
         width: "100%",
         padding: "5px",
-        backgroundColor: COLORS.GRAY_LLL,
+        background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
         display: "flex",
-        borderBottom: "1px solid var(--cocalc-border, #ccc)",
+        borderBottom: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
         ...style,
       }}
     >

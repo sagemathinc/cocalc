@@ -46,7 +46,7 @@ const DIMMED_STYLE = {
 } as const;
 
 const FILE_ITEM_SELECTED_STYLE: CSS = {
-  backgroundColor: `var(--cocalc-bg-hover, ${COLORS.BLUE_LLL})`,
+  backgroundColor: `var(--cocalc-bg-selected, ${COLORS.BLUE_LLL})`,
 } as const;
 
 const FILE_ITEM_OPENED_STYLE: CSS = {
@@ -698,8 +698,7 @@ export const FileListItem = React.memo((props: Readonly<FileListItemProps>) => {
     DROP_HIGHLIGHT.backgroundColor ??
     (selected
       ? FILE_ITEM_SELECTED_STYLE.backgroundColor
-      : (activeStyle.backgroundColor ??
-        `var(--cocalc-bg-hover, ${COLORS.BLUE_LLLL})`));
+      : `var(--cocalc-bg-hover, ${COLORS.BLUE_LLLL})`);
 
   // Lazy context menu: only build items when the dropdown opens.
   const [contextMenuItems, setContextMenuItems] =

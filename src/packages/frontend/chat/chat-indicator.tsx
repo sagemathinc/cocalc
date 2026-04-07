@@ -24,10 +24,10 @@ export type ChatState =
 
 const CHAT_INDICATOR_STYLE: React.CSSProperties = {
   fontSize: "15pt",
-  paddingTop: "2px",
   cursor: "pointer",
   background: COLORS.GRAY_L0,
   borderTop: `2px solid ${COLORS.GRAY_L}`,
+  height: "100%",
 } as const;
 
 const USERS_VIEWING_STYLE: React.CSSProperties = {
@@ -50,7 +50,7 @@ export function ChatIndicator({
 }: Props) {
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
-    ...{ display: "flex" },
+    ...{ display: "flex", alignItems: "center" as const },
     background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_L0})`,
     borderTop: `2px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   };

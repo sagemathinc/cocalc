@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2023 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2023-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -16,6 +16,7 @@ import {
   type BaseColors,
   COLORS,
   type ColorTheme,
+  deriveAccessibilityTheme,
   type NativeDarkMode,
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
@@ -147,7 +148,13 @@ function useResolvedColorThemeForAntd(): ColorTheme {
       return deriveDarkTheme(lightTheme);
     }
     return lightTheme;
-  }, [themeId, customColorsJson, nativeDarkMode, systemPrefersDark, randomSeed]);
+  }, [
+    themeId,
+    customColorsJson,
+    nativeDarkMode,
+    systemPrefersDark,
+    randomSeed,
+  ]);
 }
 
 export function useAntdStyleProvider() {
@@ -169,6 +176,9 @@ export function useAntdStyleProvider() {
       // Ignore parse errors
     }
   }
+  const effectiveColorTheme = accessibilityEnabled
+    ? deriveAccessibilityTheme(colorTheme)
+    : colorTheme;
 
   const borderStyle = rounded
     ? undefined
@@ -182,35 +192,37 @@ export function useAntdStyleProvider() {
     | undefined;
   const isCustomTheme = themeId != null && themeId !== "default";
   const primaryColor = isCustomTheme
-    ? { colorPrimary: colorTheme.primary }
+    ? { colorPrimary: effectiveColorTheme.primary }
     : { colorPrimary: COLORS.ANTD_LINK_BLUE };
 
-  // Accessibility: Set all text to pure black for maximum contrast
-  // Accessibility: enforce high contrast everywhere
   const a11yTokens = accessibilityEnabled
     ? {
-        colorText: "#000000",
-        colorTextSecondary: "#000000",
-        colorTextTertiary: "#000000",
-        colorTextQuaternary: "#000000",
-        colorBorder: "#888888",
-        colorBorderSecondary: "#aaaaaa",
+        colorText: effectiveColorTheme.textPrimary,
+        colorTextSecondary: effectiveColorTheme.textSecondary,
+        colorTextTertiary: effectiveColorTheme.textTertiary,
+        colorTextQuaternary: effectiveColorTheme.textTertiary,
+        colorBorder: effectiveColorTheme.border,
+        colorBorderSecondary: effectiveColorTheme.borderLight,
+        colorBgBase: effectiveColorTheme.bgBase,
+        colorBgContainer: effectiveColorTheme.bgElevated,
+        colorBgElevated: effectiveColorTheme.bgElevated,
+        colorBgLayout: effectiveColorTheme.bgBase,
       }
     : undefined;
 
   const a11yMenuTokens = accessibilityEnabled
     ? {
-        itemSelectedColor: "#000000",
-        itemSelectedBg: "#e6e6e6",
-        itemColor: "#000000",
-        itemHoverColor: "#000000",
-        itemHoverBg: "var(--cocalc-bg-hover, #f0f0f0)",
+        itemSelectedColor: effectiveColorTheme.textPrimary,
+        itemSelectedBg: effectiveColorTheme.bgSelected,
+        itemColor: effectiveColorTheme.textPrimary,
+        itemHoverColor: effectiveColorTheme.textPrimary,
+        itemHoverBg: effectiveColorTheme.bgHover,
       }
     : undefined;
 
   // Build the antd algorithm list: dark + compact as needed
   const algorithms: Array<typeof theme.darkAlgorithm> = [];
-  if (colorTheme.isDark) {
+  if (effectiveColorTheme.isDark) {
     algorithms.push(theme.darkAlgorithm);
   }
   if (compact) {
@@ -221,25 +233,27 @@ export function useAntdStyleProvider() {
 
   // Theme surface tokens — always derived from the theme
   const surfaceTokens = {
-    colorBgBase: colorTheme.bgBase,
-    colorBgContainer: colorTheme.bgElevated,
-    colorText: colorTheme.textPrimary,
-    colorTextSecondary: colorTheme.textSecondary,
-    colorTextTertiary: colorTheme.textTertiary,
-    colorBorder: colorTheme.border,
-    colorBorderSecondary: colorTheme.borderLight,
+    colorBgBase: effectiveColorTheme.bgBase,
+    colorBgContainer: effectiveColorTheme.bgElevated,
+    colorBgElevated: effectiveColorTheme.bgElevated,
+    colorBgLayout: effectiveColorTheme.bgBase,
+    colorText: effectiveColorTheme.textPrimary,
+    colorTextSecondary: effectiveColorTheme.textSecondary,
+    colorTextTertiary: effectiveColorTheme.textTertiary,
+    colorBorder: effectiveColorTheme.border,
+    colorBorderSecondary: effectiveColorTheme.borderLight,
   };
 
   const antdTheme: ThemeConfig = {
     ...algorithmConfig,
     token: {
-      colorLink: colorTheme.colorLink,
-      colorTextLightSolid: colorTheme.textOnPrimary,
-      colorTextDescription: colorTheme.textSecondary,
-      colorSuccess: colorTheme.colorSuccess,
-      colorWarning: colorTheme.colorWarning,
-      colorError: colorTheme.colorError,
-      colorInfo: colorTheme.colorInfo,
+      colorLink: effectiveColorTheme.colorLink,
+      colorTextLightSolid: effectiveColorTheme.textOnPrimary,
+      colorTextDescription: effectiveColorTheme.textSecondary,
+      colorSuccess: effectiveColorTheme.colorSuccess,
+      colorWarning: effectiveColorTheme.colorWarning,
+      colorError: effectiveColorTheme.colorError,
+      colorInfo: effectiveColorTheme.colorInfo,
       ...primaryColor,
       ...borderStyle,
       ...animationStyle,
@@ -250,68 +264,77 @@ export function useAntdStyleProvider() {
       Button: {
         ...primaryColor,
       },
+      Segmented: {
+        itemBg: "transparent",
+        trackBg: "transparent",
+        trackPadding: 0,
+        itemSelectedBg: effectiveColorTheme.primaryLight,
+      },
       Card: {
-        headerBg: colorTheme.topBarBg,
+        headerBg: effectiveColorTheme.topBarBg,
+        colorBgContainer: effectiveColorTheme.bgElevated,
+        bodyBg: effectiveColorTheme.bgElevated,
       },
       Collapse: {
-        headerBg: colorTheme.topBarBg,
+        headerBg: effectiveColorTheme.topBarBg,
       },
       Table: {
-        headerBg: colorTheme.topBarBg,
-        headerColor: colorTheme.textPrimary,
-        headerSortActiveBg: colorTheme.bgHover,
-        headerSortHoverBg: colorTheme.bgHover,
-        rowHoverBg: colorTheme.bgHover,
-        borderColor: colorTheme.borderLight,
+        headerBg: effectiveColorTheme.topBarBg,
+        headerColor: effectiveColorTheme.textPrimary,
+        headerSortActiveBg: effectiveColorTheme.bgHover,
+        headerSortHoverBg: effectiveColorTheme.bgHover,
+        rowHoverBg: effectiveColorTheme.bgHover,
+        borderColor: effectiveColorTheme.borderLight,
       },
       Menu: {
         itemBorderRadius: 4,
+        itemColor: effectiveColorTheme.textPrimary,
         // Ensure selected menu items have readable text when primary is dark
-        itemSelectedColor: colorTheme.isDark
+        itemSelectedColor: effectiveColorTheme.isDark
           ? "#ffffff"
-          : colorTheme.primary,
-        itemSelectedBg: colorTheme.isDark
-          ? colorTheme.bgSelected
-          : colorTheme.primaryLightest,
-        ...(colorTheme.isDark
+          : effectiveColorTheme.primary,
+        itemSelectedBg: effectiveColorTheme.isDark
+          ? effectiveColorTheme.bgSelected
+          : effectiveColorTheme.primaryLightest,
+        ...(effectiveColorTheme.isDark
           ? {
-              darkItemBg: colorTheme.bgBase,
-              darkItemColor: colorTheme.textSecondary,
-              darkItemHoverColor: colorTheme.textPrimary,
-              darkItemSelectedBg: colorTheme.bgSelected,
+              darkItemBg: effectiveColorTheme.bgBase,
+              darkItemColor: effectiveColorTheme.textSecondary,
+              darkItemHoverColor: effectiveColorTheme.textPrimary,
+              darkItemSelectedBg: effectiveColorTheme.bgSelected,
               darkItemSelectedColor: "#ffffff",
-              darkSubMenuItemBg: colorTheme.bgBase,
-              subMenuItemBg: colorTheme.bgBase,
+              darkSubMenuItemBg: effectiveColorTheme.bgBase,
+              subMenuItemBg: effectiveColorTheme.bgBase,
               // Submenu titles ("Preferences", "Billing") — override primary
               // so open submenu titles match regular item brightness
-              colorPrimary: colorTheme.textPrimary,
-              itemActiveBg: colorTheme.bgSelected,
+              colorPrimary: effectiveColorTheme.textPrimary,
+              itemActiveBg: effectiveColorTheme.bgSelected,
             }
           : {}),
         ...a11yMenuTokens,
       },
-      ...(colorTheme.isDark
+      ...(effectiveColorTheme.isDark
         ? {
             Checkbox: {
-              colorBorder: colorTheme.border,
-              colorBgContainer: colorTheme.bgElevated,
+              colorBorder: effectiveColorTheme.border,
+              colorBgContainer: effectiveColorTheme.bgElevated,
             },
             Switch: {
-              colorTextQuaternary: colorTheme.border,
-              colorTextTertiary: colorTheme.textTertiary,
-              handleBg: colorTheme.textTertiary,
+              colorTextQuaternary: effectiveColorTheme.border,
+              colorTextTertiary: effectiveColorTheme.textTertiary,
+              handleBg: effectiveColorTheme.textTertiary,
             },
             Input: {
-              colorBgContainer: colorTheme.bgElevated,
-              colorBorder: colorTheme.border,
-              colorText: colorTheme.textPrimary,
+              colorBgContainer: effectiveColorTheme.bgElevated,
+              colorBorder: effectiveColorTheme.border,
+              colorText: effectiveColorTheme.textPrimary,
             },
             Tabs: {
-              cardBg: colorTheme.topBarBg,
-              itemColor: colorTheme.textSecondary,
-              itemActiveColor: colorTheme.textPrimary,
-              itemSelectedColor: colorTheme.textPrimary,
-              inkBarColor: colorTheme.primary,
+              cardBg: effectiveColorTheme.topBarBg,
+              itemColor: effectiveColorTheme.textSecondary,
+              itemActiveColor: effectiveColorTheme.textPrimary,
+              itemSelectedColor: effectiveColorTheme.textPrimary,
+              inkBarColor: effectiveColorTheme.primary,
             },
           }
         : {}),

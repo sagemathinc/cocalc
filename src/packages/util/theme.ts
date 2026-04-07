@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -59,6 +59,7 @@ export {
   COLOR_THEMES,
   type ColorTheme,
   type ColorThemeId,
+  deriveAccessibilityTheme,
   deriveDarkTheme,
   deriveTheme,
   generateRandomizedBaseColors,

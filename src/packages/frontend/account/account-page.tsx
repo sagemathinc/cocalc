@@ -574,7 +574,7 @@ export const AccountPage: React.FC = () => {
       <div className="smc-vfill" style={{ flexDirection: "row" }}>
         <div
           style={{
-            background: "var(--cocalc-bg-base, #00000005)",
+            background: "var(--cocalc-bg-hover, #f0f5ff)",
             borderRight: "1px solid var(--cocalc-border-light, rgba(5, 5, 5, 0.06))",
             display: "flex",
             flexDirection: "column",
@@ -596,7 +596,7 @@ export const AccountPage: React.FC = () => {
             inlineIndent={hidden ? 0 : 24}
             style={{
               width: hidden ? 50 : 220,
-              background: "var(--cocalc-bg-base, #00000005)",
+              background: "var(--cocalc-bg-hover, #f0f5ff)",
               flex: "1 1 auto",
               overflowY: "auto",
               minHeight: 0,

@@ -19,7 +19,12 @@ import {
 import { QueryParams } from "@cocalc/frontend/misc/query-params";
 import { setDarkModeState } from "@cocalc/frontend/account/dark-mode";
 import { A11Y } from "@cocalc/util/consts/ui";
-import { hexToRgb, mixColors, type ColorTheme } from "@cocalc/util/theme";
+import {
+  deriveAccessibilityTheme,
+  hexToRgb,
+  mixColors,
+  type ColorTheme,
+} from "@cocalc/util/theme";
 import { createRoot } from "react-dom/client";
 import { AppContext, useAppContextProvider } from "./context";
 import { Localize, useLocalizationCtx } from "./localize";
@@ -95,15 +100,18 @@ function App({ children }) {
   } catch {
     // ignore
   }
+  const effectiveColorTheme = accessibilityEnabled
+    ? deriveAccessibilityTheme(colorTheme)
+    : colorTheme;
 
   // Sync the resolved theme to CSS custom properties on <body> so that
   // SASS / plain CSS can also respond to theme changes (e.g. top bar, borders).
   useEffect(() => {
-    applyThemeCSSVars(colorTheme, accessibilityEnabled);
-  }, [colorTheme, accessibilityEnabled]);
+    applyThemeCSSVars(effectiveColorTheme, accessibilityEnabled);
+  }, [effectiveColorTheme, accessibilityEnabled]);
 
   return (
-    <ThemeContext.Provider value={colorTheme}>
+    <ThemeContext.Provider value={effectiveColorTheme}>
       <AppContext.Provider value={{ ...appState, ...timeAgo }}>
         {children}
       </AppContext.Provider>
@@ -115,11 +123,9 @@ function App({ children }) {
  *  When accessibility mode is on, override text/border variables for maximum contrast. */
 function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   const s = document.body.style;
-  const topBarActive = mixColors(
-    t.topBarBg,
-    t.bgElevated,
-    t.isDark ? 0.55 : 0.85,
-  );
+  const topBarActive = a11y
+    ? mixColors(t.topBarBg, t.bgSelected, t.isDark ? 0.7 : 0.85)
+    : mixColors(t.topBarBg, t.bgElevated, t.isDark ? 0.55 : 0.85);
 
   const setRgb = (name: string, hex: string) => {
     try {
@@ -130,14 +136,13 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
     }
   };
 
-  // Accessibility high-contrast overrides for text and borders
-  const textPrimary = a11y ? "#000000" : t.textPrimary;
-  const textSecondary = a11y ? "#000000" : t.textSecondary;
-  const textTertiary = a11y ? "#333333" : t.textTertiary;
-  const border = a11y ? "#888888" : t.border;
-  const borderLight = a11y ? "#aaaaaa" : t.borderLight;
-  const topBarText = a11y ? "#000000" : t.topBarText;
-  const topBarTextActive = a11y ? "#000000" : t.topBarTextActive;
+  const textPrimary = t.textPrimary;
+  const textSecondary = t.textSecondary;
+  const textTertiary = t.textTertiary;
+  const border = t.border;
+  const borderLight = t.borderLight;
+  const topBarText = t.topBarText;
+  const topBarTextActive = t.topBarTextActive;
 
   s.setProperty("--cocalc-bg-base", t.bgBase);
   setRgb("--cocalc-bg-base", t.bgBase);

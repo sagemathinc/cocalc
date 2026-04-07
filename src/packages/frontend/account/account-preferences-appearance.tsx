@@ -9,9 +9,19 @@ import { FormattedMessage, defineMessages, useIntl } from "react-intl";
 
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
 import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
-import { A, HelpIcon, Icon, IconName, LabeledRow } from "@cocalc/frontend/components";
+import {
+  A,
+  HelpIcon,
+  Icon,
+  IconName,
+  LabeledRow,
+} from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { A11Y, ACCESSIBILITY_ICON, DARK_MODE_ICON } from "@cocalc/util/consts/ui";
+import {
+  A11Y,
+  ACCESSIBILITY_ICON,
+  DARK_MODE_ICON,
+} from "@cocalc/util/consts/ui";
 import { DEFAULT_EDITOR_THEME } from "@cocalc/util/db-schema/accounts";
 import {
   COLORS,
@@ -71,7 +81,7 @@ const ACCESSIBILITY_MESSAGES = defineMessages({
   enabled: {
     id: "account.appearance.accessibility.enabled",
     defaultMessage:
-      "<strong>Enable Accessibility Mode:</strong> optimize the user interface for accessibility features",
+      "<strong>Accessibility Mode:</strong> optimize the user interface for accessibility features",
   },
 });
 

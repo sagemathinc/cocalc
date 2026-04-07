@@ -278,7 +278,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           textAlign: "center",
           marginTop: "15px",
           color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
-          background: `var(--cocalc-top-bar-bg, ${COLORS.WHITE})`,
+          background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
         }}
       />
     );
@@ -299,7 +299,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
             textAlign: "center",
             marginTop: "15px",
             color: `var(--cocalc-text-secondary, ${COLORS.GRAY})`,
-            background: `var(--cocalc-top-bar-bg, ${COLORS.WHITE})`,
+            background: `var(--cocalc-bg-base, ${COLORS.WHITE})`,
           }}
         />
       );

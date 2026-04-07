@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -36,7 +36,16 @@ import FileTabs from "./file-tabs";
 import { ShareIndicator } from "./share-indicator";
 
 const INDICATOR_STYLE: React.CSSProperties = {
-  overflow: "hidden",
+  display: "inline-flex",
+  alignItems: "center",
+  height: "100%",
+  paddingLeft: "5px",
+} as const;
+
+const CHAT_INDICATOR_TAB_STYLE: React.CSSProperties = {
+  display: "inline-flex",
+  alignItems: "stretch",
+  height: "100%",
   paddingLeft: "5px",
 } as const;
 
@@ -62,12 +71,13 @@ export default function ProjectTabs(props: PTProps) {
         overflow: "hidden",
       }}
     >
-      <div style={{ display: "flex" }}>
+      <div style={{ display: "flex", height: "100%", alignItems: "stretch" }}>
         <div
           style={{
             display: "flex",
             overflow: "hidden",
             flex: 1,
+            height: "100%",
           }}
         >
           <FileTabs
@@ -78,8 +88,11 @@ export default function ProjectTabs(props: PTProps) {
         </div>
         <div
           style={{
-            display: "inline-flex",
+            display: "flex",
+            alignItems: "stretch",
+            height: "100%",
             marginLeft: "-10px",
+            background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_L0})`,
           }}
         >
           <ShareIndicatorTab activeTab={activeTab} project_id={project_id} />
@@ -409,7 +422,7 @@ function ChatIndicatorTab({ activeTab, project_id }): React.JSX.Element | null {
   const chatState = openFileInfo.getIn([path, "chatState"]) as any;
   const chatMode = openFileInfo.getIn([path, "chatMode"]) as any;
   return (
-    <div style={INDICATOR_STYLE}>
+    <div style={CHAT_INDICATOR_TAB_STYLE}>
       <ChatIndicator
         project_id={project_id}
         path={path}

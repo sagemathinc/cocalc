@@ -76,7 +76,7 @@ const PAGE_STYLE: CSS = {
   height: PAGE_HEIGHT, // see note
   width: "100vw",
   overflow: "hidden",
-  background: COLORS.WHITE,
+  background: "var(--cocalc-bg-base, white)",
 } as const;
 
 export const Page: React.FC = () => {
