@@ -163,7 +163,6 @@ export function deriveThreadLabel(
   return "Untitled Thread";
 }
 
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 interface GroupOptions {
   now?: number;
@@ -178,16 +177,16 @@ const RECENCY_SECTIONS: { key: RecencyKey; title: string }[] = [
   { key: "older", title: "Older" },
 ];
 
-function recencyKeyForDelta(delta: number): RecencyKey {
-  if (delta < DAY_MS) {
-    return "today";
-  }
-  if (delta < 2 * DAY_MS) {
-    return "yesterday";
-  }
-  if (delta < 7 * DAY_MS) {
-    return "last7days";
-  }
+function recencyKeyForTime(threadTime: number, now: number): RecencyKey {
+  const startOfToday = new Date(now);
+  startOfToday.setHours(0, 0, 0, 0);
+  if (threadTime >= startOfToday.getTime()) return "today";
+  const startOfYesterday = new Date(startOfToday);
+  startOfYesterday.setDate(startOfYesterday.getDate() - 1);
+  if (threadTime >= startOfYesterday.getTime()) return "yesterday";
+  const startOf7DaysAgo = new Date(startOfToday);
+  startOf7DaysAgo.setDate(startOf7DaysAgo.getDate() - 6);
+  if (threadTime >= startOf7DaysAgo.getTime()) return "last7days";
   return "older";
 }
 
@@ -211,8 +210,7 @@ export function groupThreadsByRecency<
     older: [],
   };
   for (const thread of remainder) {
-    const delta = now - thread.newestTime;
-    const key = recencyKeyForDelta(delta);
+    const key = recencyKeyForTime(thread.newestTime, now);
     buckets[key].push(thread);
   }
   for (const def of RECENCY_SECTIONS) {
