@@ -35,7 +35,7 @@ const ROW_INFO_STYLE = {
 /** Shared style for the "active filter" badge buttons.
  *  Used in both the explorer info line and the empty-placeholder. */
 export const ACTIVE_FILTER_BTN_STYLE: React.CSSProperties = {
-  background: COLORS.ANTD_ORANGE,
+  background: "var(--cocalc-warning, #ffbb96)",
   color: "var(--cocalc-text-primary, black)",
   borderRadius: 4,
   whiteSpace: "nowrap",
@@ -44,7 +44,7 @@ export const ACTIVE_FILTER_BTN_STYLE: React.CSSProperties = {
 
 /** Green-tinted badge for additive indicators (something is shown, not filtered). */
 const ACTIVE_ADDITIVE_BTN_STYLE: React.CSSProperties = {
-  background: COLORS.ANTD_GREEN,
+  background: "var(--cocalc-success, #87d068)",
   color: "var(--cocalc-text-primary, black)",
   borderRadius: 4,
   whiteSpace: "nowrap",

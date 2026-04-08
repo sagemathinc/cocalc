@@ -246,7 +246,7 @@ const CODE_STYLE: CSS = {
 const ERR_STYLE: CSS = {
   ...CODE_STYLE,
   color: "white",
-  background: COLORS.ANTD_RED,
+  background: "var(--cocalc-error, #f5222d)",
 } as const;
 
 function Output({ result }: { result: TerminalCommandOutput }) {

@@ -303,7 +303,7 @@ export default function RunButton({
           }}
         >
           <Icon
-            style={running ? { color: COLORS.RUN } : undefined}
+            style={running ? { color: "var(--cocalc-success, #389e0d)" } : undefined}
             name={running ? "cocalc-ring" : "step-forward"}
             spin={running}
           />
@@ -410,7 +410,7 @@ export default function RunButton({
                     }}
                   >
                     <Icon
-                      style={running ? { color: COLORS.RUN } : undefined}
+                      style={running ? { color: "var(--cocalc-success, #389e0d)" } : undefined}
                       name={running ? "cocalc-ring" : "step-forward"}
                       spin={running}
                     />

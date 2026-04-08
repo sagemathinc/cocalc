@@ -34,7 +34,7 @@ const HelpStyle: React.CSSProperties = {
 };
 
 export const outputMinitermStyle: React.CSSProperties = {
-  background: COLORS.WHITE,
+  background: "var(--cocalc-bg-base, #fff)",
   position: "absolute",
   zIndex: 10,
   boxShadow: `-4px 4px 7px ${COLORS.GRAY_L}`,
@@ -300,7 +300,7 @@ export const SearchBar = React.memo((props: Props) => {
               style={{
                 color: COLORS.GRAY_M,
                 fontSize: "14pt",
-                background: COLORS.WHITE,
+                background: "var(--cocalc-bg-base, #fff)",
                 pointerEvents: "auto",
                 padding: "0 5px",
               }}

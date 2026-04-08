@@ -194,8 +194,8 @@ export function AgentInputArea({
                     height: "36px",
                     ...(doneHighlight
                       ? {
-                          background: COLORS.BS_GREEN,
-                          borderColor: COLORS.BS_GREEN,
+                          background: "var(--cocalc-success, #5CB85C)",
+                          borderColor: "var(--cocalc-success, #5CB85C)",
                         }
                       : {}),
                   }}

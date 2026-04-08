@@ -41,5 +41,5 @@ export const STYLE_PRE: React.CSSProperties = {
 export const STYLE_ERR: React.CSSProperties = {
   ...STYLE_LOG,
   fontWeight: "bold",
-  backgroundColor: COLORS.ANTD_BG_RED_L,
+  backgroundColor: "color-mix(in srgb, var(--cocalc-error, #f5222d) 15%, var(--cocalc-bg-elevated, white))",
 } as const;

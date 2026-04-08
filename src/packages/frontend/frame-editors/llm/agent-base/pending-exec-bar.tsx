@@ -47,7 +47,7 @@ export function PendingExecBar({
         flex: "0 0 auto",
         padding: "6px 12px",
         borderTop: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
-        background: COLORS.YELL_LLL,
+        background: "color-mix(in srgb, var(--cocalc-warning, #FFA500) 15%, var(--cocalc-bg-elevated, white))",
       }}
     >
       <div

@@ -447,7 +447,7 @@ export function ChatPanel({
       },
       {
         key: "delete",
-        label: <span style={{ color: COLORS.ANTD_RED }}>Delete chat</span>,
+        label: <span style={{ color: "var(--cocalc-error, #f5222d)" }}>Delete chat</span>,
       },
     ],
     onClick: ({ key }) => {

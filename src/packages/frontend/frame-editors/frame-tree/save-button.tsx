@@ -84,7 +84,7 @@ export function SaveButton({
       style={{
         ...(type == "default"
           ? undefined
-          : { background: COLORS.BS_GREEN, color: COLORS.GRAY_D }),
+          : { background: "var(--cocalc-success, #5CB85C)", color: COLORS.GRAY_D }),
         opacity: disabled ? 0.65 : undefined,
         whiteSpace: "nowrap",
         ...style,

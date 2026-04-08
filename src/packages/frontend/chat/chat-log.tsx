@@ -520,8 +520,8 @@ function NotShowing({
 
 const NEW_MESSAGES_DIVIDER_STYLE: CSSProperties = {
   margin: "8px 15px",
-  borderColor: COLORS.ANTD_RED_WARN,
-  color: COLORS.ANTD_RED_WARN,
+  borderColor: "var(--cocalc-error, #f5222d)",
+  color: "var(--cocalc-error, #f5222d)",
   fontSize: "12px",
   fontWeight: 500,
 };

@@ -13,7 +13,7 @@ const DROPDOWN_STYLE: React.CSSProperties = {
   top: "40px",
   width: "100%",
   zIndex: 120,
-  background: COLORS.WHITE,
+  background: "var(--cocalc-bg-base, #fff)",
   border: `1px solid ${COLORS.GRAY_L}`,
   borderRadius: "6px",
   boxShadow: `0 8px 16px ${COLORS.GRAY_L}`,
@@ -47,7 +47,7 @@ export const SearchHistoryDropdown: React.FC<Props> = React.memo(
             }
             style={{
               alignItems: "center",
-              background: idx === historyIndex ? COLORS.GRAY_LL : COLORS.WHITE,
+              background: idx === historyIndex ? "var(--cocalc-bg-hover, #eee)" : "var(--cocalc-bg-base, #fff)",
               color: COLORS.TAB,
               cursor: "pointer",
               display: "flex",

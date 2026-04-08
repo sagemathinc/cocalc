@@ -18,7 +18,7 @@ const progress_info = {
 
 const progress_info_done = {
   ...progress_info,
-  color: COLORS.BS_GREEN_DD,
+  color: "var(--cocalc-success, #398439)",
 } as const;
 
 interface ProgressProps {

@@ -1199,15 +1199,15 @@ export default function AgentPanel({ name }: EditorComponentProps) {
           style={{
             flex: "0 0 auto",
             padding: "4px 12px",
-            background: COLORS.ANTD_BG_RED_L,
-            borderBottom: `1px solid ${COLORS.ANTD_BG_RED_M}`,
+            background: "color-mix(in srgb, var(--cocalc-error, #f5222d) 15%, var(--cocalc-bg-elevated, white))",
+            borderBottom: `1px solid var(--cocalc-error, ${COLORS.ANTD_BG_RED_M})`,
             display: "flex",
             alignItems: "center",
             gap: 8,
             fontSize: "0.85em",
           }}
         >
-          <Icon name="warning" style={{ color: COLORS.ANTD_RED_WARN }} />
+          <Icon name="warning" style={{ color: "var(--cocalc-error, #f5222d)" }} />
           <span style={{ flex: 1 }}>
             {appErrors.length} app error(s) — included in next prompt for
             auto-fix

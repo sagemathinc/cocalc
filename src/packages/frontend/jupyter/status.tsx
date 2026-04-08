@@ -55,7 +55,7 @@ const KERNEL_ERROR_STYLE: CSS = {
   margin: "5px",
   color: "white",
   padding: "5px",
-  backgroundColor: COLORS.ANTD_BG_RED_M,
+  backgroundColor: "var(--cocalc-error, #ff7875)",
 } as const;
 
 const BACKEND_STATE_STYLE: CSS = {
@@ -214,7 +214,7 @@ export function Kernel({
         switch (kernel_state) {
           case "busy":
             name = "circle";
-            color = COLORS.BS_GREEN;
+            color = "var(--cocalc-success, #5CB85C)";
             break;
           case "idle":
             name = "cocalc-ring";

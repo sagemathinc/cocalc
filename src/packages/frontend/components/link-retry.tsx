@@ -109,7 +109,7 @@ const LinkRetry: React.FC<Props> = ({
   function renderError() {
     if (!error) return;
     return (
-      <span style={{ color: COLORS.ANTD_RED_WARN }}>
+      <span style={{ color: "var(--cocalc-error, #f5222d)" }}>
         <Gap /> (failed to load)
       </span>
     );

@@ -45,7 +45,7 @@ export const PRE_STYLE = {
   fontSize: "14px",
   fontFamily: "inherit",
   color: COLORS.GRAY_M,
-  backgroundColor: COLORS.GRAY_LL,
+  backgroundColor: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
   padding: "6px 12px",
 } as const;
 

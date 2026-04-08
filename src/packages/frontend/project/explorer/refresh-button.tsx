@@ -31,7 +31,7 @@ export function RefreshButton({ onClick }: Props) {
         type="text"
         size="small"
         style={{
-          background: COLORS.YELL_LLL,
+          background: "color-mix(in srgb, var(--cocalc-warning, #FFA500) 15%, var(--cocalc-bg-elevated, white))",
           color: "var(--cocalc-text-primary, black)",
           borderRadius: 4,
           whiteSpace: "nowrap",

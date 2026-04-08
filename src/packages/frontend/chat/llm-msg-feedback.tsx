@@ -61,7 +61,7 @@ export function FeedbackLLM({ actions, message }: FeedackLLMProps) {
     <Space size="small" wrap>
       <Space>
         <Button
-          style={{ color: "#555" }}
+          style={{ color: "var(--cocalc-text-secondary, #555)" }}
           size="small"
           type={isPositive ? "dashed" : "text"}
           onClick={() =>
@@ -72,7 +72,7 @@ export function FeedbackLLM({ actions, message }: FeedackLLMProps) {
           <Icon name="thumbs-up" />
         </Button>
         <Button
-          style={{ color: "#555" }}
+          style={{ color: "var(--cocalc-text-secondary, #555)" }}
           size="small"
           type={isNegative ? "dashed" : "text"}
           onClick={() =>

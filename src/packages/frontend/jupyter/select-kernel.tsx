@@ -506,7 +506,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
         <Descriptions
           bordered
           column={1}
-          style={{ backgroundColor: COLORS.ANTD_BG_RED_M }}
+          style={{ backgroundColor: "var(--cocalc-error, #ff7875)" }}
         >
           <Descriptions.Item label={"Unknown Kernel"}>
             A similar kernel might be {render_kernel_button(closestKernelName)}.

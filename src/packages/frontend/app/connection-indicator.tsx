@@ -62,8 +62,8 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
         ? {
             backgroundColor:
               connection_status === "disconnected"
-                ? COLORS.ANTD_RED_WARN
-                : COLORS.ORANGE_WARN,
+                ? "var(--cocalc-error, #f5222d)"
+                : "var(--cocalc-warning, #FFA500)",
           }
         : {}),
     } as const;

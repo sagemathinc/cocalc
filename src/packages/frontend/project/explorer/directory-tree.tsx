@@ -200,7 +200,7 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
         background: isOver
           ? COLORS.BLUE_LL
           : isInvalidDrop
-            ? COLORS.ANTD_RED_WARN
+            ? "var(--cocalc-error, #f5222d)"
             : isSelected
               ? COLORS.BLUE_LLL
               : "transparent",
@@ -801,7 +801,7 @@ export function DirectoryTreePanel({
         />
         {!!error && (
           <div
-            style={{ color: COLORS.ANTD_RED, fontSize: "11px", padding: "4px" }}
+            style={{ color: "var(--cocalc-error, #f5222d)", fontSize: "11px", padding: "4px" }}
           >
             {error}
           </div>

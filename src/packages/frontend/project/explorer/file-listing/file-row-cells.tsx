@@ -32,7 +32,7 @@ import type { FileEntry } from "./types";
 export const CELL_STYLE: React.CSSProperties = {
   padding: "6px 8px",
   borderBottom: "none",
-  background: COLORS.WHITE,
+  background: "var(--cocalc-bg-base, #fff)",
   whiteSpace: "nowrap",
   overflow: "hidden",
   textOverflow: "ellipsis",

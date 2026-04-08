@@ -14,7 +14,7 @@ export function KernelStar({ priority = 0 }: { priority?: number }) {
   return (
     <>
       {" "}
-      <Icon name="star-filled" style={{ color: COLORS.YELL_L }} />
+      <Icon name="star-filled" style={{ color: "var(--cocalc-warning, #fbb635)" }} />
     </>
   );
 }

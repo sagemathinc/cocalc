@@ -583,7 +583,7 @@ export default function Message({
           <Icon
             name="thumbs-up"
             style={{
-              color: showOtherFeedback ? "darkblue" : undefined,
+              color: showOtherFeedback ? "var(--cocalc-link, darkblue)" : undefined,
             }}
           />
         </Button>
@@ -1017,7 +1017,7 @@ export default function Message({
             }
             type="link"
             block
-            style={{ color: "darkblue", textAlign: "center" }}
+            style={{ color: "var(--cocalc-link, darkblue)", textAlign: "center" }}
             icon={<Icon name="expand-arrows" />}
           >
             {label}

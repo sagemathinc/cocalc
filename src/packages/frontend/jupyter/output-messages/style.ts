@@ -17,12 +17,12 @@ export const OUT_STYLE: CSSProperties = {
 export const STDOUT_STYLE: CSSProperties = OUT_STYLE;
 
 export const STDERR_STYLE: CSSProperties = merge(
-  { backgroundColor: "#fdd" },
+  { backgroundColor: "var(--cocalc-bg-elevated, #fdd)" },
   STDOUT_STYLE,
 );
 
 export const TRACEBACK_STYLE: CSSProperties = merge(
-  { backgroundColor: "#f9f2f4" },
+  { backgroundColor: "var(--cocalc-bg-elevated, #f9f2f4)" },
   OUT_STYLE,
 );
 

@@ -14,14 +14,14 @@
   margin     : 0
   width      : 100%
   padding    : 0
-  background : white
+  background : var(--cocalc-bg-base, white)
 
   // get rid of bootstrap's width: 100% for .table elements in the editor content
   .table
     width: auto
 .webapp-editor-textedit-buttonbar
   padding    : 3px 3px 0px 3px
-  background : #efefef
+  background : var(--cocalc-bg-elevated, #efefef)
 
 .webapp-editor-close-button-x
   font-size    : 14px
@@ -62,7 +62,7 @@
   padding  : 0px
 
 .webapp-editor-codemirror-button-row
-  background : #efefef
+  background : var(--cocalc-bg-elevated, #efefef)
 
 .webapp-editor-codemirror-filename,
 .webapp-editor-pdf-title
@@ -107,7 +107,7 @@
   color     : #bbb
 
 .webapp-latex-errors-counter
-  color       : white
+  color       : var(--cocalc-text-primary, white)
   font-weight : bold
 
 .webapp-latex-warnings-counter
@@ -115,7 +115,7 @@
 
 .webapp-editor-latex-mesg-template
   overflow-x   : auto
-  background   : white
+  background   : var(--cocalc-bg-base, white)
   margin-right : 2em
 
 .webapp-editor-latex-mesg-template-error
@@ -127,12 +127,12 @@
 .webapp-editor-latex-right-pane
   > .nav > li
     > a:hover
-      background-color: #fff
+      background-color: var(--cocalc-bg-elevated, #fff)
     > a.btn-danger:hover
       background-color: #ad241f
   > .nav-tabs > li
     &.active > a
-      color: #333
+      color: var(--cocalc-text-primary, #333)
       &.btn-danger
         background-color: #ad241f
     > a
@@ -145,7 +145,7 @@
 
 .webapp-editor-latex-help
   padding            : 20px
-  background-color   : white
+  background-color   : var(--cocalc-bg-base, white)
   overflow-y         : auto !important
 
 .smc-latex-inline-error
@@ -397,18 +397,18 @@
   padding     : 1ex
 
 .sagews-output-tex
-  background : white
+  background : var(--cocalc-bg-base, white)
   /* so that tex is visible */
 
 .sagews-output-image
-  background : white
+  background : var(--cocalc-bg-base, white)
   /* so that, e.g., latex with transparent background is visible */
   > img
     cursor     : pointer
 
 .sagews-output-video
   cursor     : pointer
-  background : white
+  background : var(--cocalc-bg-base, white)
   border     : 1px solid lightgrey
 
 .sagews-output-link
@@ -539,7 +539,7 @@ code
   cursor     : ew-resize
   background : #eee
   padding    : 3px
-  border     : 1px solid #ddd
+  border     : 1px solid var(--cocalc-border-light, #ddd)
   &:hover
     background : #428bca
 
@@ -550,7 +550,7 @@ code
   cursor        : ns-resize
   background    : #eee
   padding       : 3px
-  border        : 1px solid #ddd
+  border        : 1px solid var(--cocalc-border-light, #ddd)
   &:hover
     background : #428bca
 
@@ -577,7 +577,7 @@ code
 .webapp-editor-codeedit-buttonbar-mode
   background : #fafafa
   padding    : 6px 12px
-  border     : 1px solid #ddd
+  border     : 1px solid var(--cocalc-border-light, #ddd)
   cursor     : pointer
   color      : darkblue
 
