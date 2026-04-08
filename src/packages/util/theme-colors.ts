@@ -345,7 +345,7 @@ export function deriveDarkTheme(light: ColorTheme): ColorTheme {
 
     primary,
     primaryDark: light.primary, // the original is the "dark" shade now
-    primaryLight: lighten(primary, 0.3),
+    primaryLight: lighten(primary, 0.35),
     primaryLightest: darken(primary, 0.6),
 
     secondary: accent,

@@ -125,9 +125,9 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
 
   const borderColor = "transparent";
   const buttonHoverBg = `var(--cocalc-top-bar-hover, ${COLORS.GRAY_LLL})`;
-  const buttonActiveBg = `var(--cocalc-top-bar-active, white)`;
+  const buttonActiveBg = `var(--cocalc-editor-titlebar-bg-active, white)`;
   const buttonText = `var(--cocalc-top-bar-text, ${COLORS.GRAY})`;
-  const buttonTextActive = `var(--cocalc-top-bar-text, ${COLORS.GRAY})`;
+  const buttonTextActive = `var(--cocalc-text-primary, #333)`;
   const aiButtonActiveBg = `var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG})`;
   const aiButtonActiveText = `var(--cocalc-ai-text, ${COLORS.AI_ASSISTANT_TXT})`;
   // Faint AI color hint when inactive
