@@ -327,7 +327,7 @@ export default function ComputeServer({
         }
       >
         <div
-          style={{ fontSize: "12pt", color: COLORS.GRAY_M, display: "flex" }}
+          style={{ fontSize: "12pt", color: "var(--cocalc-text-primary, #5f5f5f)", display: "flex" }}
         >
           <Description
             account_id={account_id}

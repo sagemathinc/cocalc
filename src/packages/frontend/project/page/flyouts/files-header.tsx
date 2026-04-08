@@ -819,7 +819,7 @@ export function FilesHeader(props: Readonly<Props>): React.JSX.Element {
           <TerminalModeDisplay style={{ padding: FLYOUT_PADDING, margin: 0 }} />
         )}
         {renderTerminalOutput(termError, {
-          color: COLORS.FG_RED,
+          color: "var(--cocalc-error, #dc3545)",
           onClose: () => setTermError(undefined),
         })}
         {renderTerminalOutput(termStdout, {

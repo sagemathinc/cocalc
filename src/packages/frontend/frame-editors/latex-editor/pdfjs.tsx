@@ -273,7 +273,7 @@ export function PDFJS({
           justifyContent: "center",
           height: "100%",
           gap: "16px",
-          color: COLORS.GRAY_M,
+          color: "var(--cocalc-text-primary, #5f5f5f)",
           fontSize: "16pt",
         }}
       >

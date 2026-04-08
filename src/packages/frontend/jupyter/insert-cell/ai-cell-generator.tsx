@@ -687,7 +687,7 @@ export function AIGenerateCodeCell({
           <Button
             onClick={() => setShowAICellGen(null)}
             type="text"
-            style={{ float: "right", color: COLORS.GRAY_M }}
+            style={{ float: "right", color: "var(--cocalc-text-primary, #5f5f5f)" }}
           >
             <Icon name="times" />
           </Button>

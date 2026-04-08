@@ -207,7 +207,7 @@ const DirectoryTreeNodeTitle = React.memo(function DirectoryTreeNodeTitle({
       }}
     >
       {path === "" ? (
-        <Icon name="home" style={{ color: COLORS.FILE_ICON }} />
+        <Icon name="home" style={{ color: "var(--cocalc-primary, rgb(66, 139, 202))" }} />
       ) : (
         <Icon
           name={isStarred ? "star-filled" : "star"}
@@ -317,7 +317,7 @@ function StarredDirItem({
       style={{
         width: "100%",
         cursor: "pointer",
-        color: COLORS.GRAY_D,
+        color: "var(--cocalc-text-primary-strong, #434343)",
         overflow: "hidden",
         backgroundColor: isSelected ? COLORS.BLUE_LLL : undefined,
       }}
@@ -342,7 +342,7 @@ function StarredDirItem({
           style={{
             fontSize: "120%",
             marginRight: FLYOUT_PADDING,
-            color: COLORS.STAR,
+            color: "var(--cocalc-star, #FFD700)",
             cursor: "pointer",
             flexShrink: 0,
           }}
@@ -694,7 +694,7 @@ export function DirectoryTreePanel({
         style={{
           width: "100%",
           cursor: "pointer",
-          color: COLORS.GRAY_D,
+          color: "var(--cocalc-text-primary-strong, #434343)",
           overflow: "hidden",
           flexShrink: 0,
           backgroundColor: isHomeSelected ? COLORS.BLUE_LLL : undefined,

@@ -212,7 +212,7 @@ export function Student({
     }
     if (!hasAccount) {
       return (
-        <span style={{ color: COLORS.GRAY_M }}>
+        <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <FormattedMessage
             id="course.students-panel-student.last_active.no_account"
             defaultMessage="(has not created account yet)"
@@ -278,7 +278,7 @@ export function Student({
         }
         tip={tip}
       >
-        <span style={{ color: COLORS.GRAY_M, cursor: "pointer" }}>
+        <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)", cursor: "pointer" }}>
           <Icon name={icon} /> {description}
           {state}
         </span>

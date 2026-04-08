@@ -48,7 +48,7 @@ export default function HomePage() {
             style={{
               cursor: "pointer",
               textAlign: "center",
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
             }}
           >
             <ProjectTitle project_id={project_id} noClick />

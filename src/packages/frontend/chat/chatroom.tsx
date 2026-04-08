@@ -112,7 +112,7 @@ const THREAD_SIDEBAR_STYLE: React.CSSProperties = {
 
 const THREAD_SIDEBAR_HEADER: React.CSSProperties = {
   padding: "0 20px 15px",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 const THREAD_ITEM_LABEL_STYLE: React.CSSProperties = {
@@ -129,7 +129,7 @@ const THREAD_SECTION_HEADER_STYLE: React.CSSProperties = {
   alignItems: "center",
   justifyContent: "space-between",
   padding: "0 20px 6px",
-  color: COLORS.GRAY_D,
+  color: "var(--cocalc-text-primary-strong, #434343)",
 } as const;
 
 export type ThreadMeta = ThreadListItem & {
@@ -507,7 +507,7 @@ export function ChatPanel({
               overflowCount={99}
               style={{
                 backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_L0})`,
-                color: COLORS.GRAY_D,
+                color: "var(--cocalc-text-primary-strong, #434343)",
               }}
             />
           )}
@@ -549,7 +549,7 @@ export function ChatPanel({
         size="small"
         style={{
           backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_L0})`,
-          color: COLORS.GRAY_D,
+          color: "var(--cocalc-text-primary-strong, #434343)",
         }}
       />
     );
@@ -1071,7 +1071,7 @@ export function ChatPanel({
             overflowCount={99}
             style={{
               backgroundColor: `var(--cocalc-bg-hover, ${COLORS.GRAY_L0})`,
-              color: COLORS.GRAY_D,
+              color: "var(--cocalc-text-primary-strong, #434343)",
             }}
           />
         </Button>

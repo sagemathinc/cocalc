@@ -328,13 +328,13 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         top: 0,
         left: "2px",
         whiteSpace: "nowrap",
-        color: COLORS.GRAY_L,
+        color: "var(--cocalc-text-tertiary, #c0c0c0)",
       };
     } else {
       // Need arbitrarily much horizontal space, so we
       // get our own line.
       style = {
-        color: COLORS.GRAY_L,
+        color: "var(--cocalc-text-tertiary, #c0c0c0)",
         marginBottom: "5px",
         top: 0,
         left: "2px",

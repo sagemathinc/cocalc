@@ -644,7 +644,7 @@ export function LogFlyout({
               <Button
                 size="small"
                 type="text"
-                style={{ float: "right", color: COLORS.GRAY_M }}
+                style={{ float: "right", color: "var(--cocalc-text-primary, #5f5f5f)" }}
                 onClick={() => actions?.resetFlyoutLogFilter()}
                 icon={<Icon name="close-circle-filled" />}
               >

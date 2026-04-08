@@ -349,7 +349,7 @@ function PaymentTitle({
   isDefault?;
 }) {
   return (
-    <b style={{ fontSize: "12pt", color: COLORS.GRAY_M }}>
+    <b style={{ fontSize: "12pt", color: "var(--cocalc-text-primary, #5f5f5f)" }}>
       {icon != null && (
         <Icon name={icon} style={{ width: "25px", color: "darkblue" }} />
       )}{" "}

@@ -39,7 +39,7 @@ export function TypeFilterLabel({ ext }: { ext: string }) {
     <span style={{ whiteSpace: "nowrap" }}>
       <Icon name={iconName} style={{ width: 20, marginRight: 6 }} />
       {name ? `${name} ` : ""}
-      <span style={{ color: COLORS.GRAY }}>.{ext}</span>
+      <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>.{ext}</span>
     </span>
   );
 }

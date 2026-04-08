@@ -1,6 +1,6 @@
 import Logo from "@cocalc/frontend/jupyter/logo";
 export const SELECTED_STYLE: React.CSSProperties = {
-  color: COLORS.BS_BLUE_TEXT,
+  color: "var(--cocalc-link, rgb(33, 150, 243))",
   fontWeight: "bold",
 } as const;
 import { COLORS } from "@cocalc/util/theme";

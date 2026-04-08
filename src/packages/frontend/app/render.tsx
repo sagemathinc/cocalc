@@ -162,6 +162,7 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   s.setProperty("--cocalc-bg-hover", t.bgHover);
   s.setProperty("--cocalc-bg-selected", t.bgSelected);
   s.setProperty("--cocalc-text-primary", textPrimary);
+  s.setProperty("--cocalc-text-primary-strong", t.textPrimaryStrong);
   s.setProperty("--cocalc-text-secondary", textSecondary);
   s.setProperty("--cocalc-text-tertiary", textTertiary);
   s.setProperty("--cocalc-text-on-primary", t.textOnPrimary);

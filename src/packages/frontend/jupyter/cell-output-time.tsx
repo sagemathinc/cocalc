@@ -109,7 +109,7 @@ export default function CellTiming({
             <Icon
               name="plus-circle-filled"
               style={{
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
                 animation: "loadingCircle 3s infinite linear",
                 marginRight: "5px",
               }}

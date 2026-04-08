@@ -97,7 +97,7 @@ export function fileItemStyle(
   const base = {
     ...fileItemBorder(col, "left"),
   };
-  return masked ? { ...base, color: COLORS.FILE_DIMMED } : base;
+  return masked ? { ...base, color: "var(--cocalc-text-tertiary, #959595)" } : base;
 }
 
 export function fileItemBorder(color: string, side: "left" | "top" | "bottom") {

@@ -276,10 +276,10 @@ const SoftwareEnvUpgradeAlert: React.FC<Props> = (props: Props) => {
                 Upgrade this project's software environment from {oldname} to{" "}
                 {render_upgrade_options()}, or keep it as it is.
                 <br />
-                <span style={{ color: COLORS.GRAY }}>
+                <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
                   You can change this any time in{" "}
                   <A
-                    style={{ color: COLORS.GRAY }}
+                    style={{ color: "var(--cocalc-text-secondary, #808080)" }}
                     href={DOC_CHANGE_SOFTWARE_IMAGE}
                   >
                     Project Settings → Project Control → Software Environment

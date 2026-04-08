@@ -163,7 +163,7 @@ export const SiteLicenses: React.FC<{}> = () => {
             }
           }}
         />
-        <div style={{ color: COLORS.GRAY }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
           Search licenses by id, title, description, info, manager name and
           email address.
         </div>

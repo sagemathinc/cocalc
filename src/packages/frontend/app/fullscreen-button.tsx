@@ -47,7 +47,7 @@ export const FullscreenButton: React.FC<Props> = React.memo((props: Props) => {
   const icon = fullscreen ? "compress" : "expand";
   const icon_style: CSS = {
     fontSize: fontSizeIcons,
-    color: COLORS.GRAY,
+    color: "var(--cocalc-text-secondary, #808080)",
     cursor: "pointer",
     ...(fullscreen
       ? {

@@ -12,7 +12,7 @@ import { toSlate } from "./index";
 function InsertButton({ children, onClick }) {
   return (
     <Button
-      style={{ color: COLORS.GRAY_M }}
+      style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}
       size="small"
       onClick={(e) => {
         e.stopPropagation(); // keep the editor with the insert bar itself from getting selected

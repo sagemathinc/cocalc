@@ -152,7 +152,7 @@ export default function ColorPicker({
                 float: "right",
                 fontSize: "12px",
                 marginTop: "20px",
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
               }}
             >
               Color Picker

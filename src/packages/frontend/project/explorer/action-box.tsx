@@ -44,7 +44,7 @@ export const PRE_STYLE = {
   minHeight: "34px",
   fontSize: "14px",
   fontFamily: "inherit",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
   backgroundColor: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LL})`,
   padding: "6px 12px",
 } as const;
@@ -145,7 +145,7 @@ export function ActionBox(props: ReactProps) {
   function render_delete(): React.JSX.Element | undefined {
     return (
       <div>
-        <div style={{ color: COLORS.GRAY_M }}>
+        <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           {render_selected_files_list()}
         </div>
         {render_delete_warning()}
@@ -247,7 +247,7 @@ export function ActionBox(props: ReactProps) {
             flexWrap: "wrap",
           }}
         >
-          <div style={{ flex: 1, minWidth: 200, color: COLORS.GRAY_M }}>
+          <div style={{ flex: 1, minWidth: 200, color: "var(--cocalc-text-primary, #5f5f5f)" }}>
             <h4>Move files to a directory</h4>
             {render_selected_files_list()}
           </div>
@@ -255,7 +255,7 @@ export function ActionBox(props: ReactProps) {
             style={{
               flex: 1,
               minWidth: 300,
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
               marginBottom: 15,
             }}
           >
@@ -298,7 +298,7 @@ export function ActionBox(props: ReactProps) {
           style={{
             flex: 3,
             minWidth: 200,
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             marginBottom: 15,
           }}
         >
@@ -527,7 +527,7 @@ export function ActionBox(props: ReactProps) {
               style={{
                 flex: show_different_project ? 4 : 5,
                 minWidth: 200,
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
               }}
             >
               {render_copy_description()}
@@ -537,7 +537,7 @@ export function ActionBox(props: ReactProps) {
               style={{
                 flex: show_different_project ? 5 : 7,
                 minWidth: 300,
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
               }}
             >
               <h4

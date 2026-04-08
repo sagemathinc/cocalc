@@ -122,7 +122,7 @@ export function ActiveTop(props: Readonly<ActiveTopProps>) {
         >
           <Icon
             name={showStarred ? "star-filled" : "star"}
-            style={{ color: COLORS.STAR }}
+            style={{ color: "var(--cocalc-star, #FFD700)" }}
           />
           {renderLabelText("Starred")}
         </Button>

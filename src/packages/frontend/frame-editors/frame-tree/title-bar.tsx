@@ -1055,7 +1055,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             ? {
                 cursor: "grabbing",
                 background: COLORS.BLUE_D,
-                color: COLORS.WHITE,
+                color: "var(--cocalc-text-on-primary, white)",
                 borderRight: `1px solid ${COLORS.BLUE_D}`,
               }
             : undefined

@@ -145,7 +145,7 @@ export const ProjectCapabilities: React.FC<ReactProps> = React.memo(
       return (
         <>
           <hr />
-          <div style={{ color: COLORS.GRAY }}>
+          <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
             Some features are not available, because this project runs a small{" "}
             <A href={CUSTOM_SOFTWARE_HELP_URL}>customized stack of software</A>.
             To enable all features, please create a new project using the

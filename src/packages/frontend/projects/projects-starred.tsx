@@ -79,7 +79,7 @@ function DraggableProjectButton({
         project.avatar_image_tiny ? (
           <Avatar src={project.avatar_image_tiny} size={20} />
         ) : (
-          <Icon name="star-filled" style={{ color: COLORS.STAR }} />
+          <Icon name="star-filled" style={{ color: "var(--cocalc-star, #FFD700)" }} />
         )
       }
       onClick={(e) => onProjectClick(project.project_id, e)}
@@ -352,7 +352,7 @@ export function StarredProjectsBar() {
         {project.description && (
           <div
             style={{
-              color: COLORS.GRAY_L,
+              color: "var(--cocalc-text-tertiary, #c0c0c0)",
               marginBottom: "8px",
               fontSize: "12px",
             }}
@@ -360,7 +360,7 @@ export function StarredProjectsBar() {
             {project.description}
           </div>
         )}
-        <div style={{ fontSize: "12px", color: COLORS.GRAY_L }}>
+        <div style={{ fontSize: "12px", color: "var(--cocalc-text-tertiary, #c0c0c0)" }}>
           <TimeAgo date={project.last_edited} />
         </div>
       </div>
@@ -396,7 +396,7 @@ export function StarredProjectsBar() {
           {project.avatar_image_tiny ? (
             <Avatar src={project.avatar_image_tiny} size={20} />
           ) : (
-            <Icon name="star-filled" style={{ color: COLORS.STAR }} />
+            <Icon name="star-filled" style={{ color: "var(--cocalc-star, #FFD700)" }} />
           )}{" "}
           {project.title}
         </span>

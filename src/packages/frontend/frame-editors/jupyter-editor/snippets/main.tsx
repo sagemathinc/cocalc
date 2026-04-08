@@ -279,7 +279,7 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
           <Highlight
             text={descr}
             search={search}
-            style={{ color: COLORS.GRAY }}
+            style={{ color: "var(--cocalc-text-secondary, #808080)" }}
           />
           {code != null && code.map((v, idx) => <pre key={idx}>{v}</pre>)}
           <Row>

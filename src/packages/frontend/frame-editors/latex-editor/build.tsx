@@ -80,7 +80,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
   const logStyle: CSS = {
     fontFamily: "monospace",
     whiteSpace: "pre-line",
-    color: COLORS.GRAY_D,
+    color: "var(--cocalc-text-primary-strong, #434343)",
     background: COLORS.GRAY_LLL,
     width: "100%",
     padding: "5px",
@@ -141,7 +141,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
                 <div
                   style={{
                     fontWeight: "bold",
-                    color: COLORS.GRAY_M,
+                    color: "var(--cocalc-text-primary, #5f5f5f)",
                     borderBottom: `1px solid ${COLORS.GRAY_LL}`,
                     paddingBottom: "5px",
                     marginBottom: "5px",
@@ -417,7 +417,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
                 <div
                   style={{
                     fontWeight: "bold",
-                    color: COLORS.GRAY_M,
+                    color: "var(--cocalc-text-primary, #5f5f5f)",
                     borderBottom: `1px solid ${COLORS.GRAY_LL}`,
                     paddingBottom: "5px",
                     marginBottom: "5px",
@@ -453,7 +453,7 @@ export const Build: React.FC<Props> = React.memo((props) => {
                 <div
                   style={{
                     fontWeight: "bold",
-                    color: COLORS.GRAY_M,
+                    color: "var(--cocalc-text-primary, #5f5f5f)",
                     borderBottom: `1px solid ${COLORS.GRAY_LL}`,
                     paddingBottom: "5px",
                     marginBottom: "5px",

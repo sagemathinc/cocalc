@@ -13,7 +13,7 @@ export const STYLE_LOADING: React.CSSProperties = {
 export const STYLE_HEADER: React.CSSProperties = {
   margin: "1rem 1rem 0 1rem",
   borderBottom: `1px solid ${COLORS.GRAY}`,
-  color: COLORS.GRAY,
+  color: "var(--cocalc-text-secondary, #808080)",
   fontSize: "inherit",
 } as const;
 

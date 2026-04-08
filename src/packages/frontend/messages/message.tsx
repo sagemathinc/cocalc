@@ -382,7 +382,7 @@ function MessageFull({
             <div
               style={{
                 marginLeft: LEFT_OFFSET,
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
               }}
             >
               {isToMe(message) && message.to_ids.length == 1 ? (

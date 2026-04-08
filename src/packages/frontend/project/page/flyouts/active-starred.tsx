@@ -45,13 +45,13 @@ export function StarredInTabs({
           ...GROUP_STYLE,
         }}
       >
-        <Icon name="star-filled" style={{ color: COLORS.STAR }} /> Starred{" "}
+        <Icon name="star-filled" style={{ color: "var(--cocalc-star, #FFD700)" }} /> Starred{" "}
         <HelpIcon title={"Starred files are like bookmarks."}>
           These files are not opened, but you can quickly access them.
           <br />
           Use the <Icon
             name="star-filled"
-            style={{ color: COLORS.STAR }}
+            style={{ color: "var(--cocalc-star, #FFD700)" }}
           />{" "}
           icon to star/unstar a file.
           <br />
@@ -60,7 +60,7 @@ export function StarredInTabs({
         </HelpIcon>
         <Button
           size="small"
-          style={{ float: "right", color: COLORS.FILE_EXT }}
+          style={{ float: "right", color: "var(--cocalc-text-tertiary, #999)" }}
           onClick={() => setShowStarredTabs(!showStarredTabs)}
         >
           {showStarredTabs ? (

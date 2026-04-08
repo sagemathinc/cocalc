@@ -189,7 +189,7 @@ export function RegenerateLLM({
           style={{
             display: "inline",
             whiteSpace: "nowrap",
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             ...style,
           }}
         >

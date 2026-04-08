@@ -65,7 +65,7 @@ const SELECTION_STYLE: CSS = {
 
 const ALL_LANGS_LABEL_STYLE: CSS = {
   fontWeight: "bold",
-  color: COLORS.GRAY_D,
+  color: "var(--cocalc-text-primary-strong, #434343)",
 } as const;
 
 interface KernelSelectorProps {
@@ -254,7 +254,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
                 }
               >
                 <Icon
-                  style={{ color: COLORS.GRAY, cursor: "pointer" }}
+                  style={{ color: "var(--cocalc-text-secondary, #808080)", cursor: "pointer" }}
                   name="question-circle"
                 />
               </Popover>{" "}
@@ -517,7 +517,7 @@ export const KernelSelector: React.FC<KernelSelectorProps> = React.memo(
 
     function render_footer(): Rendered {
       return (
-        <div style={{ color: COLORS.GRAY, paddingBottom: "2em" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #808080)", paddingBottom: "2em" }}>
           <Paragraph>
             <FormattedMessage
               id="jupyter.select_kernel.footer"

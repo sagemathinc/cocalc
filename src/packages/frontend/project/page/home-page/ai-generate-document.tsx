@@ -812,7 +812,7 @@ function AIGenerateDocumentComponent({
                     fontSize: "12px",
                     fontFamily: "monospace",
                     borderRadius: "5px",
-                    color: COLORS.GRAY,
+                    color: "var(--cocalc-text-secondary, #808080)",
                   }}
                 />
               ),
@@ -935,7 +935,7 @@ function AIGenerateDocumentComponent({
             style={{
               ...PREVIEW_BOX,
               fontFamily: "monospace",
-              color: COLORS.GRAY,
+              color: "var(--cocalc-text-secondary, #808080)",
             }}
           />
         );

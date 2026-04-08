@@ -54,7 +54,7 @@ const BTN_STYLE_SMALL: React.CSSProperties = {
   padding: "0 4px",
   height: "20px",
   fontSize: "12px",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
   transition: "none",
 };
 
@@ -62,13 +62,13 @@ const BTN_STYLE_MIDDLE: React.CSSProperties = {
   padding: "0 6px",
   height: "24px",
   fontSize: "14px",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
   transition: "none",
 };
 
 const INDICATOR_STYLE: React.CSSProperties = {
   background: COLORS.BLUE_LLL,
-  color: COLORS.GRAY_DD,
+  color: "var(--cocalc-text-primary-strong, #434343)",
   borderRadius: 3,
 };
 
@@ -292,7 +292,7 @@ export const QuickActionButtons: React.FC<QuickActionButtonsProps> = React.memo(
             style={
               activeIcon != null
                 ? { ...btnStyle, ...HIDDEN }
-                : { ...btnStyle, color: COLORS.ANTD_RED }
+                : { ...btnStyle, color: "var(--cocalc-error, #dc3545)" }
             }
             onClick={handleDelete}
             title={intl.formatMessage(labels.delete)}

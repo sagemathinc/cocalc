@@ -28,7 +28,7 @@ export default function FirstSteps({ project_id }: Props) {
     <div
       style={{
         padding: "5px 15px",
-        color: COLORS.GRAY_M,
+        color: "var(--cocalc-text-primary, #5f5f5f)",
         fontSize: "11pt",
         background: COLORS.GRAY_LLLL,
         borderBottom: `1px solid ${COLORS.GRAY_LL}`,

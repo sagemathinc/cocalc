@@ -81,7 +81,7 @@ export default function ProjectsPageTour({
           </p>
           <p>
             Finally,{" "}
-            <Icon name="star-filled" style={{ color: COLORS.YELL_L }} />
+            <Icon name="star-filled" style={{ color: "var(--cocalc-star, #FFD700)" }} />
             -star a project to add it to the quick access row at the top!
           </p>
         </div>

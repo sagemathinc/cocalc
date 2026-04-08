@@ -421,7 +421,7 @@ export function RegistrationToken() {
   function render_unsupported() {
     // see https://github.com/sagemathinc/cocalc/issues/333
     return (
-      <div style={{ color: COLORS.GRAY }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
         Not supported! At least one "public" passport strategy is enabled.
       </div>
     );
@@ -429,7 +429,7 @@ export function RegistrationToken() {
 
   function render_info(): Rendered {
     return (
-      <div style={{ color: COLORS.GRAY, fontStyle: "italic" }}>
+      <div style={{ color: "var(--cocalc-text-secondary, #808080)", fontStyle: "italic" }}>
         {saving && (
           <>
             <Saving />

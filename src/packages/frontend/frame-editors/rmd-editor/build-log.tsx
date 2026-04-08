@@ -221,7 +221,7 @@ export const BuildLog: React.FC<BuildLogProps> = React.memo(
                   margin: "10px",
                   fontWeight: "bold",
                   fontSize: `${font_size}px`,
-                  color: COLORS.GRAY_M,
+                  color: "var(--cocalc-text-primary, #5f5f5f)",
                 }}
               >
                 Build completed.{peakResourceUsage}

@@ -87,7 +87,7 @@ export function OutputFiles({
           Open Main File
         </Button>
 
-        <span style={{ color: COLORS.GRAY_M, fontSize: uiFontSize }}>
+        <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)", fontSize: uiFontSize }}>
           {subFileCount} {plural(subFileCount, "subfile")}
         </span>
 
@@ -126,7 +126,7 @@ export function OutputFiles({
                     size="default"
                     style={{
                       backgroundColor: "transparent",
-                      color: COLORS.GRAY_D,
+                      color: "var(--cocalc-text-primary-strong, #434343)",
                     }}
                     icon={<Icon name={filenameIcon(item.path)} />}
                   />
@@ -144,7 +144,7 @@ export function OutputFiles({
                 description={
                   <span
                     style={{
-                      color: COLORS.GRAY_M,
+                      color: "var(--cocalc-text-primary, #5f5f5f)",
                       fontSize: uiFontSize - 2,
                     }}
                   >

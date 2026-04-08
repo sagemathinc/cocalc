@@ -546,7 +546,7 @@ export class ManageCommands {
             <div
               style={{
                 fontSize: "11px",
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
                 marginTop: "-10px",
                 // special case: button='' explicitly means no label
                 width: cmd.button === "" ? undefined : "50px",

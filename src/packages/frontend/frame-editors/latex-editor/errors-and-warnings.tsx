@@ -237,7 +237,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
               text={status}
               style={{
                 fontSize: props.font_size,
-                color: COLORS.GRAY,
+                color: "var(--cocalc-text-secondary, #808080)",
               }}
             />
           </div>
@@ -331,7 +331,7 @@ export const ErrorsAndWarnings: React.FC<ErrorsAndWarningsProps> = React.memo(
         return;
       }
       return (
-        <div style={{ color: COLORS.GRAY }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
           Click the <Icon name="play-circle" /> Build button or hit shift+enter
           to run LaTeX.
         </div>

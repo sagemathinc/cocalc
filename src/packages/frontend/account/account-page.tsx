@@ -612,7 +612,7 @@ export const AccountPage: React.FC = () => {
               minHeight: 0,
               textAlign: "left",
               padding: "15px 0",
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
             }}
             onClick={handleHideToggle}
             icon={

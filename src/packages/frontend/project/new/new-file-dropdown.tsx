@@ -108,7 +108,7 @@ export function NewFileDropdown({
           {data.name ? data.name : "No Extension"}
         </span>{" "}
         {ext && ext !== "/" ? (
-          <span style={{ color: COLORS.GRAY }}>(.{ext})</span>
+          <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>(.{ext})</span>
         ) : undefined}
       </>
     );

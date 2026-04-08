@@ -250,7 +250,7 @@ export default function AllQuotasConfig() {
         />
       )}
 
-      <div style={{ color: COLORS.GRAY_M, marginBottom: "15px" }}>
+      <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)", marginBottom: "15px" }}>
         <Alert
           style={{ margin: "auto", maxWidth: "800px" }}
           type="info"

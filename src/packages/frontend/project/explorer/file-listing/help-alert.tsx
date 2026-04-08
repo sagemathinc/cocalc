@@ -56,7 +56,7 @@ export function HelpAlert({
       message = (
         <>
           <Text keyboard>
-            <span style={{ color: COLORS.GRAY_D }}>Shift+Return</span>
+            <span style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>Shift+Return</span>
           </Text>{" "}
           creates folder path <strong>{file_search}</strong>
         </>
@@ -66,7 +66,7 @@ export function HelpAlert({
       message = (
         <>
           <Text keyboard>
-            <span style={{ color: COLORS.GRAY_D }}>Shift+Return</span>
+            <span style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>Shift+Return</span>
           </Text>{" "}
           creates folder <strong>{file_search}</strong>
         </>

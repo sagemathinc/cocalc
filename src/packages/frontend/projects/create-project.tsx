@@ -334,7 +334,7 @@ export function NewProjectCreator({
   function render_license() {
     if (isValidUUID(license_id)) {
       return (
-        <div style={{ color: COLORS.GRAY }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
           This project will have the license <code>{license_id}</code> applied
           to. You can{" "}
           <A

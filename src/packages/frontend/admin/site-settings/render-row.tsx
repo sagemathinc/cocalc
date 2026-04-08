@@ -93,7 +93,7 @@ export function RenderRow({
     <div style={{ paddingRight: "15px" }}>
       <strong>{conf.name}</strong> <RowHelp help={conf.help} />
       <br />
-      <StaticMarkdown style={{ color: COLORS.GRAY_M }} value={conf.desc} />
+      <StaticMarkdown style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }} value={conf.desc} />
     </div>
   );
 
@@ -185,7 +185,7 @@ function RowHelp({ help }: { help?: string }) {
       placement="right"
       overlayStyle={{ maxWidth: "500px" }}
     >
-      <Icon style={{ color: COLORS.GRAY }} name="question-circle" />
+      <Icon style={{ color: "var(--cocalc-text-secondary, #808080)" }} name="question-circle" />
     </Popover>
   );
 }

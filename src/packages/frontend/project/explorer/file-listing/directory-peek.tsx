@@ -261,7 +261,7 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
         }
       >
         {isLarge && (
-          <span style={{ fontSize: 11, color: COLORS.GRAY_M }}>
+          <span style={{ fontSize: 11, color: "var(--cocalc-text-primary, #5f5f5f)" }}>
             {entries.length.toLocaleString()} items
           </span>
         )}
@@ -272,7 +272,7 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
             e.stopPropagation();
             onClose();
           }}
-          style={{ color: COLORS.GRAY_M }}
+          style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}
         >
           <Icon name="times" />
         </Button>
@@ -285,14 +285,14 @@ const DirectoryPeek = React.memo(function DirectoryPeek({
       )}
 
       {error && (
-        <div style={{ color: COLORS.ANTD_RED, fontSize: 12 }}>
+        <div style={{ color: "var(--cocalc-error, #dc3545)", fontSize: 12 }}>
           Error loading directory: {error}
         </div>
       )}
 
       {!loading && !error && entries.length === 0 && (
         <div
-          style={{ color: COLORS.GRAY_M, fontSize: 12, fontStyle: "italic" }}
+          style={{ color: "var(--cocalc-text-primary, #5f5f5f)", fontSize: 12, fontStyle: "italic" }}
         >
           Empty directory
         </div>
@@ -446,7 +446,7 @@ function PeekFileName({ name, isdir }: { name: string; isdir?: boolean }) {
     >
       {parts.name}
       {parts.ext ? (
-        <span style={{ color: COLORS.FILE_DIMMED }}>.{parts.ext}</span>
+        <span style={{ color: "var(--cocalc-text-tertiary, #959595)" }}>.{parts.ext}</span>
       ) : null}
     </span>
   );

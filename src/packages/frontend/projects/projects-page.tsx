@@ -39,7 +39,7 @@ import { FilenameSearch } from "./filename-search";
 const LOADING_STYLE: CSS = {
   fontSize: "40px",
   textAlign: "center",
-  color: COLORS.GRAY,
+  color: "var(--cocalc-text-secondary, #808080)",
 } as const;
 
 export const ProjectsPage: React.FC = () => {

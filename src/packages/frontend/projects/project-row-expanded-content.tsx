@@ -138,7 +138,7 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
         <span>
           {name}{" "}
           <span
-            style={{ color: COLORS.GRAY }}
+            style={{ color: "var(--cocalc-text-secondary, #808080)" }}
             title="Custom image created by a third party"
           >
             (custom)
@@ -154,7 +154,7 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
           {name}
           {kucalc === KUCALC_COCALC_COM && (
             <span
-              style={{ color: COLORS.GRAY, marginLeft: "4px" }}
+              style={{ color: "var(--cocalc-text-secondary, #808080)", marginLeft: "4px" }}
               title="Official image created by CoCalc"
             >
               (official)
@@ -333,14 +333,14 @@ export function ProjectRowExpandedContent({ project_id }: Props) {
           {project.get("created") ? (
             <TimeAgo date={project.get("created")} />
           ) : (
-            <span style={{ color: COLORS.GRAY }}>Unknown</span>
+            <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>Unknown</span>
           )}
         </Descriptions.Item>
         <Descriptions.Item label="Last Edited">
           {project.get("last_edited") ? (
             <TimeAgo date={project.get("last_edited")} />
           ) : (
-            <span style={{ color: COLORS.GRAY }}>Never</span>
+            <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>Never</span>
           )}
         </Descriptions.Item>
         <Descriptions.Item label={intl.formatMessage(labels.state)}>

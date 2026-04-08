@@ -46,7 +46,7 @@ export function AgentRollbackHint({
     <div
       style={{
         fontSize: "0.8em",
-        color: COLORS.GRAY_M,
+        color: "var(--cocalc-text-primary, #5f5f5f)",
         textAlign: "center",
       }}
     >
@@ -61,7 +61,7 @@ export function AgentRollbackHint({
           minWidth: 0,
           fontSize: "inherit",
           lineHeight: "inherit",
-          color: COLORS.GRAY_M,
+          color: "var(--cocalc-text-primary, #5f5f5f)",
         }}
       >
         TimeTravel

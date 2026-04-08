@@ -269,7 +269,7 @@ export function ComputeImageSelector({
 
   function render_doubt() {
     return (
-      <span style={{ color: COLORS.GRAY, fontSize: "11pt" }}>
+      <span style={{ color: "var(--cocalc-text-secondary, #808080)", fontSize: "11pt" }}>
         <Divider />
         <FormattedMessage
           id="project.settings.compute-image-selector.doubt"

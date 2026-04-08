@@ -87,7 +87,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
 
   const icon =
     any_alerts && project_state === "running" ? (
-      <Icon name={"exclamation-triangle"} style={{ color: COLORS.BS_RED }} />
+      <Icon name={"exclamation-triangle"} style={{ color: "var(--cocalc-error, #dc3545)" }} />
     ) : (
       <Icon name={COMPUTE_STATES[project_state]?.icon ?? "bullhorn"} />
     );
@@ -147,7 +147,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
           value={project?.get("description") ?? ""}
         />
         <hr />
-        <div style={{ color: COLORS.GRAY }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
           Hint: Shift+click any project or file tab to open it in new window.
         </div>
       </div>
@@ -157,7 +157,7 @@ function ProjectTab({ project_id }: ProjectTabProps) {
   function renderNoInternet() {
     if (!showNoInternet) return;
     const noInternet = (
-      <Icon name="global" style={{ color: COLORS.ANTD_RED_WARN }} />
+      <Icon name="global" style={{ color: "var(--cocalc-error, #f5222d)" }} />
     );
     if (other_settings.get("hide_project_popovers")) {
       return <Tooltip title={noInternetInfo("tooltip")}>{noInternet}</Tooltip>;

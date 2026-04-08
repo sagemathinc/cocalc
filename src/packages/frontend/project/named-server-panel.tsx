@@ -169,7 +169,7 @@ export function NamedServerPanel({ project_id, name, style }: Props) {
   } else {
     body = (
       <>
-        <Paragraph style={{ color: COLORS.GRAY_D }}>
+        <Paragraph style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>
           {description}
           <br />
           <br />

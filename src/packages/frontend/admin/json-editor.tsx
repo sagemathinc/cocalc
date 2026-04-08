@@ -74,7 +74,7 @@ export const JsonEditor: React.FC<Props> = (props: Props) => {
   }
 
   const style: CSS = {
-    ...(!focused && { color: COLORS.GRAY, cursor: "pointer" }),
+    ...(!focused && { color: "var(--cocalc-text-secondary, #808080)", cursor: "pointer" }),
     width: "100%",
   };
 

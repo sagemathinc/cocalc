@@ -202,7 +202,7 @@ export function MarkdownInput({
           onChange={onChange}
           onKeyDown={keydown}
         />
-        <div style={{ paddingTop: "8px", color: COLORS.GRAY_M }}>
+        <div style={{ paddingTop: "8px", color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           {renderTip()}
         </div>
         <Space style={{ paddingBottom: "5px" }}>

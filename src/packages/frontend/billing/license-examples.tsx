@@ -48,7 +48,7 @@ export const LicenseExamples: React.FC<Props> = ({
           {value_str} {unit}
         </span>
         <Gap />
-        <span style={{ color: COLORS.GRAY }}>{resource}</span>
+        <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>{resource}</span>
       </div>
     );
   }
@@ -63,11 +63,11 @@ export const LicenseExamples: React.FC<Props> = ({
   ) {
     const smallpx = `${small}px`;
     const largepx = `${large}px`;
-    const e = emph ? { fontWeight: "bold" as "bold" } : { color: COLORS.GRAY };
+    const e = emph ? { fontWeight: "bold" as "bold" } : { color: "var(--cocalc-text-secondary, #808080)" };
     const style = { ...{ whiteSpace: "nowrap" as "nowrap" }, ...e };
     if (!online && usd < MIN_QUOTE) {
       return (
-        <span style={{ fontSize: largepx, color: COLORS.GRAY_L }}>N/A</span>
+        <span style={{ fontSize: largepx, color: "var(--cocalc-text-tertiary, #c0c0c0)" }}>N/A</span>
       );
     } else {
       return (

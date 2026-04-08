@@ -221,7 +221,7 @@ export const EmailAddressSetting = ({
   }
 
   const label = is_anonymous ? (
-    <h5 style={{ color: COLORS.GRAY_M }}>
+    <h5 style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
       Sign up using an email address and password
     </h5>
   ) : (
@@ -231,7 +231,7 @@ export const EmailAddressSetting = ({
   return (
     <LabeledRow
       label={label}
-      style={disabled ? { color: COLORS.GRAY_M } : undefined}
+      style={disabled ? { color: "var(--cocalc-text-primary, #5f5f5f)" } : undefined}
     >
       <div>
         {savedEmailAddress}

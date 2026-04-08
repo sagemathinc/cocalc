@@ -48,7 +48,7 @@ export const SearchHistoryDropdown: React.FC<Props> = React.memo(
             style={{
               alignItems: "center",
               background: idx === historyIndex ? "var(--cocalc-bg-hover, #eee)" : "var(--cocalc-bg-base, #fff)",
-              color: COLORS.TAB,
+              color: "var(--cocalc-text-primary-strong, #333333)",
               cursor: "pointer",
               display: "flex",
               gap: "8px",

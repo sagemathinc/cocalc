@@ -3,7 +3,7 @@ import { COLORS } from "@cocalc/util/theme";
 
 export const CODE_BAR_BTN_STYLE: CSS = {
   fontSize: "12px",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 export const MINI_BUTTONS_STYLE_INNER: CSS = {

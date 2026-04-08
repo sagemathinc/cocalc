@@ -47,7 +47,7 @@ export function OutputStats({
       <div style={OUTPUT_HEADER_STYLE}>
         <span
           style={{
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             fontSize: uiFontSize,
             display: "flex",
             alignItems: "center",
@@ -84,7 +84,7 @@ export function OutputStats({
             whiteSpace: "pre-wrap",
             wordWrap: "break-word",
             margin: 0,
-            color: COLORS.GRAY_D,
+            color: "var(--cocalc-text-primary-strong, #434343)",
           }}
         >
           {wordCount || "Click refresh to generate word count statistics..."}

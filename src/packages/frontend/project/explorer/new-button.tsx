@@ -69,7 +69,7 @@ export const NewButton: React.FC<Props> = (props: Props) => {
         <span style={{ whiteSpace: "nowrap" }}>
           <Icon name={data.icon} />{" "}
           <span style={{ textTransform: "capitalize" }}>{data.name} </span>{" "}
-          <span style={{ color: COLORS.GRAY_D }}>(.{ext})</span>
+          <span style={{ color: "var(--cocalc-text-primary-strong, #434343)" }}>(.{ext})</span>
         </span>
       ),
     };

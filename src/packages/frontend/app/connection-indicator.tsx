@@ -31,7 +31,7 @@ interface Props {
 const BASE_STYLE: CSS = {
   fontSize: FONT_SIZE_ICONS_NORMAL,
   display: "inline",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 export const ConnectionIndicator: React.FC<Props> = React.memo(
@@ -54,7 +54,7 @@ export const ConnectionIndicator: React.FC<Props> = React.memo(
       flex: "0 0 auto",
       display: "flex",
       alignItems: "center",
-      color: COLORS.GRAY_M,
+      color: "var(--cocalc-text-primary, #5f5f5f)",
       cursor: "pointer",
       height: `${height}px`,
       padding: `${topPaddingIcons} ${sidePaddingIcons}`,

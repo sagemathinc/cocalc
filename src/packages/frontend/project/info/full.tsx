@@ -516,7 +516,7 @@ export function Full(props: Readonly<Props>): React.JSX.Element {
   function render_general_status() {
     return (
       <Col md={12}>
-        <div ref={generalStatusRef} style={{ color: COLORS.GRAY }}>
+        <div ref={generalStatusRef} style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
           Timestamp:{" "}
           {info?.timestamp != null ? (
             <code>{new Date(info.timestamp).toISOString()}</code>

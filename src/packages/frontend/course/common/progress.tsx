@@ -12,7 +12,7 @@ import { Icon } from "@cocalc/frontend/components";
 import { COLORS } from "@cocalc/util/theme";
 
 const progress_info = {
-  color: COLORS.GRAY_D,
+  color: "var(--cocalc-text-primary-strong, #434343)",
   paddingLeft: "5px",
 } as const;
 

@@ -274,11 +274,11 @@ export function TestLLMAdmin() {
     const { firstResponseTime, totalTime, status } = record;
 
     if (status === "pending" || status === "running") {
-      return <span style={{ color: COLORS.GRAY_M }}>-</span>;
+      return <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>-</span>;
     }
 
     if (firstResponseTime === undefined || totalTime === undefined) {
-      return <span style={{ color: COLORS.GRAY_M }}>-</span>;
+      return <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>-</span>;
     }
 
     // Calculate progress bar values (normalize to 10 seconds max)
@@ -353,7 +353,7 @@ export function TestLLMAdmin() {
           output ? (
             <Markdown value={output} />
           ) : (
-            <span style={{ color: COLORS.GRAY_M }}>-</span>
+            <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>-</span>
           ),
       },
       {
@@ -364,7 +364,7 @@ export function TestLLMAdmin() {
           error ? (
             <Alert type="error" banner message={error} style={{ margin: 0 }} />
           ) : (
-            <span style={{ color: COLORS.GRAY_M }}>-</span>
+            <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>-</span>
           ),
       },
       {

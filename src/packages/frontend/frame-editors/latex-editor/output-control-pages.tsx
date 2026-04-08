@@ -25,7 +25,7 @@ const CONTROL_PAGE_STYLE = {
   alignItems: "center",
   gap: "5px",
   fontSize: "13px",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 interface PageNavigationControlsProps {

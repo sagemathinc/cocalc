@@ -127,7 +127,7 @@ export default function ConfigurationCopying({
         </>
       }
     >
-      <div style={{ color: COLORS.GRAY_M }}>
+      <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <FormattedMessage
           id="course.configuration-copying.info"
           defaultMessage={`Copy configuration from this course to other courses.

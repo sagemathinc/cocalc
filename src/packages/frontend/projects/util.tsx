@@ -366,7 +366,7 @@ export function useFilesMenuItems(
           key: "empty",
           label:
             typeof emptyLabel === "string" ? (
-              <span style={{ color: COLORS.GRAY }}>{emptyLabel}</span>
+              <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>{emptyLabel}</span>
             ) : (
               emptyLabel
             ),

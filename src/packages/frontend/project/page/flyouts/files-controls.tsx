@@ -96,7 +96,7 @@ export function FilesSelectedControls({
     }
 
     return (
-      <div style={{ color: COLORS.GRAY_M }}>
+      <div style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <Icon name="files" /> {nFiles} {plural(nFiles, "file")}, {nDirs}{" "}
         {plural(nDirs, "folder")}
       </div>

@@ -630,7 +630,7 @@ export function ColorThemeSelector() {
             ]}
           />
         </div>
-        <div style={{ fontSize: 12, color: COLORS.GRAY }}>
+        <div style={{ fontSize: 12, color: "var(--cocalc-text-secondary, #808080)" }}>
           {intl.formatMessage(MESSAGES.nativeDarkDescription)}
         </div>
       </div>
@@ -671,7 +671,7 @@ export function ColorThemeSelector() {
       {/* Custom base-color pickers — shown only when Custom theme is active */}
       {isCustom && (
         <Card size="small" style={{ marginTop: 8 }}>
-          <div style={{ marginBottom: 8, color: COLORS.GRAY_M, fontSize: 12 }}>
+          <div style={{ marginBottom: 8, color: "var(--cocalc-text-primary, #5f5f5f)", fontSize: 12 }}>
             <FormattedMessage {...MESSAGES.customDescription} />
           </div>
           <CustomColorEditor value={customBase} onChange={handleCustomChange} />

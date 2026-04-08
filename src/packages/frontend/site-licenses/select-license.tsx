@@ -92,7 +92,7 @@ export default function SelectLicense(props: Props) {
             message={
               <>
                 <span style={{ fontFamily: "monospace" }}>{id}</span>
-                <span style={{ color: COLORS.GRAY_M }}>
+                <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
                   {title ? " - " + title : ""}
                   <br />
                   <span style={{ whiteSpace: "normal" }}>
@@ -167,7 +167,7 @@ export default function SelectLicense(props: Props) {
               style={{
                 flex: "1 0 0",
                 margin: "5px 0",
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #5f5f5f)",
                 whiteSpace: "nowrap",
               }}
               checked={showAll}

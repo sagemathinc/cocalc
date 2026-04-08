@@ -43,7 +43,7 @@ export default function NewPage({
         >
           <Icon
             name="plus-circle"
-            style={{ fontSize: "200%", color: COLORS.FILE_ICON }}
+            style={{ fontSize: "200%", color: "var(--cocalc-primary, rgb(66, 139, 202))" }}
           />
           <br />
           {label ?? "New Page"}
@@ -62,7 +62,7 @@ export function AddPage({ pageId }: { pageId: string }) {
         type="text"
         size="small"
         onClick={() => addPage(actions, pageId)}
-        icon={<Icon name="plus-circle" style={{ color: COLORS.FILE_ICON }} />}
+        icon={<Icon name="plus-circle" style={{ color: "var(--cocalc-primary, rgb(66, 139, 202))" }} />}
       />
     </Tooltip>
   );

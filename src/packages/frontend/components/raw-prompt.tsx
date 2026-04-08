@@ -14,7 +14,7 @@ const STYLE = {
   fontSize: "85%",
   fontFamily: "monospace",
   whiteSpace: "pre-wrap",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
 } as const;
 
 interface Props {

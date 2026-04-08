@@ -49,7 +49,7 @@ export function SoftwareImageDisplay({ image }: DisplayProps) {
       return (
         <>
           {img_data.get("display")}{" "}
-          <span style={{ color: COLORS.GRAY, fontFamily: "monospace" }}>
+          <span style={{ color: "var(--cocalc-text-secondary, #808080)", fontFamily: "monospace" }}>
             ({name})
           </span>
         </>

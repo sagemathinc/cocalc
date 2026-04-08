@@ -361,7 +361,7 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
         or pick one from your{" "}
         <Button
           size="small"
-          icon={<Icon name="star-filled" style={{ color: COLORS.STAR }} />}
+          icon={<Icon name="star-filled" style={{ color: "var(--cocalc-star, #FFD700)" }} />}
           onClick={() => {
             setShowStarred(true);
             setShowStarredTabs(true);
@@ -585,13 +585,13 @@ export function ActiveFlyout(props: Readonly<Props>): React.JSX.Element {
           style={{
             padding: FLYOUT_PADDING,
             ...GROUP_STYLE,
-            color: COLORS.FILE_EXT,
+            color: "var(--cocalc-text-tertiary, #999)",
           }}
         >
           <Icon name="undo" /> Closed files
           <Button
             size="small"
-            style={{ float: "right", color: COLORS.FILE_EXT }}
+            style={{ float: "right", color: "var(--cocalc-text-tertiary, #999)" }}
             onClick={() => actions?.clear_just_closed_files()}
           >
             <Icon name="times" /> Clear

@@ -33,7 +33,7 @@ export function NotificationPage() {
 
   function renderExplanation() {
     return (
-      <Paragraph style={{ color: COLORS.GRAY_D, flex: "0 0 auto" }}>
+      <Paragraph style={{ color: "var(--cocalc-text-primary-strong, #434343)", flex: "0 0 auto" }}>
         {intl.formatMessage(
           {
             id: "notifications.page.intro",

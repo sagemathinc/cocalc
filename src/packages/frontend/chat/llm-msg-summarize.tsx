@@ -115,7 +115,7 @@ export function SummarizeThread({
         placement={"bottom"}
         title={"Summarize this thread using a language model."}
       >
-        <Button type="text" style={{ color: COLORS.GRAY_M }}>
+        <Button type="text" style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <AIAvatar size={16} style={{ top: 0 }} />
           Summarize…
         </Button>

@@ -380,7 +380,7 @@ export function AccountSettings(props: Readonly<Props>) {
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: COLORS.GRAY_M }}>
+        <h5 style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           {intl.formatMessage({
             id: "account.settings.sso.account_is_linked",
             defaultMessage: blockedStrategyName
@@ -453,7 +453,7 @@ export function AccountSettings(props: Readonly<Props>) {
     return (
       <div>
         <hr key="hr0" />
-        <h5 style={{ color: COLORS.GRAY_M }}>{heading}</h5>
+        <h5 style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>{heading}</h5>
         <Space size={[10, 10]} wrap style={{ marginBottom: "10px" }}>
           {btns}
         </Space>

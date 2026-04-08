@@ -109,7 +109,7 @@ export function LLMHistorySelector({
           />
         ) : (
           <div
-            style={{ padding: 16, textAlign: "center", color: COLORS.FILE_EXT }}
+            style={{ padding: 16, textAlign: "center", color: "var(--cocalc-text-tertiary, #999)" }}
           >
             No matching prompts
           </div>

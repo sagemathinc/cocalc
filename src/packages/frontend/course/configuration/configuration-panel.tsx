@@ -224,7 +224,7 @@ export function TitleAndDescription({ actions, settings, name }) {
         />
       </LabeledRow>
       <hr />
-      <span style={{ color: COLORS.GRAY_M }}>
+      <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <FormattedMessage
           id="course.configuration.title_and_description.info"
           defaultMessage={`Set the course title and description here.
@@ -295,7 +295,7 @@ export function EmailInvitation({ actions, redux, project_id, name }) {
         />
       </div>
       <hr />
-      <span style={{ color: COLORS.GRAY_M }}>
+      <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
         <FormattedMessage
           id="course.configuration.email_invitation.info"
           defaultMessage={`If you add a student to this course using their email address,

@@ -107,7 +107,7 @@ export const InputPrompt: React.FC<InputPromptProps> = (props) => {
               position: "relative",
               left: 0,
               top: 0,
-              color: COLORS.GRAY_M,
+              color: "var(--cocalc-text-primary, #5f5f5f)",
             }}
           />
         </div>

@@ -99,7 +99,7 @@ const TOOL_RESULT_STYLE: CSS = {
   padding: "2px 12px",
   background: COLORS.GRAY_LLL,
   fontSize: "0.8em",
-  color: COLORS.GRAY_M,
+  color: "var(--cocalc-text-primary, #5f5f5f)",
   fontFamily: "monospace",
 };
 
@@ -848,7 +848,7 @@ export function NotebookAgent({
             padding: "3px 12px",
             background: COLORS.YELL_LLL,
             fontSize: "0.85em",
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             borderTop: `1px solid ${COLORS.GRAY_L}`,
           }}
         >

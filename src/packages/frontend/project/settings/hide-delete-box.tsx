@@ -185,7 +185,7 @@ export function HideDeleteBox(props: Readonly<Props>) {
 
     return (
       <>
-        <Row style={{ color: COLORS.GRAY_M }}>
+        <Row style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           <Col sm={12}>
             <Title level={4}>
               <Icon name={hidden ? "eye-slash" : "eye"} /> {hide_label}

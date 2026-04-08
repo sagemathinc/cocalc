@@ -36,7 +36,7 @@ export const title_style: React.CSSProperties = {
   overflow: "hidden",
   paddingLeft: "10px",
   margin: "5px 10px",
-  color: COLORS.GRAY,
+  color: "var(--cocalc-text-secondary, #808080)",
 } as const;
 
 export function props2img(props: {

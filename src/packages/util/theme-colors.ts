@@ -108,6 +108,7 @@ export interface ColorTheme {
 
   // ── Text ─────────────────────────────────────────────────────────────
   textPrimary: string;
+  textPrimaryStrong: string; // darker/bolder variant for emphasis
   textSecondary: string;
   textTertiary: string;
   textOnPrimary: string;
@@ -217,6 +218,7 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     bgSelected: lighten(primary, 0.9),
 
     textPrimary: text,
+    textPrimaryStrong: darken(text, 0.15),
     textSecondary: lighten(text, 0.35),
     textTertiary: lighten(text, 0.55),
     textOnPrimary: contrastText(primary),
@@ -285,6 +287,7 @@ export function deriveAccessibilityTheme(theme: ColorTheme): ColorTheme {
     ? mixColors("#181818", theme.primary, 0.42)
     : mixColors("#d4d4d4", theme.primary, 0.46);
   const textPrimary = isDark ? "#ffffff" : "#000000";
+  const textPrimaryStrong = isDark ? "#ffffff" : "#000000";
   const textSecondary = isDark ? "#f0f0f0" : "#111111";
   const textTertiary = isDark ? "#d0d0d0" : "#333333";
   const border = mixColors("#707070", theme.primary, 0.16);
@@ -300,6 +303,7 @@ export function deriveAccessibilityTheme(theme: ColorTheme): ColorTheme {
     bgHover,
     bgSelected,
     textPrimary,
+    textPrimaryStrong,
     textSecondary,
     textTertiary,
     border,
@@ -363,6 +367,7 @@ export function deriveDarkTheme(light: ColorTheme): ColorTheme {
     bgSelected: darken(primary, 0.7),
 
     textPrimary: darkText,
+    textPrimaryStrong: "#ffffff",
     textSecondary: darken(darkText, 0.2),
     textTertiary: darken(darkText, 0.4),
     textOnPrimary: "#ffffff",

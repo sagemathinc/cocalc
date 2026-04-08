@@ -124,7 +124,7 @@ export const DiskSpaceWarning: React.FC<{ project_id: string }> = ({
       style={{ border: "none" }}
       showIcon
       message={
-        <b style={{ color: COLORS.GRAY_M }}>
+        <b style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
           This project is running out of disk space ({disk_free} MB free of{" "}
           {quotas.disk_quota} MB)
         </b>

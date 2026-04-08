@@ -15,7 +15,7 @@ import { Tip } from "./tip";
 
 import React from "react";
 
-const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+const DIMMED_STYLE = { color: "var(--cocalc-text-tertiary, #959595)" } as const;
 
 interface Props {
   path: string;
@@ -65,7 +65,7 @@ export const PathLink: React.FC<Props> = ({
             onOpen?.();
             handleFileEntryClick(e, path, project_id);
           }}
-          style={{ color: COLORS.GRAY_D, fontWeight: "bold", ...style }}
+          style={{ color: "var(--cocalc-text-primary-strong, #434343)", fontWeight: "bold", ...style }}
         >
           {s}
         </a>

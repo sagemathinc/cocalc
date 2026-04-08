@@ -25,7 +25,7 @@ export function DragOverlayContent({ icon, text, variant }: Props) {
       style={{
         ...DRAG_OVERLAY_STYLE,
         background: VARIANT_COLORS[variant],
-        color: COLORS.WHITE,
+        color: "var(--cocalc-text-on-primary, white)",
       }}
     >
       <Icon name={icon} style={{ marginRight: 6 }} />

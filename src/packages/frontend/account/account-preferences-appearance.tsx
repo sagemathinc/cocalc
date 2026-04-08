@@ -165,7 +165,7 @@ export function AccountPreferencesAppearance() {
             ]}
           />
         </div>
-        <div style={{ fontSize: 12, color: COLORS.GRAY }}>
+        <div style={{ fontSize: 12, color: "var(--cocalc-text-secondary, #808080)" }}>
           {intl.formatMessage(DARK_MODE_MESSAGES.description)}
         </div>
       </Panel>

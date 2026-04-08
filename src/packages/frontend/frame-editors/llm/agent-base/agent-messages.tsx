@@ -84,7 +84,7 @@ export function AgentMessages({
       {messages.length === 0 && (
         <Paragraph
           style={{
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             textAlign: "center",
             marginTop: 20,
             marginLeft: 5,
@@ -104,7 +104,7 @@ export function AgentMessages({
             {authorName && (
               <div
                 style={{
-                  color: COLORS.GRAY_M,
+                  color: "var(--cocalc-text-primary, #5f5f5f)",
                   fontSize: "0.8em",
                   marginBottom: 4,
                 }}

@@ -443,7 +443,7 @@ function ShowAllThreads({
           }
           style={{
             fontSize: "14pt",
-            color: COLORS.GRAY_M,
+            color: "var(--cocalc-text-primary, #5f5f5f)",
             marginLeft: "24px",
             marginRight: "30px",
           }}
@@ -579,7 +579,7 @@ function ShowOneThread({
         >
           <Icon
             name="left-circle-o"
-            style={{ fontSize: "14pt", color: COLORS.GRAY_M }}
+            style={{ fontSize: "14pt", color: "var(--cocalc-text-primary, #5f5f5f)" }}
           />
           {intl.formatMessage(labels.back)}
         </Button>

@@ -18,7 +18,7 @@ export function Connecting(_props) {
         fontSize: "25px",
         marginTop: "75px",
         textAlign: "center",
-        color: COLORS.GRAY,
+        color: "var(--cocalc-text-secondary, #808080)",
       }}
     >
       <Icon name="cocalc-ring" spin /> {intl.formatMessage(labels.connecting)}

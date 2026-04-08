@@ -97,7 +97,7 @@ function KernelPanel({ actions }: Props) {
           }
         >
           <Button
-            style={{ color: COLORS.GRAY_D, position: "relative", top: "2px" }}
+            style={{ color: "var(--cocalc-text-primary-strong, #434343)", position: "relative", top: "2px" }}
             size="small"
             onClick={() => {
               openJupyterNotebook({ project_id, path });

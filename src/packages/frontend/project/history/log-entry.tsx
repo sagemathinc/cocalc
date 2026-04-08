@@ -120,7 +120,7 @@ function TookTime({
     description = `${(Math.round(ms / 100) / 10).toFixed(1)}s`;
   }
 
-  return <span style={{ color: COLORS.GRAY_M }}>(took {description})</span>;
+  return <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>(took {description})</span>;
 }
 
 function areEqual(prev: Props, next: Props): boolean {
@@ -701,7 +701,7 @@ export const LogEntry: React.FC<Props> = React.memo(
                 onClick={(e) =>
                   handleFileEntryClick(e, path, project_id, { id: cellId })
                 }
-                style={{ color: COLORS.GRAY_D, fontWeight: "bold" }}
+                style={{ color: "var(--cocalc-text-primary-strong, #434343)", fontWeight: "bold" }}
               >
                 cell #{cellNumber}
               </a>
@@ -717,7 +717,7 @@ export const LogEntry: React.FC<Props> = React.memo(
                     line: `${lineNumber}`,
                   })
                 }
-                style={{ color: COLORS.GRAY_D, fontWeight: "bold" }}
+                style={{ color: "var(--cocalc-text-primary-strong, #434343)", fontWeight: "bold" }}
               >
                 line #{lineNumber}
               </a>
@@ -1064,7 +1064,7 @@ export const LogEntry: React.FC<Props> = React.memo(
       // flyout mode only: if column is wider, add timestamp
       if (mode === "flyout" && flyoutExtra) {
         return (
-          <span style={{ color: COLORS.GRAY_M }}>
+          <span style={{ color: "var(--cocalc-text-primary, #5f5f5f)" }}>
             <Gap /> <TimeAgo date={props.time} />
           </span>
         );

@@ -198,7 +198,7 @@ export function SettingsOverview() {
                 <span
                   style={{
                     backgroundColor: COLORS.GRAY_DD,
-                    color: COLORS.GRAY_LLL,
+                    color: "var(--cocalc-text-tertiary, #f5f5f5)",
                     paddingLeft: "3px",
                     paddingRight: "3px",
                   }}

@@ -27,7 +27,7 @@ import * as misc from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
 
 const ROW_INFO_STYLE = {
-  color: COLORS.TAB,
+  color: "var(--cocalc-text-primary-strong, #333333)",
   height: "22px",
   margin: "5px 3px",
 } as const;
@@ -319,7 +319,7 @@ export const ActionBarInfo: React.FC<
       <Button
         type="text"
         size="small"
-        style={{ color: COLORS.ANTD_LINK_BLUE }}
+        style={{ color: "var(--cocalc-link, #1677ff)" }}
         onClick={props.onSwitchToCurrentPath}
       >
         <Icon name="swap" /> Switch

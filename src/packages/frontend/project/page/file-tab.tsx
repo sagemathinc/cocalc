@@ -521,7 +521,7 @@ export function FileTab(props: Readonly<Props>) {
   // how to read: default color -> style for component -> override color if there is activity
   const icon_style: CSSProperties = {
     marginRight: "2px",
-    color: COLORS.FILE_ICON,
+    color: "var(--cocalc-primary, rgb(66, 139, 202))",
     ...props.iconStyle,
     ...(has_activity ? { color: "orange" } : undefined),
   };
@@ -750,7 +750,7 @@ export function FileTab(props: Readonly<Props>) {
         >
           {intl.formatMessage(labels.actions)} <Icon name="caret-down" />
         </AntdButton>
-        <div style={{ color: COLORS.GRAY, marginTop: 4, fontSize: "85%" }}>
+        <div style={{ color: "var(--cocalc-text-secondary, #808080)", marginTop: 4, fontSize: "85%" }}>
           <Icon name="info-circle" />{" "}
           {intl.formatMessage(TAB_MENU_LABELS.popoverHint)}
         </div>
@@ -792,7 +792,7 @@ const LABEL_STYLE: CSS = {
   whiteSpace: "nowrap",
 } as const;
 
-const DIMMED_STYLE = { color: COLORS.FILE_DIMMED } as const;
+const DIMMED_STYLE = { color: "var(--cocalc-text-tertiary, #959595)" } as const;
 
 const FULLPATH_LABEL_STYLE: CSS = {
   // using a full path for the label instead of just a filename

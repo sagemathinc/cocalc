@@ -91,7 +91,7 @@ const DataGeneric: React.FC<Props> = React.memo((props: Props) => {
       return <Markdown value={`**Hint**: ${hint}`} />;
     }
     return (
-      <span style={{ color: COLORS.GRAY }}>
+      <span style={{ color: "var(--cocalc-text-secondary, #808080)" }}>
         You may be able to use this file from another program, for example, as a
         data file that is manipulated using a Jupyter notebook.
       </span>

@@ -29,7 +29,7 @@ export function TextSetting(props: Props): React.JSX.Element {
   return (
     <LabeledRow
       label={props.label}
-      style={props.disabled ? { color: COLORS.GRAY_M } : undefined}
+      style={props.disabled ? { color: "var(--cocalc-text-primary, #5f5f5f)" } : undefined}
     >
       <Input
         value={props.value}
