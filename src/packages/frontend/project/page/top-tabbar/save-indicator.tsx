@@ -50,7 +50,7 @@ export function TopBarSaveButton({
       is_public={is_public}
       is_saving={is_saving}
       no_labels={compact}
-      size="small"
+      size="middle"
       style={{}}
       onClick={() => {
         if (isCodeEditorActions) {

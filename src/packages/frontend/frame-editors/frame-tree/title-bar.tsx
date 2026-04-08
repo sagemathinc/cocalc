@@ -123,7 +123,7 @@ interface EditorActions extends Actions {
 const MAX_SEARCH_RESULTS = 10;
 
 const title_bar_style: CSS = {
-  background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`,
+  // background is set dynamically in render based on is_active
   border: `1px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
   padding: "1px",
   flexDirection: "row",
@@ -1722,8 +1722,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   let style;
   style = copy(title_bar_style);
   style.background = is_active
-    ? `var(--cocalc-top-bar-active, ${COLORS.GRAY_LLL})`
-    : `var(--cocalc-top-bar-bg, ${COLORS.GRAY_LLL})`;
+    ? `var(--cocalc-editor-titlebar-bg-active, ${COLORS.GRAY_LLL})`
+    : `var(--cocalc-editor-titlebar-bg, ${COLORS.GRAY_LL})`;
   if (!props.is_only && !props.is_full) {
     style.maxHeight = "34px";
   } else {
@@ -1749,7 +1749,15 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   return (
     <>
-      <div style={{ opacity: !is_active ? 0.6 : undefined }}>
+      <div
+        style={
+          !is_active
+            ? {
+                background: `var(--cocalc-editor-titlebar-bg, ${COLORS.GRAY_LL})`,
+              }
+            : undefined
+        }
+      >
         <div
           ref={titleBarRef}
           style={style}

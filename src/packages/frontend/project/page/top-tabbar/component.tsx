@@ -76,9 +76,17 @@ export function TopTabBarActionsContainer(props: Readonly<TTBAProps>) {
   if (path == null) return null;
 
   return (
-    <div ref={topRightRef} className={"cc-project-tabs-top-right"}>
+    <div
+      ref={topRightRef}
+      className={"cc-project-tabs-top-right"}
+      style={{ background: "var(--cocalc-editor-titlebar-bg-active, #eee)" }}
+    >
       <div className={"cc-project-tabs-top-right-slant"}></div>
-      <div ref={actionstRef} className={"cc-project-tabs-top-right-actions"}>
+      <div
+        ref={actionstRef}
+        className={"cc-project-tabs-top-right-actions"}
+        style={{ background: "var(--cocalc-editor-titlebar-bg-active, #eee)" }}
+      >
         <TopTabBarActions path={path} compact={compact} width={actionsWidth} />
       </div>
     </div>

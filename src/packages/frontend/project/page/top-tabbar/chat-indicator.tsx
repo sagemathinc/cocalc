@@ -4,6 +4,7 @@
  */
 
 import type { ReactNode } from "react";
+import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { UsersViewing } from "@cocalc/frontend/account/avatar/users-viewing";
 import { ChatIndicator } from "@cocalc/frontend/chat/chat-indicator";
 import { tab_to_path } from "@cocalc/util/misc";
@@ -18,6 +19,8 @@ export function ChatIndicatorTab({
   activeTab,
   project_id,
 }: Props): ReactNode {
+  const openFileInfo = useTypedRedux({ project_id }, "open_files");
+
   if (!activeTab?.startsWith("editor-")) {
     return null;
   }
@@ -25,6 +28,8 @@ export function ChatIndicatorTab({
   if (path == null) {
     return null;
   }
+  const chatState = openFileInfo?.getIn([path, "chatState"]) as any;
+  const chatMode = openFileInfo?.getIn([path, "chatMode"]) as any;
   return (
     <>
       <UsersViewing
@@ -35,7 +40,8 @@ export function ChatIndicatorTab({
       <ChatIndicator
         project_id={project_id}
         path={path}
-        chatState={"internal"}
+        chatState={chatState}
+        chatMode={chatMode}
       />
     </>
   );

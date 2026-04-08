@@ -51,8 +51,8 @@ export function ChatIndicator({
   const style: React.CSSProperties = {
     ...CHAT_INDICATOR_STYLE,
     ...{ display: "flex", alignItems: "center" as const },
-    background: `var(--cocalc-top-bar-bg, ${COLORS.GRAY_L0})`,
-    borderTop: `2px solid var(--cocalc-border-light, ${COLORS.GRAY_L})`,
+    background: `var(--cocalc-editor-titlebar-bg-active, ${COLORS.GRAY_L0})`,
+    borderTop: "none",
   };
 
   return (

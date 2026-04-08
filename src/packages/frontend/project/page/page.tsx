@@ -398,6 +398,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
                 display: "flex",
                 flexDirection: "column",
                 overflow: "hidden",
+                background: "var(--cocalc-top-bar-bg, #ddd)",
               }}
             >
               <TopTabBar />

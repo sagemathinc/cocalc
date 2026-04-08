@@ -127,6 +127,10 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
     ? mixColors(t.topBarBg, t.bgSelected, t.isDark ? 0.7 : 0.85)
     : mixColors(t.topBarBg, t.bgElevated, t.isDark ? 0.55 : 0.85);
 
+  // Editor title bar backgrounds: active is brightest, inactive is between topBarBg and active
+  const editorTitlebarActive = mixColors(t.topBarBg, "#ffffff", 0.7);
+  const editorTitlebarBg = mixColors(t.topBarBg, "#ffffff", 0.4);
+
   const setRgb = (name: string, hex: string) => {
     try {
       const [r, g, b] = hexToRgb(hex);
@@ -160,6 +164,8 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
   s.setProperty("--cocalc-top-bar-hover", t.topBarHover);
   s.setProperty("--cocalc-top-bar-text", topBarText);
   s.setProperty("--cocalc-top-bar-text-active", topBarTextActive);
+  s.setProperty("--cocalc-editor-titlebar-bg", editorTitlebarBg);
+  s.setProperty("--cocalc-editor-titlebar-bg-active", editorTitlebarActive);
   s.setProperty("--cocalc-primary", t.primary);
   setRgb("--cocalc-primary", t.primary);
   s.setProperty("--cocalc-primary-dark", t.primaryDark);
