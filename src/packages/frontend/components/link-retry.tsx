@@ -13,7 +13,6 @@ import {
 import { Gap, Icon, Loading } from "@cocalc/frontend/components";
 import { open_new_tab } from "@cocalc/frontend/misc";
 import { retry_until_success } from "@cocalc/util/async-utils";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   href: string;

@@ -26,7 +26,6 @@ import {
   toOllamaModel,
 } from "@cocalc/util/db-schema/llm-utils";
 import { trunc_middle } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { PROMPTS } from "./tests";
 import { Value } from "./value";
 interface TestResult {

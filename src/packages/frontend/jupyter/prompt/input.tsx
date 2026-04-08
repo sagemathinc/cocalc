@@ -19,7 +19,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { TimeAgo } from "@cocalc/frontend/components/time-ago";
 import { Tip } from "@cocalc/frontend/components/tip";
 import { capitalize } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { INPUT_STYLE, InputPromptProps } from "./base";
 
 export const InputPrompt: React.FC<InputPromptProps> = (props) => {

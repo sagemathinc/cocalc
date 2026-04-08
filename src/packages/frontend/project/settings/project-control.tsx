@@ -39,7 +39,6 @@ import {
 } from "@cocalc/util/db-schema/site-defaults";
 import * as misc from "@cocalc/util/misc";
 import { COMPUTE_STATES } from "@cocalc/util/schema";
-import { COLORS } from "@cocalc/util/theme";
 import { useProjectContext } from "../context";
 import { ComputeImageSelector } from "./compute-image-selector";
 import { RestartProject } from "./restart-project";

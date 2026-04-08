@@ -45,7 +45,6 @@ import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { checkRequiredSSO } from "@cocalc/util/auth-check-required-sso";
 import { keys, startswith } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { PassportStrategyFrontend } from "@cocalc/util/types/passport-types";
 import { AccountState } from "../types";
 import { DeleteAccount } from "../delete-account";

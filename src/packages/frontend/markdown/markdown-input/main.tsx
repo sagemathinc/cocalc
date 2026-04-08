@@ -21,7 +21,6 @@ import { Tip } from "@cocalc/frontend/components/tip";
 import { labels } from "@cocalc/frontend/i18n";
 
 // Sibling Libraries
-import { COLORS } from "@cocalc/util/theme";
 import { markdown_to_html } from "../index";
 import { MarkdownWidgetActions } from "./actions";
 import * as info from "./info";

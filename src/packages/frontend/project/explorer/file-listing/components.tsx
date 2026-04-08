@@ -10,7 +10,6 @@ import { file_options } from "@cocalc/frontend/editor-tmp";
 import { labels } from "@cocalc/frontend/i18n";
 import { NEW_FILETYPE_ICONS } from "@cocalc/frontend/project/new/consts";
 import { capitalize } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 /**
  * Render a rich label for a file-type filter option:

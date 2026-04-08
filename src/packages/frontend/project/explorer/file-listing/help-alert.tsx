@@ -7,7 +7,6 @@ import React from "react";
 import { Alert } from "antd";
 
 import { Text } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 
 /**
  * Floating alert shown below the search input when the user is typing

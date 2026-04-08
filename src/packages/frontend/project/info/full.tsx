@@ -16,7 +16,6 @@ import { CSS, ProjectActions, redux } from "@cocalc/frontend/app-framework";
 import { A, Loading, Tip } from "@cocalc/frontend/components";
 import { SiteName } from "@cocalc/frontend/customize";
 import { field_cmp, seconds2hms } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import {
   Process,
   ProjectInfo as ProjectInfoType,

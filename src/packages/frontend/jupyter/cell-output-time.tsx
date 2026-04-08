@@ -5,7 +5,6 @@
 
 import { Progress, Space, Tooltip } from "antd";
 import { TimeAgo, Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 import { capitalize, seconds2hms, server_time } from "@cocalc/util/misc";
 import { useEffect } from "react";
 import useIsMountedRef from "@cocalc/frontend/app-framework/is-mounted-hook";

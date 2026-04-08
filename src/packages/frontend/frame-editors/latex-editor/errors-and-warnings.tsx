@@ -21,7 +21,6 @@ import { Icon, IconName, Loading } from "@cocalc/frontend/components";
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
 import { capitalize, is_different, path_split } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
 import { useBuildLogs } from "./hooks";
 import { BuildLogs } from "./types";

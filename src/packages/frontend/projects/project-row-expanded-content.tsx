@@ -43,7 +43,6 @@ import { RestartProject } from "@cocalc/frontend/project/settings/restart-projec
 import { StopProject } from "@cocalc/frontend/project/settings/stop-project";
 import { DEFAULT_COMPUTE_IMAGE } from "@cocalc/util/db-schema";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { COLORS } from "@cocalc/util/theme";
 import { ProjectUsers } from "./project-users";
 import {
   OpenedFile,

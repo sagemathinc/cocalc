@@ -12,7 +12,6 @@ import { Button, Tooltip } from "antd";
 import { useEffect, useRef } from "react";
 
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 
 import type { AgentSession } from "./types";
 import { INPUT_AREA_STYLE } from "./types";

@@ -9,7 +9,6 @@ import {
   separate_file_extension,
   trunc_middle,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { handleFileEntryClick } from "../project/history/utils";
 import { Tip } from "./tip";
 

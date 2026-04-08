@@ -2,7 +2,6 @@ import { Button, Popover, Tooltip } from "antd";
 import { CSSProperties, ReactNode } from "react";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 import { useFrameContext } from "./hooks";
 
 function addPage(actions, afterPageId?) {

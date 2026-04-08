@@ -10,7 +10,6 @@ import { Icon } from "@cocalc/frontend/components/icon";
 import { SiteName } from "@cocalc/frontend/customize";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import track from "@cocalc/frontend/user-tracking";
-import { COLORS } from "@cocalc/util/theme";
 import collabsImage from "./tour-collabs.png";
 import projectsImage from "./tour-projects.png";
 

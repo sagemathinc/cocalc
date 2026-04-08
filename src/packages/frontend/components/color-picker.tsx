@@ -25,7 +25,6 @@ import {
   set_local_storage,
 } from "@cocalc/frontend/misc/local-storage";
 import { capitalize } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { Icon } from "./icon";
 
 const Pickers = {

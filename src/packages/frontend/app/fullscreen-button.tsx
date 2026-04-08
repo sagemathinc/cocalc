@@ -13,7 +13,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { Icon, Tip } from "@cocalc/frontend/components";
 import track from "@cocalc/frontend/user-tracking";
-import { COLORS } from "@cocalc/util/theme";
 import {
   NAV_HEIGHT_PX,
   PageStyle,

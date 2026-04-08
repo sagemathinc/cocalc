@@ -2,7 +2,6 @@ import { Button, Space } from "antd";
 import { Node, Path, Transforms } from "slate";
 
 import { Icon } from "@cocalc/frontend/components/icon";
-import { COLORS } from "@cocalc/util/theme";
 
 import { findElement } from "../../control";
 import { ReactEditor } from "../../slate-react";

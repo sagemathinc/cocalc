@@ -5,7 +5,6 @@
 
 import { Input } from "antd";
 
-import { COLORS } from "@cocalc/util/theme";
 
 import { LabeledRow } from "@cocalc/frontend/components";
 

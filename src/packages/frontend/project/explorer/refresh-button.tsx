@@ -13,7 +13,6 @@ import { useIntl } from "react-intl";
 
 import { Icon, Tip } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   onClick?: () => void;

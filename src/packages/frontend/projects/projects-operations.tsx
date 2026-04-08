@@ -17,7 +17,6 @@ import { FormattedMessage, useIntl } from "react-intl";
 
 import { useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 
 import RemoveMyself from "./remove-myself";
 

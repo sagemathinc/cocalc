@@ -53,7 +53,6 @@ import { SoftwareEnvironments } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { unreachable } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { SOFTWARE_ENVIRONMENT_ICON } from "./software-consts";
 import { SoftwareEnvironmentInformation } from "./software-env-info";
 import { SoftwareInfo } from "./types";

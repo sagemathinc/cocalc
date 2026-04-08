@@ -56,7 +56,6 @@ import {
 } from "@cocalc/util/consts/ui";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { unreachable } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { ConfigureName } from "./configure-name";
 import { License } from "./license";
 import { publicShareUrl, shareServerUrl } from "./util";

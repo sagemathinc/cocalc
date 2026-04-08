@@ -27,7 +27,6 @@ import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { Panel, Switch } from "@cocalc/frontend/antd-bootstrap";
-import { COLORS } from "@cocalc/util/theme";
 import {
   type BaseColors,
   COLOR_THEMES,
@@ -550,17 +549,17 @@ export function ColorThemeSelector() {
         base =
           PRESET_BASE_COLORS[currentThemeId] ?? PRESET_BASE_COLORS["default"];
       }
-      onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, JSON.stringify(base));
+      onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_JSON.stringify(base));
     }
   }, [currentThemeId, randomSeed, customColorsJson]);
 
   const handleCustomChange = useCallback((base: BaseColors) => {
-    onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, JSON.stringify(base));
+    onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_JSON.stringify(base));
   }, []);
 
   const handleReset = useCallback(() => {
     onChangeSetting(OTHER_SETTINGS_COLOR_THEME, "default");
-    onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, "");
+    onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_"");
     onChangeSetting(OTHER_SETTINGS_NATIVE_DARK_MODE, "off");
     onChangeSetting(OTHER_SETTINGS_RANDOM_THEME_SEED, 0);
   }, []);

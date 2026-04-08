@@ -25,7 +25,6 @@ import "@cocalc/frontend/jupyter/output-messages/mime-types/init-nbviewer";
 import { useFileContext } from "@cocalc/frontend/lib/file-context";
 import computeHash from "@cocalc/util/jupyter-api/compute-hash";
 import { path_split, plural } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import api from "./api";
 import { getFromCache, saveToCache } from "./cache";
 import getKernel from "./get-kernel";

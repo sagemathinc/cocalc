@@ -25,7 +25,6 @@ import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { LLM_COST, service2model_core } from "@cocalc/util/db-schema/llm-utils";
 import { QUOTA_SPEC, Service } from "@cocalc/util/db-schema/purchase-quotas";
 import { currency } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { TITLE_BAR_BORDER } from "../frame-editors/frame-tree/style";
 import Cost from "./pay-as-you-go/cost";
 import ServiceTag from "./service";

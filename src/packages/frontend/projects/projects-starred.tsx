@@ -22,7 +22,6 @@ import {
 import { CSS, useActions, useTypedRedux } from "@cocalc/frontend/app-framework";
 import { Icon, TimeAgo } from "@cocalc/frontend/components";
 import { sha1, trunc } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { useBookmarkedProjects } from "./use-bookmarked-projects";
 
 const DROPDOWN_WIDTH = 100; // Width reserved for dropdown button + buffer

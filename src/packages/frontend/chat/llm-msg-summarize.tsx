@@ -15,7 +15,6 @@ import LLMSelector, {
 } from "@cocalc/frontend/frame-editors/llm/llm-selector";
 import { LLMCostEstimation } from "@cocalc/frontend/misc/llm-cost-estimation";
 import { useProjectContext } from "@cocalc/frontend/project/context";
-import { COLORS } from "@cocalc/util/theme";
 import { ChatActions } from "./actions";
 import { ChatMessageTyped } from "./types";
 

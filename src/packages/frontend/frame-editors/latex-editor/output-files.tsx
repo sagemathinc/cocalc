@@ -12,7 +12,6 @@ import StaticMarkdown from "@cocalc/frontend/editors/slate/static-markdown";
 import { filenameIcon } from "@cocalc/frontend/file-associations";
 import { labels } from "@cocalc/frontend/i18n";
 import { path_split, plural } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 import { Actions } from "./actions";
 import { OUTPUT_HEADER_STYLE } from "./util";

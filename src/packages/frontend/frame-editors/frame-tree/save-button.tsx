@@ -14,7 +14,6 @@ import {
   VisibleMDLG,
 } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   has_unsaved_changes?: boolean;

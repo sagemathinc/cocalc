@@ -33,7 +33,6 @@ import {
 } from "@cocalc/util/compute-images";
 import { FALLBACK_COMPUTE_IMAGE } from "@cocalc/util/db-schema/defaults";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
-import { COLORS } from "@cocalc/util/theme";
 import { ALERT_STYLE } from "../warnings/common";
 import { useProjectState } from "./project-state-hook";
 

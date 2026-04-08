@@ -35,7 +35,6 @@ import {
   tab_to_path,
   unreachable,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FIXED_PROJECT_TABS } from "../file-tab";
 import { shouldOpenFileInNewWindow } from "../utils";

@@ -13,7 +13,6 @@ import { A, NoWrap, QuestionMarkText, Tip } from "@cocalc/frontend/components";
 import { DOC_CLOUD_STORAGE_URL } from "@cocalc/util/consts/project";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import { PROJECT_UPGRADES } from "@cocalc/util/schema";
-import { COLORS } from "@cocalc/util/theme";
 import { DedicatedResources } from "@cocalc/util/types/dedicated";
 import { Upgrades, upgrade2quota_key } from "@cocalc/util/upgrades/quota";
 import { Project } from "../types";

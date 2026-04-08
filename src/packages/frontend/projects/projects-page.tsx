@@ -23,7 +23,6 @@ import {
 import { Icon, Loading, LoginLink, Title } from "@cocalc/frontend/components";
 import { Footer } from "@cocalc/frontend/customize";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 import { NewProjectCreator } from "./create-project";
 import { LoadAllProjects } from "./projects-load-all";

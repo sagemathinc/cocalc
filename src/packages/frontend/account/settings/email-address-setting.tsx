@@ -12,7 +12,6 @@ import { ErrorDisplay, LabeledRow, Saving } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import { log } from "@cocalc/frontend/user-tracking";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COLORS } from "@cocalc/util/theme";
 import { MIN_PASSWORD_LENGTH } from "@cocalc/util/auth";
 
 const sendWelcomeEmailError = defineMessage({

@@ -10,7 +10,6 @@ import { useIntl } from "react-intl";
 
 import { CSS } from "@cocalc/frontend/app-framework";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 const { Paragraph } = Typography;
 

@@ -9,7 +9,6 @@ Progress indicator for assigning/collecting/etc. a particular assignment or hand
 
 import { Space } from "antd";
 import { Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 
 const progress_info = {
   color: "var(--cocalc-text-primary-strong, #434343)",

@@ -25,7 +25,6 @@ import {
 
 import { Gap, Icon, Paragraph } from "@cocalc/frontend/components";
 import { course, labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 import { CourseActions } from "../actions";
 import { CourseStore, TerminalCommand, TerminalCommandOutput } from "../store";
 import { MAX_PARALLEL_TASKS } from "../student-projects/actions";

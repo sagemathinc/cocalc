@@ -10,7 +10,6 @@ import {
   compute_image2name,
   is_custom_image,
 } from "@cocalc/frontend/custom-software/util";
-import { COLORS } from "@cocalc/util/theme";
 
 interface DisplayProps {
   image?: string;

@@ -15,7 +15,6 @@ import {
   Text,
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   project_id: string;

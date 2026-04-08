@@ -67,7 +67,6 @@ import {
   plural,
   smallIntegerToEnglishWord,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import NBViewer from "../nbviewer/nbviewer";
 import {
   CellContextContent,

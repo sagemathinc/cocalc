@@ -11,7 +11,6 @@ import { Rendered, useRedux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import Ansi from "@cocalc/frontend/components/ansi-to-react";
 import HelpMeFix from "@cocalc/frontend/frame-editors/llm/help-me-fix";
-import { COLORS } from "@cocalc/util/theme";
 import { Actions } from "./actions";
 import {
   STYLE_ERR,

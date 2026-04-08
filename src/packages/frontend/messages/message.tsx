@@ -10,7 +10,6 @@ import MostlyStaticMarkdown, {
 } from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import { labels } from "@cocalc/frontend/i18n";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
-import { COLORS } from "@cocalc/util/theme";
 import Compose from "./compose";
 import Like from "./like";
 import Read from "./read";

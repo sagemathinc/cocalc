@@ -17,7 +17,6 @@ import { redux } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components/A";
 import { Icon, type IconName } from "@cocalc/frontend/components/icon";
 import { labels } from "@cocalc/frontend/i18n";
-import { COLORS } from "@cocalc/util/theme";
 
 const { Text } = Typography;
 

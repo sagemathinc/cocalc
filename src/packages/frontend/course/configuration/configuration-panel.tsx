@@ -36,7 +36,6 @@ import { Parallel } from "./parallel";
 import StudentPay from "./student-pay";
 import { StudentProjectSoftwareEnvironment } from "./student-project-software-environment";
 import { StudentProjectUpgrades } from "./upgrades";
-import { COLORS } from "@cocalc/util/theme";
 
 interface Props {
   name: string;

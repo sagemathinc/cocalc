@@ -14,7 +14,6 @@ import {
 import { Icon } from "@cocalc/frontend/components";
 import { labels } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
-import { COLORS } from "@cocalc/util/theme";
 import {
   FONT_SIZE_ICONS_NORMAL,
   PageStyle,

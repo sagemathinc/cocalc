@@ -36,7 +36,6 @@ import usePinchToZoom, {
 import { EditorState } from "@cocalc/frontend/frame-editors/frame-tree/types";
 import { list_alternatives, seconds_ago } from "@cocalc/util/misc";
 import { DEFAULT_FONT_SIZE } from "@cocalc/util/consts/ui";
-import { COLORS } from "@cocalc/util/theme";
 import { Actions, Actions as LatexEditorActions } from "./actions";
 import { dblclick } from "./mouse-click";
 import { SyncHighlight } from "./pdfjs-annotation";

@@ -13,7 +13,6 @@ import { CSS, useMemo } from "@cocalc/frontend/app-framework";
 import { DirectoryListingEntry } from "@cocalc/frontend/project/explorer/types";
 import { capitalize, getRandomColor, hexColorToRGBA } from "@cocalc/util/misc";
 import { server_time } from "@cocalc/util/relative-time";
-import { COLORS } from "@cocalc/util/theme";
 import { BORDER_WIDTH_PX } from "./consts";
 import { FlyoutActiveMode, FlyoutLogDeduplicate, FlyoutLogMode } from "./state";
 

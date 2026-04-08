@@ -25,7 +25,6 @@ import { IntlMessage } from "@cocalc/frontend/i18n";
 import track from "@cocalc/frontend/user-tracking";
 import { R_IDE } from "@cocalc/util/consts/ui";
 import { capitalize } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { NamedServerName } from "@cocalc/util/types/servers";
 import { useAvailableFeatures } from "./use-available-features";
 

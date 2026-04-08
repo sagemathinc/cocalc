@@ -9,7 +9,6 @@ import { HighlightText } from "@cocalc/frontend/editors/slate/mostly-static-mark
 import { labels } from "@cocalc/frontend/i18n";
 import type { Message as MessageType } from "@cocalc/util/db-schema/messages";
 import { get_array_range, plural } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import Message from "./message";
 import { Folder, isFolder } from "./types";
 import useCommand from "./use-command";

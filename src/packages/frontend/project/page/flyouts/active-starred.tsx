@@ -9,7 +9,6 @@
 import { Button } from "antd";
 
 import { HelpIcon, Icon } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 import { FIX_BORDER } from "../common";
 import { FLYOUT_PADDING } from "./consts";
 import { GROUP_STYLE } from "./utils";

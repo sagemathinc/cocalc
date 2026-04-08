@@ -6,7 +6,6 @@ import ShowError from "@cocalc/frontend/components/error";
 import { CancelText } from "@cocalc/frontend/i18n/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import type { ComputeServerUserInfo } from "@cocalc/util/db-schema/compute-servers";
-import { COLORS } from "@cocalc/util/theme";
 import getActions from "./action";
 import { deleteServer, undeleteServer } from "./api";
 import Cloud from "./cloud";

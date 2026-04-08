@@ -26,7 +26,6 @@ import {
 } from "@cocalc/frontend/components";
 import { webapp_client } from "@cocalc/frontend/webapp-client";
 import { plural } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { actions } from "./actions";
 import { License } from "./license";
 import { download_data } from "./download-data";

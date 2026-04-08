@@ -15,7 +15,6 @@ import { Spin } from "antd";
 
 import { redux, useRedux } from "@cocalc/frontend/app-framework";
 import { Paragraph } from "@cocalc/frontend/components";
-import { COLORS } from "@cocalc/util/theme";
 
 import type { AgentSession, DisplayMessage } from "./types";
 import {

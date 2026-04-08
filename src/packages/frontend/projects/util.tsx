@@ -33,7 +33,6 @@ import {
   trunc_middle,
   unreachable,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import {
   NAMED_SERVER_NAMES,
   NamedServerName,

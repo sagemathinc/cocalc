@@ -3,7 +3,6 @@ export const SELECTED_STYLE: React.CSSProperties = {
   color: "var(--cocalc-link, rgb(33, 150, 243))",
   fontWeight: "bold",
 } as const;
-import { COLORS } from "@cocalc/util/theme";
 import { KernelStar } from "@cocalc/frontend/components/run-button/kernel-star";
 
 export default function KernelMenuItem({

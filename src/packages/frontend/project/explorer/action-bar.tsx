@@ -24,7 +24,6 @@ import { RefreshButton } from "@cocalc/frontend/project/explorer/refresh-button"
 import type { FileAction } from "@cocalc/frontend/project_actions";
 import { FILE_ACTIONS, ProjectActions } from "@cocalc/frontend/project_actions";
 import * as misc from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 const ROW_INFO_STYLE = {
   color: "var(--cocalc-text-primary-strong, #333333)",

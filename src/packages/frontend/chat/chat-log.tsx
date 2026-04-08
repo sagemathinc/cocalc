@@ -34,7 +34,6 @@ import {
   parse_hashtags,
   plural,
 } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import type { ChatActions } from "./actions";
 import Composing from "./composing";
 import { filterMessages } from "./filter-messages";

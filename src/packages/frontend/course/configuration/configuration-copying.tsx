@@ -52,7 +52,6 @@ import { ProjectTitle } from "@cocalc/frontend/projects/project-title";
 import { isIntlMessage } from "@cocalc/util/i18n";
 import { plural } from "@cocalc/util/misc";
 import { CONFIGURATION_GROUPS, ConfigurationGroup } from "./actions";
-import { COLORS } from "@cocalc/util/theme";
 
 export type CopyConfigurationOptions = {
   [K in ConfigurationGroup]?: boolean;

@@ -13,7 +13,6 @@ import { Icon, isIconName } from "@cocalc/frontend/components/icon";
 import { capitalize, path_to_title } from "@cocalc/util/misc";
 import { AddPaymentMethodButton } from "./stripe-payment";
 import { AddressButton } from "./address";
-import { COLORS } from "@cocalc/util/theme";
 
 type PaymentMethod = any;
 

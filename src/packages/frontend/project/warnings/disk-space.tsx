@@ -15,7 +15,6 @@ import {
 } from "@cocalc/frontend/app-framework";
 import { A } from "@cocalc/frontend/components";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
-import { COLORS } from "@cocalc/util/theme";
 
 const DISK_INFO_PAGE = "https://doc.cocalc.com/howto/disk-space-warning.html";
 const DISMISS_TIME_MS = 3 * 60 * 1000;

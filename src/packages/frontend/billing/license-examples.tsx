@@ -9,7 +9,6 @@ import {
   MIN_QUOTE,
 } from "@cocalc/util/licenses/purchase/consts";
 import { Cost, User } from "@cocalc/util/licenses/purchase/types";
-import { COLORS } from "@cocalc/util/theme";
 import { Col, Row, Panel } from "@cocalc/frontend/antd-bootstrap";
 import { React } from "../app-framework";
 import { Icon, IconName, Gap } from "../components";

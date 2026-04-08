@@ -12,7 +12,6 @@ because then they will be compatible with all mentions already used with chat an
 
 import React from "react";
 
-import { COLORS } from "@cocalc/util/theme";
 import { SlateElement, register, RenderElementProps } from "../register";
 
 export interface Mention extends SlateElement {
