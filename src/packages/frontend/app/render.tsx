@@ -22,6 +22,7 @@ import { A11Y } from "@cocalc/util/consts/ui";
 import {
   deriveAccessibilityTheme,
   hexToRgb,
+  lighten,
   mixColors,
   type ColorTheme,
 } from "@cocalc/util/theme";
@@ -127,9 +128,16 @@ function applyThemeCSSVars(t: ColorTheme, a11y: boolean = false): void {
     ? mixColors(t.topBarBg, t.bgSelected, t.isDark ? 0.7 : 0.85)
     : mixColors(t.topBarBg, t.bgElevated, t.isDark ? 0.55 : 0.85);
 
-  // Editor title bar backgrounds: active is brightest, inactive is between topBarBg and active
-  const editorTitlebarActive = mixColors(t.topBarBg, "#ffffff", 0.7);
-  const editorTitlebarBg = mixColors(t.topBarBg, "#ffffff", 0.4);
+  // Editor title bar backgrounds — three tiers of brightness:
+  //   topBarBg (darkest) < editorTitlebarBg (inactive) < editorTitlebarActive (active)
+  // In dark mode the dark surfaces are very close together, so we lighten
+  // from topBarBg directly to create visible separation.
+  const editorTitlebarBg = t.isDark
+    ? lighten(t.topBarBg, 0.08)
+    : mixColors(t.topBarBg, "#ffffff", 0.4);
+  const editorTitlebarActive = t.isDark
+    ? lighten(t.topBarBg, 0.16)
+    : mixColors(t.topBarBg, "#ffffff", 0.7);
 
   const setRgb = (name: string, hex: string) => {
     try {

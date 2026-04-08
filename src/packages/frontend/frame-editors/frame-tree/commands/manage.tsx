@@ -424,7 +424,9 @@ export class ManageCommands {
               display: "inline-block",
               padding: 0,
               marginRight: "10px",
-              background: isOnButtonBar ? "#ddd" : undefined,
+              background: isOnButtonBar
+                ? "var(--cocalc-bg-hover, #ddd)"
+                : undefined,
             }}
             onClick={(e) => {
               e.preventDefault();
@@ -475,6 +477,16 @@ export class ManageCommands {
   };
 
   menuItem = (name: string) => {
+    // Handle compound keys like "jupyter-run-all-cells/run all cells"
+    const compound = this.resolveCompoundCommand(name);
+    if (compound != null) {
+      return this.commandToMenuItem({
+        name,
+        cmd: compound,
+        key: name,
+        noChildren: true,
+      });
+    }
     const cmd = this.getCommandInfo(name);
     if (cmd == null) {
       return null;
