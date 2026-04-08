@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -563,17 +563,15 @@ export class ChatActions extends Actions<ChatState> {
     if (this.syncdb == null) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
     const trimmed = name.trim();
-    if (trimmed) {
-      entry.doc.name = trimmed;
-    } else {
-      delete entry.doc.name;
-    }
-    this.syncdb.set(entry.doc);
+    this.syncdb.set({
+      ...entry.key,
+      name: trimmed || null,
+    });
     this.syncdb.commit();
     return true;
   };
@@ -582,16 +580,14 @@ export class ChatActions extends Actions<ChatState> {
     if (this.syncdb == null) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
-    if (pinned) {
-      entry.doc.pin = true;
-    } else {
-      entry.doc.pin = false;
-    }
-    this.syncdb.set(entry.doc);
+    this.syncdb.set({
+      ...entry.key,
+      pin: pinned,
+    });
     this.syncdb.commit();
     return true;
   };
@@ -608,12 +604,14 @@ export class ChatActions extends Actions<ChatState> {
     if (!account_id || !Number.isFinite(count)) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
-    entry.doc[`read-${account_id}`] = count;
-    this.syncdb.set(entry.doc);
+    this.syncdb.set({
+      ...entry.key,
+      [`read-${account_id}`]: count,
+    });
     if (commit) {
       this.syncdb.commit();
     }
@@ -634,11 +632,11 @@ export class ChatActions extends Actions<ChatState> {
     if (!account_id || !Number.isFinite(dateMs)) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
-    const rawValue = entry.doc[`lastread-${account_id}`];
+    const rawValue = entry.message.get(`lastread-${account_id}`);
     const currentValue =
       typeof rawValue === "number"
         ? rawValue
@@ -649,7 +647,10 @@ export class ChatActions extends Actions<ChatState> {
       // don't go backwards
       return false;
     }
-    entry.doc[`lastread-${account_id}`] = dateMs;
+    const update: Record<string, any> = {
+      ...entry.key,
+      [`lastread-${account_id}`]: dateMs,
+    };
     // also update the count-based read field for backward compatibility
     const messages = this.store?.get("messages");
     if (messages) {
@@ -667,9 +668,9 @@ export class ChatActions extends Actions<ChatState> {
           }
         }
       }
-      entry.doc[`read-${account_id}`] = count;
+      update[`read-${account_id}`] = count;
     }
-    this.syncdb.set(entry.doc);
+    this.syncdb.set(update);
     if (commit) {
       this.syncdb.commit();
     }
@@ -680,7 +681,7 @@ export class ChatActions extends Actions<ChatState> {
   getLastRead = (threadKey: string): number | undefined => {
     const account_id = this.redux.getStore("account").get_account_id();
     if (!account_id) return undefined;
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) return undefined;
     const val = entry.message.get(`lastread-${account_id}`);
     if (typeof val === "number" && val > 0) return val;
@@ -691,9 +692,12 @@ export class ChatActions extends Actions<ChatState> {
     return undefined;
   };
 
-  private getThreadRootDoc = (
+  private getThreadRootEntry = (
     threadKey: string,
-  ): { doc: any; message: ChatMessageTyped } | null => {
+  ): {
+    key: { date: string; sender_id: string; event: "chat" };
+    message: ChatMessageTyped;
+  } | null => {
     if (this.store == null) {
       return null;
     }
@@ -713,6 +717,10 @@ export class ChatActions extends Actions<ChatState> {
     if (message == null) {
       return null;
     }
+    const sender_id = message.get("sender_id");
+    if (typeof sender_id !== "string" || sender_id === "") {
+      return null;
+    }
     const dateField = message.get("date");
     const dateIso =
       dateField instanceof Date
@@ -723,8 +731,14 @@ export class ChatActions extends Actions<ChatState> {
     if (!dateIso) {
       return null;
     }
-    const doc = { ...message.toJS(), date: dateIso };
-    return { doc, message };
+    return {
+      key: {
+        date: dateIso,
+        sender_id,
+        event: "chat",
+      },
+      message,
+    };
   };
 
   save_scroll_state = (position, height, offset): void => {
@@ -860,7 +874,7 @@ export class ChatActions extends Actions<ChatState> {
     }
     const rootMs =
       getThreadRootDate({ date: date.valueOf(), messages }) || date.valueOf();
-    const entry = this.getThreadRootDoc(`${rootMs}`);
+    const entry = this.getThreadRootEntry(`${rootMs}`);
     const rootMessage = entry?.message;
     if (rootMessage == null) {
       return false;
@@ -1098,7 +1112,11 @@ export class ChatActions extends Actions<ChatState> {
           message: cur.toJS() as any as ChatMessage,
           messages,
         });
-        this.syncdb.delete({ event: "chat", date, sender_id: message.sender_id });
+        this.syncdb.delete({
+          event: "chat",
+          date,
+          sender_id: message.sender_id,
+        });
         this.syncdb.set({
           date,
           history: cur?.get("history") ?? [],
