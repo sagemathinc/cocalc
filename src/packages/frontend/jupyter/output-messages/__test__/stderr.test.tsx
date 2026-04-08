@@ -41,8 +41,6 @@ describe("Stderr style test", () => {
     const { container } = render(<Stderr message={fromJS({ text: "Hello World" })} />);
     const stderr = container.firstChild as HTMLElement;
     // Check for inline style background-color. Adjust selector as needed.
-    expect(stderr.getAttribute("style")).toContain("background-color: rgb(255, 221, 221)");
-    // Or, if using CSS classes, use:
-    // expect(stderr).toHaveStyle("background-color: #fdd");
+    expect(stderr.getAttribute("style")).toContain("background-color: var(--cocalc-bg-elevated, #fdd)");
   });
 });
