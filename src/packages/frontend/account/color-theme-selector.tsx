@@ -549,17 +549,17 @@ export function ColorThemeSelector() {
         base =
           PRESET_BASE_COLORS[currentThemeId] ?? PRESET_BASE_COLORS["default"];
       }
-      onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_JSON.stringify(base));
+      onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, JSON.stringify(base));
     }
   }, [currentThemeId, randomSeed, customColorsJson]);
 
   const handleCustomChange = useCallback((base: BaseColors) => {
-    onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_JSON.stringify(base));
+    onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, JSON.stringify(base));
   }, []);
 
   const handleReset = useCallback(() => {
     onChangeSetting(OTHER_SETTINGS_COLOR_THEME, "default");
-    onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_"");
+    onChangeSetting(OTHER_SETTINGS_CUSTOM_THEME_COLORS, "");
     onChangeSetting(OTHER_SETTINGS_NATIVE_DARK_MODE, "off");
     onChangeSetting(OTHER_SETTINGS_RANDOM_THEME_SEED, 0);
   }, []);

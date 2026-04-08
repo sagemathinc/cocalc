@@ -21,7 +21,6 @@ import { IS_TOUCH } from "@cocalc/frontend/feature";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
 import { LLMTools } from "@cocalc/jupyter/types";
-import { COLORS } from "@cocalc/util/theme";
 import { JupyterActions } from "./browser-actions";
 import { CellInput } from "./cell-input";
 import { CellOutput } from "./cell-output";

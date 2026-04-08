@@ -24,7 +24,6 @@ import {
 } from "@cocalc/util/consts/ui";
 import { DEFAULT_EDITOR_THEME } from "@cocalc/util/db-schema/accounts";
 import {
-  COLORS,
   type NativeDarkMode,
   OTHER_SETTINGS_NATIVE_DARK_MODE,
 } from "@cocalc/util/theme";
