@@ -351,7 +351,7 @@ export function deriveDarkTheme(light: ColorTheme): ColorTheme {
     secondary: accent,
     secondaryLight: darken(accent, 0.3),
 
-    colorLink: lighten(light.colorLink, 0.3),
+    colorLink: lighten(light.colorLink, 0.45),
     colorSuccess: "#73d13d",
     colorWarning: "#ffc53d",
     colorError: "#ff4d4f",

@@ -24,8 +24,8 @@ export interface Mention extends SlateElement {
 }
 
 const STYLE = {
-  color: COLORS.ANTD_LINK_BLUE_DARK,
-  background: "var(--cocalc-bg-base, white)",
+  color: "var(--cocalc-link, #003eb3)",
+  background: "var(--cocalc-bg-elevated, white)",
   borderRadius: "3px",
   padding: "3px",
   margin: "-3px 0",

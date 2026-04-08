@@ -701,8 +701,8 @@ h6
 
 // Fallback if used without .smc-message-from-viewer or .smc-message-from-other
 .user-mention
-  color: #0958d9
-  background: white
+  color: var(--cocalc-link, #0958d9)
+  background: var(--cocalc-bg-elevated, white)
   padding: 3px,
   margin: -3px 0,
 
@@ -713,13 +713,13 @@ h6
   padding: 0 2px
 
 .smc-message-from-other .user-mention
-  color: #7289da
+  color: var(--cocalc-link, #7289da)
   background: rgba(114,137,218,.1)
   border-radius: 3px
   padding: 0 2px
 
 .cocalc-task-description .user-mention
-  color: #7289da
+  color: var(--cocalc-link, #7289da)
   background: rgba(114,137,218,.1)
   border-radius: 3px
   padding: 0 2px
