@@ -820,6 +820,32 @@ export class Actions extends BaseActions<LatexEditorState> {
     return this._new_frame_tree_layout();
   }
 
+  // Frame types (EDITOR_SPEC keys) that already display build errors.
+  // https://github.com/sagemathinc/cocalc/issues/8659
+  private static ERROR_DISPLAY_FRAMES = [
+    "output",
+    "build",
+    "error",
+  ] as const;
+
+  private hasErrorDisplayFrame(): boolean {
+    try {
+      const tree = this._get_tree();
+      for (const id in this._get_leaf_ids()) {
+        const node = tree_ops.get_node(tree, id);
+        if (
+          node != null &&
+          (Actions.ERROR_DISPLAY_FRAMES as readonly string[]).includes(
+            node.get("type"),
+          )
+        ) {
+          return true;
+        }
+      }
+    } catch {}
+    return false;
+  }
+
   check_for_fatal_error(): void {
     const build_logs: BuildLogs = this.store.get("build_logs");
     if (!build_logs) return;
@@ -841,7 +867,11 @@ export class Actions extends BaseActions<LatexEditorState> {
         "WARNING: It is not possible to generate a useful PDF file.\n" +
         s.trim();
       console.warn(err);
-      this.set_error(err);
+      // Only show toast if no error-displaying frame is visible —
+      // if one is, the user can already see the problem there.
+      if (!this.hasErrorDisplayFrame()) {
+        this.set_error(err);
+      }
     }
   }
 

@@ -505,11 +505,20 @@ export function Output(props: OutputProps) {
 
   function renderProblemsTab() {
     const { errors, warnings, typesetting } = errorCounts;
-
     return {
       key: "problems",
       label: (
-        <span style={LABEL_STYLE}>
+        <span
+          style={{
+            ...LABEL_STYLE,
+            ...(errors > 0
+              ? {
+                  backgroundColor: "rgba(255, 0, 0, 0.1)",
+                  borderRadius: "4px",
+                }
+              : undefined),
+          }}
+        >
           <Icon name="bug" style={{ marginRight: "0" }} />
           {intl.formatMessage(editor.errors_and_warnings_title_short)}
           {renderProblemsCounter(errors, warnings, typesetting)}
