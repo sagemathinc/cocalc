@@ -362,6 +362,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
           display: "flex",
           flexDirection: "column",
           overflow: "hidden",
+          background: "var(--cocalc-bg-base, #f9fbff)",
         }}
       >
         {START_BANNER && <StartButton />}
@@ -402,7 +403,7 @@ export const ProjectPage: React.FC<Props> = (props: Props) => {
               }}
             >
               <TopTabBar />
-              {renderMainContent()}
+              {renderMainContent(/* bg-base applied inside */)}
             </div>
           </div>
         </FileDndProvider>

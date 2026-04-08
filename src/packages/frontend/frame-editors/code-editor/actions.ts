@@ -22,7 +22,7 @@ const SAVE_ERROR = "Error saving file to disk. ";
 const SAVE_WORKAROUND =
   "Ensure your network connection is solid. If this problem persists, you might need to close and open this file, restart this project in project settings, or contact support (help@cocalc.com)";
 
-import type { TopBarActions } from "@cocalc/frontend/project/page/top-tabbar/types";
+import type { TopBarActionsData } from "@cocalc/frontend/project/page/top-tabbar/types";
 import { alert_message } from "@cocalc/frontend/alerts";
 import {
   Actions as BaseActions,
@@ -195,27 +195,19 @@ export class Actions<
 
   protected doctype: string = "syncstring";
 
-  // Top bar actions: closures registered by the active frame's title bar.
-  // Not in Redux because they contain closures. A version counter in the
-  // store signals the top-tabbar to re-read.
-  private _topBarActions: TopBarActions | null = null;
+  // Top bar actions data: registered by the active frame's title bar.
+  // Contains closures so it can't live in Redux — a version counter
+  // in the store signals the top-tabbar to re-read.
+  private _topBarActionsData: TopBarActionsData | null = null;
 
-  /**
-   * Called by the frame title bar when it mounts or when the active frame changes.
-   * Registers the toolbar button actions for the top-tabbar to consume.
-   */
-  public setTopBarActions(actions: TopBarActions | null): void {
-    this._topBarActions = actions;
-    // Bump a version counter so the top-tabbar knows to re-read
+  public setTopBarActionsData(data: TopBarActionsData | null): void {
+    this._topBarActionsData = data;
     const cur = this.store?.get("topBarActionsVersion") ?? 0;
     this.setState({ topBarActionsVersion: cur + 1 });
   }
 
-  /**
-   * Read the current top bar actions. Called by the top-tabbar component.
-   */
-  public getTopBarActions(): TopBarActions | null {
-    return this._topBarActions;
+  public getTopBarActionsData(): TopBarActionsData | null {
+    return this._topBarActionsData;
   }
 
   ////////

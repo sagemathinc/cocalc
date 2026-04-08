@@ -14,7 +14,6 @@ import {
   useIsMountedRef,
   useMemo,
   usePrevious,
-  useRedux,
   useState,
   useTypedRedux,
 } from "@cocalc/frontend/app-framework";
@@ -26,7 +25,11 @@ import { CloseEditor } from "./close-editor";
 import { ExtraButtons } from "./extra-buttons";
 import { TopBarSaveButton } from "./save-indicator";
 import { ShareIndicatorTab } from "./share-indicator";
-import { EditorActions, TopBarActions, TopBarCapableActions } from "./types";
+import {
+  EditorActions,
+  TopBarActionsData,
+  TopBarCapableActions,
+} from "./types";
 
 let lastWidth: number = 200;
 
@@ -40,14 +43,14 @@ export function TopTabBarActions(
   const isMounted = useIsMountedRef();
   const [loading, setLoading] = useState(true);
   const [actions, setActions] = useState<EditorActions | null>(null);
-  const [topBarActions, setTopBarActions] = useState<TopBarActions | null>(
+  const [actionsData, setActionsData] = useState<TopBarActionsData | null>(
     null,
   );
 
   useEffect(() => {
     setLoading(true);
     setActions(null);
-    setTopBarActions(null);
+    setActionsData(null);
   }, [project_id, path]);
 
   const placeholderWidth = useMemo(() => {
@@ -75,7 +78,7 @@ export function TopTabBarActions(
 
   useAsyncEffect(async () => {
     setActions(null);
-    setTopBarActions(null);
+    setActionsData(null);
     setLoading(false);
 
     for (const path of open_files_order) {
@@ -88,8 +91,6 @@ export function TopTabBarActions(
       if (!isMounted.current) return;
       if (actionsNext != null) {
         setActions(actionsNext);
-        const capable = actionsNext as unknown as TopBarCapableActions;
-        setTopBarActions(capable.getTopBarActions?.() ?? null);
         return;
       }
     }
@@ -98,14 +99,31 @@ export function TopTabBarActions(
   const name = redux_name(project_id, path);
   const prevName = usePrevious(name);
 
-  // Re-read topBarActions when the frame editor bumps its version counter
-  const topBarActionsVersion = useRedux([name, "topBarActionsVersion"]);
+  // Subscribe to the editor store directly for topBarActionsData updates.
+  // We cannot use useRedux here because the editor store may not exist
+  // when this component first mounts (editor loads lazily), and useRedux
+  // gives up permanently if the store is missing on first subscribe.
   useEffect(() => {
-    if (actions != null) {
-      const capable = actions as unknown as TopBarCapableActions;
-      setTopBarActions(capable.getTopBarActions?.() ?? null);
-    }
-  }, [topBarActionsVersion, actions]);
+    if (actions == null) return;
+    const capable = actions as unknown as TopBarCapableActions;
+    setActionsData(capable.getTopBarActionsData?.() ?? null);
+
+    const store = redux.getStore(name);
+    if (store == null) return;
+
+    let lastVersion = store.get("topBarActionsVersion");
+    const onStoreChange = () => {
+      const ver = store.get("topBarActionsVersion");
+      if (ver !== lastVersion) {
+        lastVersion = ver;
+        setActionsData(capable.getTopBarActionsData?.() ?? null);
+      }
+    };
+    store.on("change", onStoreChange);
+    return () => {
+      store.removeListener("change", onStoreChange);
+    };
+  }, [actions, name]);
 
   if (loading || name !== prevName) {
     return (
@@ -133,13 +151,7 @@ export function TopTabBarActions(
             compact={compact}
           />
           {actions != null ? (
-            <ExtraButtons
-              editorActions={actions}
-              path={path}
-              topBarActions={topBarActions}
-              name={name}
-              compact={compact}
-            />
+            <ExtraButtons actionsData={actionsData} />
           ) : undefined}
         </Space.Compact>
         {actions != null ? (

@@ -35,7 +35,7 @@ import {
   useState,
 } from "@cocalc/frontend/app-framework";
 import { useAppContext } from "@cocalc/frontend/app/context";
-import type { TopBarAction } from "@cocalc/frontend/project/page/top-tabbar/types";
+import type { TopBarActionsData } from "@cocalc/frontend/project/page/top-tabbar/types";
 import {
   Gap,
   Icon,
@@ -328,31 +328,23 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   );
 
   // When this frame becomes active, register its toolbar buttons with the
-  // editor actions so the top-tabbar can display them. The actions contain
-  // closures, so they can't live in Redux — only a version counter is bumped.
+  // editor actions so the top-tabbar can display them.  We reuse
+  // manageCommands.menuItem() which already builds fully-resolved antd
+  // MenuItems (labels, icons, submenus, stayOpenOnClick keys, etc.).
   useEffect(() => {
     if (!is_active) return;
-    const buttons = manageCommands.getToolbarButtons();
-    const topActions: TopBarAction[] = [];
-    for (const name of buttons) {
-      const cmd = manageCommands.getCommandInfo(name);
-      if (cmd == null) continue;
-      topActions.push({
-        type: "entry",
-        label: typeof cmd.label === "string" ? cmd.label : name,
-        icon: typeof cmd.icon === "function" ? undefined : cmd.icon,
-        action: () => {
-          if (cmd.onClick != null) {
-            cmd.onClick({ props, id: props.id } as any);
-          } else {
-            (props.actions as any)[name]?.(props.id);
-          }
-        },
-      });
-    }
-    props.editor_actions.setTopBarActions?.(topActions);
+    const buttonNames = manageCommands.getToolbarButtons();
+    const menuItems = buttonNames
+      .map((name) => manageCommands.menuItem(name))
+      .filter((item) => item != null);
+    const data: TopBarActionsData = {
+      menuItems,
+      buttonNames,
+      onReorder: handleToolbarReorder,
+    };
+    (props.editor_actions as any).setTopBarActionsData?.(data);
     return () => {
-      props.editor_actions.setTopBarActions?.(null);
+      (props.editor_actions as any).setTopBarActionsData?.(null);
     };
   }, [is_active, manageCommands]);
 

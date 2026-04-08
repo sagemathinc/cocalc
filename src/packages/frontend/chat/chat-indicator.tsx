@@ -123,7 +123,7 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
   const aiActive = !!chatState && chatMode === "assistant";
   const chatActive = !!chatState && chatMode !== "assistant";
 
-  const borderColor = `var(--cocalc-border-light, ${COLORS.GRAY_L})`;
+  const borderColor = "transparent";
   const buttonHoverBg = `var(--cocalc-top-bar-hover, ${COLORS.GRAY_LLL})`;
   const buttonActiveBg = `var(--cocalc-top-bar-active, white)`;
   const buttonText = `var(--cocalc-top-bar-text, ${COLORS.GRAY})`;

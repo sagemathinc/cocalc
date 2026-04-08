@@ -3,25 +3,21 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { TypedMap } from "@cocalc/frontend/app-framework";
-import type { IconName } from "@cocalc/frontend/components";
-import type { ReactNode } from "react";
+import type { MenuItems } from "@cocalc/frontend/components/dropdown-menu";
 
-export type TopBarAction =
-  | {
-      type: "entry";
-      label: string;
-      tooltip?: string;
-      priority?: number; // default 0
-      icon?: IconName | ReactNode;
-      action?: (any) => any; // captures a static action
-      getAction?: (
-        local_view_state?: TypedMap<{ active_id?: string; full_id?: string }>,
-      ) => any; // for dynamic actions
-    }
-  | { type: "divider" };
-
-export type TopBarActions = TopBarAction[];
+/**
+ * Data registered by the active frame's title bar for the top-tabbar
+ * actions dropdown. Contains pre-built antd MenuItems (from
+ * ManageCommands.menuItem) plus the toolbar button names for DnD reorder.
+ */
+export interface TopBarActionsData {
+  /** Antd menu items, already fully resolved (labels, icons, children, stayOpenOnClick keys). */
+  menuItems: MenuItems;
+  /** Toolbar button names in display order — used for DnD reordering. */
+  buttonNames: string[];
+  /** Persist a new toolbar order after DnD. */
+  onReorder: (newOrder: string[]) => void;
+}
 
 import type { ChatActions } from "@cocalc/frontend/chat/actions";
 import type { CourseActions } from "@cocalc/frontend/course/actions";
@@ -32,8 +28,8 @@ import type { TimeTravelActions } from "@cocalc/frontend/frame-editors/time-trav
 
 /** Methods that the top-tabbar may call on any editor actions instance. */
 export interface TopBarCapableActions {
-  getTopBarActions?(): TopBarActions | null;
-  setTopBarActions?(actions: TopBarActions | null): void;
+  getTopBarActionsData?(): TopBarActionsData | null;
+  setTopBarActionsData?(data: TopBarActionsData | null): void;
   name: string;
 }
 

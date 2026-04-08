@@ -318,6 +318,17 @@ export function useAntdStyleProvider() {
           : {}),
         ...a11yMenuTokens,
       },
+      Tabs: {
+        cardBg: effectiveColorTheme.topBarBg,
+        ...(effectiveColorTheme.isDark
+          ? {
+              itemColor: effectiveColorTheme.textSecondary,
+              itemActiveColor: effectiveColorTheme.textPrimary,
+              itemSelectedColor: effectiveColorTheme.textPrimary,
+              inkBarColor: effectiveColorTheme.primary,
+            }
+          : {}),
+      },
       ...(effectiveColorTheme.isDark
         ? {
             Checkbox: {
@@ -334,13 +345,7 @@ export function useAntdStyleProvider() {
               colorBorder: effectiveColorTheme.border,
               colorText: effectiveColorTheme.textPrimary,
             },
-            Tabs: {
-              cardBg: effectiveColorTheme.topBarBg,
-              itemColor: effectiveColorTheme.textSecondary,
-              itemActiveColor: effectiveColorTheme.textPrimary,
-              itemSelectedColor: effectiveColorTheme.textPrimary,
-              inkBarColor: effectiveColorTheme.primary,
-            },
+            // Tabs tokens are set above (outside isDark block)
           }
         : {}),
     },
