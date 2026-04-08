@@ -79,13 +79,12 @@ export function TopTabBarActionsContainer(props: Readonly<TTBAProps>) {
     <div
       ref={topRightRef}
       className={"cc-project-tabs-top-right"}
-      style={{ background: "var(--cocalc-editor-titlebar-bg-active, #eee)" }}
     >
       <div className={"cc-project-tabs-top-right-slant"}></div>
       <div
         ref={actionstRef}
         className={"cc-project-tabs-top-right-actions"}
-        style={{ background: "var(--cocalc-editor-titlebar-bg-active, #eee)" }}
+        style={{ background: "var(--cocalc-editor-titlebar-bg, #e9edf2)" }}
       >
         <TopTabBarActions path={path} compact={compact} width={actionsWidth} />
       </div>
