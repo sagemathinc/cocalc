@@ -144,11 +144,12 @@ export class FileUseInfo extends Component<Props, {}> {
   render(): Rendered {
     const style = misc.copy(file_use_style);
     if (this.props.info.get("notify")) {
-      style.background = "#ffffea"; // very light yellow
+      style.background =
+        "color-mix(in srgb, var(--cocalc-warning, #ffffea) 15%, var(--cocalc-bg-elevated, #fefefe))";
     } else {
       style.background = this.props.info.get("is_unread")
-        ? "#f4f4f4"
-        : "#fefefe";
+        ? "var(--cocalc-bg-hover, #f4f4f4)"
+        : "var(--cocalc-bg-elevated, #fefefe)";
     }
     if (this.props.cursor) {
       misc.merge(style, { background: "var(--cocalc-link, #08c)", color: "white" });

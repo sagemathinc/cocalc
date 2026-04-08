@@ -72,7 +72,7 @@ export function calcStyle(isNarrow: boolean): PageStyle {
     background: "var(--cocalc-bg-elevated, #ffffff)",
     border: `2px solid var(--cocalc-border-light, ${COLORS.GRAY_DDD})`,
     borderRadius: "5px",
-    boxShadow: `0 0 15px ${COLORS.GRAY_L}`,
+    boxShadow: "0 0 15px rgba(0, 0, 0, 0.3)",
     fontSize: "10pt",
     height: "90%",
     margin: 0,

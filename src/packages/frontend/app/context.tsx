@@ -16,6 +16,7 @@ import {
   type BaseColors,
   type ColorTheme,
   deriveAccessibilityTheme,
+  lighten,
   type NativeDarkMode,
   OTHER_SETTINGS_COLOR_THEME,
   OTHER_SETTINGS_CUSTOM_THEME_COLORS,
@@ -268,7 +269,8 @@ export function useAntdStyleProvider() {
       Segmented: {
         trackBg: "transparent",
         trackPadding: 0,
-        itemSelectedBg: effectiveColorTheme.primaryLight,
+        // Match --cocalc-editor-titlebar-bg-active brightness
+        itemSelectedBg: lighten(effectiveColorTheme.topBarBg, 0.16),
       },
       Card: {
         headerBg: effectiveColorTheme.topBarBg,
