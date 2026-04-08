@@ -294,6 +294,7 @@ export function useAntdStyleProvider() {
       Menu: {
         itemBorderRadius: 4,
         itemColor: effectiveColorTheme.textPrimary,
+        subMenuItemBg: effectiveColorTheme.bgBase,
         // Ensure selected menu items have readable text when primary is dark
         itemSelectedColor: effectiveColorTheme.isDark
           ? "#ffffff"
@@ -303,13 +304,13 @@ export function useAntdStyleProvider() {
           : effectiveColorTheme.primaryLightest,
         ...(effectiveColorTheme.isDark
           ? {
-              darkItemBg: effectiveColorTheme.bgBase,
+              darkItemBg: effectiveColorTheme.bgElevated,
               darkItemColor: effectiveColorTheme.textSecondary,
               darkItemHoverColor: effectiveColorTheme.textPrimary,
               darkItemSelectedBg: effectiveColorTheme.bgSelected,
               darkItemSelectedColor: "#ffffff",
-              darkSubMenuItemBg: effectiveColorTheme.bgBase,
-              subMenuItemBg: effectiveColorTheme.bgBase,
+              darkSubMenuItemBg: effectiveColorTheme.bgElevated,
+              subMenuItemBg: effectiveColorTheme.bgElevated,
               // Submenu titles ("Preferences", "Billing") — override primary
               // so open submenu titles match regular item brightness
               colorPrimary: effectiveColorTheme.textPrimary,

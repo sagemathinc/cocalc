@@ -130,6 +130,8 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
   const buttonTextActive = `var(--cocalc-top-bar-text, ${COLORS.GRAY})`;
   const aiButtonActiveBg = `var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG})`;
   const aiButtonActiveText = `var(--cocalc-ai-text, ${COLORS.AI_ASSISTANT_TXT})`;
+  // Faint AI color hint when inactive
+  const aiButtonInactiveBg = `color-mix(in srgb, var(--cocalc-ai-bg, ${COLORS.AI_ASSISTANT_BG}) 25%, transparent)`;
 
   const chatButton = (
     <Tooltip
@@ -193,8 +195,8 @@ function ChatButtons({ project_id, path, chatState, chatMode }) {
             background: aiActive
               ? aiButtonActiveBg
               : hoverAI
-                ? buttonHoverBg
-                : "transparent",
+                ? aiButtonActiveBg
+                : aiButtonInactiveBg,
             borderColor,
             color: aiActive ? aiButtonActiveText : buttonText,
             padding: "4px 8px",
