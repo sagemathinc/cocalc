@@ -286,8 +286,8 @@ export function useAntdStyleProvider() {
       Table: {
         headerBg: effectiveColorTheme.topBarBg,
         headerColor: effectiveColorTheme.textPrimary,
-        headerSortActiveBg: effectiveColorTheme.bgHover,
-        headerSortHoverBg: effectiveColorTheme.bgHover,
+        headerSortActiveBg: effectiveColorTheme.topBarHover,
+        headerSortHoverBg: effectiveColorTheme.topBarHover,
         rowHoverBg: effectiveColorTheme.bgHover,
         borderColor: effectiveColorTheme.borderLight,
       },

@@ -801,6 +801,10 @@ export const FileListing: React.FC<Props> = ({
       zIndex: 1,
       cursor: "pointer",
     };
+    const thActiveStyle: React.CSSProperties = {
+      ...thStyle,
+      background: `var(--cocalc-top-bar-hover, ${COLORS.GRAY_L0})`,
+    };
     return (
       <tr>
         {!student_project_functionality.disableActions && (
@@ -839,7 +843,7 @@ export const FileListing: React.FC<Props> = ({
           </th>
         )}
         <th
-          style={{ ...thStyle, width: COL_W.STAR }}
+          style={{ ...(sortColumn === "starred" ? thActiveStyle : thStyle), width: COL_W.STAR }}
           onClick={() => sort_by("starred")}
         >
           <Icon
@@ -853,7 +857,7 @@ export const FileListing: React.FC<Props> = ({
           />
         </th>
         <th
-          style={{ ...thStyle, width: COL_W.PUBLIC }}
+          style={{ ...(sortColumn === "public" ? thActiveStyle : thStyle), width: COL_W.PUBLIC }}
           onClick={() => sort_by("public")}
         >
           <SortIndicator
@@ -862,7 +866,7 @@ export const FileListing: React.FC<Props> = ({
             sortDescending={sortDescending}
           />
         </th>
-        <th style={{ ...thStyle }} onClick={() => sort_by("name")}>
+        <th style={sortColumn === "name" ? thActiveStyle : thStyle} onClick={() => sort_by("name")}>
           {intl.formatMessage(labels.name)}
           <SortIndicator
             columnKey="name"
@@ -872,7 +876,7 @@ export const FileListing: React.FC<Props> = ({
         </th>
         {!IS_MOBILE && (
           <th
-            style={{ ...thStyle, width: COL_W.DATE }}
+            style={{ ...(sortColumn === "time" ? thActiveStyle : thStyle), width: COL_W.DATE }}
             onClick={() => sort_by("time")}
           >
             {intl.formatMessage({
@@ -889,7 +893,7 @@ export const FileListing: React.FC<Props> = ({
         {!isNarrow && (
           <>
             <th
-              style={{ ...thStyle, width: COL_W.SIZE, textAlign: "right" }}
+              style={{ ...(sortColumn === "size" ? thActiveStyle : thStyle), width: COL_W.SIZE, textAlign: "right" }}
               onClick={() => sort_by("size")}
             >
               {intl.formatMessage(labels.size)}

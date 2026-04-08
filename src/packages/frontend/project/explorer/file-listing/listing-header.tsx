@@ -35,8 +35,20 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
     display_name: string | React.JSX.Element,
     marginLeft?,
   ) {
+    const isActive = active_file_sort.get("column_name") === column_name;
     return (
-      <span>
+      <span
+        style={
+          isActive
+            ? {
+                backgroundColor: `var(--cocalc-top-bar-hover, ${COLORS.GRAY_LL})`,
+                borderRadius: "3px",
+                padding: "2px 4px",
+                margin: "-2px -4px",
+              }
+            : undefined
+        }
+      >
         <VisibleMDLG>
           <span style={{ marginLeft }} />
         </VisibleMDLG>
@@ -54,7 +66,7 @@ export const ListingHeader: React.FC<Props> = (props: Props) => {
         >
           {display_name}
           <Gap />
-          {active_file_sort.get("column_name") === column_name ? (
+          {isActive ? (
             <Icon
               style={inner_icon_style}
               name={

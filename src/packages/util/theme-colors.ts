@@ -224,8 +224,8 @@ export function deriveTheme(name: string, base: BaseColors): ColorTheme {
     border: lighten(text, 0.7),
     borderLight: lighten(text, 0.82),
 
-    topBarBg: mixColors(darken(bgBase, 0.12), primary, 0.18),
-    topBarHover: mixColors(darken(bgBase, 0.16), primary, 0.24),
+    topBarBg: mixColors(darken(bgBase, 0.06), primary, 0.1),
+    topBarHover: mixColors(darken(bgBase, 0.1), primary, 0.15),
     topBarText: lighten(text, 0.35),
     topBarTextActive: text,
 

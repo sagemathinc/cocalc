@@ -269,7 +269,7 @@ export default function FileTabs({ openFiles, project_id, activeTab }) {
             <Button
               type="text"
               size="small"
-              icon={<Icon name="down-circle-o" />}
+              icon={<Icon name="history" />}
               style={{
                 paddingInline: "10px",
                 ...(recentFilesMenuOpen
