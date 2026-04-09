@@ -66,7 +66,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   private init_new_frame(): void {
     this.store.on("new-frame", ({ id, type }) => {
-      if (type !== "jupyter_cell_notebook") {
+      if (type !== "jupyter_cell_notebook" && type !== "jupyter_minimal") {
         return;
       }
       // important to do this *before* the frame is rendered,
@@ -78,7 +78,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       const node = this._get_frame_node(id);
       if (node == null) return;
       const type = node.get("type");
-      if (type === "jupyter_cell_notebook") {
+      if (type === "jupyter_cell_notebook" || type === "jupyter_minimal") {
         this.get_frame_actions(id);
       }
     }
@@ -243,7 +243,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       throw Error(`no frame ${id}`);
     }
     const type = node.get("type");
-    if (type === "jupyter_cell_notebook") {
+    if (type === "jupyter_cell_notebook" || type === "jupyter_minimal") {
       return (this.frame_actions[id] = new NotebookFrameActions(this, id));
     } else {
       return;
@@ -569,8 +569,12 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       // deal with side chat in base class
       await super.gotoFragment(fragmentId);
     }
+    // Prefer an existing notebook frame (minimal or default) rather than
+    // always creating a jupyter_cell_notebook which overrides the saved layout.
+    const existingMinimal = this._get_most_recent_active_frame_id_of_type("jupyter_minimal");
+    const frameType = existingMinimal ? "jupyter_minimal" : "jupyter_cell_notebook";
     const frameId = await this.waitUntilFrameReady({
-      type: "jupyter_cell_notebook",
+      type: frameType,
       syncdoc: this.jupyter_actions.syncdb,
     });
     if (!frameId) return;

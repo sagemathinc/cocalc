@@ -94,6 +94,23 @@ const jupyter_cell_notebook: EditorDescription = {
   },
 } as const;
 
+const jupyter_minimal: EditorDescription = {
+  type: "jupyter_minimal",
+  short: "Minimal",
+  name: "Jupyter Minimal",
+  icon: "ipynb",
+  component: CellNotebook,
+  commands: jupyterCommands,
+  buttons: set([
+    "jupyter-run current cell and select next",
+    "jupyter-restart",
+    "jupyter-interrupt kernel",
+    "halt_jupyter",
+    "guide",
+    "show_search",
+  ]),
+} as const;
+
 const commands_guide: EditorDescription = {
   type: "snippets",
   short: labels.snippets,
@@ -160,6 +177,7 @@ const jupyter_raw: EditorDescription = {
 
 export const EDITOR_SPEC = {
   jupyter_cell_notebook,
+  jupyter_minimal,
   commands_guide,
   jupyter_slideshow_revealjs,
   jupyter_table_of_contents,

@@ -83,6 +83,7 @@ interface Props {
 
   scrollTop?: number;
   hook_offset?: number;
+  cellViewMode?: "default" | "minimal";
 }
 
 export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
@@ -102,6 +103,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     scroll_seq,
     scrollTop,
     hook_offset,
+    cellViewMode,
   } = props;
   // status of tab completion
   const complete: undefined | immutable.Map<any, any> = useRedux([
@@ -308,7 +310,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         actions={actions}
         read_only={read_only}
         cell_list={cell_list}
-        cell_toolbar={cell_toolbar}
+        cell_toolbar={cellViewMode === "minimal" ? undefined : cell_toolbar}
         cells={cells}
         cm_options={cm_options}
         complete={is_focused ? complete : undefined}
@@ -331,6 +333,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         use_windowed_list={useWindowedListRef.current}
         llmTools={llmTools}
         computeServerId={computeServerId}
+        cellViewMode={cellViewMode}
       />
     );
   }
@@ -479,6 +482,7 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
             usage={usage}
             expected_cell_runtime={expected_cell_runtime}
             computeServerId={computeServerId}
+            compact={cellViewMode === "minimal"}
           />
         )}
         {cell_toolbar === "create_assignment" && (

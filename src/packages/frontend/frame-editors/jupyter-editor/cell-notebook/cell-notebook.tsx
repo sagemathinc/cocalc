@@ -36,6 +36,7 @@ export function CellNotebook(props: Props): Rendered {
 
   // Actions for the underlying Jupyter notebook state, kernel state, etc.
   const jupyter_actions: JupyterActions = props.actions.jupyter_actions;
+  const cellViewMode = props.desc.get("type") === "jupyter_minimal" ? "minimal" : "default";
 
   return (
     <JupyterEditor
@@ -54,6 +55,7 @@ export function CellNotebook(props: Props): Rendered {
       scroll_seq={data("scroll_seq")}
       scrollTop={data("scrollTop")}
       hook_offset={data("hook_offset")}
+      cellViewMode={cellViewMode}
     />
   );
 }

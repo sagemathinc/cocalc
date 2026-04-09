@@ -19,6 +19,7 @@ import {
   useLayoutEffect,
   useMemo,
   useRef,
+  useState,
 } from "react";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 import { CSS, React, useIsMountedRef } from "@cocalc/frontend/app-framework";
@@ -34,6 +35,7 @@ import { LLMTools, NotebookMode, Scroll } from "@cocalc/jupyter/types";
 import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
+import { computeSectionBlocks, buildBlockLookup } from "./minimal/section-blocks";
 
 interface StableHtmlContextType {
   enabled?: boolean;
@@ -91,6 +93,7 @@ interface CellListProps {
   llmTools?: LLMTools;
   computeServerId?: number;
   read_only?: boolean;
+  cellViewMode?: "default" | "minimal";
 }
 
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
@@ -121,6 +124,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     llmTools,
     computeServerId,
     read_only,
+    cellViewMode = "default",
   } = props;
 
   const cellListDivRef = useRef<any>(null);
@@ -462,6 +466,13 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           showDragHandle={!!actions?.store.is_cell_editable(id)}
           read_only={read_only}
           isDragging={isDragging}
+          cellViewMode={cellViewMode}
+          blockInfo={blockLookup?.get(id)}
+          blockCellIds={sectionBlocks && blockLookup?.has(id) ? sectionBlocks[blockLookup.get(id)!.blockIndex]?.cellIds : undefined}
+          headingLevel={sectionBlocks && blockLookup?.has(id) ? sectionBlocks[blockLookup.get(id)!.blockIndex]?.headingLevel ?? 0 : 0}
+          sectionCollapsed={blockLookup?.has(id) ? collapsedSections.has(blockLookup.get(id)!.blockIndex) : false}
+          onToggleSection={blockLookup?.has(id) ? () => toggleSection(blockLookup.get(id)!.blockIndex) : undefined}
+          sectionTitle={sectionBlocks && blockLookup?.has(id) ? (() => { const blk = sectionBlocks[blockLookup.get(id)!.blockIndex]; if (!blk || blk.headingLevel === 0) return ""; const startCell = cells.get(blk.startCellId); const input = startCell?.get("input") ?? ""; const firstLine = input.split("\n").find((l: string) => /^#{1,4}\s/.test(l.trimStart())); return firstLine?.replace(/^#+\s*/, "").trim() ?? ""; })() : undefined}
         />
       </div>
     );
@@ -551,6 +562,30 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       scrollOrResize[key]();
     }
   }, [cellListResize]);
+
+  const sectionBlocks = useMemo(() => {
+    if (cellViewMode !== "minimal" || cell_list == null || cells == null) return null;
+    return computeSectionBlocks(cell_list, cells);
+  }, [cellViewMode, cell_list, cells]);
+
+  const blockLookup = useMemo(() => {
+    if (sectionBlocks == null) return null;
+    return buildBlockLookup(sectionBlocks);
+  }, [sectionBlocks]);
+
+  // Track which section block indices are collapsed (minimal mode only)
+  const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
+  const toggleSection = useCallback((blockIndex: number) => {
+    setCollapsedSections((prev) => {
+      const next = new Set(prev);
+      if (next.has(blockIndex)) {
+        next.delete(blockIndex);
+      } else {
+        next.add(blockIndex);
+      }
+      return next;
+    });
+  }, []);
 
   if (cell_list == null) {
     return render_loading();
