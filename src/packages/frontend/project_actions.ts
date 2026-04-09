@@ -540,6 +540,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       change_history?: boolean;
       new_ext?: string;
       noFocus?: boolean;
+      /** Explicit directory for the +New page.  When omitted the
+       *  explorer browsing path (or current_path) is used. */
+      new_page_path?: string;
     } = {
       update_file_listing: true,
       change_history: true,
@@ -579,10 +582,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
       case "new":
         change.file_creation_error = undefined;
+        // Sync new_page_path from the caller or the explorer's browsing
+        // path so the +New page opens in the directory the user was in.
+        change.new_page_path =
+          opts.new_page_path ??
+          store.get("explorer_browsing_path") ??
+          store.get("current_path") ??
+          "";
         if (opts.change_history) {
-          const newPath =
-            store.get("new_page_path") ?? store.get("current_path") ?? "";
-          this.push_state(`new/${newPath}`, "");
+          this.push_state(`new/${change.new_page_path}`, "");
         }
         const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
@@ -775,7 +783,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == undefined) return;
     const flyout = name === store.get("flyout") ? null : name;
-    this.setState({ flyout });
+    const change: any = { flyout };
+    // When opening the +New flyout, sync its directory to the files
+    // flyout's current browsing path so the user creates files in
+    // the directory they were looking at.
+    if (flyout === "new") {
+      change.flyout_new_path =
+        store.get("flyout_browsing_path") ??
+        store.get("current_path") ??
+        "";
+    }
+    this.setState(change);
     // also store this in local storage
     storeFlyoutState(this.project_id, name, { expanded: flyout != null });
     if (flyout != null) {
@@ -1938,12 +1956,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       if (this.get_store()?.get("flyout") != "new") {
         this.toggleFlyout("new");
       }
-      this.setState({
+      const stateUpdate: any = {
         default_filename: default_filename(
           misc.filename_extension(opts.path),
           this.project_id,
         ),
-      });
+      };
+      // When triggered from an editor (File → New), navigate the +New
+      // flyout to the directory of the file being edited so the new
+      // file is created next to the current one.  Only the flyout path
+      // is updated because toggleFlyout("new") above opens the flyout;
+      // the full-page +New path is left untouched.
+      if (opts.source === "editor") {
+        stateUpdate.flyout_new_path = misc.path_split(opts.path).head;
+      }
+      this.setState(stateUpdate);
       return;
     }
     if (opts.action == "upload") {
@@ -3480,11 +3507,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "new": // ignore foreground for these and below, since would be nonsense
         this.set_current_path(full_path);
         // Deep-link: anchor both "+New" contexts to the URL-requested directory
-        this.setState({
+        this.setState({ flyout_new_path: full_path });
+        this.set_active_tab("new", {
+          change_history,
           new_page_path: full_path,
-          flyout_new_path: full_path,
         });
-        this.set_active_tab("new", { change_history: change_history });
         break;
 
       case "log":

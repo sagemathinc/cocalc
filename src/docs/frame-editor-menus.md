@@ -292,6 +292,23 @@ commands/generic-commands.tsx   command definitions (group: "frame_types")
 keep only the layout structure. `isFrameTree()` is a runtime type guard that
 validates DKV data before applying it, preventing crashes from corrupted data.
 
+## File Menu → "+New" Action
+
+The **File → "+ New"** command (`generic-commands.tsx`, group `new-open`)
+opens the +New flyout panel and pre-fills the filename extension from the
+current file. It uses `fileAction("new")` which calls
+`ProjectActions.show_file_action_panel({ path, action: "new", source: "editor" })`.
+
+When `source === "editor"`, the action also sets `flyout_new_path` to the
+**parent directory of the file being edited**, so the new file is created
+next to the current one. Only the flyout path is changed (since the flyout
+is what opens); the full-page `new_page_path` is left untouched. See
+`project-files.md` §"+New" Path Model for the full path model.
+
+Other entry points to the File menu (rename, copy, move, delete, etc.)
+use `fileAction(action)` which routes through the same
+`show_file_action_panel` but opens the standard file-action modal instead.
+
 ## Data Flow Summary
 
 ```
