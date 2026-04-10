@@ -139,7 +139,7 @@ describe("llm", () => {
     }
     // not disabled
     expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");
-    expect(getModel("gpt-4")).toEqual("gpt-4");
+    expect(getModel("gpt-5.2-8k")).toEqual("gpt-5.2-8k");
     expect(getModel(DEFAULT_MODEL)).toEqual(DEFAULT_MODEL);
     expect(getModel("magistral-medium-latest")).toEqual(DEFAULT_MODEL);
     expect(getModel("mistral-large-latest")).toEqual("mistral-large-latest");
