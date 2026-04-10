@@ -95,6 +95,46 @@ export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
       };
     }, [scrollerRef.current]);
 
+    // Scroll — hooks must be called unconditionally (before any early return)
+    const scrollTo = useCallback(
+      (clientY: number) => {
+        const el = scrollerRef.current;
+        const map = minimapRef.current;
+        if (!el || !map) return;
+        const rect = map.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
+        const vpHalf = viewportRatio / 2;
+        const targetRatio = Math.max(
+          0,
+          Math.min(1, (ratio - vpHalf) / Math.max(0.001, 1 - viewportRatio)),
+        );
+        el.scrollTop = targetRatio * (el.scrollHeight - el.clientHeight);
+      },
+      [viewportRatio],
+    );
+
+    const handlePointerDown = useCallback(
+      (e: React.PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        draggingRef.current = true;
+        setDragging(true);
+        (e.target as HTMLElement).setPointerCapture(e.pointerId);
+        scrollTo(e.clientY);
+      },
+      [scrollTo],
+    );
+    const handlePointerMove = useCallback(
+      (e: React.PointerEvent) => {
+        if (draggingRef.current) scrollTo(e.clientY);
+      },
+      [scrollTo],
+    );
+    const handlePointerUp = useCallback(() => {
+      draggingRef.current = false;
+      setDragging(false);
+    }, []);
+
     const minimapHeight = height - 16;
     if (minimapHeight <= 0) return null;
 
@@ -183,46 +223,6 @@ export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
 
     const totalPixels = entries.reduce((s, e) => s + e.pixelHeight, 0) || 1;
     const scale = minimapHeight / totalPixels;
-
-    // Scroll
-    const scrollTo = useCallback(
-      (clientY: number) => {
-        const el = scrollerRef.current;
-        const map = minimapRef.current;
-        if (!el || !map) return;
-        const rect = map.getBoundingClientRect();
-        const ratio = Math.max(0, Math.min(1, (clientY - rect.top) / rect.height));
-        const vpHalf = viewportRatio / 2;
-        const targetRatio = Math.max(
-          0,
-          Math.min(1, (ratio - vpHalf) / Math.max(0.001, 1 - viewportRatio)),
-        );
-        el.scrollTop = targetRatio * (el.scrollHeight - el.clientHeight);
-      },
-      [viewportRatio],
-    );
-
-    const handlePointerDown = useCallback(
-      (e: React.PointerEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        draggingRef.current = true;
-        setDragging(true);
-        (e.target as HTMLElement).setPointerCapture(e.pointerId);
-        scrollTo(e.clientY);
-      },
-      [scrollTo],
-    );
-    const handlePointerMove = useCallback(
-      (e: React.PointerEvent) => {
-        if (draggingRef.current) scrollTo(e.clientY);
-      },
-      [scrollTo],
-    );
-    const handlePointerUp = useCallback(() => {
-      draggingRef.current = false;
-      setDragging(false);
-    }, []);
 
     const vpTop = scrollRatio * (1 - viewportRatio) * minimapHeight;
     const vpHeight = Math.max(VIEWPORT_MIN_HEIGHT, viewportRatio * minimapHeight);
