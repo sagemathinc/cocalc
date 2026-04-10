@@ -1,12 +1,13 @@
 /*
-Get the client for the given LanguageModel.
+ * Copyright (C) 2023-2026, Sagemath Inc.
+ *
+ * Get AI SDK model instances for Ollama and Custom OpenAI providers.
+ * These read configuration from server settings and return LanguageModelV1 instances.
+ */
 
-You do not have to worry too much about throwing an exception, because they're caught in ./index::evaluate
-*/
-
-import { Ollama } from "@langchain/ollama";
-import { ChatOpenAI as ChatOpenAILC } from "@langchain/openai";
+import { createOpenAI } from "@ai-sdk/openai";
 import { omit } from "lodash";
+
 import getLogger from "@cocalc/backend/logger";
 import { getServerSettings } from "@cocalc/database/settings/server-settings";
 import { isCustomOpenAI, isOllamaLLM } from "@cocalc/util/db-schema/llm-utils";
@@ -14,15 +15,72 @@ import { isCustomOpenAI, isOllamaLLM } from "@cocalc/util/db-schema/llm-utils";
 const log = getLogger("llm:client");
 
 /**
- * The idea here is: the ollama config contains all available endpoints and their configuration.
- * The "model" is the unique key in the ollama_configuration mapping, it was prefixed by $OLLAMA_PREFIX.
- * For the actual Ollama client instantitation, we pick the model parameter from the config or just use the unique model name as a fallback.
- * In particular, this means you can query the same Ollama model with differnet parameters, or even have several ollama servers running.
- * All other config parameters are passed to the Ollama constructor (e.g. topK, temperature, etc.).
- *
- * ATTN: do not cache the Ollama instance, we don't know if there are side effects
+ * Result from getOllamaModel / getCustomOpenAIModel.
+ * Besides the AI SDK model instance, we also return request-level overrides
+ * (temperature, topK, …) that the admin configured for this model.
+ * The caller (evaluateWithAI) merges these into the generateText/streamText call.
  */
-export async function getOllama(model: string) {
+export interface ModelWithOverrides {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  model: any;
+  requestOverrides?: Record<string, unknown>;
+}
+
+/** Keys that map to generateText / streamText request-level options. */
+const REQUEST_LEVEL_KEYS = new Set([
+  "temperature",
+  "topP",
+  "topK",
+  "frequencyPenalty",
+  "presencePenalty",
+  "seed",
+  "maxRetries",
+  "stopSequences",
+]);
+
+/**
+ * Split an admin config object into provider-level options (headers, etc.)
+ * and request-level overrides (temperature, topK, …).
+ */
+function splitConfigExtras(
+  config: Record<string, unknown>,
+  skipKeys: string[],
+): {
+  providerOptions: Record<string, unknown>;
+  requestOverrides: Record<string, unknown>;
+} {
+  const skip = new Set(skipKeys);
+  const providerOptions: Record<string, unknown> = {};
+  const requestOverrides: Record<string, unknown> = {};
+
+  for (const [key, value] of Object.entries(config)) {
+    if (skip.has(key) || value == null) continue;
+    if (REQUEST_LEVEL_KEYS.has(key)) {
+      requestOverrides[key] = value;
+    } else if (key === "headers") {
+      providerOptions.headers = value;
+    } else {
+      // Unrecognised keys are collected so callers can log them.
+      if (!providerOptions._unknownKeys) {
+        providerOptions._unknownKeys = {} as Record<string, unknown>;
+      }
+      (providerOptions._unknownKeys as Record<string, unknown>)[key] = value;
+    }
+  }
+
+  return { providerOptions, requestOverrides };
+}
+
+/**
+ * Create a Vercel AI SDK model for an Ollama model configured in server settings.
+ * Uses Ollama's OpenAI-compatible API endpoint (/v1).
+ *
+ * The "model" parameter should be the raw model name WITHOUT the "ollama-" prefix
+ * (i.e., already processed by fromOllamaModel).
+ */
+export async function getOllamaModel(
+  model: string,
+): Promise<ModelWithOverrides> {
   if (isOllamaLLM(model)) {
     throw new Error(
       `At this point, the model name should be one of Ollama, but it was ${model}`,
@@ -42,32 +100,63 @@ export async function getOllama(model: string) {
   }
 
   const baseUrl = config.baseUrl;
-
   if (!baseUrl) {
     throw new Error(
       `The "baseUrl" field of the Ollama model ${model} is not configured`,
     );
   }
 
-  // this means the model is kept in the GPU memory for 24 hours – by default its only a few minutes or so
-  const keepAlive: string = config.keepAlive ?? "24h";
+  const modelName = config.model ?? model;
 
-  // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
-  const other = omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
-  const ollamaConfig = {
+  // Split remaining config into provider-level and request-level options.
+  // Ollama-native keys like "keepAlive" are not in the skip list so they
+  // end up in _unknownKeys and are reported in the warning below.
+  const { providerOptions, requestOverrides } = splitConfigExtras(config, [
+    "baseUrl",
+    "model",
+    "cocalc",
+  ]);
+
+  // Warn about Ollama-native keys that can't be forwarded via OpenAI-compat API
+  const unknownKeys = providerOptions._unknownKeys as
+    | Record<string, unknown>
+    | undefined;
+  delete providerOptions._unknownKeys;
+  if (unknownKeys && Object.keys(unknownKeys).length > 0) {
+    log.warn(
+      `Ollama model "${model}": the following config keys are not supported via the OpenAI-compatible endpoint and will be ignored: ${Object.keys(unknownKeys).join(", ")}. ` +
+        `Only standard request options (${[...REQUEST_LEVEL_KEYS].join(", ")}) and "headers" are forwarded.`,
+    );
+  }
+
+  log.debug("Creating Ollama model via OpenAI-compatible endpoint", {
     baseUrl,
-    model: config.model ?? model,
-    keepAlive,
-    ...other,
+    modelName,
+    requestOverrides,
+  });
+
+  const provider = createOpenAI({
+    apiKey: "ollama", // Ollama doesn't require a real API key
+    baseURL: `${baseUrl.replace(/\/+$/, "")}/v1`,
+    compatibility: "compatible",
+    ...providerOptions,
+  });
+
+  return {
+    model: provider(modelName),
+    ...(Object.keys(requestOverrides).length > 0 ? { requestOverrides } : {}),
   };
-
-  log.debug("Instantiating Ollama client with config", ollamaConfig);
-
-  const client = new Ollama(ollamaConfig);
-  return client;
 }
 
-export async function getCustomOpenAI(model: string) {
+/**
+ * Create a Vercel AI SDK model for a Custom OpenAI endpoint configured in server settings.
+ *
+ * The "model" parameter should be the raw model name WITHOUT the "custom_openai-" prefix
+ * (i.e., already processed by fromCustomOpenAIModel).
+ */
+export async function getCustomOpenAIModel(
+  model: string,
+): Promise<ModelWithOverrides> {
   if (isCustomOpenAI(model)) {
     throw new Error(
       `At this point, the model name should be one of the custom openai models, but it was ${model}`,
@@ -87,37 +176,49 @@ export async function getCustomOpenAI(model: string) {
   }
 
   const baseURL = config.baseUrl;
-
   if (!baseURL) {
     throw new Error(
       `The "baseUrl" field of the Custom OpenAI model ${model} is not configured`,
     );
   }
 
-  // extract all other properties from the config, except the url, model, keepAlive field and the "cocalc" field
-  const other = omit(config, ["baseUrl", "model", "keepAlive", "cocalc"]);
-
   // Handle legacy API key field names for backward compatibility
-  const customOpenAIConfig: any = {
-    configuration: { baseURL }, // https://js.langchain.com/docs/integrations/chat/openai/#custom-urls
-    model: config.model ?? model,
-    ...other,
-  };
+  const apiKey =
+    config.apiKey || config.openAIApiKey || config.azureOpenAIApiKey || "";
+  const modelName = config.model ?? model;
 
-  // Convert legacy API key field names to the expected "apiKey" field
-  if (config.openAIApiKey && !customOpenAIConfig.apiKey) {
-    customOpenAIConfig.apiKey = config.openAIApiKey;
-  }
-  if (config.azureOpenAIApiKey && !customOpenAIConfig.apiKey) {
-    customOpenAIConfig.apiKey = config.azureOpenAIApiKey;
-  }
+  // Split remaining config into provider-level and request-level options.
+  const { providerOptions, requestOverrides } = splitConfigExtras(config, [
+    "baseUrl",
+    "model",
+    "cocalc",
+    "apiKey",
+    "openAIApiKey",
+    "azureOpenAIApiKey",
+  ]);
+
+  // Clean up internal _unknownKeys (custom OpenAI endpoints may accept unknown
+  // keys through their own extension points, but we don't forward them here).
+  delete providerOptions._unknownKeys;
 
   log.debug(
-    "Instantiating Custom OpenAI client with config (omitting api keys)",
-    omit(customOpenAIConfig, ["apiKey", "openAIApiKey", "azureOpenAIApiKey"]),
+    "Creating Custom OpenAI model",
+    omit({ baseURL, modelName, ...config }, [
+      "apiKey",
+      "openAIApiKey",
+      "azureOpenAIApiKey",
+    ]),
   );
 
-  // https://js.langchain.com/docs/integrations/chat/openai/
-  const client = new ChatOpenAILC(customOpenAIConfig);
-  return client;
+  const provider = createOpenAI({
+    apiKey,
+    baseURL,
+    compatibility: "compatible",
+    ...providerOptions,
+  });
+
+  return {
+    model: provider(modelName),
+    ...(Object.keys(requestOverrides).length > 0 ? { requestOverrides } : {}),
+  };
 }

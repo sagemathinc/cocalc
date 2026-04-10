@@ -13,6 +13,6 @@ module.exports = {
   transformIgnorePatterns: ["node_modules/(?!.*tokenx)"],
   transform: {
     "^.+\\.tsx?$": "ts-jest",
-    "^.+\\.jsx?$": "babel-jest", // Use Babel for .js files (like tokenx)
+    "^.+\\.m?jsx?$": "babel-jest", // Use Babel for .js/.mjs files (like tokenx)
   },
 };

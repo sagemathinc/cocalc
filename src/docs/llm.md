@@ -9,7 +9,7 @@ components.
 CoCalc supports multiple LLM providers through a unified architecture:
 
 - **Server** (`packages/server/llm/`): evaluation engine, provider routing via
-  LangChain, abuse prevention, cost tracking
+  the Vercel AI SDK, abuse prevention, cost tracking
 - **Conat bridge** (`packages/conat/llm/`): request/response messaging with
   streaming between frontend and server
 - **Frontend** (`packages/frontend/frame-editors/llm/`,
@@ -30,7 +30,7 @@ CoCalc supports multiple LLM providers through a unified architecture:
             │  Server LLM     │
             │  evaluate()     │
             └───────┬────────┘
-                    │ LangChain
+                    │ AI SDK
         ┌───────────┼───────────┐
         │           │           │
    ┌────▼───┐  ┌───▼───┐  ┌───▼────┐
@@ -53,19 +53,19 @@ const SERVICES = [
 ] as const;
 ```
 
-| Provider      | Model prefix     | Examples                                           |
-| ------------- | ---------------- | -------------------------------------------------- |
-| OpenAI        | `gpt-`           | `gpt-4o`, `gpt-4-turbo`, `gpt-4o-mini`             |
-| Google        | `gemini-`        | `gemini-2-flash-preview-16k`, `gemini-1.5-pro-001` |
-| Anthropic     | `claude-`        | `claude-3-5-sonnet`, `claude-3-opus`               |
-| Mistral       | `mistral-`       | `mistral-large`, `mistral-small`                   |
-| Xai           | `grok-`          | `grok-2`, `grok-3`                                 |
-| Ollama        | `ollama-`        | User-configured local models                       |
-| Custom OpenAI | `custom_openai-` | User-configured endpoints                          |
-| User-defined  | `user-`          | `user-{service}-{id}`                              |
+| Provider      | Model prefix     | Examples                                                  |
+| ------------- | ---------------- | --------------------------------------------------------- |
+| OpenAI        | `gpt-`           | `gpt-4o-8k`, `gpt-5.2-8k`                                |
+| Google        | `gemini-`        | `gemini-2.5-flash-8k`, `gemini-3-flash-preview-16k`      |
+| Anthropic     | `claude-`        | `claude-4-6-sonnet-8k`, `claude-3-5-sonnet`               |
+| Mistral       | `mistral-`       | `mistral-large`, `mistral-small`                          |
+| Xai           | `grok-`          | `grok-4-1-fast-non-reasoning-16k`, `grok-code-fast-1-16k` |
+| Ollama        | `ollama-`        | User-configured local models                              |
+| Custom OpenAI | `custom_openai-` | User-configured endpoints                                 |
+| User-defined  | `user-`          | `user-{service}-{id}`                                     |
 
-**Default priority** when auto-selecting: Google → OpenAI → Anthropic →
-Mistral → Xai → Ollama → Custom OpenAI.
+**Default priority** when auto-selecting: Google -> OpenAI -> Anthropic ->
+Mistral -> Xai -> Ollama -> Custom OpenAI.
 
 ## Server-Side Evaluation
 
@@ -79,35 +79,38 @@ async function evaluate(opts: ChatOptions): Promise<string> {
   // 2. Check for abuse (rate limits)
   // 3. Route to provider:
   //    - User-defined → evaluateUserDefinedLLM()
-  //    - Ollama → evaluateOllama()
-  //    - All others → evaluateWithLangChain()
+  //    - All others (incl. Ollama) → evaluateWithAI()
   // 4. Save response to database
   // 5. Create purchase record (for non-free models)
 }
 ```
 
-### LangChain Unified Handler
+### AI SDK Unified Handler
 
-`packages/server/llm/evaluate-lc.ts` — routes OpenAI, Google, Anthropic,
-Mistral, Xai, and Custom OpenAI through LangChain:
+`packages/server/llm/evaluate.ts` — routes all providers (OpenAI, Google,
+Anthropic, Mistral, Xai, Ollama, Custom OpenAI) through the Vercel AI SDK:
 
 ```typescript
 const PROVIDER_CONFIGS = {
-  openai:    { createClient: () => new ChatOpenAI(...) },
-  google:    { createClient: () => new ChatGoogleGenerativeAI(...) },
-  anthropic: { createClient: () => new ChatAnthropic(...) },
-  mistralai: { createClient: () => new ChatMistralAI(...) },
-  xai:       { createClient: () => new ChatOpenAI({ baseURL: xai_endpoint }) },
+  openai:    { createModel: () => openai(model) },
+  google:    { createModel: () => google(model) },
+  anthropic: { createModel: () => anthropic(model) },
+  mistralai: { createModel: () => mistral(model) },
+  xai:       { createModel: () => xai(model) },
+  ollama:    { createModel: () => getOllamaModel(model) },
   // ...
 };
 ```
 
 Each provider config includes:
 
-- `createClient()` — instantiate LangChain chat model
+- `createModel()` — instantiate an AI SDK model instance
 - `checkEnabled()` — verify API key is configured
 - `canonicalModel()` — normalize model name
-- `getTokenCountFallback()` — estimate tokens when API doesn't return counts
+- `supportsCaching` — whether the provider supports prompt caching (e.g. Anthropic)
+
+After evaluation, provider metadata is logged for diagnostics — this includes
+cached token counts (Anthropic) and reasoning token counts (OpenAI, xAI).
 
 ### Streaming
 
@@ -117,18 +120,6 @@ Streaming uses Conat **multiresponse** requests:
 2. Server sends chunks with incrementing sequence numbers
 3. Frontend reassembles via `stream` callback: `(output: string | null) => void`
 4. `null` signals completion
-
-### Ollama
-
-`packages/server/llm/ollama.ts` — for locally hosted models:
-
-```typescript
-async function evaluateOllama(opts): Promise<ChatOutput> {
-  // Uses LangChain Ollama client
-  // Supports custom endpoints for user-defined models
-  // Token counting via approximate heuristic
-}
-```
 
 ### User-Defined LLMs
 
@@ -141,6 +132,21 @@ async function evaluateUserDefinedLLM(opts, account_id) {
   // 3. Route to appropriate evaluator with user's API key
 }
 ```
+
+## Reasoning & Thinking Tokens
+
+Different providers expose reasoning and caching metadata in different ways
+via the AI SDK's `providerMetadata`:
+
+| Provider  | Reasoning tokens | Cache tokens | Notes |
+| --------- | ---------------- | ------------ | ----- |
+| OpenAI    | `providerMetadata.openai.reasoningTokens` | -- | o3-mini: ~86% of output can be reasoning tokens |
+| xAI       | `providerMetadata.openai.reasoningTokens` (OpenAI-compatible) | -- | Reasoning count may exceed output count (different methodology) |
+| Anthropic | -- | `providerMetadata.anthropic.cacheCreationInputTokens`, `cacheReadInputTokens` | Extended thinking exists but not exposed as token counts |
+| Google    | -- | -- | Reasoning tokens included in totals but not yet exposed via AI SDK |
+
+**Billing note:** reasoning tokens are already included in `completion_tokens`,
+so billing is correct even when reasoning counts are not separately displayed.
 
 ## Core Types
 
@@ -405,12 +411,13 @@ POST /api/v2/llm/evaluate
 | `packages/util/types/llm.ts`                                   | ChatOptions, History, ChatOutput types         |
 | `packages/util/db-schema/llm.ts`                               | Database schema for log tables                 |
 | `packages/server/llm/index.ts`                                 | Main evaluate() entry point                    |
-| `packages/server/llm/evaluate-lc.ts`                           | LangChain unified handler                      |
-| `packages/server/llm/ollama.ts`                                | Ollama provider                                |
+| `packages/server/llm/evaluate.ts`                              | AI SDK unified handler                         |
+| `packages/server/llm/client.ts`                                | Ollama / Custom OpenAI model factories         |
+| `packages/server/llm/utils.ts`                                 | Token counting, provider metadata extraction   |
 | `packages/server/llm/user-defined.ts`                          | User-defined LLM evaluation                    |
 | `packages/server/llm/abuse.ts`                                 | Rate limiting and quotas                       |
 | `packages/server/llm/save-response.ts`                         | Database persistence                           |
-| `packages/conat/llm/client.ts`                                 | Frontend → server messaging                    |
+| `packages/conat/llm/client.ts`                                 | Frontend -> server messaging                   |
 | `packages/conat/llm/server.ts`                                 | Subject routing and handling                   |
 | `packages/frontend/client/llm.ts`                              | LLMClient class                                |
 | `packages/frontend/frame-editors/llm/llm-selector.tsx`         | Model picker                                   |
@@ -419,6 +426,30 @@ POST /api/v2/llm/evaluate
 | `packages/frontend/misc/llm-cost-estimation.tsx`               | Cost display                                   |
 | `packages/frontend/misc/llm.ts`                                | Token estimation utilities                     |
 | `packages/next/pages/api/v2/llm/evaluate.ts`                   | REST API endpoint                              |
+
+## Tests
+
+### Unit Tests
+
+```bash
+cd packages/util && pnpm test db-schema/llm-utils.test.ts
+```
+
+### Integration Tests (requires Postgres + API keys)
+
+The suite is opt-in and skipped unless `COCALC_TEST_LLM=true`.
+
+```bash
+cd packages/server && COCALC_TEST_LLM=true pnpm test llm/test/models.test.ts
+```
+
+Required environment variables (see `packages/server/llm/test/shared.ts`):
+
+- `COCALC_TEST_OPENAI_KEY`
+- `COCALC_TEST_GOOGLE_GENAI_KEY`
+- `COCALC_TEST_ANTHROPIC_KEY`
+- `COCALC_TEST_MISTRAL_AI_KEY`
+- `COCALC_TEST_XAI_KEY`
 
 ## Common Patterns for Agents
 

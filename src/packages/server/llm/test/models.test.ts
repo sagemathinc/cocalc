@@ -12,7 +12,7 @@ import { db } from "@cocalc/database";
 import { callback2 } from "@cocalc/util/async-utils";
 import { OTHER_SETTINGS_USER_DEFINED_LLM } from "@cocalc/util/db-schema/defaults";
 import { uuid } from "@cocalc/util/misc";
-import { evaluateWithLangChain } from "../evaluate-lc";
+import { evaluateWithAI } from "../evaluate";
 import { evaluateUserDefinedLLM } from "../user-defined";
 import { enableModels, setupAPIKeys, test_llm, test_llm_case } from "./shared";
 
@@ -57,7 +57,7 @@ function testSelectableModels(
       test(
         `${model} works`,
         async () => {
-          const answer = await evaluateWithLangChain({ model, ...QUERY });
+          const answer = await evaluateWithAI({ model, ...QUERY });
           checkAnswer(answer);
         },
         LLM_TIMEOUT,
@@ -101,7 +101,7 @@ test_llm("openai")("Custom OpenAI Endpoints", () => {
         readonly: true,
       });
 
-      const answer = await evaluateWithLangChain({
+      const answer = await evaluateWithAI({
         model: toCustomOpenAIModel("omni4high"),
         ...QUERY,
       });
