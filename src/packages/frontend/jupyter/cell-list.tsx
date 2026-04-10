@@ -36,6 +36,8 @@ import { JupyterActions } from "./browser-actions";
 import { Cell } from "./cell";
 import HeadingTagComponent from "./heading-tag";
 import { computeSectionBlocks, buildBlockLookup } from "./minimal/section-blocks";
+import { MinimalMinimap } from "./minimal/minimal-minimap";
+
 
 interface StableHtmlContextType {
   enabled?: boolean;
@@ -94,6 +96,9 @@ interface CellListProps {
   computeServerId?: number;
   read_only?: boolean;
   cellViewMode?: "default" | "minimal";
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
+  frameHeight?: number;
 }
 
 export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
@@ -125,6 +130,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     computeServerId,
     read_only,
     cellViewMode = "default",
+    minimalLayout,
+    zenMode,
+    frameHeight,
   } = props;
 
   const cellListDivRef = useRef<any>(null);
@@ -179,7 +187,11 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
   const handleCellListRef = useCallback((node: any) => {
     cellListDivRef.current = node;
     frameActions.current?.set_cell_list_div(node);
-  }, []);
+    // Hide native scrollbar when minimap is active
+    if (node && cellViewMode === "minimal") {
+      node.classList.add("minimap-hide-scrollbar");
+    }
+  }, [cellViewMode]);
 
   const saveScroll = useCallback(() => {
     if (use_windowed_list) {
@@ -470,9 +482,15 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           blockInfo={blockLookup?.get(id)}
           blockCellIds={sectionBlocks && blockLookup?.has(id) ? sectionBlocks[blockLookup.get(id)!.blockIndex]?.cellIds : undefined}
           headingLevel={sectionBlocks && blockLookup?.has(id) ? sectionBlocks[blockLookup.get(id)!.blockIndex]?.headingLevel ?? 0 : 0}
-          sectionCollapsed={blockLookup?.has(id) ? collapsedSections.has(blockLookup.get(id)!.blockIndex) : false}
-          onToggleSection={blockLookup?.has(id) ? () => toggleSection(blockLookup.get(id)!.blockIndex) : undefined}
+          isLastBlock={sectionBlocks && blockLookup?.has(id) ? blockLookup.get(id)!.blockIndex === sectionBlocks.length - 1 : false}
+          sectionCollapsed={sectionBlocks != null && blockLookup?.has(id) ? collapsedSections.has(sectionBlocks[blockLookup.get(id)!.blockIndex]?.startCellId) : false}
+          onToggleSection={sectionBlocks != null && blockLookup?.has(id) ? () => toggleSection(sectionBlocks[blockLookup.get(id)!.blockIndex]?.startCellId) : undefined}
           sectionTitle={sectionBlocks && blockLookup?.has(id) ? (() => { const blk = sectionBlocks[blockLookup.get(id)!.blockIndex]; if (!blk || blk.headingLevel === 0) return ""; const startCell = cells.get(blk.startCellId); const input = startCell?.get("input") ?? ""; const firstLine = input.split("\n").find((l: string) => /^#{1,4}\s/.test(l.trimStart())); return firstLine?.replace(/^#+\s*/, "").trim() ?? ""; })() : undefined}
+          blockHighlighted={blockLookup?.has(id) ? hoveredBlockIndex === blockLookup.get(id)!.blockIndex : false}
+          onHoverBlock={blockLookup?.has(id) ? (hover: boolean) => setHoveredBlockIndex(hover ? blockLookup.get(id)!.blockIndex : null) : undefined}
+          minimalLayout={minimalLayout}
+          zenMode={zenMode}
+          frameHeight={frameHeight}
         />
       </div>
     );
@@ -573,15 +591,16 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
     return buildBlockLookup(sectionBlocks);
   }, [sectionBlocks]);
 
-  // Track which section block indices are collapsed (minimal mode only)
-  const [collapsedSections, setCollapsedSections] = useState<Set<number>>(new Set());
-  const toggleSection = useCallback((blockIndex: number) => {
+  // Track which sections are collapsed by their heading cell ID (stable across edits)
+  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(new Set());
+  const [hoveredBlockIndex, setHoveredBlockIndex] = useState<number | null>(null);
+  const toggleSection = useCallback((startCellId: string) => {
     setCollapsedSections((prev) => {
       const next = new Set(prev);
-      if (next.has(blockIndex)) {
-        next.delete(blockIndex);
+      if (next.has(startCellId)) {
+        next.delete(startCellId);
       } else {
-        next.add(blockIndex);
+        next.add(startCellId);
       }
       return next;
     });
@@ -691,7 +710,7 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
       <StableHtmlContext.Provider value={{ cellListDivRef, scrollOrResize }}>
         <div
           key="cells"
-          className="smc-vfill cocalc-force-scrollbar"
+          className={`smc-vfill cocalc-force-scrollbar${cellViewMode === "minimal" ? " minimap-hide-scrollbar" : ""}`}
           style={{
             fontSize: `${font_size}px`,
             paddingLeft: "5px",
@@ -724,7 +743,9 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
           <div
             style={{
               background: "white",
-              boxShadow: "8px 8px 4px 4px #ccc",
+              boxShadow: "0 2px 12px rgba(0,0,0,0.15)",
+              borderRadius: "4px",
+              transform: "translateX(10px)",
               fontSize: `${font_size}px`,
             }}
           >
@@ -759,7 +780,23 @@ export const CellList: React.FC<CellListProps> = (props: CellListProps) => {
         disableMarkdownCodebar: true,
       }}
     >
-      {body}
+      <div style={{ display: "flex", flexDirection: "row", flex: 1, minHeight: 0 }}>
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0 }}>
+          {body}
+        </div>
+        {cellViewMode === "minimal" && cell_list != null && frameHeight != null && (
+          <MinimalMinimap
+            cellList={cell_list}
+            cells={cells}
+            collapsedSections={collapsedSections}
+            scrollerRef={cellListDivRef}
+            cellHeights={virtuosoHeightsRef}
+            height={frameHeight}
+            curId={cur_id}
+            selIds={sel_ids}
+          />
+        )}
+      </div>
     </FileContext.Provider>
   );
 };

@@ -95,7 +95,7 @@ const jupyter_cell_notebook: EditorDescription = {
 } as const;
 
 const jupyter_minimal: EditorDescription = {
-  type: "jupyter_minimal",
+  type: "jupyter-minimal",
   short: "Minimal",
   name: "Jupyter Minimal",
   icon: "ipynb",

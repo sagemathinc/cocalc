@@ -17,6 +17,8 @@ import {
   Popconfirm,
   Popover,
   Progress,
+  Segmented,
+  Switch,
   Tooltip,
   Typography,
 } from "antd";
@@ -80,6 +82,12 @@ interface KernelProps {
   computeServerId?: number;
   is_fullscreen?: boolean;
   compact?: boolean;
+  /** Minimal notebook layout controls */
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
+  onLayoutChange?: (layout: "wide" | "comfortable" | "narrow") => void;
+  onZenModeChange?: (zen: boolean) => void;
+  availableLayouts?: readonly ("wide" | "comfortable" | "narrow")[];
 }
 
 export function Kernel({
@@ -90,6 +98,11 @@ export function Kernel({
   computeServerId,
   is_fullscreen,
   compact,
+  minimalLayout,
+  zenMode,
+  onLayoutChange,
+  onZenModeChange,
+  availableLayouts,
 }: KernelProps) {
   const intl = useIntl();
   const name = actions.name;
@@ -753,6 +766,7 @@ export function Kernel({
               })}
             >
               <Button
+                type="text"
                 size="small"
                 onClick={() => actions.signal("SIGINT")}
               >
@@ -767,18 +781,69 @@ export function Kernel({
             okText={intl.formatMessage(labels.halt)}
             cancelText={intl.formatMessage(labels.cancel)}
           >
-            <Button size="small">
+            <Button type="text" size="small">
               <Icon name="PoweroffOutlined" /> Halt
             </Button>
           </Popconfirm>
         )}
         {!read_only && kernel != null && !no_kernel && (
           <Button
+            type="text"
             size="small"
             onClick={() => void actions.confirm_restart()}
           >
             <Icon name="redo" /> Restart
           </Button>
+        )}
+        {/* Layout and zen controls for minimal notebook */}
+        {onLayoutChange && (
+          <>
+            <div style={{ borderLeft: `1px solid ${COLORS.GRAY_LL}`, height: "18px", margin: "0 2px" }} />
+            <Segmented
+              size="small"
+              value={minimalLayout ?? "comfortable"}
+              onChange={(v) => onLayoutChange(v as "wide" | "comfortable" | "narrow")}
+              options={[
+                {
+                  value: "wide",
+                  label: (
+                    <Tooltip title="Full width">
+                      <Icon name="column-width" />
+                    </Tooltip>
+                  ),
+                },
+                {
+                  value: "comfortable",
+                  disabled: !availableLayouts?.includes("comfortable"),
+                  label: (
+                    <Tooltip title="Comfortable width">
+                      <Icon name="pic-centered" rotate="90" />
+                    </Tooltip>
+                  ),
+                },
+                {
+                  value: "narrow",
+                  disabled: !availableLayouts?.includes("narrow"),
+                  label: (
+                    <Tooltip title="Narrow, centered">
+                      <Icon name="column-height" rotate="90" />
+                    </Tooltip>
+                  ),
+                },
+              ].filter(o => availableLayouts?.includes(o.value as any) ?? true)}
+            />
+          </>
+        )}
+        {onZenModeChange && (
+          <Tooltip title={zenMode ? "Show code cells" : "Hide code cells"}>
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
+              onClick={() => onZenModeChange(!zenMode)}
+            >
+              <Switch size="small" checked={zenMode} />
+              <span style={{ fontSize: "12px", userSelect: "none" }}>Zen</span>
+            </span>
+          </Tooltip>
         )}
       </div>
     );

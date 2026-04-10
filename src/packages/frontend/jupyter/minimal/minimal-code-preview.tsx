@@ -17,10 +17,12 @@ interface MinimalCodePreviewProps {
   cmOptions: { mode?: string | { name?: string }; theme?: string };
   fontSize: number;
   onActivate: () => void;
+  /** When true (e.g. row hovered), show at full opacity */
+  highlighted?: boolean;
 }
 
 export const MinimalCodePreview: React.FC<MinimalCodePreviewProps> = React.memo(
-  ({ value, cmOptions, fontSize, onActivate }) => {
+  ({ value, cmOptions, fontSize, onActivate, highlighted }) => {
     const [hovered, setHovered] = useState(false);
 
     const scaledFontSize = Math.round(fontSize * CODE_FONT_SCALE);
@@ -28,9 +30,9 @@ export const MinimalCodePreview: React.FC<MinimalCodePreviewProps> = React.memo(
     return (
       <div
         style={{
-          opacity: hovered ? CODE_OPACITY_HOVER : CODE_OPACITY_DEFAULT,
+          opacity: hovered || highlighted ? CODE_OPACITY_HOVER : CODE_OPACITY_DEFAULT,
           transition: "opacity 150ms ease",
-          cursor: "pointer",
+          cursor: "text",
           position: "relative",
           overflow: "hidden",
           padding: "4px",

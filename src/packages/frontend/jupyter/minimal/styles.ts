@@ -11,8 +11,8 @@ export const OUTPUT_FLEX_DEFAULT = 7;
 export const CODE_FLEX_DEFAULT = 3;
 
 /** Editing (code-wide) flex proportions */
-export const OUTPUT_FLEX_EDITING = 3;
-export const CODE_FLEX_EDITING = 7;
+export const OUTPUT_FLEX_EDITING = 5;
+export const CODE_FLEX_EDITING = 5;
 
 /** Transition duration for column width flip */
 export const COLUMN_TRANSITION = "flex-basis 200ms ease, flex-grow 200ms ease";

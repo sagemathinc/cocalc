@@ -67,9 +67,15 @@ interface Props {
   blockInfo?: { blockIndex: number; positionInBlock: number; blockSize: number };
   blockCellIds?: string[];
   headingLevel?: number;
+  isLastBlock?: boolean;
   sectionCollapsed?: boolean;
   onToggleSection?: () => void;
   sectionTitle?: string;
+  blockHighlighted?: boolean;
+  onHoverBlock?: (hover: boolean) => void;
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
+  frameHeight?: number;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -102,7 +108,11 @@ function areEqual(props: Props, nextProps: Props): boolean {
     nextProps.isDragging !== props.isDragging ||
     nextProps.cellViewMode !== props.cellViewMode ||
     nextProps.blockInfo !== props.blockInfo ||
-    nextProps.sectionCollapsed !== props.sectionCollapsed
+    nextProps.sectionCollapsed !== props.sectionCollapsed ||
+    nextProps.blockHighlighted !== props.blockHighlighted ||
+    nextProps.minimalLayout !== props.minimalLayout ||
+    nextProps.zenMode !== props.zenMode ||
+    nextProps.frameHeight !== props.frameHeight
   );
 }
 
@@ -141,14 +151,22 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
         llmTools={props.llmTools}
         computeServerId={props.computeServerId}
         read_only={props.read_only}
+        cell_toolbar={props.cell_toolbar}
         positionInBlock={blockInfo.positionInBlock}
         blockSize={blockInfo.blockSize}
         headingLevel={props.headingLevel ?? 0}
         blockCellIds={props.blockCellIds}
         isFirst={props.isFirst}
+        isLast={props.isLast}
+        isLastBlock={props.isLastBlock}
         sectionCollapsed={props.sectionCollapsed}
         onToggleSection={props.onToggleSection}
         sectionTitle={props.sectionTitle}
+        blockHighlighted={props.blockHighlighted}
+        onHoverBlock={props.onHoverBlock}
+        minimalLayout={props.minimalLayout}
+        zenMode={props.zenMode}
+        frameHeight={props.frameHeight}
       />
     );
   }
