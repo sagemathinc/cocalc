@@ -39,6 +39,7 @@ import {
   toOllamaModel,
   toUserLLMModelName,
   XAI_MODELS,
+  ZAI_MODELS,
 } from "@cocalc/util/db-schema/llm-utils";
 import { cmp, timestamp_cmp, trunc_middle } from "@cocalc/util/misc";
 import { CustomLLMPublic } from "@cocalc/util/types/llm";
@@ -222,6 +223,32 @@ function mentionableUsers({
             <LLMTooltip model={m}>
               <XAIAvatar size={size} /> {name}{" "}
               <LLMModelPrice model={m} floatRight />
+            </LLMTooltip>
+          ),
+          search: search_term,
+          is_llm: true,
+          show_llm_main_menu,
+        });
+      }
+    }
+  }
+
+  if (enabledLLMs.zai) {
+    for (const m of ZAI_MODELS) {
+      if (!selectableLLMs.includes(m)) continue;
+      const show_llm_main_menu = m === model;
+      const size = show_llm_main_menu ? avatarUserSize : avatarLLMSize;
+      const name = LLM_USERNAMES[m] ?? m;
+      const vendor = model2vendor(m);
+      const search_term =
+        `${vendor.name}${m.replace(/-/g, "")}${name.replace(/ /g, "")}`.toLowerCase();
+      if (!search || search_term.includes(search)) {
+        mentions.push({
+          value: model2service(m),
+          label: (
+            <LLMTooltip model={m}>
+              <LanguageModelVendorAvatar model={m} size={size} />{" "}
+              {name} <LLMModelPrice model={m} floatRight />
             </LLMTooltip>
           ),
           search: search_term,

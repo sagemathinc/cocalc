@@ -110,6 +110,7 @@ export interface CustomizeState {
   mistral_enabled: boolean;
   anthropic_enabled: boolean;
   xai_enabled: boolean;
+  zai_enabled: boolean;
   ollama_enabled: boolean;
   custom_openai_enabled: boolean;
   neural_search_enabled: boolean;
@@ -220,6 +221,7 @@ export class CustomizeStore extends Store<CustomizeState> {
       mistralai: this.get("mistral_enabled"),
       anthropic: this.get("anthropic_enabled"),
       xai: this.get("xai_enabled"),
+      zai: this.get("zai_enabled"),
       user: this.get("user_defined_llm"),
     };
   }

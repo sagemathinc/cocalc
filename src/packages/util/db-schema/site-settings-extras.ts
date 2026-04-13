@@ -78,6 +78,7 @@ const ollama_enabled = (conf: SiteSettings) => to_bool(conf.ollama_enabled);
 const custom_openai_enabled = (conf: SiteSettings) =>
   to_bool(conf.custom_openai_enabled);
 const xai_enabled = (conf: SiteSettings) => to_bool(conf.xai_enabled);
+const zai_enabled = (conf: SiteSettings) => to_bool(conf.zai_enabled);
 const any_llm_enabled = (conf: SiteSettings) =>
   openai_enabled(conf) ||
   vertexai_enabled(conf) ||
@@ -212,6 +213,7 @@ export type SiteSettingsExtrasKeys =
   | "mistral_api_key"
   | "anthropic_api_key"
   | "xai_api_key"
+  | "zai_api_key"
   | "salesloft_section"
   | "salesloft_api_key"
   | "jupyter_section"
@@ -334,6 +336,14 @@ export const EXTRAS: SettingsExtras = {
     default: "",
     password: true,
     show: xai_enabled,
+    tags: ["AI LLM"],
+  },
+  zai_api_key: {
+    name: "Zhipu AI (Z.AI) API Key",
+    desc: "Create an API Key at [z.ai](https://z.ai/) or [bigmodel.cn](https://bigmodel.cn/) and paste it here.",
+    default: "",
+    password: true,
+    show: zai_enabled,
     tags: ["AI LLM"],
   },
   ollama_configuration: {

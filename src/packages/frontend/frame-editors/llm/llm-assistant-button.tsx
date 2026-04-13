@@ -182,6 +182,8 @@ const CUSTOM_DESCRIPTIONS = {
     "Describe anything you might want to do in the Linux terminal: find files that contain 'foo', replace 'x' by 'y' in all files, clone a git repo, convert a.ipynb to markdown, etc.",
   jupyter_cell_notebook:
     "Try to do anything with the current cell or selection that you can possibly imagine: explain why this is slow and how to make it faster, draw a plot of sin(x), etc.",
+  jupyter_minimal:
+    "Try to do anything with the current cell or selection that you can possibly imagine: explain why this is slow and how to make it faster, draw a plot of sin(x), etc.",
   generic: (
     <div>
       You can try anything that you can possibly imagine: translate from one

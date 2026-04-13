@@ -180,8 +180,10 @@ export const JupyterSnippets: React.FC<Props> = React.memo((props: Props) => {
 
   // we need to know the target frame of the jupyter notebook
   useEffect(() => {
+    const existingMinimal = frame_actions._get_most_recent_active_frame_id_of_type("jupyter_minimal");
+    const frameType = existingMinimal ? "jupyter_minimal" : "jupyter_cell_notebook";
     const jid = frame_actions.show_recently_focused_frame_of_type(
-      "jupyter_cell_notebook",
+      frameType,
       "col",
       true,
       0.7,

@@ -11,6 +11,7 @@ FrameTitleBar - title bar in a frame, in the frame tree
 
 import { useDraggable } from "@dnd-kit/core";
 import { SortableButtonBar, SortableButtonItem } from "./sortable-button-bar";
+import { isJupyterNotebookFrameType } from "@cocalc/frontend/frame-editors/jupyter-editor/util";
 
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
 import {
@@ -1601,7 +1602,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return null;
     }
     const { type } = props;
-    if (type == "terminal" || type == "jupyter_cell_notebook") {
+    if (type == "terminal" || isJupyterNotebookFrameType(type)) {
       // these are handled in a more sophisticated way due to compute
       // in their own editor.
       return null;

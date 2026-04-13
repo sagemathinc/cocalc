@@ -591,7 +591,6 @@ export function NotebookAgent({
         const system = buildSystemPrompt(ctx, { readOnly, autoRun: autoRunRef.current });
 
         let history: AgentHistoryMessage[] = buildHistoryForLlm(prompt, system);
-
         let currentPrompt = prompt;
         let loops = MAX_TOOL_LOOPS;
 
@@ -669,6 +668,13 @@ export function NotebookAgent({
             },
           ]);
 
+          // The current user prompt (original instruction on the first
+          // iteration, buildPostToolPrompt on subsequent ones) was sent as
+          // `input` for this turn but isn't in the history array yet.
+          // Push it now so the next tool-loop turn sees the full exchange.
+          // (buildHistoryForLlm uses a stale React closure, so the
+          // original prompt is never in the initial history.)
+          history.push({ role: "user", content: currentPrompt });
           history.push({
             role: "assistant",
             content: compactAssistantMessageForHistory(assistantText),
