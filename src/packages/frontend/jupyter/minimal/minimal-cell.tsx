@@ -7,8 +7,10 @@ import { Button, Tooltip } from "antd";
 import type { Map } from "immutable";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
+import { redux } from "@cocalc/frontend/app-framework";
 import { Icon } from "@cocalc/frontend/components";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { openAssistantWithPrefill } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import { clear_selection } from "@cocalc/frontend/misc/clear-selection";
 import MostlyStaticMarkdown from "@cocalc/frontend/editors/slate/mostly-static-markdown";
 import type { LLMTools } from "@cocalc/jupyter/types";
@@ -449,9 +451,30 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
             </ScrollToBottomOutput>
           )}
           {isCode && cell.get("output") == null && !input.trim() && !read_only && !zenMode && (
-            <div style={{ color: COLORS.GRAY_M, padding: "8px 4px", fontSize: "13px" }}>
-              <a onClick={handleActivateCode} style={{ color: COLORS.GRAY_M }}>
+            <div style={{ color: COLORS.GRAY_L, padding: "8px 4px", fontSize: "13px" }}>
+              <a onClick={handleActivateCode} style={{ color: COLORS.GRAY_L }}>
                 Write code
+              </a>
+              {" or "}
+              <a
+                style={{ color: COLORS.GRAY_L }}
+                onClick={() => {
+                  if (!actions || !project_id) return;
+                  const cellList = (actions as any).store?.get("cell_list");
+                  const cellIds = cellList?.toJS() as string[] | undefined;
+                  const cellIndex = cellIds ? cellIds.indexOf(id) : -1;
+                  const cellLabel = cellIndex >= 0 ? `cell #${cellIndex + 1}` : "this cell";
+                  openAssistantWithPrefill({
+                    redux,
+                    project_id,
+                    path: (actions as any).path,
+                    prompt: `Generate code in ${cellLabel} that does: `,
+                  }).catch((err) =>
+                    console.warn("openAssistantWithPrefill failed:", err),
+                  );
+                }}
+              >
+                generate using AI...
               </a>
             </div>
           )}
