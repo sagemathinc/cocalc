@@ -342,7 +342,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
           positionInBlock={positionInBlock}
           blockSize={blockSize}
           showBlockLine={true}
-          isLastInBlock={positionInBlock === blockSize - 1}
+
           cellRunState={cellRunState}
           onRun={isCode ? handleRun : undefined}
           onInsertCell={
