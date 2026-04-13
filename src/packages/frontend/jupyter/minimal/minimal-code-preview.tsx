@@ -61,7 +61,7 @@ export const MinimalCodePreview: React.FC<MinimalCodePreviewProps> = React.memo(
             right: 0,
             width: "32px",
             height: "100%",
-            background: "linear-gradient(to right, transparent, white)",
+            background: "linear-gradient(to right, transparent, var(--cocalc-bg-base, white))",
             pointerEvents: "none",
           }}
         />

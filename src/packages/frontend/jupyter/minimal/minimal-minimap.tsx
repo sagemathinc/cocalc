@@ -12,14 +12,13 @@ import React, {
   useState,
 } from "react";
 import { hash_string } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 
 const MINIMAP_WIDTH = 40;
 const VIEWPORT_MIN_HEIGHT = 12;
 const CELL_GAP = 2; // visible gap between cells
 const MIN_CELL_HEIGHT = 2;
 
-const CURRENT_COLOR = "#42a5f5"; // blue — matches gutter
+const CURRENT_COLOR = "var(--cocalc-primary, #42a5f5)";
 
 type CellStatus = "running" | "queued" | "error" | "stale" | "idle" | "dirty" | "markdown";
 
@@ -50,13 +49,13 @@ function getCellStatus(
 }
 
 const STATUS_COLORS: Record<CellStatus, string> = {
-  running: "#5cb85c",
+  running: "var(--cocalc-success, #5cb85c)",
   queued: "#2e7d32",
-  error: COLORS.ANTD_RED,
-  stale: COLORS.GRAY_L,   // kept for type completeness
-  dirty: COLORS.GRAY_L,   // edited since last run / unexecuted — darker
-  idle: COLORS.GRAY_L0,   // clean (executed, unchanged) — lighter, same as markdown
-  markdown: COLORS.GRAY_L0,
+  error: "var(--cocalc-error, #ff4d4f)",
+  stale: "var(--cocalc-border, #ccc)",
+  dirty: "var(--cocalc-border, #ccc)",
+  idle: "#eee",
+  markdown: "#eee",
 };
 
 const DEFAULT_CELL_HEIGHT = 60;
@@ -338,7 +337,7 @@ export const MinimalMinimap: React.FC<MinimalMinimapProps> = React.memo(
             left: 0,
             right: 0,
             height: vpHeight,
-            border: `1.5px solid ${COLORS.GRAY_M}`,
+            border: `1.5px solid var(--cocalc-text-primary, #888)`,
             borderRadius: "2px",
             backgroundColor: "rgba(0,0,0,0.04)",
             pointerEvents: "none",

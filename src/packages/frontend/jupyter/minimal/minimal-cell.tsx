@@ -15,7 +15,6 @@ import type { LLMTools } from "@cocalc/jupyter/types";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import { FileContext, useFileContext } from "@cocalc/frontend/lib/file-context";
 import { hash_string } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import { CellOutput } from "@cocalc/frontend/jupyter/cell-output";
 import { CellToolbar } from "@cocalc/frontend/jupyter/cell-toolbar";
 import { CellInput } from "@cocalc/frontend/jupyter/cell-input";
@@ -316,7 +315,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                       frameActions.current?.scroll("cell visible");
                     }
                   }}
-                  style={{ color: COLORS.GRAY_M }}
+                  style={{ color: "var(--cocalc-text-primary, #888)" }}
                 />
               </Tooltip>
             </div>
@@ -395,7 +394,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 display: "flex",
                 gap: "2px",
                 alignItems: "center",
-                background: "rgba(255,255,255,0.85)",
+                background: "var(--cocalc-bg-elevated, rgba(255,255,255,0.85))",
                 borderRadius: "4px",
                 padding: "1px",
                 visibility: rowHovered || menuOpen ? "visible" : "hidden",
@@ -409,7 +408,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                     size="small"
                     icon={<Icon name={isBusy ? "stop" : "play"} />}
                     onClick={isBusy ? handleStop : handleRun}
-                    style={isBusy ? { ...CODE_BAR_BTN_STYLE, color: COLORS.ANTD_RED } : CODE_BAR_BTN_STYLE}
+                    style={isBusy ? { ...CODE_BAR_BTN_STYLE, color: "var(--cocalc-error, #ff4d4f)" } : CODE_BAR_BTN_STYLE}
                   >
                     {isBusy ? "Stop" : "Run"}
                   </Button>
@@ -449,8 +448,8 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
             </ScrollToBottomOutput>
           )}
           {isCode && cell.get("output") == null && !input.trim() && !read_only && !zenMode && (
-            <div style={{ color: COLORS.GRAY_M, padding: "8px 4px", fontSize: "13px" }}>
-              <a onClick={handleActivateCode} style={{ color: COLORS.GRAY_M }}>
+            <div style={{ color: "var(--cocalc-text-primary, #888)", padding: "8px 4px", fontSize: "13px" }}>
+              <a onClick={handleActivateCode} style={{ color: "var(--cocalc-text-primary, #888)" }}>
                 Write code
               </a>
             </div>
@@ -476,7 +475,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
               ) : (
                 <div
                   style={{
-                    color: COLORS.GRAY_L,
+                    color: "var(--cocalc-border, #ccc)",
                     padding: "4px",
                     fontStyle: "italic",
                     cursor: "pointer",
@@ -551,7 +550,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
             position: "relative",
             borderLeft: zenMode || (positionInBlock === 0 && headingLevel > 0)
               ? "none"
-              : "1px solid #eee",
+              : "1px solid var(--cocalc-border-light, #eee)",
           }}
         >{showCode && (<>
           {/* Cell action toolbar — hover only, above code */}
@@ -576,7 +575,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                     icon={<Icon name={isBusy ? "stop" : "play"} />}
                     onClick={isBusy ? handleStop : handleRun}
                     style={isBusy
-                      ? { ...CODE_BAR_BTN_STYLE, marginRight: "auto", color: COLORS.ANTD_RED }
+                      ? { ...CODE_BAR_BTN_STYLE, marginRight: "auto", color: "var(--cocalc-error, #ff4d4f)" }
                       : { ...CODE_BAR_BTN_STYLE, marginRight: "auto" }}
                   >
                     {isBusy ? "Stop" : "Run"}
@@ -650,7 +649,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                 zIndex: 10,
                 display: "flex",
                 gap: "2px",
-                background: "rgba(255,255,255,0.85)",
+                background: "var(--cocalc-bg-elevated, rgba(255,255,255,0.85))",
                 borderRadius: "4px",
                 padding: "1px",
               }}>
@@ -715,7 +714,7 @@ export const MinimalCell: React.FC<MinimalCellProps> = React.memo(
                   frameActions.current?.scroll("cell visible");
                 }
               }}
-              style={{ color: COLORS.GRAY_M }}
+              style={{ color: "var(--cocalc-text-primary, #888)" }}
             />
           </Tooltip>
         </div>
@@ -793,9 +792,9 @@ function SectionDividerRow({
   minimalLayout?: string;
 }) {
   const [hovered, setHovered] = useState(false);
-  const bg = hovered ? COLORS.GRAY_LL : COLORS.GRAY_LLL;
-  const borderTop = isFirst ? undefined : `1px solid ${COLORS.GRAY_LL}`;
-  const borderBottom = `1px solid ${COLORS.GRAY_LL}`;
+  const bg = hovered ? "var(--cocalc-bg-hover, #e8e8e8)" : "var(--cocalc-bg-elevated, #f5f5f5)";
+  const borderTop = isFirst ? undefined : `1px solid var(--cocalc-border-light, #e0e0e0)`;
+  const borderBottom = `1px solid var(--cocalc-border-light, #e0e0e0)`;
   const segmentStyle: React.CSSProperties = {
     backgroundColor: bg,
     borderTop,
@@ -831,13 +830,13 @@ function SectionDividerRow({
         }}>
           <Icon
             name={sectionCollapsed ? "plus-square" : "minus-square"}
-            style={{ color: COLORS.GRAY_M, fontSize: "14px" }}
+            style={{ color: "var(--cocalc-text-primary, #888)", fontSize: "14px" }}
           />
         </div>
         {/* Title */}
         {sectionCollapsed && sectionTitle ? (
           <span style={{
-            color: COLORS.GRAY_D,
+            color: "var(--cocalc-text-primary-strong, #555)",
             fontSize: "13px",
             fontWeight: 600,
             overflow: "hidden",
@@ -861,7 +860,7 @@ function SectionDividerRow({
                 onRunSection();
               }}
               style={{
-                color: COLORS.GRAY_M,
+                color: "var(--cocalc-text-primary, #888)",
                 visibility: hovered ? "visible" : "hidden",
                 marginRight: "4px",
               }}

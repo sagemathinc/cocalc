@@ -11,7 +11,6 @@ import ComputeServer from "@cocalc/frontend/compute/inline";
 import { IS_MOBILE } from "@cocalc/frontend/feature";
 import { AlertLevel, BackendState, Usage } from "@cocalc/jupyter/types";
 import { capitalize, closest_kernel_match, rpad_html } from "@cocalc/util/misc";
-import { COLORS } from "@cocalc/util/theme";
 import {
   Button,
   Popconfirm,
@@ -43,7 +42,7 @@ const KERNEL_NAME_STYLE: CSS = {
 const KERNEL_USAGE_STYLE: CSS = {
   margin: "0px 5px",
   color: "var(--cocalc-text-primary, #5f5f5f)",
-  borderRight: `1px solid ${COLORS.GRAY}`,
+  borderRight: `1px solid var(--cocalc-border, #888)`,
   paddingRight: "5px",
   display: "flex",
   flex: 1,
@@ -576,7 +575,7 @@ export function Kernel({
       display: "flex",
       width: compact ? "300px" : undefined,
       flex: compact ? undefined : 1,
-      borderLeft: `1px solid ${COLORS.GRAY}`,
+      borderLeft: `1px solid var(--cocalc-border, #888)`,
       cursor: "pointer",
       alignItems: compact ? "end" : undefined,
     };
@@ -586,7 +585,7 @@ export function Kernel({
       position: "relative",
       top: compact ? 0 : "-1px",
     };
-    const trailColor = compact ? COLORS.GRAY_LL : "white";
+    const trailColor = compact ? "var(--cocalc-border-light, #e0e0e0)" : "white";
     const showLabel = is_fullscreen || compact;
     const usage_style: CSS = compact
       ? { ...KERNEL_USAGE_STYLE, borderRight: "none", margin: "0 4px", paddingRight: 0, alignItems: "center" }
@@ -605,7 +604,7 @@ export function Kernel({
           >
             <div style={usage_style}>
               {showLabel ? (
-                <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: COLORS.GRAY_M }}>Code</span>
+                <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: "var(--cocalc-text-primary, #888)" }}>Code</span>
               ) : (
                 ""
               )}
@@ -620,7 +619,7 @@ export function Kernel({
           </Tooltip>
         )}
         <div style={usage_style}>
-          {showLabel ? <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: COLORS.GRAY_M }}>CPU</span> : ""}
+          {showLabel ? <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: "var(--cocalc-text-primary, #888)" }}>CPU</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
@@ -631,7 +630,7 @@ export function Kernel({
           />
         </div>
         <div style={usage_style}>
-          {showLabel ? <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: COLORS.GRAY_M }}>RAM</span> : ""}
+          {showLabel ? <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: "var(--cocalc-text-primary, #888)" }}>RAM</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
@@ -753,11 +752,11 @@ export function Kernel({
           overflow: "hidden",
           width: "100%",
           padding: "4px 6px",
-          background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
+          background: `var(--cocalc-bg-elevated, #f8f8f8)`,
           display: "flex",
           alignItems: "center",
           gap: "6px",
-          borderBottom: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
+          borderBottom: `1px solid var(--cocalc-border, #ccc)`,
           ...style,
         }}
       >
@@ -805,7 +804,7 @@ export function Kernel({
         {/* Layout and zen controls for minimal notebook */}
         {onLayoutChange && (
           <>
-            <div style={{ borderLeft: `1px solid ${COLORS.GRAY_LL}`, height: "18px", margin: "0 2px" }} />
+            <div style={{ borderLeft: `1px solid var(--cocalc-border-light, #e0e0e0)`, height: "18px", margin: "0 2px" }} />
             <Segmented
               size="small"
               value={minimalLayout ?? "comfortable"}
@@ -862,9 +861,9 @@ export function Kernel({
         overflow: "hidden",
         width: "100%",
         padding: "5px",
-        background: `var(--cocalc-bg-elevated, ${COLORS.GRAY_LLLL})`,
+        background: `var(--cocalc-bg-elevated, #f8f8f8)`,
         display: "flex",
-        borderBottom: `1px solid var(--cocalc-border, ${COLORS.GRAY_L})`,
+        borderBottom: `1px solid var(--cocalc-border, #ccc)`,
         ...style,
       }}
     >

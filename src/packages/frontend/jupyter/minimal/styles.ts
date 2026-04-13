@@ -4,7 +4,6 @@
  */
 
 import { CSS } from "@cocalc/frontend/app-framework";
-import { COLORS } from "@cocalc/util/theme";
 
 /** Default (output-wide) flex proportions */
 export const OUTPUT_FLEX_DEFAULT = 7;
@@ -39,5 +38,5 @@ export const CELL_ROW_STYLE: CSS = {
   position: "relative",
 } as const;
 
-export const SECTION_LINE_COLOR = COLORS.GRAY_L;
+export const SECTION_LINE_COLOR = "var(--cocalc-border, #ccc)";
 export const SECTION_LINE_WIDTH = 4;
