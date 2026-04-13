@@ -1234,6 +1234,9 @@ importers:
       '@ai-sdk/openai':
         specifier: ^3.0.0
         version: 3.0.52(zod@3.25.76)
+      '@ai-sdk/provider':
+        specifier: ^3.0.0
+        version: 3.0.8
       '@ai-sdk/xai':
         specifier: ^3.0.0
         version: 3.0.82(zod@3.25.76)
