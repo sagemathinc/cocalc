@@ -8,9 +8,8 @@ import {
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 
 import { evaluate as evaluateLLM } from "..";
-import { getCustomOpenAI } from "../client";
-import { evaluateWithLangChain } from "../evaluate-lc";
-import { evaluateOllama } from "../ollama";
+import { getCustomOpenAIModel } from "../client";
+import { evaluateWithAI } from "../evaluate";
 
 jest.mock("@cocalc/database/settings/server-settings", () => ({
   getServerSettings: jest.fn(async () => ({
@@ -27,6 +26,8 @@ jest.mock("@cocalc/database/settings/server-settings", () => ({
     openai_api_key: "fake-openai",
     xai_enabled: true,
     xai_api_key: "fake-xai",
+    zai_enabled: true,
+    zai_api_key: "fake-zai",
     custom_openai_enabled: true,
     custom_openai_configuration: {},
   })),
@@ -56,7 +57,14 @@ jest.mock("../save-response", () => ({
   saveResponse: jest.fn(async () => {}),
 }));
 
-jest.mock("../evaluate-lc", () => ({
+jest.mock("../evaluate", () => ({
+  evaluateWithAI: jest.fn(async () => ({
+    output: "2",
+    total_tokens: 2,
+    prompt_tokens: 1,
+    completion_tokens: 1,
+  })),
+  // backward compat alias
   evaluateWithLangChain: jest.fn(async () => ({
     output: "2",
     total_tokens: 2,
@@ -66,15 +74,11 @@ jest.mock("../evaluate-lc", () => ({
 }));
 
 jest.mock("../client", () => ({
-  getCustomOpenAI: jest.fn(async () => ({})),
-}));
-
-jest.mock("../ollama", () => ({
-  evaluateOllama: jest.fn(async () => ({
-    output: "2",
-    total_tokens: 2,
-    prompt_tokens: 1,
-    completion_tokens: 1,
+  getCustomOpenAIModel: jest.fn(async () => ({
+    model: {},
+  })),
+  getOllamaModel: jest.fn(async () => ({
+    model: {},
   })),
 }));
 
@@ -83,21 +87,18 @@ jest.mock("@cocalc/server/purchases/create-purchase", () => ({
   default: jest.fn(async () => {}),
 }));
 
-const mockEvaluateWithLangChain = evaluateWithLangChain as jest.MockedFunction<
-  typeof evaluateWithLangChain
+const mockEvaluateWithAI = evaluateWithAI as jest.MockedFunction<
+  typeof evaluateWithAI
 >;
-const mockGetCustomOpenAI = getCustomOpenAI as jest.MockedFunction<
-  typeof getCustomOpenAI
+const mockGetCustomOpenAIModel = getCustomOpenAIModel as jest.MockedFunction<
+  typeof getCustomOpenAIModel
 >;
 const mockCallback2 = callback2 as jest.MockedFunction<typeof callback2>;
-const mockEvaluateOllama = evaluateOllama as jest.MockedFunction<
-  typeof evaluateOllama
->;
 const mockCreatePurchase = createPurchase as jest.MockedFunction<
   typeof createPurchase
 >;
 
-describe("LLM evaluation (mocked LangChain)", () => {
+describe("LLM evaluation (mocked AI SDK)", () => {
   beforeEach(() => {
     jest.clearAllMocks();
   });
@@ -127,27 +128,24 @@ describe("LLM evaluation (mocked LangChain)", () => {
     USER_SELECTABLE_LLMS_BY_VENDOR,
   ).flat() as LanguageModel[];
 
-  test.each(lcModels)(
-    "routes via evaluateWithLangChain for %s",
-    async (model) => {
-      const output = await evaluateLLM({ input: "1+1", model });
-      expect(output).toBe("2");
-      expect(mockEvaluateWithLangChain).toHaveBeenCalledWith(
-        expect.objectContaining({ input: "1+1", model }),
-      );
-    },
-  );
+  test.each(lcModels)("routes via evaluateWithAI for %s", async (model) => {
+    const output = await evaluateLLM({ input: "1+1", model });
+    expect(output).toBe("2");
+    expect(mockEvaluateWithAI).toHaveBeenCalledWith(
+      expect.objectContaining({ input: "1+1", model }),
+    );
+  });
 
-  test("routes Ollama models via evaluateOllama", async () => {
+  test("routes Ollama models via evaluateWithAI", async () => {
     const ollamaModel = "ollama-llama3" as LanguageModel;
     const output = await evaluateLLM({ input: "1+1", model: ollamaModel });
     expect(output).toBe("2");
-    expect(mockEvaluateOllama).toHaveBeenCalledWith(
+    expect(mockEvaluateWithAI).toHaveBeenCalledWith(
       expect.objectContaining({ input: "1+1", model: ollamaModel }),
     );
   });
 
-  test("user-defined models call evaluateWithLangChain", async () => {
+  test("user-defined models call evaluateWithAI", async () => {
     mockUserConfig();
 
     const output = await evaluateLLM({
@@ -156,7 +154,7 @@ describe("LLM evaluation (mocked LangChain)", () => {
       account_id: userAccountId,
     });
     expect(output).toBe("2");
-    expect(mockEvaluateWithLangChain).toHaveBeenCalledWith(
+    expect(mockEvaluateWithAI).toHaveBeenCalledWith(
       expect.objectContaining({
         input: "1+1",
         model: "gpt-4o-8k",
@@ -168,28 +166,28 @@ describe("LLM evaluation (mocked LangChain)", () => {
     );
   });
 
-  test("routes custom OpenAI models via evaluateWithLangChain", async () => {
+  test("routes custom OpenAI models via evaluateWithAI", async () => {
     const model = "custom_openai-omni4high" as LanguageModel;
     const output = await evaluateLLM({ input: "1+1", model });
     expect(output).toBe("2");
-    expect(mockEvaluateWithLangChain).toHaveBeenCalledWith(
+    expect(mockEvaluateWithAI).toHaveBeenCalledWith(
       expect.objectContaining({ input: "1+1", model }),
     );
   });
 
-  test("platform custom OpenAI models use getCustomOpenAI", async () => {
+  test("platform custom OpenAI models use getCustomOpenAIModel", async () => {
     const { PROVIDER_CONFIGS } = jest.requireActual(
-      "../evaluate-lc",
-    ) as typeof import("../evaluate-lc");
+      "../evaluate",
+    ) as typeof import("../evaluate");
     const model = "custom_openai-omni4high" as LanguageModel;
 
-    await PROVIDER_CONFIGS["custom-openai"].createClient(
+    await PROVIDER_CONFIGS["custom-openai"].createModel(
       { model } as any,
       {} as any,
       "cocalc",
     );
 
-    expect(mockGetCustomOpenAI).toHaveBeenCalledWith("omni4high");
+    expect(mockGetCustomOpenAIModel).toHaveBeenCalledWith("omni4high");
   });
 
   test("charges platform models", async () => {

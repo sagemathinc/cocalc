@@ -15,6 +15,7 @@ const GOOGLE_GENAI_KEY = process.env.COCALC_TEST_GOOGLE_GENAI_KEY;
 const MISTRAL_AI_KEY = process.env.COCALC_TEST_MISTRAL_AI_KEY;
 const ANTHROPIC_KEY = process.env.COCALC_TEST_ANTHROPIC_KEY;
 const XAI_KEY = process.env.COCALC_TEST_XAI_KEY;
+const ZAI_KEY = process.env.COCALC_TEST_ZAI_KEY;
 
 const MODEL_CONFIG_KEY = [
   ["openai_enabled", "openai_api_key", OPENAI_KEY],
@@ -22,6 +23,7 @@ const MODEL_CONFIG_KEY = [
   ["mistral_enabled", "mistral_api_key", MISTRAL_AI_KEY],
   ["anthropic_enabled", "anthropic_api_key", ANTHROPIC_KEY],
   ["xai_enabled", "xai_api_key", XAI_KEY],
+  ["zai_enabled", "zai_api_key", ZAI_KEY],
 ] as const;
 
 // must be a string and at least 1 char
@@ -43,6 +45,8 @@ export function have_llm(service: LLMServiceName) {
       return isSet(ANTHROPIC_KEY);
     case "xai":
       return isSet(XAI_KEY);
+    case "zai":
+      return isSet(ZAI_KEY);
     case "ollama":
     case "custom_openai":
       return false;

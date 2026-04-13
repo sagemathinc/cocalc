@@ -345,7 +345,7 @@ describe("buildSystemPrompt", () => {
       "To append at the bottom or end of the notebook, use `after_index` equal to the current total number of cells.",
     );
     expect(prompt).toContain(
-      "do not ask for clarification when the user already gave a specific, unambiguous request to add a new cell.",
+      "do not ask for clarification when the user already gave a clear instruction. Act on it directly",
     );
     expect(prompt).toContain(
       "`set_cell` replaces the entire cell input with exactly the content you provide.",
