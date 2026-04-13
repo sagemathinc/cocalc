@@ -20,7 +20,13 @@ import {
   SPLIT_CELL_ICON,
 } from "./consts";
 
-export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
+export function CodeBarDropdownMenu({ actions, frameActions, id, cell, onOpenChange }: {
+  actions: any;
+  frameActions: any;
+  id: string;
+  cell: any;
+  onOpenChange?: (open: boolean) => void;
+}) {
   const intl = useIntl();
   const [open, setOpen] = useState<boolean>(false);
 
@@ -353,7 +359,7 @@ export function CodeBarDropdownMenu({ actions, frameActions, id, cell }) {
   return (
     <Dropdown
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={(v) => { setOpen(v); onOpenChange?.(v); }}
       menu={{ items, style: { maxHeight: "50vh", overflow: "auto" } }}
       arrow
       trigger={["click"]}

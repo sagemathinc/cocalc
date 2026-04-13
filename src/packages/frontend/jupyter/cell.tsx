@@ -28,6 +28,7 @@ import { CellOutput } from "./cell-output";
 import { InsertCell } from "./insert-cell";
 import { Position } from "./insert-cell/types";
 import { NBGraderMetadata } from "./nbgrader/cell-metadata";
+import { MinimalCell } from "./minimal/minimal-cell";
 import { INPUT_PROMPT_COLOR } from "./prompt/base";
 
 interface Props {
@@ -62,6 +63,19 @@ interface Props {
   showDragHandle?: boolean;
   read_only?: boolean;
   isDragging?: boolean;
+  cellViewMode?: "default" | "minimal";
+  blockInfo?: { blockIndex: number; positionInBlock: number; blockSize: number };
+  blockCellIds?: string[];
+  headingLevel?: number;
+  isLastBlock?: boolean;
+  sectionCollapsed?: boolean;
+  onToggleSection?: () => void;
+  sectionTitle?: string;
+  blockHighlighted?: boolean;
+  onHoverBlock?: (hover: boolean) => void;
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
+  frameHeight?: number;
 }
 
 function areEqual(props: Props, nextProps: Props): boolean {
@@ -91,7 +105,14 @@ function areEqual(props: Props, nextProps: Props): boolean {
       (nextProps.is_current || props.is_current)) ||
     nextProps.showDragHandle !== props.showDragHandle ||
     nextProps.read_only !== props.read_only ||
-    nextProps.isDragging !== props.isDragging
+    nextProps.isDragging !== props.isDragging ||
+    nextProps.cellViewMode !== props.cellViewMode ||
+    nextProps.blockInfo !== props.blockInfo ||
+    nextProps.sectionCollapsed !== props.sectionCollapsed ||
+    nextProps.blockHighlighted !== props.blockHighlighted ||
+    nextProps.minimalLayout !== props.minimalLayout ||
+    nextProps.zenMode !== props.zenMode ||
+    nextProps.frameHeight !== props.frameHeight
   );
 }
 
@@ -103,6 +124,51 @@ export const Cell: React.FC<Props> = React.memo((props: Props) => {
 
   if (!render) {
     return <></>;
+  }
+
+  if (props.cellViewMode === "minimal") {
+    const blockInfo = props.blockInfo ?? { blockIndex: 0, positionInBlock: 0, blockSize: 1 };
+    return (
+      <MinimalCell
+        id={id}
+        index={props.index ?? 0}
+        cell={props.cell}
+        cm_options={props.cm_options}
+        actions={props.actions}
+        name={props.name}
+        font_size={props.font_size}
+        project_id={props.project_id}
+        directory={props.directory}
+        mode={props.mode}
+        is_current={props.is_current}
+        is_selected={props.is_selected}
+        is_markdown_edit={props.is_markdown_edit}
+        is_focused={props.is_focused}
+        is_visible={props.is_visible}
+        more_output={props.more_output}
+        trust={props.trust}
+        complete={props.complete}
+        llmTools={props.llmTools}
+        computeServerId={props.computeServerId}
+        read_only={props.read_only}
+        cell_toolbar={props.cell_toolbar}
+        positionInBlock={blockInfo.positionInBlock}
+        blockSize={blockInfo.blockSize}
+        headingLevel={props.headingLevel ?? 0}
+        blockCellIds={props.blockCellIds}
+        isFirst={props.isFirst}
+        isLast={props.isLast}
+        isLastBlock={props.isLastBlock}
+        sectionCollapsed={props.sectionCollapsed}
+        onToggleSection={props.onToggleSection}
+        sectionTitle={props.sectionTitle}
+        blockHighlighted={props.blockHighlighted}
+        onHoverBlock={props.onHoverBlock}
+        minimalLayout={props.minimalLayout}
+        zenMode={props.zenMode}
+        frameHeight={props.frameHeight}
+      />
+    );
   }
 
   function is_deletable(): boolean {
