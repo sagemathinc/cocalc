@@ -41,12 +41,12 @@ export type CellRunState =
   | "markdown";
 
 const RUN_STATE_COLORS: Record<CellRunState, string> = {
-  idle: "#eee",
+  idle: "var(--cocalc-border-light, #eee)",
   running: "var(--cocalc-success, #5cb85c)",
   queued: "#2e7d32",       // dark green — waiting to run
   error: "var(--cocalc-error, #ff4d4f)",
-  stale: "#eee",
-  markdown: "#eee",
+  stale: "var(--cocalc-border-light, #eee)",
+  markdown: "var(--cocalc-border-light, #eee)",
 };
 
 interface MinimalGutterProps {

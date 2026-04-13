@@ -83,8 +83,9 @@ export function SaveButton({
       style={{
         ...(type == "default"
           ? undefined
-          : { background: "var(--cocalc-success, #5CB85C)", color: "var(--cocalc-text-primary-strong, #434343)" }),
-        opacity: disabled ? 0.65 : undefined,
+          : disabled
+            ? { background: "transparent", color: "var(--cocalc-text-primary, #888)", opacity: 0.5 }
+            : { background: "var(--cocalc-success, #5CB85C)", color: "var(--cocalc-text-primary-strong, #434343)" }),
         whiteSpace: "nowrap",
         ...style,
       }}

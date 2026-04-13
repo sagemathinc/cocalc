@@ -585,7 +585,7 @@ export function Kernel({
       position: "relative",
       top: compact ? 0 : "-1px",
     };
-    const trailColor = compact ? "var(--cocalc-border-light, #e0e0e0)" : "white";
+    const trailColor = compact ? "var(--cocalc-border-light, #e0e0e0)" : "var(--cocalc-border-light, #e0e0e0)";
     const showLabel = is_fullscreen || compact;
     const usage_style: CSS = compact
       ? { ...KERNEL_USAGE_STYLE, borderRight: "none", margin: "0 4px", paddingRight: 0, alignItems: "center" }
