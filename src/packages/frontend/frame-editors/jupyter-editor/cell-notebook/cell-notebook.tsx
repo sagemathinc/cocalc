@@ -56,6 +56,8 @@ export function CellNotebook(props: Props): Rendered {
       scrollTop={data("scrollTop")}
       hook_offset={data("hook_offset")}
       cellViewMode={cellViewMode}
+      minimalLayout={data("minimalLayout", "comfortable")}
+      zenMode={data("zenMode", false)}
     />
   );
 }

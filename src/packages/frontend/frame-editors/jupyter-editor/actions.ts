@@ -8,6 +8,7 @@ Jupyter Frame Editor Actions
 */
 
 import { delay } from "awaiting";
+import { isJupyterNotebookFrameType } from "./util";
 import { syncAllComputeServers } from "@cocalc/frontend/compute/sync-all";
 import { markdown_to_slate } from "@cocalc/frontend/editors/slate/markdown-to-slate";
 import { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
@@ -66,7 +67,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
 
   private init_new_frame(): void {
     this.store.on("new-frame", ({ id, type }) => {
-      if (type !== "jupyter_cell_notebook" && type !== "jupyter_minimal") {
+      if (!isJupyterNotebookFrameType(type)) {
         return;
       }
       // important to do this *before* the frame is rendered,
@@ -78,7 +79,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       const node = this._get_frame_node(id);
       if (node == null) return;
       const type = node.get("type");
-      if (type === "jupyter_cell_notebook" || type === "jupyter_minimal") {
+      if (isJupyterNotebookFrameType(type)) {
         this.get_frame_actions(id);
       }
     }
@@ -243,7 +244,7 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
       throw Error(`no frame ${id}`);
     }
     const type = node.get("type");
-    if (type === "jupyter_cell_notebook" || type === "jupyter_minimal") {
+    if (isJupyterNotebookFrameType(type)) {
       return (this.frame_actions[id] = new NotebookFrameActions(this, id));
     } else {
       return;
@@ -515,8 +516,11 @@ export class JupyterEditorActions extends BaseActions<JupyterEditorState> {
     align: "center" | "top" = "center",
   ): Promise<void> {
     // Open or focus a notebook viewer and scroll to the given cell.
+    // Prefer an existing minimal frame over creating a new standard one.
     if (this._state === "closed") return;
-    const id = this.show_focused_frame_of_type("jupyter_cell_notebook");
+    const existingMinimal = this._get_most_recent_active_frame_id_of_type("jupyter_minimal");
+    const frameType = existingMinimal ? "jupyter_minimal" : "jupyter_cell_notebook";
+    const id = this.show_focused_frame_of_type(frameType);
     const actions = this.get_frame_actions(id);
     if (actions == null) return;
     actions.set_cur_id(cell_id);

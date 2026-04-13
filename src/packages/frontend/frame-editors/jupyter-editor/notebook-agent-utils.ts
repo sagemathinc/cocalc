@@ -27,6 +27,7 @@ import {
 import { splitCells } from "@cocalc/frontend/jupyter/llm/split-cells";
 import type { JupyterActions } from "@cocalc/frontend/jupyter/browser-actions";
 import type { JupyterEditorActions } from "./actions";
+import { isJupyterNotebookFrameType } from "./util";
 
 /* ------------------------------------------------------------------ */
 /*  Constants                                                          */
@@ -199,11 +200,11 @@ export function getNotebookContext(
     language,
   };
 
-  // Resolve notebook frame from the chat frame
+  // Resolve notebook frame from the chat frame (supports both standard and minimal frames)
   let notebookFrameId: string | undefined;
   try {
-    notebookFrameId = (actions as any)._get_most_recent_active_frame_id_of_type(
-      "jupyter_cell_notebook",
+    notebookFrameId = (actions as any)._get_most_recent_active_frame_id(
+      (node: any) => isJupyterNotebookFrameType(node.get("type")),
     );
   } catch {
     return base;
@@ -778,7 +779,9 @@ function scrollToCell(
   try {
     const frameId = (
       editorActions as any
-    )._get_most_recent_active_frame_id_of_type("jupyter_cell_notebook");
+    )._get_most_recent_active_frame_id(
+      (node: any) => isJupyterNotebookFrameType(node.get("type")),
+    );
     if (!frameId) return;
     const frameActions = editorActions.get_frame_actions(frameId);
     if (frameActions?.set_cur_id) {
