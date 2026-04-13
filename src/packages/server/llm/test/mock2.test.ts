@@ -16,17 +16,20 @@ const trackers = {
 
 let mockGenerateResult = {
   text: "ok",
-  usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+  usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
 };
 let streamChunks: string[] = [];
 
 function makeFactory(key: keyof typeof trackers) {
   return (args: any) => {
     (trackers as any)[key] = args;
-    return (modelId: string, _settings?: any) => {
+    const modelFn = (modelId: string, _settings?: any) => {
       trackers.lastModelId = modelId;
       return { modelId, _provider: "mock" };
     };
+    // OpenAI v3 provider returns an object with .chat() for chat completions
+    modelFn.chat = modelFn;
+    return modelFn;
   };
 }
 
@@ -178,7 +181,7 @@ describe("evaluateWithAI (AI SDK mocked)", () => {
     streamChunks = [];
     mockGenerateResult = {
       text: "ok",
-      usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
     };
   });
 
@@ -267,7 +270,6 @@ describe("evaluateWithAI (AI SDK mocked)", () => {
     expect(trackers.openai).toMatchObject({
       apiKey: "user-openai-key",
       baseURL: "https://example.com/v1",
-      compatibility: "compatible",
     });
     expect(trackers.lastModelId).toBe("gpt-4o");
   });
@@ -324,7 +326,6 @@ describe("evaluateWithAI (AI SDK mocked)", () => {
     expect(trackers.openai).toMatchObject({
       apiKey: "ollama",
       baseURL: "http://localhost:11434/v1",
-      compatibility: "compatible",
     });
     expect(trackers.lastModelId).toBe("llama3");
   });
@@ -378,10 +379,10 @@ describe("evaluateWithAI (AI SDK mocked)", () => {
     expect(streamFn).toHaveBeenCalledWith(null);
   });
 
-  test("returns token counts from API usage", async () => {
+  test("returns token counts from API usage and sets tokensFromApi", async () => {
     mockGenerateResult = {
       text: "result",
-      usage: { promptTokens: 100, completionTokens: 50, totalTokens: 150 },
+      usage: { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
     };
 
     const output = await evaluateWithAI({
@@ -392,5 +393,40 @@ describe("evaluateWithAI (AI SDK mocked)", () => {
     expect(output.prompt_tokens).toBe(100);
     expect(output.completion_tokens).toBe(50);
     expect(output.total_tokens).toBe(150);
+    expect(output.tokensFromApi).toBe(true);
+  });
+
+  test("tokensFromApi is false when inputTokens is 0 (full fallback)", async () => {
+    mockGenerateResult = {
+      text: "result",
+      usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 },
+    };
+
+    const output = await evaluateWithAI({
+      input: "hi",
+      model: "gpt-4o-8k",
+    });
+
+    expect(output.tokensFromApi).toBe(false);
+    // Should still have positive tokens from fallback estimator
+    expect(output.prompt_tokens).toBeGreaterThan(0);
+    expect(output.completion_tokens).toBeGreaterThan(0);
+  });
+
+  test("tokensFromApi is false when only inputTokens provided (partial fallback)", async () => {
+    mockGenerateResult = {
+      text: "result",
+      usage: { inputTokens: 100, outputTokens: 0, totalTokens: 100 },
+    };
+
+    const output = await evaluateWithAI({
+      input: "hi",
+      model: "gpt-4o-8k",
+    });
+
+    expect(output.tokensFromApi).toBe(false);
+    expect(output.prompt_tokens).toBe(100);
+    // completion_tokens came from fallback
+    expect(output.completion_tokens).toBeGreaterThan(0);
   });
 });

@@ -138,12 +138,12 @@ export async function getOllamaModel(
   const provider = createOpenAI({
     apiKey: "ollama", // Ollama doesn't require a real API key
     baseURL: `${baseUrl.replace(/\/+$/, "")}/v1`,
-    compatibility: "compatible",
     ...providerOptions,
   });
 
   return {
-    model: provider(modelName),
+    // Use .chat() to stay on /chat/completions — Ollama doesn't support /responses
+    model: provider.chat(modelName),
     ...(Object.keys(requestOverrides).length > 0 ? { requestOverrides } : {}),
   };
 }
@@ -213,12 +213,12 @@ export async function getCustomOpenAIModel(
   const provider = createOpenAI({
     apiKey,
     baseURL,
-    compatibility: "compatible",
     ...providerOptions,
   });
 
   return {
-    model: provider(modelName),
+    // Use .chat() to stay on /chat/completions — custom endpoints don't support /responses
+    model: provider.chat(modelName),
     ...(Object.keys(requestOverrides).length > 0 ? { requestOverrides } : {}),
   };
 }

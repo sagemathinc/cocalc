@@ -7,7 +7,7 @@
  * Supports Anthropic prompt caching for reduced latency and cost.
  */
 
-import type { CoreMessage } from "ai";
+import type { ModelMessage } from "ai";
 import { generateText, streamText } from "ai";
 import { createAnthropic } from "@ai-sdk/anthropic";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
@@ -118,7 +118,7 @@ export const PROVIDER_CONFIGS = {
         model: createOpenAI({
           apiKey,
           ...(options.endpoint ? { baseURL: options.endpoint } : {}),
-        })(modelName),
+        }).chat(modelName),
       };
     },
     canonicalModel: (model) => normalizeOpenAIModel(model),
@@ -241,8 +241,7 @@ export const PROVIDER_CONFIGS = {
             model: createOpenAI({
               apiKey: options.apiKey ?? "",
               ...(options.endpoint ? { baseURL: options.endpoint } : {}),
-              compatibility: "compatible",
-            })(options.model),
+            }).chat(options.model),
           };
         case "cocalc": {
           const transformedModel = fromCustomOpenAIModel(options.model);
@@ -273,8 +272,7 @@ export const PROVIDER_CONFIGS = {
           model: createOpenAI({
             apiKey: "ollama",
             baseURL: `${options.endpoint.replace(/\/+$/, "")}/v1`,
-            compatibility: "compatible",
-          })(modelName),
+          }).chat(modelName),
         };
       }
       // Platform Ollama from server settings
@@ -304,9 +302,8 @@ export const PROVIDER_CONFIGS = {
         model: createOpenAI({
           apiKey,
           baseURL: "https://open.bigmodel.cn/api/paas/v4",
-          compatibility: "compatible",
           ...(options.endpoint ? { baseURL: options.endpoint } : {}),
-        })(modelName),
+        }).chat(modelName),
       };
     },
     canonicalModel: (model) => toZaiProviderModel(model),
@@ -407,7 +404,7 @@ export async function evaluateWithAI(
     transformHistoryToMessages(history);
 
   // Build the full message array: [system] + history + new user input
-  const messages: CoreMessage[] = [];
+  const messages: ModelMessage[] = [];
 
   if (system) {
     messages.push({
@@ -435,7 +432,7 @@ export async function evaluateWithAI(
     model: aiModel,
     messages,
     ...requestOverrides,
-    ...(maxTokens != null ? { maxTokens } : {}),
+    ...(maxTokens != null ? { maxOutputTokens: maxTokens } : {}),
   };
 
   if (stream) {
