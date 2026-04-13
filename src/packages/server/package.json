@@ -55,7 +55,6 @@
     "@google-cloud/storage-transfer": "^3.3.0",
     "@isaacs/ttlcache": "^1.4.1",
     "@ai-sdk/anthropic": "^3.0.0",
-    "@ai-sdk/provider": "^3.0.0",
     "@ai-sdk/google": "^3.0.0",
     "@ai-sdk/mistral": "^3.0.0",
     "@ai-sdk/openai": "^3.0.0",
