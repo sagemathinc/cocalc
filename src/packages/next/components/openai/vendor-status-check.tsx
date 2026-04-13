@@ -72,6 +72,14 @@ export function LLMServiceStatusCheck({
         </>
       );
 
+    case "zai":
+      return (
+        <>
+          Zhipu AI (Z.AI) does not have a public status page. If you are
+          experiencing issues, use another model or try again later.
+        </>
+      );
+
     case "user":
       return <>{getLLMServiceStatusCheckMD("user")}</>;
 

@@ -1041,6 +1041,10 @@ export function buildSystemPrompt(
       lines.push(`Multiple cells selected: #${min}\u2013#${max}.`);
     }
     lines.push("");
+    lines.push(
+      "The user's message is an instruction — act on it. When an instruction is given with cell context, it targets the focused cell or its neighborhood. Do not summarize the notebook state or ask clarifying questions unless the instruction is genuinely ambiguous.",
+    );
+    lines.push("");
   }
 
   // 5. Tool documentation
@@ -1200,7 +1204,7 @@ export function buildSystemPrompt(
     );
   } else {
     lines.push(
-      "- Inspect existing cells before modifying or relying on them, but do not ask for clarification when the user already gave a specific, unambiguous request to add a new cell.",
+      "- Inspect existing cells before modifying or relying on them, but do not ask for clarification when the user already gave a clear instruction. Act on it directly — modify or create cells as needed.",
     );
     lines.push(
       "- When the user references a cell by number (e.g. 'the function in cell #6'), always use `get_cell` first to see its contents before acting.",
