@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -20,8 +20,14 @@ import {
   useState,
 } from "react";
 
-import { React, usePrevious, useRef } from "@cocalc/frontend/app-framework";
+import {
+  React,
+  redux,
+  usePrevious,
+  useRef,
+} from "@cocalc/frontend/app-framework";
 import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
+import { openAssistantWithPrefill } from "@cocalc/frontend/frame-editors/llm/assistant-seed";
 import { COLORS } from "@cocalc/util/theme";
 import { SAVE_DEBOUNCE_MS } from "../frame-editors/code-editor/const";
 import { Complete, Actions as CompleteActions } from "./complete";
@@ -137,14 +143,18 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   const cm_is_focused = useRef<boolean>(false);
   const vim_mode = useRef<boolean>(false);
   const cm_ref = React.createRef<HTMLTextAreaElement>();
-  const [cmValue, setCmValue] = useState<string>(value);
+  const [isEmpty, setIsEmpty] = useState<boolean>(value.length === 0);
   const handleChange = useCallback(() => {
-    setCmValue(cm.current?.getValue());
+    setIsEmpty((prev) => {
+      const next = (cm.current?.getValue() ?? "") === "";
+      return prev === next ? prev : next;
+    });
   }, []);
   const key = useRef<string | null>(null);
   const prev_options = usePrevious(options);
   const frameActions = useNotebookFrameActions();
   const ignoreNextValue = useRef<boolean>(false);
+  const skipInitialRefreshOnScrollOrFont = useRef<boolean>(true);
 
   useEffect(() => {
     if (frameActions.current?.frame_id != null) {
@@ -166,6 +176,9 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }, []);
 
   useEffect(() => {
+    if (refresh == null) {
+      return;
+    }
     cm.current?.refresh();
   }, [refresh]);
 
@@ -180,6 +193,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }, [options, value]);
 
   useEffect(() => {
+    if (skipInitialRefreshOnScrollOrFont.current) {
+      skipInitialRefreshOnScrollOrFont.current = false;
+      return;
+    }
     cm_refresh();
   }, [font_size, is_scrolling]);
 
@@ -199,6 +216,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     if (cm.current != null) {
       cm.current.setValueNoJump(value);
     }
+  }, [value]);
+
+  useEffect(() => {
+    setIsEmpty(value.length === 0);
   }, [value]);
 
   useEffect(() => {
@@ -230,7 +251,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   );
 
   useEffect(() => {
-    if (!is_current || cmValue) {
+    if (!is_current || !isEmpty) {
       return;
     }
     if (options.get("lineNumbers")) {
@@ -238,7 +259,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
       // codemirror renders to see what we got.
       // That said, this only matters when the only line
       // number is "1" (since there can be at most 1 line in order for
-      // cmValue=''), so this number is always 30 in practice.
+      // the cell is empty, so this number is always 30 in practice.
       setPlaceHolderOffset(30);
       setTimeout(() => {
         setPlaceHolderOffset(
@@ -248,7 +269,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     } else {
       setPlaceHolderOffset(0);
     }
-  }, [is_current, cmValue, options]);
+  }, [is_current, isEmpty, options]);
 
   // This is an attempt to make code editing somewhat work at non 100% scale
   // for the whiteboard.  It's only used there, and is a miracle it partly
@@ -311,9 +332,10 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
     if (cm.current == null || actions == null) {
       return;
     }
-    frameActions.current?.unselect_all_cells();
-    frameActions.current?.set_cur_id(id);
-    frameActions.current?.set_mode("edit");
+    frameActions.current?.activate_cell(id, {
+      mode: "edit",
+      clearSelection: true,
+    });
     if (vim_mode.current) {
       $(cm.current.getWrapperElement()).css({ paddingBottom: "1.5em" });
     }
@@ -748,6 +770,13 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
         return { x: pos.ch, y: pos.line };
       },
       getSelection: () => cm.current.getSelection(),
+      getSelectionRange: () => {
+        const sel = cm.current.getSelection();
+        if (!sel) return undefined;
+        const from = cm.current.getCursor("from");
+        const to = cm.current.getCursor("to");
+        return { fromLine: from.line, toLine: to.line };
+      },
     };
     if (registerEditor != null) {
       registerEditor(editor);
@@ -800,7 +829,7 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
   }
 
   function renderPlaceholder() {
-    if (!is_current || cmValue || !setShowAICellGen) {
+    if (!is_current || !isEmpty || !setShowAICellGen) {
       return;
     }
     return (
@@ -829,7 +858,32 @@ export const CodeMirrorEditor: React.FC<CodeMirrorEditorProps> = ({
               fontSize: "inherit",
             }}
             onClick={() => {
-              setShowAICellGen("replace");
+              const oldAssistantMode = !!redux
+                .getStore("account")
+                .getIn(["other_settings", "old_assistant_mode"]);
+              if (!oldAssistantMode && actions) {
+                const frameActions0 = frameActions.current;
+                if (frameActions0) {
+                  frameActions0.set_cur_id(id);
+                }
+                // Compute 1-based cell number for context.
+                const store = (actions as any).store;
+                const cellList = store?.get("cell_list");
+                const cellIds = cellList?.toJS() as string[] | undefined;
+                const cellIndex = cellIds ? cellIds.indexOf(id) : -1;
+                const cellLabel =
+                  cellIndex >= 0 ? `cell #${cellIndex + 1}` : "this cell";
+                openAssistantWithPrefill({
+                  redux,
+                  project_id: (actions as any).project_id,
+                  path: (actions as any).path,
+                  prompt: `Generate code in ${cellLabel} that does: `,
+                }).catch((err) =>
+                  console.warn("openAssistantWithPrefill failed:", err),
+                );
+              } else {
+                setShowAICellGen("replace");
+              }
             }}
           >
             generate using AI...

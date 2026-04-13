@@ -177,8 +177,8 @@ export function ReconfigureAllProjects({
       <hr />
       <Button
         disabled={configuring_projects}
-        onClick={() => {
-          actions.configuration.configure_all_projects();
+        onClick={async () => {
+          await actions.configuration.configure_all_projects();
         }}
       >
         {configuring_projects ? <Icon name="cocalc-ring" spin /> : undefined}{" "}

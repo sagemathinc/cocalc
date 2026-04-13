@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -16,9 +16,11 @@ import {
 } from "@cocalc/frontend/components";
 import {
   example,
+  getThemeName,
   theme_desc,
 } from "@cocalc/frontend/frame-editors/terminal-editor/theme-data";
 import { labels } from "@cocalc/frontend/i18n";
+import { DEFAULT_TERMINAL_COLOR_SCHEME } from "@cocalc/util/db-schema/accounts";
 import { set_account_table } from "./util";
 
 declare global {
@@ -31,10 +33,14 @@ export function TerminalSettings() {
   const intl = useIntl();
 
   const terminal = useTypedRedux("account", "terminal");
-  const color_scheme = terminal?.get("color_scheme") || "default";
+  const color_scheme = getThemeName(terminal?.get("color_scheme"));
 
   if (terminal == null) {
     return <Loading />;
+  }
+
+  function setTerminalColorScheme(color_scheme: string): void {
+    set_account_table({ terminal: { color_scheme } });
   }
 
   const label = intl.formatMessage({
@@ -53,11 +59,9 @@ export function TerminalSettings() {
     >
       <LabeledRow label={label}>
         <Button
-          disabled={color_scheme === "default"}
+          disabled={color_scheme === DEFAULT_TERMINAL_COLOR_SCHEME}
           style={{ float: "right" }}
-          onClick={() => {
-            set_account_table({ terminal: { color_scheme: "default" } });
-          }}
+          onClick={() => setTerminalColorScheme(DEFAULT_TERMINAL_COLOR_SCHEME)}
         >
           {intl.formatMessage(labels.reset)}
         </Button>
@@ -65,9 +69,7 @@ export function TerminalSettings() {
           style={{ width: "250px" }}
           selected={color_scheme}
           options={theme_desc}
-          on_change={(color_scheme) =>
-            set_account_table({ terminal: { color_scheme } })
-          }
+          on_change={setTerminalColorScheme}
           showSearch={true}
         />
       </LabeledRow>
@@ -77,7 +79,7 @@ export function TerminalSettings() {
 }
 
 function TerminalPreview({ color_scheme }: { color_scheme: string }) {
-  const html = example(color_scheme || "default");
+  const html = example(getThemeName(color_scheme));
   return (
     <div
       style={{

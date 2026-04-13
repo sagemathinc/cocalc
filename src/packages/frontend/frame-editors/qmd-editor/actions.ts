@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020–2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -34,11 +34,6 @@ plot(rnorm(100))
 `;
 
 export class Actions extends MarkdownConverterActions {
-  // Expose the shared run_converter as run_qmd_converter for public API compatibility.
-  get run_qmd_converter(): Function {
-    return this.run_converter;
-  }
-
   protected get minimal_template(): string {
     return MINIMAL;
   }
@@ -69,7 +64,6 @@ export class Actions extends MarkdownConverterActions {
     const md = this._syncstring.to_str();
     if (md == null) return;
     this.set_status("Running Quarto...");
-    this.setState({ building: true });
     this.set_error("");
     this.setState({ build_log: "", build_err: "" });
     let markdown = "";
@@ -103,7 +97,6 @@ export class Actions extends MarkdownConverterActions {
       return;
     } finally {
       this.set_status("");
-      this.setState({ building: false });
     }
     this.setState({ value: markdown });
   }

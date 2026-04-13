@@ -95,7 +95,12 @@ import {
   BLACKLISTED_STRATEGIES,
   DEFAULT_LOGIN_INFO,
   SSO_API_KEY_COOKIE_NAME,
+  SSO_LINK_ACCOUNT_CACHE_NAME,
+  SSO_LINK_ACCOUNT_COOKIE_NAME,
+  SSO_LINK_ACCOUNT_MAX_AGE_MS,
 } from "@cocalc/server/auth/sso/consts";
+import { getAccountIdFromRememberMe } from "@cocalc/server/auth/get-account";
+import { getRememberMeHash } from "@cocalc/server/auth/remember-me";
 import {
   FacebookStrategyConf,
   GithubStrategyConf,
@@ -234,6 +239,53 @@ export class PassportManager {
     }
     next();
   }
+
+  private stashAuthenticatedLinkAccount = async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ) => {
+    const cookies = new Cookies(req, res);
+    let rememberMeHash: string | undefined;
+    try {
+      rememberMeHash = getRememberMeHash(req);
+    } catch {
+      rememberMeHash = undefined;
+    }
+    if (rememberMeHash == null) {
+      // Setting a cookie with no value clears any stale link-account marker.
+      cookies.set(SSO_LINK_ACCOUNT_COOKIE_NAME);
+      next();
+      return;
+    }
+
+    const account_id = await getAccountIdFromRememberMe(rememberMeHash);
+    if (account_id == null) {
+      // Setting a cookie with no value clears any stale link-account marker.
+      cookies.set(SSO_LINK_ACCOUNT_COOKIE_NAME);
+      next();
+      return;
+    }
+
+    const linkId = uuidv4();
+    await getPassportCache(
+      SSO_LINK_ACCOUNT_CACHE_NAME,
+      SSO_LINK_ACCOUNT_MAX_AGE_MS,
+    ).saveAsync(
+      linkId,
+      JSON.stringify({ account_id, remember_me_hash: rememberMeHash }),
+    );
+
+    const secure = req.protocol === "https";
+    cookies.set(SSO_LINK_ACCOUNT_COOKIE_NAME, linkId, {
+      httpOnly: true,
+      maxAge: SSO_LINK_ACCOUNT_MAX_AGE_MS,
+      overwrite: true,
+      sameSite: secure ? "none" : undefined,
+      secure,
+    });
+    next();
+  };
 
   // this is for pure backwards compatibility. at some point remove this!
   // it only returns a string[] array of the legacy authentication strategies
@@ -804,6 +856,7 @@ export class PassportManager {
     this.router.get(
       strategyUrl,
       this.handle_get_api_key,
+      this.stashAuthenticatedLinkAccount,
       this.setState(name, type, auth_opts),
       passport.authenticate(name, auth_opts),
     );

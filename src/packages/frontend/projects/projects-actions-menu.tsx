@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2025-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -16,7 +16,7 @@
 import type { ProjectTableRecord } from "./projects-table-columns";
 
 import { Dropdown, MenuProps, Modal } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useIntl } from "react-intl";
 
 import {
@@ -50,7 +50,39 @@ interface Props {
 }
 
 export function ProjectActionsMenu({ record }: Props) {
+  const [hydrated, setHydrated] = useState(false);
   const [open, setOpen] = useState(false);
+
+  if (!hydrated) {
+    return (
+      <div
+        onClick={(e) => {
+          e.stopPropagation();
+          setHydrated(true);
+          setOpen(true);
+        }}
+        style={{ cursor: "pointer" }}
+      >
+        <span style={{ fontSize: "18px", padding: "4px 8px" }}>
+          <Icon name="ellipsis" rotate="90" />
+        </span>
+      </div>
+    );
+  }
+
+  return (
+    <HydratedProjectActionsMenu record={record} open={open} setOpen={setOpen} />
+  );
+}
+
+function HydratedProjectActionsMenu({
+  record,
+  open,
+  setOpen,
+}: Props & {
+  open: boolean;
+  setOpen: (open: boolean) => void;
+}) {
   const intl = useIntl();
   const actions = useActions("projects");
   const account_id = useTypedRedux("account", "account_id");
@@ -63,13 +95,11 @@ export function ProjectActionsMenu({ record }: Props) {
     { project_id: record.project_id },
     "directory_listings",
   );
-  // Initialize project_log when menu opens if not already loaded
-  function handleOpenChange(newOpen: boolean) {
-    setOpen(newOpen);
-    if (newOpen && project_log == null) {
-      redux.getProjectStore(record.project_id).init_table("project_log");
-    }
-  }
+
+  useEffect(() => {
+    if (!open || project_log != null) return;
+    redux.getProjectStore(record.project_id).init_table("project_log");
+  }, [open, project_log, record.project_id]);
 
   // Check if user is owner of this project
   const isOwner =
@@ -307,7 +337,7 @@ export function ProjectActionsMenu({ record }: Props) {
         menu={{ items: menuItems, onClick: handleMenuClick }}
         trigger={["click"]}
         open={open}
-        onOpenChange={handleOpenChange}
+        onOpenChange={setOpen}
       >
         <span style={{ fontSize: "18px", padding: "4px 8px" }}>
           <Icon name="ellipsis" rotate="90" />

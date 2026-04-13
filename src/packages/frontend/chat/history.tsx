@@ -15,6 +15,7 @@ import {
 } from "@cocalc/util/db-schema/llm-utils";
 import { isValidUUID, trunc_middle } from "@cocalc/util/misc";
 import { LLMModelName } from "../components/llm-name";
+import { VIEWER_COLOR } from "./chat-colors";
 
 export function HistoryTitle() {
   return (
@@ -43,9 +44,10 @@ export function HistoryFooter() {
 interface HistoryProps {
   history?: List<any>;
   user_map?: Map<string, any>;
+  isViewerMessage?: boolean;
 }
 
-export function History({ history, user_map }: HistoryProps) {
+export function History({ history, user_map, isViewerMessage }: HistoryProps) {
   if (history == null || user_map == null) {
     return null;
   }
@@ -74,11 +76,30 @@ export function History({ history, user_map }: HistoryProps) {
     const value = sanitize_html_safe(content);
     const author = renderAuthor(author_id);
     v.push(
-      <Well key={index} style={{ marginBottom: "0px" }}>
+      <Well
+        key={index}
+        style={
+          isViewerMessage
+            ? {
+                marginBottom: "0px",
+                background: "rgba(255,255,255,0.15)",
+                border: "1px solid rgba(255,255,255,0.3)",
+                color: VIEWER_COLOR,
+              }
+            : {
+                marginBottom: "0px",
+                background: "#ececec",
+                border: "1px solid #e0e0e0",
+              }
+        }
+      >
         <div style={{ marginBottom: "-10px", wordWrap: "break-word" }}>
           <StaticMarkdown value={value} />
         </div>
-        <div className="small">
+        <div
+          className="small"
+          style={isViewerMessage ? { color: "rgba(255,255,255,0.85)" } : undefined}
+        >
           {value.trim() == "" ? "Message deleted " : "Last edit "}
           <TimeAgo date={new Date(date)} />
           {author ? <> by {author}</> : undefined}

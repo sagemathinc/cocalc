@@ -112,3 +112,45 @@
 // from pylab import plot; plot([1,2],[3,4])
 cocalc-lumino-adapter
   position: relative
+
+// Jupyter Minimal notebook frame styles
+.minimal-md-render
+  h1
+    font-size: 1.4em
+    margin: 4px 0
+  h2
+    font-size: 1.2em
+    margin: 3px 0
+  h3
+    font-size: 1.1em
+    margin: 2px 0
+  h4
+    font-size: 1.05em
+    margin: 2px 0
+  p
+    margin: 4px 0
+
+.minimal-code-editor
+  [cocalc-test="cell-input"] > .hidden-xs
+    display: none !important
+
+.minimal-cell-toolbar > div
+  margin-left: 0 !important
+
+// Hide native scrollbar when minimap is active
+.minimap-hide-scrollbar
+  scrollbar-width: none
+  &::-webkit-scrollbar
+    display: none
+
+// Minimap: blink for the actively running cell
+@keyframes minimap-blink
+  0%
+    opacity: 0.4
+  50%
+    opacity: 1
+  100%
+    opacity: 0.4
+
+.minimap-cell-running
+  animation: minimap-blink 1s ease-in-out infinite

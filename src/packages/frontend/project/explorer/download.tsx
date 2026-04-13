@@ -82,20 +82,23 @@ export default function Download({
       const files = checked_files.toArray();
       let dest;
       if (archiveMode) {
-        const path = store.get("current_path");
+        // Derive the working directory from the checked files themselves
+        // (all come from the same listing).  This is more robust than
+        // reading current_path, which may differ from the explorer's
+        // independent browsing path.
+        const path = files.length > 0 ? path_split(files[0]).head : "";
         dest = path_to_file(path, target + ".zip");
         await actions.zip_files({
           src: path ? files.map((x) => x.slice(path.length + 1)) : files,
           dest: target + ".zip",
-          path: store.get("current_path"),
+          path,
         });
       } else {
         dest = files[0];
       }
       actions.download_file({ path: dest, log: files });
-      await actions.fetch_directory_listing({
-        path: store.get("current_path"),
-      });
+      const refreshPath = files.length > 0 ? path_split(files[0]).head : "";
+      await actions.fetch_directory_listing({ path: refreshPath });
       actions.set_all_files_unchecked();
       actions.set_file_action();
     } catch (err) {

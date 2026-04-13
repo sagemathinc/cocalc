@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -83,6 +83,11 @@ import { List, Map, fromJS, Set as iSet } from "immutable";
 import { debounce } from "lodash";
 import { set_account_table } from "../../account/util";
 import { default_opts } from "../codemirror/cm-options";
+import {
+  hasCustomLayout,
+  loadCustomLayout,
+  saveCustomLayout,
+} from "../frame-tree/frame-editor-settings";
 import { print_code } from "../frame-tree/print-code";
 import * as tree_ops from "../frame-tree/tree-ops";
 import {
@@ -111,7 +116,7 @@ import type { TimeTravelActions } from "../time-travel-editor/actions";
 import { CodeEditor, CodeEditorManager } from "./code-editor-manager";
 import { DEFAULT_TERM_ENV } from "./const";
 import * as cm_doc_cache from "./doc";
-import { SHELLS } from "./editor";
+import { RUN_COMMANDS, SHELLS } from "./editor";
 import { test_line } from "./simulate_typing";
 import { misspelled_words } from "./spell-check";
 
@@ -132,6 +137,8 @@ interface LocalViewParams {
   editor_state?: unknown;
   version?: number;
   font_size?: number;
+  // Allow agent-specific keys (e.g. coding_agent_auto_accept)
+  [key: string]: unknown;
 }
 
 type LocalViewState = TypedMap<LocalViewParams>;
@@ -165,6 +172,7 @@ export interface CodeEditorState {
   visible: boolean;
   switch_to_files: string[];
   pdf_dark_mode_disabled?: { [id: string]: boolean };
+  has_custom_layout: boolean;
 }
 
 export class Actions<
@@ -213,6 +221,9 @@ export class Actions<
   // We store these actions here so that we can remove the actions
   // and store for time travel when this editor is closed.
   public timeTravelActions?: TimeTravelActions;
+
+  // Optional build action – overridden in editors that compile (e.g., LaTeX).
+  build?(id?: string, force?: boolean): Promise<void>;
 
   // multifile support. this will be set to the path of the parent file (master)
   protected parent_file: string | undefined = undefined;
@@ -285,7 +296,11 @@ export class Actions<
         // disk yet, which happens with compute servers for a second.
         return;
       }
-      this.setState({ value: this._syncstring.to_str() });
+      const value = this._syncstring.to_str();
+      if (this.store?.get("value") === value) {
+        return;
+      }
+      this.setState({ value });
     });
   }
 
@@ -376,6 +391,7 @@ export class Actions<
         (this._syncdb === undefined || this._syncdb_init)
       ) {
         this.setState({ is_loaded: true });
+        this.restoreChatIndicator();
       }
 
       this._syncstring.on(
@@ -481,6 +497,7 @@ export class Actions<
         (this._syncstring === undefined || this._syncstring_init)
       ) {
         this.setState({ is_loaded: true });
+        this.restoreChatIndicator();
       }
     });
 
@@ -637,9 +654,21 @@ export class Actions<
     let frame_tree = local_view_state.get("frame_tree");
     if (frame_tree == null) {
       frame_tree = this._default_frame_tree();
+      if (!this.is_public) {
+        // No saved local view — try to apply custom layout asynchronously.
+        this._apply_custom_layout_if_available();
+      }
     } else {
-      frame_tree = tree_ops.assign_ids(frame_tree);
-      frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
+      if (!this.is_public) {
+        // Still check whether a custom layout exists (for the menu).
+        this._check_custom_layout_exists();
+      }
+      frame_tree = tree_ops.normalize(frame_tree);
+      try {
+        tree_ops.get_some_leaf_id(frame_tree);
+      } catch {
+        frame_tree = this._default_frame_tree();
+      }
     }
     local_view_state = local_view_state.set("frame_tree", frame_tree);
 
@@ -660,7 +689,7 @@ export class Actions<
     this.reset_frame_tree();
   }
 
-  set_local_view_state(obj: LocalViewParams): void {
+  set_local_view_state(obj: Partial<LocalViewParams>): void {
     if (this._state === "closed") {
       return;
     }
@@ -808,10 +837,7 @@ export class Actions<
 
   // Process a raw frame tree: convert to immutable, assign IDs, ensure uniqueness
   private _process_frame_tree(rawTree: FrameTree): Map<string, any> {
-    let frame_tree = fromJS(rawTree) as Map<string, any>;
-    frame_tree = tree_ops.assign_ids(frame_tree);
-    frame_tree = tree_ops.ensure_ids_are_unique(frame_tree);
-    return frame_tree;
+    return tree_ops.normalize(fromJS(rawTree) as Map<string, any>);
   }
 
   _default_frame_tree(): Map<string, any> {
@@ -882,8 +908,121 @@ export class Actions<
     this._apply_frame_tree(this._process_frame_tree(customTree));
   }
 
+  // Save the current frame layout as the user's custom layout for this file type.
+  async save_custom_layout(): Promise<void> {
+    const frameTree = this.store
+      .get("local_view_state")
+      ?.get("frame_tree")
+      ?.toJS();
+    if (frameTree == null) return;
+    await saveCustomLayout(this.path, frameTree);
+    this.setState({ has_custom_layout: true } as any);
+  }
+
+  // Load the user's saved custom layout for this file type.
+  async load_custom_layout(): Promise<void> {
+    const layout = await loadCustomLayout(this.path);
+    if (layout == null) return;
+    this.replace_frame_tree(layout);
+  }
+
+  // Eagerly check if a custom layout exists, so the menu can show the
+  // "Load Custom" entry as enabled.
+  private async _check_custom_layout_exists(): Promise<void> {
+    try {
+      const has = await hasCustomLayout(this.path);
+      this.setState({ has_custom_layout: has } as any);
+    } catch {
+      // ignore
+    }
+  }
+
+  // Called on first open when no local view state exists — applies
+  // the user's custom layout if one was saved for this file type.
+  private async _apply_custom_layout_if_available(): Promise<void> {
+    try {
+      const layout = await loadCustomLayout(this.path);
+      this.setState({ has_custom_layout: layout != null } as any);
+      if (layout != null) {
+        this.replace_frame_tree(layout);
+      }
+    } catch {
+      // silently ignore — fall back to default layout
+    }
+  }
+
   set_frame_tree_leafs(obj): void {
     this._tree_op("set_leafs", obj);
+  }
+
+  /** Swap two frames by their IDs. */
+  swap_frames(idA: string, idB: string): void {
+    this._tree_op("swap_nodes", idA, idB);
+    this.set_resize?.();
+  }
+
+  /** Move a frame to a new position relative to another frame. */
+  move_frame(
+    sourceId: string,
+    targetId: string,
+    position: tree_ops.DropPosition,
+  ): void {
+    this._tree_op("move_node", sourceId, targetId, position);
+    // Normalize: flatten any non-leaf children inside tabs (e.g. when
+    // dragging a split frame onto a tab bar), then collapse leftovers.
+    this._tree_op("flatten_tabs");
+    this._tree_op("collapse_trivial");
+    // Validate full_id
+    const tree = this._get_tree();
+    let local = this.store.get("local_view_state");
+    const fullId = local?.get("full_id");
+    if (fullId) {
+      // Always clear on tab merge (structural context changes even
+      // though the leaf is still a leaf).
+      // Also clear if the leaf was removed from the tree entirely.
+      if (position === "tab" || !tree_ops.is_leaf_id(tree, fullId)) {
+        local = local.delete("full_id");
+        this.setState({ local_view_state: local });
+        this._save_local_view_state();
+      }
+    }
+    // Focus the moved frame
+    this.set_active_id(sourceId, true);
+    this.set_resize?.();
+  }
+
+  /** Add a new tab to an existing tabs container. */
+  add_tab(tabsId: string, type: string, path?: string): void {
+    const before = this._get_leaf_ids();
+    this._tree_op("add_tab", tabsId, type, path);
+    // Emit new-frame and focus the new tab
+    const after = this._get_leaf_ids();
+    for (const newId in after) {
+      if (!before[newId]) {
+        this.set_active_id(newId);
+        this.store.emit("new-frame", { id: newId, type });
+        break;
+      }
+    }
+    this.set_resize?.();
+  }
+
+  /** Reorder a tab within its tabs container. */
+  reorder_tab(
+    tabsId: string,
+    sourceFrameId: string,
+    beforeFrameId: string | null,
+  ): void {
+    this._tree_op("reorder_tab", tabsId, sourceFrameId, beforeFrameId);
+    this.set_active_id(sourceFrameId, true);
+  }
+
+  /** Extract a tab from its tab container, splitting it out to the given edge. */
+  extract_tab(sourceId: string, position: tree_ops.DropPosition): void {
+    this._tree_op("extract_from_tabs", sourceId, position);
+    this._tree_op("collapse_trivial");
+    this.set_active_id(sourceId, true);
+    this.set_resize?.();
   }
 
   // Set the type of the given node, e.g., 'cm', 'markdown', etc.
@@ -966,6 +1105,21 @@ export class Actions<
 
   closeChat() {
     this.redux.getProjectActions(this.project_id).set_chat_state(this.path, "");
+    this.redux.getProjectActions(this.project_id).set_chat_mode(this.path, "");
+  }
+
+  // Restore chatState/chatMode in the project open_files store by inspecting
+  // the current frame tree.  Called after the frame tree is loaded from
+  // localStorage so the chat indicator buttons highlight correctly on refresh.
+  restoreChatIndicator() {
+    const chatFrameId = this._get_most_recent_active_frame_id_of_type("chat");
+    const projectActions = this.redux.getProjectActions(this.project_id);
+    if (chatFrameId != null) {
+      const node = this._get_frame_node(chatFrameId);
+      const chatMode = node?.get("chat_mode") ?? "chat";
+      projectActions.set_chat_state(this.path, "internal");
+      projectActions.set_chat_mode(this.path, chatMode);
+    }
   }
 
   // Delete the frame with given id.
@@ -1043,6 +1197,10 @@ export class Actions<
     }
     const before = this._get_leaf_ids();
     this._tree_op("split_leaf", id, direction, type, extra, first);
+    // If the split happened inside a tabs container, flatten the resulting
+    // node back into individual tabs instead of a split-inside-tab.
+    this._tree_op("flatten_tabs");
+    this._tree_op("collapse_trivial");
     const after = this._get_leaf_ids();
     for (const new_id in after) {
       if (!before[new_id]) {
@@ -2695,6 +2853,47 @@ export class Actions<
     this.set_active_id(shell_id);
   }
 
+  // Run the current file in a terminal using the appropriate
+  // interpreter/compiler based on the file extension.
+  public async run_code(id: string): Promise<void> {
+    const ext = filename_extension(this.path);
+    const template = RUN_COMMANDS[ext];
+    if (!template) return;
+
+    // Save the file before running.
+    await this.save(true);
+    if (this.isClosed()) return;
+
+    // Build the run command from the template.
+    // Shell-escape the filename to handle spaces and metacharacters safely.
+    const { head: dir, tail: file } = path_split(this.path);
+    const name = file.replace(/\.[^.]+$/, "");
+    const shellEscape = (s: string) => "'" + s.replace(/'/g, "'\\''") + "'";
+    const runCmd = template
+      .replace(/\{file\}/g, shellEscape(file))
+      .replace(/\{name\}/g, shellEscape(name));
+    // cd to the file's directory first so the command works regardless
+    // of the terminal's current working directory.
+    const cmd = dir ? `cd ${shellEscape(dir)} && ${runCmd}` : runCmd;
+
+    // Find or create a plain terminal frame.
+    let terminalId = this._get_most_recent_terminal_id();
+    if (terminalId == null) {
+      terminalId = this.split_frame("col", id, "terminal");
+      if (terminalId == null) return;
+    }
+
+    this.unset_frame_full();
+    await delay(1);
+    if (this.isClosed()) return;
+    this.set_active_id(terminalId);
+
+    // Clear the current line and send the run command.
+    const terminal = this.terminals.get(terminalId);
+    if (terminal == null) return;
+    terminal.conn_write(`\x05\x15${cmd}\n`);
+  }
+
   public clear_terminal_command(id: string): void {
     this.terminals.kill(id);
   }
@@ -2924,6 +3123,7 @@ export class Actions<
       if (node.get("path") == path) return id; // already done;
       // Change it --
       await this.setFrameToCodeEditor({ id, path });
+      this.set_active_id(id);
       return id;
     }
 
@@ -2943,7 +3143,11 @@ export class Actions<
     }
     if (node.get("path") == path) return id; // already done.
 
-    this.setFrameToCodeEditor({ id, path });
+    await this.setFrameToCodeEditor({ id, path });
+    // Re-focus after await: the initial set_active_id (from
+    // show_focused_frame_of_type) may have been overridden by click
+    // event bubbling to the parent frame container.
+    this.set_active_id(id);
     return id;
   }
 

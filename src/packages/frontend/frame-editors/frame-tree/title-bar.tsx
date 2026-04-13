@@ -10,11 +10,23 @@ FrameTitleBar - title bar in a frame, in the frame tree
 
 // cSpell:ignore rescan subframe
 
+import { useDraggable } from "@dnd-kit/core";
+import { SortableButtonBar, SortableButtonItem } from "./sortable-button-bar";
+import { isJupyterNotebookFrameType } from "@cocalc/frontend/frame-editors/jupyter-editor/util";
+
 import { ButtonGroup } from "@cocalc/frontend/antd-bootstrap";
-import { Button, Dropdown, Input, InputNumber, Popover, Tooltip } from "antd";
+import {
+  Button,
+  Dropdown,
+  Input,
+  InputNumber,
+  Popover,
+  Tooltip,
+  Typography,
+} from "antd";
 import type { MenuProps } from "antd/lib";
 import { List } from "immutable";
-import { useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useIntl } from "react-intl";
 
 import {
@@ -55,9 +67,13 @@ import {
   trunc_middle,
 } from "@cocalc/util/misc";
 import { COLORS } from "@cocalc/util/theme";
+import AIAvatar from "@cocalc/frontend/components/ai-avatar";
 import { Actions } from "../code-editor/actions";
 import { is_safari } from "../generic/browser";
+// LanguageModelTitleBarButton is still available for standalone use but the
+// title-bar assistant button now opens the side chat in assistant mode.
 import LanguageModelTitleBarButton from "../llm/llm-assistant-button";
+import { getAgentSpec } from "../generic/agent-registry";
 import {
   APPLICATION_MENU,
   COMMANDS,
@@ -66,10 +82,15 @@ import {
   MENUS,
   SEARCH_COMMANDS,
 } from "./commands";
+import {
+  getFrameEditorSettingsName,
+  useFrameEditorToolbarButtons,
+} from "./frame-editor-settings";
 import { SaveButton } from "./save-button";
 import TitleBarTour from "./title-bar-tour";
 import { ConnectionStatus, EditorDescription, EditorSpec } from "./types";
-import { TITLE_BAR_BORDER } from "./style";
+import type { FrameDragData } from "./dnd/frame-dnd-provider";
+import { TITLE_BAR_BORDER, buildSwitchToFileItems } from "./style";
 
 // Certain special frame editors (e.g., for latex) have extra
 // actions that are not defined in the base code editor actions.
@@ -80,7 +101,7 @@ export interface FrameActions extends Actions {
   zoom_page_height?: (id: string) => void;
   sync?: (id: string, editor_actions: EditorActions) => void;
   show_table_of_contents?: (id: string) => void;
-  build?: (id: string, boolean) => void;
+  build?: (id?: string, force?: boolean) => Promise<void>;
   force_build?: (id: string) => void;
   clean?: (id: string) => void;
   word_count?: (time: number, force: boolean) => void;
@@ -114,6 +135,7 @@ const title_bar_style: CSS = {
   flexWrap: "nowrap",
   flex: "0 0 auto",
   display: "flex",
+  overflow: "hidden",
 } as const;
 
 // This is characters
@@ -188,6 +210,24 @@ export interface FrameTitleBarProps {
 export function FrameTitleBar(props: FrameTitleBarProps) {
   // Whether this is *the* active currently focused frame:
   const is_active = props.active_id === props.id;
+
+  const {
+    attributes: dragAttributes,
+    listeners: dragListeners,
+    setNodeRef: setDragNodeRef,
+    isDragging,
+  } = useDraggable({
+    id: `frame-drag-${props.id}`,
+    data: {
+      type: "frame-drag",
+      frameId: props.id,
+      frameType: props.type,
+      frameLabel: isIntlMessage(props.spec?.short)
+        ? props.spec.short.defaultMessage
+        : (props.spec?.short ?? props.type),
+    } satisfies FrameDragData,
+  });
+
   const track = useMemo(() => {
     const { project_id, path } = props;
     return (action: string) => {
@@ -208,11 +248,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   const [close_and_halt_confirm, set_close_and_halt_confirm] =
     useState<boolean>(false);
 
-  const [showAIDialogs, setShowAIDialogs] = useState<{
-    main: boolean;
-    popover: boolean;
-  }>({ main: false, popover: false });
   const [showNewAI, setShowNewAI] = useState<boolean>(false);
+  const [showLLMDialog, setShowLLMDialog] = useState<boolean>(false);
 
   const [helpSearch, setHelpSearch] = useState<string>("");
 
@@ -228,6 +265,17 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   const editorSettings = useRedux(["account", "editor_settings"]);
+  const frameEditorName = useMemo(
+    () => getFrameEditorSettingsName(props.type, props.path),
+    [props.type, props.path],
+  );
+  // Legacy key format was "ext-type" (e.g. "md-cm"), used for one-time migration
+  const legacyEditorType = useMemo(() => {
+    const ext = props.path ? filename_extension(props.path) : "";
+    return ext ? `${ext}-${props.type}` : props.type;
+  }, [props.type, props.path]);
+  const { toolbarButtons, setToolbarButtons } =
+    useFrameEditorToolbarButtons(frameEditorName, legacyEditorType);
   // REDUX:
   // state that is associated with the file being edited, not the
   // frame tree/tab in which this sits.  Note some more should
@@ -235,19 +283,35 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
   // These come from editor_actions's store:
   const read_only: boolean = useRedux([props.editor_actions.name, "read_only"]);
+  // Subscribing to "building" triggers re-renders so the build/stop
+  // button disabled states update reactively via manageCommands.
+  const is_building: boolean = useRedux([
+    props.editor_actions.name,
+    "building",
+  ]);
 
   const manageCommands = useMemo(
     () =>
       new ManageCommands({
         props,
         studentProjectFunctionality: student_project_functionality,
-        setShowAI: (val: boolean) =>
-          setShowAIDialogs((prev) => ({ ...prev, main: val })),
+        setShowAI: (val: boolean) => {
+          if (val) {
+            const projectActions = redux.getProjectActions(props.project_id);
+            projectActions.toggle_chat({
+              path: props.path,
+              chat_mode: "assistant",
+            });
+          }
+        },
         setShowNewAI,
         helpSearch,
         setHelpSearch,
         readOnly: read_only,
         editorSettings,
+        frameEditorName,
+        toolbarButtons,
+        setToolbarButtons,
         intl,
       }),
     [
@@ -255,11 +319,14 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       student_project_functionality,
       helpSearch,
       setHelpSearch,
-      setShowAIDialogs,
       setShowNewAI,
       read_only,
       editorSettings,
+      frameEditorName,
+      toolbarButtons,
+      setToolbarButtons,
       intl,
+      is_building,
     ],
   );
 
@@ -303,6 +370,65 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
     return true;
   }, [tours, props.type]);
+
+  // --- Responsive title bar: track width and detect overflow ---
+  const titleBarRef = useRef<HTMLDivElement | null>(null);
+  const mainButtonsRef = useRef<HTMLDivElement | null>(null);
+  const [barWidth, setBarWidth] = useState<number>(Infinity);
+  const [mainButtonsOverflow, setMainButtonsOverflow] =
+    useState<boolean>(false);
+  const frameControlsRef = useRef<HTMLDivElement | null>(null);
+  const [frameControlsWidth, setFrameControlsWidth] = useState<number>(0);
+  const [actionButtonsClipped, setActionButtonsClipped] =
+    useState<boolean>(false);
+  const actionButtonsSentinelRef = useRef<HTMLSpanElement | null>(null);
+  const symbolBarRef = useRef<HTMLDivElement | null>(null);
+  const [symbolBarOverflow, setSymbolBarOverflow] = useState<boolean>(false);
+
+  // Width thresholds (px) for progressively hiding frame control buttons.
+  // When bar is narrower than HIDE_SPLIT, split buttons disappear.
+  // When narrower than HIDE_FULL, fullscreen button also disappears.
+  const HIDE_SPLIT_THRESHOLD = 400;
+  const HIDE_FULL_THRESHOLD = 200;
+
+  const hideSplit = barWidth < HIDE_SPLIT_THRESHOLD;
+  const hideFull = barWidth < HIDE_FULL_THRESHOLD;
+
+  const checkOverflow = useCallback(() => {
+    const el = mainButtonsRef.current;
+    if (el) {
+      setMainButtonsOverflow(el.scrollWidth > el.clientWidth + 2);
+      const sentinel = actionButtonsSentinelRef.current;
+      if (sentinel) {
+        const containerRect = el.getBoundingClientRect();
+        const sentinelRect = sentinel.getBoundingClientRect();
+        setActionButtonsClipped(sentinelRect.right > containerRect.right);
+      }
+    }
+    // Track frame controls width so we can reserve space via padding
+    setFrameControlsWidth(frameControlsRef.current?.offsetWidth ?? 0);
+    // Check if the symbol bar (pinned icons) is clipped
+    const sb = symbolBarRef.current;
+    setSymbolBarOverflow(
+      sb != null ? sb.scrollWidth > sb.clientWidth + 2 : false,
+    );
+  }, []);
+
+  useEffect(() => {
+    const el = titleBarRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => {
+      setBarWidth(el.clientWidth);
+      checkOverflow();
+    });
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [checkOverflow]);
+
+  // Re-check overflow whenever buttons or active state change
+  useEffect(() => {
+    checkOverflow();
+  });
 
   // comes from actions's store:
   const switch_to_files: List<string> = useRedux([
@@ -355,27 +481,36 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function renderFrameControls(): Rendered {
+    const tourRef = getTourRef("control");
     return (
       <div
         key="control-buttons-group"
         style={{
-          overflow: "hidden",
-          display: "inline-block",
+          position: "absolute",
+          right: 0,
+          top: 0,
+          bottom: 0,
+          display: "flex",
+          alignItems: "center",
+          background: "inherit",
+          zIndex: 1,
         }}
-        ref={getTourRef("control")}
+        ref={(node) => {
+          frameControlsRef.current = node;
+          if (tourRef) tourRef.current = node;
+        }}
       >
         <ButtonGroup
           style={{
             padding: "3.5px 0 0 0",
             height: button_height(),
-            float: "right",
           }}
           key={"control-buttons"}
         >
           <span style={is_active ? undefined : { opacity: 0.3 }}>
-            {!props.is_full ? render_split_row() : undefined}
-            {!props.is_full ? render_split_col() : undefined}
-            {!props.is_only ? render_full() : undefined}
+            {!props.is_full && !hideSplit ? render_split_row() : undefined}
+            {!props.is_full && !hideSplit ? render_split_col() : undefined}
+            {!props.is_only && !hideFull ? render_full() : undefined}
             {render_x()}
           </span>
         </ButtonGroup>
@@ -497,18 +632,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return;
     }
 
-    const items: MenuItems = switch_to_files.toJS().map((path) => {
-      return {
-        key: path,
-        label: (
-          <>
-            {props.path == path ? <b>{path}</b> : path}
-            {props.actions.path == path ? " (main)" : ""}
-          </>
-        ),
-        onClick: () => props.actions.switch_to_file(path, props.id),
-      };
-    });
+    const items: MenuItems = buildSwitchToFileItems(
+      switch_to_files.toJS(),
+      props.actions.path,
+      props.path,
+      (path) => props.actions.switch_to_file(path, props.id),
+    );
 
     return (
       <DropdownMenu
@@ -586,28 +715,56 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
-  function renderAssistant(noLabel, where: "main" | "popover"): Rendered {
+  function renderAssistant(noLabel, _where: "main" | "popover"): Rendered {
     if (
       !manageCommands.isVisible("chatgpt") ||
       !redux.getStore("projects").hasLanguageModelEnabled(props.project_id)
     ) {
       return;
     }
-    return (
-      <LanguageModelTitleBarButton
-        path={props.path}
-        type={props.type}
-        showDialog={showAIDialogs[where]}
-        setShowDialog={(value: boolean) => {
-          setShowAIDialogs((prev) => ({ ...prev, [where]: value }));
-        }}
-        project_id={props.project_id}
-        buttonRef={getTourRef("chatgpt")}
-        key={`ai-button-${where}`}
-        id={props.id}
-        actions={props.actions}
-        buttonSize={button_size()}
-        buttonStyle={{
+
+    // For editors without an embedded agent — or when the user prefers
+    // the old assistant mode — fall back to the LanguageModelTitleBarButton
+    // popover which provides AI presets (fix errors, autocomplete, explain, etc.).
+    const oldAssistantMode = redux
+      .getStore("account")
+      .getIn(["other_settings", "old_assistant_mode"]);
+    if (!getAgentSpec(props.path).hasAgent || oldAssistantMode) {
+      return (
+        <LanguageModelTitleBarButton
+          key="assistant"
+          id={props.id}
+          path={props.path}
+          type={props.type}
+          actions={props.editor_actions as any}
+          buttonSize={button_size()}
+          buttonStyle={{
+            ...button_style(),
+            ...(!darkMode
+              ? {
+                  backgroundColor: COLORS.AI_ASSISTANT_BG,
+                  color: COLORS.AI_ASSISTANT_TXT,
+                }
+              : undefined),
+          }}
+          visible={props.tab_is_visible}
+          buttonRef={getTourRef("chatgpt")}
+          project_id={props.project_id}
+          showDialog={showLLMDialog}
+          setShowDialog={setShowLLMDialog}
+          noLabel={noLabel}
+        />
+      );
+    }
+
+    const projectActions = redux.getProjectActions(props.project_id);
+
+    const aiButton = (
+      <Button
+        key="assistant"
+        ref={getTourRef("chatgpt")}
+        size={button_size()}
+        style={{
           ...button_style(),
           ...(!darkMode
             ? {
@@ -616,10 +773,27 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
               }
             : undefined),
         }}
-        visible={props.tab_is_visible && props.is_visible}
-        noLabel={noLabel}
-      />
+        onClick={() => {
+          projectActions.toggle_chat({
+            path: props.path,
+            chat_mode: "assistant",
+          });
+        }}
+      >
+        <AIAvatar size={16} iconColor={COLORS.AI_ASSISTANT_TXT} />
+        {noLabel ? null : (
+          <VisibleMDLG>
+            <span style={{ marginLeft: "5px" }}>
+              {intl.formatMessage(labels.assistant)}
+            </span>
+          </VisibleMDLG>
+        )}
+      </Button>
     );
+
+    // Only the orange AI button in the title bar — the Chat button
+    // lives in the file-tab-bar chat indicator instead.
+    return aiButton;
   }
 
   function renderSaveButton(noLabel): Rendered {
@@ -670,8 +844,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
   }
 
-  function renderMenu(name: string) {
-    const { label, pos, groups } = MENUS[name];
+  /** Build the MenuItems array for a named menu (shared by renderMenu and renderDragHandle). */
+  function getMenuItems(name: string): MenuItem[] {
+    const { groups } = MENUS[name];
     const v: MenuItem[] = [];
     for (const group of groups) {
       let i = 0;
@@ -683,7 +858,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         }
         if (helpSearch.trim() && commandName == SEARCH_COMMANDS) {
           const search = helpSearch.trim().toLowerCase();
-          // special case -- the search menu item
           for (const commandName in COMMANDS) {
             for (const item of manageCommands.searchCommands(
               commandName,
@@ -714,6 +888,12 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         v.push(...w.map((x) => x.item));
       }
     }
+    return v;
+  }
+
+  function renderMenu(name: string) {
+    const { label, pos } = MENUS[name];
+    const v = getMenuItems(name);
     if (v.length == 0) {
       return null;
     }
@@ -726,8 +906,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             label === APPLICATION_MENU
               ? manageCommands.applicationMenuTitle()
               : isIntlMessage(label)
-              ? intl.formatMessage(label)
-              : label
+                ? intl.formatMessage(label)
+                : label
           }
           items={v}
         />
@@ -741,6 +921,8 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
 
     const v: { menu: React.JSX.Element; pos: number }[] = [];
     for (const name in MENUS) {
+      // "app" menu is integrated into the drag handle
+      if (name === "app") continue;
       const x = renderMenu(name);
       if (x != null) {
         v.push(x);
@@ -767,6 +949,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     style?: CSS,
     noRefs?,
     where: "main" | "popover" = "main",
+    skipSaveGroup?: boolean,
   ): Rendered {
     if (!is_active) {
       return (
@@ -797,7 +980,19 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       }
 
       const v: (React.JSX.Element | undefined | null)[] = [];
-      v.push(renderSaveTimetravelGroup(where));
+      if (!skipSaveGroup) {
+        v.push(renderSaveTimetravelGroup(where));
+      }
+      // Invisible sentinel after action buttons to detect when they're clipped
+      if (where === "main") {
+        v.push(
+          <span
+            key="action-sentinel"
+            ref={actionButtonsSentinelRef}
+            style={{ width: 0, height: 0, overflow: "hidden" }}
+          />,
+        );
+      }
       if (props.title != null) {
         v.push(renderTitle());
       }
@@ -829,16 +1024,70 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     }
   }
 
+  function renderDragHandle(): Rendered {
+    // Build the application menu items for the drag-handle dropdown.
+    // Even when is_only, the menu is useful (change type, etc.)
+    const appMenuItems = MENUS["app"] ? getMenuItems("app") : [];
+
+    const handle = (
+      <div
+        ref={props.is_only ? undefined : setDragNodeRef}
+        {...(props.is_only ? {} : dragListeners)}
+        {...(props.is_only ? {} : dragAttributes)}
+        className="cc-frame-drag-handle"
+        style={
+          isDragging
+            ? {
+                cursor: "grabbing",
+                background: COLORS.BLUE_D,
+                color: "#fff",
+                borderRight: `1px solid ${COLORS.BLUE_D}`,
+              }
+            : undefined
+        }
+      >
+        <Icon name="bars" />
+        <span style={{ marginLeft: 4, fontWeight: 450, whiteSpace: "nowrap" }}>
+          {(() => {
+            const spec = props.editor_spec?.[props.type];
+            if (!spec) return props.type;
+            return (
+              manageCommands.spec2display(spec, "short") ||
+              manageCommands.spec2display(spec, "name") ||
+              props.type
+            );
+          })()}
+        </span>
+      </div>
+    );
+
+    if (appMenuItems.length === 0) {
+      return handle;
+    }
+
+    return (
+      <Dropdown
+        menu={{ items: appMenuItems }}
+        trigger={["click"]}
+        placement="bottomLeft"
+      >
+        {handle}
+      </Dropdown>
+    );
+  }
+
   function renderMainMenusAndButtons(): Rendered {
     // This is complicated below (with the flex display) in order to have
     // a drop down menu that actually appears
     // and *ALSO* have buttons that vanish when there are many of them.
     return (
       <div
+        ref={mainButtonsRef}
         style={{
           flexFlow: "row nowrap",
           display: "flex",
           flex: 1,
+          minWidth: 0,
           whiteSpace: "nowrap",
           overflow: "hidden",
         }}
@@ -848,8 +1097,33 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     );
   }
 
+  // Render frame control buttons that were hidden due to narrow width,
+  // for inclusion in the overflow popover.
+  function renderHiddenFrameControls(): Rendered {
+    const hidden: Rendered[] = [];
+    if (hideSplit && !props.is_full) {
+      hidden.push(render_split_row());
+      hidden.push(render_split_col());
+    }
+    if (hideFull && !props.is_only) {
+      hidden.push(render_full());
+    }
+    if (hidden.length === 0) return undefined;
+    return (
+      <ButtonGroup
+        style={{ padding: "3.5px 0 0 0", height: button_height() }}
+        key="hidden-frame-controls"
+      >
+        {hidden}
+      </ButtonGroup>
+    );
+  }
+
+  const hasOverflow =
+    mainButtonsOverflow || symbolBarOverflow || hideSplit || hideFull;
+
   function allButtonsPopover() {
-    if (!is_active) {
+    if (!is_active || !hasOverflow) {
       return null;
     }
     return (
@@ -867,20 +1141,25 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
                 maxWidth: "100vw",
               }}
             >
-              <div
-                style={{
-                  marginLeft: "3px",
-                  marginRight: "3px",
-                }}
-              >
-                {renderButtons(
-                  { maxHeight: "50vh", display: "block" },
-                  true,
-                  "popover",
-                )}
-              </div>
+              {(mainButtonsOverflow || symbolBarOverflow) && (
+                <div
+                  style={{
+                    marginLeft: "3px",
+                    marginRight: "3px",
+                  }}
+                >
+                  {mainButtonsOverflow &&
+                    renderButtons(
+                      { maxHeight: "50vh", display: "block" },
+                      true,
+                      "popover",
+                      !actionButtonsClipped,
+                    )}
+                  {renderButtonBar(true)}
+                </div>
+              )}
               <div>
-                {renderFrameControls()}
+                {renderHiddenFrameControls()}
                 <Button
                   style={{ float: "right" }}
                   onClick={() => setShowMainButtonsPopover(false)}
@@ -888,7 +1167,6 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
                   {intl.formatMessage(labels.close)}
                 </Button>
               </div>
-              {renderButtonBar(true)}
             </div>
           );
         }}
@@ -1117,26 +1395,37 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   }
 
   function wrapButtonBarContextMenu(bar: React.JSX.Element) {
-    const showSymbolLabel = (
-      <>
-        <Tooltip
-          title={intl.formatMessage({
-            id: "frame_editors.frame_tree.title_bar.symbols.label.explanation",
-            defaultMessage:
-              "If labels are shown, the symbol bar is placed in its own row beneath the menu – otherwise it is smaller and next to the menu.",
-          })}
-        >
-          <Icon name="signature-outlined" />{" "}
-          {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
-            show: showSymbolBarLabels,
-          })}
-        </Tooltip>
-      </>
+    return (
+      <Dropdown
+        trigger={["contextMenu"]}
+        menu={{ items: getButtonBarContextMenuItems() }}
+        overlayStyle={{ maxWidth: "400px" }}
+      >
+        {bar}
+      </Dropdown>
     );
+  }
+
+  function getButtonBarContextMenuItems(name?: string): MenuProps["items"] {
     const items: MenuProps["items"] = [
       {
         key: "toggle-labels",
-        label: showSymbolLabel,
+        label: (
+          <Tooltip
+            title={intl.formatMessage({
+              id: "frame_editors.frame_tree.title_bar.symbols.label.explanation",
+              defaultMessage:
+                "If labels are shown, the symbol bar is placed in its own row beneath the menu – otherwise it is smaller and next to the menu.",
+            })}
+          >
+            <span>
+              <Icon name="signature-outlined" />{" "}
+              {intl.formatMessage(ACTIVITY_BAR_TOGGLE_LABELS, {
+                show: showSymbolBarLabels,
+              })}
+            </span>
+          </Tooltip>
+        ),
         onClick: () => {
           redux
             .getActions("account")
@@ -1144,15 +1433,76 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
         },
       },
     ];
+
+    if (name != null) {
+      items.push({
+        key: `remove-${name}`,
+        label: (
+          <span>
+            <Icon name="times" />{" "}
+            {intl.formatMessage({
+              id: "frame-editors.frame-tree.title-bar.context.remove-toolbar-icon",
+              defaultMessage: "Remove from toolbar",
+            })}
+          </span>
+        ),
+        onClick: () => {
+          manageCommands.removeToolbarButton(name);
+        },
+      });
+    }
+
+    items.push(
+      { type: "divider" },
+      {
+        key: `pin-hint${name != null ? `-${name}` : ""}`,
+        disabled: true,
+        label: (
+          <Typography.Text type="secondary" style={{ fontSize: "11px" }}>
+            {intl.formatMessage({
+              id: "frame-editors.frame-tree.title-bar.context.pin-hint",
+              defaultMessage: "Click an icon in a menu to pin it.",
+            })}
+          </Typography.Text>
+        ),
+      },
+    );
+
+    return items;
+  }
+
+  function wrapButtonBarItemContextMenu(
+    name: string,
+    button: React.JSX.Element,
+  ): React.JSX.Element {
     return (
       <Dropdown
         trigger={["contextMenu"]}
-        menu={{ items }}
-        overlayStyle={{ maxWidth: "400px" }}
+        menu={{ items: getButtonBarContextMenuItems(name) }}
       >
-        {bar}
+        <span
+          style={{ display: "inline-block" }}
+          onContextMenu={(e) => e.stopPropagation()}
+        >
+          {button}
+        </span>
       </Dropdown>
     );
+  }
+
+  function handleToolbarReorder(newOrder: string[]) {
+    const current = manageCommands.getToolbarButtons();
+    const next: string[] = [];
+    const reorderedSet = new Set(newOrder);
+    let newOrderIdx = 0;
+    for (const name of current) {
+      if (reorderedSet.has(name)) {
+        next.push(newOrder[newOrderIdx++]);
+      } else {
+        next.push(name);
+      }
+    }
+    manageCommands.setToolbarOrder(next);
   }
 
   function renderButtonBar(popup = false) {
@@ -1163,16 +1513,24 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return null;
     }
     const w = manageCommands.getToolbarButtons();
-    const v: React.JSX.Element[] = [];
+    // Build a map of name → rendered element so we know which names actually render
+    const rendered = new Map<string, React.JSX.Element>();
     for (const name of w) {
       const b = renderButtonBarButton(name);
       if (b != null) {
-        v.push(b);
+        rendered.set(name, b);
       }
     }
-    if (v.length == 0) {
+    if (rendered.size === 0) {
       return null;
     }
+    const sortableIds = [...rendered.keys()];
+    const v = sortableIds.map((name) => (
+      <SortableButtonItem key={`sortable-${name}`} id={name}>
+        {wrapButtonBarItemContextMenu(name, rendered.get(name)!)}
+      </SortableButtonItem>
+    ));
+
     // if labels are shown, we render two rows – otherwise symbols are next to the menu and frame controls
     if (showSymbolBarLabels) {
       return wrapButtonBarContextMenu(
@@ -1183,12 +1541,38 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
             opacity: is_active ? undefined : 0.3,
           }}
         >
-          <div style={{ marginBottom: "-1px", marginTop: "1px" }}>{v}</div>
+          <SortableButtonBar
+            items={sortableIds}
+            onReorder={handleToolbarReorder}
+          >
+            <div
+              style={{
+                marginBottom: "-1px",
+                marginTop: "1px",
+                display: "flex",
+                flexWrap: "wrap",
+                position: "relative",
+              }}
+            >
+              {v}
+            </div>
+          </SortableButtonBar>
         </div>,
       );
     } else {
       return wrapButtonBarContextMenu(
-        <div style={{ marginTop: "3px" }}>{v}</div>,
+        <SortableButtonBar items={sortableIds} onReorder={handleToolbarReorder}>
+          <div
+            style={{
+              marginTop: "3px",
+              display: "flex",
+              flexWrap: "nowrap",
+              position: "relative",
+            }}
+          >
+            {v}
+          </div>
+        </SortableButtonBar>,
       );
     }
   }
@@ -1198,7 +1582,7 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
       return null;
     }
     const { type } = props;
-    if (type == "terminal" || type == "jupyter_cell_notebook") {
+    if (type == "terminal" || isJupyterNotebookFrameType(type)) {
       // these are handled in a more sophisticated way due to compute
       // in their own editor.
       return null;
@@ -1319,6 +1703,9 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
   // position relative, so we can absolute position the
   // frame controls to the right
   style.position = "relative";
+  // Reserve space for the absolutely-positioned frame controls so flex
+  // children don't extend underneath them.
+  style.paddingRight = `${frameControlsWidth}px`;
 
   if (is_safari()) {
     // ugly hack....
@@ -1335,14 +1722,27 @@ export function FrameTitleBar(props: FrameTitleBarProps) {
     <>
       <div style={{ opacity: !is_active ? 0.6 : undefined }}>
         <div
+          ref={titleBarRef}
           style={style}
           id={`titlebar-${props.id}`}
           className={"cc-frame-tree-title-bar"}
         >
+          {renderDragHandle()}
           {renderMainMenusAndButtons()}
           {is_active && renderConnectionStatus()}
           {is_active && allButtonsPopover()}
-          {!showSymbolBarLabels ? renderButtonBar() : undefined}
+          {!showSymbolBarLabels && (
+            <div
+              ref={symbolBarRef}
+              style={{
+                flex: "0 10 auto",
+                overflow: "hidden",
+                minWidth: 0,
+              }}
+            >
+              {renderButtonBar()}
+            </div>
+          )}
           {renderFrameControls()}
         </div>
         {showSymbolBarLabels ? renderButtonBar() : undefined}

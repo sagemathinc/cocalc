@@ -13,6 +13,29 @@
  */
 
 import { redux } from "@cocalc/frontend/app-framework";
+import {
+  getExplorerDirectory,
+  setExplorerDirectory,
+} from "./directory-tree";
+import {
+  getFlyoutDirectory,
+  setFlyoutDirectory,
+} from "../page/flyouts/state";
+
+type BrowsingPathKey = "explorer_browsing_path" | "flyout_browsing_path";
+
+/**
+ * Read the last browsing path from localStorage.
+ * Returns "" (project root) if nothing was stored.
+ */
+export function getInitialBrowsingPath(
+  project_id: string,
+  pathKey: BrowsingPathKey,
+): string {
+  return pathKey === "explorer_browsing_path"
+    ? getExplorerDirectory(project_id)
+    : getFlyoutDirectory(project_id);
+}
 
 /**
  * Compute the next `historyPath` given the current one and a new path.
@@ -51,7 +74,7 @@ export function navigateBrowsingPath(
   project_id: string,
   path: string,
   prevHistory: string,
-  pathKey: "explorer_browsing_path" | "flyout_browsing_path",
+  pathKey: BrowsingPathKey,
   historyKey: "explorer_history_path" | "flyout_history_path",
 ): void {
   if (path.endsWith("/")) {
@@ -65,6 +88,13 @@ export function navigateBrowsingPath(
   const actions = redux.getProjectActions(project_id);
 
   const isExplorer = pathKey === "explorer_browsing_path";
+
+  // Persist to localStorage so the path survives page reloads.
+  if (isExplorer) {
+    setExplorerDirectory(project_id, path);
+  } else {
+    setFlyoutDirectory(project_id, path);
+  }
 
   actions?.setState({
     [pathKey]: path,

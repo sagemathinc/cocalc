@@ -19,6 +19,7 @@ interface Props {
   title: string;
   children: React.ReactNode;
   maxWidth?: string; // default is 50vw
+  maxHeight?: string; // default is 75vh
   style?: CSSProperties;
   extra?: string;
   placement?: TooltipPlacement;
@@ -29,6 +30,7 @@ export const HelpIcon: React.FC<Props> = ({
   title,
   children,
   maxWidth = "50vw",
+  maxHeight = "75vh",
   extra = "",
   placement,
 }: Props) => {
@@ -44,7 +46,10 @@ export const HelpIcon: React.FC<Props> = ({
     <Popover
       placement={placement}
       content={
-        <div onClick={(e) => e.stopPropagation()} style={{ maxWidth }}>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{ maxWidth, maxHeight, overflowY: "auto" }}
+        >
           {children}
         </div>
       }

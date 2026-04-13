@@ -34,14 +34,14 @@ import {
   isUserDefinedModel,
   isValidModel,
   isXaiModel,
+  isZaiModel,
   model2service,
   model2vendor,
 } from "@cocalc/util/db-schema/llm-utils";
 import { KUCALC_COCALC_COM } from "@cocalc/util/db-schema/site-defaults";
 import type { ChatOptions } from "@cocalc/util/types/llm";
 import { checkForAbuse } from "./abuse";
-import { evaluateWithLangChain } from "./evaluate-lc";
-import { evaluateOllama } from "./ollama";
+import { evaluateWithAI } from "./evaluate";
 import { saveResponse } from "./save-response";
 import { evaluateUserDefinedLLM } from "./user-defined";
 
@@ -165,23 +165,21 @@ async function evaluateImpl({
 
   const { output, total_tokens, prompt_tokens, completion_tokens } =
     await (async () => {
-      // Use the unified LangChain implementation
       if (isUserDefinedModel(model)) {
         return await evaluateUserDefinedLLM(params, account_id);
-      } else if (isOllamaLLM(model)) {
-        return await evaluateOllama(params);
       } else if (
+        isOllamaLLM(model) ||
         isCustomOpenAI(model) ||
         isMistralModel(model) ||
         isAnthropicModel(model) ||
         isGoogleModel(model) ||
         isOpenAIModel(model) ||
-        isXaiModel(model)
+        isXaiModel(model) ||
+        isZaiModel(model)
       ) {
-        // Use unified implementation for LangChain-based providers
-        return await evaluateWithLangChain(params);
+        return await evaluateWithAI(params);
       } else {
-        throw new Error(`Unable to handel model '${model}'.`);
+        throw new Error(`Unable to handle model '${model}'.`);
       }
     })();
 
@@ -251,18 +249,11 @@ export function normalizeOpenAIModel(model): OpenAIModel {
   // the *-8k variants are artificial – the input is already limited/truncated to 8k
   // convert *-preview and all *-8k to their base model names
   const modelPrefixes = [
+    "gpt-5.4-mini",
+    "gpt-5.4",
     "gpt-5.2",
     "gpt-5-mini",
     "gpt-5",
-    "gpt-4o-mini",
-    "gpt-4o",
-    "gpt-4-turbo",
-    "gpt-4.1-mini",
-    "gpt-4.1",
-    "o4-mini",
-    "o3",
-    "o1-mini",
-    "o1",
   ];
 
   for (const prefix of modelPrefixes) {

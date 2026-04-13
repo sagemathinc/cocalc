@@ -39,6 +39,8 @@ import { modalParams } from "@cocalc/frontend/compute/select-server-for-file";
 import { TabName, setServerTab } from "@cocalc/frontend/compute/tab";
 import { appBasePath } from "@cocalc/frontend/customize/app-base-path";
 import { local_storage } from "@cocalc/frontend/editor-local-storage";
+import { setExplorerDirectory } from "@cocalc/frontend/project/explorer/directory-tree";
+import { setFlyoutDirectory } from "@cocalc/frontend/project/page/flyouts/state";
 import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
 import {
   query as client_query,
@@ -76,7 +78,7 @@ import {
   FlyoutLogMode,
   storeFlyoutState,
 } from "@cocalc/frontend/project/page/flyouts/state";
-import { migrateStarsOnMove } from "@cocalc/frontend/project/page/flyouts/store";
+import { migrateStarsOnMove, removeStarsOnDelete } from "@cocalc/frontend/project/page/flyouts/store";
 import {
   FLYOUT_LOG_FILTER_DEFAULT,
   FlyoutLogFilter,
@@ -538,6 +540,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       change_history?: boolean;
       new_ext?: string;
       noFocus?: boolean;
+      /** Explicit directory for the +New page.  When omitted the
+       *  explorer browsing path (or current_path) is used. */
+      new_page_path?: string;
     } = {
       update_file_listing: true,
       change_history: true,
@@ -577,10 +582,15 @@ export class ProjectActions extends Actions<ProjectStoreState> {
 
       case "new":
         change.file_creation_error = undefined;
+        // Sync new_page_path from the caller or the explorer's browsing
+        // path so the +New page opens in the directory the user was in.
+        change.new_page_path =
+          opts.new_page_path ??
+          store.get("explorer_browsing_path") ??
+          store.get("current_path") ??
+          "";
         if (opts.change_history) {
-          const newPath =
-            store.get("new_page_path") ?? store.get("current_path") ?? "";
-          this.push_state(`new/${newPath}`, "");
+          this.push_state(`new/${change.new_page_path}`, "");
         }
         const new_fn = default_filename(opts.new_ext, this.project_id);
         this.set_next_default_filename(new_fn);
@@ -672,6 +682,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             flyout_browsing_path: fileDir,
             flyout_history_path: fileDir,
           });
+          // Persist so independent mode can pick up the last known path.
+          setExplorerDirectory(this.project_id, fileDir);
+          setFlyoutDirectory(this.project_id, fileDir);
         }
 
         // Reopen the file if relationship has changed
@@ -732,7 +745,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
                 this.gotoFragment(path, fragmentId);
               }
               if (this.open_files.get(path, "chatState") == "pending") {
-                this.open_chat({ path });
+                const pendingChatMode = this.open_files.get(path, "chatMode");
+                this.open_chat({
+                  path,
+                  chat_mode: pendingChatMode || undefined,
+                });
               }
             } catch (err) {
               // Error already reported to user by alert_message in file-editors.ts
@@ -766,7 +783,17 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const store = this.get_store();
     if (store == undefined) return;
     const flyout = name === store.get("flyout") ? null : name;
-    this.setState({ flyout });
+    const change: any = { flyout };
+    // When opening the +New flyout, sync its directory to the files
+    // flyout's current browsing path so the user creates files in
+    // the directory they were looking at.
+    if (flyout === "new") {
+      change.flyout_new_path =
+        store.get("flyout_browsing_path") ??
+        store.get("current_path") ??
+        "";
+    }
+    this.setState(change);
     // also store this in local storage
     storeFlyoutState(this.project_id, name, { expanded: flyout != null });
     if (flyout != null) {
@@ -1240,22 +1267,50 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     local_storage(this.project_id, path, "chatState", chatState);
   }
 
+  // Track which chat mode is active so the file-tab buttons can
+  // highlight the correct one ("chat" vs "assistant").
+  set_chat_mode(path: string, chatMode: "chat" | "assistant" | ""): void {
+    if (this.open_files == null) return;
+    this.open_files.set(path, "chatMode", chatMode);
+  }
+
   // Open side chat for the given file, assuming the file is open, store is initialized, etc.
-  open_chat = ({ path, width = 0.7 }: { path: string; width?: number }) => {
+  // When chat_mode is set (e.g. "assistant"), the chat frame will switch to that tab.
+  open_chat = ({
+    path,
+    width = 0.7,
+    chat_mode,
+  }: {
+    path: string;
+    width?: number;
+    chat_mode?: "chat" | "assistant";
+  }) => {
     const info = this.get_store()
       ?.get("open_files")
       .getIn([path, "component"]) as any;
     if (info?.Editor == null) {
       // not opened in the foreground yet.
       this.set_chat_state(path, "pending");
+      if (chat_mode) {
+        this.set_chat_mode(path, chat_mode);
+      }
       return;
     }
     //  not null for modern editors.
     const editorActions = redux.getEditorActions(this.project_id, path);
     if (editorActions?.["show_focused_frame_of_type"] != null) {
       // @ts-ignore -- todo will go away when everything is a frame editor
-      editorActions.show_focused_frame_of_type("chat", "col", false, width);
+      const frameId = editorActions.show_focused_frame_of_type(
+        "chat",
+        "col",
+        false,
+        width,
+      );
+      if (chat_mode && frameId) {
+        editorActions.set_frame_tree({ id: frameId, chat_mode });
+      }
       this.set_chat_state(path, "internal");
+      this.set_chat_mode(path, chat_mode ?? "chat");
     } else {
       // First create the chat actions:
       initChat(this.project_id, misc.meta_file(path, "chat"));
@@ -1284,9 +1339,45 @@ export class ProjectActions extends Actions<ProjectStoreState> {
         return;
       }
       this.set_chat_state(path, "");
+      this.set_chat_mode(path, "");
     } else {
       this.set_chat_state(path, "");
+      this.set_chat_mode(path, "");
     }
+  }
+
+  // Toggle side chat for a specific mode.  If the chat is closed, open it
+  // in the given mode.  If it is already open in that mode, close it.
+  // If it is open in a different mode, switch to the requested mode.
+  toggle_chat({
+    path,
+    chat_mode,
+  }: {
+    path: string;
+    chat_mode?: "chat" | "assistant";
+  }): void {
+    const editorActions = redux.getEditorActions(this.project_id, path) as any;
+    if (editorActions?._get_most_recent_active_frame_id_of_type != null) {
+      const chatFrameId =
+        editorActions._get_most_recent_active_frame_id_of_type("chat");
+      if (chatFrameId != null) {
+        // Chat frame exists — check its current mode.
+        const node = editorActions._get_frame_node?.(chatFrameId);
+        const currentMode: string = node?.get("chat_mode") ?? "chat";
+        if (currentMode === (chat_mode ?? "chat")) {
+          // Same mode → close
+          this.close_chat({ path });
+          return;
+        }
+        // Different mode → switch and make the frame visible
+        editorActions.set_frame_tree({ id: chatFrameId, chat_mode });
+        editorActions.set_active_id(chatFrameId);
+        this.set_chat_mode(path, chat_mode ?? "chat");
+        return;
+      }
+    }
+    // Chat not open → open it
+    this.open_chat({ path, chat_mode });
   }
 
   set_chat_width(opts): void {
@@ -1447,8 +1538,9 @@ export class ProjectActions extends Actions<ProjectStoreState> {
             explorer_browsing_path: path,
             explorer_history_path: path,
             new_page_path: path,
-            flyout_new_path: path,
           });
+          // Persist so page reload restores the correct directory.
+          setExplorerDirectory(this.project_id, path);
         }
         const store = this.get_store();
         if (store == undefined) {
@@ -1805,7 +1897,7 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     const listing = store.getIn([
       "directory_listings",
       compute_server_id,
-      store.get("current_path"),
+      store.get("explorer_browsing_path") ?? store.get("current_path"),
     ]);
 
     if (typeof listing === "string") {
@@ -1864,12 +1956,21 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       if (this.get_store()?.get("flyout") != "new") {
         this.toggleFlyout("new");
       }
-      this.setState({
+      const stateUpdate: any = {
         default_filename: default_filename(
           misc.filename_extension(opts.path),
           this.project_id,
         ),
-      });
+      };
+      // When triggered from an editor (File → New), navigate the +New
+      // flyout to the directory of the file being edited so the new
+      // file is created next to the current one.  Only the flyout path
+      // is updated because toggleFlyout("new") above opens the flyout;
+      // the full-page +New path is left untouched.
+      if (opts.source === "editor") {
+        stateUpdate.flyout_new_path = misc.path_split(opts.path).head;
+      }
+      this.setState(stateUpdate);
       return;
     }
     if (opts.action == "upload") {
@@ -2705,6 +2806,8 @@ export class ProjectActions extends Actions<ProjectStoreState> {
     this.set_activity({ id, status: `Deleting ${mesg}...` });
     try {
       await delete_files(this.project_id, opts.paths, opts.compute_server_id);
+      // Remove starred file bookmarks for deleted paths
+      await removeStarsOnDelete(this.project_id, opts.paths);
       this.log({
         event: "file_action",
         action: "deleted",
@@ -3404,11 +3507,11 @@ export class ProjectActions extends Actions<ProjectStoreState> {
       case "new": // ignore foreground for these and below, since would be nonsense
         this.set_current_path(full_path);
         // Deep-link: anchor both "+New" contexts to the URL-requested directory
-        this.setState({
+        this.setState({ flyout_new_path: full_path });
+        this.set_active_tab("new", {
+          change_history,
           new_page_path: full_path,
-          flyout_new_path: full_path,
         });
-        this.set_active_tab("new", { change_history: change_history });
         break;
 
       case "log":

@@ -21,6 +21,7 @@ interface Props {
   markdownProps?: object;
   resizable?: boolean;
   style?: CSSProperties;
+  heightOffset?: number;
 }
 
 export default function Text(props: Props) {
@@ -36,8 +37,10 @@ export default function Text(props: Props) {
             !props.focused || mode == "markdown" ? "hidden" : undefined,
         },
         modeSwitchStyle: {
-          top: "-82px",
-          left: "-18px",
+          position: "absolute",
+          top: "-50px",
+          right: 0,
+          zIndex: 10,
         },
         placeholder: props.element.data?.placeholder ?? PLACEHOLDER,
         noVfill: true,
@@ -52,13 +55,60 @@ export default function Text(props: Props) {
 // This is less specialized to the whiteboard.  E.g., it is
 // more reusable, for speakern notes.
 export function TextEditor(props: Props) {
-  if (
+  const staticRef = useRef<HTMLDivElement>(null);
+  const { actions } = useFrameContext();
+  const heightOffset = props.heightOffset ?? 0;
+
+  const isStatic =
     (props.readOnly || !props.focused || props.element.locked) &&
-    props.cursors == null
-  ) {
+    props.cursors == null;
+
+  // Re-measure height when switching to static (unfocused) rendering,
+  // since the rendered markdown can have different dimensions than the editor.
+  // Uses ResizeObserver (like code cells) for reliable measurement after
+  // async content settles, with commit:true for fast edge endpoint updates.
+  useEffect(() => {
+    if (!isStatic || !props.resizable) return;
+    const elt = staticRef.current;
+    if (!elt) return;
+    if (typeof ResizeObserver === "undefined") return;
+    let lastH = props.element.h ?? 0;
+    const measure = () => {
+      const el = staticRef.current;
+      if (!el) return;
+      const h = Math.max(
+        MIN_HEIGHT,
+        el.getBoundingClientRect()?.height / props.canvasScale +
+          2 * PADDING +
+          5 +
+          heightOffset,
+      );
+      if (Math.abs(h - lastH) > 2) {
+        lastH = h;
+        actions.setElement({
+          obj: { id: props.element.id, h },
+          commit: true,
+        });
+      }
+    };
+    const observer = new ResizeObserver(measure);
+    observer.observe(elt);
+    measure();
+    const timeout = setTimeout(() => observer.disconnect(), 5000);
+    return () => {
+      observer.disconnect();
+      clearTimeout(timeout);
+    };
+  }, [isStatic, props.element.id, props.canvasScale, heightOffset]);
+
+  if (isStatic) {
     // NOTE: not using static whenever possible (e.g., when not focused) results
     // in massive performance problems when there are many notes.
-    return <TextStatic element={props.element} style={props.style} />;
+    return (
+      <div ref={staticRef}>
+        <TextStatic element={props.element} style={props.style} />
+      </div>
+    );
   }
   return <EditText {...props} />;
 }
@@ -71,6 +121,7 @@ function EditText({
   readOnly,
   markdownProps,
   resizable,
+  heightOffset = 0,
 }: {
   element: Element;
   canvasScale: number;
@@ -79,6 +130,7 @@ function EditText({
   readOnly?: boolean;
   markdownProps?: object;
   resizable?: boolean;
+  heightOffset?: number;
 }) {
   const { actions } = useFrameContext();
   const [editFocus, setEditFocus] = useEditFocus(false);
@@ -132,6 +184,7 @@ function EditText({
 
   // Automatic resizing:
   const divRef = useRef<HTMLDivElement>(null as any);
+  const preEditHeightRef = useRef<number>(element.h ?? MIN_HEIGHT);
   const resize = useResizeObserver({
     // only listen if editable -- otherwise we might create tons of these, which is wasteful
     ref: readOnly || !editFocus ? undefined : divRef,
@@ -142,6 +195,8 @@ function EditText({
       resizeRef.current = null;
       return;
     }
+    // Save the current (unfocused) height before the editor grows it.
+    preEditHeightRef.current = element.h ?? MIN_HEIGHT;
     resizeRef.current = () => {
       // NOTE: we test that element.str == getValueRef.current?.() in order to tell
       // if you were just in undo mode, but then typed something new in the editor, which
@@ -160,15 +215,31 @@ function EditText({
         (elt.getBoundingClientRect()?.height ?? 0) / canvasScale +
           2 * PADDING +
           2 +
-          15,
+          15 +
+          heightOffset,
         MIN_HEIGHT,
       );
-      actions.setElement({
-        obj: { id: element.id, h: height },
-        commit: false,
-      });
+      // Only update if the change is significant to prevent oscillation
+      // from sub-pixel rounding differences.
+      if (Math.abs(height - (element.h ?? 0)) > 2) {
+        actions.setElement({
+          obj: { id: element.id, h: height },
+          commit: false,
+        });
+      }
     };
-  }, [canvasScale, element.id, editFocus, readOnly]);
+
+    return () => {
+      // On blur: restore the pre-edit height so edge endpoints
+      // recalculate with the correct unfocused bounding box.
+      if (resizable) {
+        actions.setElement({
+          obj: { id: element.id, h: preEditHeightRef.current },
+          commit: true,
+        });
+      }
+    };
+  }, [canvasScale, element.id, editFocus, readOnly, heightOffset]);
 
   useEffect(() => {
     resizeRef.current?.();

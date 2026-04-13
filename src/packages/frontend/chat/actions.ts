@@ -1,5 +1,5 @@
 /*
- *  This file is part of CoCalc: Copyright © 2020-2025 Sagemath, Inc.
+ *  This file is part of CoCalc: Copyright © 2020-2026 Sagemath, Inc.
  *  License: MS-RSL – see LICENSE.md for details
  */
 
@@ -278,6 +278,10 @@ export class ChatActions extends Actions<ChatState> {
       ttl: 10000,
     });
     track("send_chat", { project_id, path });
+
+    // Mark the sender's own message as read so they don't see an unread
+    // badge for a thread they just wrote in.
+    this.updateLastRead(selectedThreadKey, time_stamp.valueOf(), false);
 
     this.save_to_disk();
     (async () => {
@@ -559,17 +563,15 @@ export class ChatActions extends Actions<ChatState> {
     if (this.syncdb == null) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
     const trimmed = name.trim();
-    if (trimmed) {
-      entry.doc.name = trimmed;
-    } else {
-      delete entry.doc.name;
-    }
-    this.syncdb.set(entry.doc);
+    this.syncdb.set({
+      ...entry.key,
+      name: trimmed || null,
+    });
     this.syncdb.commit();
     return true;
   };
@@ -578,16 +580,14 @@ export class ChatActions extends Actions<ChatState> {
     if (this.syncdb == null) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
-    if (pinned) {
-      entry.doc.pin = true;
-    } else {
-      entry.doc.pin = false;
-    }
-    this.syncdb.set(entry.doc);
+    this.syncdb.set({
+      ...entry.key,
+      pin: pinned,
+    });
     this.syncdb.commit();
     return true;
   };
@@ -604,21 +604,100 @@ export class ChatActions extends Actions<ChatState> {
     if (!account_id || !Number.isFinite(count)) {
       return false;
     }
-    const entry = this.getThreadRootDoc(threadKey);
+    const entry = this.getThreadRootEntry(threadKey);
     if (entry == null) {
       return false;
     }
-    entry.doc[`read-${account_id}`] = count;
-    this.syncdb.set(entry.doc);
+    this.syncdb.set({
+      ...entry.key,
+      [`read-${account_id}`]: count,
+    });
     if (commit) {
       this.syncdb.commit();
     }
     return true;
   };
 
-  private getThreadRootDoc = (
+  // Update the last-read timestamp for a thread. The value is the ms-since-epoch
+  // of the last message the user has seen (i.e. the bottom-most visible message).
+  updateLastRead = (
     threadKey: string,
-  ): { doc: any; message: ChatMessageTyped } | null => {
+    dateMs: number,
+    commit = true,
+  ): boolean => {
+    if (this.syncdb == null) {
+      return false;
+    }
+    const account_id = this.redux.getStore("account").get_account_id();
+    if (!account_id || !Number.isFinite(dateMs)) {
+      return false;
+    }
+    const entry = this.getThreadRootEntry(threadKey);
+    if (entry == null) {
+      return false;
+    }
+    const rawValue = entry.message.get(`lastread-${account_id}`);
+    const currentValue =
+      typeof rawValue === "number"
+        ? rawValue
+        : typeof rawValue === "string"
+          ? parseInt(rawValue, 10)
+          : NaN;
+    if (Number.isFinite(currentValue) && currentValue >= dateMs) {
+      // don't go backwards
+      return false;
+    }
+    const update: Record<string, any> = {
+      ...entry.key,
+      [`lastread-${account_id}`]: dateMs,
+    };
+    // also update the count-based read field for backward compatibility
+    const messages = this.store?.get("messages");
+    if (messages) {
+      let count = 0;
+      for (const [, msg] of messages) {
+        if (msg == null) continue;
+        const replyTo = msg.get("reply_to");
+        const rootKey = replyTo
+          ? `${new Date(replyTo).valueOf()}`
+          : `${msg.get("date")?.valueOf()}`;
+        if (rootKey === toMsString(threadKey)) {
+          const msgDate = msg.get("date")?.valueOf();
+          if (msgDate != null && msgDate <= dateMs) {
+            count++;
+          }
+        }
+      }
+      update[`read-${account_id}`] = count;
+    }
+    this.syncdb.set(update);
+    if (commit) {
+      this.syncdb.commit();
+    }
+    return true;
+  };
+
+  // Get the last-read timestamp for a thread for the current user.
+  getLastRead = (threadKey: string): number | undefined => {
+    const account_id = this.redux.getStore("account").get_account_id();
+    if (!account_id) return undefined;
+    const entry = this.getThreadRootEntry(threadKey);
+    if (entry == null) return undefined;
+    const val = entry.message.get(`lastread-${account_id}`);
+    if (typeof val === "number" && val > 0) return val;
+    if (typeof val === "string") {
+      const n = parseInt(val, 10);
+      if (Number.isFinite(n) && n > 0) return n;
+    }
+    return undefined;
+  };
+
+  private getThreadRootEntry = (
+    threadKey: string,
+  ): {
+    key: { date: string; sender_id: string; event: "chat" };
+    message: ChatMessageTyped;
+  } | null => {
     if (this.store == null) {
       return null;
     }
@@ -638,6 +717,10 @@ export class ChatActions extends Actions<ChatState> {
     if (message == null) {
       return null;
     }
+    const sender_id = message.get("sender_id");
+    if (typeof sender_id !== "string" || sender_id === "") {
+      return null;
+    }
     const dateField = message.get("date");
     const dateIso =
       dateField instanceof Date
@@ -648,8 +731,14 @@ export class ChatActions extends Actions<ChatState> {
     if (!dateIso) {
       return null;
     }
-    const doc = { ...message.toJS(), date: dateIso };
-    return { doc, message };
+    return {
+      key: {
+        date: dateIso,
+        sender_id,
+        event: "chat",
+      },
+      message,
+    };
   };
 
   save_scroll_state = (position, height, offset): void => {
@@ -785,7 +874,7 @@ export class ChatActions extends Actions<ChatState> {
     }
     const rootMs =
       getThreadRootDate({ date: date.valueOf(), messages }) || date.valueOf();
-    const entry = this.getThreadRootDoc(`${rootMs}`);
+    const entry = this.getThreadRootEntry(`${rootMs}`);
     const rootMessage = entry?.message;
     if (rootMessage == null) {
       return false;
@@ -1009,19 +1098,25 @@ export class ChatActions extends Actions<ChatState> {
     });
 
     // The sender_id might change if we explicitly set the LLM model.
+    // Since sender_id is a primary key, we must delete+recreate the record.
+    // Commit between delete and set so both operations propagate atomically
+    // to other clients (avoids a race where only the delete arrives).
     if (tag === "regenerate" && llm != null) {
       if (!this.store) return;
       const messages = this.store.get("messages");
       if (!messages) return;
       if (message.sender_id !== sender_id) {
-        // if that happens, create a new message with the existing history and the new sender_id
         const cur = this.syncdb.get_one({ event: "chat", date });
         if (cur == null) return;
         const reply_to = getReplyToRoot({
           message: cur.toJS() as any as ChatMessage,
           messages,
         });
-        this.syncdb.delete({ event: "chat", date });
+        this.syncdb.delete({
+          event: "chat",
+          date,
+          sender_id: message.sender_id,
+        });
         this.syncdb.set({
           date,
           history: cur?.get("history") ?? [],
@@ -1029,6 +1124,7 @@ export class ChatActions extends Actions<ChatState> {
           sender_id,
           reply_to,
         });
+        this.syncdb.commit();
       }
     }
 

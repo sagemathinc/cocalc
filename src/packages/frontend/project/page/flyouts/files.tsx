@@ -9,6 +9,8 @@ import { List, Map } from "immutable";
 import { debounce } from "lodash";
 import { Virtuoso, VirtuosoHandle } from "react-virtuoso";
 
+import { useClipboardMode, useClipboardPathSet, useFlushListingOnFileAction, useHasClipboard } from "@cocalc/frontend/file-clipboard/hook";
+import { FlyoutClipboardBanner } from "./filter-warning";
 import { useFolderDrop } from "@cocalc/frontend/project/explorer/dnd/file-dnd-provider";
 
 import {
@@ -96,6 +98,9 @@ export function FilesFlyout({
   );
   const { flyoutPath: current_path, navigateFlyout } =
     useFlyoutNavigation(project_id);
+  const hasClipboard = useHasClipboard();
+  const clipboardMode = useClipboardMode();
+  const clipboardPathSet = useClipboardPathSet(project_id);
 
   // Background drop target: dropping a file anywhere on the flyout panel
   // moves it to the current directory (same behavior as the explorer table).
@@ -242,6 +247,9 @@ export function FilesFlyout({
     prevCheckedSize.current = checked_files?.size ?? 0;
   }, [checked_files?.size, allowNextListingUpdate]);
 
+  // Flush listing after file clipboard actions (paste, delete, clear)
+  useFlushListingOnFileAction(project_id, allowNextListingUpdate);
+
   // Flush when user changes sort, filter, or visibility settings.
   useEffect(() => {
     allowNextListingUpdate();
@@ -386,7 +394,6 @@ export function FilesFlyout({
     fn = path_to_file(current_path, fn);
     window.getSelection()?.removeAllRanges();
     if (nextState != null ? !nextState : checked_files.includes(fn)) {
-      // deselects the file
       actions?.set_file_list_unchecked(List([fn]));
       if (checked_files.size <= 1) {
         setPrevSelected(null);
@@ -394,7 +401,6 @@ export function FilesFlyout({
         setPrevSelected(index);
       }
     } else {
-      // selects the file
       actions?.set_file_list_checked([fn]);
       setPrevSelected(index);
     }
@@ -403,8 +409,6 @@ export function FilesFlyout({
   /** Select (or deselect) a contiguous range of files from prevSelected to index. */
   function selectRange(index: number, add: boolean) {
     if (prevSelected == null) return false;
-    // Guard against stale anchor: after search/filter/sort changes,
-    // prevSelected may be out of bounds or point to a different file.
     if (prevSelected >= directoryFiles.length) return false;
     const start = Math.min(prevSelected, index);
     const end = Math.min(
@@ -553,6 +557,12 @@ export function FilesFlyout({
     }
   }
 
+  // Full paths in display order — for shift-click range selection in clipboard
+  const flyoutListingPaths = useMemo(
+    () => directoryFiles.map((item) => path_to_file(current_path, item.name)),
+    [directoryFiles, current_path],
+  );
+
   // Compute once per render pass — avoids per-row server_time() allocations.
   const nowMs = server_time().getTime();
 
@@ -560,13 +570,13 @@ export function FilesFlyout({
     const { mtime, mask = false } = item;
     const age = typeof mtime === "number" ? 1000 * mtime : null;
     // either select by scrolling (and only scrolling!) or by clicks
+    const fullPath = path_to_file(current_path, item.name);
     const isSelected =
       scrollIdx != null
         ? !scrollIdxHide && index === scrollIdx
         : checked_files.includes(
             path_to_file(current_path, directoryFiles[index].name),
           );
-    const fullPath = path_to_file(current_path, item.name);
     const pathForStar = item.isdir ? `${fullPath}/` : fullPath;
     const isStarred = manageStarredFiles.starred.includes(pathForStar);
     return (
@@ -611,6 +621,11 @@ export function FilesFlyout({
           manageStarredFiles.setStarredPath(normalizedPath, starState);
         }}
         dimFileExtensions={dimFileExtensions}
+        hasClipboard={hasClipboard}
+        isInClipboard={clipboardPathSet.has(fullPath)}
+        clipboardMode={clipboardMode}
+        listingPaths={flyoutListingPaths}
+        compute_server_id={compute_server_id}
       />
     );
   }
@@ -730,7 +745,8 @@ export function FilesFlyout({
           project_id={project_id}
           dest_path={current_path}
           event_handlers={{
-            complete: () => actions?.fetch_directory_listing(),
+            complete: () =>
+              actions?.fetch_directory_listing({ path: current_path }),
           }}
           config={{ clickable: `.${uploadClassName}` }}
           style={{
@@ -745,6 +761,7 @@ export function FilesFlyout({
           {renderListing()}
         </FileUploadWrapper>
       )}
+      <FlyoutClipboardBanner project_id={project_id} current_path={current_path} />
       <FilesBottom
         project_id={project_id}
         checked_files={checked_files}

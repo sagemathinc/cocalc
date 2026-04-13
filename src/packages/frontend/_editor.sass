@@ -662,6 +662,35 @@ h6
   display        : flex
   flex-direction : column
   overflow       : hidden
+  min-height     : 0
+
+/* Force visible scrollbars on macOS where overlay scrollbars can become
+ * invisible, especially inside virtualized lists or tall scroll containers.
+ * Chrome 121+ ignores ::-webkit-scrollbar when scrollbar-width/color are
+ * set, so we must NOT combine them. Webkit rules for Chrome/Safari,
+ * scrollbar-width for Firefox only (via @supports). */
+[data-virtuoso-scroller="true"],
+.cocalc-force-scrollbar
+  &::-webkit-scrollbar
+    -webkit-appearance : none
+    width              : 8px
+    height             : 8px
+  &::-webkit-scrollbar-thumb
+    border-radius      : 4px
+    background-color   : rgba(0, 0, 0, 0.3)
+    &:hover
+      background-color : rgba(0, 0, 0, 0.5)
+  &::-webkit-scrollbar-track
+    background-color   : transparent
+    border-radius      : 4px
+
+/* Firefox on macOS also uses overlay scrollbars — force visible via
+ * standard properties. Firefox does not support ::-webkit-scrollbar. */
+@supports (-moz-appearance: none)
+  [data-virtuoso-scroller="true"],
+  .cocalc-force-scrollbar
+    scrollbar-width : thin
+    scrollbar-color : rgba(0, 0, 0, 0.3) transparent
 
 .smc-btn-group-nobreak
   display     : flex
@@ -694,6 +723,22 @@ h6
   background: rgba(114,137,218,.1)
   border-radius: 3px
   padding: 0 2px
+
+// Style <details> inside chat messages to match the message bubble color
+.smc-message-from-viewer details
+  background: rgba(255,255,255,0.15) !important
+  border: 1px solid rgba(255,255,255,0.3) !important
+  border-radius: 4px
+  padding: 4px 8px
+  color: #fff
+  &, summary, p, span, div, li, code, pre
+    color: #fff !important
+
+.smc-message-from-other details
+  background: #ececec !important
+  border: 1px solid #e0e0e0 !important
+  border-radius: 4px
+  padding: 4px 8px
 
 .smc-chat-message
   overflow-x: auto

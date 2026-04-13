@@ -55,8 +55,12 @@ export class ConfigurationActions {
     );
   }
 
-  set = (obj: SyncDBRecord, commit: boolean = true): void => {
-    this.course_actions.set(obj, commit);
+  set = (
+    obj: SyncDBRecord,
+    commit: boolean = true,
+    emitChangeImmediately: boolean = false,
+  ): void => {
+    this.course_actions.set(obj, commit, emitChangeImmediately);
   };
 
   set_title = (title: string): void => {
@@ -123,15 +127,15 @@ export class ConfigurationActions {
     this.set({ upgrade_goal, table: "settings" });
   };
 
-  set_allow_collabs = (allow_collabs: boolean): void => {
-    this.set({ allow_collabs, table: "settings" });
-    this.course_actions.student_projects.configure_all_projects();
+  set_allow_collabs = async (allow_collabs: boolean): Promise<void> => {
+    this.set({ allow_collabs, table: "settings" }, true, true);
+    await this.course_actions.student_projects.configure_all_projects();
   };
 
   set_student_project_functionality = async (
     student_project_functionality: StudentProjectFunctionality,
   ): Promise<void> => {
-    this.set({ student_project_functionality, table: "settings" });
+    this.set({ student_project_functionality, table: "settings" }, true, true);
     await this.course_actions.student_projects.configure_all_projects();
   };
 
@@ -378,20 +382,26 @@ export class ConfigurationActions {
     }
   };
 
-  set_compute_image = (image: string) => {
-    this.set({
-      custom_image: image,
-      table: "settings",
-    });
-    this.course_actions.student_projects.configure_all_projects();
-    this.course_actions.shared_project.set_project_compute_image();
+  set_compute_image = async (image: string): Promise<void> => {
+    this.set(
+      {
+        custom_image: image,
+        table: "settings",
+      },
+      true,
+      true, // emit change immediately so configure reads the new image
+    );
+    await Promise.allSettled([
+      this.configure_all_projects(),
+      this.course_actions.shared_project.set_project_compute_image(),
+    ]);
   };
 
   set_software_environment = async (
     state: SoftwareEnvironmentState,
   ): Promise<void> => {
     const image = await derive_project_img_name(state);
-    this.set_compute_image(image);
+    await this.set_compute_image(image);
   };
 
   set_nbgrader_parallel = (
@@ -424,11 +434,14 @@ export class ConfigurationActions {
     }, 1);
   };
 
-  private configure_all_projects_shared_and_nbgrader = () => {
-    this.course_actions.student_projects.configure_all_projects();
-    this.course_actions.shared_project.set_datastore_and_envvars();
-    // in case there is a separate nbgrader project, we have to set the envvars as well
-    this.configure_nbgrader_grade_project();
+  private configure_all_projects_shared_and_nbgrader = async (): Promise<void> => {
+    // these are independent, so run in parallel
+    await Promise.all([
+      this.course_actions.student_projects.configure_all_projects(),
+      this.course_actions.shared_project.set_datastore_and_envvars(),
+      // in case there is a separate nbgrader project, we have to set the envvars as well
+      this.configure_nbgrader_grade_project(),
+    ]);
   };
 
   purgeDeleted = (): void => {
@@ -521,7 +534,7 @@ async function configureGroup({
   switch (group) {
     case "collaborator-policy":
       const allow_collabs = !!settings.get("allow_collabs");
-      actions.configuration.set_allow_collabs(allow_collabs);
+      await actions.configuration.set_allow_collabs(allow_collabs);
       return;
     case "email-invitation":
       actions.configuration.set_email_invite(settings.get("email_invite"));
@@ -530,7 +543,7 @@ async function configureGroup({
       actions.configuration.set_copy_parallel(settings.get("copy_parallel"));
       return;
     case "restrict-student-projects":
-      actions.configuration.set_student_project_functionality(
+      await actions.configuration.set_student_project_functionality(
         completeStudentProjectFunctionality(
           settings.get("student_project_functionality")?.toJS() ?? {},
         ),

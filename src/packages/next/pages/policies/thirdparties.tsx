@@ -326,6 +326,26 @@ export default function TermsOfService({ customize }) {
               </p>
               <ul>
                 <li>
+                  <A href="https://www.hubspot.com/">HubSpot</A>
+                  <ul>
+                    <li>
+                      Usage: customer relationship management, sales, marketing.
+                    </li>
+                    <li>
+                      Shared PII: name, email address, purchasing activity.
+                    </li>
+                    <li>
+                      <A href="https://legal.hubspot.com/privacy-policy">
+                        Privacy Policy
+                      </A>{" "}
+                      and{" "}
+                      <A href="https://legal.hubspot.com/dpa">
+                        Data Processing Agreement
+                      </A>
+                    </li>
+                  </ul>
+                </li>
+                <li>
                   <A href="https://www.salesloft.com/">Salesloft</A>
                   <ul>
                     <li>Usage: onboarding emails, sales, marketing.</li>
@@ -352,6 +372,7 @@ export default function TermsOfService({ customize }) {
               </p>
               <h1>Changes</h1>
               <ul>
+                <li>March 31, 2026: Added HubSpot.</li>
                 <li>
                   June 7, 2025: Removed Backblaze, previously used for backups.
                 </li>

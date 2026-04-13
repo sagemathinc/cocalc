@@ -13,10 +13,11 @@
  * sibling components stay in sync.
  */
 
-import { useCallback } from "react";
+import { useCallback, useEffect } from "react";
 
-import { useTypedRedux } from "@cocalc/frontend/app-framework";
+import { redux, useTypedRedux } from "@cocalc/frontend/app-framework";
 import {
+  getInitialBrowsingPath,
   navigateBrowsingPath,
   normalizeDotDot,
 } from "@cocalc/frontend/project/explorer/navigate-browsing-path";
@@ -35,7 +36,6 @@ interface FlyoutNavigation extends NavigationHistory {
 }
 
 export function useFlyoutNavigation(project_id: string): FlyoutNavigation {
-  const reduxCurrentPath = useTypedRedux({ project_id }, "current_path") ?? "";
   const flyoutBrowsingPath = useTypedRedux(
     { project_id },
     "flyout_browsing_path",
@@ -45,7 +45,47 @@ export function useFlyoutNavigation(project_id: string): FlyoutNavigation {
     "flyout_history_path",
   );
 
-  const flyoutPath = flyoutBrowsingPath ?? reduxCurrentPath;
+  const reduxCurrentPath = useTypedRedux({ project_id }, "current_path") ?? "";
+
+  // Initialize on first mount.  When "follow current path" is on,
+  // start at the active file's directory; when off, restore from
+  // localStorage (falling back to project root).
+  useEffect(() => {
+    if (flyoutBrowsingPath != null) return;
+    let cancelled = false;
+    (async () => {
+      const accountStore = redux.getStore("account");
+      await accountStore?.waitUntilReady();
+      // Guard against race: if the user navigated (or another effect ran)
+      // while we waited, the path is no longer null — don't overwrite.
+      if (cancelled) return;
+      const store = redux.getProjectStore(project_id);
+      if (store?.get("flyout_browsing_path") != null) return;
+      const followSetting = !!accountStore?.getIn([
+        "other_settings",
+        "follow_current_path",
+      ]);
+      const initial = followSetting
+        ? reduxCurrentPath
+        : getInitialBrowsingPath(project_id, "flyout_browsing_path");
+      const actions = redux.getProjectActions(project_id);
+      actions?.setState({
+        flyout_browsing_path: initial,
+        flyout_history_path: initial,
+      } as any);
+      // Trigger a listing fetch so the restored directory isn't empty.
+      actions?.fetch_directory_listing({ path: initial });
+      try {
+        store?.get_listings()?.watch(initial, true);
+      } catch {}
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const flyoutPath = flyoutBrowsingPath ?? "";
   const flyoutHistory = flyoutHistoryPath ?? flyoutPath;
 
   const navigateFlyoutRaw = useCallback(

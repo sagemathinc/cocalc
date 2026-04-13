@@ -3,11 +3,10 @@
  *  License: MS-RSL – see LICENSE.md for details
  */
 
-import { is_array } from "@cocalc/util/misc";
+import { is_array, isValidUUID, uuid } from "@cocalc/util/misc";
 import { validate_client_query } from "@cocalc/util/schema-validate";
 import { CB } from "@cocalc/util/types/database";
 import { ConatChangefeed } from "@cocalc/sync/table/changefeed-conat";
-import { uuid } from "@cocalc/util/misc";
 
 declare const $: any; // jQuery
 
@@ -24,10 +23,17 @@ export class QueryClient {
     options?: object[];
     cb: CB;
   }): Promise<void> => {
+    const account_id = this.client.account_id;
+    if (!isValidUUID(account_id)) {
+      opts.cb(
+        `unable to create changefeed: invalid account_id '${account_id}'`,
+      );
+      return;
+    }
     let changefeed;
     try {
       changefeed = new ConatChangefeed({
-        account_id: this.client.account_id,
+        account_id,
         query: opts.query,
         options: opts.options,
       });

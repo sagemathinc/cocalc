@@ -831,6 +831,17 @@ export class ProjectsStore extends Store<ProjectsState> {
     return value;
   }
 
+  hasFullLanguageModelEnabled(
+    project_id: string = "global",
+    vendor: LLMServiceName | "any" = "any",
+  ): boolean {
+    return this.hasLanguageModelEnabled(
+      project_id,
+      "help-me-fix-solution",
+      vendor,
+    );
+  }
+
   private _hasLanguageModelEnabled(
     project_id: string | "global" = "global",
     courseLimited: boolean,

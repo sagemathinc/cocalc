@@ -66,11 +66,16 @@ export class ProjectClient {
   // writeFile -- easily write **arbitrarily large text or binary files**
   // to a project from a readable stream or a string!
   writeFile = async (
-    opts: WriteFileOptions & { content?: string },
+    opts:
+      | WriteFileOptions
+      | (Omit<WriteFileOptions, "stream"> & { content: string }),
   ): Promise<{ bytes: number; chunks: number }> => {
-    if (opts.content != null) {
-      // @ts-ignore -- typescript doesn't like this at all, but it works fine.
-      opts.stream = new Blob([opts.content], { type: "text/plain" }).stream();
+    if ("content" in opts) {
+      return await writeFile({
+        ...opts,
+        stream: new Blob([opts.content], { type: "text/plain" })
+          .stream() as any,
+      });
     }
     return await writeFile(opts);
   };
@@ -280,6 +285,14 @@ export class ProjectClient {
         service: EXEC_STREAM_SERVICE,
       });
       let lastSeq = -1;
+      let sawDone = false;
+      let ended = false;
+
+      const emitEnd = () => {
+        if (ended) return;
+        ended = true;
+        execStream.emit("end");
+      };
 
       const req = cn.requestMany(
         subject,
@@ -291,8 +304,38 @@ export class ProjectClient {
       );
       for await (const resp of await req) {
         if (resp.data == null) {
-          // Stream ended
-          execStream.emit("end");
+          // Stream ended. This should normally happen only after a "done"
+          // event. If we already know the async job id, fall back to the
+          // normal async_get API to recover the final result from the project.
+          if (!sawDone) {
+            const jobId = execStream.job_id;
+            if (jobId) {
+              try {
+                const result = await this.exec({
+                  project_id: opts.project_id,
+                  compute_server_id: opts.compute_server_id,
+                  async_get: jobId,
+                  async_await: true,
+                  async_stats: true,
+                });
+                sawDone = true;
+                execStream.emit("done", result);
+              } catch (err) {
+                execStream.emit(
+                  "error",
+                  new Error(
+                    `Exec stream ended before done for job ${jobId}; async_get failed: ${err}`,
+                  ),
+                );
+              }
+            } else {
+              execStream.emit(
+                "error",
+                new Error("Exec stream ended before done"),
+              );
+            }
+          }
+          emitEnd();
           break;
         }
 
@@ -300,11 +343,13 @@ export class ProjectClient {
 
         if (error) {
           execStream.emit("error", new Error(error));
+          emitEnd();
           break;
         }
 
         if (seq != null && lastSeq + 1 != seq) {
           execStream.emit("error", new Error("Missed response in stream"));
+          emitEnd();
           break;
         }
 
@@ -328,15 +373,17 @@ export class ProjectClient {
             execStream.emit("stats", data);
             break;
           case "done":
+            sawDone = true;
             execStream.emit("done", data);
-            execStream.emit("end");
-            break;
+            emitEnd();
+            return;
           default:
             console.warn("Unknown execStream response type:", type);
         }
       }
     } catch (err) {
       execStream.emit("error", err);
+      execStream.emit("end");
     }
   }
 

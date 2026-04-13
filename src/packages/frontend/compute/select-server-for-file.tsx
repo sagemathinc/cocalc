@@ -12,6 +12,7 @@ import SelectServer, { PROJECT_COLOR } from "./select-server";
 import { useTypedRedux } from "@cocalc/frontend/app-framework";
 import { alert_message } from "@cocalc/frontend/alerts";
 import { chatFile } from "@cocalc/frontend/frame-editors/generic/chat";
+import { isJupyterNotebookFrameType } from "@cocalc/frontend/frame-editors/jupyter-editor/util";
 import InlineComputeServer from "@cocalc/frontend/compute/inline";
 
 interface Props {
@@ -45,7 +46,7 @@ export default function SelectComputeServerForFile({
     if (type == "chat") {
       return chatFile(path);
     }
-    if (type == "jupyter_cell_notebook" && actions != null) {
+    if (isJupyterNotebookFrameType(type) && actions != null) {
       return actions.jupyter_actions.syncdb.path;
     }
     return path;

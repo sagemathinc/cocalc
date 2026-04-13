@@ -114,6 +114,7 @@ export interface ShowHelpMeFixDialogOpts {
   tag?: string;
   language?: string;
   extraFileInfo?: string;
+  extraContext?: string;
   prioritize?: "start" | "start-end" | "end";
   onReplace?: (opts: { code: string; run?: boolean }) => void;
   cellId?: string;
@@ -146,6 +147,7 @@ function HelpMeFixDialog({
   tag,
   language,
   extraFileInfo,
+  extraContext,
   prioritize,
   onReplace,
   cellId,
@@ -209,6 +211,7 @@ function HelpMeFixDialog({
     task,
     language,
     extraFileInfo,
+    extraContext,
     model,
     prioritize,
     open: true,
@@ -224,6 +227,7 @@ function HelpMeFixDialog({
     task,
     language,
     extraFileInfo,
+    extraContext,
     model,
     prioritize,
     open: true,

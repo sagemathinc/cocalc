@@ -1,0 +1,328 @@
+# Frame Editor Menus, Toolbar, and Icon Pinning
+
+This document describes the command/menu system in CoCalc's frame editor —
+how menus are built, how the symbol bar (quick-access toolbar) works, and how
+users pin/unpin icons from menus to the toolbar.
+
+Companion docs: `frame-editors.md` (layout tree, editor specs),
+`frame-editor-dnd.md` (drag-and-drop).
+
+## Overview
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│ [≡ Slate ▾]  File  Edit  Format  View  Go  Help   [≡][×][⊡]  │  ← menus + frame controls
+│  Bold  Italic  Header  Font  Color  AI  Sync  ToC             │  ← symbol bar (pinned buttons)
+├─────────────────────────────────────────────────────────────────┤
+│                        Editor Content                          │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+Each menu item has an icon on its left. Clicking the **icon** toggles whether
+that command is pinned to the symbol bar. Clicking the **label** executes the
+command. Pinned icons appear highlighted (`background: #ddd`) in the menu.
+
+## Architecture
+
+```
+commands/types.ts       Command interface, MenuSpec, Group types
+commands/commands.ts    COMMANDS registry + addCommands()
+commands/menus.ts       MENUS & GROUPS registries + addMenus(), addCommandsToMenus()
+commands/generic-menus.ts   Standard menu definitions (file, edit, view, go, help, …)
+commands/generic-commands.tsx   Common commands (save, undo, zoom, frame ops, …)
+commands/format-commands.tsx    Format submenu commands (bold, font, header, …)
+commands/editor-menus.ts    addEditorMenus() helper for editor-specific menus
+commands/manage.tsx     ManageCommands class — visibility, rendering, pinning
+title-bar.tsx           FrameTitleBar component — renders menus + symbol bar
+```
+
+## Registration: Commands, Groups, and Menus
+
+### Hierarchy
+
+```
+Menu (e.g. "edit")
+  └─ Group (e.g. "undo-redo", "find", "copy", "ai", "format", "config")
+       └─ Command (e.g. "undo", "redo", "find", "replace", …)
+```
+
+- **`MENUS`** (`menus.ts`): top-level dropdown menus. Each has a `label`, `pos`
+  (sort order), and `groups[]` listing which groups it contains.
+- **`GROUPS`** (`menus.ts`): maps group name → array of command names.
+- **`COMMANDS`** (`commands.ts`): maps command name → `Command` object.
+
+### Registration flow
+
+```typescript
+// 1. Register menu structure (generic-menus.ts)
+addMenus({
+  edit: { label: menu.edit, pos: 1, groups: ["undo-redo", "find", "copy", "ai", "format", "config"] },
+  // ...
+});
+
+// 2. Register commands — automatically added to their group via addCommandsToMenus()
+addCommands({
+  undo: { group: "undo-redo", pos: 0, icon: "undo", label: "Undo", onClick: ... },
+  redo: { group: "undo-redo", pos: 1, icon: "redo", label: "Redo", onClick: ... },
+});
+```
+
+### Editor-specific registration
+
+Each editor type can add its own menus and commands via `addEditorMenus()` helper
+(in `editor-menus.ts`). This builds both menu groups and command objects from a
+simpler specification format, supporting nested children for submenus.
+
+Example: `format-commands.tsx` registers format commands with submenu children
+(font size, font family, headers, colors, etc.).
+
+## The Command Interface
+
+```typescript
+interface Command {
+  group: Group; // which menu group this belongs to
+  pos?: number; // sort position within group (default: 1e6)
+  icon?: IconName | ReactNode | ((opts: ManageCommands) => ReactNode);
+  iconRotate?: IconRotation;
+  label?: CommandText; // text shown in menus
+  button?: CommandText; // text shown on toolbar button (if different from label)
+  title?: CommandText; // tooltip text
+  onClick?: OnClick; // handler; falls back to actions[commandName](frameId)
+  children?: Command[] | ((opts: ManageCommands) => Command[]); // submenu items
+  keyboard?: ReactNode; // shortcut display (desktop only)
+  isVisible?: string | ((opts) => boolean); // visibility predicate
+  disabled?: (opts) => boolean; // grayed-out predicate
+  alwaysShow?: boolean; // override all visibility checks
+  neverVisibleOnMobile?: boolean;
+  stayOpenOnClick?: boolean; // keep dropdown open after click
+  popconfirm?: PopconfirmOpts | ((opts) => PopconfirmOpts);
+  disable?: keyof StudentProjectFunctionality; // educational restrictions
+  search?: string; // extra search terms for command search
+}
+```
+
+### Icon types
+
+Icons can be one of three forms:
+
+- **String** (`IconName`): e.g. `"bold"`, `"undo"`, `"colors"` — renders via `<Icon name={...} />`
+- **ReactNode**: e.g. `<span style={{fontSize: 18}}>A</span>` — custom rendering
+- **Function**: `(opts: ManageCommands) => ReactNode` — dynamic icon based on state
+
+## ManageCommands Class (`manage.tsx`)
+
+Central class instantiated per frame title bar. Handles:
+
+### Visibility
+
+```typescript
+isVisible(name, cmd?): boolean
+```
+
+Checks (in order):
+
+1. Explicitly hidden by spec (`spec.commands["-commandName"]`) → false
+2. `alwaysShow` → true
+3. `neverVisibleOnMobile` + mobile → false
+4. Student project restrictions → false
+5. Custom `isVisible` predicate
+6. Must be in `spec.commands` or `spec.customizeCommands`
+
+### Menu rendering
+
+```typescript
+commandToMenuItem({ name, cmd, key, noChildren, button }): MenuItem
+```
+
+Converts a `Command` into an antd `MenuItem`. When `button=true`, renders in
+toolbar style (icon + optional small label). When `button=false`, renders in
+menu style (icon + full label + keyboard shortcut).
+
+### Icon pinning
+
+```typescript
+// Check if command is pinned to the toolbar
+isOnButtonBar(name): boolean
+  → toolbarButtons?.includes(name)
+  ?? spec.buttons?.[name]  // fallback to editor default
+
+// Toggle pin state — persisted to per-user Conat DKV
+toggleButton(name): void
+  → setToolbarButtons(nextOrderedArray)
+
+// Get ordered list of pinned button names
+getToolbarButtons(): string[]
+  → toolbarButtons ?? spec default buttons sorted by command position
+```
+
+**Editor key**: the frame editor name (e.g. `cm`, `jupyter`, `slate`).
+The per-user DKV key for toolbar icons is `icons-${editorName}`.
+
+### Storage
+
+Pin state and ordering are stored together in the user's per-account Conat DKV
+named `frame-editor-settings`:
+
+```text
+icons-cm       -> ["undo", "redo", "format-font/bold"]
+icons-jupyter  -> ["insert-cell", "run-cell", "interrupt-kernel"]
+```
+
+- missing key = fall back to editor spec defaults
+- empty array = explicitly show no toolbar buttons for that editor
+- array order = visible toolbar order
+- array membership = pinned state
+
+### Toolbar management commands
+
+- **Remove All**: `removeAllToolbarButtons()` — stores an empty array for that editor
+- **Reset**: `resetToolbar()` — deletes the DKV key, restoring editor defaults
+
+## Title Bar Rendering (`title-bar.tsx`)
+
+### Menu rendering
+
+```typescript
+getMenuItems(name); // builds MenuItem[] from groups for a named menu
+renderMenu(name); // wraps getMenuItems in a DropdownMenu component
+renderMenus(); // iterates all MENUS, renders dropdowns sorted by pos
+```
+
+Items within groups are sorted by `pos`. Groups are separated by dividers.
+
+### Symbol bar rendering
+
+```typescript
+renderButtonBar(popup?)
+  → manageCommands.getToolbarButtons()   // get ordered button names
+  → renderButtonBarButton(name)          // render each as icon + optional label
+```
+
+Each toolbar button:
+
+- If the command has `children` → renders as a `DropdownMenu` (click opens submenu)
+- Otherwise → renders as a simple `Button` with icon + tooltip
+
+### Symbol bar labels
+
+Users can toggle labels below icons via right-click context menu on the symbol bar.
+Stored in `account.other_settings.show_symbol_bar_labels`.
+
+When labels are shown:
+
+- Symbol bar moves to its own row below the menu bar
+- Each button shows a small label (11px) below the icon, truncated to 50px
+
+When labels are hidden:
+
+- Symbol bar is inline with the menu bar (more compact)
+
+### Pin toggle UI in menus
+
+When `extra_button_bar` is enabled (the toolbar is visible), each top-level menu
+item's icon becomes a clickable button:
+
+```
+ [🔤]  Bold            ← click icon = toggle pin; click "Bold" = execute
+ [🔤]  Italic           gray bg on icon = currently pinned
+```
+
+The icon shows a tooltip: "Click icon to add/remove from toolbar".
+Only top-level commands (not submenu children) have this toggle.
+
+## Default Pinned Buttons per Editor
+
+Each `EditorDescription` can declare default toolbar buttons:
+
+```typescript
+const slate: EditorDescription = {
+  type: "slate",
+  // ...
+  buttons: {
+    "format-ai_formula": true,
+    "format-header": true,
+    "format-text": true,
+    "format-font": true,
+    "format-color": true,
+    sync: true,
+    show_table_of_contents: true,
+  },
+};
+```
+
+These appear on the toolbar by default until the user explicitly unpins them.
+
+### Examples of editor defaults
+
+- **Jupyter**: insert cell, run cell, interrupt kernel, restart kernel, cell type
+- **LaTeX**: AI formula, sync, header, text, font, color, build, build-on-save, ToC
+- **Markdown/Slate**: AI formula, sync, header, text, font, color, ToC
+- **Code**: (minimal — typically just undo/redo from generic commands)
+
+## Custom Layout Save/Load
+
+Users can save and restore their preferred frame layout per file type via two
+commands in the app menu (`frame_types` group):
+
+- **Save Layout** (`save_custom_layout`) — strips transient fields (IDs, font
+  sizes, etc.) from the current frame tree and persists the structural layout
+  to the user's Conat DKV.
+- **Load Custom Layout** (`load_custom_layout`) — reads the saved layout back
+  from the DKV and replaces the current frame tree.
+
+Both commands have `alwaysShow: true` so they appear for every editor type.
+
+### Storage
+
+Layouts are stored in the same `frame-editor-settings` DKV used for toolbar
+button persistence. The key format is `custom-layout-{ext}` where `{ext}` is
+the file extension (e.g. `py`, `ipynb`, `tex`). This means a saved layout
+applies to all files of the same type.
+
+### Implementation
+
+```
+frame-editor-settings.ts   saveCustomLayout(), loadCustomLayout(), isFrameTree()
+code-editor/actions.ts     save_custom_layout(), load_custom_layout() action methods
+commands/generic-commands.tsx   command definitions (group: "frame_types")
+```
+
+`stripFrameTreeIds()` uses a whitelist of structural fields (`type`,
+`direction`, `pos`, `sizes`, `activeTab`, `first`, `second`, `children`) to
+keep only the layout structure. `isFrameTree()` is a runtime type guard that
+validates DKV data before applying it, preventing crashes from corrupted data.
+
+## File Menu → "+New" Action
+
+The **File → "+ New"** command (`generic-commands.tsx`, group `new-open`)
+opens the +New flyout panel and pre-fills the filename extension from the
+current file. It uses `fileAction("new")` which calls
+`ProjectActions.show_file_action_panel({ path, action: "new", source: "editor" })`.
+
+When `source === "editor"`, the action also sets `flyout_new_path` to the
+**parent directory of the file being edited**, so the new file is created
+next to the current one. Only the flyout path is changed (since the flyout
+is what opens); the full-page `new_page_path` is left untouched. See
+`project-files.md` §"+New" Path Model for the full path model.
+
+Other entry points to the File menu (rename, copy, move, delete, etc.)
+use `fileAction(action)` which routes through the same
+`show_file_action_panel` but opens the standard file-action modal instead.
+
+## Data Flow Summary
+
+```
+Editor spec (editor.ts)
+  → EditorDescription.commands    # which commands are available
+  → EditorDescription.buttons     # which are pinned by default
+  → EditorDescription.customizeCommands  # overrides per editor
+
+User interaction
+  → click icon in menu → toggleButton(name) → frame-editor-settings DKV
+  → right-click toolbar → toggle labels → account.other_settings.show_symbol_bar_labels
+
+Rendering
+  → ManageCommands.isVisible()         # filter commands
+  → ManageCommands.getToolbarButtons() # DKV array or editor defaults
+  → title-bar.tsx renders menus + symbol bar
+```

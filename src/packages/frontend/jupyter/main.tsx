@@ -9,7 +9,8 @@ Top-level react component, which ties everything together
 
 import { Button, Tooltip } from "antd";
 import * as immutable from "immutable";
-import { useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import useResizeObserver from "use-resize-observer";
 
 import {
   CSS,
@@ -51,6 +52,7 @@ import { KeyboardShortcuts } from "./keyboard-shortcuts";
 import * as toolComponents from "./llm";
 import { NBConvert } from "./nbconvert";
 import { KernelSelector } from "./select-kernel";
+import useNotebookFrameActions from "@cocalc/frontend/frame-editors/jupyter-editor/cell-notebook/hook";
 import { Kernel } from "./status";
 
 export const ERROR_STYLE: CSS = {
@@ -83,6 +85,9 @@ interface Props {
 
   scrollTop?: number;
   hook_offset?: number;
+  cellViewMode?: "default" | "minimal";
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
 }
 
 export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
@@ -102,6 +107,9 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     scroll_seq,
     scrollTop,
     hook_offset,
+    cellViewMode,
+    minimalLayout = "comfortable",
+    zenMode = false,
   } = props;
   // status of tab completion
   const complete: undefined | immutable.Map<any, any> = useRedux([
@@ -206,13 +214,16 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
     .getStore("projects")
     .hasLanguageModelEnabled(project_id);
   // This only checks if we can use the LLM tools at all – detailed checks like "for this project in a course" are by component
-  const llmTools: LLMTools | undefined = llmEnabled
-    ? {
-        model,
-        setModel,
-        toolComponents,
-      }
-    : undefined;
+  const llmTools = useMemo<LLMTools | undefined>(() => {
+    if (!llmEnabled) {
+      return undefined;
+    }
+    return {
+      model,
+      setModel,
+      toolComponents,
+    };
+  }, [llmEnabled, model, setModel]);
 
   // We use react-virtuoso, which is an amazing library for
   // doing windowing on dynamically sized content... like
@@ -234,11 +245,47 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
 
   const { usage, expected_cell_runtime } = useKernelUsage(name);
 
+  const frameActions = useNotebookFrameActions();
+  const handleLayoutChange = useCallback(
+    (layout: "wide" | "comfortable" | "narrow") => {
+      frameActions.current?.setState({ minimalLayout: layout });
+    },
+    [],
+  );
+  const handleZenModeChange = useCallback(
+    (zen: boolean) => {
+      frameActions.current?.setState({ zenMode: zen });
+    },
+    [],
+  );
+
+  // Responsive layout: force wider layouts when frame is narrow
+  const { ref: containerRef, width: containerWidth, height: containerHeight } = useResizeObserver<HTMLDivElement>();
+  const effectiveLayout = useMemo(() => {
+    if (cellViewMode !== "minimal") return minimalLayout;
+    const w = containerWidth ?? 9999;
+    if (w < 500) return "wide";
+    if (w < 800 && minimalLayout === "narrow") return "comfortable";
+    return minimalLayout;
+  }, [cellViewMode, minimalLayout, containerWidth]);
+  // Which options are available at the current width
+  const availableLayouts = useMemo(() => {
+    const w = containerWidth ?? 9999;
+    if (w < 500) return ["wide"] as const;
+    if (w < 800) return ["wide", "comfortable"] as const;
+    return ["wide", "comfortable", "narrow"] as const;
+  }, [containerWidth]);
+
   const jupyterClassic = useRedux([
     "account",
     "editor_settings",
     "jupyter_classic",
   ]);
+  const kernelspecData = useMemo(() => kernelspec?.toJS(), [kernelspec]);
+  const jupyterContext = useMemo(
+    () => ({ kernelspec: kernelspecData, trust }),
+    [kernelspecData, trust],
+  );
 
   function render_error() {
     if (error) {
@@ -323,6 +370,10 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
         use_windowed_list={useWindowedListRef.current}
         llmTools={llmTools}
         computeServerId={computeServerId}
+        cellViewMode={cellViewMode}
+        minimalLayout={effectiveLayout as "wide" | "comfortable" | "narrow"}
+        zenMode={zenMode}
+        frameHeight={containerHeight}
       />
     );
   }
@@ -447,12 +498,14 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
   }
 
   return (
-    <JupyterContext.Provider value={{ kernelspec: kernelspec?.toJS(), trust }}>
+    <JupyterContext.Provider value={jupyterContext}>
       <div
+        ref={containerRef}
         style={{
           display: "flex",
           flexDirection: "column",
           height: "100%",
+          minHeight: 0,
           overflowY: "hidden",
         }}
       >
@@ -467,9 +520,15 @@ export const JupyterEditor: React.FC<Props> = React.memo((props: Props) => {
           <Kernel
             is_fullscreen={is_fullscreen}
             actions={actions}
-            usage={usage}
-            expected_cell_runtime={expected_cell_runtime}
+            usage={cellViewMode === "minimal" && (containerWidth ?? 9999) < 800 ? undefined : usage}
+            expected_cell_runtime={cellViewMode === "minimal" && (containerWidth ?? 9999) < 800 ? undefined : expected_cell_runtime}
             computeServerId={computeServerId}
+            compact={cellViewMode === "minimal"}
+            minimalLayout={cellViewMode === "minimal" ? effectiveLayout : undefined}
+            zenMode={cellViewMode === "minimal" ? zenMode : undefined}
+            onLayoutChange={cellViewMode === "minimal" ? handleLayoutChange : undefined}
+            onZenModeChange={cellViewMode === "minimal" ? handleZenModeChange : undefined}
+            availableLayouts={cellViewMode === "minimal" ? availableLayouts : undefined}
           />
         )}
         {cell_toolbar === "create_assignment" && (

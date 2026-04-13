@@ -24,6 +24,7 @@
 @use 'profile'
 @use 'jupyter/jupyter' as jupyter-jupyter
 @use 'frame-editors/_style' as frame-editors-style
+@use 'frame-editors/llm/_ai-assistant' as ai-assistant
 @use 'notifications/_style' as notifications-style
 @use 'account-button'
 @use 'account/_account' as account-account
@@ -100,10 +101,13 @@
   &.cc-explorer-table-mobile .cc-explorer-hover-icon
     visibility: visible
   // Checked (selected via checkbox): matches flyout selected style
-  .cc-explorer-row-checked > td
+  // The hover variant must come after the hover rule to override the faint hover blue
+  .cc-explorer-row-checked > td,
+  .cc-explorer-row-checked:hover > td
     background-color: colors.$COL_BLUE_LLL !important
   // Keyboard-selected row: blue background (matching flyout selection)
-  .cc-explorer-row-selected > td
+  .cc-explorer-row-selected > td,
+  .cc-explorer-row-selected:hover > td
     background-color: colors.$COL_BLUE_LLL !important
   // DnD drop target: folder row being hovered during drag
   // Must override both default bg and hover bg, hence doubled specificity
@@ -126,8 +130,42 @@
   .ant-menu-item-divider
     margin: 4px 0 !important
 
+// DnD: drag handle in frame editor title bar
+.cc-frame-drag-handle
+  cursor: grab
+  padding: 0 10px
+  color: colors.$COL_GRAY
+  display: flex
+  align-items: center
+  border-right: 1px solid colors.$COL_GRAY_L
+  margin-right: 4px
+  transition: background 0.15s, color 0.15s
+
+  &:hover
+    background: colors.$COL_BLUE_LLLL
+    color: colors.$COL_BLUE_D
+
+// DnD: blue dashed border on the frame when hovering its drag handle
+.cc-frame-leaf-container:has(.cc-frame-drag-handle:hover)
+  outline: 2px dashed colors.$COL_BLUE_L
+  outline-offset: -2px
+
+// DnD: visual feedback when dragging a frame in the frame editor
+body.cc-frame-dragging
+  cursor: grabbing !important
+  user-select: none
+
+  *
+    cursor: grabbing !important
+
 // DnD: highlight all folder drop targets when a file is being dragged
 body.cc-file-dragging
+  cursor: grabbing !important
+  user-select: none
+
+  *
+    cursor: grabbing !important
+
   [data-folder-drop-path]
     background-color: rgba(colors.$COL_RUN, 0.06) !important
     transition: background-color 0.15s
@@ -147,10 +185,11 @@ body
   width      : 100vw
   overflow-x : hidden
 
-div#smc-react-container
+div#smc-react-container,
+div#cocalc-webapp-container
   overflow   : hidden
   position   : absolute
-  top        : 0px
+  inset      : 0
 
 
 
@@ -515,6 +554,15 @@ span.cc-project-fixedtab-drag:hover
 
 div.cc-project-flyout-file-item:hover
   background-color: colors.$COL_BLUE_LLLL
+
+// Flyout quick action buttons (cut/copy/delete): hidden by default, visible on hover
+// No transitions — they cause a "trailing" effect during scroll.
+div.cc-project-flyout-file-item
+  .cc-flyout-quick-actions
+    visibility: hidden
+    transition: none !important
+  &:hover .cc-flyout-quick-actions
+    visibility: visible
 
 // Flyout type filter: orange highlight when a filter is active
 .cc-flyout-type-filter-active .ant-select-selector

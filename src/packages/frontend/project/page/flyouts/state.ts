@@ -64,10 +64,13 @@ export type LSFlyout = {
   active?: FlyoutActiveMode; // check using isFlyoutActiveMode
   files?: FilesMode;
   settings?: string[]; // expanded panels
+  servers?: string[]; // expanded server panels
   starred?: FlyoutActiveStarred;
   showStarred?: boolean;
   activeTabSort?: FlyoutActiveTabSort;
   logFilter?: FlyoutLogFilter[];
+  /** Flyout's independent browsing directory. */
+  directory?: string;
 };
 
 function isPositiveNumber(val: any): val is number {
@@ -87,6 +90,7 @@ export function storeFlyoutState(
     deduplicate?: boolean;
     scroll?: number;
     settings?: string[]; // expanded panels
+    servers?: string[]; // expanded server panels
     starred?: FlyoutActiveStarred;
     showStarred?: boolean;
     width?: number | null;
@@ -144,6 +148,11 @@ export function storeFlyoutState(
   if (flyout === "settings" && Array.isArray(state.settings)) {
     const keys = [...new Set(state.settings)].sort();
     current.settings = keys;
+  }
+
+  if (flyout === "servers" && Array.isArray(state.servers)) {
+    const keys = [...new Set(state.servers)].sort();
+    current.servers = keys;
   }
 
   if (flyout === "active") {
@@ -209,6 +218,10 @@ export function getFlyoutSettings(project_id: string): string[] {
   return LS.get<LSFlyout>(lsKey(project_id))?.settings ?? [];
 }
 
+export function getFlyoutServers(project_id: string): string[] {
+  return LS.get<LSFlyout>(lsKey(project_id))?.servers ?? [];
+}
+
 export function getFlyoutActiveMode(project_id: string): FlyoutActiveMode {
   const active = LS.get<LSFlyout>(lsKey(project_id))?.active;
   return isFlyoutActiveMode(active) ? active : FLYOUT_ACTIVE_DEFAULT_MODE;
@@ -229,4 +242,15 @@ export function getFlyoutActiveTabSort(
 ): FlyoutActiveTabSort {
   const activeTabSort = LS.get<LSFlyout>(lsKey(project_id))?.activeTabSort;
   return isFlyoutActiveTabSort(activeTabSort) ? activeTabSort : "custom";
+}
+
+export function getFlyoutDirectory(project_id: string): string {
+  return LS.get<LSFlyout>(lsKey(project_id))?.directory ?? "";
+}
+
+export function setFlyoutDirectory(project_id: string, path: string): void {
+  const key = lsKey(project_id);
+  const current = LS.get<LSFlyout>(key) ?? {};
+  current.directory = path;
+  LS.set(key, current);
 }

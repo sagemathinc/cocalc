@@ -16,15 +16,60 @@ import type { Command } from "./commands";
 
 export type FrameDirection = "row" | "col";
 
-/* Interface for object that describes a binary tree. */
-export interface FrameTree {
-  direction?: FrameDirection;
+export interface FrameLeaf {
   type: string;
-  first?: FrameTree;
-  second?: FrameTree;
   font_size?: number;
-  pos?: number;
+  direction?: never;
+  first?: never;
+  second?: never;
+  pos?: never;
+  children?: never;
+  sizes?: never;
+  activeTab?: never;
 }
+
+export interface LegacyBinaryFrameNode {
+  type: "node";
+  direction?: FrameDirection;
+  first: FrameTree;
+  second: FrameTree;
+  pos?: number;
+  children?: never;
+  sizes?: never;
+  activeTab?: never;
+  font_size?: never;
+}
+
+export interface NaryFrameNode {
+  type: "node";
+  direction?: FrameDirection;
+  children: FrameTree[];
+  sizes?: number[];
+  first?: never;
+  second?: never;
+  pos?: never;
+  activeTab?: never;
+  font_size?: never;
+}
+
+export interface TabsFrameNode {
+  type: "tabs";
+  children: FrameTree[];
+  activeTab?: number;
+  direction?: never;
+  first?: never;
+  second?: never;
+  pos?: never;
+  sizes?: never;
+  font_size?: never;
+}
+
+/* Shape for frame layout trees kept in local_view_state. */
+export type FrameTree =
+  | FrameLeaf
+  | LegacyBinaryFrameNode
+  | NaryFrameNode
+  | TabsFrameNode;
 
 // Someday!
 export type ImmutableFrameTree = Map<string, any>;
@@ -43,9 +88,12 @@ export type ConnectionStatus = "disconnected" | "connected" | "connecting";
 // Each editor gets its own unique type. This is useful to check which editor it is.
 // e.g. #7787 was caused by merely checking on the name, which had changed.
 type EditorType =
+  | "agent"
+  | "app_preview"
   | "chat"
   | "chatroom"
   | "cm-lean"
+  | "coding-agent"
   | "cm"
   | "course-assignments"
   | "course-actions"
@@ -63,6 +111,7 @@ type EditorType =
   | "jupyter-introspect"
   | "jupyter-toc"
   | "jupyter"
+  | "jupyter-minimal"
   | "latex-build"
   | "latex-output"
   | "latex-toc"
@@ -121,8 +170,8 @@ export interface EditorDescription {
   customizeCommands?: { [commandName: string]: Partial<Command> };
 
   // which commands will also appear in the button bar (if available)
-  // If a command is in a submenu, use '->' to link them together, i.e.,
-  // 'format-font -> bold' means the item named "bold" in the submenu
+  // If a command is in a submenu, use '/' to link them together, i.e.,
+  // 'format-font/bold' means the item named "bold" in the submenu
   // named 'format-font'.
   buttons?: { [commandName: string]: boolean };
 

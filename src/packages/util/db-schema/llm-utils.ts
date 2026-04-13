@@ -14,6 +14,7 @@ export const SERVICES = [
   "ollama",
   "custom_openai",
   "xai",
+  "zai",
 ] as const;
 
 // a "user-*" model is a wrapper for all the model services
@@ -62,6 +63,8 @@ export function toUserLLMModelName(llm: UserDefinedLLM) {
         return `${OPENAI_PREFIX}${llm.model}`;
       case "xai":
         return `${XAI_PREFIX}${llm.model}`;
+      case "zai":
+        return `${ZAI_PREFIX}${llm.model}`;
       default:
         unreachable(service);
         throw new Error(
@@ -106,6 +109,16 @@ export const OPENAI_PREFIX = "openai-";
 
 // NOTE: all arrays of model names should order them by the "simples and fastest" to the "complex, slowest, most expensive"
 // that way, the ordering the UI isn't looking arbitrary, but has a clear logic
+//
+// HISTORICAL NOTE on "-8k" / "-16k" suffixes:
+// These model name suffixes originally indicated a hard context limit (8 192 or
+// 16 000 input tokens) that the frontend enforced via truncation before sending
+// to the API.  Since the introduction of provider-side prompt caching (Anthropic
+// explicit, OpenAI/Google automatic) and the general decrease in per-token cost,
+// these artificial limits have been lifted to 50 000 tokens.  The suffixes remain
+// in the model names for backward compatibility with billing history, UI
+// references, and the server-side normalisation that strips them (e.g.
+// "gpt-4o-8k" → "gpt-4o").  New models should not add these suffixes.
 
 export const MODELS_OPENAI = [
   "gpt-3.5-turbo",
@@ -136,8 +149,12 @@ export const MODELS_OPENAI = [
   "gpt-5",
   "gpt-5.2-8k", // context limited
   "gpt-5.2",
+  "gpt-5.4-8k", // context limited
+  "gpt-5.4",
   "gpt-5-mini-8k", // context limited
   "gpt-5-mini",
+  "gpt-5.4-mini-8k", // context limited
+  "gpt-5.4-mini",
 ] as const;
 
 export type OpenAIModel = (typeof MODELS_OPENAI)[number];
@@ -336,6 +353,31 @@ export function toXaiProviderModel(model: string): string {
   return model.replace(/-\d+k$/, "");
 }
 
+// ZAI / Zhipu AI (https://z.ai/)
+export const ZAI_MODELS = ["glm-5.1"] as const;
+export const ZAI_PREFIX = "zai-";
+export type ZaiModel = (typeof ZAI_MODELS)[number];
+export type ZaiService = `${typeof ZAI_PREFIX}${ZaiModel}`;
+export function isZaiModel(model: unknown): model is ZaiModel {
+  return ZAI_MODELS.includes(model as any);
+}
+export function toZaiService(model: ZaiModel): ZaiService {
+  return `${ZAI_PREFIX}${model}`;
+}
+export function isZaiService(service: string): service is ZaiService {
+  return service.startsWith(ZAI_PREFIX);
+}
+export function fromZaiService(service: ZaiService): ZaiModel {
+  if (!isZaiService(service)) {
+    throw new Error(`not a zai service: ${service}`);
+  }
+  return service.slice(ZAI_PREFIX.length) as ZaiModel;
+}
+/** Normalize internal model name to the API model ID (strip -8k suffix). */
+export function toZaiProviderModel(model: string): string {
+  return model.replace(/-\d+k$/, "");
+}
+
 // the hardcoded list of available language models – there are also dynamic ones, like OllamaLLM objects
 export const LANGUAGE_MODELS = [
   ...MODELS_OPENAI,
@@ -343,6 +385,7 @@ export const LANGUAGE_MODELS = [
   ...GOOGLE_MODELS,
   ...ANTHROPIC_MODELS,
   ...XAI_MODELS,
+  ...ZAI_MODELS,
 ] as const;
 
 export const USER_SELECTABLE_LLMS_BY_VENDOR: {
@@ -350,38 +393,28 @@ export const USER_SELECTABLE_LLMS_BY_VENDOR: {
 } = {
   openai: MODELS_OPENAI.filter(
     (m) =>
-      m === "gpt-4" ||
-      m === "gpt-4-turbo-preview-8k" ||
-      m === "gpt-4o-8k" ||
-      m === "gpt-4o-mini-8k" ||
-      m === "gpt-4.1" ||
-      m === "gpt-4.1-mini" ||
-      m === "o3-8k" ||
-      m === "o4-mini-8k" ||
       m === "gpt-5.2-8k" ||
-      m === "gpt-5-mini-8k",
+      m === "gpt-5.4-8k" ||
+      m === "gpt-5-mini-8k" ||
+      m === "gpt-5.4-mini-8k",
   ),
   google: [
     "gemini-3.1-pro-preview-8k",
     "gemini-3-flash-preview-16k",
     "gemini-3-pro-preview-8k",
-    "gemini-2.5-flash-8k",
-    "gemini-2.5-pro-8k",
   ],
   mistralai: MISTRAL_MODELS.filter((m) => m !== "mistral-small-latest"),
   anthropic: ANTHROPIC_MODELS.filter((m) => {
-    // latest of each tier; keep 4.5 temporarily for users who have it configured
     return (
       m === "claude-4-5-haiku-8k" ||
-      m === "claude-4-5-sonnet-8k" ||
       m === "claude-4-6-sonnet-8k" ||
-      m === "claude-4-5-opus-8k" ||
       m === "claude-4-6-opus-8k"
     );
   }),
   ollama: [], // this is empty, because these models are not hardcoded
   custom_openai: [], // this is empty, because these models are not hardcoded]
   xai: XAI_MODELS, // all xAI models are user-selectable
+  zai: ["glm-5.1"],
   user: [],
 } as const;
 
@@ -394,6 +427,7 @@ export const USER_SELECTABLE_LANGUAGE_MODELS = [
   ...USER_SELECTABLE_LLMS_BY_VENDOR.mistralai,
   ...USER_SELECTABLE_LLMS_BY_VENDOR.anthropic,
   ...USER_SELECTABLE_LLMS_BY_VENDOR.xai,
+  ...USER_SELECTABLE_LLMS_BY_VENDOR.zai,
 ] as const;
 
 export type OllamaLLM = string;
@@ -478,6 +512,12 @@ export const LLM_PROVIDER: { [key in LLMServiceName]: LLMService } = {
     desc: "xAI is an American artificial intelligence company founded by Elon Musk.",
     url: "https://x.ai/",
   },
+  zai: {
+    name: "Zhipu AI",
+    short: "Chinese AI company",
+    desc: "Zhipu AI (Z.AI) develops the GLM series of language models.",
+    url: "https://z.ai/",
+  },
   user: {
     name: "User Defined",
     short: "Account → Language Model",
@@ -503,6 +543,7 @@ const DEFAULT_FILTER: Readonly<LLMServicesAvailable> = {
   anthropic: false,
   custom_openai: false,
   xai: false,
+  zai: false,
   user: false,
 } as const;
 
@@ -563,6 +604,7 @@ export const DEFAULT_LLM_PRIORITY: Readonly<UserDefinedLLMService[]> = [
   "anthropic",
   "mistralai",
   "xai",
+  "zai",
   "ollama",
   "custom_openai",
 ] as const;
@@ -635,7 +677,8 @@ export type LanguageServiceCore =
   | `${typeof GOOGLE_PREFIX}${GoogleModel}`
   | AnthropicService
   | MistralService
-  | XaiService;
+  | XaiService
+  | ZaiService;
 
 export type LanguageService =
   | LanguageServiceCore
@@ -662,6 +705,9 @@ export function model2service(model: LanguageModel): LanguageService {
   }
   if (isXaiModel(model)) {
     return toXaiService(model);
+  }
+  if (isZaiModel(model)) {
+    return toZaiService(model);
   }
   if (isMistralModel(model)) {
     return toMistralService(model);
@@ -734,6 +780,23 @@ export function service2model_core(
 // NOTE: do not use this – instead use server_settings.default_llm
 export const DEFAULT_MODEL: LanguageModel = "gemini-3-flash-preview-16k";
 
+/**
+ * Return a single free model suitable for lightweight tasks (e.g. auto-generating
+ * short titles).  Picks the first free model from the standard vendor priority.
+ * Falls back to DEFAULT_MODEL if nothing else is found.
+ */
+export function getOneFreeModel(): LanguageModel {
+  for (const v of DEFAULT_LLM_PRIORITY) {
+    const models = USER_SELECTABLE_LLMS_BY_VENDOR[v];
+    if (!models) continue;
+    for (const m of models) {
+      const cost = LLM_COST[m];
+      if (cost?.free) return m;
+    }
+  }
+  return DEFAULT_MODEL;
+}
+
 interface LLMVendor {
   name: LLMServiceName;
   url: string;
@@ -759,6 +822,8 @@ export function model2vendor(model): LLMVendor {
     return { name: "anthropic", url: LLM_PROVIDER.anthropic.url };
   } else if (isXaiModel(model)) {
     return { name: "xai", url: LLM_PROVIDER.xai.url };
+  } else if (isZaiModel(model)) {
+    return { name: "zai", url: LLM_PROVIDER.zai.url };
   }
 
   throw new Error(`model2vendor: unknown model: "${model}"`);
@@ -909,12 +974,17 @@ export const LLM_USERNAMES: LLM2String = {
   "gpt-5": "GPT-5 128k",
   "gpt-5.2-8k": "GPT-5.2",
   "gpt-5.2": "GPT-5.2 128k",
+  "gpt-5.4-8k": "GPT-5.4",
+  "gpt-5.4": "GPT-5.4 128k",
   "gpt-5-mini-8k": "GPT-5 Mini",
   "gpt-5-mini": "GPT-5 Mini 128k",
+  "gpt-5.4-mini-8k": "GPT-5.4 Mini",
+  "gpt-5.4-mini": "GPT-5.4 Mini 128k",
   "gemini-3-flash-preview-16k": "Gemini 3 Flash",
   "grok-4-1-fast-non-reasoning-16k": "Grok 4.1 Fast",
   "grok-4-1-fast-reasoning-16k": "Grok 4.1 Fast Reasoning",
   "grok-code-fast-1-16k": "Grok Code Fast",
+  "glm-5.1": "GLM 5.1",
 } as const;
 
 // similar to the above, we map to short user-visible description texts
@@ -1031,9 +1101,17 @@ export const LLM_DESCR: LLM2String = {
     "OpenAI's most advanced model with built-in reasoning (8k token context)",
   "gpt-5.2":
     "OpenAI's most advanced model with built-in reasoning (128k token context)",
+  "gpt-5.4-8k":
+    "OpenAI's most powerful model for professional work (8k token context)",
+  "gpt-5.4":
+    "OpenAI's most powerful model for professional work (128k token context)",
   "gpt-5-mini-8k":
     "Fast and cost-efficient version of GPT-5 (8k token context)",
   "gpt-5-mini": "Fast and cost-efficient version of GPT-5 (128k token context)",
+  "gpt-5.4-mini-8k":
+    "Powerful and cost-efficient mini model for coding and agents (8k token context)",
+  "gpt-5.4-mini":
+    "Powerful and cost-efficient mini model for coding and agents (128k token context)",
   "gemini-3-flash-preview-16k":
     "Google's Gemini 3 Flash model (16k token context)",
   "grok-4-1-fast-non-reasoning-16k":
@@ -1042,6 +1120,8 @@ export const LLM_DESCR: LLM2String = {
     "xAI's Grok 4.1 fast reasoning model (16k token context)",
   "grok-code-fast-1-16k":
     "xAI's Grok Code Fast model, specialized for coding tasks (16k token context)",
+  "glm-5.1":
+    "Z.AI's flagship model, top-tier coding and long-horizon tasks",
 } as const;
 
 export function isFreeModel(model: unknown, isCoCalcCom: boolean): boolean {
@@ -1090,6 +1170,8 @@ export function getLLMServiceStatusCheckMD(service: LLMServiceName): string {
       return `Anthropic [status](https://status.anthropic.com/).`;
     case "xai":
       return `xAI [status](https://status.x.ai/).`;
+    case "zai":
+      return `No status information for Zhipu AI (Z.AI) available.`;
     case "user":
       return `No status information for user defined model available.`;
     default:
@@ -1168,19 +1250,19 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gpt-4.1": {
     prompt_tokens: usd1Mtokens(2),
     completion_tokens: usd1Mtokens(8),
-    max_tokens: 8192,
+    max_tokens: 50_000,
     free: false,
   },
   "gpt-4.1-mini": {
     prompt_tokens: usd1Mtokens(0.4),
     completion_tokens: usd1Mtokens(1.6),
-    max_tokens: 8192,
+    max_tokens: 50_000,
     free: true,
   },
   "gpt-4o-8k": {
     prompt_tokens: usd1Mtokens(2.5),
     completion_tokens: usd1Mtokens(10),
-    max_tokens: 8192, // like gpt-4-turbo-8k
+    max_tokens: 50_000,
     free: false,
   },
   "gpt-4o": {
@@ -1192,7 +1274,7 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gpt-4o-mini-8k": {
     prompt_tokens: usd1Mtokens(0.15),
     completion_tokens: usd1Mtokens(0.6),
-    max_tokens: 8192, // like gpt-4-turbo-8k
+    max_tokens: 50_000,
     free: true,
   },
   "gpt-4o-mini": {
@@ -1285,31 +1367,31 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gemini-2.5-flash-8k": {
     prompt_tokens: usd1Mtokens(0.3),
     completion_tokens: usd1Mtokens(2.5),
-    max_tokens: 8_000,
+    max_tokens: 50_000,
     free: true,
   },
   "gemini-2.5-pro-8k": {
     prompt_tokens: usd1Mtokens(1.25),
     completion_tokens: usd1Mtokens(10),
-    max_tokens: 8_000,
+    max_tokens: 50_000,
     free: false,
   },
   "gemini-3-flash-preview-16k": {
     prompt_tokens: usd1Mtokens(0.5),
     completion_tokens: usd1Mtokens(3.0),
-    max_tokens: 16_000,
+    max_tokens: 50_000,
     free: true,
   },
   "gemini-3-pro-preview-8k": {
     prompt_tokens: usd1Mtokens(2),
     completion_tokens: usd1Mtokens(4),
-    max_tokens: 8_000,
+    max_tokens: 50_000,
     free: false,
   },
   "gemini-3.1-pro-preview-8k": {
     prompt_tokens: usd1Mtokens(2),
     completion_tokens: usd1Mtokens(12),
-    max_tokens: 8_000,
+    max_tokens: 50_000,
     free: false,
   },
   // https://mistral.ai/technology/
@@ -1322,19 +1404,19 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "mistral-medium-latest": {
     prompt_tokens: usd1Mtokens(0.4),
     completion_tokens: usd1Mtokens(2),
-    max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
+    max_tokens: 50_000,
     free: true,
   },
   "mistral-large-latest": {
     prompt_tokens: usd1Mtokens(2),
     completion_tokens: usd1Mtokens(6),
-    max_tokens: 4096, // TODO don't know the real value, see getMaxTokens
+    max_tokens: 50_000,
     free: false,
   },
   "devstral-medium-2507": {
     prompt_tokens: usd1Mtokens(0.4),
     completion_tokens: usd1Mtokens(2),
-    max_tokens: 8_000, // TODO don't know the real value, see getMaxTokens
+    max_tokens: 50_000,
     free: true,
   },
   // "magistral-medium-latest": {
@@ -1413,37 +1495,37 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "claude-4-5-sonnet-8k": {
     prompt_tokens: usd1Mtokens(3),
     completion_tokens: usd1Mtokens(15),
-    max_tokens: 8_000,
+    max_tokens: 50_000,
     free: false,
   },
   "claude-4-6-sonnet-8k": {
     prompt_tokens: usd1Mtokens(3),
     completion_tokens: usd1Mtokens(15),
-    max_tokens: 8_000,
+    max_tokens: 50_000,
     free: false,
   },
   "claude-4-5-opus-8k": {
     prompt_tokens: usd1Mtokens(5),
     completion_tokens: usd1Mtokens(25),
-    max_tokens: 8_000,
+    max_tokens: 50_000,
     free: false,
   },
   "claude-4-6-opus-8k": {
     prompt_tokens: usd1Mtokens(5),
     completion_tokens: usd1Mtokens(25),
-    max_tokens: 8_000,
+    max_tokens: 50_000,
     free: false,
   },
   "claude-4-5-haiku-8k": {
     prompt_tokens: usd1Mtokens(1),
     completion_tokens: usd1Mtokens(5),
-    max_tokens: 8_000,
+    max_tokens: 50_000,
     free: true,
   },
   "o3-8k": {
     prompt_tokens: usd1Mtokens(2),
     completion_tokens: usd1Mtokens(8),
-    max_tokens: 8192,
+    max_tokens: 50_000,
     free: false,
   },
   o3: {
@@ -1455,7 +1537,7 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "o4-mini-8k": {
     prompt_tokens: usd1Mtokens(1.1),
     completion_tokens: usd1Mtokens(4.4),
-    max_tokens: 8192,
+    max_tokens: 50_000,
     free: false,
   },
   "o4-mini": {
@@ -1479,7 +1561,7 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
   "gpt-5.2-8k": {
     prompt_tokens: usd1Mtokens(1.25),
     completion_tokens: usd1Mtokens(10),
-    max_tokens: 8192,
+    max_tokens: 50_000,
     free: false,
   },
   "gpt-5.2": {
@@ -1488,10 +1570,22 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 128000,
     free: false,
   },
+  "gpt-5.4-8k": {
+    prompt_tokens: usd1Mtokens(2.5),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 50_000,
+    free: false,
+  },
+  "gpt-5.4": {
+    prompt_tokens: usd1Mtokens(2.5),
+    completion_tokens: usd1Mtokens(15),
+    max_tokens: 128000,
+    free: false,
+  },
   "gpt-5-mini-8k": {
     prompt_tokens: usd1Mtokens(0.25),
     completion_tokens: usd1Mtokens(2),
-    max_tokens: 8192,
+    max_tokens: 50_000,
     free: true,
   },
   "gpt-5-mini": {
@@ -1500,24 +1594,43 @@ export const LLM_COST: { [name in LanguageModelCore]: Cost } = {
     max_tokens: 128000,
     free: true,
   },
+  "gpt-5.4-mini-8k": {
+    prompt_tokens: usd1Mtokens(0.75),
+    completion_tokens: usd1Mtokens(4.5),
+    max_tokens: 50_000,
+    free: true,
+  },
+  "gpt-5.4-mini": {
+    prompt_tokens: usd1Mtokens(0.75),
+    completion_tokens: usd1Mtokens(4.5),
+    max_tokens: 128000,
+    free: true,
+  },
   // xAI (https://x.ai/)
   "grok-4-1-fast-non-reasoning-16k": {
     prompt_tokens: usd1Mtokens(0.2),
     completion_tokens: usd1Mtokens(0.5),
-    max_tokens: 16_000,
+    max_tokens: 50_000,
     free: true,
   },
   "grok-4-1-fast-reasoning-16k": {
     prompt_tokens: usd1Mtokens(0.2),
     completion_tokens: usd1Mtokens(0.5),
-    max_tokens: 16_000,
+    max_tokens: 50_000,
     free: true,
   },
   "grok-code-fast-1-16k": {
     prompt_tokens: usd1Mtokens(0.2),
     completion_tokens: usd1Mtokens(1.5),
-    max_tokens: 16_000,
+    max_tokens: 50_000,
     free: true,
+  },
+  // ZAI / Zhipu AI (https://docs.z.ai/guides/overview/pricing)
+  "glm-5.1": {
+    prompt_tokens: usd1Mtokens(1.4),
+    completion_tokens: usd1Mtokens(4.4),
+    max_tokens: 50_000,
+    free: false,
   },
 } as const;
 
@@ -1530,10 +1643,11 @@ export function isValidModel(model?: string): boolean {
   if (isMistralModel(model)) return true;
   if (isGoogleModel(model)) return true;
   if (isXaiModel(model)) return true;
+  if (isZaiModel(model)) return true;
   return LLM_COST[model ?? ""] != null;
 }
 
-export const FALLBACK_MAX_TOKENS = 8192;
+export const FALLBACK_MAX_TOKENS = 50_000;
 
 // Overload 1: Just model string (existing signature)
 export function getMaxTokens(model?: LanguageModel): number;

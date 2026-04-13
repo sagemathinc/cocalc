@@ -64,3 +64,8 @@
     &:not(.ant-tabs-tabpane-hidden)
       display: flex
       flex-direction: column
+
+// During toolbar button drag-and-drop, force grabbing cursor on all elements
+.cc-toolbar-dragging,
+.cc-toolbar-dragging *
+  cursor: grabbing !important

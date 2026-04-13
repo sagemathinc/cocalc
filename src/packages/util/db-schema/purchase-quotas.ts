@@ -42,6 +42,7 @@ const ANTHROPIC_COLOR = "#181818";
 const OPENAI_COLOR = "#10a37f";
 const MISTRALAI_COLOR = "#ff7000";
 const XAI_COLOR = "#000000";
+const ZAI_COLOR = "#1a56db"; // Zhipu AI blue
 
 const GPT_TURBO_128k: Spec = {
   display: "OpenAI GPT-4 Turbo 128k",
@@ -140,6 +141,17 @@ const GPT_5_2_128k: Spec = {
   display: "OpenAI GPT-5.2 128k",
 } as const;
 
+const GPT_5_4_8K: Spec = {
+  display: "OpenAI GPT-5.4",
+  color: OPENAI_COLOR,
+  category: "ai",
+} as const;
+
+const GPT_5_4_128k: Spec = {
+  ...GPT_5_4_8K,
+  display: "OpenAI GPT-5.4 128k",
+} as const;
+
 const GPT_5_MINI_8K: Spec = {
   display: "OpenAI GPT-5 Mini",
   color: OPENAI_COLOR,
@@ -149,6 +161,17 @@ const GPT_5_MINI_8K: Spec = {
 const GPT_5_MINI_128k: Spec = {
   ...GPT_5_MINI_8K,
   display: "OpenAI GPT-5 Mini 128k",
+} as const;
+
+const GPT_5_4_MINI_8K: Spec = {
+  display: "OpenAI GPT-5.4 Mini",
+  color: OPENAI_COLOR,
+  category: "ai",
+} as const;
+
+const GPT_5_4_MINI_128k: Spec = {
+  ...GPT_5_4_MINI_8K,
+  display: "OpenAI GPT-5.4 Mini 128k",
 } as const;
 
 // NOTE: all-quotas-config.tsx will automatically filter out those, which are free or not selectable by the user
@@ -266,8 +289,12 @@ export const QUOTA_SPEC: QuotaSpec = {
   "openai-gpt-5": GPT_5_128k,
   "openai-gpt-5.2-8k": GPT_5_2_8K,
   "openai-gpt-5.2": GPT_5_2_128k,
+  "openai-gpt-5.4-8k": GPT_5_4_8K,
+  "openai-gpt-5.4": GPT_5_4_128k,
   "openai-gpt-5-mini-8k": GPT_5_MINI_8K,
   "openai-gpt-5-mini": GPT_5_MINI_128k,
+  "openai-gpt-5.4-mini-8k": GPT_5_4_MINI_8K,
+  "openai-gpt-5.4-mini": GPT_5_4_MINI_128k,
   "google-text-bison-001": {
     display: "Google Palm 2 (Text)",
     color: GOOGLE_AI_COLOR,
@@ -364,6 +391,11 @@ export const QUOTA_SPEC: QuotaSpec = {
   "xai-grok-code-fast-1-16k": {
     display: LLM_USERNAMES["grok-code-fast-1-16k"],
     color: XAI_COLOR,
+    category: "ai",
+  },
+  "zai-glm-5.1": {
+    display: LLM_USERNAMES["glm-5.1"],
+    color: ZAI_COLOR,
     category: "ai",
   },
   "anthropic-claude-3-opus": {

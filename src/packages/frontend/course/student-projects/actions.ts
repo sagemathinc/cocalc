@@ -42,6 +42,7 @@ export class StudentProjectsActions {
   // Create and configure a single student project.
   create_student_project = async (
     student_id: string,
+    configure: boolean = true,
   ): Promise<string | undefined> => {
     const { store, student } = this.course_actions.resolve({
       student_id,
@@ -85,16 +86,22 @@ export class StudentProjectsActions {
     } finally {
       this.course_actions.clear_activity(id);
     }
-    this.course_actions.set({
-      create_project: null,
-      project_id,
-      table: "students",
-      student_id,
-    });
-    await this.configure_project({
-      student_id,
-      student_project_id: project_id,
-    });
+    this.course_actions.set(
+      {
+        create_project: null,
+        project_id,
+        table: "students",
+        student_id,
+      },
+      true,
+      true, // emit change immediately so project_id is visible in the store
+    );
+    if (configure) {
+      await this.configure_project({
+        student_id,
+        student_project_id: project_id,
+      });
+    }
     return project_id;
   };
 
@@ -307,6 +314,12 @@ export class StudentProjectsActions {
   ): Promise<void> => {
     const actions = redux.getActions("projects");
     await actions.set_site_license(student_project_id, "");
+  };
+
+  private remove_course_project_licenses = async (
+    student_project_id: string,
+  ): Promise<void> => {
+    await this.set_project_site_license(student_project_id, []);
   };
 
   remove_all_project_licenses = async (): Promise<void> => {
@@ -536,6 +549,7 @@ export class StudentProjectsActions {
     });
     try {
       for (const student of store.get_students().valueSeq().toArray()) {
+        if (student.get("deleted")) continue;
         const student_project_id = student.get("project_id");
         if (student_project_id == null) continue;
         // account_id: might not be known when student first added, or if student
@@ -794,12 +808,14 @@ export class StudentProjectsActions {
         const idDel: number = this.course_actions.set_activity({
           desc: `Configuring deleted student project ${i} of ${deletedIDs.length}`,
         });
-        await this.configure_project({
-          student_id: deleted_student_id,
-          student_project_id: undefined,
-          force_send_invite_by_email: false,
-          license_id: "", // no license for a deleted project
-        });
+        const project_id = store.getIn([
+          "students",
+          deleted_student_id,
+          "project_id",
+        ]);
+        if (project_id != null) {
+          await this.remove_course_project_licenses(project_id);
+        }
         this.course_actions.set_activity({ id: idDel });
         await delay(0); // give UI, etc. a solid chance to render
       }

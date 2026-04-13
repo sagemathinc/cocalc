@@ -403,7 +403,7 @@ export class ProjectStore extends Store<ProjectStoreState> {
         // The explorer has its own browsing path, independent of the
         // project-wide current_path (which tracks the active file context).
         const explorerPath =
-          this.get("explorer_browsing_path") ?? this.get("current_path");
+          this.get("explorer_browsing_path") ?? "";
         const listingStored = this.getIn([
           "directory_listings",
           this.get("compute_server_id"),

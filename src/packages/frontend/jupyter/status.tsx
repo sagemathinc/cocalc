@@ -17,6 +17,8 @@ import {
   Popconfirm,
   Popover,
   Progress,
+  Segmented,
+  Switch,
   Tooltip,
   Typography,
 } from "antd";
@@ -24,7 +26,7 @@ import * as immutable from "immutable";
 import { ReactNode, useEffect } from "react";
 import { FormattedMessage, useIntl } from "react-intl";
 import ProgressEstimate from "../components/progress-estimate";
-import { labels } from "../i18n";
+import { jupyter as jupyterI18n, labels } from "../i18n";
 import { JupyterActions } from "./browser-actions";
 import Logo from "./logo";
 import { ALERT_COLS } from "./usage";
@@ -79,6 +81,13 @@ interface KernelProps {
   style?: CSS;
   computeServerId?: number;
   is_fullscreen?: boolean;
+  compact?: boolean;
+  /** Minimal notebook layout controls */
+  minimalLayout?: "wide" | "comfortable" | "narrow";
+  zenMode?: boolean;
+  onLayoutChange?: (layout: "wide" | "comfortable" | "narrow") => void;
+  onZenModeChange?: (zen: boolean) => void;
+  availableLayouts?: readonly ("wide" | "comfortable" | "narrow")[];
 }
 
 export function Kernel({
@@ -88,6 +97,12 @@ export function Kernel({
   usage,
   computeServerId,
   is_fullscreen,
+  compact,
+  minimalLayout,
+  zenMode,
+  onLayoutChange,
+  onZenModeChange,
+  availableLayouts,
 }: KernelProps) {
   const intl = useIntl();
   const name = actions.name;
@@ -163,7 +178,7 @@ export function Kernel({
       if (display_name == null) {
         display_name = kernel ?? "No Kernel";
       }
-      const style = { ...KERNEL_NAME_STYLE, maxWidth: "20em" };
+      const style = { ...KERNEL_NAME_STYLE, maxWidth: compact ? "14em" : "20em" };
       return (
         <div
           style={style}
@@ -228,6 +243,7 @@ export function Kernel({
   }
 
   function render_trust() {
+    if (compact) return;
     if (IS_MOBILE) return;
     if (trust) {
       return (
@@ -320,12 +336,7 @@ export function Kernel({
             </>
           );
         case "idle":
-          const tooltip = intl.formatMessage({
-            id: "jupyter.status.halt_idle_tooltip",
-            defaultMessage:
-              "Terminate the kernel process? All variable state will be lost.",
-            description: "Terminating the kernel of a Jupyter Notebook",
-          });
+          const tooltip = intl.formatMessage(jupyterI18n.editor.halt_kernel_confirm);
           return (
             <>
               Kernel is idle{" "}
@@ -376,23 +387,39 @@ export function Kernel({
     }
   }
 
+  function kernelStateCompact(): ReactNode {
+    if (kernel === null) return "No kernel";
+    if (backend_state === "running") {
+      switch (kernel_state) {
+        case "busy":
+          return "Busy";
+        case "idle":
+          return "Idle";
+      }
+    } else if (backendIsStarting) {
+      return "Starting";
+    }
+    return null;
+  }
+
   function renderKernelState() {
     if (!backend_state) return <div></div>;
+    const value = compact ? kernelStateCompact() : kernelState();
     return (
       <Tooltip title={kernelState()} placement="bottom">
         <div
           style={{
-            flex: 1,
+            flex: compact ? "0 0 auto" : 1,
             color: COLORS.GRAY_M,
             textAlign: "center",
             whiteSpace: "nowrap",
             overflow: "hidden",
             textOverflow: "ellipsis",
-            marginTop: "2.5px",
+            marginTop: compact ? 0 : "2.5px",
             fontSize: IS_MOBILE ? "10pt" : undefined,
           }}
         >
-          {kernelState()}
+          {value}
         </div>
       </Tooltip>
     );
@@ -503,27 +530,21 @@ export function Kernel({
       return;
     }
 
-    const style: CSS = {
-      display: "flex",
-      borderLeft: `1px solid ${COLORS.GRAY}`,
-      cursor: "pointer",
-    };
-    const pstyle: CSS = {
-      margin: "2px",
-      width: "100%",
-      position: "relative",
-      top: "-1px",
-    };
-    const usage_style: CSS = KERNEL_USAGE_STYLE;
-
     if (isSpwarning) {
+      const usage_style: CSS = KERNEL_USAGE_STYLE;
+      const pstyle: CSS = {
+        margin: "2px",
+        width: compact ? "80px" : "175px",
+        position: "relative",
+        top: "-3px",
+      };
       // we massively overestimate: 15s for python and co, and 30s for sage and julia
       const s =
         kernel.startsWith("sage") || kernel.startsWith("julia") ? 30 : 15;
       return (
         <div style={{ ...usage_style, display: "flex" }}>
           <ProgressEstimate
-            style={{ ...pstyle, width: "175px", top: "-3px" }}
+            style={pstyle}
             seconds={s}
           />
         </div>
@@ -546,6 +567,26 @@ export function Kernel({
       100 * (usage.cpu_runtime / expected_cell_runtime),
     );
 
+    const style: CSS = {
+      display: "flex",
+      width: compact ? "300px" : undefined,
+      flex: compact ? undefined : 1,
+      borderLeft: `1px solid ${COLORS.GRAY}`,
+      cursor: "pointer",
+      alignItems: compact ? "end" : undefined,
+    };
+    const pstyle: CSS = {
+      margin: compact ? "0 2px" : "2px",
+      width: "100%",
+      position: "relative",
+      top: compact ? 0 : "-1px",
+    };
+    const trailColor = compact ? COLORS.GRAY_LL : "white";
+    const showLabel = is_fullscreen || compact;
+    const usage_style: CSS = compact
+      ? { ...KERNEL_USAGE_STYLE, borderRight: "none", margin: "0 4px", paddingRight: 0, alignItems: "center" }
+      : KERNEL_USAGE_STYLE;
+
     return (
       <div style={style}>
         {runProgress != null && (
@@ -558,8 +599,8 @@ export function Kernel({
             }
           >
             <div style={usage_style}>
-              {is_fullscreen ? (
-                <span style={{ marginRight: "5px" }}>Code</span>
+              {showLabel ? (
+                <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: COLORS.GRAY_M }}>Code</span>
               ) : (
                 ""
               )}
@@ -568,30 +609,30 @@ export function Kernel({
                 showInfo={false}
                 percent={runProgress}
                 size="small"
-                trailColor="white"
+                trailColor={trailColor}
               />
             </div>
           </Tooltip>
         )}
         <div style={usage_style}>
-          {is_fullscreen ? <span style={{ marginRight: "5px" }}>CPU</span> : ""}
+          {showLabel ? <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: COLORS.GRAY_M }}>CPU</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
             percent={cpu_val}
             size="small"
-            trailColor="white"
+            trailColor={trailColor}
             strokeColor={ALERT_COLS[usage.time_alert]}
           />
         </div>
         <div style={usage_style}>
-          {is_fullscreen ? <span style={{ marginRight: "5px" }}>RAM</span> : ""}
+          {showLabel ? <span style={{ marginRight: "5px", fontSize: compact ? "11px" : undefined, color: COLORS.GRAY_M }}>RAM</span> : ""}
           <Progress
             style={pstyle}
             showInfo={false}
             percent={usage.mem_pct}
             size="small"
-            trailColor="white"
+            trailColor={trailColor}
             strokeColor={ALERT_COLS[usage.mem_alert]}
           />
         </div>
@@ -699,6 +740,116 @@ export function Kernel({
       {info}
     </div>
   );
+
+  if (compact) {
+    return (
+      <div
+        style={{
+          overflow: "hidden",
+          width: "100%",
+          padding: "4px 6px",
+          backgroundColor: COLORS.GRAY_LLL,
+          display: "flex",
+          alignItems: "center",
+          gap: "6px",
+          borderBottom: "1px solid #ccc",
+          ...style,
+        }}
+      >
+        <div>{renderLogo()}</div>
+        <div
+          style={{
+            flex: "0 0 auto",
+            display: "flex",
+            alignItems: "center",
+            gap: "6px",
+          }}
+        >
+          {body}
+          {renderKernelState()}
+        </div>
+        {renderTip(get_kernel_name(), renderUsage())}
+        <div style={{ flex: 1 }} />
+        {!read_only &&
+          backend_state === "running" &&
+          kernel_state === "busy" && (
+            <Tooltip
+              title={intl.formatMessage({
+                id: "jupyter.status.interrupt_tooltip",
+                defaultMessage: "Interrupt the running computation",
+              })}
+            >
+              <Button
+                type="text"
+                size="small"
+                onClick={() => actions.signal("SIGINT")}
+              >
+                <Icon name="stop" /> Stop
+              </Button>
+            </Tooltip>
+          )}
+        {!read_only && kernel != null && !no_kernel && (
+          <Button
+            type="text"
+            size="small"
+            onClick={() => void actions.confirm_restart()}
+          >
+            <Icon name="redo" /> Restart
+          </Button>
+        )}
+        {/* Layout and zen controls for minimal notebook */}
+        {onLayoutChange && (
+          <>
+            <div style={{ borderLeft: `1px solid ${COLORS.GRAY_LL}`, height: "18px", margin: "0 2px" }} />
+            <Segmented
+              size="small"
+              value={minimalLayout ?? "comfortable"}
+              onChange={(v) => onLayoutChange(v as "wide" | "comfortable" | "narrow")}
+              options={[
+                {
+                  value: "wide",
+                  label: (
+                    <Tooltip title="Full width">
+                      <Icon name="column-width" />
+                    </Tooltip>
+                  ),
+                },
+                {
+                  value: "comfortable",
+                  disabled: !availableLayouts?.includes("comfortable"),
+                  label: (
+                    <Tooltip title="Comfortable width">
+                      <Icon name="pic-centered" rotate="90" />
+                    </Tooltip>
+                  ),
+                },
+                {
+                  value: "narrow",
+                  disabled: !availableLayouts?.includes("narrow"),
+                  label: (
+                    <Tooltip title="Narrow, centered">
+                      <Icon name="vertical-align-middle" rotate="90" />
+                    </Tooltip>
+                  ),
+                },
+              ].filter(o => availableLayouts?.includes(o.value as any) ?? true)}
+            />
+          </>
+        )}
+        {onZenModeChange && (
+          <Tooltip title={zenMode ? "Show code cells" : "Hide code cells"}>
+            <span
+              style={{ display: "inline-flex", alignItems: "center", gap: "4px", cursor: "pointer" }}
+              onClick={() => onZenModeChange(!zenMode)}
+            >
+              <Switch size="small" checked={zenMode} />
+              <span style={{ fontSize: "12px", userSelect: "none" }}>Zen</span>
+            </span>
+          </Tooltip>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
