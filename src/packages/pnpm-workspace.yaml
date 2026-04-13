@@ -6,9 +6,6 @@ packages:
   - "!**/cdn/dist/**"
   - "!compute"
 minimumReleaseAge: 4320 # 3 days
-minimumReleaseAgeExclude:
-  - lodash
-  - lodash-es
 
 onlyBuiltDependencies:
   - better-sqlite3

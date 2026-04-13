@@ -13,10 +13,12 @@ let lastModelId: string | undefined = undefined;
 jest.mock("@ai-sdk/openai", () => ({
   createOpenAI: (args: any) => {
     lastProviderArgs = args;
-    return (modelId: string) => {
+    const modelFn = (modelId: string) => {
       lastModelId = modelId;
       return { modelId, _provider: "mock" };
     };
+    modelFn.chat = modelFn;
+    return modelFn;
   },
 }));
 
@@ -51,7 +53,6 @@ describe("getOllamaModel config passthrough", () => {
     expect(lastProviderArgs).toMatchObject({
       apiKey: "ollama",
       baseURL: "http://localhost:11434/v1",
-      compatibility: "compatible",
     });
     expect(lastModelId).toBe("llama3:latest");
     expect(result.requestOverrides).toEqual({
@@ -182,7 +183,6 @@ describe("getCustomOpenAIModel config passthrough", () => {
     expect(lastProviderArgs).toMatchObject({
       apiKey: "sk-test",
       baseURL: "https://api.openai.com/v1",
-      compatibility: "compatible",
     });
     expect(lastModelId).toBe("gpt-4o");
     expect(result.requestOverrides).toEqual({
@@ -305,7 +305,7 @@ describe("requestOverrides flow through evaluateWithAI", () => {
     jest.doMock("ai", () => ({
       generateText: (mockGenerateText = jest.fn(async () => ({
         text: "result",
-        usage: { promptTokens: 10, completionTokens: 5, totalTokens: 15 },
+        usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
       }))),
       streamText: jest.fn(),
     }));

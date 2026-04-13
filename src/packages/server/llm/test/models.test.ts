@@ -37,8 +37,10 @@ const QUERY = {
 } as const;
 
 function checkAnswer(answer) {
-  const { output, total_tokens, completion_tokens, prompt_tokens } = answer;
+  const { output, total_tokens, completion_tokens, prompt_tokens, tokensFromApi } = answer;
   expect(output).toContain("100");
+  // Token counts must come from the LLM provider, not the local fallback estimator
+  expect(tokensFromApi).toBe(true);
   // For "thinking" models like gemini 2.5, total tokens can be more than sum due to thinking tokens
   // For some Google models, total tokens can be less than sum due to different tokenization
   // So we just check that all token counts are reasonable numbers
