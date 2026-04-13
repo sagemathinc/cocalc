@@ -10,62 +10,55 @@ import { numTokens } from "./chatgpt-numtokens";
 
 const log = getLogger("llm:utils");
 
-/** AI SDK usage shape returned by generateText / streamText. */
+/** AI SDK usage shape returned by generateText / streamText (v6+). */
 export interface AIUsage {
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
+  inputTokens: number | undefined;
+  outputTokens: number | undefined;
+  totalTokens: number | undefined;
+  inputTokenDetails: {
+    noCacheTokens: number | undefined;
+    cacheReadTokens: number | undefined;
+    cacheWriteTokens: number | undefined;
+  };
+  outputTokenDetails: {
+    textTokens: number | undefined;
+    reasoningTokens: number | undefined;
+  };
 }
 
 /**
- * Extract interesting token details from providerMetadata for logging.
- * Each provider stashes cache / reasoning token counts under its own key:
- *   - anthropic: cacheCreationInputTokens, cacheReadInputTokens
- *   - openai:    reasoningTokens, cachedPromptTokens
- *   - deepseek:  promptCacheHitTokens, promptCacheMissTokens
- *   - bedrock:   usage.cacheReadInputTokens, usage.cacheWriteInputTokens
- *   - google:    (not yet exposed by @ai-sdk/google — only groundingMetadata)
+ * Extract interesting token details for logging.
+ *
+ * AI SDK v6 standardises cache/reasoning details in the usage object itself
+ * (inputTokenDetails, outputTokenDetails). We read from there first, then
+ * fall back to providerMetadata for any provider-specific extras.
  */
 export function extractTokenDetails(
   meta: Record<string, Record<string, unknown>> | undefined,
+  usage?: AIUsage,
 ): Record<string, unknown> | undefined {
-  if (!meta) return undefined;
   const details: Record<string, unknown> = {};
 
-  // Anthropic prompt caching
-  const anth = meta.anthropic;
-  if (anth) {
-    if (anth.cacheCreationInputTokens)
-      details.cacheWriteTokens = anth.cacheCreationInputTokens;
-    if (anth.cacheReadInputTokens)
-      details.cacheReadTokens = anth.cacheReadInputTokens;
+  // Standardised token details from AI SDK v6 usage object
+  if (usage) {
+    if (usage.inputTokenDetails?.cacheReadTokens)
+      details.cacheReadTokens = usage.inputTokenDetails.cacheReadTokens;
+    if (usage.inputTokenDetails?.cacheWriteTokens)
+      details.cacheWriteTokens = usage.inputTokenDetails.cacheWriteTokens;
+    if (usage.outputTokenDetails?.reasoningTokens)
+      details.reasoningTokens = usage.outputTokenDetails.reasoningTokens;
   }
 
-  // OpenAI reasoning / caching
-  const oai = meta.openai;
-  if (oai) {
-    if (oai.reasoningTokens) details.reasoningTokens = oai.reasoningTokens;
-    if (oai.cachedPromptTokens)
-      details.cachedPromptTokens = oai.cachedPromptTokens;
-  }
-
-  // DeepSeek caching
-  const ds = meta.deepseek;
-  if (ds) {
-    if (ds.promptCacheHitTokens)
-      details.cacheHitTokens = ds.promptCacheHitTokens;
-    if (ds.promptCacheMissTokens)
-      details.cacheMissTokens = ds.promptCacheMissTokens;
-  }
-
-  // Bedrock caching (nested under usage)
-  const br = meta.bedrock as Record<string, unknown> | undefined;
-  if (br) {
-    const brUsage = br.usage as Record<string, unknown> | undefined;
-    if (brUsage?.cacheReadInputTokens)
-      details.cacheReadTokens = brUsage.cacheReadInputTokens;
-    if (brUsage?.cacheWriteInputTokens)
-      details.cacheWriteTokens = brUsage.cacheWriteInputTokens;
+  // Provider-specific extras from providerMetadata (may overlap with above)
+  if (meta) {
+    // DeepSeek caching (provider-specific fields not in standard usage)
+    const ds = meta.deepseek;
+    if (ds) {
+      if (ds.promptCacheHitTokens)
+        details.cacheHitTokens = ds.promptCacheHitTokens;
+      if (ds.promptCacheMissTokens)
+        details.cacheMissTokens = ds.promptCacheMissTokens;
+    }
   }
 
   return Object.keys(details).length > 0 ? details : undefined;
@@ -86,26 +79,29 @@ export function buildChatOutput(
   // Use API-provided token counts; fall back to approximation only if the
   // provider returns 0 (e.g. some Ollama versions)
   const prompt_tokens =
-    usage.promptTokens > 0
-      ? usage.promptTokens
+    (usage.inputTokens ?? 0) > 0
+      ? usage.inputTokens!
       : numTokens(input) + historyTokens;
   const completion_tokens =
-    usage.completionTokens > 0 ? usage.completionTokens : numTokens(output);
+    (usage.outputTokens ?? 0) > 0 ? usage.outputTokens! : numTokens(output);
   // Prefer the provider's total when it exceeds prompt+completion (e.g.
   // thinking/cached tokens that aren't split out).  Fall back to the sum.
   const computed = prompt_tokens + completion_tokens;
   const total_tokens =
-    usage.totalTokens > computed ? usage.totalTokens : computed;
+    (usage.totalTokens ?? 0) > computed ? usage.totalTokens! : computed;
 
-  const tokenDetails = extractTokenDetails(providerMetadata);
+  const tokensFromApi =
+    (usage.inputTokens ?? 0) > 0 && (usage.outputTokens ?? 0) > 0;
+
+  const tokenDetails = extractTokenDetails(providerMetadata, usage);
 
   log.debug(`${providerName} successful`, {
     prompt_tokens,
     completion_tokens,
     total_tokens,
-    from_api: usage.promptTokens > 0,
+    tokensFromApi,
     ...(tokenDetails ? { tokenDetails } : {}),
   });
 
-  return { output, total_tokens, completion_tokens, prompt_tokens };
+  return { output, total_tokens, completion_tokens, prompt_tokens, tokensFromApi };
 }
